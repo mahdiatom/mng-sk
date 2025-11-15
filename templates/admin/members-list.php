@@ -1,0 +1,1 @@
+<h1>SportClub Manager Dashboard</h1>
