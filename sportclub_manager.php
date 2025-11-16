@@ -67,6 +67,8 @@ add_action('wp_enqueue_scripts', 'sc_public_enqueue_assets');
 function sc_admin_enqueue_assets() {
     wp_enqueue_style('sc-admin-css', SC_ASSETS_URL . 'css/admin.css', array(), '1.0');
     wp_enqueue_script('sc-admin-js', SC_ASSETS_URL . 'js/admin.js', array('jquery'), '1.0', true);
+    // add media wp for photo and ....
+        wp_enqueue_media();
 }
 
 /**
