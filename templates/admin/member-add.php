@@ -1,48 +1,59 @@
 <?php 
-$first_name = '';
-$last_name = '';
-$father_name = '';
-$national_id = '';
-$player_phone = '';
-$father_phone = '';
-$mother_phone = '';
-$landline_phone = '';
-$birth_date_shamsi = '';
-$birth_date_gregorian = '';
-$personal_photo = '';
-$id_card_photo = '';
-$sport_insurance_photo = '';
-$medical_condition = '';
-$sports_history = '';
-$health_verified = 0;
-$info_verified = 0;
-$is_active = 1;
-$additional_info = '';
+        $first_name = '';
+        $last_name = '';
+        $father_name = '';
+        $national_id = '';
+        $player_phone = '';
+        $father_phone = '';
+        $mother_phone = '';
+        $landline_phone = '';
+        $birth_date_shamsi = '';
+        $birth_date_gregorian = '';
+        $personal_photo = '';
+        $id_card_photo = '';
+        $sport_insurance_photo = '';
+        $medical_condition = '';
+        $sports_history = '';
+        $health_verified = 0;
+        $info_verified = 0;
+        $is_active = 1;
+        $additional_info = '';
 
 if($player && $_GET['player_id'] ){
-$first_name              = $player->first_name;
-$last_name               = $player->last_name;
-$father_name             = $player->father_name;
-$national_id             = $player->national_id;
-$player_phone            = $player->player_phone;
-$father_phone            = $player->father_phone;
-$mother_phone            = $player->mother_phone;
-$landline_phone          = $player->landline_phone;
-$birth_date_shamsi       = $player->birth_date_shamsi;
-$birth_date_gregorian    = $player->birth_date_gregorian;
-$personal_photo          = $player->personal_photo;
-$id_card_photo           = $player->id_card_photo;
-$sport_insurance_photo   = $player->sport_insurance_photo;
-$medical_condition       = $player->medical_condition;
-$sports_history          = $player->sports_history;
-$health_verified         = $player->health_verified;
-$info_verified           = $player->info_verified;
-$is_active               = $player->is_active;
-$additional_info         = $player->additional_info;
-}
+        $first_name              = $player->first_name;
+        $last_name               = $player->last_name;
+        $father_name             = $player->father_name;
+        $national_id             = $player->national_id;
+        $player_phone            = $player->player_phone;
+        $father_phone            = $player->father_phone;
+        $mother_phone            = $player->mother_phone;
+        $landline_phone          = $player->landline_phone;
+        $birth_date_shamsi       = $player->birth_date_shamsi;
+        $birth_date_gregorian    = $player->birth_date_gregorian;
+        $personal_photo          = $player->personal_photo;
+        $id_card_photo           = $player->id_card_photo;
+        $sport_insurance_photo   = $player->sport_insurance_photo;
+        $medical_condition       = $player->medical_condition;
+        $sports_history          = $player->sports_history;
+        $health_verified         = $player->health_verified;
+        $info_verified           = $player->info_verified;
+        $is_active               = $player->is_active;
+        $additional_info         = $player->additional_info;
+    }
 ?>
 <div class="wrap">
-    <h1 class="wp-heading-inline">افزودن بازیکن جدید</h1>
+    <h1 class="wp-heading-inline">
+        <?php echo isset($_GET['player_id']) ? 'بروزرسانی اطلاعات بازیکن' : 'ثبت بازکین جدید'; ?>
+            </h1>
+    <?php 
+        if(isset($_GET['player_id'])){
+            ?>
+            <a href="<?php echo admin_url('admin.php?page=sc-add-member'); ?>" class="page-title-action">افزودن بازیکن جدید</a>
+            <?php 
+
+        }
+        
+    ?>
 
     <form action="" method="POST" enctype="multipart/form-data">
         <?php //wp_nonce_field('sk_add_player', 'sk_player_nonce'); ?>
