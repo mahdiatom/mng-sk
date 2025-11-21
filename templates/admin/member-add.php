@@ -116,8 +116,8 @@ $additional_info         = $player->additional_info;
                         <?php
                             
                             ?>
-                            <input type="text" name="personal_photo" id="personal_photo_txt" class="regular-text" value="<?php echo $personal_photo; ?>">
-                            <button type="button" class="button-secondary sc-upload-btn" data-target="#personal_photo_txt">انتخاب تصویر</button>
+                            <input type="text" name="personal_photo" id="personal_photo_txt" class="regular-text" value="<?php echo $personal_photo; ?>" placeholder="آدرس تصویر یا آپلود کنید">
+                            <button type="button" class="button-secondary sc-upload-btn" id="btn_personal_photo">انتخاب تصویر</button>
 
                             <?php if (!empty($personal_photo)) : ?>
                                 <div style="margin-top:10px;">
@@ -133,9 +133,9 @@ $additional_info         = $player->additional_info;
                 <tr>
                     <th scope="row"><label for="id_card_photo">عکس کارت ملی</label></th>
                     <td>
-                            <input type="text" name="id_card_photo" id="id_card_photo_txt" value="<?php  echo esc_attr($id_card_photo); ?> " class="regular-text" placeholder="آدرس تصویر یا آپلود کنید" />
-                            <input type="button" class="button-secondary sc-upload-btn" data-target="#id_card_photo_txt" id="id_card_photo_button" value="انتخاب تصویر">
-                            <?php if (!empty($personal_photo)) : ?>
+                            <input type="text" name="id_card_photo" id="id_card_photo_txt" value="<?php  echo esc_attr($id_card_photo);?>" class="regular-text" placeholder="آدرس تصویر یا آپلود کنید" />
+                            <input type="button" class="button-secondary sc-upload-btn" id="btn_id_card_photo" value="انتخاب تصویر">
+                            <?php if (!empty($id_card_photo)) : ?>
                                 <div style="margin-top:10px;">
                                     <img src="<?php   echo esc_url($id_card_photo); ?>" alt="" style="max-width:300px;border:1px solid #ccc;border-radius:6px;">
                                 </div>
@@ -147,8 +147,8 @@ $additional_info         = $player->additional_info;
                 <tr>
                     <th scope="row"><label for="sport_insurance_photo">عکس بیمه ورزشی</label></th>
                     <td>
-                        <input type="text" name="sport_insurance_photo" id="sport_insurance_photo_txt" value="<?php  echo esc_attr($sport_insurance_photo); ?> " class="regular-text" placeholder="آدرس تصویر یا آپلود کنید" />
-                            <input type="button" class="button-secondary sc-upload-btn" data-target="#sport_insurance_photo_txt" id="sport_insurance_photo" value="انتخاب تصویر">
+                        <input type="text" name="sport_insurance_photo" id="sport_insurance_photo_txt" value="<?php  echo esc_attr($sport_insurance_photo);?>" class="regular-text" placeholder="آدرس تصویر یا آپلود کنید" />
+                            <input type="button" class="button-secondary sc-upload-btn" id="btn_sport_insurance_photo" value="انتخاب تصویر">
                             <?php if (!empty($sport_insurance_photo)) : ?>
                                 <div style="margin-top:10px;">
                                     <img src="<?php   echo esc_url($sport_insurance_photo); ?>" alt="" style="max-width:300px;border:1px solid #ccc;border-radius:6px;">
