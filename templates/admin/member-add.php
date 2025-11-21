@@ -197,7 +197,9 @@ $additional_info         = $player->additional_info;
         </table>
 
         <p class="submit">
-            <button type="submit" name="submit_player" class="button button-primary">ثبت بازیکن</button>
+            <button type="submit" name="submit_player" class="button button-primary">
+                <?php echo isset($_GET['player_id']) ? 'بروزرسانی اطلاعات بازیکن' : 'ثبت بازکین جدید'; ?>
+            </button>
         </p>
 
     </form>

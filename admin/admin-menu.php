@@ -134,4 +134,59 @@ function callback_add_member_sufix(){
     }
 
 }
+add_action('admin_notices','sk_sprot_notices');
+function sk_sprot_notices(){
+        $type='';
+        $messege='';
+        if(isset($_GET['sc_status'])){
+        $status=sanitize_text_field($_GET['sc_status']);
+        if($status == 'add_true'){
+            $type='success';
+            $messege="بازیکن با موفقیت اضافه شد";
+
+        }
+        if($status == 'add_error'){
+            $type='error';
+            $messege=" اخطار:  بازیکن اضافه نشد لطفا فیلد های ورودی رو بررسی کنید و دوباره تلاش کنید.";
+
+        }
+        if($status == 'updated'){
+            $type='success';
+            $messege="اطلاعات بازیکن به درستی بروزرسانی شد.";
+
+        }
+        if($status == 'update_error'){
+            $type='error';
+            $messege="خطا در بروزرسانی اطلاعات بازیکن ";
+
+        }
+        // if($status == 'deleted'){
+        //     $type='success';
+        //     $messege="بازیکن مورد نظر شما حذف شد";
+
+        // }
+        // if($status == 'delete_error'){
+        //     $type='error';
+        //     $messege="خطا در حذف بازیکن ";
+
+        // }
+        // if($status == 'bulk_deleted'){
+        //     $type='success';
+        //     $messege="رکورد های انتخابی مورد نظر با موفقیت حذف شد";
+
+        // }
+    }
+        if($type && $messege){
+            ?>
+                <div class="notice notice-<?php echo $type; ?> is-dismissible">
+                    <p><?php echo $messege; ?></p>
+                </div>
+            <?php
+        }
+
+}
+
+
+
+
 
