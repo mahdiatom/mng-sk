@@ -21,7 +21,7 @@ function sc_register_admin_menu() {
     );
 
     // Members list
-    add_submenu_page(
+    $list_member_sufix =  add_submenu_page(
         'sc-dashboard',
         'Members',
         'Members',
@@ -41,6 +41,7 @@ function sc_register_admin_menu() {
     );
 
     add_action('load-'. $add_member_sufix , 'callback_add_member_sufix');
+    add_action('load-'. $list_member_sufix , 'procces_table_data');
 }
 
 /**
@@ -51,7 +52,8 @@ function sc_admin_dashboard_page() {
 }
 
 function sc_admin_members_list_page() {
-    include SC_TEMPLATES_ADMIN_DIR . 'members-list.php';
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'list_players.php';
 }
 
 function sc_admin_add_member_page() {
@@ -134,8 +136,14 @@ function callback_add_member_sufix(){
     }
 
 }
-add_action('admin_notices','sk_sprot_notices');
-function sk_sprot_notices(){
+//callback display list member in 
+function procces_table_data(){
+  include SC_TEMPLATES_ADMIN_DIR . 'members-list.php';
+  $GLOBALS['player_list_table'] = new Player_List_Table();
+  $GLOBALS['player_list_table']->prepare_items();
+}
+add_action('admin_notices','sc_sprot_notices');
+function sc_sprot_notices(){
         $type='';
         $messege='';
         if(isset($_GET['sc_status'])){
@@ -160,21 +168,21 @@ function sk_sprot_notices(){
             $messege="خطا در بروزرسانی اطلاعات بازیکن ";
 
         }
-        // if($status == 'deleted'){
-        //     $type='success';
-        //     $messege="بازیکن مورد نظر شما حذف شد";
+        if($status == 'deleted'){
+            $type='success';
+            $messege="بازیکن مورد نظر شما حذف شد";
 
-        // }
-        // if($status == 'delete_error'){
-        //     $type='error';
-        //     $messege="خطا در حذف بازیکن ";
+        }
+        if($status == 'delete_error'){
+            $type='error';
+            $messege="خطا در حذف بازیکن ";
 
-        // }
-        // if($status == 'bulk_deleted'){
-        //     $type='success';
-        //     $messege="رکورد های انتخابی مورد نظر با موفقیت حذف شد";
+        }
+        if($status == 'bulk_deleted'){
+            $type='success';
+            $messege="رکورد های انتخابی مورد نظر با موفقیت حذف شد";
 
-        // }
+        }
     }
         if($type && $messege){
             ?>
@@ -185,7 +193,21 @@ function sk_sprot_notices(){
         }
 
 }
+add_action('wp_ajax_get_player_details', 'get_player_details');
+function get_player_details(){
+    $id = intval($_POST['id']);
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_members';
+    $player = $wpdb->get_row("SELECT * FROM $table WHERE id=$id", ARRAY_A);
+    if(!$player) {
+        echo "بازیکن یافت نشد.";
+        wp_die();
+    }
+     wp_send_json_success($player);
 
+
+
+}
 
 
 
