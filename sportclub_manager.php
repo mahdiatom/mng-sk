@@ -40,6 +40,11 @@ define('SC_ASSETS_URL', SC_PLUGIN_URL . 'assets/');              // Assets URL
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
 include(SC_ADMIN_DIR . 'admin-menu.php');
 
+// Include WooCommerce My Account integration
+if (class_exists('WooCommerce')) {
+    require_once SC_PUBLIC_DIR . 'my-account.php';
+}
+
 /**
  * ============================
  * Activation & Deactivation Hooks
@@ -49,9 +54,72 @@ register_activation_hook(__FILE__, 'sc_activate_plugin');
 //register_deactivation_hook(__FILE__, 'sc_deactivate_plugin');
 
 function sc_activate_plugin() {
-    sc_create_members_table(); 
-
+    sc_create_members_table();
+    sc_create_courses_table();
+    sc_create_member_courses_table();
+    
+    // Flush rewrite rules for WooCommerce endpoint
+    flush_rewrite_rules();
 }
+
+/**
+ * Add user_id column to existing table if not exists
+ */
+add_action('admin_init', 'sc_add_user_id_column');
+function sc_add_user_id_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+    
+    // بررسی وجود ستون user_id
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'user_id'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `user_id` bigint(20) unsigned DEFAULT NULL AFTER `id`");
+        $wpdb->query("ALTER TABLE $table_name ADD UNIQUE KEY `idx_user_id` (`user_id`)");
+    }
+}
+
+/**
+ * ============================
+ * Check and create tables if not exist
+ * ============================
+ */
+function sc_check_and_create_tables() {
+    // جلوگیری از اجرای مکرر در یک درخواست
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+    
+    global $wpdb;
+    
+    $members_table = $wpdb->prefix . 'sc_members';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    
+    // بررسی وجود جداول
+    $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
+    $courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $courses_table)) == $courses_table;
+    $member_courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $member_courses_table)) == $member_courses_table;
+    
+    // ایجاد جداول در صورت عدم وجود
+    if (!$members_exists) {
+        sc_create_members_table();
+    }
+    if (!$courses_exists) {
+        sc_create_courses_table();
+    }
+    if (!$member_courses_exists) {
+        sc_create_member_courses_table();
+    }
+}
+
+// بررسی و ایجاد جداول در هر بار بارگذاری افزونه (فقط در پنل ادمین)
+add_action('admin_init', 'sc_check_and_create_tables');
 
 /**
  * ============================

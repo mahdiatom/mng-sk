@@ -36,7 +36,7 @@ body {font-family: Arial, Helvetica, sans-serif;}
   z-index: 1000; /* Sit on top */
   padding-top: 100px; /* Location of the box */
   left: 0;
-  top: 0;
+  top: -50px;
   width: 100%; /* Full width */
   height: 100%; /* Full height */
   overflow: auto; /* Enable scroll if needed */
@@ -70,3 +70,89 @@ body {font-family: Arial, Helvetica, sans-serif;}
   text-decoration: none;
   cursor: pointer;
 }
+.sk-modal-content{
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 45px;
+}
+p.sk-modal-content p {
+    
+    width: 250px;
+}
+.sk-modal-content .p_img{
+    width: 100%;
+}
+.sk-modal-content img{
+    width:100px ;
+}
+   /* قسمت پاپ آپ برای اطلاعات کاربر به صورت ایجکس  پایان*/
+
+/* لیست بازیکن ها  */
+.sportclub-manager_page_sc-members .column-row,.column-id{
+    width: 30px;
+}
+.sportclub-manager_page_sc-members .column-id{
+    width: 50px;
+}
+.sportclub-manager_page_sc-members #birth_date_shamsi{
+    width: 140px;
+}
+.sportclub-manager_page_sc-members #full_name{
+    width: 250px;
+}
+.sportclub-manager_page_sc-members #national_id,.sportclub-manager_page_sc-members #player_phone{
+    width: 90px;
+}
+/* لیست بازیکن ها  */
+
+/* آکاردئون دوره‌ها */
+.sc-courses-accordion {
+    margin-top: 20px;
+}
+.sc-accordion-header {
+    background: #f0f0f1;
+    padding: 15px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    border-radius: 4px 4px 0 0;
+    user-select: none;
+}
+.sc-accordion-header:hover {
+    background: #e0e0e0;
+}
+.sc-accordion-header h3 {
+    margin: 0;
+    display: inline-block;
+    font-size: 16px;
+}
+#courses-accordion-icon {
+    float: right;
+    font-size: 20px;
+    transition: transform 0.3s;
+}
+#sc-courses-content {
+    border: 1px solid #ddd;
+    border-top: none;
+    padding: 20px;
+    background: #fff;
+    border-radius: 0 0 4px 4px;
+}
+#sc-courses-content label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+#sc-courses-content label:hover {
+    background: #f9f9f9;
+}
+#sc-courses-content input[type="checkbox"] {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+/* آکاردئون دوره‌ها - پایان */

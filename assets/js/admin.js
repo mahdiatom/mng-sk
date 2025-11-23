@@ -81,9 +81,6 @@ jQuery(document).ready(function($) {
                         <p><strong>تلفن ثابت:</strong> ${p.landline_phone}</p>
                         <p><strong>تاریخ تولد (شمسی):</strong> ${p.birth_date_shamsi}</p>
                         <p><strong>تاریخ تولد (میلادی):</strong> ${p.birth_date_gregorian}</p>
-                        <p><strong>عکس شخصی:</strong> ${p.personal_photo}</p>
-                        <p><strong>عکس کارت ملی:</strong> ${p.id_card_photo}</p>
-                        <p><strong>عکس بیمه ورزشی:</strong> ${p.sport_insurance_photo}</p>
                         <p><strong>وضعیت پزشکی:</strong> ${p.medical_condition}</p>
                         <p><strong>سوابق ورزشی:</strong> ${p.sports_history}</p>
                         <p><strong>تأیید سلامت:</strong> ${p.health_verified}</p>
@@ -92,6 +89,10 @@ jQuery(document).ready(function($) {
                         <p><strong>اطلاعات اضافی:</strong> ${p.additional_info}</p>
                         <p><strong>تاریخ ایجاد:</strong> ${p.created_at}</p>
                         <p><strong>تاریخ بروزرسانی:</strong> ${p.updated_at}</p>
+                      
+                        <p class="p_img"><strong>عکس شخصی:</strong> </p><img class="photo" src="${p.personal_photo}">
+                        <p class="p_img"><strong>عکس کارت ملی:</strong> </p><img class="photo" src="${p.id_card_photo}">
+                        <p class="p_img"><strong>عکس بیمه ورزشی:</strong></p><img class="photo" src="${p.sport_insurance_photo}">
                     `);
 
                     // باز کردن مدال
@@ -112,4 +113,25 @@ jQuery(document).ready(function($) {
         }
     });
 
+    // باز کردن آکاردئون دوره‌ها در صورت وجود دوره
+    var hasCourses = $('#sc-courses-content input[type="checkbox"]').length > 0;
+    if (hasCourses) {
+        $('#sc-courses-content').show();
+        $('#courses-accordion-icon').text('▲');
+    }
+
 });
+
+// تابع toggle برای آکاردئون دوره‌ها
+function toggleCoursesAccordion() {
+    var content = document.getElementById('sc-courses-content');
+    var icon = document.getElementById('courses-accordion-icon');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▲';
+    } else {
+        content.style.display = 'none';
+        icon.textContent = '▼';
+    }
+}

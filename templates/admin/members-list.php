@@ -31,6 +31,26 @@ class Player_List_Table extends WP_List_Table {
 }
     public function column_full_name($item) {
         $full_name = $item['first_name'] . ' ' . $item['last_name'];
+        
+        // نمایش دوره‌های بازیکن
+        global $wpdb;
+        $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        $courses = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.title FROM $courses_table c 
+             INNER JOIN $member_courses_table mc ON c.id = mc.course_id 
+             WHERE mc.member_id = %d AND mc.status = 'active' AND c.deleted_at IS NULL 
+             LIMIT 3",
+            $item['id']
+        ));
+        
+        $course_names = [];
+        if ($courses) {
+            foreach ($courses as $course) {
+                $course_names[] = $course->title;
+            }
+        }
+        $courses_text = !empty($course_names) ? '<br><small style="color: #666;">دوره‌ها: ' . implode(', ', $course_names) . '</small>' : '';
 
         $actions = [
             'edit' => '<a href="' . admin_url('admin.php?page=sc-add-member&player_id=') . $item['id'] . '">ویرایش</a>',
@@ -41,7 +61,7 @@ class Player_List_Table extends WP_List_Table {
         )
         ];
 
-        return $full_name . ' ' . $this->row_actions($actions);
+        return $full_name . $courses_text . ' ' . $this->row_actions($actions);
     }
 
     public function column_cb($item) {
@@ -143,6 +163,8 @@ class Player_List_Table extends WP_List_Table {
         }
 
         $count_all = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE $where");
+        $count_active = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_active = 1");
+        $count_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_active = 0");
 
         return [
             'all' => $this->view_create(
@@ -150,8 +172,45 @@ class Player_List_Table extends WP_List_Table {
                 'همه',
                 admin_url('admin.php?page=sc-members&player_status=all'),
                 $count_all
+            ),
+            'active' => $this->view_create(
+                'active',
+                'فعال',
+                admin_url('admin.php?page=sc-members&player_status=active'),
+                $count_active
+            ),
+            'inactive' => $this->view_create(
+                'inactive',
+                'غیرفعال',
+                admin_url('admin.php?page=sc-members&player_status=inactive'),
+                $count_inactive
             )
         ];
+    }
+    
+    public function extra_tablenav($which) {
+        if ($which == 'top') {
+            global $wpdb;
+            $courses_table = $wpdb->prefix . 'sc_courses';
+            $courses = $wpdb->get_results(
+                "SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
+            );
+            
+            $selected_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+            
+            if ($courses) {
+                echo '<div class="alignleft actions">';
+                echo '<select name="filter_course" id="filter_course">';
+                echo '<option value="0">همه دوره‌ها</option>';
+                foreach ($courses as $course) {
+                    $selected = ($selected_course == $course->id) ? 'selected' : '';
+                    echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
+                }
+                echo '</select>';
+                echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر">';
+                echo '</div>';
+            }
+        }
     }
 
     public function prepare_items() {
@@ -169,6 +228,23 @@ class Player_List_Table extends WP_List_Table {
         $order_clause = "ORDER BY $orderby $order";
 
         $where = " 1=1 ";
+        
+        // فیلتر وضعیت
+        if (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
+            $where .= " AND is_active = 1";
+        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
+            $where .= " AND is_active = 0";
+        }
+        
+        // فیلتر دوره
+        if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+            $course_id = absint($_GET['filter_course']);
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            $where .= $wpdb->prepare(
+                " AND id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')",
+                $course_id
+            );
+        }
 
         if (isset($_GET['s']) && !empty($_GET['s'])) {
             $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';

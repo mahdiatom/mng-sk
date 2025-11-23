@@ -40,23 +40,63 @@ function sc_register_admin_menu() {
         'sc_admin_add_member_page'
     );
 
+    // Courses list
+    $list_courses_sufix = add_submenu_page(
+        'sc-dashboard',
+        'Courses',
+        'Courses',
+        'manage_options',
+        'sc-courses',
+        'sc_admin_courses_list_page'
+    );
+
+    // Add Course
+    $add_course_sufix = add_submenu_page(
+        'sc-dashboard',
+        'Add Course',
+        'Add Course',
+        'manage_options',
+        'sc-add-course',
+        'sc_admin_add_course_page'
+    );
+
+    // setting
+    $setting_sufix =  add_submenu_page(
+        'sc-dashboard',
+        'setting',
+        'setting',
+        'manage_options',
+        'sc_setting',
+        'sc_setting_callback'
+    );
+
     add_action('load-'. $add_member_sufix , 'callback_add_member_sufix');
     add_action('load-'. $list_member_sufix , 'procces_table_data');
+    add_action('load-'. $list_courses_sufix , 'procces_courses_table_data');
+    add_action('load-'. $add_course_sufix , 'callback_add_course_sufix');
 }
 
 /**
  * Placeholder functions for admin pages
  */
 function sc_admin_dashboard_page() {
-    echo "<h1>SportClub Manager Dashboard</h1>";
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'dashboard.php';
 }
 
 function sc_admin_members_list_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'list_players.php';
 }
 
 function sc_admin_add_member_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
     global $wpdb ;
             $table_name = $wpdb->prefix . 'sc_members';
             $player=false;
@@ -71,34 +111,178 @@ function sc_admin_add_member_page() {
             }
     include SC_TEMPLATES_ADMIN_DIR . 'member-add.php';
 }
+function sc_setting_callback(){
+    echo "تنظیمات افزونه";
+}
+
+/**
+ * Courses management pages
+ */
+function sc_admin_courses_list_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'courses-list.php';
+}
+
+function sc_admin_add_course_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_courses';
+    $course = false;
+    if (isset($_GET['course_id'])) {
+        $course_id = absint($_GET['course_id']);
+        if ($course_id) {
+            $sql = $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d AND deleted_at IS NULL", [$course_id]);
+            $course = $wpdb->get_row($sql);
+        }
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'course-add.php';
+}
+
+function procces_courses_table_data() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'list_courses.php';
+    $GLOBALS['courses_list_table'] = new Courses_List_Table();
+    $GLOBALS['courses_list_table']->prepare_items();
+}
+
+function callback_add_course_sufix() {
+    if (isset($_GET['page']) && $_GET['page'] == 'sc-add-course' && isset($_POST['submit_course'])) {
+        // بررسی و ایجاد جداول در صورت عدم وجود
+        sc_check_and_create_tables();
+        
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_courses';
+        
+        // Validation
+        if (empty($_POST['title']) || empty($_POST['price'])) {
+            wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
+            exit;
+        }
+        
+        $data = [
+            'title' => sanitize_text_field($_POST['title']),
+            'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
+            'price' => floatval($_POST['price']),
+            'capacity' => !empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL,
+            'start_date' => !empty($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : NULL,
+            'end_date' => !empty($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : NULL,
+            'is_active' => isset($_POST['is_active']) ? 1 : 0,
+            'updated_at' => current_time('mysql'),
+        ];
+
+        $course_id = isset($_GET['course_id']) ? absint($_GET['course_id']) : 0;
+
+        // بروزرسانی
+        if ($course_id) {
+            $updated = $wpdb->update(
+                $table_name,
+                $data,
+                ['id' => $course_id],
+                ['%s', '%s', '%f', '%d', '%s', '%s', '%d', '%s'],
+                ['%d']
+            );
+
+            if ($updated !== false) {
+                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_updated&course_id=' . $course_id));
+                exit;
+            } else {
+                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_update_error&course_id=' . $course_id));
+                exit;
+            }
+        } 
+        // اضافه کردن جدید
+        else {
+            $data['created_at'] = current_time('mysql');
+            $inserted = $wpdb->insert(
+                $table_name, 
+                $data,
+                ['%s', '%s', '%f', '%d', '%s', '%s', '%d', '%s', '%s']
+            );
+
+            if ($inserted !== false) {
+                $insert_id = $wpdb->insert_id;
+                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_true&course_id=' . $insert_id));
+                exit;
+            } else {
+                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
+                exit;
+            }
+        }
+    }
+}
 //for save data in new member -> wpdb
 function callback_add_member_sufix(){
     if(isset($_GET['page']) && $_GET['page'] == 'sc-add-member' && isset($_POST['submit_player'])) {
+       // بررسی و ایجاد جداول در صورت عدم وجود
+       sc_check_and_create_tables();
+       
        global $wpdb;
        $table_name = $wpdb->prefix . 'sc_members';
+       
+       // Validation
+       if (empty($_POST['first_name']) || empty($_POST['last_name']) || empty($_POST['national_id'])) {
+           wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_error'));
+           exit;
+       }
+       
+       // آماده‌سازی داده‌ها
        $data = [
         'first_name'           => sanitize_text_field($_POST['first_name']),
         'last_name'            => sanitize_text_field($_POST['last_name']),
-        'father_name'          => sanitize_text_field($_POST['father_name']),
         'national_id'          => sanitize_text_field($_POST['national_id']),
-        'player_phone'         => sanitize_text_field($_POST['player_phone']),
-        'father_phone'         => sanitize_text_field($_POST['father_phone']),
-        'mother_phone'         => sanitize_text_field($_POST['mother_phone']),
-        'landline_phone'       => sanitize_text_field($_POST['landline_phone']),
-        'birth_date_shamsi'    => sanitize_text_field($_POST['birth_date_shamsi']),
-        'birth_date_gregorian' => sanitize_text_field($_POST['birth_date_gregorian']),
-        'personal_photo'        => isset($_POST['personal_photo']) ? esc_url_raw($_POST['personal_photo']) : '',
-        'id_card_photo'         => isset($_POST['id_card_photo']) ? esc_url_raw($_POST['id_card_photo']) : '',
-        'sport_insurance_photo' => isset($_POST['sport_insurance_photo']) ? esc_url_raw($_POST['sport_insurance_photo']) : '',
-        'medical_condition'    => sanitize_textarea_field($_POST['medical_condition']),
-        'sports_history'       => sanitize_textarea_field($_POST['sports_history']),
         'health_verified'      => isset($_POST['health_verified']) ? 1 : 0,
         'info_verified'        => isset($_POST['info_verified']) ? 1 : 0,
         'is_active'            => isset($_POST['is_active']) ? 1 : 0,
-        'additional_info'      => sanitize_textarea_field($_POST['additional_info']),
         'created_at'           => current_time('mysql'),
         'updated_at'           => current_time('mysql'),
-              ];
+       ];
+       
+       // فیلدهای اختیاری
+       if (!empty($_POST['father_name'])) {
+           $data['father_name'] = sanitize_text_field($_POST['father_name']);
+       }
+       if (!empty($_POST['player_phone'])) {
+           $data['player_phone'] = sanitize_text_field($_POST['player_phone']);
+       }
+       if (!empty($_POST['father_phone'])) {
+           $data['father_phone'] = sanitize_text_field($_POST['father_phone']);
+       }
+       if (!empty($_POST['mother_phone'])) {
+           $data['mother_phone'] = sanitize_text_field($_POST['mother_phone']);
+       }
+       if (!empty($_POST['landline_phone'])) {
+           $data['landline_phone'] = sanitize_text_field($_POST['landline_phone']);
+       }
+       if (!empty($_POST['birth_date_shamsi'])) {
+           $data['birth_date_shamsi'] = sanitize_text_field($_POST['birth_date_shamsi']);
+       }
+       if (!empty($_POST['birth_date_gregorian'])) {
+           $data['birth_date_gregorian'] = sanitize_text_field($_POST['birth_date_gregorian']);
+       }
+       if (!empty($_POST['personal_photo'])) {
+           $data['personal_photo'] = esc_url_raw($_POST['personal_photo']);
+       }
+       if (!empty($_POST['id_card_photo'])) {
+           $data['id_card_photo'] = esc_url_raw($_POST['id_card_photo']);
+       }
+       if (!empty($_POST['sport_insurance_photo'])) {
+           $data['sport_insurance_photo'] = esc_url_raw($_POST['sport_insurance_photo']);
+       }
+       if (!empty($_POST['medical_condition'])) {
+           $data['medical_condition'] = sanitize_textarea_field($_POST['medical_condition']);
+       }
+       if (!empty($_POST['sports_history'])) {
+           $data['sports_history'] = sanitize_textarea_field($_POST['sports_history']);
+       }
+       if (!empty($_POST['additional_info'])) {
+           $data['additional_info'] = sanitize_textarea_field($_POST['additional_info']);
+       }
                     
         $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
 
@@ -111,24 +295,52 @@ function callback_add_member_sufix(){
             );
 
             if ($updated !== false) {
-                $data['updated_at'] = current_time('mysql');
+                // ذخیره دوره‌های بازیکن
+                $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
+                sc_save_member_courses($player_id, $course_ids);
+                
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=updated&player_id=' . $player_id));
                 exit;
             } else {
+                // نمایش خطای دیتابیس برای دیباگ
+                if ($wpdb->last_error) {
+                    error_log('WP Update Error: ' . $wpdb->last_error);
+                    error_log('WP Last Query: ' . $wpdb->last_query);
+                }
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=update_error&player_id=' . $player_id));
                 exit;
             }
         } 
         // اضافه کردن جدید
         else {
-            //$data['created_at'] = current_time('mysql');
+            // بررسی تکراری بودن کد ملی
+            $existing = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $table_name WHERE national_id = %s",
+                $data['national_id']
+            ));
+            
+            if ($existing) {
+                wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_error'));
+                exit;
+            }
+            
             $inserted = $wpdb->insert($table_name, $data);
 
-            if ($inserted) {
+            if ($inserted !== false) {
                 $insert_id = $wpdb->insert_id;
+                
+                // ذخیره دوره‌های بازیکن
+                $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
+                sc_save_member_courses($insert_id, $course_ids);
+                
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_true&player_id=' . $insert_id));
                 exit;
             } else {
+                // نمایش خطای دیتابیس برای دیباگ
+                if ($wpdb->last_error) {
+                    error_log('WP Insert Error: ' . $wpdb->last_error);
+                    error_log('WP Last Query: ' . $wpdb->last_query);
+                }
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_error'));
                 exit;
             }
@@ -136,8 +348,72 @@ function callback_add_member_sufix(){
     }
 
 }
+
+/**
+ * Save member courses
+ */
+function sc_save_member_courses($member_id, $course_ids) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_member_courses';
+    
+    // غیرفعال کردن دوره‌های قبلی
+    $wpdb->update(
+        $table_name,
+        ['status' => 'inactive', 'updated_at' => current_time('mysql')],
+        ['member_id' => $member_id, 'status' => 'active'],
+        ['%s', '%s'],
+        ['%d', '%s']
+    );
+    
+    // افزودن دوره‌های جدید
+    if (!empty($course_ids) && is_array($course_ids)) {
+        foreach ($course_ids as $course_id) {
+            $course_id = absint($course_id);
+            if ($course_id) {
+                // بررسی وجود قبلی
+                $existing = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM $table_name WHERE member_id = %d AND course_id = %d",
+                    $member_id,
+                    $course_id
+                ));
+                
+                if ($existing) {
+                    // فعال کردن مجدد
+                    $wpdb->update(
+                        $table_name,
+                        [
+                            'status' => 'active',
+                            'enrollment_date' => current_time('Y-m-d'),
+                            'updated_at' => current_time('mysql')
+                        ],
+                        ['id' => $existing],
+                        ['%s', '%s', '%s'],
+                        ['%d']
+                    );
+                } else {
+                    // افزودن جدید
+                    $wpdb->insert(
+                        $table_name,
+                        [
+                            'member_id' => $member_id,
+                            'course_id' => $course_id,
+                            'enrollment_date' => current_time('Y-m-d'),
+                            'status' => 'active',
+                            'created_at' => current_time('mysql'),
+                            'updated_at' => current_time('mysql')
+                        ],
+                        ['%d', '%d', '%s', '%s', '%s', '%s']
+                    );
+                }
+            }
+        }
+    }
+}
 //callback display list member in 
 function procces_table_data(){
+  // بررسی و ایجاد جداول در صورت عدم وجود
+  sc_check_and_create_tables();
+  
   include SC_TEMPLATES_ADMIN_DIR . 'members-list.php';
   $GLOBALS['player_list_table'] = new Player_List_Table();
   $GLOBALS['player_list_table']->prepare_items();
@@ -182,6 +458,35 @@ function sc_sprot_notices(){
             $type='success';
             $messege="رکورد های انتخابی مورد نظر با موفقیت حذف شد";
 
+        }
+        // Course messages
+        if($status == 'course_add_true'){
+            $type='success';
+            $messege="دوره با موفقیت اضافه شد";
+        }
+        if($status == 'course_add_error'){
+            $type='error';
+            $messege="خطا: دوره اضافه نشد لطفا فیلدهای ورودی را بررسی کنید.";
+        }
+        if($status == 'course_updated'){
+            $type='success';
+            $messege="اطلاعات دوره به درستی بروزرسانی شد.";
+        }
+        if($status == 'course_update_error'){
+            $type='error';
+            $messege="خطا در بروزرسانی اطلاعات دوره";
+        }
+        if($status == 'course_deleted'){
+            $type='success';
+            $messege="دوره به زباله‌دان منتقل شد";
+        }
+        if($status == 'course_restored'){
+            $type='success';
+            $messege="دوره از زباله‌دان بازیابی شد";
+        }
+        if($status == 'course_bulk_deleted'){
+            $type='success';
+            $messege="دوره‌های انتخابی به زباله‌دان منتقل شدند";
         }
     }
         if($type && $messege){

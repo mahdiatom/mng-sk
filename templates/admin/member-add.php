@@ -20,25 +20,25 @@
         $additional_info = '';
 
 if($player && $_GET['player_id'] ){
-        $first_name              = $player->first_name;
-        $last_name               = $player->last_name;
-        $father_name             = $player->father_name;
-        $national_id             = $player->national_id;
-        $player_phone            = $player->player_phone;
-        $father_phone            = $player->father_phone;
-        $mother_phone            = $player->mother_phone;
-        $landline_phone          = $player->landline_phone;
-        $birth_date_shamsi       = $player->birth_date_shamsi;
-        $birth_date_gregorian    = $player->birth_date_gregorian;
-        $personal_photo          = $player->personal_photo;
-        $id_card_photo           = $player->id_card_photo;
-        $sport_insurance_photo   = $player->sport_insurance_photo;
-        $medical_condition       = $player->medical_condition;
-        $sports_history          = $player->sports_history;
-        $health_verified         = $player->health_verified;
-        $info_verified           = $player->info_verified;
-        $is_active               = $player->is_active;
-        $additional_info         = $player->additional_info;
+        $first_name              = $player->first_name ?? '';
+        $last_name               = $player->last_name ?? '';
+        $father_name             = $player->father_name ?? '';
+        $national_id             = $player->national_id ?? '';
+        $player_phone            = $player->player_phone ?? '';
+        $father_phone            = $player->father_phone ?? '';
+        $mother_phone            = $player->mother_phone ?? '';
+        $landline_phone          = $player->landline_phone ?? '';
+        $birth_date_shamsi       = $player->birth_date_shamsi ?? '';
+        $birth_date_gregorian    = $player->birth_date_gregorian ?? '';
+        $personal_photo          = $player->personal_photo ?? '';
+        $id_card_photo           = $player->id_card_photo ?? '';
+        $sport_insurance_photo   = $player->sport_insurance_photo ?? '';
+        $medical_condition       = $player->medical_condition ?? '';
+        $sports_history          = $player->sports_history ?? '';
+        $health_verified         = $player->health_verified ?? 0;
+        $info_verified           = $player->info_verified ?? 0;
+        $is_active               = $player->is_active ?? 1;
+        $additional_info         = $player->additional_info ?? '';
     }
 ?>
 <div class="wrap">
@@ -198,14 +198,83 @@ if($player && $_GET['player_id'] ){
                     <td><label class="switch" ><input name="is_active" type="checkbox" <?php checked($is_active, 1); ?> value="1"><span class="slider round"></span> بله</label></td>
                 </tr>
 
-               
                 <tr>
                     <th scope="row"><label for="additional_info">توضیحات اضافی</label></th>
                     <td><textarea name="additional_info" id="additional_info" rows="3" class="large-text"><?php echo $additional_info; ?></textarea></td>
-                </tr> 
+                </tr>
 
             </tbody>
         </table>
+
+        <!-- بخش آکاردئونی دوره‌ها -->
+        <div class="sc-courses-accordion" style="margin-top: 20px;">
+            <div class="sc-accordion-header" style="background: #f0f0f1; padding: 15px; border: 1px solid #ddd; cursor: pointer; border-radius: 4px 4px 0 0;" onclick="toggleCoursesAccordion()">
+                <h3 style="margin: 0; display: inline-block;">دوره‌های بازیکن</h3>
+                <span id="courses-accordion-icon" style="float: right; font-size: 20px;">▼</span>
+            </div>
+            <div id="sc-courses-content" style="display: none; border: 1px solid #ddd; border-top: none; padding: 20px; background: #fff; border-radius: 0 0 4px 4px;">
+                <?php
+                global $wpdb;
+                $courses_table = $wpdb->prefix . 'sc_courses';
+                $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+                
+                // دریافت دوره‌های فعال
+                $courses = $wpdb->get_results(
+                    "SELECT * FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
+                );
+                
+                // دریافت دوره‌های فعلی بازیکن
+                $player_courses = [];
+                if ($player && isset($_GET['player_id'])) {
+                    $player_id = absint($_GET['player_id']);
+                    $player_courses = $wpdb->get_col($wpdb->prepare(
+                        "SELECT course_id FROM $member_courses_table WHERE member_id = %d AND status = 'active'",
+                        $player_id
+                    ));
+                }
+                
+                if (empty($courses)) {
+                    echo '<div style="padding: 20px; text-align: center; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">';
+                    echo '<p style="margin: 0 0 10px 0; color: #856404;">هنوز دوره‌ای ثبت نشده است.</p>';
+                    echo '<a href="' . admin_url('admin.php?page=sc-add-course') . '" target="_blank" class="button button-primary">افزودن دوره جدید</a>';
+                    echo '</div>';
+                } else {
+                    echo '<div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #f9f9f9;">';
+                    foreach ($courses as $course) {
+                        $checked = in_array($course->id, $player_courses) ? 'checked' : '';
+                        $enrolled = $wpdb->get_var($wpdb->prepare(
+                            "SELECT COUNT(*) FROM $member_courses_table WHERE course_id = %d AND status = 'active'",
+                            $course->id
+                        ));
+                        $capacity_text = $course->capacity ? "($enrolled/{$course->capacity})" : "(نامحدود)";
+                        $capacity_warning = ($course->capacity && $enrolled >= $course->capacity) ? ' style="color: #d63638; font-weight: bold;"' : '';
+                        
+                        echo '<div style="padding: 10px; margin-bottom: 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">';
+                        echo '<label style="display: flex; align-items: center; cursor: pointer;">';
+                        echo '<input type="checkbox" name="courses[]" value="' . esc_attr($course->id) . '" ' . $checked . ' style="margin-left: 10px;">';
+                        echo '<div style="flex: 1;">';
+                        echo '<strong>' . esc_html($course->title) . '</strong>';
+                        echo '<span style="color: #666; margin: 0 10px;">- ' . number_format($course->price, 0) . ' تومان</span>';
+                        echo '<span' . $capacity_warning . '>' . $capacity_text . '</span>';
+                        if ($course->description) {
+                            echo '<p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">' . esc_html(wp_trim_words($course->description, 20)) . '</p>';
+                        }
+                        echo '</div>';
+                        echo '</label>';
+                        echo '</div>';
+                    }
+                    echo '</div>';
+                    echo '<p class="description" style="margin-top: 10px;">بازیکن می‌تواند در چند دوره شرکت کند. دوره‌های انتخاب شده ذخیره می‌شوند.</p>';
+                }
+                ?>
+            </div>
+        </div>
+
+        <p class="submit" style="margin-top: 20px;">
+            <button type="submit" name="submit_player" class="button button-primary">
+                <?php echo isset($_GET['player_id']) ? 'بروزرسانی اطلاعات بازیکن' : 'ثبت بازکین جدید'; ?>
+            </button>
+        </p>
 
         <p class="submit">
             <button type="submit" name="submit_player" class="button button-primary">

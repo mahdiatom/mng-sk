@@ -17,8 +17,8 @@ $prefix = $wpdb->prefix . 'sc_';
 // List of all plugin tables
 $tables = [
     'members',              // جدول اعضا
-    // 'courses',              // جدول دوره‌ها
-    // 'member_courses',       // رابطه اعضا و دوره‌ها
+    'courses',              // جدول دوره‌ها
+    'member_courses',       // رابطه اعضا و دوره‌ها
     // 'invoices',             // فاکتورها / شهریه‌ها
     // 'attendances',          // حضور و غیاب
     // 'events',               // مسابقات و رویدادها

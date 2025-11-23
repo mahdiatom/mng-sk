@@ -20,19 +20,6 @@ global $title ,$player_list_table;
 
 
 ?>
-  <!-- <div id="sk-player-modal" class="sk-modal">
-        <div class="sk-modal-box">
-            <span class="sk-modal-close">×</span>
-            <div class="sk-modal-content">در حال بار2222222222گذاری...</div>
-        </div>
-    </div> -->
-
-
-
-<h2>Modal Example</h2>
-
-<!-- Trigger/Open The Modal -->
-
 
 <!-- The Modal -->
 <div id="myModal" class="modal">

@@ -1,0 +1,127 @@
+/* فرم ارسال مدارک در حساب کاربری */
+.sc-submit-documents-form {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.sc-submit-documents-form h2 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.sc-submit-documents-form .description {
+    margin-bottom: 20px;
+    color: #666;
+    font-size: 14px;
+}
+
+.sc-form-section {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.sc-form-section h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #2271b1;
+    color: #2271b1;
+}
+
+.sc-submit-documents-form .form-row {
+    margin-bottom: 15px;
+}
+
+.sc-submit-documents-form .form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+}
+
+.sc-submit-documents-form .form-row label .required {
+    color: #d63638;
+}
+
+.sc-submit-documents-form .form-row input[type="text"],
+.sc-submit-documents-form .form-row input[type="date"],
+.sc-submit-documents-form .form-row input[type="file"],
+.sc-submit-documents-form .form-row textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.sc-submit-documents-form .form-row input[type="file"] {
+    padding: 5px;
+}
+
+.sc-submit-documents-form .form-row-first {
+    float: left;
+    width: 48%;
+    margin-right: 4%;
+}
+
+.sc-submit-documents-form .form-row-last {
+    float: left;
+    width: 48%;
+}
+
+.sc-submit-documents-form::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.sc-image-preview {
+    margin-top: 10px;
+}
+
+.sc-image-preview img {
+    max-width: 200px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    background: #f9f9f9;
+}
+
+.sc-image-preview .description {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+.sc-submit-documents-form button[type="submit"] {
+    background: #2271b1;
+    color: #fff;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.sc-submit-documents-form button[type="submit"]:hover {
+    background: #135e96;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sc-submit-documents-form .form-row-first,
+    .sc-submit-documents-form .form-row-last {
+        width: 100%;
+        margin-right: 0;
+    }
+}
+
+
+
+
+
