@@ -1,4 +1,5 @@
 <?php
+
 /**
  * WooCommerce My Account - ارسال مدارک Tab
  */
@@ -122,7 +123,7 @@ function sc_handle_documents_submission() {
         'national_id'          => sanitize_text_field($_POST['national_id']),
         'health_verified'      => 0,
         'info_verified'        => 0,
-        'is_active'            => 0, // تا زمانی که مدیر تأیید نکند
+        //'is_active'            => 1, // تا زمانی که مدیر تأیید نکند
         'created_at'           => current_time('mysql'),
         'updated_at'           => current_time('mysql'),
     ];
@@ -158,6 +159,13 @@ function sc_handle_documents_submission() {
     if (!empty($_POST['additional_info'])) {
         $data['additional_info'] = sanitize_textarea_field($_POST['additional_info']);
     }
+    if (!empty($_POST['health_verified'])) {
+        $data['health_verified'] = sanitize_textarea_field($_POST['health_verified']);
+    }
+    if (!empty($_POST['info_verified'])) {
+        $data['info_verified'] = sanitize_textarea_field($_POST['info_verified']);
+    }
+   
     
     // پردازش آپلود عکس‌ها با امنیت
     $uploaded_files = sc_handle_secure_file_upload($current_user_id);
@@ -199,7 +207,7 @@ function sc_handle_documents_submission() {
         );
         
         if ($updated !== false) {
-            wc_add_notice('اطلاعات شما با موفقیت بروزرسانی شد. پس از بررسی توسط مدیر، فعال خواهید شد.', 'success');
+            wc_add_notice('اطلاعات شما با موفقیت به روز شد.', 'success');
             // ریدایرکت برای جلوگیری از ارسال مجدد فرم
             wp_safe_redirect(wc_get_account_endpoint_url('sc-submit-documents'));
             exit;
@@ -225,7 +233,7 @@ function sc_handle_documents_submission() {
         $inserted = $wpdb->insert($table_name, $data);
         
         if ($inserted !== false) {
-            wc_add_notice('اطلاعات شما با موفقیت ثبت شد. پس از بررسی توسط مدیر، فعال خواهید شد.', 'success');
+            wc_add_notice('اطلاعات شما با موفقیت ثبت شد.', 'success');
             // ریدایرکت برای جلوگیری از ارسال مجدد فرم
             wp_safe_redirect(wc_get_account_endpoint_url('sc-submit-documents'));
             exit;

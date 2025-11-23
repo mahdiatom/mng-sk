@@ -1,9 +1,11 @@
 <?php
+//this is file for form user in dashbord woocommerc (template)
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
+$player_id = '';
 $first_name = '';
 $last_name = '';
 $father_name = '';
@@ -20,9 +22,14 @@ $sport_insurance_photo = '';
 $medical_condition = '';
 $sports_history = '';
 $additional_info = '';
+$info_verified = 0;
+$health_verified = 0;
+$is_active = 0;
+
 
 // اگر اطلاعات قبلی وجود دارد
 if ($player) {
+    $player_id = $player->id ?? '';
     $first_name = $player->first_name ?? '';
     $last_name = $player->last_name ?? '';
     $father_name = $player->father_name ?? '';
@@ -39,6 +46,9 @@ if ($player) {
     $medical_condition = $player->medical_condition ?? '';
     $sports_history = $player->sports_history ?? '';
     $additional_info = $player->additional_info ?? '';
+    $health_verified = $player->health_verified;
+    $info_verified = $player->info_verified;
+    $is_active = $player->is_active;
 }
 
 // دریافت اطلاعات کاربر از ووکامرس
@@ -47,6 +57,27 @@ $billing_phone = get_user_meta($user->ID, 'billing_phone', true);
 if (empty($player_phone) && $billing_phone) {
     $player_phone = $billing_phone;
 }
+
+  // نمایش دوره‌های بازیکن
+        global $wpdb;
+        $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        $courses = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.title FROM $courses_table c 
+             INNER JOIN $member_courses_table mc ON c.id = mc.course_id 
+             WHERE mc.member_id = %d AND mc.status = 'active' AND c.deleted_at IS NULL 
+             LIMIT 10",
+            $player_id
+        ));
+        
+        $course_names = [];
+        if ($courses) {
+            foreach ($courses as $course) {
+                $course_names[] = $course->title;
+            }
+        }
+        $courses_text = !empty($course_names) ? '<br> ' . implode(', ', $course_names) . '</small>' : '';
+
 ?>
 
 <div class="sc-submit-documents-form">
@@ -171,6 +202,26 @@ if (empty($player_phone) && $billing_phone) {
                 <label for="additional_info">توضیحات اضافی</label>
                 <textarea name="additional_info" id="additional_info" rows="3" class="input-text"><?php echo esc_textarea($additional_info); ?></textarea>
             </p>
+
+            <p class="form-row">
+                <label>وضعیت سلامت تأیید شده</label>
+                <label><input name="health_verified" type="checkbox" <?php checked($health_verified, 1); ?> value="1"> بله</label>
+            </p>
+
+            <p class="form-row">
+                <label>اطلاعات تأیید شده</label>
+                <label><input name="info_verified" type="checkbox" <?php checked($info_verified, 1); ?> value="1"> بله</label>
+            </p>
+            <p class="form-row">
+                    <span class="slider round"> وضعیت بازیکن  :   <?php echo $is_active ? "فعال" : "غیرفعال" ?></span> 
+                
+            </p>
+            <p class="form-row">
+                
+                    <span class="slider round"> دوره های فعال :   <?php echo !empty($courses_text) ?   $courses_text : "شما هنوز در دوره ای ثبت نام نکردید یا دوره فعالی ندارید" ?></span> 
+                
+            </p>
+          
         </div>
         
         <p class="form-row">

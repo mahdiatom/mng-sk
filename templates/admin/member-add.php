@@ -270,12 +270,6 @@ if($player && $_GET['player_id'] ){
             </div>
         </div>
 
-        <p class="submit" style="margin-top: 20px;">
-            <button type="submit" name="submit_player" class="button button-primary">
-                <?php echo isset($_GET['player_id']) ? 'بروزرسانی اطلاعات بازیکن' : 'ثبت بازکین جدید'; ?>
-            </button>
-        </p>
-
         <p class="submit">
             <button type="submit" name="submit_player" class="button button-primary">
                 <?php echo isset($_GET['player_id']) ? 'بروزرسانی اطلاعات بازیکن' : 'ثبت بازکین جدید'; ?>
