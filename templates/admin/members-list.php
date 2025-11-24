@@ -92,6 +92,10 @@ class Player_List_Table extends WP_List_Table {
     public function no_items() {
         if (isset($_GET['s'])) {
             echo "بازیکنی با این مشخصات یافت نشد!";
+        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
+            echo "هیچ بازیکن غیرفعالی وجود ندارد.";
+        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
+            echo "هیچ بازیکن فعالی وجود ندارد.";
         } else {
             echo "هنوز بازیکنی ثبت نکرده‌اید. از بخش افزودن بازیکن اولین بازیکن خود را اضافه کنید.";
         }
@@ -166,7 +170,7 @@ class Player_List_Table extends WP_List_Table {
         $count_active = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_active = 1");
         $count_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_active = 0");
 
-        return [
+        $views = [
             'all' => $this->view_create(
                 'all',
                 'همه',
@@ -178,14 +182,20 @@ class Player_List_Table extends WP_List_Table {
                 'فعال',
                 admin_url('admin.php?page=sc-members&player_status=active'),
                 $count_active
-            ),
-            'inactive' => $this->view_create(
+            )
+        ];
+        
+        // نمایش تب غیرفعال فقط در صورت وجود بازیکن غیرفعال
+        if ($count_inactive > 0) {
+            $views['inactive'] = $this->view_create(
                 'inactive',
                 'غیرفعال',
                 admin_url('admin.php?page=sc-members&player_status=inactive'),
                 $count_inactive
-            )
-        ];
+            );
+        }
+        
+        return $views;
     }
     
     public function extra_tablenav($which) {

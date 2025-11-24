@@ -3,10 +3,10 @@ function sc_create_members_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
     $charset_collate = $wpdb->get_charset_collate();
-
+// user_id => id in wordpress
     $sql = "CREATE TABLE `$table_name` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-        `user_id` bigint(20) unsigned DEFAULT NULL,
+        `user_id` bigint(20) unsigned DEFAULT NULL, 
         `first_name` varchar(50) NOT NULL,
         `last_name` varchar(50) NOT NULL,
         `father_name` varchar(50) DEFAULT NULL,
@@ -53,6 +53,7 @@ function sc_create_courses_table() {
         `description` text,
         `price` decimal(10,2) NOT NULL DEFAULT 0.00,
         `capacity` int(11) DEFAULT NULL,
+        `sessions_count` int(11) DEFAULT NULL,
         `start_date` date DEFAULT NULL,
         `end_date` date DEFAULT NULL,
         `is_active` tinyint(1) DEFAULT 1,

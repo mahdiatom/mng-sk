@@ -170,6 +170,7 @@ function callback_add_course_sufix() {
             'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
             'price' => floatval($_POST['price']),
             'capacity' => !empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL,
+            'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
             'start_date' => !empty($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : NULL,
             'end_date' => !empty($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : NULL,
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
@@ -184,7 +185,7 @@ function callback_add_course_sufix() {
                 $table_name,
                 $data,
                 ['id' => $course_id],
-                ['%s', '%s', '%f', '%d', '%s', '%s', '%d', '%s'],
+                ['%s', '%s', '%f', '%d', '%d', '%s', '%s', '%d', '%s'],
                 ['%d']
             );
 
@@ -202,7 +203,7 @@ function callback_add_course_sufix() {
             $inserted = $wpdb->insert(
                 $table_name, 
                 $data,
-                ['%s', '%s', '%f', '%d', '%s', '%s', '%d', '%s', '%s']
+                ['%s', '%s', '%f', '%d', '%d', '%s', '%s', '%d', '%s', '%s']
             );
 
             if ($inserted !== false) {
@@ -242,6 +243,9 @@ function callback_add_member_sufix(){
         'created_at'           => current_time('mysql'),
         'updated_at'           => current_time('mysql'),
        ];
+       
+       // user_id فقط زمانی تنظیم می‌شود که کاربر خودش فرم را پر کرده باشد
+       // وقتی مدیر بازیکن اضافه می‌کند، user_id باید NULL بماند (به دلیل UNIQUE constraint)
        
        // فیلدهای اختیاری
        if (!empty($_POST['father_name'])) {
@@ -288,6 +292,9 @@ function callback_add_member_sufix(){
 
         // بروزرسانی
         if ($player_id) {
+            // user_id را تغییر نمی‌دهیم - فقط کاربر خودش می‌تواند user_id خودش را تنظیم کند
+            // یا از طریق فرم عمومی (my-account) که قبلاً پیاده‌سازی شده
+            
             $updated = $wpdb->update(
                 $table_name,
                 $data,

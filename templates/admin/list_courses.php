@@ -13,6 +13,7 @@ class Courses_List_Table extends WP_List_Table {
             'title' => 'عنوان دوره',
             'price' => 'قیمت',
             'capacity' => 'ظرفیت',
+            'sessions_count' => 'تعداد جلسات',
             'enrolled' => 'ثبت‌نام شده',
             'start_date' => 'تاریخ شروع',
             'end_date' => 'تاریخ پایان',
@@ -67,6 +68,8 @@ class Courses_List_Table extends WP_List_Table {
                 return number_format($item['price'], 0) . ' تومان';
             case 'capacity':
                 return $item['capacity'] ? $item['capacity'] : 'نامحدود';
+            case 'sessions_count':
+                return $item['sessions_count'] ? $item['sessions_count'] : '-';
             case 'start_date':
                 return $item['start_date'] ? $item['start_date'] : '-';
             case 'end_date':

@@ -80,6 +80,25 @@ function sc_add_user_id_column() {
 }
 
 /**
+ * Add sessions_count column to courses table if not exists
+ */
+add_action('admin_init', 'sc_add_sessions_count_column');
+function sc_add_sessions_count_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_courses';
+    
+    // بررسی وجود ستون sessions_count
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'sessions_count'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `sessions_count` int(11) DEFAULT NULL AFTER `capacity`");
+    }
+}
+
+/**
  * ============================
  * Check and create tables if not exist
  * ============================

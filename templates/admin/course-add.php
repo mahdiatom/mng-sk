@@ -3,6 +3,7 @@ $title = '';
 $description = '';
 $price = '';
 $capacity = '';
+$sessions_count = '';
 $start_date = '';
 $end_date = '';
 $is_active = 1;
@@ -12,6 +13,7 @@ if ($course && isset($_GET['course_id'])) {
     $description = $course->description ?? '';
     $price = $course->price ?? '';
     $capacity = $course->capacity ?? '';
+    $sessions_count = $course->sessions_count ?? '';
     $start_date = $course->start_date ?? '';
     $end_date = $course->end_date ?? '';
     $is_active = $course->is_active ?? 1;
@@ -57,6 +59,14 @@ if ($course && isset($_GET['course_id'])) {
                     <td>
                         <input name="capacity" type="number" id="capacity" value="<?php echo esc_attr($capacity ?? ''); ?>" class="regular-text" min="1">
                         <p class="description">تعداد مجاز ثبت‌نام. در صورت خالی بودن، نامحدود خواهد بود.</p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row"><label for="sessions_count">تعداد جلسات</label></th>
+                    <td>
+                        <input name="sessions_count" type="number" id="sessions_count" value="<?php echo esc_attr($sessions_count ?? ''); ?>" class="regular-text" min="1">
+                        <p class="description">تعداد جلسات دوره. در صورت خالی بودن، می‌توانید بعداً مشخص کنید.</p>
                     </td>
                 </tr>
 
