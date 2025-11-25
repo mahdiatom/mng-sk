@@ -244,67 +244,55 @@ function callback_add_member_sufix(){
         'updated_at'           => current_time('mysql'),
        ];
        
-       // user_id فقط زمانی تنظیم می‌شود که کاربر خودش فرم را پر کرده باشد
-       // وقتی مدیر بازیکن اضافه می‌کند، user_id باید NULL بماند (به دلیل UNIQUE constraint)
-       
-       // فیلدهای اختیاری
-       if (!empty($_POST['father_name'])) {
-           $data['father_name'] = sanitize_text_field($_POST['father_name']);
-       }
-       if (!empty($_POST['player_phone'])) {
-           $data['player_phone'] = sanitize_text_field($_POST['player_phone']);
-       }
-       if (!empty($_POST['father_phone'])) {
-           $data['father_phone'] = sanitize_text_field($_POST['father_phone']);
-       }
-       if (!empty($_POST['mother_phone'])) {
-           $data['mother_phone'] = sanitize_text_field($_POST['mother_phone']);
-       }
-       if (!empty($_POST['landline_phone'])) {
-           $data['landline_phone'] = sanitize_text_field($_POST['landline_phone']);
-       }
-       if (!empty($_POST['birth_date_shamsi'])) {
-           $data['birth_date_shamsi'] = sanitize_text_field($_POST['birth_date_shamsi']);
-       }
-       if (!empty($_POST['birth_date_gregorian'])) {
-           $data['birth_date_gregorian'] = sanitize_text_field($_POST['birth_date_gregorian']);
-       }
-       if (!empty($_POST['personal_photo'])) {
-           $data['personal_photo'] = esc_url_raw($_POST['personal_photo']);
-       }
-       if (!empty($_POST['id_card_photo'])) {
-           $data['id_card_photo'] = esc_url_raw($_POST['id_card_photo']);
-       }
-       if (!empty($_POST['sport_insurance_photo'])) {
-           $data['sport_insurance_photo'] = esc_url_raw($_POST['sport_insurance_photo']);
-       }
-       if (!empty($_POST['medical_condition'])) {
-           $data['medical_condition'] = sanitize_textarea_field($_POST['medical_condition']);
-       }
-       if (!empty($_POST['sports_history'])) {
-           $data['sports_history'] = sanitize_textarea_field($_POST['sports_history']);
-       }
-       if (!empty($_POST['additional_info'])) {
-           $data['additional_info'] = sanitize_textarea_field($_POST['additional_info']);
-       }
+       // فیلدهای اختیاری - همیشه به‌روزرسانی می‌شوند (حتی اگر خالی باشند)
+       // برای فیلدهای متنی: اگر خالی باشند، NULL ذخیره می‌شود
+       $data['father_name'] = isset($_POST['father_name']) && !empty(trim($_POST['father_name'])) ? sanitize_text_field($_POST['father_name']) : NULL;
+       $data['player_phone'] = isset($_POST['player_phone']) && !empty(trim($_POST['player_phone'])) ? sanitize_text_field($_POST['player_phone']) : NULL;
+       $data['father_phone'] = isset($_POST['father_phone']) && !empty(trim($_POST['father_phone'])) ? sanitize_text_field($_POST['father_phone']) : NULL;
+       $data['mother_phone'] = isset($_POST['mother_phone']) && !empty(trim($_POST['mother_phone'])) ? sanitize_text_field($_POST['mother_phone']) : NULL;
+       $data['landline_phone'] = isset($_POST['landline_phone']) && !empty(trim($_POST['landline_phone'])) ? sanitize_text_field($_POST['landline_phone']) : NULL;
+       $data['birth_date_shamsi'] = isset($_POST['birth_date_shamsi']) && !empty(trim($_POST['birth_date_shamsi'])) ? sanitize_text_field($_POST['birth_date_shamsi']) : NULL;
+       $data['birth_date_gregorian'] = isset($_POST['birth_date_gregorian']) && !empty(trim($_POST['birth_date_gregorian'])) ? sanitize_text_field($_POST['birth_date_gregorian']) : NULL;
+       $data['personal_photo'] = isset($_POST['personal_photo']) && !empty(trim($_POST['personal_photo'])) ? esc_url_raw($_POST['personal_photo']) : NULL;
+       $data['id_card_photo'] = isset($_POST['id_card_photo']) && !empty(trim($_POST['id_card_photo'])) ? esc_url_raw($_POST['id_card_photo']) : NULL;
+       $data['sport_insurance_photo'] = isset($_POST['sport_insurance_photo']) && !empty(trim($_POST['sport_insurance_photo'])) ? esc_url_raw($_POST['sport_insurance_photo']) : NULL;
+       $data['medical_condition'] = isset($_POST['medical_condition']) && !empty(trim($_POST['medical_condition'])) ? sanitize_textarea_field($_POST['medical_condition']) : NULL;
+       $data['sports_history'] = isset($_POST['sports_history']) && !empty(trim($_POST['sports_history'])) ? sanitize_textarea_field($_POST['sports_history']) : NULL;
+       $data['additional_info'] = isset($_POST['additional_info']) && !empty(trim($_POST['additional_info'])) ? sanitize_textarea_field($_POST['additional_info']) : NULL;
                     
         $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
 
         // بروزرسانی
         if ($player_id) {
-            // user_id را تغییر نمی‌دهیم - فقط کاربر خودش می‌تواند user_id خودش را تنظیم کند
-            // یا از طریق فرم عمومی (my-account) که قبلاً پیاده‌سازی شده
+            // آماده‌سازی format برای update
+            $format = [];
+            foreach ($data as $key => $value) {
+                if ($value === NULL) {
+                    $format[] = '%s'; // NULL
+                } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'])) {
+                    $format[] = '%d'; // integer
+                } elseif (in_array($key, ['price', 'capacity', 'sessions_count'])) {
+                    $format[] = '%d'; // integer (برای دوره‌ها)
+                } else {
+                    $format[] = '%s'; // string
+                }
+            }
             
             $updated = $wpdb->update(
                 $table_name,
                 $data,
-                ['id' => $player_id]
+                ['id' => $player_id],
+                $format,
+                ['%d']
             );
 
             if ($updated !== false) {
                 // ذخیره دوره‌های بازیکن
                 $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
                 sc_save_member_courses($player_id, $course_ids);
+                
+                // به‌روزرسانی وضعیت تکمیل پروفایل
+                sc_update_profile_completed_status($player_id);
                 
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=updated&player_id=' . $player_id));
                 exit;
@@ -339,6 +327,9 @@ function callback_add_member_sufix(){
                 // ذخیره دوره‌های بازیکن
                 $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
                 sc_save_member_courses($insert_id, $course_ids);
+                
+                // به‌روزرسانی وضعیت تکمیل پروفایل
+                sc_update_profile_completed_status($insert_id);
                 
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_true&player_id=' . $insert_id));
                 exit;

@@ -254,7 +254,11 @@ if($player && $_GET['player_id'] ){
                         echo '<input type="checkbox" name="courses[]" value="' . esc_attr($course->id) . '" ' . $checked . ' style="margin-left: 10px;">';
                         echo '<div style="flex: 1;">';
                         echo '<strong>' . esc_html($course->title) . '</strong>';
-                        echo '<span style="color: #666; margin: 0 10px;">- ' . number_format($course->price, 0) . ' تومان</span>';
+                        // استفاده از فرمت WooCommerce اگر فعال باشد، در غیر این صورت فرمت فارسی
+                        $formatted_price = function_exists('wc_price') 
+                            ? wc_price($course->price) 
+                            : number_format($course->price, 0, '.', ',') . ' تومان';
+                        echo '<span style="color: #666; margin: 0 10px;">- ' . $formatted_price . '</span>';
                         echo '<span' . $capacity_warning . '>' . $capacity_text . '</span>';
                         if ($course->description) {
                             echo '<p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">' . esc_html(wp_trim_words($course->description, 20)) . '</p>';

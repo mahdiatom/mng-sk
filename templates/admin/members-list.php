@@ -14,6 +14,7 @@ class Player_List_Table extends WP_List_Table {
             'birth_date_shamsi' => 'تاریخ تولد',
             'national_id' => 'کد ملی ',
             'player_phone' => 'شماره تماس ',
+            'profile_completed' => 'تکمیل پروفایل',
             'is_active' => 'وضعیت '
         ];
     }
@@ -78,6 +79,15 @@ class Player_List_Table extends WP_List_Table {
                 return $item['national_id'];
             case 'player_phone':
                 return $item['player_phone'];
+            case 'profile_completed':
+                // بررسی و به‌روزرسانی وضعیت تکمیل پروفایل
+                $is_completed = sc_check_profile_completed($item['id']);
+                // به‌روزرسانی در دیتابیس اگر تغییر کرده باشد
+                $current_status = isset($item['profile_completed']) ? (int)$item['profile_completed'] : 0;
+                if ($current_status != (int)$is_completed) {
+                    sc_update_profile_completed_status($item['id']);
+                }
+                return $is_completed ? '<span style="color: #00a32a; font-weight: bold;">✓ تکمیل شده</span>' : '<span style="color: #d63638; font-weight: bold;">✗ ناقص</span>';
             case 'is_active':
                 return $item['is_active'] ? "فعال" : "غیرفعال";
             default:
@@ -94,8 +104,6 @@ class Player_List_Table extends WP_List_Table {
             echo "بازیکنی با این مشخصات یافت نشد!";
         } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
             echo "هیچ بازیکن غیرفعالی وجود ندارد.";
-        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
-            echo "هیچ بازیکن فعالی وجود ندارد.";
         } else {
             echo "هنوز بازیکنی ثبت نکرده‌اید. از بخش افزودن بازیکن اولین بازیکن خود را اضافه کنید.";
         }
@@ -185,7 +193,7 @@ class Player_List_Table extends WP_List_Table {
             )
         ];
         
-        // نمایش تب غیرفعال فقط در صورت وجود بازیکن غیرفعال
+        // نمایش تب غیرفعال فقط در صورت وجود کاربر غیرفعال
         if ($count_inactive > 0) {
             $views['inactive'] = $this->view_create(
                 'inactive',

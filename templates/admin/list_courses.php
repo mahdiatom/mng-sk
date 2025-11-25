@@ -65,7 +65,13 @@ class Courses_List_Table extends WP_List_Table {
             case 'id':
                 return $item['id'];
             case 'price':
-                return number_format($item['price'], 0) . ' تومان';
+                // استفاده از فرمت WooCommerce اگر فعال باشد، در غیر این صورت فرمت فارسی
+                if (function_exists('wc_price')) {
+                    return wc_price($item['price']);
+                } else {
+                    // فرمت فارسی: سه رقم سه رقم با جداکننده کاما
+                    return number_format($item['price'], 0, '.', ',') . ' تومان';
+                }
             case 'capacity':
                 return $item['capacity'] ? $item['capacity'] : 'نامحدود';
             case 'sessions_count':

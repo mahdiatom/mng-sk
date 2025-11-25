@@ -1,7 +1,7 @@
 <?php
 
 /**
- * WooCommerce My Account - ارسال مدارک Tab
+ * WooCommerce My Account - اطلاعات بازیکن Tab
  */
 
 // Prevent direct access
@@ -14,11 +14,16 @@ if (!defined('ABSPATH')) {
  */
 add_filter('woocommerce_account_menu_items', 'sc_add_my_account_menu_item');
 function sc_add_my_account_menu_item($items) {
+    // مخفی کردن تب برای مدیران
+    if (current_user_can('manage_options')) {
+        return $items;
+    }
+    
     // Insert before logout
     $logout = $items['customer-logout'];
     unset($items['customer-logout']);
     
-    $items['sc-submit-documents'] = 'ارسال مدارک';
+    $items['sc-submit-documents'] = 'اطلاعات بازیکن';
     $items['customer-logout'] = $logout;
     
     return $items;
@@ -46,7 +51,72 @@ function sc_add_my_account_query_vars($vars) {
  */
 add_filter('woocommerce_endpoint_sc-submit-documents_title', 'sc_my_account_endpoint_title');
 function sc_my_account_endpoint_title($title) {
-    return 'ارسال مدارک';
+    return 'اطلاعات بازیکن';
+}
+
+/**
+ * نمایش پیام در بالای صفحه My Account برای کاربرانی که پروفایل ناقص دارند
+ */
+add_action('woocommerce_account_content', 'sc_display_incomplete_profile_message', 5);
+function sc_display_incomplete_profile_message() {
+    // بررسی لاگین بودن کاربر
+    if (!is_user_logged_in()) {
+        return;
+    }
+    
+    // مخفی کردن پیام برای مدیران
+    if (current_user_can('manage_options')) {
+        return;
+    }
+    
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    $current_user_id = get_current_user_id();
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+    $billing_phone = get_user_meta($current_user_id, 'billing_phone', true);
+    
+    // بررسی وجود اطلاعات بازیکن بر اساس user_id
+    $player = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE user_id = %d LIMIT 1",
+        $current_user_id
+    ));
+    
+    // اگر پیدا نشد، بر اساس شماره تماس بررسی می‌کنیم
+    if (!$player && $billing_phone) {
+        $player = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE player_phone = %s LIMIT 1",
+            $billing_phone
+        ));
+    }
+    
+    // بررسی تکمیل بودن پروفایل و نمایش پیام
+    $should_show_message = false;
+    if ($player) {
+        $is_completed = sc_check_profile_completed($player->id);
+        // به‌روزرسانی وضعیت در دیتابیس
+        sc_update_profile_completed_status($player->id);
+        
+        if (!$is_completed) {
+            $should_show_message = true;
+        }
+    } else {
+        // اگر کاربر اصلاً در جدول اعضا وجود ندارد، هم پیام نمایش بده
+        $should_show_message = true;
+    }
+    
+    if ($should_show_message) {
+        $profile_url = wc_get_account_endpoint_url('sc-submit-documents');
+        ?>
+        <div class="sc-incomplete-profile-message" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
+            <strong style="display: block; margin-bottom: 8px;">⚠️ اطلاعات شما تکمیل نیست</strong>
+            <p style="margin: 0;">
+                لطفاً <a href="<?php echo esc_url($profile_url); ?>" style="color: #856404; text-decoration: underline; font-weight: bold;">اطلاعات پروفایل</a> را تکمیل کنید.
+            </p>
+        </div>
+        <?php
+    }
 }
 
 /**
@@ -63,10 +133,15 @@ function sc_my_account_documents_content() {
         return;
     }
     
+    // مخفی کردن محتوا برای مدیران
+    if (current_user_can('manage_options')) {
+        echo '<p>این بخش فقط برای کاربران عادی در دسترس است.</p>';
+        return;
+    }
+    
     $current_user_id = get_current_user_id();
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
-    $user = wp_get_current_user();
     $billing_phone = get_user_meta($current_user_id, 'billing_phone', true);
     
     // بررسی وجود اطلاعات بازیکن بر اساس user_id
@@ -104,7 +179,6 @@ function sc_handle_documents_submission() {
     sc_check_and_create_tables();
     
     $current_user_id = get_current_user_id();
-    $user = wp_get_current_user();
     
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
@@ -123,49 +197,33 @@ function sc_handle_documents_submission() {
         'national_id'          => sanitize_text_field($_POST['national_id']),
         'health_verified'      => 0,
         'info_verified'        => 0,
-        //'is_active'            => 1, // تا زمانی که مدیر تأیید نکند
         'created_at'           => current_time('mysql'),
         'updated_at'           => current_time('mysql'),
     ];
     
-    // فیلدهای اختیاری
-    if (!empty($_POST['father_name'])) {
-        $data['father_name'] = sanitize_text_field($_POST['father_name']);
-    }
-    if (!empty($_POST['player_phone'])) {
-        $data['player_phone'] = sanitize_text_field($_POST['player_phone']);
-    }
-    if (!empty($_POST['father_phone'])) {
-        $data['father_phone'] = sanitize_text_field($_POST['father_phone']);
-    }
-    if (!empty($_POST['mother_phone'])) {
-        $data['mother_phone'] = sanitize_text_field($_POST['mother_phone']);
-    }
-    if (!empty($_POST['landline_phone'])) {
-        $data['landline_phone'] = sanitize_text_field($_POST['landline_phone']);
-    }
-    if (!empty($_POST['birth_date_shamsi'])) {
-        $data['birth_date_shamsi'] = sanitize_text_field($_POST['birth_date_shamsi']);
-    }
-    if (!empty($_POST['birth_date_gregorian'])) {
-        $data['birth_date_gregorian'] = sanitize_text_field($_POST['birth_date_gregorian']);
-    }
-    if (!empty($_POST['medical_condition'])) {
-        $data['medical_condition'] = sanitize_textarea_field($_POST['medical_condition']);
-    }
-    if (!empty($_POST['sports_history'])) {
-        $data['sports_history'] = sanitize_textarea_field($_POST['sports_history']);
-    }
-    if (!empty($_POST['additional_info'])) {
-        $data['additional_info'] = sanitize_textarea_field($_POST['additional_info']);
-    }
-    if (!empty($_POST['health_verified'])) {
-        $data['health_verified'] = sanitize_textarea_field($_POST['health_verified']);
-    }
-    if (!empty($_POST['info_verified'])) {
-        $data['info_verified'] = sanitize_textarea_field($_POST['info_verified']);
-    }
+    // فیلدهای اختیاری - همیشه به‌روزرسانی می‌شوند (حتی اگر خالی باشند)
+    // برای فیلدهای متنی: اگر خالی باشند، NULL ذخیره می‌شود
+    $data['father_name'] = isset($_POST['father_name']) && !empty(trim($_POST['father_name'])) ? sanitize_text_field($_POST['father_name']) : NULL;
+    $data['player_phone'] = isset($_POST['player_phone']) && !empty(trim($_POST['player_phone'])) ? sanitize_text_field($_POST['player_phone']) : NULL;
+    $data['father_phone'] = isset($_POST['father_phone']) && !empty(trim($_POST['father_phone'])) ? sanitize_text_field($_POST['father_phone']) : NULL;
+    $data['mother_phone'] = isset($_POST['mother_phone']) && !empty(trim($_POST['mother_phone'])) ? sanitize_text_field($_POST['mother_phone']) : NULL;
+    $data['landline_phone'] = isset($_POST['landline_phone']) && !empty(trim($_POST['landline_phone'])) ? sanitize_text_field($_POST['landline_phone']) : NULL;
+    $data['birth_date_shamsi'] = isset($_POST['birth_date_shamsi']) && !empty(trim($_POST['birth_date_shamsi'])) ? sanitize_text_field($_POST['birth_date_shamsi']) : NULL;
+    $data['birth_date_gregorian'] = isset($_POST['birth_date_gregorian']) && !empty(trim($_POST['birth_date_gregorian'])) ? sanitize_text_field($_POST['birth_date_gregorian']) : NULL;
+    $data['medical_condition'] = isset($_POST['medical_condition']) && !empty(trim($_POST['medical_condition'])) ? sanitize_textarea_field($_POST['medical_condition']) : NULL;
+    $data['sports_history'] = isset($_POST['sports_history']) && !empty(trim($_POST['sports_history'])) ? sanitize_textarea_field($_POST['sports_history']) : NULL;
+    $data['additional_info'] = isset($_POST['additional_info']) && !empty(trim($_POST['additional_info'])) ? sanitize_textarea_field($_POST['additional_info']) : NULL;
+    
+    // برای checkbox ها: اگر تیک نخورده باشد، 0 ذخیره می‌شود
+    $data['health_verified'] = isset($_POST['health_verified']) && !empty($_POST['health_verified']) ? 1 : 0;
+    $data['info_verified'] = isset($_POST['info_verified']) && !empty($_POST['info_verified']) ? 1 : 0;
    
+    // بررسی وجود اطلاعات قبلی بر اساس user_id یا کد ملی
+    $existing = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE user_id = %d OR national_id = %s LIMIT 1",
+        $current_user_id,
+        $data['national_id']
+    ));
     
     // پردازش آپلود عکس‌ها با امنیت
     $uploaded_files = sc_handle_secure_file_upload($current_user_id);
@@ -180,16 +238,11 @@ function sc_handle_documents_submission() {
             $data['sport_insurance_photo'] = $uploaded_files['sport_insurance_photo'];
         }
     }
-    
-    // بررسی وجود اطلاعات قبلی بر اساس user_id یا کد ملی
-    $existing = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $table_name WHERE user_id = %d OR national_id = %s LIMIT 1",
-        $current_user_id,
-        $data['national_id']
-    ));
+    // اگر فایلی آپلود نشده و در حالت update هستیم، فیلدهای عکس را در update_data اضافه نمی‌کنیم
+    // تا عکس‌های قبلی حفظ شوند
     
     if ($existing) {
-        // بروزرسانی - فقط فیلدهایی که مقدار دارند
+        // بروزرسانی - تمام فیلدها (حتی اگر خالی باشند)
         $update_data = $data;
         // حذف created_at از update
         unset($update_data['created_at']);
@@ -200,13 +253,30 @@ function sc_handle_documents_submission() {
             $update_data['user_id'] = $current_user_id;
         }
         
+        // آماده‌سازی format برای update
+        $format = [];
+        foreach ($update_data as $key => $value) {
+            if ($value === NULL) {
+                $format[] = '%s'; // NULL
+            } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'])) {
+                $format[] = '%d'; // integer
+            } else {
+                $format[] = '%s'; // string
+            }
+        }
+        
         $updated = $wpdb->update(
             $table_name,
             $update_data,
-            ['id' => $existing->id]
+            ['id' => $existing->id],
+            $format,
+            ['%d']
         );
         
         if ($updated !== false) {
+            // به‌روزرسانی وضعیت تکمیل پروفایل
+            sc_update_profile_completed_status($existing->id);
+            
             wc_add_notice('اطلاعات شما با موفقیت به روز شد.', 'success');
             // ریدایرکت برای جلوگیری از ارسال مجدد فرم
             wp_safe_redirect(wc_get_account_endpoint_url('sc-submit-documents'));
@@ -233,6 +303,11 @@ function sc_handle_documents_submission() {
         $inserted = $wpdb->insert($table_name, $data);
         
         if ($inserted !== false) {
+            $insert_id = $wpdb->insert_id;
+            
+            // به‌روزرسانی وضعیت تکمیل پروفایل
+            sc_update_profile_completed_status($insert_id);
+            
             wc_add_notice('اطلاعات شما با موفقیت ثبت شد.', 'success');
             // ریدایرکت برای جلوگیری از ارسال مجدد فرم
             wp_safe_redirect(wc_get_account_endpoint_url('sc-submit-documents'));
@@ -273,7 +348,6 @@ function sc_handle_secure_file_upload($user_id) {
         $file = $_FILES[$field_name];
         
         // بررسی نوع فایل
-        $file_type = wp_check_filetype($file['name']);
         $mime_type = $file['type'];
         
         if (!in_array($mime_type, $allowed_types)) {
@@ -322,4 +396,3 @@ function sc_handle_secure_file_upload($user_id) {
     
     return $uploaded_files;
 }
-

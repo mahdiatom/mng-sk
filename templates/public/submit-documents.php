@@ -1,5 +1,5 @@
 <?php
-//this is file for form user in dashbord woocommerc (template)
+//this is file for form user in WooCommerce My Account (template)
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -76,7 +76,7 @@ if (empty($player_phone) && $billing_phone) {
                 $course_names[] = $course->title;
             }
         }
-        $courses_text = !empty($course_names) ? '<br> ' . implode(', ', $course_names) . '</small>' : '';
+        $courses_text = !empty($course_names) ? '<br><small> ' . implode(', ', $course_names) . '</small>' : '';
 
 ?>
 

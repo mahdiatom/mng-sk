@@ -25,6 +25,7 @@ function sc_create_members_table(){
         `health_verified` tinyint(1) DEFAULT 0,
         `info_verified` tinyint(1) DEFAULT 0,
         `is_active` tinyint(1) DEFAULT 1,
+        `profile_completed` tinyint(1) DEFAULT 0,
         `additional_info` text,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
