@@ -97,4 +97,35 @@ function sc_create_member_courses_table() {
     dbDelta($sql);
 }
 
+/**
+ * Create invoices table
+ */
+function sc_create_invoices_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_invoices';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `member_course_id` bigint(20) unsigned DEFAULT NULL,
+        `woocommerce_order_id` bigint(20) unsigned DEFAULT NULL,
+        `amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `status` varchar(20) DEFAULT 'pending',
+        `payment_date` datetime DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_member_course_id` (`member_course_id`),
+        KEY `idx_woocommerce_order_id` (`woocommerce_order_id`),
+        KEY `idx_status` (`status`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 

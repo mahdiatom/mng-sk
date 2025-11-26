@@ -53,6 +53,12 @@ function sc_activate_plugin() {
     sc_create_members_table();
     sc_create_courses_table();
     sc_create_member_courses_table();
+    sc_create_invoices_table();
+    
+    // ثبت endpoint های My Account
+    add_rewrite_endpoint('sc-submit-documents', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-enroll-course', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
     
     // Flush rewrite rules for WooCommerce endpoint
     flush_rewrite_rules();
@@ -216,11 +222,13 @@ function sc_check_and_create_tables() {
     $members_table = $wpdb->prefix . 'sc_members';
     $courses_table = $wpdb->prefix . 'sc_courses';
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
     $courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $courses_table)) == $courses_table;
     $member_courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $member_courses_table)) == $member_courses_table;
+    $invoices_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $invoices_table)) == $invoices_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists) {
@@ -231,6 +239,9 @@ function sc_check_and_create_tables() {
     }
     if (!$member_courses_exists) {
         sc_create_member_courses_table();
+    }
+    if (!$invoices_exists) {
+        sc_create_invoices_table();
     }
 }
 
