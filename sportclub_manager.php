@@ -38,6 +38,7 @@ define('SC_ASSETS_URL', SC_PLUGIN_URL . 'assets/');              // Assets URL
  * ============================
  */
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
+require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
 require_once SC_PUBLIC_DIR . 'my-account.php';
@@ -54,6 +55,7 @@ function sc_activate_plugin() {
     sc_create_courses_table();
     sc_create_member_courses_table();
     sc_create_invoices_table();
+    sc_create_settings_table();
     
     // ثبت endpoint های My Account
     add_rewrite_endpoint('sc-submit-documents', EP_ROOT | EP_PAGES);
@@ -100,6 +102,35 @@ function sc_add_sessions_count_column() {
     
     if (empty($column_exists)) {
         $wpdb->query("ALTER TABLE $table_name ADD COLUMN `sessions_count` int(11) DEFAULT NULL AFTER `capacity`");
+    }
+}
+
+/**
+ * Add penalty columns to invoices table if not exists
+ */
+add_action('admin_init', 'sc_add_penalty_columns');
+function sc_add_penalty_columns() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_invoices';
+    
+    // بررسی وجود ستون penalty_amount
+    $penalty_amount_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'penalty_amount'
+    ));
+    
+    if (empty($penalty_amount_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `penalty_amount` decimal(10,2) NOT NULL DEFAULT 0.00 AFTER `amount`");
+    }
+    
+    // بررسی وجود ستون penalty_applied
+    $penalty_applied_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'penalty_applied'
+    ));
+    
+    if (empty($penalty_applied_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `penalty_applied` tinyint(1) DEFAULT 0 AFTER `penalty_amount`");
     }
 }
 
@@ -223,12 +254,14 @@ function sc_check_and_create_tables() {
     $courses_table = $wpdb->prefix . 'sc_courses';
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $settings_table = $wpdb->prefix . 'sc_settings';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
     $courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $courses_table)) == $courses_table;
     $member_courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $member_courses_table)) == $member_courses_table;
     $invoices_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $invoices_table)) == $invoices_table;
+    $settings_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $settings_table)) == $settings_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists) {
@@ -242,6 +275,9 @@ function sc_check_and_create_tables() {
     }
     if (!$invoices_exists) {
         sc_create_invoices_table();
+    }
+    if (!$settings_exists) {
+        sc_create_settings_table();
     }
 }
 

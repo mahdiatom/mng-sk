@@ -112,6 +112,7 @@ function sc_admin_add_member_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'member-add.php';
 }
 function sc_setting_callback(){
+    include SC_TEMPLATES_ADMIN_DIR . 'settings.php';
     echo "تنظیمات افزونه";
 }
 

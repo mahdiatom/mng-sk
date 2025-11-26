@@ -112,6 +112,8 @@ function sc_create_invoices_table() {
         `member_course_id` bigint(20) unsigned DEFAULT NULL,
         `woocommerce_order_id` bigint(20) unsigned DEFAULT NULL,
         `amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `penalty_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `penalty_applied` tinyint(1) DEFAULT 0,
         `status` varchar(20) DEFAULT 'pending',
         `payment_date` datetime DEFAULT NULL,
         `created_at` datetime NOT NULL,
@@ -126,6 +128,58 @@ function sc_create_invoices_table() {
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
+}
+
+/**
+ * Create settings table
+ */
+function sc_create_settings_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_settings';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `setting_key` varchar(100) NOT NULL,
+        `setting_value` text,
+        `setting_group` varchar(50) DEFAULT 'general',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_setting_key` (`setting_key`),
+        KEY `idx_setting_group` (`setting_group`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+    
+    // تنظیمات پیش‌فرض
+    $default_settings = [
+        ['penalty_enabled', '0', 'penalty'],
+        ['penalty_days', '7', 'penalty'],
+        ['penalty_amount', '500', 'penalty'],
+    ];
+    
+    foreach ($default_settings as $setting) {
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $table_name WHERE setting_key = %s",
+            $setting[0]
+        ));
+        
+        if (!$existing) {
+            $wpdb->insert(
+                $table_name,
+                [
+                    'setting_key' => $setting[0],
+                    'setting_value' => $setting[1],
+                    'setting_group' => $setting[2],
+                    'created_at' => current_time('mysql'),
+                    'updated_at' => current_time('mysql')
+                ],
+                ['%s', '%s', '%s', '%s', '%s']
+            );
+        }
+    }
 }
 
 

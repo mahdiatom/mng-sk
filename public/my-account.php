@@ -572,11 +572,13 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
             'member_course_id' => $member_course_id,
             'woocommerce_order_id' => $order_id,
             'amount' => $amount,
+            'penalty_amount' => 0.00,
+            'penalty_applied' => 0,
             'status' => 'pending',
             'created_at' => current_time('mysql'),
             'updated_at' => current_time('mysql')
         ],
-        ['%d', '%d', '%d', '%d', '%f', '%s', '%s', '%s']
+        ['%d', '%d', '%d', '%d', '%f', '%f', '%d', '%s', '%s', '%s']
     );
     
     if ($invoice_inserted === false) {
@@ -585,13 +587,19 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
         return ['success' => false, 'message' => 'خطا در ایجاد صورت حساب.'];
     }
     
-    // دریافت لینک پرداخت - مستقیماً به درگاه پرداخت
+    // بررسی و اعمال جریمه در صورت نیاز
+    $invoice_id = $wpdb->insert_id;
+    if ($invoice_id) {
+        sc_apply_penalty_to_invoice($invoice_id);
+    }
+    
+    // دریافت لینک پرداخت
     $checkout_url = $order->get_checkout_payment_url();
     
     return [
         'success' => true,
         'order_id' => $order_id,
-        'invoice_id' => $wpdb->insert_id,
+        'invoice_id' => $invoice_id,
         'checkout_url' => $checkout_url,
         'order' => $order
     ];
@@ -637,6 +645,7 @@ function sc_my_account_invoices_content() {
     }
     
     // دریافت تمام صورت حساب‌های کاربر
+    // توجه: بررسی جریمه در hook sc_check_penalty_on_invoices_page انجام می‌شود
     $invoices = $wpdb->get_results($wpdb->prepare(
         "SELECT i.*, c.title as course_title, c.price as course_price
          FROM $invoices_table i
@@ -930,4 +939,69 @@ function sc_handle_secure_file_upload($user_id) {
     }
     
     return $uploaded_files;
+}
+
+/**
+ * Hook برای بررسی و اعمال جریمه هنگام مشاهده صفحه پرداخت
+ */
+add_action('woocommerce_before_checkout_process', 'sc_check_penalty_on_checkout');
+add_action('template_redirect', 'sc_check_penalty_on_payment_page');
+function sc_check_penalty_on_payment_page() {
+    if (!is_checkout()) {
+        return;
+    }
+    
+    global $wp;
+    if (!isset($wp->query_vars['order-pay'])) {
+        return;
+    }
+    
+    $order_id = absint($wp->query_vars['order-pay']);
+    if (!$order_id) {
+        return;
+    }
+    
+    // بررسی اینکه آیا این سفارش مربوط به یک صورت حساب است
+    global $wpdb;
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $invoice = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $invoices_table WHERE woocommerce_order_id = %d",
+        $order_id
+    ));
+    
+    if ($invoice && $invoice->status === 'pending') {
+        // بررسی و اعمال جریمه
+        sc_apply_penalty_to_invoice($invoice->id);
+    }
+}
+
+/**
+ * Hook برای بررسی و اعمال جریمه هنگام مشاهده صفحه صورت حساب‌ها
+ */
+add_action('woocommerce_account_sc-invoices_endpoint', 'sc_check_penalty_on_invoices_page', 5);
+function sc_check_penalty_on_invoices_page() {
+    // بررسی و اعمال جریمه برای تمام صورت حساب‌های pending
+    sc_check_and_apply_penalties();
+}
+
+function sc_check_penalty_on_checkout() {
+    // این hook برای checkout معمولی است
+    // برای order-pay از sc_check_penalty_on_payment_page استفاده می‌شود
+}
+
+/**
+ * Hook برای بررسی و اعمال جریمه به صورت دوره‌ای
+ */
+add_action('wp', 'sc_scheduled_penalty_check');
+function sc_scheduled_penalty_check() {
+    // فقط یک بار در روز بررسی می‌شود
+    $last_check = get_transient('sc_last_penalty_check');
+    if ($last_check) {
+        return;
+    }
+    
+    sc_check_and_apply_penalties();
+    
+    // ذخیره زمان آخرین بررسی (24 ساعت)
+    set_transient('sc_last_penalty_check', current_time('timestamp'), DAY_IN_SECONDS);
 }

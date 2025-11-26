@@ -38,7 +38,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                         <span class="nobr">دوره</span>
                     </th>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-status">
-                        <span class="nobr">مبلغ</span>
+                        <span class="nobr">مبلغ (با جریمه)</span>
                     </th>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-total">
                         <span class="nobr">وضعیت</span>
@@ -50,11 +50,43 @@ if (function_exists('wc_get_price_thousand_separator')) {
             </thead>
             <tbody>
                 <?php foreach ($invoices as $invoice) : 
+                    // بررسی و اعمال جریمه در صورت نیاز
+                    if ($invoice->status === 'pending' && !$invoice->penalty_applied) {
+                        sc_apply_penalty_to_invoice($invoice->id);
+                        // دریافت مجدد اطلاعات صورت حساب
+                        $invoice = $wpdb->get_row($wpdb->prepare(
+                            "SELECT i.*, c.title as course_title, c.price as course_price
+                             FROM {$wpdb->prefix}sc_invoices i
+                             INNER JOIN {$wpdb->prefix}sc_courses c ON i.course_id = c.id
+                             WHERE i.id = %d",
+                            $invoice->id
+                        ));
+                    }
+                    
+                    $total_amount = (float)$invoice->amount + (float)($invoice->penalty_amount ?? 0);
+                    
                     $formatted_price = '';
                     if (function_exists('wc_price')) {
                         $formatted_price = wc_price($invoice->amount);
                     } else {
                         $formatted_price = number_format((float)$invoice->amount, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
+                    }
+                    
+                    $formatted_total = '';
+                    if (function_exists('wc_price')) {
+                        $formatted_total = wc_price($total_amount);
+                    } else {
+                        $formatted_total = number_format($total_amount, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
+                    }
+                    
+                    $penalty_amount = (float)($invoice->penalty_amount ?? 0);
+                    $formatted_penalty = '';
+                    if ($penalty_amount > 0) {
+                        if (function_exists('wc_price')) {
+                            $formatted_penalty = wc_price($penalty_amount);
+                        } else {
+                            $formatted_penalty = number_format($penalty_amount, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
+                        }
                     }
                     
                     // تعیین وضعیت و رنگ
@@ -100,6 +132,14 @@ if (function_exists('wc_get_price_thousand_separator')) {
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-status" data-title="مبلغ">
                             <strong><?php echo $formatted_price; ?></strong>
+                            <?php if ($penalty_amount > 0) : ?>
+                                <br>
+                                <small style="color: #d63638;">
+                                    <strong>جریمه:</strong> <?php echo $formatted_penalty; ?>
+                                </small>
+                                <br>
+                                <strong style="color: #2271b1;">مجموع: <?php echo $formatted_total; ?></strong>
+                            <?php endif; ?>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-total" data-title="وضعیت">
                             <span class="woocommerce-orders-table__status status-<?php echo esc_attr($status_class); ?>" style="

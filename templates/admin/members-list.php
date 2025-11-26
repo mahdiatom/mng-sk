@@ -215,19 +215,38 @@ class Player_List_Table extends WP_List_Table {
             );
             
             $selected_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+            $selected_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+            $selected_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
             
+            echo '<div class="alignleft actions">';
+            
+            // فیلتر دوره
             if ($courses) {
-                echo '<div class="alignleft actions">';
-                echo '<select name="filter_course" id="filter_course">';
+                echo '<select name="filter_course" id="filter_course" style="margin-left: 5px;">';
                 echo '<option value="0">همه دوره‌ها</option>';
                 foreach ($courses as $course) {
                     $selected = ($selected_course == $course->id) ? 'selected' : '';
                     echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
                 }
                 echo '</select>';
-                echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر">';
-                echo '</div>';
             }
+            
+            // فیلتر وضعیت (active/inactive)
+            echo '<select name="filter_status" id="filter_status" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
+            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
+            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
+            echo '</select>';
+            
+            // فیلتر تکمیل پروفایل
+            echo '<select name="filter_profile" id="filter_profile" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_profile == 'all' ? ' selected' : '') . '>همه پروفایل‌ها</option>';
+            echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
+            echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
+            echo '</select>';
+            
+            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            echo '</div>';
         }
     }
 
@@ -247,11 +266,29 @@ class Player_List_Table extends WP_List_Table {
 
         $where = " 1=1 ";
         
-        // فیلتر وضعیت
+        // فیلتر وضعیت (از تب‌ها)
         if (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
             $where .= " AND is_active = 1";
         } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
             $where .= " AND is_active = 0";
+        }
+        
+        // فیلتر وضعیت (از dropdown)
+        if (isset($_GET['filter_status']) && $_GET['filter_status'] != 'all') {
+            if ($_GET['filter_status'] == 'active') {
+                $where .= " AND is_active = 1";
+            } elseif ($_GET['filter_status'] == 'inactive') {
+                $where .= " AND is_active = 0";
+            }
+        }
+        
+        // فیلتر تکمیل پروفایل
+        if (isset($_GET['filter_profile']) && $_GET['filter_profile'] != 'all') {
+            if ($_GET['filter_profile'] == 'completed') {
+                $where .= " AND profile_completed = 1";
+            } elseif ($_GET['filter_profile'] == 'incomplete') {
+                $where .= " AND (profile_completed = 0 OR profile_completed IS NULL)";
+            }
         }
         
         // فیلتر دوره
