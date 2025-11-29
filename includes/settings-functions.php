@@ -98,6 +98,13 @@ function sc_get_penalty_amount() {
 }
 
 /**
+ * Get invoice interval days
+ */
+function sc_get_invoice_interval_days() {
+    return (int)sc_get_setting('invoice_interval_days', '30');
+}
+
+/**
  * Calculate penalty for an invoice
  */
 function sc_calculate_penalty($invoice_id) {

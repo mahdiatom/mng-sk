@@ -39,6 +39,7 @@ define('SC_ASSETS_URL', SC_PLUGIN_URL . 'assets/');              // Assets URL
  */
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
+require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
 require_once SC_PUBLIC_DIR . 'my-account.php';
@@ -49,6 +50,7 @@ require_once SC_PUBLIC_DIR . 'my-account.php';
  * ============================
  */
 register_activation_hook(__FILE__, 'sc_activate_plugin');
+register_deactivation_hook(__FILE__, 'sc_clear_recurring_invoices_cron');
 
 function sc_activate_plugin() {
     sc_create_members_table();
@@ -56,10 +58,12 @@ function sc_activate_plugin() {
     sc_create_member_courses_table();
     sc_create_invoices_table();
     sc_create_settings_table();
+    sc_create_attendances_table();
     
     // ثبت endpoint های My Account
     add_rewrite_endpoint('sc-submit-documents', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-enroll-course', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-my-courses', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
     
     // Flush rewrite rules for WooCommerce endpoint
@@ -150,6 +154,46 @@ function sc_add_profile_completed_column() {
     
     if (empty($column_exists)) {
         $wpdb->query("ALTER TABLE $table_name ADD COLUMN `profile_completed` tinyint(1) DEFAULT 0 AFTER `is_active`");
+    }
+}
+
+/**
+ * Add course_status_flags column to member_courses table if not exists
+ */
+add_action('admin_init', 'sc_add_course_status_flags_column');
+function sc_add_course_status_flags_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_member_courses';
+    
+    // بررسی وجود ستون course_status_flags
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'course_status_flags'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `course_status_flags` varchar(255) DEFAULT NULL AFTER `status`");
+    }
+}
+
+/**
+ * Check and create attendances table if not exists
+ */
+if (!function_exists('sc_check_attendances_table')) {
+    add_action('admin_init', 'sc_check_attendances_table');
+    function sc_check_attendances_table() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_attendances';
+        
+        // بررسی وجود جدول
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $table_name
+        ));
+        
+        if (!$table_exists) {
+            sc_create_attendances_table();
+        }
     }
 }
 
@@ -255,6 +299,7 @@ function sc_check_and_create_tables() {
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $settings_table = $wpdb->prefix . 'sc_settings';
+    $attendances_table = $wpdb->prefix . 'sc_attendances';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -262,6 +307,7 @@ function sc_check_and_create_tables() {
     $member_courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $member_courses_table)) == $member_courses_table;
     $invoices_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $invoices_table)) == $invoices_table;
     $settings_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $settings_table)) == $settings_table;
+    $attendances_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $attendances_table)) == $attendances_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists) {
@@ -278,6 +324,9 @@ function sc_check_and_create_tables() {
     }
     if (!$settings_exists) {
         sc_create_settings_table();
+    }
+    if (!$attendances_exists) {
+        sc_create_attendances_table();
     }
 }
 
@@ -488,7 +537,13 @@ function sc_admin_enqueue_assets() {
     wp_enqueue_style('sc-admin-css', SC_ASSETS_URL . 'css/admin.css', array(), '1.0');
     wp_enqueue_script('sc-admin-js', SC_ASSETS_URL . 'js/admin.js', array('jquery'), '1.0', true);
     // add media wp for photo and ....
-        wp_enqueue_media();
+    wp_enqueue_media();
+    
+    // Localize script for AJAX
+    wp_localize_script('sc-admin-js', 'scAdmin', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('sc_admin_nonce')
+    ));
 }
 
 /**

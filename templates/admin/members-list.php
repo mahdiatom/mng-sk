@@ -57,7 +57,7 @@ class Player_List_Table extends WP_List_Table {
             'edit' => '<a href="' . admin_url('admin.php?page=sc-add-member&player_id=') . $item['id'] . '">ویرایش</a>',
             'delete' => '<a href="' . admin_url('admin.php?page=sc-members&action=delete&player_id=') . $item['id'] . '">حذف</a>',
             'view' => sprintf(
-            '<p id="modal_custom_sc" class="view-player" data-id="%s">مشاهده اطلاعات</p>',
+            '<p class="view-player" data-id="%s" style="cursor: pointer; display: inline; color: #2271b1; text-decoration: none;">مشاهده اطلاعات</p>',
             $item['id']
         )
         ];
@@ -246,7 +246,7 @@ class Player_List_Table extends WP_List_Table {
             echo '</select>';
             
             echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
-            echo '</div>';
+                echo '</div>';
         }
     }
 

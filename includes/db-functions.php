@@ -84,6 +84,7 @@ function sc_create_member_courses_table() {
         `course_id` bigint(20) unsigned NOT NULL,
         `enrollment_date` date DEFAULT NULL,
         `status` varchar(20) DEFAULT 'active',
+        `course_status_flags` varchar(255) DEFAULT NULL,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
@@ -158,6 +159,7 @@ function sc_create_settings_table() {
         ['penalty_enabled', '0', 'penalty'],
         ['penalty_days', '7', 'penalty'],
         ['penalty_amount', '500', 'penalty'],
+        ['invoice_interval_days', '30', 'invoice'],
     ];
     
     foreach ($default_settings as $setting) {
@@ -182,4 +184,30 @@ function sc_create_settings_table() {
     }
 }
 
+/**
+ * Create attendances table
+ */
+function sc_create_attendances_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_attendances';
+    $charset_collate = $wpdb->get_charset_collate();
 
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `attendance_date` date NOT NULL,
+        `status` enum('present', 'absent') NOT NULL DEFAULT 'present',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_attendance_date` (`attendance_date`),
+        KEY `idx_status` (`status`),
+        UNIQUE KEY `idx_member_course_date` (`member_id`, `course_id`, `attendance_date`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}

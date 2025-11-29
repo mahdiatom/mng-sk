@@ -9,21 +9,30 @@ sc_check_and_create_tables();
 
 // پردازش فرم
 if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce', 'sc_settings_nonce')) {
-    $penalty_enabled = isset($_POST['penalty_enabled']) ? 1 : 0;
-    $penalty_days = isset($_POST['penalty_days']) ? absint($_POST['penalty_days']) : 7;
-    $penalty_amount = isset($_POST['penalty_amount']) ? floatval($_POST['penalty_amount']) : 500;
-    
-    sc_update_setting('penalty_enabled', $penalty_enabled, 'penalty');
-    sc_update_setting('penalty_days', $penalty_days, 'penalty');
-    sc_update_setting('penalty_amount', $penalty_amount, 'penalty');
-    
-    echo '<div class="notice notice-success is-dismissible"><p>تنظیمات با موفقیت ذخیره شد.</p></div>';
+    if ($current_tab === 'penalty') {
+        $penalty_enabled = isset($_POST['penalty_enabled']) ? 1 : 0;
+        $penalty_days = isset($_POST['penalty_days']) ? absint($_POST['penalty_days']) : 7;
+        $penalty_amount = isset($_POST['penalty_amount']) ? floatval($_POST['penalty_amount']) : 500;
+        
+        sc_update_setting('penalty_enabled', $penalty_enabled, 'penalty');
+        sc_update_setting('penalty_days', $penalty_days, 'penalty');
+        sc_update_setting('penalty_amount', $penalty_amount, 'penalty');
+        
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات جریمه با موفقیت ذخیره شد.</p></div>';
+    } elseif ($current_tab === 'invoice') {
+        $invoice_interval_days = isset($_POST['invoice_interval_days']) ? absint($_POST['invoice_interval_days']) : 30;
+        
+        sc_update_setting('invoice_interval_days', $invoice_interval_days, 'invoice');
+        
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات صورتحساب با موفقیت ذخیره شد.</p></div>';
+    }
 }
 
 // دریافت تنظیمات فعلی
 $penalty_enabled = sc_is_penalty_enabled();
 $penalty_days = sc_get_penalty_days();
 $penalty_amount = sc_get_penalty_amount();
+$invoice_interval_days = sc_get_invoice_interval_days();
 
 // دریافت تب فعلی
 $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'penalty';
@@ -37,7 +46,10 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'penalt
            class="nav-tab <?php echo $current_tab === 'penalty' ? 'nav-tab-active' : ''; ?>">
             جریمه
         </a>
-        <!-- می‌توانید تب‌های بیشتری در آینده اضافه کنید -->
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=invoice'); ?>" 
+           class="nav-tab <?php echo $current_tab === 'invoice' ? 'nav-tab-active' : ''; ?>">
+            صورتحساب
+        </a>
     </nav>
     
     <div class="tab-content" style="margin-top: 20px;">

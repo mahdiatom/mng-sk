@@ -223,14 +223,29 @@ if($player && $_GET['player_id'] ){
                     "SELECT * FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
                 );
                 
-                // دریافت دوره‌های فعلی بازیکن
-                $player_courses = [];
+                // دریافت دوره‌های فعلی بازیکن با وضعیت آن‌ها
+                $player_courses_active = [];
+                $player_courses_flags = [];
                 if ($player && isset($_GET['player_id'])) {
                     $player_id = absint($_GET['player_id']);
-                    $player_courses = $wpdb->get_col($wpdb->prepare(
-                        "SELECT course_id FROM $member_courses_table WHERE member_id = %d AND status = 'active'",
+                    $player_courses_data = $wpdb->get_results($wpdb->prepare(
+                        "SELECT course_id, status, course_status_flags FROM $member_courses_table WHERE member_id = %d",
                         $player_id
-                    ));
+                    ), ARRAY_A);
+                    if ($player_courses_data) {
+                        foreach ($player_courses_data as $pc) {
+                            if ($pc['status'] === 'active') {
+                                $player_courses_active[$pc['course_id']] = true;
+                            }
+                            // پردازش course_status_flags (مثلاً "paused,completed" یا JSON)
+                            $flags = [];
+                            if (!empty($pc['course_status_flags'])) {
+                                $flags = explode(',', $pc['course_status_flags']);
+                                $flags = array_map('trim', $flags);
+                            }
+                            $player_courses_flags[$pc['course_id']] = $flags;
+                        }
+                    }
                 }
                 
                 if (empty($courses)) {
@@ -241,7 +256,12 @@ if($player && $_GET['player_id'] ){
                 } else {
                     echo '<div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #f9f9f9;">';
                     foreach ($courses as $course) {
-                        $checked = in_array($course->id, $player_courses) ? 'checked' : '';
+                        $is_active = isset($player_courses_active[$course->id]);
+                        $current_flags = isset($player_courses_flags[$course->id]) ? $player_courses_flags[$course->id] : [];
+                        $is_paused = in_array('paused', $current_flags);
+                        $is_completed = in_array('completed', $current_flags);
+                        $is_canceled = in_array('canceled', $current_flags);
+                        
                         $enrolled = $wpdb->get_var($wpdb->prepare(
                             "SELECT COUNT(*) FROM $member_courses_table WHERE course_id = %d AND status = 'active'",
                             $course->id
@@ -249,12 +269,18 @@ if($player && $_GET['player_id'] ){
                         $capacity_text = $course->capacity ? "($enrolled/{$course->capacity})" : "(نامحدود)";
                         $capacity_warning = ($course->capacity && $enrolled >= $course->capacity) ? ' style="color: #d63638; font-weight: bold;"' : '';
                         
-                        echo '<div style="padding: 10px; margin-bottom: 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">';
-                        echo '<label style="display: flex; align-items: center; cursor: pointer;">';
-                        echo '<input type="checkbox" name="courses[]" value="' . esc_attr($course->id) . '" ' . $checked . ' style="margin-left: 10px;">';
+                        echo '<div style="padding: 15px; margin-bottom: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">';
+                        echo '<div style="display: flex; align-items: flex-start; gap: 15px;">';
+                        
+                        // Checkbox برای فعال/غیرفعال
+                        echo '<div style="flex-shrink: 0; margin-top: 5px;">';
+                        echo '<input type="checkbox" name="courses[]" value="' . esc_attr($course->id) . '" id="course_cb_' . esc_attr($course->id) . '" ' . ($is_active ? 'checked' : '') . '>';
+                        echo '</div>';
+                        
+                        // اطلاعات دوره
                         echo '<div style="flex: 1;">';
+                        echo '<label for="course_cb_' . esc_attr($course->id) . '" style="cursor: pointer; display: block; margin-bottom: 10px;">';
                         echo '<strong>' . esc_html($course->title) . '</strong>';
-                        // استفاده از فرمت WooCommerce اگر فعال باشد، در غیر این صورت فرمت فارسی
                         $formatted_price = function_exists('wc_price') 
                             ? wc_price($course->price) 
                             : number_format($course->price, 0, '.', ',') . ' تومان';
@@ -263,12 +289,79 @@ if($player && $_GET['player_id'] ){
                         if ($course->description) {
                             echo '<p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">' . esc_html(wp_trim_words($course->description, 20)) . '</p>';
                         }
-                        echo '</div>';
                         echo '</label>';
+                        
+                        // Checkbox های وضعیت‌های اضافی
+                        echo '<div id="course_status_' . esc_attr($course->id) . '" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; ' . ($is_active ? '' : 'display: none;') . '">';
+                        echo '<label style="font-size: 12px; color: #666; display: block; margin-bottom: 8px;">وضعیت‌های اضافی:</label>';
+                        echo '<div style="display: flex; gap: 15px; flex-wrap: wrap;">';
+                        
+                        // Checkbox برای paused
+                        echo '<label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">';
+                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][paused]" value="1" ' . ($is_paused ? 'checked' : '') . ' ' . ($is_active ? '' : 'disabled') . ' style="margin-left: 5px;">';
+                        echo '<span>متوقف شده</span>';
+                        echo '</label>';
+                        
+                        // Checkbox برای completed
+                        echo '<label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">';
+                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][completed]" value="1" ' . ($is_completed ? 'checked' : '') . ' ' . ($is_active ? '' : 'disabled') . ' style="margin-left: 5px;">';
+                        echo '<span>تمام شده</span>';
+                        echo '</label>';
+                        
+                        // Checkbox برای canceled
+                        echo '<label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">';
+                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][canceled]" value="1" ' . ($is_canceled ? 'checked' : '') . ' ' . ($is_active ? '' : 'disabled') . ' style="margin-left: 5px;">';
+                        echo '<span>لغو شده</span>';
+                        echo '</label>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
                         echo '</div>';
                     }
                     echo '</div>';
-                    echo '<p class="description" style="margin-top: 10px;">بازیکن می‌تواند در چند دوره شرکت کند. دوره‌های انتخاب شده ذخیره می‌شوند.</p>';
+                    echo '<p class="description" style="margin-top: 10px;">بازیکن می‌تواند در چند دوره شرکت کند. تیک اول دوره را فعال/غیرفعال می‌کند و تیک‌های دیگر وضعیت‌های اضافی هستند.</p>';
+                    
+                    // JavaScript برای فعال/غیرفعال کردن checkbox های وضعیت
+                    echo '<script type="text/javascript">
+                    // تابع toggle برای آکاردئون دوره‌ها - باید در global scope باشد
+                    window.toggleCoursesAccordion = function() {
+                        var content = document.getElementById("sc-courses-content");
+                        var icon = document.getElementById("courses-accordion-icon");
+                        
+                        if (!content || !icon) {
+                            console.error("Accordion elements not found");
+                            return;
+                        }
+                        
+                        if (content.style.display === "none" || content.style.display === "") {
+                            content.style.display = "block";
+                            icon.textContent = "▲";
+                        } else {
+                            content.style.display = "none";
+                            icon.textContent = "▼";
+                        }
+                    };
+                    
+                    jQuery(document).ready(function($) {
+                        $("input[name=\'courses[]\']").change(function() {
+                            var courseId = $(this).val();
+                            var statusDiv = $("#course_status_" + courseId);
+                            var checkboxes = statusDiv.find("input[type=checkbox]");
+                            
+                            if ($(this).is(":checked")) {
+                                statusDiv.show();
+                                checkboxes.prop("disabled", false);
+                            } else {
+                                statusDiv.hide();
+                                checkboxes.prop("disabled", true);
+                                checkboxes.prop("checked", false);
+                            }
+                        });
+                    });
+                    </script>';
                 }
                 ?>
             </div>

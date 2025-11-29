@@ -70,6 +70,26 @@ function sc_register_admin_menu() {
         'sc_setting_callback'
     );
 
+    // Attendance - Add
+    add_submenu_page(
+        'sc-dashboard',
+        'ثبت حضور و غیاب',
+        'ثبت حضور و غیاب',
+        'manage_options',
+        'sc-attendance-add',
+        'sc_admin_attendance_add_page'
+    );
+
+    // Attendance - List
+    add_submenu_page(
+        'sc-dashboard',
+        'لیست حضور و غیاب',
+        'لیست حضور و غیاب',
+        'manage_options',
+        'sc-attendance-list',
+        'sc_admin_attendance_list_page'
+    );
+
     add_action('load-'. $add_member_sufix , 'callback_add_member_sufix');
     add_action('load-'. $list_member_sufix , 'procces_table_data');
     add_action('load-'. $list_courses_sufix , 'procces_courses_table_data');
@@ -114,6 +134,23 @@ function sc_admin_add_member_page() {
 function sc_setting_callback(){
     include SC_TEMPLATES_ADMIN_DIR . 'settings.php';
     echo "تنظیمات افزونه";
+}
+
+/**
+ * Attendance management pages
+ */
+function sc_admin_attendance_add_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'attendance-add.php';
+}
+
+function sc_admin_attendance_list_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'attendance-list.php';
 }
 
 /**
@@ -290,7 +327,23 @@ function callback_add_member_sufix(){
             if ($updated !== false) {
                 // ذخیره دوره‌های بازیکن
                 $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
-                sc_save_member_courses($player_id, $course_ids);
+                $course_flags_raw = isset($_POST['course_flags']) && is_array($_POST['course_flags']) ? $_POST['course_flags'] : [];
+                $course_flags = [];
+                foreach ($course_flags_raw as $course_id => $flags) {
+                    $course_id_int = absint($course_id);
+                    $flags_array = [];
+                    if (isset($flags['paused']) && $flags['paused'] == '1') {
+                        $flags_array[] = 'paused';
+                    }
+                    if (isset($flags['completed']) && $flags['completed'] == '1') {
+                        $flags_array[] = 'completed';
+                    }
+                    if (isset($flags['canceled']) && $flags['canceled'] == '1') {
+                        $flags_array[] = 'canceled';
+                    }
+                    $course_flags[$course_id_int] = $flags_array;
+                }
+                sc_save_member_courses($player_id, $course_ids, $course_flags);
                 
                 // به‌روزرسانی وضعیت تکمیل پروفایل
                 sc_update_profile_completed_status($player_id);
@@ -327,7 +380,12 @@ function callback_add_member_sufix(){
                 
                 // ذخیره دوره‌های بازیکن
                 $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
-                sc_save_member_courses($insert_id, $course_ids);
+                $course_statuses_raw = isset($_POST['course_status']) && is_array($_POST['course_status']) ? $_POST['course_status'] : [];
+                $course_statuses = [];
+                foreach ($course_statuses_raw as $course_id => $status) {
+                    $course_statuses[absint($course_id)] = sanitize_text_field($status);
+                }
+                sc_save_member_courses($insert_id, $course_ids, $course_statuses);
                 
                 // به‌روزرسانی وضعیت تکمیل پروفایل
                 sc_update_profile_completed_status($insert_id);
@@ -351,24 +409,46 @@ function callback_add_member_sufix(){
 /**
  * Save member courses
  */
-function sc_save_member_courses($member_id, $course_ids) {
+function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_member_courses';
     
-    // غیرفعال کردن دوره‌های قبلی
-    $wpdb->update(
-        $table_name,
-        ['status' => 'inactive', 'updated_at' => current_time('mysql')],
-        ['member_id' => $member_id, 'status' => 'active'],
-        ['%s', '%s'],
-        ['%d', '%s']
-    );
+    // غیرفعال کردن دوره‌هایی که دیگر انتخاب نشده‌اند
+    if (!empty($course_ids) && is_array($course_ids)) {
+        $course_ids_safe = array_map('absint', $course_ids);
+        $course_ids_imploded = implode(',', $course_ids_safe);
+        $wpdb->query($wpdb->prepare(
+            "UPDATE $table_name 
+             SET status = 'inactive', updated_at = %s 
+             WHERE member_id = %d 
+             AND course_id NOT IN ($course_ids_imploded)",
+            current_time('mysql'),
+            $member_id
+        ));
+    } else {
+        // اگر هیچ دوره‌ای انتخاب نشده، همه را inactive کن
+        $wpdb->query($wpdb->prepare(
+            "UPDATE $table_name 
+             SET status = 'inactive', updated_at = %s 
+             WHERE member_id = %d",
+            current_time('mysql'),
+            $member_id
+        ));
+    }
     
-    // افزودن دوره‌های جدید
+    // افزودن یا به‌روزرسانی دوره‌های جدید
     if (!empty($course_ids) && is_array($course_ids)) {
         foreach ($course_ids as $course_id) {
             $course_id = absint($course_id);
             if ($course_id) {
+                // دریافت flags از آرایه course_flags
+                $flags_array = isset($course_flags[$course_id]) && is_array($course_flags[$course_id]) 
+                    ? $course_flags[$course_id] 
+                    : [];
+                
+                // تبدیل flags به string (مثلاً "paused,completed")
+                $flags_string = !empty($flags_array) ? implode(',', array_map('sanitize_text_field', $flags_array)) : NULL;
+                
                 // بررسی وجود قبلی
                 $existing = $wpdb->get_var($wpdb->prepare(
                     "SELECT id FROM $table_name WHERE member_id = %d AND course_id = %d",
@@ -377,32 +457,44 @@ function sc_save_member_courses($member_id, $course_ids) {
                 ));
                 
                 if ($existing) {
-                    // فعال کردن مجدد
-                    $wpdb->update(
+                    // به‌روزرسانی وضعیت
+                    $update_result = $wpdb->update(
                         $table_name,
                         [
                             'status' => 'active',
+                            'course_status_flags' => $flags_string,
                             'enrollment_date' => current_time('Y-m-d'),
                             'updated_at' => current_time('mysql')
                         ],
                         ['id' => $existing],
-                        ['%s', '%s', '%s'],
+                        ['%s', '%s', '%s', '%s'],
                         ['%d']
                     );
+                    
+                    if ($update_result === false && $wpdb->last_error) {
+                        error_log('SC Update Member Course Error: ' . $wpdb->last_error);
+                        error_log('SC Update Member Course Query: ' . $wpdb->last_query);
+                    }
                 } else {
                     // افزودن جدید
-                    $wpdb->insert(
+                    $insert_result = $wpdb->insert(
                         $table_name,
                         [
                             'member_id' => $member_id,
                             'course_id' => $course_id,
                             'enrollment_date' => current_time('Y-m-d'),
                             'status' => 'active',
+                            'course_status_flags' => $flags_string,
                             'created_at' => current_time('mysql'),
                             'updated_at' => current_time('mysql')
                         ],
-                        ['%d', '%d', '%s', '%s', '%s', '%s']
+                        ['%d', '%d', '%s', '%s', '%s', '%s', '%s']
                     );
+                    
+                    if ($insert_result === false && $wpdb->last_error) {
+                        error_log('SC Insert Member Course Error: ' . $wpdb->last_error);
+                        error_log('SC Insert Member Course Query: ' . $wpdb->last_query);
+                    }
                 }
             }
         }
@@ -508,9 +600,58 @@ function get_player_details(){
         wp_die();
     }
      wp_send_json_success($player);
+}
 
-
-
+/**
+ * Get active course members (AJAX handler)
+ */
+add_action('wp_ajax_get_course_active_users', 'get_course_active_users');
+function get_course_active_users() {
+    $course_id = intval($_POST['course_id']);
+    
+    if (!$course_id) {
+        wp_send_json_error(['message' => 'شناسه دوره معتبر نیست.']);
+        return;
+    }
+    
+    global $wpdb;
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $members_table = $wpdb->prefix . 'sc_members';
+    
+    // دریافت کاربران فعال دوره (status = 'active' و بدون flags)
+    $users = $wpdb->get_results($wpdb->prepare(
+        "SELECT m.id, m.first_name, m.last_name, m.national_id, m.player_phone, 
+                m.father_name, m.father_phone, m.created_at, mc.enrollment_date
+         FROM $member_courses_table mc
+         INNER JOIN $members_table m ON mc.member_id = m.id
+         WHERE mc.course_id = %d
+         AND mc.status = 'active'
+         AND (
+             mc.course_status_flags IS NULL
+             OR mc.course_status_flags = ''
+             OR (
+                 mc.course_status_flags NOT LIKE '%%paused%%'
+                 AND mc.course_status_flags NOT LIKE '%%completed%%'
+                 AND mc.course_status_flags NOT LIKE '%%canceled%%'
+             )
+         )
+         ORDER BY m.last_name ASC, m.first_name ASC",
+        $course_id
+    ), ARRAY_A);
+    
+    if (empty($users) || !is_array($users)) {
+        wp_send_json_success([
+            'users' => [],
+            'count' => 0,
+            'message' => 'هیچ کاربر فعالی در این دوره یافت نشد.'
+        ]);
+        return;
+    }
+    
+    wp_send_json_success([
+        'users' => $users,
+        'count' => count($users)
+    ]);
 }
 
 

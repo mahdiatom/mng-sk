@@ -28,7 +28,42 @@ if (function_exists('wc_get_price_thousand_separator')) {
         
         <div class="sc-courses-accordion">
             <?php foreach ($courses as $index => $course) : 
-                $is_enrolled = in_array($course->id, $enrolled_courses);
+                $is_enrolled = isset($enrolled_courses_data[$course->id]);
+                $course_status = null;
+                $status_label = '';
+                $status_color = '';
+                $status_bg = '';
+                $tooltip_message = '';
+                
+                if ($is_enrolled) {
+                    $course_data = $enrolled_courses_data[$course->id];
+                    if ($course_data['is_canceled']) {
+                        $course_status = 'canceled';
+                        $status_label = 'لغو شده';
+                        $status_color = '#d63638';
+                        $status_bg = '#ffeaea';
+                        $tooltip_message = 'این دوره توسط شما یا مدیریت لغو شده است. در صورتی که نیاز به ثبت نام و فعال شدن این دوره دارید با پشتیبان سایت و مربی ارتباط بگیرید.';
+                    } elseif ($course_data['is_completed']) {
+                        $course_status = 'completed';
+                        $status_label = 'تمام شده';
+                        $status_color = '#666';
+                        $status_bg = '#f5f5f5';
+                        $tooltip_message = 'این دوره توسط شما یا مدیریت تمام شده است. در صورتی که نیاز به ثبت نام مجدد در این دوره دارید با پشتیبان سایت و مربی ارتباط بگیرید.';
+                    } elseif ($course_data['is_paused']) {
+                        $course_status = 'paused';
+                        $status_label = 'متوقف شده';
+                        $status_color = '#f0a000';
+                        $status_bg = '#fff8e1';
+                        $tooltip_message = 'این دوره توسط شما یا مدیریت متوقف شده است. در صورتی که نیاز به فعال شدن مجدد این دوره دارید با پشتیبان سایت و مربی ارتباط بگیرید.';
+                    } else {
+                        $course_status = 'active';
+                        $status_label = 'ثبت‌نام شده';
+                        $status_color = '#00a32a';
+                        $status_bg = '#d4edda';
+                        $tooltip_message = 'تبریک شما اکنون در این دوره ثبت نام کردید و عضو کاربران فعال هستید';
+                    }
+                }
+                
                 $formatted_price = '';
                 if (function_exists('wc_price')) {
                     $formatted_price = wc_price($course->price);
@@ -39,26 +74,40 @@ if (function_exists('wc_get_price_thousand_separator')) {
                 // محاسبه ظرفیت
                 $enrolled_count = 0;
                 $remaining = 0;
+                $is_capacity_full = false;
                 if ($course->capacity) {
                     $enrolled_count = $wpdb->get_var($wpdb->prepare(
                         "SELECT COUNT(*) FROM $member_courses_table WHERE course_id = %d AND status = 'active'",
                         $course->id
                     ));
                     $remaining = $course->capacity - $enrolled_count;
+                    $is_capacity_full = ($remaining <= 0);
+                }
+                
+                // اگر ظرفیت تکمیل شده باشد، برچسب و tooltip اضافه می‌کنیم
+                if ($is_capacity_full && !$is_enrolled) {
+                    $status_label = 'ظرفیت تکمیل شده';
+                    $status_color = '#d63638';
+                    $status_bg = '#ffeaea';
+                    $tooltip_message = 'ظرفیت دوره تکمیل شده است برای امکان ثبت نام در این دوره با مدیر باشگاه ارتباط بگرید.';
+                    $course_status = 'capacity_full';
                 }
             ?>
-                <div class="sc-course-accordion-item" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
+                <div class="sc-course-accordion-item" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px; overflow: visible; position: relative;">
                     <input type="radio" 
                            name="course_id" 
                            id="course_<?php echo esc_attr($course->id); ?>" 
                            value="<?php echo esc_attr($course->id); ?>" 
                            class="sc-course-radio"
-                           <?php echo $is_enrolled ? 'disabled' : ''; ?>
+                           <?php echo ($is_enrolled || $is_capacity_full) ? 'disabled' : ''; ?>
                            required>
                     
                     <label for="course_<?php echo esc_attr($course->id); ?>" 
                            class="sc-course-accordion-header" 
-                           style="display: flex; align-items: center; padding: 15px; cursor: <?php echo $is_enrolled ? 'not-allowed' : 'pointer'; ?>; background-color: <?php echo $is_enrolled ? '#f5f5f5' : '#fff'; ?>; transition: background-color 0.3s;">
+                           <?php if ($tooltip_message) : ?>
+                               data-tooltip="<?php echo esc_attr($tooltip_message); ?>"
+                           <?php endif; ?>
+                           style="display: flex; align-items: center; padding: 15px; cursor: <?php echo ($is_enrolled || $is_capacity_full) ? 'not-allowed' : 'pointer'; ?>; background-color: <?php echo ($is_enrolled || $is_capacity_full) ? '#f5f5f5' : '#fff'; ?>; transition: background-color 0.3s; position: relative;">
                         <div style="flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 20px;">
                             <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
                                 <span class="sc-accordion-icon" style="font-size: 18px; color: #666;">▼</span>
@@ -77,21 +126,25 @@ if (function_exists('wc_get_price_thousand_separator')) {
                                 <?php endif; ?>
                                 
                                 <?php if ($course->capacity) : ?>
-                                    <span style="color: #666; font-size: 14px;">
+                                    <span style="color: <?php echo ($is_capacity_full && !$is_enrolled) ? '#d63638' : '#666'; ?>; font-size: 14px; font-weight: <?php echo ($is_capacity_full && !$is_enrolled) ? 'bold' : 'normal'; ?>;">
                                         <strong>ظرفیت:</strong> <?php echo esc_html($remaining); ?> / <?php echo esc_html($course->capacity); ?>
                                     </span>
                                 <?php endif; ?>
                                 
-                                <?php if ($is_enrolled) : ?>
-                                    <span style="color: #00a32a; font-weight: bold; background-color: #d4edda; padding: 5px 10px; border-radius: 4px;">
-                                        ✓ ثبت‌نام شده
+                                <?php if ($is_enrolled || $is_capacity_full) : ?>
+                                    <span style="color: <?php echo esc_attr($status_color); ?>; font-weight: bold; background-color: <?php echo esc_attr($status_bg); ?>; padding: 5px 10px; border-radius: 4px;">
+                                        <?php if ($course_status == 'active') : ?>
+                                            ✓ <?php echo esc_html($status_label); ?>
+                                        <?php else : ?>
+                                            <?php echo esc_html($status_label); ?>
+                                        <?php endif; ?>
                                     </span>
                                 <?php endif; ?>
                             </div>
                         </div>
                     </label>
                     
-                    <div class="sc-course-accordion-content" style="display: none; padding: 0 15px 15px 50px; background-color: #f9f9f9; border-top: 1px solid #eee;">
+                    <div class="sc-course-accordion-content" style="display: none; padding: 0 15px 15px 50px; background-color: #f9f9f9; border-top: 1px solid #eee; overflow: hidden;">
                         <?php if ($course->description) : ?>
                             <p style="margin: 10px 0 0 0; color: #666; line-height: 1.6;">
                                 <?php echo nl2br(esc_html($course->description)); ?>
@@ -141,6 +194,61 @@ if (function_exists('wc_get_price_thousand_separator')) {
 
 .sc-accordion-icon {
     transition: transform 0.3s ease;
+}
+
+/* Tooltip Styles */
+.sc-course-accordion-header[data-tooltip] {
+    position: relative;
+}
+
+.sc-course-accordion-header[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    right: 15px;
+    padding: 12px 16px;
+    background-color: #000000;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: normal;
+    width: 320px;
+    max-width: 90vw;
+    z-index: 99999;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    text-align: right;
+    font-weight: normal;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: tooltipFadeIn 0.3s ease-out 0.2s forwards;
+    pointer-events: none;
+}
+
+.sc-course-accordion-header[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    right: 30px;
+    border: 7px solid transparent;
+    border-top-color: #000000;
+    margin-bottom: 3px;
+    z-index: 99999;
+    opacity: 0;
+    animation: tooltipFadeIn 0.3s ease-out 0.2s forwards;
+    pointer-events: none;
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
 

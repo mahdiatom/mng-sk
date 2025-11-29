@@ -40,6 +40,10 @@ class Courses_List_Table extends WP_List_Table {
         } else {
             // دوره فعال است
             $actions['edit'] = '<a href="' . admin_url('admin.php?page=sc-add-course&course_id=') . $item['id'] . '">ویرایش</a>';
+            $actions['view_users'] = sprintf(
+                '<p class="view-course-users" data-id="%s" style="cursor: pointer; display: inline; color: #2271b1; text-decoration: none;">مشاهده کاربران</p>',
+                $item['id']
+            );
             $actions['trash'] = '<a href="' . admin_url('admin.php?page=sc-courses&action=trash&course_id=') . $item['id'] . '">حذف</a>';
         }
 
