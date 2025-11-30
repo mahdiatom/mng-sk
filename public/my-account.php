@@ -577,6 +577,10 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
     $fee->set_total($amount);
     $order->add_item($fee);
     
+    // تنظیم metadata برای شناسایی سفارش‌های افزونه
+    $order->update_meta_data('_created_via', 'admin');
+    $order->update_meta_data('_sc_invoice_order', 'yes'); // شناسایی سفارش‌های افزونه
+    
     // تنظیم وضعیت سفارش به pending
     $order->set_status('pending', 'سفارش ایجاد شده از طریق ثبت‌نام در دوره');
     
@@ -955,6 +959,10 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
         $fee->set_total($expense_amount);
         $order->add_item($fee);
     }
+    
+    // تنظیم metadata برای شناسایی سفارش‌های افزونه
+    $order->update_meta_data('_created_via', 'admin');
+    $order->update_meta_data('_sc_invoice_order', 'yes'); // شناسایی سفارش‌های افزونه
     
     // تنظیم وضعیت سفارش به pending
     $order->set_status('pending', 'سفارش ایجاد شده از طریق پنل مدیریت');
