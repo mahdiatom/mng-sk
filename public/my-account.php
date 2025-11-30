@@ -1012,10 +1012,10 @@ function sc_handle_documents_submission() {
         // بررسی اینکه آیا user_id در رکورد دیگری استفاده شده است
         $user_id_exists = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM $table_name WHERE user_id = %d AND id != %d LIMIT 1",
-            $current_user_id,
+        $current_user_id,
             $existing->id
-        ));
-        
+    ));
+    
         if ($user_id_exists) {
             // user_id در رکورد دیگری استفاده شده است
             wc_add_notice('این حساب کاربری قبلاً به بازیکن دیگری اختصاص داده شده است. لطفاً با پشتیبانی تماس بگیرید.', 'error');

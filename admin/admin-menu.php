@@ -90,10 +90,32 @@ function sc_register_admin_menu() {
         'sc_admin_attendance_list_page'
     );
 
+    // Invoices - List
+    $list_invoices_sufix = add_submenu_page(
+        'sc-dashboard',
+        'صورت حساب‌ها',
+        'صورت حساب‌ها',
+        'manage_options',
+        'sc-invoices',
+        'sc_admin_invoices_list_page'
+    );
+
     add_action('load-'. $add_member_sufix , 'callback_add_member_sufix');
+    add_action('load-'. $list_invoices_sufix , 'process_invoices_table_data');
     add_action('load-'. $list_member_sufix , 'procces_table_data');
     add_action('load-'. $list_courses_sufix , 'procces_courses_table_data');
     add_action('load-'. $add_course_sufix , 'callback_add_course_sufix');
+}
+
+/**
+ * ذخیره تنظیمات screen option برای تعداد رکوردها در هر صفحه
+ */
+add_filter('set-screen-option', 'sc_set_invoices_screen_option', 10, 3);
+function sc_set_invoices_screen_option($status, $option, $value) {
+    if ('invoices_per_page' === $option) {
+        return $value;
+    }
+    return $status;
 }
 
 /**
@@ -151,6 +173,32 @@ function sc_admin_attendance_list_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'attendance-list.php';
+}
+
+/**
+ * Invoices management page
+ */
+function sc_admin_invoices_list_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'invoices-list.php';
+}
+
+function process_invoices_table_data() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    // افزودن screen option برای تعداد رکوردها در هر صفحه
+    add_screen_option('per_page', [
+        'default' => 20,
+        'option' => 'invoices_per_page',
+        'label' => 'تعداد صورت حساب‌ها در هر صفحه'
+    ]);
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'list_invoices.php';
+    $GLOBALS['invoices_list_table'] = new Invoices_List_Table();
+    $GLOBALS['invoices_list_table']->prepare_items();
 }
 
 /**
@@ -578,6 +626,15 @@ function sc_sprot_notices(){
         if($status == 'course_bulk_deleted'){
             $type='success';
             $messege="دوره‌های انتخابی به زباله‌دان منتقل شدند";
+        }
+        // Invoice messages
+        if($status == 'bulk_status_updated'){
+            $type='success';
+            $messege="وضعیت صورت حساب‌های انتخابی با موفقیت به‌روزرسانی شد";
+        }
+        if($status == 'bulk_deleted'){
+            $type='success';
+            $messege="صورت حساب‌های انتخابی با موفقیت حذف شدند";
         }
     }
         if($type && $messege){
