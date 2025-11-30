@@ -7,6 +7,9 @@ if (!defined('ABSPATH')) {
 // بررسی و ایجاد جداول
 sc_check_and_create_tables();
 
+// دریافت تب فعلی (باید قبل از پردازش فرم باشد)
+$current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'penalty';
+
 // پردازش فرم
 if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce', 'sc_settings_nonce')) {
     if ($current_tab === 'penalty') {
@@ -28,14 +31,26 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     }
 }
 
+// پردازش فرم بازگشت به کارخانه
+if (isset($_POST['sc_reset_factory']) && check_admin_referer('sc_reset_factory', 'sc_reset_factory_nonce')) {
+    if (isset($_POST['confirm_reset']) && $_POST['confirm_reset'] == '1') {
+        $reset_result = sc_reset_factory_data();
+        if ($reset_result['success']) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($reset_result['message']) . '</p></div>';
+        } else {
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($reset_result['message']) . '</p></div>';
+        }
+    } else {
+        echo '<div class="notice notice-error is-dismissible"><p>لطفاً تأیید را علامت بزنید.</p></div>';
+    }
+}
+
 // دریافت تنظیمات فعلی
 $penalty_enabled = sc_is_penalty_enabled();
 $penalty_days = sc_get_penalty_days();
 $penalty_amount = sc_get_penalty_amount();
 $invoice_interval_days = sc_get_invoice_interval_days();
 
-// دریافت تب فعلی
-$current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'penalty';
 ?>
 
 <div class="wrap">
@@ -49,6 +64,10 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'penalt
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=invoice'); ?>" 
            class="nav-tab <?php echo $current_tab === 'invoice' ? 'nav-tab-active' : ''; ?>">
             صورتحساب
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=reset'); ?>" 
+           class="nav-tab <?php echo $current_tab === 'reset' ? 'nav-tab-active' : ''; ?>">
+            بازگشت به کارخانه
         </a>
     </nav>
     
@@ -111,6 +130,67 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'penalt
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات">
                 </p>
             </form>
+        <?php elseif ($current_tab === 'invoice') : ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="invoice_interval_days">تعداد روز فاصله بین صورت حساب‌های تکراری</label>
+                        </th>
+                        <td>
+                            <input type="number" 
+                                   name="invoice_interval_days" 
+                                   id="invoice_interval_days" 
+                                   value="<?php echo esc_attr($invoice_interval_days); ?>" 
+                                   min="1" 
+                                   class="regular-text" 
+                                   required>
+                            <p class="description">تعداد روزی که بین ایجاد صورت حساب‌های تکراری فاصله وجود دارد.</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات">
+                </p>
+            </form>
+        <?php elseif ($current_tab === 'reset') : ?>
+            <div class="sc-reset-factory-section">
+                <div class="notice notice-warning" style="margin-bottom: 20px;">
+                    <p><strong>هشدار:</strong> این عملیات غیر قابل بازگشت است!</p>
+                    <p>با کلیک بر روی دکمه زیر، تمام اطلاعات موجود در جداول افزونه حذف خواهد شد:</p>
+                    <ul style="margin-right: 20px; margin-top: 10px;">
+                        <li>تمام اعضا (کاربران)</li>
+                        <li>تمام دوره‌ها</li>
+                        <li>تمام ثبت‌نام‌ها در دوره‌ها</li>
+                        <li>تمام صورت حساب‌ها</li>
+                        <li>تمام حضور و غیاب‌ها</li>
+                    </ul>
+                    <p><strong>توجه:</strong> ساختار جداول (ستون‌ها) حفظ می‌شود و فقط داده‌ها حذف می‌شوند.</p>
+                </div>
+                
+                <form method="POST" action="" id="sc-reset-factory-form" onsubmit="return confirm('آیا مطمئن هستید؟ این عملیات غیر قابل بازگشت است و تمام اطلاعات حذف خواهد شد!');">
+                    <?php wp_nonce_field('sc_reset_factory', 'sc_reset_factory_nonce'); ?>
+                    
+                    <p>
+                        <label>
+                            <input type="checkbox" name="confirm_reset" value="1" required>
+                            من این عملیات را درک کرده‌ام و می‌خواهم تمام اطلاعات را حذف کنم
+                        </label>
+                    </p>
+                    
+                    <p class="submit">
+                        <input type="submit" 
+                               name="sc_reset_factory" 
+                               class="button button-secondary" 
+                               value="بازگشت به کارخانه (حذف تمام اطلاعات)"
+                               style="background-color: #dc3232; border-color: #dc3232; color: #fff;"
+                               onclick="return confirm('آیا واقعاً مطمئن هستید؟ این عملیات غیر قابل بازگشت است!');">
+                    </p>
+                </form>
+            </div>
         <?php endif; ?>
     </div>
 </div>

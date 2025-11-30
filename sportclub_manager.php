@@ -53,21 +53,30 @@ register_activation_hook(__FILE__, 'sc_activate_plugin');
 register_deactivation_hook(__FILE__, 'sc_clear_recurring_invoices_cron');
 
 function sc_activate_plugin() {
-    sc_create_members_table();
-    sc_create_courses_table();
-    sc_create_member_courses_table();
-    sc_create_invoices_table();
-    sc_create_settings_table();
-    sc_create_attendances_table();
+    // اطمینان از اینکه همه فایل‌های مورد نیاز لود شده‌اند
+    if (!function_exists('sc_check_and_create_tables')) {
+        // در صورت عدم وجود تابع، خطا را لاگ کن
+        error_log('SportClub Manager: sc_check_and_create_tables function not found during activation');
+        return;
+    }
     
-    // ثبت endpoint های My Account
-    add_rewrite_endpoint('sc-submit-documents', EP_ROOT | EP_PAGES);
-    add_rewrite_endpoint('sc-enroll-course', EP_ROOT | EP_PAGES);
-    add_rewrite_endpoint('sc-my-courses', EP_ROOT | EP_PAGES);
-    add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
-    
-    // Flush rewrite rules for WooCommerce endpoint
-    flush_rewrite_rules();
+    try {
+        // بررسی و ایجاد جداول در صورت عدم وجود
+        sc_check_and_create_tables();
+        
+        // ثبت endpoint های My Account
+        add_rewrite_endpoint('sc-submit-documents', EP_ROOT | EP_PAGES);
+        add_rewrite_endpoint('sc-enroll-course', EP_ROOT | EP_PAGES);
+        add_rewrite_endpoint('sc-my-courses', EP_ROOT | EP_PAGES);
+        add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
+        
+        // Flush rewrite rules for WooCommerce endpoint
+        flush_rewrite_rules();
+    } catch (Exception $e) {
+        error_log('SportClub Manager Activation Error: ' . $e->getMessage());
+        deactivate_plugins(plugin_basename(__FILE__));
+        wp_die('خطا در فعال‌سازی افزونه: ' . esc_html($e->getMessage()));
+    }
 }
 
 /**
@@ -329,28 +338,113 @@ function sc_check_and_create_tables() {
     $attendances_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $attendances_table)) == $attendances_table;
     
     // ایجاد جداول در صورت عدم وجود
-    if (!$members_exists) {
+    if (!$members_exists && function_exists('sc_create_members_table')) {
         sc_create_members_table();
     }
-    if (!$courses_exists) {
+    if (!$courses_exists && function_exists('sc_create_courses_table')) {
         sc_create_courses_table();
     }
-    if (!$member_courses_exists) {
+    if (!$member_courses_exists && function_exists('sc_create_member_courses_table')) {
         sc_create_member_courses_table();
     }
-    if (!$invoices_exists) {
+    if (!$invoices_exists && function_exists('sc_create_invoices_table')) {
         sc_create_invoices_table();
     }
-    if (!$settings_exists) {
+    if (!$settings_exists && function_exists('sc_create_settings_table')) {
         sc_create_settings_table();
     }
-    if (!$attendances_exists) {
+    if (!$attendances_exists && function_exists('sc_create_attendances_table')) {
         sc_create_attendances_table();
     }
 }
 
 // بررسی و ایجاد جداول در هر بار بارگذاری افزونه (فقط در پنل ادمین)
 add_action('admin_init', 'sc_check_and_create_tables');
+
+/**
+ * ============================
+ * Reset Factory Data Function
+ * ============================
+ */
+function sc_reset_factory_data() {
+    // بررسی دسترسی مدیر
+    if (!current_user_can('manage_options')) {
+        return ['success' => false, 'message' => 'شما دسترسی لازم را ندارید.'];
+    }
+    
+    global $wpdb;
+    
+    $deleted_counts = [];
+    $errors = [];
+    
+    // حذف داده‌های جداول (نه خود جداول)
+    // ترتیب حذف: ابتدا جداول وابسته، سپس جداول اصلی
+    $delete_order = [
+        'sc_attendances',      // وابسته به members و courses
+        'sc_member_courses',   // وابسته به members و courses
+        'sc_invoices',         // وابسته به members و courses
+        'sc_members',          // جدول اصلی
+        'sc_courses',          // جدول اصلی
+        'sc_settings'          // مستقل
+    ];
+    
+    // حذف داده‌های جداول (نه خود جداول)
+    foreach ($delete_order as $table_suffix) {
+        $table_name = $wpdb->prefix . $table_suffix;
+        
+        // بررسی وجود جدول
+        $table_exists = $wpdb->get_var($wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $table_name
+        ));
+        
+        if ($table_exists == $table_name) {
+            // شمارش رکوردها قبل از حذف
+            $count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+            
+            // حذف تمام داده‌های جدول
+            $result = $wpdb->query("DELETE FROM $table_name");
+            
+            if ($result !== false) {
+                $deleted_counts[$table_suffix] = $count;
+                
+                // بازنشانی AUTO_INCREMENT برای شروع مجدد از 1
+                if ($count > 0) {
+                    $wpdb->query("ALTER TABLE $table_name AUTO_INCREMENT = 1");
+                }
+            } else {
+                $errors[] = "خطا در حذف داده‌های جدول: $table_suffix";
+            }
+        }
+    }
+    
+    // پیام نتیجه
+    if (empty($errors)) {
+        $message = 'تمام اطلاعات با موفقیت حذف شد.';
+        $details = [];
+        
+        foreach ($deleted_counts as $table => $count) {
+            $table_label = [
+                'sc_members' => 'عضو',
+                'sc_courses' => 'دوره',
+                'sc_member_courses' => 'ثبت‌نام',
+                'sc_invoices' => 'صورت حساب',
+                'sc_attendances' => 'حضور و غیاب',
+                'sc_settings' => 'تنظیم'
+            ];
+            $label = isset($table_label[$table]) ? $table_label[$table] : $table;
+            $details[] = "$count مورد از $label";
+        }
+        
+        if (!empty($details)) {
+            $message .= ' (' . implode('، ', $details) . ')';
+        }
+        
+        return ['success' => true, 'message' => $message, 'counts' => $deleted_counts];
+    } else {
+        return ['success' => false, 'message' => 'برخی خطاها رخ داد: ' . implode('، ', $errors)];
+    }
+}
 
 /**
  * ============================
