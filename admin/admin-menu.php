@@ -100,7 +100,18 @@ function sc_register_admin_menu() {
         'sc_admin_invoices_list_page'
     );
 
+    // Invoices - Add
+    $add_invoice_sufix = add_submenu_page(
+        'sc-dashboard',
+        'ایجاد صورت حساب',
+        'ایجاد صورت حساب',
+        'manage_options',
+        'sc-add-invoice',
+        'sc_admin_add_invoice_page'
+    );
+
     add_action('load-'. $add_member_sufix , 'callback_add_member_sufix');
+    add_action('load-'. $add_invoice_sufix , 'callback_add_invoice_sufix');
     add_action('load-'. $list_invoices_sufix , 'process_invoices_table_data');
     add_action('load-'. $list_member_sufix , 'procces_table_data');
     add_action('load-'. $list_courses_sufix , 'procces_courses_table_data');
@@ -199,6 +210,154 @@ function process_invoices_table_data() {
     include SC_TEMPLATES_ADMIN_DIR . 'list_invoices.php';
     $GLOBALS['invoices_list_table'] = new Invoices_List_Table();
     $GLOBALS['invoices_list_table']->prepare_items();
+}
+
+/**
+ * Create invoice page
+ */
+function sc_admin_add_invoice_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'invoice-add.php';
+}
+
+/**
+ * Process invoice creation form
+ */
+function callback_add_invoice_sufix() {
+    if (isset($_GET['page']) && $_GET['page'] == 'sc-add-invoice' && isset($_POST['submit_invoice'])) {
+        // بررسی nonce
+        if (!isset($_POST['sc_invoice_nonce']) || !wp_verify_nonce($_POST['sc_invoice_nonce'], 'sc_add_invoice')) {
+            wp_die('خطای امنیتی. لطفاً دوباره تلاش کنید.');
+        }
+        
+        // بررسی و ایجاد جداول در صورت عدم وجود
+        sc_check_and_create_tables();
+        
+        global $wpdb;
+        $invoices_table = $wpdb->prefix . 'sc_invoices';
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        $members_table = $wpdb->prefix . 'sc_members';
+        
+        // اعتبارسنجی
+        if (empty($_POST['member_id'])) {
+            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_error'));
+            exit;
+        }
+        
+        $member_id = absint($_POST['member_id']);
+        $course_id = !empty($_POST['course_id']) ? absint($_POST['course_id']) : NULL;
+        $expense_name = !empty($_POST['expense_name']) ? sanitize_text_field($_POST['expense_name']) : NULL;
+        $manual_amount = !empty($_POST['amount']) && is_numeric($_POST['amount']) ? floatval($_POST['amount']) : 0;
+        
+        // بررسی وجود کاربر
+        $member = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM $members_table WHERE id = %d AND is_active = 1",
+            $member_id
+        ));
+        
+        if (!$member) {
+            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_error'));
+            exit;
+        }
+        
+        // محاسبه مبلغ کل
+        $total_amount = $manual_amount;
+        
+        // اگر دوره انتخاب شده باشد، هزینه دوره را اضافه کن
+        if ($course_id) {
+            $course = $wpdb->get_row($wpdb->prepare(
+                "SELECT price FROM $courses_table WHERE id = %d AND deleted_at IS NULL AND is_active = 1",
+                $course_id
+            ));
+            
+            if ($course) {
+                $total_amount += floatval($course->price);
+            } else {
+                // اگر دوره معتبر نبود، فقط مبلغ دستی را استفاده کن
+                $course_id = NULL;
+            }
+        }
+        
+        // بررسی member_course_id در صورت وجود دوره
+        $member_course_id = NULL;
+        if ($course_id) {
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            $member_course = $wpdb->get_row($wpdb->prepare(
+                "SELECT id FROM $member_courses_table WHERE member_id = %d AND course_id = %d",
+                $member_id,
+                $course_id
+            ));
+            
+            if ($member_course) {
+                $member_course_id = $member_course->id;
+            }
+        }
+        
+        // ذخیره صورت حساب
+        $invoice_data = [
+            'member_id' => $member_id,
+            'course_id' => $course_id ? $course_id : 0, // اگر دوره انتخاب نشده باشد، 0 می‌شود
+            'member_course_id' => $member_course_id,
+            'woocommerce_order_id' => NULL,
+            'amount' => $total_amount,
+            'expense_name' => $expense_name,
+            'penalty_amount' => 0.00,
+            'penalty_applied' => 0,
+            'status' => 'pending',
+            'payment_date' => NULL,
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql')
+        ];
+        
+        // آماده‌سازی format array برای insert
+        $format_array = ['%d', '%d', '%d', '%d', '%f', '%s', '%f', '%d', '%s', '%s', '%s', '%s'];
+        
+        // اگر course_id یا member_course_id NULL باشد، format را تنظیم کن
+        if (!$course_id) {
+            $invoice_data['course_id'] = 0;
+        }
+        if (!$member_course_id) {
+            $invoice_data['member_course_id'] = NULL;
+            $format_array[2] = '%s'; // NULL برای member_course_id
+        }
+        if (!$expense_name) {
+            $invoice_data['expense_name'] = NULL;
+            $format_array[5] = '%s'; // NULL برای expense_name
+        }
+        
+        // ابتدا صورت حساب را ایجاد کن
+        $inserted = $wpdb->insert(
+            $invoices_table,
+            $invoice_data,
+            $format_array
+        );
+        
+        if ($inserted !== false) {
+            $invoice_id = $wpdb->insert_id;
+            
+            // ایجاد WooCommerce order
+            $order_result = sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $course_id, $total_amount, $expense_name);
+            
+            if ($order_result['success'] && !empty($order_result['order_id'])) {
+                // بروزرسانی صورت حساب با order_id
+                $wpdb->update(
+                    $invoices_table,
+                    ['woocommerce_order_id' => $order_result['order_id'], 'updated_at' => current_time('mysql')],
+                    ['id' => $invoice_id],
+                    ['%d', '%s'],
+                    ['%d']
+                );
+            }
+            
+            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_true&invoice_id=' . $invoice_id));
+            exit;
+        } else {
+            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_error'));
+            exit;
+        }
+    }
 }
 
 /**
@@ -635,6 +794,14 @@ function sc_sprot_notices(){
         if($status == 'bulk_deleted'){
             $type='success';
             $messege="صورت حساب‌های انتخابی با موفقیت حذف شدند";
+        }
+        if($status == 'invoice_add_true'){
+            $type='success';
+            $messege="صورت حساب با موفقیت ایجاد شد";
+        }
+        if($status == 'invoice_add_error'){
+            $type='error';
+            $messege="خطا در ایجاد صورت حساب. لطفاً فیلدهای ورودی را بررسی کنید.";
         }
     }
         if($type && $messege){

@@ -32,7 +32,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
             <thead>
                 <tr>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-number">
-                        <span class="nobr">شماره صورت حساب</span>
+                        <span class="nobr">شماره سفارش</span>
                     </th>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-date">
                         <span class="nobr">دوره</span>
@@ -57,7 +57,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                         $invoice = $wpdb->get_row($wpdb->prepare(
                             "SELECT i.*, c.title as course_title, c.price as course_price
                              FROM {$wpdb->prefix}sc_invoices i
-                             INNER JOIN {$wpdb->prefix}sc_courses c ON i.course_id = c.id
+                             LEFT JOIN {$wpdb->prefix}sc_courses c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
                              WHERE i.id = %d",
                             $invoice->id
                         ));
@@ -112,19 +112,66 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     
                     // دریافت لینک پرداخت اگر سفارش WooCommerce وجود دارد
                     $payment_url = '';
-                    if ($invoice->woocommerce_order_id && $invoice->status === 'pending') {
-                        $order = wc_get_order($invoice->woocommerce_order_id);
-                        if ($order && !$order->is_paid()) {
-                            $payment_url = $order->get_checkout_payment_url();
+                    $order_object = null;
+                    $is_order_paid = false;
+                    $has_valid_order = false;
+                    
+                    // بررسی وجود woocommerce_order_id و وضعیت pending
+                    if (!empty($invoice->woocommerce_order_id) && $invoice->status === 'pending') {
+                        if (function_exists('wc_get_order')) {
+                            $order_object = wc_get_order($invoice->woocommerce_order_id);
+                            if ($order_object) {
+                                $has_valid_order = true;
+                                $is_order_paid = $order_object->is_paid();
+                                $order_status = $order_object->get_status();
+                                
+                                // اگر سفارش پرداخت نشده است، لینک پرداخت را ایجاد کن
+                                if (!$is_order_paid) {
+                                    // استفاده از متد اصلی WooCommerce برای لینک پرداخت
+                                    $payment_url = $order_object->get_checkout_payment_url();
+                                    
+                                    // اگر لینک خالی بود یا متد وجود نداشت، از endpoint استفاده کن
+                                    if (empty($payment_url)) {
+                                        $checkout_page_id = wc_get_page_id('checkout');
+                                        if ($checkout_page_id) {
+                                            $payment_url = add_query_arg('order-pay', $invoice->woocommerce_order_id, get_permalink($checkout_page_id));
+                                            $payment_url = add_query_arg('key', $order_object->get_order_key(), $payment_url);
+                                        } else {
+                                            // در صورت عدم وجود صفحه checkout، از order-pay endpoint استفاده کن
+                                            $payment_url = wc_get_endpoint_url('order-pay', $invoice->woocommerce_order_id, wc_get_page_permalink('checkout'));
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 ?>
                     <tr class="woocommerce-orders-table__row woocommerce-orders-table__row--status-<?php echo esc_attr($status_class); ?> order">
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-number" data-title="شماره صورت حساب">
-                            #<?php echo esc_html($invoice->id); ?>
+                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-number" data-title="شماره سفارش">
+                            <?php
+                            // استفاده از شماره سفارش WooCommerce اگر وجود داشته باشد
+                            $order_number = '#' . $invoice->id;
+                            if (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
+                                $order = wc_get_order($invoice->woocommerce_order_id);
+                                if ($order) {
+                                    $order_number = $order->get_order_number();
+                                }
+                            }
+                            echo esc_html($order_number);
+                            ?>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-date" data-title="دوره">
-                            <?php echo esc_html($invoice->course_title); ?>
+                            <?php if (!empty($invoice->course_title)) : ?>
+                                <?php echo esc_html($invoice->course_title); ?>
+                            <?php elseif (!empty($invoice->expense_name)) : ?>
+                                <strong>هزینه اضافی:</strong> <?php echo esc_html($invoice->expense_name); ?>
+                            <?php else : ?>
+                                <span style="color: #999;">بدون دوره</span>
+                            <?php endif; ?>
+                            <?php if (!empty($invoice->expense_name) && !empty($invoice->course_title)) : ?>
+                                <br>
+                                <small><strong>هزینه اضافی:</strong> <?php echo esc_html($invoice->expense_name); ?></small>
+                            <?php endif; ?>
                             <br>
                             <small style="color: #666;">
                                 <?php echo date_i18n('Y/m/d', strtotime($invoice->created_at)); ?>
@@ -161,7 +208,37 @@ if (function_exists('wc_get_price_thousand_separator')) {
                             </span>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-actions" data-title="عملیات">
-                            <?php if ($payment_url && $invoice->status === 'pending') : ?>
+                            <?php 
+                            // اگر لینک پرداخت وجود ندارد اما woocommerce_order_id و وضعیت pending دارد، لینک را ایجاد کن
+                            if (empty($payment_url) && !empty($invoice->woocommerce_order_id) && $invoice->status === 'pending') {
+                                // اگر order پیدا نشد، دوباره تلاش کن
+                                if (!$order_object && function_exists('wc_get_order')) {
+                                    $order_object = wc_get_order($invoice->woocommerce_order_id);
+                                    if ($order_object) {
+                                        $is_order_paid = $order_object->is_paid();
+                                    }
+                                }
+                                
+                                if ($order_object && !$is_order_paid) {
+                                    // تلاش برای ایجاد لینک پرداخت با استفاده از order key
+                                    $order_key = $order_object->get_order_key();
+                                    $checkout_page_id = wc_get_page_id('checkout');
+                                    if ($checkout_page_id && $order_key) {
+                                        $payment_url = add_query_arg([
+                                            'order-pay' => $invoice->woocommerce_order_id,
+                                            'key' => $order_key
+                                        ], get_permalink($checkout_page_id));
+                                    }
+                                } elseif (!empty($invoice->woocommerce_order_id)) {
+                                    // اگر order پیدا نشد اما order_id وجود دارد، یک لینک ساده ایجاد کن
+                                    $checkout_page_id = wc_get_page_id('checkout');
+                                    if ($checkout_page_id) {
+                                        $payment_url = add_query_arg('order-pay', $invoice->woocommerce_order_id, get_permalink($checkout_page_id));
+                                    }
+                                }
+                            }
+                            
+                            if ($payment_url && $invoice->status === 'pending') : ?>
                                 <a href="<?php echo esc_url($payment_url); ?>" class="woocommerce-button button view" style="
                                     display: inline-block;
                                     padding: 8px 15px;
@@ -173,10 +250,12 @@ if (function_exists('wc_get_price_thousand_separator')) {
                                 ">
                                     پرداخت
                                 </a>
-                            <?php elseif ($invoice->woocommerce_order_id) : ?>
+                            <?php elseif (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url')) : ?>
                                 <a href="<?php echo esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)); ?>" class="woocommerce-button button view">
                                     مشاهده سفارش
                                 </a>
+                            <?php elseif ($invoice->status === 'pending' && empty($invoice->woocommerce_order_id)) : ?>
+                                <span style="color: #d63638; font-size: 12px;">در انتظار ایجاد سفارش</span>
                             <?php else : ?>
                                 <span style="color: #999;">-</span>
                             <?php endif; ?>

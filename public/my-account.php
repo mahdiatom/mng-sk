@@ -798,6 +798,181 @@ function sc_my_account_my_courses_content() {
 }
 
 /**
+ * Create WooCommerce order for an existing invoice (when created by admin)
+ */
+function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $course_id, $amount, $expense_name = '') {
+    // بررسی فعال بودن WooCommerce
+    if (!class_exists('WooCommerce')) {
+        return ['success' => false, 'message' => 'WooCommerce فعال نیست.', 'order_id' => null];
+    }
+    
+    global $wpdb;
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $members_table = $wpdb->prefix . 'sc_members';
+    
+    // دریافت اطلاعات دوره (اگر وجود داشته باشد)
+    $course = null;
+    if ($course_id > 0) {
+        $course = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $courses_table WHERE id = %d",
+            $course_id
+        ));
+    }
+    
+    // دریافت اطلاعات کاربر
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $members_table WHERE id = %d",
+        $member_id
+    ));
+    
+    if (!$member || !$member->user_id) {
+        return ['success' => false, 'message' => 'اطلاعات کاربر یافت نشد یا user_id تنظیم نشده است.', 'order_id' => null];
+    }
+    
+    $user_id = $member->user_id;
+    
+    // دریافت اطلاعات کاربر از WordPress
+    $user = get_userdata($user_id);
+    if (!$user) {
+        return ['success' => false, 'message' => 'کاربر یافت نشد.', 'order_id' => null];
+    }
+    
+    // دریافت اطلاعات billing از user meta
+    $billing_first_name = get_user_meta($user_id, 'billing_first_name', true);
+    $billing_last_name = get_user_meta($user_id, 'billing_last_name', true);
+    $billing_email = get_user_meta($user_id, 'billing_email', true);
+    $billing_phone = get_user_meta($user_id, 'billing_phone', true);
+    $billing_address_1 = get_user_meta($user_id, 'billing_address_1', true);
+    $billing_city = get_user_meta($user_id, 'billing_city', true);
+    $billing_postcode = get_user_meta($user_id, 'billing_postcode', true);
+    $billing_country = get_user_meta($user_id, 'billing_country', true);
+    $billing_state = get_user_meta($user_id, 'billing_state', true);
+    
+    // اگر اطلاعات billing وجود نداشت، از اطلاعات کاربر استفاده کن
+    if (empty($billing_first_name)) {
+        $billing_first_name = $member->first_name ? $member->first_name : '';
+    }
+    if (empty($billing_last_name)) {
+        $billing_last_name = $member->last_name ? $member->last_name : '';
+    }
+    if (empty($billing_email)) {
+        $billing_email = $user->user_email ? $user->user_email : '';
+    }
+    if (empty($billing_phone)) {
+        $billing_phone = $member->player_phone ? $member->player_phone : '';
+    }
+    
+    // اطمینان از اینکه حداقل اطلاعات ضروری وجود دارد
+    if (empty($billing_first_name) || empty($billing_last_name) || empty($billing_email)) {
+        return ['success' => false, 'message' => 'اطلاعات کاربر ناقص است.', 'order_id' => null];
+    }
+    
+    // ایجاد سفارش WooCommerce
+    $order = wc_create_order();
+    
+    if (is_wp_error($order)) {
+        return ['success' => false, 'message' => 'خطا در ایجاد سفارش: ' . $order->get_error_message(), 'order_id' => null];
+    }
+    
+    // تنظیم customer برای سفارش
+    $order->set_customer_id($user_id);
+    
+    // تنظیم اطلاعات billing
+    $order->set_billing_first_name($billing_first_name);
+    $order->set_billing_last_name($billing_last_name);
+    $order->set_billing_email($billing_email);
+    if (!empty($billing_phone)) {
+        $order->set_billing_phone($billing_phone);
+    }
+    
+    if (!empty($billing_address_1)) {
+        $order->set_billing_address_1($billing_address_1);
+    }
+    if (!empty($billing_city)) {
+        $order->set_billing_city($billing_city);
+    }
+    if (!empty($billing_postcode)) {
+        $order->set_billing_postcode($billing_postcode);
+    }
+    if (!empty($billing_country)) {
+        $order->set_billing_country($billing_country);
+    } else {
+        $order->set_billing_country('IR'); // پیش‌فرض ایران
+    }
+    if (!empty($billing_state)) {
+        $order->set_billing_state($billing_state);
+    }
+    
+    // تنظیم اطلاعات shipping (کپی از billing)
+    $order->set_shipping_first_name($billing_first_name);
+    $order->set_shipping_last_name($billing_last_name);
+    if (!empty($billing_address_1)) {
+        $order->set_shipping_address_1($billing_address_1);
+    }
+    if (!empty($billing_city)) {
+        $order->set_shipping_city($billing_city);
+    }
+    if (!empty($billing_postcode)) {
+        $order->set_shipping_postcode($billing_postcode);
+    }
+    if (!empty($billing_country)) {
+        $order->set_shipping_country($billing_country);
+    } else {
+        $order->set_shipping_country('IR');
+    }
+    if (!empty($billing_state)) {
+        $order->set_shipping_state($billing_state);
+    }
+    
+    // ذخیره اولیه
+    $order->save();
+    
+    // محاسبه مبلغ دوره و هزینه اضافی
+    $course_amount = 0;
+    $expense_amount = 0;
+    
+    if ($course && $course->price > 0) {
+        $course_amount = floatval($course->price);
+        // اضافه کردن هزینه دوره به سفارش
+        $fee = new WC_Order_Item_Fee();
+        $fee->set_name('دوره: ' . $course->title);
+        $fee->set_amount($course_amount);
+        $fee->set_tax_class('');
+        $fee->set_tax_status('none');
+        $fee->set_total($course_amount);
+        $order->add_item($fee);
+    }
+    
+    // اگر هزینه اضافی وجود دارد
+    if ($amount > $course_amount) {
+        $expense_amount = $amount - $course_amount;
+        $fee = new WC_Order_Item_Fee();
+        $fee_name = !empty($expense_name) ? $expense_name : 'هزینه اضافی';
+        $fee->set_name($fee_name);
+        $fee->set_amount($expense_amount);
+        $fee->set_tax_class('');
+        $fee->set_tax_status('none');
+        $fee->set_total($expense_amount);
+        $order->add_item($fee);
+    }
+    
+    // تنظیم وضعیت سفارش به pending
+    $order->set_status('pending', 'سفارش ایجاد شده از طریق پنل مدیریت');
+    
+    // محاسبه مجدد مجموع
+    $order->calculate_totals();
+    
+    // ذخیره سفارش
+    $order_id = $order->save();
+    
+    if (!$order_id) {
+        return ['success' => false, 'message' => 'خطا در ذخیره سفارش.', 'order_id' => null];
+    }
+    
+    return ['success' => true, 'order_id' => $order_id, 'message' => 'سفارش با موفقیت ایجاد شد.'];
+}
+
+/**
  * Display content for invoices tab
  */
 add_action('woocommerce_account_sc-invoices_endpoint', 'sc_my_account_invoices_content');
@@ -841,7 +1016,7 @@ function sc_my_account_invoices_content() {
     $invoices = $wpdb->get_results($wpdb->prepare(
         "SELECT i.*, c.title as course_title, c.price as course_price
          FROM $invoices_table i
-         INNER JOIN $courses_table c ON i.course_id = c.id
+         LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
          WHERE i.member_id = %d
          ORDER BY i.created_at DESC",
         $player->id

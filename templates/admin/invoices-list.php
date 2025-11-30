@@ -11,6 +11,7 @@ $courses = $wpdb->get_results(
 
 <div class="wrap">
     <h1 class="wp-heading-inline">صورت حساب‌ها</h1>
+    <a href="<?php echo admin_url('admin.php?page=sc-add-invoice'); ?>" class="page-title-action">ایجاد صورت حساب</a>
 </div>
 
 <!-- فیلترها -->

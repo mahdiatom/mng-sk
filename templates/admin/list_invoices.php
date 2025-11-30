@@ -78,7 +78,38 @@ class Invoices_List_Table extends WP_List_Table {
     }
 
     public function column_course_title($item) {
-        return esc_html($item['course_title']);
+        $course_title = $item['course_title'] ?? '';
+        $course_price = isset($item['course_price']) ? floatval($item['course_price']) : 0;
+        $expense_name = $item['expense_name'] ?? '';
+        $total_amount = isset($item['amount']) ? floatval($item['amount']) : 0;
+        
+        $parts = [];
+        
+        // نمایش دوره
+        if (!empty($course_title) && trim($course_title) !== '') {
+            $course_display = esc_html($course_title);
+            if ($course_price > 0) {
+                $course_display .= ' (' . number_format($course_price, 0, '.', ',') . ' تومان)';
+            }
+            $parts[] = '<strong>دوره:</strong> ' . $course_display;
+        }
+        
+        // نمایش هزینه اضافی
+        if (!empty($expense_name) && trim($expense_name) !== '') {
+            $expense_display = esc_html($expense_name);
+            // محاسبه مبلغ هزینه اضافی
+            $expense_amount = $total_amount - $course_price;
+            if ($expense_amount > 0) {
+                $expense_display .= ' (' . number_format($expense_amount, 0, '.', ',') . ' تومان)';
+            }
+            $parts[] = '<strong>هزینه اضافی:</strong> ' . $expense_display;
+        }
+        
+        if (empty($parts)) {
+            return '<span style="color: #999; font-style: italic;">بدون دوره</span>';
+        }
+        
+        return '<div style="line-height: 1.8;">' . implode('<br>', $parts) . '</div>';
     }
 
     public function column_total_amount($item) {
@@ -411,6 +442,7 @@ class Invoices_List_Table extends WP_List_Table {
                     i.course_id,
                     i.woocommerce_order_id,
                     i.amount,
+                    i.expense_name,
                     i.penalty_amount,
                     i.status,
                     i.payment_date,
@@ -419,10 +451,11 @@ class Invoices_List_Table extends WP_List_Table {
                     m.first_name,
                     m.last_name,
                     m.player_phone,
-                    c.title as course_title
+                    c.title as course_title,
+                    c.price as course_price
                   FROM $invoices_table i
                   INNER JOIN $members_table m ON i.member_id = m.id
-                  INNER JOIN $courses_table c ON i.course_id = c.id
+                  LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
                   WHERE $where_clause
                   ORDER BY i.$orderby $order
                   LIMIT %d OFFSET %d";

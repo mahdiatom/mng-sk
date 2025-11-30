@@ -110,6 +110,25 @@ function sc_add_sessions_count_column() {
 }
 
 /**
+ * Add expense_name column to invoices table if not exists
+ */
+add_action('admin_init', 'sc_add_expense_name_column');
+function sc_add_expense_name_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_invoices';
+    
+    // بررسی وجود ستون expense_name
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'expense_name'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `expense_name` varchar(255) DEFAULT NULL AFTER `amount`");
+    }
+}
+
+/**
  * Add penalty columns to invoices table if not exists
  */
 add_action('admin_init', 'sc_add_penalty_columns');
