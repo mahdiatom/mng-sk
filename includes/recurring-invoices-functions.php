@@ -122,6 +122,85 @@ function sc_register_recurring_invoices_cron() {
 add_action('sc_daily_recurring_invoices_check', 'sc_create_recurring_invoices');
 
 /**
+ * بررسی و اعمال flag paused برای دوره‌هایی با 3 یا بیشتر صورت حساب pending
+ * این تابع باید توسط cron job روزانه فراخوانی شود
+ */
+function sc_check_and_pause_courses_with_unpaid_invoices() {
+    error_log('SC Pause Courses: Checking for courses with 3+ pending invoices');
+    
+    global $wpdb;
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    
+    // دریافت تمام دوره‌های فعال که 3 یا بیشتر صورت حساب pending دارند
+    // فقط صورت حساب‌هایی که مربوط به دوره هستند (دارای course_id و member_course_id)
+    $courses_to_pause = $wpdb->get_results(
+        "SELECT mc.id, mc.member_id, mc.course_id, mc.course_status_flags, c.title as course_title,
+                COUNT(i.id) as pending_count
+         FROM $member_courses_table mc
+         INNER JOIN $courses_table c ON mc.course_id = c.id
+         INNER JOIN $invoices_table i ON i.member_course_id = mc.id
+         WHERE mc.status = 'active'
+         AND c.deleted_at IS NULL
+         AND c.is_active = 1
+         AND i.status = 'pending'
+         AND i.member_course_id IS NOT NULL
+         AND i.course_id IS NOT NULL
+         AND i.course_id > 0
+         GROUP BY mc.id
+         HAVING pending_count >= 3"
+    );
+    
+    if (empty($courses_to_pause)) {
+        error_log('SC Pause Courses: No courses found with 3+ pending invoices');
+        return;
+    }
+    
+    error_log("SC Pause Courses: Found " . count($courses_to_pause) . " courses to pause");
+    
+    $paused_count = 0;
+    
+    foreach ($courses_to_pause as $course) {
+        // بررسی اینکه آیا قبلاً paused نشده است
+        $current_flags = $course->course_status_flags;
+        
+        // اگر قبلاً paused نشده باشد
+        if (empty($current_flags) || 
+            (strpos($current_flags, 'paused') === false)) {
+            
+            // اضافه کردن flag paused
+            $new_flags = empty($current_flags) ? 'paused' : $current_flags . ',paused';
+            
+            // به‌روزرسانی flag
+            $updated = $wpdb->update(
+                $member_courses_table,
+                ['course_status_flags' => $new_flags],
+                ['id' => $course->id],
+                ['%s'],
+                ['%d']
+            );
+            
+            if ($updated !== false) {
+                $paused_count++;
+                error_log("SC Pause Courses: Course paused - Member Course ID: {$course->id}, Member ID: {$course->member_id}, Course ID: {$course->course_id}, Course Title: {$course->course_title}, Pending Invoices: {$course->pending_count}");
+            } else {
+                error_log("SC Pause Courses: Failed to pause course - Member Course ID: {$course->id}");
+            }
+        } else {
+            error_log("SC Pause Courses: Course already paused - Member Course ID: {$course->id}");
+        }
+    }
+    
+    error_log("SC Pause Courses: Completed - Paused: $paused_count courses");
+}
+
+/**
+ * اضافه کردن تابع به cron job روزانه
+ */
+add_action('sc_daily_recurring_invoices_check', 'sc_check_and_pause_courses_with_unpaid_invoices');
+
+/**
  * Cleanup cron job on deactivation
  * توجه: این تابع باید در فایل اصلی افزونه register شود
  */

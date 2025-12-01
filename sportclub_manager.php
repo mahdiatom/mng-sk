@@ -363,54 +363,6 @@ add_action('admin_init', 'sc_check_and_create_tables');
 
 /**
  * ============================
- * WooCommerce Orders List - نمایش checkbox برای سفارش‌های افزونه
- * ============================
- */
-add_filter('woocommerce_register_shop_order_post_statuses', 'sc_add_plugin_orders_to_wc_list');
-function sc_add_plugin_orders_to_wc_list($statuses) {
-    // اطمینان از اینکه همه وضعیت‌های سفارش نمایش داده می‌شوند
-    return $statuses;
-}
-
-// اطمینان از اینکه سفارش‌های ایجاد شده از افزونه در لیست WooCommerce نمایش داده می‌شوند
-// اضافه کردن hook برای نمایش checkbox ها
-add_filter('manage_edit-shop_order_columns', 'sc_ensure_order_checkbox_column', 999);
-function sc_ensure_order_checkbox_column($columns) {
-    // اطمینان از اینکه ستون checkbox وجود دارد
-    if (!isset($columns['cb'])) {
-        $new_columns = ['cb' => '<input type="checkbox" />'];
-        $columns = array_merge($new_columns, $columns);
-    }
-    return $columns;
-}
-
-// اطمینان از اینکه همه سفارش‌ها (از جمله سفارش‌های افزونه) checkbox دارند
-add_action('manage_shop_order_posts_custom_column', 'sc_add_order_checkbox_if_missing', 5, 2);
-function sc_add_order_checkbox_if_missing($column, $post_id) {
-    // این hook فقط برای اطمینان از نمایش درست استفاده می‌شود
-    // checkbox به صورت خودکار توسط WooCommerce نمایش داده می‌شود
-}
-
-// اطمینان از اینکه query سفارش‌ها شامل همه سفارش‌ها می‌شود
-add_filter('request', 'sc_include_all_orders_in_wc_list', 999);
-function sc_include_all_orders_in_wc_list($vars) {
-    // فقط در صفحه سفارش‌های WooCommerce
-    if (isset($_GET['post_type']) && $_GET['post_type'] === 'shop_order') {
-        // اطمینان از اینکه هیچ فیلتری وجود ندارد که سفارش‌های افزونه را حذف کند
-        if (isset($vars['meta_query'])) {
-            foreach ($vars['meta_query'] as $key => $query) {
-                // حذف فیلترهای خاص که ممکن است سفارش‌های افزونه را حذف کنند
-                if (isset($query['key']) && in_array($query['key'], ['_created_via'])) {
-                    // فقط اگر فیلتر بسیار محدود کننده باشد، آن را حذف می‌کنیم
-                }
-            }
-        }
-    }
-    return $vars;
-}
-
-/**
- * ============================
  * Reset Factory Data Function
  * ============================
  */
