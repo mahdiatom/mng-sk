@@ -174,7 +174,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                             <?php endif; ?>
                             <br>
                             <small style="color: #666;">
-                                <?php echo date_i18n('Y/m/d', strtotime($invoice->created_at)); ?>
+                                <?php echo sc_date_shamsi_date_only($invoice->created_at); ?>
                             </small>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-status" data-title="مبلغ">

@@ -37,6 +37,8 @@ define('SC_ASSETS_URL', SC_PLUGIN_URL . 'assets/');              // Assets URL
  * Include core plugin files
  * ============================
  */
+require_once SC_INCLUDES_DIR . 'jdf.php';                  // JDF library for Persian date conversion
+require_once SC_INCLUDES_DIR . 'persian-datepicker-helper.php'; // Persian datepicker helper
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
@@ -135,6 +137,25 @@ function sc_add_expense_name_column() {
     
     if (empty($column_exists)) {
         $wpdb->query("ALTER TABLE $table_name ADD COLUMN `expense_name` varchar(255) DEFAULT NULL AFTER `amount`");
+    }
+}
+
+/**
+ * Add insurance_expiry_date column to members table if not exists
+ */
+add_action('admin_init', 'sc_add_insurance_expiry_date_column');
+function sc_add_insurance_expiry_date_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+    
+    // بررسی وجود ستون insurance_expiry_date_shamsi
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'insurance_expiry_date_shamsi'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `insurance_expiry_date_shamsi` varchar(10) DEFAULT NULL AFTER `sport_insurance_photo`");
     }
 }
 

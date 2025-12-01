@@ -12,12 +12,30 @@
         $personal_photo = '';
         $id_card_photo = '';
         $sport_insurance_photo = '';
+        $insurance_expiry_date_shamsi = '';
         $medical_condition = '';
         $sports_history = '';
         $health_verified = 0;
         $info_verified = 0;
         $is_active = 1;
         $additional_info = '';
+        
+        // اگر بازیکن جدید است، تاریخ امروز را به عنوان پیش‌فرض بگذار
+        if (!isset($_GET['player_id'])) {
+            $today = new DateTime();
+            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+            $today_shamsi = $today_jalali[0] . '/' . 
+                           str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                           str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+            
+            // فقط اگر خالی است
+            if (empty($birth_date_shamsi)) {
+                $birth_date_shamsi = $today_shamsi;
+            }
+            if (empty($insurance_expiry_date_shamsi)) {
+                $insurance_expiry_date_shamsi = $today_shamsi;
+            }
+        }
 
 if($player && $_GET['player_id'] ){
         $first_name              = $player->first_name ?? '';
@@ -30,9 +48,19 @@ if($player && $_GET['player_id'] ){
         $landline_phone          = $player->landline_phone ?? '';
         $birth_date_shamsi       = $player->birth_date_shamsi ?? '';
         $birth_date_gregorian    = $player->birth_date_gregorian ?? '';
+        
+        // اگر تاریخ تولد خالی است، تاریخ امروز را به عنوان پیش‌فرض بگذار
+        if (empty($birth_date_shamsi) && !isset($_GET['player_id'])) {
+            $today = new DateTime();
+            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+            $birth_date_shamsi = $today_jalali[0] . '/' . 
+                               str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                               str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+        }
         $personal_photo          = $player->personal_photo ?? '';
         $id_card_photo           = $player->id_card_photo ?? '';
         $sport_insurance_photo   = $player->sport_insurance_photo ?? '';
+        $insurance_expiry_date_shamsi = $player->insurance_expiry_date_shamsi ?? '';
         $medical_condition       = $player->medical_condition ?? '';
         $sports_history          = $player->sports_history ?? '';
         $health_verified         = $player->health_verified ?? 0;
@@ -111,7 +139,10 @@ if($player && $_GET['player_id'] ){
               
                 <tr>
                     <th scope="row"><label for="birth_date_shamsi">تاریخ تولد (شمسی)</label></th>
-                    <td><input name="birth_date_shamsi" type="text" id="birth_date_shamsi" value="<?php echo $birth_date_shamsi; ?>" class="regular-text" placeholder="مثلاً 1400/02/15"></td>
+                    <td>
+                        <input name="birth_date_shamsi" type="text" id="birth_date_shamsi" value="<?php echo esc_attr($birth_date_shamsi); ?>" class="regular-text persian-date-input" placeholder="مثلاً 1400/02/15" readonly>
+                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+                    </td>
                 </tr>
 
                
@@ -165,6 +196,15 @@ if($player && $_GET['player_id'] ){
                                     <img src="<?php   echo esc_url($sport_insurance_photo); ?>" alt="" style="max-width:300px;border:1px solid #ccc;border-radius:6px;">
                                 </div>
                             <?php endif; ?>
+                    </td>
+                </tr>
+
+              
+                <tr>
+                    <th scope="row"><label for="insurance_expiry_date_shamsi">تاریخ انقضا بیمه (شمسی)</label></th>
+                    <td>
+                        <input name="insurance_expiry_date_shamsi" type="text" id="insurance_expiry_date_shamsi" value="<?php echo esc_attr($insurance_expiry_date_shamsi); ?>" class="regular-text persian-date-input" placeholder="مثلاً 1403/12/29" readonly>
+                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
                 </tr>
 

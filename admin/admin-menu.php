@@ -458,14 +458,29 @@ function callback_add_course_sufix() {
             exit;
         }
         
+        // پردازش تاریخ شمسی به میلادی
+        $start_date = NULL;
+        if (!empty($_POST['start_date_shamsi'])) {
+            $start_date = sc_shamsi_to_gregorian_date(sanitize_text_field($_POST['start_date_shamsi']));
+        } elseif (!empty($_POST['start_date'])) {
+            $start_date = sanitize_text_field($_POST['start_date']);
+        }
+        
+        $end_date = NULL;
+        if (!empty($_POST['end_date_shamsi'])) {
+            $end_date = sc_shamsi_to_gregorian_date(sanitize_text_field($_POST['end_date_shamsi']));
+        } elseif (!empty($_POST['end_date'])) {
+            $end_date = sanitize_text_field($_POST['end_date']);
+        }
+        
         $data = [
             'title' => sanitize_text_field($_POST['title']),
             'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
             'price' => floatval($_POST['price']),
             'capacity' => !empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL,
             'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
-            'start_date' => !empty($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : NULL,
-            'end_date' => !empty($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : NULL,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'updated_at' => current_time('mysql'),
         ];
@@ -545,6 +560,7 @@ function callback_add_member_sufix(){
        $data['mother_phone'] = isset($_POST['mother_phone']) && !empty(trim($_POST['mother_phone'])) ? sanitize_text_field($_POST['mother_phone']) : NULL;
        $data['landline_phone'] = isset($_POST['landline_phone']) && !empty(trim($_POST['landline_phone'])) ? sanitize_text_field($_POST['landline_phone']) : NULL;
        $data['birth_date_shamsi'] = isset($_POST['birth_date_shamsi']) && !empty(trim($_POST['birth_date_shamsi'])) ? sanitize_text_field($_POST['birth_date_shamsi']) : NULL;
+       $data['insurance_expiry_date_shamsi'] = isset($_POST['insurance_expiry_date_shamsi']) && !empty(trim($_POST['insurance_expiry_date_shamsi'])) ? sanitize_text_field($_POST['insurance_expiry_date_shamsi']) : NULL;
        $data['birth_date_gregorian'] = isset($_POST['birth_date_gregorian']) && !empty(trim($_POST['birth_date_gregorian'])) ? sanitize_text_field($_POST['birth_date_gregorian']) : NULL;
        $data['personal_photo'] = isset($_POST['personal_photo']) && !empty(trim($_POST['personal_photo'])) ? esc_url_raw($_POST['personal_photo']) : NULL;
        $data['id_card_photo'] = isset($_POST['id_card_photo']) && !empty(trim($_POST['id_card_photo'])) ? esc_url_raw($_POST['id_card_photo']) : NULL;

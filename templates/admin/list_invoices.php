@@ -54,12 +54,14 @@ class Invoices_List_Table extends WP_List_Table {
 
     public function column_status($item) {
         $status = $item['status'];
+        // تبدیل completed به paid برای نمایش
+        if ($status === 'completed') {
+            $status = 'paid';
+        }
         $status_labels = [
             'pending' => ['label' => 'در انتظار پرداخت', 'color' => '#f0a000', 'bg' => '#fff8e1'],
-            'processing' => ['label' => 'در حال پردازش', 'color' => '#2271b1', 'bg' => '#e5f5fa'],
-            'completed' => ['label' => 'تکمیل شده', 'color' => '#00a32a', 'bg' => '#d4edda'],
-            'cancelled' => ['label' => 'لغو شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
-            'refunded' => ['label' => 'بازگشت شده', 'color' => '#666', 'bg' => '#f5f5f5']
+            'paid' => ['label' => 'پرداخت شده', 'color' => '#00a32a', 'bg' => '#d4edda'],
+            'cancelled' => ['label' => 'لغو شده', 'color' => '#d63638', 'bg' => '#ffeaea']
         ];
         
         $status_info = isset($status_labels[$status]) ? $status_labels[$status] : ['label' => $status, 'color' => '#666', 'bg' => '#f5f5f5'];
@@ -73,8 +75,7 @@ class Invoices_List_Table extends WP_List_Table {
     }
 
     public function column_created_at($item) {
-        $date = date_i18n('Y/m/d H:i', strtotime($item['created_at']));
-        return $date;
+        return sc_date_shamsi($item['created_at'], 'Y/m/d H:i');
     }
 
     public function column_course_title($item) {
@@ -157,10 +158,9 @@ class Invoices_List_Table extends WP_List_Table {
 
     public function get_bulk_actions() {
         return [
-            'change_status_pending' => 'تغییر وضعیت به: در انتظار پرداخت',
-            'change_status_processing' => 'تغییر وضعیت به: در حال پردازش',
-            'change_status_completed' => 'تغییر وضعیت به: تکمیل شده',
             'change_status_cancelled' => 'تغییر وضعیت به: لغو شده',
+            'change_status_pending' => 'تغییر وضعیت به: در انتظار پرداخت',
+            'change_status_paid' => 'تغییر وضعیت به: پرداخت شده',
             'delete' => 'حذف'
         ];
     }
@@ -180,6 +180,19 @@ class Invoices_List_Table extends WP_List_Table {
         $invoice_ids = array_map('absint', $_GET['invoice']);
 
         switch ($action) {
+            case 'change_status_cancelled':
+                foreach ($invoice_ids as $invoice_id) {
+                    $wpdb->update(
+                        $table_name,
+                        ['status' => 'cancelled', 'updated_at' => current_time('mysql')],
+                        ['id' => $invoice_id],
+                        ['%s', '%s'],
+                        ['%d']
+                    );
+                }
+                wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_status_updated'));
+                exit;
+
             case 'change_status_pending':
                 foreach ($invoice_ids as $invoice_id) {
                     $wpdb->update(
@@ -193,43 +206,17 @@ class Invoices_List_Table extends WP_List_Table {
                 wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_status_updated'));
                 exit;
 
-            case 'change_status_processing':
-                foreach ($invoice_ids as $invoice_id) {
-                    $wpdb->update(
-                        $table_name,
-                        ['status' => 'processing', 'updated_at' => current_time('mysql')],
-                        ['id' => $invoice_id],
-                        ['%s', '%s'],
-                        ['%d']
-                    );
-                }
-                wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_status_updated'));
-                exit;
-
-            case 'change_status_completed':
+            case 'change_status_paid':
                 foreach ($invoice_ids as $invoice_id) {
                     $wpdb->update(
                         $table_name,
                         [
-                            'status' => 'completed',
+                            'status' => 'paid',
                             'payment_date' => current_time('mysql'),
                             'updated_at' => current_time('mysql')
                         ],
                         ['id' => $invoice_id],
                         ['%s', '%s', '%s'],
-                        ['%d']
-                    );
-                }
-                wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_status_updated'));
-                exit;
-
-            case 'change_status_cancelled':
-                foreach ($invoice_ids as $invoice_id) {
-                    $wpdb->update(
-                        $table_name,
-                        ['status' => 'cancelled', 'updated_at' => current_time('mysql')],
-                        ['id' => $invoice_id],
-                        ['%s', '%s'],
                         ['%d']
                     );
                 }
@@ -253,8 +240,20 @@ class Invoices_List_Table extends WP_List_Table {
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
         $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
         $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
-        $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
-        $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+        // پردازش فیلترهای تاریخ (شمسی به میلادی)
+        $filter_date_from = '';
+        $filter_date_to = '';
+        if (isset($_GET['filter_date_from_shamsi']) && !empty($_GET['filter_date_from_shamsi'])) {
+            $filter_date_from = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_from_shamsi']));
+        } elseif (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
+            $filter_date_from = sanitize_text_field($_GET['filter_date_from']);
+        }
+        
+        if (isset($_GET['filter_date_to_shamsi']) && !empty($_GET['filter_date_to_shamsi'])) {
+            $filter_date_to = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_to_shamsi']));
+        } elseif (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
+            $filter_date_to = sanitize_text_field($_GET['filter_date_to']);
+        }
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
 
         // ساخت WHERE clause برای شمارش
@@ -309,7 +308,7 @@ class Invoices_List_Table extends WP_List_Table {
             $count_all = $wpdb->get_var($count_query);
         }
 
-        $statuses = ['all' => 'همه', 'pending' => 'در انتظار پرداخت', 'processing' => 'در حال پردازش', 'completed' => 'تکمیل شده', 'cancelled' => 'لغو شده'];
+        $statuses = ['all' => 'همه', 'cancelled' => 'لغو شده', 'pending' => 'در انتظار پرداخت', 'paid' => 'پرداخت شده'];
         $views = [];
 
         foreach ($statuses as $status_key => $status_label) {
@@ -318,8 +317,15 @@ class Invoices_List_Table extends WP_List_Table {
             if ($status_key !== 'all') {
                 $count_where = $where_conditions;
                 $count_where_values = $where_values;
-                $count_where[] = "i.status = %s";
-                $count_where_values[] = $status_key;
+                // برای paid، باید completed را هم در نظر بگیریم
+                if ($status_key === 'paid') {
+                    $count_where[] = "(i.status = %s OR i.status = %s)";
+                    $count_where_values[] = 'paid';
+                    $count_where_values[] = 'completed';
+                } else {
+                    $count_where[] = "i.status = %s";
+                    $count_where_values[] = $status_key;
+                }
                 $count_where_clause = implode(' AND ', $count_where);
                 
                 $count_query_status = "SELECT COUNT(*) FROM $table_name i 
@@ -396,8 +402,20 @@ class Invoices_List_Table extends WP_List_Table {
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
         $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
         $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
-        $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
-        $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+        // پردازش فیلترهای تاریخ (شمسی به میلادی)
+        $filter_date_from = '';
+        $filter_date_to = '';
+        if (isset($_GET['filter_date_from_shamsi']) && !empty($_GET['filter_date_from_shamsi'])) {
+            $filter_date_from = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_from_shamsi']));
+        } elseif (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
+            $filter_date_from = sanitize_text_field($_GET['filter_date_from']);
+        }
+        
+        if (isset($_GET['filter_date_to_shamsi']) && !empty($_GET['filter_date_to_shamsi'])) {
+            $filter_date_to = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_to_shamsi']));
+        } elseif (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
+            $filter_date_to = sanitize_text_field($_GET['filter_date_to']);
+        }
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
 
         // ساخت WHERE clause
@@ -405,8 +423,15 @@ class Invoices_List_Table extends WP_List_Table {
         $where_values = [];
 
         if ($filter_status !== 'all') {
-            $where_conditions[] = "i.status = %s";
-            $where_values[] = $filter_status;
+            // برای paid، باید completed را هم در نظر بگیریم
+            if ($filter_status === 'paid') {
+                $where_conditions[] = "(i.status = %s OR i.status = %s)";
+                $where_values[] = 'paid';
+                $where_values[] = 'completed';
+            } else {
+                $where_conditions[] = "i.status = %s";
+                $where_values[] = $filter_status;
+            }
         }
 
         if ($filter_course > 0) {

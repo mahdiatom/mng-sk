@@ -12,8 +12,10 @@ class Player_List_Table extends WP_List_Table {
             'id' => 'شناسه',
             'full_name' => 'نام و نام خانوادگی',
             'birth_date_shamsi' => 'تاریخ تولد',
+            'age' => 'سن',
             'national_id' => 'کد ملی ',
             'player_phone' => 'شماره تماس ',
+            'insurance_status' => 'بیمه',
             'profile_completed' => 'تکمیل پروفایل',
             'is_active' => 'وضعیت '
         ];
@@ -74,11 +76,63 @@ class Player_List_Table extends WP_List_Table {
             case 'id':
                 return $item['id'];
             case 'birth_date_shamsi':
-                return $item['birth_date_shamsi'];
+                return $item['birth_date_shamsi'] ?: '-';
+            case 'age':
+                return sc_calculate_age($item['birth_date_shamsi']);
             case 'national_id':
                 return $item['national_id'];
             case 'player_phone':
                 return $item['player_phone'];
+            case 'insurance_status':
+                // بررسی وضعیت بیمه
+                $insurance_expiry_date = isset($item['insurance_expiry_date_shamsi']) ? $item['insurance_expiry_date_shamsi'] : '';
+                
+                if (empty($insurance_expiry_date)) {
+                    return '<span style="color: #999;">-</span>';
+                }
+                
+                // دریافت تاریخ امروز به شمسی
+                $today = new DateTime();
+                $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+                $today_shamsi = $today_jalali[0] . '/' . 
+                               str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                               str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                
+                // تبدیل تاریخ‌ها به آرایه برای مقایسه
+                $expiry_parts = explode('/', $insurance_expiry_date);
+                $today_parts = explode('/', $today_shamsi);
+                
+                if (count($expiry_parts) === 3 && count($today_parts) === 3) {
+                    $expiry_year = (int)$expiry_parts[0];
+                    $expiry_month = (int)$expiry_parts[1];
+                    $expiry_day = (int)$expiry_parts[2];
+                    
+                    $today_year = (int)$today_parts[0];
+                    $today_month = (int)$today_parts[1];
+                    $today_day = (int)$today_parts[2];
+                    
+                    // مقایسه تاریخ‌ها
+                    $is_expired = false;
+                    if ($expiry_year < $today_year) {
+                        $is_expired = true;
+                    } elseif ($expiry_year == $today_year) {
+                        if ($expiry_month < $today_month) {
+                            $is_expired = true;
+                        } elseif ($expiry_month == $today_month) {
+                            if ($expiry_day < $today_day) {
+                                $is_expired = true;
+                            }
+                        }
+                    }
+                    
+                    if ($is_expired) {
+                        return '<span style="color: #d63638; font-weight: bold;">✗ منقضی</span>';
+                    } else {
+                        return '<span style="color: #00a32a; font-weight: bold;">✓ فعال</span>';
+                    }
+                }
+                
+                return '<span style="color: #999;">-</span>';
             case 'profile_completed':
                 // بررسی و به‌روزرسانی وضعیت تکمیل پروفایل
                 $is_completed = sc_check_profile_completed($item['id']);

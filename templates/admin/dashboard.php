@@ -37,7 +37,7 @@ for ($i = 5; $i >= 0; $i--) {
         $month_end . ' 23:59:59'
     ));
     $monthly_stats[] = [
-        'month' => date('Y/m', strtotime("-$i months")),
+        'month' => sc_date_shamsi(date('Y-m-01', strtotime("-$i months")), 'Y/m'),
         'count' => $count
     ];
 }

@@ -121,11 +121,9 @@ $members = $wpdb->get_results(
                         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
                         $status_options = [
                             'all' => 'همه وضعیت‌ها',
-                            'pending' => 'در انتظار پرداخت',
-                            'processing' => 'در حال پردازش',
-                            'completed' => 'تکمیل شده',
                             'cancelled' => 'لغو شده',
-                            'refunded' => 'بازگشت شده'
+                            'pending' => 'در انتظار پرداخت',
+                            'paid' => 'پرداخت شده'
                         ];
                         foreach ($status_options as $value => $label) :
                         ?>
@@ -144,10 +142,45 @@ $members = $wpdb->get_results(
                     <?php 
                     $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
                     $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+                    
+                    // تبدیل تاریخ‌های میلادی به شمسی برای نمایش
+                    $filter_date_from_shamsi = '';
+                    $filter_date_to_shamsi = '';
+                    if (!empty($filter_date_from)) {
+                        $filter_date_from_shamsi = sc_date_shamsi_date_only($filter_date_from);
+                    } else {
+                        // تاریخ پیش‌فرض: امروز
+                        $today = new DateTime();
+                        $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+                        $filter_date_from_shamsi = $today_jalali[0] . '/' . 
+                                                   str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                                                   str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                    }
+                    if (!empty($filter_date_to)) {
+                        $filter_date_to_shamsi = sc_date_shamsi_date_only($filter_date_to);
+                    } else {
+                        // تاریخ پیش‌فرض: امروز
+                        $today = new DateTime();
+                        $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+                        $filter_date_to_shamsi = $today_jalali[0] . '/' . 
+                                                 str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                                                 str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                    }
                     ?>
-                    <input type="date" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>" style="padding: 5px; margin-left: 10px;">
+                    <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" 
+                           value="<?php echo esc_attr($filter_date_from_shamsi); ?>" 
+                           class="regular-text persian-date-input" 
+                           placeholder="از تاریخ (شمسی)" 
+                           style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
+                    <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
                     <span>تا</span>
-                    <input type="date" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>" style="padding: 5px; margin-left: 10px;">
+                    <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" 
+                           value="<?php echo esc_attr($filter_date_to_shamsi); ?>" 
+                           class="regular-text persian-date-input" 
+                           placeholder="تا تاریخ (شمسی)" 
+                           style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
+                    <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                    <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                 </td>
             </tr>
         </table>
@@ -191,8 +224,14 @@ echo '<div class="wrap">';
         if (isset($_GET['filter_member'])) {
             echo '<input type="hidden" name="filter_member" value="' . esc_attr($_GET['filter_member']) . '">';
         }
+        if (isset($_GET['filter_date_from_shamsi'])) {
+            echo '<input type="hidden" name="filter_date_from_shamsi" value="' . esc_attr($_GET['filter_date_from_shamsi']) . '">';
+        }
         if (isset($_GET['filter_date_from'])) {
             echo '<input type="hidden" name="filter_date_from" value="' . esc_attr($_GET['filter_date_from']) . '">';
+        }
+        if (isset($_GET['filter_date_to_shamsi'])) {
+            echo '<input type="hidden" name="filter_date_to_shamsi" value="' . esc_attr($_GET['filter_date_to_shamsi']) . '">';
         }
         if (isset($_GET['filter_date_to'])) {
             echo '<input type="hidden" name="filter_date_to" value="' . esc_attr($_GET['filter_date_to']) . '">';
@@ -339,4 +378,67 @@ jQuery(document).ready(function($) {
     background: #555;
 }
 </style>
+
+<script type="text/javascript">
+jQuery(document).ready(function($) {
+    // تابع تبدیل تاریخ شمسی به میلادی (برای ارسال به سرور)
+    function jalaliToGregorian(jy, jm, jd) {
+        var gy = (jy <= 979) ? 621 : 1600;
+        jy -= (jy <= 979) ? 0 : 979;
+        var days = (365 * jy) + (parseInt(jy / 33) * 8) + (parseInt(((jy % 33) + 3) / 4)) + 
+                   78 + jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+        gy += 400 * (parseInt(days / 146097));
+        days = days % 146097;
+        if (days > 36524) {
+            gy += 100 * (parseInt(--days / 36524));
+            days = days % 36524;
+            if (days >= 365) days++;
+        }
+        gy += 4 * (parseInt(days / 1461));
+        days = days % 1461;
+        if (days > 365) {
+            gy += parseInt((days - 1) / 365);
+            days = (days - 1) % 365;
+        }
+        var gd = days + 1;
+        var sal_a = [0, 31, ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) ? 29 : 28,
+                     31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        var gm = 0;
+        while (gm < 13 && gd > sal_a[gm]) {
+            gd -= sal_a[gm];
+            gm++;
+        }
+        return [gy, gm, gd];
+    }
+    
+    // تبدیل تاریخ شمسی به میلادی برای فیلتر
+    function convertShamsiToGregorian(shamsiDate) {
+        if (!shamsiDate || shamsiDate === '') return '';
+        var parts = shamsiDate.split('/');
+        if (parts.length !== 3) return '';
+        var jy = parseInt(parts[0]);
+        var jm = parseInt(parts[1]);
+        var jd = parseInt(parts[2]);
+        var gregorian = jalaliToGregorian(jy, jm, jd);
+        return gregorian[0] + '-' + 
+               (gregorian[1] < 10 ? '0' + gregorian[1] : gregorian[1]) + '-' + 
+               (gregorian[2] < 10 ? '0' + gregorian[2] : gregorian[2]);
+    }
+    
+    // تبدیل تاریخ شمسی به میلادی هنگام تغییر
+    $('#filter_date_from_shamsi, #filter_date_to_shamsi').on('change', function() {
+        var $shamsiInput = $(this);
+        var shamsiValue = $shamsiInput.val();
+        var gregorianValue = convertShamsiToGregorian(shamsiValue);
+        
+        // پیدا کردن hidden input مربوطه
+        var inputId = $shamsiInput.attr('id');
+        if (inputId === 'filter_date_from_shamsi') {
+            $('#filter_date_from').val(gregorianValue);
+        } else {
+            $('#filter_date_to').val(gregorianValue);
+        }
+    });
+});
+</script>
 

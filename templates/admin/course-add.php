@@ -192,18 +192,42 @@ if ($course && isset($_GET['course_id'])) {
                 </tr>
 
                 <tr>
-                    <th scope="row"><label for="start_date">تاریخ شروع</label></th>
+                    <th scope="row"><label for="start_date_shamsi">تاریخ شروع (شمسی)</label></th>
                     <td>
-                        <input name="start_date" type="date" id="start_date" value="<?php echo esc_attr($start_date ?? ''); ?>" class="regular-text">
-                        <p class="description">برای دوره‌های متناوب می‌توانید خالی بگذارید.</p>
+                        <?php
+                        $start_date_shamsi = '';
+                        if (!empty($start_date)) {
+                            $start_date_shamsi = sc_date_shamsi_date_only($start_date);
+                        }
+                        ?>
+                        <input name="start_date_shamsi" type="text" id="start_date_shamsi" 
+                               value="<?php echo esc_attr($start_date_shamsi); ?>" 
+                               class="regular-text persian-date-input" 
+                               placeholder="تاریخ شروع (شمسی)" 
+                               readonly
+                               style="width: 300px; padding: 5px;">
+                        <input type="hidden" name="start_date" id="start_date" value="<?php echo esc_attr($start_date ?? ''); ?>">
+                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
                 </tr>
 
                 <tr>
-                    <th scope="row"><label for="end_date">تاریخ پایان</label></th>
+                    <th scope="row"><label for="end_date_shamsi">تاریخ پایان (شمسی)</label></th>
                     <td>
-                        <input name="end_date" type="date" id="end_date" value="<?php echo esc_attr($end_date ?? ''); ?>" class="regular-text">
-                        <p class="description">برای دوره‌های متناوب می‌توانید خالی بگذارید.</p>
+                        <?php
+                        $end_date_shamsi = '';
+                        if (!empty($end_date)) {
+                            $end_date_shamsi = sc_date_shamsi_date_only($end_date);
+                        }
+                        ?>
+                        <input name="end_date_shamsi" type="text" id="end_date_shamsi" 
+                               value="<?php echo esc_attr($end_date_shamsi); ?>" 
+                               class="regular-text persian-date-input" 
+                               placeholder="تاریخ پایان (شمسی)" 
+                               readonly
+                               style="width: 300px; padding: 5px;">
+                        <input type="hidden" name="end_date" id="end_date" value="<?php echo esc_attr($end_date ?? ''); ?>">
+                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
                 </tr>
 
@@ -226,4 +250,83 @@ if ($course && isset($_GET['course_id'])) {
         </p>
     </form>
 </div>
+
+<script>
+jQuery(document).ready(function($) {
+    // تابع تبدیل تاریخ شمسی به میلادی
+    function jalaliToGregorian(jy, jm, jd) {
+        var gy = (jy <= 979) ? 621 : 1600;
+        jy -= (jy <= 979) ? 0 : 979;
+        var days = (365 * jy) + ((parseInt(jy / 33)) * 8) + (parseInt(((jy % 33) + 3) / 4)) + 
+                   78 + jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+        gy += 400 * (parseInt(days / 146097));
+        days = days % 146097;
+        if (days > 36524) {
+            gy += 100 * (parseInt(--days / 36524));
+            days = days % 36524;
+            if (days >= 365) days++;
+        }
+        gy += 4 * (parseInt(days / 1461));
+        days = days % 1461;
+        if (days > 365) {
+            gy += parseInt((days - 1) / 365);
+            days = (days - 1) % 365;
+        }
+        var gd = days + 1;
+        var sal_a = [0, 31, ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) ? 29 : 28,
+                     31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        var gm = 0;
+        while (gm < 13 && gd > sal_a[gm]) {
+            gd -= sal_a[gm];
+            gm++;
+        }
+        return [gy, gm, gd];
+    }
+    
+    function convertShamsiToGregorian(shamsiDate) {
+        if (!shamsiDate || shamsiDate === '') return '';
+        var parts = shamsiDate.split('/');
+        if (parts.length !== 3) return '';
+        var jy = parseInt(parts[0]);
+        var jm = parseInt(parts[1]);
+        var jd = parseInt(parts[2]);
+        var gregorian = jalaliToGregorian(jy, jm, jd);
+        return gregorian[0] + '-' + 
+               (gregorian[1] < 10 ? '0' + gregorian[1] : gregorian[1]) + '-' + 
+               (gregorian[2] < 10 ? '0' + gregorian[2] : gregorian[2]);
+    }
+    
+    // تبدیل تاریخ شمسی به میلادی هنگام تغییر
+    $('#start_date_shamsi, #end_date_shamsi').on('change', function() {
+        var inputId = $(this).attr('id');
+        var shamsiDate = $(this).val();
+        
+        if (shamsiDate) {
+            var gregorianDate = convertShamsiToGregorian(shamsiDate);
+            if (gregorianDate) {
+                if (inputId === 'start_date_shamsi') {
+                    $('#start_date').val(gregorianDate);
+                } else if (inputId === 'end_date_shamsi') {
+                    $('#end_date').val(gregorianDate);
+                }
+            }
+        } else {
+            // اگر تاریخ خالی شد، فیلد میلادی را هم خالی کن
+            if (inputId === 'start_date_shamsi') {
+                $('#start_date').val('');
+            } else if (inputId === 'end_date_shamsi') {
+                $('#end_date').val('');
+            }
+        }
+    });
+    
+    // تبدیل اولیه اگر تاریخ وجود دارد
+    if ($('#start_date_shamsi').val()) {
+        $('#start_date_shamsi').trigger('change');
+    }
+    if ($('#end_date_shamsi').val()) {
+        $('#end_date_shamsi').trigger('change');
+    }
+});
+</script>
 

@@ -144,10 +144,8 @@ function sc_generate_export_filename($type, $filters = []) {
     if (isset($filters['status']) && $filters['status'] !== 'all') {
         $status_labels = [
             'pending' => 'pending',
-            'processing' => 'processing',
-            'completed' => 'completed',
-            'cancelled' => 'cancelled',
-            'refunded' => 'refunded'
+            'paid' => 'paid',
+            'cancelled' => 'cancelled'
         ];
         if (isset($status_labels[$filters['status']])) {
             $filter_parts[] = $status_labels[$filters['status']];
@@ -195,8 +193,15 @@ function sc_export_invoices_to_excel() {
     $where_values = [];
     
     if ($filter_status !== 'all') {
-        $where_conditions[] = "i.status = %s";
-        $where_values[] = $filter_status;
+        // برای paid، باید completed را هم در نظر بگیریم
+        if ($filter_status === 'paid') {
+            $where_conditions[] = "(i.status = %s OR i.status = %s)";
+            $where_values[] = 'paid';
+            $where_values[] = 'completed';
+        } else {
+            $where_conditions[] = "i.status = %s";
+            $where_values[] = $filter_status;
+        }
     }
     
     if ($filter_course > 0) {
@@ -302,10 +307,9 @@ function sc_export_invoices_to_excel() {
     $row_number = 1;
     $status_labels = [
         'pending' => 'در انتظار پرداخت',
-        'processing' => 'در حال پردازش',
-        'completed' => 'تکمیل شده',
-        'cancelled' => 'لغو شده',
-        'refunded' => 'بازگشت شده'
+        'paid' => 'پرداخت شده',
+        'completed' => 'پرداخت شده', // برای سازگاری با داده‌های قدیمی
+        'cancelled' => 'لغو شده'
     ];
     
     foreach ($invoices as $invoice) {
@@ -341,7 +345,7 @@ function sc_export_invoices_to_excel() {
         $sheet->setCellValueByColumnAndRow($col++, $row, $status_label);
         
         // تاریخ ثبت
-        $sheet->setCellValueByColumnAndRow($col++, $row, date_i18n('Y/m/d H:i', strtotime($invoice->created_at)));
+        $sheet->setCellValueByColumnAndRow($col++, $row, sc_date_shamsi($invoice->created_at, 'Y/m/d H:i'));
         
         // دوره
         $course_display = $invoice->course_title ?: 'بدون دوره';
@@ -364,7 +368,7 @@ function sc_export_invoices_to_excel() {
         $sheet->setCellValueByColumnAndRow($col++, $row, $penalty);
         
         // تاریخ پرداخت
-        $payment_date = $invoice->payment_date ? date_i18n('Y/m/d H:i', strtotime($invoice->payment_date)) : '-';
+        $payment_date = $invoice->payment_date ? sc_date_shamsi($invoice->payment_date, 'Y/m/d H:i') : '-';
         $sheet->setCellValueByColumnAndRow($col++, $row, $payment_date);
         
         // اعمال استایل به ردیف
@@ -506,7 +510,7 @@ function sc_export_attendance_to_excel() {
         $sheet->setCellValueByColumnAndRow($col++, $row, $row_number++);
         
         // تاریخ
-        $sheet->setCellValueByColumnAndRow($col++, $row, date_i18n('Y/m/d', strtotime($attendance->attendance_date)));
+        $sheet->setCellValueByColumnAndRow($col++, $row, sc_date_shamsi_date_only($attendance->attendance_date));
         
         // دوره
         $sheet->setCellValueByColumnAndRow($col++, $row, $attendance->course_title);
@@ -525,7 +529,7 @@ function sc_export_attendance_to_excel() {
         $sheet->setCellValueByColumnAndRow($col++, $row, $status_label);
         
         // تاریخ ثبت
-        $sheet->setCellValueByColumnAndRow($col++, $row, date_i18n('Y/m/d H:i', strtotime($attendance->created_at)));
+        $sheet->setCellValueByColumnAndRow($col++, $row, sc_date_shamsi($attendance->created_at, 'Y/m/d H:i'));
         
         // اعمال استایل به ردیف
         $dataStyle = sc_get_excel_data_style();
