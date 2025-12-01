@@ -37,6 +37,7 @@ function sc_create_recurring_invoices() {
          WHERE mc.status = 'active'
          AND c.deleted_at IS NULL
          AND c.is_active = 1
+         AND m.is_active = 1
          AND (
              -- دوره‌هایی که flags ندارند یا flags آن‌ها paused, completed, canceled نیست
              mc.course_status_flags IS NULL
@@ -140,10 +141,12 @@ function sc_check_and_pause_courses_with_unpaid_invoices() {
                 COUNT(i.id) as pending_count
          FROM $member_courses_table mc
          INNER JOIN $courses_table c ON mc.course_id = c.id
+         INNER JOIN $members_table m ON mc.member_id = m.id
          INNER JOIN $invoices_table i ON i.member_course_id = mc.id
          WHERE mc.status = 'active'
          AND c.deleted_at IS NULL
          AND c.is_active = 1
+         AND m.is_active = 1
          AND i.status = 'pending'
          AND i.member_course_id IS NOT NULL
          AND i.course_id IS NOT NULL

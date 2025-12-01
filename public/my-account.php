@@ -152,24 +152,23 @@ function sc_display_incomplete_profile_message() {
 }
 
 /**
- * Display content for custom tab
+ * بررسی وضعیت فعال بودن کاربر
+ * این تابع وضعیت فعال بودن کاربر را بررسی می‌کند و در صورت غیرفعال بودن، پیام مناسب را نمایش می‌دهد
+ * @return array|false آرایه شامل player object در صورت فعال بودن، false در غیر این صورت
  */
-add_action('woocommerce_account_sc-submit-documents_endpoint', 'sc_my_account_documents_content');
-function sc_my_account_documents_content() {
-    // بررسی و ایجاد جداول در صورت عدم وجود
-    sc_check_and_create_tables();
-    
+function sc_check_user_active_status() {
     // بررسی لاگین بودن کاربر
     if (!is_user_logged_in()) {
-        echo '<p>لطفاً ابتدا وارد حساب کاربری خود شوید.</p>';
-        return;
+        return false;
     }
     
-    // مخفی کردن محتوا برای مدیران
+    // مخفی کردن برای مدیران
     if (current_user_can('manage_options')) {
-        echo '<p>این بخش فقط برای کاربران عادی در دسترس است.</p>';
-        return;
+        return false; // مدیران همیشه فعال در نظر گرفته می‌شوند
     }
+    
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
     
     $current_user_id = get_current_user_id();
     global $wpdb;
@@ -190,6 +189,72 @@ function sc_my_account_documents_content() {
         ));
     }
     
+    // اگر کاربر در جدول اعضا وجود نداشت
+    if (!$player) {
+        // در این حالت، false برمی‌گردانیم تا endpoint های مربوطه پیام تکمیل اطلاعات را نمایش دهند
+        return false;
+    }
+    
+    // اگر کاربر غیرفعال بود
+    if (isset($player->is_active) && $player->is_active == 0) {
+        // نمایش پیام غیرفعال بودن
+        ?>
+        <div class="sc-inactive-user-message" style="background-color: #f8d7da; border: 1px solid #dc3545; border-radius: 4px; padding: 20px; margin: 20px 0; color: #721c24;">
+            <strong style="display: block; margin-bottom: 10px; font-size: 16px;">⚠️ حساب شما غیر فعال است</strong>
+            <p style="margin: 0; font-size: 14px;">
+                حساب کاربری شما غیر فعال شده است. در صورتی که نیاز به فعال شدن دارید با مدیریت باشگاه ارتباط بگیرید.
+            </p>
+        </div>
+        <?php
+        return false;
+    }
+    
+    return $player;
+}
+
+/**
+ * Display content for custom tab
+ */
+add_action('woocommerce_account_sc-submit-documents_endpoint', 'sc_my_account_documents_content');
+function sc_my_account_documents_content() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    // بررسی وضعیت فعال بودن کاربر
+    $player = sc_check_user_active_status();
+    if ($player === false) {
+        // اگر کاربر در جدول اعضا وجود نداشت یا غیرفعال بود
+        // اگر غیرفعال بود، پیام در تابع sc_check_user_active_status نمایش داده شده است
+        // اگر در جدول اعضا وجود نداشت، باید بررسی کنیم
+        $current_user_id = get_current_user_id();
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_members';
+        $billing_phone = get_user_meta($current_user_id, 'billing_phone', true);
+        
+        // بررسی وجود اطلاعات بازیکن بر اساس user_id
+        $player_check = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE user_id = %d LIMIT 1",
+            $current_user_id
+        ));
+        
+        // اگر پیدا نشد، بر اساس شماره تماس بررسی می‌کنیم
+        if (!$player_check && $billing_phone) {
+            $player_check = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $table_name WHERE player_phone = %s LIMIT 1",
+                $billing_phone
+            ));
+        }
+        
+        // اگر کاربر در جدول اعضا وجود نداشت، اجازه می‌دهیم صفحه اطلاعات بازیکن را ببیند
+        // (چون باید بتواند اطلاعاتش را تکمیل کند)
+        if (!$player_check) {
+            $player = null; // برای استفاده در template
+        } else {
+            // اگر کاربر وجود داشت اما غیرفعال بود، خروج می‌کنیم
+            return;
+        }
+    }
+    
     include SC_TEMPLATES_PUBLIC_DIR . 'submit-documents.php';
 }
 
@@ -201,35 +266,14 @@ function sc_my_account_enroll_course_content() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
     
-    // بررسی لاگین بودن کاربر
-    if (!is_user_logged_in()) {
-        echo '<p>لطفاً ابتدا وارد حساب کاربری خود شوید.</p>';
-        return;
-    }
-    
-    // مخفی کردن محتوا برای مدیران
-    if (current_user_can('manage_options')) {
-        echo '<p>این بخش فقط برای کاربران عادی در دسترس است.</p>';
-        return;
-    }
-    
-    $current_user_id = get_current_user_id();
-    global $wpdb;
-    $members_table = $wpdb->prefix . 'sc_members';
-    $courses_table = $wpdb->prefix . 'sc_courses';
-    
-    // بررسی وجود اطلاعات بازیکن
-    $player = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $members_table WHERE user_id = %d LIMIT 1",
-        $current_user_id
-    ));
-    
+    // بررسی وضعیت فعال بودن کاربر
+    $player = sc_check_user_active_status();
     if (!$player) {
-        echo '<div class="woocommerce-message woocommerce-message--info woocommerce-info">';
-        echo 'لطفاً ابتدا <a href="' . esc_url(wc_get_account_endpoint_url('sc-submit-documents')) . '">اطلاعات بازیکن</a> را تکمیل کنید.';
-        echo '</div>';
-        return;
+        return; // اگر غیرفعال بود، پیام نمایش داده شده و خروج می‌کنیم
     }
+    
+    global $wpdb;
+    $courses_table = $wpdb->prefix . 'sc_courses';
     
     // دریافت تمام دوره‌های فعال
     $courses = $wpdb->get_results(
@@ -765,33 +809,10 @@ function sc_my_account_my_courses_content() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
     
-    // بررسی لاگین بودن کاربر
-    if (!is_user_logged_in()) {
-        echo '<p>لطفاً ابتدا وارد حساب کاربری خود شوید.</p>';
-        return;
-    }
-    
-    // مخفی کردن محتوا برای مدیران
-    if (current_user_can('manage_options')) {
-        echo '<p>این بخش فقط برای کاربران عادی در دسترس است.</p>';
-        return;
-    }
-    
-    $current_user_id = get_current_user_id();
-    global $wpdb;
-    $members_table = $wpdb->prefix . 'sc_members';
-    
-    // بررسی وجود اطلاعات بازیکن
-    $player = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $members_table WHERE user_id = %d LIMIT 1",
-        $current_user_id
-    ));
-    
+    // بررسی وضعیت فعال بودن کاربر
+    $player = sc_check_user_active_status();
     if (!$player) {
-        echo '<div class="woocommerce-message woocommerce-message--info woocommerce-info">';
-        echo 'لطفاً ابتدا <a href="' . esc_url(wc_get_account_endpoint_url('sc-submit-documents')) . '">اطلاعات بازیکن</a> را تکمیل کنید.';
-        echo '</div>';
-        return;
+        return; // اگر غیرفعال بود، پیام نمایش داده شده و خروج می‌کنیم
     }
     
     include SC_TEMPLATES_PUBLIC_DIR . 'my-courses.php';
@@ -980,36 +1001,15 @@ function sc_my_account_invoices_content() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
     
-    // بررسی لاگین بودن کاربر
-    if (!is_user_logged_in()) {
-        echo '<p>لطفاً ابتدا وارد حساب کاربری خود شوید.</p>';
-        return;
+    // بررسی وضعیت فعال بودن کاربر
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return; // اگر غیرفعال بود، پیام نمایش داده شده و خروج می‌کنیم
     }
     
-    // مخفی کردن محتوا برای مدیران
-    if (current_user_can('manage_options')) {
-        echo '<p>این بخش فقط برای کاربران عادی در دسترس است.</p>';
-        return;
-    }
-    
-    $current_user_id = get_current_user_id();
     global $wpdb;
-    $members_table = $wpdb->prefix . 'sc_members';
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $courses_table = $wpdb->prefix . 'sc_courses';
-    
-    // بررسی وجود اطلاعات بازیکن
-    $player = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $members_table WHERE user_id = %d LIMIT 1",
-        $current_user_id
-    ));
-    
-    if (!$player) {
-        echo '<div class="woocommerce-message woocommerce-message--info woocommerce-info">';
-        echo 'لطفاً ابتدا <a href="' . esc_url(wc_get_account_endpoint_url('sc-submit-documents')) . '">اطلاعات بازیکن</a> را تکمیل کنید.';
-        echo '</div>';
-        return;
-    }
     
     // دریافت تمام صورت حساب‌های کاربر
     // توجه: بررسی جریمه در hook sc_check_penalty_on_invoices_page انجام می‌شود
