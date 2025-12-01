@@ -252,6 +252,7 @@ class Invoices_List_Table extends WP_List_Table {
         // دریافت فیلترهای فعال
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
         $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+        $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
         $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
         $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
@@ -263,6 +264,11 @@ class Invoices_List_Table extends WP_List_Table {
         if ($filter_course > 0) {
             $where_conditions[] = "i.course_id = %d";
             $where_values[] = $filter_course;
+        }
+        
+        if ($filter_member > 0) {
+            $where_conditions[] = "i.member_id = %d";
+            $where_values[] = $filter_member;
         }
         
         if ($filter_date_from) {
@@ -334,6 +340,9 @@ class Invoices_List_Table extends WP_List_Table {
             if ($filter_course) {
                 $url = add_query_arg('filter_course', $filter_course, $url);
             }
+            if ($filter_member) {
+                $url = add_query_arg('filter_member', $filter_member, $url);
+            }
             if ($filter_date_from) {
                 $url = add_query_arg('filter_date_from', $filter_date_from, $url);
             }
@@ -386,6 +395,7 @@ class Invoices_List_Table extends WP_List_Table {
         // دریافت فیلترها
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
         $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+        $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
         $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
         $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
@@ -402,6 +412,11 @@ class Invoices_List_Table extends WP_List_Table {
         if ($filter_course > 0) {
             $where_conditions[] = "i.course_id = %d";
             $where_values[] = $filter_course;
+        }
+
+        if ($filter_member > 0) {
+            $where_conditions[] = "i.member_id = %d";
+            $where_values[] = $filter_member;
         }
 
         if ($filter_date_from) {

@@ -119,6 +119,45 @@ function sc_register_admin_menu() {
 }
 
 /**
+ * Export Excel endpoints
+ */
+add_action('admin_init', 'sc_handle_excel_export');
+function sc_handle_excel_export() {
+    // بررسی اینکه آیا درخواست export است
+    if (!isset($_GET['sc_export']) || $_GET['sc_export'] !== 'excel') {
+        return;
+    }
+    
+    // بررسی دسترسی
+    if (!current_user_can('manage_options')) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    
+    // بررسی nonce
+    if (!isset($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'sc_export_excel')) {
+        wp_die('خطای امنیتی. لطفاً دوباره تلاش کنید.');
+    }
+    
+    $export_type = isset($_GET['export_type']) ? sanitize_text_field($_GET['export_type']) : '';
+    
+    switch ($export_type) {
+        case 'invoices':
+            sc_export_invoices_to_excel();
+            break;
+        case 'attendance':
+            sc_export_attendance_to_excel();
+            break;
+        case 'members':
+            sc_export_members_to_excel();
+            break;
+        default:
+            wp_die('نوع export معتبر نیست.');
+    }
+    
+    exit;
+}
+
+/**
  * ذخیره تنظیمات screen option برای تعداد رکوردها در هر صفحه
  */
 add_filter('set-screen-option', 'sc_set_invoices_screen_option', 10, 3);
@@ -249,7 +288,16 @@ function callback_add_invoice_sufix() {
         $member_id = absint($_POST['member_id']);
         $course_id = !empty($_POST['course_id']) ? absint($_POST['course_id']) : NULL;
         $expense_name = !empty($_POST['expense_name']) ? sanitize_text_field($_POST['expense_name']) : NULL;
-        $manual_amount = !empty($_POST['amount']) && is_numeric($_POST['amount']) ? floatval($_POST['amount']) : 0;
+        
+        // دریافت مبلغ (حذف کاماها در صورت وجود)
+        $amount_value = '';
+        if (!empty($_POST['amount_raw'])) {
+            $amount_value = sanitize_text_field($_POST['amount_raw']);
+        } elseif (!empty($_POST['amount'])) {
+            // حذف کاماها و کاراکترهای غیر عددی
+            $amount_value = preg_replace('/[^0-9.]/', '', sanitize_text_field($_POST['amount']));
+        }
+        $manual_amount = !empty($amount_value) && is_numeric($amount_value) ? floatval($amount_value) : 0;
         
         // بررسی وجود کاربر
         $member = $wpdb->get_row($wpdb->prepare(
@@ -785,6 +833,14 @@ function sc_sprot_notices(){
         if($status == 'course_bulk_deleted'){
             $type='success';
             $messege="دوره‌های انتخابی به زباله‌دان منتقل شدند";
+        }
+        if($status == 'courses_activated'){
+            $type='success';
+            $messege="دوره‌های انتخابی با موفقیت فعال شدند";
+        }
+        if($status == 'courses_deactivated'){
+            $type='success';
+            $messege="دوره‌های انتخابی با موفقیت غیرفعال شدند";
         }
         // Invoice messages
         if($status == 'bulk_status_updated'){

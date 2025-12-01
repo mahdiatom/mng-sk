@@ -120,6 +120,8 @@ class Courses_List_Table extends WP_List_Table {
             $actions['restore'] = 'بازیابی';
             $actions['delete_permanent'] = 'حذف دائمی';
         } else {
+            $actions['activate'] = 'فعال کردن';
+            $actions['deactivate'] = 'غیرفعال کردن';
             $actions['trash'] = 'حذف به زباله‌دان';
         }
         return $actions;
@@ -196,11 +198,44 @@ class Courses_List_Table extends WP_List_Table {
             wp_redirect(admin_url('admin.php?page=sc-courses&sc_status=course_bulk_deleted'));
             exit;
         }
+
+        // فعال کردن دوره‌ها (دسته‌ای)
+        if ($this->current_action() == 'activate') {
+            check_admin_referer('bulk-' . $this->_args['plural']);
+            $courses = isset($_GET['course']) ? $_GET['course'] : [];
+            if (!empty($courses)) {
+                foreach ($courses as $course_id) {
+                    $wpdb->update(
+                        $table_name,
+                        ['is_active' => 1, 'updated_at' => current_time('mysql')],
+                        ['id' => absint($course_id), 'deleted_at' => NULL]
+                    );
+                }
+                wp_redirect(admin_url('admin.php?page=sc-courses&sc_status=courses_activated'));
+                exit;
+            }
+        }
+
+        // غیرفعال کردن دوره‌ها (دسته‌ای)
+        if ($this->current_action() == 'deactivate') {
+            check_admin_referer('bulk-' . $this->_args['plural']);
+            $courses = isset($_GET['course']) ? $_GET['course'] : [];
+            if (!empty($courses)) {
+                foreach ($courses as $course_id) {
+                    $wpdb->update(
+                        $table_name,
+                        ['is_active' => 0, 'updated_at' => current_time('mysql')],
+                        ['id' => absint($course_id), 'deleted_at' => NULL]
+                    );
+                }
+                wp_redirect(admin_url('admin.php?page=sc-courses&sc_status=courses_deactivated'));
+                exit;
+            }
+        }
     }
 
-    protected function view_create($key, $label, $url, $count = 0) {
-        $current_status = isset($_GET['course_status']) ? $_GET['course_status'] : 'all';
-        $class_view = $current_status == $key ? 'current' : '';
+    protected function view_create($key, $label, $url, $count = 0, $is_current = false) {
+        $class_view = $is_current ? 'current' : '';
         if (isset($_GET['s'])) {
             $url .= "&s=" . sanitize_text_field($_GET['s']);
         }
@@ -215,7 +250,12 @@ class Courses_List_Table extends WP_List_Table {
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_courses';
         
+        // دریافت فیلتر فعال
+        $course_status = isset($_GET['course_status']) ? sanitize_text_field($_GET['course_status']) : 'all';
+        
         $count_all = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL");
+        $count_active = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL AND is_active = 1");
+        $count_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL AND is_active = 0");
         $count_trash = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NOT NULL");
 
         $views = [
@@ -223,9 +263,32 @@ class Courses_List_Table extends WP_List_Table {
                 'all',
                 'همه',
                 admin_url('admin.php?page=sc-courses&course_status=all'),
-                $count_all
+                $count_all,
+                $course_status === 'all'
             )
         ];
+        
+        // نمایش تب فعال فقط در صورت وجود آیتم
+        if ($count_active > 0) {
+            $views['active'] = $this->view_create(
+                'active',
+                'فعال',
+                admin_url('admin.php?page=sc-courses&course_status=active'),
+                $count_active,
+                $course_status === 'active'
+            );
+        }
+        
+        // نمایش تب غیرفعال فقط در صورت وجود آیتم
+        if ($count_inactive > 0) {
+            $views['inactive'] = $this->view_create(
+                'inactive',
+                'غیرفعال',
+                admin_url('admin.php?page=sc-courses&course_status=inactive'),
+                $count_inactive,
+                $course_status === 'inactive'
+            );
+        }
         
         // نمایش تب زباله‌دان فقط در صورت وجود آیتم
         if ($count_trash > 0) {
@@ -233,7 +296,8 @@ class Courses_List_Table extends WP_List_Table {
                 'trash',
                 'زباله‌دان',
                 admin_url('admin.php?page=sc-courses&course_status=trash'),
-                $count_trash
+                $count_trash,
+                $course_status === 'trash'
             );
         }
         
@@ -255,12 +319,20 @@ class Courses_List_Table extends WP_List_Table {
         $order_clause = "ORDER BY $orderby $order";
 
         $where = "1=1";
+        $course_status = isset($_GET['course_status']) ? sanitize_text_field($_GET['course_status']) : 'all';
 
         // فیلتر زباله‌دان
-        if (isset($_GET['course_status']) && $_GET['course_status'] == 'trash') {
+        if ($course_status == 'trash') {
             $where .= " AND deleted_at IS NOT NULL";
         } else {
             $where .= " AND deleted_at IS NULL";
+            
+            // فیلتر فعال/غیرفعال
+            if ($course_status == 'active') {
+                $where .= " AND is_active = 1";
+            } elseif ($course_status == 'inactive') {
+                $where .= " AND is_active = 0";
+            }
         }
 
         // جستجو

@@ -306,6 +306,25 @@ if ($active_tab === 'grouped') {
             
             <p class="submit">
                 <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
+                <?php
+                // ساخت URL برای export Excel با حفظ فیلترها
+                $export_url = admin_url('admin.php?page=sc-attendance-list&sc_export=excel&export_type=attendance');
+                $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
+                $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
+                if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
+                    $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
+                }
+                if (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
+                    $export_url = add_query_arg('filter_date_to', $_GET['filter_date_to'], $export_url);
+                }
+                if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
+                    $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
+                }
+                $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+                ?>
+                <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+                    📊 خروجی Excel
+                </a>
                 <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=individual'); ?>" class="button">پاک کردن فیلترها</a>
             </p>
         </form>

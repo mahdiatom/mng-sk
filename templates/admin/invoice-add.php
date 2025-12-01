@@ -13,14 +13,8 @@ $members = $wpdb->get_results(
     "SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC"
 );
 
-// دریافت لیست دوره‌های فعال
-$courses = $wpdb->get_results(
-    "SELECT id, title, price FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
-);
-
 // مقادیر پیش‌فرض
 $selected_member_id = isset($_GET['member_id']) ? absint($_GET['member_id']) : (isset($_POST['member_id']) ? absint($_POST['member_id']) : 0);
-$selected_course_id = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
 $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
 ?>
 
@@ -107,25 +101,6 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                 
                 <tr>
                     <th scope="row">
-                        <label for="course_id">انتخاب دوره (اختیاری)</label>
-                    </th>
-                    <td>
-                        <select name="course_id" id="course_id" class="regular-text" style="width: 400px;">
-                            <option value="">-- انتخاب دوره (اختیاری) --</option>
-                            <?php foreach ($courses as $course) : ?>
-                                <option value="<?php echo esc_attr($course->id); ?>" 
-                                        <?php selected($selected_course_id, $course->id); ?>
-                                        data-price="<?php echo esc_attr($course->price); ?>">
-                                    <?php echo esc_html($course->title . ' - ' . number_format($course->price, 0) . ' تومان'); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <p class="description">در صورت انتخاب دوره، هزینه دوره به مبلغ صورت حساب اضافه می‌شود.</p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
                         <label>هزینه اضافی (اختیاری)</label>
                     </th>
                     <td>
@@ -142,20 +117,19 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                             </div>
                             <div style="flex: 1;">
                                 <label for="amount" style="display: block; margin-bottom: 5px; font-weight: normal;">مبلغ (تومان):</label>
-                                <input type="number" 
+                                <input type="text" 
                                        name="amount" 
                                        id="amount" 
-                                       value="<?php echo esc_attr($amount); ?>" 
+                                       value="<?php echo $amount > 0 ? number_format($amount, 0, '.', ',') : ''; ?>" 
                                        class="regular-text" 
-                                       min="0" 
-                                       step="1000" 
                                        placeholder="0"
-                                       style="width: 100%;">
+                                       style="width: 100%;"
+                                       dir="ltr"
+                                       inputmode="numeric">
+                                <input type="hidden" name="amount_raw" id="amount_raw" value="<?php echo esc_attr($amount); ?>">
                             </div>
                         </div>
-                        <p class="description">در صورت تمایل می‌توانید هزینه اضافی با نام و مبلغ مشخص اضافه کنید. این مبلغ علاوه بر هزینه دوره (در صورت انتخاب) محاسبه می‌شود.</p>
-                        <p class="description" id="course-price-info" style="color: #2271b1; font-weight: bold; display: none;"></p>
-                        <p class="description" id="total-price-info" style="color: #00a32a; font-weight: bold; display: none;"></p>
+                        <p class="description">در صورت تمایل می‌توانید هزینه اضافی با نام و مبلغ مشخص اضافه کنید.</p>
                     </td>
                 </tr>
             </tbody>
@@ -286,52 +260,103 @@ jQuery(document).ready(function($) {
         }
     });
     
-    var $courseSelect = $('#course_id');
+    // فرمت کردن مبلغ به صورت سه رقم سه رقم
     var $amountInput = $('#amount');
-    var $expenseNameInput = $('#expense_name');
-    var $coursePriceInfo = $('#course-price-info');
-    var $totalPriceInfo = $('#total-price-info');
+    var $amountRaw = $('#amount_raw');
     
-    // محاسبه مبلغ کل
-    function calculateTotal() {
-        var coursePrice = 0;
-        var manualAmount = parseFloat($amountInput.val()) || 0;
-        
-        // دریافت قیمت دوره
-        var selectedCourse = $courseSelect.find('option:selected');
-        if (selectedCourse.val() && selectedCourse.attr('data-price')) {
-            coursePrice = parseFloat(selectedCourse.attr('data-price')) || 0;
-        }
-        
-        var total = coursePrice + manualAmount;
-        
-        // نمایش اطلاعات
-        if (coursePrice > 0) {
-            $coursePriceInfo.text('هزینه دوره انتخاب شده: ' + formatNumber(coursePrice) + ' تومان').show();
-        } else {
-            $coursePriceInfo.hide();
-        }
-        
-        if (total > 0) {
-            $totalPriceInfo.text('مبلغ کل صورت حساب: ' + formatNumber(total) + ' تومان').show();
-        } else {
-            $totalPriceInfo.hide();
-        }
-    }
-    
-    // فرمت عدد
+    // تابع فرمت کردن عدد
     function formatNumber(num) {
-        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        // حذف تمام کاراکترهای غیر عددی
+        var cleaned = num.toString().replace(/\D/g, '');
+        if (cleaned === '' || cleaned === '0') {
+            return '';
+        }
+        // تبدیل به عدد و فرمت کردن با کاما
+        return parseInt(cleaned, 10).toLocaleString('en-US');
     }
     
-    // رویداد تغییر دوره
-    $courseSelect.on('change', calculateTotal);
+    // تابع تبدیل عدد فرمت شده به عدد خالص
+    function parseFormattedNumber(formatted) {
+        var cleaned = formatted.toString().replace(/\D/g, '');
+        return cleaned === '' ? '0' : cleaned;
+    }
     
-    // رویداد تغییر مبلغ
-    $amountInput.on('input', calculateTotal);
+    // شمارش کاراکترهای عددی قبل از موقعیت cursor
+    function countDigitsBeforePosition(str, pos) {
+        var count = 0;
+        for (var i = 0; i < pos && i < str.length; i++) {
+            if (/\d/.test(str[i])) {
+                count++;
+            }
+        }
+        return count;
+    }
     
-    // محاسبه اولیه
-    calculateTotal();
+    // پیدا کردن موقعیت cursor بر اساس تعداد ارقام
+    function findCursorPosition(formatted, digitCount) {
+        var count = 0;
+        for (var i = 0; i < formatted.length; i++) {
+            if (/\d/.test(formatted[i])) {
+                count++;
+                if (count === digitCount) {
+                    return i + 1;
+                }
+            }
+        }
+        return formatted.length;
+    }
+    
+    // هنگام تایپ، عدد را فرمت کن
+    $amountInput.on('input', function() {
+        var $this = $(this);
+        var value = $this.val();
+        var cursorPosition = this.selectionStart;
+        
+        // شمارش ارقام قبل از cursor
+        var digitsBefore = countDigitsBeforePosition(value, cursorPosition);
+        
+        // حذف تمام کاراکترهای غیر عددی
+        var cleaned = value.replace(/\D/g, '');
+        
+        // اگر خالی است
+        if (cleaned === '' || cleaned === '0') {
+            $this.val('');
+            $amountRaw.val('0');
+            return;
+        }
+        
+        // فرمت کردن
+        var formatted = formatNumber(cleaned);
+        $this.val(formatted);
+        
+        // ذخیره مقدار خالص در hidden input
+        $amountRaw.val(cleaned);
+        
+        // محاسبه موقعیت جدید cursor بر اساس تعداد ارقام
+        var newCursorPosition = findCursorPosition(formatted, digitsBefore);
+        
+        // تنظیم cursor position
+        setTimeout(function() {
+            $this[0].setSelectionRange(newCursorPosition, newCursorPosition);
+        }, 0);
+    });
+    
+    // هنگام blur، اگر خالی است یا صفر، مقدار را پاک کن
+    $amountInput.on('blur', function() {
+        var value = $(this).val();
+        var cleaned = value.replace(/\D/g, '');
+        if (cleaned === '' || cleaned === '0') {
+            $(this).val('');
+            $amountRaw.val('0');
+        }
+    });
+    
+    // قبل از submit، مقدار خالص را در فیلد اصلی قرار بده
+    $('form').on('submit', function() {
+        var rawValue = $amountRaw.val() || '0';
+        $amountInput.val(rawValue);
+    });
+    
 });
 </script>
 

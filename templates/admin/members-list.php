@@ -246,6 +246,24 @@ class Player_List_Table extends WP_List_Table {
             echo '</select>';
             
             echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            
+            // دکمه خروجی Excel
+            $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
+            if (isset($_GET['player_status']) && $_GET['player_status'] !== 'all') {
+                $export_url = add_query_arg('player_status', $_GET['player_status'], $export_url);
+            }
+            if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+                $export_url = add_query_arg('filter_course', $_GET['filter_course'], $export_url);
+            }
+            if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
+                $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
+            }
+            if (isset($_GET['s']) && !empty($_GET['s'])) {
+                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            }
+            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
+            
                 echo '</div>';
         }
     }
