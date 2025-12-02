@@ -75,3 +75,4 @@ if ($return_var === 0) {
     echo "<pre>cd \"" . $plugin_dir . "\"\nphp composer.phar install</pre>\n";
 }
 
+

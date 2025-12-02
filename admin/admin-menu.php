@@ -147,6 +147,9 @@ function sc_handle_excel_export() {
         case 'attendance':
             sc_export_attendance_to_excel();
             break;
+        case 'attendance_overall':
+            sc_export_attendance_overall_to_excel();
+            break;
         case 'members':
             sc_export_members_to_excel();
             break;

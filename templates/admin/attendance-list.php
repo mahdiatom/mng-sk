@@ -213,6 +213,101 @@ if ($active_tab === 'grouped') {
     $total_pages = ceil($total_items / $per_page);
     $grouped_attendances = array_slice($grouped_attendances, $offset, $per_page);
 }
+
+// ==================== تب 3: لیست کلی حضور و غیاب ====================
+if ($active_tab === 'overall') {
+    // دریافت فیلترها
+    $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+    
+    // پردازش فیلترهای تاریخ (شمسی به میلادی)
+    $filter_date_from = '';
+    $filter_date_to = '';
+    if (isset($_GET['filter_date_from_shamsi']) && !empty($_GET['filter_date_from_shamsi'])) {
+        $filter_date_from = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_from_shamsi']));
+    } elseif (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
+        $filter_date_from = sanitize_text_field($_GET['filter_date_from']);
+    }
+    
+    if (isset($_GET['filter_date_to_shamsi']) && !empty($_GET['filter_date_to_shamsi'])) {
+        $filter_date_to = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_to_shamsi']));
+    } elseif (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
+        $filter_date_to = sanitize_text_field($_GET['filter_date_to']);
+    }
+    
+    // اگر filter_date_from_shamsi_3 یا filter_date_to_shamsi_3 موجود بود
+    if (isset($_GET['filter_date_from_shamsi_3']) && !empty($_GET['filter_date_from_shamsi_3'])) {
+        $filter_date_from = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_from_shamsi_3']));
+    }
+    if (isset($_GET['filter_date_to_shamsi_3']) && !empty($_GET['filter_date_to_shamsi_3'])) {
+        $filter_date_to = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_to_shamsi_3']));
+    }
+    
+    // ساخت WHERE clause
+    $where_conditions = ['1=1'];
+    $where_values = [];
+    
+    if ($filter_course > 0) {
+        $where_conditions[] = "a.course_id = %d";
+        $where_values[] = $filter_course;
+    }
+    
+    if ($filter_date_from) {
+        $where_conditions[] = "a.attendance_date >= %s";
+        $where_values[] = $filter_date_from;
+    }
+    
+    if ($filter_date_to) {
+        $where_conditions[] = "a.attendance_date <= %s";
+        $where_values[] = $filter_date_to;
+    }
+    
+    $where_clause = implode(' AND ', $where_conditions);
+    
+    // دریافت لیست حضور و غیاب‌ها
+    $query = "SELECT 
+                a.member_id,
+                a.attendance_date,
+                a.status,
+                m.first_name,
+                m.last_name
+              FROM $attendances_table a
+              INNER JOIN $members_table m ON a.member_id = m.id
+              WHERE $where_clause
+              ORDER BY m.last_name ASC, m.first_name ASC, a.attendance_date ASC";
+    
+    if (!empty($where_values)) {
+        $all_attendances = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    } else {
+        $all_attendances = $wpdb->get_results($query);
+    }
+    
+    // ساخت ساختار داده برای نمایش
+    $overall_data = [];
+    $dates_list = [];
+    
+    // گروه‌بندی بر اساس member_id و تاریخ
+    foreach ($all_attendances as $attendance) {
+        $member_id = $attendance->member_id;
+        $date_key = $attendance->attendance_date;
+        
+        if (!isset($overall_data[$member_id])) {
+            $overall_data[$member_id] = [
+                'name' => $attendance->first_name . ' ' . $attendance->last_name,
+                'attendances' => []
+            ];
+        }
+        
+        $overall_data[$member_id]['attendances'][$date_key] = $attendance->status;
+        
+        // اضافه کردن تاریخ به لیست تاریخ‌ها (اگر قبلاً اضافه نشده)
+        if (!in_array($date_key, $dates_list)) {
+            $dates_list[] = $date_key;
+        }
+    }
+    
+    // مرتب‌سازی تاریخ‌ها
+    sort($dates_list);
+}
 ?>
 
 <div class="wrap">
@@ -227,6 +322,9 @@ if ($active_tab === 'grouped') {
         </a>
         <a href="?page=sc-attendance-list&tab=grouped" class="nav-tab <?php echo $active_tab === 'grouped' ? 'nav-tab-active' : ''; ?>">
             لیست بر اساس دوره و تاریخ
+        </a>
+        <a href="?page=sc-attendance-list&tab=overall" class="nav-tab <?php echo $active_tab === 'overall' ? 'nav-tab-active' : ''; ?>">
+            لیست کلی حضور و غیاب
         </a>
     </h2>
     
@@ -630,6 +728,19 @@ if ($active_tab === 'grouped') {
                                 <td>
                                     <a href="<?php echo admin_url('admin.php?page=sc-attendance-add&course_id=' . $group->course_id . '&date=' . $group->attendance_date); ?>" 
                                        class="button button-small">ویرایش</a>
+                                    <?php
+                                    // ساخت URL برای export Excel این روز
+                                    $export_url = admin_url('admin.php?page=sc-attendance-list&sc_export=excel&export_type=attendance_overall');
+                                    $export_url = add_query_arg('filter_course', $group->course_id, $export_url);
+                                    $export_url = add_query_arg('filter_date_from', $group->attendance_date, $export_url);
+                                    $export_url = add_query_arg('filter_date_to', $group->attendance_date, $export_url);
+                                    $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+                                    ?>
+                                    <a href="<?php echo esc_url($export_url); ?>" 
+                                       class="button button-small" 
+                                       style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+                                        📊 Excel
+                                    </a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -654,6 +765,142 @@ if ($active_tab === 'grouped') {
                         </div>
                     </div>
                 <?php endif; ?>
+            </div>
+        <?php endif; ?>
+    <?php elseif ($active_tab === 'overall') : ?>
+        <!-- تب 3: لیست کلی حضور و غیاب -->
+        <!-- فیلترها -->
+        <form method="GET" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+            <input type="hidden" name="page" value="sc-attendance-list">
+            <input type="hidden" name="tab" value="overall">
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="filter_course">دوره</label>
+                    </th>
+                    <td>
+                        <select name="filter_course" id="filter_course" style="width: 300px; padding: 5px;">
+                            <option value="0">همه دوره‌ها</option>
+                            <?php foreach ($courses as $course) : ?>
+                                <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
+                                    <?php echo esc_html($course->title); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label>بازه تاریخ</label>
+                    </th>
+                    <td>
+                        <?php 
+                        // تبدیل تاریخ‌های میلادی به شمسی برای نمایش
+                        $filter_date_from_shamsi_3 = '';
+                        $filter_date_to_shamsi_3 = '';
+                        if (!empty($filter_date_from)) {
+                            $filter_date_from_shamsi_3 = sc_date_shamsi_date_only($filter_date_from);
+                        } else {
+                            // تاریخ پیش‌فرض: امروز
+                            $today = new DateTime();
+                            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+                            $filter_date_from_shamsi_3 = $today_jalali[0] . '/' . 
+                                                           str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                                                           str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                        }
+                        if (!empty($filter_date_to)) {
+                            $filter_date_to_shamsi_3 = sc_date_shamsi_date_only($filter_date_to);
+                        } else {
+                            // تاریخ پیش‌فرض: امروز
+                            $today = new DateTime();
+                            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+                            $filter_date_to_shamsi_3 = $today_jalali[0] . '/' . 
+                                                         str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                                                         str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                        }
+                        ?>
+                        <input type="text" name="filter_date_from_shamsi_3" id="filter_date_from_shamsi_3" 
+                               value="<?php echo esc_attr($filter_date_from_shamsi_3); ?>" 
+                               class="regular-text persian-date-input" 
+                               placeholder="از تاریخ (شمسی)" 
+                               style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
+                        <input type="hidden" name="filter_date_from" id="filter_date_from_3" value="<?php echo esc_attr($filter_date_from); ?>">
+                        <span>تا</span>
+                        <input type="text" name="filter_date_to_shamsi_3" id="filter_date_to_shamsi_3" 
+                               value="<?php echo esc_attr($filter_date_to_shamsi_3); ?>" 
+                               class="regular-text persian-date-input" 
+                               placeholder="تا تاریخ (شمسی)" 
+                               style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
+                        <input type="hidden" name="filter_date_to" id="filter_date_to_3" value="<?php echo esc_attr($filter_date_to); ?>">
+                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+                    </td>
+                </tr>
+            </table>
+            
+            <p class="submit">
+                <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
+                <?php
+                // ساخت URL برای export Excel
+                $export_url = admin_url('admin.php?page=sc-attendance-list&sc_export=excel&export_type=attendance_overall');
+                $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
+                if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
+                    $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
+                }
+                if (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
+                    $export_url = add_query_arg('filter_date_to', $_GET['filter_date_to'], $export_url);
+                }
+                $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+                ?>
+                <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+                    📊 خروجی Excel
+                </a>
+                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=overall'); ?>" class="button">پاک کردن فیلترها</a>
+            </p>
+        </form>
+        
+        <!-- جدول کلی حضور و غیاب -->
+        <?php if (empty($overall_data) || empty($dates_list)) : ?>
+            <div class="notice notice-info">
+                <p>هیچ حضور و غیابی یافت نشد.</p>
+            </div>
+        <?php else : ?>
+            <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; overflow-x: auto;">
+                <table class="wp-list-table widefat fixed striped" style="min-width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 200px; position: sticky; right: 0; background: #fff; z-index: 10; border-right: 2px solid #ddd;">نام و نام خانوادگی</th>
+                            <?php foreach ($dates_list as $date) : ?>
+                                <th style="min-width: 100px; text-align: center;"><?php echo esc_html(sc_date_shamsi_date_only($date)); ?></th>
+                            <?php endforeach; ?>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($overall_data as $member_id => $member_data) : ?>
+                            <tr>
+                                <td style="position: sticky; right: 0; background: #fff; z-index: 10; border-right: 2px solid #ddd; font-weight: bold;">
+                                    <?php echo esc_html($member_data['name']); ?>
+                                </td>
+                                <?php foreach ($dates_list as $date) : ?>
+                                    <td style="text-align: center;">
+                                        <?php 
+                                        if (isset($member_data['attendances'][$date])) {
+                                            $status = $member_data['attendances'][$date];
+                                            if ($status === 'present') {
+                                                echo '<span style="color: #00a32a; font-weight: bold; font-size: 18px;">✓</span>';
+                                            } else {
+                                                echo '<span style="color: #d63638; font-weight: bold; font-size: 18px;">✗</span>';
+                                            }
+                                        } else {
+                                            echo '<span style="color: #999;">-</span>';
+                                        }
+                                        ?>
+                                    </td>
+                                <?php endforeach; ?>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         <?php endif; ?>
     <?php endif; ?>
@@ -873,8 +1120,28 @@ jQuery(document).ready(function($) {
         }
     }
     
-    $(document).on('change', '#filter_date_from_shamsi, #filter_date_to_shamsi, #filter_date_from_shamsi_2, #filter_date_to_shamsi_2', function() {
+    $(document).on('change', '#filter_date_from_shamsi, #filter_date_to_shamsi, #filter_date_from_shamsi_2, #filter_date_to_shamsi_2, #filter_date_from_shamsi_3, #filter_date_to_shamsi_3', function() {
         updateGregorianDate($(this));
     });
+    
+    // بروزرسانی hidden inputs برای تب سوم
+    if ($('#filter_date_from_shamsi_3').length) {
+        var inputId = $('#filter_date_from_shamsi_3').attr('id');
+        if (inputId === 'filter_date_from_shamsi_3') {
+            var $hidden = $('#filter_date_from_3');
+            $('#filter_date_from_shamsi_3').on('change', function() {
+                var shamsiValue = $(this).val();
+                var gregorianValue = convertShamsiToGregorian(shamsiValue);
+                $hidden.val(gregorianValue);
+            });
+        }
+        if ($('#filter_date_to_shamsi_3').length) {
+            $('#filter_date_to_shamsi_3').on('change', function() {
+                var shamsiValue = $(this).val();
+                var gregorianValue = convertShamsiToGregorian(shamsiValue);
+                $('#filter_date_to_3').val(gregorianValue);
+            });
+        }
+    }
 });
 </script>

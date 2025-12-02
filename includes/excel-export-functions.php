@@ -738,3 +738,181 @@ function sc_export_members_to_excel() {
     exit;
 }
 
+/**
+ * Export Attendance Overall (School-style attendance sheet) to Excel
+ */
+function sc_export_attendance_overall_to_excel() {
+    sc_check_phpspreadsheet();
+    
+    global $wpdb;
+    $attendances_table = $wpdb->prefix . 'sc_attendances';
+    $members_table = $wpdb->prefix . 'sc_members';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    
+    // دریافت فیلترها
+    $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+    $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
+    $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+    
+    // ساخت WHERE clause
+    $where_conditions = ['1=1'];
+    $where_values = [];
+    
+    if ($filter_course > 0) {
+        $where_conditions[] = "a.course_id = %d";
+        $where_values[] = $filter_course;
+    }
+    
+    if ($filter_date_from) {
+        $where_conditions[] = "a.attendance_date >= %s";
+        $where_values[] = $filter_date_from;
+    }
+    
+    if ($filter_date_to) {
+        $where_conditions[] = "a.attendance_date <= %s";
+        $where_values[] = $filter_date_to;
+    }
+    
+    $where_clause = implode(' AND ', $where_conditions);
+    
+    // دریافت لیست حضور و غياب‌ها
+    $query = "SELECT 
+                a.member_id,
+                a.attendance_date,
+                a.status,
+                m.first_name,
+                m.last_name
+              FROM $attendances_table a
+              INNER JOIN $members_table m ON a.member_id = m.id
+              WHERE $where_clause
+              ORDER BY m.last_name ASC, m.first_name ASC, a.attendance_date ASC";
+    
+    if (!empty($where_values)) {
+        $all_attendances = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    } else {
+        $all_attendances = $wpdb->get_results($query);
+    }
+    
+    // ساخت ساختار داده برای نمایش
+    $overall_data = [];
+    $dates_list = [];
+    
+    // گروه‌بندی بر اساس member_id و تاریخ
+    foreach ($all_attendances as $attendance) {
+        $member_id = $attendance->member_id;
+        $date_key = $attendance->attendance_date;
+        
+        if (!isset($overall_data[$member_id])) {
+            $overall_data[$member_id] = [
+                'name' => $attendance->first_name . ' ' . $attendance->last_name,
+                'attendances' => []
+            ];
+        }
+        
+        $overall_data[$member_id]['attendances'][$date_key] = $attendance->status;
+        
+        // اضافه کردن تاریخ به لیست تاریخ‌ها (اگر قبلاً اضافه نشده)
+        if (!in_array($date_key, $dates_list)) {
+            $dates_list[] = $date_key;
+        }
+    }
+    
+    // مرتب‌سازی تاریخ‌ها
+    sort($dates_list);
+    
+    // ایجاد Excel
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('لیست کلی حضور و غیاب');
+    
+    // تنظیم جهت راست به چپ
+    $sheet->setRightToLeft(true);
+    
+    // Header - ستون اول: نام و نام خانوادگی
+    $sheet->setCellValueByColumnAndRow(1, 1, 'نام و نام خانوادگی');
+    
+    // Header - ستون‌های تاریخ
+    $col = 2;
+    foreach ($dates_list as $date) {
+        $sheet->setCellValueByColumnAndRow($col, 1, sc_date_shamsi_date_only($date));
+        $col++;
+    }
+    
+    // اعمال استایل به header
+    $headerStyle = sc_get_excel_header_style();
+    $last_col_letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col - 1);
+    $sheet->getStyle("A1:{$last_col_letter}1")->applyFromArray($headerStyle);
+    
+    // داده‌ها
+    $row = 2;
+    
+    foreach ($overall_data as $member_id => $member_data) {
+        $col = 1;
+        
+        // ستون اول: نام و نام خانوادگی
+        $sheet->setCellValueByColumnAndRow($col++, $row, $member_data['name']);
+        
+        // ستون‌های تاریخ
+        foreach ($dates_list as $date) {
+            if (isset($member_data['attendances'][$date])) {
+                $status = $member_data['attendances'][$date];
+                if ($status === 'present') {
+                    $sheet->setCellValueByColumnAndRow($col, $row, '✓');
+                } else {
+                    $sheet->setCellValueByColumnAndRow($col, $row, '✗');
+                }
+            } else {
+                $sheet->setCellValueByColumnAndRow($col, $row, '-');
+            }
+            $col++;
+        }
+        
+        // اعمال استایل به ردیف
+        $dataStyle = sc_get_excel_data_style();
+        $last_col_letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col - 1);
+        if ($row % 2 == 0) {
+            $alternateStyle = sc_get_excel_alternate_row_style();
+            $sheet->getStyle("A$row:{$last_col_letter}$row")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+        } else {
+            $sheet->getStyle("A$row:{$last_col_letter}$row")->applyFromArray($dataStyle);
+        }
+        
+        $row++;
+    }
+    
+    // تنظیم عرض ستون‌ها
+    $sheet->getColumnDimension('A')->setWidth(25); // ستون نام
+    for ($c = 2; $c < $col; $c++) {
+        $col_letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
+        $sheet->getColumnDimension($col_letter)->setWidth(15); // ستون‌های تاریخ
+    }
+    
+    // ایجاد نام فایل
+    $course_title = '';
+    if ($filter_course > 0) {
+        $course = $wpdb->get_row($wpdb->prepare(
+            "SELECT title FROM $courses_table WHERE id = %d",
+            $filter_course
+        ));
+        if ($course) {
+            $course_title = $course->title;
+        }
+    }
+    
+    $filters = [
+        'course' => $course_title,
+        'date_from' => $filter_date_from,
+        'date_to' => $filter_date_to
+    ];
+    $filename = sc_generate_export_filename('attendance_overall', $filters);
+    
+    // ارسال فایل
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+    
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
+}
+

@@ -142,3 +142,4 @@ vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Spreadsheet.php
 - مطمئن شوید دسترسی نوشتن در پوشه افزونه را دارید
 - لاگ خطاهای PHP را بررسی کنید
 
+
