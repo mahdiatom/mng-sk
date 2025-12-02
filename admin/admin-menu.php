@@ -110,6 +110,57 @@ function sc_register_admin_menu() {
         'sc_admin_add_invoice_page'
     );
 
+    // Reports Menu - Main
+    add_menu_page(
+        'گزارشات باشگاه',
+        'گزارشات باشگاه',
+        'manage_options',
+        'sc-reports',
+        'sc_admin_reports_active_users_page',
+        'dashicons-chart-area',
+        27
+    );
+
+    // Reports - Active Users
+    add_submenu_page(
+        'sc-reports',
+        'کاربران فعال',
+        'کاربران فعال',
+        'manage_options',
+        'sc-reports-active-users',
+        'sc_admin_reports_active_users_page'
+    );
+
+    // Reports - Income and Expenses
+    add_submenu_page(
+        'sc-reports',
+        'درآمد و هزینه‌ها',
+        'درآمد و هزینه‌ها',
+        'manage_options',
+        'sc-reports-income-expenses',
+        'sc_admin_reports_income_expenses_page'
+    );
+
+    // Reports - Debtors
+    add_submenu_page(
+        'sc-reports',
+        'بدهکاران',
+        'بدهکاران',
+        'manage_options',
+        'sc-reports-debtors',
+        'sc_admin_reports_debtors_page'
+    );
+
+    // Reports - Payments
+    add_submenu_page(
+        'sc-reports',
+        'پرداختی‌ها',
+        'پرداختی‌ها',
+        'manage_options',
+        'sc-reports-payments',
+        'sc_admin_reports_payments_page'
+    );
+
     add_action('load-'. $add_member_sufix , 'callback_add_member_sufix');
     add_action('load-'. $add_invoice_sufix , 'callback_add_invoice_sufix');
     add_action('load-'. $list_invoices_sufix , 'process_invoices_table_data');
@@ -262,6 +313,37 @@ function sc_admin_add_invoice_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'invoice-add.php';
+}
+
+/**
+ * Reports pages
+ */
+function sc_admin_reports_active_users_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-active-users.php';
+}
+
+function sc_admin_reports_income_expenses_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-income-expenses.php';
+}
+
+function sc_admin_reports_debtors_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-debtors.php';
+}
+
+function sc_admin_reports_payments_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-payments.php';
 }
 
 /**
