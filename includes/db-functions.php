@@ -38,4 +38,54 @@ function sc_create_members_table(){
         dbDelta($sql);
     }
 
+/**
+ * Create expense categories table
+ */
+function sc_create_expense_categories_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_expense_categories';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(100) NOT NULL,
+        `description` text DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_name` (`name`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create expenses table
+ */
+function sc_create_expenses_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_expenses';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        `category_id` bigint(20) unsigned DEFAULT NULL,
+        `expense_date_shamsi` varchar(10) DEFAULT NULL,
+        `expense_date_gregorian` date DEFAULT NULL,
+        `amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `description` text DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_category_id` (`category_id`),
+        KEY `idx_expense_date_gregorian` (`expense_date_gregorian`),
+        KEY `idx_created_at` (`created_at`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 

@@ -110,6 +110,26 @@ function sc_register_admin_menu() {
         'sc_admin_add_invoice_page'
     );
 
+    // Expenses - Add
+    $add_expense_sufix = add_submenu_page(
+        'sc-dashboard',
+        'ثبت هزینه',
+        'ثبت هزینه',
+        'manage_options',
+        'sc-add-expense',
+        'sc_admin_add_expense_page'
+    );
+
+    // Expenses - List
+    $list_expenses_sufix = add_submenu_page(
+        'sc-dashboard',
+        'لیست هزینه‌ها',
+        'لیست هزینه‌ها',
+        'manage_options',
+        'sc-expenses',
+        'sc_admin_expenses_list_page'
+    );
+
     // Reports Menu - Main
     add_menu_page(
         'گزارشات باشگاه',
@@ -163,6 +183,7 @@ function sc_register_admin_menu() {
 
     add_action('load-'. $add_member_sufix , 'callback_add_member_sufix');
     add_action('load-'. $add_invoice_sufix , 'callback_add_invoice_sufix');
+    add_action('load-'. $add_expense_sufix , 'callback_add_expense_sufix');
     add_action('load-'. $list_invoices_sufix , 'process_invoices_table_data');
     add_action('load-'. $list_member_sufix , 'procces_table_data');
     add_action('load-'. $list_courses_sufix , 'procces_courses_table_data');
@@ -203,6 +224,9 @@ function sc_handle_excel_export() {
             break;
         case 'members':
             sc_export_members_to_excel();
+            break;
+        case 'expenses':
+            sc_export_expenses_to_excel();
             break;
         default:
             wp_die('نوع export معتبر نیست.');
@@ -344,6 +368,136 @@ function sc_admin_reports_payments_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'reports-payments.php';
+}
+
+/**
+ * Expenses management pages
+ */
+function sc_admin_add_expense_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'expense-add.php';
+}
+
+function sc_admin_expenses_list_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'expenses-list.php';
+}
+
+/**
+ * Process expense creation/update form
+ */
+function callback_add_expense_sufix() {
+    if (isset($_GET['page']) && $_GET['page'] == 'sc-add-expense' && isset($_POST['submit_expense'])) {
+        // بررسی nonce
+        if (!isset($_POST['sc_expense_nonce']) || !wp_verify_nonce($_POST['sc_expense_nonce'], 'sc_add_expense')) {
+            wp_die('خطای امنیتی. لطفاً دوباره تلاش کنید.');
+        }
+        
+        // بررسی و ایجاد جداول در صورت عدم وجود
+        sc_check_and_create_tables();
+        
+        global $wpdb;
+        $expenses_table = $wpdb->prefix . 'sc_expenses';
+        
+        // اعتبارسنجی
+        if (empty($_POST['expense_name'])) {
+            wp_redirect(admin_url('admin.php?page=sc-add-expense&sc_status=expense_add_error'));
+            exit;
+        }
+        
+        $expense_name = sanitize_text_field($_POST['expense_name']);
+        $category_id = !empty($_POST['category_id']) ? absint($_POST['category_id']) : NULL;
+        
+        // دریافت مبلغ (حذف کاماها در صورت وجود)
+        $amount_value = '';
+        if (!empty($_POST['amount_raw'])) {
+            $amount_value = sanitize_text_field($_POST['amount_raw']);
+        } elseif (!empty($_POST['amount'])) {
+            $amount_value = preg_replace('/[^0-9.]/', '', sanitize_text_field($_POST['amount']));
+        }
+        $amount = !empty($amount_value) && is_numeric($amount_value) ? floatval($amount_value) : 0;
+        
+        if ($amount <= 0) {
+            wp_redirect(admin_url('admin.php?page=sc-add-expense&sc_status=expense_add_error'));
+            exit;
+        }
+        
+        // پردازش تاریخ
+        $expense_date_shamsi = !empty($_POST['expense_date_shamsi']) ? sanitize_text_field($_POST['expense_date_shamsi']) : '';
+        $expense_date_gregorian = NULL;
+        
+        if (!empty($expense_date_shamsi)) {
+            $expense_date_gregorian = sc_shamsi_to_gregorian_date($expense_date_shamsi);
+        } elseif (!empty($_POST['expense_date_gregorian'])) {
+            $expense_date_gregorian = sanitize_text_field($_POST['expense_date_gregorian']);
+        }
+        
+        if (!$expense_date_gregorian) {
+            // تاریخ پیش‌فرض: امروز
+            $expense_date_gregorian = current_time('Y-m-d');
+            $today = new DateTime();
+            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+            $expense_date_shamsi = $today_jalali[0] . '/' . 
+                                   str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                                   str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+        }
+        
+        $description = !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL;
+        
+        $expense_id = isset($_POST['expense_id']) ? absint($_POST['expense_id']) : 0;
+        
+        // ذخیره یا بروزرسانی هزینه
+        $expense_data = [
+            'name' => $expense_name,
+            'category_id' => $category_id,
+            'expense_date_shamsi' => $expense_date_shamsi,
+            'expense_date_gregorian' => $expense_date_gregorian,
+            'amount' => $amount,
+            'description' => $description,
+            'updated_at' => current_time('mysql')
+        ];
+        
+        if ($expense_id > 0) {
+            // بروزرسانی
+            $updated = $wpdb->update(
+                $expenses_table,
+                $expense_data,
+                ['id' => $expense_id],
+                ['%s', '%d', '%s', '%s', '%f', '%s', '%s'],
+                ['%d']
+            );
+            
+            if ($updated !== false) {
+                wp_redirect(admin_url('admin.php?page=sc-add-expense&expense_id=' . $expense_id . '&sc_status=expense_updated'));
+                exit;
+            } else {
+                wp_redirect(admin_url('admin.php?page=sc-add-expense&expense_id=' . $expense_id . '&sc_status=expense_update_error'));
+                exit;
+            }
+        } else {
+            // ایجاد جدید
+            $expense_data['created_at'] = current_time('mysql');
+            
+            $inserted = $wpdb->insert(
+                $expenses_table,
+                $expense_data,
+                ['%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s']
+            );
+            
+            if ($inserted !== false) {
+                $expense_id = $wpdb->insert_id;
+                wp_redirect(admin_url('admin.php?page=sc-add-expense&expense_id=' . $expense_id . '&sc_status=expense_add_true'));
+                exit;
+            } else {
+                wp_redirect(admin_url('admin.php?page=sc-add-expense&sc_status=expense_add_error'));
+                exit;
+            }
+        }
+    }
 }
 
 /**

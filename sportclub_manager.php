@@ -43,6 +43,7 @@ require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table cr
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions
+require_once SC_INCLUDES_DIR . 'expense-export.php'; // Expense export functions
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
 require_once SC_PUBLIC_DIR . 'my-account.php';
@@ -350,6 +351,8 @@ function sc_check_and_create_tables() {
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $settings_table = $wpdb->prefix . 'sc_settings';
     $attendances_table = $wpdb->prefix . 'sc_attendances';
+    $expense_categories_table = $wpdb->prefix . 'sc_expense_categories';
+    $expenses_table = $wpdb->prefix . 'sc_expenses';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -358,6 +361,8 @@ function sc_check_and_create_tables() {
     $invoices_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $invoices_table)) == $invoices_table;
     $settings_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $settings_table)) == $settings_table;
     $attendances_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $attendances_table)) == $attendances_table;
+    $expense_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expense_categories_table)) == $expense_categories_table;
+    $expenses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expenses_table)) == $expenses_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -377,6 +382,12 @@ function sc_check_and_create_tables() {
     }
     if (!$attendances_exists && function_exists('sc_create_attendances_table')) {
         sc_create_attendances_table();
+    }
+    if (!$expense_categories_exists && function_exists('sc_create_expense_categories_table')) {
+        sc_create_expense_categories_table();
+    }
+    if (!$expenses_exists && function_exists('sc_create_expenses_table')) {
+        sc_create_expenses_table();
     }
 }
 
