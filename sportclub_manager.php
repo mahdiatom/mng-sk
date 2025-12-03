@@ -154,13 +154,23 @@ function sc_add_insurance_expiry_date_column() {
     $table_name = $wpdb->prefix . 'sc_members';
     
     // بررسی وجود ستون insurance_expiry_date_shamsi
-    $column_exists = $wpdb->get_results($wpdb->prepare(
+    $column_exists_shamsi = $wpdb->get_results($wpdb->prepare(
         "SHOW COLUMNS FROM $table_name LIKE %s",
         'insurance_expiry_date_shamsi'
     ));
     
-    if (empty($column_exists)) {
+    if (empty($column_exists_shamsi)) {
         $wpdb->query("ALTER TABLE $table_name ADD COLUMN `insurance_expiry_date_shamsi` varchar(10) DEFAULT NULL AFTER `sport_insurance_photo`");
+    }
+    
+    // بررسی وجود ستون insurance_expiry_date_gregorian
+    $column_exists_gregorian = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'insurance_expiry_date_gregorian'
+    ));
+    
+    if (empty($column_exists_gregorian)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `insurance_expiry_date_gregorian` date DEFAULT NULL AFTER `insurance_expiry_date_shamsi`");
     }
 }
 

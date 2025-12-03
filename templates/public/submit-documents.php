@@ -16,6 +16,7 @@ $mother_phone = '';
 $landline_phone = '';
 $birth_date_shamsi = '';
 $birth_date_gregorian = '';
+$insurance_expiry_date_shamsi = '';
 $personal_photo = '';
 $id_card_photo = '';
 $sport_insurance_photo = '';
@@ -40,6 +41,7 @@ if ($player) {
     $landline_phone = $player->landline_phone ?? '';
     $birth_date_shamsi = $player->birth_date_shamsi ?? '';
     $birth_date_gregorian = $player->birth_date_gregorian ?? '';
+    $insurance_expiry_date_shamsi = $player->insurance_expiry_date_shamsi ?? '';
     $personal_photo = $player->personal_photo ?? '';
     $id_card_photo = $player->id_card_photo ?? '';
     $sport_insurance_photo = $player->sport_insurance_photo ?? '';
@@ -114,12 +116,20 @@ if (empty($player_phone) && $billing_phone) {
             
             <p class="form-row form-row-first">
                 <label for="birth_date_shamsi">تاریخ تولد (شمسی)</label>
-                <input type="text" name="birth_date_shamsi" id="birth_date_shamsi" value="<?php echo esc_attr($birth_date_shamsi); ?>" placeholder="مثلاً 1400/02/15">
+                <input type="text" name="birth_date_shamsi" id="birth_date_shamsi" value="<?php echo esc_attr($birth_date_shamsi); ?>" class="persian-date-input" placeholder="مثلاً 1400/02/15" readonly>
+                <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
             </p>
             
             <p class="form-row form-row-last">
                 <label for="birth_date_gregorian">تاریخ تولد (میلادی)</label>
                 <input type="date" name="birth_date_gregorian" id="birth_date_gregorian" value="<?php echo esc_attr($birth_date_gregorian); ?>">
+            </p>
+            
+            <p class="form-row form-row-first">
+                <label for="insurance_expiry_date_shamsi">تاریخ انقضا بیمه (شمسی)</label>
+                <input type="text" name="insurance_expiry_date_shamsi" id="insurance_expiry_date_shamsi" value="<?php echo esc_attr($insurance_expiry_date_shamsi); ?>" class="persian-date-input" placeholder="مثلاً 1403/12/29" readonly>
+                <input type="hidden" name="insurance_expiry_date_gregorian" id="insurance_expiry_date_gregorian" value="">
+                <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
             </p>
         </div>
         
@@ -232,7 +242,63 @@ if (empty($player_phone) && $billing_phone) {
     </form>
 </div>
 
-
-
-
-
+<script type="text/javascript">
+jQuery(document).ready(function($) {
+    // تبدیل تاریخ انقضا بیمه شمسی به میلادی
+    $('#insurance_expiry_date_shamsi').on('change', function() {
+        var shamsiDate = $(this).val();
+        if (shamsiDate && shamsiDate.includes('/')) {
+            var parts = shamsiDate.split('/');
+            if (parts.length === 3) {
+                var jy = parseInt(parts[0]);
+                var jm = parseInt(parts[1]);
+                var jd = parseInt(parts[2]);
+                
+                // تبدیل به میلادی (تابع JavaScript)
+                var gregorian = jalaliToGregorian(jy, jm, jd);
+                if (gregorian && gregorian.length === 3) {
+                    var gregorianDate = gregorian[0] + '-' + 
+                                       (gregorian[1] < 10 ? '0' + gregorian[1] : gregorian[1]) + '-' + 
+                                       (gregorian[2] < 10 ? '0' + gregorian[2] : gregorian[2]);
+                    $('#insurance_expiry_date_gregorian').val(gregorianDate);
+                }
+            }
+        }
+    });
+    
+    // تبدیل قبل از ارسال فرم
+    $('form').on('submit', function() {
+        $('#insurance_expiry_date_shamsi').trigger('change');
+    });
+    
+    // تابع تبدیل شمسی به میلادی (JavaScript)
+    function jalaliToGregorian(jy, jm, jd) {
+        var gy = (jy <= 979) ? 621 : 1600;
+        jy -= (jy <= 979) ? 0 : 979;
+        var days = (365 * jy) + (parseInt(jy / 33) * 8) + (parseInt(((jy % 33) + 3) / 4)) + 
+                   78 + jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+        gy += 400 * (parseInt(days / 146097));
+        days = days % 146097;
+        if (days > 36524) {
+            gy += 100 * (parseInt(--days / 36524));
+            days = days % 36524;
+            if (days >= 365) days++;
+        }
+        gy += 4 * (parseInt(days / 1461));
+        days = days % 1461;
+        if (days > 365) {
+            gy += parseInt((days - 1) / 365);
+            days = (days - 1) % 365;
+        }
+        var gd = days + 1;
+        var sal_a = [0, 31, ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) ? 29 : 28,
+                     31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        var gm = 0;
+        while (gm < 13 && gd > sal_a[gm]) {
+            gd -= sal_a[gm];
+            gm++;
+        }
+        return [gy, gm, gd];
+    }
+});
+</script>

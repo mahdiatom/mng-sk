@@ -1133,6 +1133,23 @@ function sc_handle_documents_submission() {
     $data['landline_phone'] = isset($_POST['landline_phone']) && !empty(trim($_POST['landline_phone'])) ? sanitize_text_field($_POST['landline_phone']) : NULL;
     $data['birth_date_shamsi'] = isset($_POST['birth_date_shamsi']) && !empty(trim($_POST['birth_date_shamsi'])) ? sanitize_text_field($_POST['birth_date_shamsi']) : NULL;
     $data['birth_date_gregorian'] = isset($_POST['birth_date_gregorian']) && !empty(trim($_POST['birth_date_gregorian'])) ? sanitize_text_field($_POST['birth_date_gregorian']) : NULL;
+    
+    // پردازش تاریخ انقضا بیمه شمسی و تبدیل به میلادی
+    $insurance_expiry_date_shamsi = isset($_POST['insurance_expiry_date_shamsi']) && !empty(trim($_POST['insurance_expiry_date_shamsi'])) ? sanitize_text_field($_POST['insurance_expiry_date_shamsi']) : NULL;
+    $data['insurance_expiry_date_shamsi'] = $insurance_expiry_date_shamsi;
+    
+    // تبدیل تاریخ انقضا بیمه شمسی به میلادی
+    $insurance_expiry_date_gregorian = NULL;
+    if ($insurance_expiry_date_shamsi) {
+        // اگر از hidden field ارسال شده باشد، استفاده کن
+        if (isset($_POST['insurance_expiry_date_gregorian']) && !empty(trim($_POST['insurance_expiry_date_gregorian']))) {
+            $insurance_expiry_date_gregorian = sanitize_text_field($_POST['insurance_expiry_date_gregorian']);
+        } else {
+            // در غیر این صورت، تبدیل کن
+            $insurance_expiry_date_gregorian = sc_shamsi_to_gregorian_date($insurance_expiry_date_shamsi);
+        }
+    }
+    $data['insurance_expiry_date_gregorian'] = $insurance_expiry_date_gregorian;
     $data['medical_condition'] = isset($_POST['medical_condition']) && !empty(trim($_POST['medical_condition'])) ? sanitize_textarea_field($_POST['medical_condition']) : NULL;
     $data['sports_history'] = isset($_POST['sports_history']) && !empty(trim($_POST['sports_history'])) ? sanitize_textarea_field($_POST['sports_history']) : NULL;
     $data['additional_info'] = isset($_POST['additional_info']) && !empty(trim($_POST['additional_info'])) ? sanitize_textarea_field($_POST['additional_info']) : NULL;
