@@ -228,6 +228,18 @@ function sc_handle_excel_export() {
         case 'expenses':
             sc_export_expenses_to_excel();
             break;
+        case 'debtors':
+            sc_export_debtors_to_excel();
+            break;
+        case 'active_users':
+            sc_export_active_users_to_excel();
+            break;
+        case 'payments':
+            sc_export_payments_to_excel();
+            break;
+        case 'course_users':
+            sc_export_course_users_to_excel();
+            break;
         default:
             wp_die('نوع export معتبر نیست.');
     }
@@ -446,7 +458,7 @@ function callback_add_expense_sufix() {
                                    str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
         }
         
-        $description = !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL;
+        $description = !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
         
         $expense_id = isset($_POST['expense_id']) ? absint($_POST['expense_id']) : 0;
         
@@ -1183,9 +1195,25 @@ function get_course_active_users() {
         return;
     }
     
+    // تبدیل تاریخ‌ها به شمسی
+    foreach ($users as &$user) {
+        if (!empty($user['enrollment_date'])) {
+            $user['enrollment_date_shamsi'] = sc_date_shamsi_date_only($user['enrollment_date']);
+        } else {
+            $user['enrollment_date_shamsi'] = '-';
+        }
+        if (!empty($user['created_at'])) {
+            $user['created_at_shamsi'] = sc_date_shamsi_date_only($user['created_at']);
+        } else {
+            $user['created_at_shamsi'] = '-';
+        }
+    }
+    unset($user);
+    
     wp_send_json_success([
         'users' => $users,
-        'count' => count($users)
+        'count' => count($users),
+        'course_id' => $course_id
     ]);
 }
 

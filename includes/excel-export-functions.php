@@ -144,8 +144,14 @@ function sc_generate_export_filename($type, $filters = []) {
     if (isset($filters['status']) && $filters['status'] !== 'all') {
         $status_labels = [
             'pending' => 'pending',
-            'paid' => 'paid',
-            'cancelled' => 'cancelled'
+            'on-hold' => 'on-hold',
+            'under_review' => 'on-hold', // برای سازگاری با داده‌های قدیمی
+            'completed' => 'completed',
+            'paid' => 'completed', // برای سازگاری با داده‌های قدیمی
+            'processing' => 'processing',
+            'cancelled' => 'cancelled',
+            'refunded' => 'refunded',
+            'failed' => 'failed'
         ];
         if (isset($status_labels[$filters['status']])) {
             $filter_parts[] = $status_labels[$filters['status']];
@@ -193,11 +199,16 @@ function sc_export_invoices_to_excel() {
     $where_values = [];
     
     if ($filter_status !== 'all') {
-        // برای paid، باید completed را هم در نظر بگیریم
-        if ($filter_status === 'paid') {
-            $where_conditions[] = "(i.status = %s OR i.status = %s)";
-            $where_values[] = 'paid';
+        // برای completed، باید paid و completed و processing را هم در نظر بگیریم
+        if ($filter_status === 'completed') {
+            $where_conditions[] = "(i.status = %s OR i.status = %s OR i.status = %s)";
             $where_values[] = 'completed';
+            $where_values[] = 'paid';
+            $where_values[] = 'processing';
+        } elseif ($filter_status === 'on-hold') {
+            $where_conditions[] = "(i.status = %s OR i.status = %s)";
+            $where_values[] = 'on-hold';
+            $where_values[] = 'under_review';
         } else {
             $where_conditions[] = "i.status = %s";
             $where_values[] = $filter_status;
@@ -307,9 +318,14 @@ function sc_export_invoices_to_excel() {
     $row_number = 1;
     $status_labels = [
         'pending' => 'در انتظار پرداخت',
-        'paid' => 'پرداخت شده',
-        'completed' => 'پرداخت شده', // برای سازگاری با داده‌های قدیمی
-        'cancelled' => 'لغو شده'
+        'on-hold' => 'در حال بررسی',
+        'under_review' => 'در حال بررسی', // برای سازگاری با داده‌های قدیمی
+        'processing' => 'در حال پردازش',
+        'completed' => 'پرداخت شده',
+        'paid' => 'پرداخت شده', // برای سازگاری با داده‌های قدیمی
+        'cancelled' => 'لغو شده',
+        'refunded' => 'بازگشت شده',
+        'failed' => 'ناموفق'
     ];
     
     foreach ($invoices as $invoice) {

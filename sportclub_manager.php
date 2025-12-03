@@ -44,6 +44,10 @@ require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions
 require_once SC_INCLUDES_DIR . 'expense-export.php'; // Expense export functions
+require_once SC_INCLUDES_DIR . 'debtors-export.php'; // Debtors export functions
+require_once SC_INCLUDES_DIR . 'active-users-export.php'; // Active users export functions
+require_once SC_INCLUDES_DIR . 'payments-export.php'; // Payments export functions
+require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export functions
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
 require_once SC_PUBLIC_DIR . 'my-account.php';

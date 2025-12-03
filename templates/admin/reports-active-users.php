@@ -299,6 +299,29 @@ $members = array_slice($filtered_members, $offset, $per_page);
         
         <p class="submit">
             <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
+            <?php
+            // ساخت URL برای export Excel
+            $export_url = admin_url('admin.php?page=sc-reports-active-users&sc_export=excel&export_type=active_users');
+            if ($filter_member > 0) {
+                $export_url = add_query_arg('filter_member', $filter_member, $export_url);
+            }
+            if ($filter_course > 0) {
+                $export_url = add_query_arg('filter_course', $filter_course, $export_url);
+            }
+            if (isset($_GET['filter_debt_status']) && $_GET['filter_debt_status'] !== 'all') {
+                $export_url = add_query_arg('filter_debt_status', $_GET['filter_debt_status'], $export_url);
+            }
+            if (isset($_GET['filter_insurance_status']) && $_GET['filter_insurance_status'] !== 'all') {
+                $export_url = add_query_arg('filter_insurance_status', $_GET['filter_insurance_status'], $export_url);
+            }
+            if (isset($_GET['filter_profile_status']) && $_GET['filter_profile_status'] !== 'all') {
+                $export_url = add_query_arg('filter_profile_status', $_GET['filter_profile_status'], $export_url);
+            }
+            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            ?>
+            <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+                📊 خروجی Excel
+            </a>
             <a href="<?php echo admin_url('admin.php?page=sc-reports-active-users'); ?>" class="button">پاک کردن فیلترها</a>
         </p>
     </form>

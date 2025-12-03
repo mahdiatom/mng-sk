@@ -6,6 +6,14 @@ if (!class_exists('WP_List_Table')) {
 if (!class_exists('Invoices_List_Table')) {
 class Invoices_List_Table extends WP_List_Table {
 
+    public function __construct($args = []) {
+        parent::__construct([
+            'singular' => 'invoice',
+            'plural' => 'invoices',
+            'ajax' => false
+        ]);
+    }
+
     public function get_columns() {
         return [
             'cb' => '<input type="checkbox" />',
@@ -36,7 +44,13 @@ class Invoices_List_Table extends WP_List_Table {
             if (function_exists('wc_get_order')) {
                 $order = wc_get_order($item['woocommerce_order_id']);
                 if ($order) {
-                    $order_number = $order->get_order_number();
+                    $wc_order_number = $order->get_order_number();
+                    // اگر شماره سفارش WooCommerce # ندارد، اضافه کن
+                    if (strpos($wc_order_number, '#') === false) {
+                        $order_number = '#' . $wc_order_number;
+                    } else {
+                        $order_number = $wc_order_number;
+                    }
                 } else {
                     $order_number = '#' . $item['woocommerce_order_id'];
                 }
@@ -54,14 +68,31 @@ class Invoices_List_Table extends WP_List_Table {
 
     public function column_status($item) {
         $status = $item['status'];
-        // تبدیل completed به paid برای نمایش
-        if ($status === 'completed') {
-            $status = 'paid';
+        
+        // تبدیل وضعیت‌های قدیمی به WooCommerce
+        if ($status === 'under_review') {
+            $status = 'on-hold';
+        } elseif ($status === 'paid') {
+            $status = 'completed';
         }
+        
+        // بررسی وضعیت WooCommerce اگر سفارش موجود باشد
+        if (!empty($item['woocommerce_order_id']) && function_exists('wc_get_order')) {
+            $order = wc_get_order($item['woocommerce_order_id']);
+            if ($order) {
+                $status = $order->get_status();
+            }
+        }
+        
+        // برچسب‌های وضعیت WooCommerce
         $status_labels = [
             'pending' => ['label' => 'در انتظار پرداخت', 'color' => '#f0a000', 'bg' => '#fff8e1'],
-            'paid' => ['label' => 'پرداخت شده', 'color' => '#00a32a', 'bg' => '#d4edda'],
-            'cancelled' => ['label' => 'لغو شده', 'color' => '#d63638', 'bg' => '#ffeaea']
+            'on-hold' => ['label' => 'در حال بررسی', 'color' => '#2271b1', 'bg' => '#e5f5fa'],
+            'processing' => ['label' => 'پرداخت شده', 'color' => '#00a32a', 'bg' => '#d4edda'],
+            'completed' => ['label' => 'تایید پرداخت', 'color' => '#00a32a', 'bg' => '#d4edda'],
+            'cancelled' => ['label' => 'لغو شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
+            'refunded' => ['label' => 'بازگشت شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
+            'failed' => ['label' => 'ناموفق', 'color' => '#d63638', 'bg' => '#ffeaea']
         ];
         
         $status_info = isset($status_labels[$status]) ? $status_labels[$status] : ['label' => $status, 'color' => '#666', 'bg' => '#f5f5f5'];
@@ -129,7 +160,11 @@ class Invoices_List_Table extends WP_List_Table {
     }
 
     public function column_cb($item) {
-        return '<input type="checkbox" value="' . $item['id'] . '" name="invoice[]" />';
+        return sprintf(
+            '<input type="checkbox" name="%1$s[]" value="%2$s" />',
+            $this->_args['singular'],
+            $item['id']
+        );
     }
 
     public function column_default($item, $column_name) {
@@ -158,78 +193,106 @@ class Invoices_List_Table extends WP_List_Table {
 
     public function get_bulk_actions() {
         return [
-            'change_status_cancelled' => 'تغییر وضعیت به: لغو شده',
-            'change_status_pending' => 'تغییر وضعیت به: در انتظار پرداخت',
-            'change_status_paid' => 'تغییر وضعیت به: پرداخت شده',
-            'delete' => 'حذف'
+            'mark_pending' => 'تغییر وضعیت به: در انتظار پرداخت',
+            'mark_processing' => 'تغییر وضعیت به: پرداخت شده',
+            'mark_on-hold' => 'تغییر وضعیت به: در حال بررسی',
+            'mark_completed' => 'تغییر وضعیت به: تایید پرداخت',
+            'mark_cancelled' => 'تغییر وضعیت به: لغو شده',
+            'mark_failed' => 'تغییر وضعیت به: ناموفق'
         ];
     }
 
     public function process_bulk_action() {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'sc_invoices';
-
         $action = $this->current_action();
         
-        if (!$action || !isset($_GET['invoice']) || !is_array($_GET['invoice'])) {
+        if (!$action) {
             return;
         }
 
+        // دریافت ID های انتخاب شده
+        $invoice_ids = isset($_GET[$this->_args['singular']]) ? (array) $_GET[$this->_args['singular']] : [];
+        $invoice_ids = array_map('absint', $invoice_ids);
+        
+        if (empty($invoice_ids)) {
+            return;
+        }
+
+        // بررسی nonce
         check_admin_referer('bulk-' . $this->_args['plural']);
 
-        $invoice_ids = array_map('absint', $_GET['invoice']);
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_invoices';
 
+        // تعیین وضعیت جدید بر اساس action
+        $new_status = '';
         switch ($action) {
-            case 'change_status_cancelled':
-                foreach ($invoice_ids as $invoice_id) {
-                    $wpdb->update(
-                        $table_name,
-                        ['status' => 'cancelled', 'updated_at' => current_time('mysql')],
-                        ['id' => $invoice_id],
-                        ['%s', '%s'],
-                        ['%d']
-                    );
-                }
-                wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_status_updated'));
-                exit;
-
-            case 'change_status_pending':
-                foreach ($invoice_ids as $invoice_id) {
-                    $wpdb->update(
-                        $table_name,
-                        ['status' => 'pending', 'updated_at' => current_time('mysql')],
-                        ['id' => $invoice_id],
-                        ['%s', '%s'],
-                        ['%d']
-                    );
-                }
-                wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_status_updated'));
-                exit;
-
-            case 'change_status_paid':
-                foreach ($invoice_ids as $invoice_id) {
-                    $wpdb->update(
-                        $table_name,
-                        [
-                            'status' => 'paid',
-                            'payment_date' => current_time('mysql'),
-                            'updated_at' => current_time('mysql')
-                        ],
-                        ['id' => $invoice_id],
-                        ['%s', '%s', '%s'],
-                        ['%d']
-                    );
-                }
-                wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_status_updated'));
-                exit;
-
-            case 'delete':
-                foreach ($invoice_ids as $invoice_id) {
-                    $wpdb->delete($table_name, ['id' => $invoice_id], ['%d']);
-                }
-                wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_deleted'));
-                exit;
+            case 'mark_pending':
+                $new_status = 'pending';
+                break;
+            case 'mark_processing':
+                $new_status = 'processing';
+                break;
+            case 'mark_on-hold':
+                $new_status = 'on-hold';
+                break;
+            case 'mark_completed':
+                $new_status = 'completed';
+                break;
+            case 'mark_cancelled':
+                $new_status = 'cancelled';
+                break;
+            case 'mark_failed':
+                $new_status = 'failed';
+                break;
+            default:
+                return;
         }
+
+        // به‌روزرسانی وضعیت همه صورت حساب‌های انتخاب شده
+        foreach ($invoice_ids as $invoice_id) {
+            $update_data = [
+                'status' => $new_status,
+                'updated_at' => current_time('mysql')
+            ];
+            $update_format = ['%s', '%s'];
+            
+            // اگر وضعیت completed یا processing است، payment_date را تنظیم کن
+            if (in_array($new_status, ['completed', 'processing'])) {
+                $update_data['payment_date'] = current_time('mysql');
+                $update_format[] = '%s';
+            } else {
+                // برای سایر وضعیت‌ها، payment_date را null کن
+                $update_data['payment_date'] = NULL;
+                $update_format[] = '%s';
+            }
+            
+            $wpdb->update(
+                $table_name,
+                $update_data,
+                ['id' => $invoice_id],
+                $update_format,
+                ['%d']
+            );
+            
+            // اگر سفارش WooCommerce وجود دارد، وضعیت آن را هم به‌روزرسانی کن
+            if (function_exists('wc_get_order')) {
+                $invoice = $wpdb->get_row($wpdb->prepare(
+                    "SELECT woocommerce_order_id FROM $table_name WHERE id = %d",
+                    $invoice_id
+                ));
+                
+                if ($invoice && !empty($invoice->woocommerce_order_id)) {
+                    $order = wc_get_order($invoice->woocommerce_order_id);
+                    if ($order) {
+                        $order->update_status($new_status, 'تغییر وضعیت از طریق bulk action');
+                    }
+                }
+            }
+        }
+
+        // ریدایرکت با پیام موفقیت
+        wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_status_updated'));
+        exit;
     }
 
     public function get_views() {
@@ -308,7 +371,7 @@ class Invoices_List_Table extends WP_List_Table {
             $count_all = $wpdb->get_var($count_query);
         }
 
-        $statuses = ['all' => 'همه', 'cancelled' => 'لغو شده', 'pending' => 'در انتظار پرداخت', 'paid' => 'پرداخت شده'];
+        $statuses = ['all' => 'همه', 'cancelled' => 'لغو شده', 'pending' => 'در انتظار پرداخت', 'on-hold' => 'در حال بررسی', 'completed' => 'پرداخت شده'];
         $views = [];
 
         foreach ($statuses as $status_key => $status_label) {
@@ -317,11 +380,16 @@ class Invoices_List_Table extends WP_List_Table {
             if ($status_key !== 'all') {
                 $count_where = $where_conditions;
                 $count_where_values = $where_values;
-                // برای paid، باید completed را هم در نظر بگیریم
-                if ($status_key === 'paid') {
-                    $count_where[] = "(i.status = %s OR i.status = %s)";
-                    $count_where_values[] = 'paid';
+                // برای completed، باید paid و completed و processing را هم در نظر بگیریم
+                if ($status_key === 'completed') {
+                    $count_where[] = "(i.status = %s OR i.status = %s OR i.status = %s)";
                     $count_where_values[] = 'completed';
+                    $count_where_values[] = 'paid';
+                    $count_where_values[] = 'processing';
+                } elseif ($status_key === 'on-hold') {
+                    $count_where[] = "(i.status = %s OR i.status = %s)";
+                    $count_where_values[] = 'on-hold';
+                    $count_where_values[] = 'under_review';
                 } else {
                     $count_where[] = "i.status = %s";
                     $count_where_values[] = $status_key;
@@ -374,7 +442,7 @@ class Invoices_List_Table extends WP_List_Table {
 
     public function prepare_items() {
         $this->process_bulk_action();
-
+        
         global $wpdb;
         $invoices_table = $wpdb->prefix . 'sc_invoices';
         $members_table = $wpdb->prefix . 'sc_members';
@@ -423,11 +491,16 @@ class Invoices_List_Table extends WP_List_Table {
         $where_values = [];
 
         if ($filter_status !== 'all') {
-            // برای paid، باید completed را هم در نظر بگیریم
-            if ($filter_status === 'paid') {
-                $where_conditions[] = "(i.status = %s OR i.status = %s)";
-                $where_values[] = 'paid';
+            // برای completed، باید paid و completed و processing را هم در نظر بگیریم
+            if ($filter_status === 'completed') {
+                $where_conditions[] = "(i.status = %s OR i.status = %s OR i.status = %s)";
                 $where_values[] = 'completed';
+                $where_values[] = 'paid';
+                $where_values[] = 'processing';
+            } elseif ($filter_status === 'on-hold') {
+                $where_conditions[] = "(i.status = %s OR i.status = %s)";
+                $where_values[] = 'on-hold';
+                $where_values[] = 'under_review';
             } else {
                 $where_conditions[] = "i.status = %s";
                 $where_values[] = $filter_status;
@@ -513,10 +586,60 @@ class Invoices_List_Table extends WP_List_Table {
             'per_page' => $per_page
         ]);
 
+        // همگام‌سازی وضعیت‌های WooCommerce با صورت حساب‌ها
+        if (function_exists('wc_get_order')) {
+            foreach ($results as $key => $item) {
+                if (!empty($item['woocommerce_order_id'])) {
+                    $order = wc_get_order($item['woocommerce_order_id']);
+                    if ($order) {
+                        $wc_status = $order->get_status();
+                        $current_invoice_status = $item['status'];
+                        
+                        // sync وضعیت WooCommerce با صورت حساب
+                        $sync_needed = false;
+                        $new_status = $current_invoice_status;
+                        
+                        // تبدیل وضعیت‌های قدیمی به WooCommerce
+                        if ($current_invoice_status === 'under_review') {
+                            $current_invoice_status = 'on-hold';
+                        } elseif ($current_invoice_status === 'paid') {
+                            $current_invoice_status = 'completed';
+                        }
+                        
+                        if ($wc_status !== $current_invoice_status) {
+                            $new_status = $wc_status;
+                            $sync_needed = true;
+                        }
+                        
+                        if ($sync_needed) {
+                            // به‌روزرسانی وضعیت در دیتابیس
+                            $update_data = ['status' => $new_status, 'updated_at' => current_time('mysql')];
+                            $update_format = ['%s', '%s'];
+                            
+                            if (in_array($new_status, ['completed', 'processing'])) {
+                                $update_data['payment_date'] = current_time('mysql');
+                                $update_format[] = '%s';
+                            }
+                            
+                            $wpdb->update(
+                                $invoices_table,
+                                $update_data,
+                                ['id' => $item['id']],
+                                $update_format,
+                                ['%d']
+                            );
+                            
+                            // به‌روزرسانی در آرایه نتایج
+                            $results[$key]['status'] = $new_status;
+                        }
+                    }
+                }
+            }
+        }
+
         $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
         $this->items = $results;
     }
 }
 } // End if (!class_exists('Invoices_List_Table'))
 ?>
-

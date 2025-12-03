@@ -1,6 +1,61 @@
 <?php
 global $invoices_list_table;
 
+// همگام‌سازی وضعیت‌های WooCommerce با صورت حساب‌ها
+if (function_exists('wc_get_order')) {
+    global $wpdb;
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    
+    // دریافت صورت حساب‌هایی که woocommerce_order_id دارند
+    $invoices_to_sync = $wpdb->get_results(
+        "SELECT id, woocommerce_order_id, status 
+         FROM $invoices_table 
+         WHERE woocommerce_order_id IS NOT NULL AND woocommerce_order_id > 0 
+         LIMIT 50"
+    );
+    
+    foreach ($invoices_to_sync as $invoice) {
+        $order = wc_get_order($invoice->woocommerce_order_id);
+        if ($order) {
+            $wc_status = $order->get_status();
+            $current_status = $invoice->status;
+            $sync_needed = false;
+            $new_status = $current_status;
+            
+            // تبدیل وضعیت‌های قدیمی به WooCommerce
+            if ($current_status === 'under_review') {
+                $current_status = 'on-hold';
+            } elseif ($current_status === 'paid') {
+                $current_status = 'completed';
+            }
+            
+            // sync وضعیت WooCommerce
+            if ($wc_status !== $current_status) {
+                $new_status = $wc_status;
+                $sync_needed = true;
+            }
+            
+            if ($sync_needed) {
+                $update_data = ['status' => $new_status, 'updated_at' => current_time('mysql')];
+                $update_format = ['%s', '%s'];
+                
+                if (in_array($new_status, ['completed', 'processing'])) {
+                    $update_data['payment_date'] = current_time('mysql');
+                    $update_format[] = '%s';
+                }
+                
+                $wpdb->update(
+                    $invoices_table,
+                    $update_data,
+                    ['id' => $invoice->id],
+                    $update_format,
+                    ['%d']
+                );
+            }
+        }
+    }
+}
+
 // دریافت لیست دوره‌ها و اعضا برای فیلتر
 global $wpdb;
 $courses_table = $wpdb->prefix . 'sc_courses';
@@ -123,7 +178,8 @@ $members = $wpdb->get_results(
                             'all' => 'همه وضعیت‌ها',
                             'cancelled' => 'لغو شده',
                             'pending' => 'در انتظار پرداخت',
-                            'paid' => 'پرداخت شده'
+                            'on-hold' => 'در حال بررسی',
+                            'completed' => 'پرداخت شده'
                         ];
                         foreach ($status_options as $value => $label) :
                         ?>

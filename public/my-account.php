@@ -1040,12 +1040,11 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
     ));
     
     if ($invoice) {
-        // به‌روزرسانی وضعیت صورت حساب بر اساس وضعیت سفارش
-        $invoice_status = 'pending';
+        // به‌روزرسانی وضعیت صورت حساب بر اساس وضعیت سفارش WooCommerce
+        $invoice_status = $new_status; // استفاده مستقیم از وضعیت WooCommerce
         $payment_date = NULL;
         
         if (in_array($new_status, ['processing', 'completed'])) {
-            $invoice_status = 'paid';
             $payment_date = current_time('mysql');
             
             // فعال کردن دوره بعد از پرداخت موفق
@@ -1063,9 +1062,6 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
                     ['%d']
                 );
             }
-        } elseif ($new_status === 'cancelled') {
-            $invoice_status = 'cancelled';
-            $payment_date = NULL;
         }
         
         $wpdb->update(

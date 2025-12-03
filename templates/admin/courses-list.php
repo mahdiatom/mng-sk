@@ -91,7 +91,13 @@ jQuery(document).ready(function($) {
                     let count = res.data.count || 0;
                     
                     if(users.length > 0){
-                        let html = '<div class="sc-users-summary" style="margin-bottom: 20px; padding: 15px; background-color: #f0f6fc; border-radius: 4px;"><strong>تعداد کاربران فعال: ' + count + ' نفر</strong></div>';
+                        let courseId = res.data.course_id || courseId;
+                        let exportUrl = '<?php echo wp_nonce_url(admin_url('admin.php?page=sc-courses'), 'sc_export_excel'); ?>&sc_export=excel&export_type=course_users&course_id=' + courseId;
+                        
+                        let html = '<div class="sc-users-summary" style="margin-bottom: 20px; padding: 15px; background-color: #f0f6fc; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">';
+                        html += '<strong>تعداد کاربران فعال: ' + count + ' نفر</strong>';
+                        html += '<a href="' + exportUrl + '" class="button button-secondary" style="background-color: #00a32a; border-color: #00a32a; color: #fff; text-decoration: none;">📊 خروجی Excel</a>';
+                        html += '</div>';
                         html += '<div class="sc-users-table-container" style="max-height: 500px; overflow-y: auto;">';
                         html += '<table class="wp-list-table widefat fixed striped"><thead><tr>';
                         html += '<th style="width: 50px;">ردیف</th><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th>';
@@ -106,7 +112,7 @@ jQuery(document).ready(function($) {
                             html += '<td>' + (user.player_phone || '-') + '</td>';
                             html += '<td>' + (user.father_name || '-') + '</td>';
                             html += '<td>' + (user.father_phone || '-') + '</td>';
-                            html += '<td>' + (user.enrollment_date || '-') + '</td></tr>';
+                            html += '<td>' + (user.enrollment_date_shamsi || user.enrollment_date || '-') + '</td></tr>';
                         });
                         
                         html += '</tbody></table></div>';

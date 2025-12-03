@@ -94,19 +94,37 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     $status_class = '';
                     switch ($invoice->status) {
                         case 'paid':
-                            $status_label = 'پرداخت شده';
+                        case 'completed':
+                            $status_label = 'تایید پرداخت';
                             $status_class = 'paid';
+                            break;
+                        case 'processing':
+                            $status_label = 'پرداخت شده';
+                            $status_class = 'processing';
                             break;
                         case 'pending':
                             $status_label = 'در انتظار پرداخت';
                             $status_class = 'pending';
                             break;
+                        case 'under_review':
+                        case 'on-hold':
+                            $status_label = 'در حال بررسی';
+                            $status_class = 'under_review';
+                            break;
                         case 'cancelled':
                             $status_label = 'لغو شده';
                             $status_class = 'cancelled';
                             break;
+                        case 'refunded':
+                            $status_label = 'بازگشت شده';
+                            $status_class = 'refunded';
+                            break;
+                        case 'failed':
+                            $status_label = 'ناموفق';
+                            $status_class = 'failed';
+                            break;
                         default:
-                            $status_label = $invoice->status;
+                            $status_label = 'در انتظار پرداخت';
                             $status_class = 'pending';
                     }
                     
@@ -116,8 +134,8 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     $is_order_paid = false;
                     $has_valid_order = false;
                     
-                    // بررسی وجود woocommerce_order_id و وضعیت pending
-                    if (!empty($invoice->woocommerce_order_id) && $invoice->status === 'pending') {
+                    // بررسی وجود woocommerce_order_id و وضعیت pending یا under_review
+                    if (!empty($invoice->woocommerce_order_id) && in_array($invoice->status, ['pending', 'under_review'])) {
                         if (function_exists('wc_get_order')) {
                             $order_object = wc_get_order($invoice->woocommerce_order_id);
                             if ($order_object) {
@@ -125,8 +143,9 @@ if (function_exists('wc_get_price_thousand_separator')) {
                                 $is_order_paid = $order_object->is_paid();
                                 $order_status = $order_object->get_status();
                                 
-                                // اگر سفارش پرداخت نشده است، لینک پرداخت را ایجاد کن
-                                if (!$is_order_paid) {
+                                // اگر سفارش پرداخت نشده است و وضعیت pending است، لینک پرداخت را ایجاد کن
+                                // برای under_review فقط لینک مشاهده سفارش نمایش داده می‌شود
+                                if (!$is_order_paid && $invoice->status === 'pending') {
                                     // استفاده از متد اصلی WooCommerce برای لینک پرداخت
                                     $payment_url = $order_object->get_checkout_payment_url();
                                     
@@ -196,9 +215,24 @@ if (function_exists('wc_get_price_thousand_separator')) {
                                 <?php if ($status_class === 'paid') : ?>
                                     background-color: #d4edda;
                                     color: #155724;
+                                <?php elseif ($status_class === 'processing') : ?>
+                                    background-color: #d4edda;
+                                    color: #155724;
                                 <?php elseif ($status_class === 'pending') : ?>
                                     background-color: #fff3cd;
                                     color: #856404;
+                                <?php elseif ($status_class === 'under_review') : ?>
+                                    background-color: #e5f5fa;
+                                    color: #2271b1;
+                                <?php elseif ($status_class === 'cancelled') : ?>
+                                    background-color: #f8d7da;
+                                    color: #721c24;
+                                <?php elseif ($status_class === 'refunded') : ?>
+                                    background-color: #f8d7da;
+                                    color: #721c24;
+                                <?php elseif ($status_class === 'failed') : ?>
+                                    background-color: #f8d7da;
+                                    color: #721c24;
                                 <?php else : ?>
                                     background-color: #f8d7da;
                                     color: #721c24;
@@ -209,8 +243,8 @@ if (function_exists('wc_get_price_thousand_separator')) {
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-actions" data-title="عملیات">
                             <?php 
-                            // اگر لینک پرداخت وجود ندارد اما woocommerce_order_id و وضعیت pending دارد، لینک را ایجاد کن
-                            if (empty($payment_url) && !empty($invoice->woocommerce_order_id) && $invoice->status === 'pending') {
+                            // اگر لینک پرداخت وجود ندارد اما woocommerce_order_id و وضعیت pending یا under_review دارد، لینک را ایجاد کن
+                            if (empty($payment_url) && !empty($invoice->woocommerce_order_id) && in_array($invoice->status, ['pending', 'under_review'])) {
                                 // اگر order پیدا نشد، دوباره تلاش کن
                                 if (!$order_object && function_exists('wc_get_order')) {
                                     $order_object = wc_get_order($invoice->woocommerce_order_id);
@@ -238,7 +272,11 @@ if (function_exists('wc_get_price_thousand_separator')) {
                                 }
                             }
                             
-                            if ($payment_url && $invoice->status === 'pending') : ?>
+                            if ($invoice->status === 'under_review' && !empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url')) : ?>
+                                <a href="<?php echo esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)); ?>" class="woocommerce-button button view">
+                                    مشاهده سفارش
+                                </a>
+                            <?php elseif ($payment_url && $invoice->status === 'pending') : ?>
                                 <a href="<?php echo esc_url($payment_url); ?>" class="woocommerce-button button view" style="
                                     display: inline-block;
                                     padding: 8px 15px;
@@ -254,7 +292,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                                 <a href="<?php echo esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)); ?>" class="woocommerce-button button view">
                                     مشاهده سفارش
                                 </a>
-                            <?php elseif ($invoice->status === 'pending' && empty($invoice->woocommerce_order_id)) : ?>
+                            <?php elseif (in_array($invoice->status, ['pending', 'under_review']) && empty($invoice->woocommerce_order_id)) : ?>
                                 <span style="color: #d63638; font-size: 12px;">در انتظار ایجاد سفارش</span>
                             <?php else : ?>
                                 <span style="color: #999;">-</span>
