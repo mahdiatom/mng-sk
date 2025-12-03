@@ -54,10 +54,12 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     if ($invoice->status === 'pending' && !$invoice->penalty_applied) {
                         sc_apply_penalty_to_invoice($invoice->id);
                         // دریافت مجدد اطلاعات صورت حساب
+                        $events_table = $wpdb->prefix . 'sc_events';
                         $invoice = $wpdb->get_row($wpdb->prepare(
-                            "SELECT i.*, c.title as course_title, c.price as course_price
+                            "SELECT i.*, c.title as course_title, c.price as course_price, e.name as event_name
                              FROM {$wpdb->prefix}sc_invoices i
                              LEFT JOIN {$wpdb->prefix}sc_courses c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
+                             LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
                              WHERE i.id = %d",
                             $invoice->id
                         ));
@@ -181,11 +183,13 @@ if (function_exists('wc_get_price_thousand_separator')) {
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-date" data-title="دوره">
                             <?php if (!empty($invoice->course_title)) : ?>
-                                <?php echo esc_html($invoice->course_title); ?>
+                                <strong>دوره:</strong> <?php echo esc_html($invoice->course_title); ?>
+                            <?php elseif (!empty($invoice->event_name)) : ?>
+                                <strong>رویداد / مسابقه:</strong> <?php echo esc_html($invoice->event_name); ?>
                             <?php elseif (!empty($invoice->expense_name)) : ?>
                                 <strong>هزینه اضافی:</strong> <?php echo esc_html($invoice->expense_name); ?>
                             <?php else : ?>
-                                <span style="color: #999;">بدون دوره</span>
+                                <span style="color: #999;">-</span>
                             <?php endif; ?>
                             <?php if (!empty($invoice->expense_name) && !empty($invoice->course_title)) : ?>
                                 <br>

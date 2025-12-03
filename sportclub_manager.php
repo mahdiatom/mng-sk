@@ -77,6 +77,8 @@ function sc_activate_plugin() {
         add_rewrite_endpoint('sc-enroll-course', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('sc-my-courses', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
+        add_rewrite_endpoint('sc-events', EP_ROOT | EP_PAGES);
+        add_rewrite_endpoint('sc-event-detail', EP_ROOT | EP_PAGES);
         
         // Flush rewrite rules for WooCommerce endpoint
         flush_rewrite_rules();
@@ -142,6 +144,26 @@ function sc_add_expense_name_column() {
     
     if (empty($column_exists)) {
         $wpdb->query("ALTER TABLE $table_name ADD COLUMN `expense_name` varchar(255) DEFAULT NULL AFTER `amount`");
+    }
+}
+
+/**
+ * Add event_id column to invoices table if not exists
+ */
+add_action('admin_init', 'sc_add_event_id_column');
+function sc_add_event_id_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_invoices';
+    
+    // بررسی وجود ستون event_id
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'event_id'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `event_id` bigint(20) unsigned DEFAULT NULL AFTER `course_id`");
+        $wpdb->query("ALTER TABLE $table_name ADD KEY `idx_event_id` (`event_id`)");
     }
 }
 
@@ -367,6 +389,7 @@ function sc_check_and_create_tables() {
     $attendances_table = $wpdb->prefix . 'sc_attendances';
     $expense_categories_table = $wpdb->prefix . 'sc_expense_categories';
     $expenses_table = $wpdb->prefix . 'sc_expenses';
+    $events_table = $wpdb->prefix . 'sc_events';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -377,6 +400,7 @@ function sc_check_and_create_tables() {
     $attendances_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $attendances_table)) == $attendances_table;
     $expense_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expense_categories_table)) == $expense_categories_table;
     $expenses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expenses_table)) == $expenses_table;
+    $events_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $events_table)) == $events_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -402,6 +426,9 @@ function sc_check_and_create_tables() {
     }
     if (!$expenses_exists && function_exists('sc_create_expenses_table')) {
         sc_create_expenses_table();
+    }
+    if (!$events_exists && function_exists('sc_create_events_table')) {
+        sc_create_events_table();
     }
 }
 

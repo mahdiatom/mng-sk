@@ -260,102 +260,10 @@ jQuery(document).ready(function($) {
         }
     });
     
-    // فرمت کردن مبلغ به صورت سه رقم سه رقم
-    var $amountInput = $('#amount');
-    var $amountRaw = $('#amount_raw');
-    
-    // تابع فرمت کردن عدد
-    function formatNumber(num) {
-        // حذف تمام کاراکترهای غیر عددی
-        var cleaned = num.toString().replace(/\D/g, '');
-        if (cleaned === '' || cleaned === '0') {
-            return '';
-        }
-        // تبدیل به عدد و فرمت کردن با کاما
-        return parseInt(cleaned, 10).toLocaleString('en-US');
+    // استفاده از تابع واحد برای فرمت کردن قیمت
+    if (typeof initPriceFormatter === 'function') {
+        initPriceFormatter('#amount', '#amount_raw');
     }
-    
-    // تابع تبدیل عدد فرمت شده به عدد خالص
-    function parseFormattedNumber(formatted) {
-        var cleaned = formatted.toString().replace(/\D/g, '');
-        return cleaned === '' ? '0' : cleaned;
-    }
-    
-    // شمارش کاراکترهای عددی قبل از موقعیت cursor
-    function countDigitsBeforePosition(str, pos) {
-        var count = 0;
-        for (var i = 0; i < pos && i < str.length; i++) {
-            if (/\d/.test(str[i])) {
-                count++;
-            }
-        }
-        return count;
-    }
-    
-    // پیدا کردن موقعیت cursor بر اساس تعداد ارقام
-    function findCursorPosition(formatted, digitCount) {
-        var count = 0;
-        for (var i = 0; i < formatted.length; i++) {
-            if (/\d/.test(formatted[i])) {
-                count++;
-                if (count === digitCount) {
-                    return i + 1;
-                }
-            }
-        }
-        return formatted.length;
-    }
-    
-    // هنگام تایپ، عدد را فرمت کن
-    $amountInput.on('input', function() {
-        var $this = $(this);
-        var value = $this.val();
-        var cursorPosition = this.selectionStart;
-        
-        // شمارش ارقام قبل از cursor
-        var digitsBefore = countDigitsBeforePosition(value, cursorPosition);
-        
-        // حذف تمام کاراکترهای غیر عددی
-        var cleaned = value.replace(/\D/g, '');
-        
-        // اگر خالی است
-        if (cleaned === '' || cleaned === '0') {
-            $this.val('');
-            $amountRaw.val('0');
-            return;
-        }
-        
-        // فرمت کردن
-        var formatted = formatNumber(cleaned);
-        $this.val(formatted);
-        
-        // ذخیره مقدار خالص در hidden input
-        $amountRaw.val(cleaned);
-        
-        // محاسبه موقعیت جدید cursor بر اساس تعداد ارقام
-        var newCursorPosition = findCursorPosition(formatted, digitsBefore);
-        
-        // تنظیم cursor position
-        setTimeout(function() {
-            $this[0].setSelectionRange(newCursorPosition, newCursorPosition);
-        }, 0);
-    });
-    
-    // هنگام blur، اگر خالی است یا صفر، مقدار را پاک کن
-    $amountInput.on('blur', function() {
-        var value = $(this).val();
-        var cleaned = value.replace(/\D/g, '');
-        if (cleaned === '' || cleaned === '0') {
-            $(this).val('');
-            $amountRaw.val('0');
-        }
-    });
-    
-    // قبل از submit، مقدار خالص را در فیلد اصلی قرار بده
-    $('form').on('submit', function() {
-        var rawValue = $amountRaw.val() || '0';
-        $amountInput.val(rawValue);
-    });
     
 });
 </script>

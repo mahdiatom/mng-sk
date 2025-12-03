@@ -181,6 +181,26 @@ function sc_register_admin_menu() {
         'sc_admin_reports_payments_page'
     );
 
+    // Events - List
+    $list_events_sufix = add_submenu_page(
+        'sc-dashboard',
+        'لیست رویداد / مسابقه',
+        'لیست رویداد / مسابقه',
+        'manage_options',
+        'sc-events',
+        'sc_admin_events_list_page'
+    );
+
+    // Events - Add
+    $add_event_sufix = add_submenu_page(
+        'sc-dashboard',
+        'ثبت رویداد / مسابقه',
+        'ثبت رویداد / مسابقه',
+        'manage_options',
+        'sc-add-event',
+        'sc_admin_add_event_page'
+    );
+
     add_action('load-'. $add_member_sufix , 'callback_add_member_sufix');
     add_action('load-'. $add_invoice_sufix , 'callback_add_invoice_sufix');
     add_action('load-'. $add_expense_sufix , 'callback_add_expense_sufix');
@@ -188,6 +208,8 @@ function sc_register_admin_menu() {
     add_action('load-'. $list_member_sufix , 'procces_table_data');
     add_action('load-'. $list_courses_sufix , 'procces_courses_table_data');
     add_action('load-'. $add_course_sufix , 'callback_add_course_sufix');
+    add_action('load-'. $list_events_sufix , 'process_events_table_data');
+    add_action('load-'. $add_event_sufix , 'callback_add_event_sufix');
 }
 
 /**
@@ -397,6 +419,31 @@ function sc_admin_expenses_list_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'expenses-list.php';
+}
+
+function sc_admin_add_event_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_events';
+    $event = false;
+    
+    if (isset($_GET['event_id'])) {
+        $event_id = absint($_GET['event_id']);
+        if ($event_id) {
+            $event = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $event_id));
+        }
+    }
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'event-add.php';
+}
+
+function sc_admin_events_list_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'list_events.php';
 }
 
 /**
@@ -703,8 +750,16 @@ function callback_add_course_sufix() {
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_courses';
         
+        // پردازش قیمت از price_raw
+        $price_value = 0;
+        if (isset($_POST['price_raw']) && !empty($_POST['price_raw'])) {
+            $price_value = floatval($_POST['price_raw']);
+        } elseif (isset($_POST['price']) && !empty($_POST['price'])) {
+            $price_value = floatval(str_replace(',', '', $_POST['price']));
+        }
+        
         // Validation
-        if (empty($_POST['title']) || empty($_POST['price'])) {
+        if (empty($_POST['title']) || $price_value <= 0) {
             wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
             exit;
         }
@@ -727,7 +782,7 @@ function callback_add_course_sufix() {
         $data = [
             'title' => sanitize_text_field($_POST['title']),
             'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
-            'price' => floatval($_POST['price']),
+            'price' => $price_value,
             'capacity' => !empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL,
             'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
             'start_date' => $start_date,
@@ -1215,6 +1270,146 @@ function get_course_active_users() {
         'count' => count($users),
         'course_id' => $course_id
     ]);
+}
+
+/**
+ * Process event creation/update form
+ */
+function callback_add_event_sufix() {
+    if (isset($_GET['page']) && $_GET['page'] == 'sc-add-event' && isset($_POST['submit'])) {
+        // بررسی nonce
+        if (!isset($_POST['sc_event_nonce']) || !wp_verify_nonce($_POST['sc_event_nonce'], 'sc_event_form')) {
+            wp_redirect(admin_url('admin.php?page=sc-add-event&sc_status=security_error'));
+            exit;
+        }
+
+        // بررسی و ایجاد جداول
+        sc_check_and_create_tables();
+        
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_events';
+        
+        // Validation
+        if (empty($_POST['name']) || empty($_POST['price'])) {
+            wp_redirect(admin_url('admin.php?page=sc-add-event&sc_status=event_add_error'));
+            exit;
+        }
+        
+        // پردازش تاریخ شمسی به میلادی
+        $start_date = NULL;
+        $start_date_shamsi = NULL;
+        if (!empty($_POST['start_date_shamsi'])) {
+            $start_date_shamsi = sanitize_text_field($_POST['start_date_shamsi']);
+            $start_date = sc_shamsi_to_gregorian_date($start_date_shamsi);
+        } elseif (!empty($_POST['start_date'])) {
+            $start_date = sanitize_text_field($_POST['start_date']);
+        }
+        
+        $end_date = NULL;
+        $end_date_shamsi = NULL;
+        if (!empty($_POST['end_date_shamsi'])) {
+            $end_date_shamsi = sanitize_text_field($_POST['end_date_shamsi']);
+            $end_date = sc_shamsi_to_gregorian_date($end_date_shamsi);
+        } elseif (!empty($_POST['end_date'])) {
+            $end_date = sanitize_text_field($_POST['end_date']);
+        }
+        
+        $has_age_limit = isset($_POST['has_age_limit']) ? 1 : 0;
+        $min_age = ($has_age_limit && !empty($_POST['min_age'])) ? intval($_POST['min_age']) : NULL;
+        $max_age = ($has_age_limit && !empty($_POST['max_age'])) ? intval($_POST['max_age']) : NULL;
+        
+        $event_location_lat = !empty($_POST['event_location_lat']) ? floatval($_POST['event_location_lat']) : NULL;
+        $event_location_lng = !empty($_POST['event_location_lng']) ? floatval($_POST['event_location_lng']) : NULL;
+        
+        // پردازش قیمت از price_raw
+        $price_value = 0;
+        if (isset($_POST['price_raw']) && !empty($_POST['price_raw'])) {
+            $price_value = floatval($_POST['price_raw']);
+        } elseif (isset($_POST['price']) && !empty($_POST['price'])) {
+            $price_value = floatval(str_replace(',', '', $_POST['price']));
+        }
+        
+        // پردازش توضیحات از WYSIWYG editor
+        $description_content = '';
+        if (isset($_POST['description']) && !empty($_POST['description'])) {
+            $description_content = wp_kses_post($_POST['description']);
+        }
+        
+        // پردازش زمان مسابقه از WYSIWYG editor
+        $event_time_content = '';
+        if (isset($_POST['event_time']) && !empty($_POST['event_time'])) {
+            $event_time_content = wp_kses_post($_POST['event_time']);
+        }
+        
+        $data = [
+            'name' => sanitize_text_field($_POST['name']),
+            'description' => !empty($description_content) ? $description_content : NULL,
+            'price' => $price_value,
+            'start_date_shamsi' => $start_date_shamsi,
+            'start_date_gregorian' => $start_date,
+            'end_date_shamsi' => $end_date_shamsi,
+            'end_date_gregorian' => $end_date,
+            'image' => !empty($_POST['image']) ? esc_url_raw($_POST['image']) : NULL,
+            'has_age_limit' => $has_age_limit,
+            'min_age' => $min_age,
+            'max_age' => $max_age,
+            'capacity' => !empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL,
+            'event_time' => !empty($event_time_content) ? $event_time_content : NULL,
+            'event_location' => !empty($_POST['event_location']) ? sanitize_text_field($_POST['event_location']) : NULL,
+            'event_location_address' => !empty($_POST['event_location_address']) ? sanitize_textarea_field($_POST['event_location_address']) : NULL,
+            'event_location_lat' => $event_location_lat,
+            'event_location_lng' => $event_location_lng,
+            'is_active' => isset($_POST['is_active']) ? 1 : 0,
+            'updated_at' => current_time('mysql'),
+        ];
+
+        $event_id = isset($_GET['event_id']) ? absint($_GET['event_id']) : 0;
+
+        // بروزرسانی
+        if ($event_id) {
+            $updated = $wpdb->update(
+                $table_name,
+                $data,
+                ['id' => $event_id],
+                ['%s', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%f', '%f', '%d', '%s'],
+                ['%d']
+            );
+
+            if ($updated !== false) {
+                wp_redirect(admin_url('admin.php?page=sc-add-event&sc_status=event_updated&event_id=' . $event_id));
+                exit;
+            } else {
+                wp_redirect(admin_url('admin.php?page=sc-add-event&sc_status=event_update_error&event_id=' . $event_id));
+                exit;
+            }
+        } 
+        // اضافه کردن جدید
+        else {
+            $data['created_at'] = current_time('mysql');
+            $inserted = $wpdb->insert(
+                $table_name, 
+                $data,
+                ['%s', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%f', '%f', '%d', '%s', '%s']
+            );
+
+            if ($inserted !== false) {
+                $insert_id = $wpdb->insert_id;
+                wp_redirect(admin_url('admin.php?page=sc-add-event&sc_status=event_add_true&event_id=' . $insert_id));
+                exit;
+            } else {
+                wp_redirect(admin_url('admin.php?page=sc-add-event&sc_status=event_add_error'));
+                exit;
+            }
+        }
+    }
+}
+
+/**
+ * Process events table actions
+ */
+function process_events_table_data() {
+    // این تابع برای پردازش bulk actions و سایر عملیات جدول استفاده می‌شود
+    // در حال حاضر خالی است و بعداً تکمیل خواهد شد
 }
 
 

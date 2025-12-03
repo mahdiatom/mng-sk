@@ -88,4 +88,46 @@ function sc_create_expenses_table() {
     dbDelta($sql);
 }
 
+/**
+ * Create events table
+ */
+function sc_create_events_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_events';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        `description` text DEFAULT NULL,
+        `price` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `start_date_shamsi` varchar(10) DEFAULT NULL,
+        `start_date_gregorian` date DEFAULT NULL,
+        `end_date_shamsi` varchar(10) DEFAULT NULL,
+        `end_date_gregorian` date DEFAULT NULL,
+        `image` varchar(255) DEFAULT NULL,
+        `has_age_limit` tinyint(1) DEFAULT 0,
+        `min_age` int(11) DEFAULT NULL,
+        `max_age` int(11) DEFAULT NULL,
+        `capacity` int(11) DEFAULT NULL,
+        `event_time` text DEFAULT NULL,
+        `event_location` varchar(255) DEFAULT NULL,
+        `event_location_address` text DEFAULT NULL,
+        `event_location_lat` decimal(10,8) DEFAULT NULL,
+        `event_location_lng` decimal(11,8) DEFAULT NULL,
+        `is_active` tinyint(1) DEFAULT 1,
+        `deleted_at` datetime DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_is_active` (`is_active`),
+        KEY `idx_deleted_at` (`deleted_at`),
+        KEY `idx_start_date_gregorian` (`start_date_gregorian`),
+        KEY `idx_end_date_gregorian` (`end_date_gregorian`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 

@@ -26,6 +26,7 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-submit-documents'] = 'اطلاعات بازیکن';
     $items['sc-enroll-course'] = 'ثبت نام در دوره';
     $items['sc-my-courses'] = 'دوره‌های من';
+    $items['sc-events'] = 'رویدادها / مسابقات';
     $items['sc-invoices'] = 'صورت حساب‌ها';
     $items['customer-logout'] = $logout;
     
@@ -40,6 +41,8 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-submit-documents', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-enroll-course', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-courses', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-events', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-event-detail', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
 }
 
@@ -51,6 +54,8 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-submit-documents';
     $vars[] = 'sc-enroll-course';
     $vars[] = 'sc-my-courses';
+    $vars[] = 'sc-events';
+    $vars[] = 'sc-event-detail';
     $vars[] = 'sc-invoices';
     return $vars;
 }
@@ -72,6 +77,14 @@ add_filter('woocommerce_endpoint_sc-my-courses_title', function() {
     return 'دوره‌های من'; 
 });
 
+add_filter('woocommerce_endpoint_sc-events_title', function() { 
+    return 'رویدادها / مسابقات'; 
+});
+
+add_filter('woocommerce_endpoint_sc-event-detail_title', function() { 
+    return 'جزئیات رویداد'; 
+});
+
 add_filter('woocommerce_endpoint_sc-invoices_title', 'sc_invoices_endpoint_title');
 function sc_invoices_endpoint_title($title) {
     return 'صورت حساب‌ها';
@@ -87,6 +100,8 @@ function sc_display_incomplete_profile_message() {
     if (isset($wp->query_vars['sc-submit-documents']) || 
         isset($wp->query_vars['sc-enroll-course']) || 
         isset($wp->query_vars['sc-my-courses']) ||
+        isset($wp->query_vars['sc-events']) ||
+        isset($wp->query_vars['sc-event-detail']) ||
         isset($wp->query_vars['sc-invoices'])) {
         return; // در صفحات خاص پیام نمایش داده نمی‌شود
     }
@@ -948,15 +963,41 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
     // ذخیره اولیه
     $order->save();
     
-    // محاسبه مبلغ دوره و هزینه اضافی
+    // محاسبه مبلغ دوره/رویداد و هزینه اضافی
     $course_amount = 0;
     $expense_amount = 0;
+    
+    // بررسی اینکه آیا این invoice برای رویداد است یا دوره
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $invoice = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $invoices_table WHERE id = %d",
+        $invoice_id
+    ));
+    
+    $events_table = $wpdb->prefix . 'sc_events';
+    $event = null;
+    if ($invoice && !empty($invoice->event_id)) {
+        $event = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $events_table WHERE id = %d",
+            $invoice->event_id
+        ));
+    }
     
     if ($course && $course->price > 0) {
         $course_amount = floatval($course->price);
         // اضافه کردن هزینه دوره به سفارش
         $fee = new WC_Order_Item_Fee();
         $fee->set_name('دوره: ' . $course->title);
+        $fee->set_amount($course_amount);
+        $fee->set_tax_class('');
+        $fee->set_tax_status('none');
+        $fee->set_total($course_amount);
+        $order->add_item($fee);
+    } elseif ($event && $event->price > 0) {
+        $course_amount = floatval($event->price);
+        // اضافه کردن هزینه رویداد به سفارش
+        $fee = new WC_Order_Item_Fee();
+        $fee->set_name('رویداد / مسابقه: ' . $event->name);
         $fee->set_amount($course_amount);
         $fee->set_tax_class('');
         $fee->set_tax_status('none');
@@ -994,6 +1035,89 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
 }
 
 /**
+ * Create invoice and WooCommerce order for event enrollment
+ */
+if (!function_exists('sc_create_event_invoice')) {
+function sc_create_event_invoice($member_id, $event_id, $amount) {
+    // بررسی فعال بودن WooCommerce
+    if (!class_exists('WooCommerce')) {
+        return ['success' => false, 'message' => 'WooCommerce فعال نیست.'];
+    }
+    
+    global $wpdb;
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $events_table = $wpdb->prefix . 'sc_events';
+    
+    // دریافت اطلاعات رویداد
+    $event = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $events_table WHERE id = %d",
+        $event_id
+    ));
+    
+    if (!$event) {
+        return ['success' => false, 'message' => 'رویداد یافت نشد.'];
+    }
+    
+    // ایجاد صورت حساب
+    $invoice_data = [
+        'member_id' => $member_id,
+        'event_id' => $event_id,
+        'course_id' => NULL,
+        'amount' => $amount,
+        'status' => 'pending',
+        'created_at' => current_time('mysql'),
+        'updated_at' => current_time('mysql')
+    ];
+    
+    $inserted = $wpdb->insert(
+        $invoices_table,
+        $invoice_data,
+        ['%d', '%d', '%s', '%f', '%s', '%s', '%s']
+    );
+    
+    if ($inserted === false) {
+        return ['success' => false, 'message' => 'خطا در ایجاد صورت حساب.'];
+    }
+    
+    $invoice_id = $wpdb->insert_id;
+    
+    // ایجاد سفارش WooCommerce
+    $order_result = sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, 0, $amount, $event->name);
+    
+    if ($order_result && isset($order_result['order_id']) && $order_result['order_id']) {
+        $order_id = $order_result['order_id'];
+        
+        // بروزرسانی invoice با order_id
+        $wpdb->update(
+            $invoices_table,
+            ['woocommerce_order_id' => $order_id, 'updated_at' => current_time('mysql')],
+            ['id' => $invoice_id],
+            ['%d', '%s'],
+            ['%d']
+        );
+        
+        // دریافت لینک پرداخت
+        $order = wc_get_order($order_id);
+        $payment_url = $order ? $order->get_checkout_payment_url() : '';
+        
+        return [
+            'success' => true,
+            'invoice_id' => $invoice_id,
+            'order_id' => $order_id,
+            'payment_url' => $payment_url
+        ];
+    }
+    
+    return [
+        'success' => true,
+        'invoice_id' => $invoice_id,
+        'order_id' => NULL,
+        'payment_url' => ''
+    ];
+}
+}
+
+/**
  * Display content for invoices tab
  */
 add_action('woocommerce_account_sc-invoices_endpoint', 'sc_my_account_invoices_content');
@@ -1013,16 +1137,225 @@ function sc_my_account_invoices_content() {
     
     // دریافت تمام صورت حساب‌های کاربر
     // توجه: بررسی جریمه در hook sc_check_penalty_on_invoices_page انجام می‌شود
+    $events_table = $wpdb->prefix . 'sc_events';
     $invoices = $wpdb->get_results($wpdb->prepare(
-        "SELECT i.*, c.title as course_title, c.price as course_price
+        "SELECT i.*, c.title as course_title, c.price as course_price, e.name as event_name
          FROM $invoices_table i
          LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
+         LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
          WHERE i.member_id = %d
          ORDER BY i.created_at DESC",
         $player->id
     ));
     
     include SC_TEMPLATES_PUBLIC_DIR . 'invoices-list.php';
+}
+
+/**
+ * Display content for events list tab
+ */
+add_action('woocommerce_account_sc-events_endpoint', 'sc_my_account_events_content');
+function sc_my_account_events_content() {
+    // بررسی و ایجاد جداول
+    sc_check_and_create_tables();
+    
+    // بررسی وضعیت فعال بودن کاربر
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return;
+    }
+    
+    global $wpdb;
+    $events_table = $wpdb->prefix . 'sc_events';
+    
+    // دریافت تمام رویدادهای فعال
+    $events = $wpdb->get_results(
+        "SELECT * FROM $events_table 
+         WHERE deleted_at IS NULL AND is_active = 1 
+         ORDER BY created_at DESC"
+    );
+    
+    include SC_TEMPLATES_PUBLIC_DIR . 'events-list.php';
+}
+
+/**
+ * Display content for event detail tab
+ */
+add_action('woocommerce_account_sc-event-detail_endpoint', 'sc_my_account_event_detail_content');
+function sc_my_account_event_detail_content() {
+    // بررسی و ایجاد جداول
+    sc_check_and_create_tables();
+    
+    // بررسی وضعیت فعال بودن کاربر
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return;
+    }
+    
+    global $wp;
+    $event_id = isset($wp->query_vars['sc-event-detail']) ? absint($wp->query_vars['sc-event-detail']) : 0;
+    
+    if (!$event_id) {
+        wc_add_notice('رویداد یافت نشد.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-events'));
+        exit;
+    }
+    
+    global $wpdb;
+    $events_table = $wpdb->prefix . 'sc_events';
+    
+    $event = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $events_table WHERE id = %d AND deleted_at IS NULL AND is_active = 1",
+        $event_id
+    ));
+    
+    if (!$event) {
+        wc_add_notice('رویداد یافت نشد یا غیرفعال است.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-events'));
+        exit;
+    }
+    
+    include SC_TEMPLATES_PUBLIC_DIR . 'event-detail.php';
+}
+
+/**
+ * Handle event enrollment form submission
+ */
+add_action('template_redirect', 'sc_handle_event_enrollment');
+function sc_handle_event_enrollment() {
+    if (!is_user_logged_in() || !isset($_POST['sc_enroll_event'])) {
+        return;
+    }
+    
+    // بررسی nonce
+    if (!isset($_POST['sc_enroll_event_nonce']) || !wp_verify_nonce($_POST['sc_enroll_event_nonce'], 'sc_enroll_event')) {
+        wc_add_notice('خطای امنیتی. لطفاً دوباره تلاش کنید.', 'error');
+        return;
+    }
+    
+    // بررسی و ایجاد جداول
+    sc_check_and_create_tables();
+    
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        wc_add_notice('حساب کاربری شما غیرفعال است.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-events'));
+        exit;
+    }
+    
+    global $wpdb;
+    $events_table = $wpdb->prefix . 'sc_events';
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    
+    // بررسی انتخاب رویداد
+    if (empty($_POST['event_id'])) {
+        wc_add_notice('لطفاً یک رویداد را انتخاب کنید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-events'));
+        exit;
+    }
+    
+    $event_id = absint($_POST['event_id']);
+    
+    // بررسی وجود رویداد
+    $event = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $events_table WHERE id = %d AND deleted_at IS NULL AND is_active = 1",
+        $event_id
+    ));
+    
+    if (!$event) {
+        wc_add_notice('رویداد انتخاب شده معتبر نیست.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-events'));
+        exit;
+    }
+    
+    // بررسی محدودیت تاریخ
+    $today_shamsi = sc_get_today_shamsi();
+    $is_date_expired = false;
+    
+    if (!empty($event->start_date_gregorian) || !empty($event->end_date_gregorian)) {
+        $start_date_shamsi = !empty($event->start_date_gregorian) ? sc_date_shamsi_date_only($event->start_date_gregorian) : '';
+        $end_date_shamsi = !empty($event->end_date_gregorian) ? sc_date_shamsi_date_only($event->end_date_gregorian) : '';
+        
+        if (!empty($end_date_shamsi)) {
+            if (sc_compare_shamsi_dates($today_shamsi, $end_date_shamsi) > 0) {
+                $is_date_expired = true;
+            }
+        }
+        
+        if (!empty($start_date_shamsi) && !$is_date_expired) {
+            if (sc_compare_shamsi_dates($today_shamsi, $start_date_shamsi) < 0) {
+                $is_date_expired = true;
+            }
+        }
+    }
+    
+    if ($is_date_expired) {
+        wc_add_notice('زمان ثبت نام این رویداد تمام شده است.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        exit;
+    }
+    
+    // بررسی شرط سنی
+    if ($event->has_age_limit && !empty($player->birth_date_shamsi)) {
+        $user_age = sc_calculate_age($player->birth_date_shamsi);
+        $age_number = (int)str_replace(' سال', '', $user_age);
+        
+        if ($event->min_age && $age_number < $event->min_age) {
+            wc_add_notice('شما سن لازم برای شرکت در این رویداد را ندارید. حداقل سن: ' . $event->min_age . ' سال', 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+            exit;
+        }
+        if ($event->max_age && $age_number > $event->max_age) {
+            wc_add_notice('شما سن لازم برای شرکت در این رویداد را ندارید. حداکثر سن: ' . $event->max_age . ' سال', 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+            exit;
+        }
+    } elseif ($event->has_age_limit && empty($player->birth_date_shamsi)) {
+        wc_add_notice('لطفاً ابتدا تاریخ تولد خود را در بخش اطلاعات بازیکن تکمیل کنید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        exit;
+    }
+    
+    // بررسی ظرفیت
+    if ($event->capacity) {
+        $enrolled_count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $invoices_table WHERE event_id = %d AND status IN ('paid', 'completed', 'processing')",
+            $event_id
+        ));
+        $remaining = $event->capacity - $enrolled_count;
+        
+        if ($remaining <= 0) {
+            wc_add_notice('ظرفیت این رویداد تکمیل شده است.', 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+            exit;
+        }
+    }
+    
+    // بررسی ثبت‌نام قبلی
+    $existing_invoice = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $invoices_table WHERE member_id = %d AND event_id = %d AND status IN ('paid', 'completed', 'processing')",
+        $player->id,
+        $event_id
+    ));
+    
+    if ($existing_invoice) {
+        wc_add_notice('شما قبلاً در این رویداد ثبت نام کرده‌اید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        exit;
+    }
+    
+    // ایجاد صورت حساب و سفارش WooCommerce
+    $invoice_result = sc_create_event_invoice($player->id, $event_id, $event->price);
+    
+    if ($invoice_result['success']) {
+        wc_add_notice('ثبت‌نام با موفقیت انجام شد. لطفاً صورت حساب را پرداخت کنید.', 'success');
+        wp_safe_redirect($invoice_result['payment_url']);
+        exit;
+    } else {
+        wc_add_notice('خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        exit;
+    }
 }
 
 /**

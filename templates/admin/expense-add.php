@@ -160,17 +160,10 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
-    // فرمت کردن مبلغ با جداکننده سه‌رقمی
-    $('#amount').on('input', function() {
-        var value = $(this).val().replace(/,/g, '');
-        if (!isNaN(value) && value !== '') {
-            var formatted = parseInt(value).toLocaleString('en-US');
-            $(this).val(formatted);
-            $('#amount_raw').val(value);
-        } else if (value === '') {
-            $('#amount_raw').val('');
-        }
-    });
+    // استفاده از تابع واحد برای فرمت کردن قیمت
+    if (typeof initPriceFormatter === 'function') {
+        initPriceFormatter('#amount', '#amount_raw');
+    }
     
     // تبدیل تاریخ شمسی به میلادی
     $('#expense_date_shamsi').on('change', function() {
