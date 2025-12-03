@@ -21,7 +21,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
 ?>
 
 <div class="sc-enroll-course-page">
-    <h2>ثبت نام در دوره</h2>
+    <h2>ثبت‌نام در دوره</h2>
     
     <form method="POST" action="" class="sc-enroll-course-form">
         <?php wp_nonce_field('sc_enroll_course', 'sc_enroll_course_nonce'); ?>
@@ -84,6 +84,30 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     $is_capacity_full = ($remaining <= 0);
                 }
                 
+                // بررسی محدودیت تاریخ
+                $is_date_expired = false;
+                $today_shamsi = sc_get_today_shamsi();
+                
+                // اگر تاریخ شروع و پایان وجود داشته باشد
+                if (!empty($course->start_date) || !empty($course->end_date)) {
+                    $start_date_shamsi = !empty($course->start_date) ? sc_date_shamsi_date_only($course->start_date) : '';
+                    $end_date_shamsi = !empty($course->end_date) ? sc_date_shamsi_date_only($course->end_date) : '';
+                    
+                    // اگر تاریخ پایان وارد شده باشد و تاریخ امروز بعد از تاریخ پایان باشد
+                    if (!empty($end_date_shamsi)) {
+                        if (sc_compare_shamsi_dates($today_shamsi, $end_date_shamsi) > 0) {
+                            $is_date_expired = true;
+                        }
+                    }
+                    
+                    // اگر تاریخ شروع وارد شده باشد و تاریخ امروز قبل از تاریخ شروع باشد
+                    if (!empty($start_date_shamsi) && !$is_date_expired) {
+                        if (sc_compare_shamsi_dates($today_shamsi, $start_date_shamsi) < 0) {
+                            $is_date_expired = true;
+                        }
+                    }
+                }
+                
                 // اگر ظرفیت تکمیل شده باشد، برچسب و tooltip اضافه می‌کنیم
                 if ($is_capacity_full && !$is_enrolled) {
                     $status_label = 'ظرفیت تکمیل شده';
@@ -92,6 +116,15 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     $tooltip_message = 'ظرفیت دوره تکمیل شده است برای امکان ثبت نام در این دوره با مدیر باشگاه ارتباط بگرید.';
                     $course_status = 'capacity_full';
                 }
+                
+                // اگر تاریخ تمام شده باشد، برچسب و tooltip اضافه می‌کنیم
+                if ($is_date_expired && !$is_enrolled) {
+                    $status_label = 'زمان ثبت‌نام تمام شده';
+                    $status_color = '#d63638';
+                    $status_bg = '#ffeaea';
+                    $tooltip_message = 'زمان ثبت نام این دوره تمام شده است.';
+                    $course_status = 'date_expired';
+                }
             ?>
                 <div class="sc-course-accordion-item" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px; overflow: visible; position: relative;">
                     <input type="radio" 
@@ -99,7 +132,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                            id="course_<?php echo esc_attr($course->id); ?>" 
                            value="<?php echo esc_attr($course->id); ?>" 
                            class="sc-course-radio"
-                           <?php echo ($is_enrolled || $is_capacity_full) ? 'disabled' : ''; ?>
+                           <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired) ? 'disabled' : ''; ?>
                            required>
                     
                     <label for="course_<?php echo esc_attr($course->id); ?>" 
@@ -107,7 +140,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                            <?php if ($tooltip_message) : ?>
                                data-tooltip="<?php echo esc_attr($tooltip_message); ?>"
                            <?php endif; ?>
-                           style="display: flex; align-items: center; padding: 15px; cursor: <?php echo ($is_enrolled || $is_capacity_full) ? 'not-allowed' : 'pointer'; ?>; background-color: <?php echo ($is_enrolled || $is_capacity_full) ? '#f5f5f5' : '#fff'; ?>; transition: background-color 0.3s; position: relative;">
+                           style="display: flex; align-items: center; padding: 15px; cursor: <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired) ? 'not-allowed' : 'pointer'; ?>; background-color: <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired) ? '#f5f5f5' : '#fff'; ?>; transition: background-color 0.3s; position: relative;">
                         <div style="flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 20px;">
                             <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
                                 <span class="sc-accordion-icon" style="font-size: 18px; color: #666;">▼</span>
@@ -131,7 +164,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                                     </span>
                                 <?php endif; ?>
                                 
-                                <?php if ($is_enrolled || $is_capacity_full) : ?>
+                                <?php if ($is_enrolled || $is_capacity_full || $is_date_expired) : ?>
                                     <span style="color: <?php echo esc_attr($status_color); ?>; font-weight: bold; background-color: <?php echo esc_attr($status_bg); ?>; padding: 5px 10px; border-radius: 4px;">
                                         <?php if ($course_status == 'active') : ?>
                                             ✓ <?php echo esc_html($status_label); ?>

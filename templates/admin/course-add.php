@@ -198,6 +198,14 @@ if ($course && isset($_GET['course_id'])) {
                         $start_date_shamsi = '';
                         if (!empty($start_date)) {
                             $start_date_shamsi = sc_date_shamsi_date_only($start_date);
+                        } else {
+                            // اگر دوره جدید است، تاریخ امروز را به صورت پیش‌فرض قرار می‌دهیم
+                            $today_timestamp = time();
+                            $today_date = getdate($today_timestamp);
+                            $today_jalali = gregorian_to_jalali($today_date['year'], $today_date['mon'], $today_date['mday']);
+                            $start_date_shamsi = $today_jalali[0] . '/' . 
+                                                 ($today_jalali[1] < 10 ? '0' . $today_jalali[1] : $today_jalali[1]) . '/' . 
+                                                 ($today_jalali[2] < 10 ? '0' . $today_jalali[2] : $today_jalali[2]);
                         }
                         ?>
                         <input name="start_date_shamsi" type="text" id="start_date_shamsi" 
@@ -218,6 +226,14 @@ if ($course && isset($_GET['course_id'])) {
                         $end_date_shamsi = '';
                         if (!empty($end_date)) {
                             $end_date_shamsi = sc_date_shamsi_date_only($end_date);
+                        } else {
+                            // اگر دوره جدید است، تاریخ امروز را به صورت پیش‌فرض قرار می‌دهیم
+                            $today_timestamp = time();
+                            $today_date = getdate($today_timestamp);
+                            $today_jalali = gregorian_to_jalali($today_date['year'], $today_date['mon'], $today_date['mday']);
+                            $end_date_shamsi = $today_jalali[0] . '/' . 
+                                               ($today_jalali[1] < 10 ? '0' . $today_jalali[1] : $today_jalali[1]) . '/' . 
+                                               ($today_jalali[2] < 10 ? '0' . $today_jalali[2] : $today_jalali[2]);
                         }
                         ?>
                         <input name="end_date_shamsi" type="text" id="end_date_shamsi" 
@@ -227,7 +243,7 @@ if ($course && isset($_GET['course_id'])) {
                                readonly
                                style="width: 300px; padding: 5px;">
                         <input type="hidden" name="end_date" id="end_date" value="<?php echo esc_attr($end_date ?? ''); ?>">
-                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید (اختیاری - در صورت خالی بودن محدودیتی برای ثبت‌نام وجود ندارد)</p>
                     </td>
                 </tr>
 
@@ -320,12 +336,27 @@ jQuery(document).ready(function($) {
         }
     });
     
-    // تبدیل اولیه اگر تاریخ وجود دارد
+    // تبدیل اولیه اگر تاریخ وجود دارد یا تاریخ پیش‌فرض را تنظیم کنیم
     if ($('#start_date_shamsi').val()) {
         $('#start_date_shamsi').trigger('change');
+    } else {
+        // اگر دوره جدید است و تاریخ پیش‌فرض تنظیم شده، آن را تبدیل کن
+        setTimeout(function() {
+            if ($('#start_date_shamsi').val() && !$('#start_date').val()) {
+                $('#start_date_shamsi').trigger('change');
+            }
+        }, 100);
     }
+    
     if ($('#end_date_shamsi').val()) {
         $('#end_date_shamsi').trigger('change');
+    } else {
+        // اگر دوره جدید است و تاریخ پیش‌فرض تنظیم شده، آن را تبدیل کن
+        setTimeout(function() {
+            if ($('#end_date_shamsi').val() && !$('#end_date').val()) {
+                $('#end_date_shamsi').trigger('change');
+            }
+        }, 100);
     }
 });
 </script>

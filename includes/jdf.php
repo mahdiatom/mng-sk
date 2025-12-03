@@ -242,3 +242,59 @@ if (!function_exists('sc_shamsi_to_gregorian_date')) {
     }
 }
 
+if (!function_exists('sc_compare_shamsi_dates')) {
+    /**
+     * مقایسه دو تاریخ شمسی
+     * @param string $date1 تاریخ شمسی اول (مثل 1403/02/15)
+     * @param string $date2 تاریخ شمسی دوم (مثل 1403/02/20)
+     * @return int -1 اگر date1 < date2, 0 اگر برابر باشند, 1 اگر date1 > date2
+     */
+    function sc_compare_shamsi_dates($date1, $date2) {
+        if (empty($date1) || empty($date2)) {
+            return 0;
+        }
+        
+        $parts1 = explode('/', $date1);
+        $parts2 = explode('/', $date2);
+        
+        if (count($parts1) !== 3 || count($parts2) !== 3) {
+            return 0;
+        }
+        
+        $year1 = (int)$parts1[0];
+        $month1 = (int)$parts1[1];
+        $day1 = (int)$parts1[2];
+        
+        $year2 = (int)$parts2[0];
+        $month2 = (int)$parts2[1];
+        $day2 = (int)$parts2[2];
+        
+        if ($year1 < $year2) return -1;
+        if ($year1 > $year2) return 1;
+        
+        if ($month1 < $month2) return -1;
+        if ($month1 > $month2) return 1;
+        
+        if ($day1 < $day2) return -1;
+        if ($day1 > $day2) return 1;
+        
+        return 0;
+    }
+}
+
+if (!function_exists('sc_get_today_shamsi')) {
+    /**
+     * دریافت تاریخ امروز به صورت شمسی
+     * @return string تاریخ امروز شمسی (مثل 1403/02/15)
+     */
+    function sc_get_today_shamsi() {
+        $today_timestamp = time();
+        $today_date = getdate($today_timestamp);
+        $today_jalali = gregorian_to_jalali($today_date['year'], $today_date['mon'], $today_date['mday']);
+        
+        return $today_jalali[0] . '/' . 
+               ($today_jalali[1] < 10 ? '0' . $today_jalali[1] : $today_jalali[1]) . '/' . 
+               ($today_jalali[2] < 10 ? '0' . $today_jalali[2] : $today_jalali[2]);
+    }
+}
+

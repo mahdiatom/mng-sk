@@ -81,9 +81,17 @@ class Courses_List_Table extends WP_List_Table {
             case 'sessions_count':
                 return $item['sessions_count'] ? $item['sessions_count'] : '-';
             case 'start_date':
-                return $item['start_date'] ? $item['start_date'] : '-';
+                if (empty($item['start_date'])) {
+                    return '-';
+                }
+                // تبدیل تاریخ میلادی به شمسی
+                return sc_date_shamsi_date_only($item['start_date']);
             case 'end_date':
-                return $item['end_date'] ? $item['end_date'] : '-';
+                if (empty($item['end_date'])) {
+                    return '-';
+                }
+                // تبدیل تاریخ میلادی به شمسی
+                return sc_date_shamsi_date_only($item['end_date']);
             case 'is_active':
                 return $item['is_active'] ? 'فعال' : 'غیرفعال';
             default:

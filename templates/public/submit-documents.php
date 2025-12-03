@@ -83,7 +83,7 @@ if (empty($player_phone) && $billing_phone) {
 ?>
 
 <div class="sc-submit-documents-form">
-    <h2>ارسال مدارک و اطلاعات</h2>
+    <h2>اطلاعات بازیکن</h2>
     <p class="description">لطفاً اطلاعات و مدارک خود را با دقت وارد کنید. پس از بررسی توسط مدیر، حساب شما فعال خواهد شد.</p>
     
     <?php wc_print_notices(); ?>
@@ -222,15 +222,27 @@ if (empty($player_phone) && $billing_phone) {
                 <label>اطلاعات تأیید شده</label>
                 <label><input name="info_verified" type="checkbox" <?php checked($info_verified, 1); ?> value="1"> بله</label>
             </p>
-            <p class="form-row">
-                    <span class="slider round"> وضعیت بازیکن  :   <?php echo $is_active ? "فعال" : "غیرفعال" ?></span> 
+            <div class="sc-status-cards">
+                <div class="sc-status-card">
+                    <div class="sc-status-icon"><?php echo $is_active ? "✅" : "❌"; ?></div>
+                    <div class="sc-status-content">
+                        <strong>وضعیت بازیکن</strong>
+                        <span class="sc-status-badge <?php echo $is_active ? 'active' : 'inactive'; ?>">
+                            <?php echo $is_active ? "فعال" : "غیرفعال"; ?>
+                        </span>
+                    </div>
+                </div>
                 
-            </p>
-            <p class="form-row">
-                
-                    <span class="slider round"> دوره های فعال :   <?php echo !empty($courses_text) ?   $courses_text : "شما هنوز در دوره ای ثبت نام نکردید یا دوره فعالی ندارید" ?></span> 
-                
-            </p>
+                <div class="sc-status-card">
+                    <div class="sc-status-icon">📚</div>
+                    <div class="sc-status-content">
+                        <strong>دوره‌های فعال</strong>
+                        <div class="sc-courses-list">
+                            <?php echo !empty($courses_text) ? $courses_text : "<span style='color: #999;'>شما هنوز در دوره‌ای ثبت نام نکردید</span>"; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
           
         </div>
         
