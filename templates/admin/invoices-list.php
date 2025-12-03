@@ -176,10 +176,12 @@ $members = $wpdb->get_results(
                         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
                         $status_options = [
                             'all' => 'همه وضعیت‌ها',
-                            'cancelled' => 'لغو شده',
                             'pending' => 'در انتظار پرداخت',
+                            'processing' => 'پرداخت شده',
                             'on-hold' => 'در حال بررسی',
-                            'completed' => 'پرداخت شده'
+                            'completed' => 'تایید پرداخت',
+                            'cancelled' => 'لغو شده',
+                            'failed' => 'ناموفق'
                         ];
                         foreach ($status_options as $value => $label) :
                         ?>

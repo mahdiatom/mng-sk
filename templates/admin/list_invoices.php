@@ -198,7 +198,8 @@ class Invoices_List_Table extends WP_List_Table {
             'mark_on-hold' => 'تغییر وضعیت به: در حال بررسی',
             'mark_completed' => 'تغییر وضعیت به: تایید پرداخت',
             'mark_cancelled' => 'تغییر وضعیت به: لغو شده',
-            'mark_failed' => 'تغییر وضعیت به: ناموفق'
+            'mark_failed' => 'تغییر وضعیت به: ناموفق',
+            'delete' => 'حذف'
         ];
     }
 
@@ -244,6 +245,28 @@ class Invoices_List_Table extends WP_List_Table {
             case 'mark_failed':
                 $new_status = 'failed';
                 break;
+            case 'delete':
+                // حذف صورت حساب‌ها
+                foreach ($invoice_ids as $invoice_id) {
+                    $invoice = $wpdb->get_row($wpdb->prepare(
+                        "SELECT woocommerce_order_id FROM $table_name WHERE id = %d",
+                        $invoice_id
+                    ));
+                    
+                    // حذف سفارش WooCommerce اگر وجود دارد
+                    if ($invoice && !empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
+                        $order = wc_get_order($invoice->woocommerce_order_id);
+                        if ($order) {
+                            $order->delete(true); // true = force delete
+                        }
+                    }
+                    
+                    // حذف صورت حساب
+                    $wpdb->delete($table_name, ['id' => $invoice_id], ['%d']);
+                }
+                
+                wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_deleted'));
+                exit;
             default:
                 return;
         }
@@ -371,7 +394,15 @@ class Invoices_List_Table extends WP_List_Table {
             $count_all = $wpdb->get_var($count_query);
         }
 
-        $statuses = ['all' => 'همه', 'cancelled' => 'لغو شده', 'pending' => 'در انتظار پرداخت', 'on-hold' => 'در حال بررسی', 'completed' => 'پرداخت شده'];
+        $statuses = [
+            'all' => 'همه',
+            'pending' => 'در انتظار پرداخت',
+            'processing' => 'پرداخت شده',
+            'on-hold' => 'در حال بررسی',
+            'completed' => 'تایید پرداخت',
+            'cancelled' => 'لغو شده',
+            'failed' => 'ناموفق'
+        ];
         $views = [];
 
         foreach ($statuses as $status_key => $status_label) {
@@ -380,12 +411,11 @@ class Invoices_List_Table extends WP_List_Table {
             if ($status_key !== 'all') {
                 $count_where = $where_conditions;
                 $count_where_values = $where_values;
-                // برای completed، باید paid و completed و processing را هم در نظر بگیریم
+                // برای completed، باید paid و completed را هم در نظر بگیریم
                 if ($status_key === 'completed') {
-                    $count_where[] = "(i.status = %s OR i.status = %s OR i.status = %s)";
+                    $count_where[] = "(i.status = %s OR i.status = %s)";
                     $count_where_values[] = 'completed';
                     $count_where_values[] = 'paid';
-                    $count_where_values[] = 'processing';
                 } elseif ($status_key === 'on-hold') {
                     $count_where[] = "(i.status = %s OR i.status = %s)";
                     $count_where_values[] = 'on-hold';
@@ -491,12 +521,11 @@ class Invoices_List_Table extends WP_List_Table {
         $where_values = [];
 
         if ($filter_status !== 'all') {
-            // برای completed، باید paid و completed و processing را هم در نظر بگیریم
+            // برای completed، باید paid و completed را هم در نظر بگیریم
             if ($filter_status === 'completed') {
-                $where_conditions[] = "(i.status = %s OR i.status = %s OR i.status = %s)";
+                $where_conditions[] = "(i.status = %s OR i.status = %s)";
                 $where_values[] = 'completed';
                 $where_values[] = 'paid';
-                $where_values[] = 'processing';
             } elseif ($filter_status === 'on-hold') {
                 $where_conditions[] = "(i.status = %s OR i.status = %s)";
                 $where_values[] = 'on-hold';
