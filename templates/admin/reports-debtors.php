@@ -388,26 +388,5 @@ jQuery(document).ready(function($) {
 </script>
 
 <style>
-.sc-dropdown-option:hover {
-    background: #f0f6fc !important;
-}
-.sc-dropdown-option.sc-selected {
-    background: #f0f6fc;
-}
-.sc-searchable-dropdown {
-    direction: rtl;
-}
-.sc-dropdown-menu::-webkit-scrollbar {
-    width: 8px;
-}
-.sc-dropdown-menu::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-.sc-dropdown-menu::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-}
-.sc-dropdown-menu::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
+
 </style>

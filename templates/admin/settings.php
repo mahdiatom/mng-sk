@@ -196,15 +196,6 @@ $invoice_interval_days = sc_get_invoice_interval_days();
 </div>
 
 <style>
-.nav-tab-wrapper {
-    margin-bottom: 20px;
-}
 
-.tab-content {
-    background: #fff;
-    padding: 20px;
-    border: 1px solid #ccd0d4;
-    box-shadow: 0 1px 1px rgba(0,0,0,.04);
-}
 </style>
 

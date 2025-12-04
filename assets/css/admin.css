@@ -366,3 +366,50 @@ p.sk-modal-content p {
 .sc-dropdown-menu::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+/* 
+لیست حضور غیاب */
+
+.nav-tab-wrapper {
+    margin-bottom: 20px;
+}
+.nav-tab {
+    padding: 10px 15px;
+    text-decoration: none;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #f1f1f1;
+    color: #555;
+}
+.nav-tab-active {
+    background: #fff;
+    border-bottom-color: #fff;
+    color: #000;
+    font-weight: bold;
+}
+
+/* بخش expenses  */
+.nav-tab-wrapper {
+    margin-bottom: 20px;
+}
+.nav-tab {
+    padding: 10px 15px;
+    text-decoration: none;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #f1f1f1;
+    color: #555;
+}
+.nav-tab-active {
+    background: #fff;
+    border-bottom-color: #fff;
+    color: #000;
+    font-weight: bold;
+}
+
+.tab-content {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+

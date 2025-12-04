@@ -365,43 +365,7 @@ if($player && $_GET['player_id'] ){
                     echo '<p class="description" style="margin-top: 10px;">بازیکن می‌تواند در چند دوره شرکت کند. تیک اول دوره را فعال/غیرفعال می‌کند و تیک‌های دیگر وضعیت‌های اضافی هستند.</p>';
                     
                     // JavaScript برای فعال/غیرفعال کردن checkbox های وضعیت
-                    echo '<script type="text/javascript">
-                    // تابع toggle برای آکاردئون دوره‌ها - باید در global scope باشد
-                    window.toggleCoursesAccordion = function() {
-                        var content = document.getElementById("sc-courses-content");
-                        var icon = document.getElementById("courses-accordion-icon");
-                        
-                        if (!content || !icon) {
-                            console.error("Accordion elements not found");
-                            return;
-                        }
-                        
-                        if (content.style.display === "none" || content.style.display === "") {
-                            content.style.display = "block";
-                            icon.textContent = "▲";
-                        } else {
-                            content.style.display = "none";
-                            icon.textContent = "▼";
-                        }
-                    };
-                    
-                    jQuery(document).ready(function($) {
-                        $("input[name=\'courses[]\']").change(function() {
-                            var courseId = $(this).val();
-                            var statusDiv = $("#course_status_" + courseId);
-                            var checkboxes = statusDiv.find("input[type=checkbox]");
-                            
-                            if ($(this).is(":checked")) {
-                                statusDiv.show();
-                                checkboxes.prop("disabled", false);
-                            } else {
-                                statusDiv.hide();
-                                checkboxes.prop("disabled", true);
-                                checkboxes.prop("checked", false);
-                            }
-                        });
-                    });
-                    </script>';
+                 
                 }
                 ?>
             </div>
