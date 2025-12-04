@@ -71,6 +71,3 @@ jQuery(document).ready(function($) {
 
 
 
-
-
-
