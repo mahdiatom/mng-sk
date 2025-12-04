@@ -1115,42 +1115,70 @@ function sc_create_event_invoice($member_id, $event_id, $amount) {
     $events_table = $wpdb->prefix . 'sc_events';
     
     // دریافت اطلاعات رویداد
+    // توجه: در اینجا نیازی به بررسی deleted_at و is_active نیست چون قبلاً در sc_handle_event_enrollment بررسی شده است
     $event = $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM $events_table WHERE id = %d",
         $event_id
     ));
     
     if (!$event) {
-        return ['success' => false, 'message' => 'رویداد یافت نشد.'];
+        error_log('SC Event Invoice: Event not found - event_id: ' . $event_id);
+        return ['success' => false, 'message' => 'رویداد یافت نشد. (Event ID: ' . $event_id . ')'];
+    }
+    
+    // اگر amount صفر یا خالی است، از قیمت رویداد استفاده کن
+    if (empty($amount) || $amount == 0) {
+        $amount = floatval($event->price);
     }
     
     // ایجاد صورت حساب
     $invoice_data = [
         'member_id' => $member_id,
         'event_id' => $event_id,
-        'course_id' => NULL,
+        'course_id' => 0, // برای رویداد، course_id باید 0 باشد نه NULL
+        'member_course_id' => NULL,
+        'woocommerce_order_id' => NULL,
         'amount' => $amount,
+        'expense_name' => NULL,
+        'penalty_amount' => 0.00,
+        'penalty_applied' => 0,
         'status' => 'pending',
+        'payment_date' => NULL,
         'created_at' => current_time('mysql'),
         'updated_at' => current_time('mysql')
     ];
     
+    // آماده‌سازی format array برای insert
+    // ترتیب: member_id, event_id, course_id, member_course_id, woocommerce_order_id, amount, expense_name, penalty_amount, penalty_applied, status, payment_date, created_at, updated_at
+    $format_array = ['%d', '%d', '%d', '%s', '%s', '%f', '%s', '%f', '%d', '%s', '%s', '%s', '%s'];
+    
+    // تنظیم format برای فیلدهای NULL (index از 0 شروع می‌شود)
+    // member_course_id (index 3) = NULL
+    // woocommerce_order_id (index 4) = NULL  
+    // expense_name (index 6) = NULL
+    // payment_date (index 10) = NULL
+    
     $inserted = $wpdb->insert(
         $invoices_table,
         $invoice_data,
-        ['%d', '%d', '%s', '%f', '%s', '%s', '%s']
+        $format_array
     );
     
     if ($inserted === false) {
-        return ['success' => false, 'message' => 'خطا در ایجاد صورت حساب.'];
+        error_log('SC Event Invoice: Insert failed - ' . $wpdb->last_error);
+        error_log('SC Event Invoice: Insert query - ' . $wpdb->last_query);
+        error_log('SC Event Invoice: Insert data - ' . print_r($invoice_data, true));
+        error_log('SC Event Invoice: Insert format - ' . print_r($format_array, true));
+        return ['success' => false, 'message' => 'خطا در ایجاد صورت حساب: ' . $wpdb->last_error];
     }
     
     $invoice_id = $wpdb->insert_id;
     
     // ایجاد سفارش WooCommerce
+    // توجه: course_id را 0 می‌فرستیم چون این یک رویداد است، نه دوره
     $order_result = sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, 0, $amount, $event->name);
     
-    if ($order_result && isset($order_result['order_id']) && $order_result['order_id']) {
+    if ($order_result && isset($order_result['success']) && $order_result['success'] && !empty($order_result['order_id'])) {
         $order_id = $order_result['order_id'];
         
         // بروزرسانی invoice با order_id
@@ -1170,16 +1198,23 @@ function sc_create_event_invoice($member_id, $event_id, $amount) {
             'success' => true,
             'invoice_id' => $invoice_id,
             'order_id' => $order_id,
-            'payment_url' => $payment_url
+            'payment_url' => $payment_url,
+            'message' => 'صورت حساب با موفقیت ایجاد شد.'
+        ];
+    } else {
+        // اگر order ایجاد نشد، خطا را برمی‌گردانیم
+        $error_message = isset($order_result['message']) ? $order_result['message'] : 'خطا در ایجاد سفارش WooCommerce';
+        error_log('SC Event Order Creation Error: ' . $error_message);
+        error_log('SC Event Order Result: ' . print_r($order_result, true));
+        
+        return [
+            'success' => false,
+            'invoice_id' => $invoice_id,
+            'order_id' => NULL,
+            'payment_url' => '',
+            'message' => $error_message
         ];
     }
-    
-    return [
-        'success' => true,
-        'invoice_id' => $invoice_id,
-        'order_id' => NULL,
-        'payment_url' => ''
-    ];
 }
 }
 
@@ -1411,14 +1446,24 @@ function sc_handle_event_enrollment() {
     }
     
     // ایجاد صورت حساب و سفارش WooCommerce
+    // لاگ برای دیباگ
+    error_log('SC Event Enrollment: Creating invoice for event_id: ' . $event_id . ', member_id: ' . $player->id . ', price: ' . $event->price);
+    
     $invoice_result = sc_create_event_invoice($player->id, $event_id, $event->price);
     
-    if ($invoice_result['success']) {
-        wc_add_notice('ثبت‌نام با موفقیت انجام شد. لطفاً صورت حساب را پرداخت کنید.', 'success');
-        wp_safe_redirect($invoice_result['payment_url']);
+    // لاگ نتیجه
+    error_log('SC Event Enrollment: Invoice result: ' . print_r($invoice_result, true));
+    
+    if ($invoice_result && isset($invoice_result['success']) && $invoice_result['success']) {
+        // ریدایرکت به تب صورت حساب‌ها (مثل ثبت‌نام دوره)
+        wc_add_notice('ثبت‌نام شما با موفقیت انجام شد. لطفاً صورت حساب خود را پرداخت کنید.', 'success');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
         exit;
     } else {
-        wc_add_notice('خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.', 'error');
+        $error_message = isset($invoice_result['message']) ? $invoice_result['message'] : 'خطا در ایجاد صورت حساب';
+        error_log('SC Event Invoice Creation Error: ' . $error_message);
+        error_log('SC Event Invoice Result: ' . print_r($invoice_result, true));
+        wc_add_notice('خطا در ثبت‌نام: ' . $error_message . '. لطفاً دوباره تلاش کنید.', 'error');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
         exit;
     }

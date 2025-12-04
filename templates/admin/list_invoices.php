@@ -112,6 +112,8 @@ class Invoices_List_Table extends WP_List_Table {
     public function column_course_title($item) {
         $course_title = $item['course_title'] ?? '';
         $course_price = isset($item['course_price']) ? floatval($item['course_price']) : 0;
+        $event_name = $item['event_name'] ?? '';
+        $event_price = isset($item['event_price']) ? floatval($item['event_price']) : 0;
         $expense_name = $item['expense_name'] ?? '';
         $total_amount = isset($item['amount']) ? floatval($item['amount']) : 0;
         
@@ -126,11 +128,21 @@ class Invoices_List_Table extends WP_List_Table {
             $parts[] = '<strong>دوره:</strong> ' . $course_display;
         }
         
+        // نمایش رویداد / مسابقه
+        if (!empty($event_name) && trim($event_name) !== '') {
+            $event_display = esc_html($event_name);
+            if ($event_price > 0) {
+                $event_display .= ' (' . number_format($event_price, 0, '.', ',') . ' تومان)';
+            }
+            $parts[] = '<strong>رویداد / مسابقه:</strong> ' . $event_display;
+        }
+        
         // نمایش هزینه اضافی
         if (!empty($expense_name) && trim($expense_name) !== '') {
             $expense_display = esc_html($expense_name);
             // محاسبه مبلغ هزینه اضافی
-            $expense_amount = $total_amount - $course_price;
+            $base_amount = $course_price > 0 ? $course_price : ($event_price > 0 ? $event_price : 0);
+            $expense_amount = $total_amount - $base_amount;
             if ($expense_amount > 0) {
                 $expense_display .= ' (' . number_format($expense_amount, 0, '.', ',') . ' تومان)';
             }
@@ -578,10 +590,12 @@ class Invoices_List_Table extends WP_List_Table {
         $where_clause = implode(' AND ', $where_conditions);
         
         // ساخت query
+        $events_table = $wpdb->prefix . 'sc_events';
         $base_query = "SELECT SQL_CALC_FOUND_ROWS 
                     i.id,
                     i.member_id,
                     i.course_id,
+                    i.event_id,
                     i.woocommerce_order_id,
                     i.amount,
                     i.expense_name,
@@ -594,10 +608,13 @@ class Invoices_List_Table extends WP_List_Table {
                     m.last_name,
                     m.player_phone,
                     c.title as course_title,
-                    c.price as course_price
+                    c.price as course_price,
+                    e.name as event_name,
+                    e.price as event_price
                   FROM $invoices_table i
                   INNER JOIN $members_table m ON i.member_id = m.id
                   LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
+                  LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
                   WHERE $where_clause
                   ORDER BY i.$orderby $order
                   LIMIT %d OFFSET %d";
