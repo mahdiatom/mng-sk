@@ -923,6 +923,115 @@ function callback_add_member_sufix(){
             );
 
             if ($updated !== false) {
+                // پردازش username و password برای به‌روزرسانی یا ایجاد کاربر WordPress
+                $username = isset($_POST['username']) ? trim($_POST['username']) : '';
+                $password = isset($_POST['password']) ? trim($_POST['password']) : '';
+                
+                // دریافت user_id فعلی
+                $current_user_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT user_id FROM $table_name WHERE id = %d",
+                    $player_id
+                ));
+                
+                if (!empty($username)) {
+                    // اگر username وارد شده و user_id وجود دارد، کاربر را به‌روزرسانی کن
+                    if ($current_user_id) {
+                        $user = get_userdata($current_user_id);
+                        if ($user) {
+                            // به‌روزرسانی username (اگر تغییر کرده باشد)
+                            // توجه: WordPress به صورت پیش‌فرض اجازه تغییر username را نمی‌دهد
+                            // برای تغییر username باید از plugin یا کد خاص استفاده کرد
+                            // در اینجا فقط اگر username خالی نباشد و متفاوت باشد، لاگ می‌کنیم
+                            if ($user->user_login !== $username && !empty($username)) {
+                                // بررسی اینکه username جدید تکراری نباشد
+                                if (!username_exists($username)) {
+                                    // تغییر username در دیتابیس (این کار پیشنهاد نمی‌شود اما برای سازگاری انجام می‌شود)
+                                    $wpdb->update(
+                                        $wpdb->users,
+                                        ['user_login' => sanitize_user($username, true)],
+                                        ['ID' => $current_user_id],
+                                        ['%s'],
+                                        ['%d']
+                                    );
+                                    
+                                    // پاک کردن cache
+                                    clean_user_cache($current_user_id);
+                                } else {
+                                    error_log('SC Member: Username already exists - ' . $username);
+                                }
+                            }
+                            
+                            // به‌روزرسانی رمز عبور (اگر وارد شده باشد)
+                            if (!empty($password)) {
+                                wp_set_password($password, $current_user_id);
+                            }
+                            
+                            // به‌روزرسانی اطلاعات کاربر
+                            wp_update_user([
+                                'ID' => $current_user_id,
+                                'first_name' => $data['first_name'],
+                                'last_name' => $data['last_name'],
+                                'display_name' => $data['first_name'] . ' ' . $data['last_name']
+                            ]);
+                            
+                            // به‌روزرسانی اطلاعات billing
+                            if (!empty($data['player_phone'])) {
+                                update_user_meta($current_user_id, 'billing_phone', $data['player_phone']);
+                            }
+                        }
+                    } else {
+                        // اگر user_id وجود ندارد و username و password وارد شده، کاربر جدید ایجاد کن
+                        if (!empty($password)) {
+                            // بررسی اینکه username تکراری نباشد
+                            if (!username_exists($username)) {
+                                // ایجاد کاربر WordPress
+                                $email = !empty($data['player_phone']) ? sanitize_email($data['player_phone'] . '@sportclub.local') : sanitize_email($username . '@sportclub.local');
+                                
+                                // اگر email معتبر نیست، از username استفاده کن
+                                if (!is_email($email)) {
+                                    $email = sanitize_email($username . '@sportclub.local');
+                                }
+                                
+                                $new_user_id = wp_create_user($username, $password, $email);
+                                
+                                if (!is_wp_error($new_user_id)) {
+                                    // تنظیم نقش کاربر (customer برای WooCommerce)
+                                    $user = new WP_User($new_user_id);
+                                    $user->set_role('customer');
+                                    
+                                    // تنظیم اطلاعات کاربر
+                                    wp_update_user([
+                                        'ID' => $new_user_id,
+                                        'first_name' => $data['first_name'],
+                                        'last_name' => $data['last_name'],
+                                        'display_name' => $data['first_name'] . ' ' . $data['last_name']
+                                    ]);
+                                    
+                                    // تنظیم اطلاعات billing
+                                    if (!empty($data['player_phone'])) {
+                                        update_user_meta($new_user_id, 'billing_phone', $data['player_phone']);
+                                    }
+                                    
+                                    // ذخیره user_id در جدول members
+                                    $wpdb->update(
+                                        $table_name,
+                                        ['user_id' => $new_user_id],
+                                        ['id' => $player_id],
+                                        ['%d'],
+                                        ['%d']
+                                    );
+                                } else {
+                                    // اگر خطا در ایجاد کاربر بود، لاگ کن
+                                    error_log('SC Member: Error creating WordPress user - ' . $new_user_id->get_error_message());
+                                }
+                            } else {
+                                // اگر username تکراری بود، لاگ کن
+                                error_log('SC Member: Username already exists - ' . $username);
+                            }
+                        }
+                    }
+                }
+                
                 // ذخیره دوره‌های بازیکن
                 $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
                 $course_flags_raw = isset($_POST['course_flags']) && is_array($_POST['course_flags']) ? $_POST['course_flags'] : [];
@@ -1001,6 +1110,60 @@ function callback_add_member_sufix(){
 
             if ($inserted !== false) {
                 $insert_id = $wpdb->insert_id;
+                
+                // ایجاد کاربر WordPress اگر username و password وارد شده باشد
+                $username = isset($_POST['username']) ? trim($_POST['username']) : '';
+                $password = isset($_POST['password']) ? trim($_POST['password']) : '';
+                $user_id = null;
+                
+                if (!empty($username) && !empty($password)) {
+                    // بررسی اینکه username تکراری نباشد
+                    if (!username_exists($username)) {
+                        // ایجاد کاربر WordPress
+                        $email = !empty($data['player_phone']) ? sanitize_email($data['player_phone'] . '@sportclub.local') : sanitize_email($username . '@sportclub.local');
+                        
+                        // اگر email معتبر نیست، از username استفاده کن
+                        if (!is_email($email)) {
+                            $email = sanitize_email($username . '@sportclub.local');
+                        }
+                        
+                        $user_id = wp_create_user($username, $password, $email);
+                        
+                        if (!is_wp_error($user_id)) {
+                            // تنظیم نقش کاربر (customer برای WooCommerce)
+                            $user = new WP_User($user_id);
+                            $user->set_role('customer');
+                            
+                            // تنظیم اطلاعات کاربر
+                            wp_update_user([
+                                'ID' => $user_id,
+                                'first_name' => $data['first_name'],
+                                'last_name' => $data['last_name'],
+                                'display_name' => $data['first_name'] . ' ' . $data['last_name']
+                            ]);
+                            
+                            // تنظیم اطلاعات billing
+                            if (!empty($data['player_phone'])) {
+                                update_user_meta($user_id, 'billing_phone', $data['player_phone']);
+                            }
+                            
+                            // ذخیره user_id در جدول members
+                            $wpdb->update(
+                                $table_name,
+                                ['user_id' => $user_id],
+                                ['id' => $insert_id],
+                                ['%d'],
+                                ['%d']
+                            );
+                        } else {
+                            // اگر خطا در ایجاد کاربر بود، لاگ کن
+                            error_log('SC Member: Error creating WordPress user - ' . $user_id->get_error_message());
+                        }
+                    } else {
+                        // اگر username تکراری بود، لاگ کن
+                        error_log('SC Member: Username already exists - ' . $username);
+                    }
+                }
                 
                 // ذخیره دوره‌های بازیکن
                 $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];

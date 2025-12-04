@@ -112,6 +112,34 @@ if($player && $_GET['player_id'] ){
                     <th scope="row"><label for="national_id">کد ملی</label></th>
                     <td><input name="national_id" type="text" id="national_id" value="<?php echo $national_id; ?>" class="regular-text" required maxlength="10"></td>
                 </tr>
+                
+                <?php
+                // دریافت user_id اگر وجود دارد
+                $member_user_id = isset($player->user_id) ? $player->user_id : null;
+                $member_username = '';
+                if ($member_user_id) {
+                    $member_user = get_userdata($member_user_id);
+                    if ($member_user) {
+                        $member_username = $member_user->user_login;
+                    }
+                }
+                ?>
+                
+                <tr>
+                    <th scope="row"><label for="username">نام کاربری</label></th>
+                    <td>
+                        <input name="username" type="text" id="username" value="<?php echo esc_attr($member_username); ?>" class="regular-text" placeholder="برای ایجاد کاربر WordPress">
+                        <p class="description">اگر می‌خواهید کاربر به سایت متصل شود، نام کاربری و رمز عبور را وارد کنید</p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row"><label for="password">رمز عبور</label></th>
+                    <td>
+                        <input name="password" type="password" id="password" value="" class="regular-text" placeholder="رمز عبور را وارد کنید">
+                        <p class="description"><?php echo $member_user_id ? 'برای تغییر رمز عبور، رمز جدید را وارد کنید (در صورت خالی بودن، تغییر نمی‌کند)' : 'رمز عبور برای ورود به سایت'; ?></p>
+                    </td>
+                </tr>
            
                 <tr>
                     <th scope="row"><label for="player_phone">شماره موبایل بازیکن</label></th>
