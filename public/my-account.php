@@ -861,50 +861,15 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
         $member_id
     ));
     
-    if (!$member || !$member->user_id) {
-        return ['success' => false, 'message' => 'اطلاعات کاربر یافت نشد یا user_id تنظیم نشده است.', 'order_id' => null];
+    if (!$member) {
+        return ['success' => false, 'message' => 'اطلاعات کاربر یافت نشد.', 'order_id' => null];
     }
     
-    $user_id = $member->user_id;
-    
-    // دریافت اطلاعات کاربر از WordPress
-    $user = get_userdata($user_id);
-    if (!$user) {
-        return ['success' => false, 'message' => 'کاربر یافت نشد.', 'order_id' => null];
-    }
-    
-    // دریافت اطلاعات billing از user meta
-    $billing_first_name = get_user_meta($user_id, 'billing_first_name', true);
-    $billing_last_name = get_user_meta($user_id, 'billing_last_name', true);
-    $billing_email = get_user_meta($user_id, 'billing_email', true);
-    $billing_phone = get_user_meta($user_id, 'billing_phone', true);
-    $billing_address_1 = get_user_meta($user_id, 'billing_address_1', true);
-    $billing_city = get_user_meta($user_id, 'billing_city', true);
-    $billing_postcode = get_user_meta($user_id, 'billing_postcode', true);
-    $billing_country = get_user_meta($user_id, 'billing_country', true);
-    $billing_state = get_user_meta($user_id, 'billing_state', true);
-    
-    // اگر اطلاعات billing وجود نداشت، از اطلاعات کاربر استفاده کن
-    if (empty($billing_first_name)) {
-        $billing_first_name = $member->first_name ? $member->first_name : '';
-    }
-    if (empty($billing_last_name)) {
-        $billing_last_name = $member->last_name ? $member->last_name : '';
-    }
-    if (empty($billing_email)) {
-        $billing_email = $user->user_email ? $user->user_email : '';
-    }
-    if (empty($billing_phone)) {
-        $billing_phone = $member->player_phone ? $member->player_phone : '';
-    }
-    
-    // اطمینان از اینکه حداقل اطلاعات ضروری وجود دارد
-    if (empty($billing_first_name) || empty($billing_last_name) || empty($billing_email)) {
-        return ['success' => false, 'message' => 'اطلاعات کاربر ناقص است.', 'order_id' => null];
-    }
-    
-    // پیدا کردن آخرین order ID برای اطمینان از توالی شماره سفارش
+    // پیدا کردن آخرین order ID برای اطمینان از توالی (قبل از ایجاد order)
     global $wpdb;
+    
+    // پیدا کردن آخرین order ID از تمام order ها (حتی حذف شده)
+    // این مهم است چون AUTO_INCREMENT باید از آخرین ID استفاده کند
     $last_order_id = $wpdb->get_var(
         "SELECT ID FROM {$wpdb->posts} 
          WHERE post_type = 'shop_order' 
@@ -912,31 +877,107 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
          LIMIT 1"
     );
     
-    // اگر order وجود نداشت، از 0 شروع کن
-    if (!$last_order_id) {
-        $last_order_id = 0;
+    // اگر order وجود داشت، مطمئن شویم که AUTO_INCREMENT درست تنظیم شده است
+    if ($last_order_id) {
+        // پیدا کردن AUTO_INCREMENT فعلی
+        $table_name = $wpdb->posts;
+        $auto_increment = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT AUTO_INCREMENT 
+                 FROM INFORMATION_SCHEMA.TABLES 
+                 WHERE TABLE_SCHEMA = DATABASE() 
+                 AND TABLE_NAME = %s",
+                $table_name
+            )
+        );
+        
+        // اگر AUTO_INCREMENT کمتر یا مساوی آخرین order ID بود، آن را تنظیم کن
+        if ($auto_increment && $auto_increment <= $last_order_id) {
+            $next_id = $last_order_id + 1;
+            $wpdb->query(
+                "ALTER TABLE {$table_name} AUTO_INCREMENT = {$next_id}"
+            );
+        }
     }
     
-    // ایجاد سفارش WooCommerce
+    // ایجاد سفارش WooCommerce (قبل از تنظیم customer)
+    // این مهم است چون AUTO_INCREMENT باید قبل از ایجاد order تنظیم شود
     $order = wc_create_order();
     
     if (is_wp_error($order)) {
         return ['success' => false, 'message' => 'خطا در ایجاد سفارش: ' . $order->get_error_message(), 'order_id' => null];
     }
     
-    // اطمینان از اینکه order ID درست است (باید بیشتر از آخرین order باشد)
-    $new_order_id = $order->get_id();
-    if ($new_order_id <= $last_order_id) {
-        // اگر order ID درست نیست، یک order جدید ایجاد کن
-        wp_delete_post($new_order_id, true);
-        $order = wc_create_order();
-        if (is_wp_error($order)) {
-            return ['success' => false, 'message' => 'خطا در ایجاد سفارش: ' . $order->get_error_message(), 'order_id' => null];
+    // اگر user_id وجود دارد، از آن استفاده کن
+    $user_id = null;
+    $user = null;
+    
+    if (!empty($member->user_id)) {
+        $user_id = $member->user_id;
+        $user = get_userdata($user_id);
+        
+        if ($user) {
+            // تنظیم customer برای سفارش
+            $order->set_customer_id($user_id);
+            
+            // دریافت اطلاعات billing از user meta
+            $billing_first_name = get_user_meta($user_id, 'billing_first_name', true);
+            $billing_last_name = get_user_meta($user_id, 'billing_last_name', true);
+            $billing_email = get_user_meta($user_id, 'billing_email', true);
+            $billing_phone = get_user_meta($user_id, 'billing_phone', true);
+            $billing_address_1 = get_user_meta($user_id, 'billing_address_1', true);
+            $billing_city = get_user_meta($user_id, 'billing_city', true);
+            $billing_postcode = get_user_meta($user_id, 'billing_postcode', true);
+            $billing_country = get_user_meta($user_id, 'billing_country', true);
+            $billing_state = get_user_meta($user_id, 'billing_state', true);
+            
+            // اگر اطلاعات billing وجود نداشت، از اطلاعات کاربر استفاده کن
+            if (empty($billing_first_name)) {
+                $billing_first_name = $member->first_name ? $member->first_name : '';
+            }
+            if (empty($billing_last_name)) {
+                $billing_last_name = $member->last_name ? $member->last_name : '';
+            }
+            if (empty($billing_email)) {
+                $billing_email = $user->user_email ? $user->user_email : '';
+            }
+            if (empty($billing_phone)) {
+                $billing_phone = $member->player_phone ? $member->player_phone : '';
+            }
+        } else {
+            // اگر user پیدا نشد، از اطلاعات member استفاده کن
+            $billing_first_name = $member->first_name ? $member->first_name : '';
+            $billing_last_name = $member->last_name ? $member->last_name : '';
+            $billing_email = '';
+            $billing_phone = $member->player_phone ? $member->player_phone : '';
+            $billing_address_1 = '';
+            $billing_city = '';
+            $billing_postcode = '';
+            $billing_country = 'IR';
+            $billing_state = '';
         }
+    } else {
+        // اگر user_id وجود نداشت، از اطلاعات member استفاده کن
+        $billing_first_name = $member->first_name ? $member->first_name : '';
+        $billing_last_name = $member->last_name ? $member->last_name : '';
+        $billing_email = '';
+        $billing_phone = $member->player_phone ? $member->player_phone : '';
+        $billing_address_1 = '';
+        $billing_city = '';
+        $billing_postcode = '';
+        $billing_country = 'IR';
+        $billing_state = '';
     }
     
-    // تنظیم customer برای سفارش
-    $order->set_customer_id($user_id);
+    // اطمینان از اینکه حداقل اطلاعات ضروری وجود دارد
+    if (empty($billing_first_name) || empty($billing_last_name)) {
+        return ['success' => false, 'message' => 'اطلاعات کاربر ناقص است (نام و نام خانوادگی الزامی است).', 'order_id' => null];
+    }
+    
+    // اگر email وجود نداشت، یک email موقت ایجاد کن
+    if (empty($billing_email)) {
+        $billing_email = 'member_' . $member_id . '@sportclub.local';
+    }
     
     // تنظیم اطلاعات billing
     $order->set_billing_first_name($billing_first_name);
