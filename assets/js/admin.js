@@ -716,6 +716,96 @@ jQuery(document).ready(function($) {
             checkboxes.prop("checked", false);
         }
     });
+    
+    // انتخاب عکس پرسنلی
+    $('#btn_personal_photo').on('click', function(e) {
+        e.preventDefault();
+        var button = $(this);
+        var inputField = $('#personal_photo_txt');
+        
+        var imageUploader = wp.media({
+            title: 'انتخاب عکس پرسنلی',
+            button: {
+                text: 'استفاده از این عکس'
+            },
+            multiple: false
+        });
+
+        imageUploader.on('select', function() {
+            var attachment = imageUploader.state().get('selection').first().toJSON();
+            inputField.val(attachment.url);
+            
+            // نمایش پیش‌نمایش
+            var previewContainer = inputField.closest('td').find('.sc-image-preview');
+            if (previewContainer.length === 0) {
+                inputField.after('<div class="sc-image-preview" style="margin-top: 10px;"><img src="' + attachment.url + '" alt="عکس پرسنلی" style="max-width: 300px; height: auto; border: 1px solid #ddd; border-radius: 4px;"></div>');
+            } else {
+                previewContainer.find('img').attr('src', attachment.url);
+            }
+        });
+
+        imageUploader.open();
+    });
+    
+    // انتخاب عکس کارت ملی
+    $('#btn_id_card_photo').on('click', function(e) {
+        e.preventDefault();
+        var button = $(this);
+        var inputField = $('#id_card_photo_txt');
+        
+        var imageUploader = wp.media({
+            title: 'انتخاب عکس کارت ملی',
+            button: {
+                text: 'استفاده از این عکس'
+            },
+            multiple: false
+        });
+
+        imageUploader.on('select', function() {
+            var attachment = imageUploader.state().get('selection').first().toJSON();
+            inputField.val(attachment.url);
+            
+            // نمایش پیش‌نمایش
+            var previewContainer = inputField.closest('td').find('.sc-image-preview');
+            if (previewContainer.length === 0) {
+                inputField.after('<div class="sc-image-preview" style="margin-top: 10px;"><img src="' + attachment.url + '" alt="عکس کارت ملی" style="max-width: 300px; height: auto; border: 1px solid #ddd; border-radius: 4px;"></div>');
+            } else {
+                previewContainer.find('img').attr('src', attachment.url);
+            }
+        });
+
+        imageUploader.open();
+    });
+    
+    // انتخاب عکس بیمه ورزشی
+    $('#btn_sport_insurance_photo').on('click', function(e) {
+        e.preventDefault();
+        var button = $(this);
+        var inputField = $('#sport_insurance_photo_txt');
+        
+        var imageUploader = wp.media({
+            title: 'انتخاب عکس بیمه ورزشی',
+            button: {
+                text: 'استفاده از این عکس'
+            },
+            multiple: false
+        });
+
+        imageUploader.on('select', function() {
+            var attachment = imageUploader.state().get('selection').first().toJSON();
+            inputField.val(attachment.url);
+            
+            // نمایش پیش‌نمایش
+            var previewContainer = inputField.closest('td').find('.sc-image-preview');
+            if (previewContainer.length === 0) {
+                inputField.after('<div class="sc-image-preview" style="margin-top: 10px;"><img src="' + attachment.url + '" alt="عکس بیمه ورزشی" style="max-width: 300px; height: auto; border: 1px solid #ddd; border-radius: 4px;"></div>');
+            } else {
+                previewContainer.find('img').attr('src', attachment.url);
+            }
+        });
+
+        imageUploader.open();
+    });
 });
 
 // ============================================

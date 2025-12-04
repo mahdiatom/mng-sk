@@ -903,11 +903,36 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
         return ['success' => false, 'message' => 'اطلاعات کاربر ناقص است.', 'order_id' => null];
     }
     
+    // پیدا کردن آخرین order ID برای اطمینان از توالی شماره سفارش
+    global $wpdb;
+    $last_order_id = $wpdb->get_var(
+        "SELECT ID FROM {$wpdb->posts} 
+         WHERE post_type = 'shop_order' 
+         ORDER BY ID DESC 
+         LIMIT 1"
+    );
+    
+    // اگر order وجود نداشت، از 0 شروع کن
+    if (!$last_order_id) {
+        $last_order_id = 0;
+    }
+    
     // ایجاد سفارش WooCommerce
     $order = wc_create_order();
     
     if (is_wp_error($order)) {
         return ['success' => false, 'message' => 'خطا در ایجاد سفارش: ' . $order->get_error_message(), 'order_id' => null];
+    }
+    
+    // اطمینان از اینکه order ID درست است (باید بیشتر از آخرین order باشد)
+    $new_order_id = $order->get_id();
+    if ($new_order_id <= $last_order_id) {
+        // اگر order ID درست نیست، یک order جدید ایجاد کن
+        wp_delete_post($new_order_id, true);
+        $order = wc_create_order();
+        if (is_wp_error($order)) {
+            return ['success' => false, 'message' => 'خطا در ایجاد سفارش: ' . $order->get_error_message(), 'order_id' => null];
+        }
     }
     
     // تنظیم customer برای سفارش
