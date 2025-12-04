@@ -840,17 +840,21 @@ function callback_add_member_sufix(){
        global $wpdb;
        $table_name = $wpdb->prefix . 'sc_members';
        
-       // Validation
-       if (empty($_POST['first_name']) || empty($_POST['last_name']) || empty($_POST['national_id'])) {
+       // Validation - بررسی فیلدهای اجباری
+       $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
+       $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
+       $national_id = isset($_POST['national_id']) ? trim($_POST['national_id']) : '';
+       
+       if (empty($first_name) || empty($last_name) || empty($national_id)) {
            wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_error'));
            exit;
        }
        
        // آماده‌سازی داده‌ها
        $data = [
-        'first_name'           => sanitize_text_field($_POST['first_name']),
-        'last_name'            => sanitize_text_field($_POST['last_name']),
-        'national_id'          => sanitize_text_field($_POST['national_id']),
+        'first_name'           => sanitize_text_field($first_name),
+        'last_name'            => sanitize_text_field($last_name),
+        'national_id'          => sanitize_text_field($national_id),
         'health_verified'      => isset($_POST['health_verified']) ? 1 : 0,
         'info_verified'        => isset($_POST['info_verified']) ? 1 : 0,
         'is_active'            => isset($_POST['is_active']) ? 1 : 0,
@@ -867,7 +871,24 @@ function callback_add_member_sufix(){
        $data['landline_phone'] = isset($_POST['landline_phone']) && !empty(trim($_POST['landline_phone'])) ? sanitize_text_field($_POST['landline_phone']) : NULL;
        $data['birth_date_shamsi'] = isset($_POST['birth_date_shamsi']) && !empty(trim($_POST['birth_date_shamsi'])) ? sanitize_text_field($_POST['birth_date_shamsi']) : NULL;
        $data['insurance_expiry_date_shamsi'] = isset($_POST['insurance_expiry_date_shamsi']) && !empty(trim($_POST['insurance_expiry_date_shamsi'])) ? sanitize_text_field($_POST['insurance_expiry_date_shamsi']) : NULL;
-       $data['birth_date_gregorian'] = isset($_POST['birth_date_gregorian']) && !empty(trim($_POST['birth_date_gregorian'])) ? sanitize_text_field($_POST['birth_date_gregorian']) : NULL;
+       
+       // پردازش تاریخ تولد میلادی
+       $birth_date_gregorian = NULL;
+       if (!empty($data['birth_date_shamsi'])) {
+           $birth_date_gregorian = sc_shamsi_to_gregorian_date($data['birth_date_shamsi']);
+       } elseif (isset($_POST['birth_date_gregorian']) && !empty(trim($_POST['birth_date_gregorian']))) {
+           $birth_date_gregorian = sanitize_text_field($_POST['birth_date_gregorian']);
+       }
+       $data['birth_date_gregorian'] = $birth_date_gregorian;
+       
+       // پردازش تاریخ انقضا بیمه میلادی
+       $insurance_expiry_date_gregorian = NULL;
+       if (!empty($data['insurance_expiry_date_shamsi'])) {
+           $insurance_expiry_date_gregorian = sc_shamsi_to_gregorian_date($data['insurance_expiry_date_shamsi']);
+       } elseif (isset($_POST['insurance_expiry_date_gregorian']) && !empty(trim($_POST['insurance_expiry_date_gregorian']))) {
+           $insurance_expiry_date_gregorian = sanitize_text_field($_POST['insurance_expiry_date_gregorian']);
+       }
+       $data['insurance_expiry_date_gregorian'] = $insurance_expiry_date_gregorian;
        $data['personal_photo'] = isset($_POST['personal_photo']) && !empty(trim($_POST['personal_photo'])) ? esc_url_raw($_POST['personal_photo']) : NULL;
        $data['id_card_photo'] = isset($_POST['id_card_photo']) && !empty(trim($_POST['id_card_photo'])) ? esc_url_raw($_POST['id_card_photo']) : NULL;
        $data['sport_insurance_photo'] = isset($_POST['sport_insurance_photo']) && !empty(trim($_POST['sport_insurance_photo'])) ? esc_url_raw($_POST['sport_insurance_photo']) : NULL;
@@ -950,7 +971,33 @@ function callback_add_member_sufix(){
                 exit;
             }
             
-            $inserted = $wpdb->insert($table_name, $data);
+            // آماده‌سازی format array برای insert
+            $format = [];
+            foreach ($data as $key => $value) {
+                if ($value === NULL) {
+                    $format[] = '%s'; // NULL
+                } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'])) {
+                    $format[] = '%d'; // integer
+                } else {
+                    $format[] = '%s'; // string
+                }
+            }
+            
+            $inserted = $wpdb->insert($table_name, $data, $format);
+
+            if ($inserted === false) {
+                // نمایش خطای دیتابیس برای دیباگ
+                if ($wpdb->last_error) {
+                    error_log('WP Insert Member Error: ' . $wpdb->last_error);
+                    error_log('WP Insert Member Query: ' . $wpdb->last_query);
+                    error_log('WP Insert Member Data: ' . print_r($data, true));
+                    error_log('WP Insert Member Format: ' . print_r($format, true));
+                    error_log('WP Insert Member Data Count: ' . count($data));
+                    error_log('WP Insert Member Format Count: ' . count($format));
+                }
+                wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_error'));
+                exit;
+            }
 
             if ($inserted !== false) {
                 $insert_id = $wpdb->insert_id;

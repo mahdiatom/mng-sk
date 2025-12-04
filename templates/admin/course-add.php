@@ -81,9 +81,51 @@ if ($course && isset($_GET['course_id'])) {
                         <p class="description">مبلغ دوره به تومان (با جدا کردن سه رقم سه رقم)</p>
                         <script type="text/javascript">
                         jQuery(document).ready(function($) {
-                            // استفاده از تابع واحد برای فرمت کردن قیمت
-                            if (typeof initPriceFormatter === 'function') {
-                                initPriceFormatter('#price', '#price_raw');
+                            // فرمت کردن قیمت به صورت سه رقم سه رقم (روش مستقیم)
+                            var $priceInput = $('#price');
+                            var $priceRaw = $('#price_raw');
+                            
+                            $priceInput.on('input', function() {
+                                var $this = $(this);
+                                var value = $this.val();
+                                
+                                // حذف تمام کاماها و کاراکترهای غیر عددی
+                                var cleaned = value.replace(/,/g, '').replace(/\D/g, '');
+                                
+                                // اگر خالی است
+                                if (cleaned === '' || cleaned === '0') {
+                                    $this.val('');
+                                    $priceRaw.val('0');
+                                    return;
+                                }
+                                
+                                // فرمت کردن با کاما (سه رقم سه رقم)
+                                var formatted = parseInt(cleaned, 10).toLocaleString('en-US');
+                                $this.val(formatted);
+                                
+                                // ذخیره مقدار خالص در hidden input
+                                $priceRaw.val(cleaned);
+                            });
+                            
+                            // هنگام blur
+                            $priceInput.on('blur', function() {
+                                var value = $(this).val();
+                                var cleaned = value.replace(/,/g, '');
+                                if (cleaned === '' || cleaned === '0') {
+                                    $(this).val('');
+                                    $priceRaw.val('0');
+                                }
+                            });
+                            
+                            // قبل از submit
+                            $priceInput.closest('form').on('submit', function() {
+                                var rawValue = $priceRaw.val() || '0';
+                                $priceInput.val(rawValue);
+                            });
+                            
+                            // فرمت کردن مقدار اولیه در صورت وجود
+                            if ($priceInput.val()) {
+                                $priceInput.trigger('input');
                             }
                         });
                         </script>

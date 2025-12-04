@@ -160,9 +160,51 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
-    // استفاده از تابع واحد برای فرمت کردن قیمت
-    if (typeof initPriceFormatter === 'function') {
-        initPriceFormatter('#amount', '#amount_raw');
+    // فرمت کردن مبلغ به صورت سه رقم سه رقم (روش مستقیم)
+    var $amountInput = $('#amount');
+    var $amountRaw = $('#amount_raw');
+    
+    $amountInput.on('input', function() {
+        var $this = $(this);
+        var value = $this.val();
+        
+        // حذف تمام کاماها و کاراکترهای غیر عددی
+        var cleaned = value.replace(/,/g, '').replace(/\D/g, '');
+        
+        // اگر خالی است
+        if (cleaned === '' || cleaned === '0') {
+            $this.val('');
+            $amountRaw.val('0');
+            return;
+        }
+        
+        // فرمت کردن با کاما (سه رقم سه رقم)
+        var formatted = parseInt(cleaned, 10).toLocaleString('en-US');
+        $this.val(formatted);
+        
+        // ذخیره مقدار خالص در hidden input
+        $amountRaw.val(cleaned);
+    });
+    
+    // هنگام blur
+    $amountInput.on('blur', function() {
+        var value = $(this).val();
+        var cleaned = value.replace(/,/g, '');
+        if (cleaned === '' || cleaned === '0') {
+            $(this).val('');
+            $amountRaw.val('0');
+        }
+    });
+    
+    // قبل از submit
+    $('form').on('submit', function() {
+        var rawValue = $amountRaw.val() || '0';
+        $amountInput.val(rawValue);
+    });
+    
+    // فرمت کردن مقدار اولیه در صورت وجود
+    if ($amountInput.val()) {
+        $amountInput.trigger('input');
     }
     
     // تبدیل تاریخ شمسی به میلادی
