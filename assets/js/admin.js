@@ -215,26 +215,28 @@ function scFormatPrice(inputSelector, rawInputSelector) {
         return;
     }
     
-    $input.on('input', function() {
-        var $this = $(this);
-        var value = $this.val();
-        
+    // تابع فرمت کردن مقدار
+    function formatValue(value) {
         // حذف تمام کاماها و کاراکترهای غیر عددی
         var cleaned = value.replace(/,/g, '').replace(/\D/g, '');
         
         // اگر خالی است
         if (cleaned === '' || cleaned === '0') {
-            $this.val('');
-            $raw.val('0');
-            return;
+            return { formatted: '', raw: '0' };
         }
         
         // فرمت کردن با کاما (سه رقم سه رقم)
         var formatted = parseInt(cleaned, 10).toLocaleString('en-US');
-        $this.val(formatted);
+        return { formatted: formatted, raw: cleaned };
+    }
+    
+    $input.on('input', function() {
+        var $this = $(this);
+        var value = $this.val();
+        var result = formatValue(value);
         
-        // ذخیره مقدار خالص در hidden input
-        $raw.val(cleaned);
+        $this.val(result.formatted);
+        $raw.val(result.raw);
     });
     
     // هنگام blur
@@ -253,10 +255,33 @@ function scFormatPrice(inputSelector, rawInputSelector) {
         $input.val(rawValue);
     });
     
-    // فرمت کردن مقدار اولیه در صورت وجود
-    if ($input.val()) {
-        $input.trigger('input');
-    }
+    // فرمت کردن مقدار اولیه در صورت وجود (بعد از بارگذاری کامل صفحه)
+    // استفاده از setTimeout برای اطمینان از لود کامل DOM
+    setTimeout(function() {
+        var currentValue = $input.val();
+        if (currentValue) {
+            // بررسی اینکه آیا مقدار فرمت شده است یا نه
+            var hasComma = currentValue.indexOf(',') !== -1;
+            // اگر مقدار raw وجود دارد، از آن استفاده کن
+            var rawValue = $raw.val();
+            
+            if (rawValue && rawValue !== '0') {
+                // اگر مقدار raw وجود دارد، از آن برای فرمت کردن استفاده کن
+                var result = formatValue(rawValue);
+                $input.val(result.formatted);
+                $raw.val(result.raw);
+            } else if (!hasComma && /^\d+$/.test(currentValue.replace(/,/g, ''))) {
+                // اگر مقدار فرمت نشده (بدون کاما و فقط عدد است)، فرمت کن
+                var result = formatValue(currentValue);
+                $input.val(result.formatted);
+                $raw.val(result.raw);
+            } else if (hasComma) {
+                // اگر مقدار فرمت شده است، فقط raw را تنظیم کن
+                var cleaned = currentValue.replace(/,/g, '').replace(/\D/g, '');
+                $raw.val(cleaned || '0');
+            }
+        }
+    }, 100);
 }
 
 // ============================================
