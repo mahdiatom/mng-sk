@@ -130,4 +130,61 @@ function sc_create_events_table() {
     dbDelta($sql);
 }
 
+/**
+ * Create event fields table
+ * این جدول فیلدهای سفارشی هر رویداد را ذخیره می‌کند
+ */
+function sc_create_event_fields_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_event_fields';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `event_id` bigint(20) unsigned NOT NULL,
+        `field_name` varchar(255) NOT NULL,
+        `field_type` varchar(50) NOT NULL,
+        `field_options` text DEFAULT NULL,
+        `is_required` tinyint(1) DEFAULT 0,
+        `field_order` int(11) DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_event_id` (`event_id`),
+        KEY `idx_field_order` (`field_order`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create event registrations table
+ * این جدول اطلاعات ثبت‌نام کاربران در رویدادها را ذخیره می‌کند
+ */
+function sc_create_event_registrations_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_event_registrations';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `event_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `invoice_id` bigint(20) unsigned DEFAULT NULL,
+        `field_data` longtext DEFAULT NULL,
+        `files` longtext DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_event_id` (`event_id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_invoice_id` (`invoice_id`),
+        UNIQUE KEY `idx_event_member` (`event_id`, `member_id`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 

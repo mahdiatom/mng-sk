@@ -285,6 +285,85 @@ if ($event && isset($_GET['event_id'])) {
             </tbody>
         </table>
 
+        <!-- بخش فیلدهای سفارشی رویداد -->
+        <div class="sc-event-custom-fields-section" style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+            <h2 style="margin-top: 0;">فیلدهای سفارشی رویداد</h2>
+            <p class="description">شما می‌توانید فیلدهای سفارشی برای این رویداد تعریف کنید که کاربران باید قبل از ثبت‌نام آن‌ها را پر کنند.</p>
+            
+            <div id="sc-event-fields-container">
+                <?php
+                // دریافت فیلدهای موجود رویداد (در صورت ویرایش)
+                $existing_fields = [];
+                if (isset($_GET['event_id']) && !empty($_GET['event_id'])) {
+                    global $wpdb;
+                    $event_fields_table = $wpdb->prefix . 'sc_event_fields';
+                    $event_id = absint($_GET['event_id']);
+                    $existing_fields = $wpdb->get_results($wpdb->prepare(
+                        "SELECT * FROM $event_fields_table WHERE event_id = %d ORDER BY field_order ASC, id ASC",
+                        $event_id
+                    ));
+                }
+                
+                if (!empty($existing_fields)) {
+                    foreach ($existing_fields as $field) {
+                        $field_options = !empty($field->field_options) ? json_decode($field->field_options, true) : [];
+                        ?>
+                        <div class="sc-event-field-item" data-field-id="<?php echo esc_attr($field->id); ?>" style="margin-bottom: 15px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+                            <div style="display: flex; gap: 15px; align-items: flex-start;">
+                                <div style="flex: 1;">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">نام فیلد:</label>
+                                    <input type="text" name="event_fields[<?php echo esc_attr($field->id); ?>][field_name]" 
+                                           value="<?php echo esc_attr($field->field_name); ?>" 
+                                           class="regular-text sc-field-name" 
+                                           placeholder="مثال: نام تیم" 
+                                           required>
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">نوع فیلد:</label>
+                                    <select name="event_fields[<?php echo esc_attr($field->id); ?>][field_type]" 
+                                            class="sc-field-type" 
+                                            required>
+                                        <option value="text" <?php selected($field->field_type, 'text'); ?>>متن</option>
+                                        <option value="number" <?php selected($field->field_type, 'number'); ?>>عدد</option>
+                                        <option value="date" <?php selected($field->field_type, 'date'); ?>>تاریخ</option>
+                                        <option value="file" <?php selected($field->field_type, 'file'); ?>>فایل (عکس/PDF)</option>
+                                        <option value="select" <?php selected($field->field_type, 'select'); ?>>انتخاب لیستی</option>
+                                    </select>
+                                </div>
+                                <div class="sc-field-options-container" style="flex: 1; <?php echo $field->field_type === 'select' ? '' : 'display: none;'; ?>">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">گزینه‌های لیست (با کاما جدا کنید):</label>
+                                    <input type="text" 
+                                           name="event_fields[<?php echo esc_attr($field->id); ?>][field_options]" 
+                                           value="<?php echo esc_attr(is_array($field_options) && isset($field_options['options']) ? implode(', ', $field_options['options']) : ''); ?>" 
+                                           class="regular-text sc-field-options" 
+                                           placeholder="گزینه 1, گزینه 2, گزینه 3">
+                                </div>
+                                <div style="flex-shrink: 0; padding-top: 25px;">
+                                    <label style="display: flex; align-items: center; gap: 5px;">
+                                        <input type="checkbox" 
+                                               name="event_fields[<?php echo esc_attr($field->id); ?>][is_required]" 
+                                               value="1" 
+                                               <?php checked($field->is_required, 1); ?>>
+                                        <span>اجباری</span>
+                                    </label>
+                                </div>
+                                <div style="flex-shrink: 0; padding-top: 25px;">
+                                    <button type="button" class="button sc-remove-field-btn" style="color: #d63638;">حذف</button>
+                                </div>
+                            </div>
+                        </div>
+                        <?php
+                    }
+                }
+                ?>
+            </div>
+            
+            <button type="button" id="sc-add-event-field-btn" class="button button-secondary" style="margin-top: 15px;">
+                <span style="font-size: 18px; line-height: 1; margin-left: 5px;">+</span>
+                افزودن فیلد جدید
+            </button>
+        </div>
+
         <p class="submit">
             <input type="submit" name="submit" id="submit" class="button button-primary" value="<?php echo isset($_GET['event_id']) ? 'بروزرسانی' : 'ثبت'; ?>">
         </p>

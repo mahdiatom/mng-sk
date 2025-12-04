@@ -181,6 +181,16 @@ function sc_register_admin_menu() {
         'sc_admin_reports_payments_page'
     );
 
+    // Event Registrations - List
+    $list_event_registrations_sufix = add_submenu_page(
+        'sc-dashboard',
+        'ثبت‌نامی‌های رویداد',
+        'ثبت‌نامی‌های رویداد',
+        'manage_options',
+        'sc-event-registrations',
+        'sc_admin_event_registrations_list_page'
+    );
+
     // Events - List
     $list_events_sufix = add_submenu_page(
         'sc-dashboard',
@@ -1194,6 +1204,101 @@ function callback_add_member_sufix(){
 }
 
 /**
+ * Save event custom fields
+ */
+function sc_save_event_fields($event_id, $post_data) {
+    global $wpdb;
+    $event_fields_table = $wpdb->prefix . 'sc_event_fields';
+    
+    // دریافت فیلدهای موجود
+    $existing_fields = $wpdb->get_results($wpdb->prepare(
+        "SELECT id FROM $event_fields_table WHERE event_id = %d",
+        $event_id
+    ));
+    $existing_field_ids = array_map(function($f) { return $f->id; }, $existing_fields);
+    
+    // پردازش فیلدهای ارسال شده
+    $submitted_field_ids = [];
+    $field_order = 0;
+    
+    if (isset($post_data['event_fields']) && is_array($post_data['event_fields'])) {
+        foreach ($post_data['event_fields'] as $field_key => $field_data) {
+            $field_order++;
+            
+            // بررسی اینکه آیا فیلد جدید است یا موجود
+            $is_new = (strpos($field_key, 'new_') === 0);
+            $field_id = $is_new ? null : absint($field_key);
+            
+            // اعتبارسنجی
+            if (empty($field_data['field_name']) || empty($field_data['field_type'])) {
+                continue;
+            }
+            
+            $field_name = sanitize_text_field($field_data['field_name']);
+            $field_type = sanitize_text_field($field_data['field_type']);
+            $is_required = isset($field_data['is_required']) ? 1 : 0;
+            
+            // پردازش field_options برای نوع select
+            $field_options = null;
+            if ($field_type === 'select' && !empty($field_data['field_options'])) {
+                $options_string = sanitize_text_field($field_data['field_options']);
+                $options_array = array_map('trim', explode(',', $options_string));
+                $options_array = array_filter($options_array); // حذف مقادیر خالی
+                if (!empty($options_array)) {
+                    $field_options = json_encode(['options' => $options_array]);
+                }
+            }
+            
+            if ($is_new) {
+                // افزودن فیلد جدید
+                $wpdb->insert(
+                    $event_fields_table,
+                    [
+                        'event_id' => $event_id,
+                        'field_name' => $field_name,
+                        'field_type' => $field_type,
+                        'field_options' => $field_options,
+                        'is_required' => $is_required,
+                        'field_order' => $field_order,
+                        'created_at' => current_time('mysql'),
+                        'updated_at' => current_time('mysql')
+                    ],
+                    ['%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s']
+                );
+            } else {
+                // به‌روزرسانی فیلد موجود
+                $submitted_field_ids[] = $field_id;
+                
+                $wpdb->update(
+                    $event_fields_table,
+                    [
+                        'field_name' => $field_name,
+                        'field_type' => $field_type,
+                        'field_options' => $field_options,
+                        'is_required' => $is_required,
+                        'field_order' => $field_order,
+                        'updated_at' => current_time('mysql')
+                    ],
+                    ['id' => $field_id],
+                    ['%s', '%s', '%s', '%d', '%d', '%s'],
+                    ['%d']
+                );
+            }
+        }
+    }
+    
+    // حذف فیلدهایی که دیگر وجود ندارند
+    $fields_to_delete = array_diff($existing_field_ids, $submitted_field_ids);
+    if (!empty($fields_to_delete)) {
+        $placeholders = implode(',', array_fill(0, count($fields_to_delete), '%d'));
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM $event_fields_table WHERE id IN ($placeholders)",
+            $fields_to_delete
+        ));
+    }
+}
+
+/**
  * Save member courses
  */
 function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
@@ -1586,6 +1691,9 @@ function callback_add_event_sufix() {
             );
 
             if ($updated !== false) {
+                // ذخیره/به‌روزرسانی فیلدهای سفارشی
+                sc_save_event_fields($event_id, $_POST);
+                
                 wp_redirect(admin_url('admin.php?page=sc-add-event&sc_status=event_updated&event_id=' . $event_id));
                 exit;
             } else {
@@ -1604,6 +1712,10 @@ function callback_add_event_sufix() {
 
             if ($inserted !== false) {
                 $insert_id = $wpdb->insert_id;
+                
+                // ذخیره فیلدهای سفارشی
+                sc_save_event_fields($insert_id, $_POST);
+                
                 wp_redirect(admin_url('admin.php?page=sc-add-event&sc_status=event_add_true&event_id=' . $insert_id));
                 exit;
             } else {
@@ -1612,6 +1724,227 @@ function callback_add_event_sufix() {
             }
         }
     }
+}
+
+/**
+ * Event registrations list page
+ */
+function sc_admin_event_registrations_list_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'list_event_registrations.php';
+}
+
+/**
+ * Process event registrations table actions
+ */
+function process_event_registrations_table_data() {
+    // این تابع برای پردازش bulk actions و سایر عملیات جدول استفاده می‌شود
+    // در حال حاضر خالی است و بعداً تکمیل خواهد شد
+}
+
+/**
+ * Ajax handler برای مشاهده اطلاعات ثبت‌نام
+ */
+add_action('wp_ajax_sc_get_registration_details', 'sc_ajax_get_registration_details');
+function sc_ajax_get_registration_details() {
+    check_ajax_referer('sc_registration_nonce', 'nonce');
+    
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز']);
+        return;
+    }
+    
+    $registration_id = isset($_POST['registration_id']) ? absint($_POST['registration_id']) : 0;
+    
+    if (!$registration_id) {
+        wp_send_json_error(['message' => 'شناسه ثبت‌نام معتبر نیست']);
+        return;
+    }
+    
+    global $wpdb;
+    $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+    $events_table = $wpdb->prefix . 'sc_events';
+    $members_table = $wpdb->prefix . 'sc_members';
+    $event_fields_table = $wpdb->prefix . 'sc_event_fields';
+    
+    $registration = $wpdb->get_row($wpdb->prepare(
+        "SELECT r.*, e.name as event_name, m.first_name, m.last_name, m.player_phone
+         FROM $event_registrations_table r
+         LEFT JOIN $events_table e ON r.event_id = e.id
+         LEFT JOIN $members_table m ON r.member_id = m.id
+         WHERE r.id = %d",
+        $registration_id
+    ));
+    
+    if (!$registration) {
+        wp_send_json_error(['message' => 'ثبت‌نام یافت نشد']);
+        return;
+    }
+    
+    // دریافت فیلدهای رویداد
+    $event_fields = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $event_fields_table WHERE event_id = %d ORDER BY field_order ASC, id ASC",
+        $registration->event_id
+    ));
+    
+    // پردازش field_data و files
+    $field_data = !empty($registration->field_data) ? json_decode($registration->field_data, true) : [];
+    $files = !empty($registration->files) ? json_decode($registration->files, true) : [];
+    
+    // ساخت HTML
+    ob_start();
+    ?>
+    <h2 style="margin-top: 0;">اطلاعات ثبت‌نام</h2>
+    <table class="widefat" style="margin-top: 15px;">
+        <tr>
+            <th style="width: 150px; text-align: right;">نام رویداد:</th>
+            <td><?php echo esc_html($registration->event_name); ?></td>
+        </tr>
+        <tr>
+            <th style="text-align: right;">نام کاربر:</th>
+            <td><?php echo esc_html($registration->first_name . ' ' . $registration->last_name); ?></td>
+        </tr>
+        <tr>
+            <th style="text-align: right;">شماره تماس:</th>
+            <td><?php echo esc_html($registration->player_phone ? $registration->player_phone : '-'); ?></td>
+        </tr>
+        <tr>
+            <th style="text-align: right;">تاریخ ثبت‌نام:</th>
+            <td>
+                <?php
+                if (!empty($registration->created_at)) {
+                    $date = new DateTime($registration->created_at);
+                    $shamsi_date = gregorian_to_jalali(
+                        (int)$date->format('Y'),
+                        (int)$date->format('m'),
+                        (int)$date->format('d')
+                    );
+                    $formatted_date = $shamsi_date[0] . '/' . 
+                                     str_pad($shamsi_date[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                                     str_pad($shamsi_date[2], 2, '0', STR_PAD_LEFT);
+                    echo esc_html($formatted_date);
+                } else {
+                    echo '-';
+                }
+                ?>
+            </td>
+        </tr>
+    </table>
+    
+    <?php if (!empty($event_fields)) : ?>
+        <h3 style="margin-top: 30px;">اطلاعات تکمیلی:</h3>
+        <table class="widefat" style="margin-top: 15px;">
+            <?php foreach ($event_fields as $field) : 
+                $field_id = $field->id;
+                $field_value = isset($field_data[$field_id]) ? $field_data[$field_id]['value'] : null;
+                $field_files = isset($files[$field_id]) ? $files[$field_id] : [];
+            ?>
+            <tr>
+                <th style="width: 200px; text-align: right; vertical-align: top;">
+                    <?php echo esc_html($field->field_name); ?>:
+                </th>
+                <td>
+                    <?php if ($field->field_type === 'file' && !empty($field_files)) : ?>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                            <?php foreach ($field_files as $file) : ?>
+                                <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                                    <?php if (strpos($file['type'], 'image/') === 0) : ?>
+                                        <img src="<?php echo esc_url($file['url']); ?>" alt="<?php echo esc_attr($file['name']); ?>" style="max-width: 200px; max-height: 200px; display: block; margin-bottom: 5px;">
+                                    <?php endif; ?>
+                                    <a href="<?php echo esc_url($file['url']); ?>" target="_blank" download style="display: block; color: #2271b1; text-decoration: none;">
+                                        <?php echo esc_html($file['name']); ?>
+                                    </a>
+                                    <small style="color: #666;"><?php echo size_format($file['size']); ?></small>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else : ?>
+                        <?php echo esc_html($field_value ? $field_value : '-'); ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php endif; ?>
+    <?php
+    $html = ob_get_clean();
+    
+    wp_send_json_success(['html' => $html]);
+}
+
+/**
+ * Ajax handler برای تغییر وضعیت ثبت‌نام
+ */
+add_action('wp_ajax_sc_change_registration_status', 'sc_ajax_change_registration_status');
+function sc_ajax_change_registration_status() {
+    check_ajax_referer('sc_change_status_nonce', 'nonce');
+    
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز']);
+        return;
+    }
+    
+    $registration_id = isset($_POST['registration_id']) ? absint($_POST['registration_id']) : 0;
+    $invoice_id = isset($_POST['invoice_id']) ? absint($_POST['invoice_id']) : 0;
+    $new_status = isset($_POST['new_status']) ? sanitize_text_field($_POST['new_status']) : '';
+    
+    if (!$registration_id || !$invoice_id || empty($new_status)) {
+        wp_send_json_error(['message' => 'پارامترهای ورودی معتبر نیست']);
+        return;
+    }
+    
+    $allowed_statuses = ['completed', 'cancelled', 'processing', 'pending', 'on-hold'];
+    if (!in_array($new_status, $allowed_statuses)) {
+        wp_send_json_error(['message' => 'وضعیت معتبر نیست']);
+        return;
+    }
+    
+    global $wpdb;
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    
+    // به‌روزرسانی وضعیت invoice
+    $update_data = [
+        'status' => $new_status,
+        'updated_at' => current_time('mysql')
+    ];
+    
+    // اگر وضعیت completed یا processing است، payment_date را تنظیم کن
+    if (in_array($new_status, ['completed', 'processing'])) {
+        $update_data['payment_date'] = current_time('mysql');
+    } else {
+        // برای سایر وضعیت‌ها، payment_date را null کن
+        $update_data['payment_date'] = NULL;
+    }
+    
+    $updated = $wpdb->update(
+        $invoices_table,
+        $update_data,
+        ['id' => $invoice_id],
+        ['%s', '%s', '%s'],
+        ['%d']
+    );
+    
+    if ($updated === false) {
+        wp_send_json_error(['message' => 'خطا در به‌روزرسانی وضعیت']);
+        return;
+    }
+    
+    // به‌روزرسانی وضعیت WooCommerce order اگر وجود دارد
+    $invoice = $wpdb->get_row($wpdb->prepare(
+        "SELECT woocommerce_order_id FROM $invoices_table WHERE id = %d",
+        $invoice_id
+    ));
+    
+    if ($invoice && !empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
+        $order = wc_get_order($invoice->woocommerce_order_id);
+        if ($order) {
+            $order->update_status($new_status);
+        }
+    }
+    
+    wp_send_json_success(['message' => 'وضعیت با موفقیت تغییر کرد']);
 }
 
 /**

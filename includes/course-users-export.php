@@ -1,4 +1,4 @@
-<?php
+د<?php
 if (!defined('ABSPATH')) {
     exit;
 }

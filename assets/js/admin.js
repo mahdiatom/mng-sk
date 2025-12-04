@@ -81,6 +81,32 @@ function scSelectMemberFilter(element, memberId, memberText) {
     jQuery(element).append('<span style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
 }
 
+// تابع انتخاب رویداد برای فیلتر
+function scSelectEventFilter(element, eventId, eventText) {
+    var $dropdown = jQuery(element).closest('.sc-searchable-dropdown');
+    var $hiddenInput = $dropdown.find('input[type="hidden"]');
+    var $toggle = $dropdown.find('.sc-dropdown-toggle');
+    var $placeholder = $toggle.find('.sc-dropdown-placeholder');
+    var $selected = $toggle.find('.sc-dropdown-selected');
+    var $menu = $dropdown.find('.sc-dropdown-menu');
+    
+    // تنظیم مقدار
+    $hiddenInput.val(eventId);
+    $placeholder.hide();
+    $selected.text(eventText).show();
+    
+    // بستن منو
+    $menu.slideUp(200);
+    
+    // حذف انتخاب قبلی و اضافه کردن انتخاب جدید
+    $dropdown.find('.sc-dropdown-option').removeClass('sc-selected').css('background', '');
+    jQuery(element).addClass('sc-selected').css('background', '#f0f6fc');
+    
+    // اضافه کردن چکمارک
+    $dropdown.find('.sc-dropdown-option span').remove();
+    jQuery(element).append('<span style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
+}
+
 // تابع انتخاب کاربر (بدون پشتیبانی از "همه کاربران")
 function scSelectMember(element, memberId, memberText) {
     var $dropdown = jQuery(element).closest('.sc-searchable-dropdown');
@@ -828,5 +854,259 @@ jQuery(document).ready(function($) {
     
     $(document).on('change', '#filter_date_from_shamsi, #filter_date_to_shamsi', function() {
         updateGregorianDate($(this));
+    });
+});
+
+// ============================================
+// مدیریت فیلدهای سفارشی رویداد
+// ============================================
+
+// شمارنده برای فیلدهای جدید (بدون ID)
+var scEventFieldCounter = 0;
+
+jQuery(document).ready(function($) {
+    // افزودن فیلد جدید
+    $(document).on('click', '#sc-add-event-field-btn', function() {
+        scEventFieldCounter++;
+        var fieldHtml = '<div class="sc-event-field-item" data-field-temp-id="' + scEventFieldCounter + '" style="margin-bottom: 15px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">' +
+            '<div style="display: flex; gap: 15px; align-items: flex-start;">' +
+            '<div style="flex: 1;">' +
+            '<label style="display: block; margin-bottom: 5px; font-weight: bold;">نام فیلد:</label>' +
+            '<input type="text" name="event_fields[new_' + scEventFieldCounter + '][field_name]" class="regular-text sc-field-name" placeholder="مثال: نام تیم" required>' +
+            '</div>' +
+            '<div style="flex: 1;">' +
+            '<label style="display: block; margin-bottom: 5px; font-weight: bold;">نوع فیلد:</label>' +
+            '<select name="event_fields[new_' + scEventFieldCounter + '][field_type]" class="sc-field-type" required>' +
+            '<option value="text">متن</option>' +
+            '<option value="number">عدد</option>' +
+            '<option value="date">تاریخ</option>' +
+            '<option value="file">فایل (عکس/PDF)</option>' +
+            '<option value="select">انتخاب لیستی</option>' +
+            '</select>' +
+            '</div>' +
+            '<div class="sc-field-options-container" style="flex: 1; display: none;">' +
+            '<label style="display: block; margin-bottom: 5px; font-weight: bold;">گزینه‌های لیست (با کاما جدا کنید):</label>' +
+            '<input type="text" name="event_fields[new_' + scEventFieldCounter + '][field_options]" class="regular-text sc-field-options" placeholder="گزینه 1, گزینه 2, گزینه 3">' +
+            '</div>' +
+            '<div style="flex-shrink: 0; padding-top: 25px;">' +
+            '<label style="display: flex; align-items: center; gap: 5px;">' +
+            '<input type="checkbox" name="event_fields[new_' + scEventFieldCounter + '][is_required]" value="1">' +
+            '<span>اجباری</span>' +
+            '</label>' +
+            '</div>' +
+            '<div style="flex-shrink: 0; padding-top: 25px;">' +
+            '<button type="button" class="button sc-remove-field-btn" style="color: #d63638;">حذف</button>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+        
+        $('#sc-event-fields-container').append(fieldHtml);
+    });
+
+    // حذف فیلد
+    $(document).on('click', '.sc-remove-field-btn', function() {
+        if (confirm('آیا از حذف این فیلد اطمینان دارید؟')) {
+            $(this).closest('.sc-event-field-item').remove();
+        }
+    });
+
+    // نمایش/مخفی کردن فیلد گزینه‌ها برای نوع select
+    $(document).on('change', '.sc-field-type', function() {
+        var $container = $(this).closest('.sc-event-field-item').find('.sc-field-options-container');
+        if ($(this).val() === 'select') {
+            $container.show();
+        } else {
+            $container.hide();
+        }
+    });
+    
+    // برای فیلدهای موجود (در صورت ویرایش)
+    $('.sc-field-type').each(function() {
+        if ($(this).val() === 'select') {
+            $(this).closest('.sc-event-field-item').find('.sc-field-options-container').show();
+        }
+    });
+    
+    // مدیریت modal ثبت‌نامی‌های رویداد
+    $(document).on('click', '.sc-view-registration', function(e) {
+        e.preventDefault();
+        var registrationId = $(this).data('registration-id');
+        
+        if (!registrationId) {
+            alert('شناسه ثبت‌نام معتبر نیست');
+            return;
+        }
+        
+        // دریافت nonce از data attribute یا global variable
+        var nonce = typeof scRegistrationNonce !== 'undefined' ? scRegistrationNonce : '';
+        
+        // نمایش loading
+        $('#sc-registration-modal .sc-modal-body').html('<p>در حال بارگذاری...</p>');
+        $('#sc-registration-modal').fadeIn(300);
+        
+        // درخواست Ajax
+        $.ajax({
+            url: typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php',
+            type: 'POST',
+            data: {
+                action: 'sc_get_registration_details',
+                registration_id: registrationId,
+                nonce: nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#sc-registration-modal .sc-modal-body').html(response.data.html);
+                } else {
+                    $('#sc-registration-modal .sc-modal-body').html('<p style="color: red;">خطا: ' + (response.data.message || 'خطای نامشخص') + '</p>');
+                }
+            },
+            error: function() {
+                $('#sc-registration-modal .sc-modal-body').html('<p style="color: red;">خطا در ارتباط با سرور</p>');
+            }
+        });
+    });
+    
+    // بستن modal
+    $(document).on('click', '.sc-modal-close, .sc-modal', function(e) {
+        if (e.target === this) {
+            $('#sc-registration-modal').fadeOut(300);
+        }
+    });
+    
+    // جلوگیری از بستن modal با کلیک روی محتوا
+    $(document).on('click', '.sc-modal-content', function(e) {
+        e.stopPropagation();
+    });
+    
+    // تغییر وضعیت به تایید پرداخت
+    $(document).on('click', '.sc-complete-registration', function(e) {
+        e.preventDefault();
+        var registrationId = $(this).data('registration-id');
+        var invoiceId = $(this).data('invoice-id');
+        
+        if (!confirm('آیا از تایید پرداخت این ثبت‌نام اطمینان دارید؟')) {
+            return;
+        }
+        
+        $.ajax({
+            url: typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php',
+            type: 'POST',
+            data: {
+                action: 'sc_change_registration_status',
+                registration_id: registrationId,
+                invoice_id: invoiceId,
+                new_status: 'completed',
+                nonce: typeof scChangeStatusNonce !== 'undefined' ? scChangeStatusNonce : ''
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('خطا: ' + (response.data.message || 'خطای نامشخص'));
+                }
+            },
+            error: function() {
+                alert('خطا در ارتباط با سرور');
+            }
+        });
+    });
+    
+    // تغییر وضعیت به لغو شده
+    $(document).on('click', '.sc-cancel-registration', function(e) {
+        e.preventDefault();
+        var registrationId = $(this).data('registration-id');
+        var invoiceId = $(this).data('invoice-id');
+        
+        if (!confirm('آیا از لغو این ثبت‌نام اطمینان دارید؟')) {
+            return;
+        }
+        
+        $.ajax({
+            url: typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php',
+            type: 'POST',
+            data: {
+                action: 'sc_change_registration_status',
+                registration_id: registrationId,
+                invoice_id: invoiceId,
+                new_status: 'cancelled',
+                nonce: typeof scChangeStatusNonce !== 'undefined' ? scChangeStatusNonce : ''
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('خطا: ' + (response.data.message || 'خطای نامشخص'));
+                }
+            },
+            error: function() {
+                alert('خطا در ارتباط با سرور');
+            }
+        });
+    });
+    
+    // تغییر وضعیت به تایید پرداخت
+    $(document).on('click', '.sc-complete-registration', function(e) {
+        e.preventDefault();
+        var registrationId = $(this).data('registration-id');
+        var invoiceId = $(this).data('invoice-id');
+        
+        if (!confirm('آیا از تایید پرداخت این ثبت‌نام اطمینان دارید؟')) {
+            return;
+        }
+        
+        $.ajax({
+            url: typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php',
+            type: 'POST',
+            data: {
+                action: 'sc_change_registration_status',
+                registration_id: registrationId,
+                invoice_id: invoiceId,
+                new_status: 'completed',
+                nonce: typeof scChangeStatusNonce !== 'undefined' ? scChangeStatusNonce : ''
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('خطا: ' + (response.data.message || 'خطای نامشخص'));
+                }
+            },
+            error: function() {
+                alert('خطا در ارتباط با سرور');
+            }
+        });
+    });
+    
+    // تغییر وضعیت به لغو شده
+    $(document).on('click', '.sc-cancel-registration', function(e) {
+        e.preventDefault();
+        var registrationId = $(this).data('registration-id');
+        var invoiceId = $(this).data('invoice-id');
+        
+        if (!confirm('آیا از لغو این ثبت‌نام اطمینان دارید؟')) {
+            return;
+        }
+        
+        $.ajax({
+            url: typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php',
+            type: 'POST',
+            data: {
+                action: 'sc_change_registration_status',
+                registration_id: registrationId,
+                invoice_id: invoiceId,
+                new_status: 'cancelled',
+                nonce: typeof scChangeStatusNonce !== 'undefined' ? scChangeStatusNonce : ''
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('خطا: ' + (response.data.message || 'خطای نامشخص'));
+                }
+            },
+            error: function() {
+                alert('خطا در ارتباط با سرور');
+            }
+        });
     });
 });

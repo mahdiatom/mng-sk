@@ -1433,29 +1433,171 @@ function sc_handle_event_enrollment() {
     }
     
     // بررسی ثبت‌نام قبلی
-    $existing_invoice = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $invoices_table WHERE member_id = %d AND event_id = %d AND status IN ('paid', 'completed', 'processing')",
+    $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+    $existing_registration = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $event_registrations_table WHERE member_id = %d AND event_id = %d",
         $player->id,
         $event_id
     ));
     
-    if ($existing_invoice) {
+    if ($existing_registration) {
         wc_add_notice('شما قبلاً در این رویداد ثبت نام کرده‌اید.', 'error');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
         exit;
     }
     
+    // بررسی و اعتبارسنجی فیلدهای سفارشی
+    $event_fields_table = $wpdb->prefix . 'sc_event_fields';
+    $event_fields = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $event_fields_table WHERE event_id = %d ORDER BY field_order ASC, id ASC",
+        $event_id
+    ));
+    
+    $field_data = [];
+    $uploaded_files = [];
+    $errors = [];
+    
+    if (!empty($event_fields)) {
+        foreach ($event_fields as $field) {
+            $field_value = null;
+            
+            // بررسی فیلدهای متنی، عددی، تاریخ و select
+            if (in_array($field->field_type, ['text', 'number', 'date', 'select'])) {
+                if (isset($_POST['event_fields'][$field->id])) {
+                    $field_value = sanitize_text_field($_POST['event_fields'][$field->id]);
+                }
+                
+                // بررسی اجباری بودن
+                if ($field->is_required && empty($field_value)) {
+                    $errors[] = 'فیلد "' . $field->field_name . '" الزامی است.';
+                    continue;
+                }
+                
+                $field_data[$field->id] = [
+                    'field_name' => $field->field_name,
+                    'field_type' => $field->field_type,
+                    'value' => $field_value
+                ];
+            }
+            
+            // پردازش فایل‌ها
+            if ($field->field_type === 'file') {
+                if (isset($_FILES['event_fields']['name'][$field->id][0]) && !empty($_FILES['event_fields']['name'][$field->id][0])) {
+                    $file_count = count($_FILES['event_fields']['name'][$field->id]);
+                    
+                    // بررسی تعداد فایل‌ها
+                    if ($file_count > 10) {
+                        $errors[] = 'فیلد "' . $field->field_name . '": حداکثر 10 فایل مجاز است.';
+                        continue;
+                    }
+                    
+                    $field_files = [];
+                    for ($i = 0; $i < $file_count; $i++) {
+                        if ($_FILES['event_fields']['error'][$field->id][$i] !== UPLOAD_ERR_OK) {
+                            continue;
+                        }
+                        
+                        $file_name = $_FILES['event_fields']['name'][$field->id][$i];
+                        $file_tmp = $_FILES['event_fields']['tmp_name'][$field->id][$i];
+                        $file_size = $_FILES['event_fields']['size'][$field->id][$i];
+                        $file_type = $_FILES['event_fields']['type'][$field->id][$i];
+                        
+                        // بررسی حجم فایل (1 مگابایت)
+                        if ($file_size > 1048576) { // 1MB in bytes
+                            $errors[] = 'فیلد "' . $field->field_name . '": فایل "' . $file_name . '" بیش از 1 مگابایت است.';
+                            continue;
+                        }
+                        
+                        // بررسی نوع فایل (فقط تصویر و PDF)
+                        $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+                        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                        $allowed_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+                        
+                        if (!in_array($file_type, $allowed_types) && !in_array($file_ext, $allowed_exts)) {
+                            $errors[] = 'فیلد "' . $field->field_name . '": فایل "' . $file_name . '" باید تصویر یا PDF باشد.';
+                            continue;
+                        }
+                        
+                        // آپلود فایل
+                        $upload_dir = wp_upload_dir();
+                        $sc_upload_dir = $upload_dir['basedir'] . '/sportclub-event-files';
+                        if (!file_exists($sc_upload_dir)) {
+                            wp_mkdir_p($sc_upload_dir);
+                        }
+                        
+                        $unique_filename = wp_unique_filename($sc_upload_dir, $file_name);
+                        $file_path = $sc_upload_dir . '/' . $unique_filename;
+                        
+                        if (move_uploaded_file($file_tmp, $file_path)) {
+                            $file_url = $upload_dir['baseurl'] . '/sportclub-event-files/' . $unique_filename;
+                            $field_files[] = [
+                                'name' => $file_name,
+                                'url' => $file_url,
+                                'path' => $file_path,
+                                'size' => $file_size,
+                                'type' => $file_type
+                            ];
+                        }
+                    }
+                    
+                    // بررسی اجباری بودن
+                    if ($field->is_required && empty($field_files)) {
+                        $errors[] = 'فیلد "' . $field->field_name . '" الزامی است.';
+                        continue;
+                    }
+                    
+                    if (!empty($field_files)) {
+                        $field_data[$field->id] = [
+                            'field_name' => $field->field_name,
+                            'field_type' => $field->field_type,
+                            'value' => null
+                        ];
+                        $uploaded_files[$field->id] = $field_files;
+                    }
+                } elseif ($field->is_required) {
+                    $errors[] = 'فیلد "' . $field->field_name . '" الزامی است.';
+                }
+            }
+        }
+    }
+    
+    // اگر خطایی وجود داشت
+    if (!empty($errors)) {
+        foreach ($errors as $error) {
+            wc_add_notice($error, 'error');
+        }
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        exit;
+    }
+    
     // ایجاد صورت حساب و سفارش WooCommerce
-    // لاگ برای دیباگ
     error_log('SC Event Enrollment: Creating invoice for event_id: ' . $event_id . ', member_id: ' . $player->id . ', price: ' . $event->price);
     
     $invoice_result = sc_create_event_invoice($player->id, $event_id, $event->price);
     
-    // لاگ نتیجه
     error_log('SC Event Enrollment: Invoice result: ' . print_r($invoice_result, true));
     
     if ($invoice_result && isset($invoice_result['success']) && $invoice_result['success']) {
-        // ریدایرکت به تب صورت حساب‌ها (مثل ثبت‌نام دوره)
+        $invoice_id = isset($invoice_result['invoice_id']) ? $invoice_result['invoice_id'] : null;
+        
+        // ذخیره اطلاعات ثبت‌نام (فیلدها و فایل‌ها)
+        $registration_data = [
+            'event_id' => $event_id,
+            'member_id' => $player->id,
+            'invoice_id' => $invoice_id,
+            'field_data' => json_encode($field_data, JSON_UNESCAPED_UNICODE),
+            'files' => json_encode($uploaded_files, JSON_UNESCAPED_UNICODE),
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql')
+        ];
+        
+        $wpdb->insert(
+            $event_registrations_table,
+            $registration_data,
+            ['%d', '%d', '%d', '%s', '%s', '%s', '%s']
+        );
+        
+        // ریدایرکت به تب صورت حساب‌ها
         wc_add_notice('ثبت‌نام شما با موفقیت انجام شد. لطفاً صورت حساب خود را پرداخت کنید.', 'success');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
         exit;

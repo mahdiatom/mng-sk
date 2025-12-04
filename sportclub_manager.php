@@ -390,6 +390,8 @@ function sc_check_and_create_tables() {
     $expense_categories_table = $wpdb->prefix . 'sc_expense_categories';
     $expenses_table = $wpdb->prefix . 'sc_expenses';
     $events_table = $wpdb->prefix . 'sc_events';
+    $event_fields_table = $wpdb->prefix . 'sc_event_fields';
+    $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -401,6 +403,8 @@ function sc_check_and_create_tables() {
     $expense_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expense_categories_table)) == $expense_categories_table;
     $expenses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expenses_table)) == $expenses_table;
     $events_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $events_table)) == $events_table;
+    $event_fields_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_fields_table)) == $event_fields_table;
+    $event_registrations_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_registrations_table)) == $event_registrations_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -429,6 +433,12 @@ function sc_check_and_create_tables() {
     }
     if (!$events_exists && function_exists('sc_create_events_table')) {
         sc_create_events_table();
+    }
+    if (!$event_fields_exists && function_exists('sc_create_event_fields_table')) {
+        sc_create_event_fields_table();
+    }
+    if (!$event_registrations_exists && function_exists('sc_create_event_registrations_table')) {
+        sc_create_event_registrations_table();
     }
 }
 

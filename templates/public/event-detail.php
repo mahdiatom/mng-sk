@@ -239,9 +239,90 @@ if (function_exists('wc_price')) {
         
         <div class="sc-event-detail-actions">
             <?php if ($can_enroll && !$is_enrolled) : ?>
-                <form method="POST" action="" class="sc-enroll-event-form">
+                <?php
+                // دریافت فیلدهای سفارشی رویداد
+                global $wpdb;
+                $event_fields_table = $wpdb->prefix . 'sc_event_fields';
+                $event_fields = $wpdb->get_results($wpdb->prepare(
+                    "SELECT * FROM $event_fields_table WHERE event_id = %d ORDER BY field_order ASC, id ASC",
+                    $event->id
+                ));
+                ?>
+                <form method="POST" action="" class="sc-enroll-event-form" enctype="multipart/form-data">
                     <?php wp_nonce_field('sc_enroll_event', 'sc_enroll_event_nonce'); ?>
                     <input type="hidden" name="event_id" value="<?php echo esc_attr($event->id); ?>">
+                    
+                    <!-- فیلدهای سفارشی رویداد -->
+                    <?php if (!empty($event_fields)) : ?>
+                    <div class="sc-event-custom-fields-section" style="margin-bottom: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+                        <h3 style="margin-top: 0;">اطلاعات تکمیلی ثبت‌نام</h3>
+                        <p class="description">لطفاً اطلاعات زیر را تکمیل کنید:</p>
+                        
+                        <div class="sc-event-fields-form" style="margin-top: 20px;">
+                            <?php foreach ($event_fields as $field) : 
+                                $field_options = !empty($field->field_options) ? json_decode($field->field_options, true) : [];
+                                $field_id_attr = 'sc_event_field_' . $field->id;
+                            ?>
+                            <div class="sc-event-field-row" style="margin-bottom: 20px;">
+                                <label for="<?php echo esc_attr($field_id_attr); ?>" style="display: block; margin-bottom: 5px; font-weight: bold;">
+                                    <?php echo esc_html($field->field_name); ?>
+                                    <?php if ($field->is_required) : ?>
+                                        <span style="color: red;">*</span>
+                                    <?php endif; ?>
+                                </label>
+                                
+                                <?php if ($field->field_type === 'text') : ?>
+                                    <input type="text" 
+                                           name="event_fields[<?php echo esc_attr($field->id); ?>]" 
+                                           id="<?php echo esc_attr($field_id_attr); ?>" 
+                                           class="regular-text" 
+                                           <?php echo $field->is_required ? 'required' : ''; ?>>
+                                
+                                <?php elseif ($field->field_type === 'number') : ?>
+                                    <input type="number" 
+                                           name="event_fields[<?php echo esc_attr($field->id); ?>]" 
+                                           id="<?php echo esc_attr($field_id_attr); ?>" 
+                                           class="regular-text" 
+                                           <?php echo $field->is_required ? 'required' : ''; ?>>
+                                
+                                <?php elseif ($field->field_type === 'date') : ?>
+                                    <input type="text" 
+                                           name="event_fields[<?php echo esc_attr($field->id); ?>]" 
+                                           id="<?php echo esc_attr($field_id_attr); ?>" 
+                                           class="regular-text persian-date-input" 
+                                           placeholder="تاریخ (شمسی)" 
+                                           readonly
+                                           <?php echo $field->is_required ? 'required' : ''; ?>>
+                                
+                                <?php elseif ($field->field_type === 'file') : ?>
+                                    <input type="file" 
+                                           name="event_fields[<?php echo esc_attr($field->id); ?>][]" 
+                                           id="<?php echo esc_attr($field_id_attr); ?>" 
+                                           class="regular-text sc-event-file-input" 
+                                           accept="image/*,.pdf"
+                                           multiple
+                                           data-max-files="10"
+                                           <?php echo $field->is_required ? 'required' : ''; ?>>
+                                    <p class="description">حداکثر 10 فایل (فقط تصویر و PDF)، حداکثر حجم هر فایل: 1 مگابایت</p>
+                                    <div class="sc-event-file-preview" style="margin-top: 10px;"></div>
+                                
+                                <?php elseif ($field->field_type === 'select' && !empty($field_options['options'])) : ?>
+                                    <select name="event_fields[<?php echo esc_attr($field->id); ?>]" 
+                                            id="<?php echo esc_attr($field_id_attr); ?>" 
+                                            class="regular-text"
+                                            <?php echo $field->is_required ? 'required' : ''; ?>>
+                                        <option value="">-- انتخاب کنید --</option>
+                                        <?php foreach ($field_options['options'] as $option) : ?>
+                                            <option value="<?php echo esc_attr(trim($option)); ?>"><?php echo esc_html(trim($option)); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php endif; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
                     <button type="submit" name="sc_enroll_event" class="button button-primary sc-enroll-event-btn">
                         ثبت‌نام در رویداد
                     </button>
