@@ -1,9 +1,12 @@
 <?php
 $name = '';
+$event_type = 'event';
 $description = '';
 $price = '';
 $start_date = '';
 $end_date = '';
+$holding_date = '';
+$holding_date_shamsi = '';
 $image = '';
 $has_age_limit = 0;
 $min_age = '';
@@ -18,10 +21,13 @@ $is_active = 1;
 
 if ($event && isset($_GET['event_id'])) {
     $name = $event->name ?? '';
+    $event_type = $event->event_type ?? 'event';
     $description = $event->description ?? '';
     $price = $event->price ?? '';
     $start_date = $event->start_date_gregorian ?? '';
     $end_date = $event->end_date_gregorian ?? '';
+    $holding_date = $event->holding_date_gregorian ?? '';
+    $holding_date_shamsi = $event->holding_date_shamsi ?? '';
     $image = $event->image ?? '';
     $has_age_limit = $event->has_age_limit ?? 0;
     $min_age = $event->min_age ?? '';
@@ -77,6 +83,17 @@ if ($event && isset($_GET['event_id'])) {
                 <tr>
                     <th scope="row"><label for="name">نام رویداد / مسابقه <span style="color:red;">*</span></label></th>
                     <td><input name="name" type="text" id="name" value="<?php echo esc_attr($name); ?>" class="regular-text" required></td>
+                </tr>
+
+                <tr>
+                    <th scope="row"><label for="event_type">نوع <span style="color:red;">*</span></label></th>
+                    <td>
+                        <select name="event_type" id="event_type" class="regular-text" required>
+                            <option value="event" <?php selected($event_type, 'event'); ?>>رویداد</option>
+                            <option value="competition" <?php selected($event_type, 'competition'); ?>>مسابقه</option>
+                        </select>
+                        <p class="description">نوع را انتخاب کنید: رویداد یا مسابقه</p>
+                    </td>
                 </tr>
 
                 <tr>
@@ -162,6 +179,33 @@ if ($event && isset($_GET['event_id'])) {
                                readonly
                                style="width: 300px; padding: 5px;">
                         <input type="hidden" name="end_date" id="end_date" value="<?php echo esc_attr($end_date ?? ''); ?>">
+                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row"><label for="holding_date_shamsi">تاریخ برگزاری (شمسی) <span style="color:red;">*</span></label></th>
+                    <td>
+                        <?php
+                        if (empty($holding_date_shamsi) && !empty($holding_date)) {
+                            $holding_date_shamsi = sc_date_shamsi_date_only($holding_date);
+                        } elseif (empty($holding_date_shamsi)) {
+                            $today_timestamp = time();
+                            $today_date = getdate($today_timestamp);
+                            $today_jalali = gregorian_to_jalali($today_date['year'], $today_date['mon'], $today_date['mday']);
+                            $holding_date_shamsi = $today_jalali[0] . '/' . 
+                                                   ($today_jalali[1] < 10 ? '0' . $today_jalali[1] : $today_jalali[1]) . '/' . 
+                                                   ($today_jalali[2] < 10 ? '0' . $today_jalali[2] : $today_jalali[2]);
+                        }
+                        ?>
+                        <input name="holding_date_shamsi" type="text" id="holding_date_shamsi" 
+                               value="<?php echo esc_attr($holding_date_shamsi); ?>" 
+                               class="regular-text persian-date-input" 
+                               placeholder="تاریخ برگزاری (شمسی)" 
+                               readonly
+                               style="width: 300px; padding: 5px;"
+                               required>
+                        <input type="hidden" name="holding_date" id="holding_date" value="<?php echo esc_attr($holding_date ?? ''); ?>">
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
                 </tr>

@@ -137,14 +137,21 @@ function sc_export_expenses_to_excel() {
     $filename = sc_generate_export_filename('expenses', $filters);
     
     // ارسال فایل
+    // پاک کردن تمام خروجی‌های قبلی
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+    
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment;filename="' . $filename . '"');
     header('Cache-Control: max-age=0');
+    header('Pragma: public');
     
     $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
     $writer->save('php://output');
     exit;
 }
+
 
 
 

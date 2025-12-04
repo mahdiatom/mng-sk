@@ -1,4 +1,4 @@
-د<?php
+<?php
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -91,15 +91,21 @@ function sc_export_course_users_to_excel() {
     }
     
     // تنظیم عرض ستون‌ها
-    sc_auto_size_columns($sheet, 1, 8);
+    sc_auto_size_columns($sheet, 8);
     
     // نام فایل
     $filename = 'کاربران-دوره-' . sanitize_file_name($course_title) . '-' . date('Y-m-d') . '.xlsx';
+    
+    // پاک کردن تمام خروجی‌های قبلی
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
     
     // ارسال فایل
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment;filename="' . $filename . '"');
     header('Cache-Control: max-age=0');
+    header('Pragma: public');
     
     $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
     $writer->save('php://output');

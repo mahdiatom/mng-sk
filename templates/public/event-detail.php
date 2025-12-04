@@ -89,20 +89,41 @@ if ($event->capacity) {
     }
 }
 
-// بررسی ثبت‌نام قبلی
+// بررسی ثبت‌نام قبلی و وضعیت
 $is_enrolled = false;
+$enrollment_status = null;
+$enrollment_status_label = '';
+$enrollment_tooltip = '';
+$event_type_label = ($event->event_type === 'competition') ? 'مسابقه' : 'رویداد';
+
 if (!empty($player->id)) {
     global $wpdb;
     $invoices_table = $wpdb->prefix . 'sc_invoices';
-    $existing_invoice = $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM $invoices_table WHERE member_id = %d AND event_id = %d AND status IN ('paid', 'completed', 'processing')",
+    $existing_invoice = $wpdb->get_row($wpdb->prepare(
+        "SELECT status FROM $invoices_table WHERE member_id = %d AND event_id = %d ORDER BY created_at DESC LIMIT 1",
         $player->id,
         $event->id
     ));
-    if ($existing_invoice > 0) {
-        $is_enrolled = true;
-        $can_enroll = false;
-        $tooltip_message = 'شما قبلاً در این رویداد ثبت نام کرده‌اید.';
+    
+    if ($existing_invoice) {
+        $enrollment_status = $existing_invoice->status;
+        
+        if (in_array($enrollment_status, ['paid', 'completed', 'processing'])) {
+            $is_enrolled = true;
+            $can_enroll = false;
+            $enrollment_status_label = 'ثبت‌نام شده';
+            $enrollment_tooltip = 'شما در این ' . $event_type_label . ' ثبت‌نام کرده‌اید.';
+        } elseif ($enrollment_status === 'cancelled') {
+            $is_enrolled = false;
+            $can_enroll = false;
+            $enrollment_status_label = 'لغو شده';
+            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' لغو شده است.';
+        } elseif (in_array($enrollment_status, ['pending', 'on-hold'])) {
+            $is_enrolled = false;
+            $can_enroll = false;
+            $enrollment_status_label = 'در انتظار بررسی';
+            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' در انتظار بررسی است. لطفاً منتظر بمانید.';
+        }
     }
 }
 
@@ -324,12 +345,24 @@ if (function_exists('wc_price')) {
                     <?php endif; ?>
                     
                     <button type="submit" name="sc_enroll_event" class="button button-primary sc-enroll-event-btn">
-                        ثبت‌نام در رویداد
+                        ثبت‌نام در <?php echo esc_html($event_type_label); ?>
                     </button>
                 </form>
             <?php elseif ($is_enrolled) : ?>
-                <div class="sc-event-enrolled-message">
-                    <p>✅ شما قبلاً در این رویداد ثبت نام کرده‌اید.</p>
+                <div class="sc-event-enrolled-message" 
+                     data-tooltip="<?php echo esc_attr($enrollment_tooltip); ?>">
+                    <p>✅ شما در این <?php echo esc_html($event_type_label); ?> ثبت‌نام کرده‌اید.</p>
+                </div>
+            <?php elseif ($enrollment_status) : ?>
+                <div class="sc-event-status-message" 
+                     data-tooltip="<?php echo esc_attr($enrollment_tooltip); ?>">
+                    <p>
+                        <?php if ($enrollment_status === 'cancelled') : ?>
+                            ❌ <?php echo esc_html($enrollment_status_label); ?>
+                        <?php else : ?>
+                            ⏳ <?php echo esc_html($enrollment_status_label); ?>
+                        <?php endif; ?>
+                    </p>
                 </div>
             <?php else : ?>
                 <div class="sc-event-cannot-enroll" 
@@ -337,233 +370,11 @@ if (function_exists('wc_price')) {
                          data-tooltip="<?php echo esc_attr($tooltip_message); ?>"
                      <?php endif; ?>>
                     <button type="button" class="button sc-enroll-event-btn" disabled>
-                        ثبت‌نام در رویداد
+                        ثبت‌نام در <?php echo esc_html($event_type_label); ?>
                     </button>
                 </div>
             <?php endif; ?>
         </div>
     </div>
 </div>
-
-<style>
-.sc-event-detail-page {
-    padding: 20px 0;
-}
-
-.sc-event-detail-header {
-    margin-bottom: 30px;
-}
-
-.sc-back-link {
-    display: inline-block;
-    margin-bottom: 15px;
-    color: #2271b1;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.3s ease;
-}
-
-.sc-back-link:hover {
-    color: #135e96;
-}
-
-.sc-event-detail-header h2 {
-    margin: 0;
-    font-size: 28px;
-    color: #1a1a1a;
-}
-
-.sc-event-detail-content {
-    background: #fff;
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-}
-
-.sc-event-detail-image {
-    width: 100%;
-    max-height: 400px;
-    overflow: hidden;
-    border-radius: 8px;
-    margin-bottom: 30px;
-}
-
-.sc-event-detail-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.sc-event-detail-section {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #e5e5e5;
-}
-
-.sc-event-detail-section:last-child {
-    border-bottom: none;
-}
-
-.sc-event-detail-section h3 {
-    margin: 0 0 15px 0;
-    font-size: 20px;
-    color: #2271b1;
-    font-weight: 600;
-}
-
-.sc-event-detail-section p {
-    color: #555;
-    line-height: 1.8;
-    margin: 0;
-}
-
-.sc-event-detail-meta-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin: 30px 0;
-}
-
-.sc-event-detail-meta-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-right: 4px solid #2271b1;
-}
-
-.sc-event-meta-icon {
-    font-size: 32px;
-    flex-shrink: 0;
-}
-
-.sc-event-detail-meta-item strong {
-    display: block;
-    margin-bottom: 8px;
-    color: #333;
-    font-size: 14px;
-}
-
-.sc-event-detail-meta-item p {
-    margin: 0;
-    color: #555;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.sc-event-map {
-    margin-top: 15px;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.sc-event-detail-actions {
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 2px solid #e5e5e5;
-    text-align: center;
-}
-
-.sc-enroll-event-btn {
-    background: linear-gradient(135deg, #00a32a 0%, #008a20 100%);
-    color: #fff;
-    border: none;
-    padding: 15px 40px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 163, 42, 0.3);
-}
-
-.sc-enroll-event-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #008a20 0%, #007318 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 163, 42, 0.4);
-}
-
-.sc-enroll-event-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.sc-event-enrolled-message {
-    padding: 20px;
-    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-    border-radius: 8px;
-    text-align: center;
-    color: #155724;
-    font-weight: 600;
-}
-
-.sc-event-cannot-enroll {
-    position: relative;
-    display: inline-block;
-}
-
-.sc-event-cannot-enroll[data-tooltip]:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 100%;
-    right: 50%;
-    transform: translateX(50%);
-    padding: 12px 16px;
-    background-color: #000;
-    color: #fff;
-    border-radius: 6px;
-    font-size: 13px;
-    line-height: 1.6;
-    white-space: normal;
-    width: 300px;
-    max-width: 90vw;
-    z-index: 99999;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    text-align: right;
-    font-weight: normal;
-    opacity: 0;
-    animation: tooltipFadeIn 0.3s ease-out 0.2s forwards;
-    pointer-events: none;
-}
-
-.sc-event-cannot-enroll[data-tooltip]:hover::before {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    right: 50%;
-    transform: translateX(50%);
-    border: 7px solid transparent;
-    border-top-color: #000;
-    margin-bottom: 3px;
-    z-index: 99999;
-    opacity: 0;
-    animation: tooltipFadeIn 0.3s ease-out 0.2s forwards;
-    pointer-events: none;
-}
-
-@keyframes tooltipFadeIn {
-    from {
-        opacity: 0;
-        transform: translateX(50%) translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(50%) translateY(0);
-    }
-}
-
-@media (max-width: 768px) {
-    .sc-event-detail-meta-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .sc-event-detail-content {
-        padding: 20px;
-    }
-}
-</style>
 

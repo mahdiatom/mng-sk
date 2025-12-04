@@ -102,20 +102,41 @@ $today_shamsi = sc_get_today_shamsi();
                     }
                 }
                 
-                // بررسی ثبت‌نام قبلی
+                // بررسی ثبت‌نام قبلی و وضعیت
                 $is_enrolled = false;
+                $enrollment_status = null;
+                $enrollment_status_label = '';
+                $enrollment_tooltip = '';
+                $event_type_label = ($event->event_type === 'competition') ? 'مسابقه' : 'رویداد';
+                
                 if (!empty($player->id)) {
                     global $wpdb;
                     $invoices_table = $wpdb->prefix . 'sc_invoices';
-                    $existing_invoice = $wpdb->get_var($wpdb->prepare(
-                        "SELECT COUNT(*) FROM $invoices_table WHERE member_id = %d AND event_id = %d AND status IN ('paid', 'completed', 'processing')",
+                    $existing_invoice = $wpdb->get_row($wpdb->prepare(
+                        "SELECT status FROM $invoices_table WHERE member_id = %d AND event_id = %d ORDER BY created_at DESC LIMIT 1",
                         $player->id,
                         $event->id
                     ));
-                    if ($existing_invoice > 0) {
-                        $is_enrolled = true;
-                        $can_enroll = false;
-                        $tooltip_message = 'شما قبلاً در این رویداد ثبت نام کرده‌اید.';
+                    
+                    if ($existing_invoice) {
+                        $enrollment_status = $existing_invoice->status;
+                        
+                        if (in_array($enrollment_status, ['paid', 'completed', 'processing'])) {
+                            $is_enrolled = true;
+                            $can_enroll = false;
+                            $enrollment_status_label = 'ثبت‌نام شده';
+                            $enrollment_tooltip = 'شما در این ' . $event_type_label . ' ثبت‌نام کرده‌اید.';
+                        } elseif ($enrollment_status === 'cancelled') {
+                            $is_enrolled = false;
+                            $can_enroll = false;
+                            $enrollment_status_label = 'لغو شده';
+                            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' لغو شده است.';
+                        } elseif (in_array($enrollment_status, ['pending', 'on-hold'])) {
+                            $is_enrolled = false;
+                            $can_enroll = false;
+                            $enrollment_status_label = 'در انتظار بررسی';
+                            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' در انتظار بررسی است. لطفاً منتظر بمانید.';
+                        }
                     }
                 }
                 
@@ -191,9 +212,21 @@ $today_shamsi = sc_get_today_shamsi();
                         </div>
                         
                         <div class="sc-event-actions">
-                            <a href="<?php echo esc_url($event_detail_url); ?>" class="button sc-event-view-btn">
-                                مشاهده جزئیات
-                            </a>
+                            <?php if ($is_enrolled) : ?>
+                                <span class="sc-event-enrolled-badge" 
+                                      data-tooltip="<?php echo esc_attr($enrollment_tooltip); ?>">
+                                    شما در این <?php echo esc_html($event_type_label); ?> ثبت‌نام کرده‌اید
+                                </span>
+                            <?php elseif ($enrollment_status) : ?>
+                                <span class="sc-event-status-badge" 
+                                      data-tooltip="<?php echo esc_attr($enrollment_tooltip); ?>">
+                                    <?php echo esc_html($enrollment_status_label); ?>
+                                </span>
+                            <?php else : ?>
+                                <a href="<?php echo esc_url($event_detail_url); ?>" class="button sc-event-view-btn">
+                                    مشاهده جزئیات
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -202,201 +235,6 @@ $today_shamsi = sc_get_today_shamsi();
     <?php endif; ?>
 </div>
 
-<style>
-.sc-events-page {
-    padding: 20px 0;
-}
-
-.sc-events-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 25px;
-    margin-top: 25px;
-}
-
-.sc-event-card {
-    background: #fff;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-    position: relative;
-}
-
-.sc-event-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-    border-color: #2271b1;
-}
-
-.sc-event-card.disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.sc-event-card.disabled:hover {
-    transform: none;
-    border-color: transparent;
-}
-
-.sc-event-image {
-    width: 100%;
-    height: 200px;
-    overflow: hidden;
-    background: #f5f5f5;
-}
-
-.sc-event-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.sc-event-card:hover .sc-event-image img {
-    transform: scale(1.05);
-}
-
-.sc-event-content {
-    padding: 20px;
-}
-
-.sc-event-title {
-    margin: 0 0 15px 0;
-    font-size: 20px;
-    font-weight: 600;
-    color: #1a1a1a;
-}
-
-.sc-event-title a {
-    color: inherit;
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-.sc-event-title a:hover {
-    color: #2271b1;
-}
-
-.sc-event-description {
-    color: #666;
-    font-size: 14px;
-    line-height: 1.6;
-    margin: 0 0 15px 0;
-}
-
-.sc-event-meta {
-    margin: 15px 0;
-}
-
-.sc-event-meta-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    font-size: 14px;
-    color: #555;
-}
-
-.sc-event-icon {
-    font-size: 18px;
-}
-
-.sc-event-price {
-    font-weight: 600;
-    color: #2271b1;
-    font-size: 16px;
-}
-
-.sc-event-actions {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #e5e5e5;
-}
-
-.sc-event-view-btn {
-    width: 100%;
-    text-align: center;
-    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
-    color: #fff;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
-    display: block;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(34, 113, 177, 0.3);
-}
-
-.sc-event-view-btn:hover {
-    background: linear-gradient(135deg, #135e96 0%, #0a4d75 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(34, 113, 177, 0.4);
-    color: #fff;
-}
-
-.sc-event-card[data-tooltip] {
-    position: relative;
-}
-
-.sc-event-card[data-tooltip]:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 100%;
-    right: 0;
-    padding: 12px 16px;
-    background-color: #000;
-    color: #fff;
-    border-radius: 6px;
-    font-size: 13px;
-    line-height: 1.6;
-    white-space: normal;
-    width: 250px;
-    max-width: 90vw;
-    z-index: 99999;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    text-align: right;
-    font-weight: normal;
-    opacity: 0;
-    transform: translateY(10px);
-    animation: tooltipFadeIn 0.3s ease-out 0.2s forwards;
-    pointer-events: none;
-}
-
-.sc-event-card[data-tooltip]:hover::before {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    right: 20px;
-    border: 7px solid transparent;
-    border-top-color: #000;
-    margin-bottom: 3px;
-    z-index: 99999;
-    opacity: 0;
-    animation: tooltipFadeIn 0.3s ease-out 0.2s forwards;
-    pointer-events: none;
-}
-
-@keyframes tooltipFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@media (max-width: 768px) {
-    .sc-events-grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
 
 
 

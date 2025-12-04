@@ -1269,12 +1269,19 @@ function sc_my_account_events_content() {
     global $wpdb;
     $events_table = $wpdb->prefix . 'sc_events';
     
-    // دریافت تمام رویدادهای فعال
-    $events = $wpdb->get_results(
+    // دریافت تاریخ امروز
+    $today_shamsi = sc_get_today_shamsi();
+    $today_gregorian = date('Y-m-d');
+    
+    // دریافت رویدادهای فعال که تاریخ برگزاری آنها گذشته است
+    $events = $wpdb->get_results($wpdb->prepare(
         "SELECT * FROM $events_table 
-         WHERE deleted_at IS NULL AND is_active = 1 
-         ORDER BY created_at DESC"
-    );
+         WHERE deleted_at IS NULL 
+         AND is_active = 1 
+         AND (holding_date_gregorian IS NULL OR holding_date_gregorian <= %s)
+         ORDER BY holding_date_gregorian DESC, created_at DESC",
+        $today_gregorian
+    ));
     
     include SC_TEMPLATES_PUBLIC_DIR . 'events-list.php';
 }

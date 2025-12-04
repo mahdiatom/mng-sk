@@ -1629,6 +1629,16 @@ function callback_add_event_sufix() {
             $end_date = sanitize_text_field($_POST['end_date']);
         }
         
+        // پردازش تاریخ برگزاری
+        $holding_date = NULL;
+        $holding_date_shamsi = NULL;
+        if (!empty($_POST['holding_date_shamsi'])) {
+            $holding_date_shamsi = sanitize_text_field($_POST['holding_date_shamsi']);
+            $holding_date = sc_shamsi_to_gregorian_date($holding_date_shamsi);
+        } elseif (!empty($_POST['holding_date'])) {
+            $holding_date = sanitize_text_field($_POST['holding_date']);
+        }
+        
         $has_age_limit = isset($_POST['has_age_limit']) ? 1 : 0;
         $min_age = ($has_age_limit && !empty($_POST['min_age'])) ? intval($_POST['min_age']) : NULL;
         $max_age = ($has_age_limit && !empty($_POST['max_age'])) ? intval($_POST['max_age']) : NULL;
@@ -1658,12 +1668,15 @@ function callback_add_event_sufix() {
         
         $data = [
             'name' => sanitize_text_field($_POST['name']),
+            'event_type' => !empty($_POST['event_type']) ? sanitize_text_field($_POST['event_type']) : 'event',
             'description' => !empty($description_content) ? $description_content : NULL,
             'price' => $price_value,
             'start_date_shamsi' => $start_date_shamsi,
             'start_date_gregorian' => $start_date,
             'end_date_shamsi' => $end_date_shamsi,
             'end_date_gregorian' => $end_date,
+            'holding_date_shamsi' => $holding_date_shamsi,
+            'holding_date_gregorian' => $holding_date,
             'image' => !empty($_POST['image']) ? esc_url_raw($_POST['image']) : NULL,
             'has_age_limit' => $has_age_limit,
             'min_age' => $min_age,
@@ -1686,7 +1699,7 @@ function callback_add_event_sufix() {
                 $table_name,
                 $data,
                 ['id' => $event_id],
-                ['%s', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%f', '%f', '%d', '%s'],
+                ['%s', '%s', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%f', '%f', '%d', '%s'],
                 ['%d']
             );
 
@@ -1707,7 +1720,7 @@ function callback_add_event_sufix() {
             $inserted = $wpdb->insert(
                 $table_name, 
                 $data,
-                ['%s', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%f', '%f', '%d', '%s', '%s']
+                ['%s', '%s', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%f', '%f', '%d', '%s', '%s']
             );
 
             if ($inserted !== false) {
@@ -1749,18 +1762,27 @@ function process_event_registrations_table_data() {
  */
 add_action('wp_ajax_sc_get_registration_details', 'sc_ajax_get_registration_details');
 function sc_ajax_get_registration_details() {
-    check_ajax_referer('sc_registration_nonce', 'nonce');
+    // جلوگیری از output قبل از JSON
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    
+    // بررسی nonce
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sc_registration_nonce')) {
+        wp_send_json_error(['message' => 'خطای امنیتی']);
+        wp_die();
+    }
     
     if (!current_user_can('manage_options')) {
         wp_send_json_error(['message' => 'دسترسی غیرمجاز']);
-        return;
+        wp_die();
     }
     
     $registration_id = isset($_POST['registration_id']) ? absint($_POST['registration_id']) : 0;
     
     if (!$registration_id) {
         wp_send_json_error(['message' => 'شناسه ثبت‌نام معتبر نیست']);
-        return;
+        wp_die();
     }
     
     global $wpdb;
@@ -1780,7 +1802,7 @@ function sc_ajax_get_registration_details() {
     
     if (!$registration) {
         wp_send_json_error(['message' => 'ثبت‌نام یافت نشد']);
-        return;
+        wp_die();
     }
     
     // دریافت فیلدهای رویداد
@@ -1800,15 +1822,15 @@ function sc_ajax_get_registration_details() {
     <table class="widefat" style="margin-top: 15px;">
         <tr>
             <th style="width: 150px; text-align: right;">نام رویداد:</th>
-            <td><?php echo esc_html($registration->event_name); ?></td>
+            <td><?php echo esc_html($registration->event_name ?: '-'); ?></td>
         </tr>
         <tr>
             <th style="text-align: right;">نام کاربر:</th>
-            <td><?php echo esc_html($registration->first_name . ' ' . $registration->last_name); ?></td>
+            <td><?php echo esc_html(trim(($registration->first_name ?: '') . ' ' . ($registration->last_name ?: '')) ?: '-'); ?></td>
         </tr>
         <tr>
             <th style="text-align: right;">شماره تماس:</th>
-            <td><?php echo esc_html($registration->player_phone ? $registration->player_phone : '-'); ?></td>
+            <td><?php echo esc_html($registration->player_phone ?: '-'); ?></td>
         </tr>
         <tr>
             <th style="text-align: right;">تاریخ ثبت‌نام:</th>
@@ -1850,13 +1872,15 @@ function sc_ajax_get_registration_details() {
                         <div style="display: flex; flex-wrap: wrap; gap: 10px;">
                             <?php foreach ($field_files as $file) : ?>
                                 <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-                                    <?php if (strpos($file['type'], 'image/') === 0) : ?>
+                                    <?php if (isset($file['type']) && strpos($file['type'], 'image/') === 0) : ?>
                                         <img src="<?php echo esc_url($file['url']); ?>" alt="<?php echo esc_attr($file['name']); ?>" style="max-width: 200px; max-height: 200px; display: block; margin-bottom: 5px;">
                                     <?php endif; ?>
                                     <a href="<?php echo esc_url($file['url']); ?>" target="_blank" download style="display: block; color: #2271b1; text-decoration: none;">
                                         <?php echo esc_html($file['name']); ?>
                                     </a>
-                                    <small style="color: #666;"><?php echo size_format($file['size']); ?></small>
+                                    <?php if (isset($file['size'])) : ?>
+                                        <small style="color: #666;"><?php echo size_format($file['size']); ?></small>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -1872,6 +1896,7 @@ function sc_ajax_get_registration_details() {
     $html = ob_get_clean();
     
     wp_send_json_success(['html' => $html]);
+    wp_die();
 }
 
 /**
@@ -1879,11 +1904,20 @@ function sc_ajax_get_registration_details() {
  */
 add_action('wp_ajax_sc_change_registration_status', 'sc_ajax_change_registration_status');
 function sc_ajax_change_registration_status() {
-    check_ajax_referer('sc_change_status_nonce', 'nonce');
+    // جلوگیری از output قبل از JSON
+    if (ob_get_level()) {
+        ob_clean();
+    }
+    
+    // بررسی nonce
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sc_change_status_nonce')) {
+        wp_send_json_error(['message' => 'خطای امنیتی']);
+        wp_die();
+    }
     
     if (!current_user_can('manage_options')) {
         wp_send_json_error(['message' => 'دسترسی غیرمجاز']);
-        return;
+        wp_die();
     }
     
     $registration_id = isset($_POST['registration_id']) ? absint($_POST['registration_id']) : 0;
@@ -1892,43 +1926,45 @@ function sc_ajax_change_registration_status() {
     
     if (!$registration_id || !$invoice_id || empty($new_status)) {
         wp_send_json_error(['message' => 'پارامترهای ورودی معتبر نیست']);
-        return;
+        wp_die();
     }
     
     $allowed_statuses = ['completed', 'cancelled', 'processing', 'pending', 'on-hold'];
     if (!in_array($new_status, $allowed_statuses)) {
         wp_send_json_error(['message' => 'وضعیت معتبر نیست']);
-        return;
+        wp_die();
     }
     
     global $wpdb;
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     
     // به‌روزرسانی وضعیت invoice
-    $update_data = [
-        'status' => $new_status,
-        'updated_at' => current_time('mysql')
-    ];
-    
-    // اگر وضعیت completed یا processing است، payment_date را تنظیم کن
     if (in_array($new_status, ['completed', 'processing'])) {
-        $update_data['payment_date'] = current_time('mysql');
+        // اگر وضعیت completed یا processing است، payment_date را تنظیم کن
+        $updated = $wpdb->query($wpdb->prepare(
+            "UPDATE $invoices_table 
+             SET status = %s, payment_date = %s, updated_at = %s 
+             WHERE id = %d",
+            $new_status,
+            current_time('mysql'),
+            current_time('mysql'),
+            $invoice_id
+        ));
     } else {
         // برای سایر وضعیت‌ها، payment_date را null کن
-        $update_data['payment_date'] = NULL;
+        $updated = $wpdb->query($wpdb->prepare(
+            "UPDATE $invoices_table 
+             SET status = %s, payment_date = NULL, updated_at = %s 
+             WHERE id = %d",
+            $new_status,
+            current_time('mysql'),
+            $invoice_id
+        ));
     }
     
-    $updated = $wpdb->update(
-        $invoices_table,
-        $update_data,
-        ['id' => $invoice_id],
-        ['%s', '%s', '%s'],
-        ['%d']
-    );
-    
     if ($updated === false) {
-        wp_send_json_error(['message' => 'خطا در به‌روزرسانی وضعیت']);
-        return;
+        wp_send_json_error(['message' => 'خطا در به‌روزرسانی وضعیت: ' . $wpdb->last_error]);
+        wp_die();
     }
     
     // به‌روزرسانی وضعیت WooCommerce order اگر وجود دارد
@@ -1945,6 +1981,7 @@ function sc_ajax_change_registration_status() {
     }
     
     wp_send_json_success(['message' => 'وضعیت با موفقیت تغییر کرد']);
+    wp_die();
 }
 
 /**

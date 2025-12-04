@@ -245,6 +245,54 @@ function sc_add_profile_completed_column() {
 }
 
 /**
+ * Add holding_date columns to events table if not exists
+ */
+add_action('admin_init', 'sc_add_holding_date_columns');
+function sc_add_holding_date_columns() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_events';
+    
+    // بررسی وجود ستون holding_date_shamsi
+    $holding_date_shamsi_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'holding_date_shamsi'
+    ));
+    
+    if (empty($holding_date_shamsi_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `holding_date_shamsi` varchar(10) DEFAULT NULL AFTER `end_date_gregorian`");
+    }
+    
+    // بررسی وجود ستون holding_date_gregorian
+    $holding_date_gregorian_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'holding_date_gregorian'
+    ));
+    
+    if (empty($holding_date_gregorian_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `holding_date_gregorian` date DEFAULT NULL AFTER `holding_date_shamsi`");
+    }
+}
+
+/**
+ * Add event_type column to events table if not exists
+ */
+add_action('admin_init', 'sc_add_event_type_column');
+function sc_add_event_type_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_events';
+    
+    // بررسی وجود ستون event_type
+    $event_type_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'event_type'
+    ));
+    
+    if (empty($event_type_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `event_type` varchar(20) DEFAULT 'event' AFTER `name`");
+    }
+}
+
+/**
  * Add course_status_flags column to member_courses table if not exists
  */
 add_action('admin_init', 'sc_add_course_status_flags_column');

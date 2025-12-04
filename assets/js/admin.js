@@ -92,8 +92,13 @@ function scSelectEventFilter(element, eventId, eventText) {
     
     // تنظیم مقدار
     $hiddenInput.val(eventId);
-    $placeholder.hide();
-    $selected.text(eventText).show();
+    if (eventId == '0') {
+        $placeholder.show();
+        $selected.hide();
+    } else {
+        $placeholder.hide();
+        $selected.text(eventText).show();
+    }
     
     // بستن منو
     $menu.slideUp(200);
