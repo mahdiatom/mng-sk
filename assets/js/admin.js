@@ -207,6 +207,76 @@ jQuery(document).ready(function($) {
 // تابع مشترک فرمت کردن قیمت/مبلغ
 // ============================================
 
+// Event Delegation برای فرمت کردن قیمت/مبلغ (برای اطمینان از کارکرد)
+jQuery(document).ready(function($) {
+    // فرمت کردن برای فیلدهای قیمت/مبلغ با event delegation
+    $(document).on('input', '#price, #amount', function() {
+        var $this = $(this);
+        var inputId = $this.attr('id');
+        var rawSelector = inputId === 'price' ? '#price_raw' : '#amount_raw';
+        var $raw = $(rawSelector);
+        
+        if (!$raw.length) {
+            return;
+        }
+        
+        var value = $this.val();
+        var cleaned = value.replace(/,/g, '').replace(/\D/g, '');
+        
+        if (cleaned === '' || cleaned === '0') {
+            $this.val('');
+            $raw.val('0');
+            return;
+        }
+        
+        var formatted = parseInt(cleaned, 10).toLocaleString('en-US');
+        var cursorPos = this.selectionStart || 0;
+        var originalLength = value.length;
+        
+        $this.val(formatted);
+        $raw.val(cleaned);
+        
+        // حفظ موقعیت cursor
+        var digitsBeforeCursor = value.substring(0, cursorPos).replace(/,/g, '').replace(/\D/g, '').length;
+        var newCursorPos = formatted.length;
+        var digitCount = 0;
+        for (var i = 0; i < formatted.length; i++) {
+            if (formatted[i] !== ',') {
+                digitCount++;
+                if (digitCount >= digitsBeforeCursor) {
+                    newCursorPos = i + 1;
+                    break;
+                }
+            }
+        }
+        if (cursorPos >= originalLength) {
+            newCursorPos = formatted.length;
+        }
+        
+        setTimeout(function() {
+            if (this.setSelectionRange) {
+                this.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }.bind(this), 0);
+    });
+});
+
+// تابع فرمت کردن مقدار (مشترک)
+function scFormatValue(value) {
+    // حذف تمام کاماها و کاراکترهای غیر عددی
+    var cleaned = value.replace(/,/g, '').replace(/\D/g, '');
+    
+    // اگر خالی است
+    if (cleaned === '' || cleaned === '0') {
+        return { formatted: '', raw: '0' };
+    }
+    
+    // فرمت کردن با کاما (سه رقم سه رقم)
+    var formatted = parseInt(cleaned, 10).toLocaleString('en-US');
+    return { formatted: formatted, raw: cleaned };
+}
+
+// تابع فرمت کردن فیلد قیمت/مبلغ
 function scFormatPrice(inputSelector, rawInputSelector) {
     var $input = jQuery(inputSelector);
     var $raw = jQuery(rawInputSelector);
@@ -215,48 +285,115 @@ function scFormatPrice(inputSelector, rawInputSelector) {
         return;
     }
     
-    // تابع فرمت کردن مقدار
-    function formatValue(value) {
-        // حذف تمام کاماها و کاراکترهای غیر عددی
-        var cleaned = value.replace(/,/g, '').replace(/\D/g, '');
+    // تابع فرمت کردن با حفظ موقعیت cursor
+    function formatInputField(inputElement) {
+        var $this = jQuery(inputElement);
+        var value = $this.val();
         
-        // اگر خالی است
-        if (cleaned === '' || cleaned === '0') {
-            return { formatted: '', raw: '0' };
+        // ذخیره موقعیت cursor
+        var cursorPos = inputElement.selectionStart || 0;
+        var originalLength = value.length;
+        
+        // فرمت کردن
+        var result = scFormatValue(value);
+        var newValue = result.formatted;
+        var newLength = newValue.length;
+        
+        // تنظیم مقدار جدید
+        $this.val(newValue);
+        $raw.val(result.raw);
+        
+        // محاسبه موقعیت جدید cursor
+        var digitsBeforeCursor = value.substring(0, cursorPos).replace(/,/g, '').replace(/\D/g, '').length;
+        
+        // پیدا کردن موقعیت جدید cursor
+        var newCursorPos = newLength;
+        var digitCount = 0;
+        for (var i = 0; i < newValue.length; i++) {
+            if (newValue[i] !== ',') {
+                digitCount++;
+                if (digitCount >= digitsBeforeCursor) {
+                    newCursorPos = i + 1;
+                    break;
+                }
+            }
         }
         
-        // فرمت کردن با کاما (سه رقم سه رقم)
-        var formatted = parseInt(cleaned, 10).toLocaleString('en-US');
-        return { formatted: formatted, raw: cleaned };
+        // اگر cursor در انتها بود، آن را در انتها نگه دار
+        if (cursorPos >= originalLength) {
+            newCursorPos = newLength;
+        }
+        
+        // تنظیم موقعیت cursor
+        setTimeout(function() {
+            if (inputElement.setSelectionRange) {
+                inputElement.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }, 0);
     }
     
-    $input.on('input', function() {
-        var $this = $(this);
-        var value = $this.val();
-        var result = formatValue(value);
-        
-        $this.val(result.formatted);
-        $raw.val(result.raw);
+    // حذف event handler های قبلی (برای جلوگیری از duplicate)
+    $input.off('input.scFormatPrice keyup.scFormatPrice paste.scFormatPrice');
+    
+    // هنگام تایپ (input event) - فرمت کردن همزمان با تایپ
+    $input.on('input.scFormatPrice', function() {
+        formatInputField(this);
+    });
+    
+    // هنگام keyup (برای اطمینان بیشتر)
+    $input.on('keyup.scFormatPrice', function(e) {
+        // فقط برای اعداد و کلیدهای خاص
+        var key = e.keyCode || e.which;
+        if ((key >= 48 && key <= 57) || 
+            (key >= 96 && key <= 105) || 
+            key === 8 || key === 46 || key === 37 || key === 39 || 
+            key === 35 || key === 36) {
+            formatInputField(this);
+        }
+    });
+    
+    // هنگام keydown برای اعداد
+    $input.on('keydown.scFormatPrice', function(e) {
+        var key = e.keyCode || e.which;
+        // اجازه دادن به اعداد و کلیدهای خاص
+        if ((key >= 48 && key <= 57) || 
+            (key >= 96 && key <= 105) || 
+            key === 8 || key === 46 || key === 37 || key === 39 || 
+            key === 35 || key === 36 || key === 9 || key === 13) {
+            return true;
+        }
+        // جلوگیری از کاراکترهای غیر عددی
+        if (key >= 65 && key <= 90) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // هنگام paste
+    $input.on('paste.scFormatPrice', function() {
+        var $this = jQuery(this);
+        setTimeout(function() {
+            formatInputField($this[0]);
+        }, 10);
     });
     
     // هنگام blur
-    $input.on('blur', function() {
-        var value = $(this).val();
+    $input.on('blur.scFormatPrice', function() {
+        var value = jQuery(this).val();
         var cleaned = value.replace(/,/g, '');
         if (cleaned === '' || cleaned === '0') {
-            $(this).val('');
+            jQuery(this).val('');
             $raw.val('0');
         }
     });
     
     // قبل از submit
-    $input.closest('form').on('submit', function() {
+    $input.closest('form').on('submit.scFormatPrice', function() {
         var rawValue = $raw.val() || '0';
         $input.val(rawValue);
     });
     
     // فرمت کردن مقدار اولیه در صورت وجود (بعد از بارگذاری کامل صفحه)
-    // استفاده از setTimeout برای اطمینان از لود کامل DOM
     setTimeout(function() {
         var currentValue = $input.val();
         if (currentValue) {
@@ -267,12 +404,12 @@ function scFormatPrice(inputSelector, rawInputSelector) {
             
             if (rawValue && rawValue !== '0') {
                 // اگر مقدار raw وجود دارد، از آن برای فرمت کردن استفاده کن
-                var result = formatValue(rawValue);
+                var result = scFormatValue(rawValue);
                 $input.val(result.formatted);
                 $raw.val(result.raw);
             } else if (!hasComma && /^\d+$/.test(currentValue.replace(/,/g, ''))) {
                 // اگر مقدار فرمت نشده (بدون کاما و فقط عدد است)، فرمت کن
-                var result = formatValue(currentValue);
+                var result = scFormatValue(currentValue);
                 $input.val(result.formatted);
                 $raw.val(result.raw);
             } else if (hasComma) {
