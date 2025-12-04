@@ -48,6 +48,7 @@ require_once SC_INCLUDES_DIR . 'debtors-export.php'; // Debtors export functions
 require_once SC_INCLUDES_DIR . 'active-users-export.php'; // Active users export functions
 require_once SC_INCLUDES_DIR . 'payments-export.php'; // Payments export functions
 require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export functions
+require_once SC_INCLUDES_DIR . 'event-registrations-export.php'; // Event registrations export functions
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
 require_once SC_PUBLIC_DIR . 'my-account.php';

@@ -23,7 +23,7 @@ if ($event && isset($_GET['event_id'])) {
     $name = $event->name ?? '';
     $event_type = $event->event_type ?? 'event';
     $description = $event->description ?? '';
-    $price = $event->price ?? '';
+    $price = isset($event->price) ? floatval($event->price) : 0;
     $start_date = $event->start_date_gregorian ?? '';
     $end_date = $event->end_date_gregorian ?? '';
     $holding_date = $event->holding_date_gregorian ?? '';
@@ -117,14 +117,14 @@ if ($event && isset($_GET['event_id'])) {
                         <input type="text" 
                                name="price" 
                                id="price" 
-                               value="<?php echo $price > 0 ? number_format($price, 0, '.', ',') : ''; ?>" 
+                               value="<?php echo $price > 0 ? number_format(intval($price), 0, '.', ',') : ''; ?>" 
                                class="regular-text" 
                                placeholder="0"
                                style="width: 300px;"
                                dir="ltr"
                                inputmode="numeric"
                                required>
-                        <input type="hidden" name="price_raw" id="price_raw" value="<?php echo esc_attr($price ?? 0); ?>">
+                        <input type="hidden" name="price_raw" id="price_raw" value="<?php echo esc_attr(intval($price)); ?>">
                         <p class="description">قیمت رویداد / مسابقه به تومان (با جدا کردن سه رقم سه رقم)</p>
                     </td>
                 </tr>

@@ -20,6 +20,10 @@ if (function_exists('wc_get_price_thousand_separator')) {
 }
 
 $today_shamsi = sc_get_today_shamsi();
+
+// دریافت متغیرهای pagination (اگر از my-account.php فراخوانی شده باشد)
+$current_page = isset($current_page) ? $current_page : (isset($_GET['paged']) ? absint($_GET['paged']) : 1);
+$total_pages = isset($total_pages) ? $total_pages : 1;
 ?>
 
 <div class="sc-events-page">
@@ -134,8 +138,8 @@ $today_shamsi = sc_get_today_shamsi();
                         } elseif (in_array($enrollment_status, ['pending', 'on-hold'])) {
                             $is_enrolled = false;
                             $can_enroll = false;
-                            $enrollment_status_label = 'در انتظار بررسی';
-                            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' در انتظار بررسی است. لطفاً منتظر بمانید.';
+                            $enrollment_status_label = 'در انتظار پرداخت';
+                            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' انجام شده است. لطفاً برای تکمیل ثبت‌نام، پرداخت را انجام دهید.';
                         }
                     }
                 }
@@ -232,6 +236,26 @@ $today_shamsi = sc_get_today_shamsi();
                 </div>
             <?php endforeach; ?>
         </div>
+        
+        <!-- Pagination -->
+        <?php if (isset($total_pages) && $total_pages > 1) : ?>
+            <div class="sc-events-pagination" style="margin-top: 30px; text-align: center;">
+                <?php
+                $page_links = paginate_links([
+                    'base' => add_query_arg(['paged' => '%#%']),
+                    'format' => '',
+                    'prev_text' => '&laquo; قبلی',
+                    'next_text' => 'بعدی &raquo;',
+                    'total' => $total_pages,
+                    'current' => $current_page,
+                    'type' => 'plain',
+                    'end_size' => 2,
+                    'mid_size' => 2
+                ]);
+                echo $page_links;
+                ?>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 

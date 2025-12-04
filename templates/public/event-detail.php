@@ -121,8 +121,8 @@ if (!empty($player->id)) {
         } elseif (in_array($enrollment_status, ['pending', 'on-hold'])) {
             $is_enrolled = false;
             $can_enroll = false;
-            $enrollment_status_label = 'در انتظار بررسی';
-            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' در انتظار بررسی است. لطفاً منتظر بمانید.';
+            $enrollment_status_label = 'در انتظار پرداخت';
+            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' انجام شده است. لطفاً برای تکمیل ثبت‌نام، پرداخت را انجام دهید.';
         }
     }
 }

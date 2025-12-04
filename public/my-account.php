@@ -1269,19 +1269,46 @@ function sc_my_account_events_content() {
     global $wpdb;
     $events_table = $wpdb->prefix . 'sc_events';
     
+    // Pagination
+    $per_page = 10;
+    $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
+    $offset = ($current_page - 1) * $per_page;
+    
     // دریافت تاریخ امروز
     $today_shamsi = sc_get_today_shamsi();
     $today_gregorian = date('Y-m-d');
     
-    // دریافت رویدادهای فعال که تاریخ برگزاری آنها گذشته است
+    // دریافت تعداد کل رویدادهای فعال که در بازه ثبت‌نام هستند
+    $total_events = $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM $events_table 
+         WHERE deleted_at IS NULL 
+         AND is_active = 1
+         AND (
+             (start_date_gregorian IS NULL OR start_date_gregorian <= %s)
+             AND (end_date_gregorian IS NULL OR end_date_gregorian >= %s)
+         )",
+        $today_gregorian,
+        $today_gregorian
+    ));
+    
+    // دریافت رویدادهای فعال که در بازه ثبت‌نام هستند
     $events = $wpdb->get_results($wpdb->prepare(
         "SELECT * FROM $events_table 
          WHERE deleted_at IS NULL 
-         AND is_active = 1 
-         AND (holding_date_gregorian IS NULL OR holding_date_gregorian <= %s)
-         ORDER BY holding_date_gregorian DESC, created_at DESC",
-        $today_gregorian
+         AND is_active = 1
+         AND (
+             (start_date_gregorian IS NULL OR start_date_gregorian <= %s)
+             AND (end_date_gregorian IS NULL OR end_date_gregorian >= %s)
+         )
+         ORDER BY holding_date_gregorian DESC, created_at DESC
+         LIMIT %d OFFSET %d",
+        $today_gregorian,
+        $today_gregorian,
+        $per_page,
+        $offset
     ));
+    
+    $total_pages = ceil($total_events / $per_page);
     
     include SC_TEMPLATES_PUBLIC_DIR . 'events-list.php';
 }

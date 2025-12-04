@@ -272,6 +272,9 @@ function sc_handle_excel_export() {
         case 'course_users':
             sc_export_course_users_to_excel();
             break;
+        case 'event_registrations':
+            sc_export_event_registrations_to_excel();
+            break;
         default:
             wp_die('نوع export معتبر نیست.');
     }
@@ -1648,11 +1651,18 @@ function callback_add_event_sufix() {
         
         // پردازش قیمت از price_raw
         $price_value = 0;
-        if (isset($_POST['price_raw']) && !empty($_POST['price_raw'])) {
-            $price_value = floatval($_POST['price_raw']);
+        if (isset($_POST['price_raw']) && !empty($_POST['price_raw']) && $_POST['price_raw'] !== '0') {
+            // حذف کاماها و تبدیل به عدد
+            $price_raw_cleaned = str_replace(',', '', sanitize_text_field($_POST['price_raw']));
+            $price_value = floatval($price_raw_cleaned);
         } elseif (isset($_POST['price']) && !empty($_POST['price'])) {
-            $price_value = floatval(str_replace(',', '', $_POST['price']));
+            // حذف کاماها و تبدیل به عدد
+            $price_cleaned = str_replace(',', '', sanitize_text_field($_POST['price']));
+            $price_value = floatval($price_cleaned);
         }
+        
+        // تبدیل به عدد صحیح (بدون اعشار)
+        $price_value = intval($price_value);
         
         // پردازش توضیحات از WYSIWYG editor
         $description_content = '';
