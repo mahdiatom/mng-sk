@@ -1,4 +1,4 @@
-<?php
+<?php 
 /**
  * Shortcode: نمایش اطلاعات کاربر در پنل
  * [sc_user_info_panel]
@@ -246,131 +246,160 @@ function sc_user_info_panel_shortcode($atts) {
                     اطلاعات حساب کاربری
                 </h4>
                 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <!-- دوره‌های فعال -->
-                    <div class="sc-info-card" style="background: linear-gradient(135deg, #e7f3ff 0%, #d0e7ff 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #2271b1;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="font-size: 24px;">📚</span>
-                            <strong style="font-size: 14px; color: #666;">دوره‌های فعال</strong>
-                        </div>
-                        <div style="font-size: 28px; font-weight: bold; color: #2271b1;">
-                            <?php echo esc_html($active_courses_count); ?>
-                        </div>
-                    </div>
-                    
-                    <!-- بدهکاری -->
-                    <div class="sc-info-card" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #f0a000;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="font-size: 24px;">💰</span>
-                            <strong style="font-size: 14px; color: #666;">بدهکاری شما</strong>
-                        </div>
-                        <div style="font-size: 28px; font-weight: bold; color: #856404;">
-                            <?php echo number_format($total_debt, 0, '.', ','); ?> تومان
-                        </div>
-                        <?php if ($debt_count > 0) : ?>
-                            <div style="font-size: 12px; color: #856404; margin-top: 5px;">
-                                (<?php echo esc_html($debt_count); ?> صورت حساب)
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <!-- رویدادهای ثبت‌نام شده -->
-                    <div class="sc-info-card" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #00a32a;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="font-size: 24px;">🎯</span>
-                            <strong style="font-size: 14px; color: #666;">رویدادهای ثبت‌نام شده</strong>
-                        </div>
-                        <div style="font-size: 28px; font-weight: bold; color: #155724;">
-                            <?php echo esc_html($event_registrations_count); ?>
-                        </div>
-                    </div>
-                    
-                    <!-- صورت حساب‌های پرداخت شده -->
-                    <div class="sc-info-card" style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #17a2b8;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="font-size: 24px;">✅</span>
-                            <strong style="font-size: 14px; color: #666;">پرداخت‌های موفق</strong>
-                        </div>
-                        <div style="font-size: 28px; font-weight: bold; color: #0c5460;">
-                            <?php echo esc_html($paid_invoices_count); ?>
-                        </div>
-                        <?php if ($paid_invoices_total > 0) : ?>
-                            <div style="font-size: 12px; color: #0c5460; margin-top: 5px;">
-                                مجموع: <?php echo number_format($paid_invoices_total, 0, '.', ','); ?> تومان
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <!-- سن کاربر -->
-                    <?php if ($user_age) : ?>
-                        <div class="sc-info-card" style="background: linear-gradient(135deg, #f0e6ff 0%, #e6d5ff 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #8b5cf6;">
+                <!-- بخش قابل مشاهده (4 کارت) -->
+                <div class="sc-visible-section" style="display: block;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <!-- دوره‌های فعال -->
+                        <div class="sc-info-card" style="background: linear-gradient(135deg, #e7f3ff 0%, #d0e7ff 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #2271b1;">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <span style="font-size: 24px;">🎂</span>
-                                <strong style="font-size: 14px; color: #666;">سن شما</strong>
+                                <span style="font-size: 24px;">📚</span>
+                                <strong style="font-size: 14px; color: #666;">دوره‌های فعال</strong>
                             </div>
-                            <div style="font-size: 28px; font-weight: bold; color: #6b21a8;">
-                                <?php echo esc_html($user_age); ?>
+                            <div style="font-size: 28px; font-weight: bold; color: #2271b1;">
+                                <?php echo esc_html($active_courses_count); ?>
                             </div>
                         </div>
-                    <?php endif; ?>
-                    
-                    <!-- سطح شما -->
-                    <div class="sc-info-card" style="background: linear-gradient(135deg, #fff5e6 0%, #ffe8cc 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #ff9800;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="font-size: 24px;">⭐</span>
-                            <strong style="font-size: 14px; color: #666;">سطح شما</strong>
-                        </div>
-                        <div style="font-size: 20px; font-weight: bold; color: #e65100;">
-                            <?php echo esc_html($skill_level); ?>
-                        </div>
-                    </div>
-                    
-                    <!-- تعداد حضور و غیاب -->
-                    <div class="sc-info-card" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #4caf50;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="font-size: 24px;">📋</span>
-                            <strong style="font-size: 14px; color: #666;">حضور و غیاب</strong>
-                        </div>
-                        <div style="display: flex; gap: 15px; align-items: center; justify-content: space-between;">
-                            <div style="text-align: center; flex: 1;">
-                                <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">
-                                    <?php echo esc_html($present_count); ?>
+                        
+                        <!-- بدهکاری -->
+                        <div class="sc-info-card" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #f0a000;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="font-size: 24px;">💰</span>
+                                <strong style="font-size: 14px; color: #666;">بدهکاری شما</strong>
+                            </div>
+                            <div style="font-size: 28px; font-weight: bold; color: #856404;">
+                                <?php echo number_format($total_debt, 0, '.', ','); ?> تومان
+                            </div>
+                            <?php if ($debt_count > 0) : ?>
+                                <div style="font-size: 12px; color: #856404; margin-top: 5px;">
+                                    (<?php echo esc_html($debt_count); ?> صورت حساب)
                                 </div>
-                                <div style="font-size: 11px; color: #2e7d32; margin-top: 3px;">
-                                    حضور
-                                </div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <!-- رویدادهای ثبت‌نام شده -->
+                        <div class="sc-info-card" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #00a32a;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="font-size: 24px;">🎯</span>
+                                <strong style="font-size: 14px; color: #666;">رویدادهای ثبت‌نام شده</strong>
                             </div>
-                            <div style="width: 1px; height: 30px; background: #c8e6c9;"></div>
-                            <div style="text-align: center; flex: 1;">
-                                <div style="font-size: 24px; font-weight: bold; color: #d32f2f;">
-                                    <?php echo esc_html($absent_count); ?>
-                                </div>
-                                <div style="font-size: 11px; color: #d32f2f; margin-top: 3px;">
-                                    غیاب
-                                </div>
+                            <div style="font-size: 28px; font-weight: bold; color: #155724;">
+                                <?php echo esc_html($event_registrations_count); ?>
                             </div>
                         </div>
-                        <?php if ($total_attendances > 0) : ?>
-                            <div style="font-size: 11px; color: #666; margin-top: 8px; text-align: center; padding-top: 8px; border-top: 1px solid #c8e6c9;">
-                                مجموع: <?php echo esc_html($total_attendances); ?> رکورد
+                        
+                        <!-- صورت حساب‌های پرداخت شده -->
+                        <div class="sc-info-card" style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #17a2b8;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="font-size: 24px;">✅</span>
+                                <strong style="font-size: 14px; color: #666;">پرداخت‌های موفق</strong>
                             </div>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <!-- نام کاربری -->
-                    <div class="sc-info-card" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #9c27b0;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="font-size: 24px;">👤</span>
-                            <strong style="font-size: 14px; color: #666;">نام کاربری</strong>
-                        </div>
-                        <div style="font-size: 18px; font-weight: bold; color: #6a1b9a; word-break: break-all; direction: ltr; text-align: center;">
-                            <?php echo esc_html($user_login); ?>
+                            <div style="font-size: 28px; font-weight: bold; color: #0c5460;">
+                                <?php echo esc_html($paid_invoices_count); ?>
+                            </div>
+                            <?php if ($paid_invoices_total > 0) : ?>
+                                <div style="font-size: 12px; color: #0c5460; margin-top: 5px;">
+                                    مجموع: <?php echo number_format($paid_invoices_total, 0, '.', ','); ?> تومان
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
                 
-                <!-- اطلاعات تکمیلی -->
-                <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
+                <!-- دکمه باز/بسته کردن -->
+                <div style="text-align: center; margin: 20px 0;">
+                    <button type="button" class="sc-toggle-button" onclick="scToggleUserPanel(this)" style="
+                        background: #2271b1;
+                        color: #fff;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 10px;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 2px 8px rgba(34, 113, 177, 0.3);
+                    " onmouseover="this.style.background='#135e96'" onmouseout="this.style.background='#2271b1'">
+                        <span class="sc-toggle-text">نمایش بیشتر</span>
+                        <span class="sc-toggle-arrow" style="font-size: 18px; transition: transform 0.3s ease;">▼</span>
+                    </button>
+                </div>
+                
+                <!-- بخش پنهان -->
+                <div class="sc-hidden-section" style="display: none; overflow: hidden;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <!-- سن کاربر -->
+                        <?php if ($user_age) : ?>
+                            <div class="sc-info-card" style="background: linear-gradient(135deg, #f0e6ff 0%, #e6d5ff 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #8b5cf6;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                    <span style="font-size: 24px;">🎂</span>
+                                    <strong style="font-size: 14px; color: #666;">سن شما</strong>
+                                </div>
+                                <div style="font-size: 28px; font-weight: bold; color: #6b21a8;">
+                                    <?php echo esc_html($user_age); ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <!-- سطح شما -->
+                        <div class="sc-info-card" style="background: linear-gradient(135deg, #fff5e6 0%, #ffe8cc 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #ff9800;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="font-size: 24px;">⭐</span>
+                                <strong style="font-size: 14px; color: #666;">سطح شما</strong>
+                            </div>
+                            <div style="font-size: 20px; font-weight: bold; color: #e65100;">
+                                <?php echo esc_html($skill_level); ?>
+                            </div>
+                        </div>
+                        
+                        <!-- تعداد حضور و غیاب -->
+                        <div class="sc-info-card" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #4caf50;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="font-size: 24px;">📋</span>
+                                <strong style="font-size: 14px; color: #666;">حضور و غیاب</strong>
+                            </div>
+                            <div style="display: flex; gap: 15px; align-items: center; justify-content: space-between;">
+                                <div style="text-align: center; flex: 1;">
+                                    <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">
+                                        <?php echo esc_html($present_count); ?>
+                                    </div>
+                                    <div style="font-size: 11px; color: #2e7d32; margin-top: 3px;">
+                                        حضور
+                                    </div>
+                                </div>
+                                <div style="width: 1px; height: 30px; background: #c8e6c9;"></div>
+                                <div style="text-align: center; flex: 1;">
+                                    <div style="font-size: 24px; font-weight: bold; color: #d32f2f;">
+                                        <?php echo esc_html($absent_count); ?>
+                                    </div>
+                                    <div style="font-size: 11px; color: #d32f2f; margin-top: 3px;">
+                                        غیاب
+                                    </div>
+                                </div>
+                            </div>
+                            <?php if ($total_attendances > 0) : ?>
+                                <div style="font-size: 11px; color: #666; margin-top: 8px; text-align: center; padding-top: 8px; border-top: 1px solid #c8e6c9;">
+                                    مجموع: <?php echo esc_html($total_attendances); ?> رکورد
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <!-- نام کاربری -->
+                        <div class="sc-info-card" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #9c27b0;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="font-size: 24px;">👤</span>
+                                <strong style="font-size: 14px; color: #666;">نام کاربری</strong>
+                            </div>
+                            <div style="font-size: 18px; font-weight: bold; color: #6a1b9a; word-break: break-all; direction: ltr; text-align: center;">
+                                <?php echo esc_html($user_login); ?>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- اطلاعات تکمیلی -->
+                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
                         <!-- تاریخ عضویت -->
                         <?php if ($membership_date) : ?>
@@ -446,9 +475,42 @@ function sc_user_info_panel_shortcode($atts) {
         </div>
     </div>
     
-    <style>
-   
-    </style>
+    <script>
+    function scToggleUserPanel(button) {
+        var hiddenSection = button.closest('.sc-user-info-panel').querySelector('.sc-hidden-section');
+        var toggleText = button.querySelector('.sc-toggle-text');
+        var toggleArrow = button.querySelector('.sc-toggle-arrow');
+        
+        if (hiddenSection.style.display === 'none' || hiddenSection.style.display === '') {
+            // باز کردن
+            hiddenSection.style.display = 'block';
+            toggleText.textContent = 'نمایش کمتر';
+            toggleArrow.style.transform = 'rotate(180deg)';
+            toggleArrow.textContent = '▲';
+            
+            // انیمیشن باز شدن
+            hiddenSection.style.maxHeight = '0';
+            hiddenSection.style.opacity = '0';
+            setTimeout(function() {
+                hiddenSection.style.transition = 'max-height 0.5s ease, opacity 0.5s ease';
+                hiddenSection.style.maxHeight = hiddenSection.scrollHeight + 'px';
+                hiddenSection.style.opacity = '1';
+            }, 10);
+        } else {
+            // بستن
+            hiddenSection.style.transition = 'max-height 0.5s ease, opacity 0.5s ease';
+            hiddenSection.style.maxHeight = '0';
+            hiddenSection.style.opacity = '0';
+            
+            setTimeout(function() {
+                hiddenSection.style.display = 'none';
+                toggleText.textContent = 'نمایش بیشتر';
+                toggleArrow.style.transform = 'rotate(0deg)';
+                toggleArrow.textContent = '▼';
+            }, 500);
+        }
+    }
+    </script>
     <?php
     return ob_get_clean();
 }
