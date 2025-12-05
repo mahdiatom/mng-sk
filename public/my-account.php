@@ -290,12 +290,32 @@ function sc_my_account_enroll_course_content() {
     global $wpdb;
     $courses_table = $wpdb->prefix . 'sc_courses';
     
-    // دریافت تمام دوره‌های فعال
-    $courses = $wpdb->get_results(
+    // محاسبه تعداد کل دوره‌های فعال
+    $total_courses = $wpdb->get_var(
+        "SELECT COUNT(*) FROM $courses_table 
+         WHERE deleted_at IS NULL AND is_active = 1"
+    );
+    
+    // صفحه‌بندی
+    $per_page = 10;
+    $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
+    $offset = ($current_page - 1) * $per_page;
+    $total_pages = ceil($total_courses / $per_page);
+    
+    // دریافت دوره‌های فعال با صفحه‌بندی
+    $courses = $wpdb->get_results($wpdb->prepare(
         "SELECT * FROM $courses_table 
          WHERE deleted_at IS NULL AND is_active = 1 
-         ORDER BY created_at DESC"
-    );
+         ORDER BY created_at DESC
+         LIMIT %d OFFSET %d",
+        $per_page,
+        $offset
+    ));
+    
+    // انتقال متغیرهای صفحه‌بندی به template
+    $current_page = $current_page;
+    $total_pages = $total_pages;
+    $total_courses = $total_courses;
     
     if (empty($courses)) {
         echo '<div class="woocommerce-message woocommerce-message--info woocommerce-info">';
@@ -830,6 +850,60 @@ function sc_my_account_my_courses_content() {
         return; // اگر غیرفعال بود، پیام نمایش داده شده و خروج می‌کنیم
     }
     
+    global $wpdb;
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    
+    // دریافت فیلتر وضعیت
+    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+    
+    // ساخت شرط WHERE
+    $where_conditions = ["mc.member_id = %d"];
+    $where_values = [$player->id];
+    
+    // فیلتر بر اساس وضعیت
+    if ($filter_status === 'active') {
+        // فقط دوره‌های فعال (بدون canceled و completed)
+        $where_conditions[] = "mc.status = 'active'";
+        $where_conditions[] = "(mc.course_status_flags IS NULL OR mc.course_status_flags = '' OR (mc.course_status_flags NOT LIKE '%canceled%' AND mc.course_status_flags NOT LIKE '%completed%'))";
+    } elseif ($filter_status === 'canceled') {
+        // فقط دوره‌های لغو شده
+        $where_conditions[] = "mc.course_status_flags LIKE %s";
+        $where_values[] = '%canceled%';
+    }
+    
+    $where_clause = implode(' AND ', $where_conditions);
+    
+    // محاسبه تعداد کل
+    $count_query = "SELECT COUNT(*) 
+                    FROM $member_courses_table mc
+                    INNER JOIN $courses_table c ON mc.course_id = c.id
+                    WHERE $where_clause";
+    $total_courses = $wpdb->get_var($wpdb->prepare($count_query, $where_values));
+    
+    // صفحه‌بندی
+    $per_page = 10;
+    $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
+    $offset = ($current_page - 1) * $per_page;
+    $total_pages = ceil($total_courses / $per_page);
+    
+    // دریافت دوره‌های کاربر با صفحه‌بندی
+    $query = "SELECT mc.*, c.title as course_title
+              FROM $member_courses_table mc
+              INNER JOIN $courses_table c ON mc.course_id = c.id
+              WHERE $where_clause
+              ORDER BY mc.created_at DESC
+              LIMIT %d OFFSET %d";
+    
+    $query_values = array_merge($where_values, [$per_page, $offset]);
+    $user_courses = $wpdb->get_results($wpdb->prepare($query, $query_values));
+    
+    // انتقال متغیرهای فیلتر و صفحه‌بندی به template
+    $filter_status = $filter_status;
+    $current_page = $current_page;
+    $total_pages = $total_pages;
+    $total_courses = $total_courses;
+    
     include SC_TEMPLATES_PUBLIC_DIR . 'my-courses.php';
 }
 
@@ -1219,6 +1293,101 @@ function sc_create_event_invoice($member_id, $event_id, $amount) {
 }
 
 /**
+ * Handle invoice cancellation request
+ */
+add_action('woocommerce_account_sc-invoices_endpoint', 'sc_handle_invoice_cancellation', 5);
+function sc_handle_invoice_cancellation() {
+    // بررسی درخواست لغو
+    if (!isset($_GET['cancel_invoice']) || !isset($_GET['invoice_id']) || !isset($_GET['_wpnonce'])) {
+        return;
+    }
+    
+    // بررسی nonce
+    if (!wp_verify_nonce($_GET['_wpnonce'], 'cancel_invoice_' . $_GET['invoice_id'])) {
+        wc_add_notice('درخواست نامعتبر است.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        exit;
+    }
+    
+    // بررسی لاگین بودن کاربر
+    if (!is_user_logged_in()) {
+        wc_add_notice('لطفاً ابتدا وارد حساب کاربری خود شوید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        exit;
+    }
+    
+    // بررسی و ایجاد جداول
+    sc_check_and_create_tables();
+    
+    // بررسی وضعیت فعال بودن کاربر
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        exit;
+    }
+    
+    $invoice_id = absint($_GET['invoice_id']);
+    
+    global $wpdb;
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    
+    // بررسی اینکه صورت حساب متعلق به کاربر فعلی است
+    $invoice = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $invoices_table WHERE id = %d AND member_id = %d",
+        $invoice_id,
+        $player->id
+    ));
+    
+    if (!$invoice) {
+        wc_add_notice('صورت حساب یافت نشد.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        exit;
+    }
+    
+    // بررسی اینکه فقط سفارش‌های با وضعیت pending یا under_review قابل لغو هستند
+    if (!in_array($invoice->status, ['pending', 'under_review'])) {
+        wc_add_notice('فقط سفارش‌های در انتظار پرداخت یا در حال بررسی قابل لغو هستند.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        exit;
+    }
+    
+    // به‌روزرسانی وضعیت به cancelled
+    $updated = $wpdb->update(
+        $invoices_table,
+        [
+            'status' => 'cancelled',
+            'updated_at' => current_time('mysql')
+        ],
+        ['id' => $invoice_id],
+        ['%s', '%s'],
+        ['%d']
+    );
+    
+    if ($updated !== false) {
+        // اگر سفارش WooCommerce وجود دارد، آن را هم لغو کن
+        if (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
+            $order = wc_get_order($invoice->woocommerce_order_id);
+            if ($order && in_array($order->get_status(), ['pending', 'on-hold'])) {
+                $order->update_status('cancelled', 'لغو شده توسط کاربر');
+            }
+        }
+        
+        wc_add_notice('سفارش با موفقیت لغو شد.', 'success');
+    } else {
+        wc_add_notice('خطا در لغو سفارش. لطفاً دوباره تلاش کنید.', 'error');
+    }
+    
+    // حفظ فیلتر در redirect
+    $redirect_url = wc_get_account_endpoint_url('sc-invoices');
+    if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
+        $redirect_url = add_query_arg('filter_status', sanitize_text_field($_GET['filter_status']), $redirect_url);
+    }
+    
+    wp_safe_redirect($redirect_url);
+    exit;
+}
+
+/**
  * Display content for invoices tab
  */
 add_action('woocommerce_account_sc-invoices_endpoint', 'sc_my_account_invoices_content');
@@ -1235,19 +1404,44 @@ function sc_my_account_invoices_content() {
     global $wpdb;
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $courses_table = $wpdb->prefix . 'sc_courses';
+    $events_table = $wpdb->prefix . 'sc_events';
+    
+    // دریافت فیلتر وضعیت
+    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+    
+    // ساخت شرط WHERE
+    $where_conditions = ["i.member_id = %d"];
+    $where_values = [$player->id];
+    
+    // فیلتر بر اساس وضعیت
+    if ($filter_status !== 'all') {
+        $where_conditions[] = "i.status = %s";
+        $where_values[] = $filter_status;
+    }
+    
+    $where_clause = implode(' AND ', $where_conditions);
+    
+    // ساخت ORDER BY - pending ها اول، سپس بر اساس تاریخ
+    $order_by = "ORDER BY 
+        CASE 
+            WHEN i.status = 'pending' THEN 1
+            WHEN i.status = 'under_review' THEN 2
+            ELSE 3
+        END,
+        i.created_at DESC";
     
     // دریافت تمام صورت حساب‌های کاربر
-    // توجه: بررسی جریمه در hook sc_check_penalty_on_invoices_page انجام می‌شود
-    $events_table = $wpdb->prefix . 'sc_events';
-    $invoices = $wpdb->get_results($wpdb->prepare(
-        "SELECT i.*, c.title as course_title, c.price as course_price, e.name as event_name
-         FROM $invoices_table i
-         LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
-         LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
-         WHERE i.member_id = %d
-         ORDER BY i.created_at DESC",
-        $player->id
-    ));
+    $query = "SELECT i.*, c.title as course_title, c.price as course_price, e.name as event_name
+              FROM $invoices_table i
+              LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
+              LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
+              WHERE $where_clause
+              $order_by";
+    
+    $invoices = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    
+    // انتقال متغیر فیلتر به template
+    $filter_status = $filter_status;
     
     include SC_TEMPLATES_PUBLIC_DIR . 'invoices-list.php';
 }
@@ -1269,46 +1463,69 @@ function sc_my_account_events_content() {
     global $wpdb;
     $events_table = $wpdb->prefix . 'sc_events';
     
-    // Pagination
-    $per_page = 10;
-    $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
-    $offset = ($current_page - 1) * $per_page;
-    
     // دریافت تاریخ امروز
     $today_shamsi = sc_get_today_shamsi();
     $today_gregorian = date('Y-m-d');
     
-    // دریافت تعداد کل رویدادهای فعال که در بازه ثبت‌نام هستند
-    $total_events = $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM $events_table 
-         WHERE deleted_at IS NULL 
-         AND is_active = 1
-         AND (
-             (start_date_gregorian IS NULL OR start_date_gregorian <= %s)
-             AND (end_date_gregorian IS NULL OR end_date_gregorian >= %s)
-         )",
-        $today_gregorian,
-        $today_gregorian
-    ));
+    // دریافت فیلترها
+    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest';
+    $filter_event_type = isset($_GET['filter_event_type']) ? sanitize_text_field($_GET['filter_event_type']) : 'all';
     
-    // دریافت رویدادهای فعال که در بازه ثبت‌نام هستند
-    $events = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM $events_table 
-         WHERE deleted_at IS NULL 
-         AND is_active = 1
-         AND (
-             (start_date_gregorian IS NULL OR start_date_gregorian <= %s)
-             AND (end_date_gregorian IS NULL OR end_date_gregorian >= %s)
-         )
-         ORDER BY holding_date_gregorian DESC, created_at DESC
-         LIMIT %d OFFSET %d",
-        $today_gregorian,
-        $today_gregorian,
-        $per_page,
-        $offset
-    ));
+    // ساخت WHERE clause
+    $where_conditions = [
+        "deleted_at IS NULL",
+        "is_active = 1"
+    ];
+    $where_values = [];
     
-    $total_pages = ceil($total_events / $per_page);
+    // فیلتر نوع (رویداد/مسابقه)
+    if ($filter_event_type !== 'all') {
+        $where_conditions[] = "event_type = %s";
+        $where_values[] = $filter_event_type;
+    }
+    
+    // فیلتر وضعیت
+    if ($filter_status === 'past') {
+        // رویداد/مسابقه برگزار شده - تاریخ برگزاری گذشته
+        $where_conditions[] = "holding_date_gregorian IS NOT NULL AND holding_date_gregorian < %s";
+        $where_values[] = $today_gregorian;
+    } elseif ($filter_status === 'upcoming') {
+        // به زودی - در آینده و در بازه ثبت‌نام نیست
+        $where_conditions[] = "(
+            (start_date_gregorian IS NOT NULL AND start_date_gregorian > %s)
+            OR (end_date_gregorian IS NOT NULL AND end_date_gregorian < %s)
+        )";
+        $where_values[] = $today_gregorian;
+        $where_values[] = $today_gregorian;
+    } elseif ($filter_status === 'all') {
+        // همه - بدون محدودیت تاریخ
+        // هیچ شرط اضافی اضافه نمی‌کنیم
+    } else {
+        // پیش‌فرض: آخرین - در بازه ثبت‌نام
+        $where_conditions[] = "(
+            (start_date_gregorian IS NULL OR start_date_gregorian <= %s)
+            AND (end_date_gregorian IS NULL OR end_date_gregorian >= %s)
+        )";
+        $where_values[] = $today_gregorian;
+        $where_values[] = $today_gregorian;
+    }
+    
+    $where_clause = implode(' AND ', $where_conditions);
+    
+    // دریافت رویدادها
+    $query = "SELECT * FROM $events_table 
+              WHERE $where_clause
+              ORDER BY holding_date_gregorian DESC, created_at DESC";
+    
+    if (!empty($where_values)) {
+        $events = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    } else {
+        $events = $wpdb->get_results($query);
+    }
+    
+    // انتقال متغیرهای فیلتر به template
+    $filter_status = $filter_status;
+    $filter_event_type = $filter_event_type;
     
     include SC_TEMPLATES_PUBLIC_DIR . 'events-list.php';
 }
@@ -1785,6 +2002,16 @@ function sc_handle_documents_submission() {
         $current_user_id
     ));
     
+    // فیلد سطح - فقط مدیر می‌تواند ویرایش کند
+    if (current_user_can('manage_options') && isset($_POST['skill_level'])) {
+        $data['skill_level'] = !empty(trim($_POST['skill_level'])) ? sanitize_text_field($_POST['skill_level']) : NULL;
+    } elseif ($existing && isset($existing->skill_level)) {
+        // اگر مدیر نیست، مقدار قبلی را حفظ می‌کنیم
+        $data['skill_level'] = $existing->skill_level;
+    } else {
+        $data['skill_level'] = NULL;
+    }
+    
     // اگر با user_id پیدا نشد، بر اساس national_id بررسی می‌کنیم
     if (!$existing) {
         $existing = $wpdb->get_row($wpdb->prepare(
@@ -1844,6 +2071,11 @@ function sc_handle_documents_submission() {
             unset($update_data['user_id']);
         }
         
+        // اگر مدیر نیست، skill_level را از update_data حذف می‌کنیم
+        if (!current_user_can('manage_options')) {
+            unset($update_data['skill_level']);
+        }
+        
         // آماده‌سازی format برای update
         $format = [];
         foreach ($update_data as $key => $value) {
@@ -1891,7 +2123,19 @@ function sc_handle_documents_submission() {
         }
         
         // افزودن جدید
-        $inserted = $wpdb->insert($table_name, $data);
+        // آماده‌سازی format برای insert
+        $insert_format = [];
+        foreach ($data as $key => $value) {
+            if ($value === NULL) {
+                $insert_format[] = '%s'; // NULL
+            } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'])) {
+                $insert_format[] = '%d'; // integer
+            } else {
+                $insert_format[] = '%s'; // string
+            }
+        }
+        
+        $inserted = $wpdb->insert($table_name, $data, $insert_format);
         
         if ($inserted !== false) {
             $insert_id = $wpdb->insert_id;

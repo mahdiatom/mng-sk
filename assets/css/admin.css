@@ -1,3 +1,62 @@
+
+
+@font-face {
+	font-family: IRANYekanXFaNum;
+	font-style: normal;
+	font-weight: 300;
+	src: url('../fonts/Woff/IRANYekanXFaNum-Light.woff') format('woff'),   
+	url('../fonts/Woff2/IRANYekanXFaNum-Light.woff2') format('woff2');		 
+}
+
+@font-face {
+	font-family: IRANYekanXFaNum;
+	font-style: normal;
+	font-weight: 500;
+	src: url('../fonts/Woff/IRANYekanXFaNum-Medium.woff') format('woff'),   
+	url('../fonts/Woff2/IRANYekanXFaNum-Medium.woff2') format('woff2');		 
+}
+
+@font-face {
+	font-family: IRANYekanXFaNum;
+	font-style: normal;
+	font-weight: 600;
+	src: url('../fonts/Woff/IRANYekanXFaNum-DemiBold.woff') format('woff'),   
+	url('../fonts/Woff2/IRANYekanXFaNum-DemiBold.woff2') format('woff2');	 
+}
+
+
+
+@font-face {
+	font-family: IRANYekanXFaNum;
+	font-style: normal;
+	font-weight: bold;
+	src: url('../fonts/Woff/IRANYekanXFaNum-Bold.woff') format('woff'),   
+	url('../fonts/Woff2/IRANYekanXFaNum-Bold.woff2') format('woff2');	 
+}
+
+@font-face {
+	font-family: IRANYekanXFaNum;
+	font-style: normal;
+	font-weight: normal;
+	src: url('../fonts/Woff/IRANYekanXFaNum-Regular.woff') format('woff'),   
+	url('../fonts/Woff2/IRANYekanXFaNum-Regular.woff2') format('woff2');	
+}
+
+
+ p,a,div,button,section,select,option,input{
+    font-family: IRANYekanXFaNum !important;
+    
+}
+h1,h2,h3,h4,h5{
+    font-family: IRANYekanXFaNum !important;
+    font-weight:bold !important;
+}
+a{
+    text-decoration: none !important;
+} 
+
+
+/* font */
 .switch {
             position: relative;
             display: inline-block;

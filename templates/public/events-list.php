@@ -21,13 +21,43 @@ if (function_exists('wc_get_price_thousand_separator')) {
 
 $today_shamsi = sc_get_today_shamsi();
 
-// دریافت متغیرهای pagination (اگر از my-account.php فراخوانی شده باشد)
-$current_page = isset($current_page) ? $current_page : (isset($_GET['paged']) ? absint($_GET['paged']) : 1);
-$total_pages = isset($total_pages) ? $total_pages : 1;
+// دریافت فیلترها
+$filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest');
+$filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_GET['filter_event_type']) ? sanitize_text_field($_GET['filter_event_type']) : 'all');
 ?>
 
 <div class="sc-events-page">
     <h2>رویدادها / مسابقات</h2>
+    
+    <!-- فیلترها -->
+    <div class="sc-events-filters" style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 4px;">
+        <form method="GET" action="" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+            <input type="hidden" name="page" value="<?php echo isset($_GET['page']) ? esc_attr($_GET['page']) : ''; ?>">
+            
+            <div style="flex: 1; min-width: 200px;">
+                <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
+                <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="latest" <?php selected($filter_status, 'latest'); ?>>آخرین</option>
+                    <option value="past" <?php selected($filter_status, 'past'); ?>>برگزار شده</option>
+                    <option value="upcoming" <?php selected($filter_status, 'upcoming'); ?>>به زودی</option>
+                    <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
+                </select>
+            </div>
+            
+            <div style="flex: 1; min-width: 200px;">
+                <label for="filter_event_type" style="display: block; margin-bottom: 5px; font-weight: 600;">نوع:</label>
+                <select name="filter_event_type" id="filter_event_type" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="all" <?php selected($filter_event_type, 'all'); ?>>همه</option>
+                    <option value="event" <?php selected($filter_event_type, 'event'); ?>>رویداد</option>
+                    <option value="competition" <?php selected($filter_event_type, 'competition'); ?>>مسابقه</option>
+                </select>
+            </div>
+            
+            <div>
+                <button type="submit" class="button button-primary" style="padding: 8px 20px; height: auto;">اعمال فیلتر</button>
+            </div>
+        </form>
+    </div>
     
     <?php if (empty($events)) : ?>
         <div class="woocommerce-message woocommerce-message--info woocommerce-info">
@@ -39,27 +69,37 @@ $total_pages = isset($total_pages) ? $total_pages : 1;
                 // بررسی محدودیت تاریخ
                 $is_date_expired = false;
                 $can_enroll = true;
+                $can_view_details = true;
                 $tooltip_message = '';
+                $is_upcoming = false;
                 
-                if (!empty($event->start_date_gregorian) || !empty($event->end_date_gregorian)) {
-                    $start_date_shamsi = !empty($event->start_date_gregorian) ? sc_date_shamsi_date_only($event->start_date_gregorian) : '';
-                    $end_date_shamsi = !empty($event->end_date_gregorian) ? sc_date_shamsi_date_only($event->end_date_gregorian) : '';
-                    
-                    // اگر تاریخ پایان وارد شده باشد و تاریخ امروز بعد از تاریخ پایان باشد
-                    if (!empty($end_date_shamsi)) {
-                        if (sc_compare_shamsi_dates($today_shamsi, $end_date_shamsi) > 0) {
-                            $is_date_expired = true;
-                            $can_enroll = false;
-                            $tooltip_message = 'زمان ثبت نام این رویداد تمام شده است.';
+                // بررسی اینکه آیا در فیلتر "به زودی" هستیم
+                if ($filter_status === 'upcoming') {
+                    $is_upcoming = true;
+                    $can_enroll = false;
+                    $can_view_details = false;
+                    $tooltip_message = 'این ' . ($event->event_type === 'competition' ? 'مسابقه' : 'رویداد') . ' به زودی برگزار می‌شود.';
+                } else {
+                    if (!empty($event->start_date_gregorian) || !empty($event->end_date_gregorian)) {
+                        $start_date_shamsi = !empty($event->start_date_gregorian) ? sc_date_shamsi_date_only($event->start_date_gregorian) : '';
+                        $end_date_shamsi = !empty($event->end_date_gregorian) ? sc_date_shamsi_date_only($event->end_date_gregorian) : '';
+                        
+                        // اگر تاریخ پایان وارد شده باشد و تاریخ امروز بعد از تاریخ پایان باشد
+                        if (!empty($end_date_shamsi)) {
+                            if (sc_compare_shamsi_dates($today_shamsi, $end_date_shamsi) > 0) {
+                                $is_date_expired = true;
+                                $can_enroll = false;
+                                $tooltip_message = 'زمان ثبت نام این رویداد تمام شده است.';
+                            }
                         }
-                    }
-                    
-                    // اگر تاریخ شروع وارد شده باشد و تاریخ امروز قبل از تاریخ شروع باشد
-                    if (!empty($start_date_shamsi) && !$is_date_expired) {
-                        if (sc_compare_shamsi_dates($today_shamsi, $start_date_shamsi) < 0) {
-                            $is_date_expired = true;
-                            $can_enroll = false;
-                            $tooltip_message = 'زمان ثبت نام این رویداد هنوز شروع نشده است.';
+                        
+                        // اگر تاریخ شروع وارد شده باشد و تاریخ امروز قبل از تاریخ شروع باشد
+                        if (!empty($start_date_shamsi) && !$is_date_expired) {
+                            if (sc_compare_shamsi_dates($today_shamsi, $start_date_shamsi) < 0) {
+                                $is_date_expired = true;
+                                $can_enroll = false;
+                                $tooltip_message = 'زمان ثبت نام این رویداد هنوز شروع نشده است.';
+                            }
                         }
                     }
                 }
@@ -151,7 +191,7 @@ $total_pages = isset($total_pages) ? $total_pages : 1;
                     $formatted_price = number_format((float)$event->price, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
                 }
                 
-                $event_detail_url = wc_get_endpoint_url('sc-event-detail', $event->id);
+                $event_detail_url = $can_view_details ? wc_get_endpoint_url('sc-event-detail', $event->id) : '#';
             ?>
                 <div class="sc-event-card <?php echo !$can_enroll ? 'disabled' : ''; ?>" 
                      <?php if ($tooltip_message) : ?>
@@ -165,8 +205,18 @@ $total_pages = isset($total_pages) ? $total_pages : 1;
                     
                     <div class="sc-event-content">
                         <h3 class="sc-event-title">
-                            <a href="<?php echo esc_url($event_detail_url); ?>"><?php echo esc_html($event->name); ?></a>
+                            <?php if ($can_view_details) : ?>
+                                <a href="<?php echo esc_url($event_detail_url); ?>"><?php echo esc_html($event->name); ?></a>
+                            <?php else : ?>
+                                <span><?php echo esc_html($event->name); ?></span>
+                            <?php endif; ?>
                         </h3>
+                        
+                        <?php if ($is_upcoming) : ?>
+                            <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin: 10px 0; text-align: center; font-weight: 600;">
+                                به زودی
+                            </div>
+                        <?php endif; ?>
                         
                         <?php if (!empty($event->description)) : ?>
                             <p class="sc-event-description"><?php echo esc_html(wp_trim_words($event->description, 20)); ?></p>
@@ -227,9 +277,16 @@ $total_pages = isset($total_pages) ? $total_pages : 1;
                                     <?php echo esc_html($enrollment_status_label); ?>
                                 </span>
                             <?php else : ?>
-                                <a href="<?php echo esc_url($event_detail_url); ?>" class="button sc-event-view-btn">
-                                    مشاهده جزئیات
-                                </a>
+                                <?php if ($can_view_details) : ?>
+                                    <a href="<?php echo esc_url($event_detail_url); ?>" class="button sc-event-view-btn">
+                                        مشاهده جزئیات
+                                    </a>
+                                <?php else : ?>
+                                    <span class="button sc-event-view-btn" style="opacity: 0.6; cursor: not-allowed;" 
+                                          data-tooltip="<?php echo esc_attr($tooltip_message); ?>">
+                                        مشاهده جزئیات
+                                    </span>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -237,25 +294,6 @@ $total_pages = isset($total_pages) ? $total_pages : 1;
             <?php endforeach; ?>
         </div>
         
-        <!-- Pagination -->
-        <?php if (isset($total_pages) && $total_pages > 1) : ?>
-            <div class="sc-events-pagination" style="margin-top: 30px; text-align: center;">
-                <?php
-                $page_links = paginate_links([
-                    'base' => add_query_arg(['paged' => '%#%']),
-                    'format' => '',
-                    'prev_text' => '&laquo; قبلی',
-                    'next_text' => 'بعدی &raquo;',
-                    'total' => $total_pages,
-                    'current' => $current_page,
-                    'type' => 'plain',
-                    'end_size' => 2,
-                    'mid_size' => 2
-                ]);
-                echo $page_links;
-                ?>
-            </div>
-        <?php endif; ?>
     <?php endif; ?>
 </div>
 

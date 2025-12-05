@@ -26,6 +26,7 @@ $additional_info = '';
 $info_verified = 0;
 $health_verified = 0;
 $is_active = 0;
+$skill_level = '';
 
 
 // اگر اطلاعات قبلی وجود دارد
@@ -51,6 +52,7 @@ if ($player) {
     $health_verified = $player->health_verified;
     $info_verified = $player->info_verified;
     $is_active = $player->is_active;
+    $skill_level = $player->skill_level ?? '';
 }
 
 // دریافت اطلاعات کاربر از ووکامرس
@@ -117,7 +119,7 @@ if (empty($player_phone) && $billing_phone) {
             <p class="form-row form-row-first">
                 <label for="birth_date_shamsi">تاریخ تولد (شمسی)</label>
                 <input type="text" name="birth_date_shamsi" id="birth_date_shamsi" value="<?php echo esc_attr($birth_date_shamsi); ?>" class="persian-date-input" placeholder="مثلاً 1400/02/15" readonly>
-                <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+                
             </p>
             
             <p class="form-row form-row-last">
@@ -129,7 +131,7 @@ if (empty($player_phone) && $billing_phone) {
                 <label for="insurance_expiry_date_shamsi">تاریخ انقضا بیمه (شمسی)</label>
                 <input type="text" name="insurance_expiry_date_shamsi" id="insurance_expiry_date_shamsi" value="<?php echo esc_attr($insurance_expiry_date_shamsi); ?>" class="persian-date-input" placeholder="مثلاً 1403/12/29" readonly>
                 <input type="hidden" name="insurance_expiry_date_gregorian" id="insurance_expiry_date_gregorian" value="">
-                <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+    
             </p>
         </div>
         
@@ -222,6 +224,23 @@ if (empty($player_phone) && $billing_phone) {
                 <label>اطلاعات تأیید شده</label>
                 <label><input name="info_verified" type="checkbox" <?php checked($info_verified, 1); ?> value="1"> بله</label>
             </p>
+            
+            <?php if (current_user_can('manage_options')) : ?>
+                <p class="form-row">
+                    <label for="skill_level">سطح شما</label>
+                    <input type="text" name="skill_level" id="skill_level" value="<?php echo esc_attr($skill_level); ?>" class="input-text" placeholder="مثلاً: مبتدی، متوسط، پیشرفته">
+                    <p class="description">این فیلد فقط توسط مدیر قابل ویرایش است.</p>
+                </p>
+            <?php elseif (!empty($skill_level)) : ?>
+                <p class="form-row">
+                    <label>سطح شما</label>
+                    <div style="padding: 10px; background: #f9f9f9; border-radius: 4px; color: #333; font-weight: 600;">
+                        <?php echo esc_html($skill_level); ?>
+                    </div>
+                    <p class="description">این فیلد فقط توسط مدیر قابل ویرایش است.</p>
+                </p>
+            <?php endif; ?>
+            
             <div class="sc-status-cards">
                 <div class="sc-status-card">
                     <div class="sc-status-icon"><?php echo $is_active ? "✅" : "❌"; ?></div>

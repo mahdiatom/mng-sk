@@ -218,6 +218,7 @@ if ($active_tab === 'grouped') {
 if ($active_tab === 'overall') {
     // دریافت فیلترها
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+    $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
     
     // پردازش فیلترهای تاریخ (شمسی به میلادی)
     $filter_date_from = '';
@@ -249,6 +250,11 @@ if ($active_tab === 'overall') {
     if ($filter_course > 0) {
         $where_conditions[] = "a.course_id = %d";
         $where_values[] = $filter_course;
+    }
+    
+    if ($filter_member > 0) {
+        $where_conditions[] = "a.member_id = %d";
+        $where_values[] = $filter_member;
     }
     
     if ($filter_date_from) {
@@ -792,6 +798,74 @@ if ($active_tab === 'overall') {
                 </tr>
                 <tr>
                     <th scope="row">
+                        <label for="filter_member">کاربر</label>
+                    </th>
+                    <td>
+                        <div class="sc-searchable-dropdown" style="position: relative; width: 100%; max-width: 400px;">
+                            <?php 
+                            $selected_member_text = 'همه کاربران';
+                            if ($filter_member > 0) {
+                                foreach ($members as $m) {
+                                    if ($m->id == $filter_member) {
+                                        $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
+                                        break;
+                                    }
+                                }
+                            }
+                            ?>
+                            <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
+                            <div class="sc-dropdown-toggle" style="position: relative; cursor: pointer; border: 1px solid #8c8f94; border-radius: 4px; padding: 8px 35px 8px 12px; background: #fff; min-height: 30px; display: flex; align-items: center;">
+                                <span class="sc-dropdown-placeholder" style="color: #757575; display: <?php echo $filter_member > 0 ? 'none' : 'inline'; ?>;">همه کاربران</span>
+                                <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $filter_member > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
+                                <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
+                            </div>
+                            <div class="sc-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #8c8f94; border-top: none; border-radius: 0 0 4px 4px; max-height: 300px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: -1px;">
+                                <div class="sc-dropdown-search" style="padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff;">
+                                    <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی..." style="width: 100%; padding: 8px; border: 1px solid #8c8f94; border-radius: 4px; font-size: 14px;">
+                                </div>
+                                <div class="sc-dropdown-options" style="max-height: 250px; overflow-y: auto;">
+                                    <div class="sc-dropdown-option sc-visible" 
+                                         data-value="0"
+                                         data-search="همه کاربران"
+                                         style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $filter_member == 0 ? 'background: #f0f6fc;' : ''; ?>"
+                                         onclick="scSelectMemberFilter(this, '0', 'همه کاربران')">
+                                        همه کاربران
+                                        <?php if ($filter_member == 0) : ?>
+                                            <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php 
+                                    $display_count = 0;
+                                    $max_display = 10;
+                                    foreach ($members as $member) : 
+                                        $is_selected = ($filter_member == $member->id);
+                                        $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                    ?>
+                                        <div class="sc-dropdown-option <?php echo $display_class; ?>" 
+                                             data-value="<?php echo esc_attr($member->id); ?>"
+                                             data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
+                                             style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $is_selected ? 'background: #f0f6fc;' : ''; ?>"
+                                             onclick="scSelectMemberFilter(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
+                                            <?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>
+                                            <?php if ($is_selected) : ?>
+                                                <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php 
+                                        if ($is_selected) {
+                                            $display_count++;
+                                        } elseif ($display_count < $max_display) {
+                                            $display_count++;
+                                        }
+                                    endforeach; 
+                                    ?>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
                         <label>بازه تاریخ</label>
                     </th>
                     <td>
@@ -844,6 +918,7 @@ if ($active_tab === 'overall') {
                 // ساخت URL برای export Excel
                 $export_url = admin_url('admin.php?page=sc-attendance-list&sc_export=excel&export_type=attendance_overall');
                 $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
+                $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
                 if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
                     $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
                 }

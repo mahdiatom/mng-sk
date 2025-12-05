@@ -1,6 +1,71 @@
+
+@font-face {
+	font-family: IRANYekanXFaNum;
+	font-style: normal;
+	font-weight: 300;
+	src: url('../fonts/Woff/IRANYekanXFaNum-Light.woff') format('woff'),   
+	url('../fonts/Woff2/IRANYekanXFaNum-Light.woff2') format('woff2');		 
+}
+
+@font-face {
+	font-family: IRANYekanXFaNum;
+	font-style: normal;
+	font-weight: 500;
+	src: url('../fonts/Woff/IRANYekanXFaNum-Medium.woff') format('woff'),   
+	url('../fonts/Woff2/IRANYekanXFaNum-Medium.woff2') format('woff2');		 
+}
+
+@font-face {
+	font-family: IRANYekanXFaNum;
+	font-style: normal;
+	font-weight: 600;
+	src: url('../fonts/Woff/IRANYekanXFaNum-DemiBold.woff') format('woff'),   
+	url('../fonts/Woff2/IRANYekanXFaNum-DemiBold.woff2') format('woff2');	 
+}
+
+
+
+@font-face {
+	font-family: IRANYekanXFaNum;
+	font-style: normal;
+	font-weight: bold;
+	src: url('../fonts/Woff/IRANYekanXFaNum-Bold.woff') format('woff'),   
+	url('../fonts/Woff2/IRANYekanXFaNum-Bold.woff2') format('woff2');	 
+}
+
+@font-face {
+	font-family: IRANYekanXFaNum;
+	font-style: normal;
+	font-weight: normal;
+	src: url('../fonts/Woff/IRANYekanXFaNum-Regular.woff') format('woff'),   
+	url('../fonts/Woff2/IRANYekanXFaNum-Regular.woff2') format('woff2');	
+}
+
+
+p,a,span,div,button,section,select,option,input{
+    font-family: IRANYekanXFaNum !important;
+    
+}
+h1,h2,h3,h4,h5{
+    font-family: IRANYekanXFaNum !important;
+    font-weight:bold !important;
+}
+a{
+    text-decoration: none !important;
+}
+
+
+/* font */
 /* ============================================
    دیزاین مدرن و جذاب برای پنل کاربری
    ============================================ */
+
+/* بخش حساب کاربری ووکامرس */
+
+.woocommerce-MyAccount-navigation .woocommerce-MyAccount-navigation-link {
+    padding: 5px 0px !important;
+    margin: 0 !important;
+}
 
 /* فرم ارسال مدارک در حساب کاربری */
 .sc-submit-documents-form {
@@ -758,3 +823,35 @@
         padding: 20px;
     }
 }
+ .sc-user-info-panel {
+        direction: rtl;
+    }
+    
+    .sc-info-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .sc-info-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    
+    .sc-user-info-notice {
+        padding: 15px;
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        color: #856404;
+        text-align: center;
+        margin: 20px 0;
+    }
+    
+    @media (max-width: 768px) {
+        .sc-user-info-panel > div {
+            flex-direction: column;
+        }
+        
+        .sc-user-info-panel > div > div:first-child {
+            width: 100%;
+        }
+    }

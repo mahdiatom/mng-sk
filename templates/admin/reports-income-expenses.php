@@ -376,4 +376,86 @@ foreach ($months as $month_start) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('incomeExpensesChart');
+    if (!ctx) {
+        return;
+    }
+    
+    const monthlyData = <?php echo json_encode($monthly_data); ?>;
+    
+    if (!monthlyData || monthlyData.length === 0) {
+        ctx.parentElement.innerHTML = '<p style="text-align: center; padding: 40px; color: #666;">داده‌ای برای نمایش وجود ندارد.</p>';
+        return;
+    }
+    
+    const labels = monthlyData.map(m => m.month);
+    const incomeData = monthlyData.map(m => parseFloat(m.income) || 0);
+    const expensesData = monthlyData.map(m => parseFloat(m.expenses) || 0);
+    const profitData = monthlyData.map(m => parseFloat(m.profit) || 0);
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'درآمد',
+                    data: incomeData,
+                    backgroundColor: 'rgba(0, 163, 42, 0.6)',
+                    borderColor: 'rgba(0, 163, 42, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'هزینه',
+                    data: expensesData,
+                    backgroundColor: 'rgba(214, 54, 56, 0.6)',
+                    borderColor: 'rgba(214, 54, 56, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'سود نهایی',
+                    data: profitData,
+                    backgroundColor: 'rgba(34, 113, 177, 0.6)',
+                    borderColor: 'rgba(34, 113, 177, 1)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('fa-IR').format(value) + ' تومان';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += new Intl.NumberFormat('fa-IR').format(context.parsed.y) + ' تومان';
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
 

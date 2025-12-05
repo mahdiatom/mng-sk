@@ -24,6 +24,7 @@ define('SC_PLUGIN_DIR', plugin_dir_path(__FILE__));              // Physical pat
 define('SC_PLUGIN_URL', plugin_dir_url(__FILE__));               // URL to the plugin
 
 define('SC_INCLUDES_DIR', SC_PLUGIN_DIR . 'includes/');          // Includes folder
+define('SC_SHORTCODES_DIR', SC_INCLUDES_DIR . 'shortcodes/');          // shortcodes folder
 define('SC_ADMIN_DIR', SC_PLUGIN_DIR . 'admin/');                // Admin pages folder
 define('SC_PUBLIC_DIR', SC_PLUGIN_DIR . 'public/');              // Public pages folder
 define('SC_TEMPLATES_DIR', SC_PLUGIN_DIR . 'templates/');        // Templates folder
@@ -49,9 +50,21 @@ require_once SC_INCLUDES_DIR . 'active-users-export.php'; // Active users export
 require_once SC_INCLUDES_DIR . 'payments-export.php'; // Payments export functions
 require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export functions
 require_once SC_INCLUDES_DIR . 'event-registrations-export.php'; // Event registrations export functions
+require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settings
+
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
 require_once SC_PUBLIC_DIR . 'my-account.php';
+
+/**
+ * Load shortcodes after WordPress is fully loaded
+ */
+add_action('init', 'sc_load_shortcodes');
+function sc_load_shortcodes() {
+    if (file_exists(SC_SHORTCODES_DIR . 'info_user_in_panel.php')) {
+       include(SC_SHORTCODES_DIR . 'info_user_in_panel.php');
+    }
+}
 
 /**
  * ============================
@@ -223,6 +236,25 @@ function sc_add_penalty_columns() {
     
     if (empty($penalty_applied_exists)) {
         $wpdb->query("ALTER TABLE $table_name ADD COLUMN `penalty_applied` tinyint(1) DEFAULT 0 AFTER `penalty_amount`");
+    }
+}
+
+/**
+ * Add skill_level column to members table if not exists
+ */
+add_action('admin_init', 'sc_add_skill_level_column');
+function sc_add_skill_level_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+    
+    // بررسی وجود ستون skill_level
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'skill_level'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `skill_level` varchar(100) DEFAULT NULL AFTER `additional_info`");
     }
 }
 

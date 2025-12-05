@@ -19,6 +19,7 @@
         $info_verified = 0;
         $is_active = 1;
         $additional_info = '';
+        $skill_level = '';
         
         // اگر بازیکن جدید است، تاریخ امروز را به عنوان پیش‌فرض بگذار
         if (!isset($_GET['player_id'])) {
@@ -67,6 +68,7 @@ if($player && $_GET['player_id'] ){
         $info_verified           = $player->info_verified ?? 0;
         $is_active               = $player->is_active ?? 1;
         $additional_info         = $player->additional_info ?? '';
+        $skill_level             = $player->skill_level ?? '';
     }
 ?>
 <div class="wrap">
@@ -269,6 +271,14 @@ if($player && $_GET['player_id'] ){
                 <tr>
                     <th scope="row"><label for="additional_info">توضیحات اضافی</label></th>
                     <td><textarea name="additional_info" id="additional_info" rows="3" class="large-text"><?php echo $additional_info; ?></textarea></td>
+                </tr>
+
+                <tr>
+                    <th scope="row"><label for="skill_level">سطح بازیکن</label></th>
+                    <td>
+                        <input name="skill_level" type="text" id="skill_level" value="<?php echo esc_attr($skill_level); ?>" class="regular-text" placeholder="مثلاً: مبتدی، متوسط، پیشرفته">
+                        <p class="description">سطح مهارت بازیکن را وارد کنید</p>
+                    </td>
                 </tr>
 
             </tbody>

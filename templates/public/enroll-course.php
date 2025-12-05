@@ -190,6 +190,40 @@ if (function_exists('wc_get_price_thousand_separator')) {
             <?php endforeach; ?>
         </div>
         
+        <!-- صفحه‌بندی -->
+        <?php 
+        // دریافت متغیرهای صفحه‌بندی (اگر از my-account.php فراخوانی شده باشد)
+        $current_page = isset($current_page) ? $current_page : (isset($_GET['paged']) ? absint($_GET['paged']) : 1);
+        $total_pages = isset($total_pages) ? $total_pages : 1;
+        $total_courses = isset($total_courses) ? $total_courses : 0;
+        
+        if ($total_pages > 1) : ?>
+            <div class="sc-enroll-course-pagination" style="margin-top: 30px; text-align: center;">
+                <?php
+                $page_links = paginate_links([
+                    'base' => add_query_arg(['paged' => '%#%']),
+                    'format' => '',
+                    'prev_text' => '&laquo; قبلی',
+                    'next_text' => 'بعدی &raquo;',
+                    'total' => $total_pages,
+                    'current' => $current_page,
+                    'type' => 'plain',
+                    'end_size' => 2,
+                    'mid_size' => 2
+                ]);
+                
+                if ($page_links) {
+                    echo '<div class="pagination-wrapper" style="display: inline-block;">';
+                    echo $page_links;
+                    echo '</div>';
+                    echo '<div style="margin-top: 10px; color: #666; font-size: 14px;">';
+                    echo 'نمایش ' . (($current_page - 1) * 10 + 1) . ' تا ' . min($current_page * 10, $total_courses) . ' از ' . $total_courses . ' دوره';
+                    echo '</div>';
+                }
+                ?>
+            </div>
+        <?php endif; ?>
+        
         <p class="form-row" style="margin-top: 20px;">
             <button type="submit" name="sc_enroll_course" class="button button-primary" style="padding: 12px 30px; font-size: 16px;">
                 ثبت نام و ایجاد صورت حساب
