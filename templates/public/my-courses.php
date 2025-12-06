@@ -22,9 +22,11 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
             <div style="flex: 1; min-width: 200px;">
                 <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
                 <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
-                    <option value="active" <?php selected($filter_status, 'active'); ?>>فعال</option>
+                    <option value="active" <?php selected($filter_status, 'active'); ?>>ثبت نام شده</option>
                     <option value="canceled" <?php selected($filter_status, 'canceled'); ?>>لغو شده</option>
+                    <option value="paused" <?php selected($filter_status, 'paused'); ?>>متوقف شده</option>
+                    <option value="completed" <?php selected($filter_status, 'completed'); ?>>تمام شده</option>
+                    <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
                 </select>
             </div>
             

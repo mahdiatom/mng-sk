@@ -252,7 +252,7 @@ jQuery(document).ready(function($) {
         }
         
         var value = $this.val();
-        var cleaned = value.replace(/,/g, '').replace(/\D/g, '');
+        var cleaned = value.toString().replace(/,/g, '').replace(/[^\d]/g, '');
         
         if (cleaned === '' || cleaned === '0') {
             $this.val('');
@@ -260,7 +260,16 @@ jQuery(document).ready(function($) {
             return;
         }
         
-        var formatted = parseInt(cleaned, 10).toLocaleString('en-US');
+        // تبدیل به عدد برای اطمینان از صحت
+        var numValue = parseInt(cleaned, 10);
+        if (isNaN(numValue) || numValue < 0) {
+            $this.val('');
+            $raw.val('0');
+            return;
+        }
+        
+        // فرمت کردن با کاما (سه رقم سه رقم) - استفاده از روش دستی
+        var formatted = numValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         var cursorPos = this.selectionStart || 0;
         var originalLength = value.length;
         
@@ -295,16 +304,22 @@ jQuery(document).ready(function($) {
 // تابع فرمت کردن مقدار (مشترک)
 function scFormatValue(value) {
     // حذف تمام کاماها و کاراکترهای غیر عددی
-    var cleaned = value.replace(/,/g, '').replace(/\D/g, '');
+    var cleaned = value.toString().replace(/,/g, '').replace(/[^\d]/g, '');
     
     // اگر خالی است
     if (cleaned === '' || cleaned === '0') {
         return { formatted: '', raw: '0' };
     }
     
-    // فرمت کردن با کاما (سه رقم سه رقم)
-    var formatted = parseInt(cleaned, 10).toLocaleString('en-US');
-    return { formatted: formatted, raw: cleaned };
+    // تبدیل به عدد برای اطمینان از صحت
+    var numValue = parseInt(cleaned, 10);
+    if (isNaN(numValue) || numValue < 0) {
+        return { formatted: '', raw: '0' };
+    }
+    
+    // فرمت کردن با کاما (سه رقم سه رقم) - استفاده از روش دستی برای اطمینان
+    var formatted = numValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return { formatted: formatted, raw: numValue.toString() };
 }
 
 // تابع فرمت کردن فیلد قیمت/مبلغ
@@ -558,8 +573,21 @@ jQuery(document).ready(function($) {
         }, 100);
     }
     
-    // فرمت کردن قیمت
-    scFormatPrice('#price', '#price_raw');
+    // فرمت کردن قیمت - فقط اگر مقدار موجود باشد
+    if ($('#price').length && $('#price_raw').length) {
+        // اگر قیمت از قبل فرمت شده است (دارای کاما است)، آن را به raw تبدیل کن
+        var currentPrice = $('#price').val();
+        if (currentPrice && currentPrice.includes(',')) {
+            var cleanedPrice = currentPrice.replace(/,/g, '');
+            if (!isNaN(cleanedPrice) && cleanedPrice !== '') {
+                $('#price_raw').val(cleanedPrice);
+            }
+        } else if (currentPrice && !isNaN(currentPrice) && currentPrice !== '') {
+            // اگر قیمت بدون کاما است، آن را در raw هم ذخیره کن
+            $('#price_raw').val(currentPrice.replace(/[^\d]/g, ''));
+        }
+        scFormatPrice('#price', '#price_raw');
+    }
 });
 
 // ============================================

@@ -349,4 +349,293 @@
         initPersianDatePicker();
     });
     
+    // ============================================
+    // DatePicker میلادی با همان استایل
+    // ============================================
+    
+    // نام ماه‌های میلادی
+    var gregorianMonthNames = ['', 'ژانویه', 'فوریه', 'مارس', 'آوریل', 'می', 'ژوئن', 
+                               'جولای', 'آگوست', 'سپتامبر', 'اکتبر', 'نوامبر', 'دسامبر'];
+    
+    // تعداد روزهای هر ماه میلادی
+    function getDaysInGregorianMonth(year, month) {
+        var daysInMonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        // بررسی سال کبیسه
+        if (month === 2 && ((year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0))) {
+            return 29;
+        }
+        return daysInMonth[month];
+    }
+    
+    // دریافت تاریخ امروز به میلادی
+    function getTodayGregorian() {
+        var today = new Date();
+        return [today.getFullYear(), today.getMonth() + 1, today.getDate()];
+    }
+    
+    // ایجاد تقویم میلادی
+    function initGregorianDatePicker() {
+        $('.gregorian-date-input').each(function() {
+            var $input = $(this);
+            
+            // اگر مقدار پیش‌فرض خالی است، تاریخ امروز را بگذار
+            if (!$input.val() || $input.val() === '') {
+                var today = getTodayGregorian();
+                var todayStr = today[0] + '/' + 
+                              (today[1] < 10 ? '0' + today[1] : today[1]) + '/' + 
+                              (today[2] < 10 ? '0' + today[2] : today[2]);
+                $input.val(todayStr);
+            }
+            
+            // رویداد کلیک
+            $input.off('click.gregorian-cal').on('click.gregorian-cal', function(e) {
+                e.preventDefault();
+                showGregorianCalendar($input);
+            });
+            
+            // غیرفعال کردن تایپ مستقیم
+            $input.attr('readonly', 'readonly');
+        });
+    }
+    
+    // نمایش تقویم میلادی
+    function showGregorianCalendar($input) {
+        // حذف تقویم قبلی
+        $('.gregorian-calendar-popup').remove();
+        $(document).off('click.gregorian-cal-close');
+        
+        // دریافت تاریخ فعلی
+        var currentDate = getTodayGregorian();
+        var selectedYear = currentDate[0];
+        var selectedMonth = currentDate[1];
+        var selectedDay = currentDate[2];
+        
+        // اگر مقدار موجود بود
+        if ($input.val()) {
+            var parts = $input.val().split('/');
+            if (parts.length === 3) {
+                selectedYear = parseInt(parts[0]);
+                selectedMonth = parseInt(parts[1]);
+                selectedDay = parseInt(parts[2]);
+            }
+        }
+        
+        // ایجاد HTML تقویم
+        var calendarHTML = createGregorianCalendarHTML(selectedYear, selectedMonth, selectedDay);
+        
+        // ایجاد popup
+        var $popup = $('<div class="gregorian-calendar-popup"></div>');
+        $popup.html(calendarHTML);
+        
+        // موقعیت تقویم
+        var inputOffset = $input.offset();
+        var inputHeight = $input.outerHeight();
+        var popupWidth = 350;
+        
+        $popup.css({
+            position: 'absolute',
+            top: (inputOffset.top + inputHeight + 5) + 'px',
+            left: inputOffset.left + 'px',
+            zIndex: 10000,
+            background: '#fff',
+            border: '2px solid #2271b1',
+            borderRadius: '8px',
+            padding: '15px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            fontFamily: 'Tahoma, Arial',
+            direction: 'rtl',
+            minWidth: popupWidth + 'px'
+        });
+        
+        $('body').append($popup);
+        
+        // بایند رویدادها
+        bindGregorianCalendarEvents($popup, $input, selectedYear, selectedMonth, selectedDay);
+        
+        // بستن با کلیک خارج
+        setTimeout(function() {
+            $(document).on('click.gregorian-cal-close', function(e) {
+                if (!$(e.target).closest('.gregorian-calendar-popup, .gregorian-date-input').length) {
+                    $('.gregorian-calendar-popup').remove();
+                    $(document).off('click.gregorian-cal-close');
+                }
+            });
+        }, 100);
+    }
+    
+    // ایجاد HTML تقویم میلادی
+    function createGregorianCalendarHTML(year, month, selectedDay) {
+        var daysInMonth = getDaysInGregorianMonth(year, month);
+        var monthName = gregorianMonthNames[month];
+        
+        // پیدا کردن اولین روز هفته
+        var firstDate = new Date(year, month - 1, 1);
+        var firstDayOfWeek = firstDate.getDay();
+        var firstDayPersian = (firstDayOfWeek + 2) % 7;
+        
+        // ایجاد dropdown برای سال (1900 تا 2100)
+        var yearOptions = '';
+        for (var y = 1900; y <= 2100; y++) {
+            yearOptions += '<option value="' + y + '"' + (y == year ? ' selected' : '') + '>' + y + '</option>';
+        }
+        
+        // ایجاد dropdown برای ماه
+        var monthOptions = '';
+        for (var m = 1; m <= 12; m++) {
+            monthOptions += '<option value="' + m + '"' + (m == month ? ' selected' : '') + '>' + gregorianMonthNames[m] + '</option>';
+        }
+        
+        var html = '<div class="calendar-header" style="margin-bottom: 15px;">';
+        
+        // ردیف اول: dropdown های سال و ماه
+        html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px;">';
+        html += '<div style="flex: 1;">';
+        html += '<label style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">سال:</label>';
+        html += '<select class="calendar-year-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">' + yearOptions + '</select>';
+        html += '</div>';
+        html += '<div style="flex: 1;">';
+        html += '<label style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">ماه:</label>';
+        html += '<select class="calendar-month-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">' + monthOptions + '</select>';
+        html += '</div>';
+        html += '</div>';
+        
+        // ردیف دوم: دکمه‌های ناوبری
+        html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f5f5f5; border-radius: 5px;">';
+        html += '<button type="button" class="prev-month-btn" style="background: #2271b1; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">« ماه قبل</button>';
+        html += '<div style="font-weight: bold; font-size: 15px; color: #333;">' + monthName + ' ' + year + '</div>';
+        html += '<button type="button" class="next-month-btn" style="background: #2271b1; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">ماه بعد »</button>';
+        html += '</div>';
+        html += '</div>';
+        
+        html += '<div class="calendar-weekdays" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 8px; margin-top: 10px;">';
+        weekdayNames.forEach(function(day) {
+            html += '<div style="text-align: center; font-weight: bold; padding: 8px; background: #e5f5fa; color: #2271b1; border-radius: 4px; font-size: 13px;">' + day + '</div>';
+        });
+        html += '</div>';
+        
+        html += '<div class="calendar-days" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;">';
+        
+        // روزهای خالی قبل از ماه
+        for (var i = 0; i < firstDayPersian; i++) {
+            html += '<div style="padding: 8px;"></div>';
+        }
+        
+        // روزهای ماه
+        for (var day = 1; day <= daysInMonth; day++) {
+            var isSelected = (day == selectedDay);
+            var dayStyle = 'text-align: center; padding: 10px; cursor: pointer; border-radius: 4px; font-size: 14px; transition: all 0.2s;';
+            if (isSelected) {
+                dayStyle += 'background: #2271b1; color: #fff; font-weight: bold;';
+            } else {
+                dayStyle += 'background: #f9f9f9; color: #333;';
+            }
+            html += '<div class="calendar-day" data-day="' + day + '" style="' + dayStyle + '">' + day + '</div>';
+        }
+        
+        html += '</div>';
+        
+        return html;
+    }
+    
+    // بایند رویدادهای تقویم میلادی
+    function bindGregorianCalendarEvents($popup, $input, year, month, selectedDay) {
+        // کلیک روی روز
+        $popup.find('.calendar-day').on('click', function() {
+            var day = parseInt($(this).data('day'));
+            var formattedDate = year + '/' + 
+                              (month < 10 ? '0' + month : month) + '/' + 
+                              (day < 10 ? '0' + day : day);
+            $input.val(formattedDate);
+            $('.gregorian-calendar-popup').remove();
+            $(document).off('click.gregorian-cal-close');
+            $input.trigger('change');
+        });
+        
+        // تغییر سال
+        $popup.find('.calendar-year-select').on('change', function(e) {
+            e.stopPropagation();
+            var newYear = parseInt($(this).val());
+            var newMonth = parseInt($popup.find('.calendar-month-select').val());
+            var currentDay = selectedDay || 1;
+            var daysInNewMonth = getDaysInGregorianMonth(newYear, newMonth);
+            if (currentDay > daysInNewMonth) {
+                currentDay = daysInNewMonth;
+            }
+            $popup.html(createGregorianCalendarHTML(newYear, newMonth, currentDay));
+            bindGregorianCalendarEvents($popup, $input, newYear, newMonth, currentDay);
+        });
+        
+        // تغییر ماه
+        $popup.find('.calendar-month-select').on('change', function(e) {
+            e.stopPropagation();
+            var newYear = parseInt($popup.find('.calendar-year-select').val());
+            var newMonth = parseInt($(this).val());
+            var currentDay = selectedDay || 1;
+            var daysInNewMonth = getDaysInGregorianMonth(newYear, newMonth);
+            if (currentDay > daysInNewMonth) {
+                currentDay = daysInNewMonth;
+            }
+            $popup.html(createGregorianCalendarHTML(newYear, newMonth, currentDay));
+            bindGregorianCalendarEvents($popup, $input, newYear, newMonth, currentDay);
+        });
+        
+        // دکمه ماه قبل
+        $popup.find('.prev-month-btn').on('click', function(e) {
+            e.stopPropagation();
+            month--;
+            if (month < 1) {
+                month = 12;
+                year--;
+            }
+            var currentDay = selectedDay || 1;
+            var daysInNewMonth = getDaysInGregorianMonth(year, month);
+            if (currentDay > daysInNewMonth) {
+                currentDay = daysInNewMonth;
+            }
+            $popup.html(createGregorianCalendarHTML(year, month, currentDay));
+            bindGregorianCalendarEvents($popup, $input, year, month, currentDay);
+        });
+        
+        // دکمه ماه بعد
+        $popup.find('.next-month-btn').on('click', function(e) {
+            e.stopPropagation();
+            month++;
+            if (month > 12) {
+                month = 1;
+                year++;
+            }
+            var currentDay = selectedDay || 1;
+            var daysInNewMonth = getDaysInGregorianMonth(year, month);
+            if (currentDay > daysInNewMonth) {
+                currentDay = daysInNewMonth;
+            }
+            $popup.html(createGregorianCalendarHTML(year, month, currentDay));
+            bindGregorianCalendarEvents($popup, $input, year, month, currentDay);
+        });
+        
+        // هاور روی روزها
+        $popup.find('.calendar-day').hover(
+            function() {
+                if (!$(this).hasClass('selected')) {
+                    $(this).css('background', '#e5f5fa');
+                }
+            },
+            function() {
+                if (!$(this).hasClass('selected')) {
+                    $(this).css('background', '#f9f9f9');
+                }
+            }
+        );
+    }
+    
+    // راه‌اندازی datepicker میلادی
+    $(document).ready(function() {
+        initGregorianDatePicker();
+    });
+    
+    // برای آیتم‌های جدید که بعداً اضافه می‌شوند
+    $(document).on('DOMNodeInserted', '.gregorian-date-input', function() {
+        initGregorianDatePicker();
+    });
+    
 })(jQuery);

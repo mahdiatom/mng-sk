@@ -69,7 +69,7 @@ function sc_user_info_panel_shortcode($atts) {
     }
     $phone = !empty($player->player_phone) ? $player->player_phone : $billing_phone;
     
-    // محاسبه تعداد دوره‌های فعال
+    // محاسبه تعداد دوره‌های فعال (فقط دوره‌های فعال و بدون flag)
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $courses_table = $wpdb->prefix . 'sc_courses';
     $active_courses_count = $wpdb->get_var($wpdb->prepare(
@@ -78,8 +78,9 @@ function sc_user_info_panel_shortcode($atts) {
          INNER JOIN $courses_table c ON mc.course_id = c.id
          WHERE mc.member_id = %d 
          AND mc.status = 'active'
-         AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '' OR (mc.course_status_flags NOT LIKE '%%canceled%%' AND mc.course_status_flags NOT LIKE '%%completed%%'))
-         AND c.deleted_at IS NULL",
+         AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '')
+         AND c.deleted_at IS NULL
+         AND c.is_active = 1",
         $player->id
     ));
     

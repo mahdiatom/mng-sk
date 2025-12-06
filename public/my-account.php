@@ -854,8 +854,8 @@ function sc_my_account_my_courses_content() {
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $courses_table = $wpdb->prefix . 'sc_courses';
     
-    // دریافت فیلتر وضعیت
-    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+    // دریافت فیلتر وضعیت - پیش‌فرض: فقط دوره‌های فعال و بدون flag
+    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'active';
     
     // ساخت شرط WHERE
     $where_conditions = ["mc.member_id = %d"];
@@ -863,14 +863,25 @@ function sc_my_account_my_courses_content() {
     
     // فیلتر بر اساس وضعیت
     if ($filter_status === 'active') {
-        // فقط دوره‌های فعال (بدون canceled و completed)
+        // فقط دوره‌های فعال (بدون flag)
         $where_conditions[] = "mc.status = 'active'";
-        $where_conditions[] = "(mc.course_status_flags IS NULL OR mc.course_status_flags = '' OR (mc.course_status_flags NOT LIKE '%canceled%' AND mc.course_status_flags NOT LIKE '%completed%'))";
+        $where_conditions[] = "(mc.course_status_flags IS NULL OR mc.course_status_flags = '')";
+        $where_conditions[] = "c.deleted_at IS NULL";
+        $where_conditions[] = "c.is_active = 1";
     } elseif ($filter_status === 'canceled') {
         // فقط دوره‌های لغو شده
         $where_conditions[] = "mc.course_status_flags LIKE %s";
         $where_values[] = '%canceled%';
+    } elseif ($filter_status === 'paused') {
+        // فقط دوره‌های متوقف شده
+        $where_conditions[] = "mc.course_status_flags LIKE %s";
+        $where_values[] = '%paused%';
+    } elseif ($filter_status === 'completed') {
+        // فقط دوره‌های تمام شده
+        $where_conditions[] = "mc.course_status_flags LIKE %s";
+        $where_values[] = '%completed%';
     }
+    // اگر 'all' باشد، همه دوره‌ها نمایش داده می‌شوند
     
     $where_clause = implode(' AND ', $where_conditions);
     
@@ -888,11 +899,18 @@ function sc_my_account_my_courses_content() {
     $total_pages = ceil($total_courses / $per_page);
     
     // دریافت دوره‌های کاربر با صفحه‌بندی
+    // ترتیب: اول دوره‌های فعال و بدون flag، سپس بقیه
+    $order_by = "CASE 
+                    WHEN (mc.status = 'active' AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '')) THEN 0 
+                    ELSE 1 
+                 END ASC, 
+                 mc.created_at DESC";
+    
     $query = "SELECT mc.*, c.title as course_title
               FROM $member_courses_table mc
               INNER JOIN $courses_table c ON mc.course_id = c.id
               WHERE $where_clause
-              ORDER BY mc.created_at DESC
+              ORDER BY $order_by
               LIMIT %d OFFSET %d";
     
     $query_values = array_merge($where_values, [$per_page, $offset]);

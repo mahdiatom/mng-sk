@@ -66,6 +66,38 @@ a{
     padding: 5px 0px !important;
     margin: 0 !important;
 }
+/* اطلاعات بازیکن */
+.elementor-widget-woocommerce-my-account .e-my-account-tab:not(.e-my-account-tab__dashboard--custom) .woocommerce-MyAccount-content p:last-of-type {
+    margin-bottom: 5px !important;
+}
+.woocommerce-MyAccount-content form p input ,
+ .woocommerce-MyAccount-content .sc-form-section p input
+ {
+    border-radius: 5px;
+    padding: 10px 20px;
+    border: 1px solid #cbcbcb;
+}
+.form-row .input-text{
+    border: 1px solid #a5a5a5 !important;
+    border-radius: 5px !important;
+}
+.woocommerce-MyAccount-content .form-row label{
+    font-weight: bold;
+    color: #000 !important;
+}
+.form-row button{
+    background: #6D34FF;
+    color: #fff;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s 
+ease;
+    box-shadow: 0 4px 15px rgba(0, 163, 42, 0.3);
+}
 
 /* فرم ارسال مدارک در حساب کاربری */
 .sc-submit-documents-form {
@@ -93,7 +125,7 @@ a{
 }
 
 .sc-submit-documents-form .description {
-    margin-bottom: 30px;
+    margin-bottom: 5px;
     color: #555;
     font-size: 15px;
     line-height: 1.6;
@@ -114,6 +146,8 @@ a{
     position: relative;
     overflow: hidden;
 }
+
+
 
 .sc-form-section::before {
     content: '';
@@ -653,7 +687,52 @@ a{
     color: #666;
     margin-bottom: 5px;
 }
+.sc-status-cards {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row-reverse;
+    gap:10px;
+}
 
+.sc-status-content{
+    display: flex;
+    flex-direction: column;
+}
+.sc-status-cards .sc-status-card{
+    width: 50%;
+    background-color: #fafafa;
+    height: 100px;
+    
+    padding: 15px;
+}
+.checkbox_woo_sc{
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+.level p{
+    margin: 0 !important;
+}
+.woocommerce-MyAccount-content-wrapper .wc-block-components-notice-banner{
+    width: fit-content;
+    margin-right: 30px;
+    border-radius: 10px;
+}
+/* ثبت نام دوره  */
+
+.sc-course-accordion-header{
+    margin: 10px;
+}
+.sc-course-accordion-item{
+    padding: 10px 5px;
+}
+.sc-course-accordion-item label{
+    margin: 10px;
+}
+.sc-enroll-course-page h2{
+    margin-bottom: 10px !important;
+}
 .sc-event-detail-meta-item p {
     margin: 0;
     font-size: 16px;

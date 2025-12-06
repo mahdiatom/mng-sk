@@ -62,14 +62,18 @@ if (empty($player_phone) && $billing_phone) {
     $player_phone = $billing_phone;
 }
 
-  // نمایش دوره‌های بازیکن
+  // نمایش دوره‌های بازیکن (فقط دوره‌های فعال و بدون flag)
         global $wpdb;
         $member_courses_table = $wpdb->prefix . 'sc_member_courses';
         $courses_table = $wpdb->prefix . 'sc_courses';
         $courses = $wpdb->get_results($wpdb->prepare(
             "SELECT c.title FROM $courses_table c 
              INNER JOIN $member_courses_table mc ON c.id = mc.course_id 
-             WHERE mc.member_id = %d AND mc.status = 'active' AND c.deleted_at IS NULL 
+             WHERE mc.member_id = %d 
+             AND mc.status = 'active' 
+             AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '')
+             AND c.deleted_at IS NULL 
+             AND c.is_active = 1
              LIMIT 10",
             $player_id
         ));
@@ -119,12 +123,13 @@ if (empty($player_phone) && $billing_phone) {
             <p class="form-row form-row-first">
                 <label for="birth_date_shamsi">تاریخ تولد (شمسی)</label>
                 <input type="text" name="birth_date_shamsi" id="birth_date_shamsi" value="<?php echo esc_attr($birth_date_shamsi); ?>" class="persian-date-input" placeholder="مثلاً 1400/02/15" readonly>
-                
             </p>
             
             <p class="form-row form-row-last">
                 <label for="birth_date_gregorian">تاریخ تولد (میلادی)</label>
-                <input type="date" name="birth_date_gregorian" id="birth_date_gregorian" value="<?php echo esc_attr($birth_date_gregorian); ?>">
+                <span style="font-size: 12px;">تاریخ تولد میلادی شما به صورت اتوماتیک توسط سیستم از تاریخ تولد شمسی شما تبدیل می شود  </span><br>
+                <input type="text" name="birth_date_gregorian_display" id="birth_date_gregorian" value="<?php echo esc_attr($birth_date_gregorian); ?>" class="gregorian-date-input" placeholder="مثلاً 2021/05/05" readonly>
+                <input type="hidden" name="birth_date_gregorian" id="birth_date_gregorian_hidden" value="<?php echo esc_attr($birth_date_gregorian); ?>">
             </p>
             
             <p class="form-row form-row-first">
@@ -160,16 +165,16 @@ if (empty($player_phone) && $billing_phone) {
         </div>
         
         <div class="sc-form-section">
+            
             <h3>مدارک و تصاویر</h3>
             <p class="description">حداکثر حجم هر فایل: 5 مگابایت. فرمت‌های مجاز: JPG, PNG, GIF, WEBP</p>
             
             <p class="form-row">
                 <label for="personal_photo">عکس پرسنلی</label>
-                <input type="file" name="personal_photo" id="personal_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                <input type="file"  name="personal_photo" id="personal_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
                 <?php if (!empty($personal_photo)) : ?>
                     <div class="sc-image-preview" style="margin-top: 10px;">
                         <img src="<?php echo esc_url($personal_photo); ?>" alt="عکس پرسنلی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
-                        <p class="description">عکس فعلی</p>
                     </div>
                 <?php endif; ?>
             </p>
@@ -180,18 +185,16 @@ if (empty($player_phone) && $billing_phone) {
                 <?php if (!empty($id_card_photo)) : ?>
                     <div class="sc-image-preview" style="margin-top: 10px;">
                         <img src="<?php echo esc_url($id_card_photo); ?>" alt="عکس کارت ملی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
-                        <p class="description">عکس فعلی</p>
                     </div>
                 <?php endif; ?>
             </p>
             
             <p class="form-row">
                 <label for="sport_insurance_photo">عکس بیمه ورزشی</label>
-                <input type="file" name="sport_insurance_photo" id="sport_insurance_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                <input type="file" name="sport_insurance_photo" id="sport_insurance_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" >
                 <?php if (!empty($sport_insurance_photo)) : ?>
                     <div class="sc-image-preview" style="margin-top: 10px;">
                         <img src="<?php echo esc_url($sport_insurance_photo); ?>" alt="عکس بیمه ورزشی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
-                        <p class="description">عکس فعلی</p>
                     </div>
                 <?php endif; ?>
             </p>
@@ -202,60 +205,59 @@ if (empty($player_phone) && $billing_phone) {
             
             <p class="form-row">
                 <label for="medical_condition">مشکلات پزشکی</label>
-                <textarea name="medical_condition" id="medical_condition" rows="4" class="input-text"><?php echo esc_textarea($medical_condition); ?></textarea>
+                <textarea name="medical_condition" placeholder="تمامی موارد پزشکی را به صورت کامل شرح دهید" id="medical_condition" rows="4" class="input-text"><?php echo esc_textarea($medical_condition); ?></textarea>
             </p>
             
             <p class="form-row">
                 <label for="sports_history">سوابق ورزشی</label>
-                <textarea name="sports_history" id="sports_history" rows="4" class="input-text"><?php echo esc_textarea($sports_history); ?></textarea>
+                <textarea name="sports_history" placeholder="سوابق ورزشی مرتبط را به صورت موردی بنویسید " id="sports_history" rows="4" class="input-text"><?php echo esc_textarea($sports_history); ?></textarea>
             </p>
             
             <p class="form-row">
                 <label for="additional_info">توضیحات اضافی</label>
-                <textarea name="additional_info" id="additional_info" rows="3" class="input-text"><?php echo esc_textarea($additional_info); ?></textarea>
+                <textarea name="additional_info" placeholder="هر آنچه که در موارد فوق نبودند و نیاز هست به مربی  گفته شود را اینجا ذکر" id="additional_info" rows="3" class="input-text"><?php echo esc_textarea($additional_info); ?></textarea>
             </p>
 
-            <p class="form-row">
-                <label>وضعیت سلامت تأیید شده</label>
-                <label><input name="health_verified" type="checkbox" <?php checked($health_verified, 1); ?> value="1"> بله</label>
+            <p class="form-row checkbox_woo_sc">
+                <label> من هیچ مشکل قلبی عروقی ندارم</label>
+                <input name="health_verified" type="checkbox" <?php checked($health_verified, 1); ?> value="1">
             </p>
 
-            <p class="form-row">
-                <label>اطلاعات تأیید شده</label>
-                <label><input name="info_verified" type="checkbox" <?php checked($info_verified, 1); ?> value="1"> بله</label>
+            <p class="form-row checkbox_woo_sc">
+                <label>تایید میکنم که اطلاعات فوق را به درستی پر کرده ام.</label>
+                <input name="info_verified" type="checkbox" <?php checked($info_verified, 1); ?> value="1">
             </p>
             
             <?php if (current_user_can('manage_options')) : ?>
                 <p class="form-row">
                     <label for="skill_level">سطح شما</label>
-                    <input type="text" name="skill_level" id="skill_level" value="<?php echo esc_attr($skill_level); ?>" class="input-text" placeholder="مثلاً: مبتدی، متوسط، پیشرفته">
+                    <input type="text" name="skill_level" id="skill_level" value="<?php echo esc_attr($skill_level); ?>" class="input-text">
                     <p class="description">این فیلد فقط توسط مدیر قابل ویرایش است.</p>
                 </p>
             <?php elseif (!empty($skill_level)) : ?>
-                <p class="form-row">
-                    <label>سطح شما</label>
+                <p class="form-row level">
+                    <label>سطح شما ( این فیلد فقط توسط مدیر قابل ویرایش است )</label>
+                    
                     <div style="padding: 10px; background: #f9f9f9; border-radius: 4px; color: #333; font-weight: 600;">
                         <?php echo esc_html($skill_level); ?>
                     </div>
-                    <p class="description">این فیلد فقط توسط مدیر قابل ویرایش است.</p>
+                    
                 </p>
             <?php endif; ?>
             
             <div class="sc-status-cards">
                 <div class="sc-status-card">
-                    <div class="sc-status-icon"><?php echo $is_active ? "✅" : "❌"; ?></div>
                     <div class="sc-status-content">
-                        <strong>وضعیت بازیکن</strong>
-                        <span class="sc-status-badge <?php echo $is_active ? 'active' : 'inactive'; ?>">
+                        <strong>وضعیت بازیکن :  </strong>
+                        <span class="sc-status-badge <?php echo $is_active ? 'active' : 'inactive'; ?>"><br>
                             <?php echo $is_active ? "فعال" : "غیرفعال"; ?>
                         </span>
                     </div>
                 </div>
                 
                 <div class="sc-status-card">
-                    <div class="sc-status-icon">📚</div>
-                    <div class="sc-status-content">
-                        <strong>دوره‌های فعال</strong>
+                    <div class="sc-status-content" >
+                        <strong>دوره‌های فعال بازیکن: </strong>
                         <div class="sc-courses-list">
                             <?php echo !empty($courses_text) ? $courses_text : "<span style='color: #999;'>شما هنوز در دوره‌ای ثبت نام نکردید</span>"; ?>
                         </div>
@@ -272,64 +274,3 @@ if (empty($player_phone) && $billing_phone) {
         </p>
     </form>
 </div>
-
-<script type="text/javascript">
-jQuery(document).ready(function($) {
-    // تبدیل تاریخ انقضا بیمه شمسی به میلادی
-    $('#insurance_expiry_date_shamsi').on('change', function() {
-        var shamsiDate = $(this).val();
-        if (shamsiDate && shamsiDate.includes('/')) {
-            var parts = shamsiDate.split('/');
-            if (parts.length === 3) {
-                var jy = parseInt(parts[0]);
-                var jm = parseInt(parts[1]);
-                var jd = parseInt(parts[2]);
-                
-                // تبدیل به میلادی (تابع JavaScript)
-                var gregorian = jalaliToGregorian(jy, jm, jd);
-                if (gregorian && gregorian.length === 3) {
-                    var gregorianDate = gregorian[0] + '-' + 
-                                       (gregorian[1] < 10 ? '0' + gregorian[1] : gregorian[1]) + '-' + 
-                                       (gregorian[2] < 10 ? '0' + gregorian[2] : gregorian[2]);
-                    $('#insurance_expiry_date_gregorian').val(gregorianDate);
-                }
-            }
-        }
-    });
-    
-    // تبدیل قبل از ارسال فرم
-    $('form').on('submit', function() {
-        $('#insurance_expiry_date_shamsi').trigger('change');
-    });
-    
-    // تابع تبدیل شمسی به میلادی (JavaScript)
-    function jalaliToGregorian(jy, jm, jd) {
-        var gy = (jy <= 979) ? 621 : 1600;
-        jy -= (jy <= 979) ? 0 : 979;
-        var days = (365 * jy) + (parseInt(jy / 33) * 8) + (parseInt(((jy % 33) + 3) / 4)) + 
-                   78 + jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
-        gy += 400 * (parseInt(days / 146097));
-        days = days % 146097;
-        if (days > 36524) {
-            gy += 100 * (parseInt(--days / 36524));
-            days = days % 36524;
-            if (days >= 365) days++;
-        }
-        gy += 4 * (parseInt(days / 1461));
-        days = days % 1461;
-        if (days > 365) {
-            gy += parseInt((days - 1) / 365);
-            days = (days - 1) % 365;
-        }
-        var gd = days + 1;
-        var sal_a = [0, 31, ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) ? 29 : 28,
-                     31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        var gm = 0;
-        while (gm < 13 && gd > sal_a[gm]) {
-            gd -= sal_a[gm];
-            gm++;
-        }
-        return [gy, gm, gd];
-    }
-});
-</script>

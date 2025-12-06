@@ -66,6 +66,8 @@ if ($course && isset($_GET['course_id'])) {
                         }
                         
                         $price_display = $price ?? 0;
+                        // تبدیل به عدد برای اطمینان از صحت
+                        $price_display = is_numeric($price_display) ? floatval($price_display) : 0;
                         ?>
                         <input type="text" 
                                name="price" 

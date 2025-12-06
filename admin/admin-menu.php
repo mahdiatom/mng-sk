@@ -766,9 +766,20 @@ function callback_add_course_sufix() {
         // پردازش قیمت از price_raw
         $price_value = 0;
         if (isset($_POST['price_raw']) && !empty($_POST['price_raw'])) {
-            $price_value = floatval($_POST['price_raw']);
+            // حذف کاماها و کاراکترهای غیر عددی
+            $price_raw_cleaned = str_replace(',', '', sanitize_text_field($_POST['price_raw']));
+            $price_raw_cleaned = preg_replace('/[^\d.]/', '', $price_raw_cleaned);
+            $price_value = floatval($price_raw_cleaned);
         } elseif (isset($_POST['price']) && !empty($_POST['price'])) {
-            $price_value = floatval(str_replace(',', '', $_POST['price']));
+            // حذف کاماها و کاراکترهای غیر عددی
+            $price_cleaned = str_replace(',', '', sanitize_text_field($_POST['price']));
+            $price_cleaned = preg_replace('/[^\d.]/', '', $price_cleaned);
+            $price_value = floatval($price_cleaned);
+        }
+        
+        // اطمینان از اینکه قیمت عدد معتبر است
+        if (!is_numeric($price_value) || $price_value < 0) {
+            $price_value = 0;
         }
         
         // Validation
