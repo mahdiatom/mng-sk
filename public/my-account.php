@@ -328,12 +328,35 @@ function sc_my_account_enroll_course_content() {
             $flags = explode(',', $mc->course_status_flags);
             $flags = array_map('trim', $flags);
         }
+        
+        // بررسی اینکه آیا invoice pending دارد یا نه
+        $has_pending_invoice = in_array($mc->course_id, $pending_course_ids);
+        
+        // اگر status = 'inactive' است و invoice pending ندارد، این دوره را نادیده بگیر (اجازه ثبت نام دوباره)
+        if ($mc->status === 'inactive' && !$has_pending_invoice) {
+            continue; // این دوره را در enrolled_courses_data قرار نده
+        }
+        
         $enrolled_courses_data[$mc->course_id] = [
             'flags' => $flags,
             'is_canceled' => in_array('canceled', $flags),
             'is_completed' => in_array('completed', $flags),
-            'is_paused' => in_array('paused', $flags)
+            'is_paused' => in_array('paused', $flags),
+            'is_pending_payment' => ($mc->status === 'inactive' && $has_pending_invoice) // فقط اگر status = inactive باشد و invoice pending داشته باشد
         ];
+    }
+    
+    // اضافه کردن دوره‌هایی که صورت حساب pending دارند اما در member_courses نیستند
+    foreach ($pending_course_ids as $course_id) {
+        if (!isset($enrolled_courses_data[$course_id])) {
+            $enrolled_courses_data[$course_id] = [
+                'flags' => [],
+                'is_canceled' => false,
+                'is_completed' => false,
+                'is_paused' => false,
+                'is_pending_payment' => true
+            ];
+        }
     }
     
     $enrolled_course_ids = array_keys($enrolled_courses_data);
@@ -992,26 +1015,26 @@ function sc_my_account_my_courses_content() {
     $where_values = [$player->id];
     
     // فیلتر بر اساس وضعیت
+    // مهم: فقط دوره‌هایی که کاربر در آن‌ها ثبت‌نام کرده (رکورد در member_courses دارد) نمایش داده می‌شوند
     if ($filter_status === 'active') {
         // فقط دوره‌های فعال (بدون flag) - شامل دوره‌های در حال پرداخت (inactive) هم می‌شود
         $where_conditions[] = "mc.status IN ('active', 'inactive')";
-        $where_conditions[] = "(mc.course_status_flags IS NULL OR mc.course_status_flags = '')";
+        $where_conditions[] = "(mc.course_status_flags IS NULL OR mc.course_status_flags = '' OR mc.course_status_flags = ' ')";
         $where_conditions[] = "c.deleted_at IS NULL";
-        $where_conditions[] = "c.is_active = 1";
     } elseif ($filter_status === 'canceled') {
-        // فقط دوره‌های لغو شده
+        // فقط دوره‌های لغو شده - باید فلگ 'canceled' داشته باشند
         $where_conditions[] = "mc.course_status_flags LIKE %s";
         $where_values[] = '%canceled%';
     } elseif ($filter_status === 'paused') {
-        // فقط دوره‌های متوقف شده
+        // فقط دوره‌های متوقف شده - باید فلگ 'paused' داشته باشند
         $where_conditions[] = "mc.course_status_flags LIKE %s";
         $where_values[] = '%paused%';
     } elseif ($filter_status === 'completed') {
-        // فقط دوره‌های تمام شده
+        // فقط دوره‌های تمام شده - باید فلگ 'completed' داشته باشند
         $where_conditions[] = "mc.course_status_flags LIKE %s";
         $where_values[] = '%completed%';
     }
-    // اگر 'all' باشد، همه دوره‌ها نمایش داده می‌شوند
+    // اگر 'all' باشد، همه دوره‌هایی که کاربر در آن‌ها ثبت‌نام کرده نمایش داده می‌شوند
     
     $where_clause = implode(' AND ', $where_conditions);
     
@@ -1045,6 +1068,31 @@ function sc_my_account_my_courses_content() {
     
     $query_values = array_merge($where_values, [$per_page, $offset]);
     $user_courses = $wpdb->get_results($wpdb->prepare($query, $query_values));
+    
+    // دریافت invoice‌های pending برای دوره‌ها
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $pending_invoices = [];
+    if (!empty($user_courses)) {
+        $course_ids = array_map(function($course) {
+            return $course->course_id;
+        }, $user_courses);
+        
+        if (!empty($course_ids)) {
+            $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
+            $pending_invoices_query = $wpdb->prepare(
+                "SELECT course_id FROM $invoices_table 
+                 WHERE member_id = %d AND course_id IN ($placeholders) AND status IN ('pending', 'under_review')",
+                array_merge([$player->id], $course_ids)
+            );
+            $pending_invoice_results = $wpdb->get_results($pending_invoices_query);
+            
+            foreach ($pending_invoice_results as $invoice) {
+                if ($invoice->course_id) {
+                    $pending_invoices[$invoice->course_id] = true;
+                }
+            }
+        }
+    }
     
     // انتقال متغیرهای فیلتر و صفحه‌بندی به template
     $filter_status = $filter_status;
@@ -1525,15 +1573,33 @@ function sc_handle_invoice_cancellation() {
             }
         }
         
-        // اگر این صورت حساب برای یک دوره است، member_course را حذف کن یا status را به canceled تغییر بده
-        if (!empty($invoice->course_id) && !empty($invoice->member_course_id)) {
+        // اگر این صورت حساب برای یک دوره است، member_course را حذف کن
+        // مهم: لغو invoice هیچ ارتباطی به فلگ 'canceled' دوره ندارد
+        // فلگ 'canceled' فقط زمانی تنظیم می‌شود که کاربر یا مدیر دوره را لغو کند
+        if (!empty($invoice->course_id)) {
             $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-            // حذف رکورد member_course تا کاربر بتواند دوباره ثبت‌نام کند
-            $wpdb->delete(
-                $member_courses_table,
-                ['id' => $invoice->member_course_id],
-                ['%d']
-            );
+            
+            // اگر member_course_id وجود دارد، از آن استفاده کن
+            if (!empty($invoice->member_course_id)) {
+                // حذف رکورد member_course تا کاربر بتواند دوباره ثبت‌نام کند
+                $wpdb->delete(
+                    $member_courses_table,
+                    ['id' => $invoice->member_course_id],
+                    ['%d']
+                );
+            } else {
+                // اگر member_course_id وجود ندارد، از course_id و member_id استفاده کن
+                // فقط رکوردهایی که status = 'inactive' دارند را حذف کن (چون این‌ها مربوط به invoice pending هستند)
+                $wpdb->delete(
+                    $member_courses_table,
+                    [
+                        'member_id' => $player->id,
+                        'course_id' => $invoice->course_id,
+                        'status' => 'inactive'
+                    ],
+                    ['%d', '%d', '%s']
+                );
+            }
         }
         
         // اگر این صورت حساب برای یک رویداد است، event_registration را حذف کن تا امکان ثبت نام دوباره فراهم شود
@@ -2197,11 +2263,40 @@ function sc_handle_documents_submission() {
     $data['info_verified'] = isset($_POST['info_verified']) && !empty($_POST['info_verified']) ? 1 : 0;
    
     // بررسی وجود اطلاعات قبلی
-    // اول بر اساس user_id بررسی می‌کنیم
+    // مهم: باید رکورد موجود را پیدا کنیم تا از ایجاد رکورد تکراری جلوگیری کنیم
+    $existing = null;
+    
+    // اول بر اساس user_id بررسی می‌کنیم (اولویت اول)
     $existing = $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM $table_name WHERE user_id = %d LIMIT 1",
         $current_user_id
     ));
+    
+    // اگر با user_id پیدا نشد، بر اساس national_id بررسی می‌کنیم (اولویت دوم)
+    if (!$existing && !empty($data['national_id'])) {
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE national_id = %s LIMIT 1",
+            $data['national_id']
+        ));
+    }
+    
+    // اگر هنوز پیدا نشد، بر اساس player_phone بررسی می‌کنیم (اولویت سوم)
+    if (!$existing && !empty($data['player_phone'])) {
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE player_phone = %s LIMIT 1",
+            $data['player_phone']
+        ));
+    }
+    
+    // اگر با national_id یا player_phone پیدا شد، بررسی می‌کنیم که user_id نداشته باشد یا با user_id فعلی متفاوت باشد
+    if ($existing && !$existing->user_id) {
+        // اگر user_id ندارد، آن را تنظیم می‌کنیم
+        // این یعنی رکورد توسط مدیر ایجاد شده و user_id تنظیم نشده
+    } elseif ($existing && $existing->user_id && $existing->user_id != $current_user_id) {
+        // این national_id یا player_phone به کاربر دیگری اختصاص داده شده است
+        wc_add_notice('این اطلاعات قبلاً به حساب کاربری دیگری اختصاص داده شده است. لطفاً با پشتیبانی تماس بگیرید.', 'error');
+        return;
+    }
     
     // فیلد سطح - فقط مدیر می‌تواند ویرایش کند
     if (current_user_can('manage_options') && isset($_POST['skill_level'])) {
@@ -2211,21 +2306,6 @@ function sc_handle_documents_submission() {
         $data['skill_level'] = $existing->skill_level;
     } else {
         $data['skill_level'] = NULL;
-    }
-    
-    // اگر با user_id پیدا نشد، بر اساس national_id بررسی می‌کنیم
-    if (!$existing) {
-        $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table_name WHERE national_id = %s LIMIT 1",
-            $data['national_id']
-        ));
-        
-        // اگر با national_id پیدا شد، بررسی می‌کنیم که user_id نداشته باشد
-        if ($existing && $existing->user_id && $existing->user_id != $current_user_id) {
-            // این national_id به کاربر دیگری اختصاص داده شده است
-            wc_add_notice('این کد ملی قبلاً به حساب کاربری دیگری اختصاص داده شده است. لطفاً با پشتیبانی تماس بگیرید.', 'error');
-            return;
-        }
     }
     
     // پردازش آپلود عکس‌ها با امنیت
@@ -2248,9 +2328,9 @@ function sc_handle_documents_submission() {
         // بررسی اینکه آیا user_id در رکورد دیگری استفاده شده است
         $user_id_exists = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM $table_name WHERE user_id = %d AND id != %d LIMIT 1",
-        $current_user_id,
+            $current_user_id,
             $existing->id
-    ));
+        ));
     
         if ($user_id_exists) {
             // user_id در رکورد دیگری استفاده شده است
@@ -2264,13 +2344,9 @@ function sc_handle_documents_submission() {
         unset($update_data['created_at']);
         $update_data['updated_at'] = current_time('mysql');
         
-        // اگر user_id وجود نداشت یا با user_id فعلی متفاوت است، به‌روزرسانی می‌کنیم
-        if (!$existing->user_id || $existing->user_id != $current_user_id) {
-            $update_data['user_id'] = $current_user_id;
-        } else {
-            // اگر user_id قبلاً درست تنظیم شده، از update_data حذف می‌کنیم تا تغییر نکند
-            unset($update_data['user_id']);
-        }
+        // مهم: همیشه user_id را به‌روزرسانی می‌کنیم تا اطمینان حاصل کنیم که رکورد به کاربر فعلی متصل است
+        // این باعث می‌شود که اگر مدیر کاربر را اضافه کرده و user_id تنظیم نشده، حالا تنظیم شود
+        $update_data['user_id'] = $current_user_id;
         
         // اگر مدیر نیست، skill_level را از update_data حذف می‌کنیم
         if (!current_user_can('manage_options')) {
@@ -2312,18 +2388,93 @@ function sc_handle_documents_submission() {
             wc_add_notice('خطا در بروزرسانی اطلاعات. لطفاً دوباره تلاش کنید.', 'error');
         }
     } else {
-        // بررسی تکراری بودن کد ملی
-        $duplicate = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $table_name WHERE national_id = %s",
-            $data['national_id']
-        ));
+        // اگر رکورد پیدا نشد، بررسی می‌کنیم که آیا کد ملی یا شماره تماس تکراری است
+        // این بررسی برای جلوگیری از ایجاد رکورد تکراری است
+        $duplicate_national_id = null;
+        $duplicate_phone = null;
         
-        if ($duplicate) {
-            wc_add_notice('این کد ملی قبلاً ثبت شده است. لطفاً با پشتیبانی تماس بگیرید.', 'error');
-            return;
+        if (!empty($data['national_id'])) {
+            $duplicate_national_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $table_name WHERE national_id = %s LIMIT 1",
+                $data['national_id']
+            ));
         }
         
-        // افزودن جدید
+        if (!empty($data['player_phone'])) {
+            $duplicate_phone = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $table_name WHERE player_phone = %s LIMIT 1",
+                $data['player_phone']
+            ));
+        }
+        
+        if ($duplicate_national_id || $duplicate_phone) {
+            // اگر کد ملی یا شماره تماس تکراری است، باید همان رکورد را به‌روزرسانی کنیم
+            $existing_id = $duplicate_national_id ? $duplicate_national_id : $duplicate_phone;
+            $existing = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $table_name WHERE id = %d LIMIT 1",
+                $existing_id
+            ));
+            
+            if ($existing) {
+                // بررسی اینکه آیا user_id در رکورد دیگری استفاده شده است
+                $user_id_exists = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM $table_name WHERE user_id = %d AND id != %d LIMIT 1",
+                    $current_user_id,
+                    $existing->id
+                ));
+            
+                if ($user_id_exists) {
+                    wc_add_notice('این حساب کاربری قبلاً به بازیکن دیگری اختصاص داده شده است. لطفاً با پشتیبانی تماس بگیرید.', 'error');
+                    return;
+                }
+                
+                // بروزرسانی رکورد موجود
+                $update_data = $data;
+                unset($update_data['created_at']);
+                $update_data['updated_at'] = current_time('mysql');
+                $update_data['user_id'] = $current_user_id;
+                
+                // حفظ skill_level اگر مدیر نیست
+                if (!current_user_can('manage_options') && isset($existing->skill_level)) {
+                    $update_data['skill_level'] = $existing->skill_level;
+                }
+                
+                // آماده‌سازی format برای update
+                $format = [];
+                foreach ($update_data as $key => $value) {
+                    if ($value === NULL) {
+                        $format[] = '%s';
+                    } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'])) {
+                        $format[] = '%d';
+                    } else {
+                        $format[] = '%s';
+                    }
+                }
+                
+                $updated = $wpdb->update(
+                    $table_name,
+                    $update_data,
+                    ['id' => $existing->id],
+                    $format,
+                    ['%d']
+                );
+                
+                if ($updated !== false) {
+                    sc_update_profile_completed_status($existing->id);
+                    wc_add_notice('اطلاعات شما با موفقیت به روز شد.', 'success');
+                    wp_safe_redirect(wc_get_account_endpoint_url('sc-submit-documents'));
+                    exit;
+                } else {
+                    if ($wpdb->last_error) {
+                        error_log('WP Update Error: ' . $wpdb->last_error);
+                    }
+                    wc_add_notice('خطا در بروزرسانی اطلاعات. لطفاً دوباره تلاش کنید.', 'error');
+                }
+                return;
+            }
+        }
+        
+        // افزودن جدید - فقط اگر هیچ رکوردی پیدا نشد
         // آماده‌سازی format برای insert
         $insert_format = [];
         foreach ($data as $key => $value) {

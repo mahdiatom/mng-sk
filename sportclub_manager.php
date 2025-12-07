@@ -51,10 +51,13 @@ require_once SC_INCLUDES_DIR . 'payments-export.php'; // Payments export functio
 require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export functions
 require_once SC_INCLUDES_DIR . 'event-registrations-export.php'; // Event registrations export functions
 require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settings
+require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
 
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
 require_once SC_PUBLIC_DIR . 'my-account.php';
+// Include WooCommerce Thank You Page customization
+require_once SC_PUBLIC_DIR . 'woocommerce-thankyou.php';
 
 /**
  * Load shortcodes after WordPress is fully loaded

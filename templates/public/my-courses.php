@@ -53,49 +53,68 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
     <div class="sc-my-courses-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px;">
         <?php foreach ($user_courses as $user_course) : 
             // پردازش course_status_flags
+            // مهم: وضعیت دوره فقط بر اساس course_status_flags تعیین می‌شود
             $flags = [];
+            $has_flags = false;
             if (!empty($user_course->course_status_flags)) {
-                $flags = explode(',', $user_course->course_status_flags);
-                $flags = array_map('trim', $flags);
+                $flags_string = trim($user_course->course_status_flags);
+                if (!empty($flags_string)) {
+                    $flags = explode(',', $flags_string);
+                    $flags = array_map('trim', $flags);
+                    $flags = array_filter($flags); // حذف مقادیر خالی
+                    $has_flags = !empty($flags);
+                }
             }
             
+            // بررسی فلگ‌ها - فقط اگر در course_status_flags باشند
             $is_paused = in_array('paused', $flags);
             $is_completed = in_array('completed', $flags);
             $is_canceled = in_array('canceled', $flags);
-            $is_pending_payment = ($user_course->status === 'inactive');
+            
+            // بررسی اینکه آیا دوره در حال پرداخت است
+            // در انتظار پرداخت: وقتی کاربر برای آن صورت حساب ایجاد شده ولی هنوز پرداخت نکرده
+            // شرط: status = 'inactive' و invoice pending دارد و هیچ فلگی ندارد
+            $has_pending_invoice = isset($pending_invoices) && isset($pending_invoices[$user_course->course_id]);
+            $is_pending_payment = (!$has_flags && $user_course->status === 'inactive' && $has_pending_invoice);
             
             // تعیین برچسب وضعیت و رنگ
+            // اولویت: canceled > paused > completed > pending_payment > active
             $status_labels = [];
             $status_color = '#155724';
             $status_bg = '#d4edda';
             $status_icon = '✅';
             $status_tooltip = '';
             
-            if ($is_pending_payment) {
-                $status_labels[] = 'در حال پرداخت';
-                $status_color = '#856404';
-                $status_bg = '#fff3cd';
-                $status_icon = '⏳';
-                $status_tooltip = 'صورت حساب این دوره در حال پرداخت است. پس از پرداخت، دوره فعال خواهد شد.';
+            if ($is_canceled) {
+                // دوره لغو شده: در صورتی که دوره فعال باشه و flag لغو شده داشته باشه
+                $status_labels[] = 'لغو شده';
+                $status_color = '#d63638';
+                $status_bg = '#ffeaea';
+                $status_icon = '❌';
+                $status_tooltip = 'این دوره لغو شده است.';
             } elseif ($is_paused) {
+                // دوره متوقف شده: در صورتی که دوره فعال باشه و flag متوقف شده داشته باشه
                 $status_labels[] = 'متوقف شده';
                 $status_color = '#f0a000';
                 $status_bg = '#fff8e1';
                 $status_icon = '⏸️';
                 $status_tooltip = 'این دوره متوقف شده است.';
             } elseif ($is_completed) {
+                // دوره تمام شده: در صورتی که دوره فعال باشه و flag تمام شده داشته باشه
                 $status_labels[] = 'تمام شده';
                 $status_color = '#666';
                 $status_bg = '#f5f5f5';
                 $status_icon = '✔️';
                 $status_tooltip = 'این دوره به اتمام رسیده است.';
-            } elseif ($is_canceled) {
-                $status_labels[] = 'لغو شده';
-                $status_color = '#d63638';
-                $status_bg = '#ffeaea';
-                $status_icon = '❌';
-                $status_tooltip = 'این دوره لغو شده است.';
+            } elseif ($is_pending_payment) {
+                // در انتظار پرداخت: وقتی کاربر برای آن صورت حساب ایجاد شده ولی هنوز پرداخت نکرده
+                $status_labels[] = 'در انتظار پرداخت';
+                $status_color = '#856404';
+                $status_bg = '#fff3cd';
+                $status_icon = '⏳';
+                $status_tooltip = 'صورت حساب این دوره در حال پرداخت است. پس از پرداخت، دوره فعال خواهد شد.';
             } else {
+                // دوره فعال: هیچ فلگی ندارد و status = 'active'
                 $status_labels[] = 'فعال';
                 $status_color = '#155724';
                 $status_bg = '#d4edda';
@@ -105,7 +124,7 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
             
             $status_display = implode('، ', $status_labels);
             // فقط دوره‌های فعال (بدون هیچ flag و بدون pending payment) می‌توانند لغو شوند
-            $can_cancel = !$is_paused && !$is_completed && !$is_canceled && !$is_pending_payment;
+            $can_cancel = !$has_flags && !$is_pending_payment && $user_course->status === 'active';
         ?>
             <div class="sc-course-card" style="
                 background: #fff;
@@ -243,49 +262,3 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
     <?php endif; ?>
 </div>
 
-<style>
-.sc-my-courses-page {
-    margin-top: 20px;
-}
-
-.sc-my-courses-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
-}
-
-.sc-course-card {
-    position: relative;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .sc-my-courses-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* استایل صفحه‌بندی */
-.sc-my-courses-pagination .page-numbers {
-    display: inline-block;
-    padding: 8px 12px;
-    margin: 0 4px;
-    text-decoration: none;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    color: #2271b1;
-    background: #fff;
-    transition: all 0.3s ease;
-}
-
-.sc-my-courses-pagination .page-numbers:hover,
-.sc-my-courses-pagination .page-numbers.current {
-    background: #2271b1;
-    color: #fff;
-    border-color: #2271b1;
-}
-
-.sc-my-courses-pagination .page-numbers.current {
-    font-weight: bold;
-}
-</style>

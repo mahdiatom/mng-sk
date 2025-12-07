@@ -79,7 +79,13 @@ if (function_exists('wc_get_price_thousand_separator')) {
                 
                 if ($is_enrolled) {
                     $course_data = $enrolled_courses_data[$course->id];
-                    if ($course_data['is_canceled']) {
+                    if ($course_data['is_pending_payment']) {
+                        $course_status = 'pending_payment';
+                        $status_label = 'در انتظار پرداخت';
+                        $status_color = '#856404';
+                        $status_bg = '#fff3cd';
+                        $tooltip_message = 'شما برای این دوره ثبت‌نام کرده‌اید و صورت حساب آن در انتظار پرداخت است. لطفاً به بخش صورت حساب‌ها مراجعه کنید.';
+                    } elseif ($course_data['is_canceled']) {
                         $course_status = 'canceled';
                         $status_label = 'لغو شده';
                         $status_color = '#d63638';

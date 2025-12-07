@@ -315,11 +315,12 @@ if($player && $_GET['player_id'] ){
                             if ($pc['status'] === 'active') {
                                 $player_courses_active[$pc['course_id']] = true;
                             }
-                            // پردازش course_status_flags (مثلاً "paused,completed" یا JSON)
+                            // پردازش course_status_flags - برای همه دوره‌ها (چه active چه inactive)
                             $flags = [];
                             if (!empty($pc['course_status_flags'])) {
                                 $flags = explode(',', $pc['course_status_flags']);
                                 $flags = array_map('trim', $flags);
+                                $flags = array_filter($flags); // حذف مقادیر خالی
                             }
                             $player_courses_flags[$pc['course_id']] = $flags;
                         }
@@ -370,25 +371,26 @@ if($player && $_GET['player_id'] ){
                         echo '</label>';
                         
                         // Checkbox های وضعیت‌های اضافی
-                        echo '<div id="course_status_' . esc_attr($course->id) . '" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; ' . ($is_active ? '' : 'display: none;') . '">';
+                        // مهم: فلگ‌ها همیشه نمایش داده می‌شوند و هیچ ارتباطی با تیک دوره ندارند
+                        echo '<div id="course_status_' . esc_attr($course->id) . '" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">';
                         echo '<label style="font-size: 12px; color: #666; display: block; margin-bottom: 8px;">وضعیت‌های اضافی:</label>';
                         echo '<div style="display: flex; gap: 15px; flex-wrap: wrap;">';
                         
-                        // Checkbox برای paused
+                        // Checkbox برای paused - همیشه فعال است
                         echo '<label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">';
-                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][paused]" value="1" ' . ($is_paused ? 'checked' : '') . ' ' . ($is_active ? '' : 'disabled') . ' style="margin-left: 5px;">';
+                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][paused]" value="1" ' . ($is_paused ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>متوقف شده</span>';
                         echo '</label>';
                         
-                        // Checkbox برای completed
+                        // Checkbox برای completed - همیشه فعال است
                         echo '<label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">';
-                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][completed]" value="1" ' . ($is_completed ? 'checked' : '') . ' ' . ($is_active ? '' : 'disabled') . ' style="margin-left: 5px;">';
+                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][completed]" value="1" ' . ($is_completed ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>تمام شده</span>';
                         echo '</label>';
                         
-                        // Checkbox برای canceled
+                        // Checkbox برای canceled - همیشه فعال است
                         echo '<label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">';
-                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][canceled]" value="1" ' . ($is_canceled ? 'checked' : '') . ' ' . ($is_active ? '' : 'disabled') . ' style="margin-left: 5px;">';
+                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][canceled]" value="1" ' . ($is_canceled ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>لغو شده</span>';
                         echo '</label>';
                         

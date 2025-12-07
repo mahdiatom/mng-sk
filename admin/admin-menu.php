@@ -31,7 +31,7 @@ function sc_register_admin_menu() {
     );
 
     // Add Member
-    $add_member_sufix =  add_submenu_page(
+    $add_member_sufix = add_submenu_page(
         'sc-dashboard',
         'Add Member',
         'Add Member',
@@ -857,7 +857,8 @@ function callback_add_course_sufix() {
 }
 //for save data in new member -> wpdb
 function callback_add_member_sufix(){
-    if(isset($_GET['page']) && $_GET['page'] == 'sc-add-member' && isset($_POST['submit_player'])) {
+    // فقط برای ویرایش کاربر (وقتی player_id وجود دارد)
+    if(isset($_GET['page']) && $_GET['page'] == 'sc-add-member' && isset($_POST['submit_player']) && isset($_GET['player_id']) && !empty($_GET['player_id'])) {
        // بررسی و ایجاد جداول در صورت عدم وجود
        sc_check_and_create_tables();
        
@@ -1005,54 +1006,81 @@ function callback_add_member_sufix(){
                             }
                         }
                     } else {
-                        // اگر user_id وجود ندارد و username و password وارد شده، کاربر جدید ایجاد کن
-                        if (!empty($password)) {
-                            // بررسی اینکه username تکراری نباشد
-                            if (!username_exists($username)) {
-                                // ایجاد کاربر WordPress
-                                $email = !empty($data['player_phone']) ? sanitize_email($data['player_phone'] . '@sportclub.local') : sanitize_email($username . '@sportclub.local');
-                                
-                                // اگر email معتبر نیست، از username استفاده کن
-                                if (!is_email($email)) {
-                                    $email = sanitize_email($username . '@sportclub.local');
-                                }
-                                
-                                $new_user_id = wp_create_user($username, $password, $email);
-                                
-                                if (!is_wp_error($new_user_id)) {
-                                    // تنظیم نقش کاربر (customer برای WooCommerce)
-                                    $user = new WP_User($new_user_id);
-                                    $user->set_role('customer');
-                                    
-                                    // تنظیم اطلاعات کاربر
-                                    wp_update_user([
-                                        'ID' => $new_user_id,
-                                        'first_name' => $data['first_name'],
-                                        'last_name' => $data['last_name'],
-                                        'display_name' => $data['first_name'] . ' ' . $data['last_name']
-                                    ]);
-                                    
-                                    // تنظیم اطلاعات billing
-                                    if (!empty($data['player_phone'])) {
-                                        update_user_meta($new_user_id, 'billing_phone', $data['player_phone']);
-                                    }
-                                    
-                                    // ذخیره user_id در جدول members
-                                    $wpdb->update(
-                                        $table_name,
-                                        ['user_id' => $new_user_id],
-                                        ['id' => $player_id],
-                                        ['%d'],
-                                        ['%d']
-                                    );
-                                } else {
-                                    // اگر خطا در ایجاد کاربر بود، لاگ کن
-                                    error_log('SC Member: Error creating WordPress user - ' . $new_user_id->get_error_message());
-                                }
-                            } else {
-                                // اگر username تکراری بود، لاگ کن
-                                error_log('SC Member: Username already exists - ' . $username);
+                        // اگر user_id وجود ندارد، کاربر جدید ایجاد کن
+                        // اگر username وارد نشده، به صورت خودکار از کد ملی یا شماره تماس استفاده می‌کنیم
+                        if (empty($username)) {
+                            // اول از کد ملی استفاده می‌کنیم
+                            if (!empty($data['national_id'])) {
+                                $username = sanitize_user($data['national_id'], true);
+                            } 
+                            // اگر کد ملی هم نبود، از شماره تماس استفاده می‌کنیم
+                            elseif (!empty($data['player_phone'])) {
+                                $username = sanitize_user($data['player_phone'], true);
                             }
+                            // اگر هیچکدام نبود، از نام و نام خانوادگی استفاده می‌کنیم
+                            else {
+                                $username = sanitize_user($data['first_name'] . '_' . $data['last_name'], true);
+                            }
+                            
+                            // بررسی تکراری بودن username و اضافه کردن عدد در صورت نیاز
+                            $original_username = $username;
+                            $counter = 1;
+                            while (username_exists($username)) {
+                                $username = $original_username . '_' . $counter;
+                                $counter++;
+                            }
+                        }
+                        
+                        // اگر password وارد نشده، به صورت خودکار یک رمز عبور تصادفی ایجاد می‌کنیم
+                        if (empty($password)) {
+                            $password = wp_generate_password(12, false);
+                        }
+                        
+                        // بررسی اینکه username تکراری نباشد (اگر به صورت دستی وارد شده باشد)
+                        if (!username_exists($username)) {
+                            // ایجاد email از شماره تماس یا username
+                            $email = !empty($data['player_phone']) ? sanitize_email($data['player_phone'] . '@sportclub.local') : sanitize_email($username . '@sportclub.local');
+                            
+                            // اگر email معتبر نیست، از username استفاده کن
+                            if (!is_email($email)) {
+                                $email = sanitize_email($username . '@sportclub.local');
+                            }
+                            
+                            $new_user_id = wp_create_user($username, $password, $email);
+                            
+                            if (!is_wp_error($new_user_id)) {
+                                // تنظیم نقش کاربر (customer برای WooCommerce)
+                                $user = new WP_User($new_user_id);
+                                $user->set_role('customer');
+                                
+                                // تنظیم اطلاعات کاربر
+                                wp_update_user([
+                                    'ID' => $new_user_id,
+                                    'first_name' => $data['first_name'],
+                                    'last_name' => $data['last_name'],
+                                    'display_name' => $data['first_name'] . ' ' . $data['last_name']
+                                ]);
+                                
+                                // تنظیم اطلاعات billing
+                                if (!empty($data['player_phone'])) {
+                                    update_user_meta($new_user_id, 'billing_phone', $data['player_phone']);
+                                }
+                                
+                                // ذخیره user_id در جدول members
+                                $wpdb->update(
+                                    $table_name,
+                                    ['user_id' => $new_user_id],
+                                    ['id' => $player_id],
+                                    ['%d'],
+                                    ['%d']
+                                );
+                            } else {
+                                // اگر خطا در ایجاد کاربر بود، لاگ کن
+                                error_log('SC Member: Error creating WordPress user - ' . $new_user_id->get_error_message());
+                            }
+                        } else {
+                            // اگر username تکراری بود، لاگ کن
+                            error_log('SC Member: Username already exists - ' . $username);
                         }
                     }
                 }
@@ -1136,68 +1164,108 @@ function callback_add_member_sufix(){
             if ($inserted !== false) {
                 $insert_id = $wpdb->insert_id;
                 
-                // ایجاد کاربر WordPress اگر username و password وارد شده باشد
+                // ایجاد کاربر WordPress
                 $username = isset($_POST['username']) ? trim($_POST['username']) : '';
                 $password = isset($_POST['password']) ? trim($_POST['password']) : '';
                 $user_id = null;
                 
-                if (!empty($username) && !empty($password)) {
-                    // بررسی اینکه username تکراری نباشد
-                    if (!username_exists($username)) {
-                        // ایجاد کاربر WordPress
-                        $email = !empty($data['player_phone']) ? sanitize_email($data['player_phone'] . '@sportclub.local') : sanitize_email($username . '@sportclub.local');
-                        
-                        // اگر email معتبر نیست، از username استفاده کن
-                        if (!is_email($email)) {
-                            $email = sanitize_email($username . '@sportclub.local');
-                        }
-                        
-                        $user_id = wp_create_user($username, $password, $email);
-                        
-                        if (!is_wp_error($user_id)) {
-                            // تنظیم نقش کاربر (customer برای WooCommerce)
-                            $user = new WP_User($user_id);
-                            $user->set_role('customer');
-                            
-                            // تنظیم اطلاعات کاربر
-                            wp_update_user([
-                                'ID' => $user_id,
-                                'first_name' => $data['first_name'],
-                                'last_name' => $data['last_name'],
-                                'display_name' => $data['first_name'] . ' ' . $data['last_name']
-                            ]);
-                            
-                            // تنظیم اطلاعات billing
-                            if (!empty($data['player_phone'])) {
-                                update_user_meta($user_id, 'billing_phone', $data['player_phone']);
-                            }
-                            
-                            // ذخیره user_id در جدول members
-                            $wpdb->update(
-                                $table_name,
-                                ['user_id' => $user_id],
-                                ['id' => $insert_id],
-                                ['%d'],
-                                ['%d']
-                            );
-                        } else {
-                            // اگر خطا در ایجاد کاربر بود، لاگ کن
-                            error_log('SC Member: Error creating WordPress user - ' . $user_id->get_error_message());
-                        }
-                    } else {
-                        // اگر username تکراری بود، لاگ کن
-                        error_log('SC Member: Username already exists - ' . $username);
+                // اگر username وارد نشده، به صورت خودکار از کد ملی یا شماره تماس استفاده می‌کنیم
+                if (empty($username)) {
+                    // اول از کد ملی استفاده می‌کنیم
+                    if (!empty($data['national_id'])) {
+                        $username = sanitize_user($data['national_id'], true);
+                    } 
+                    // اگر کد ملی هم نبود، از شماره تماس استفاده می‌کنیم
+                    elseif (!empty($data['player_phone'])) {
+                        $username = sanitize_user($data['player_phone'], true);
                     }
+                    // اگر هیچکدام نبود، از نام و نام خانوادگی استفاده می‌کنیم
+                    else {
+                        $username = sanitize_user($data['first_name'] . '_' . $data['last_name'], true);
+                    }
+                    
+                    // بررسی تکراری بودن username و اضافه کردن عدد در صورت نیاز
+                    $original_username = $username;
+                    $counter = 1;
+                    while (username_exists($username)) {
+                        $username = $original_username . '_' . $counter;
+                        $counter++;
+                    }
+                }
+                
+                // اگر password وارد نشده، به صورت خودکار یک رمز عبور تصادفی ایجاد می‌کنیم
+                if (empty($password)) {
+                    $password = wp_generate_password(12, false);
+                }
+                
+                // بررسی اینکه username تکراری نباشد (اگر به صورت دستی وارد شده باشد)
+                if (!username_exists($username)) {
+                    // ایجاد email از شماره تماس یا username
+                    $email = !empty($data['player_phone']) ? sanitize_email($data['player_phone'] . '@sportclub.local') : sanitize_email($username . '@sportclub.local');
+                    
+                    // اگر email معتبر نیست، از username استفاده کن
+                    if (!is_email($email)) {
+                        $email = sanitize_email($username . '@sportclub.local');
+                    }
+                    
+                    // ایجاد کاربر WordPress
+                    $user_id = wp_create_user($username, $password, $email);
+                    
+                    if (!is_wp_error($user_id)) {
+                        // تنظیم نقش کاربر (customer برای WooCommerce)
+                        $user = new WP_User($user_id);
+                        $user->set_role('customer');
+                        
+                        // تنظیم اطلاعات کاربر
+                        wp_update_user([
+                            'ID' => $user_id,
+                            'first_name' => $data['first_name'],
+                            'last_name' => $data['last_name'],
+                            'display_name' => $data['first_name'] . ' ' . $data['last_name']
+                        ]);
+                        
+                        // تنظیم اطلاعات billing
+                        if (!empty($data['player_phone'])) {
+                            update_user_meta($user_id, 'billing_phone', $data['player_phone']);
+                        }
+                        
+                        // ذخیره user_id در جدول members
+                        $wpdb->update(
+                            $table_name,
+                            ['user_id' => $user_id],
+                            ['id' => $insert_id],
+                            ['%d'],
+                            ['%d']
+                        );
+                    } else {
+                        // اگر خطا در ایجاد کاربر بود، لاگ کن
+                        error_log('SC Member: Error creating WordPress user - ' . $user_id->get_error_message());
+                    }
+                } else {
+                    // اگر username تکراری بود، لاگ کن
+                    error_log('SC Member: Username already exists - ' . $username);
                 }
                 
                 // ذخیره دوره‌های بازیکن
                 $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
-                $course_statuses_raw = isset($_POST['course_status']) && is_array($_POST['course_status']) ? $_POST['course_status'] : [];
-                $course_statuses = [];
-                foreach ($course_statuses_raw as $course_id => $status) {
-                    $course_statuses[absint($course_id)] = sanitize_text_field($status);
+                // دریافت فلگ‌های دوره‌ها - مهم: فلگ‌ها مستقل از تیک دوره هستند
+                $course_flags_raw = isset($_POST['course_flags']) && is_array($_POST['course_flags']) ? $_POST['course_flags'] : [];
+                $course_flags = [];
+                foreach ($course_flags_raw as $course_id => $flags) {
+                    $course_id_int = absint($course_id);
+                    $flags_array = [];
+                    if (isset($flags['paused']) && $flags['paused'] == '1') {
+                        $flags_array[] = 'paused';
+                    }
+                    if (isset($flags['completed']) && $flags['completed'] == '1') {
+                        $flags_array[] = 'completed';
+                    }
+                    if (isset($flags['canceled']) && $flags['canceled'] == '1') {
+                        $flags_array[] = 'canceled';
+                    }
+                    $course_flags[$course_id_int] = $flags_array;
                 }
-                sc_save_member_courses($insert_id, $course_ids, $course_statuses);
+                sc_save_member_courses($insert_id, $course_ids, $course_flags);
                 
                 // به‌روزرسانی وضعیت تکمیل پروفایل
                 sc_update_profile_completed_status($insert_id);
@@ -1320,7 +1388,59 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_member_courses';
     
-    // غیرفعال کردن دوره‌هایی که دیگر انتخاب نشده‌اند
+    // مهم: فلگ‌ها مستقل از تیک دوره هستند
+    // اول فلگ‌ها را برای همه دوره‌ها (چه تیک خورده چه تیک نخورده) ذخیره می‌کنیم
+    if (!empty($course_flags) && is_array($course_flags)) {
+        foreach ($course_flags as $course_id => $flags_array) {
+            $course_id = absint($course_id);
+            if ($course_id) {
+                // تبدیل flags به string (مثلاً "paused,completed")
+                $flags_string = !empty($flags_array) && is_array($flags_array) 
+                    ? implode(',', array_map('sanitize_text_field', $flags_array)) 
+                    : NULL;
+                
+                // بررسی وجود قبلی
+                $existing = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM $table_name WHERE member_id = %d AND course_id = %d",
+                    $member_id,
+                    $course_id
+                ));
+                
+                if ($existing) {
+                    // فقط فلگ‌ها را به‌روزرسانی می‌کنیم (status را تغییر نمی‌دهیم)
+                    $wpdb->update(
+                        $table_name,
+                        [
+                            'course_status_flags' => $flags_string,
+                            'updated_at' => current_time('mysql')
+                        ],
+                        ['id' => $existing],
+                        ['%s', '%s'],
+                        ['%d']
+                    );
+                } else {
+                    // اگر رکورد وجود ندارد و تیک دوره هم خورده، رکورد جدید ایجاد می‌کنیم
+                    if (!empty($course_ids) && in_array($course_id, $course_ids)) {
+                        $wpdb->insert(
+                            $table_name,
+                            [
+                                'member_id' => $member_id,
+                                'course_id' => $course_id,
+                                'enrollment_date' => current_time('Y-m-d'),
+                                'status' => 'active',
+                                'course_status_flags' => $flags_string,
+                                'created_at' => current_time('mysql'),
+                                'updated_at' => current_time('mysql')
+                            ],
+                            ['%d', '%d', '%s', '%s', '%s', '%s', '%s']
+                        );
+                    }
+                }
+            }
+        }
+    }
+    
+    // غیرفعال کردن دوره‌هایی که دیگر انتخاب نشده‌اند (فقط status را تغییر می‌دهیم، فلگ‌ها حفظ می‌شوند)
     if (!empty($course_ids) && is_array($course_ids)) {
         $course_ids_safe = array_map('absint', $course_ids);
         $course_ids_imploded = implode(',', $course_ids_safe);
@@ -1333,7 +1453,7 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
             $member_id
         ));
     } else {
-        // اگر هیچ دوره‌ای انتخاب نشده، همه را inactive کن
+        // اگر هیچ دوره‌ای انتخاب نشده، همه را inactive کن (فلگ‌ها حفظ می‌شوند)
         $wpdb->query($wpdb->prepare(
             "UPDATE $table_name 
              SET status = 'inactive', updated_at = %s 
@@ -1343,17 +1463,17 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
         ));
     }
     
-    // افزودن یا به‌روزرسانی دوره‌های جدید
+    // افزودن یا به‌روزرسانی دوره‌های جدید (تیک خورده)
     if (!empty($course_ids) && is_array($course_ids)) {
         foreach ($course_ids as $course_id) {
             $course_id = absint($course_id);
             if ($course_id) {
-                // دریافت flags از آرایه course_flags
+                // دریافت flags از آرایه course_flags (اگر وجود داشته باشد)
                 $flags_array = isset($course_flags[$course_id]) && is_array($course_flags[$course_id]) 
                     ? $course_flags[$course_id] 
                     : [];
                 
-                // تبدیل flags به string (مثلاً "paused,completed")
+                // تبدیل flags به string
                 $flags_string = !empty($flags_array) ? implode(',', array_map('sanitize_text_field', $flags_array)) : NULL;
                 
                 // بررسی وجود قبلی
@@ -1364,8 +1484,8 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
                 ));
                 
                 if ($existing) {
-                    // به‌روزرسانی وضعیت
-                    $update_result = $wpdb->update(
+                    // به‌روزرسانی: status را active می‌کنیم و فلگ‌ها را به‌روزرسانی می‌کنیم
+                    $wpdb->update(
                         $table_name,
                         [
                             'status' => 'active',
@@ -1377,14 +1497,9 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
                         ['%s', '%s', '%s', '%s'],
                         ['%d']
                     );
-                    
-                    if ($update_result === false && $wpdb->last_error) {
-                        error_log('SC Update Member Course Error: ' . $wpdb->last_error);
-                        error_log('SC Update Member Course Query: ' . $wpdb->last_query);
-                    }
                 } else {
                     // افزودن جدید
-                    $insert_result = $wpdb->insert(
+                    $wpdb->insert(
                         $table_name,
                         [
                             'member_id' => $member_id,
@@ -1397,11 +1512,6 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
                         ],
                         ['%d', '%d', '%s', '%s', '%s', '%s', '%s']
                     );
-                    
-                    if ($insert_result === false && $wpdb->last_error) {
-                        error_log('SC Insert Member Course Error: ' . $wpdb->last_error);
-                        error_log('SC Insert Member Course Query: ' . $wpdb->last_query);
-                    }
                 }
             }
         }
