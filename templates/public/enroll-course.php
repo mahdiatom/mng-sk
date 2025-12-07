@@ -79,7 +79,13 @@ if (function_exists('wc_get_price_thousand_separator')) {
                 
                 if ($is_enrolled) {
                     $course_data = $enrolled_courses_data[$course->id];
-                    if ($course_data['is_pending_payment']) {
+                    if ($course_data['is_under_review']) {
+                        $course_status = 'under_review';
+                        $status_label = 'در انتظار بررسی';
+                        $status_color = '#856404';
+                        $status_bg = '#fff3cd';
+                        $tooltip_message = 'شما برای این دوره ثبت‌نام کرده‌اید و صورت حساب آن در حال بررسی است. پس از تایید مدیر و تبدیل به پرداخت شده، دوره فعال خواهد شد.';
+                    } elseif ($course_data['is_pending_payment']) {
                         $course_status = 'pending_payment';
                         $status_label = 'در انتظار پرداخت';
                         $status_color = '#856404';
@@ -180,7 +186,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                            id="course_<?php echo esc_attr($course->id); ?>" 
                            value="<?php echo esc_attr($course->id); ?>" 
                            class="sc-course-radio"
-                           <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired) ? 'disabled' : ''; ?>
+                           <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired || (isset($course_data['is_under_review']) && $course_data['is_under_review'])) ? 'disabled' : ''; ?>
                            required>
                     
                     <label for="course_<?php echo esc_attr($course->id); ?>" 
@@ -188,7 +194,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                            <?php if ($tooltip_message) : ?>
                                data-tooltip="<?php echo esc_attr($tooltip_message); ?>"
                            <?php endif; ?>
-                           style="display: flex; align-items: center; padding: 15px; cursor: <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired) ? 'not-allowed' : 'pointer'; ?>; background-color: <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired) ? '#f5f5f5' : '#fff'; ?>; transition: background-color 0.3s; position: relative;">
+                           style="display: flex; align-items: center; padding: 15px; cursor: <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired || (isset($course_data['is_under_review']) && $course_data['is_under_review'])) ? 'not-allowed' : 'pointer'; ?>; background-color: <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired || (isset($course_data['is_under_review']) && $course_data['is_under_review'])) ? '#f5f5f5' : '#fff'; ?>; transition: background-color 0.3s; position: relative;">
                         <div style="flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 20px;">
                             <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
                                 <span class="sc-accordion-icon" style="font-size: 18px; color: #666;">▼</span>
@@ -212,7 +218,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                                     </span>
                                 <?php endif; ?>
                                 
-                                <?php if ($is_enrolled || $is_capacity_full || $is_date_expired) : ?>
+                                <?php if ($is_enrolled || $is_capacity_full || $is_date_expired || (isset($course_data['is_under_review']) && $course_data['is_under_review'])) : ?>
                                     <span style="color: <?php echo esc_attr($status_color); ?>; font-weight: bold; background-color: <?php echo esc_attr($status_bg); ?>; padding: 5px 10px; border-radius: 4px;">
                                         <?php if ($course_status == 'active') : ?>
                                             ✓ <?php echo esc_html($status_label); ?>

@@ -71,14 +71,49 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
             $is_completed = in_array('completed', $flags);
             $is_canceled = in_array('canceled', $flags);
             
-            // بررسی اینکه آیا دوره در حال پرداخت است
+            // بررسی اینکه آیا دوره در حال پرداخت است یا در انتظار بررسی
             // در انتظار پرداخت: وقتی کاربر برای آن صورت حساب ایجاد شده ولی هنوز پرداخت نکرده
-            // شرط: status = 'inactive' و invoice pending دارد و هیچ فلگی ندارد
-            $has_pending_invoice = isset($pending_invoices) && isset($pending_invoices[$user_course->course_id]);
-            $is_pending_payment = (!$has_flags && $user_course->status === 'inactive' && $has_pending_invoice);
+            // در انتظار بررسی: وقتی invoice در حالت under_review است
+            
+            // ابتدا مستقیماً از دیتابیس بررسی کن (قابل اعتمادتر)
+            $is_under_review = false;
+            $has_pending_invoice = false;
+            
+            if (isset($player) && isset($player->id) && isset($user_course->course_id)) {
+                global $wpdb;
+                $invoices_table = $wpdb->prefix . 'sc_invoices';
+                
+                // بررسی invoice های pending و under_review برای این دوره
+                $invoice_status = $wpdb->get_row($wpdb->prepare(
+                    "SELECT status FROM $invoices_table 
+                     WHERE member_id = %d AND course_id = %d AND status IN ('pending', 'under_review') 
+                     ORDER BY created_at DESC LIMIT 1",
+                    $player->id,
+                    $user_course->course_id
+                ));
+                
+                if ($invoice_status) {
+                    if ($invoice_status->status === 'under_review') {
+                        $is_under_review = true;
+                    } else {
+                        $has_pending_invoice = true;
+                    }
+                }
+            }
+            
+            // اگر از آرایه‌ها هم set شده باشند، استفاده کن (fallback)
+            if (!$is_under_review && isset($under_review_invoices) && is_array($under_review_invoices)) {
+                $is_under_review = isset($under_review_invoices[$user_course->course_id]) && $under_review_invoices[$user_course->course_id] === true;
+            }
+            
+            if (!$has_pending_invoice && isset($pending_invoices) && isset($pending_invoices[$user_course->course_id])) {
+                $has_pending_invoice = true;
+            }
+            
+            $is_pending_payment = (!$has_flags && $user_course->status === 'inactive' && $has_pending_invoice && !$is_under_review);
             
             // تعیین برچسب وضعیت و رنگ
-            // اولویت: canceled > paused > completed > pending_payment > active
+            // اولویت: canceled > paused > completed > under_review > pending_payment > active
             $status_labels = [];
             $status_color = '#155724';
             $status_bg = '#d4edda';
@@ -106,6 +141,13 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
                 $status_bg = '#f5f5f5';
                 $status_icon = '✔️';
                 $status_tooltip = 'این دوره به اتمام رسیده است.';
+            } elseif ($is_under_review) {
+                // در انتظار بررسی: وقتی invoice در حالت under_review است
+                $status_labels[] = 'در انتظار بررسی';
+                $status_color = '#856404';
+                $status_bg = '#fff3cd';
+                $status_icon = '⏳';
+                $status_tooltip = 'صورت حساب این دوره در حال بررسی است. پس از تایید مدیر و تبدیل به پرداخت شده، دوره فعال خواهد شد.';
             } elseif ($is_pending_payment) {
                 // در انتظار پرداخت: وقتی کاربر برای آن صورت حساب ایجاد شده ولی هنوز پرداخت نکرده
                 $status_labels[] = 'در انتظار پرداخت';
@@ -113,18 +155,26 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
                 $status_bg = '#fff3cd';
                 $status_icon = '⏳';
                 $status_tooltip = 'صورت حساب این دوره در حال پرداخت است. پس از پرداخت، دوره فعال خواهد شد.';
-            } else {
-                // دوره فعال: هیچ فلگی ندارد و status = 'active'
+            } elseif (!$is_under_review && !$is_pending_payment && $user_course->status === 'active' && !$has_flags) {
+                // دوره فعال: هیچ فلگی ندارد و status = 'active' و under_review نیست و pending_payment نیست
                 $status_labels[] = 'فعال';
                 $status_color = '#155724';
                 $status_bg = '#d4edda';
                 $status_icon = '✅';
                 $status_tooltip = 'این دوره فعال است و شما در آن ثبت‌نام کرده‌اید.';
+            } else {
+                // حالت پیش‌فرض (اگر هیچکدام از شرایط بالا برقرار نبود)
+                // این حالت نباید اتفاق بیفتد، اما برای اطمینان اضافه شده
+                $status_labels[] = 'نامشخص';
+                $status_color = '#666';
+                $status_bg = '#f5f5f5';
+                $status_icon = '❓';
+                $status_tooltip = 'وضعیت این دوره نامشخص است.';
             }
             
             $status_display = implode('، ', $status_labels);
-            // فقط دوره‌های فعال (بدون هیچ flag و بدون pending payment) می‌توانند لغو شوند
-            $can_cancel = !$has_flags && !$is_pending_payment && $user_course->status === 'active';
+            // فقط دوره‌های فعال (بدون هیچ flag و بدون pending payment و بدون under_review) می‌توانند لغو شوند
+            $can_cancel = !$has_flags && !$is_pending_payment && !$is_under_review && $user_course->status === 'active';
         ?>
             <div class="sc-course-card" style="
                 background: #fff;

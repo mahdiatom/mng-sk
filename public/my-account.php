@@ -305,18 +305,22 @@ function sc_my_account_enroll_course_content() {
         $player->id
     ));
     
-    // بررسی دوره‌هایی که صورت حساب pending دارند
+    // بررسی دوره‌هایی که صورت حساب pending یا under_review دارند
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $pending_invoices = $wpdb->get_results($wpdb->prepare(
-        "SELECT course_id FROM $invoices_table 
+        "SELECT course_id, status FROM $invoices_table 
          WHERE member_id = %d AND course_id IS NOT NULL AND status IN ('pending', 'under_review')",
         $player->id
     ));
     
     $pending_course_ids = [];
+    $under_review_course_ids = [];
     foreach ($pending_invoices as $invoice) {
         if ($invoice->course_id) {
             $pending_course_ids[] = $invoice->course_id;
+            if ($invoice->status === 'under_review') {
+                $under_review_course_ids[] = $invoice->course_id;
+            }
         }
     }
     
@@ -329,10 +333,11 @@ function sc_my_account_enroll_course_content() {
             $flags = array_map('trim', $flags);
         }
         
-        // بررسی اینکه آیا invoice pending دارد یا نه
+        // بررسی اینکه آیا invoice pending یا under_review دارد یا نه
         $has_pending_invoice = in_array($mc->course_id, $pending_course_ids);
+        $is_under_review = in_array($mc->course_id, $under_review_course_ids);
         
-        // اگر status = 'inactive' است و invoice pending ندارد، این دوره را نادیده بگیر (اجازه ثبت نام دوباره)
+        // اگر status = 'inactive' است و invoice pending یا under_review ندارد، این دوره را نادیده بگیر (اجازه ثبت نام دوباره)
         if ($mc->status === 'inactive' && !$has_pending_invoice) {
             continue; // این دوره را در enrolled_courses_data قرار نده
         }
@@ -342,19 +347,22 @@ function sc_my_account_enroll_course_content() {
             'is_canceled' => in_array('canceled', $flags),
             'is_completed' => in_array('completed', $flags),
             'is_paused' => in_array('paused', $flags),
-            'is_pending_payment' => ($mc->status === 'inactive' && $has_pending_invoice) // فقط اگر status = inactive باشد و invoice pending داشته باشد
+            'is_pending_payment' => ($mc->status === 'inactive' && $has_pending_invoice && !$is_under_review), // فقط اگر status = inactive باشد و invoice pending داشته باشد و under_review نباشد
+            'is_under_review' => ($mc->status === 'inactive' && $is_under_review) // در انتظار بررسی
         ];
     }
     
-    // اضافه کردن دوره‌هایی که صورت حساب pending دارند اما در member_courses نیستند
+    // اضافه کردن دوره‌هایی که صورت حساب pending یا under_review دارند اما در member_courses نیستند
     foreach ($pending_course_ids as $course_id) {
         if (!isset($enrolled_courses_data[$course_id])) {
+            $is_under_review = in_array($course_id, $under_review_course_ids);
             $enrolled_courses_data[$course_id] = [
                 'flags' => [],
                 'is_canceled' => false,
                 'is_completed' => false,
                 'is_paused' => false,
-                'is_pending_payment' => true
+                'is_pending_payment' => !$is_under_review, // فقط اگر under_review نباشد
+                'is_under_review' => $is_under_review
             ];
         }
     }
@@ -1080,15 +1088,19 @@ function sc_my_account_my_courses_content() {
         if (!empty($course_ids)) {
             $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
             $pending_invoices_query = $wpdb->prepare(
-                "SELECT course_id FROM $invoices_table 
+                "SELECT course_id, status FROM $invoices_table 
                  WHERE member_id = %d AND course_id IN ($placeholders) AND status IN ('pending', 'under_review')",
                 array_merge([$player->id], $course_ids)
             );
             $pending_invoice_results = $wpdb->get_results($pending_invoices_query);
             
+            $under_review_invoices = [];
             foreach ($pending_invoice_results as $invoice) {
                 if ($invoice->course_id) {
                     $pending_invoices[$invoice->course_id] = true;
+                    if ($invoice->status === 'under_review') {
+                        $under_review_invoices[$invoice->course_id] = true;
+                    }
                 }
             }
         }
@@ -1099,6 +1111,9 @@ function sc_my_account_my_courses_content() {
     $current_page = $current_page;
     $total_pages = $total_pages;
     $total_courses = $total_courses;
+    $pending_invoices = isset($pending_invoices) ? $pending_invoices : [];
+    $under_review_invoices = isset($under_review_invoices) ? $under_review_invoices : [];
+    $player = $player; // پاس دادن player به template
     
     include SC_TEMPLATES_PUBLIC_DIR . 'my-courses.php';
 }
@@ -2148,10 +2163,11 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
         $invoice_status = $new_status; // استفاده مستقیم از وضعیت WooCommerce
         $payment_date = NULL;
         
+        // فقط در حالت‌های processing و completed دوره را فعال کن
         if (in_array($new_status, ['processing', 'completed'])) {
             $payment_date = current_time('mysql');
             
-            // فعال کردن دوره بعد از پرداخت موفق
+            // فعال کردن دوره بعد از پرداخت موفق (فقط processing و completed)
             if ($invoice->member_course_id) {
                 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
                 $wpdb->update(
