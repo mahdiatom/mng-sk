@@ -190,4 +190,3 @@ function sc_create_event_registrations_table() {
     dbDelta($sql);
 }
 
-

@@ -142,6 +142,7 @@ if (empty($player_phone) && $billing_phone) {
         
         <div class="sc-form-section">
             <h3>اطلاعات تماس</h3>
+            <p>لطفا در انتخاب شماره همراه دقت فرمایید و به صورت فرمت *********09 وارد کنید - تمامی اطلاع رسانی ها به شماره های زیر ارسال خواهد شد.</p>
             
             <p class="form-row form-row-first">
                 <label for="player_phone">شماره موبایل بازیکن</label>

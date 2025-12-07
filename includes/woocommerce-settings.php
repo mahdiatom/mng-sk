@@ -33,4 +33,3 @@ function sc_remove_default_account_menu_items($items) {
     
     return $items;
 }
-

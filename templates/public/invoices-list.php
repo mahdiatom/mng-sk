@@ -26,7 +26,10 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
 ?>
 
 <div class="sc-invoices-page">
-    <h2>صورت حساب‌ها</h2>
+    <h2 style="margin-bottom: 25px; color: #1a1a1a; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 32px;">💳</span>
+        صورت حساب‌ها
+    </h2>
     
     <!-- فیلتر وضعیت -->
     <div class="sc-invoices-filters" style="margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -54,7 +57,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
     </div>
     
     <?php if (empty($invoices)) : ?>
-        <div class="woocommerce-message woocommerce-message--info woocommerce-info">
+        <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
             <?php if ($filter_status !== 'all') : ?>
                 صورت حسابی با این وضعیت یافت نشد.
             <?php else : ?>
@@ -62,14 +65,14 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
             <?php endif; ?>
         </div>
     <?php else : ?>
-        <table class="woocommerce-orders-table woocommerce-MyAccount-orders shop_table shop_table_responsive my_account_orders account-orders-table">
+        <table class="woocommerce-orders-table woocommerce-MyAccount-orders shop_table shop_table_responsive my_account_orders account-orders-table sc-invoices-table">
             <thead>
                 <tr>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-number">
                         <span class="nobr">شماره سفارش</span>
                     </th>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-date">
-                        <span class="nobr">دوره</span>
+                        <span class="nobr">دوره / رویداد</span>
                     </th>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-status">
                         <span class="nobr">مبلغ (با جریمه)</span>
@@ -128,40 +131,68 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                     // تعیین وضعیت و رنگ
                     $status_label = '';
                     $status_class = '';
+                    $status_bg = '';
+                    $status_color = '';
+                    $status_icon = '';
+                    
                     switch ($invoice->status) {
                         case 'paid':
                         case 'completed':
                             $status_label = 'تایید پرداخت';
                             $status_class = 'paid';
+                            $status_bg = '#d4edda';
+                            $status_color = '#155724';
+                            $status_icon = '✅';
                             break;
                         case 'processing':
                             $status_label = 'پرداخت شده';
                             $status_class = 'processing';
+                            $status_bg = '#d4edda';
+                            $status_color = '#155724';
+                            $status_icon = '✅';
                             break;
                         case 'pending':
                             $status_label = 'در انتظار پرداخت';
                             $status_class = 'pending';
+                            $status_bg = '#fff3cd';
+                            $status_color = '#856404';
+                            $status_icon = '⏳';
                             break;
                         case 'under_review':
                         case 'on-hold':
                             $status_label = 'در حال بررسی';
                             $status_class = 'under_review';
+                            $status_bg = '#e5f5fa';
+                            $status_color = '#2271b1';
+                            $status_icon = '🔍';
                             break;
                         case 'cancelled':
                             $status_label = 'لغو شده';
                             $status_class = 'cancelled';
+                            $status_bg = '#ffeaea';
+                            $status_color = '#d63638';
+                            $status_icon = '❌';
                             break;
                         case 'refunded':
                             $status_label = 'بازگشت شده';
                             $status_class = 'refunded';
+                            $status_bg = '#ffeaea';
+                            $status_color = '#d63638';
+                            $status_icon = '↩️';
                             break;
                         case 'failed':
                             $status_label = 'ناموفق';
                             $status_class = 'failed';
+                            $status_bg = '#ffeaea';
+                            $status_color = '#d63638';
+                            $status_icon = '⚠️';
                             break;
                         default:
                             $status_label = 'در انتظار پرداخت';
                             $status_class = 'pending';
+                            $status_bg = '#fff3cd';
+                            $status_color = '#856404';
+                            $status_icon = '⏳';
                     }
                     
                     // دریافت لینک پرداخت اگر سفارش WooCommerce وجود دارد
@@ -200,6 +231,35 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                             }
                         }
                     }
+                    
+                    // اگر لینک پرداخت وجود ندارد اما woocommerce_order_id و وضعیت pending یا under_review دارد، لینک را ایجاد کن
+                    if (empty($payment_url) && !empty($invoice->woocommerce_order_id) && in_array($invoice->status, ['pending', 'under_review'])) {
+                        // اگر order پیدا نشد، دوباره تلاش کن
+                        if (!$order_object && function_exists('wc_get_order')) {
+                            $order_object = wc_get_order($invoice->woocommerce_order_id);
+                            if ($order_object) {
+                                $is_order_paid = $order_object->is_paid();
+                            }
+                        }
+                        
+                        if ($order_object && !$is_order_paid) {
+                            // تلاش برای ایجاد لینک پرداخت با استفاده از order key
+                            $order_key = $order_object->get_order_key();
+                            $checkout_page_id = wc_get_page_id('checkout');
+                            if ($checkout_page_id && $order_key) {
+                                $payment_url = add_query_arg([
+                                    'order-pay' => $invoice->woocommerce_order_id,
+                                    'key' => $order_key
+                                ], get_permalink($checkout_page_id));
+                            }
+                        } elseif (!empty($invoice->woocommerce_order_id)) {
+                            // اگر order پیدا نشد اما order_id وجود دارد، یک لینک ساده ایجاد کن
+                            $checkout_page_id = wc_get_page_id('checkout');
+                            if ($checkout_page_id) {
+                                $payment_url = add_query_arg('order-pay', $invoice->woocommerce_order_id, get_permalink($checkout_page_id));
+                            }
+                        }
+                    }
                 ?>
                     <tr class="woocommerce-orders-table__row woocommerce-orders-table__row--status-<?php echo esc_attr($status_class); ?> order">
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-number" data-title="شماره سفارش">
@@ -212,164 +272,117 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                     $order_number = $order->get_order_number();
                                 }
                             }
-                            echo esc_html($order_number);
                             ?>
+                            <strong style="color: #2271b1; font-size: 15px;"><?php echo esc_html($order_number); ?></strong>
+                            <br>
+                            <small style="color: #666; font-size: 12px;">
+                                📅 <?php echo sc_date_shamsi_date_only($invoice->created_at); ?>
+                            </small>
                         </td>
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-date" data-title="دوره">
+                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-date" data-title="دوره / رویداد">
                             <?php if (!empty($invoice->course_title)) : ?>
-                                <strong>دوره:</strong> <?php echo esc_html($invoice->course_title); ?>
+                                <div style="margin-bottom: 5px;">
+                                    <strong style="color: #2271b1;">📚 دوره:</strong>
+                                    <span style="color: #333;"><?php echo esc_html($invoice->course_title); ?></span>
+                                </div>
                             <?php elseif (!empty($invoice->event_name)) : ?>
-                                <strong>رویداد / مسابقه:</strong> <?php echo esc_html($invoice->event_name); ?>
+                                <div style="margin-bottom: 5px;">
+                                    <strong style="color: #2271b1;">🎯 رویداد / مسابقه:</strong>
+                                    <span style="color: #333;"><?php echo esc_html($invoice->event_name); ?></span>
+                                </div>
                             <?php elseif (!empty($invoice->expense_name)) : ?>
-                                <strong>هزینه اضافی:</strong> <?php echo esc_html($invoice->expense_name); ?>
+                                <div style="margin-bottom: 5px;">
+                                    <strong style="color: #2271b1;">💰 هزینه اضافی:</strong>
+                                    <span style="color: #333;"><?php echo esc_html($invoice->expense_name); ?></span>
+                                </div>
                             <?php else : ?>
                                 <span style="color: #999;">-</span>
                             <?php endif; ?>
                             <?php if (!empty($invoice->expense_name) && !empty($invoice->course_title)) : ?>
-                                <br>
-                                <small><strong>هزینه اضافی:</strong> <?php echo esc_html($invoice->expense_name); ?></small>
+                                <div style="margin-top: 5px; padding-top: 5px; border-top: 1px solid #eee;">
+                                    <small><strong style="color: #2271b1;">💰 هزینه اضافی:</strong> <?php echo esc_html($invoice->expense_name); ?></small>
+                                </div>
                             <?php endif; ?>
-                            <br>
-                            <small style="color: #666;">
-                                <?php echo sc_date_shamsi_date_only($invoice->created_at); ?>
-                            </small>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-status" data-title="مبلغ">
-                            <strong><?php echo $formatted_price; ?></strong>
+                            <div style="margin-bottom: 5px;">
+                                <strong style="font-size: 16px; color: #2271b1;"><?php echo $formatted_price; ?></strong>
+                            </div>
                             <?php if ($penalty_amount > 0) : ?>
-                                <br>
-                                <small style="color: #d63638;">
-                                    <strong>جریمه:</strong> <?php echo $formatted_penalty; ?>
-                                </small>
-                                <br>
-                                <strong style="color: #2271b1;">مجموع: <?php echo $formatted_total; ?></strong>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
+                                    <small style="color: #d63638; display: block; margin-bottom: 3px;">
+                                        <strong>جریمه:</strong> <?php echo $formatted_penalty; ?>
+                                    </small>
+                                    <strong style="color: #2271b1; font-size: 15px;">مجموع: <?php echo $formatted_total; ?></strong>
+                                </div>
                             <?php endif; ?>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-total" data-title="وضعیت">
                             <span class="woocommerce-orders-table__status status-<?php echo esc_attr($status_class); ?>" style="
-                                padding: 5px 10px;
-                                border-radius: 4px;
-                                font-weight: bold;
-                                <?php if ($status_class === 'paid') : ?>
-                                    background-color: #d4edda;
-                                    color: #155724;
-                                <?php elseif ($status_class === 'processing') : ?>
-                                    background-color: #d4edda;
-                                    color: #155724;
-                                <?php elseif ($status_class === 'pending') : ?>
-                                    background-color: #fff3cd;
-                                    color: #856404;
-                                <?php elseif ($status_class === 'under_review') : ?>
-                                    background-color: #e5f5fa;
-                                    color: #2271b1;
-                                <?php elseif ($status_class === 'cancelled') : ?>
-                                    background-color: #f8d7da;
-                                    color: #721c24;
-                                <?php elseif ($status_class === 'refunded') : ?>
-                                    background-color: #f8d7da;
-                                    color: #721c24;
-                                <?php elseif ($status_class === 'failed') : ?>
-                                    background-color: #f8d7da;
-                                    color: #721c24;
-                                <?php else : ?>
-                                    background-color: #f8d7da;
-                                    color: #721c24;
-                                <?php endif; ?>
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 6px;
+                                padding: 8px 14px;
+                                border-radius: 6px;
+                                font-weight: 600;
+                                font-size: 13px;
+                                background-color: <?php echo esc_attr($status_bg); ?>;
+                                color: <?php echo esc_attr($status_color); ?>;
                             ">
+                                <span style="font-size: 16px;"><?php echo esc_html($status_icon); ?></span>
                                 <?php echo esc_html($status_label); ?>
                             </span>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-actions" data-title="عملیات">
-                            <?php 
-                            // اگر لینک پرداخت وجود ندارد اما woocommerce_order_id و وضعیت pending یا under_review دارد، لینک را ایجاد کن
-                            if (empty($payment_url) && !empty($invoice->woocommerce_order_id) && in_array($invoice->status, ['pending', 'under_review'])) {
-                                // اگر order پیدا نشد، دوباره تلاش کن
-                                if (!$order_object && function_exists('wc_get_order')) {
-                                    $order_object = wc_get_order($invoice->woocommerce_order_id);
-                                    if ($order_object) {
-                                        $is_order_paid = $order_object->is_paid();
-                                    }
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <?php 
+                                // دکمه‌های عملیات
+                                $action_buttons = [];
+                                
+                                // دکمه پرداخت برای pending
+                                if ($payment_url && $invoice->status === 'pending') {
+                                    $action_buttons[] = '<a href="' . esc_url($payment_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-pay"
+                                    >💳 پرداخت</a>';
                                 }
                                 
-                                if ($order_object && !$is_order_paid) {
-                                    // تلاش برای ایجاد لینک پرداخت با استفاده از order key
-                                    $order_key = $order_object->get_order_key();
-                                    $checkout_page_id = wc_get_page_id('checkout');
-                                    if ($checkout_page_id && $order_key) {
-                                        $payment_url = add_query_arg([
-                                            'order-pay' => $invoice->woocommerce_order_id,
-                                            'key' => $order_key
-                                        ], get_permalink($checkout_page_id));
-                                    }
-                                } elseif (!empty($invoice->woocommerce_order_id)) {
-                                    // اگر order پیدا نشد اما order_id وجود دارد، یک لینک ساده ایجاد کن
-                                    $checkout_page_id = wc_get_page_id('checkout');
-                                    if ($checkout_page_id) {
-                                        $payment_url = add_query_arg('order-pay', $invoice->woocommerce_order_id, get_permalink($checkout_page_id));
-                                    }
+                                // دکمه مشاهده سفارش برای under_review یا سایر حالات
+                                if ($invoice->status === 'under_review' && !empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url')) {
+                                    $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-view"
+                                   >👁️ مشاهده</a>';
+                                } elseif (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url') && !in_array($invoice->status, ['pending', 'under_review'])) {
+                                    $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-view" 
+                                    >👁️ مشاهده</a>';
                                 }
-                            }
-                            
-                            // دکمه‌های عملیات
-                            $action_buttons = [];
-                            
-                            // دکمه پرداخت برای pending
-                            if ($payment_url && $invoice->status === 'pending') {
-                                $action_buttons[] = '<a href="' . esc_url($payment_url) . '" class="woocommerce-button button view" style="
-                                    display: inline-block;
-                                    padding: 8px 15px;
-                                    background-color: #2271b1;
-                                    color: #fff;
-                                    text-decoration: none;
-                                    border-radius: 4px;
-                                    font-weight: bold;
-                                    margin-left: 5px;
-                                ">پرداخت</a>';
-                            }
-                            
-                            // دکمه مشاهده سفارش برای under_review یا سایر حالات
-                            if ($invoice->status === 'under_review' && !empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url')) {
-                                $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)) . '" class="woocommerce-button button view" style="margin-left: 5px;">مشاهده سفارش</a>';
-                            } elseif (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url') && !in_array($invoice->status, ['pending', 'under_review'])) {
-                                $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)) . '" class="woocommerce-button button view" style="margin-left: 5px;">مشاهده سفارش</a>';
-                            }
-                            
-                            // دکمه لغو برای pending و under_review
-                            if (in_array($invoice->status, ['pending', 'under_review'])) {
-                                $cancel_base_url = wc_get_account_endpoint_url('sc-invoices');
-                                $cancel_args = [
-                                    'cancel_invoice' => '1',
-                                    'invoice_id' => $invoice->id
-                                ];
-                                // حفظ فیلتر در URL لغو
-                                if ($filter_status !== 'all') {
-                                    $cancel_args['filter_status'] = $filter_status;
+                                
+                                // دکمه لغو برای pending و under_review
+                                if (in_array($invoice->status, ['pending', 'under_review'])) {
+                                    $cancel_base_url = wc_get_account_endpoint_url('sc-invoices');
+                                    $cancel_args = [
+                                        'cancel_invoice' => '1',
+                                        'invoice_id' => $invoice->id
+                                    ];
+                                    // حفظ فیلتر در URL لغو
+                                    if ($filter_status !== 'all') {
+                                        $cancel_args['filter_status'] = $filter_status;
+                                    }
+                                    $cancel_url = wp_nonce_url(
+                                        add_query_arg($cancel_args, $cancel_base_url),
+                                        'cancel_invoice_' . $invoice->id
+                                    );
+                                    $action_buttons[] = '<a href="' . esc_url($cancel_url) . '" class="woocommerce-button button cancel sc-invoice-btn sc-invoice-btn-cancel" onclick="return confirm(\'آیا از لغو این سفارش اطمینان دارید؟\');"
+                                     >لغو</a>';
                                 }
-                                $cancel_url = wp_nonce_url(
-                                    add_query_arg($cancel_args, $cancel_base_url),
-                                    'cancel_invoice_' . $invoice->id
-                                );
-                                $action_buttons[] = '<a href="' . esc_url($cancel_url) . '" class="woocommerce-button button cancel" style="
-                                    display: inline-block;
-                                    padding: 8px 15px;
-                                    background-color: #d63638;
-                                    color: #fff;
-                                    text-decoration: none;
-                                    border-radius: 4px;
-                                    font-weight: bold;
-                                    margin-left: 5px;
-                                " onclick="return confirm(\'آیا از لغو این سفارش اطمینان دارید؟\');">لغو</a>';
-                            }
-                            
-                            // نمایش دکمه‌ها یا پیام
-                            if (!empty($action_buttons)) {
-                                echo implode('', $action_buttons);
-                            } elseif (in_array($invoice->status, ['pending', 'under_review']) && empty($invoice->woocommerce_order_id)) {
-                                echo '<span style="color: #d63638; font-size: 12px;">در انتظار ایجاد سفارش</span>';
-                            } else {
-                                echo '<span style="color: #999;">-</span>';
-                            }
-                            ?>
+                                
+                                // نمایش دکمه‌ها یا پیام
+                                if (!empty($action_buttons)) {
+                                    echo implode('', $action_buttons);
+                                } elseif (in_array($invoice->status, ['pending', 'under_review']) && empty($invoice->woocommerce_order_id)) {
+                                    echo '<span style="color: #d63638; font-size: 12px; padding: 8px; background: #ffeaea; border-radius: 6px; display: inline-block;">⏳ در انتظار ایجاد سفارش</span>';
+                                } else {
+                                    echo '<span style="color: #999;">-</span>';
+                                }
+                                ?>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -379,60 +392,5 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
 </div>
 
 <style>
-.sc-invoices-page {
-    margin-top: 20px;
-}
 
-.woocommerce-orders-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-
-.woocommerce-orders-table th,
-.woocommerce-orders-table td {
-    padding: 12px;
-    text-align: right;
-    border-bottom: 1px solid #ddd;
-}
-
-.woocommerce-orders-table th {
-    background-color: #f5f5f5;
-    font-weight: bold;
-}
-
-.woocommerce-orders-table tr:hover {
-    background-color: #f9f9f9;
-}
-
-@media (max-width: 768px) {
-    .woocommerce-orders-table {
-        display: block;
-    }
-    
-    .woocommerce-orders-table thead {
-        display: none;
-    }
-    
-    .woocommerce-orders-table tbody,
-    .woocommerce-orders-table tr,
-    .woocommerce-orders-table td {
-        display: block;
-        width: 100%;
-    }
-    
-    .woocommerce-orders-table td {
-        text-align: right;
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .woocommerce-orders-table td:before {
-        content: attr(data-title) ": ";
-        font-weight: bold;
-        float: right;
-        margin-left: 10px;
-    }
-}
 </style>
-

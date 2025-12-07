@@ -27,10 +27,13 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
 ?>
 
 <div class="sc-events-page">
-    <h2>رویدادها / مسابقات</h2>
+    <h2 style="margin-bottom: 25px; color: #1a1a1a; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 32px;">🎯</span>
+        رویدادها / مسابقات
+    </h2>
     
     <!-- فیلترها -->
-    <div class="sc-events-filters" style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 4px;">
+    <div class="sc-events-filters" style="margin: 20px 0; padding: 20px; background: #f9f9f9; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
         <form method="GET" action="" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
             <input type="hidden" name="page" value="<?php echo isset($_GET['page']) ? esc_attr($_GET['page']) : ''; ?>">
             
@@ -60,7 +63,7 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
     </div>
     
     <?php if (empty($events)) : ?>
-        <div class="woocommerce-message woocommerce-message--info woocommerce-info">
+        <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
             در حال حاضر رویدادی برای ثبت نام موجود نیست.
         </div>
     <?php else : ?>
@@ -171,15 +174,16 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                             $enrollment_status_label = 'ثبت‌نام شده';
                             $enrollment_tooltip = 'شما در این ' . $event_type_label . ' ثبت‌نام کرده‌اید.';
                         } elseif ($enrollment_status === 'cancelled') {
+                            // اگر invoice لغو شده است، امکان ثبت نام دوباره وجود دارد
+                            $is_enrolled = false;
+                            $can_enroll = true; // امکان ثبت نام دوباره
+                            $enrollment_status_label = '';
+                            $enrollment_tooltip = '';
+                        } elseif (in_array($enrollment_status, ['pending', 'under_review', 'on-hold'])) {
                             $is_enrolled = false;
                             $can_enroll = false;
-                            $enrollment_status_label = 'لغو شده';
-                            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' لغو شده است.';
-                        } elseif (in_array($enrollment_status, ['pending', 'on-hold'])) {
-                            $is_enrolled = false;
-                            $can_enroll = false;
-                            $enrollment_status_label = 'در انتظار پرداخت';
-                            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' انجام شده است. لطفاً برای تکمیل ثبت‌نام، پرداخت را انجام دهید.';
+                            $enrollment_status_label = 'در حال پرداخت';
+                            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' انجام شده است و صورت حساب در حال پرداخت است. لطفاً به بخش صورت حساب‌ها مراجعه کنید.';
                         }
                     }
                 }
@@ -191,104 +195,128 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                     $formatted_price = number_format((float)$event->price, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
                 }
                 
+                // تاریخ برگزاری
+                $event_date_shamsi = '';
+                if (!empty($event->start_date_gregorian)) {
+                    $event_date_shamsi = sc_date_shamsi_date_only($event->start_date_gregorian);
+                }
+                
+                // بازه ثبت نام (از start_date و end_date استفاده می‌کنیم)
+                $registration_start = '';
+                $registration_end = '';
+                if (!empty($event->start_date_gregorian)) {
+                    $registration_start = sc_date_shamsi_date_only($event->start_date_gregorian);
+                }
+                if (!empty($event->end_date_gregorian)) {
+                    $registration_end = sc_date_shamsi_date_only($event->end_date_gregorian);
+                }
+                
                 $event_detail_url = $can_view_details ? wc_get_endpoint_url('sc-event-detail', $event->id) : '#';
             ?>
-                <div class="sc-event-card <?php echo !$can_enroll ? 'disabled' : ''; ?>" 
-                     <?php if ($tooltip_message) : ?>
-                         data-tooltip="<?php echo esc_attr($tooltip_message); ?>"
-                     <?php endif; ?>>
-                    <?php if (!empty($event->image)) : ?>
-                        <div class="sc-event-image">
-                            <img src="<?php echo esc_url($event->image); ?>" alt="<?php echo esc_attr($event->name); ?>">
-                        </div>
-                    <?php endif; ?>
-                    
-                    <div class="sc-event-content">
-                        <h3 class="sc-event-title">
-                            <?php if ($can_view_details) : ?>
-                                <a href="<?php echo esc_url($event_detail_url); ?>"><?php echo esc_html($event->name); ?></a>
-                            <?php else : ?>
-                                <span><?php echo esc_html($event->name); ?></span>
-                            <?php endif; ?>
+                <div class="sc-event-card">
+                    <div class="sc-event-card-header">
+                        <h3 class="sc-event-card-title">
+                            <?php echo esc_html($event->name); ?>
                         </h3>
-                        
                         <?php if ($is_upcoming) : ?>
-                            <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin: 10px 0; text-align: center; font-weight: 600;">
+                            <div class="sc-event-upcoming-badge">
                                 به زودی
                             </div>
                         <?php endif; ?>
                         
-                        <?php if (!empty($event->description)) : ?>
-                            <p class="sc-event-description"><?php echo esc_html(wp_trim_words($event->description, 20)); ?></p>
-                        <?php endif; ?>
-                        
-                        <div class="sc-event-meta">
+                        <!-- 4 ویژگی مرتب شده -->
+                        <div class="sc-event-features-grid">
+                            <!-- تاریخ برگزاری -->
+                            <?php if ($event_date_shamsi) : ?>
+                                <div class="sc-event-feature-item">
+                                    <div class="sc-event-feature-icon">📅</div>
+                                    <div class="sc-event-feature-content">
+                                        <div class="sc-event-feature-label">تاریخ برگزاری</div>
+                                        <div class="sc-event-feature-value"><?php echo esc_html($event_date_shamsi); ?></div>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <!-- زمان -->
                             <?php if (!empty($event->event_time)) : ?>
-                                <div class="sc-event-meta-item">
-                                    <span class="sc-event-icon">🕐</span>
-                                    <span><?php echo esc_html($event->event_time); ?></span>
+                                <div class="sc-event-feature-item">
+                                    <div class="sc-event-feature-icon">🕐</div>
+                                    <div class="sc-event-feature-content">
+                                        <div class="sc-event-feature-label">زمان</div>
+                                        <div class="sc-event-feature-value"><?php echo esc_html($event->event_time); ?></div>
+                                    </div>
                                 </div>
                             <?php endif; ?>
                             
-                            <div class="sc-event-meta-item">
-                                <span class="sc-event-icon">📅</span>
-                                <span>
-                                    <?php 
-                                    if (!empty($event->start_date_gregorian)) {
-                                        echo 'شروع: ' . sc_date_shamsi_date_only($event->start_date_gregorian);
-                                    }
-                                    if (!empty($event->end_date_gregorian)) {
-                                        if (!empty($event->start_date_gregorian)) echo ' - ';
-                                        echo 'پایان: ' . sc_date_shamsi_date_only($event->end_date_gregorian);
-                                    }
-                                    ?>
-                                </span>
-                            </div>
-                            
+                            <!-- مکان -->
                             <?php if (!empty($event->event_location)) : ?>
-                                <div class="sc-event-meta-item">
-                                    <span class="sc-event-icon">📍</span>
-                                    <span><?php echo esc_html($event->event_location); ?></span>
+                                <div class="sc-event-feature-item">
+                                    <div class="sc-event-feature-icon">📍</div>
+                                    <div class="sc-event-feature-content">
+                                        <div class="sc-event-feature-label">مکان</div>
+                                        <div class="sc-event-feature-value" style="word-break: break-word;"><?php echo esc_html($event->event_location); ?></div>
+                                    </div>
                                 </div>
                             <?php endif; ?>
                             
-                            <div class="sc-event-meta-item">
-                                <span class="sc-event-icon">💰</span>
-                                <span class="sc-event-price"><?php echo $formatted_price; ?></span>
+                            <!-- قیمت -->
+                            <div class="sc-event-feature-price">
+                                <div class="sc-event-feature-icon">💰</div>
+                                <div class="sc-event-feature-content">
+                                    <div class="sc-event-feature-label">قیمت</div>
+                                    <div class="sc-event-feature-price-value"><?php echo $formatted_price; ?></div>
+                                </div>
                             </div>
-                            
-                            <?php if ($event->capacity) : ?>
-                                <div class="sc-event-meta-item">
-                                    <span class="sc-event-icon">👥</span>
-                                    <span>ظرفیت: <?php echo esc_html($remaining); ?> / <?php echo esc_html($event->capacity); ?></span>
-                                </div>
-                            <?php endif; ?>
                         </div>
                         
-                        <div class="sc-event-actions">
-                            <?php if ($is_enrolled) : ?>
-                                <span class="sc-event-enrolled-badge" 
-                                      data-tooltip="<?php echo esc_attr($enrollment_tooltip); ?>">
-                                    شما در این <?php echo esc_html($event_type_label); ?> ثبت‌نام کرده‌اید
-                                </span>
-                            <?php elseif ($enrollment_status) : ?>
-                                <span class="sc-event-status-badge" 
-                                      data-tooltip="<?php echo esc_attr($enrollment_tooltip); ?>">
-                                    <?php echo esc_html($enrollment_status_label); ?>
-                                </span>
-                            <?php else : ?>
-                                <?php if ($can_view_details) : ?>
-                                    <a href="<?php echo esc_url($event_detail_url); ?>" class="button sc-event-view-btn">
-                                        مشاهده جزئیات
-                                    </a>
-                                <?php else : ?>
-                                    <span class="button sc-event-view-btn" style="opacity: 0.6; cursor: not-allowed;" 
-                                          data-tooltip="<?php echo esc_attr($tooltip_message); ?>">
-                                        مشاهده جزئیات
+                        <!-- مهلت ثبت نام -->
+                        <?php if ($registration_start || $registration_end) : ?>
+                            <div class="sc-event-registration-period <?php echo $is_date_expired ? 'expired' : 'active'; ?>">
+                                <span class="sc-event-registration-icon">⏰</span>
+                                <div class="sc-event-registration-content">
+                                    <strong class="sc-event-registration-label">مهلت ثبت نام:</strong>
+                                    <span class="sc-event-registration-value">
+                                        <?php 
+                                        if ($registration_start && $registration_end) {
+                                            echo esc_html($registration_start) . ' تا ' . esc_html($registration_end);
+                                        } elseif ($registration_start) {
+                                            echo 'از ' . esc_html($registration_start);
+                                        } elseif ($registration_end) {
+                                            echo 'تا ' . esc_html($registration_end);
+                                        }
+                                        ?>
                                     </span>
-                                <?php endif; ?>
+                                    <?php if ($is_date_expired) : ?>
+                                        <span class="sc-event-registration-expired">
+                                            (تمام شده)
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- دکمه عملیات -->
+                    <div class="sc-event-actions-wrapper">
+                        <?php if ($is_enrolled) : ?>
+                            <div class="sc-event-status-badge enrolled" title="<?php echo esc_attr($enrollment_tooltip); ?>">
+                                ✅ ثبت‌نام شده
+                            </div>
+                        <?php elseif ($enrollment_status && $enrollment_status !== 'cancelled') : ?>
+                            <div class="sc-event-status-badge pending" title="<?php echo esc_attr($enrollment_tooltip); ?>">
+                                <?php echo esc_html($enrollment_status_label); ?>
+                            </div>
+                        <?php else : ?>
+                            <?php if ($can_view_details) : ?>
+                                <a href="<?php echo esc_url($event_detail_url); ?>" class="sc-event-action-btn">
+                                    <?php echo ($can_enroll && !$is_date_expired) ? 'مشاهده جزئیات و ثبت نام' : 'مشاهده جزئیات'; ?>
+                                </a>
+                            <?php else : ?>
+                                <div class="sc-event-action-btn disabled" title="<?php echo esc_attr($tooltip_message); ?>">
+                                    مشاهده جزئیات
+                                </div>
                             <?php endif; ?>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -296,7 +324,3 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
         
     <?php endif; ?>
 </div>
-
-
-
-

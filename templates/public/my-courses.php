@@ -12,7 +12,10 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
 ?>
 
 <div class="sc-my-courses-page">
-    <h2>دوره‌های من</h2>
+    <h2 style="margin-bottom: 25px; color: #1a1a1a; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 32px;">📚</span>
+        دوره‌های من
+    </h2>
     
     <!-- فیلتر وضعیت -->
     <div class="sc-my-courses-filters" style="margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -22,7 +25,7 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
             <div style="flex: 1; min-width: 200px;">
                 <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
                 <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="active" <?php selected($filter_status, 'active'); ?>>ثبت نام شده</option>
+                    <option value="active" <?php selected($filter_status, 'active'); ?>>ثبت نام شده و در حال پرداخت</option>
                     <option value="canceled" <?php selected($filter_status, 'canceled'); ?>>لغو شده</option>
                     <option value="paused" <?php selected($filter_status, 'paused'); ?>>متوقف شده</option>
                     <option value="completed" <?php selected($filter_status, 'completed'); ?>>تمام شده</option>
@@ -37,7 +40,7 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
     </div>
     
     <?php if (empty($user_courses)) : ?>
-        <div class="woocommerce-message woocommerce-message--info woocommerce-info">
+        <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
             <?php if ($filter_status !== 'all') : ?>
                 دوره‌ای با این وضعیت یافت نشد.
             <?php else : ?>
@@ -46,84 +49,163 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
         </div>
     <?php else : ?>
     
-    <table class="woocommerce-orders-table woocommerce-MyAccount-orders shop_table shop_table_responsive my_account_orders account-orders-table">
-        <thead>
-            <tr>
-                <th class="woocommerce-orders-table__header">
-                    <span class="nobr">نام دوره</span>
-                </th>
-                <th class="woocommerce-orders-table__header">
-                    <span class="nobr">وضعیت</span>
-                </th>
-                <th class="woocommerce-orders-table__header">
-                    <span class="nobr">عملیات</span>
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($user_courses as $user_course) : 
-                // پردازش course_status_flags
-                $flags = [];
-                if (!empty($user_course->course_status_flags)) {
-                    $flags = explode(',', $user_course->course_status_flags);
-                    $flags = array_map('trim', $flags);
-                }
+    <!-- نمایش دوره‌ها به صورت کارت -->
+    <div class="sc-my-courses-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <?php foreach ($user_courses as $user_course) : 
+            // پردازش course_status_flags
+            $flags = [];
+            if (!empty($user_course->course_status_flags)) {
+                $flags = explode(',', $user_course->course_status_flags);
+                $flags = array_map('trim', $flags);
+            }
+            
+            $is_paused = in_array('paused', $flags);
+            $is_completed = in_array('completed', $flags);
+            $is_canceled = in_array('canceled', $flags);
+            $is_pending_payment = ($user_course->status === 'inactive');
+            
+            // تعیین برچسب وضعیت و رنگ
+            $status_labels = [];
+            $status_color = '#155724';
+            $status_bg = '#d4edda';
+            $status_icon = '✅';
+            $status_tooltip = '';
+            
+            if ($is_pending_payment) {
+                $status_labels[] = 'در حال پرداخت';
+                $status_color = '#856404';
+                $status_bg = '#fff3cd';
+                $status_icon = '⏳';
+                $status_tooltip = 'صورت حساب این دوره در حال پرداخت است. پس از پرداخت، دوره فعال خواهد شد.';
+            } elseif ($is_paused) {
+                $status_labels[] = 'متوقف شده';
+                $status_color = '#f0a000';
+                $status_bg = '#fff8e1';
+                $status_icon = '⏸️';
+                $status_tooltip = 'این دوره متوقف شده است.';
+            } elseif ($is_completed) {
+                $status_labels[] = 'تمام شده';
+                $status_color = '#666';
+                $status_bg = '#f5f5f5';
+                $status_icon = '✔️';
+                $status_tooltip = 'این دوره به اتمام رسیده است.';
+            } elseif ($is_canceled) {
+                $status_labels[] = 'لغو شده';
+                $status_color = '#d63638';
+                $status_bg = '#ffeaea';
+                $status_icon = '❌';
+                $status_tooltip = 'این دوره لغو شده است.';
+            } else {
+                $status_labels[] = 'فعال';
+                $status_color = '#155724';
+                $status_bg = '#d4edda';
+                $status_icon = '✅';
+                $status_tooltip = 'این دوره فعال است و شما در آن ثبت‌نام کرده‌اید.';
+            }
+            
+            $status_display = implode('، ', $status_labels);
+            // فقط دوره‌های فعال (بدون هیچ flag و بدون pending payment) می‌توانند لغو شوند
+            $can_cancel = !$is_paused && !$is_completed && !$is_canceled && !$is_pending_payment;
+        ?>
+            <div class="sc-course-card" style="
+                background: #fff;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+                transition: all 0.3s ease;
+                border: 2px solid transparent;
+                position: relative;
+                overflow: hidden;
+            " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 6px 20px rgba(0, 0, 0, 0.12)'; this.style.borderColor='#2271b1';" 
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 0, 0, 0.08)'; this.style.borderColor='transparent';">
                 
-                $is_paused = in_array('paused', $flags);
-                $is_completed = in_array('completed', $flags);
-                $is_canceled = in_array('canceled', $flags);
+                <!-- نوار رنگی بالای کارت -->
+                <div style="
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    width: 4px;
+                    height: 100%;
+                    background: linear-gradient(180deg, #2271b1 0%, #135e96 100%);
+                "></div>
                 
-                // تعیین برچسب وضعیت
-                $status_labels = [];
-                if ($is_paused) {
-                    $status_labels[] = 'متوقف شده';
-                }
-                if ($is_completed) {
-                    $status_labels[] = 'تمام شده';
-                }
-                if ($is_canceled) {
-                    $status_labels[] = 'لغو شده';
-                }
+                <!-- عنوان دوره -->
+                <div style="margin-bottom: 15px; padding-right: 10px;">
+                    <h3 style="
+                        margin: 0;
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #1a1a1a;
+                        line-height: 1.4;
+                    ">
+                        <?php echo esc_html($user_course->course_title); ?>
+                    </h3>
+                </div>
                 
-                if (empty($status_labels)) {
-                    $status_labels[] = 'فعال';
-                }
+                <!-- وضعیت دوره -->
+                <div style="margin-bottom: 20px;">
+                    <span style="
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 8px 14px;
+                        border-radius: 6px;
+                        font-weight: 600;
+                        font-size: 13px;
+                        background-color: <?php echo esc_attr($status_bg); ?>;
+                        color: <?php echo esc_attr($status_color); ?>;
+                        cursor: <?php echo !empty($status_tooltip) ? 'help' : 'default'; ?>;
+                        position: relative;
+                    " 
+                    <?php if (!empty($status_tooltip)) : ?>
+                        title="<?php echo esc_attr($status_tooltip); ?>"
+                        data-tooltip="<?php echo esc_attr($status_tooltip); ?>"
+                    <?php endif; ?>
+                    >
+                        <span style="font-size: 16px;"><?php echo esc_html($status_icon); ?></span>
+                        <?php echo esc_html($status_display); ?>
+                    </span>
+                </div>
                 
-                $status_display = implode('، ', $status_labels);
-                $can_cancel = !$is_canceled && !$is_completed;
-            ?>
-                <tr class="woocommerce-orders-table__row">
-                    <td class="woocommerce-orders-table__cell" data-title="نام دوره">
-                        <strong><?php echo esc_html($user_course->course_title); ?></strong>
-                    </td>
-                    <td class="woocommerce-orders-table__cell" data-title="وضعیت">
-                        <span class="woocommerce-orders-table__status" style="
-                            padding: 5px 10px;
-                            border-radius: 4px;
-                            font-weight: bold;
-                            background-color: #d4edda;
-                            color: #155724;
+                <!-- دکمه عملیات -->
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
+                    <?php if ($can_cancel) : ?>
+                        <form method="POST" action="" style="margin: 0;" onsubmit="return confirm('آیا مطمئن هستید که می‌خواهید این دوره را لغو کنید؟');">
+                            <?php wp_nonce_field('sc_cancel_course', 'sc_cancel_course_nonce'); ?>
+                            <input type="hidden" name="cancel_course_id" value="<?php echo esc_attr($user_course->id); ?>">
+                            <button type="submit" name="sc_cancel_course" style="
+                                width: 100%;
+                                background: linear-gradient(135deg, #d63638 0%, #b32d2e 100%);
+                                color: #fff;
+                                border: none;
+                                padding: 12px 20px;
+                                border-radius: 8px;
+                                font-size: 14px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                box-shadow: 0 2px 8px rgba(214, 54, 56, 0.3);
+                            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(214, 54, 56, 0.4)';" 
+                               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(214, 54, 56, 0.3)';">
+                                لغو دوره
+                            </button>
+                        </form>
+                    <?php else : ?>
+                        <div style="
+                            text-align: center;
+                            padding: 12px;
+                            color: #999;
+                            font-size: 14px;
+                            background: #f9f9f9;
+                            border-radius: 8px;
                         ">
-                            <?php echo esc_html($status_display); ?>
-                        </span>
-                    </td>
-                    <td class="woocommerce-orders-table__cell" data-title="عملیات">
-                        <?php if ($can_cancel) : ?>
-                            <form method="POST" action="" style="display: inline-block;" onsubmit="return confirm('آیا مطمئن هستید که می‌خواهید این دوره را لغو کنید؟');">
-                                <?php wp_nonce_field('sc_cancel_course', 'sc_cancel_course_nonce'); ?>
-                                <input type="hidden" name="cancel_course_id" value="<?php echo esc_attr($user_course->id); ?>">
-                                <button type="submit" name="sc_cancel_course" class="button" style="background-color: #d63638; color: #fff; border-color: #d63638;">
-                                    لغو دوره
-                                </button>
-                            </form>
-                        <?php else : ?>
-                            <span style="color: #999;">-</span>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+                            عملیات در دسترس نیست
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
     
     <!-- صفحه‌بندی -->
     <?php if ($total_pages > 1) : ?>
@@ -166,11 +248,44 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
     margin-top: 20px;
 }
 
-.sc-my-courses-page table {
-    width: 100%;
+.sc-my-courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
 }
 
-.sc-my-courses-page .button:hover {
-    opacity: 0.9;
+.sc-course-card {
+    position: relative;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sc-my-courses-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* استایل صفحه‌بندی */
+.sc-my-courses-pagination .page-numbers {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 0 4px;
+    text-decoration: none;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #2271b1;
+    background: #fff;
+    transition: all 0.3s ease;
+}
+
+.sc-my-courses-pagination .page-numbers:hover,
+.sc-my-courses-pagination .page-numbers.current {
+    background: #2271b1;
+    color: #fff;
+    border-color: #2271b1;
+}
+
+.sc-my-courses-pagination .page-numbers.current {
+    font-weight: bold;
 }
 </style>

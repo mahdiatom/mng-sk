@@ -114,15 +114,16 @@ if (!empty($player->id)) {
             $enrollment_status_label = 'ثبت‌نام شده';
             $enrollment_tooltip = 'شما در این ' . $event_type_label . ' ثبت‌نام کرده‌اید.';
         } elseif ($enrollment_status === 'cancelled') {
+            // اگر invoice لغو شده است، امکان ثبت نام دوباره وجود دارد
+            $is_enrolled = false;
+            $can_enroll = true; // امکان ثبت نام دوباره
+            $enrollment_status_label = '';
+            $enrollment_tooltip = '';
+        } elseif (in_array($enrollment_status, ['pending', 'under_review', 'on-hold'])) {
             $is_enrolled = false;
             $can_enroll = false;
-            $enrollment_status_label = 'لغو شده';
-            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' لغو شده است.';
-        } elseif (in_array($enrollment_status, ['pending', 'on-hold'])) {
-            $is_enrolled = false;
-            $can_enroll = false;
-            $enrollment_status_label = 'در انتظار پرداخت';
-            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' انجام شده است. لطفاً برای تکمیل ثبت‌نام، پرداخت را انجام دهید.';
+            $enrollment_status_label = 'در حال پرداخت';
+            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' انجام شده است و صورت حساب در حال پرداخت است. لطفاً به بخش صورت حساب‌ها مراجعه کنید.';
         }
     }
 }
@@ -136,6 +137,13 @@ if (function_exists('wc_price')) {
 ?>
 
 <div class="sc-event-detail-page">
+    <!-- نمایش پیام‌های خطا و موفقیت -->
+    <?php if (function_exists('wc_print_notices')) : ?>
+        <div style="margin-bottom: 20px;">
+            <?php wc_print_notices(); ?>
+        </div>
+    <?php endif; ?>
+    
     <div class="sc-event-detail-header">
         <a href="<?php echo esc_url(wc_get_account_endpoint_url('sc-events')); ?>" class="sc-back-link">← بازگشت به لیست رویدادها</a>
         <h2><?php echo esc_html($event->name); ?></h2>
@@ -250,7 +258,7 @@ if (function_exists('wc_price')) {
                             height="400"
                             frameborder="0"
                             style="border:0; border-radius: 8px;"
-                            src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6d_s6H4ZO0RzJ8E&q=<?php echo esc_attr($event->event_location_lat); ?>,<?php echo esc_attr($event->event_location_lng); ?>&zoom=15"
+                            src="https://www.google.com/maps?q=<?php echo esc_attr($event->event_location_lat); ?>,<?php echo esc_attr($event->event_location_lng); ?>&output=embed"
                             allowfullscreen>
                         </iframe>
                     </div>
@@ -275,68 +283,94 @@ if (function_exists('wc_price')) {
                     
                     <!-- فیلدهای سفارشی رویداد -->
                     <?php if (!empty($event_fields)) : ?>
-                    <div class="sc-event-custom-fields-section" style="margin-bottom: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
-                        <h3 style="margin-top: 0;">اطلاعات تکمیلی ثبت‌نام</h3>
-                        <p class="description">لطفاً اطلاعات زیر را تکمیل کنید:</p>
+                    <div class="sc-event-custom-fields-section" style="margin-bottom: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <h3 style="margin-top: 0; margin-bottom: 10px; color: #1a1a1a; font-size: 20px; font-weight: 600;">اطلاعات تکمیلی ثبت‌نام</h3>
+                        <p class="description" style="margin-bottom: 20px; color: #666; font-size: 14px;">لطفاً اطلاعات زیر را تکمیل کنید:</p>
                         
                         <div class="sc-event-fields-form" style="margin-top: 20px;">
                             <?php foreach ($event_fields as $field) : 
                                 $field_options = !empty($field->field_options) ? json_decode($field->field_options, true) : [];
                                 $field_id_attr = 'sc_event_field_' . $field->id;
+                                $field_name_attr = 'event_fields[' . $field->id . ']';
                             ?>
-                            <div class="sc-event-field-row" style="margin-bottom: 20px;">
-                                <label for="<?php echo esc_attr($field_id_attr); ?>" style="display: block; margin-bottom: 5px; font-weight: bold;">
+                            <div class="sc-event-field-row" style="margin-bottom: 25px;">
+                                <label for="<?php echo esc_attr($field_id_attr); ?>" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 14px;">
                                     <?php echo esc_html($field->field_name); ?>
                                     <?php if ($field->is_required) : ?>
-                                        <span style="color: red;">*</span>
+                                        <span style="color: #d63638; margin-right: 3px;">*</span>
                                     <?php endif; ?>
                                 </label>
                                 
                                 <?php if ($field->field_type === 'text') : ?>
                                     <input type="text" 
-                                           name="event_fields[<?php echo esc_attr($field->id); ?>]" 
+                                           name="<?php echo esc_attr($field_name_attr); ?>" 
                                            id="<?php echo esc_attr($field_id_attr); ?>" 
-                                           class="regular-text" 
+                                           class="regular-text sc-event-field-input" 
+                                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+                                           data-field-id="<?php echo esc_attr($field->id); ?>"
+                                           data-field-name="<?php echo esc_attr($field->field_name); ?>"
+                                           data-is-required="<?php echo $field->is_required ? '1' : '0'; ?>"
                                            <?php echo $field->is_required ? 'required' : ''; ?>>
+                                    <div class="sc-field-error" style="display: none; color: #d63638; font-size: 12px; margin-top: 5px; font-weight: 500;"></div>
                                 
                                 <?php elseif ($field->field_type === 'number') : ?>
                                     <input type="number" 
-                                           name="event_fields[<?php echo esc_attr($field->id); ?>]" 
+                                           name="<?php echo esc_attr($field_name_attr); ?>" 
                                            id="<?php echo esc_attr($field_id_attr); ?>" 
-                                           class="regular-text" 
+                                           class="regular-text sc-event-field-input" 
+                                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+                                           data-field-id="<?php echo esc_attr($field->id); ?>"
+                                           data-field-name="<?php echo esc_attr($field->field_name); ?>"
+                                           data-is-required="<?php echo $field->is_required ? '1' : '0'; ?>"
                                            <?php echo $field->is_required ? 'required' : ''; ?>>
+                                    <div class="sc-field-error" style="display: none; color: #d63638; font-size: 12px; margin-top: 5px; font-weight: 500;"></div>
                                 
                                 <?php elseif ($field->field_type === 'date') : ?>
                                     <input type="text" 
-                                           name="event_fields[<?php echo esc_attr($field->id); ?>]" 
+                                           name="<?php echo esc_attr($field_name_attr); ?>" 
                                            id="<?php echo esc_attr($field_id_attr); ?>" 
-                                           class="regular-text persian-date-input" 
+                                           class="regular-text persian-date-input sc-event-field-input" 
                                            placeholder="تاریخ (شمسی)" 
                                            readonly
+                                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: #fff; cursor: pointer;"
+                                           data-field-id="<?php echo esc_attr($field->id); ?>"
+                                           data-field-name="<?php echo esc_attr($field->field_name); ?>"
+                                           data-is-required="<?php echo $field->is_required ? '1' : '0'; ?>"
                                            <?php echo $field->is_required ? 'required' : ''; ?>>
+                                    <div class="sc-field-error" style="display: none; color: #d63638; font-size: 12px; margin-top: 5px; font-weight: 500;"></div>
                                 
                                 <?php elseif ($field->field_type === 'file') : ?>
                                     <input type="file" 
-                                           name="event_fields[<?php echo esc_attr($field->id); ?>][]" 
+                                           name="<?php echo esc_attr($field_name_attr); ?>[]" 
                                            id="<?php echo esc_attr($field_id_attr); ?>" 
-                                           class="regular-text sc-event-file-input" 
+                                           class="regular-text sc-event-file-input sc-event-field-input" 
                                            accept="image/*,.pdf"
                                            multiple
                                            data-max-files="10"
+                                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+                                           data-field-id="<?php echo esc_attr($field->id); ?>"
+                                           data-field-name="<?php echo esc_attr($field->field_name); ?>"
+                                           data-is-required="<?php echo $field->is_required ? '1' : '0'; ?>"
                                            <?php echo $field->is_required ? 'required' : ''; ?>>
-                                    <p class="description">حداکثر 10 فایل (فقط تصویر و PDF)، حداکثر حجم هر فایل: 1 مگابایت</p>
+                                    <p class="description" style="margin-top: 5px; font-size: 12px; color: #666;">حداکثر 10 فایل (فقط تصویر و PDF)، حداکثر حجم هر فایل: 1 مگابایت</p>
                                     <div class="sc-event-file-preview" style="margin-top: 10px;"></div>
+                                    <div class="sc-field-error" style="display: none; color: #d63638; font-size: 12px; margin-top: 5px; font-weight: 500;"></div>
                                 
                                 <?php elseif ($field->field_type === 'select' && !empty($field_options['options'])) : ?>
-                                    <select name="event_fields[<?php echo esc_attr($field->id); ?>]" 
+                                    <select name="<?php echo esc_attr($field_name_attr); ?>" 
                                             id="<?php echo esc_attr($field_id_attr); ?>" 
-                                            class="regular-text"
+                                            class="regular-text sc-event-field-input"
+                                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+                                            data-field-id="<?php echo esc_attr($field->id); ?>"
+                                            data-field-name="<?php echo esc_attr($field->field_name); ?>"
+                                            data-is-required="<?php echo $field->is_required ? '1' : '0'; ?>"
                                             <?php echo $field->is_required ? 'required' : ''; ?>>
                                         <option value="">-- انتخاب کنید --</option>
                                         <?php foreach ($field_options['options'] as $option) : ?>
                                             <option value="<?php echo esc_attr(trim($option)); ?>"><?php echo esc_html(trim($option)); ?></option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <div class="sc-field-error" style="display: none; color: #d63638; font-size: 12px; margin-top: 5px; font-weight: 500;"></div>
                                 <?php endif; ?>
                             </div>
                             <?php endforeach; ?>
@@ -377,4 +411,3 @@ if (function_exists('wc_price')) {
         </div>
     </div>
 </div>
-

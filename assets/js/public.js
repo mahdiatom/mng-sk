@@ -120,6 +120,99 @@ jQuery(document).ready(function($) {
         $('#birth_date_shamsi').trigger('change');
     });
     
+    // اعتبارسنجی فرم ثبت‌نام رویداد
+    $('form.sc-enroll-event-form').on('submit', function(e) {
+        var isValid = true;
+        var firstErrorField = null;
+        
+        // پاک کردن پیام‌های خطای قبلی
+        $('.sc-field-error').hide().text('');
+        $('.sc-event-field-input').removeClass('sc-field-error-border');
+        
+        // بررسی فیلدهای اجباری
+        $('.sc-event-field-input').each(function() {
+            var $field = $(this);
+            var isRequired = $field.data('is-required') == '1' || $field.prop('required');
+            var fieldName = $field.data('field-name') || $field.attr('name');
+            var fieldType = $field.attr('type') || ($field.is('select') ? 'select' : 'text');
+            var fieldValue = '';
+            var $errorDiv = $field.siblings('.sc-field-error');
+            
+            if (!$errorDiv.length) {
+                $errorDiv = $field.closest('.sc-event-field-row').find('.sc-field-error');
+            }
+            
+            // بررسی نوع فیلد
+            if (fieldType === 'file') {
+                // برای فایل‌ها، بررسی تعداد فایل‌ها
+                if (isRequired && this.files.length === 0) {
+                    isValid = false;
+                    $field.addClass('sc-field-error-border');
+                    $errorDiv.text('فیلد "' + fieldName + '" الزامی است.').show();
+                    if (!firstErrorField) {
+                        firstErrorField = $field;
+                    }
+                } else if (this.files.length > 10) {
+                    isValid = false;
+                    $field.addClass('sc-field-error-border');
+                    $errorDiv.text('حداکثر 10 فایل مجاز است.').show();
+                    if (!firstErrorField) {
+                        firstErrorField = $field;
+                    }
+                } else {
+                    // بررسی حجم فایل‌ها
+                    for (var i = 0; i < this.files.length; i++) {
+                        if (this.files[i].size > 1048576) { // 1MB
+                            isValid = false;
+                            $field.addClass('sc-field-error-border');
+                            $errorDiv.text('فایل "' + this.files[i].name + '" بیش از 1 مگابایت است.').show();
+                            if (!firstErrorField) {
+                                firstErrorField = $field;
+                            }
+                            break;
+                        }
+                    }
+                }
+            } else if ($field.is('select')) {
+                fieldValue = $field.val();
+                if (isRequired && (!fieldValue || fieldValue.trim() === '')) {
+                    isValid = false;
+                    $field.addClass('sc-field-error-border');
+                    $errorDiv.text('فیلد "' + fieldName + '" الزامی است.').show();
+                    if (!firstErrorField) {
+                        firstErrorField = $field;
+                    }
+                }
+            } else {
+                fieldValue = $field.val();
+                if (isRequired && (!fieldValue || fieldValue.trim() === '')) {
+                    isValid = false;
+                    $field.addClass('sc-field-error-border');
+                    $errorDiv.text('فیلد "' + fieldName + '" الزامی است.').show();
+                    if (!firstErrorField) {
+                        firstErrorField = $field;
+                    }
+                }
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            
+            // اسکرول به اولین فیلد خطادار
+            if (firstErrorField) {
+                $('html, body').animate({
+                    scrollTop: firstErrorField.offset().top - 100
+                }, 500);
+                firstErrorField.focus();
+            }
+            
+            return false;
+        }
+        
+        return true;
+    });
+    
     // تابع تبدیل شمسی به میلادی (JavaScript)
     function jalaliToGregorian(jy, jm, jd) {
         var gy = (jy <= 979) ? 621 : 1600;
@@ -150,7 +243,6 @@ jQuery(document).ready(function($) {
         return [gy, gm, gd];
     }
 });
-
 
 
 

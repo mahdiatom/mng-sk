@@ -112,19 +112,26 @@
         $('.persian-calendar-popup').remove();
         $(document).off('click.persian-cal-close');
         
-        // دریافت تاریخ فعلی
+        // دریافت تاریخ امروز به عنوان پیش‌فرض
         var currentDate = getTodayJalali();
         var selectedYear = currentDate[0];
         var selectedMonth = currentDate[1];
         var selectedDay = currentDate[2];
         
-        // اگر مقدار موجود بود
-        if ($input.val()) {
+        // اگر مقدار موجود بود، از آن استفاده کن
+        if ($input.val() && $input.val().trim() !== '') {
             var parts = $input.val().split('/');
             if (parts.length === 3) {
-                selectedYear = parseInt(parts[0]);
-                selectedMonth = parseInt(parts[1]);
-                selectedDay = parseInt(parts[2]);
+                var inputYear = parseInt(parts[0]);
+                var inputMonth = parseInt(parts[1]);
+                var inputDay = parseInt(parts[2]);
+                // بررسی معتبر بودن تاریخ
+                if (!isNaN(inputYear) && !isNaN(inputMonth) && !isNaN(inputDay) && 
+                    inputYear > 0 && inputMonth >= 1 && inputMonth <= 12 && inputDay >= 1 && inputDay <= 31) {
+                    selectedYear = inputYear;
+                    selectedMonth = inputMonth;
+                    selectedDay = inputDay;
+                }
             }
         }
         
@@ -182,9 +189,9 @@
         var firstDayOfWeek = firstDate.getDay();
         var firstDayPersian = (firstDayOfWeek + 2) % 7;
         
-        // ایجاد dropdown برای سال (1340 تا 1440)
+        // ایجاد dropdown برای سال (1350 تا 1410)
         var yearOptions = '';
-        for (var y = 1340; y <= 1440; y++) {
+        for (var y = 1350; y <= 1410; y++) {
             yearOptions += '<option value="' + y + '"' + (y == year ? ' selected' : '') + '>' + y + '</option>';
         }
         
@@ -404,19 +411,26 @@
         $('.gregorian-calendar-popup').remove();
         $(document).off('click.gregorian-cal-close');
         
-        // دریافت تاریخ فعلی
+        // دریافت تاریخ امروز به عنوان پیش‌فرض
         var currentDate = getTodayGregorian();
         var selectedYear = currentDate[0];
         var selectedMonth = currentDate[1];
         var selectedDay = currentDate[2];
         
-        // اگر مقدار موجود بود
-        if ($input.val()) {
+        // اگر مقدار موجود بود، از آن استفاده کن
+        if ($input.val() && $input.val().trim() !== '') {
             var parts = $input.val().split('/');
             if (parts.length === 3) {
-                selectedYear = parseInt(parts[0]);
-                selectedMonth = parseInt(parts[1]);
-                selectedDay = parseInt(parts[2]);
+                var inputYear = parseInt(parts[0]);
+                var inputMonth = parseInt(parts[1]);
+                var inputDay = parseInt(parts[2]);
+                // بررسی معتبر بودن تاریخ
+                if (!isNaN(inputYear) && !isNaN(inputMonth) && !isNaN(inputDay) && 
+                    inputYear > 0 && inputMonth >= 1 && inputMonth <= 12 && inputDay >= 1 && inputDay <= 31) {
+                    selectedYear = inputYear;
+                    selectedMonth = inputMonth;
+                    selectedDay = inputDay;
+                }
             }
         }
         
@@ -473,13 +487,13 @@
         var firstDayOfWeek = firstDate.getDay();
         var firstDayPersian = (firstDayOfWeek + 2) % 7;
         
-        // ایجاد dropdown برای سال (1900 تا 2100)
+        // ایجاد dropdown برای سال (1910 تا 2030) - فقط برای تقویم میلادی
         var yearOptions = '';
-        for (var y = 1900; y <= 2100; y++) {
+        for (var y = 1910; y <= 2030; y++) {
             yearOptions += '<option value="' + y + '"' + (y == year ? ' selected' : '') + '>' + y + '</option>';
         }
         
-        // ایجاد dropdown برای ماه
+        // ایجاد dropdown برای ماه (میلادی)
         var monthOptions = '';
         for (var m = 1; m <= 12; m++) {
             monthOptions += '<option value="' + m + '"' + (m == month ? ' selected' : '') + '>' + gregorianMonthNames[m] + '</option>';

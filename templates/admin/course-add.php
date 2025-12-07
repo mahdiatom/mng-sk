@@ -177,4 +177,3 @@ if ($course && isset($_GET['course_id'])) {
     </form>
 </div>
 
-

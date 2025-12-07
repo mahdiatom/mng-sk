@@ -289,49 +289,36 @@ function sc_my_account_enroll_course_content() {
     
     global $wpdb;
     $courses_table = $wpdb->prefix . 'sc_courses';
-    
-    // محاسبه تعداد کل دوره‌های فعال
-    $total_courses = $wpdb->get_var(
-        "SELECT COUNT(*) FROM $courses_table 
-         WHERE deleted_at IS NULL AND is_active = 1"
-    );
-    
-    // صفحه‌بندی
-    $per_page = 10;
-    $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
-    $offset = ($current_page - 1) * $per_page;
-    $total_pages = ceil($total_courses / $per_page);
-    
-    // دریافت دوره‌های فعال با صفحه‌بندی
-    $courses = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM $courses_table 
-         WHERE deleted_at IS NULL AND is_active = 1 
-         ORDER BY created_at DESC
-         LIMIT %d OFFSET %d",
-        $per_page,
-        $offset
-    ));
-    
-    // انتقال متغیرهای صفحه‌بندی به template
-    $current_page = $current_page;
-    $total_pages = $total_pages;
-    $total_courses = $total_courses;
-    
-    if (empty($courses)) {
-        echo '<div class="woocommerce-message woocommerce-message--info woocommerce-info">';
-        echo 'در حال حاضر دوره‌ای برای ثبت نام موجود نیست.';
-        echo '</div>';
-        return;
-    }
-    
-    // بررسی دوره‌های ثبت‌نام شده کاربر (با flags)
-    // دوره‌هایی که status = 'active' دارند را می‌گیریم (حتی اگر flags داشته باشند)
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    
+    // دریافت فیلتر وضعیت - پیش‌فرض: آخرین دوره‌ها (دوره‌های فعال که کاربر می‌تواند ثبت نام کند)
+    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest';
+    
+    // ساخت شرط WHERE
+    $where_conditions = ["c.deleted_at IS NULL", "c.is_active = 1"];
+    $where_values = [];
+    
+    // بررسی دوره‌های ثبت‌نام شده کاربر (با flags) - شامل active و inactive (pending invoice)
     $member_courses = $wpdb->get_results($wpdb->prepare(
-        "SELECT course_id, course_status_flags FROM $member_courses_table 
-         WHERE member_id = %d AND status = 'active'",
+        "SELECT course_id, course_status_flags, status FROM $member_courses_table 
+         WHERE member_id = %d AND status IN ('active', 'inactive')",
         $player->id
     ));
+    
+    // بررسی دوره‌هایی که صورت حساب pending دارند
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $pending_invoices = $wpdb->get_results($wpdb->prepare(
+        "SELECT course_id FROM $invoices_table 
+         WHERE member_id = %d AND course_id IS NOT NULL AND status IN ('pending', 'under_review')",
+        $player->id
+    ));
+    
+    $pending_course_ids = [];
+    foreach ($pending_invoices as $invoice) {
+        if ($invoice->course_id) {
+            $pending_course_ids[] = $invoice->course_id;
+        }
+    }
     
     // تبدیل به آرایه برای استفاده راحت‌تر
     $enrolled_courses_data = [];
@@ -349,6 +336,129 @@ function sc_my_account_enroll_course_content() {
         ];
     }
     
+    $enrolled_course_ids = array_keys($enrolled_courses_data);
+    
+    // اضافه کردن دوره‌هایی که صورت حساب pending دارند به لیست دوره‌های ثبت‌نام شده
+    $all_enrolled_course_ids = array_unique(array_merge($enrolled_course_ids, $pending_course_ids));
+    
+    // فیلتر بر اساس وضعیت
+    if ($filter_status === 'latest') {
+        // آخرین دوره‌ها: دوره‌های فعال که کاربر در آن‌ها ثبت نام نکرده (می‌تواند ثبت نام کند)
+        // شامل دوره‌هایی که صورت حساب pending دارند نمی‌شود
+        if (!empty($all_enrolled_course_ids)) {
+            $placeholders = implode(',', array_fill(0, count($all_enrolled_course_ids), '%d'));
+            $where_conditions[] = "c.id NOT IN ($placeholders)";
+            $where_values = $all_enrolled_course_ids;
+        }
+        // اگر کاربر در هیچ دوره‌ای ثبت نام نکرده، همه دوره‌های فعال نمایش داده می‌شوند
+    } elseif ($filter_status === 'active') {
+        // دوره‌های ثبت نام شده و فعال (بدون flag)
+        $active_course_ids = [];
+        foreach ($enrolled_courses_data as $course_id => $data) {
+            if (empty($data['flags']) || (empty($data['is_canceled']) && empty($data['is_completed']) && empty($data['is_paused']))) {
+                $active_course_ids[] = $course_id;
+            }
+        }
+        if (!empty($active_course_ids)) {
+            $placeholders = implode(',', array_fill(0, count($active_course_ids), '%d'));
+            $where_conditions[] = "c.id IN ($placeholders)";
+            $where_values = $active_course_ids;
+        } else {
+            $where_conditions[] = "1 = 0";
+        }
+    } elseif ($filter_status === 'paused') {
+        // دوره‌های متوقف شده
+        $paused_course_ids = [];
+        foreach ($enrolled_courses_data as $course_id => $data) {
+            if ($data['is_paused']) {
+                $paused_course_ids[] = $course_id;
+            }
+        }
+        if (!empty($paused_course_ids)) {
+            $placeholders = implode(',', array_fill(0, count($paused_course_ids), '%d'));
+            $where_conditions[] = "c.id IN ($placeholders)";
+            $where_values = $paused_course_ids;
+        } else {
+            $where_conditions[] = "1 = 0";
+        }
+    } elseif ($filter_status === 'completed') {
+        // دوره‌های به اتمام رسیده
+        $completed_course_ids = [];
+        foreach ($enrolled_courses_data as $course_id => $data) {
+            if ($data['is_completed']) {
+                $completed_course_ids[] = $course_id;
+            }
+        }
+        if (!empty($completed_course_ids)) {
+            $placeholders = implode(',', array_fill(0, count($completed_course_ids), '%d'));
+            $where_conditions[] = "c.id IN ($placeholders)";
+            $where_values = $completed_course_ids;
+        } else {
+            $where_conditions[] = "1 = 0";
+        }
+    } elseif ($filter_status === 'canceled') {
+        // دوره‌های لغو شده
+        $canceled_course_ids = [];
+        foreach ($enrolled_courses_data as $course_id => $data) {
+            if ($data['is_canceled']) {
+                $canceled_course_ids[] = $course_id;
+            }
+        }
+        if (!empty($canceled_course_ids)) {
+            $placeholders = implode(',', array_fill(0, count($canceled_course_ids), '%d'));
+            $where_conditions[] = "c.id IN ($placeholders)";
+            $where_values = $canceled_course_ids;
+        } else {
+            $where_conditions[] = "1 = 0";
+        }
+    } elseif ($filter_status === 'expired') {
+        // دوره‌هایی که مهلت ثبت نام آن‌ها تمام شده یا گذشته
+        $today_shamsi = sc_get_today_shamsi();
+        $today_gregorian = sc_shamsi_to_gregorian_date($today_shamsi);
+        
+        // دوره‌هایی که تاریخ پایان آن‌ها گذشته است
+        $where_conditions[] = "c.end_date IS NOT NULL AND c.end_date < %s";
+        $where_values[] = $today_gregorian;
+    } elseif ($filter_status === 'all') {
+        // همه دوره‌ها (بدون فیلتر اضافی)
+        // فقط شرط‌های پایه (deleted_at IS NULL و is_active = 1) اعمال می‌شود
+        // هیچ شرط اضافی اضافه نمی‌کنیم
+    }
+    
+    $where_clause = implode(' AND ', $where_conditions);
+    
+    // محاسبه تعداد کل
+    $count_query = "SELECT COUNT(*) FROM $courses_table c WHERE $where_clause";
+    if (!empty($where_values)) {
+        $total_courses = $wpdb->get_var($wpdb->prepare($count_query, $where_values));
+    } else {
+        $total_courses = $wpdb->get_var($count_query);
+    }
+    
+    // صفحه‌بندی
+    $per_page = 10;
+    $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
+    $offset = ($current_page - 1) * $per_page;
+    $total_pages = ceil($total_courses / $per_page);
+    
+    // دریافت دوره‌های کاربر با صفحه‌بندی
+    // ترتیب: بر اساس تاریخ ایجاد (جدیدترین اول)
+    $query = "SELECT c.*
+              FROM $courses_table c
+              WHERE $where_clause
+              ORDER BY c.created_at DESC
+              LIMIT %d OFFSET %d";
+    
+    $query_values = array_merge($where_values, [$per_page, $offset]);
+    $courses = $wpdb->get_results($wpdb->prepare($query, $query_values));
+    
+    // انتقال متغیرهای فیلتر و صفحه‌بندی به template
+    $filter_status = $filter_status;
+    $current_page = $current_page;
+    $total_pages = $total_pages;
+    $total_courses = $total_courses;
+    
+    // همیشه template را include کن تا فیلتر نمایش داده شود
     include SC_TEMPLATES_PUBLIC_DIR . 'enroll-course.php';
 }
 
@@ -430,6 +540,15 @@ function sc_handle_course_enrollment() {
         $course_id
     ));
     
+    // بررسی اینکه آیا صورت حساب pending برای این دوره وجود دارد
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $pending_invoice = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $invoices_table 
+         WHERE member_id = %d AND course_id = %d AND status IN ('pending', 'under_review')",
+        $player->id,
+        $course_id
+    ));
+    
     $member_course_id = null;
     
     if ($existing) {
@@ -438,8 +557,13 @@ function sc_handle_course_enrollment() {
             wc_add_notice('شما قبلاً در این دوره ثبت‌نام کرده‌اید.', 'error');
             wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
             exit;
+        } elseif ($existing->status === 'inactive' && $pending_invoice) {
+            // اگر status = 'inactive' و صورت حساب pending دارد، نمی‌تواند دوباره ثبت‌نام کند
+            wc_add_notice('شما قبلاً در این دوره ثبت‌نام کرده‌اید و صورت حساب شما در حال پرداخت است. لطفاً ابتدا صورت حساب را پرداخت یا لغو کنید.', 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+            exit;
         } elseif (in_array($existing->status, ['canceled', 'completed', 'paused', 'inactive'])) {
-            // اگر دوره قبلاً cancel، complete، paused یا inactive بود، می‌تواند دوباره ثبت‌نام کند
+            // اگر دوره قبلاً cancel، complete، paused یا inactive بود (بدون pending invoice)، می‌تواند دوباره ثبت‌نام کند
             // رکورد موجود را به inactive تغییر می‌دهیم (بعد از پرداخت فعال می‌شود)
             $updated = $wpdb->update(
                 $member_courses_table,
@@ -464,6 +588,12 @@ function sc_handle_course_enrollment() {
             }
         }
     } else {
+        // بررسی اینکه آیا صورت حساب pending وجود دارد (حتی اگر member_course وجود نداشته باشد)
+        if ($pending_invoice) {
+            wc_add_notice('شما قبلاً در این دوره ثبت‌نام کرده‌اید و صورت حساب شما در حال پرداخت است. لطفاً ابتدا صورت حساب را پرداخت یا لغو کنید.', 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+            exit;
+        }
         // اگر رکورد وجود ندارد، insert می‌کنیم با status = inactive (بعد از پرداخت فعال می‌شود)
         $inserted = $wpdb->insert(
             $member_courses_table,
@@ -863,8 +993,8 @@ function sc_my_account_my_courses_content() {
     
     // فیلتر بر اساس وضعیت
     if ($filter_status === 'active') {
-        // فقط دوره‌های فعال (بدون flag)
-        $where_conditions[] = "mc.status = 'active'";
+        // فقط دوره‌های فعال (بدون flag) - شامل دوره‌های در حال پرداخت (inactive) هم می‌شود
+        $where_conditions[] = "mc.status IN ('active', 'inactive')";
         $where_conditions[] = "(mc.course_status_flags IS NULL OR mc.course_status_flags = '')";
         $where_conditions[] = "c.deleted_at IS NULL";
         $where_conditions[] = "c.is_active = 1";
@@ -901,12 +1031,12 @@ function sc_my_account_my_courses_content() {
     // دریافت دوره‌های کاربر با صفحه‌بندی
     // ترتیب: اول دوره‌های فعال و بدون flag، سپس بقیه
     $order_by = "CASE 
-                    WHEN (mc.status = 'active' AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '')) THEN 0 
+                    WHEN (mc.status = 'active' AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '') AND c.is_active = 1 AND c.deleted_at IS NULL) THEN 0 
                     ELSE 1 
                  END ASC, 
                  mc.created_at DESC";
     
-    $query = "SELECT mc.*, c.title as course_title
+    $query = "SELECT mc.*, c.title as course_title, c.is_active as course_is_active, c.deleted_at as course_deleted_at
               FROM $member_courses_table mc
               INNER JOIN $courses_table c ON mc.course_id = c.id
               WHERE $where_clause
@@ -1313,10 +1443,15 @@ function sc_create_event_invoice($member_id, $event_id, $amount) {
 /**
  * Handle invoice cancellation request
  */
-add_action('woocommerce_account_sc-invoices_endpoint', 'sc_handle_invoice_cancellation', 5);
+add_action('template_redirect', 'sc_handle_invoice_cancellation');
 function sc_handle_invoice_cancellation() {
     // بررسی درخواست لغو
     if (!isset($_GET['cancel_invoice']) || !isset($_GET['invoice_id']) || !isset($_GET['_wpnonce'])) {
+        return;
+    }
+    
+    // بررسی اینکه آیا در صفحه invoices هستیم
+    if (!is_account_page()) {
         return;
     }
     
@@ -1388,6 +1523,28 @@ function sc_handle_invoice_cancellation() {
             if ($order && in_array($order->get_status(), ['pending', 'on-hold'])) {
                 $order->update_status('cancelled', 'لغو شده توسط کاربر');
             }
+        }
+        
+        // اگر این صورت حساب برای یک دوره است، member_course را حذف کن یا status را به canceled تغییر بده
+        if (!empty($invoice->course_id) && !empty($invoice->member_course_id)) {
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            // حذف رکورد member_course تا کاربر بتواند دوباره ثبت‌نام کند
+            $wpdb->delete(
+                $member_courses_table,
+                ['id' => $invoice->member_course_id],
+                ['%d']
+            );
+        }
+        
+        // اگر این صورت حساب برای یک رویداد است، event_registration را حذف کن تا امکان ثبت نام دوباره فراهم شود
+        if (!empty($invoice->event_id)) {
+            $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+            // حذف رکورد event_registration مربوط به این invoice
+            $wpdb->delete(
+                $event_registrations_table,
+                ['invoice_id' => $invoice_id],
+                ['%d']
+            );
         }
         
         wc_add_notice('سفارش با موفقیت لغو شد.', 'success');
@@ -1701,7 +1858,24 @@ function sc_handle_event_enrollment() {
         }
     }
     
-    // بررسی ثبت‌نام قبلی
+    // بررسی ثبت‌نام قبلی - بررسی invoice های pending یا under_review
+    $existing_pending_invoice = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, status FROM $invoices_table WHERE member_id = %d AND event_id = %d AND status IN ('pending', 'under_review') ORDER BY created_at DESC LIMIT 1",
+        $player->id,
+        $event_id
+    ));
+    
+    if ($existing_pending_invoice) {
+        if ($existing_pending_invoice->status === 'pending') {
+            wc_add_notice('شما قبلاً برای این رویداد ثبت‌نام کرده‌اید و صورت حساب آن در انتظار پرداخت است. لطفاً به بخش صورت حساب‌ها مراجعه کنید.', 'error');
+        } else {
+            wc_add_notice('شما قبلاً برای این رویداد ثبت‌نام کرده‌اید و صورت حساب آن در حال بررسی است. لطفاً به بخش صورت حساب‌ها مراجعه کنید.', 'error');
+        }
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        exit;
+    }
+    
+    // بررسی ثبت‌نام قبلی - بررسی event_registrations برای رویدادهای پرداخت شده
     $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
     $existing_registration = $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM $event_registrations_table WHERE member_id = %d AND event_id = %d",
@@ -1710,9 +1884,17 @@ function sc_handle_event_enrollment() {
     ));
     
     if ($existing_registration) {
-        wc_add_notice('شما قبلاً در این رویداد ثبت نام کرده‌اید.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
-        exit;
+        // بررسی اینکه آیا invoice مربوط به این registration پرداخت شده است یا نه
+        $paid_invoice = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM $invoices_table WHERE id = %d AND status IN ('paid', 'completed', 'processing')",
+            $existing_registration->invoice_id
+        ));
+        
+        if ($paid_invoice) {
+            wc_add_notice('شما قبلاً در این رویداد ثبت نام کرده‌اید.', 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+            exit;
+        }
     }
     
     // بررسی و اعتبارسنجی فیلدهای سفارشی
@@ -1835,6 +2017,7 @@ function sc_handle_event_enrollment() {
         foreach ($errors as $error) {
             wc_add_notice($error, 'error');
         }
+        // ذخیره داده‌های فرم در session برای نمایش مجدد (اختیاری)
         wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
         exit;
     }

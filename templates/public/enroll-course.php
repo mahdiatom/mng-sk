@@ -4,6 +4,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// دریافت متغیرهای فیلتر و صفحه‌بندی (اگر از my-account.php فراخوانی شده باشد)
+$filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest');
+$current_page = isset($current_page) ? $current_page : (isset($_GET['paged']) ? absint($_GET['paged']) : 1);
+$total_pages = isset($total_pages) ? $total_pages : 1;
+$total_courses = isset($total_courses) ? $total_courses : 0;
+
 // استفاده از تنظیمات WooCommerce برای فرمت قیمت
 $decimal_places = 0;
 $decimal_separator = '.';
@@ -22,6 +28,42 @@ if (function_exists('wc_get_price_thousand_separator')) {
 
 <div class="sc-enroll-course-page">
     <h2>ثبت‌نام در دوره</h2>
+    
+    <!-- فیلتر وضعیت -->
+    <div class="sc-enroll-course-filters" style="margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <form method="GET" action="<?php echo esc_url(wc_get_account_endpoint_url('sc-enroll-course')); ?>" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+            <input type="hidden" name="paged" value="1">
+            
+            <div style="flex: 1; min-width: 200px;">
+                <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
+                <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="latest" <?php selected($filter_status, 'latest'); ?>>آخرین دوره‌ها</option>
+                    <option value="active" <?php selected($filter_status, 'active'); ?>>دوره‌های ثبت نام شده</option>
+                    <option value="paused" <?php selected($filter_status, 'paused'); ?>>دوره‌های متوقف شده</option>
+                    <option value="completed" <?php selected($filter_status, 'completed'); ?>>دوره‌های به اتمام رسیده</option>
+                    <option value="canceled" <?php selected($filter_status, 'canceled'); ?>>دوره‌های لغو شده</option>
+                    <option value="expired" <?php selected($filter_status, 'expired'); ?>>مهلت ثبت نام تمام شده</option>
+                    <option value="all" <?php selected($filter_status, 'all'); ?>>همه دوره‌ها</option>
+                </select>
+            </div>
+            
+            <div>
+                <button type="submit" class="button button-primary" style="padding: 8px 20px; height: auto;">اعمال فیلتر</button>
+            </div>
+        </form>
+    </div>
+    
+    <?php if (empty($courses)) : ?>
+        <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
+            <?php if ($filter_status === 'latest') : ?>
+                در حال حاضر دوره‌ای برای ثبت نام موجود نیست.
+            <?php elseif ($filter_status === 'all') : ?>
+                در حال حاضر دوره‌ای موجود نیست.
+            <?php else : ?>
+                دوره‌ای با این وضعیت یافت نشد.
+            <?php endif; ?>
+        </div>
+    <?php else : ?>
     
     <form method="POST" action="" class="sc-enroll-course-form">
         <?php wp_nonce_field('sc_enroll_course', 'sc_enroll_course_nonce'); ?>
@@ -200,8 +242,14 @@ if (function_exists('wc_get_price_thousand_separator')) {
         if ($total_pages > 1) : ?>
             <div class="sc-enroll-course-pagination" style="margin-top: 30px; text-align: center;">
                 <?php
+                // ساخت URL base با حفظ فیلترها
+                $pagination_args = ['paged' => '%#%'];
+                if ($filter_status !== 'latest') {
+                    $pagination_args['filter_status'] = $filter_status;
+                }
+                
                 $page_links = paginate_links([
-                    'base' => add_query_arg(['paged' => '%#%']),
+                    'base' => add_query_arg($pagination_args),
                     'format' => '',
                     'prev_text' => '&laquo; قبلی',
                     'next_text' => 'بعدی &raquo;',
@@ -230,6 +278,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
             </button>
         </p>
     </form>
+    <?php endif; ?>
 </div>
 
 <style>
@@ -362,4 +411,3 @@ jQuery(document).ready(function($) {
     });
 });
 </script>
-
