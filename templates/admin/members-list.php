@@ -398,3 +398,892 @@ class Player_List_Table extends WP_List_Table {
 ?>
 
 
+
+            echo '<div class="alignleft actions">';
+            
+            // فیلتر دوره
+            if ($courses) {
+                echo '<select name="filter_course" id="filter_course" style="margin-left: 5px;">';
+                echo '<option value="0">همه دوره‌ها</option>';
+                foreach ($courses as $course) {
+                    $selected = ($selected_course == $course->id) ? 'selected' : '';
+                    echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
+                }
+                echo '</select>';
+            }
+            
+            // فیلتر وضعیت (active/inactive)
+            echo '<select name="filter_status" id="filter_status" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
+            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
+            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
+            echo '</select>';
+            
+            // فیلتر تکمیل پروفایل
+            echo '<select name="filter_profile" id="filter_profile" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_profile == 'all' ? ' selected' : '') . '>همه پروفایل‌ها</option>';
+            echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
+            echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
+            echo '</select>';
+            
+            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            
+            // دکمه خروجی Excel
+            $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
+            if (isset($_GET['player_status']) && $_GET['player_status'] !== 'all') {
+                $export_url = add_query_arg('player_status', $_GET['player_status'], $export_url);
+            }
+            if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+                $export_url = add_query_arg('filter_course', $_GET['filter_course'], $export_url);
+            }
+            if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
+                $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
+            }
+            if (isset($_GET['s']) && !empty($_GET['s'])) {
+                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            }
+            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
+            
+                echo '</div>';
+        }
+    }
+
+    public function prepare_items() {
+        $this->process_bulk_action();
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_members';
+
+        $per_page = 10; // تعداد نمایش در هر صفحه
+        $page = $this->get_pagenum();
+        $offset = ($page - 1) * $per_page;
+
+        $orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
+        $order = isset($_GET['order']) ? sanitize_text_field($_GET['order']) : 'DESC';
+        $order_clause = "ORDER BY $orderby $order";
+
+        $where = " 1=1 ";
+        
+        // فیلتر وضعیت (از تب‌ها)
+        if (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
+            $where .= " AND is_active = 1";
+        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
+            $where .= " AND is_active = 0";
+        }
+        
+        // فیلتر وضعیت (از dropdown)
+        if (isset($_GET['filter_status']) && $_GET['filter_status'] != 'all') {
+            if ($_GET['filter_status'] == 'active') {
+                $where .= " AND is_active = 1";
+            } elseif ($_GET['filter_status'] == 'inactive') {
+                $where .= " AND is_active = 0";
+            }
+        }
+        
+        // فیلتر تکمیل پروفایل
+        if (isset($_GET['filter_profile']) && $_GET['filter_profile'] != 'all') {
+            if ($_GET['filter_profile'] == 'completed') {
+                $where .= " AND profile_completed = 1";
+            } elseif ($_GET['filter_profile'] == 'incomplete') {
+                $where .= " AND (profile_completed = 0 OR profile_completed IS NULL)";
+            }
+        }
+        
+        // فیلتر دوره
+        if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+            $course_id = absint($_GET['filter_course']);
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            $where .= $wpdb->prepare(
+                " AND id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')",
+                $course_id
+            );
+        }
+
+        if (isset($_GET['s']) && !empty($_GET['s'])) {
+            $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';
+            $where .= $wpdb->prepare(
+                " AND (first_name LIKE %s OR last_name LIKE %s OR player_phone LIKE %s OR birth_date_shamsi LIKE %s OR birth_date_gregorian LIKE %s)",
+                $search, $search, $search, $search, $search
+            );
+        }
+
+        $results = $wpdb->get_results(
+            "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            ARRAY_A
+        );
+
+        $this->set_pagination_args([
+            'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
+            'per_page' => $per_page
+        ]);
+
+        $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
+        $this->items = $results;
+    }
+}
+?>
+
+
+
+            echo '<div class="alignleft actions">';
+            
+            // فیلتر دوره
+            if ($courses) {
+                echo '<select name="filter_course" id="filter_course" style="margin-left: 5px;">';
+                echo '<option value="0">همه دوره‌ها</option>';
+                foreach ($courses as $course) {
+                    $selected = ($selected_course == $course->id) ? 'selected' : '';
+                    echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
+                }
+                echo '</select>';
+            }
+            
+            // فیلتر وضعیت (active/inactive)
+            echo '<select name="filter_status" id="filter_status" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
+            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
+            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
+            echo '</select>';
+            
+            // فیلتر تکمیل پروفایل
+            echo '<select name="filter_profile" id="filter_profile" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_profile == 'all' ? ' selected' : '') . '>همه پروفایل‌ها</option>';
+            echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
+            echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
+            echo '</select>';
+            
+            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            
+            // دکمه خروجی Excel
+            $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
+            if (isset($_GET['player_status']) && $_GET['player_status'] !== 'all') {
+                $export_url = add_query_arg('player_status', $_GET['player_status'], $export_url);
+            }
+            if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+                $export_url = add_query_arg('filter_course', $_GET['filter_course'], $export_url);
+            }
+            if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
+                $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
+            }
+            if (isset($_GET['s']) && !empty($_GET['s'])) {
+                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            }
+            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
+            
+                echo '</div>';
+        }
+    }
+
+    public function prepare_items() {
+        $this->process_bulk_action();
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_members';
+
+        $per_page = 10; // تعداد نمایش در هر صفحه
+        $page = $this->get_pagenum();
+        $offset = ($page - 1) * $per_page;
+
+        $orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
+        $order = isset($_GET['order']) ? sanitize_text_field($_GET['order']) : 'DESC';
+        $order_clause = "ORDER BY $orderby $order";
+
+        $where = " 1=1 ";
+        
+        // فیلتر وضعیت (از تب‌ها)
+        if (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
+            $where .= " AND is_active = 1";
+        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
+            $where .= " AND is_active = 0";
+        }
+        
+        // فیلتر وضعیت (از dropdown)
+        if (isset($_GET['filter_status']) && $_GET['filter_status'] != 'all') {
+            if ($_GET['filter_status'] == 'active') {
+                $where .= " AND is_active = 1";
+            } elseif ($_GET['filter_status'] == 'inactive') {
+                $where .= " AND is_active = 0";
+            }
+        }
+        
+        // فیلتر تکمیل پروفایل
+        if (isset($_GET['filter_profile']) && $_GET['filter_profile'] != 'all') {
+            if ($_GET['filter_profile'] == 'completed') {
+                $where .= " AND profile_completed = 1";
+            } elseif ($_GET['filter_profile'] == 'incomplete') {
+                $where .= " AND (profile_completed = 0 OR profile_completed IS NULL)";
+            }
+        }
+        
+        // فیلتر دوره
+        if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+            $course_id = absint($_GET['filter_course']);
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            $where .= $wpdb->prepare(
+                " AND id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')",
+                $course_id
+            );
+        }
+
+        if (isset($_GET['s']) && !empty($_GET['s'])) {
+            $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';
+            $where .= $wpdb->prepare(
+                " AND (first_name LIKE %s OR last_name LIKE %s OR player_phone LIKE %s OR birth_date_shamsi LIKE %s OR birth_date_gregorian LIKE %s)",
+                $search, $search, $search, $search, $search
+            );
+        }
+
+        $results = $wpdb->get_results(
+            "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            ARRAY_A
+        );
+
+        $this->set_pagination_args([
+            'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
+            'per_page' => $per_page
+        ]);
+
+        $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
+        $this->items = $results;
+    }
+}
+?>
+
+
+
+            echo '<div class="alignleft actions">';
+            
+            // فیلتر دوره
+            if ($courses) {
+                echo '<select name="filter_course" id="filter_course" style="margin-left: 5px;">';
+                echo '<option value="0">همه دوره‌ها</option>';
+                foreach ($courses as $course) {
+                    $selected = ($selected_course == $course->id) ? 'selected' : '';
+                    echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
+                }
+                echo '</select>';
+            }
+            
+            // فیلتر وضعیت (active/inactive)
+            echo '<select name="filter_status" id="filter_status" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
+            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
+            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
+            echo '</select>';
+            
+            // فیلتر تکمیل پروفایل
+            echo '<select name="filter_profile" id="filter_profile" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_profile == 'all' ? ' selected' : '') . '>همه پروفایل‌ها</option>';
+            echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
+            echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
+            echo '</select>';
+            
+            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            
+            // دکمه خروجی Excel
+            $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
+            if (isset($_GET['player_status']) && $_GET['player_status'] !== 'all') {
+                $export_url = add_query_arg('player_status', $_GET['player_status'], $export_url);
+            }
+            if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+                $export_url = add_query_arg('filter_course', $_GET['filter_course'], $export_url);
+            }
+            if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
+                $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
+            }
+            if (isset($_GET['s']) && !empty($_GET['s'])) {
+                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            }
+            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
+            
+                echo '</div>';
+        }
+    }
+
+    public function prepare_items() {
+        $this->process_bulk_action();
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_members';
+
+        $per_page = 10; // تعداد نمایش در هر صفحه
+        $page = $this->get_pagenum();
+        $offset = ($page - 1) * $per_page;
+
+        $orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
+        $order = isset($_GET['order']) ? sanitize_text_field($_GET['order']) : 'DESC';
+        $order_clause = "ORDER BY $orderby $order";
+
+        $where = " 1=1 ";
+        
+        // فیلتر وضعیت (از تب‌ها)
+        if (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
+            $where .= " AND is_active = 1";
+        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
+            $where .= " AND is_active = 0";
+        }
+        
+        // فیلتر وضعیت (از dropdown)
+        if (isset($_GET['filter_status']) && $_GET['filter_status'] != 'all') {
+            if ($_GET['filter_status'] == 'active') {
+                $where .= " AND is_active = 1";
+            } elseif ($_GET['filter_status'] == 'inactive') {
+                $where .= " AND is_active = 0";
+            }
+        }
+        
+        // فیلتر تکمیل پروفایل
+        if (isset($_GET['filter_profile']) && $_GET['filter_profile'] != 'all') {
+            if ($_GET['filter_profile'] == 'completed') {
+                $where .= " AND profile_completed = 1";
+            } elseif ($_GET['filter_profile'] == 'incomplete') {
+                $where .= " AND (profile_completed = 0 OR profile_completed IS NULL)";
+            }
+        }
+        
+        // فیلتر دوره
+        if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+            $course_id = absint($_GET['filter_course']);
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            $where .= $wpdb->prepare(
+                " AND id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')",
+                $course_id
+            );
+        }
+
+        if (isset($_GET['s']) && !empty($_GET['s'])) {
+            $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';
+            $where .= $wpdb->prepare(
+                " AND (first_name LIKE %s OR last_name LIKE %s OR player_phone LIKE %s OR birth_date_shamsi LIKE %s OR birth_date_gregorian LIKE %s)",
+                $search, $search, $search, $search, $search
+            );
+        }
+
+        $results = $wpdb->get_results(
+            "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            ARRAY_A
+        );
+
+        $this->set_pagination_args([
+            'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
+            'per_page' => $per_page
+        ]);
+
+        $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
+        $this->items = $results;
+    }
+}
+?>
+
+
+
+            echo '<div class="alignleft actions">';
+            
+            // فیلتر دوره
+            if ($courses) {
+                echo '<select name="filter_course" id="filter_course" style="margin-left: 5px;">';
+                echo '<option value="0">همه دوره‌ها</option>';
+                foreach ($courses as $course) {
+                    $selected = ($selected_course == $course->id) ? 'selected' : '';
+                    echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
+                }
+                echo '</select>';
+            }
+            
+            // فیلتر وضعیت (active/inactive)
+            echo '<select name="filter_status" id="filter_status" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
+            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
+            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
+            echo '</select>';
+            
+            // فیلتر تکمیل پروفایل
+            echo '<select name="filter_profile" id="filter_profile" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_profile == 'all' ? ' selected' : '') . '>همه پروفایل‌ها</option>';
+            echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
+            echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
+            echo '</select>';
+            
+            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            
+            // دکمه خروجی Excel
+            $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
+            if (isset($_GET['player_status']) && $_GET['player_status'] !== 'all') {
+                $export_url = add_query_arg('player_status', $_GET['player_status'], $export_url);
+            }
+            if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+                $export_url = add_query_arg('filter_course', $_GET['filter_course'], $export_url);
+            }
+            if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
+                $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
+            }
+            if (isset($_GET['s']) && !empty($_GET['s'])) {
+                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            }
+            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
+            
+                echo '</div>';
+        }
+    }
+
+    public function prepare_items() {
+        $this->process_bulk_action();
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_members';
+
+        $per_page = 10; // تعداد نمایش در هر صفحه
+        $page = $this->get_pagenum();
+        $offset = ($page - 1) * $per_page;
+
+        $orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
+        $order = isset($_GET['order']) ? sanitize_text_field($_GET['order']) : 'DESC';
+        $order_clause = "ORDER BY $orderby $order";
+
+        $where = " 1=1 ";
+        
+        // فیلتر وضعیت (از تب‌ها)
+        if (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
+            $where .= " AND is_active = 1";
+        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
+            $where .= " AND is_active = 0";
+        }
+        
+        // فیلتر وضعیت (از dropdown)
+        if (isset($_GET['filter_status']) && $_GET['filter_status'] != 'all') {
+            if ($_GET['filter_status'] == 'active') {
+                $where .= " AND is_active = 1";
+            } elseif ($_GET['filter_status'] == 'inactive') {
+                $where .= " AND is_active = 0";
+            }
+        }
+        
+        // فیلتر تکمیل پروفایل
+        if (isset($_GET['filter_profile']) && $_GET['filter_profile'] != 'all') {
+            if ($_GET['filter_profile'] == 'completed') {
+                $where .= " AND profile_completed = 1";
+            } elseif ($_GET['filter_profile'] == 'incomplete') {
+                $where .= " AND (profile_completed = 0 OR profile_completed IS NULL)";
+            }
+        }
+        
+        // فیلتر دوره
+        if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+            $course_id = absint($_GET['filter_course']);
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            $where .= $wpdb->prepare(
+                " AND id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')",
+                $course_id
+            );
+        }
+
+        if (isset($_GET['s']) && !empty($_GET['s'])) {
+            $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';
+            $where .= $wpdb->prepare(
+                " AND (first_name LIKE %s OR last_name LIKE %s OR player_phone LIKE %s OR birth_date_shamsi LIKE %s OR birth_date_gregorian LIKE %s)",
+                $search, $search, $search, $search, $search
+            );
+        }
+
+        $results = $wpdb->get_results(
+            "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            ARRAY_A
+        );
+
+        $this->set_pagination_args([
+            'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
+            'per_page' => $per_page
+        ]);
+
+        $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
+        $this->items = $results;
+    }
+}
+?>
+
+
+
+            echo '<div class="alignleft actions">';
+            
+            // فیلتر دوره
+            if ($courses) {
+                echo '<select name="filter_course" id="filter_course" style="margin-left: 5px;">';
+                echo '<option value="0">همه دوره‌ها</option>';
+                foreach ($courses as $course) {
+                    $selected = ($selected_course == $course->id) ? 'selected' : '';
+                    echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
+                }
+                echo '</select>';
+            }
+            
+            // فیلتر وضعیت (active/inactive)
+            echo '<select name="filter_status" id="filter_status" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
+            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
+            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
+            echo '</select>';
+            
+            // فیلتر تکمیل پروفایل
+            echo '<select name="filter_profile" id="filter_profile" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_profile == 'all' ? ' selected' : '') . '>همه پروفایل‌ها</option>';
+            echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
+            echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
+            echo '</select>';
+            
+            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            
+            // دکمه خروجی Excel
+            $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
+            if (isset($_GET['player_status']) && $_GET['player_status'] !== 'all') {
+                $export_url = add_query_arg('player_status', $_GET['player_status'], $export_url);
+            }
+            if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+                $export_url = add_query_arg('filter_course', $_GET['filter_course'], $export_url);
+            }
+            if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
+                $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
+            }
+            if (isset($_GET['s']) && !empty($_GET['s'])) {
+                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            }
+            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
+            
+                echo '</div>';
+        }
+    }
+
+    public function prepare_items() {
+        $this->process_bulk_action();
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_members';
+
+        $per_page = 10; // تعداد نمایش در هر صفحه
+        $page = $this->get_pagenum();
+        $offset = ($page - 1) * $per_page;
+
+        $orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
+        $order = isset($_GET['order']) ? sanitize_text_field($_GET['order']) : 'DESC';
+        $order_clause = "ORDER BY $orderby $order";
+
+        $where = " 1=1 ";
+        
+        // فیلتر وضعیت (از تب‌ها)
+        if (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
+            $where .= " AND is_active = 1";
+        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
+            $where .= " AND is_active = 0";
+        }
+        
+        // فیلتر وضعیت (از dropdown)
+        if (isset($_GET['filter_status']) && $_GET['filter_status'] != 'all') {
+            if ($_GET['filter_status'] == 'active') {
+                $where .= " AND is_active = 1";
+            } elseif ($_GET['filter_status'] == 'inactive') {
+                $where .= " AND is_active = 0";
+            }
+        }
+        
+        // فیلتر تکمیل پروفایل
+        if (isset($_GET['filter_profile']) && $_GET['filter_profile'] != 'all') {
+            if ($_GET['filter_profile'] == 'completed') {
+                $where .= " AND profile_completed = 1";
+            } elseif ($_GET['filter_profile'] == 'incomplete') {
+                $where .= " AND (profile_completed = 0 OR profile_completed IS NULL)";
+            }
+        }
+        
+        // فیلتر دوره
+        if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+            $course_id = absint($_GET['filter_course']);
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            $where .= $wpdb->prepare(
+                " AND id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')",
+                $course_id
+            );
+        }
+
+        if (isset($_GET['s']) && !empty($_GET['s'])) {
+            $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';
+            $where .= $wpdb->prepare(
+                " AND (first_name LIKE %s OR last_name LIKE %s OR player_phone LIKE %s OR birth_date_shamsi LIKE %s OR birth_date_gregorian LIKE %s)",
+                $search, $search, $search, $search, $search
+            );
+        }
+
+        $results = $wpdb->get_results(
+            "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            ARRAY_A
+        );
+
+        $this->set_pagination_args([
+            'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
+            'per_page' => $per_page
+        ]);
+
+        $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
+        $this->items = $results;
+    }
+}
+?>
+
+
+
+            echo '<div class="alignleft actions">';
+            
+            // فیلتر دوره
+            if ($courses) {
+                echo '<select name="filter_course" id="filter_course" style="margin-left: 5px;">';
+                echo '<option value="0">همه دوره‌ها</option>';
+                foreach ($courses as $course) {
+                    $selected = ($selected_course == $course->id) ? 'selected' : '';
+                    echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
+                }
+                echo '</select>';
+            }
+            
+            // فیلتر وضعیت (active/inactive)
+            echo '<select name="filter_status" id="filter_status" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
+            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
+            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
+            echo '</select>';
+            
+            // فیلتر تکمیل پروفایل
+            echo '<select name="filter_profile" id="filter_profile" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_profile == 'all' ? ' selected' : '') . '>همه پروفایل‌ها</option>';
+            echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
+            echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
+            echo '</select>';
+            
+            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            
+            // دکمه خروجی Excel
+            $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
+            if (isset($_GET['player_status']) && $_GET['player_status'] !== 'all') {
+                $export_url = add_query_arg('player_status', $_GET['player_status'], $export_url);
+            }
+            if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+                $export_url = add_query_arg('filter_course', $_GET['filter_course'], $export_url);
+            }
+            if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
+                $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
+            }
+            if (isset($_GET['s']) && !empty($_GET['s'])) {
+                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            }
+            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
+            
+                echo '</div>';
+        }
+    }
+
+    public function prepare_items() {
+        $this->process_bulk_action();
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_members';
+
+        $per_page = 10; // تعداد نمایش در هر صفحه
+        $page = $this->get_pagenum();
+        $offset = ($page - 1) * $per_page;
+
+        $orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
+        $order = isset($_GET['order']) ? sanitize_text_field($_GET['order']) : 'DESC';
+        $order_clause = "ORDER BY $orderby $order";
+
+        $where = " 1=1 ";
+        
+        // فیلتر وضعیت (از تب‌ها)
+        if (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
+            $where .= " AND is_active = 1";
+        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
+            $where .= " AND is_active = 0";
+        }
+        
+        // فیلتر وضعیت (از dropdown)
+        if (isset($_GET['filter_status']) && $_GET['filter_status'] != 'all') {
+            if ($_GET['filter_status'] == 'active') {
+                $where .= " AND is_active = 1";
+            } elseif ($_GET['filter_status'] == 'inactive') {
+                $where .= " AND is_active = 0";
+            }
+        }
+        
+        // فیلتر تکمیل پروفایل
+        if (isset($_GET['filter_profile']) && $_GET['filter_profile'] != 'all') {
+            if ($_GET['filter_profile'] == 'completed') {
+                $where .= " AND profile_completed = 1";
+            } elseif ($_GET['filter_profile'] == 'incomplete') {
+                $where .= " AND (profile_completed = 0 OR profile_completed IS NULL)";
+            }
+        }
+        
+        // فیلتر دوره
+        if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+            $course_id = absint($_GET['filter_course']);
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            $where .= $wpdb->prepare(
+                " AND id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')",
+                $course_id
+            );
+        }
+
+        if (isset($_GET['s']) && !empty($_GET['s'])) {
+            $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';
+            $where .= $wpdb->prepare(
+                " AND (first_name LIKE %s OR last_name LIKE %s OR player_phone LIKE %s OR birth_date_shamsi LIKE %s OR birth_date_gregorian LIKE %s)",
+                $search, $search, $search, $search, $search
+            );
+        }
+
+        $results = $wpdb->get_results(
+            "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            ARRAY_A
+        );
+
+        $this->set_pagination_args([
+            'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
+            'per_page' => $per_page
+        ]);
+
+        $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
+        $this->items = $results;
+    }
+}
+?>
+
+
+
+            echo '<div class="alignleft actions">';
+            
+            // فیلتر دوره
+            if ($courses) {
+                echo '<select name="filter_course" id="filter_course" style="margin-left: 5px;">';
+                echo '<option value="0">همه دوره‌ها</option>';
+                foreach ($courses as $course) {
+                    $selected = ($selected_course == $course->id) ? 'selected' : '';
+                    echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
+                }
+                echo '</select>';
+            }
+            
+            // فیلتر وضعیت (active/inactive)
+            echo '<select name="filter_status" id="filter_status" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
+            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
+            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
+            echo '</select>';
+            
+            // فیلتر تکمیل پروفایل
+            echo '<select name="filter_profile" id="filter_profile" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_profile == 'all' ? ' selected' : '') . '>همه پروفایل‌ها</option>';
+            echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
+            echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
+            echo '</select>';
+            
+            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            
+            // دکمه خروجی Excel
+            $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
+            if (isset($_GET['player_status']) && $_GET['player_status'] !== 'all') {
+                $export_url = add_query_arg('player_status', $_GET['player_status'], $export_url);
+            }
+            if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+                $export_url = add_query_arg('filter_course', $_GET['filter_course'], $export_url);
+            }
+            if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
+                $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
+            }
+            if (isset($_GET['s']) && !empty($_GET['s'])) {
+                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            }
+            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
+            
+                echo '</div>';
+        }
+    }
+
+    public function prepare_items() {
+        $this->process_bulk_action();
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_members';
+
+        $per_page = 10; // تعداد نمایش در هر صفحه
+        $page = $this->get_pagenum();
+        $offset = ($page - 1) * $per_page;
+
+        $orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
+        $order = isset($_GET['order']) ? sanitize_text_field($_GET['order']) : 'DESC';
+        $order_clause = "ORDER BY $orderby $order";
+
+        $where = " 1=1 ";
+        
+        // فیلتر وضعیت (از تب‌ها)
+        if (isset($_GET['player_status']) && $_GET['player_status'] == 'active') {
+            $where .= " AND is_active = 1";
+        } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
+            $where .= " AND is_active = 0";
+        }
+        
+        // فیلتر وضعیت (از dropdown)
+        if (isset($_GET['filter_status']) && $_GET['filter_status'] != 'all') {
+            if ($_GET['filter_status'] == 'active') {
+                $where .= " AND is_active = 1";
+            } elseif ($_GET['filter_status'] == 'inactive') {
+                $where .= " AND is_active = 0";
+            }
+        }
+        
+        // فیلتر تکمیل پروفایل
+        if (isset($_GET['filter_profile']) && $_GET['filter_profile'] != 'all') {
+            if ($_GET['filter_profile'] == 'completed') {
+                $where .= " AND profile_completed = 1";
+            } elseif ($_GET['filter_profile'] == 'incomplete') {
+                $where .= " AND (profile_completed = 0 OR profile_completed IS NULL)";
+            }
+        }
+        
+        // فیلتر دوره
+        if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
+            $course_id = absint($_GET['filter_course']);
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            $where .= $wpdb->prepare(
+                " AND id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')",
+                $course_id
+            );
+        }
+
+        if (isset($_GET['s']) && !empty($_GET['s'])) {
+            $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';
+            $where .= $wpdb->prepare(
+                " AND (first_name LIKE %s OR last_name LIKE %s OR player_phone LIKE %s OR birth_date_shamsi LIKE %s OR birth_date_gregorian LIKE %s)",
+                $search, $search, $search, $search, $search
+            );
+        }
+
+        $results = $wpdb->get_results(
+            "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            ARRAY_A
+        );
+
+        $this->set_pagination_args([
+            'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
+            'per_page' => $per_page
+        ]);
+
+        $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
+        $this->items = $results;
+    }
+}
+?>
+
+
