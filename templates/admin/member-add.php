@@ -1,4 +1,26 @@
 <?php 
+if(!isset($_GET['player_id'])){
+    ?>
+<div class="wrap">
+    <h1 class="wp-heading-inline">
+        <?php 
+        echo 'ثبت بازیکن جدید' ;
+         ?>
+            </h1>
+            <p>
+                <?php  echo "برای افزودن بازیکن برای اولین بار لطفا از بخش کاربران اقدام نمایید با تشکر " ?>
+            </p>
+            <a href="user-new.php" style="color: #ffffffff;">
+                <button  name="redirect" class="button button-primary">
+                    <?php echo "بخش کاربران"; ?>
+            </a>
+
+
+    <?php 
+        
+    
+    exit;
+}
         $first_name = '';
         $last_name = '';
         $father_name = '';

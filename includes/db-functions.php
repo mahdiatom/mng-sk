@@ -1,4 +1,161 @@
 <?php 
+
+    /**
+ * create sc_settings
+ */
+
+function sc_create_settings_table(){
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_settings';
+    $table_collation = $wpdb->collate;
+
+
+$sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `setting_key` varchar(100) NOT NULL,
+        `setting_value` text DEFAULT NULL,
+        `setting_group` varchar(50) DEFAULT 'general',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_setting_key` (`setting_key`),
+        KEY `idx_setting_group` (`setting_group`)
+    ) ENGINE=InnoDB $table_collation";
+
+            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+            dbDelta($sql);
+    }
+    /**
+ * create sc_invoices
+ */
+
+function sc_create_invoices_table(){
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_invoices';
+    $table_collation = $wpdb->collate;
+
+
+$sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `event_id` bigint(20) unsigned DEFAULT NULL,
+        `member_course_id` bigint(20) unsigned DEFAULT NULL,
+        `woocommerce_order_id` bigint(20) unsigned DEFAULT NULL,
+        `amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `expense_name` varchar(255) DEFAULT NULL,
+        `penalty_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `penalty_applied` tinyint(1) DEFAULT 0,
+        `status` varchar(20) DEFAULT 'pending',
+        `payment_date` datetime DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_member_course_id` (`member_course_id`),
+        KEY `idx_woocommerce_order_id` (`woocommerce_order_id`),
+        KEY `idx_status` (`status`),
+        KEY `idx_event_id` (`event_id`)
+    ) ENGINE=InnoDB $table_collation";
+
+            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+            dbDelta($sql);
+    }
+    /**
+ * create_create_courses_table
+ */
+
+function sc_create_courses_table(){
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_courses';
+    $table_collation = $wpdb->collate;
+
+
+$sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `title` varchar(255) NOT NULL,
+        `description` text DEFAULT NULL,
+        `price` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `capacity` int(11) DEFAULT NULL,
+        `sessions_count` int(11) DEFAULT NULL,
+        `start_date` date DEFAULT NULL,
+        `end_date` date DEFAULT NULL,
+        `is_active` tinyint(1) DEFAULT 1,
+        `deleted_at` datetime DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_is_active` (`is_active`),
+        KEY `idx_deleted_at` (`deleted_at`)
+    ) ENGINE=InnoDB $table_collation";
+
+            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+            dbDelta($sql);
+    }
+
+    /**
+ * create_sc_member_courses
+ */
+
+function sc_create_member_courses_table(){
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_member_courses';
+    $table_collation = $wpdb->collate;
+
+
+$sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `enrollment_date` date DEFAULT NULL,
+        `status` varchar(20) DEFAULT 'active',
+        `course_status_flags` varchar(255) DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_member_course` (`member_id`,`course_id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_status` (`status`)
+    ) ENGINE=InnoDB $table_collation";
+
+            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+            dbDelta($sql);
+    }
+
+    /**
+ * create_attendances
+ */
+
+function sc_create_attendances_table(){
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_attendances';
+    $table_collation = $wpdb->collate;
+
+
+$sql = "CREATE TABLE `$table_name` (
+    `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    `member_id` bigint(20) unsigned NOT NULL,
+    `course_id` bigint(20) unsigned NOT NULL,
+    `attendance_date` date NOT NULL,
+    `status` enum('present','absent') NOT NULL DEFAULT 'present',
+    `created_at` datetime NOT NULL,
+    `updated_at` datetime NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `idx_member_course_date` (`member_id`,`course_id`,`attendance_date`),
+    KEY `idx_member_id` (`member_id`),
+    KEY `idx_course_id` (`course_id`),
+    KEY `idx_attendance_date` (`attendance_date`),
+    KEY `idx_status` (`status`)
+    ) ENGINE=InnoDB $table_collation";
+
+            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+            dbDelta($sql);
+    }
+    /**
+ * Create members_table
+ */
 function sc_create_members_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';

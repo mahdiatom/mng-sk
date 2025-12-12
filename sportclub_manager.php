@@ -104,6 +104,73 @@ function sc_activate_plugin() {
         deactivate_plugins(plugin_basename(__FILE__));
         wp_die('خطا در فعال‌سازی افزونه: ' . esc_html($e->getMessage()));
     }
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+    
+    global $wpdb;
+    
+    $members_table = $wpdb->prefix . 'sc_members';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $settings_table = $wpdb->prefix . 'sc_settings';
+    $attendances_table = $wpdb->prefix . 'sc_attendances';
+    $expense_categories_table = $wpdb->prefix . 'sc_expense_categories';
+    $expenses_table = $wpdb->prefix . 'sc_expenses';
+    $events_table = $wpdb->prefix . 'sc_events';
+    $event_fields_table = $wpdb->prefix . 'sc_event_fields';
+    $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+    
+    // بررسی وجود جداول
+    $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
+    $courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $courses_table)) == $courses_table;
+    $member_courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $member_courses_table)) == $member_courses_table;
+    $invoices_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $invoices_table)) == $invoices_table;
+    $settings_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $settings_table)) == $settings_table;
+    $attendances_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $attendances_table)) == $attendances_table;
+    $expense_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expense_categories_table)) == $expense_categories_table;
+    $expenses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expenses_table)) == $expenses_table;
+    $events_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $events_table)) == $events_table;
+    $event_fields_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_fields_table)) == $event_fields_table;
+    $event_registrations_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_registrations_table)) == $event_registrations_table;
+    
+    // ایجاد جداول در صورت عدم وجود
+    if (!$members_exists && function_exists('sc_create_members_table')) {
+        sc_create_members_table();
+    }
+    if (!$courses_exists && function_exists('sc_create_courses_table')) {
+        sc_create_courses_table();
+    }
+    if (!$member_courses_exists && function_exists('sc_create_member_courses_table')) {
+        sc_create_member_courses_table();
+    }
+    if (!$invoices_exists && function_exists('sc_create_invoices_table')) {
+        sc_create_invoices_table();
+    }
+    if (!$settings_exists && function_exists('sc_create_settings_table')) {
+        sc_create_settings_table();
+    }
+    if (!$attendances_exists && function_exists('sc_create_attendances_table')) {
+        sc_create_attendances_table();
+    }
+    if (!$expense_categories_exists && function_exists('sc_create_expense_categories_table')) {
+        sc_create_expense_categories_table();
+    }
+    if (!$expenses_exists && function_exists('sc_create_expenses_table')) {
+        sc_create_expenses_table();
+    }
+    if (!$events_exists && function_exists('sc_create_events_table')) {
+        sc_create_events_table();
+    }
+    if (!$event_fields_exists && function_exists('sc_create_event_fields_table')) {
+        sc_create_event_fields_table();
+    }
+    if (!$event_registrations_exists && function_exists('sc_create_event_registrations_table')) {
+        sc_create_event_registrations_table();
+    }
 }
 
 /**
@@ -457,73 +524,7 @@ function sc_update_profile_completed_status($member_id) {
  */
 function sc_check_and_create_tables() {
     // جلوگیری از اجرای مکرر در یک درخواست
-    static $checked = false;
-    if ($checked) {
-        return;
-    }
-    $checked = true;
     
-    global $wpdb;
-    
-    $members_table = $wpdb->prefix . 'sc_members';
-    $courses_table = $wpdb->prefix . 'sc_courses';
-    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-    $invoices_table = $wpdb->prefix . 'sc_invoices';
-    $settings_table = $wpdb->prefix . 'sc_settings';
-    $attendances_table = $wpdb->prefix . 'sc_attendances';
-    $expense_categories_table = $wpdb->prefix . 'sc_expense_categories';
-    $expenses_table = $wpdb->prefix . 'sc_expenses';
-    $events_table = $wpdb->prefix . 'sc_events';
-    $event_fields_table = $wpdb->prefix . 'sc_event_fields';
-    $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
-    
-    // بررسی وجود جداول
-    $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
-    $courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $courses_table)) == $courses_table;
-    $member_courses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $member_courses_table)) == $member_courses_table;
-    $invoices_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $invoices_table)) == $invoices_table;
-    $settings_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $settings_table)) == $settings_table;
-    $attendances_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $attendances_table)) == $attendances_table;
-    $expense_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expense_categories_table)) == $expense_categories_table;
-    $expenses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expenses_table)) == $expenses_table;
-    $events_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $events_table)) == $events_table;
-    $event_fields_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_fields_table)) == $event_fields_table;
-    $event_registrations_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_registrations_table)) == $event_registrations_table;
-    
-    // ایجاد جداول در صورت عدم وجود
-    if (!$members_exists && function_exists('sc_create_members_table')) {
-        sc_create_members_table();
-    }
-    if (!$courses_exists && function_exists('sc_create_courses_table')) {
-        sc_create_courses_table();
-    }
-    if (!$member_courses_exists && function_exists('sc_create_member_courses_table')) {
-        sc_create_member_courses_table();
-    }
-    if (!$invoices_exists && function_exists('sc_create_invoices_table')) {
-        sc_create_invoices_table();
-    }
-    if (!$settings_exists && function_exists('sc_create_settings_table')) {
-        sc_create_settings_table();
-    }
-    if (!$attendances_exists && function_exists('sc_create_attendances_table')) {
-        sc_create_attendances_table();
-    }
-    if (!$expense_categories_exists && function_exists('sc_create_expense_categories_table')) {
-        sc_create_expense_categories_table();
-    }
-    if (!$expenses_exists && function_exists('sc_create_expenses_table')) {
-        sc_create_expenses_table();
-    }
-    if (!$events_exists && function_exists('sc_create_events_table')) {
-        sc_create_events_table();
-    }
-    if (!$event_fields_exists && function_exists('sc_create_event_fields_table')) {
-        sc_create_event_fields_table();
-    }
-    if (!$event_registrations_exists && function_exists('sc_create_event_registrations_table')) {
-        sc_create_event_registrations_table();
-    }
 }
 
 // بررسی و ایجاد جداول در هر بار بارگذاری افزونه (فقط در پنل ادمین)
