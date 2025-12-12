@@ -84,10 +84,10 @@ function sc_is_penalty_enabled() {
 }
 
 /**
- * Get penalty days
+ * Get penalty minutes
  */
-function sc_get_penalty_days() {
-    return (int)sc_get_setting('penalty_days', '7');
+function sc_get_penalty_minutes() {
+    return (int)sc_get_setting('penalty_minutes', '7');
 }
 
 /**
@@ -98,10 +98,10 @@ function sc_get_penalty_amount() {
 }
 
 /**
- * Get invoice interval days
+ * Get invoice interval minutes
  */
-function sc_get_invoice_interval_days() {
-    return (int)sc_get_setting('invoice_interval_days', '30');
+function sc_get_invoice_interval_minutes() {
+    return (int)sc_get_setting('invoice_interval_minutes', '60');
 }
 
 /**
@@ -126,15 +126,15 @@ function sc_calculate_penalty($invoice_id) {
     
     $created_date = strtotime($invoice->created_at);
     $current_date = current_time('timestamp');
-    $days_passed = floor(($current_date - $created_date) / (60 * 60 * 24));
-    $penalty_days = sc_get_penalty_days();
+    $minutes_passed = floor(($current_date - $created_date) / 60);
+    $penalty_minutes = sc_get_penalty_minutes();
     
     // اگر جریمه قبلاً اعمال شده، همان مقدار را برگردان
     if (isset($invoice->penalty_applied) && $invoice->penalty_applied && isset($invoice->penalty_amount) && $invoice->penalty_amount > 0) {
         return (float)$invoice->penalty_amount;
     }
     
-    if ($days_passed >= $penalty_days) {
+    if ($minutes_passed >= $penalty_minutes) {
         return sc_get_penalty_amount();
     }
     
@@ -242,15 +242,15 @@ function sc_check_and_apply_penalties() {
     
     global $wpdb;
     $invoices_table = $wpdb->prefix . 'sc_invoices';
-    $penalty_days = sc_get_penalty_days();
+    $penalty_minutes = sc_get_penalty_minutes();
     
     // دریافت تمام صورت حساب‌های pending که جریمه اعمال نشده
     $invoices = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM $invoices_table 
-         WHERE status = 'pending' 
+        "SELECT * FROM $invoices_table
+         WHERE status = 'pending'
          AND (penalty_applied = 0 OR penalty_applied IS NULL)
-         AND TIMESTAMPDIFF(DAY, created_at, NOW()) >= %d",
-        $penalty_days
+         AND TIMESTAMPDIFF(MINUTE, created_at, NOW()) >= %d",
+        $penalty_minutes
     ));
     
     foreach ($invoices as $invoice) {

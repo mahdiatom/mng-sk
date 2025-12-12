@@ -22,9 +22,9 @@ function sc_create_recurring_invoices() {
     $courses_table = $wpdb->prefix . 'sc_courses';
     $members_table = $wpdb->prefix . 'sc_members';
     
-    $interval_days = sc_get_invoice_interval_days();
-    
-    error_log("SC Recurring Invoices: Using DAY interval: $interval_days days");
+    $interval_minutes = sc_get_invoice_interval_minutes();
+
+    error_log("SC Recurring Invoices: Using MINUTE interval: $interval_minutes minutes");
     
     // دریافت تمام دوره‌های active که باید برای آن‌ها صورت حساب ایجاد شود
     // فقط دوره‌هایی که آخرین صورت حساب آن‌ها (چه pending چه paid) بیشتر از interval_days روز از ایجاد آن گذشته باشد
@@ -55,19 +55,19 @@ function sc_create_recurring_invoices() {
                  WHERE i.member_course_id = mc.id
              )
              OR
-             -- دوره‌هایی که آخرین صورت حساب آن‌ها (چه pending چه paid) بیشتر از interval_days روز از ایجاد آن گذشته است
+             -- دوره‌هایی که آخرین صورت حساب آن‌ها (چه pending چه paid) بیشتر از interval_minutes دقیقه از ایجاد آن گذشته است
              EXISTS (
-                 SELECT 1 FROM $invoices_table i 
-                 WHERE i.member_course_id = mc.id 
-                 AND TIMESTAMPDIFF(DAY, i.created_at, NOW()) >= %d
+                 SELECT 1 FROM $invoices_table i
+                 WHERE i.member_course_id = mc.id
+                 AND TIMESTAMPDIFF(MINUTE, i.created_at, NOW()) >= %d
                  AND i.created_at = (
-                     SELECT MAX(i2.created_at) 
-                     FROM $invoices_table i2 
+                     SELECT MAX(i2.created_at)
+                     FROM $invoices_table i2
                      WHERE i2.member_course_id = mc.id
                  )
              )
          )",
-        $interval_days
+        $interval_minutes
     ));
     
     error_log("SC Recurring Invoices: Found " . count($active_courses) . " courses that need invoices");
@@ -106,21 +106,33 @@ function sc_create_recurring_invoices() {
 }
 
 /**
+ * Add custom cron interval for every minute
+ */
+add_filter('cron_schedules', 'sc_add_every_minute_cron_schedule');
+function sc_add_every_minute_cron_schedule($schedules) {
+    $schedules['every_minute'] = array(
+        'interval' => 60, // 60 seconds
+        'display'  => __('Every Minute')
+    );
+    return $schedules;
+}
+
+/**
  * Register cron job for recurring invoices
  */
 add_action('init', 'sc_register_recurring_invoices_cron');
 function sc_register_recurring_invoices_cron() {
-    $cron_interval = 'daily'; // هر 24 ساعت
-    
-    if (!wp_next_scheduled('sc_daily_recurring_invoices_check')) {
-        wp_schedule_event(time(), $cron_interval, 'sc_daily_recurring_invoices_check');
+    $cron_interval = 'every_minute'; // هر دقیقه
+
+    if (!wp_next_scheduled('sc_every_minute_recurring_invoices_check')) {
+        wp_schedule_event(time(), $cron_interval, 'sc_every_minute_recurring_invoices_check');
     }
 }
 
 /**
  * Hook for cron job
  */
-add_action('sc_daily_recurring_invoices_check', 'sc_create_recurring_invoices');
+add_action('sc_every_minute_recurring_invoices_check', 'sc_create_recurring_invoices');
 
 /**
  * بررسی و اعمال flag paused برای دوره‌هایی با 3 یا بیشتر صورت حساب pending
@@ -199,18 +211,18 @@ function sc_check_and_pause_courses_with_unpaid_invoices() {
 }
 
 /**
- * اضافه کردن تابع به cron job روزانه
+ * اضافه کردن تابع به cron job هر دقیقه
  */
-add_action('sc_daily_recurring_invoices_check', 'sc_check_and_pause_courses_with_unpaid_invoices');
+add_action('sc_every_minute_recurring_invoices_check', 'sc_check_and_pause_courses_with_unpaid_invoices');
 
 /**
  * Cleanup cron job on deactivation
  * توجه: این تابع باید در فایل اصلی افزونه register شود
  */
 function sc_clear_recurring_invoices_cron() {
-    $timestamp = wp_next_scheduled('sc_daily_recurring_invoices_check');
+    $timestamp = wp_next_scheduled('sc_every_minute_recurring_invoices_check');
     if ($timestamp) {
-        wp_unschedule_event($timestamp, 'sc_daily_recurring_invoices_check');
+        wp_unschedule_event($timestamp, 'sc_every_minute_recurring_invoices_check');
     }
 }
 

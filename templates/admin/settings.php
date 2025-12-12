@@ -14,19 +14,19 @@ $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'penalt
 if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce', 'sc_settings_nonce')) {
     if ($current_tab === 'penalty') {
         $penalty_enabled = isset($_POST['penalty_enabled']) ? 1 : 0;
-        $penalty_days = isset($_POST['penalty_days']) ? absint($_POST['penalty_days']) : 7;
+        $penalty_minutes = isset($_POST['penalty_minutes']) ? absint($_POST['penalty_minutes']) : 7;
         $penalty_amount = isset($_POST['penalty_amount']) ? floatval($_POST['penalty_amount']) : 500;
-        
+
         sc_update_setting('penalty_enabled', $penalty_enabled, 'penalty');
-        sc_update_setting('penalty_days', $penalty_days, 'penalty');
+        sc_update_setting('penalty_minutes', $penalty_minutes, 'penalty');
         sc_update_setting('penalty_amount', $penalty_amount, 'penalty');
         
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات جریمه با موفقیت ذخیره شد.</p></div>';
     } elseif ($current_tab === 'invoice') {
-        $invoice_interval_days = isset($_POST['invoice_interval_days']) ? absint($_POST['invoice_interval_days']) : 30;
-        
-        sc_update_setting('invoice_interval_days', $invoice_interval_days, 'invoice');
-        
+        $invoice_interval_minutes = isset($_POST['invoice_interval_minutes']) ? absint($_POST['invoice_interval_minutes']) : 60;
+
+        sc_update_setting('invoice_interval_minutes', $invoice_interval_minutes, 'invoice');
+
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات صورتحساب با موفقیت ذخیره شد.</p></div>';
     }
 }
@@ -47,9 +47,9 @@ if (isset($_POST['sc_reset_factory']) && check_admin_referer('sc_reset_factory',
 
 // دریافت تنظیمات فعلی
 $penalty_enabled = sc_is_penalty_enabled();
-$penalty_days = sc_get_penalty_days();
+$penalty_minutes = sc_get_penalty_minutes();
 $penalty_amount = sc_get_penalty_amount();
-$invoice_interval_days = sc_get_invoice_interval_days();
+$invoice_interval_minutes = sc_get_invoice_interval_minutes();
 
 ?>
 
@@ -94,17 +94,17 @@ $invoice_interval_days = sc_get_invoice_interval_days();
                     
                     <tr>
                         <th scope="row">
-                            <label for="penalty_days">تعداد روز قبل از اعمال جریمه</label>
+                            <label for="penalty_minutes">تعداد دقیقه قبل از اعمال جریمه</label>
                         </th>
                         <td>
-                            <input type="number" 
-                                   name="penalty_days" 
-                                   id="penalty_days" 
-                                   value="<?php echo esc_attr($penalty_days); ?>" 
-                                   min="1" 
-                                   class="regular-text" 
+                            <input type="number"
+                                   name="penalty_minutes"
+                                   id="penalty_minutes"
+                                   value="<?php echo esc_attr($penalty_minutes); ?>"
+                                   min="1"
+                                   class="regular-text"
                                    required>
-                            <p class="description">تعداد روزی که بعد از ایجاد صورت حساب، در صورت عدم پرداخت، جریمه اعمال می‌شود.</p>
+                            <p class="description">تعداد دقیقه‌ای که بعد از ایجاد صورت حساب، در صورت عدم پرداخت، جریمه اعمال می‌شود.</p>
                         </td>
                     </tr>
                     
@@ -137,17 +137,17 @@ $invoice_interval_days = sc_get_invoice_interval_days();
                 <table class="form-table">
                     <tr>
                         <th scope="row">
-                            <label for="invoice_interval_days">تعداد روز فاصله بین صورت حساب‌های تکراری</label>
+                            <label for="invoice_interval_minutes">تعداد دقیقه فاصله بین صورت حساب‌های تکراری</label>
                         </th>
                         <td>
-                            <input type="number" 
-                                   name="invoice_interval_days" 
-                                   id="invoice_interval_days" 
-                                   value="<?php echo esc_attr($invoice_interval_days); ?>" 
-                                   min="1" 
-                                   class="regular-text" 
+                            <input type="number"
+                                   name="invoice_interval_minutes"
+                                   id="invoice_interval_minutes"
+                                   value="<?php echo esc_attr($invoice_interval_minutes); ?>"
+                                   min="1"
+                                   class="regular-text"
                                    required>
-                            <p class="description">تعداد روزی که بین ایجاد صورت حساب‌های تکراری فاصله وجود دارد.</p>
+                            <p class="description">تعداد دقیقه‌ای که بین ایجاد صورت حساب‌های تکراری فاصله وجود دارد.</p>
                         </td>
                     </tr>
                 </table>
