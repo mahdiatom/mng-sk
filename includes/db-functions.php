@@ -7,7 +7,7 @@
 function sc_create_settings_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_settings';
-    $table_collation = $wpdb->collate;
+    $table_collation = $wpdb->get_charset_collate;
 
 
 $sql = "CREATE TABLE `$table_name` (
@@ -32,7 +32,7 @@ $sql = "CREATE TABLE `$table_name` (
 function sc_create_invoices_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_invoices';
-    $table_collation = $wpdb->collate;
+    $table_collation = $wpdb->get_charset_collate;
 
 
 $sql = "CREATE TABLE `$table_name` (
@@ -69,7 +69,7 @@ $sql = "CREATE TABLE `$table_name` (
 function sc_create_courses_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_courses';
-    $table_collation = $wpdb->collate;
+    $table_collation = $wpdb->get_charset_collate;
 
 
 $sql = "CREATE TABLE `$table_name` (
@@ -101,7 +101,7 @@ $sql = "CREATE TABLE `$table_name` (
 function sc_create_member_courses_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_member_courses';
-    $table_collation = $wpdb->collate;
+    $table_collation = $wpdb->get_charset_collate;
 
 
 $sql = "CREATE TABLE `$table_name` (
@@ -131,7 +131,7 @@ $sql = "CREATE TABLE `$table_name` (
 function sc_create_attendances_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_attendances';
-    $table_collation = $wpdb->collate;
+    $table_collation = $wpdb->get_charset_collate;
 
 
 $sql = "CREATE TABLE `$table_name` (
@@ -159,7 +159,7 @@ $sql = "CREATE TABLE `$table_name` (
 function sc_create_members_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
-    $table_collation = $wpdb->collate;
+    $table_collation = $wpdb->get_charset_collate;
 
 
         $sql = "CREATE TABLE `$table_name` (
