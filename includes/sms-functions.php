@@ -209,6 +209,16 @@ function sc_send_regular_sms($mobile, $message) {
     $error = curl_error($ch);
     curl_close($ch);
 
+    // Debug API response
+    sc_log_sms('DEBUG', 'SMS API Response', [
+        'url' => $url,
+        'http_code' => $http_code,
+        'response' => $response,
+        'data' => $data,
+        'error' => $error,
+        'api_key_masked' => substr($api_key, 0, 10) . '***'
+    ]);
+
     if ($error) {
         return ['success' => false, 'message' => 'خطا در اتصال به API: ' . $error];
     }
@@ -470,6 +480,7 @@ function sc_replace_sms_variables($template, $variables) {
  * Send SMS notification for invoice creation
  */
 function sc_send_invoice_sms($invoice_id) {
+    error_log("SC SMS: Invoice SMS hook called for invoice ID: $invoice_id");
     global $wpdb;
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $members_table = $wpdb->prefix . 'sc_members';
@@ -593,6 +604,8 @@ function sc_send_payment_success_sms($invoice_id) {
  * Send SMS notification for course enrollment (deprecated - use success version)
  */
 function sc_send_enrollment_sms($member_course_id) {
+    error_log("SC SMS: Enrollment SMS hook called for member_course_id: $member_course_id");
+
     global $wpdb;
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $members_table = $wpdb->prefix . 'sc_members';
@@ -609,6 +622,8 @@ function sc_send_enrollment_sms($member_course_id) {
     ));
 
     // Debug logging
+    error_log("SC SMS: Enrollment details - exists: " . ($enrollment ? 'yes' : 'no') . ", phone: " . ($enrollment ? $enrollment->player_phone : 'none'));
+
     sc_log_sms('DEBUG', 'Enrollment SMS called', [
         'member_course_id' => $member_course_id,
         'enrollment_exists' => $enrollment ? 'yes' : 'no',
@@ -635,22 +650,26 @@ function sc_send_enrollment_sms($member_course_id) {
     ];
 
     // Send SMS to user
-    if (sc_is_sms_enabled_for('enrollment', 'user')) {
-        sc_log_sms('DEBUG', 'Enrollment SMS to user enabled', [
-            'member_course_id' => $member_course_id,
-            'phone' => $enrollment->player_phone,
-            'template_exists' => !empty(sc_get_sms_template('enrollment', 'user'))
-        ]);
+    $user_enabled = sc_is_sms_enabled_for('enrollment', 'user');
+    $user_template = sc_get_sms_template('enrollment', 'user');
 
-        $template = sc_get_sms_template('enrollment', 'user');
-        if (!empty($template)) {
-            $message = sc_replace_sms_variables($template, $variables);
+    error_log("SC SMS: User SMS check - enabled: " . ($user_enabled ? 'yes' : 'no') . ", template: " . (!empty($user_template) ? 'exists' : 'empty') . ", phone: " . $enrollment->player_phone);
+
+    sc_log_sms('DEBUG', 'Enrollment SMS check', [
+        'user_enabled' => $user_enabled ? 'yes' : 'no',
+        'user_template' => !empty($user_template) ? 'exists' : 'empty',
+        'phone' => $enrollment->player_phone
+    ]);
+
+    if ($user_enabled) {
+        if (!empty($user_template)) {
+            $message = sc_replace_sms_variables($user_template, $variables);
             $pattern_code = sc_get_sms_pattern('enrollment', 'user');
             $result = sc_send_sms($enrollment->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
 
-            sc_log_sms('DEBUG', 'Enrollment SMS to user result', [
+            sc_log_sms('INFO', 'Enrollment SMS to user sent', [
                 'phone' => $enrollment->player_phone,
-                'success' => $result['success'],
+                'success' => $result['success'] ? 'yes' : 'no',
                 'message' => $result['message']
             ]);
         } else {
@@ -825,6 +844,9 @@ add_action('sc_attendance_absent', 'sc_send_absence_sms', 10, 1);
 // Hook for penalty applied
 add_action('sc_penalty_applied', 'sc_send_penalty_sms', 10, 1);
 
+// Initialize SMS settings on plugin load
+add_action('admin_init', 'sc_initialize_sms_settings');
+
 /**
  * Send SMS for penalty applied
  */
@@ -842,6 +864,7 @@ function sc_initialize_sms_settings() {
         'sms_api_key' => '',
         'sms_sender' => '',
         'sms_admin_phone' => '',
+        'sms_reminder_delay_minutes' => '4320', // 3 days in minutes
 
         // Invoice SMS - User
         'sms_invoice_user_enabled' => '1',
@@ -892,11 +915,22 @@ function sc_initialize_sms_settings() {
         'sms_absence_admin_enabled' => '1',
         'sms_absence_admin_template' => 'غیبت: %user_name% - دوره %course_name% - تاریخ %date%',
         'sms_absence_admin_pattern' => '',
+
+        // Reminder Settings
+        'sms_reminder_delay_minutes' => '4320', // 3 days in minutes
     ];
 
     foreach ($defaults as $key => $value) {
         if (sc_get_setting($key, null) === null) {
             sc_update_setting($key, $value, 'sms');
+            error_log("SC SMS: Initialized setting $key = $value");
         }
     }
+}
+
+/**
+ * Get reminder delay in minutes
+ */
+function sc_get_reminder_delay_minutes() {
+    return (int)sc_get_setting('sms_reminder_delay_minutes', '4320');
 }

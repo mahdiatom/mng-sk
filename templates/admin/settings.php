@@ -33,10 +33,12 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $sms_api_key = isset($_POST['sms_api_key']) ? sanitize_text_field($_POST['sms_api_key']) : '';
         $sms_sender = isset($_POST['sms_sender']) ? sanitize_text_field($_POST['sms_sender']) : '';
         $sms_admin_phone = isset($_POST['sms_admin_phone']) ? sanitize_text_field($_POST['sms_admin_phone']) : '';
+        $sms_reminder_delay_minutes = isset($_POST['sms_reminder_delay_minutes']) ? absint($_POST['sms_reminder_delay_minutes']) : 4320;
 
         sc_update_setting('sms_api_key', $sms_api_key, 'sms');
         sc_update_setting('sms_sender', $sms_sender, 'sms');
         sc_update_setting('sms_admin_phone', $sms_admin_phone, 'sms');
+        sc_update_setting('sms_reminder_delay_minutes', $sms_reminder_delay_minutes, 'sms');
 
         // Invoice SMS Settings
         $sms_invoice_user_enabled = isset($_POST['sms_invoice_user_enabled']) ? 1 : 0;
@@ -170,6 +172,7 @@ $invoice_interval_minutes = sc_get_invoice_interval_minutes();
 $sms_api_key = sc_get_setting('sms_api_key', '');
 $sms_sender = sc_get_setting('sms_sender', '');
 $sms_admin_phone = sc_get_setting('sms_admin_phone', '');
+$sms_reminder_delay_minutes = sc_get_setting('sms_reminder_delay_minutes', '4320');
 
 // Invoice SMS Settings
 $sms_invoice_user_enabled = (int)sc_get_setting('sms_invoice_user_enabled', '1');
@@ -419,6 +422,22 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                             }
                             ?>
                             <p class="description">میزان اعتبار باقی‌مانده در پنل sms.ir</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">
+                            <label for="sms_reminder_delay_minutes">مدت زمان یادآوری پرداخت</label>
+                        </th>
+                        <td>
+                            <input type="number"
+                                   name="sms_reminder_delay_minutes"
+                                   id="sms_reminder_delay_minutes"
+                                   value="<?php echo esc_attr($sms_reminder_delay_minutes); ?>"
+                                   min="1"
+                                   class="regular-text"
+                                   required>
+                            <p class="description">مدت زمان به دقیقه که بعد از ایجاد صورت حساب، پیامک یادآوری ارسال شود. (پیش‌فرض: 4320 دقیقه = 3 روز)</p>
                         </td>
                     </tr>
                 </table>

@@ -227,11 +227,12 @@ function sc_send_payment_reminders() {
     global $wpdb;
     $invoices_table = $wpdb->prefix . 'sc_invoices';
 
-    // دریافت صورت حساب‌های pending که 3 روز از ایجاد آن‌ها گذشته
+    // دریافت صورت حساب‌های pending که مدت زمان مشخص شده از ایجاد آن‌ها گذشته
+    $reminder_delay_minutes = sc_get_reminder_delay_minutes();
     $reminder_invoices = $wpdb->get_results(
         "SELECT * FROM $invoices_table
          WHERE status = 'pending'
-         AND TIMESTAMPDIFF(DAY, created_at, NOW()) >= 3
+         AND TIMESTAMPDIFF(MINUTE, created_at, NOW()) >= $reminder_delay_minutes
          AND (last_reminder_sent IS NULL OR TIMESTAMPDIFF(DAY, last_reminder_sent, NOW()) >= 7)"
     );
 
