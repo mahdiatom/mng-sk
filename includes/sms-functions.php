@@ -608,7 +608,19 @@ function sc_send_enrollment_sms($member_course_id) {
         $member_course_id
     ));
 
+    // Debug logging
+    sc_log_sms('DEBUG', 'Enrollment SMS called', [
+        'member_course_id' => $member_course_id,
+        'enrollment_exists' => $enrollment ? 'yes' : 'no',
+        'player_phone' => $enrollment ? $enrollment->player_phone : 'no enrollment',
+        'member_id' => $enrollment ? $enrollment->member_id : 'no enrollment'
+    ]);
+
     if (!$enrollment || empty($enrollment->player_phone)) {
+        sc_log_sms('DEBUG', 'Enrollment SMS skipped - no phone or enrollment', [
+            'member_course_id' => $member_course_id,
+            'reason' => !$enrollment ? 'no enrollment found' : 'empty phone'
+        ]);
         return;
     }
 
@@ -624,25 +636,58 @@ function sc_send_enrollment_sms($member_course_id) {
 
     // Send SMS to user
     if (sc_is_sms_enabled_for('enrollment', 'user')) {
+        sc_log_sms('DEBUG', 'Enrollment SMS to user enabled', [
+            'member_course_id' => $member_course_id,
+            'phone' => $enrollment->player_phone,
+            'template_exists' => !empty(sc_get_sms_template('enrollment', 'user'))
+        ]);
+
         $template = sc_get_sms_template('enrollment', 'user');
         if (!empty($template)) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('enrollment', 'user');
-            sc_send_sms($enrollment->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+            $result = sc_send_sms($enrollment->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+
+            sc_log_sms('DEBUG', 'Enrollment SMS to user result', [
+                'phone' => $enrollment->player_phone,
+                'success' => $result['success'],
+                'message' => $result['message']
+            ]);
+        } else {
+            sc_log_sms('DEBUG', 'Enrollment SMS to user skipped - no template');
         }
+    } else {
+        sc_log_sms('DEBUG', 'Enrollment SMS to user disabled');
     }
 
     // Send SMS to admin
     if (sc_is_sms_enabled_for('enrollment', 'admin')) {
+        sc_log_sms('DEBUG', 'Enrollment SMS to admin enabled', [
+            'admin_phone' => sc_get_setting('sms_admin_phone', ''),
+            'template_exists' => !empty(sc_get_sms_template('enrollment', 'admin'))
+        ]);
+
         $admin_phone = sc_get_setting('sms_admin_phone', '');
         if (!empty($admin_phone)) {
             $template = sc_get_sms_template('enrollment', 'admin');
             if (!empty($template)) {
                 $message = sc_replace_sms_variables($template, $variables);
                 $pattern_code = sc_get_sms_pattern('enrollment', 'admin');
-                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+                $result = sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+
+                sc_log_sms('DEBUG', 'Enrollment SMS to admin result', [
+                    'phone' => $admin_phone,
+                    'success' => $result['success'],
+                    'message' => $result['message']
+                ]);
+            } else {
+                sc_log_sms('DEBUG', 'Enrollment SMS to admin skipped - no template');
             }
+        } else {
+            sc_log_sms('DEBUG', 'Enrollment SMS to admin skipped - no admin phone');
         }
+    } else {
+        sc_log_sms('DEBUG', 'Enrollment SMS to admin disabled');
     }
 }
 

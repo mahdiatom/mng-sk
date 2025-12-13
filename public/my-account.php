@@ -2198,11 +2198,16 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
                 ));
 
                 if ($member_course && $member_course->course_is_active == 1) {
+                    // Debug logging
+                    error_log('SC PAYMENT SUCCESS: Enrollment SMS hook triggered for member_course_id: ' . $invoice->member_course_id);
+
                     // ارسال SMS ثبت نام موفق
                     do_action('sc_course_enrolled_success', $invoice->member_course_id);
 
                     // ارسال SMS پرداخت موفق
                     do_action('sc_payment_success', $invoice->id);
+                } else {
+                    error_log('SC PAYMENT SUCCESS: Enrollment SMS skipped - course not active or not found');
                 }
             }
         }
