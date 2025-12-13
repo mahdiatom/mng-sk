@@ -83,6 +83,21 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_reminder_admin_template', $sms_reminder_admin_template, 'sms');
         sc_update_setting('sms_reminder_admin_pattern', $sms_reminder_admin_pattern, 'sms');
 
+        // Payment Success SMS Settings
+        $sms_payment_success_user_enabled = isset($_POST['sms_payment_success_user_enabled']) ? 1 : 0;
+        $sms_payment_success_user_template = isset($_POST['sms_payment_success_user_template']) ? sanitize_text_field($_POST['sms_payment_success_user_template']) : '';
+        $sms_payment_success_user_pattern = isset($_POST['sms_payment_success_user_pattern']) ? absint($_POST['sms_payment_success_user_pattern']) : '';
+        $sms_payment_success_admin_enabled = isset($_POST['sms_payment_success_admin_enabled']) ? 1 : 0;
+        $sms_payment_success_admin_template = isset($_POST['sms_payment_success_admin_template']) ? sanitize_text_field($_POST['sms_payment_success_admin_template']) : '';
+        $sms_payment_success_admin_pattern = isset($_POST['sms_payment_success_admin_pattern']) ? absint($_POST['sms_payment_success_admin_pattern']) : '';
+
+        sc_update_setting('sms_payment_success_user_enabled', $sms_payment_success_user_enabled, 'sms');
+        sc_update_setting('sms_payment_success_user_template', $sms_payment_success_user_template, 'sms');
+        sc_update_setting('sms_payment_success_user_pattern', $sms_payment_success_user_pattern, 'sms');
+        sc_update_setting('sms_payment_success_admin_enabled', $sms_payment_success_admin_enabled, 'sms');
+        sc_update_setting('sms_payment_success_admin_template', $sms_payment_success_admin_template, 'sms');
+        sc_update_setting('sms_payment_success_admin_pattern', $sms_payment_success_admin_pattern, 'sms');
+
         // Absence SMS Settings
         $sms_absence_user_enabled = isset($_POST['sms_absence_user_enabled']) ? 1 : 0;
         $sms_absence_user_template = isset($_POST['sms_absence_user_template']) ? sanitize_text_field($_POST['sms_absence_user_template']) : '';
@@ -179,6 +194,14 @@ $sms_reminder_user_pattern = sc_get_setting('sms_reminder_user_pattern', '');
 $sms_reminder_admin_enabled = (int)sc_get_setting('sms_reminder_admin_enabled', '1');
 $sms_reminder_admin_template = sc_get_setting('sms_reminder_admin_template', '');
 $sms_reminder_admin_pattern = sc_get_setting('sms_reminder_admin_pattern', '');
+
+// Payment Success SMS Settings
+$sms_payment_success_user_enabled = (int)sc_get_setting('sms_payment_success_user_enabled', '1');
+$sms_payment_success_user_template = sc_get_setting('sms_payment_success_user_template', '');
+$sms_payment_success_user_pattern = sc_get_setting('sms_payment_success_user_pattern', '');
+$sms_payment_success_admin_enabled = (int)sc_get_setting('sms_payment_success_admin_enabled', '1');
+$sms_payment_success_admin_template = sc_get_setting('sms_payment_success_admin_template', '');
+$sms_payment_success_admin_pattern = sc_get_setting('sms_payment_success_admin_pattern', '');
 
 // Absence SMS Settings
 $sms_absence_user_enabled = (int)sc_get_setting('sms_absence_user_enabled', '1');
@@ -617,6 +640,62 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                             <input type="number"
                                    name="sms_absence_admin_pattern"
                                    value="<?php echo esc_attr($sms_absence_admin_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Payment Success SMS Settings -->
+                <h3>پیامک پرداخت موفق</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">پیامک به کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_payment_success_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_payment_success_user_enabled, 1); ?>>
+                                فعال کردن پیامک پرداخت موفق به کاربر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_payment_success_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک به کاربر"><?php echo esc_textarea($sms_payment_success_user_template); ?></textarea>
+                            <p class="description">متغیرهای قابل استفاده: %user_name%, %course_name%, %amount%</p>
+                            <br>
+                            <input type="number"
+                                   name="sms_payment_success_user_pattern"
+                                   value="<?php echo esc_attr($sms_payment_success_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">پیامک به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_payment_success_admin_enabled"
+                                       value="1"
+                                       <?php checked($sms_payment_success_admin_enabled, 1); ?>>
+                                فعال کردن پیامک پرداخت موفق به مدیر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_payment_success_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک به مدیر"><?php echo esc_textarea($sms_payment_success_admin_template); ?></textarea>
+                            <p class="description">متغیرهای قابل استفاده: %user_name%, %course_name%, %amount%</p>
+                            <br>
+                            <input type="number"
+                                   name="sms_payment_success_admin_pattern"
+                                   value="<?php echo esc_attr($sms_payment_success_admin_pattern); ?>"
                                    class="small-text"
                                    placeholder="کد پترن (اختیاری)">
                             <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>

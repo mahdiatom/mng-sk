@@ -652,9 +652,6 @@ function sc_handle_course_enrollment() {
     }
 
     if (isset($member_course_id) && $member_course_id) {
-        // ارسال SMS ثبت نام موفق
-        do_action('sc_course_enrolled', $member_course_id);
-
         // ایجاد صورت حساب و سفارش WooCommerce
         $invoice_result = sc_create_course_invoice($player->id, $course_id, $member_course_id, $course->price);
         
@@ -885,8 +882,11 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
     $invoice_id = $wpdb->insert_id;
     if ($invoice_id) {
         sc_apply_penalty_to_invoice($invoice_id);
+
+        // ارسال SMS صورت حساب
+        do_action('sc_invoice_created', $invoice_id);
     }
-    
+
     // دریافت لینک پرداخت
     $checkout_url = $order->get_checkout_payment_url();
     
@@ -2173,6 +2173,9 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
             // فعال کردن دوره بعد از پرداخت موفق (فقط processing و completed)
             if ($invoice->member_course_id) {
                 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+                $courses_table = $wpdb->prefix . 'sc_courses';
+
+                // بروزرسانی وضعیت دوره به active
                 $wpdb->update(
                     $member_courses_table,
                     [
@@ -2184,6 +2187,23 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
                     ['%s', '%s', '%s'],
                     ['%d']
                 );
+
+                // ارسال پیامک ثبت نام موفق (فقط اگر دوره فعال باشد)
+                $member_course = $wpdb->get_row($wpdb->prepare(
+                    "SELECT mc.*, c.title as course_title, c.is_active as course_is_active
+                     FROM $member_courses_table mc
+                     LEFT JOIN $courses_table c ON mc.course_id = c.id
+                     WHERE mc.id = %d",
+                    $invoice->member_course_id
+                ));
+
+                if ($member_course && $member_course->course_is_active == 1) {
+                    // ارسال SMS ثبت نام موفق
+                    do_action('sc_course_enrolled_success', $invoice->member_course_id);
+
+                    // ارسال SMS پرداخت موفق
+                    do_action('sc_payment_success', $invoice->id);
+                }
             }
         }
         
