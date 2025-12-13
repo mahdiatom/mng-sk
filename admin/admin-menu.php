@@ -1,4 +1,5 @@
-<?php 
+<?php
+
 
 /**
  * ============================
@@ -2057,6 +2058,10 @@ function sc_ajax_change_registration_status() {
     
     $registration_id = isset($_POST['registration_id']) ? absint($_POST['registration_id']) : 0;
     $invoice_id = isset($_POST['invoice_id']) ? absint($_POST['invoice_id']) : 0;
+
+/**
+ * AJAX handler for SMS testing
+ */
     $new_status = isset($_POST['new_status']) ? sanitize_text_field($_POST['new_status']) : '';
     
     if (!$registration_id || !$invoice_id || empty($new_status)) {

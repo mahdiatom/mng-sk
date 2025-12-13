@@ -141,9 +141,11 @@ function sc_send_sms($mobile, $message, $is_pattern = false, $pattern_code = nul
     }
 
     // Clean mobile number
+    $original_mobile = $mobile;
     $mobile = sc_clean_mobile_number($mobile);
+    sc_log_sms('DEBUG', 'Mobile number cleaned', ['original' => $original_mobile, 'cleaned' => $mobile]);
     if (!$mobile) {
-        sc_log_sms('ERROR', 'Invalid mobile number', ['mobile' => $mobile]);
+        sc_log_sms('ERROR', 'Invalid mobile number', ['original' => $original_mobile, 'cleaned' => $mobile]);
         return ['success' => false, 'message' => 'شماره موبایل نامعتبر'];
     }
 
@@ -392,7 +394,7 @@ function sc_send_pattern_sms($mobile, $pattern_code, $parameters = array()) {
  * Clean and validate mobile number
  */
 function sc_clean_mobile_number($mobile) {
-    // Remove all non-numeric characters
+    // Remove all non-numeric characters - Updated
     $mobile = preg_replace('/\D/', '', $mobile);
 
     // Check if it's Iranian mobile number
@@ -543,62 +545,6 @@ function sc_send_enrollment_success_sms($member_course_id) {
     sc_send_enrollment_sms($member_course_id);
 }
 
-/**
- * Send SMS notification for successful payment
- */
-function sc_send_payment_success_sms($invoice_id) {
-    global $wpdb;
-    $invoices_table = $wpdb->prefix . 'sc_invoices';
-    $members_table = $wpdb->prefix . 'sc_members';
-    $courses_table = $wpdb->prefix . 'sc_courses';
-
-    // Get invoice details
-    $invoice = $wpdb->get_row($wpdb->prepare(
-        "SELECT i.*, m.first_name, m.last_name, m.player_phone, c.title as course_title
-         FROM $invoices_table i
-         LEFT JOIN $members_table m ON i.member_id = m.id
-         LEFT JOIN $courses_table c ON i.course_id = c.id
-         WHERE i.id = %d",
-        $invoice_id
-    ));
-
-    if (!$invoice || empty($invoice->player_phone)) {
-        return;
-    }
-
-    $user_name = trim($invoice->first_name . ' ' . $invoice->last_name);
-    $course_name = $invoice->course_title ?: 'دوره';
-    $amount = number_format($invoice->amount + $invoice->penalty_amount, 0, '.', ',');
-
-    $variables = [
-        'user_name' => $user_name,
-        'course_name' => $course_name,
-        'amount' => $amount
-    ];
-
-    // Send SMS to user for payment success
-    if (sc_is_sms_enabled_for('payment_success', 'user')) {
-        $template = sc_get_sms_template('payment_success', 'user');
-        if (!empty($template)) {
-            $message = sc_replace_sms_variables($template, $variables);
-            $pattern_code = sc_get_sms_pattern('payment_success', 'user');
-            sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
-        }
-    }
-
-    // Send SMS to admin for payment success
-    if (sc_is_sms_enabled_for('payment_success', 'admin')) {
-        $admin_phone = sc_get_setting('sms_admin_phone', '');
-        if (!empty($admin_phone)) {
-            $template = sc_get_sms_template('payment_success', 'admin');
-            if (!empty($template)) {
-                $message = sc_replace_sms_variables($template, $variables);
-                $pattern_code = sc_get_sms_pattern('payment_success', 'admin');
-                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables);
-            }
-        }
-    }
-}
 
 /**
  * Send SMS notification for course enrollment (deprecated - use success version)
@@ -789,12 +735,33 @@ function sc_send_absence_sms($attendance_id) {
     ));
 
     if (!$attendance || empty($attendance->player_phone)) {
+        sc_log_sms('DEBUG', 'Attendance or phone missing', ['attendance_id' => $attendance_id, 'attendance' => $attendance]);
+        return;
+    }
+
+    // Only send SMS for new records or first time absence
+    // Check if this record was created/updated recently (within last 5 minutes)
+    $updated_time = strtotime($attendance->updated_at);
+    $current_time = current_time('timestamp');
+    $time_diff = $current_time - $updated_time;
+
+    sc_log_sms('DEBUG', 'Attendance SMS check', [
+        'attendance_id' => $attendance_id,
+        'status' => $attendance->status,
+        'player_phone' => $attendance->player_phone,
+        'updated_at' => $attendance->updated_at,
+        'time_diff' => $time_diff,
+        'will_send' => ($time_diff <= 300)
+    ]);
+
+    // If updated more than 5 minutes ago, it's probably an old update, don't send SMS
+    if ($time_diff > 300) {
         return;
     }
 
     $user_name = trim($attendance->first_name . ' ' . $attendance->last_name);
     $course_name = $attendance->course_title ?: 'دوره';
-    $date = date('Y/m/d', strtotime($attendance->date));
+    $date = date('Y/m/d', strtotime($attendance->attendance_date));
 
     $variables = [
         'user_name' => $user_name,
@@ -832,8 +799,6 @@ add_action('sc_invoice_created', 'sc_send_invoice_sms', 10, 1);
 // Hook for course enrollment success (after payment)
 add_action('sc_course_enrolled_success', 'sc_send_enrollment_success_sms', 10, 1);
 
-// Hook for payment success
-add_action('sc_payment_success', 'sc_send_payment_success_sms', 10, 1);
 
 // Hook for payment reminder
 add_action('sc_payment_reminder', 'sc_send_payment_reminder_sms', 10, 1);
@@ -900,16 +865,6 @@ function sc_initialize_sms_settings() {
         'sms_absence_user_enabled' => '1',
         'sms_absence_user_template' => 'کاربر گرامی %user_name%، غیبت شما در جلسه دوره %course_name% مورخ %date% ثبت شد.',
         'sms_absence_user_pattern' => '',
-
-        // Payment Success SMS - User
-        'sms_payment_success_user_enabled' => '1',
-        'sms_payment_success_user_template' => 'کاربر گرامی %user_name%، پرداخت شما برای دوره %course_name% به مبلغ %amount% تومان با موفقیت انجام شد.',
-        'sms_payment_success_user_pattern' => '',
-
-        // Payment Success SMS - Admin
-        'sms_payment_success_admin_enabled' => '1',
-        'sms_payment_success_admin_template' => 'پرداخت موفق: %user_name% - دوره %course_name% - مبلغ %amount% تومان',
-        'sms_payment_success_admin_pattern' => '',
 
         // Absence SMS - Admin
         'sms_absence_admin_enabled' => '1',
