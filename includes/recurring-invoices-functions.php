@@ -95,6 +95,9 @@ function sc_create_recurring_invoices() {
         if ($invoice_result && isset($invoice_result['success']) && $invoice_result['success']) {
             $success_count++;
             error_log("SC Recurring Invoices: Invoice created successfully - Invoice ID: {$invoice_result['invoice_id']}, Order ID: {$invoice_result['order_id']}");
+
+            // ارسال SMS صورت حساب
+            do_action('sc_invoice_created', $invoice_result['invoice_id']);
         } else {
             $error_count++;
             $error_message = isset($invoice_result['message']) ? $invoice_result['message'] : 'Unknown error';
@@ -214,6 +217,55 @@ function sc_check_and_pause_courses_with_unpaid_invoices() {
  * اضافه کردن تابع به cron job هر دقیقه
  */
 add_action('sc_every_minute_recurring_invoices_check', 'sc_check_and_pause_courses_with_unpaid_invoices');
+
+/**
+ * ارسال یادآوری پرداخت برای صورت حساب‌های معوق
+ */
+function sc_send_payment_reminders() {
+    error_log('SC Payment Reminders: Starting payment reminder check');
+
+    global $wpdb;
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+
+    // دریافت صورت حساب‌های pending که 3 روز از ایجاد آن‌ها گذشته
+    $reminder_invoices = $wpdb->get_results(
+        "SELECT * FROM $invoices_table
+         WHERE status = 'pending'
+         AND TIMESTAMPDIFF(DAY, created_at, NOW()) >= 3
+         AND (last_reminder_sent IS NULL OR TIMESTAMPDIFF(DAY, last_reminder_sent, NOW()) >= 7)"
+    );
+
+    if (empty($reminder_invoices)) {
+        error_log('SC Payment Reminders: No invoices need reminders');
+        return;
+    }
+
+    $reminder_count = 0;
+
+    foreach ($reminder_invoices as $invoice) {
+        // ارسال SMS یادآوری پرداخت
+        do_action('sc_payment_reminder', $invoice->id);
+
+        // بروزرسانی زمان آخرین یادآوری
+        $wpdb->update(
+            $invoices_table,
+            ['last_reminder_sent' => current_time('mysql')],
+            ['id' => $invoice->id],
+            ['%s'],
+            ['%d']
+        );
+
+        $reminder_count++;
+        error_log("SC Payment Reminders: Reminder sent for invoice ID: {$invoice->id}");
+    }
+
+    error_log("SC Payment Reminders: Completed - Sent: $reminder_count reminders");
+}
+
+/**
+ * اضافه کردن یادآوری پرداخت به cron job روزانه
+ */
+add_action('sc_every_minute_recurring_invoices_check', 'sc_send_payment_reminders');
 
 /**
  * Cleanup cron job on deactivation

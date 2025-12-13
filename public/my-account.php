@@ -650,8 +650,11 @@ function sc_handle_course_enrollment() {
         
         $member_course_id = $wpdb->insert_id;
     }
-    
+
     if (isset($member_course_id) && $member_course_id) {
+        // ارسال SMS ثبت نام موفق
+        do_action('sc_course_enrolled', $member_course_id);
+
         // ایجاد صورت حساب و سفارش WooCommerce
         $invoice_result = sc_create_course_invoice($player->id, $course_id, $member_course_id, $course->price);
         

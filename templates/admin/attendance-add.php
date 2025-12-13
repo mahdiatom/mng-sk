@@ -82,15 +82,29 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                         ['%d']
                     );
                     $updated_count++;
+
+                    // اگر غیبت باشد، هوک ارسال شود
+                    if ($status === 'absent') {
+                        do_action('sc_attendance_absent', $existing);
+                    }
                 } else {
                     // ایجاد رکورد جدید
                     $data['created_at'] = current_time('mysql');
-                    $wpdb->insert(
+                    $inserted_id = $wpdb->insert(
                         $attendances_table,
                         $data,
                         ['%d', '%d', '%s', '%s', '%s', '%s']
                     );
-                    $saved_count++;
+
+                    if ($inserted_id) {
+                        $attendance_id = $wpdb->insert_id;
+                        $saved_count++;
+
+                        // اگر غیبت باشد، هوک ارسال شود
+                        if ($status === 'absent') {
+                            do_action('sc_attendance_absent', $attendance_id);
+                        }
+                    }
                 }
             }
             

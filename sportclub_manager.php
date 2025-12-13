@@ -52,6 +52,7 @@ require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export
 require_once SC_INCLUDES_DIR . 'event-registrations-export.php'; // Event registrations export functions
 require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settings
 require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
+require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions
 
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
@@ -96,7 +97,12 @@ function sc_activate_plugin() {
         add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('sc-events', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('sc-event-detail', EP_ROOT | EP_PAGES);
-        
+
+        // مقداردهی اولیه تنظیمات SMS
+        if (function_exists('sc_initialize_sms_settings')) {
+            sc_initialize_sms_settings();
+        }
+
         // Flush rewrite rules for WooCommerce endpoint
         flush_rewrite_rules();
     } catch (Exception $e) {
@@ -178,16 +184,35 @@ add_action('admin_init', 'sc_add_event_id_column');
 function sc_add_event_id_column() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_invoices';
-    
+
     // بررسی وجود ستون event_id
     $column_exists = $wpdb->get_results($wpdb->prepare(
         "SHOW COLUMNS FROM $table_name LIKE %s",
         'event_id'
     ));
-    
+
     if (empty($column_exists)) {
         $wpdb->query("ALTER TABLE $table_name ADD COLUMN `event_id` bigint(20) unsigned DEFAULT NULL AFTER `course_id`");
         $wpdb->query("ALTER TABLE $table_name ADD KEY `idx_event_id` (`event_id`)");
+    }
+}
+
+/**
+ * Add last_reminder_sent column to invoices table if not exists
+ */
+add_action('admin_init', 'sc_add_last_reminder_sent_column');
+function sc_add_last_reminder_sent_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_invoices';
+
+    // بررسی وجود ستون last_reminder_sent
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'last_reminder_sent'
+    ));
+
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `last_reminder_sent` datetime DEFAULT NULL AFTER `payment_date`");
     }
 }
 
