@@ -364,7 +364,10 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                             <?php
                             $credit_result = sc_get_sms_credit();
                             if ($credit_result['success']) {
-                                echo '<span style="color: green; font-weight: bold;">' . esc_html($credit_result['credit']) . ' تومان</span>';
+                                $sms_count = floor($credit_result['credit']); // گرد کردن به پایین
+                                $monetary_value = $sms_count * 219; // محاسبه ارزش ریالی (۲۱۹ تومان هر پیامک)
+                                echo '<span style="color: green; font-weight: bold;">' . esc_html($sms_count) . ' پیامک</span>';
+                                echo '<br><small style="color: #666;">معادل ' . number_format($monetary_value, 0) . ' تومان</small>';
                             } else {
                                 echo '<span style="color: red;">' . esc_html($credit_result['message']) . '</span>';
                             }
