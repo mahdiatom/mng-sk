@@ -450,20 +450,20 @@ function sc_get_sms_template($action, $type = 'user') {
     // $type can be 'user' or 'admin'
     $default_templates = [
         'invoice' => [
-            'user' => '%user_name% عزیز یک صورت حساب جدید برای شما صادر شد. مبلغ %amount% برای دوره %course_name%',
-            'admin' => 'صورت حساب جدید: %user_name% - مبلغ %amount% - دوره %course_name%'
+            'user' => '%user_name% عزیز، صورت حساب جدید برای %item_name% صادر شد. مبلغ %amount% تومان - سررسید: %due_date%',
+            'admin' => 'صورت حساب جدید: %user_name% - %item_name% - مبلغ %amount% تومان'
         ],
         'enrollment' => [
-            'user' => '%user_name% عزیز، ثبت نام شما در دوره %course_name% تکمیل شد.',
-            'admin' => 'ثبت نام جدید: %user_name% در دوره %course_name%'
+            'user' => '%user_name% عزیز، ثبت نام شما در %item_name% تکمیل شد.',
+            'admin' => 'ثبت نام جدید: %user_name% در %item_name%'
         ],
         'reminder' => [
-            'user' => '%user_name% عزیز، صورت حساب %amount% شما سر رسیده است. لطفاً پرداخت کنید.',
-            'admin' => 'یادآوری پرداخت: %user_name% - مبلغ %amount%'
+            'user' => '%user_name% عزیز، صورت حساب %amount% تومان برای %item_name% سر رسیده است. لطفاً پرداخت کنید.',
+            'admin' => 'یادآوری پرداخت: %user_name% - %item_name% - مبلغ %amount% تومان'
         ],
         'absence' => [
-            'user' => 'کاربر گرامی %user_name%، غیبت شما در جلسه دوره %course_name% مورخ %date% ثبت شد.',
-            'admin' => 'غیبت: %user_name% - دوره %course_name% - تاریخ %date%'
+            'user' => 'کاربر گرامی %user_name%، غیبت شما در جلسه %item_name% مورخ %date% ثبت شد.',
+            'admin' => 'غیبت: %user_name% - %item_name% - تاریخ %date%'
         ]
     ];
 
@@ -507,13 +507,17 @@ function sc_send_invoice_sms($invoice_id) {
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $members_table = $wpdb->prefix . 'sc_members';
     $courses_table = $wpdb->prefix . 'sc_courses';
+    $events_table = $wpdb->prefix . 'sc_events';
 
-    // Get invoice details
+    // Get invoice details with support for courses, events, and expenses
     $invoice = $wpdb->get_row($wpdb->prepare(
-        "SELECT i.*, m.first_name, m.last_name, m.player_phone, c.title as course_title, c.price
+        "SELECT i.*, m.first_name, m.last_name, m.player_phone,
+                c.title as course_title, c.price as course_price,
+                e.name as event_name, e.price as event_price
          FROM $invoices_table i
          LEFT JOIN $members_table m ON i.member_id = m.id
          LEFT JOIN $courses_table c ON i.course_id = c.id
+         LEFT JOIN $events_table e ON i.event_id = e.id
          WHERE i.id = %d",
         $invoice_id
     ));
@@ -523,13 +527,31 @@ function sc_send_invoice_sms($invoice_id) {
     }
 
     $user_name = trim($invoice->first_name . ' ' . $invoice->last_name);
-    $course_name = $invoice->course_title ?: 'دوره';
+
+    // Determine item name based on invoice type
+    $item_name = '';
+    if (!empty($invoice->course_title)) {
+        $item_name = $invoice->course_title;
+    } elseif (!empty($invoice->event_name)) {
+        $item_name = $invoice->event_name;
+    } elseif (!empty($invoice->expense_name)) {
+        $item_name = $invoice->expense_name;
+    } else {
+        $item_name = 'صورت حساب';
+    }
+
     $amount = number_format($invoice->amount + $invoice->penalty_amount, 0, '.', ',');
-    $due_date = date('Y/m/d', strtotime($invoice->created_at . ' +7 days'));
+
+    // Calculate due date (7 days from creation) in Shamsi format
+    $due_date_timestamp = strtotime($invoice->created_at . ' +7 days');
+    $due_date = sc_date_shamsi_date_only(date('Y-m-d', $due_date_timestamp));
 
     $variables = [
         'user_name' => $user_name,
-        'course_name' => $course_name,
+        'course_name' => $invoice->course_title ?: '',
+        'event_name' => $invoice->event_name ?: '',
+        'item_name' => $item_name,
+        'expense_name' => $invoice->expense_name ?: '',
         'amount' => $amount,
         'due_date' => $due_date
     ];
@@ -612,6 +634,9 @@ function sc_send_enrollment_sms($member_course_id) {
     $variables = [
         'user_name' => $user_name,
         'course_name' => $course_name,
+        'event_name' => '', // Enrollment is for courses, not events
+        'item_name' => $course_name, // For enrollment, item_name is the course
+        'expense_name' => '',
         'amount' => $amount
     ];
 
@@ -684,13 +709,17 @@ function sc_send_payment_reminder_sms($invoice_id) {
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $members_table = $wpdb->prefix . 'sc_members';
     $courses_table = $wpdb->prefix . 'sc_courses';
+    $events_table = $wpdb->prefix . 'sc_events';
 
-    // Get invoice details
+    // Get invoice details with support for courses, events, and expenses
     $invoice = $wpdb->get_row($wpdb->prepare(
-        "SELECT i.*, m.first_name, m.last_name, m.player_phone, c.title as course_title
+        "SELECT i.*, m.first_name, m.last_name, m.player_phone,
+                c.title as course_title, c.price as course_price,
+                e.name as event_name, e.price as event_price
          FROM $invoices_table i
          LEFT JOIN $members_table m ON i.member_id = m.id
          LEFT JOIN $courses_table c ON i.course_id = c.id
+         LEFT JOIN $events_table e ON i.event_id = e.id
          WHERE i.id = %d",
         $invoice_id
     ));
@@ -700,13 +729,28 @@ function sc_send_payment_reminder_sms($invoice_id) {
     }
 
     $user_name = trim($invoice->first_name . ' ' . $invoice->last_name);
-    $course_name = $invoice->course_title ?: 'دوره';
+
+    // Determine item name based on invoice type
+    $item_name = '';
+    if (!empty($invoice->course_title)) {
+        $item_name = $invoice->course_title;
+    } elseif (!empty($invoice->event_name)) {
+        $item_name = $invoice->event_name;
+    } elseif (!empty($invoice->expense_name)) {
+        $item_name = $invoice->expense_name;
+    } else {
+        $item_name = 'صورت حساب';
+    }
+
     $amount = number_format($invoice->amount + $invoice->penalty_amount, 0, '.', ',');
     $penalty_amount = number_format($invoice->penalty_amount, 0, '.', ',');
 
     $variables = [
         'user_name' => $user_name,
-        'course_name' => $course_name,
+        'course_name' => $invoice->course_title ?: '',
+        'event_name' => $invoice->event_name ?: '',
+        'item_name' => $item_name,
+        'expense_name' => $invoice->expense_name ?: '',
         'amount' => $amount,
         'penalty_amount' => $penalty_amount
     ];
@@ -772,6 +816,9 @@ function sc_send_absence_sms($attendance_id) {
     $variables = [
         'user_name' => $user_name,
         'course_name' => $course_name,
+        'event_name' => '', // Absence is for courses
+        'item_name' => $course_name, // For absence, item_name is the course
+        'expense_name' => '',
         'date' => $date
     ];
 
@@ -857,42 +904,42 @@ function sc_initialize_sms_settings() {
 
         // Invoice SMS - User
         'sms_invoice_user_enabled' => '1',
-        'sms_invoice_user_template' => 'کاربر گرامی %user_name%، صورت حساب دوره %course_name% به مبلغ %amount% تومان ایجاد شد. مهلت پرداخت: %due_date%',
+        'sms_invoice_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% به مبلغ %amount% تومان ایجاد شد. مهلت پرداخت: %due_date%',
         'sms_invoice_user_pattern' => '',
 
         // Invoice SMS - Admin
         'sms_invoice_admin_enabled' => '1',
-        'sms_invoice_admin_template' => 'صورت حساب جدید: %user_name% - دوره %course_name% - مبلغ %amount% تومان',
+        'sms_invoice_admin_template' => 'صورت حساب جدید: %user_name% - %item_name% - مبلغ %amount% تومان',
         'sms_invoice_admin_pattern' => '',
 
         // Enrollment SMS - User
         'sms_enrollment_user_enabled' => '1',
-        'sms_enrollment_user_template' => 'کاربر گرامی %user_name%، ثبت نام شما در دوره %course_name% با موفقیت انجام شد.',
+        'sms_enrollment_user_template' => 'کاربر گرامی %user_name%، ثبت نام شما در %item_name% با موفقیت انجام شد.',
         'sms_enrollment_user_pattern' => '',
 
         // Enrollment SMS - Admin
         'sms_enrollment_admin_enabled' => '1',
-        'sms_enrollment_admin_template' => 'ثبت نام جدید: %user_name% در دوره %course_name%',
+        'sms_enrollment_admin_template' => 'ثبت نام جدید: %user_name% در %item_name%',
         'sms_enrollment_admin_pattern' => '',
 
         // Reminder SMS - User
         'sms_reminder_user_enabled' => '1',
-        'sms_reminder_user_template' => 'کاربر گرامی %user_name%، صورت حساب دوره %course_name% به مبلغ %amount% تومان پرداخت نشده است. در صورت تأخیر شامل جریمه %penalty_amount% تومان می‌شود.',
+        'sms_reminder_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% به مبلغ %amount% تومان پرداخت نشده است. در صورت تأخیر شامل جریمه %penalty_amount% تومان می‌شود.',
         'sms_reminder_user_pattern' => '',
 
         // Reminder SMS - Admin
         'sms_reminder_admin_enabled' => '1',
-        'sms_reminder_admin_template' => 'یادآوری پرداخت: %user_name% - دوره %course_name% - مبلغ %amount% تومان',
+        'sms_reminder_admin_template' => 'یادآوری پرداخت: %user_name% - %item_name% - مبلغ %amount% تومان',
         'sms_reminder_admin_pattern' => '',
 
         // Absence SMS - User
         'sms_absence_user_enabled' => '1',
-        'sms_absence_user_template' => 'کاربر گرامی %user_name%، غیبت شما در جلسه دوره %course_name% مورخ %date% ثبت شد.',
+        'sms_absence_user_template' => 'کاربر گرامی %user_name%، غیبت شما در جلسه %item_name% مورخ %date% ثبت شد.',
         'sms_absence_user_pattern' => '',
 
         // Absence SMS - Admin
         'sms_absence_admin_enabled' => '1',
-        'sms_absence_admin_template' => 'غیبت: %user_name% - دوره %course_name% - تاریخ %date%',
+        'sms_absence_admin_template' => 'غیبت: %user_name% - %item_name% - تاریخ %date%',
         'sms_absence_admin_pattern' => '',
 
         // Reminder Settings

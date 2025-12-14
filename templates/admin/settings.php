@@ -411,7 +411,16 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                                       rows="3"
                                       class="large-text"
                                       placeholder="متن پیامک به کاربر"><?php echo esc_textarea($sms_invoice_user_template); ?></textarea>
-                            <p class="description">متغیرهای قابل استفاده: %user_name%, %course_name%, %amount%, %due_date%</p>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name%<br>
+                                نام دوره = %course_name%<br>
+                                نام رویداد = %event_name%<br>
+                                نام آیتم = %item_name%<br>
+                                نام هزینه = %expense_name%<br>
+                                مبلغ = %amount%<br>
+                                تاریخ سررسید = %due_date%
+                            </p>
                             <br>
                             <input type="number"
                                    name="sms_invoice_user_pattern"
@@ -437,7 +446,16 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                                       rows="3"
                                       class="large-text"
                                       placeholder="متن پیامک به مدیر"><?php echo esc_textarea($sms_invoice_admin_template); ?></textarea>
-                            <p class="description">متغیرهای قابل استفاده: %user_name%, %course_name%, %amount%, %due_date%</p>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name%<br>
+                                نام دوره = %course_name%<br>
+                                نام رویداد = %event_name%<br>
+                                نام آیتم = %item_name%<br>
+                                نام هزینه = %expense_name%<br>
+                                مبلغ = %amount%<br>
+                                تاریخ سررسید = %due_date%
+                            </p>
                             <br>
                             <input type="number"
                                    name="sms_invoice_admin_pattern"
@@ -467,7 +485,15 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                                       rows="3"
                                       class="large-text"
                                       placeholder="متن پیامک به کاربر"><?php echo esc_textarea($sms_enrollment_user_template); ?></textarea>
-                            <p class="description">متغیرهای قابل استفاده: %user_name%, %course_name%, %amount%</p>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name%<br>
+                                نام دوره = %course_name%<br>
+                                نام رویداد = %event_name%<br>
+                                نام آیتم = %item_name%<br>
+                                نام هزینه = %expense_name%<br>
+                                مبلغ = %amount%
+                            </p>
                             <br>
                             <input type="number"
                                    name="sms_enrollment_user_pattern"
@@ -493,7 +519,15 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                                       rows="3"
                                       class="large-text"
                                       placeholder="متن پیامک به مدیر"><?php echo esc_textarea($sms_enrollment_admin_template); ?></textarea>
-                            <p class="description">متغیرهای قابل استفاده: %user_name%, %course_name%, %amount%</p>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name%<br>
+                                نام دوره = %course_name%<br>
+                                نام رویداد = %event_name%<br>
+                                نام آیتم = %item_name%<br>
+                                نام هزینه = %expense_name%<br>
+                                مبلغ = %amount%
+                            </p>
                             <br>
                             <input type="number"
                                    name="sms_enrollment_admin_pattern"
@@ -523,7 +557,16 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                                       rows="3"
                                       class="large-text"
                                       placeholder="متن پیامک به کاربر"><?php echo esc_textarea($sms_reminder_user_template); ?></textarea>
-                            <p class="description">متغیرهای قابل استفاده: %user_name%, %course_name%, %amount%, %penalty_amount%</p>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name%<br>
+                                نام دوره = %course_name%<br>
+                                نام رویداد = %event_name%<br>
+                                نام آیتم = %item_name%<br>
+                                نام هزینه = %expense_name%<br>
+                                مبلغ = %amount%<br>
+                                مبلغ جریمه = %penalty_amount%
+                            </p>
                             <br>
                             <input type="number"
                                    name="sms_reminder_user_pattern"
@@ -549,7 +592,16 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                                       rows="3"
                                       class="large-text"
                                       placeholder="متن پیامک به مدیر"><?php echo esc_textarea($sms_reminder_admin_template); ?></textarea>
-                            <p class="description">متغیرهای قابل استفاده: %user_name%, %course_name%, %amount%, %penalty_amount%</p>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name%<br>
+                                نام دوره = %course_name%<br>
+                                نام رویداد = %event_name%<br>
+                                نام آیتم = %item_name%<br>
+                                نام هزینه = %expense_name%<br>
+                                مبلغ = %amount%<br>
+                                مبلغ جریمه = %penalty_amount%
+                            </p>
                             <br>
                             <input type="number"
                                    name="sms_reminder_user_pattern"
@@ -579,7 +631,14 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                                       rows="3"
                                       class="large-text"
                                       placeholder="متن پیامک به کاربر"><?php echo esc_textarea($sms_absence_user_template); ?></textarea>
-                            <p class="description">متغیرهای قابل استفاده: %user_name%, %course_name%, %date%</p>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name%<br>
+                                نام دوره = %course_name%<br>
+                                نام رویداد = %event_name%<br>
+                                نام آیتم = %item_name%<br>
+                                تاریخ = %date%
+                            </p>
                             <br>
                             <input type="number"
                                    name="sms_absence_user_pattern"
@@ -605,7 +664,14 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                                       rows="3"
                                       class="large-text"
                                       placeholder="متن پیامک به مدیر"><?php echo esc_textarea($sms_absence_admin_template); ?></textarea>
-                            <p class="description">متغیرهای قابل استفاده: %user_name%, %course_name%, %date%</p>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name%<br>
+                                نام دوره = %course_name%<br>
+                                نام رویداد = %event_name%<br>
+                                نام آیتم = %item_name%<br>
+                                تاریخ = %date%
+                            </p>
                             <br>
                             <input type="number"
                                    name="sms_absence_admin_pattern"

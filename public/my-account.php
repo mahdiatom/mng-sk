@@ -1461,7 +1461,10 @@ function sc_create_event_invoice($member_id, $event_id, $amount) {
     }
     
     $invoice_id = $wpdb->insert_id;
-    
+
+    // Trigger SMS hook for event invoices
+    do_action('sc_invoice_created', $invoice_id);
+
     // ایجاد سفارش WooCommerce
     // توجه: course_id را 0 می‌فرستیم چون این یک رویداد است، نه دوره
     $order_result = sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, 0, $amount, $event->name);
