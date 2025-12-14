@@ -2132,5 +2132,41 @@ function process_events_table_data() {
     // در حال حاضر خالی است و بعداً تکمیل خواهد شد
 }
 
+/**
+ * Add SMS credit info to admin bar
+ */
+add_action('admin_bar_menu', 'sc_add_sms_credit_to_admin_bar', 999);
+
+function sc_add_sms_credit_to_admin_bar($wp_admin_bar) {
+    // Only show for admins
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    // Get SMS credit
+    $credit_result = sc_get_sms_credit();
+
+    if ($credit_result['success']) {
+        $sms_count = floor($credit_result['credit']);
+        $monetary_value = $sms_count * 219;
+
+        $wp_admin_bar->add_node(array(
+            'id'    => 'sc-sms-credit',
+            'title' => '<span style="background: #fff; padding: 2px 6px; border-radius: 3px; font-size: 11px; line-height: 1.2;">اعتبار پنل: <span style="color: #2271b1; font-weight: bold;">📱 ' . $sms_count . ' پیامک</span> <span style="color: #666;">(' . number_format($monetary_value) . ' تومان)</span></span>',
+            'meta'  => array(
+                'title' => 'اعتبار پیامک'
+            )
+        ));
+    } else {
+        $wp_admin_bar->add_node(array(
+            'id'    => 'sc-sms-credit',
+            'title' => '<span style="background: #fff; padding: 2px 6px; border-radius: 3px; font-size: 11px; line-height: 1.2;">اعتبار پنل: <span style="color: #d63638; font-weight: bold;">📱 تنظیم نشده</span></span>',
+            'meta'  => array(
+                'title' => 'پیامک تنظیم نشده'
+            )
+        ));
+    }
+}
+
 
 
