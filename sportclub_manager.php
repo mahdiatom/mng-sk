@@ -387,15 +387,36 @@ if (!function_exists('sc_check_attendances_table')) {
     function sc_check_attendances_table() {
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_attendances';
-        
+
         // بررسی وجود جدول
         $table_exists = $wpdb->get_var($wpdb->prepare(
             "SHOW TABLES LIKE %s",
             $table_name
         ));
-        
+
         if (!$table_exists) {
             sc_create_attendances_table();
+        }
+    }
+}
+
+/**
+ * Add absence_sms_sent column to attendances table if not exists
+ */
+if (!function_exists('sc_add_absence_sms_sent_column')) {
+    add_action('admin_init', 'sc_add_absence_sms_sent_column');
+    function sc_add_absence_sms_sent_column() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sc_attendances';
+
+        // Check if column exists
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM $table_name LIKE %s",
+            'absence_sms_sent'
+        ));
+
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN absence_sms_sent TINYINT(1) DEFAULT 0");
         }
     }
 }

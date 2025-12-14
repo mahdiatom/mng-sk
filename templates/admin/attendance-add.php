@@ -68,17 +68,30 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 ];
                 
                 if ($existing) {
+                    // Get current status before update
+                    $current_record = $wpdb->get_row($wpdb->prepare(
+                        "SELECT status, absence_sms_sent FROM $attendances_table WHERE id = %d",
+                        $existing
+                    ));
+
                     // بروزرسانی رکورد موجود
+                    $update_data = [
+                        'status' => $status,
+                        'updated_at' => current_time('mysql')
+                    ];
+
+                    // If changing from absent to present, reset SMS flag
+                    if ($current_record && $current_record->status == 'absent' && $status == 'present') {
+                        $update_data['absence_sms_sent'] = 0;
+                    }
+
                     $wpdb->update(
                         $attendances_table,
-                        [
-                            'status' => $status,
-                            'updated_at' => current_time('mysql')
-                        ],
+                        $update_data,
                         [
                             'id' => $existing
                         ],
-                        ['%s', '%s'],
+                        array_fill(0, count($update_data), '%s'),
                         ['%d']
                     );
                     $updated_count++;

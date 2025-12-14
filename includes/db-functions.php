@@ -140,6 +140,7 @@ $sql = "CREATE TABLE `$table_name` (
     `course_id` bigint(20) unsigned NOT NULL,
     `attendance_date` date NOT NULL,
     `status` enum('present','absent') NOT NULL DEFAULT 'present',
+    `absence_sms_sent` tinyint(1) DEFAULT 0,
     `created_at` datetime NOT NULL,
     `updated_at` datetime NOT NULL,
     PRIMARY KEY (`id`),
@@ -148,7 +149,7 @@ $sql = "CREATE TABLE `$table_name` (
     KEY `idx_course_id` (`course_id`),
     KEY `idx_attendance_date` (`attendance_date`),
     KEY `idx_status` (`status`)
-    ) ENGINE=InnoDB $table_collation";
+    ) ENGINE=InnoDB $table_collate";
 
             require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
             dbDelta($sql);

@@ -759,23 +759,9 @@ function sc_send_absence_sms($attendance_id) {
         return;
     }
 
-    // Only send SMS for new records or first time absence
-    // Check if this record was created/updated recently (within last 5 minutes)
-    $updated_time = strtotime($attendance->updated_at);
-    $current_time = current_time('timestamp');
-    $time_diff = $current_time - $updated_time;
-
-    sc_log_sms('DEBUG', 'Attendance SMS check', [
-        'attendance_id' => $attendance_id,
-        'status' => $attendance->status,
-        'player_phone' => $attendance->player_phone,
-        'updated_at' => $attendance->updated_at,
-        'time_diff' => $time_diff,
-        'will_send' => ($time_diff <= 300)
-    ]);
-
-    // If updated more than 5 minutes ago, it's probably an old update, don't send SMS
-    if ($time_diff > 300) {
+    // Check if SMS has already been sent for this absence
+    if ($attendance->absence_sms_sent == 1) {
+        sc_log_sms('DEBUG', 'SMS already sent for this absence', ['attendance_id' => $attendance_id]);
         return;
     }
 
@@ -790,12 +776,16 @@ function sc_send_absence_sms($attendance_id) {
     ];
 
     // Send SMS to user
+    $sms_sent_successfully = false;
     if (sc_is_sms_enabled_for('absence', 'user')) {
         $template = sc_get_sms_template('absence', 'user');
         if (!empty($template)) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('absence', 'user');
-            sc_send_sms($attendance->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+            $result = sc_send_sms($attendance->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+            if ($result['success']) {
+                $sms_sent_successfully = true;
+            }
         }
     }
 
@@ -807,9 +797,23 @@ function sc_send_absence_sms($attendance_id) {
             if (!empty($template)) {
                 $message = sc_replace_sms_variables($template, $variables);
                 $pattern_code = sc_get_sms_pattern('absence', 'admin');
-                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+                $result = sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+                if ($result['success']) {
+                    $sms_sent_successfully = true;
+                }
             }
         }
+    }
+
+    // If any SMS was sent successfully, mark as sent
+    if ($sms_sent_successfully) {
+        $wpdb->update(
+            $attendances_table,
+            ['absence_sms_sent' => 1],
+            ['id' => $attendance_id],
+            ['%d'],
+            ['%d']
+        );
     }
 }
 
