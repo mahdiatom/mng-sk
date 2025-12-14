@@ -23,7 +23,7 @@ function sc_create_recurring_invoices() {
     $members_table = $wpdb->prefix . 'sc_members';
     
     $interval_minutes = sc_get_invoice_interval_minutes();
-
+    
     error_log("SC Recurring Invoices: Using MINUTE interval: $interval_minutes minutes");
     
     // دریافت تمام دوره‌های active که باید برای آن‌ها صورت حساب ایجاد شود
@@ -57,12 +57,12 @@ function sc_create_recurring_invoices() {
              OR
              -- دوره‌هایی که آخرین صورت حساب آن‌ها (چه pending چه paid) بیشتر از interval_minutes دقیقه از ایجاد آن گذشته است
              EXISTS (
-                 SELECT 1 FROM $invoices_table i
-                 WHERE i.member_course_id = mc.id
+                 SELECT 1 FROM $invoices_table i 
+                 WHERE i.member_course_id = mc.id 
                  AND TIMESTAMPDIFF(MINUTE, i.created_at, NOW()) >= %d
                  AND i.created_at = (
-                     SELECT MAX(i2.created_at)
-                     FROM $invoices_table i2
+                     SELECT MAX(i2.created_at) 
+                     FROM $invoices_table i2 
                      WHERE i2.member_course_id = mc.id
                  )
              )
@@ -126,7 +126,7 @@ function sc_add_every_minute_cron_schedule($schedules) {
 add_action('init', 'sc_register_recurring_invoices_cron');
 function sc_register_recurring_invoices_cron() {
     $cron_interval = 'every_minute'; // هر دقیقه
-
+    
     if (!wp_next_scheduled('sc_every_minute_recurring_invoices_check')) {
         wp_schedule_event(time(), $cron_interval, 'sc_every_minute_recurring_invoices_check');
     }

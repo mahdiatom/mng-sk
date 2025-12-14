@@ -98,7 +98,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
 
                     if ($inserted_id) {
                         $attendance_id = $wpdb->insert_id;
-                        $saved_count++;
+                    $saved_count++;
 
                         // اگر غیبت باشد، هوک ارسال شود
                         if ($status === 'absent') {

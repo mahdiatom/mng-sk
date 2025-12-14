@@ -448,7 +448,27 @@ function sc_log_sms($status, $message, $data = array()) {
  */
 function sc_get_sms_template($action, $type = 'user') {
     // $type can be 'user' or 'admin'
-    return sc_get_setting("sms_{$action}_{$type}_template", '');
+    $default_templates = [
+        'invoice' => [
+            'user' => '%user_name% عزیز یک صورت حساب جدید برای شما صادر شد. مبلغ %amount% برای دوره %course_name%',
+            'admin' => 'صورت حساب جدید: %user_name% - مبلغ %amount% - دوره %course_name%'
+        ],
+        'enrollment' => [
+            'user' => '%user_name% عزیز، ثبت نام شما در دوره %course_name% تکمیل شد.',
+            'admin' => 'ثبت نام جدید: %user_name% در دوره %course_name%'
+        ],
+        'reminder' => [
+            'user' => '%user_name% عزیز، صورت حساب %amount% شما سر رسیده است. لطفاً پرداخت کنید.',
+            'admin' => 'یادآوری پرداخت: %user_name% - مبلغ %amount%'
+        ],
+        'absence' => [
+            'user' => 'کاربر گرامی %user_name%، غیبت شما در جلسه دوره %course_name% مورخ %date% ثبت شد.',
+            'admin' => 'غیبت: %user_name% - دوره %course_name% - تاریخ %date%'
+        ]
+    ];
+
+    $default = isset($default_templates[$action][$type]) ? $default_templates[$action][$type] : '';
+    return sc_get_setting("sms_{$action}_{$type}_template", $default);
 }
 
 /**
@@ -761,7 +781,7 @@ function sc_send_absence_sms($attendance_id) {
 
     $user_name = trim($attendance->first_name . ' ' . $attendance->last_name);
     $course_name = $attendance->course_title ?: 'دوره';
-    $date = date('Y/m/d', strtotime($attendance->attendance_date));
+    $date = sc_date_shamsi_date_only($attendance->attendance_date);
 
     $variables = [
         'user_name' => $user_name,
