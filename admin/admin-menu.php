@@ -10,101 +10,140 @@ add_action('admin_menu', 'sc_register_admin_menu');
 
 function sc_register_admin_menu() {
 
-    // Main menu
-   add_menu_page(
-        'داشبورد مدیریت',        // Page title
-        'داشبورد مدیریت',        // Menu title
-        'manage_options',           // Capability
-        'sc-dashboard',             // Menu slug
-        'sc_admin_dashboard_page',  // Callback
-        'dashicons-universal-access-alt', // Icon
-        26                          // Position
+    /* ================= Dashboard ================= */
+
+    add_menu_page(
+        'داشبورد مدیریت',
+        'داشبورد مدیریت',
+        'manage_options',
+        'sc-dashboard',
+        'sc_admin_dashboard_page',
+        'dashicons-universal-access-alt',
+        26
     );
 
-    // Members list
-    $list_member_sufix =  add_submenu_page(
-        'sc-dashboard',
-        'بازیکنان',
-        'بازکینان',
+    /* ================= Members ================= */
+
+    add_menu_page(
+        'اعضا',
+        'اعضا',
+        'manage_options',
+        'sc-members',
+        'sc_admin_members_list_page',
+        'dashicons-groups',
+        27
+    );
+
+    $list_member_sufix = add_submenu_page(
+        'sc-members',
+        'لیست اعضا',
+        'لیست اعضا',
         'manage_options',
         'sc-members',
         'sc_admin_members_list_page'
     );
 
-    // Add Member
     $add_member_sufix = add_submenu_page(
-        'sc-dashboard',
-        'افزودن بازیکن',
-        'افزودن بازیکن',
+        'sc-members',
+        'افزودن عضو',
+        'افزودن عضو',
         'manage_options',
         'sc-add-member',
         'sc_admin_add_member_page'
     );
 
-    // Courses list
+    /* ================= Courses ================= */
+
+    add_menu_page(
+        'دوره‌ها',
+        'دوره‌ها',
+        'manage_options',
+        'sc-courses',
+        'sc_admin_courses_list_page',
+        'dashicons-welcome-learn-more',
+        28
+    );
+
     $list_courses_sufix = add_submenu_page(
-        'sc-dashboard',
-        'دوره ها',
-        'دوره ها',
+        'sc-courses',
+        'لیست دوره‌ها',
+        'لیست دوره‌ها',
         'manage_options',
         'sc-courses',
         'sc_admin_courses_list_page'
     );
 
-    // Add Course
     $add_course_sufix = add_submenu_page(
-        'sc-dashboard',
-        'افزودن دوره ',
-        'افزودن دوره ',
+        'sc-courses',
+        'افزودن دوره',
+        'افزودن دوره',
         'manage_options',
         'sc-add-course',
         'sc_admin_add_course_page'
     );
 
-    // setting
-    $setting_sufix =  add_submenu_page(
-        'sc-dashboard',
-        'setting',
-        'تنظیمات',
+    /* ================= Events ================= */
+
+    add_menu_page(
+        'رویدادها / مسابقات',
+        'رویدادها / مسابقات',
         'manage_options',
-        'sc_setting',
-        'sc_setting_callback',
-        100
+        'sc-events',
+        'sc_admin_events_list_page',
+        'dashicons-tickets-alt',
+        29
     );
 
-    // Attendance - Add
-    add_submenu_page(
-        'sc-dashboard',
-        'ثبت حضور و غیاب',
-        'ثبت حضور و غیاب',
+    $list_events_sufix = add_submenu_page(
+        'sc-events',
+        'لیست رویداد / مسابقه',
+        'لیست رویداد / مسابقه',
         'manage_options',
-        'sc-attendance-add',
-        'sc_admin_attendance_add_page'
+        'sc-events',
+        'sc_admin_events_list_page'
     );
 
-    // Attendance - List
-    add_submenu_page(
-        'sc-dashboard',
-        'لیست حضور و غیاب',
-        'لیست حضور و غیاب',
+    $add_event_sufix = add_submenu_page(
+        'sc-events',
+        'ثبت رویداد / مسابقه',
+        'ثبت رویداد / مسابقه',
         'manage_options',
-        'sc-attendance-list',
-        'sc_admin_attendance_list_page'
+        'sc-add-event',
+        'sc_admin_add_event_page'
     );
 
-    // Invoices - List
+    $list_event_registrations_sufix = add_submenu_page(
+        'sc-events',
+        'ثبت‌نامی‌های رویداد',
+        'ثبت‌نامی‌های رویداد',
+        'manage_options',
+        'sc-event-registrations',
+        'sc_admin_event_registrations_list_page'
+    );
+
+    /* ================= Finance ================= */
+
+    add_menu_page(
+        'صورت حساب‌ها',
+        'صورت حساب‌ها',
+        'manage_options',
+        'sc-invoices',
+        'sc_admin_invoices_list_page',
+        'dashicons-money-alt',
+        30
+    );
+
     $list_invoices_sufix = add_submenu_page(
-        'sc-dashboard',
-        'صورت حساب‌ها',
-        'صورت حساب‌ها',
+        'sc-invoices',
+        'لیست صورت حساب‌ها',
+        'لیست صورت حساب‌ها',
         'manage_options',
         'sc-invoices',
         'sc_admin_invoices_list_page'
     );
 
-    // Invoices - Add
     $add_invoice_sufix = add_submenu_page(
-        'sc-dashboard',
+        'sc-invoices',
         'ایجاد صورت حساب',
         'ایجاد صورت حساب',
         'manage_options',
@@ -112,19 +151,8 @@ function sc_register_admin_menu() {
         'sc_admin_add_invoice_page'
     );
 
-    // Expenses - Add
-    $add_expense_sufix = add_submenu_page(
-        'sc-dashboard',
-        'ثبت هزینه',
-        'ثبت هزینه',
-        'manage_options',
-        'sc-add-expense',
-        'sc_admin_add_expense_page'
-    );
-
-    // Expenses - List
     $list_expenses_sufix = add_submenu_page(
-        'sc-dashboard',
+        'sc-invoices',
         'لیست هزینه‌ها',
         'لیست هزینه‌ها',
         'manage_options',
@@ -132,7 +160,29 @@ function sc_register_admin_menu() {
         'sc_admin_expenses_list_page'
     );
 
-    // Reports Menu - Main
+    $add_expense_sufix = add_submenu_page(
+        'sc-invoices',
+        'ثبت هزینه',
+        'ثبت هزینه',
+        'manage_options',
+        'sc-add-expense',
+        'sc_admin_add_expense_page'
+    );
+
+    /* ================= Settings ================= */
+
+    $setting_sufix = add_menu_page(
+        'تنظیمات',
+        'تنظیمات',
+        'manage_options',
+        'sc_setting',
+        'sc_setting_callback',
+        'dashicons-admin-generic',
+        99
+    );
+
+    /* ================= Reports (NO CHANGE) ================= */
+
     add_menu_page(
         'گزارشات باشگاه',
         'گزارشات باشگاه',
@@ -140,10 +190,9 @@ function sc_register_admin_menu() {
         'sc-reports',
         'sc_admin_reports_active_users_page',
         'dashicons-chart-area',
-        27
+        31
     );
 
-    // Reports - Active Users
     add_submenu_page(
         'sc-reports',
         'کاربران فعال',
@@ -153,7 +202,6 @@ function sc_register_admin_menu() {
         'sc_admin_reports_active_users_page'
     );
 
-    // Reports - Income and Expenses
     add_submenu_page(
         'sc-reports',
         'درآمد و هزینه‌ها',
@@ -163,7 +211,6 @@ function sc_register_admin_menu() {
         'sc_admin_reports_income_expenses_page'
     );
 
-    // Reports - Debtors
     add_submenu_page(
         'sc-reports',
         'بدهکاران',
@@ -173,7 +220,6 @@ function sc_register_admin_menu() {
         'sc_admin_reports_debtors_page'
     );
 
-    // Reports - Payments
     add_submenu_page(
         'sc-reports',
         'پرداختی‌ها',
@@ -183,46 +229,23 @@ function sc_register_admin_menu() {
         'sc_admin_reports_payments_page'
     );
 
-    // Event Registrations - List
-    $list_event_registrations_sufix = add_submenu_page(
-        'sc-dashboard',
-        'ثبت‌نامی‌های رویداد',
-        'ثبت‌نامی‌های رویداد',
-        'manage_options',
-        'sc-event-registrations',
-        'sc_admin_event_registrations_list_page'
-    );
+    /* ================= Load Hooks (همه حفظ شده) ================= */
 
-    // Events - List
-    $list_events_sufix = add_submenu_page(
-        'sc-dashboard',
-        'لیست رویداد / مسابقه',
-        'لیست رویداد / مسابقه',
-        'manage_options',
-        'sc-events',
-        'sc_admin_events_list_page'
-    );
+    add_action('load-' . $add_member_sufix, 'callback_add_member_sufix');
+    add_action('load-' . $list_member_sufix, 'procces_table_data');
 
-    // Events - Add
-    $add_event_sufix = add_submenu_page(
-        'sc-dashboard',
-        'ثبت رویداد / مسابقه',
-        'ثبت رویداد / مسابقه',
-        'manage_options',
-        'sc-add-event',
-        'sc_admin_add_event_page'
-    );
+    add_action('load-' . $add_course_sufix, 'callback_add_course_sufix');
+    add_action('load-' . $list_courses_sufix, 'procces_courses_table_data');
 
-    add_action('load-'. $add_member_sufix , 'callback_add_member_sufix');
-    add_action('load-'. $add_invoice_sufix , 'callback_add_invoice_sufix');
-    add_action('load-'. $add_expense_sufix , 'callback_add_expense_sufix');
-    add_action('load-'. $list_invoices_sufix , 'process_invoices_table_data');
-    add_action('load-'. $list_member_sufix , 'procces_table_data');
-    add_action('load-'. $list_courses_sufix , 'procces_courses_table_data');
-    add_action('load-'. $add_course_sufix , 'callback_add_course_sufix');
-    add_action('load-'. $list_events_sufix , 'process_events_table_data');
-    add_action('load-'. $add_event_sufix , 'callback_add_event_sufix');
+    add_action('load-' . $add_event_sufix, 'callback_add_event_sufix');
+    add_action('load-' . $list_events_sufix, 'process_events_table_data');
+
+    add_action('load-' . $add_invoice_sufix, 'callback_add_invoice_sufix');
+    add_action('load-' . $list_invoices_sufix, 'process_invoices_table_data');
+
+    add_action('load-' . $add_expense_sufix, 'callback_add_expense_sufix');
 }
+
 
 /**
  * Export Excel endpoints
