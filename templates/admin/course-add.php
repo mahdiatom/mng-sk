@@ -80,7 +80,7 @@ if ($course && isset($_GET['course_id'])) {
                                inputmode="numeric"
                                required>
                         <input type="hidden" name="price_raw" id="price_raw" value="<?php echo esc_attr($price_display); ?>">
-                        <p class="description">مبلغ دوره به تومان (با جدا کردن سه رقم سه رقم)</p>
+                        <p class="description">مبلغ دوره به تومان</p>
                         
                     </td>
                 </tr>
@@ -97,12 +97,12 @@ if ($course && isset($_GET['course_id'])) {
                     <th scope="row"><label for="sessions_count">تعداد جلسات</label></th>
                     <td>
                         <input name="sessions_count" type="number" id="sessions_count" value="<?php echo esc_attr($sessions_count ?? ''); ?>" class="regular-text" min="1">
-                        <p class="description">تعداد جلسات دوره. در صورت خالی بودن، می‌توانید بعداً مشخص کنید.</p>
+                        <p class="description"></p>
                     </td>
                 </tr>
 
                 <tr>
-                    <th scope="row"><label for="start_date_shamsi">تاریخ شروع (شمسی)</label></th>
+                    <th scope="row"><label for="start_date_shamsi">تاریخ شروع</label></th>
                     <td>
                         <?php
                         $start_date_shamsi = '';
@@ -121,16 +121,16 @@ if ($course && isset($_GET['course_id'])) {
                         <input name="start_date_shamsi" type="text" id="start_date_shamsi" 
                                value="<?php echo esc_attr($start_date_shamsi); ?>" 
                                class="regular-text persian-date-input" 
-                               placeholder="تاریخ شروع (شمسی)" 
+                               placeholder="تاریخ شروع " 
                                readonly
                                style="width: 300px; padding: 5px;">
                         <input type="hidden" name="start_date" id="start_date" value="<?php echo esc_attr($start_date ?? ''); ?>">
-                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+                        <p class="description">برای انتخاب تاریخ، روی فیلد بالا کلیک کنید</p>
                     </td>
                 </tr>
 
                 <tr>
-                    <th scope="row"><label for="end_date_shamsi">تاریخ پایان (شمسی)</label></th>
+                    <th scope="row"><label for="end_date_shamsi">تاریخ پایان</label></th>
                     <td>
                         <?php
                         $end_date_shamsi = '';
@@ -153,11 +153,15 @@ if ($course && isset($_GET['course_id'])) {
                                readonly
                                style="width: 300px; padding: 5px;">
                         <input type="hidden" name="end_date" id="end_date" value="<?php echo esc_attr($end_date ?? ''); ?>">
-                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید (اختیاری - در صورت خالی بودن محدودیتی برای ثبت‌نام وجود ندارد)</p>
+                        <p class="description">برای انتخاب تاریخ، روی فیلد بالا کلیک کنید </p>
                     </td>
                 </tr>
+                <th>
+                    <td class="description">توجه: در صورتی که تاریخ دوره گذشته باشد امکان ثبت نام برای کاربر وجود ندارد در ثبت تاریخ دقت کنید.</td>
 
+                    </th>         
                 <tr>
+                   
                     <th scope="row">وضعیت</th>
                     <td>
                         <label class="switch">

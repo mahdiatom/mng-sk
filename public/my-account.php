@@ -484,10 +484,10 @@ function sc_my_account_enroll_course_content() {
     $courses = $wpdb->get_results($wpdb->prepare($query, $query_values));
     
     // انتقال متغیرهای فیلتر و صفحه‌بندی به template
-    $filter_status = $filter_status;
-    $current_page = $current_page;
-    $total_pages = $total_pages;
-    $total_courses = $total_courses;
+    // $filter_status = $filter_status;
+    // $current_page = $current_page;
+    // $total_pages = $total_pages;
+    // $total_courses = $total_courses;
     
     // همیشه template را include کن تا فیلتر نمایش داده شود
     include SC_TEMPLATES_PUBLIC_DIR . 'enroll-course.php';

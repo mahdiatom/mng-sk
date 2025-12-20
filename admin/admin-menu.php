@@ -12,8 +12,8 @@ function sc_register_admin_menu() {
 
     // Main menu
    add_menu_page(
-        'SportClub Manager',        // Page title
-        'SportClub Manager',        // Menu title
+        'داشبورد مدیریت',        // Page title
+        'داشبورد مدیریت',        // Menu title
         'manage_options',           // Capability
         'sc-dashboard',             // Menu slug
         'sc_admin_dashboard_page',  // Callback
@@ -24,8 +24,8 @@ function sc_register_admin_menu() {
     // Members list
     $list_member_sufix =  add_submenu_page(
         'sc-dashboard',
-        'Members',
-        'Members',
+        'بازیکنان',
+        'بازکینان',
         'manage_options',
         'sc-members',
         'sc_admin_members_list_page'
@@ -34,8 +34,8 @@ function sc_register_admin_menu() {
     // Add Member
     $add_member_sufix = add_submenu_page(
         'sc-dashboard',
-        'Add Member',
-        'Add Member',
+        'افزودن بازیکن',
+        'افزودن بازیکن',
         'manage_options',
         'sc-add-member',
         'sc_admin_add_member_page'
@@ -44,8 +44,8 @@ function sc_register_admin_menu() {
     // Courses list
     $list_courses_sufix = add_submenu_page(
         'sc-dashboard',
-        'Courses',
-        'Courses',
+        'دوره ها',
+        'دوره ها',
         'manage_options',
         'sc-courses',
         'sc_admin_courses_list_page'
@@ -54,8 +54,8 @@ function sc_register_admin_menu() {
     // Add Course
     $add_course_sufix = add_submenu_page(
         'sc-dashboard',
-        'Add Course',
-        'Add Course',
+        'افزودن دوره ',
+        'افزودن دوره ',
         'manage_options',
         'sc-add-course',
         'sc_admin_add_course_page'
@@ -65,10 +65,11 @@ function sc_register_admin_menu() {
     $setting_sufix =  add_submenu_page(
         'sc-dashboard',
         'setting',
-        'setting',
+        'تنظیمات',
         'manage_options',
         'sc_setting',
-        'sc_setting_callback'
+        'sc_setting_callback',
+        100
     );
 
     // Attendance - Add

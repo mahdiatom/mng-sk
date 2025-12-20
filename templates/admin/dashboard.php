@@ -1,5 +1,7 @@
 <?php
 // بررسی و ایجاد جداول در صورت عدم وجود
+
+
 sc_check_and_create_tables();
 
 global $wpdb;
@@ -66,10 +68,6 @@ for ($i = 5; $i >= 0; $i--) {
             <div style="font-size: 36px; font-weight: bold; color: #2271b1;"><?php echo $active_courses; ?></div>
         </div>
         
-        <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="margin: 0 0 10px 0; color: #666;">ثبت‌نام‌های فعال</h3>
-            <div style="font-size: 36px; font-weight: bold; color: #2271b1;"><?php echo $total_enrollments; ?></div>
-        </div>
     </div>
     
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
