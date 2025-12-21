@@ -96,8 +96,8 @@ function sc_register_admin_menu() {
 
     $list_events_sufix = add_submenu_page(
         'sc-events',
-        'لیست رویداد / مسابقه',
-        'لیست رویداد / مسابقه',
+        'لیست رویداد ',
+        'لیست رویداد ',
         'manage_options',
         'sc-events',
         'sc_admin_events_list_page'
@@ -105,8 +105,8 @@ function sc_register_admin_menu() {
 
     $add_event_sufix = add_submenu_page(
         'sc-events',
-        'ثبت رویداد / مسابقه',
-        'ثبت رویداد / مسابقه',
+        'ثبت رویداد ',
+        'ثبت رویداد ',
         'manage_options',
         'sc-add-event',
         'sc_admin_add_event_page'
@@ -172,13 +172,14 @@ function sc_register_admin_menu() {
     /* ================= Settings ================= */
 
     $setting_sufix = add_menu_page(
-        'تنظیمات',
-        'تنظیمات',
+        'تنظیمات مدیریت باشگاه',
+        'تنظیمات مدیریت باشگاه',
         'manage_options',
         'sc_setting',
         'sc_setting_callback',
         'dashicons-admin-generic',
-        99
+        50
+        
     );
 
     /* ================= Reports (NO CHANGE) ================= */
@@ -355,7 +356,6 @@ function sc_admin_add_member_page() {
 }
 function sc_setting_callback(){
     include SC_TEMPLATES_ADMIN_DIR . 'settings.php';
-    echo "تنظیمات افزونه";
 }
 
 /**

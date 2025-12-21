@@ -161,3 +161,36 @@ function sc_hide_user_profile_fields() {
  */
 add_filter('user_contactmethods', '__return_empty_array', 999);
 add_filter('show_password_fields', '__return_true', 999);
+
+
+
+/**
+ * 1- حذف هزینه‌ها فقط برای کاربر (My Account)
+ */
+add_filter( 'woocommerce_get_order_item_totals', 'my_plugin_hide_order_totals_for_customer', 10, 2 );
+
+function my_plugin_hide_order_totals_for_customer( $totals, $order ) {
+
+    // فقط فرانت‌اند
+    if ( is_admin() ) {
+        return $totals;
+    }
+
+    // فقط صفحه حساب کاربری
+    if ( ! is_account_page() ) {
+        return $totals;
+    }
+
+    // حذف هزینه‌ها
+    unset( $totals['cart_subtotal'] );
+    unset( $totals['shipping'] );
+    unset( $totals['tax'] );
+    unset( $totals['order_total'] );
+    unset( $totals['payment_method'] );
+
+    return $totals;
+}
+
+
+
+

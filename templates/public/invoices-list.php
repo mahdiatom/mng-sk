@@ -72,10 +72,10 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                         <span class="nobr">شماره سفارش</span>
                     </th>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-date">
-                        <span class="nobr">دوره / رویداد</span>
+                        <span class="nobr">سفارش</span>
                     </th>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-status">
-                        <span class="nobr">مبلغ (با جریمه)</span>
+                        <span class="nobr">مبلغ</span>
                     </th>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-total">
                         <span class="nobr">وضعیت</span>
@@ -334,7 +334,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                             </span>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-actions" data-title="عملیات">
-                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <div style="display: flex;gap: 8px;flex-wrap: wrap;justify-content: center;">
                                 <?php 
                                 // دکمه‌های عملیات
                                 $action_buttons = [];
@@ -391,6 +391,3 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
     <?php endif; ?>
 </div>
 
-<style>
-
-</style>

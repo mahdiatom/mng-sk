@@ -106,13 +106,31 @@ $order_items = $order->get_items();
                 <path d="M30 40L35 45L50 30" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </div>
-        <h1 class="sc-thankyou-title">سپاس از خرید شما!</h1>
+        <h1 class="sc-thankyou-title">سپاس از اعتماد شما</h1>
         <p class="sc-thankyou-message">
-            سفارش شما با موفقیت ثبت شد و در حال پردازش است.
+            درخواست شما با موفقیت ثبت شد .
             <br>
             شماره سفارش شما: <strong><?php echo esc_html($order_number); ?></strong>
         </p>
+                    <p class="after_do_pay">خب حالا بگو چیکار کنیم؟ <br> میتونی جزئیات سفارش ات رو پایین تر ببینی و در صورت نیاز یه اسکرین شات بگیری. از دکمه های زیر هم برای دسترسی سریع تر میتونی استفاده کنی.</p>
+
+        <div class="boxs_do_after_pay">
+            <div class="go_to_pannel">
+                <a href="<?php echo site_url(); ?>/my-account">برو به حساب کاربری من </a>
+            </div>
+            <div class="go_to_courses">
+                <a href="<?php echo site_url(); ?>/my-account/sc-enroll-course/">برو به بخش دوره ها</a>
+            </div>
+            <div class="go_to_my_courses">
+                <a href="<?php echo site_url(); ?>/my-account/sc-my-courses/">برو به دوره های ثبت نامی من </a>
+            </div>
+            <div class="go_to_invoice">
+                <a href="<?php echo site_url(); ?>/my-account/sc-invoices/">برو به صورت حساب های من </a>
+            </div>
+
+        </div>
     </div>
+
 
     <!-- کارت‌های اطلاعات اصلی -->
     <div class="sc-thankyou-cards">
@@ -237,7 +255,7 @@ $order_items = $order->get_items();
     <div class="sc-thankyou-order-items">
         <h2 class="sc-thankyou-section-title">
             <span class="sc-thankyou-section-icon">🛒</span>
-            محصولات سفارش
+            جزئیات سفارش
         </h2>
         
         <div class="sc-thankyou-items-list">
@@ -278,3 +296,4 @@ $order_items = $order->get_items();
         </a>
     </div>
 </div>
+

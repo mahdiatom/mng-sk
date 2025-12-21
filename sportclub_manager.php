@@ -886,3 +886,5 @@ function sc_public_enqueue_assets() {
     wp_enqueue_style('sc-public-css', SC_ASSETS_URL . 'css/public.css', array(), '1.0');
     wp_enqueue_script('sc-public-js', SC_ASSETS_URL . 'js/public.js', array('jquery'), '1.0', true);
 }
+
+

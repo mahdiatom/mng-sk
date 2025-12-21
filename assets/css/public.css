@@ -61,7 +61,10 @@ a{
    ============================================ */
 
 /* بخش حساب کاربری ووکامرس */
-
+.woocommerce-MyAccount-navigation {
+    position: sticky;
+    top: 20px; /* خیلی مهم */
+}
 .woocommerce-MyAccount-navigation .woocommerce-MyAccount-navigation-link {
     padding: 5px 0px !important;
     margin: 0 !important;
@@ -1282,6 +1285,15 @@ ease;
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(214, 54, 56, 0.4) !important;
 }
+.woocommerce-orders-table__header , .woocommerce-orders-table__cell{
+    text-align: center !important;
+}
+.woocommerce-orders-table__cell-order-number{
+    text-align: right !important;
+}
+.order-again{
+    display: none !important;
+}
 
 @media (max-width: 768px) {
     .sc-invoices-table {
@@ -1626,7 +1638,7 @@ padding: 15px !important;
 .sc-thankyou-header {
     text-align: center;
     padding: 50px 30px;
-    background: linear-gradient(135deg, #6D34FF 0%, #5a2ae6 100%);
+    background: linear-gradient(360deg, #4f3988 23%, #5a2ae6 63%);
     border-radius: 20px;
     color: #fff;
     margin-bottom: 40px;
@@ -1635,16 +1647,7 @@ padding: 15px !important;
     overflow: hidden;
 }
 
-.sc-thankyou-header::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-    animation: pulse 3s ease-in-out infinite;
-}
+
 
 @keyframes pulse {
     0%, 100% {
@@ -1713,26 +1716,15 @@ padding: 15px !important;
     overflow: hidden;
 }
 
-.sc-thankyou-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(109, 52, 255, 0.05) 0%, transparent 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
 
 .sc-thankyou-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
-
-.sc-thankyou-card:hover::before {
-    opacity: 1;
+.sc-thankyou-card div span , .sc-thankyou-card-value{
+    font-size: 16px ;
 }
+
 
 .sc-thankyou-card-icon {
     font-size: 40px;
@@ -1760,7 +1752,7 @@ padding: 15px !important;
 }
 
 .sc-thankyou-card-value {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 700;
     color: #1a1a1a;
     word-break: break-word;
@@ -1780,26 +1772,26 @@ padding: 15px !important;
 }
 
 .sc-thankyou-card-date .sc-thankyou-card-value {
-    color: #f0a000;
+    color: #6D34FF;
 }
 
-.sc-thankyou-card-email {
-    border-right-color: #2271b1;
+.sc-thankyou-card-email, .sc-thankyou-card , .sc-thankyou-card-status , .sc-thankyou-card-status {
+    border-right-color: #6D34FF !important;
 }
 
 .sc-thankyou-card-email .sc-thankyou-card-value {
-    color: #2271b1;
+    color: #6D34FF;
     font-size: 16px;
 }
 
 .sc-thankyou-card-total {
-    border-right-color: #00a32a;
-    background: linear-gradient(135deg, #f0fff4 0%, #e0ffe0 100%);
+    border-right-color: #6D34FF;
+   
 }
 
 .sc-thankyou-card-total .sc-thankyou-card-value {
-    color: #00a32a;
-    font-size: 24px;
+    color: #6D34FF;
+    font-size: 16px;
 }
 
 /* بخش جزئیات سفارش */
@@ -2182,7 +2174,7 @@ padding: 15px !important;
     align-items: center;
     justify-content: space-between;
     padding: 15px 20px;
-    background: linear-gradient(135deg, #f0fff4 0%, #e0ffe0 100%);
+    background: linear-gradient(135deg, #f8f9ff 0%, #eef0ff 100%);
     border-radius: 12px;
     border-right: 4px solid #00a32a;
 }
@@ -2196,7 +2188,7 @@ padding: 15px !important;
 .sc-thankyou-summary-value {
     font-size: 24px;
     font-weight: 700;
-    color: #00a32a;
+    color: #6D34FF;
 }
 
 /* کارت وضعیت */
@@ -2205,7 +2197,7 @@ padding: 15px !important;
 }
 
 .sc-thankyou-card-status .sc-thankyou-card-value {
-    color: #00a32a;
+    color: #6D34FF;
 }
 
 /* کانتینر اصلی صفحه تشکر (برای سازگاری با کلاس‌های WooCommerce) */
@@ -2215,7 +2207,9 @@ padding: 15px !important;
     margin: 30px auto;
     padding: 0 20px;
 }
-
+.woocommerce-order-received .page-header h1{
+    display: none;
+}
 /* مخفی کردن آدرس‌ها و اطلاعات اضافی WooCommerce */
 .woocommerce-customer-details,
 .woocommerce-columns--addresses,
@@ -2551,6 +2545,41 @@ padding: 15px !important;
 .woocommerce-order-overview li:nth-child(4) {
     animation-delay: 0.4s;
 }
+.boxs_do_after_pay {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding-top: 10px;
+}
+.boxs_do_after_pay div{
+    border: 1px solid #fafafa;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px 20px 20px 20px;
+    color: white;
+
+}
+.boxs_do_after_pay div:hover a{
+    color: white;
+}
+.boxs_do_after_pay div:hover{
+    background-color: #4f3988  ;
+    cursor: pointer;
+}
+.after_do_pay{
+    padding-top: 10px;
+    line-height: 36px;
+}
+.boxs_do_after_pay a{
+    color: #000;
+    font-size: 14px;
+    font-weight: 600;
+ 
+}
+.sc-thankyou-icon svg{
+    border: 3px solid;
+    border-radius: 50%;
+}
 
 /* Responsive برای صفحه تشکر */
 @media (max-width: 768px) {
@@ -2594,4 +2623,26 @@ padding: 15px !important;
         margin: 10px 0;
         text-align: center;
     }
+    .boxs_do_after_pay{
+            display: flex;
+    flex-direction: column;
+    gap: 6px;
+    }
+    .after_do_pay{
+        font-size: 13px;
+    line-height: 19px;
+    }
+
 }
+@media (max-width: 990px) {
+.boxs_do_after_pay{
+            display: flex;
+    flex-direction: column;
+    gap: 6px;
+    }
+    .after_do_pay{
+        font-size: 13px;
+    line-height: 19px;
+    }
+}
+
