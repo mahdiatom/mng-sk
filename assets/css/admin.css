@@ -475,3 +475,143 @@ p.sk-modal-content p {
 #wp-admin-bar-sc-sms-credit span{
     color: #000 !important;
 }
+
+/* for fillters - section invoice */
+
+/* === Base === */
+.sc-filter-wrapper {
+    margin-top: 20px;
+}
+
+.sc-filter-form {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 20px;
+}
+
+/* === Grid Layout === */
+.sc-filter-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.sc-filter-field {
+    width: calc(50% - 10px);
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 768px) {
+    .sc-filter-field {
+        width: 100%;
+    }
+}
+
+/* === Labels & Controls === */
+.sc-filter-label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1d2327;
+}
+
+.sc-filter-control {
+    height: 40px;
+    padding: 6px 10px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.sc-filter-control:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+/* === Date Range === */
+.sc-date-range {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sc-date-separator {
+    font-weight: 600;
+}
+
+.sc-filter-help {
+    font-size: 12px;
+    color: #646970;
+    margin-top: 5px;
+}
+
+/* === Actions === */
+.sc-filter-actions {
+    margin-top: 25px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sc-btn-success {
+    background: #00a32a !important;
+    border-color: #00a32a !important;
+    color: #fff !important;
+}
+
+/* === Dropdown === */
+.sc-searchable-dropdown {
+    position: relative;
+}
+
+.sc-dropdown-toggle {
+    height: 38.5px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    padding: 0 12px 0 10px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    background: #fff;
+}
+
+.sc-dropdown-arrow {
+    position: absolute;
+    left: 10px;
+    color: #757575;
+}
+
+.sc-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    background: #fff;
+    border: 1px solid #8c8f94;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 999;
+}
+
+.sc-dropdown-option {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.sc-dropdown-option:hover {
+    background: #f0f6fc;
+}
+.sc-search-input{
+    width: 100%;
+}
+.wp-core-ui select{
+    max-width: unset;
+}
+.sc-filter-row{
+        display: flex;
+    gap: 15px;
+}
+/* END for fillters - section invoice */

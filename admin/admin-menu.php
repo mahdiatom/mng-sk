@@ -221,14 +221,14 @@ function sc_register_admin_menu() {
         'sc_admin_reports_debtors_page'
     );
 
-    add_submenu_page(
-        'sc-reports',
-        'پرداختی‌ها',
-        'پرداختی‌ها',
-        'manage_options',
-        'sc-reports-payments',
-        'sc_admin_reports_payments_page'
-    );
+    // add_submenu_page(
+    //     'sc-reports',
+    //     'پرداختی‌ها',
+    //     'پرداختی‌ها',
+    //     'manage_options',
+    //     'sc-reports-payments',
+    //     'sc_admin_reports_payments_page'
+    // );
 
     /* ================= Load Hooks (همه حفظ شده) ================= */
 
@@ -435,12 +435,12 @@ function sc_admin_reports_debtors_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'reports-debtors.php';
 }
 
-function sc_admin_reports_payments_page() {
-    // بررسی و ایجاد جداول در صورت عدم وجود
-    sc_check_and_create_tables();
+// function sc_admin_reports_payments_page() {
+//     // بررسی و ایجاد جداول در صورت عدم وجود
+//     sc_check_and_create_tables();
     
-    include SC_TEMPLATES_ADMIN_DIR . 'reports-payments.php';
-}
+//     include SC_TEMPLATES_ADMIN_DIR . 'reports-payments.php';
+// }
 
 /**
  * Expenses management pages

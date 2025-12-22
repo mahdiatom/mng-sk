@@ -19,28 +19,6 @@ $filter_event = isset($_GET['filter_event']) ? absint($_GET['filter_event']) : 0
 $filter_event_type = isset($_GET['filter_event_type']) ? sanitize_text_field($_GET['filter_event_type']) : 'all';
 $filter_order = isset($_GET['filter_order']) ? sanitize_text_field($_GET['filter_order']) : '';
 $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
-$filter_date_from        = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
-$filter_date_to          = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
-$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
-$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
-
-// اگر تاریخ خالی بود، تاریخ امروز را قرار بده
-if (empty($filter_date_from) && empty($filter_date_to)) {
-    $today_gregorian = current_time('Y-m-d');
-    $today = new DateTime($today_gregorian);
-    $jalali = gregorian_to_jalali(
-        (int)$today->format('Y'),
-        (int)$today->format('m'),
-        (int)$today->format('d')
-    );
-    $today_shamsi = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
-
-    $filter_date_from        = $today_gregorian;
-    $filter_date_to          = $today_gregorian;
-    $filter_date_from_shamsi = $today_shamsi;
-    $filter_date_to_shamsi   = $today_shamsi;
-}
-
 
 // Pagination
 $per_page = 20;
@@ -83,12 +61,6 @@ if (!empty($filter_order)) {
 if ($filter_status !== 'all') {
     $where_conditions[] = "i.status = %s";
     $where_values[] = $filter_status;
-}
-// فیلتر تاریخ ثبت‌نام
-if (!empty($filter_date_from) && !empty($filter_date_to)) {
-    $where_conditions[] = "r.created_at BETWEEN %s AND %s";
-    $where_values[] = $filter_date_from . ' 00:00:00';
-    $where_values[] = $filter_date_to . ' 23:59:59';
 }
 
 $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
@@ -158,230 +130,215 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
 </div>
 
 <!-- فیلترها -->
-<div class="wrap sc-filter-wrapper">
-    <form method="GET" action="" class="sc-filter-form">
+<div class="wrap" style="margin-top: 20px;">
+    <form method="GET" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
         <input type="hidden" name="page" value="sc-event-registrations">
-
-        <div class="sc-filter-grid">
-            <!-- ستون ۱: Member -->
-            <div class="sc-filter-field">
-    <label class="sc-filter-label" for="filter_member">کاربر</label>
-        <?php
-    $selected_event_text = 'همه رویدادها';
-    if ($filter_event > 0) {
-        foreach ($all_events as $e) {
-            if ($e->id == $filter_event) {
-                $selected_event_text = $e->name . ' - ' . $e->holding_date_shamsi;
-                break;
-            }
-        }
-    }
-    ?>
-
-    <div class="sc-searchable-dropdown">
-        <?php 
-        $selected_member_text = 'همه کاربران';
-        if ($filter_member > 0) {
-            foreach ($all_members as $m) {
-                if ($m->id == $filter_member) {
-                    $selected_member_text = trim($m->first_name . ' ' . $m->last_name) . ' - ' . $m->national_id;
-                    break;
-                }
-            }
-        }
-        ?>
-        <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>" class="sc-filter-control">
-        <div class="sc-dropdown-toggle">
-            <span class="sc-dropdown-placeholder" <?php echo $filter_member > 0 ? 'style="display:none"' : ''; ?>>همه کاربران</span>
-            <span class="sc-dropdown-selected" <?php echo $filter_member == 0 ? 'style="display:none"' : ''; ?>>
-                <?php echo esc_html($selected_member_text); ?>
-            </span>
-            <span class="sc-dropdown-arrow">▼</span>
-        </div>
-        <div class="sc-dropdown-menu">
-            <div class="sc-dropdown-search">
-                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
-            </div>
-            <div class="sc-dropdown-options">
-                <div class="sc-dropdown-option sc-visible <?php echo $filter_member == 0 ? 'sc-selected' : ''; ?>" 
-                     data-value="0" 
-                     data-search="همه کاربران"
-                     onclick="scSelectMemberFilter(this,'0','همه کاربران')">
-                    همه کاربران
-                </div>
-                <?php 
-                $display_count = 0;
-                $max_display = 10;
-                foreach ($all_members as $member_option) : 
-                    $is_selected = ($filter_member == $member_option->id);
-                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
-                ?>
-                    <div class="sc-dropdown-option <?php echo $display_class; ?> <?php echo $is_selected ? 'sc-selected' : ''; ?>"
-                         data-value="<?php echo esc_attr($member_option->id); ?>"
-                         data-search="<?php echo esc_attr(strtolower($member_option->first_name . ' ' . $member_option->last_name . ' ' . $member_option->national_id)); ?>"
-                         onclick="scSelectMemberFilter(this,'<?php echo esc_js($member_option->id); ?>','<?php echo esc_js(trim($member_option->first_name . ' ' . $member_option->last_name) . ' - ' . $member_option->national_id); ?>')">
-                        <?php echo esc_html(trim($member_option->first_name . ' ' . $member_option->last_name) . ' - ' . $member_option->national_id); ?>
-                    </div>
-                <?php 
-                    if ($is_selected) {
-                        $display_count++;
-                    } elseif ($display_count < $max_display) {
-                        $display_count++;
-                    }
-                endforeach; 
-                ?>
-            </div>
-        </div>
-    </div>
-</div>
-
-            <!-- ستون ۲: Event Type -->
-            <div class="sc-filter-field">
-                <label for="filter_event_type" class="sc-filter-label">نوع</label>
-                <select name="filter_event_type" id="filter_event_type" class="sc-filter-control">
-                    <option value="all" <?php selected($filter_event_type,'all'); ?>>همه</option>
-                    <option value="event" <?php selected($filter_event_type,'event'); ?>>رویداد</option>
-                    <option value="competition" <?php selected($filter_event_type,'competition'); ?>>مسابقه</option>
-                </select>
-            </div>
-
-            <!-- Event -->
-            <div class="sc-filter-field">
-                <label for="filter_event" class="sc-filter-label">رویداد</label>
-                <div class="sc-searchable-dropdown">
-                    <input type="hidden" name="filter_event" id="filter_event" value="<?php echo esc_attr($filter_event); ?>">
-                    <div class="sc-dropdown-toggle">
-                        <span class="sc-dropdown-placeholder" <?php echo $filter_event>0 ? 'style="display:none"' : ''; ?>>همه رویدادها</span>
-                        <span class="sc-dropdown-selected" <?php echo $filter_event==0 ? 'style="display:none"' : ''; ?>>
-                            <?php echo esc_html($selected_event_text); ?>
-                        </span>
-                        <span class="sc-dropdown-arrow">▼</span>
-                    </div>
-                    <div class="sc-dropdown-menu">
-                        <div class="sc-dropdown-search">
-                            <input type="text" class="sc-search-input" placeholder="جستجوی نام رویداد...">
+        
+        <table class="form-table">
+            <tr>
+                <th scope="row">
+                    <label for="filter_member">کاربر</label>
+                </th>
+                <td>
+                    <div class="sc-searchable-dropdown" style="position: relative; width: 100%; max-width: 400px;">
+                        <?php 
+                        $selected_member_text = 'همه کاربران';
+                        if ($filter_member > 0) {
+                            foreach ($all_members as $m) {
+                                if ($m->id == $filter_member) {
+                                    $selected_member_text = trim($m->first_name . ' ' . $m->last_name) . ' - ' . $m->national_id;
+                                    break;
+                                }
+                            }
+                        }
+                        ?>
+                        <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
+                        <div class="sc-dropdown-toggle" style="position: relative; cursor: pointer; border: 1px solid #8c8f94; border-radius: 4px; padding: 8px 35px 8px 12px; background: #fff; min-height: 30px; display: flex; align-items: center;">
+                            <span class="sc-dropdown-placeholder" style="color: #757575; display: <?php echo $filter_member > 0 ? 'none' : 'inline'; ?>;">همه کاربران</span>
+                            <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $filter_member > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
+                            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
                         </div>
-                        <div class="sc-dropdown-options">
-                            <div class="sc-dropdown-option" data-value="0" onclick="scSelectEventFilter(this,'0','همه رویدادها')">
-                                همه رویدادها
+                        <div class="sc-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #8c8f94; border-top: none; border-radius: 0 0 4px 4px; max-height: 300px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: -1px;">
+                            <div class="sc-dropdown-search" style="padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff;">
+                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی..." style="width: 100%; padding: 8px; border: 1px solid #8c8f94; border-radius: 4px; font-size: 14px;">
                             </div>
-                            <?php foreach ($all_events as $event_option) : ?>
-                                <div class="sc-dropdown-option"
-                                     data-value="<?php echo esc_attr($event_option->id); ?>"
-                                     onclick="scSelectEventFilter(this,'<?php echo esc_js($event_option->id); ?>','<?php echo esc_js($event_option->name.' - '.$event_option->holding_date_shamsi); ?>')">
-                                    <?php echo esc_html($event_option->name.' - '.$event_option->holding_date_shamsi); ?>
+                            <div class="sc-dropdown-options" style="max-height: 250px; overflow-y: auto;">
+                                <div class="sc-dropdown-option sc-visible" 
+                                     data-value="0"
+                                     data-search="همه کاربران"
+                                     style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $filter_member == 0 ? 'background: #f0f6fc;' : ''; ?>"
+                                     onclick="scSelectMemberFilter(this, '0', 'همه کاربران')">
+                                    همه کاربران
+                                    <?php if ($filter_member == 0) : ?>
+                                        <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endforeach; ?>
+                                <?php 
+                                $display_count = 0;
+                                $max_display = 10;
+                                foreach ($all_members as $member_option) : 
+                                    $is_selected = ($filter_member == $member_option->id);
+                                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                ?>
+                                    <div class="sc-dropdown-option <?php echo $display_class; ?>" 
+                                         data-value="<?php echo esc_attr($member_option->id); ?>"
+                                         data-search="<?php echo esc_attr(strtolower($member_option->first_name . ' ' . $member_option->last_name . ' ' . $member_option->national_id)); ?>"
+                                         style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $is_selected ? 'background: #f0f6fc;' : ''; ?>"
+                                         onclick="scSelectMemberFilter(this, '<?php echo esc_js($member_option->id); ?>', '<?php echo esc_js(trim($member_option->first_name . ' ' . $member_option->last_name) . ' - ' . $member_option->national_id); ?>')">
+                                        <?php echo esc_html(trim($member_option->first_name . ' ' . $member_option->last_name) . ' - ' . $member_option->national_id); ?>
+                                        <?php if ($is_selected) : ?>
+                                            <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php 
+                                    if ($is_selected) {
+                                        $display_count++;
+                                    } elseif ($display_count < $max_display) {
+                                        $display_count++;
+                                    }
+                                endforeach; 
+                                ?>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Order Number -->
-            <div class="sc-filter-field">
-                <label for="filter_order" class="sc-filter-label">شماره سفارش</label>
-                <input type="text" name="filter_order" id="filter_order" value="<?php echo esc_attr($filter_order); ?>" class="sc-filter-control" placeholder="#123">
-            </div>
-
-            <!-- Status -->
-            <div class="sc-filter-field">
-                <label for="filter_status" class="sc-filter-label">وضعیت</label>
-                <select name="filter_status" id="filter_status" class="sc-filter-control">
-                    <option value="all" <?php selected($filter_status,'all'); ?>>همه وضعیت‌ها</option>
-                    <option value="pending" <?php selected($filter_status,'pending'); ?>>در انتظار پرداخت</option>
-                    <option value="processing" <?php selected($filter_status,'processing'); ?>>پرداخت شده</option>
-                    <option value="completed" <?php selected($filter_status,'completed'); ?>>تایید پرداخت</option>
-                    <option value="on-hold" <?php selected($filter_status,'on-hold'); ?>>در حال بررسی</option>
-                    <option value="cancelled" <?php selected($filter_status,'cancelled'); ?>>لغو شده</option>
-                </select>
-            </div>
-
-            <!-- ستون ۵: بازه تاریخ ثبت‌نام -->
-<div class="sc-filter-field sc-filter-date">
-    <label class="sc-filter-label">بازه تاریخ ثبت‌نام</label>
-
-    <?php
-    $filter_date_from        = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
-    $filter_date_to          = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
-    $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
-    $filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
-
-    if (empty($filter_date_from) && empty($filter_date_to)) {
-        $today_gregorian = current_time('Y-m-d');
-        $today = new DateTime($today_gregorian);
-        $jalali = gregorian_to_jalali(
-            (int)$today->format('Y'),
-            (int)$today->format('m'),
-            (int)$today->format('d')
-        );
-        $today_shamsi = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
-
-        $filter_date_from        = $today_gregorian;
-        $filter_date_to          = $today_gregorian;
-        $filter_date_from_shamsi = $today_shamsi;
-        $filter_date_to_shamsi   = $today_shamsi;
-    }
-    ?>
-
-    <div class="sc-date-range">
-        <input type="text"
-               id="filter_date_from_shamsi"
-               name="filter_date_from_shamsi"
-               class="sc-filter-control persian-date-input"
-               value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
-               readonly>
-
-        <span class="sc-date-separator">تا</span>
-
-        <input type="text"
-               id="filter_date_to_shamsi"
-               name="filter_date_to_shamsi"
-               class="sc-filter-control persian-date-input"
-               value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
-               readonly>
-
-        <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-        <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-    </div>
-
-    <p class="sc-filter-help">
-        برای انتخاب بازه تاریخ، روی فیلد کلیک کنید
-    </p>
-</div>
-
-    
-   
-
-        </div>
-
-        <div class="sc-filter-actions">
-            <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="filter_event_type">نوع</label>
+                </th>
+                <td>
+                    <select name="filter_event_type" id="filter_event_type" style="width: 200px; padding: 5px;">
+                        <option value="all" <?php selected($filter_event_type, 'all'); ?>>همه</option>
+                        <option value="event" <?php selected($filter_event_type, 'event'); ?>>رویداد</option>
+                        <option value="competition" <?php selected($filter_event_type, 'competition'); ?>>مسابقه</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="filter_event">رویداد</label>
+                </th>
+                <td>
+                    <div class="sc-searchable-dropdown" style="position: relative; width: 100%; max-width: 400px;">
+                        <?php 
+                        $selected_event_text = 'همه رویدادها';
+                        if ($filter_event > 0) {
+                            foreach ($all_events as $e) {
+                                if ($e->id == $filter_event) {
+                                    $holding_date_display = '';
+                                    if (!empty($e->holding_date_shamsi)) {
+                                        $holding_date_display = ' - ' . $e->holding_date_shamsi;
+                                    }
+                                    $selected_event_text = $e->name . $holding_date_display;
+                                    break;
+                                }
+                            }
+                        }
+                        ?>
+                        <input type="hidden" name="filter_event" id="filter_event" value="<?php echo esc_attr($filter_event); ?>">
+                        <div class="sc-dropdown-toggle" style="position: relative; cursor: pointer; border: 1px solid #8c8f94; border-radius: 4px; padding: 8px 35px 8px 12px; background: #fff; min-height: 30px; display: flex; align-items: center;">
+                            <span class="sc-dropdown-placeholder" style="color: #757575; display: <?php echo $filter_event > 0 ? 'none' : 'inline'; ?>;">همه رویدادها</span>
+                            <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $filter_event > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_event_text); ?></span>
+                            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
+                        </div>
+                        <div class="sc-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #8c8f94; border-top: none; border-radius: 0 0 4px 4px; max-height: 300px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: -1px;">
+                            <div class="sc-dropdown-search" style="padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff;">
+                                <input type="text" class="sc-search-input" placeholder="جستجوی نام رویداد..." style="width: 100%; padding: 8px; border: 1px solid #8c8f94; border-radius: 4px; font-size: 14px;">
+                            </div>
+                            <div class="sc-dropdown-options" style="max-height: 250px; overflow-y: auto;">
+                                <div class="sc-dropdown-option sc-visible" 
+                                     data-value="0"
+                                     data-search="همه رویدادها"
+                                     style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $filter_event == 0 ? 'background: #f0f6fc;' : ''; ?>"
+                                     onclick="scSelectEventFilter(this, '0', 'همه رویدادها')">
+                                    همه رویدادها
+                                    <?php if ($filter_event == 0) : ?>
+                                        <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
+                                    <?php endif; ?>
+                                </div>
+                                <?php 
+                                $display_count = 0;
+                                $max_display = 10;
+                                foreach ($all_events as $event_option) : 
+                                    $is_selected = ($filter_event == $event_option->id);
+                                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                    $holding_date_display = '';
+                                    if (!empty($event_option->holding_date_shamsi)) {
+                                        $holding_date_display = ' - ' . $event_option->holding_date_shamsi;
+                                    }
+                                    $event_display_text = $event_option->name . $holding_date_display;
+                                ?>
+                                    <div class="sc-dropdown-option <?php echo $display_class; ?>" 
+                                         data-value="<?php echo esc_attr($event_option->id); ?>"
+                                         data-search="<?php echo esc_attr(strtolower($event_option->name . ' ' . ($event_option->holding_date_shamsi ?: ''))); ?>"
+                                         style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $is_selected ? 'background: #f0f6fc;' : ''; ?>"
+                                         onclick="scSelectEventFilter(this, '<?php echo esc_js($event_option->id); ?>', '<?php echo esc_js($event_display_text); ?>')">
+                                        <?php echo esc_html($event_display_text); ?>
+                                        <?php if ($is_selected) : ?>
+                                            <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php 
+                                    if ($is_selected) {
+                                        $display_count++;
+                                    } elseif ($display_count < $max_display) {
+                                        $display_count++;
+                                    }
+                                endforeach; 
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="filter_order">شماره سفارش</label>
+                </th>
+                <td>
+                    <input type="text" name="filter_order" id="filter_order" value="<?php echo esc_attr($filter_order); ?>" placeholder="#123" style="width: 300px; padding: 5px;">
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="filter_status">وضعیت</label>
+                </th>
+                <td>
+                    <select name="filter_status" id="filter_status" style="width: 300px; padding: 5px;">
+                        <option value="all" <?php selected($filter_status, 'all'); ?>>همه وضعیت‌ها</option>
+                        <option value="pending" <?php selected($filter_status, 'pending'); ?>>در انتظار پرداخت</option>
+                        <option value="processing" <?php selected($filter_status, 'processing'); ?>>پرداخت شده</option>
+                        <option value="completed" <?php selected($filter_status, 'completed'); ?>>تایید پرداخت</option>
+                        <option value="on-hold" <?php selected($filter_status, 'on-hold'); ?>>در حال بررسی</option>
+                        <option value="cancelled" <?php selected($filter_status, 'cancelled'); ?>>لغو شده</option>
+                    </select>
+                </td>
+            </tr>
+        </table>
+        
+        <p class="submit" style="margin-top: 20px;">
+            <input type="submit" name="filter_action" id="post-query-submit" class="button button-primary" value="اعمال فیلتر">
+            <a href="<?php echo admin_url('admin.php?page=sc-event-registrations'); ?>" class="button" style="margin-right: 10px;">حذف فیلتر</a>
             <?php
-            // ساخت URL برای export Excel با حفظ فیلترها
-            $export_url = admin_url('admin.php?page=sc-invoices&sc_export=excel&export_type=invoices');
-            $export_url = add_query_arg('filter_status', isset($_GET['filter_status']) ? $_GET['filter_status'] : 'all', $export_url);
-            $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
-            $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
-            if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
-                $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
-            }
-            if (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
-                $export_url = add_query_arg('filter_date_to', $_GET['filter_date_to'], $export_url);
-            }
-            if (isset($_GET['s']) && !empty($_GET['s'])) {
-                $export_url = add_query_arg('s', $_GET['s'], $export_url);
-            }
-            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            $export_url = add_query_arg([
+                'sc_export' => 'excel',
+                'export_type' => 'event_registrations',
+                'filter_member' => $filter_member,
+                'filter_event' => $filter_event,
+                'filter_event_type' => $filter_event_type,
+                'filter_order' => $filter_order,
+                'filter_status' => $filter_status,
+                '_wpnonce' => wp_create_nonce('sc_export_excel')
+            ], admin_url('admin.php'));
             ?>
-            <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
-                📊 خروجی Excel
+            <a href="<?php echo esc_url($export_url); ?>" class="button button-secondary" style="margin-right: 10px;">
+                <span class="dashicons dashicons-media-spreadsheet" style="vertical-align: middle; margin-left: 5px;"></span>
+                خروجی اکسل
             </a>
-            <a href="<?php echo admin_url('admin.php?page=sc-event-registrations'); ?>" class="button">پاک کردن فیلترها</a>
-        </div>
-
+        </p>
     </form>
 </div>
-
 
 <!-- جدول -->
 <div class="wrap" style="margin-top: 20px;">
@@ -631,9 +588,99 @@ jQuery(document).ready(function($) {
     $(document).on('click', '.sc-modal-content', function(e) {
         e.stopPropagation();
     });
-    
 });
-
-
 </script>
 
+<style>
+.sc-modal {
+    position: fixed;
+    z-index: 100000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sc-modal.show-modal {
+    display: flex !important;
+    visibility: visible !important;
+}
+
+.sc-modal-content {
+    background: #fff;
+    border-radius: 4px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.sc-modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9f9f9;
+}
+
+.sc-modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.sc-modal-close {
+    font-size: 28px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 1;
+    border: none;
+    background: none;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sc-modal-close:hover {
+    color: #000;
+}
+
+.sc-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.sc-modal-loading {
+    text-align: center;
+    padding: 40px;
+}
+
+.sc-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #2271b1;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>

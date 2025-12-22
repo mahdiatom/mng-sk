@@ -3,6 +3,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+//این فایل اجرا نمی شود در قسمت add menu کامنت شده در آینده اگر نیاز بود اضافه خواهد شد .
 
 // بررسی و ایجاد جداول
 sc_check_and_create_tables();

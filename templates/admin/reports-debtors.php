@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+
 // بررسی و ایجاد جداول
 sc_check_and_create_tables();
 
@@ -100,95 +101,98 @@ $debtors = array_slice($debtors, $offset, $per_page);
     <hr class="wp-header-end">
     
     <!-- فیلترها -->
-    <form method="GET" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
-        <input type="hidden" name="page" value="sc-reports-debtors">
-        
-        <table class="form-table">
-            <tr>
-                <th scope="row">
-                    <label for="filter_member">کاربر</label>
-                </th>
-                <td>
-                    <div class="sc-searchable-dropdown" style="position: relative; width: 100%; max-width: 400px;">
-                        <?php 
-                        $selected_member_text = 'همه کاربران';
-                        if ($filter_member > 0) {
-                            foreach ($all_members as $m) {
-                                if ($m->id == $filter_member) {
-                                    $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
-                                    break;
-                                }
-                            }
-                        }
-                        ?>
-                        <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
-                        <div class="sc-dropdown-toggle" style="position: relative; cursor: pointer; border: 1px solid #8c8f94; border-radius: 4px; padding: 8px 35px 8px 12px; background: #fff; min-height: 30px; display: flex; align-items: center;">
-                            <span class="sc-dropdown-placeholder" style="color: #757575; display: <?php echo $filter_member > 0 ? 'none' : 'inline'; ?>;">همه کاربران</span>
-                            <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $filter_member > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
-                            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
-                        </div>
-                        <div class="sc-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #8c8f94; border-top: none; border-radius: 0 0 4px 4px; max-height: 300px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: -1px;">
-                            <div class="sc-dropdown-search" style="padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff;">
-                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی..." style="width: 100%; padding: 8px; border: 1px solid #8c8f94; border-radius: 4px; font-size: 14px;">
-                            </div>
-                            <div class="sc-dropdown-options" style="max-height: 250px; overflow-y: auto;">
-                                <div class="sc-dropdown-option sc-visible" 
-                                     data-value="0"
-                                     data-search="همه کاربران"
-                                     style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $filter_member == 0 ? 'background: #f0f6fc;' : ''; ?>"
-                                     onclick="scSelectMemberFilter(this, '0', 'همه کاربران')">
-                                    همه کاربران
-                                    <?php if ($filter_member == 0) : ?>
-                                        <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
-                                    <?php endif; ?>
-                                </div>
-                                <?php 
-                                $display_count = 0;
-                                $max_display = 10;
-                                foreach ($all_members as $member_option) : 
-                                    $is_selected = ($filter_member == $member_option->id);
-                                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
-                                ?>
-                                    <div class="sc-dropdown-option <?php echo $display_class; ?>" 
-                                         data-value="<?php echo esc_attr($member_option->id); ?>"
-                                         data-search="<?php echo esc_attr(strtolower($member_option->first_name . ' ' . $member_option->last_name . ' ' . $member_option->national_id)); ?>"
-                                         style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $is_selected ? 'background: #f0f6fc;' : ''; ?>"
-                                         onclick="scSelectMemberFilter(this, '<?php echo esc_js($member_option->id); ?>', '<?php echo esc_js($member_option->first_name . ' ' . $member_option->last_name . ' - ' . $member_option->national_id); ?>')">
-                                        <?php echo esc_html($member_option->first_name . ' ' . $member_option->last_name . ' - ' . $member_option->national_id); ?>
-                                        <?php if ($is_selected) : ?>
-                                            <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php 
-                                    if ($is_selected) {
-                                        $display_count++;
-                                    } elseif ($display_count < $max_display) {
-                                        $display_count++;
-                                    }
-                                endforeach; 
-                                ?>
-                            </div>
-                        </div>
+  <form method="GET" action="" class="sc-filter-form">
+    <input type="hidden" name="page" value="sc-reports-debtors">
+
+    <div class="sc-filter-row">
+
+        <!-- کاربر -->
+        <div class="sc-filter-field">
+            <label class="sc-filter-label">کاربر</label>
+
+            <?php
+            $selected_member_text = 'همه کاربران';
+            if ($filter_member > 0) {
+                foreach ($all_members as $m) {
+                    if ($m->id == $filter_member) {
+                        $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
+                        break;
+                    }
+                }
+            }
+            ?>
+
+            <div class="sc-searchable-dropdown">
+                <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
+
+                <div class="sc-dropdown-toggle">
+                    <span class="sc-dropdown-placeholder <?php echo $filter_member ? 'sc-hidden' : ''; ?>">
+                        همه کاربران
+                    </span>
+
+                    <span class="sc-dropdown-selected <?php echo !$filter_member ? 'sc-hidden' : ''; ?>">
+                        <?php echo esc_html($selected_member_text); ?>
+                    </span>
+
+                    <span class="sc-dropdown-arrow">▼</span>
+                </div>
+
+                <div class="sc-dropdown-menu">
+                    <div class="sc-dropdown-search">
+                        <input type="text" class="sc-search-input"
+                               placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
                     </div>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row">
-                    <label for="filter_course">دوره</label>
-                </th>
-                <td>
-                    <select name="filter_course" id="filter_course" style="width: 300px; padding: 5px;">
-                        <option value="0">همه دوره‌ها</option>
-                        <?php foreach ($courses as $course) : ?>
-                            <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
-                                <?php echo esc_html($course->title); ?>
-                            </option>
+
+                    <div class="sc-dropdown-options">
+                        <div class="sc-dropdown-option sc-visible <?php echo $filter_member == 0 ? 'sc-selected' : ''; ?>"
+                             data-value="0"
+                             data-search="همه کاربران"
+                             onclick="scSelectMemberFilter(this,'0','همه کاربران')">
+                            همه کاربران
+                            <?php if ($filter_member == 0): ?>
+                                <span class="sc-checkmark">✓</span>
+                            <?php endif; ?>
+                        </div>
+
+                        <?php
+                        $display_count = 0;
+                        $max_display = 10;
+                        foreach ($all_members as $member_option):
+                            $is_selected = ($filter_member == $member_option->id);
+                            $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                            $display_count++;
+                        ?>
+                            <div class="sc-dropdown-option <?php echo $display_class; ?> <?php echo $is_selected ? 'sc-selected' : ''; ?>"
+                                 data-value="<?php echo esc_attr($member_option->id); ?>"
+                                 data-search="<?php echo esc_attr(strtolower($member_option->first_name . ' ' . $member_option->last_name . ' ' . $member_option->national_id)); ?>"
+                                 onclick="scSelectMemberFilter(this,'<?php echo esc_js($member_option->id); ?>','<?php echo esc_js($member_option->first_name . ' ' . $member_option->last_name . ' - ' . $member_option->national_id); ?>')">
+                                <?php echo esc_html($member_option->first_name . ' ' . $member_option->last_name . ' - ' . $member_option->national_id); ?>
+                                <?php if ($is_selected): ?>
+                                    <span class="sc-checkmark">✓</span>
+                                <?php endif; ?>
+                            </div>
                         <?php endforeach; ?>
-                    </select>
-                </td>
-            </tr>
-        </table>
-        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- دوره -->
+        <div class="sc-filter-field">
+            <label class="sc-filter-label" for="filter_course">دوره</label>
+            <select name="filter_course" id="filter_course" class="sc-filter-control">
+                <option value="0">همه دوره‌ها</option>
+                <?php foreach ($courses as $course): ?>
+                    <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
+                        <?php echo esc_html($course->title); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+    </div>
+    
+      
         <p class="submit">
             <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
             <?php

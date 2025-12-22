@@ -42,7 +42,7 @@
 }
 
 
-p,a,span,div,button,section,select,option,input{
+p,a,div,button,section,select,option,input{
     font-family: IRANYekanXFaNum !important;
     
 }
@@ -53,7 +53,10 @@ h1,h2,h3,h4,h5{
 a{
     text-decoration: none !important;
 }
-
+#wp-admin-bar-sc-sms-credit span{
+font-family: IRANYekanXFaNum !important ;
+color: #000 !important;
+}
 
 /* font */
 /* ============================================
@@ -2645,4 +2648,6 @@ padding: 15px !important;
     line-height: 19px;
     }
 }
+
+
 
