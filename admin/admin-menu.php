@@ -1071,7 +1071,7 @@ function callback_add_member_sufix(){
                             
                             // اگر email معتبر نیست، از username استفاده کن
                             if (!is_email($email)) {
-                                $email = sanitize_email($username . '@sportclub.local');
+                                 $email = 'user_' . wp_generate_password(8, false) . '@example.local';
                             }
                             
                             $new_user_id = wp_create_user($username, $password, $email);
@@ -1233,7 +1233,7 @@ function callback_add_member_sufix(){
                     
                     // اگر email معتبر نیست، از username استفاده کن
                     if (!is_email($email)) {
-                        $email = sanitize_email($username . '@sportclub.local');
+                         $email = 'user_' . wp_generate_password(8, false) . '@example.local';
                     }
                     
                     // ایجاد کاربر WordPress

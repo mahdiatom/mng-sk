@@ -64,9 +64,26 @@ color: #000 !important;
    ============================================ */
 
 /* بخش حساب کاربری ووکامرس */
-.woocommerce-MyAccount-navigation {
+/* .woocommerce-MyAccount-navigation {
     position: sticky;
-    top: 20px; /* خیلی مهم */
+    top: 20px; /* خیلی مهم
+} 
+
+*/
+
+@media (max-width: 990px) {
+.sc-form-section , .sc-status-cards {
+    display: flex !important;
+    flex-direction: column !important;
+}
+.sc-form-section p{
+    width: 100% !important;
+    overflow: hidden;
+}
+.sc-status-cards .sc-status-card{
+    width: 100% !important;
+}
+
 }
 .woocommerce-MyAccount-navigation .woocommerce-MyAccount-navigation-link {
     padding: 5px 0px !important;
