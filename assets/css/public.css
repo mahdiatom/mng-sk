@@ -72,6 +72,9 @@ color: #000 !important;
 */
 
 @media (max-width: 990px) {
+    .sc-form-section{
+        padding: 5px;
+    }
 .sc-form-section , .sc-status-cards {
     display: flex !important;
     flex-direction: column !important;
@@ -85,6 +88,7 @@ color: #000 !important;
 }
 
 }
+
 .woocommerce-MyAccount-navigation .woocommerce-MyAccount-navigation-link {
     padding: 5px 0px !important;
     margin: 0 !important;
@@ -126,7 +130,7 @@ ease;
 .sc-submit-documents-form {
     max-width: 900px;
     margin: 0 auto;
-    padding: 30px;
+    padding: 5px;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     border-radius: 16px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);

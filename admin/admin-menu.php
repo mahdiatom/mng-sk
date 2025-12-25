@@ -52,6 +52,28 @@ function sc_register_admin_menu() {
         'sc_admin_add_member_page'
     );
 
+      // Attendance - Add
+    add_menu_page(
+
+        'ثبت حضور و غیاب',
+        'ثبت حضور و غیاب',
+        'manage_options',
+        'sc-attendance-add',
+        'sc_admin_attendance_add_page',
+        'dashicons-insert-after',
+        '28'
+    );
+
+    // Attendance - List
+    add_submenu_page(
+        'sc-attendance-add',
+        'لیست حضور و غیاب',
+        'لیست حضور و غیاب',
+        'manage_options',
+        'sc-attendance-list',
+        'sc_admin_attendance_list_page'
+    );
+
     /* ================= Courses ================= */
 
     add_menu_page(
@@ -189,7 +211,7 @@ function sc_register_admin_menu() {
         'گزارشات باشگاه',
         'manage_options',
         'sc-reports',
-        'sc_admin_reports_active_users_page',
+        'sc_report_data',
         'dashicons-chart-area',
         31
     );
@@ -334,6 +356,10 @@ function sc_admin_members_list_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'list_players.php';
+}
+function sc_report_data(){
+
+include SC_TEMPLATES_ADMIN_DIR . 'sc_reaport_club.php';
 }
 
 function sc_admin_add_member_page() {
@@ -2191,6 +2217,30 @@ function sc_add_sms_credit_to_admin_bar($wp_admin_bar) {
         ));
     }
 }
+//پنهان کردن منو های پیشفرض وردپرس و ووکامرس
+// add_action('admin_menu', 'hide_admin_menus', 999);
 
+// function hide_admin_menus() {
 
+//     // منوهای اصلی وردپرس
+//     remove_menu_page('index.php');              // پیشخوان
+//     remove_menu_page('edit.php');               // نوشته‌ها
+//     remove_menu_page('upload.php');             // رسانه
+//     remove_menu_page('edit-comments.php');      // دیدگاه‌ها
+//     remove_menu_page('tools.php');               // ابزارها
 
+//     // ووکامرس
+//     remove_menu_page('woocommerce');             // ووکامرس
+//     remove_menu_page('edit.php?post_type=shop_order'); // سفارش‌ها
+//     remove_menu_page('edit.php?post_type=product');    // محصولات
+       
+
+//     //theme
+//      remove_menu_page('hello-elementor'); // تنظیمات تم 
+// }
+// add_filter('woocommerce_admin_menu_items', function ($items) {
+//     unset($items['marketing']);
+//     return $items;
+// });
+
+// END مخفی سازی منو های وردپرس

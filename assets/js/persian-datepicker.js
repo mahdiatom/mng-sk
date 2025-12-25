@@ -159,7 +159,7 @@
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
             fontFamily: 'Tahoma, Arial',
             direction: 'rtl',
-            minWidth: popupWidth + 'px'
+            minWidth: 'fit-content'
         });
         
         $('body').append($popup);
@@ -456,7 +456,6 @@
             borderRadius: '8px',
             padding: '15px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-            fontFamily: 'Tahoma, Arial',
             direction: 'rtl',
             minWidth: popupWidth + 'px'
         });
