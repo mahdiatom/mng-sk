@@ -147,11 +147,16 @@ p.sk-modal-content p {
    /* قسمت پاپ آپ برای اطلاعات کاربر به صورت ایجکس  پایان*/
 
 /* لیست بازیکن ها  */
+.column-row,.column-id{
+     width: 40px !important;
+}
+
+
 .sportclub-manager_page_sc-members .column-row,.column-id{
-    width: 30px;
+    width: 40px;
 }
 .sportclub-manager_page_sc-members .column-id{
-    width: 50px;
+    width: 40px
 }
 .sportclub-manager_page_sc-members #birth_date_shamsi{
     width: 140px;
@@ -162,6 +167,15 @@ p.sk-modal-content p {
 .sportclub-manager_page_sc-members #national_id,.sportclub-manager_page_sc-members #player_phone{
     width: 90px;
 }
+.row-actions,.courses_member_table{
+    display: none;
+}
+
+#the-list tr .column-full_name:hover .row-actions ,#the-list tr .column-full_name:hover .courses_member_table {
+display: unset;
+}
+
+
 /* لیست بازیکن ها  */
 
 /* آکاردئون دوره‌ها */
@@ -566,16 +580,7 @@ p.sk-modal-content p {
     position: relative;
 }
 
-.sc-dropdown-toggle {
-    height: 38.5px;
-    border: 1px solid #8c8f94;
-    border-radius: 4px;
-    padding: 0 12px 0 10px;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    background: #fff;
-}
+
 
 .sc-dropdown-arrow {
     position: absolute;
@@ -615,3 +620,254 @@ p.sk-modal-content p {
     gap: 15px;
 }
 /* END for fillters - section invoice */
+.back_attendance_list{
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.widefat td, .widefat th {
+    padding-left: 10px;
+    border-left: 1px solid #e6e6e6;
+}
+.wp-list-table tr th {
+    text-align: center ;
+    
+}
+.wp-list-table tr th a{
+        padding-right: 30px;
+}
+tbody tr td {
+    text-align: center;
+
+}
+tr td.column-full_name:hover{
+    transform: unset;
+}
+.button_delete_attendance{
+    background-color: #d63638 !important;
+    color: #fff !important;
+    border-color: #d63638 !important;
+}
+
+@media screen and (max-width: 600px){
+        .wp-list-table .column-row {
+        display: none;
+    }
+    .wp-list-table tr th {
+        text-align: right !important;
+    }
+    .column-cb{
+            width: 17% !important;
+    }
+.back_attendance_list{
+
+    overflow-x: scroll !important;
+    
+}
+table.fixed {
+    table-layout: unset !important;
+}
+.button-small{
+     width: 100%;
+    text-align: center;
+}
+.button_delete_attendance{
+    background-color: #d63638 !important;
+    color: #fff !important;
+    border-color: #d63638 !important;
+    width: 100%;
+    text-align: center;
+}
+.button.button-small{
+    line-height: unset !important;
+    padding: 5px !important;
+    min-height: unset !important;
+    margin-bottom: 4px !important;
+    font-size: 10px !important;
+    margin: 2px;
+}
+tbody tr td{
+    padding: 3px !important;
+}
+}
+/* فیلتر حضور و غیاب ادمین */
+.form_fillter_attendance{
+    background: white;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px 0;
+        display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.sc-form-flex {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sc-form-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+.sc-form-row p{
+    width: 24px;
+}
+.sc-form-row p{
+    width: 24px;
+}
+.sc-form-label {
+    width: 180px;
+    font-weight: 600;
+}
+
+.sc-form-field {
+    flex: 1;
+}
+
+/* selects */
+.sc-select {
+    width: 300px;
+    padding: 5px;
+}
+
+/* dropdown */
+.sc-dropdown-wrapper {
+    position: relative;
+    max-width: 400px;
+}
+
+.sc-dropdown-toggle {
+    position: relative;
+    cursor: pointer;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    height: 30px;
+    background: #fff;
+    padding-right: 6px;
+    display: flex;
+    align-items: center;
+}
+
+.sc-dropdown-arrow {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #757575;
+}
+
+.sc-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #8c8f94;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    margin-top: -1px;
+}
+
+.sc-dropdown-search {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+    background: #fff;
+}
+
+.sc-search-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.sc-dropdown-option {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.sc-dropdown-option.is-selected {
+    background: #f0f6fc;
+}
+
+.sc-check {
+    float: left;
+    color: #2271b1;
+    font-weight: bold;
+}
+
+/* date */
+.sc-date-range {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sc-date-input {
+    width: 150px;
+    padding: 5px;
+}
+
+.sc-date-separator {
+    font-weight: 600;
+}
+
+.sc_c_1 {
+    width: 31%;
+}
+.sc_c_1 > div {
+    width: 100%;
+}
+.form_fillter_attendance .sc-form-field{
+    margin-top: 10px;
+}
+.sc_c_1 select{
+    width: 100% !important;
+}
+.sc_c_2 .sc-form-row{
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.sc_c_2 p{
+    width: 100px
+}
+.form-table{
+    display: flex;
+    
+}
+.form-table th{
+    width: 60px;
+}
+.form-table #filter_course{
+    width: 100% !important;
+}
+.form-table_attendance_tab3 .sc-dropdown-toggle{
+    height: 37px !important;
+}
+
+@media screen and (max-width:780px) {
+    .sc_c_1{
+        width: 100%;
+    }
+    .sc-dropdown-wrapper {
+  
+    max-width:100%;
+}
+.form_fillter_attendance .sc-dropdown-toggle{
+    height: 38px;
+}
+}

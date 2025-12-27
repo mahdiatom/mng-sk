@@ -337,155 +337,215 @@ if ($active_tab === 'overall') {
     <?php if ($active_tab === 'individual') : ?>
         <!-- تب 1: لیست حضور و غیاب کاربران -->
         <!-- فیلترها -->
-        <form method="GET" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+        <form method="GET" action="" class="form_fillter_attendance">
             <input type="hidden" name="page" value="sc-attendance-list">
             <input type="hidden" name="tab" value="individual">
             
-            <table class="form-table">
-                <tr>
-                    <th scope="row">
-                        <label for="filter_course">دوره</label>
-                    </th>
-                    <td>
-                        <select name="filter_course" id="filter_course" style="width: 300px; padding: 5px;">
-                            <option value="0">همه دوره‌ها</option>
-                            <?php foreach ($courses as $course) : ?>
-                                <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
-                                    <?php echo esc_html($course->title); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="filter_member">کاربر</label>
-                    </th>
-                    <td>
-                        <div class="sc-searchable-dropdown" style="position: relative; width: 100%; max-width: 400px;">
-                            <?php 
-                            $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
-                            $selected_member_text = 'همه کاربران';
-                            if ($filter_member > 0) {
-                                foreach ($members as $m) {
-                                    if ($m->id == $filter_member) {
-                                        $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
-                                        break;
-                                    }
-                                }
-                            }
-                            ?>
-                            <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
-                            <div class="sc-dropdown-toggle" style="position: relative; cursor: pointer; border: 1px solid #8c8f94; border-radius: 4px; padding: 8px 35px 8px 12px; background: #fff; min-height: 30px; display: flex; align-items: center;">
-                                <span class="sc-dropdown-placeholder" style="color: #757575; display: <?php echo $filter_member > 0 ? 'none' : 'inline'; ?>;">همه کاربران</span>
-                                <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $filter_member > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
-                                <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
-                            </div>
-                            <div class="sc-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #8c8f94; border-top: none; border-radius: 0 0 4px 4px; max-height: 300px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: -1px;">
-                                <div class="sc-dropdown-search" style="padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff;">
-                                    <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی..." style="width: 100%; padding: 8px; border: 1px solid #8c8f94; border-radius: 4px; font-size: 14px;">
-                                </div>
-                                <div class="sc-dropdown-options" style="max-height: 250px; overflow-y: auto;">
-                                    <div class="sc-dropdown-option sc-visible" 
-                                         data-value="0"
-                                         data-search="همه کاربران"
-                                         style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $filter_member == 0 ? 'background: #f0f6fc;' : ''; ?>"
-                                         onclick="scSelectMemberFilter(this, '0', 'همه کاربران')">
-                                        همه کاربران
-                                        <?php if ($filter_member == 0) : ?>
-                                            <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <?php 
-                                    $display_count = 0;
-                                    $max_display = 10;
-                                    foreach ($members as $member) : 
-                                        $is_selected = ($filter_member == $member->id);
-                                        $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
-                                    ?>
-                                        <div class="sc-dropdown-option <?php echo $display_class; ?>" 
-                                             data-value="<?php echo esc_attr($member->id); ?>"
-                                             data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
-                                             style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $is_selected ? 'background: #f0f6fc;' : ''; ?>"
-                                             onclick="scSelectMemberFilter(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
-                                            <?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>
-                                            <?php if ($is_selected) : ?>
-                                                <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php 
-                                        if ($is_selected) {
-                                            $display_count++;
-                                        } elseif ($display_count < $max_display) {
-                                            $display_count++;
-                                        }
-                                    endforeach; 
-                                    ?>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label>بازه تاریخ (شمسی)</label>
-                    </th>
-                    <td>
-                        <?php 
-                        // تبدیل تاریخ‌های میلادی به شمسی برای نمایش
-                        $filter_date_from_shamsi = '';
-                        $filter_date_to_shamsi = '';
-                        if (!empty($filter_date_from)) {
-                            $filter_date_from_shamsi = sc_date_shamsi_date_only($filter_date_from);
-                        } else {
-                            // تاریخ پیش‌فرض: امروز
-                            $today = new DateTime();
-                            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
-                            $filter_date_from_shamsi = $today_jalali[0] . '/' . 
-                                                       str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
-                                                       str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
-                        }
-                        if (!empty($filter_date_to)) {
-                            $filter_date_to_shamsi = sc_date_shamsi_date_only($filter_date_to);
-                        } else {
-                            // تاریخ پیش‌فرض: امروز
-                            $today = new DateTime();
-                            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
-                            $filter_date_to_shamsi = $today_jalali[0] . '/' . 
-                                                     str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
-                                                     str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
-                        }
-                        ?>
-                        <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" 
-                               value="<?php echo esc_attr($filter_date_from_shamsi); ?>" 
-                               class="regular-text persian-date-input" 
-                               placeholder="از تاریخ (شمسی)" 
-                               style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
-                        <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                        <span>تا</span>
-                        <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" 
-                               value="<?php echo esc_attr($filter_date_to_shamsi); ?>" 
-                               class="regular-text persian-date-input" 
-                               placeholder="تا تاریخ (شمسی)" 
-                               style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
-                        <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="filter_status">وضعیت</label>
-                    </th>
-                    <td>
-                        <select name="filter_status" id="filter_status" style="width: 300px; padding: 5px;">
-                            <option value="all" <?php selected($filter_status, 'all'); ?>>همه وضعیت‌ها</option>
-                            <option value="present" <?php selected($filter_status, 'present'); ?>>حاضر</option>
-                            <option value="absent" <?php selected($filter_status, 'absent'); ?>>غایب</option>
-                        </select>
-                    </td>
-                </tr>
-            </table>
-            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="sc-filter-grid">
+
+<!-- دوره -->
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_course">دوره</label>
+<select name="filter_course" id="filter_course" class="sc-filter-control">
+<option value="0">همه دوره‌ها</option>
+<?php
+$filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+foreach ($courses as $course) :
+?>
+<option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
+<?php echo esc_html($course->title); ?>
+</option>
+<?php endforeach; ?>
+</select>
+</div>
+
+<!-- کاربر -->
+<div class="sc-filter-field">
+<label class="sc-filter-label">کاربر</label>
+
+<div class="sc-searchable-dropdown">
+<?php
+$filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+$selected_member_text = 'همه کاربران';
+
+if ($filter_member) {
+    foreach ($members as $m) {
+        if ($m->id == $filter_member) {
+            $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
+            break;
+        }
+    }
+}
+?>
+
+<input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
+
+<div class="sc-dropdown-toggle">
+<span class="sc-dropdown-placeholder" <?php if ($filter_member) echo 'style="display:none"'; ?>>همه کاربران</span>
+<span class="sc-dropdown-selected" <?php if (!$filter_member) echo 'style="display:none"'; ?>>
+<?php echo esc_html($selected_member_text); ?>
+</span>
+<span class="sc-dropdown-arrow">▼</span>
+</div>
+
+<div class="sc-dropdown-menu">
+<div class="sc-dropdown-search">
+<input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
+</div>
+
+<div class="sc-dropdown-options">
+<?php
+$display_count = 0;
+$max_display = 10;
+?>
+
+<div class="sc-dropdown-option sc-visible"
+     data-value="0"
+     data-search="همه کاربران"
+     onclick="scSelectMemberFilter(this,'0','همه کاربران')">
+همه کاربران
+</div>
+
+<?php foreach ($members as $member) :
+    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+    $display_count++;
+?>
+<div class="sc-dropdown-option <?php echo $display_class; ?>"
+     data-value="<?php echo esc_attr($member->id); ?>"
+     data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
+     onclick="scSelectMemberFilter(this,'<?php echo esc_js($member->id); ?>','<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
+<?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>
+</div>
+<?php endforeach; ?>
+</div>
+</div>
+</div>
+</div>
+
+<!-- وضعیت -->
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_status">وضعیت پرداخت</label>
+      <select name="filter_status" id="filter_status" class="sc-filter-control">
+                                <option value="all" <?php selected($filter_status, 'all'); ?>>همه وضعیت‌ها</option>
+                                <option value="present" <?php selected($filter_status, 'present'); ?>>حاضر</option>
+                                <option value="absent" <?php selected($filter_status, 'absent'); ?>>غایب</option>
+
+</select>
+</div>
+
+<!-- تاریخ -->
+<div class="sc-filter-field sc-filter-date">
+    <label class="sc-filter-label">بازه تاریخ</label>
+
+    <?php
+    $filter_date_from        = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
+$filter_date_to          = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
+$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+
+if (empty($filter_date_from) && empty($filter_date_to)) {
+
+    $today_gregorian = current_time('Y-m-d');
+
+    $today = new DateTime(current_time('Y-m-d'));
+    $jalali = gregorian_to_jalali(
+        (int)$today->format('Y'),
+        (int)$today->format('m'),
+        (int)$today->format('d')
+    );
+
+    $today_shamsi = $jalali[0] . '/' .
+        str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
+        str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+
+    $filter_date_from        = $today_gregorian;
+    $filter_date_to          = $today_gregorian;
+    $filter_date_from_shamsi = $today_shamsi;
+    $filter_date_to_shamsi   = $today_shamsi;
+}
+
+    ?>
+
+    <div class="sc-date-range">
+        <input type="text"
+               id="filter_date_from_shamsi"
+               name="filter_date_from_shamsi"
+               class="sc-filter-control persian-date-input"
+               value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+               readonly>
+
+        <span class="sc-date-separator">تا</span>
+
+        <input type="text"
+               id="filter_date_to_shamsi"
+               name="filter_date_to_shamsi"
+               class="sc-filter-control persian-date-input"
+               value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+               readonly>
+
+        <input type="hidden"
+               name="filter_date_from"
+               id="filter_date_from"
+               value="<?php echo esc_attr($filter_date_from); ?>">
+
+        <input type="hidden"
+               name="filter_date_to"
+               id="filter_date_to"
+               value="<?php echo esc_attr($filter_date_to); ?>">
+    </div>
+
+    <p class="sc-filter-help">
+        برای انتخاب تاریخ، روی فیلد کلیک کنید
+    </p>
+</div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <p class="submit">
                 <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
                 <?php
@@ -517,16 +577,16 @@ if ($active_tab === 'overall') {
                 <p>هیچ حضور و غیابی یافت نشد.</p>
             </div>
         <?php else : ?>
-            <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px;">
+            <div class="back_attendance_list">
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">ردیف</th>
+                            <th class="column-row">ردیف</th>
                             <th>تاریخ</th>
                             <th>دوره</th>
                             <th>نام</th>
                             <th>نام خانوادگی</th>
-                            <th>کد ملی</th>
+                            <th>شناسه بازیکن</th>
                             <th>وضعیت</th>
                             <th style="width: 150px;">عملیات</th>
                         </tr>
@@ -535,22 +595,23 @@ if ($active_tab === 'overall') {
                         <?php 
                         $start_number = ($current_page - 1) * $per_page;
                         foreach ($attendances as $index => $attendance) : 
+                        
                             $row_number = $start_number + $index + 1;
                             $status_label = $attendance->status === 'present' ? 'حاضر' : 'غایب';
                             $status_color = $attendance->status === 'present' ? '#00a32a' : '#d63638';
                             $status_bg = $attendance->status === 'present' ? '#d4edda' : '#ffeaea';
                         ?>
                             <tr>
-                                <td><?php echo $row_number; ?></td>
+                                <td class="column-row"><?php echo $row_number; ?></td>
                                 <td>
                                     <strong><?php echo sc_date_shamsi_date_only($attendance->attendance_date); ?></strong>
-                                    <br>
+                                     - 
                                     <small style="color: #666;"><?php echo sc_date_shamsi($attendance->attendance_date, 'l'); ?></small>
                                 </td>
                                 <td><?php echo esc_html($attendance->course_title); ?></td>
                                 <td><?php echo esc_html($attendance->first_name); ?></td>
                                 <td><?php echo esc_html($attendance->last_name); ?></td>
-                                <td><?php echo esc_html($attendance->national_id); ?></td>
+                                <td><?php echo esc_html($attendance->member_id); ?></td>
                                 <td>
                                     <span style="
                                         padding: 5px 10px;
@@ -566,9 +627,9 @@ if ($active_tab === 'overall') {
                                     <a href="<?php echo admin_url('admin.php?page=sc-attendance-add&course_id=' . $attendance->course_id . '&date=' . $attendance->attendance_date); ?>" 
                                        class="button button-small">ویرایش</a>
                                     <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=sc-attendance-list&tab=individual&action=delete&attendance_id=' . $attendance->id), 'delete_attendance_' . $attendance->id); ?>" 
-                                       class="button button-small" 
+                                       class="button button-small button_delete_attendance" 
                                        onclick="return confirm('آیا مطمئن هستید که می‌خواهید این حضور و غیاب را حذف کنید؟');"
-                                       style="background-color: #d63638; color: #fff; border-color: #d63638;">حذف</a>
+                                       >حذف</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -603,7 +664,7 @@ if ($active_tab === 'overall') {
             <input type="hidden" name="page" value="sc-attendance-list">
             <input type="hidden" name="tab" value="grouped">
             
-            <table class="form-table">
+            <table class="form-table form-table_attendance_tab2">
                 <tr>
                     <th scope="row">
                         <label for="filter_course">دوره</label>
@@ -679,15 +740,15 @@ if ($active_tab === 'overall') {
                 <p>هیچ حضور و غیابی یافت نشد.</p>
             </div>
         <?php else : ?>
-            <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px;">
+            <div class="back_attendance_list">
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">ردیف</th>
+                            <th class="column-row">ردیف</th>
                             <th>دوره</th>
                             <th>تاریخ</th>
-                            <th>تعداد حاضر</th>
-                            <th>تعداد غایب</th>
+                            <th> حاضر</th>
+                            <th> غایب</th>
                             <th>کل</th>
                             <th style="width: 150px;">عملیات</th>
                         </tr>
@@ -707,29 +768,16 @@ if ($active_tab === 'overall') {
                                     <small style="color: #666;"><?php echo sc_date_shamsi($group->attendance_date, 'l'); ?></small>
                                 </td>
                                 <td>
-                                    <span style="
-                                        padding: 5px 10px;
-                                        border-radius: 4px;
-                                        font-weight: bold;
-                                        background-color: #d4edda;
-                                        color: #00a32a;
-                                    ">
                                         <?php echo esc_html($group->present_count); ?> نفر
                                     </span>
                                 </td>
                                 <td>
-                                    <span style="
-                                        padding: 5px 10px;
-                                        border-radius: 4px;
-                                        font-weight: bold;
-                                        background-color: #ffeaea;
-                                        color: #d63638;
-                                    ">
+                                    <span>
                                         <?php echo esc_html($group->absent_count); ?> نفر
                                     </span>
                                 </td>
                                 <td>
-                                    <strong><?php echo esc_html($group->total_count); ?> نفر</strong>
+                                    <?php echo esc_html($group->total_count); ?> نفر
                                 </td>
                                 <td>
                                     <a href="<?php echo admin_url('admin.php?page=sc-attendance-add&course_id=' . $group->course_id . '&date=' . $group->attendance_date); ?>" 
@@ -780,7 +828,7 @@ if ($active_tab === 'overall') {
             <input type="hidden" name="page" value="sc-attendance-list">
             <input type="hidden" name="tab" value="overall">
             
-            <table class="form-table">
+            <table class="form-table form-table_attendance_tab3">
                 <tr>
                     <th scope="row">
                         <label for="filter_course">دوره</label>
@@ -814,7 +862,7 @@ if ($active_tab === 'overall') {
                             }
                             ?>
                             <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
-                            <div class="sc-dropdown-toggle" style="position: relative; cursor: pointer; border: 1px solid #8c8f94; border-radius: 4px; padding: 8px 35px 8px 12px; background: #fff; min-height: 30px; display: flex; align-items: center;">
+                            <div class="sc-dropdown-toggle" >
                                 <span class="sc-dropdown-placeholder" style="color: #757575; display: <?php echo $filter_member > 0 ? 'none' : 'inline'; ?>;">همه کاربران</span>
                                 <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $filter_member > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
                                 <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>

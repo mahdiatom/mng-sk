@@ -113,17 +113,17 @@ color: #000 !important;
     color: #000 !important;
 }
 .form-row button{
-    background: #6D34FF;
-    color: #fff;
-    border: none;
-    padding: 15px 40px;
-    border-radius: 10px;
-    font-size: 18px;
-    font-weight: 600;
-    cursor: pointer;
+    background: #6D34FF !important;
+    color: #fff !important;
+    border: none !important;
+    padding: 15px 40px !important;
+    border-radius: 10px !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
     transition: all 0.3s 
-ease;
-    box-shadow: 0 4px 15px rgba(0, 163, 42, 0.3);
+ease !important;
+    box-shadow: 0 4px 15px rgba(0, 163, 42, 0.3) !important;
 }
 
 /* فرم ارسال مدارک در حساب کاربری */
@@ -166,7 +166,7 @@ ease;
     background: #ffffff;
     border: none;
     border-radius: 12px;
-    padding: 30px;
+    padding: 15px;
     margin-bottom: 25px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -1133,6 +1133,9 @@ ease;
     animation: tooltipFadeInCard 0.3s ease-out 0.2s forwards;
     z-index: 100000;
 }
+.checkbox_woo_sc input{
+        padding-left: 10px !important;
+    }
 
 @keyframes tooltipFadeIn {
     from {
@@ -1191,6 +1194,7 @@ ease;
         text-align: center;
         margin: 20px 0;
     }
+    
     
     @media (max-width: 768px) {
         .sc-user-info-panel > div {
@@ -2670,5 +2674,91 @@ padding: 15px !important;
     }
 }
 
+/* enroll course */
+
+.sc-course-accordion-item:hover .sc-course-accordion-header:not(:has(+ input:disabled)) {
+    background-color: #f0f0f0 !important;
+}
+
+.sc-course-accordion-item input[type="radio"]:checked + .sc-course-accordion-header {
+    background-color: #e7f3ff !important;
+    border-left: 4px solid #2271b1;
+}
+
+.sc-course-accordion-item input[type="radio"]:checked + .sc-course-accordion-header .sc-accordion-icon {
+    transform: rotate(180deg);
+}
+
+.sc-course-accordion-item input[type="radio"]:checked ~ .sc-course-accordion-content {
+    display: block !important;
+}
+
+.sc-course-accordion-item input[type="radio"]:disabled + .sc-course-accordion-header {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sc-course-accordion-item input[type="radio"]:disabled + .sc-course-accordion-header:hover {
+    background-color: #f5f5f5 !important;
+}
+
+.sc-accordion-icon {
+    transition: transform 0.3s ease;
+}
+
+/* Tooltip Styles */
+.sc-course-accordion-header[data-tooltip] {
+    position: relative;
+}
+
+.sc-course-accordion-header[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    right: 15px;
+    padding: 12px 16px;
+    background-color: #000000;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: normal;
+    width: 320px;
+    max-width: 90vw;
+    z-index: 99999;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    text-align: right;
+    font-weight: normal;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: tooltipFadeIn 0.3s ease-out 0.2s forwards;
+    pointer-events: none;
+}
+
+.sc-course-accordion-header[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    right: 30px;
+    border: 7px solid transparent;
+    border-top-color: #000000;
+    margin-bottom: 3px;
+    z-index: 99999;
+    opacity: 0;
+    animation: tooltipFadeIn 0.3s ease-out 0.2s forwards;
+    pointer-events: none;
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
 

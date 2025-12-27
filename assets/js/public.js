@@ -245,6 +245,62 @@ jQuery(document).ready(function($) {
 });
 
 
+//start merge 
+
+jQuery(document).ready(function($) {
+    // نمایش/مخفی کردن جزئیات دوره با کلیک روی header
+    $('.sc-course-accordion-header').on('click', function(e) {
+        var $radio = $(this).prev('input');
+        if ($radio.is(':disabled')) {
+            return;
+        }
+        
+        var $item = $(this).closest('.sc-course-accordion-item');
+        var $content = $item.find('.sc-course-accordion-content');
+        
+        // انتخاب radio button
+        $radio.prop('checked', true);
+        
+        // بستن سایر آکاردئون‌ها
+        $('.sc-course-accordion-item').not($item).find('.sc-course-accordion-content').slideUp();
+        $('.sc-course-accordion-item').not($item).find('input[type="radio"]').prop('checked', false);
+        
+        // باز/بسته کردن آکاردئون فعلی
+        if ($content.is(':visible')) {
+            $content.slideUp();
+        } else {
+            $content.slideDown();
+        }
+    });
+    
+    // تغییر آیکون هنگام باز/بسته شدن
+    $('.sc-course-accordion-item input[type="radio"]').on('change', function() {
+        var $item = $(this).closest('.sc-course-accordion-item');
+        var $icon = $item.find('.sc-accordion-icon');
+        var $content = $item.find('.sc-course-accordion-content');
+        
+        if ($(this).is(':checked'r)) {
+            $icon.css('transform', 'rotate(180deg)');
+            $content.slideDown();
+        } else {
+            $icon.css('transform', 'rotate(0deg)');
+            $content.slideUp();
+        }
+    });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -53,7 +53,9 @@ class Courses_List_Table extends WP_List_Table {
     public function column_cb($item) {
         return '<input type="checkbox" value="' . $item['id'] . '" name="course[]" />';
     }
-
+    protected function get_primary_column_name() {
+    return 'title';
+    }
     public function column_enrolled($item) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_member_courses';

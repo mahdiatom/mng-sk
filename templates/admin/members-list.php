@@ -53,7 +53,7 @@ class Player_List_Table extends WP_List_Table {
                 $course_names[] = $course->title;
             }
         }
-        $courses_text = !empty($course_names) ? '<br><small style="color: #666;">دوره‌ها: ' . implode(', ', $course_names) . '</small>' : '';
+        $courses_text = !empty($course_names) ? '<br><small class="courses_member_table" style="color: #666;">دوره‌ها: ' . implode(', ', $course_names) . '<br>' . '</small>' : '';
 
         $actions = [
             'edit' => '<a href="' . admin_url('admin.php?page=sc-add-member&player_id=') . $item['id'] . '">ویرایش</a>',
@@ -70,7 +70,9 @@ class Player_List_Table extends WP_List_Table {
     public function column_cb($item) {
         return '<input type="checkbox" value="' . $item['id'] . '" name="player[]" />';
     }
-
+    protected function get_primary_column_name() {
+    return 'id';
+    }
     public function column_default($item, $column_name) {
         switch ($column_name) {
             case 'id':

@@ -863,14 +863,14 @@ add_action('wp_enqueue_scripts', 'sc_public_enqueue_assets');
  * Enqueue admin CSS and JS
  */
 function sc_admin_enqueue_assets() {
-    wp_enqueue_style('sc-admin-css', SC_ASSETS_URL . 'css/admin.css', array(), '1.0');
+    wp_enqueue_style('sc-admin-css', SC_ASSETS_URL . 'css/admin.css', array(),  time());
     
     // Enqueue media uploader (must be before admin.js)
     // همیشه media uploader را لود کن چون ممکن است در صفحات مختلف نیاز باشد
     wp_enqueue_media();
     
     // Enqueue admin.js with dependencies
-    wp_enqueue_script('sc-admin-js', SC_ASSETS_URL . 'js/admin.js', array('jquery', 'media-upload', 'media-views'), '1.0', true);
+    wp_enqueue_script('sc-admin-js', SC_ASSETS_URL . 'js/admin.js', array('jquery', 'media-upload', 'media-views'), time(), true);
     
     // Localize script for AJAX
     wp_localize_script('sc-admin-js', 'scAdmin', array(
@@ -883,8 +883,8 @@ function sc_admin_enqueue_assets() {
  * Enqueue public CSS and JS
  */
 function sc_public_enqueue_assets() {
-    wp_enqueue_style('sc-public-css', SC_ASSETS_URL . 'css/public.css', array(), '1.0');
-    wp_enqueue_script('sc-public-js', SC_ASSETS_URL . 'js/public.js', array('jquery'), '1.0', true);
+    wp_enqueue_style('sc-public-css', SC_ASSETS_URL . 'css/public.css', array(),   time());
+    wp_enqueue_script('sc-public-js', SC_ASSETS_URL . 'js/public.js', array('jquery'), '1.0', time());
 }
 
 

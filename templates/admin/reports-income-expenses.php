@@ -346,32 +346,34 @@ foreach ($months as $month_start) {
     <!-- لیست ماهیانه -->
     <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin: 20px 0;">
         <h2>گزارش ماهیانه</h2>
-        <table class="wp-list-table widefat fixed striped">
-            <thead>
-                <tr>
-                    <th>ماه</th>
-                    <th>درآمد</th>
-                    <th>هزینه</th>
-                    <th>سود نهایی</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($monthly_data as $month) : ?>
+        <div class="back_attendance_list">
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
                     <tr>
-                        <td><strong><?php echo esc_html($month['month']); ?></strong></td>
-                        <td style="color: #00a32a; font-weight: bold;">
-                            <?php echo number_format($month['income'], 0, '.', ','); ?> تومان
-                        </td>
-                        <td style="color: #d63638; font-weight: bold;">
-                            <?php echo number_format($month['expenses'], 0, '.', ','); ?> تومان
-                        </td>
-                        <td style="color: <?php echo $month['profit'] >= 0 ? '#00a32a' : '#d63638'; ?>; font-weight: bold;">
-                            <?php echo number_format($month['profit'], 0, '.', ','); ?> تومان
-                        </td>
+                        <th>ماه</th>
+                        <th>درآمد</th>
+                        <th>هزینه</th>
+                        <th>سود نهایی</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php foreach ($monthly_data as $month) : ?>
+                        <tr>
+                            <td><strong><?php echo esc_html($month['month']); ?></strong></td>
+                            <td style="color: #00a32a; font-weight: bold;">
+                                <?php echo number_format($month['income'], 0, '.', ','); ?> تومان
+                            </td>
+                            <td style="color: #d63638; font-weight: bold;">
+                                <?php echo number_format($month['expenses'], 0, '.', ','); ?> تومان
+                            </td>
+                            <td style="color: <?php echo $month['profit'] >= 0 ? '#00a32a' : '#d63638'; ?>; font-weight: bold;">
+                                <?php echo number_format($month['profit'], 0, '.', ','); ?> تومان
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

@@ -332,7 +332,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
             <p>هیچ کاربر فعالی یافت نشد.</p>
         </div>
     <?php else : ?>
-        <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px;">
+        <div class="back_attendance_list">
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
@@ -398,7 +398,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            
+        </div>    
             <!-- Pagination -->
             <?php if ($total_pages > 1) : ?>
                 <div class="tablenav bottom" style="margin-top: 20px;">

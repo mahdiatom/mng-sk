@@ -217,6 +217,7 @@ if ($selected_course_id) {
         }
     }
 }
+$is_update_mode = !empty($existing_attendances);
 ?>
 
 <div class="wrap">
@@ -270,6 +271,7 @@ if ($selected_course_id) {
     
     <?php if ($selected_course_id && !empty($active_members)) : 
         $course = $wpdb->get_row($wpdb->prepare("SELECT * FROM $courses_table WHERE id = %d", $selected_course_id));
+        
     ?>
         <form method="POST" action="" style="margin-top: 30px;">
             <?php wp_nonce_field('sc_attendance_nonce', 'sc_attendance_nonce'); ?>
@@ -281,15 +283,21 @@ if ($selected_course_id) {
                 <h2 style="margin-top: 0;">
                     ثبت حضور و غیاب - <?php echo esc_html($course->title); ?>
                     <span style="font-size: 16px; font-weight: normal; color: #666;">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>
+                    <?php if ($is_update_mode): ?>
+                        <span style="margin-right:10px;color:#d63638;font-weight:bold;">شما در حال بروزرسانی یک حضور و غیاب هستید.</span>
+                    <?php else: ?>
+                        <span style="margin-right:10px;color:#00a32a;font-weight:bold;">
+شما در حال ثبت یک حضور غیاب جدید هستید.                        </span>
+                    <?php endif; ?>
                 </h2>
                 
                 <table class="wp-list-table widefat fixed striped" style="margin-top: 20px;">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">ردیف</th>
+                            <th class="column-row">ردیف</th>
                             <th>نام</th>
                             <th>نام خانوادگی</th>
-                            <th>کد ملی</th>
+                            <th>شناسه بازیکن</th>
                             <th style="width: 200px;">وضعیت</th>
                         </tr>
                     </thead>
@@ -301,7 +309,7 @@ if ($selected_course_id) {
                                 <td><?php echo $index + 1; ?></td>
                                 <td><?php echo esc_html($member->first_name); ?></td>
                                 <td><?php echo esc_html($member->last_name); ?></td>
-                                <td><?php echo esc_html($member->national_id); ?></td>
+                                <td><?php echo esc_html($member->id); ?></td>
                                 <td>
                                     <label style="display: inline-block; margin-left: 20px;">
                                         <input type="radio" 

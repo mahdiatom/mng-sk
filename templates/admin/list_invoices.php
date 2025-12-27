@@ -65,6 +65,9 @@ class Invoices_List_Table extends WP_List_Table {
     public function column_member_name($item) {
         return esc_html($item['first_name'] . ' ' . $item['last_name']);
     }
+    protected function get_primary_column_name() {
+    return 'order_number';
+    }
 
     public function column_status($item) {
         $status = $item['status'];
@@ -122,19 +125,15 @@ class Invoices_List_Table extends WP_List_Table {
         // نمایش دوره
         if (!empty($course_title) && trim($course_title) !== '') {
             $course_display = esc_html($course_title);
-            if ($course_price > 0) {
-                $course_display .= ' (' . number_format($course_price, 0, '.', ',') . ' تومان)';
-            }
-            $parts[] = '<strong>دوره:</strong> ' . $course_display;
+            
+            $parts[] = $course_display;
         }
         
         // نمایش رویداد / مسابقه
         if (!empty($event_name) && trim($event_name) !== '') {
             $event_display = esc_html($event_name);
-            if ($event_price > 0) {
-                $event_display .= ' (' . number_format($event_price, 0, '.', ',') . ' تومان)';
-            }
-            $parts[] = '<strong>رویداد / مسابقه:</strong> ' . $event_display;
+            
+            $parts[] =  $event_display;
         }
         
         // نمایش هزینه اضافی
@@ -143,9 +142,7 @@ class Invoices_List_Table extends WP_List_Table {
             // محاسبه مبلغ هزینه اضافی
             $base_amount = $course_price > 0 ? $course_price : ($event_price > 0 ? $event_price : 0);
             $expense_amount = $total_amount - $base_amount;
-            if ($expense_amount > 0) {
-                $expense_display .= ' (' . number_format($expense_amount, 0, '.', ',') . ' تومان)';
-            }
+            
             $parts[] = '<strong>هزینه اضافی:</strong> ' . $expense_display;
         }
         
