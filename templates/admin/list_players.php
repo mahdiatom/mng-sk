@@ -1,5 +1,7 @@
 <?php
 global $title ,$player_list_table;
+ $playerListTable = new Player_List_Table();
+    $playerListTable->prepare_items();
 
             ?>
             <div class="wrap">

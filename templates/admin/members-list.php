@@ -22,11 +22,10 @@ class Player_List_Table extends WP_List_Table {
     }
 
     public function column_row($item) {
+  static $row_number = 0;
 
-    static $row_number = 0; // شمارنده برای هر صفحه
-
-    $page = $this->get_pagenum(); 
-    $per_page = 10; // دقیقاً باید همان مقدار prepare_items باشد
+    $page = $this->get_pagenum();
+    $per_page = $this->get_items_per_page('players_per_page', 50);
 
     $row_number++;
 
@@ -329,8 +328,7 @@ class Player_List_Table extends WP_List_Table {
 
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_members';
-
-        $per_page = 10; // تعداد نمایش در هر صفحه
+        $per_page = $this->get_items_per_page('players_per_page', 50);
         $page = $this->get_pagenum();
         $offset = ($page - 1) * $per_page;
 
@@ -397,5 +395,8 @@ class Player_List_Table extends WP_List_Table {
         $this->items = $results;
     }
 }
+
+add_filter('screen_options_show_per_page', '__return_true');
+
 ?>
 

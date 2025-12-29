@@ -34,6 +34,8 @@ function sc_register_admin_menu() {
         27
     );
 
+
+
     $list_member_sufix = add_submenu_page(
         'sc-members',
         'لیست اعضا',
@@ -42,6 +44,7 @@ function sc_register_admin_menu() {
         'sc-members',
         'sc_admin_members_list_page'
     );
+    add_action('load-' . $list_member_sufix, 'sc_members_screen_option');
 
     $add_member_sufix = add_submenu_page(
         'sc-members',
@@ -267,7 +270,27 @@ function sc_register_admin_menu() {
     add_action('load-' . $list_invoices_sufix, 'process_invoices_table_data');
 
     add_action('load-' . $add_expense_sufix, 'callback_add_expense_sufix');
+
 }
+function sc_members_screen_option() {
+    $option = 'players_per_page';
+    $args = [
+        'label'   => 'تعداد بازیکن در هر صفحه',
+        'default' => 50,
+        'option'  => $option
+    ];
+    add_screen_option('per_page', $args);
+}
+
+add_filter('set-screen-option', function($status, $option, $value) {
+    if ($option === 'players_per_page') return (int) $value;
+    return $status;
+}, 10, 3);
+
+// برای
+
+
+
 
 
 /**
