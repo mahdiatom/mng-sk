@@ -171,7 +171,7 @@ p.sk-modal-content p {
     display: none;
 }
 
-#the-list tr .column-full_name:hover .row-actions ,#the-list tr .column-full_name:hover .courses_member_table {
+#the-list tr .column-full_name:hover .row-actions ,#the-list tr .column-full_name:hover .courses_member_table ,#the-list tr .has-row-actions:hover .row-actions{
 display: unset;
 }
 
