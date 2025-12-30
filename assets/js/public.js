@@ -88,6 +88,7 @@ jQuery(document).ready(function($) {
     
     // تبدیل تاریخ تولد شمسی به میلادی (یک طرفه - فقط شمسی → میلادی)
     $('#birth_date_shamsi').on('change', function() {
+       
         var shamsiDate = $(this).val();
         if (shamsiDate && shamsiDate.includes('/')) {
             var parts = shamsiDate.split('/');
