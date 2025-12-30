@@ -289,11 +289,9 @@ $order_items = $order->get_items();
     <!-- دکمه‌های عملیات -->
     <div class="sc-thankyou-actions">
         <a href="<?php echo esc_url(wc_get_page_permalink('myaccount')); ?>" class="sc-thankyou-btn sc-thankyou-btn-primary">
-            مشاهده سفارش در حساب کاربری
+         بازگشت به حساب کاربری
         </a>
-        <a href="<?php echo esc_url(home_url()); ?>" class="sc-thankyou-btn sc-thankyou-btn-secondary">
-            بازگشت به صفحه اصلی
-        </a>
+       
     </div>
 </div>
 

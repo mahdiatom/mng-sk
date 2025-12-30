@@ -214,7 +214,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                                 
                                 <?php if ($course->capacity) : ?>
                                     <span style="color: <?php echo ($is_capacity_full && !$is_enrolled) ? '#d63638' : '#666'; ?>; font-size: 14px; font-weight: <?php echo ($is_capacity_full && !$is_enrolled) ? 'bold' : 'normal'; ?>;">
-                                        <strong>ظرفیت:</strong> <?php echo esc_html($remaining); ?> / <?php echo esc_html($course->capacity); ?>
+                                        <strong>ظرفیت باقی مانده:</strong> <?php echo esc_html($remaining) . 'نفر '; ?> 
                                     </span>
                                 <?php endif; ?>
                                 

@@ -134,7 +134,9 @@ class Events_List_Table extends WP_List_Table {
         }
         return $actions;
     }
-
+    protected function get_primary_column_name(){
+        return 'name';
+    }
     public function process_bulk_action() {
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_events';

@@ -70,7 +70,7 @@ class Player_List_Table extends WP_List_Table {
         return '<input type="checkbox" value="' . $item['id'] . '" name="player[]" />';
     }
     protected function get_primary_column_name() {
-    return 'id';
+    return 'full_name';
     }
     public function column_default($item, $column_name) {
         switch ($column_name) {

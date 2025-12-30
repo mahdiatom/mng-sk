@@ -110,8 +110,8 @@ function sc_register_admin_menu() {
     /* ================= Events ================= */
 
     add_menu_page(
-        'رویدادها / مسابقات',
-        'رویدادها / مسابقات',
+        'رویدادها',
+        'رویدادها ',
         'manage_options',
         'sc-events',
         'sc_admin_events_list_page',

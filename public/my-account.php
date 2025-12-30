@@ -97,14 +97,7 @@ add_action('woocommerce_account_content', 'sc_display_incomplete_profile_message
 function sc_display_incomplete_profile_message() {
     // بررسی اینکه آیا در یک endpoint خاص هستیم یا نه
     global $wp;
-    if (isset($wp->query_vars['sc-submit-documents']) || 
-        isset($wp->query_vars['sc-enroll-course']) || 
-        isset($wp->query_vars['sc-my-courses']) ||
-        isset($wp->query_vars['sc-events']) ||
-        isset($wp->query_vars['sc-event-detail']) ||
-        isset($wp->query_vars['sc-invoices'])) {
-        return; // در صفحات خاص پیام نمایش داده نمی‌شود
-    }
+
     
     // بررسی لاگین بودن کاربر
     if (!is_user_logged_in()) {
@@ -157,9 +150,10 @@ function sc_display_incomplete_profile_message() {
         $profile_url = wc_get_account_endpoint_url('sc-submit-documents');
         ?>
         <div class="sc-incomplete-profile-message" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
-            <strong style="display: block; margin-bottom: 8px;">⚠️ اطلاعات شما تکمیل نیست</strong>
+            <strong style="display: block; margin-bottom: 8px;">⚠️ اطلاعات پروفایل شما کامل نیست</strong>
             <p style="margin: 0;">
-                لطفاً <a href="<?php echo esc_url($profile_url); ?>" style="color: #856404; text-decoration: underline; font-weight: bold;">اطلاعات پروفایل</a> را تکمیل کنید.
+             <a href="<?php echo esc_url($profile_url); ?>" style="color: #856404; text-decoration: underline; font-weight: bold;">برای تکمیل پروفایل خود اینجا کلیک کنید. </a>
+                <p> با تکمیل پروفایل یک نشان و امتیاز دریافت خواهید کرد.</p>
             </p>
         </div>
         <?php
