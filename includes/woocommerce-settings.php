@@ -194,3 +194,4 @@ function my_plugin_hide_order_totals_for_customer( $totals, $order ) {
 
 
 
+

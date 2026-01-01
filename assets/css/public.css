@@ -2760,5 +2760,23 @@ padding: 15px !important;
         transform: translateY(0);
     }
 }
+/* حذف ستون محصول */
+#order_review .shop_table thead{
+    display: none ;
+}
+#order_review .shop_table tfoot tr:first-child{
+    display: none ;
+}
+#order_review table td,#order_review table th{
+    border: none;
+}
+#order_review .shop_table {
+    background: #6d34ff;
+    padding: 10px;
+    color: white;
+}
 
+#payment {
+        background: rgb(109 52 255 / 13%) !important;
+}
 
