@@ -149,7 +149,7 @@ $sql = "CREATE TABLE `$table_name` (
     KEY `idx_course_id` (`course_id`),
     KEY `idx_attendance_date` (`attendance_date`),
     KEY `idx_status` (`status`)
-    ) ENGINE=InnoDB $table_collate";
+    ) ENGINE=InnoDB $table_collation";
 
             require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
             dbDelta($sql);
