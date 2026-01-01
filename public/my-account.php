@@ -118,10 +118,16 @@ function sc_display_incomplete_profile_message() {
     $billing_phone = get_user_meta($current_user_id, 'billing_phone', true);
     
     // بررسی وجود اطلاعات بازیکن بر اساس user_id
+
+    /** @var stdClass|null $player */
     $player = $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM $table_name WHERE user_id = %d LIMIT 1",
         $current_user_id
     ));
+    if ( empty($player) ) {
+    return;
+}
+
     
     // اگر پیدا نشد، بر اساس شماره تماس بررسی می‌کنیم
     if (!$player && $billing_phone) {
@@ -293,6 +299,7 @@ function sc_my_account_enroll_course_content() {
     $where_values = [];
     
     // بررسی دوره‌های ثبت‌نام شده کاربر (با flags) - شامل active و inactive (pending invoice)
+    /** @var stdClass|null $player */
     $member_courses = $wpdb->get_results($wpdb->prepare(
         "SELECT course_id, course_status_flags, status FROM $member_courses_table 
          WHERE member_id = %d AND status IN ('active', 'inactive')",
@@ -1014,7 +1021,7 @@ function sc_my_account_my_courses_content() {
     
     // دریافت فیلتر وضعیت - پیش‌فرض: فقط دوره‌های فعال و بدون flag
     $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'active';
-    
+    /** @var stdClass|null $player */
     // ساخت شرط WHERE
     $where_conditions = ["mc.member_id = %d"];
     $where_values = [$player->id];
@@ -1103,14 +1110,14 @@ function sc_my_account_my_courses_content() {
         }
     }
     
-    // انتقال متغیرهای فیلتر و صفحه‌بندی به template
-    $filter_status = $filter_status;
-    $current_page = $current_page;
-    $total_pages = $total_pages;
-    $total_courses = $total_courses;
-    $pending_invoices = isset($pending_invoices) ? $pending_invoices : [];
-    $under_review_invoices = isset($under_review_invoices) ? $under_review_invoices : [];
-    $player = $player; // پاس دادن player به template
+    // // انتقال متغیرهای فیلتر و صفحه‌بندی به template
+    // $filter_status = $filter_status;
+    // $current_page = $current_page;
+    // $total_pages = $total_pages;
+    // $total_courses = $total_courses;
+    // $pending_invoices = isset($pending_invoices) ? $pending_invoices : [];
+    // $under_review_invoices = isset($under_review_invoices) ? $under_review_invoices : [];
+    // $player = $player; // پاس دادن player به template
     
     include SC_TEMPLATES_PUBLIC_DIR . 'my-courses.php';
 }
@@ -1546,7 +1553,8 @@ function sc_handle_invoice_cancellation() {
     
     global $wpdb;
     $invoices_table = $wpdb->prefix . 'sc_invoices';
-    
+        /** @var stdClass|null $player */
+
     // بررسی اینکه صورت حساب متعلق به کاربر فعلی است
     $invoice = $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM $invoices_table WHERE id = %d AND member_id = %d",
@@ -1578,7 +1586,6 @@ function sc_handle_invoice_cancellation() {
         ['%s', '%s'],
         ['%d']
     );
-    
     if ($updated !== false) {
         // اگر سفارش WooCommerce وجود دارد، آن را هم لغو کن
         if (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
@@ -1592,8 +1599,9 @@ function sc_handle_invoice_cancellation() {
         // مهم: لغو invoice هیچ ارتباطی به فلگ 'canceled' دوره ندارد
         // فلگ 'canceled' فقط زمانی تنظیم می‌شود که کاربر یا مدیر دوره را لغو کند
         if (!empty($invoice->course_id)) {
-            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
             
+            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+            /** @var stdClass|null $player */
             // اگر member_course_id وجود دارد، از آن استفاده کن
             if (!empty($invoice->member_course_id)) {
                 // حذف رکورد member_course تا کاربر بتواند دوباره ثبت‌نام کند
@@ -1664,7 +1672,7 @@ function sc_my_account_invoices_content() {
     
     // دریافت فیلتر وضعیت
     $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
-    
+    /** @var stdClass|null $player */
     // ساخت شرط WHERE
     $where_conditions = ["i.member_id = %d"];
     $where_values = [$player->id];
@@ -1697,7 +1705,7 @@ function sc_my_account_invoices_content() {
     $invoices = $wpdb->get_results($wpdb->prepare($query, $where_values));
     
     // انتقال متغیر فیلتر به template
-    $filter_status = $filter_status;
+   // $filter_status = $filter_status;
     
     include SC_TEMPLATES_PUBLIC_DIR . 'invoices-list.php';
 }
@@ -1780,8 +1788,8 @@ function sc_my_account_events_content() {
     }
     
     // انتقال متغیرهای فیلتر به template
-    $filter_status = $filter_status;
-    $filter_event_type = $filter_event_type;
+    // $filter_status = $filter_status;
+    // $filter_event_type = $filter_event_type;
     
     include SC_TEMPLATES_PUBLIC_DIR . 'events-list.php';
 }
@@ -1899,10 +1907,10 @@ function sc_handle_event_enrollment() {
     
     if ($is_date_expired) {
         wc_add_notice('زمان ثبت نام این رویداد تمام شده است.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail'));
         exit;
     }
-    
+    /** @var stdClass|null $player */
     // بررسی شرط سنی
     if ($event->has_age_limit && !empty($player->birth_date_shamsi)) {
         $user_age = sc_calculate_age($player->birth_date_shamsi);
@@ -1910,17 +1918,17 @@ function sc_handle_event_enrollment() {
         
         if ($event->min_age && $age_number < $event->min_age) {
             wc_add_notice('شما سن لازم برای شرکت در این رویداد را ندارید. حداقل سن: ' . $event->min_age . ' سال', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail'));
             exit;
         }
         if ($event->max_age && $age_number > $event->max_age) {
             wc_add_notice('شما سن لازم برای شرکت در این رویداد را ندارید. حداکثر سن: ' . $event->max_age . ' سال', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail'));
             exit;
         }
     } elseif ($event->has_age_limit && empty($player->birth_date_shamsi)) {
         wc_add_notice('لطفاً ابتدا تاریخ تولد خود را در بخش اطلاعات بازیکن تکمیل کنید.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail'));
         exit;
     }
     
@@ -1934,7 +1942,7 @@ function sc_handle_event_enrollment() {
         
         if ($remaining <= 0) {
             wc_add_notice('ظرفیت این رویداد تکمیل شده است.', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail'));
             exit;
         }
     }
@@ -1952,7 +1960,7 @@ function sc_handle_event_enrollment() {
         } else {
             wc_add_notice('شما قبلاً برای این رویداد ثبت‌نام کرده‌اید و صورت حساب آن در حال بررسی است. لطفاً به بخش صورت حساب‌ها مراجعه کنید.', 'error');
         }
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail'));
         exit;
     }
     
@@ -1973,7 +1981,7 @@ function sc_handle_event_enrollment() {
         
         if ($paid_invoice) {
             wc_add_notice('شما قبلاً در این رویداد ثبت نام کرده‌اید.', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail'));
             exit;
         }
     }
@@ -2099,7 +2107,7 @@ function sc_handle_event_enrollment() {
             wc_add_notice($error, 'error');
         }
         // ذخیره داده‌های فرم در session برای نمایش مجدد (اختیاری)
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail'));
         exit;
     }
     
@@ -2139,7 +2147,7 @@ function sc_handle_event_enrollment() {
         error_log('SC Event Invoice Creation Error: ' . $error_message);
         error_log('SC Event Invoice Result: ' . print_r($invoice_result, true));
         wc_add_notice('خطا در ثبت‌نام: ' . $error_message . '. لطفاً دوباره تلاش کنید.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail', $event_id));
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail'));
         exit;
     }
 }
