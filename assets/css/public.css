@@ -70,6 +70,201 @@ color: #000 !important;
 } 
 
 */
+.sc-user-info-panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px;
+    margin: 20px 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,.1);
+    font-family: IRANYekanXFaNum, sans-serif;
+}
+
+.sc-user-info-wrapper {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+}
+
+.sc-user-profile {
+    width: 20%;
+        display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    text-align: center;
+}
+
+.sc-user-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid #2271b1;
+    margin: 0 auto 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+.sc-attendance-row{
+    display: flex;
+    gap: 24px;
+    margin-top: 14px;
+    justify-content: space-around;
+}
+.sc-card-purple{
+    background-color: #77ff42;
+}
+.sc-user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sc-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+.info_level{
+    font-size: 12px;
+}
+.sc-user-phone,
+.sc-user-email {
+    font-size: 13–14px;
+    color: #666;
+}
+
+.sc-user-stats {
+    flex: 1;
+    min-width: 300px;
+}
+
+.sc-section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #2271b1;
+    border-bottom: 2px solid #2271b1;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.sc-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+    gap: 15px;
+}
+
+.sc-info-card {
+    padding: 15px;
+    border-radius: 8px;
+    border-right: 4px solid;
+}
+
+.sc-card-icon {
+    font-size: 24px;
+}
+
+.sc-card-title {
+    display: block;
+    font-size: 14px;
+    color: #555;
+}
+
+.sc-card-value {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.sc-card-blue {
+    background: linear-gradient(135deg,#e7f3ff,#d0e7ff);
+    border-color: #2271b1;
+    color: #2271b1;
+}
+
+.sc-card-yellow {
+    background: linear-gradient(135deg,#fff3cd,#ffeaa7);
+    border-color: #f0a000;
+    color: #856404;
+}
+
+.sc-card-green {
+    background: linear-gradient(135deg,#d4edda,#c3e6cb);
+    border-color: #00a32a;
+    color: #155724;
+}
+
+.sc-card-cyan {
+    background: linear-gradient(135deg,#d1ecf1,#bee5eb);
+    border-color: #17a2b8;
+    color: #0c5460;
+}
+
+
+
+
+
+
+/* حذف هدر و فوتر  */
+
+.sc-incomplete-profile-message a{
+    background-color: #5413f991;
+    border-radius: 10px;
+    padding: 5px 10px;
+    color: white;
+}
+#site-header , #site-footer{
+    display: none !important;
+}
+.woocommerce-dashboard h1{
+    display: none !important;
+}
+.woocommerce-dashboard main{
+        margin-left: 108px !important;
+    margin-right: 108px !important;
+    max-width: fit-content !important;
+}
+.woocommerce-MyAccount-navigation ul{
+    padding-right: 5px !important;
+}
+.woocommerce-MyAccount-navigation{
+    width: 20% !important;
+    background: #6D34FF ;
+    margin-left: 10px;
+    color: white;
+    padding: 10px;
+    border-radius: 10px;
+
+}
+.woocommerce-MyAccount-content{
+    width: 78% !important;
+    background: #6d34ff33;
+}
+.woocommerce-MyAccount-navigation ul li{
+     list-style: none;
+    padding: 12px 12px !important;
+
+}
+.woocommerce-MyAccount-navigation ul li a{
+    color: #fff !important;
+
+}
+.woocommerce-dashboard .woocommerce{
+margin-top: 5% !important;
+}
+.img_user_info {
+    width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 4px solid #2271b1; margin: 0 auto 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+@media (max-width:800px) {
+    .woocommerce-MyAccount-navigation{
+    width: 100% !important;
+}
+.woocommerce-MyAccount-content{
+    width: 100% !important;
+    padding: 0 !important;
+}
+
+
+}
+
+
+
 
 @media (max-width: 990px) {
     .sc-form-section{
@@ -87,12 +282,10 @@ color: #000 !important;
     width: 100% !important;
 }
 
+
 }
 
-.woocommerce-MyAccount-navigation .woocommerce-MyAccount-navigation-link {
-    padding: 5px 0px !important;
-    margin: 0 !important;
-}
+
 /* اطلاعات بازیکن */
 .elementor-widget-woocommerce-my-account .e-my-account-tab:not(.e-my-account-tab__dashboard--custom) .woocommerce-MyAccount-content p:last-of-type {
     margin-bottom: 5px !important;
@@ -1197,9 +1390,7 @@ ease !important;
     
     
     @media (max-width: 768px) {
-        .sc-user-info-panel > div {
-            flex-direction: column;
-        }
+       
         
         .sc-user-info-panel > div > div:first-child {
             width: 100%;
@@ -1365,7 +1556,7 @@ ease !important;
 
 /* استایل‌های صفحه جزئیات سفارش WooCommerce */
 .woocommerce-account .woocommerce-MyAccount-content {
-    padding: 20px !important;
+    padding: 5px !important;
     background: #f9f9f9;
     border-radius: 12px;
     margin-top: 20px;
@@ -2779,4 +2970,3 @@ padding: 15px !important;
 #payment {
         background: rgb(109 52 255 / 13%) !important;
 }
-

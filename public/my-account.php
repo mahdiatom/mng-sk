@@ -1,4 +1,281 @@
 <?php
+// start dashbord - info user summery
+
+add_action( 'woocommerce_before_account_navigation', 'add_html_before_account_nav' );
+function add_html_before_account_nav() {
+
+     if (!is_user_logged_in()) {
+        return '<div class="sc-user-info-notice">لطفاً ابتدا وارد حساب کاربری خود شوید.</div>';
+    }
+    
+    // بررسی و ایجاد جداول
+    sc_check_and_create_tables();
+    
+    $current_user_id = get_current_user_id();
+    global $wpdb;
+    
+    // دریافت اطلاعات کاربر WordPress
+    $wp_user = wp_get_current_user();
+    $user_display_name = $wp_user->display_name;
+    $user_email = $wp_user->user_email;
+    $user_login = $wp_user->user_login;
+    $billing_phone = get_user_meta($current_user_id, 'billing_phone', true);
+    
+    // دریافت اطلاعات بازیکن از جدول members
+    $members_table = $wpdb->prefix . 'sc_members';
+    $player = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $members_table WHERE user_id = %d LIMIT 1",
+        $current_user_id
+    ));
+    
+    // اگر پیدا نشد، بر اساس شماره تماس بررسی می‌کنیم
+    if (!$player && $billing_phone) {
+        $player = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $members_table WHERE player_phone = %s LIMIT 1",
+            $billing_phone
+        ));
+    }
+    
+    // اگر بازیکن پیدا نشد
+    if (!$player) {
+        return '<div class="sc-user-info-notice">اطلاعات بازیکن یافت نشد. لطفاً پروفایل خود را تکمیل کنید.</div>';
+    }
+    
+    // دریافت عکس پروفایل
+    $profile_image = '';
+    if (!empty($player->personal_photo)) {
+        $profile_image = esc_url($player->personal_photo);
+    } else {
+        // استفاده از WordPress avatar
+        $profile_image = get_avatar_url($current_user_id, ['size' => 150]);
+    }
+    
+    // دریافت نام و شماره تماس
+    $full_name = trim($player->first_name . ' ' . $player->last_name);
+    if (empty($full_name)) {
+        $full_name = $user_display_name;
+    }
+    $phone = !empty($player->player_phone) ? $player->player_phone : $billing_phone;
+    
+    // محاسبه تعداد دوره‌های فعال (فقط دوره‌های فعال و بدون flag)
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $active_courses_count = $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) 
+         FROM $member_courses_table mc
+         INNER JOIN $courses_table c ON mc.course_id = c.id
+         WHERE mc.member_id = %d 
+         AND mc.status = 'active'
+         AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '')
+         AND c.deleted_at IS NULL
+         AND c.is_active = 1",
+        $player->id
+    ));
+    
+    // محاسبه بدهکاری (صورت حساب‌های pending و under_review)
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $debt_info = $wpdb->get_row($wpdb->prepare(
+        "SELECT 
+            COUNT(*) as count,
+            SUM(amount + COALESCE(penalty_amount, 0)) as total_debt
+         FROM $invoices_table
+         WHERE member_id = %d 
+         AND status IN ('pending', 'under_review')",
+        $player->id
+    ));
+    $debt_count = $debt_info->count ?? 0;
+    $total_debt = floatval($debt_info->total_debt ?? 0);
+    
+    // تعداد رویدادهای ثبت‌نام شده
+    $events_table = $wpdb->prefix . 'sc_events';
+    $event_registrations_count = $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) 
+         FROM $invoices_table i
+         INNER JOIN $events_table e ON i.event_id = e.id
+         WHERE i.member_id = %d 
+         AND i.status IN ('paid', 'completed', 'processing')
+         AND e.deleted_at IS NULL",
+        $player->id
+    ));
+    
+    // آخرین صورت حساب پرداخت شده (با نام دوره یا رویداد)
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $events_table = $wpdb->prefix . 'sc_events';
+    $last_invoice = $wpdb->get_row($wpdb->prepare(
+        "SELECT 
+            i.id, 
+            i.amount, 
+            i.payment_date, 
+            i.created_at,
+            i.course_id,
+            i.event_id,
+            c.title as course_title,
+            e.name as event_name
+         FROM $invoices_table i
+         LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
+         LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
+         WHERE i.member_id = %d 
+         AND i.status IN ('paid', 'completed', 'processing')
+         AND i.payment_date IS NOT NULL
+         ORDER BY i.payment_date DESC, i.created_at DESC
+         LIMIT 1",
+        $player->id
+    ));
+    
+    // تعداد و مجموع صورت حساب‌های پرداخت شده
+    $paid_invoices_info = $wpdb->get_row($wpdb->prepare(
+        "SELECT 
+            COUNT(*) as count,
+            SUM(amount) as total_amount
+         FROM $invoices_table
+         WHERE member_id = %d 
+         AND status IN ('paid', 'completed', 'processing')",
+        $player->id
+    ));
+    $paid_invoices_count = $paid_invoices_info->count ?? 0;
+    $paid_invoices_total = floatval($paid_invoices_info->total_amount ?? 0);
+    
+    // محاسبه سن کاربر - استفاده از همان تابع لیست اعضا
+    $user_age = '';
+    if (!empty($player->birth_date_shamsi)) {
+        $user_age = sc_calculate_age($player->birth_date_shamsi);
+    } elseif (!empty($player->birth_date_gregorian)) {
+        // اگر فقط تاریخ میلادی موجود باشد، ابتدا به شمسی تبدیل می‌کنیم
+        $birth_date = new DateTime($player->birth_date_gregorian);
+        $birth_year = (int)$birth_date->format('Y');
+        $birth_month = (int)$birth_date->format('m');
+        $birth_day = (int)$birth_date->format('d');
+        
+        if (function_exists('gregorian_to_jalali')) {
+            $birth_jalali = gregorian_to_jalali($birth_year, $birth_month, $birth_day);
+            if ($birth_jalali && count($birth_jalali) === 3) {
+                $birth_shamsi = $birth_jalali[0] . '/' . 
+                               str_pad($birth_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                               str_pad($birth_jalali[2], 2, '0', STR_PAD_LEFT);
+                $user_age = sc_calculate_age($birth_shamsi);
+            }
+        }
+    }
+    
+    // تعداد حضور و غیاب (جداگانه)
+    $attendances_table = $wpdb->prefix . 'sc_attendances';
+    $attendances_info = $wpdb->get_row($wpdb->prepare(
+        "SELECT 
+            COUNT(CASE WHEN status = 'present' THEN 1 END) as present_count,
+            COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count,
+            COUNT(*) as total_count
+         FROM $attendances_table
+         WHERE member_id = %d",
+        $player->id
+    ));
+    $present_count = intval($attendances_info->present_count ?? 0);
+    $absent_count = intval($attendances_info->absent_count ?? 0);
+    $total_attendances = intval($attendances_info->total_count ?? 0);
+    
+    // سطح کاربر
+    $skill_level = !empty($player->skill_level) ? $player->skill_level : 'تعیین نشده';
+    
+    // تاریخ عضویت
+    $membership_date = '';
+    if (!empty($player->created_at)) {
+        $membership_date = sc_date_shamsi_date_only($player->created_at);
+    }
+    
+    // وضعیت بیمه
+    $insurance_status = '';
+    $insurance_expiry = '';
+    if (!empty($player->insurance_expiry_date_shamsi)) {
+        $insurance_expiry = $player->insurance_expiry_date_shamsi;
+        $today_shamsi = sc_get_today_shamsi();
+        $expiry_compare = sc_compare_shamsi_dates($today_shamsi, $insurance_expiry);
+        if ($expiry_compare > 0) {
+            $insurance_status = 'منقضی شده';
+        } else {
+            $insurance_status = 'معتبر';
+        }
+    } else {
+        $insurance_status = 'ثبت نشده';
+    }
+    
+    // وضعیت پروفایل
+    $profile_completed = sc_check_profile_completed($player->id);
+    $profile_status = $profile_completed ? 'تکمیل شده' : 'ناقص';
+    $profile_status_class = $profile_completed ? 'completed' : 'incomplete';
+    
+  
+    ?>
+    <div class="sc-user-info-panel">
+        <div class="sc-user-info-wrapper">
+
+            <div class="sc-user-profile">
+                <div class="sc-user-avatar">
+                    <img src="<?php echo esc_url($profile_image); ?>" alt="<?php echo esc_attr($full_name); ?>">
+                  
+                </div>
+                <h3 class="sc-user-name"><?php echo esc_html($full_name); ?></h3>
+                  <p class="info_level" ><?php echo $skill_level ; ?></p>
+
+            </div>
+
+            <div class="sc-user-stats">
+                <h4 class="sc-section-title">اطلاعات حساب کاربری</h4>
+
+                <div class="sc-info-grid">
+
+                    <div class="sc-info-card sc-card-blue">
+                        <span class="sc-card-icon">📚</span>
+                        <span class="sc-card-title">دوره‌های فعال</span>
+                        <strong class="sc-card-value"><?php echo $active_courses_count; ?></strong>
+                    </div>
+
+                    <div class="sc-info-card sc-card-yellow">
+                        <span class="sc-card-icon">💰</span>
+                        <span class="sc-card-title">بدهکاری</span>
+                        <strong class="sc-card-value">
+                            <?php echo number_format($debt_info->total ?? 0); ?> تومان
+                        </strong>
+                        <?php if ($debt_info->count): ?>
+                            <small>(<?php echo $debt_info->count; ?> فاکتور)</small>
+                        <?php endif; ?>
+                    </div>
+
+                 
+                <div class="sc-info-card sc-card-purple">
+                    <span class="sc-card-icon">🎂</span>
+                    <span class="sc-card-title">سن شما</span>
+                    <strong class="sc-card-value">
+                        <?php echo $user_age?? ''; ?>
+                    </strong>
+                </div>
+
+                <div class="sc-info-card sc-card-green">
+                    <span class="sc-card-icon">📋</span>
+                    <span class="sc-card-title">حضور و غیاب</span>
+
+                    <div class="sc-attendance-row">
+                        <div class="sc-attendance-item present">
+                            <strong><?php echo esc_html($present_count); ?></strong>
+                            <small>حضور</small>
+                        </div>
+                                |
+                        <div class="sc-attendance-item absent">
+                            <strong><?php echo esc_html($absent_count); ?></strong>
+                            <small>غیاب</small>
+                        </div>
+                    </div>
+                </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <?php
+
+}
+
+
+
 
 /**
  * WooCommerce My Account - اطلاعات بازیکن Tab
@@ -157,9 +434,9 @@ function sc_display_incomplete_profile_message() {
         ?>
         <div class="sc-incomplete-profile-message" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
             <strong style="display: block; margin-bottom: 8px;">⚠️ اطلاعات پروفایل شما کامل نیست</strong>
-            <p style="margin: 0;">
-             <a href="<?php echo esc_url($profile_url); ?>" style="color: #856404; text-decoration: underline; font-weight: bold;">برای تکمیل پروفایل خود اینجا کلیک کنید. </a>
-                <p> با تکمیل پروفایل یک نشان و امتیاز دریافت خواهید کرد.</p>
+            <p >برای تکمیل پروفایل خود
+             <a href="<?php echo esc_url($profile_url); ?>"> اینجا کلیک کنید. </a>
+                
             </p>
         </div>
         <?php

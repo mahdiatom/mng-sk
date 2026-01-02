@@ -12,6 +12,12 @@ if (!defined('ABSPATH')) {
 /**
  * ثبت shortcode
  */
+
+
+
+
+
+
 add_shortcode('sc_user_info_panel', 'sc_user_info_panel_shortcode');
 
 function sc_user_info_panel_shortcode($atts) {

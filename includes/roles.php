@@ -75,6 +75,12 @@ function club_block_restricted_pages_for_coach() {
         'edit-comments.php',
         'options-general.php',
         'tools.php',
+        'options-permalink.php',
+        'options-writing.php',
+        'options-reading.php',
+        'options-media.php',
+        'options-permalink.php',
+        'options-privacy.php',
 
         // المنتور
         'elementor',
@@ -121,7 +127,10 @@ function club_block_restricted_pages_for_coach() {
             strpos($uri, $blocked) !== false
         ) {
             wp_die(
-                '<h2>دسترسی غیرمجاز</h2><p>شما به این بخش دسترسی ندارید.</p>',
+                '
+                <div >
+                <h2 style="text-align: left;">Access Denied</h2>
+                <p style="text-align: left;">You have access to this section.</p>',
                 'خطای دسترسی',
                 array('response' => 403)
             );
