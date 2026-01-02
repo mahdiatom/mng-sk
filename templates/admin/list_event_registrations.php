@@ -158,7 +158,7 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
 </div>
 
 <!-- فیلترها -->
-<div class="wrap sc-filter-wrapper">
+<div class="wrap sc-filter-wrapper event_registrs">
     <form method="GET" action="" class="sc-filter-form">
         <input type="hidden" name="page" value="sc-event-registrations">
 

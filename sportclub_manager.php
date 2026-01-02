@@ -53,6 +53,7 @@ require_once SC_INCLUDES_DIR . 'event-registrations-export.php'; // Event regist
 require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settings
 require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
 require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions
+require_once SC_INCLUDES_DIR . 'roles.php'; // SMS functions
 
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
@@ -887,4 +888,32 @@ function sc_public_enqueue_assets() {
     wp_enqueue_script('sc-public-js', SC_ASSETS_URL . 'js/public.js', array('jquery'), '1.0', time());
 }
 
+//پنهان کردن تاپ منو برای نقش مدیر باشگاه
+add_action( 'wp_enqueue_scripts', function () {
 
+if ( ! current_user_can('club_coach') || current_user_can('administrator') ) {
+        return;
+    }
+
+    wp_add_inline_style(
+        'sc-public-css',
+        '
+         
+        #wp-admin-bar-customize ,
+        #wp-admin-bar-updates ,
+        #wp-admin-bar-comments ,
+        #wp-admin-bar-new-content ,
+        #wp-admin-bar-elementor_inspector{
+            display: none;
+    }
+          
+         '
+    );
+});
+
+add_action( 'wp_enqueue_scripts', function () {
+    wp_add_inline_style(
+        'theme-style-handle',
+        '.tab-menu { background:red; }'
+    );
+});

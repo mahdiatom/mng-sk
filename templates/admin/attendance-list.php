@@ -324,45 +324,23 @@ if ($active_tab === 'overall') {
     <!-- تب‌ها -->
     <h2 class="nav-tab-wrapper">
         <a href="?page=sc-attendance-list&tab=individual" class="nav-tab <?php echo $active_tab === 'individual' ? 'nav-tab-active' : ''; ?>">
-            لیست حضور و غیاب کاربران
-        </a>
+        حضور و غیاب جزئی
+    </a>
         <a href="?page=sc-attendance-list&tab=grouped" class="nav-tab <?php echo $active_tab === 'grouped' ? 'nav-tab-active' : ''; ?>">
-            لیست بر اساس دوره و تاریخ
+         گزارش دوره‌ها 
         </a>
         <a href="?page=sc-attendance-list&tab=overall" class="nav-tab <?php echo $active_tab === 'overall' ? 'nav-tab-active' : ''; ?>">
-            لیست کلی حضور و غیاب
-        </a>
+        گزارش اشخاص     
+    </a>
     </h2>
     
     <?php if ($active_tab === 'individual') : ?>
         <!-- تب 1: لیست حضور و غیاب کاربران -->
         <!-- فیلترها -->
-        <form method="GET" action="" class="form_fillter_attendance">
+        <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
             <input type="hidden" name="page" value="sc-attendance-list">
             <input type="hidden" name="tab" value="individual">
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
 
 
 <div class="sc-filter-grid">
@@ -518,32 +496,9 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                value="<?php echo esc_attr($filter_date_to); ?>">
     </div>
 
-    <p class="sc-filter-help">
-        برای انتخاب تاریخ، روی فیلد کلیک کنید
-    </p>
 </div>
 
 </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
             <p class="submit">
@@ -626,10 +581,10 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                                 <td>
                                     <a href="<?php echo admin_url('admin.php?page=sc-attendance-add&course_id=' . $attendance->course_id . '&date=' . $attendance->attendance_date); ?>" 
                                        class="button button-small">ویرایش</a>
-                                    <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=sc-attendance-list&tab=individual&action=delete&attendance_id=' . $attendance->id), 'delete_attendance_' . $attendance->id); ?>" 
+                                    <!-- <a href="<?php //echo wp_nonce_url(admin_url('admin.php?page=sc-attendance-list&tab=individual&action=delete&attendance_id=' . $attendance->id), 'delete_attendance_' . $attendance->id); ?>" 
                                        class="button button-small button_delete_attendance" 
                                        onclick="return confirm('آیا مطمئن هستید که می‌خواهید این حضور و غیاب را حذف کنید؟');"
-                                       >حذف</a>
+                                       >حذف</a> -->
                                 </td>
                             </tr>
                         <?php endforeach; ?>

@@ -1,8 +1,8 @@
 <?php
+
 if (!class_exists('WP_List_Table')) {
     require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
 }
-
 class Player_List_Table extends WP_List_Table {
 
     public function get_columns() {
@@ -169,7 +169,7 @@ class Player_List_Table extends WP_List_Table {
         } elseif (isset($_GET['player_status']) && $_GET['player_status'] == 'inactive') {
             echo "هیچ بازیکن غیرفعالی وجود ندارد.";
         } else {
-            echo "هنوز بازیکنی ثبت نکرده‌اید. از بخش افزودن بازیکن اولین بازیکن خود را اضافه کنید.";
+            echo "هنوز بازیکنی ثبت نکرده‌اید. از بخش کاربران اولین بازیکن خود را اضافه کنید.";
         }
     }
 

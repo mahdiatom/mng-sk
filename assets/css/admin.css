@@ -167,20 +167,6 @@ p.sk-modal-content p {
 .sportclub-manager_page_sc-members #national_id,.sportclub-manager_page_sc-members #player_phone{
     width: 90px;
 }
-.row-actions{
-    display: none;
-}
-
-#the-list tr .has-row-actions:hover .row-actions{
-    display: flex;
-    justify-content: center;
-    font-size: 12px !important;
-
-
-}
-#the-list tr .has-row-actions:hover .row-actions p , #the-list tr .has-row-actions:hover .row-actions span {
-    font-size: 12px;
-}
 
 /* لیست بازیکن ها  */
 
@@ -632,24 +618,24 @@ p.sk-modal-content p {
     border: 1px solid #ddd;
     border-radius: 4px;
 }
-.widefat td, .widefat th {
+/* .widefat td, .widefat th {
     padding-left: 10px;
     border-left: 1px solid #e6e6e6;
-}
-.wp-list-table tr th {
+} */
+/* .wp-list-table tr th {
     text-align: center ;
     
-}
-.wp-list-table tr th a{
+} */
+/* .wp-list-table tr th a{
         padding-right: 30px;
-}
-tbody tr td {
+} */
+/* tbody tr td {
     text-align: center;
 
 }
 tr td.column-full_name:hover{
     transform: unset;
-}
+} */
 .button_delete_attendance{
     background-color: #d63638 !important;
     color: #fff !important;
@@ -756,7 +742,15 @@ tbody tr td{
     display: flex;
     align-items: center;
 }
-
+.form_fillter_attendance_tab1 .sc-dropdown-toggle{
+      height: 38px !important;
+}
+.event_registrs .sc-dropdown-toggle{
+      height: 38px !important;
+}
+.invoice_form .sc-dropdown-toggle{
+      height: 38px !important;
+}
 .sc-dropdown-arrow {
     position: absolute;
     left: 10px;
@@ -855,9 +849,7 @@ tbody tr td{
     display: flex;
     
 }
-.form-table th{
-    width: 60px;
-}
+
 .form-table #filter_course{
     width: 100% !important;
 }

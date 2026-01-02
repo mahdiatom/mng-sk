@@ -56,26 +56,36 @@ function sc_register_admin_menu() {
     );
 
       // Attendance - Add
-    add_menu_page(
+  add_menu_page(
+    'حضور و غیاب',
+    'حضور و غیاب',
+    'manage_options',
+    'sc-attendance',
+    'sc_admin_attendance_list_page',
+    'dashicons-insert-after',
+    27
+);
 
-        'ثبت حضور و غیاب',
-        'ثبت حضور و غیاب',
-        'manage_options',
-        'sc-attendance-add',
-        'sc_admin_attendance_add_page',
-        'dashicons-insert-after',
-        '28'
-    );
 
-    // Attendance - List
-    add_submenu_page(
-        'sc-attendance-add',
-        'لیست حضور و غیاب',
-        'لیست حضور و غیاب',
-        'manage_options',
-        'sc-attendance-list',
-        'sc_admin_attendance_list_page'
-    );
+ // Attendance - List
+  $list_attendance_sufix = add_submenu_page(
+    'sc-attendance',
+    'لیست حضور و غیاب',
+    'لیست حضور و غیاب',
+    'manage_options',
+    'sc-attendance',
+    'sc_admin_attendance_list_page'
+);
+
+   $add_attendance_sufix = add_submenu_page(
+    'sc-attendance',
+    'ثبت حضور و غیاب',
+    'ثبت حضور و غیاب',
+    'manage_options',
+    'sc-attendance-add',
+    'sc_admin_attendance_add_page'
+);
+
 
     /* ================= Courses ================= */
 
@@ -259,6 +269,9 @@ function sc_register_admin_menu() {
 
     add_action('load-' . $add_member_sufix, 'callback_add_member_sufix');
     add_action('load-' . $list_member_sufix, 'procces_table_data');
+
+    add_action('load-' . $list_attendance_sufix, 'sc_admin_attendance_list_page');
+    add_action('load-' . $add_attendance_sufix, 'sc_admin_attendance_add_page');
 
     add_action('load-' . $add_course_sufix, 'callback_add_course_sufix');
     add_action('load-' . $list_courses_sufix, 'procces_courses_table_data');

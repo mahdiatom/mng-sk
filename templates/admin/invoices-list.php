@@ -77,7 +77,7 @@ $members = $wpdb->get_results(
 
 <!-- ================= Filters ================= -->
 <div class="wrap sc-filter-wrapper">
-<form method="GET" class="sc-filter-form">
+<form method="GET" class="sc-filter-form invoice_form">
 <input type="hidden" name="page" value="sc-invoices">
 
 <div class="sc-filter-grid">

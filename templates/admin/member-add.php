@@ -1,25 +1,8 @@
 <?php 
 if(!isset($_GET['player_id'])){
-    ?>
-<div class="wrap">
-    <h1 class="wp-heading-inline">
-        <?php 
-        echo 'ثبت بازیکن جدید' ;
-         ?>
-            </h1>
-            <p>
-                <?php  echo "برای افزودن بازیکن برای اولین بار لطفا از بخش کاربران اقدام نمایید با تشکر " ?>
-            </p>
-            <a href="user-new.php" style="color: #ffffffff;">
-                <button  name="redirect" class="button button-primary">
-                    <?php echo "بخش کاربران"; ?>
-            </a>
-
-
-    <?php 
-        
-    
+wp_redirect( admin_url( 'user-new.php' ) );
     exit;
+
 }
         $first_name = '';
         $last_name = '';
@@ -152,15 +135,15 @@ if($player && $_GET['player_id'] ){
                 <tr>
                     <th scope="row"><label for="username">نام کاربری</label></th>
                     <td>
-                        <input name="username" type="text" id="username" value="<?php echo esc_attr($member_username); ?>" class="regular-text" placeholder="برای ایجاد کاربر WordPress">
-                        <p class="description">اگر می‌خواهید کاربر به سایت متصل شود، نام کاربری و رمز عبور را وارد کنید</p>
+                        <input name="username" type="text" id="username" value="<?php echo esc_attr($member_username); ?>" class="regular-text" placeholder="برای ایجاد کاربر WordPress" readonly>
+                        <p class="description">نام کاربری به صورت پیش فرض  شماره تماس کاربر می باشد - غیرقابل تغییر </p>
                     </td>
                 </tr>
                 
                 <tr>
                     <th scope="row"><label for="password">رمز عبور</label></th>
                     <td>
-                        <input name="password" type="password" id="password" value="" class="regular-text" placeholder="رمز عبور را وارد کنید">
+                        <input name="password" type="text" id="password" value="" class="regular-text" placeholder="رمز عبور جدید را وارد کنید.">
                         <p class="description"><?php echo $member_user_id ? 'برای تغییر رمز عبور، رمز جدید را وارد کنید (در صورت خالی بودن، تغییر نمی‌کند)' : 'رمز عبور برای ورود به سایت'; ?></p>
                     </td>
                 </tr>
@@ -168,6 +151,7 @@ if($player && $_GET['player_id'] ){
                 <tr>
                     <th scope="row"><label for="player_phone">شماره موبایل بازیکن</label></th>
                     <td><input name="player_phone" type="text" id="player_phone" value="<?php echo $player_phone; ?>" class="regular-text"></td>
+                     <p class="description">فقط برای شماره بازیکن پیامک ارسال خواهد شد.</p>
                 </tr>
 
               
@@ -275,7 +259,7 @@ if($player && $_GET['player_id'] ){
                
                 <tr>
                     <th scope="row">وضعیت سلامت تأیید شده</th>
-                    <td><label><input name="health_verified" type="checkbox" <?php checked($health_verified, 1); ?> value="1"> بله</label></td>
+                    <td><label><input name="health_verified" type="checkbox" <?php checked($health_verified, 1); ?> value="1" > بله</label></td>
                 </tr>
 
               
