@@ -358,7 +358,7 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
             <input type="submit" class="button button-primary" value="اعمال فیلتر">
             <?php
             // ساخت URL برای export Excel با حفظ فیلترها
-            $export_url = admin_url('admin.php?page=sc-invoices&sc_export=excel&export_type=invoices');
+            $export_url = admin_url('admin.php?page=sc-event-registrations&sc_export=excel&export_type=event_registrations');
             $export_url = add_query_arg('filter_status', isset($_GET['filter_status']) ? $_GET['filter_status'] : 'all', $export_url);
             $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
             $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);

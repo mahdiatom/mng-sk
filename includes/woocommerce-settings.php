@@ -193,5 +193,20 @@ function my_plugin_hide_order_totals_for_customer( $totals, $order ) {
 
 
 
+// add_filter( 'woocommerce_coupons_enabled', 'enable_coupons_on_order_pay', 10, 1 );
+// function enable_coupons_on_order_pay( $enabled ) {
+//     if ( is_wc_endpoint_url( 'order-pay' ) ) {
+//         return true;
+//     }
+//     return $enabled;
+// }
+
+// add_action( 'woocommerce_before_pay_action', 'show_coupon_on_order_pay' );
+// function show_coupon_on_order_pay() {
+//     wc_get_template( 'checkout/form-coupon.php' );
+// }
+
+
+
 
 

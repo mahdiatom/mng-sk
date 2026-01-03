@@ -270,8 +270,8 @@ function sc_register_admin_menu() {
     add_action('load-' . $add_member_sufix, 'callback_add_member_sufix');
     add_action('load-' . $list_member_sufix, 'procces_table_data');
 
-    add_action('load-' . $list_attendance_sufix, 'sc_admin_attendance_list_page');
-    add_action('load-' . $add_attendance_sufix, 'sc_admin_attendance_add_page');
+    // add_action('load-' . $list_attendance_sufix, 'sc_admin_attendance_list_page');
+    // add_action('load-' . $add_attendance_sufix, 'sc_admin_attendance_add_page');
 
     add_action('load-' . $add_course_sufix, 'callback_add_course_sufix');
     add_action('load-' . $list_courses_sufix, 'procces_courses_table_data');
