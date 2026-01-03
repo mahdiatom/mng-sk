@@ -377,7 +377,11 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                 $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 ?>
                 <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
-                    📊 خروجی Excel ثبت‌نام‌های رویداد
+                    📊 خروجی Excel 
+                </a>
+                <a href="<?php echo admin_url('admin.php?page=sc-event-registrations'); ?>" 
+                class="button">
+                    🧹 پاک کردن فیلترها
                 </a>
 </div>
 
