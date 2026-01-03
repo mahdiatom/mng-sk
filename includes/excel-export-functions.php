@@ -604,9 +604,11 @@ function sc_export_members_to_excel() {
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $courses_table = $wpdb->prefix . 'sc_courses';
     
+    
     // دریافت فیلترها
     $filter_status = isset($_GET['player_status']) ? sanitize_text_field($_GET['player_status']) : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all');
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+    $filter_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
     $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
     
     // ساخت WHERE clause
@@ -618,7 +620,12 @@ function sc_export_members_to_excel() {
     } elseif ($filter_status === 'inactive') {
         $where_conditions[] = "m.is_active = 0";
     }
-    
+    // فیلتر تکمیل پروفایل
+    if ($filter_profile === 'completed') {
+        $where_conditions[] = "m.profile_completed = 1";
+    } elseif ($filter_profile === 'incomplete') {
+        $where_conditions[] = "(m.profile_completed = 0 OR m.profile_completed IS NULL)";
+    }
     if ($filter_course > 0) {
         $where_conditions[] = "m.id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')";
         $where_values[] = $filter_course;

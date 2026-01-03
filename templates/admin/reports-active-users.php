@@ -401,14 +401,14 @@ $members = array_slice($filtered_members, $offset, $per_page);
         </div>    
             <!-- Pagination -->
             <?php if ($total_pages > 1) : ?>
-                <div class="tablenav bottom" style="margin-top: 20px;">
+                <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
                     <div class="tablenav-pages">
                         <?php
                         $page_links = paginate_links([
                             'base' => add_query_arg(['paged' => '%#%']),
                             'format' => '',
-                            'prev_text' => '&laquo;',
-                            'next_text' => '&raquo;',
+                            'prev_text' => '< قبلی ',
+                            'next_text' => ' بعدی >' ,
                             'total' => $total_pages,
                             'current' => $current_page
                         ]);

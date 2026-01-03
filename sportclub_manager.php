@@ -49,7 +49,6 @@ require_once SC_INCLUDES_DIR . 'debtors-export.php'; // Debtors export functions
 require_once SC_INCLUDES_DIR . 'active-users-export.php'; // Active users export functions
 require_once SC_INCLUDES_DIR . 'payments-export.php'; // Payments export functions
 require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export functions
-require_once SC_INCLUDES_DIR . 'event-registrations-export.php'; // Event registrations export functions
 require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settings
 require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
 require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions

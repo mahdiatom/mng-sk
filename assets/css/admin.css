@@ -869,3 +869,35 @@ tbody tr td{
     height: 38px;
 }
 }
+
+/* صفحه بندی لیست ها  */
+.sc_paginate{
+        display: flex;
+    justify-content: center;
+}
+
+.sc_paginate .tablenav-pages span ,.sc_paginate .tablenav-pages a {
+    font-size: 16px !important;
+    padding: 5px !important;
+}
+.sc_paginate .tablenav-pages span{
+        color: #0c02c9;
+    background-color: white;
+    border-radius: 5px;
+    border: 1px solid #0c02c9;
+    padding: 1px 9px !important;
+}
+.sc_paginate .tablenav-pages a {
+    color:#000;
+}
+.sc_paginate .tablenav-pages .prev{
+    font-size: 12px !important;
+}
+.sc_paginate .tablenav-pages .next{
+    font-size: 12px !important;
+}
+
+/* حذف ساب منو اضافی و فوتر پیام وردپرس - باتشکر از ساخت با وردپرس */
+.toplevel_page_sc-attendance .wp-first-item , #wpfooter{
+    display: none !important;
+}

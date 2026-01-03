@@ -56,33 +56,33 @@ function sc_register_admin_menu() {
     );
 
       // Attendance - Add
-  add_menu_page(
+add_menu_page(
     'حضور و غیاب',
     'حضور و غیاب',
     'manage_options',
     'sc-attendance',
-    'sc_admin_attendance_list_page',
+    '__return_null', // ← callback خالی
     'dashicons-insert-after',
     27
 );
 
 
  // Attendance - List
-  $list_attendance_sufix = add_submenu_page(
+add_submenu_page(
     'sc-attendance',
     'لیست حضور و غیاب',
     'لیست حضور و غیاب',
     'manage_options',
-    'sc-attendance',
+    'sc-attendance-list', // ← slug یکتا
     'sc_admin_attendance_list_page'
 );
 
-   $add_attendance_sufix = add_submenu_page(
+add_submenu_page(
     'sc-attendance',
     'ثبت حضور و غیاب',
     'ثبت حضور و غیاب',
     'manage_options',
-    'sc-attendance-add',
+    'sc-attendance-add', 
     'sc_admin_attendance_add_page'
 );
 
@@ -1621,7 +1621,8 @@ function sc_sprot_notices(){
         $type='';
         $messege='';
         if(isset($_GET['sc_status'])){
-        $status=sanitize_text_field($_GET['sc_status']);
+        $status=sanitize_text_field($_GET['sc_status'] ?? '');
+        $status2=sanitize_text_field($_GET['sc_status2'] ?? '');
         if($status == 'add_true'){
             $type='success';
             $messege="بازیکن با موفقیت اضافه شد";
@@ -1711,6 +1712,19 @@ function sc_sprot_notices(){
             $type='error';
             $messege="خطا در ایجاد صورت حساب. لطفاً فیلدهای ورودی را بررسی کنید.";
         }
+        if($status == 'bulk_deleted' && $status2 == 'deleted_player' ){
+            $type='success';
+            $messege="بازیکن مورد نظر با موفیت حذف شد.";
+        }
+        if($status == 'bulk_activated' ){
+            $type='success';
+            $messege="بازیکن مورد نظر با موفقیت فعال شد";
+        }
+        if($status == 'bulk_deactivated' ){
+            $type='success';
+            $messege="بازیکن مورد نظر با موفقیت غیرفعال شد.";
+        }
+        
     }
         if($type && $messege){
             ?>

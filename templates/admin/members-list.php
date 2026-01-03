@@ -182,7 +182,9 @@ class Player_List_Table extends WP_List_Table {
 
     public function get_bulk_actions() {
         return [
-            'delete' => 'حذف بازیکن'
+        'delete' => 'حذف بازیکن',
+        'activate' => 'فعال کردن بازیکن',
+        'deactivate' => 'غیرفعال کردن بازیکن'
         ];
     }
 
@@ -204,9 +206,27 @@ class Player_List_Table extends WP_List_Table {
             foreach ($players as $player_id) {
                 $wpdb->delete($table_name, ['id' => $player_id]);
             }
-            wp_redirect(admin_url('admin.php?page=sc-members&sc_status=bulk_deleted'));
+            wp_redirect(admin_url('admin.php?page=sc-members&sc_status=bulk_deleted&sc_status2=deleted_player'));
             exit;
         }
+        if ($this->current_action() == 'activate') {
+            $players = isset($_GET['player']) ? $_GET['player'] : [];
+            foreach ($players as $player_id) {
+                $wpdb->update($table_name, ['is_active' => 1], ['id' => $player_id]);
+            }
+            wp_redirect(admin_url('admin.php?page=sc-members&sc_status=bulk_activated'));
+            exit;
+    }
+
+    if ($this->current_action() == 'deactivate') {
+            $players = isset($_GET['player']) ? $_GET['player'] : [];
+            foreach ($players as $player_id) {
+                $wpdb->update($table_name, ['is_active' => 0], ['id' => $player_id]);
+            }
+            wp_redirect(admin_url('admin.php?page=sc-members&sc_status=bulk_deactivated'));
+            exit;
+    }
+
       
     }
 
@@ -327,7 +347,10 @@ class Player_List_Table extends WP_List_Table {
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
-            
+            if (isset($_GET['filter_profile']) && $_GET['filter_profile'] !== 'all') {
+                $export_url = add_query_arg('filter_profile', $_GET['filter_profile'], $export_url);
+            }
+
                 echo '</div>';
         }
     }
