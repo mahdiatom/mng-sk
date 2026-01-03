@@ -1,9 +1,13 @@
 <?php 
 if(!isset($_GET['player_id'])){
-wp_redirect( admin_url( 'user-new.php' ) );
+?>
+    <h1>افزودن بازیکن جدید</h1>
+    <p>لطفا برای افزودن بازیکن جدید به بخش کاربران بروید</p>
+    <a class="button" href="<?php echo admin_url('user-new.php'); ?>">بخش کاربران</a>
+<?php
     exit;
-
 }
+
         $first_name = '';
         $last_name = '';
         $father_name = '';
@@ -150,9 +154,11 @@ if($player && $_GET['player_id'] ){
            
                 <tr>
                     <th scope="row"><label for="player_phone">شماره موبایل بازیکن</label></th>
-                    <td><input name="player_phone" type="text" id="player_phone" value="<?php echo $player_phone; ?>" class="regular-text"></td>
-                     <p class="description">فقط برای شماره بازیکن پیامک ارسال خواهد شد.</p>
-                </tr>
+                    <td><input name="player_phone" type="text" id="player_phone" value="<?php echo $player_phone; ?>" class="regular-text">
+                    <p class="description">فقط برای شماره بازیکن پیامک ارسال خواهد شد.</p>
+          
+                </td>
+                           </tr>
 
               
                 <tr>
