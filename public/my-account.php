@@ -232,7 +232,7 @@ function add_html_before_account_nav() {
                         <span class="sc-card-icon">💰</span>
                         <span class="sc-card-title">بدهکاری</span>
                         <strong class="sc-card-value">
-                            <?php echo number_format($debt_info->total ?? 0); ?> تومان
+                            <?php echo number_format($debt_info->total_debt ?? 0); ?> تومان
                         </strong>
                         <?php if ($debt_info->count): ?>
                             <small>(<?php echo $debt_info->count; ?> فاکتور)</small>

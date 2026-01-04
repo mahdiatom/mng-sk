@@ -901,3 +901,36 @@ tbody tr td{
 .toplevel_page_sc-attendance .wp-first-item , #wpfooter{
     display: none !important;
 }
+
+
+/* مخفی کردن همه فیلدها */
+#your-profile .form-table tr {
+    display: none !important;
+}
+
+/* نگه داشتن فیلدهای ضروری */
+#your-profile tr:has(#user_login),
+#your-profile tr:has(#user_email),
+#your-profile tr:has(#pass1),
+#your-profile tr:has(input[name="billing_phone"]) {
+    display: table-row !important;
+}
+
+/* حذف عنوان‌ها */
+#your-profile h2 {
+    display: none !important;
+}
+
+/* حذف انتخاب زبان */
+#your-profile tr.user-language-wrap {
+    display: none !important;
+}
+
+/* حذف ارسال آگاه‌ساز به کاربر */
+#send_user_notification,
+label[for="send_user_notification"] {
+    display: none !important;
+}
+#createuser .user-language-wrap{
+    display: none !important;
+}

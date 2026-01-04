@@ -348,8 +348,8 @@ class Player_List_Table extends WP_List_Table {
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
             if (isset($_GET['filter_profile']) && $_GET['filter_profile'] !== 'all') {
-                $export_url = add_query_arg('filter_profile', $_GET['filter_profile'], $export_url);
-            }
+    $export_url = add_query_arg('filter_profile', $_GET['filter_profile'], $export_url);
+}
 
                 echo '</div>';
         }
