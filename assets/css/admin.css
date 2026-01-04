@@ -934,3 +934,14 @@ label[for="send_user_notification"] {
 #createuser .user-language-wrap{
     display: none !important;
 }
+#toplevel_page_sc-attendance-add ul {
+    display: flex;
+    flex-direction: column;
+}
+#toplevel_page_sc-attendance-add ul .wp-first-item{
+    order: 2;
+
+}
+#toplevel_page_sc-attendance-add ul .current{
+    order: 1;
+}

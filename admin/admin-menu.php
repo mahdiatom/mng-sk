@@ -56,36 +56,26 @@ function sc_register_admin_menu() {
     );
 
       // Attendance - Add
-add_menu_page(
-    'حضور و غیاب',
-    'حضور و غیاب',
-    'manage_options',
-    'sc-attendance',
-    '__return_null', // ← callback خالی
-    'dashicons-insert-after',
-    27
-);
+    add_menu_page(
 
+        'ثبت حضور و غیاب',
+        'ثبت حضور و غیاب',
+        'manage_options',
+        'sc-attendance-add',
+        'sc_admin_attendance_add_page',
+        'dashicons-insert-after',
+        '28'
+    );
 
- // Attendance - List
-add_submenu_page(
-    'sc-attendance',
-    'لیست حضور و غیاب',
-    'لیست حضور و غیاب',
-    'manage_options',
-    'sc-attendance-list', // ← slug یکتا
-    'sc_admin_attendance_list_page'
-);
-
-add_submenu_page(
-    'sc-attendance',
-    'ثبت حضور و غیاب',
-    'ثبت حضور و غیاب',
-    'manage_options',
-    'sc-attendance-add', 
-    'sc_admin_attendance_add_page'
-);
-
+    // Attendance - List
+    add_submenu_page(
+        'sc-attendance-add',
+        'لیست حضور و غیاب',
+        'لیست حضور و غیاب',
+        'manage_options',
+        'sc-attendance-list',
+        'sc_admin_attendance_list_page'
+    );
 
     /* ================= Courses ================= */
 
