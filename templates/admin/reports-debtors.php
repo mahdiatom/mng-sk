@@ -122,10 +122,10 @@ $debtors = array_slice($debtors, $offset, $per_page);
             }
             ?>
 
-            <div class="sc-searchable-dropdown">
+            <div class="sc-searchable-dropdown sc_debtors_dropdown-toggle">
                 <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
 
-                <div class="sc-dropdown-toggle">
+                <div class="sc-dropdown-toggle ">
                     <span class="sc-dropdown-placeholder <?php echo $filter_member ? 'sc-hidden' : ''; ?>">
                         همه کاربران
                     </span>

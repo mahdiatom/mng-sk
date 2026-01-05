@@ -3,13 +3,14 @@
 Plugin Name: SportClub Manager
 Plugin URI:  https://example.com
 Description: Sport club management plugin (members, courses, payments, attendance, etc.)
-Version:     1.2.0
+Version:     1.1.0
 Author:      Mahdi Babashahi
 Author URI:  https://example.com
 License:     GPL2
 Text Domain: sportclub-manager
 */
-define('MY_PLUGIN_VERSION', '1.2.0');
+
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -76,6 +77,7 @@ function sc_load_shortcodes() {
  * ============================
  */
 register_activation_hook(__FILE__, 'sc_activate_plugin');
+register_activation_hook(__FILE__, 'sc_update_database');
 register_deactivation_hook(__FILE__, 'sc_clear_recurring_invoices_cron');
 
 function sc_activate_plugin() {

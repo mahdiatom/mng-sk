@@ -181,7 +181,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
                     <label for="filter_member">کاربر</label>
                 </th>
                 <td>
-                    <div class="sc-searchable-dropdown" style="position: relative; width: 100%; max-width: 400px;">
+                    <div class="sc-searchable-dropdown">
                         <?php 
                         $selected_member_text = 'همه کاربران';
                         if ($filter_member > 0) {
@@ -194,7 +194,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
                         }
                         ?>
                         <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
-                        <div class="sc-dropdown-toggle" style="position: relative; cursor: pointer; border: 1px solid #8c8f94; border-radius: 4px; padding: 8px 35px 8px 12px; background: #fff; min-height: 30px; display: flex; align-items: center;">
+                        <div class="sc-dropdown-toggle" >
                             <span class="sc-dropdown-placeholder" style="color: #757575; display: <?php echo $filter_member > 0 ? 'none' : 'inline'; ?>;">همه کاربران</span>
                             <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $filter_member > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
                             <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
@@ -249,7 +249,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
                     <label for="filter_course">دوره</label>
                 </th>
                 <td>
-                    <select name="filter_course" id="filter_course" style="width: 300px; padding: 5px;">
+                    <select name="filter_course" id="filter_course">
                         <option value="0">همه دوره‌ها</option>
                         <?php foreach ($courses as $course) : ?>
                             <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
@@ -264,7 +264,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
                     <label for="filter_debt_status">وضعیت بدهی</label>
                 </th>
                 <td>
-                    <select name="filter_debt_status" id="filter_debt_status" style="width: 300px; padding: 5px;">
+                    <select name="filter_debt_status" id="filter_debt_status">
                         <option value="all" <?php selected($filter_debt_status, 'all'); ?>>همه</option>
                         <option value="has_debt" <?php selected($filter_debt_status, 'has_debt'); ?>>دارد</option>
                         <option value="no_debt" <?php selected($filter_debt_status, 'no_debt'); ?>>ندارد</option>
@@ -276,7 +276,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
                     <label for="filter_insurance_status">بیمه</label>
                 </th>
                 <td>
-                    <select name="filter_insurance_status" id="filter_insurance_status" style="width: 300px; padding: 5px;">
+                    <select name="filter_insurance_status" id="filter_insurance_status" >
                         <option value="all" <?php selected($filter_insurance_status, 'all'); ?>>همه</option>
                         <option value="active" <?php selected($filter_insurance_status, 'active'); ?>>فعال</option>
                         <option value="expired" <?php selected($filter_insurance_status, 'expired'); ?>>منقضی</option>
@@ -288,7 +288,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
                     <label for="filter_profile_status">وضعیت پروفایل</label>
                 </th>
                 <td>
-                    <select name="filter_profile_status" id="filter_profile_status" style="width: 300px; padding: 5px;">
+                    <select name="filter_profile_status" id="filter_profile_status" >
                         <option value="all" <?php selected($filter_profile_status, 'all'); ?>>همه</option>
                         <option value="completed" <?php selected($filter_profile_status, 'completed'); ?>>تکمیل</option>
                         <option value="incomplete" <?php selected($filter_profile_status, 'incomplete'); ?>>ناقص</option>

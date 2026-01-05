@@ -73,6 +73,7 @@ $members = $wpdb->get_results(
     <a href="<?php echo admin_url('admin.php?page=sc-add-invoice'); ?>" class="page-title-action">
         ایجاد صورت حساب
     </a>
+    <p>برای ویرایش هر یک از سفارش ها میتوانید روی نام کاربر یا شماره سفارش کلیک کنید.</p>
 </div>
 
 <!-- ================= Filters ================= -->

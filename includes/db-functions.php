@@ -1,4 +1,7 @@
 <?php 
+if (!defined('SC_PLUGIN_VERSION')) {
+    define('SC_PLUGIN_VERSION', '1.1.0'); // همان نسخه افزونه هدر
+}
 
     /**
  * create sc_settings
@@ -63,20 +66,7 @@ $sql = "CREATE TABLE `$table_name` (
             require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
             dbDelta($sql);
     }
-function sc_add_disable_penalty_column() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'sc_invoices';
 
-    $column_exists = $wpdb->get_results($wpdb->prepare(
-        "SHOW COLUMNS FROM $table_name LIKE %s",
-        'disable_penalty'
-    ));
-
-    if (empty($column_exists)) {
-        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `disable_penalty` TINYINT(1) NOT NULL DEFAULT 0 AFTER `penalty_applied`");
-    }
-}
-add_action('admin_init', 'sc_add_disable_penalty_column');
 
 
 
@@ -366,4 +356,40 @@ function sc_create_event_registrations_table() {
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
+}
+function sc_update_database() {
+    global $wpdb;
+
+    // نسخه نصب شده دیتابیس
+    $installed_version = get_option('sc_plugin_db_version');
+
+    // اگر نسخه دیتابیس کمتر از نسخه فعلی افزونه است
+    if (version_compare($installed_version, SC_PLUGIN_VERSION, '<')) {
+
+        // --- جدول‌ها ---
+        sc_create_settings_table();
+        sc_create_invoices_table();
+        sc_create_courses_table();
+        sc_create_member_courses_table();
+        sc_create_attendances_table();
+        sc_create_members_table();
+        sc_create_expense_categories_table();
+        sc_create_expenses_table();
+        sc_create_events_table();
+        sc_create_event_fields_table();
+        sc_create_event_registrations_table();
+
+        // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
+        $table_name = $wpdb->prefix . 'sc_invoices';
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare("SHOW COLUMNS FROM $table_name LIKE %s", 'disable_penalty')
+        );
+
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN `disable_penalty` TINYINT(1) NOT NULL DEFAULT 0 AFTER `penalty_applied`");
+        }
+
+        // --- به روز رسانی نسخه دیتابیس ---
+        update_option('sc_plugin_db_version', SC_PLUGIN_VERSION);
+    }
 }

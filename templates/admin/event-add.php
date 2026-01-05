@@ -232,11 +232,11 @@ if ($event && isset($_GET['event_id'])) {
                             اعمال محدودیت سنی
                         </label>
                         <div id="age_limit_fields" style="margin-top: 15px; <?php echo $has_age_limit ? '' : 'display: none;'; ?>">
-                            <label for="min_age" style="display: inline-block; margin-left: 20px;">
+                            <label for="min_age">
                                 حداقل سن:
                                 <input type="number" name="min_age" id="min_age" value="<?php echo esc_attr($min_age); ?>" min="0" max="100" style="width: 80px;">
                             </label>
-                            <label for="max_age" style="display: inline-block; margin-left: 20px;">
+                            <label for="max_age">
                                 حداکثر سن:
                                 <input type="number" name="max_age" id="max_age" value="<?php echo esc_attr($max_age); ?>" min="0" max="100" style="width: 80px;">
                             </label>
@@ -288,11 +288,11 @@ if ($event && isset($_GET['event_id'])) {
                     <th scope="row"><label>لوکیشن مسابقه / رویداد (Google Maps)</label></th>
                     <td>
                         <div style="margin-bottom: 10px;">
-                            <label for="event_location_lat" style="display: inline-block; margin-left: 20px;">
+                            <label for="event_location_lat">
                                 عرض جغرافیایی (Latitude):
                                 <input type="text" name="event_location_lat" id="event_location_lat" value="<?php echo esc_attr($event_location_lat); ?>" class="regular-text" placeholder="مثال: 35.6892">
                             </label>
-                            <label for="event_location_lng" style="display: inline-block; margin-left: 20px;">
+                            <label for="event_location_lng" >
                                 طول جغرافیایی (Longitude):
                                 <input type="text" name="event_location_lng" id="event_location_lng" value="<?php echo esc_attr($event_location_lng); ?>" class="regular-text" placeholder="مثال: 51.3890">
                             </label>

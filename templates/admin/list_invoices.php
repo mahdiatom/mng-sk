@@ -35,36 +35,67 @@ class Invoices_List_Table extends WP_List_Table {
         $row_number++;
         return (($page - 1) * $per_page) + $row_number;
     }
+public function column_order_number($item) {
 
-    public function column_order_number($item) {
-        $order_number = '#' . $item['id'];
-        
-        // اگر woocommerce_order_id وجود دارد، از شماره سفارش WooCommerce استفاده کن
-        if (!empty($item['woocommerce_order_id'])) {
-            if (function_exists('wc_get_order')) {
-                $order = wc_get_order($item['woocommerce_order_id']);
-                if ($order) {
-                    $wc_order_number = $order->get_order_number();
-                    // اگر شماره سفارش WooCommerce # ندارد، اضافه کن
-                    if (strpos($wc_order_number, '#') === false) {
-                        $order_number = '#' . $wc_order_number;
-                    } else {
-                        $order_number = $wc_order_number;
-                    }
-                } else {
-                    $order_number = '#' . $item['woocommerce_order_id'];
-                }
-            } else {
-                $order_number = '#' . $item['woocommerce_order_id'];
-            }
-        }
-        
-        return '<strong>' . esc_html($order_number) . '</strong>';
+    // اگر سفارش ووکامرس وجود ندارد
+    if (empty($item['woocommerce_order_id'])) {
+        return '<span style="color:#999;">—</span>';
     }
 
-    public function column_member_name($item) {
+    $order_id = absint($item['woocommerce_order_id']);
+
+    // لینک صفحه ویرایش سفارش ووکامرس
+    $url = add_query_arg(
+        [
+            'page'   => 'wc-orders',
+            'action' => 'edit',
+            'id'     => $order_id,
+        ],
+        admin_url('admin.php')
+    );
+
+    // شماره سفارش
+    if (function_exists('wc_get_order')) {
+        $order = wc_get_order($order_id);
+        $order_number = $order ? $order->get_order_number() : $order_id;
+    } else {
+        $order_number = $order_id;
+    }
+
+    return sprintf(
+        '<a href="%s" target="_blank"><strong>#%s</strong></a>',
+        esc_url($url),
+        esc_html($order_number)
+    );
+}
+
+
+   public function column_member_name($item) {
+
+    // اگر سفارش ووکامرس وجود ندارد
+    if (empty($item['woocommerce_order_id'])) {
         return esc_html($item['first_name'] . ' ' . $item['last_name']);
     }
+
+    $order_id = absint($item['woocommerce_order_id']);
+
+    $url = add_query_arg(
+        [
+            'page'   => 'wc-orders',
+            'action' => 'edit',
+            'id'     => $order_id,
+        ],
+        admin_url('admin.php')
+    );
+
+    $name = esc_html($item['first_name'] . ' ' . $item['last_name']);
+
+    return sprintf(
+        '<a href="%s" target="_blank"><strong>%s</strong></a>',
+        esc_url($url),
+        $name
+    );
+}
     protected function get_primary_column_name() {
     return 'member_name';
     }

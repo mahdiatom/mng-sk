@@ -56,7 +56,7 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
     
     <hr class="wp-header-end">
     
-    <form method="POST" action="" style="max-width: 800px;">
+    <form method="POST" action="">
         <?php wp_nonce_field('sc_add_expense', 'sc_expense_nonce'); ?>
         <?php if ($expense_id > 0) : ?>
             <input type="hidden" name="expense_id" value="<?php echo esc_attr($expense_id); ?>">
@@ -76,7 +76,7 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                                class="regular-text" 
                                placeholder="مثلاً: حقوق پرسنل، هزینه اجاره و..."
                                required
-                               style="width: 100%;">
+                               >
                     </td>
                 </tr>
                 
@@ -85,7 +85,7 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                         <label for="category_id">دسته‌بندی</label>
                     </th>
                     <td>
-                        <select name="category_id" id="category_id" style="width: 300px; padding: 5px;">
+                        <select name="category_id" id="category_id">
                             <option value="0">-- بدون دسته‌بندی --</option>
                             <?php foreach ($categories as $category) : ?>
                                 <option value="<?php echo esc_attr($category->id); ?>" <?php selected($category_id, $category->id); ?>>
@@ -93,7 +93,7 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <a href="<?php echo admin_url('admin.php?page=sc-expenses&tab=categories'); ?>" class="button button-small" style="margin-right: 10px;">مدیریت دسته‌بندی‌ها</a>
+                        <a href="<?php echo admin_url('admin.php?page=sc-expenses&tab=categories'); ?>" class="button button-small" >مدیریت دسته‌بندی‌ها</a>
                     </td>
                 </tr>
                 
@@ -110,7 +110,7 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                                placeholder="مثلاً 1403/09/15" 
                                readonly
                                required
-                               style="width: 200px;">
+                              >
                         <input type="hidden" name="expense_date_gregorian" id="expense_date_gregorian" value="<?php echo $expense ? esc_attr($expense->expense_date_gregorian) : ''; ?>">
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید. تاریخ پیش‌فرض: امروز</p>
                     </td>

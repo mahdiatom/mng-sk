@@ -856,6 +856,9 @@ tbody tr td{
 .form-table_attendance_tab3 .sc-dropdown-toggle{
     height: 37px !important;
 }
+.sc_debtors_dropdown-toggle .sc-dropdown-toggle{
+        height: 39px !important;
+}
 
 @media screen and (max-width:780px) {
     .sc_c_1{
@@ -966,9 +969,15 @@ margin: 0; display: inline-block;
         min-width: 100px !important;
     width: 100px;
 }
-.form-table td input , .form-table td select , .form-table td .wp-editor-wrap{
+.form-table td input ,  .form-table td .wp-editor-wrap{
  width: 500px !important;
  background: white;
+}
+.form-table td select{
+    width: 500px !important;
+}
+.form-table #min_age , .form-table #max_age{
+    width: unset !important;
 }
 .form-table td input[type="checkbox"], .form-table td input[type="button"] {
     width: unset !important;
@@ -1002,3 +1011,15 @@ margin: 0; display: inline-block;
 }
 
 }
+.form-table td{
+    padding: 15px 0px;
+}
+/* برای دکمه اپلود در بخش ویرایش کاربر و ثبت هزینه - قسمت انتخاب دسته بندی */
+.button-small , .sc-upload-btn , #upload_image_button {
+    margin-top: 5px !important;
+}
+#event_location_lat , #event_location_lng{
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+

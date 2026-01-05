@@ -88,7 +88,7 @@ function club_block_restricted_pages_for_coach() {
 
         // ووکامرس اصلی
         'wc-admin',
-        'wc-orders',
+       // 'wc-orders',
         'wc-settings',
         'wc-status',
         'wc-reports',
