@@ -1441,6 +1441,9 @@ ease !important;
 .sc-invoices-table tbody tr {
     transition: all 0.2s ease;
 }
+table td, table th{
+    border: none !important;
+}
 .sc-invoice-btn-pay{
     display: inline-block !important;
     padding: 10px 18px !important;
