@@ -9,8 +9,8 @@ class Player_List_Table extends WP_List_Table {
         return [
             'cb' => '<input type="checkbox" />',
             'row' => 'ردیف',
-            'id' => 'شناسه',
             'full_name' => 'نام و نام خانوادگی',
+            'id' => 'شناسه',
             'birth_date_shamsi' => 'تاریخ تولد',
             'age' => 'سن',
             'national_id' => 'کد ملی ',

@@ -18,13 +18,13 @@ $selected_member_id = isset($_GET['member_id']) ? absint($_GET['member_id']) : (
 $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
 ?>
 
-<div class="wrap">
+<div class="wrap create_invoice">
     <h1 class="wp-heading-inline">ایجاد صورت حساب جدید</h1>
     <a href="<?php echo admin_url('admin.php?page=sc-invoices'); ?>" class="page-title-action">بازگشت به لیست صورت حساب‌ها</a>
     
     <hr class="wp-header-end">
     
-    <form method="POST" action="" style="max-width: 800px;">
+    <form method="POST" action="" ">
         <?php wp_nonce_field('sc_add_invoice', 'sc_invoice_nonce'); ?>
         
         <table class="form-table">
@@ -34,7 +34,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                         <label for="member_id">انتخاب کاربر <span style="color:red;">*</span></label>
                     </th>
                     <td>
-                        <div class="sc-searchable-dropdown" style="position: relative; width: 100%; max-width: 500px;">
+                        <div class="sc-searchable-dropdown"">
                             <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>" required>
                             <?php
                             $selected_member_text = '';
@@ -47,7 +47,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                                 }
                             }
                             ?>
-                            <div class="sc-dropdown-toggle" style="position: relative; cursor: pointer; border: 1px solid #8c8f94; border-radius: 4px; padding: 8px 35px 8px 12px; background: #fff; min-height: 30px; display: flex; align-items: center;">
+                            <div class="sc-dropdown-toggle" >
                                 <span class="sc-dropdown-placeholder" style="color: #757575; display: <?php echo $selected_member_id > 0 ? 'none' : 'inline'; ?>;">-- انتخاب کاربر --</span>
                                 <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $selected_member_id > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
                                 <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
@@ -101,29 +101,29 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                 
                 <tr>
                     <th scope="row">
-                        <label>هزینه اضافی (اختیاری)</label>
+                        <label>هزینه</label>
                     </th>
                     <td>
-                        <div style="display: flex; gap: 10px; align-items: flex-start;">
-                            <div style="flex: 1;">
-                                <label for="expense_name" style="display: block; margin-bottom: 5px; font-weight: normal;">نام هزینه:</label>
+                        <div class="input_text_expense"  >
+                            <div>
+                                <label for="expense_name" >نام هزینه:</label>
                                 <input type="text" 
                                        name="expense_name" 
                                        id="expense_name" 
                                        value="<?php echo esc_attr(isset($_POST['expense_name']) ? $_POST['expense_name'] : ''); ?>" 
                                        class="regular-text" 
                                        placeholder="مثلاً: هزینه ماهانه، هزینه تغذیه و..."
-                                       style="width: 100%;">
+                                       >
                             </div>
-                            <div style="flex: 1;">
-                                <label for="amount" style="display: block; margin-bottom: 5px; font-weight: normal;">مبلغ (تومان):</label>
+                            <div >
+                                <label for="amount">مبلغ (تومان):</label>
                                 <input type="text" 
                                        name="amount" 
                                        id="amount" 
                                        value="<?php echo $amount > 0 ? number_format($amount, 0, '.', ',') : ''; ?>" 
                                        class="regular-text" 
                                        placeholder="0"
-                                       style="width: 100%;"
+                                      
                                        dir="ltr"
                                        inputmode="numeric">
                                 <input type="hidden" name="amount_raw" id="amount_raw" value="<?php echo esc_attr($amount); ?>">

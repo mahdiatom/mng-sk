@@ -29,23 +29,7 @@ if(!isset($_GET['player_id'])){
         $is_active = 1;
         $additional_info = '';
         $skill_level = '';
-        
-        // اگر بازیکن جدید است، تاریخ امروز را به عنوان پیش‌فرض بگذار
-        if (!isset($_GET['player_id'])) {
-            $today = new DateTime();
-            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
-            $today_shamsi = $today_jalali[0] . '/' . 
-                           str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
-                           str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
-            
-            // فقط اگر خالی است
-            if (empty($birth_date_shamsi)) {
-                $birth_date_shamsi = $today_shamsi;
-            }
-            if (empty($insurance_expiry_date_shamsi)) {
-                $insurance_expiry_date_shamsi = $today_shamsi;
-            }
-        }
+  
 
 if($player && $_GET['player_id'] ){
         $first_name              = $player->first_name ?? '';
@@ -78,6 +62,34 @@ if($player && $_GET['player_id'] ){
         $is_active               = $player->is_active ?? 1;
         $additional_info         = $player->additional_info ?? '';
         $skill_level             = $player->skill_level ?? '';
+
+        function sc_today_shamsi() {
+            $today = getdate(time());
+            $jalali = gregorian_to_jalali(
+                $today['year'],
+                $today['mon'],
+                $today['mday']
+            );
+
+            return $jalali[0] . '/' .
+                str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
+                str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+        }
+
+        if ($player && $_GET['player_id']) {
+    $birth_date_shamsi = $player->birth_date_shamsi ?? '';
+    $insurance_expiry_date_shamsi = $player->insurance_expiry_date_shamsi ?? '';
+        }
+        // === ست کردن تاریخ امروز مثل start_date رویداد ===
+
+        if (empty($birth_date_shamsi)) {
+            $birth_date_shamsi = sc_today_shamsi();
+        }
+
+        if (empty($insurance_expiry_date_shamsi)) {
+            $insurance_expiry_date_shamsi = sc_today_shamsi();
+        }
+
     }
 ?>
 <div class="wrap">
@@ -186,11 +198,15 @@ if($player && $_GET['player_id'] ){
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
                 </tr>
+                
 
                
                 <tr>
                     <th scope="row"><label for="birth_date_gregorian">تاریخ تولد (میلادی)</label></th>
-                    <td><input name="birth_date_gregorian" type="date" id="birth_date_gregorian" value="<?php echo $birth_date_gregorian; ?>"></td>
+                    <td><input name="birth_date_gregorian" type="date" id="birth_date_gregorian" value="<?php echo $birth_date_gregorian; ?>">
+                    <p class="description">تاریخ میلادی به صورت خودکار از تاریخ شمسی تبدیل خواهد شد ( بعد از ذخیره اطلاعات کاربر )</p>
+
+                </td>
                 </tr>
 
               
@@ -298,11 +314,11 @@ if($player && $_GET['player_id'] ){
 
         <!-- بخش آکاردئونی دوره‌ها -->
         <div class="sc-courses-accordion" style="margin-top: 20px;">
-            <div class="sc-accordion-header" style="background: #f0f0f1; padding: 15px; border: 1px solid #ddd; cursor: pointer; border-radius: 4px 4px 0 0;" onclick="toggleCoursesAccordion()">
-                <h3 style="margin: 0; display: inline-block;">دوره‌های بازیکن</h3>
-                <span id="courses-accordion-icon" style="float: right; font-size: 20px;">▼</span>
+            <div class="sc-accordion-header" onclick="toggleCoursesAccordion()">
+                <h3 >دوره‌های بازیکن</h3>
+                <span id="courses-accordion-icon" >▼</span>
             </div>
-            <div id="sc-courses-content" style="display: none; border: 1px solid #ddd; border-top: none; padding: 20px; background: #fff; border-radius: 0 0 4px 4px;">
+            <div id="sc-courses-content" >
                 <?php
                 global $wpdb;
                 $courses_table = $wpdb->prefix . 'sc_courses';

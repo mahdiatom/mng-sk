@@ -9,8 +9,8 @@ class Courses_List_Table extends WP_List_Table {
         return [
             'cb' => '<input type="checkbox" />',
             'row' => 'ردیف',
-            'id' => 'شناسه',
             'title' => 'عنوان دوره',
+            'id' => 'شناسه',
             'price' => 'قیمت',
             'capacity' => 'ظرفیت',
             'sessions_count' => 'تعداد جلسات',

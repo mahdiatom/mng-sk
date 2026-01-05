@@ -945,3 +945,60 @@ label[for="send_user_notification"] {
 #toplevel_page_sc-attendance-add ul .current{
     order: 1;
 }
+/* دوره های بازیکن در ویرایش بازیکن */
+#sc-courses-content{
+    display: none; border: 1px solid #ddd; border-top: none; padding: 20px; background: #fff; border-radius: 0 0 4px 4px;
+}
+.sc-accordion-header{
+background: #f0f0f1; padding: 15px; border: 1px solid #ddd; cursor: pointer; border-radius: 4px 4px 0 0;
+}
+.sc-accordion-header h3{
+margin: 0; display: inline-block;
+}
+#courses-accordion-icon{
+    float: right; font-size: 20px;
+}
+/* تغییرات فرم های ادمین  */
+.form-table th{
+    width: fit-content;
+}
+.form-table td{
+        min-width: 100px !important;
+    width: 100px;
+}
+.form-table td input , .form-table td select , .form-table td .wp-editor-wrap{
+ width: 500px !important;
+ background: white;
+}
+.form-table td input[type="checkbox"], .form-table td input[type="button"] {
+    width: unset !important;
+}
+.input_text_expense > div{
+    margin-bottom: 20px;
+}
+@media screen and (max-width: 782px) {
+    .wp-list-table tr:not(.inline-edit-row):not(.no-items) td.column-primary~td:not(.check-column) {
+        padding: 3px 58% 3px 31px !important;
+    }
+    
+}
+
+
+@media (max-width: 990px) {
+ 
+.form-table th{
+    width: unset;
+}
+.form-table td{
+        min-width: unset !important;
+    width: unset !important;
+}
+.form-table td input{
+ width: 100% !important;
+}
+.form-table td input , .form-table td select , .form-table td .wp-editor-wrap{
+ width: 100% !important;
+
+}
+
+}

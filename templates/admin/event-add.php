@@ -125,7 +125,7 @@ if ($event && isset($_GET['event_id'])) {
                                inputmode="numeric"
                                required>
                         <input type="hidden" name="price_raw" id="price_raw" value="<?php echo esc_attr(intval($price)); ?>">
-                        <p class="description">قیمت رویداد / مسابقه به تومان (با جدا کردن سه رقم سه رقم)</p>
+                        <p class="description">قیمت رویداد / مسابقه به تومان </p>
                     </td>
                 </tr>
 

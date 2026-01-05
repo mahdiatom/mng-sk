@@ -18,8 +18,8 @@ class Invoices_List_Table extends WP_List_Table {
         return [
             'cb' => '<input type="checkbox" />',
             'row' => 'ردیف',
-            'order_number' => 'سفارش',
             'member_name' => 'نام و نام خانوادگی کاربر',
+            'order_number' => 'سفارش',
             'status' => 'وضعیت',
             'created_at' => 'تاریخ ثبت سفارش',
             'course_title' => 'جزئیات سفارش',
@@ -66,7 +66,7 @@ class Invoices_List_Table extends WP_List_Table {
         return esc_html($item['first_name'] . ' ' . $item['last_name']);
     }
     protected function get_primary_column_name() {
-    return 'order_number';
+    return 'member_name';
     }
 
     public function column_status($item) {

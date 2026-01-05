@@ -295,7 +295,7 @@ foreach (['filter_course','filter_member','filter_date_from','filter_date_to','f
     }
 }
 
-$invoices_list_table->search_box('جستجو صورت حساب (نام، نام خانوادگی، کد ملی، شماره سفارش)', 'search_invoice');
+$invoices_list_table->search_box('جستجو', 'search_invoice');
 $invoices_list_table->views();
 $invoices_list_table->display();
 
