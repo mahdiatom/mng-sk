@@ -69,7 +69,17 @@ color: #000 !important;
     top: 20px; /* خیلی مهم
 } 
 
+
+
 */
+
+
+@media (min-width: 1200px) {
+body:not([class*=elementor-page-]) .site-main {
+         max-width: 95% !important;
+    }
+  
+    }
 .sc-user-info-panel {
     background: #fff;
     border-radius: 12px;
@@ -224,6 +234,26 @@ color: #000 !important;
 .woocommerce-MyAccount-navigation ul{
     padding-right: 5px !important;
 }
+.woocommerce-MyAccount-navigation .is-active{
+    background: white;
+    border-radius: 5px;
+ 
+}
+.woocommerce-MyAccount-navigation .is-active:hover{
+    background: white;
+    border-radius: 5px;
+ 
+}
+.woocommerce-MyAccount-navigation .is-active a{
+       color: #000 !important;
+}
+.woocommerce-MyAccount-navigation li{
+    margin-bottom: 5px;
+}
+.woocommerce-MyAccount-navigation li:hover{
+  background: #dfdaea52 ;
+  border-radius: 5px;
+}
 .woocommerce-MyAccount-navigation{
     width: 20% !important;
     background: #6D34FF ;
@@ -322,7 +352,7 @@ ease !important;
 
 /* فرم ارسال مدارک در حساب کاربری */
 .sc-submit-documents-form {
-    max-width: 900px;
+    
     margin: 0 auto;
     padding: 5px;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);

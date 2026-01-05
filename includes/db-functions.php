@@ -46,6 +46,7 @@ $sql = "CREATE TABLE `$table_name` (
         `expense_name` varchar(255) DEFAULT NULL,
         `penalty_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
         `penalty_applied` tinyint(1) DEFAULT 0,
+        `disable_penalty` tinyint(1) NOT NULL DEFAULT 0,
         `status` varchar(20) DEFAULT 'pending',
         `payment_date` datetime DEFAULT NULL,
         `created_at` datetime NOT NULL,
@@ -62,6 +63,25 @@ $sql = "CREATE TABLE `$table_name` (
             require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
             dbDelta($sql);
     }
+function sc_add_disable_penalty_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_invoices';
+
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'disable_penalty'
+    ));
+
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `disable_penalty` TINYINT(1) NOT NULL DEFAULT 0 AFTER `penalty_applied`");
+    }
+}
+add_action('admin_init', 'sc_add_disable_penalty_column');
+
+
+
+
+    
     /**
  * create_create_courses_table
  */

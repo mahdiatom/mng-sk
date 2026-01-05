@@ -120,6 +120,11 @@ function sc_calculate_penalty($invoice_id) {
         $invoice_id
     ));
     
+    // <-- اینجا شرط جدید اضافه می‌کنیم
+    if ($invoice && isset($invoice->disable_penalty) && (int)$invoice->disable_penalty === 1) {
+        return 0; // جریمه غیرفعال است
+    }
+
     if (!$invoice || $invoice->status !== 'pending') {
         return 0;
     }
@@ -129,7 +134,6 @@ function sc_calculate_penalty($invoice_id) {
     $minutes_passed = floor(($current_date - $created_date) / 60);
     $penalty_minutes = sc_get_penalty_minutes();
     
-    // اگر جریمه قبلاً اعمال شده، همان مقدار را برگردان
     if (isset($invoice->penalty_applied) && $invoice->penalty_applied && isset($invoice->penalty_amount) && $invoice->penalty_amount > 0) {
         return (float)$invoice->penalty_amount;
     }
@@ -140,6 +144,7 @@ function sc_calculate_penalty($invoice_id) {
     
     return 0;
 }
+
 
 /**
  * Apply penalty to an invoice and update WooCommerce order

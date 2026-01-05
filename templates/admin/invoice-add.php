@@ -24,7 +24,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
     
     <hr class="wp-header-end">
     
-    <form method="POST" action="" ">
+    <form method="POST" action="" >
         <?php wp_nonce_field('sc_add_invoice', 'sc_invoice_nonce'); ?>
         
         <table class="form-table">
@@ -34,7 +34,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                         <label for="member_id">انتخاب کاربر <span style="color:red;">*</span></label>
                     </th>
                     <td>
-                        <div class="sc-searchable-dropdown"">
+                        <div class="sc-searchable-dropdown">
                             <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>" required>
                             <?php
                             $selected_member_text = '';
@@ -132,6 +132,23 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                         <p class="description">در صورت تمایل می‌توانید هزینه اضافی با نام و مبلغ مشخص اضافه کنید.</p>
                     </td>
                 </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="disable_penalty">جریمه</label>
+                </th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="disable_penalty" value="1"
+                            <?php checked(isset($_POST['disable_penalty'])); ?>>
+                        این صورت‌حساب شامل جریمه نشود
+                    </label>
+                    <p class="description">
+                        اگر تیک زده شود، برای این صورت‌حساب هیچ جریمه‌ای محاسبه نخواهد شد.
+                    </p>
+                </td>
+            </tr>
+
             </tbody>
         </table>
         

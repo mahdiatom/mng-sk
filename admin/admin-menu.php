@@ -653,6 +653,7 @@ function callback_add_expense_sufix() {
  * Process invoice creation form
  */
 function callback_add_invoice_sufix() {
+    
     if (isset($_GET['page']) && $_GET['page'] == 'sc-add-invoice' && isset($_POST['submit_invoice'])) {
         // بررسی nonce
         if (!isset($_POST['sc_invoice_nonce']) || !wp_verify_nonce($_POST['sc_invoice_nonce'], 'sc_add_invoice')) {
@@ -730,7 +731,8 @@ function callback_add_invoice_sufix() {
                 $member_course_id = $member_course->id;
             }
         }
-        
+        $disable_penalty = isset($_POST['disable_penalty']) ? 1 : 0;
+
         // ذخیره صورت حساب
         $invoice_data = [
             'member_id' => $member_id,
@@ -746,6 +748,8 @@ function callback_add_invoice_sufix() {
             'created_at' => current_time('mysql'),
             'updated_at' => current_time('mysql')
         ];
+        $invoice_data['disable_penalty'] = $disable_penalty;
+        $format_array[] = '%d';
         
         // آماده‌سازی format array برای insert
         $format_array = ['%d', '%d', '%d', '%d', '%f', '%s', '%f', '%d', '%s', '%s', '%s', '%s'];
