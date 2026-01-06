@@ -175,7 +175,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
     <form method="GET" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
         <input type="hidden" name="page" value="sc-reports-active-users">
         
-        <table class="form-table">
+        <table class="form-table sc_form-table">
             <tr>
                 <th scope="row">
                     <label for="filter_member">کاربر</label>

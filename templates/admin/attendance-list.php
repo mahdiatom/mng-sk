@@ -619,13 +619,13 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
             <input type="hidden" name="page" value="sc-attendance-list">
             <input type="hidden" name="tab" value="grouped">
             
-            <table class="form-table form-table_attendance_tab2">
+            <table class="form-table sc_form-table form-table_attendance_tab2">
                 <tr>
                     <th scope="row">
                         <label for="filter_course">دوره</label>
                     </th>
                     <td>
-                        <select name="filter_course" id="filter_course" style="width: 300px; padding: 5px;">
+                        <select name="filter_course" id="filter_course">
                             <option value="0">همه دوره‌ها</option>
                             <?php foreach ($courses as $course) : ?>
                                 <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
@@ -669,14 +669,14 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                                value="<?php echo esc_attr($filter_date_from_shamsi_2); ?>" 
                                class="regular-text persian-date-input" 
                                placeholder="از تاریخ (شمسی)" 
-                               style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
+                               readonly>
                         <input type="hidden" name="filter_date_from" id="filter_date_from_2" value="<?php echo esc_attr($filter_date_from); ?>">
                         <span>تا</span>
                         <input type="text" name="filter_date_to_shamsi_2" id="filter_date_to_shamsi_2" 
                                value="<?php echo esc_attr($filter_date_to_shamsi_2); ?>" 
                                class="regular-text persian-date-input" 
                                placeholder="تا تاریخ (شمسی)" 
-                               style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
+                                readonly>
                         <input type="hidden" name="filter_date_to" id="filter_date_to_2" value="<?php echo esc_attr($filter_date_to); ?>">
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
@@ -783,13 +783,13 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
             <input type="hidden" name="page" value="sc-attendance-list">
             <input type="hidden" name="tab" value="overall">
             
-            <table class="form-table form-table_attendance_tab3">
+            <table class="form-table sc_form-table form-table_attendance_tab3">
                 <tr>
                     <th scope="row">
                         <label for="filter_course">دوره</label>
                     </th>
                     <td>
-                        <select name="filter_course" id="filter_course" style="width: 300px; padding: 5px;">
+                        <select name="filter_course" id="filter_course">
                             <option value="0">همه دوره‌ها</option>
                             <?php foreach ($courses as $course) : ?>
                                 <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
@@ -804,7 +804,7 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                         <label for="filter_member">کاربر</label>
                     </th>
                     <td>
-                        <div class="sc-searchable-dropdown" style="position: relative; width: 100%; max-width: 400px;">
+                        <div class="sc-searchable-dropdown" >
                             <?php 
                             $selected_member_text = 'همه کاربران';
                             if ($filter_member > 0) {
@@ -901,14 +901,14 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                                value="<?php echo esc_attr($filter_date_from_shamsi_3); ?>" 
                                class="regular-text persian-date-input" 
                                placeholder="از تاریخ (شمسی)" 
-                               style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
+                                readonly>
                         <input type="hidden" name="filter_date_from" id="filter_date_from_3" value="<?php echo esc_attr($filter_date_from); ?>">
                         <span>تا</span>
                         <input type="text" name="filter_date_to_shamsi_3" id="filter_date_to_shamsi_3" 
                                value="<?php echo esc_attr($filter_date_to_shamsi_3); ?>" 
                                class="regular-text persian-date-input" 
                                placeholder="تا تاریخ (شمسی)" 
-                               style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
+                               readonly>
                         <input type="hidden" name="filter_date_to" id="filter_date_to_3" value="<?php echo esc_attr($filter_date_to); ?>">
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>

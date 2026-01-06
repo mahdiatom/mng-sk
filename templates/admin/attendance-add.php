@@ -228,7 +228,7 @@ $is_update_mode = !empty($existing_attendances);
     <form method="GET" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
         <input type="hidden" name="page" value="sc-attendance-add">
         
-        <table class="form-table">
+        <table class="form-table sc_form-table">
             <tr>
                 <th scope="row">
                     <label for="course_id">انتخاب دوره</label>

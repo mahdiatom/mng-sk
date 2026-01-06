@@ -260,7 +260,7 @@ if ($active_tab === 'categories') {
             <input type="hidden" name="page" value="sc-expenses">
             <input type="hidden" name="tab" value="list">
             
-            <table class="form-table">
+            <table class="form-table sc_form-table">
                 <tr>
                     <th scope="row">
                         <label for="filter_category">دسته‌بندی</label>
@@ -424,7 +424,7 @@ if ($active_tab === 'categories') {
                         <input type="hidden" name="add_category" value="1">
                     <?php endif; ?>
                     
-                    <table class="form-table">
+                    <table class="form-table sc_form-table">
                         <tr>
                             <th scope="row">
                                 <label for="category_name">نام دسته‌بندی <span style="color:red;">*</span></label>

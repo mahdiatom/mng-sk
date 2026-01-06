@@ -78,7 +78,7 @@ if ($event && isset($_GET['event_id'])) {
 
     <form action="" method="POST" enctype="multipart/form-data">
         <?php wp_nonce_field('sc_event_form', 'sc_event_nonce'); ?>
-        <table class="form-table">
+        <table class="form-table sc_form-table">
             <tbody>
                 <tr>
                     <th scope="row"><label for="name">نام رویداد / مسابقه <span style="color:red;">*</span></label></th>

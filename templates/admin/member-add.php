@@ -109,7 +109,7 @@ if($player && $_GET['player_id'] ){
     <form action="" method="POST" enctype="multipart/form-data">
         <?php //wp_nonce_field('sk_add_player', 'sk_player_nonce'); ?>
 
-        <table class="form-table">
+        <table class="form-table sc_form-table">
             <tbody>
 
                 

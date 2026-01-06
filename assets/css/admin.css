@@ -546,6 +546,9 @@ p.sk-modal-content p {
 .sc-date-separator {
     font-weight: 600;
 }
+input.persian-date-input{
+    height:30px ;
+}
 
 .sc-filter-help {
     font-size: 12px;
@@ -745,6 +748,9 @@ tbody tr td{
 .form_fillter_attendance_tab1 .sc-dropdown-toggle{
       height: 38px !important;
 }
+.form_fillter_attendance_tab1 .sc-filter-date .persian-date-input{
+    height: 40px;
+}
 .event_registrs .sc-dropdown-toggle{
       height: 38px !important;
 }
@@ -845,15 +851,15 @@ tbody tr td{
 .sc_c_2 p{
     width: 100px
 }
-.form-table{
+.sc_form-table{
     display: flex;
     
 }
 
-.form-table #filter_course{
+.sc_form-table #filter_course{
     width: 100% !important;
 }
-.form-table_attendance_tab3 .sc-dropdown-toggle{
+.sc_form-table_attendance_tab3 .sc-dropdown-toggle{
     height: 37px !important;
 }
 .sc_debtors_dropdown-toggle .sc-dropdown-toggle{
@@ -962,24 +968,24 @@ margin: 0; display: inline-block;
     float: right; font-size: 20px;
 }
 /* تغییرات فرم های ادمین  */
-.form-table th{
+.sc_form-table th{
     width: fit-content;
 }
-.form-table td{
+.sc_form-table td{
         min-width: 100px !important;
     width: 100px;
 }
-.form-table td input ,  .form-table td .wp-editor-wrap{
+.sc_form-table td input ,  .sc_form-table td .wp-editor-wrap{
  width: 500px !important;
  background: white;
 }
-.form-table td select{
+.sc_form-table td select{
     width: 500px !important;
 }
-.form-table #min_age , .form-table #max_age{
+.sc_form-table #min_age , .sc_form-table #max_age{
     width: unset !important;
 }
-.form-table td input[type="checkbox"], .form-table td input[type="button"] {
+.sc_form-table td input[type="checkbox"], .sc_form-table td input[type="button"] {
     width: unset !important;
 }
 .input_text_expense > div{
@@ -995,23 +1001,23 @@ margin: 0; display: inline-block;
 
 @media (max-width: 990px) {
  
-.form-table th{
+.sc_form-table th{
     width: unset;
 }
-.form-table td{
+.sc_form-table td{
         min-width: unset !important;
     width: unset !important;
 }
-.form-table td input{
+.sc_form-table td input{
  width: 100% !important;
 }
-.form-table td input , .form-table td select , .form-table td .wp-editor-wrap{
+.sc_form-table td input , .sc_form-table td select , .sc_form-table td .wp-editor-wrap{
  width: 100% !important;
 
 }
 
 }
-.form-table td{
+.sc_form-table td{
     padding: 15px 0px;
 }
 /* برای دکمه اپلود در بخش ویرایش کاربر و ثبت هزینه - قسمت انتخاب دسته بندی */

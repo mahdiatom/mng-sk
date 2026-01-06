@@ -191,7 +191,7 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
 
-                <table class="form-table">
+                <table class="form-table sc_form-table">
                     <tr>
                         <th scope="row">
                             <label for="penalty_enabled">فعال کردن جریمه</label>
@@ -249,7 +249,7 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
 
-                <table class="form-table">
+                <table class="form-table sc_form-table">
                     <tr>
                         <th scope="row">
                             <label for="invoice_interval_minutes">تعداد دقیقه فاصله بین صورت حساب‌های تکراری</label>
@@ -312,7 +312,7 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
 
                 <!-- API Settings -->
                 <h3>تنظیمات API پیامک</h3>
-                <table class="form-table">
+                <table class="form-table sc_form-table">
                     <tr>
                         <th scope="row">
                             <label for="sms_api_key">API Key</label>
@@ -395,7 +395,7 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
 
                 <!-- Invoice SMS Settings -->
                 <h3>پیامک صورت حساب</h3>
-                <table class="form-table">
+                <table class="form-table sc_form-table">
                     <tr>
                         <th scope="row">پیامک به کاربر</th>
                         <td>
@@ -469,7 +469,7 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
 
                 <!-- Enrollment SMS Settings -->
                 <h3>پیامک ثبت نام</h3>
-                <table class="form-table">
+                <table class="form-table sc_form-table">
                     <tr>
                         <th scope="row">پیامک به کاربر</th>
                         <td>
@@ -541,7 +541,7 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
 
                 <!-- Reminder SMS Settings -->
                 <h3>پیامک یادآوری پرداخت</h3>
-                <table class="form-table">
+                <table class="form-table sc_form-table">
                     <tr>
                         <th scope="row">پیامک به کاربر</th>
                         <td>
@@ -615,7 +615,7 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
 
                 <!-- Absence SMS Settings -->
                 <h3>پیامک غیبت</h3>
-                <table class="form-table">
+                <table class="form-table sc_form-table">
                     <tr>
                         <th scope="row">پیامک به کاربر</th>
                         <td>

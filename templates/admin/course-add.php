@@ -32,7 +32,7 @@ if ($course && isset($_GET['course_id'])) {
     ?>
 
     <form action="" method="POST">
-        <table class="form-table">
+        <table class="form-table sc_form-table">
             <tbody>
                 <tr>
                     <th scope="row"><label for="title">عنوان دوره <span style="color:red;">*</span></label></th>

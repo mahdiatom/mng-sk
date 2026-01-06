@@ -27,7 +27,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
     <form method="POST" action="" >
         <?php wp_nonce_field('sc_add_invoice', 'sc_invoice_nonce'); ?>
         
-        <table class="form-table">
+        <table class="form-table sc_form-table">
             <tbody>
                 <tr>
                     <th scope="row">

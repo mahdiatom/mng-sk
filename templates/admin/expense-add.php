@@ -62,7 +62,7 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
             <input type="hidden" name="expense_id" value="<?php echo esc_attr($expense_id); ?>">
         <?php endif; ?>
         
-        <table class="form-table">
+        <table class="form-table sc_form-table">
             <tbody>
                 <tr>
                     <th scope="row">
