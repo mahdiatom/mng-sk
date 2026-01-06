@@ -368,8 +368,16 @@ function myadmin_autofill_email_js() {
 }
 
 //پایان اعمال تغییرات روی افزودن حساب کاربری در وردپرس
+ //ریدایرکت صفحه پیشفرض ووکامرس به صفحه اطلاعات بازیکن
+add_action('parse_request', function ($wp) {
 
+    // فقط آدرس دقیق /my-account یا /my-account/
+    if (rtrim($_SERVER['REQUEST_URI'], '/') === '/aiwp/my-account') {
 
+        wp_redirect('/aiwp/my-account/sc-submit-documents/', 302);
+        exit;
+    }
+});
 
 
 
