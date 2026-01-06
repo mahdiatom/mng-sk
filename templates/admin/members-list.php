@@ -239,9 +239,9 @@ class Player_List_Table extends WP_List_Table {
             $url .= "&s=" . sanitize_text_field($_GET['s']);
         }
         $view = sprintf("<a href='%s' class='%s'>%s</a>", $url, $class_view, $label);
-        if ($count) {
+      
             $view .= sprintf("<span class='count'>(%d)</span>", $count);
-        }
+        
         return $view;
     }
 
@@ -278,14 +278,14 @@ class Player_List_Table extends WP_List_Table {
         ];
         
         // نمایش تب غیرفعال فقط در صورت وجود کاربر غیرفعال
-        if ($count_inactive > 0) {
+       
             $views['inactive'] = $this->view_create(
                 'inactive',
                 'غیرفعال',
                 admin_url('admin.php?page=sc-members&player_status=inactive'),
                 $count_inactive
             );
-        }
+        
         
         return $views;
     }

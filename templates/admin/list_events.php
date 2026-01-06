@@ -256,65 +256,33 @@ class Events_List_Table extends WP_List_Table {
             $url .= "&s=" . sanitize_text_field($_GET['s']);
         }
         $view = sprintf("<a href='%s' class='%s'>%s</a>", $url, $class_view, $label);
-        if ($count) {
+        
             $view .= sprintf("<span class='count'>(%d)</span>", $count);
-        }
+        
         return $view;
     }
 
     public function get_views() {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'sc_events';
-        
-        $event_status = isset($_GET['event_status']) ? sanitize_text_field($_GET['event_status']) : 'all';
-        
-        $count_all = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL");
-        $count_active = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL AND is_active = 1");
-        $count_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL AND is_active = 0");
-        $count_trash = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NOT NULL");
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_events';
+    
+    $event_status = isset($_GET['event_status']) ? sanitize_text_field($_GET['event_status']) : 'all';
+    
+    $count_all = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL");
+    $count_active = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL AND is_active = 1");
+    $count_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL AND is_active = 0");
+    $count_trash = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NOT NULL");
 
-        $views = [
-            'all' => $this->view_create(
-                'all',
-                'همه',
-                admin_url('admin.php?page=sc-events&event_status=all'),
-                $count_all,
-                $event_status === 'all'
-            )
-        ];
-        
-        if ($count_active > 0) {
-            $views['active'] = $this->view_create(
-                'active',
-                'فعال',
-                admin_url('admin.php?page=sc-events&event_status=active'),
-                $count_active,
-                $event_status === 'active'
-            );
-        }
-        
-        if ($count_inactive > 0) {
-            $views['inactive'] = $this->view_create(
-                'inactive',
-                'غیرفعال',
-                admin_url('admin.php?page=sc-events&event_status=inactive'),
-                $count_inactive,
-                $event_status === 'inactive'
-            );
-        }
-        
-        if ($count_trash > 0) {
-            $views['trash'] = $this->view_create(
-                'trash',
-                'زباله‌دان',
-                admin_url('admin.php?page=sc-events&event_status=trash'),
-                $count_trash,
-                $event_status === 'trash'
-            );
-        }
-        
-        return $views;
-    }
+    $views = [
+        'all' => $this->view_create('all', 'همه', admin_url('admin.php?page=sc-events&event_status=all'), $count_all, $event_status === 'all'),
+        'active' => $this->view_create('active', 'فعال', admin_url('admin.php?page=sc-events&event_status=active'), $count_active, $event_status === 'active'),
+        'inactive' => $this->view_create('inactive', 'غیرفعال', admin_url('admin.php?page=sc-events&event_status=inactive'), $count_inactive, $event_status === 'inactive'),
+        'trash' => $this->view_create('trash', 'زباله‌دان', admin_url('admin.php?page=sc-events&event_status=trash'), $count_trash, $event_status === 'trash'),
+    ];
+
+    return $views;
+}
+
 
     public function prepare_items() {
         $this->process_bulk_action();
@@ -414,6 +382,7 @@ class Events_List_Table extends WP_List_Table {
         if (isset($_GET['s'])) {
             echo '<input type="hidden" name="s" value="' . esc_attr($_GET['s']) . '">';
         }
+        $events_list_table->views();
         $events_list_table->display();
         ?>
     </form>

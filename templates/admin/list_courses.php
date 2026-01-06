@@ -250,9 +250,9 @@ class Courses_List_Table extends WP_List_Table {
             $url .= "&s=" . sanitize_text_field($_GET['s']);
         }
         $view = sprintf("<a href='%s' class='%s'>%s</a>", $url, $class_view, $label);
-        if ($count) {
+        
             $view .= sprintf("<span class='count'>(%d)</span>", $count);
-        }
+        
         return $view;
     }
 
@@ -279,7 +279,7 @@ class Courses_List_Table extends WP_List_Table {
         ];
         
         // نمایش تب فعال فقط در صورت وجود آیتم
-        if ($count_active > 0) {
+        
             $views['active'] = $this->view_create(
                 'active',
                 'فعال',
@@ -287,10 +287,10 @@ class Courses_List_Table extends WP_List_Table {
                 $count_active,
                 $course_status === 'active'
             );
-        }
+        
         
         // نمایش تب غیرفعال فقط در صورت وجود آیتم
-        if ($count_inactive > 0) {
+       
             $views['inactive'] = $this->view_create(
                 'inactive',
                 'غیرفعال',
@@ -298,10 +298,10 @@ class Courses_List_Table extends WP_List_Table {
                 $count_inactive,
                 $course_status === 'inactive'
             );
-        }
         
+    
         // نمایش تب زباله‌دان فقط در صورت وجود آیتم
-        if ($count_trash > 0) {
+      
             $views['trash'] = $this->view_create(
                 'trash',
                 'زباله‌دان',
@@ -309,7 +309,7 @@ class Courses_List_Table extends WP_List_Table {
                 $count_trash,
                 $course_status === 'trash'
             );
-        }
+        
         
         return $views;
     }
