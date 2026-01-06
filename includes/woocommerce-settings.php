@@ -369,14 +369,27 @@ function myadmin_autofill_email_js() {
 
 //پایان اعمال تغییرات روی افزودن حساب کاربری در وردپرس
  //ریدایرکت صفحه پیشفرض ووکامرس به صفحه اطلاعات بازیکن
-add_action('parse_request', function ($wp) {
+add_action('parse_request', function () {
 
-    // فقط آدرس دقیق /my-account یا /my-account/
-    if (rtrim($_SERVER['REQUEST_URI'], '/') === '/aiwp/my-account') {
-
-        wp_redirect('/aiwp/my-account/sc-submit-documents/', 302);
-        exit;
+    // فقط آدرس دقیق
+    if (rtrim($_SERVER['REQUEST_URI'], '/') !== '/aiwp/my-account') {
+        return;
     }
+
+    // فقط اگر لاگین کرده
+    if (!is_user_logged_in()) {
+        return;
+    }
+
+    $user = wp_get_current_user();
+
+    // فقط نقش subscriber
+    if (!in_array('subscriber', (array) $user->roles, true)) {
+        return;
+    }
+
+    wp_redirect('/aiwp/my-account/sc-submit-documents/', 302);
+    exit;
 });
 
 
