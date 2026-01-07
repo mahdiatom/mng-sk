@@ -382,7 +382,14 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
     </p>
 </div>
 
-    
+ <div class="sc-filter-field">
+    <label for="filter_free" class="sc-filter-label">ثبت‌نام رایگان</label>
+    <select name="filter_free" id="filter_free" class="sc-filter-control">
+        <option value="0" <?php selected($filter_free, 0); ?>>همه</option>
+        <option value="1" <?php selected($filter_free, 1); ?>>فقط رایگان</option>
+    </select>
+</div>
+   
    
 
         </div>
@@ -401,6 +408,9 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                 }
                 if (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
                     $export_url = add_query_arg('filter_date_to', $_GET['filter_date_to'], $export_url);
+                }
+                if (isset($_GET['s']) && !empty($_GET['s'])) {
+                    $export_url = add_query_arg('s', $_GET['s'], $export_url);
                 }
                 if (isset($_GET['s']) && !empty($_GET['s'])) {
                     $export_url = add_query_arg('s', $_GET['s'], $export_url);
@@ -436,6 +446,7 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                     <th style="width: 120px;">وضعیت</th>
                     <th style="width: 120px;">تاریخ ثبت‌نام</th>
                     <th style="width: 200px;">عملیات</th>
+
                 </tr>
             </thead>
             <tbody>
@@ -460,20 +471,33 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                         }
                     }
                     
-                    // وضعیت
-                    $status = $registration['status'] ?: 'pending';
-                    if ($status === 'under_review') {
-                        $status = 'on-hold';
-                    } elseif ($status === 'paid') {
-                        $status = 'completed';
-                    }
-                    
-                    if (!empty($registration['woocommerce_order_id']) && function_exists('wc_get_order')) {
-                        $order = wc_get_order($registration['woocommerce_order_id']);
-                        if ($order) {
-                            $status = $order->get_status();
-                        }
-                    }
+                  if (isset($registration['event_price']) && floatval($registration['event_price']) === 0) {
+    $status = 'free_event';
+} else {
+    // اگر شماره سفارش ووکامرس موجود نیست، رایگان
+    if (empty($registration['woocommerce_order_id'])) {
+        $status = 'free_event';
+    } else {
+        // وضعیت عادی از فیلد status یا ووکامرس
+        $status = $registration['status'] ?: 'pending';
+
+        if ($status === 'under_review') {
+            $status = 'on-hold';
+        } elseif ($status === 'paid') {
+            $status = 'completed';
+        }
+
+        if (!empty($registration['woocommerce_order_id']) && function_exists('wc_get_order')) {
+            $order = wc_get_order($registration['woocommerce_order_id']);
+            if ($order) {
+                $status = $order->get_status();
+            } else {
+                // اگر سفارش ووکامرس پیدا نشد، رایگان
+                $status = 'free_event';
+            }
+        }
+    }
+}
                     
                     $status_labels = [
                         'pending' => ['label' => 'در انتظار پرداخت', 'color' => '#f0a000', 'bg' => '#fff8e1'],
@@ -482,8 +506,11 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                         'completed' => ['label' => 'تایید پرداخت', 'color' => '#00a32a', 'bg' => '#d4edda'],
                         'cancelled' => ['label' => 'لغو شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
                         'refunded' => ['label' => 'بازگشت شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
-                        'failed' => ['label' => 'ناموفق', 'color' => '#d63638', 'bg' => '#ffeaea']
+                        'failed' => ['label' => 'ناموفق', 'color' => '#d63638', 'bg' => '#ffeaea'],
+                        
                     ];
+                    $status_labels['free_event'] = ['label' => 'رویداد رایگان', 'color' => '#008000', 'bg' => '#d4f4dd'];
+
                     
                     $status_info = isset($status_labels[$status]) ? $status_labels[$status] : ['label' => $status, 'color' => '#666', 'bg' => '#f5f5f5'];
                     
@@ -534,6 +561,8 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                                 حذف
                             </a>                    
                     </td>
+                    
+
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -680,4 +709,5 @@ jQuery(document).ready(function($) {
 
 
 </script>
+
 
