@@ -62,7 +62,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['regis
 
     if ($deleted !== false) {
         // بازگشت به صفحه اصلی با پیام موفقیت
-        wp_redirect(add_query_arg('deleted', '1', admin_url('admin.php?page=sc-event-registrations')));
+        wp_redirect(add_query_arg('deleted', '1', admin_url('admin.php?page=sc-event-registrations&sc_status=bulk_deleted_register')));
         exit;
     } else {
         wp_die('خطا در حذف ثبت‌نام');

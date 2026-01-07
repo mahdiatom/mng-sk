@@ -1718,6 +1718,10 @@ function sc_sprot_notices(){
             $type='success';
             $messege="بازیکن مورد نظر با موفقیت غیرفعال شد.";
         }
+        if($status == 'bulk_deleted_register' ){
+            $type='success';
+            $messege="فرد مورد نظر با موفقیت حذف شد.";
+        }
         
     }
         if($type && $messege){
