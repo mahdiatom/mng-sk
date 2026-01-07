@@ -150,43 +150,64 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                 }
                 
                 // بررسی ثبت‌نام قبلی و وضعیت
+               // بررسی ثبت‌نام قبلی و وضعیت
                 $is_enrolled = false;
                 $enrollment_status = null;
                 $enrollment_status_label = '';
                 $enrollment_tooltip = '';
                 $event_type_label = ($event->event_type === 'competition') ? 'مسابقه' : 'رویداد';
-                
+
                 if (!empty($player->id)) {
                     global $wpdb;
                     $invoices_table = $wpdb->prefix . 'sc_invoices';
-                    $existing_invoice = $wpdb->get_row($wpdb->prepare(
-                        "SELECT status FROM $invoices_table WHERE member_id = %d AND event_id = %d ORDER BY created_at DESC LIMIT 1",
+                    $registrations_table = $wpdb->prefix . 'sc_event_registrations';
+
+                    /**
+                     * 1️⃣ بررسی ثبت‌نام مستقیم (رویدادهای رایگان)
+                     */
+                    $existing_registration = $wpdb->get_row($wpdb->prepare(
+                        "SELECT id FROM $registrations_table WHERE member_id = %d AND event_id = %d",
                         $player->id,
                         $event->id
                     ));
-                    
-                    if ($existing_invoice) {
-                        $enrollment_status = $existing_invoice->status;
-                        
-                        if (in_array($enrollment_status, ['paid', 'completed', 'processing'])) {
-                            $is_enrolled = true;
-                            $can_enroll = false;
-                            $enrollment_status_label = 'ثبت‌نام شده';
-                            $enrollment_tooltip = 'شما در این ' . $event_type_label . ' ثبت‌نام کرده‌اید.';
-                        } elseif ($enrollment_status === 'cancelled') {
-                            // اگر invoice لغو شده است، امکان ثبت نام دوباره وجود دارد
-                            $is_enrolled = false;
-                            $can_enroll = true; // امکان ثبت نام دوباره
-                            $enrollment_status_label = '';
-                            $enrollment_tooltip = '';
-                        } elseif (in_array($enrollment_status, ['pending', 'under_review', 'on-hold'])) {
-                            $is_enrolled = false;
-                            $can_enroll = false;
-                            $enrollment_status_label = 'در حال پرداخت';
-                            $enrollment_tooltip = 'ثبت‌نام شما در این ' . $event_type_label . ' انجام شده است و صورت حساب در حال پرداخت است. لطفاً به بخش صورت حساب‌ها مراجعه کنید.';
+
+                    if ($existing_registration) {
+                        $is_enrolled = true;
+                        $can_enroll = false;
+                        $enrollment_status_label = 'ثبت‌نام شده';
+                        $enrollment_tooltip = 'شما در این ' . $event_type_label . ' ثبت‌نام کرده‌اید.';
+                    } else {
+
+                        /**
+                         * 2️⃣ بررسی invoice (رویدادهای پولی)
+                         */
+                        $existing_invoice = $wpdb->get_row($wpdb->prepare(
+                            "SELECT status FROM $invoices_table WHERE member_id = %d AND event_id = %d ORDER BY created_at DESC LIMIT 1",
+                            $player->id,
+                            $event->id
+                        ));
+
+                        if ($existing_invoice) {
+                            $enrollment_status = $existing_invoice->status;
+
+                            if (in_array($enrollment_status, ['paid', 'completed', 'processing'])) {
+                                $is_enrolled = true;
+                                $can_enroll = false;
+                                $enrollment_status_label = 'ثبت‌نام شده';
+                                $enrollment_tooltip = 'شما در این ' . $event_type_label . ' ثبت‌نام کرده‌اید.';
+                            } elseif ($enrollment_status === 'cancelled') {
+                                $is_enrolled = false;
+                                $can_enroll = true;
+                            } elseif (in_array($enrollment_status, ['pending', 'under_review', 'on-hold'])) {
+                                $is_enrolled = false;
+                                $can_enroll = false;
+                                $enrollment_status_label = 'در حال پرداخت';
+                                $enrollment_tooltip = 'ثبت‌نام شما انجام شده و صورت حساب در حال پرداخت است.';
+                            }
                         }
                     }
                 }
+
                 
                 $formatted_price = '';
                 if (function_exists('wc_price')) {

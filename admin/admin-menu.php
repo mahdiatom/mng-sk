@@ -1828,10 +1828,11 @@ function callback_add_event_sufix() {
         $table_name = $wpdb->prefix . 'sc_events';
         
         // Validation
-        if (empty($_POST['name']) || empty($_POST['price'])) {
+        if (empty($_POST['name']) || (!isset($_POST['is_free_event']) && empty($_POST['price']))) {
             wp_redirect(admin_url('admin.php?page=sc-add-event&sc_status=event_add_error'));
             exit;
         }
+
         
         // پردازش تاریخ شمسی به میلادی
         $start_date = NULL;
@@ -1880,7 +1881,9 @@ function callback_add_event_sufix() {
             $price_cleaned = str_replace(',', '', sanitize_text_field($_POST['price']));
             $price_value = floatval($price_cleaned);
         }
-        
+        if (isset($_POST['is_free_event']) && $_POST['is_free_event'] == '1') {
+    $price_value = 0;
+}
         // تبدیل به عدد صحیح (بدون اعشار)
         $price_value = intval($price_value);
         
@@ -2261,30 +2264,3 @@ function sc_add_sms_credit_to_admin_bar($wp_admin_bar) {
         ));
     }
 }
-//پنهان کردن منو های پیشفرض وردپرس و ووکامرس
-// add_action('admin_menu', 'hide_admin_menus', 999);
-
-// function hide_admin_menus() {
-
-//     // منوهای اصلی وردپرس
-//     remove_menu_page('index.php');              // پیشخوان
-//     remove_menu_page('edit.php');               // نوشته‌ها
-//     remove_menu_page('upload.php');             // رسانه
-//     remove_menu_page('edit-comments.php');      // دیدگاه‌ها
-//     remove_menu_page('tools.php');               // ابزارها
-
-//     // ووکامرس
-//     remove_menu_page('woocommerce');             // ووکامرس
-//     remove_menu_page('edit.php?post_type=shop_order'); // سفارش‌ها
-//     remove_menu_page('edit.php?post_type=product');    // محصولات
-       
-
-//     //theme
-//      remove_menu_page('hello-elementor'); // تنظیمات تم 
-// }
-// add_filter('woocommerce_admin_menu_items', function ($items) {
-//     unset($items['marketing']);
-//     return $items;
-// });
-
-// END مخفی سازی منو های وردپرس

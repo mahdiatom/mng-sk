@@ -304,6 +304,7 @@ public function column_order_number($item) {
                     // حذف صورت حساب
                     $wpdb->delete($table_name, ['id' => $invoice_id], ['%d']);
                 }
+                 do_action('sc_invoice_deleted', $invoice_id);
                 
                 wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_deleted'));
                 exit;

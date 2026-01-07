@@ -110,17 +110,26 @@ if ($event && isset($_GET['event_id'])) {
                         ?>
                     </td>
                 </tr>
-
+                <tr>
+                    <th scope="row">رویداد رایگان است؟</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" id="is_free_event" name="is_free_event" value="1"
+                                >
+                            بله
+                            </label>
+                    </td>
+                </tr>
                 <tr>
                     <th scope="row"><label for="price">قیمت <span style="color:red;">*</span></label></th>
                     <td>
                         <input type="text" 
                                name="price" 
                                id="price" 
-                               value="<?php echo $price > 0 ? number_format(intval($price), 0, '.', ',') : ''; ?>" 
+                               value="<?php echo esc_attr((int)$price); ?>"
+                                min="0"
                                class="regular-text" 
                                placeholder="0"
-                               style="width: 300px;"
                                dir="ltr"
                                inputmode="numeric"
                                required>
@@ -128,6 +137,8 @@ if ($event && isset($_GET['event_id'])) {
                         <p class="description">قیمت رویداد / مسابقه به تومان </p>
                     </td>
                 </tr>
+                
+
 
                 <tr>
                     <th scope="row"><label for="start_date_shamsi">تاریخ شروع (شمسی)</label></th>

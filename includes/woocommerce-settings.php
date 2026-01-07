@@ -392,6 +392,19 @@ add_action('parse_request', function () {
     exit;
 });
 
+// ارتباط حذف بین رویداد و صورت حساب افزونه و صورت حساب ووکامرس
+add_action('woocommerce_before_delete_order', function($order_id) {
+    global $wpdb;
+    $registrations_table = $wpdb->prefix . 'sc_event_registrations';
+
+    // حذف ثبت‌نام‌هایی که با این سفارش مرتبط هستند
+    $wpdb->delete(
+        $registrations_table,
+        ['woocommerce_order_id' => $order_id],
+        ['%d']
+    );
+});
+
 
 
 

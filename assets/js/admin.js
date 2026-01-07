@@ -1144,3 +1144,25 @@ jQuery(document).ready(function($) {
     });
 });
 
+//فعال سازی رویداد رایگان
+
+document.addEventListener('DOMContentLoaded', function () {
+    const freeCheckbox = document.getElementById('is_free_event');
+    const priceInput = document.getElementById('price');
+
+    function togglePrice() {
+        if (freeCheckbox.checked) {
+            priceInput.value = 0;
+            priceInput.setAttribute('disabled', 'disabled');
+        } else {
+            priceInput.removeAttribute('disabled');
+            priceInput.focus();
+        }
+    }
+
+    freeCheckbox.addEventListener('change', togglePrice);
+    togglePrice(); // حالت اولیه
+});
+
+
+

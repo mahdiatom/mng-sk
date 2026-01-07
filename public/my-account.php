@@ -321,6 +321,8 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-events', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-event-detail', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-event-success', EP_ROOT | EP_PAGES);
+
 }
 
 /**
@@ -2390,7 +2392,48 @@ function sc_handle_event_enrollment() {
     
     // ایجاد صورت حساب و سفارش WooCommerce
     error_log('SC Event Enrollment: Creating invoice for event_id: ' . $event_id . ', member_id: ' . $player->id . ', price: ' . $event->price);
-    
+    // =======================
+// اگر رویداد رایگان است
+// =======================
+if ((float) $event->price <= 0) {
+
+    $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+
+    // جلوگیری از ثبت‌نام تکراری
+    $already_registered = $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT id FROM $event_registrations_table WHERE event_id = %d AND member_id = %d",
+            $event_id,
+            $player->id
+        )
+    );
+
+    if (!$already_registered) {
+        $wpdb->insert(
+            $event_registrations_table,
+            [
+                'event_id'   => $event_id,
+                'member_id'  => $player->id,
+                'invoice_id' => null,
+                'field_data' => json_encode($field_data, JSON_UNESCAPED_UNICODE),
+                'files'      => json_encode($uploaded_files, JSON_UNESCAPED_UNICODE),
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql'),
+            ],
+            ['%d', '%d', '%s', '%s', '%s', '%s', '%s']
+        );
+    }
+
+    // هوک اختیاری (پیامک، ایمیل، لاگ و...)
+    do_action('sc_free_event_registered', $event_id, $player->id);
+
+   // wc_add_notice('ثبت‌نام شما در رویداد با موفقیت انجام شد.', 'success');
+    wp_safe_redirect(wc_get_account_endpoint_url('sc-event-success'));
+exit;
+
+    exit;
+}
+
     $invoice_result = sc_create_event_invoice($player->id, $event_id, $event->price);
     
     error_log('SC Event Enrollment: Invoice result: ' . print_r($invoice_result, true));
@@ -2428,6 +2471,20 @@ function sc_handle_event_enrollment() {
         exit;
     }
 }
+
+add_action('woocommerce_account_sc-event-success_endpoint', function () {
+    ?>
+    <div class="sc-event-success-page">
+        <h2>🎉 ثبت‌نام شما با موفقیت انجام شد</h2>
+        <p>ثبت‌نام شما در رویداد با موفقیت انجام شد.</p>
+
+        <a href="<?php echo esc_url(wc_get_account_endpoint_url('sc-events')); ?>" class="button">
+            بازگشت به لیست رویدادها
+        </a>
+    </div>
+    <?php
+});
+
 
 /**
  * Hook برای به‌روزرسانی وضعیت صورت حساب پس از پرداخت سفارش WooCommerce
