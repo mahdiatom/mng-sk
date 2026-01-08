@@ -434,7 +434,7 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
 
 
 <!-- جدول -->
-<div class="wrap" style="margin-top: 20px;">
+<div class="wrap" style="margin-top: 20px; overflow-x: auto;">
     <?php if (!empty($registrations)) : ?>
         <table class="wp-list-table widefat fixed striped">
             <thead>
@@ -472,7 +472,7 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                         }
                     }
                     else{
-                        $order_number = "ندارد";
+                        $order_number = "@free" . $registration['id'];
                     }
                     
                   if (isset($registration['event_price']) && floatval($registration['event_price']) === 0) {

@@ -1142,11 +1142,18 @@ $sheet->getStyle("A1:{$last_header_col}1")->applyFromArray(sc_get_excel_header_s
     // شماره سفارش
     $order_number = '#' . $reg->registration_id;
 
+    if ($filter_free === 1) {
+        $order_number = '@free' . $reg->registration_id;
+    }
+
     if (!empty($reg->woocommerce_order_id) && function_exists('wc_get_order')) {
         $order = wc_get_order($reg->woocommerce_order_id);
         $order_number = $order ? $order->get_order_number() : '#' . $reg->woocommerce_order_id;
     } elseif (!empty($reg->invoice_id)) {
         $order_number = '#' . $reg->invoice_id;
+    }
+    else{
+        $order_number = '@free' . $reg->registration_id;
     }
 
     $sheet->setCellValueByColumnAndRow($col++, $row, $order_number);
