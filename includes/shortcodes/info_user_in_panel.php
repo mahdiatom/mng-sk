@@ -223,6 +223,7 @@ function sc_user_info_panel_shortcode($atts) {
     // شروع خروجی HTML
     ob_start();
     ?>
+    
     <div class="sc-user-info-panel" style="background: #fff; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: 20px 0; font-family: IRANYekanXFaNum, sans-serif;">
         <div style="display: flex; gap: 25px; flex-wrap: wrap;">
             <!-- بخش عکس و اطلاعات پایه -->

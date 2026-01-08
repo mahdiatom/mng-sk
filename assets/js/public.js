@@ -291,6 +291,63 @@ jQuery(document).ready(function($) {
 
 
 
+//مدال 
+
+jQuery(document).ready(function($) {
+    
+    $(document).on('click', '.details_info_user_pannel', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+       
+        
+        var $modal = $('#scRegistrationModal');
+       
+        
+        $modal.css({
+            'display': 'block',
+            'visibility': 'visible',
+            'position': 'fixed',
+            'top': '8%',
+            'width': '95%',
+            'z-index':' 1000'
+        }).addClass('show-modal');
+        
+       
+        
+      
+    });
+    
+    // بستن modal
+    $(document).on('click', '.sc-modal-close', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $modal = $('#scRegistrationModal');
+        $modal.removeClass('show-modal');
+        $modal.css({
+            'display': 'none',
+            'visibility': 'hidden'
+        });
+    });
+    
+    $(document).on('click', '#scRegistrationModal', function(e) {
+        if ($(e.target).is('#scRegistrationModal')) {
+            var $modal = $(this);
+            $modal.removeClass('show-modal');
+            $modal.css({
+                'display': 'none',
+                'visibility': 'hidden'
+            });
+        }
+    });
+    
+    $(document).on('click', '.sc-modal-content', function(e) {
+        e.stopPropagation();
+    });
+    
+});
+
+
 
 
 
