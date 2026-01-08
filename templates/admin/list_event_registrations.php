@@ -43,6 +43,9 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
 }
 //حذف ثبت نامی رویداد
 // بررسی حذف
+// حذف ثبت نامی رویداد
+
+// حذف ثبت‌نامی رویداد
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['registration_id'])) {
     $registration_id = absint($_GET['registration_id']);
     $nonce = isset($_GET['_wpnonce']) ? $_GET['_wpnonce'] : '';
@@ -56,11 +59,57 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['regis
     }
 
     global $wpdb;
-    $table = $wpdb->prefix . 'sc_event_registrations';
 
-    $deleted = $wpdb->delete($table, ['id' => $registration_id], ['%d']);
+    // دریافت اطلاعات ثبت‌نام
+    $registration = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}sc_event_registrations WHERE id = %d",
+        $registration_id
+    ), ARRAY_A);
+
+    if (!$registration) {
+        wp_die('ثبت‌نام یافت نشد!');
+    }
+
+    // دریافت اطلاعات رویداد
+    $event = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}sc_events WHERE id = %d",
+        $registration['event_id']
+    ), ARRAY_A);
+
+    $is_free_event = $event && floatval($event['price']) === 0;
+
+    // حذف از جدول ثبت‌نام
+    $deleted = $wpdb->delete("{$wpdb->prefix}sc_event_registrations", ['id' => $registration_id], ['%d']);
 
     if ($deleted !== false) {
+
+        // اگر رویداد غیر رایگان است
+        if (!$is_free_event && !empty($registration['invoice_id'])) {
+
+            // حذف از جدول sc_invoices و گرفتن ووکامرس آیدی
+            $invoice = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}sc_invoices WHERE id = %d",
+                $registration['invoice_id']
+            ), ARRAY_A);
+
+            if ($invoice) {
+                // حذف invoice
+                $wpdb->delete("{$wpdb->prefix}sc_invoices", ['id' => $invoice['id']], ['%d']);
+
+                // حذف سفارش ووکامرس
+                if (!empty($invoice['woocommerce_order_id']) && function_exists('wc_get_order')) {
+                    $order_id = intval($invoice['woocommerce_order_id']);
+                    $order = wc_get_order($order_id);
+                    if ($order) {
+                        // لغو سفارش
+                        $order->update_status('cancelled', 'ثبت‌نام مربوط به این رویداد حذف شد.');
+                        // حذف کامل سفارش
+                        wp_delete_post($order_id, true);
+                    }
+                }
+            }
+        }
+
         // بازگشت به صفحه اصلی با پیام موفقیت
         wp_redirect(add_query_arg('deleted', '1', admin_url('admin.php?page=sc-event-registrations&sc_status=bulk_deleted_register')));
         exit;
@@ -68,6 +117,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['regis
         wp_die('خطا در حذف ثبت‌نام');
     }
 }
+
 
 
 // Pagination
