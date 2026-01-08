@@ -402,6 +402,7 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                 $export_url = add_query_arg('filter_status', isset($_GET['filter_status']) ? $_GET['filter_status'] : 'all', $export_url);
                 $export_url = add_query_arg('filter_event', isset($_GET['filter_event']) ? $_GET['filter_event'] : 0, $export_url);
                 $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
+                $export_url = add_query_arg('filter_free', isset($_GET['filter_free']) ? $_GET['filter_free'] : 0, $export_url);
 
                 if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
                     $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);

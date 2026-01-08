@@ -980,6 +980,8 @@ function sc_export_event_registrations_to_excel() {
     $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
     $filter_date_to   = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
     $search           = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+    $filter_free = isset($_GET['filter_free']) ? absint($_GET['filter_free']) : 0;
+
 
     /**
      * WHERE clause (دقیقاً مثل invoices)
@@ -992,6 +994,12 @@ function sc_export_event_registrations_to_excel() {
         $where_conditions[] = "i.status = %s";
         $where_values[] = $filter_status;
     }
+    // فقط ثبت‌نام‌های رایگان
+if ($filter_free === 1) {
+    $where_conditions[] = "e.price = %d";
+    $where_values[] = 0;
+}
+
 
     if ($filter_event > 0) {
         $where_conditions[] = "r.event_id = %d";
@@ -1075,6 +1083,17 @@ function sc_export_event_registrations_to_excel() {
     $sheet->setRightToLeft(true);
 
     // Header
+
+if ($filter_free === 1) {
+    $headers = [
+        'ردیف',
+        'شماره سفارش',
+        'نام و نام خانوادگی',
+        'شماره تماس',
+        'رویداد',
+        'تاریخ ثبت',
+    ];
+} else {
     $headers = [
         'ردیف',
         'شماره سفارش',
@@ -1087,19 +1106,21 @@ function sc_export_event_registrations_to_excel() {
         'تاریخ ثبت',
         'تاریخ پرداخت'
     ];
+}
 
     foreach ($headers as $col => $header) {
         $sheet->setCellValueByColumnAndRow($col + 1, 1, $header);
     }
 
-    $sheet->getStyle('A1:J1')->applyFromArray(sc_get_excel_header_style());
+    $last_header_col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+$sheet->getStyle("A1:{$last_header_col}1")->applyFromArray(sc_get_excel_header_style());
 
     /**
      * داده‌ها
      */
     $row = 2;
     $index = 1;
-
+    
     $status_labels = [
         'pending'     => 'در انتظار پرداخت',
         'on-hold'     => 'در حال بررسی',
@@ -1110,31 +1131,31 @@ function sc_export_event_registrations_to_excel() {
         'failed'      => 'ناموفق',
         'refunded'    => 'بازگشت شده'
     ];
+    
+   foreach ($registrations as $reg) {
 
-    foreach ($registrations as $reg) {
+    $col = 1;
 
-        $col = 1;
-        $sheet->setCellValueByColumnAndRow($col++, $row, $index++);
-                // شماره سفارش
-        $order_number = '#' . $reg->registration_id;
+    // ردیف
+    $sheet->setCellValueByColumnAndRow($col++, $row, $index++);
 
-        // اگر سفارش ووکامرس دارد
-        if (!empty($reg->woocommerce_order_id) && function_exists('wc_get_order')) {
-            $order = wc_get_order($reg->woocommerce_order_id);
-            if ($order) {
-                $order_number = $order->get_order_number();
-            } else {
-                $order_number = '#' . $reg->woocommerce_order_id;
-            }
-        // اگر فاکتور دارد ولی ووکامرس ندارد
-        } elseif (!empty($reg->invoice_id)) {
-            $order_number = '#' . $reg->invoice_id;
-        }
+    // شماره سفارش
+    $order_number = '#' . $reg->registration_id;
 
-        $sheet->setCellValueByColumnAndRow($col++, $row, $order_number);
-        $sheet->setCellValueByColumnAndRow($col++, $row, trim($reg->first_name . ' ' . $reg->last_name));
-        $sheet->setCellValueByColumnAndRow($col++, $row, $reg->player_phone ?: '-');
-        $sheet->setCellValueByColumnAndRow($col++, $row, $reg->event_title ?: '-');
+    if (!empty($reg->woocommerce_order_id) && function_exists('wc_get_order')) {
+        $order = wc_get_order($reg->woocommerce_order_id);
+        $order_number = $order ? $order->get_order_number() : '#' . $reg->woocommerce_order_id;
+    } elseif (!empty($reg->invoice_id)) {
+        $order_number = '#' . $reg->invoice_id;
+    }
+
+    $sheet->setCellValueByColumnAndRow($col++, $row, $order_number);
+    $sheet->setCellValueByColumnAndRow($col++, $row, trim($reg->first_name . ' ' . $reg->last_name));
+    $sheet->setCellValueByColumnAndRow($col++, $row, $reg->player_phone ?: '-');
+    $sheet->setCellValueByColumnAndRow($col++, $row, $reg->event_title ?: '-');
+
+    // ⬇️ فقط اگر رایگان نبود
+    if ($filter_free !== 1) {
 
         $sheet->setCellValueByColumnAndRow(
             $col++,
@@ -1153,30 +1174,37 @@ function sc_export_event_registrations_to_excel() {
             $row,
             $status_labels[$reg->payment_status] ?? '-'
         );
+    }
 
-        $sheet->setCellValueByColumnAndRow(
-            $col++,
-            $row,
-            sc_date_shamsi($reg->registration_date, 'Y/m/d H:i')
-        );
+    // تاریخ ثبت (همیشه)
+    $sheet->setCellValueByColumnAndRow(
+        $col++,
+        $row,
+        sc_date_shamsi($reg->registration_date, 'Y/m/d H:i')
+    );
 
+    // تاریخ پرداخت فقط غیررایگان
+    if ($filter_free !== 1) {
         $sheet->setCellValueByColumnAndRow(
             $col++,
             $row,
             $reg->payment_date ? sc_date_shamsi($reg->payment_date, 'Y/m/d H:i') : '-'
         );
-
-        // استایل
-        $style = ($row % 2 === 0)
-            ? array_merge(sc_get_excel_data_style(), sc_get_excel_alternate_row_style())
-            : sc_get_excel_data_style();
-
-        $sheet->getStyle("A{$row}:J{$row}")->applyFromArray($style);
-
-        $row++;
     }
 
-    sc_auto_size_columns($sheet, 10);
+    // استایل
+    $last_col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col - 1);
+    $style = ($row % 2 === 0)
+        ? array_merge(sc_get_excel_data_style(), sc_get_excel_alternate_row_style())
+        : sc_get_excel_data_style();
+
+    $sheet->getStyle("A{$row}:{$last_col}{$row}")->applyFromArray($style);
+
+    $row++;
+}
+
+
+sc_auto_size_columns($sheet, count($headers));
 
     /**
      * خروجی فایل
