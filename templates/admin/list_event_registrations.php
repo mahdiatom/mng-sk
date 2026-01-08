@@ -470,6 +470,9 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                             }
                         }
                     }
+                    else{
+                        $order_number = "ندارد";
+                    }
                     
                   if (isset($registration['event_price']) && floatval($registration['event_price']) === 0) {
     $status = 'free_event';

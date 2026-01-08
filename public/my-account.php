@@ -2474,13 +2474,13 @@ exit;
 
 add_action('woocommerce_account_sc-event-success_endpoint', function () {
     ?>
-    <div class="sc-event-success-page">
+    <div class="sc-event-success-page form-row" >
         <h2>🎉 ثبت‌نام شما با موفقیت انجام شد</h2>
         <p>ثبت‌نام شما در رویداد با موفقیت انجام شد.</p>
 
-        <a href="<?php echo esc_url(wc_get_account_endpoint_url('sc-events')); ?>" class="button">
+        <button class="button" href="<?php echo esc_url(wc_get_account_endpoint_url('sc-events')); ?>" class="button">
             بازگشت به لیست رویدادها
-        </a>
+        </button>
     </div>
     <?php
 });
