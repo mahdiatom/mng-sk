@@ -8,7 +8,7 @@ class Player_List_Table extends WP_List_Table {
     public function get_columns() {
         return [
             'cb' => '<input type="checkbox" />',
-            'row' => 'ردیف',
+        //    'row' => 'ردیف',
             'full_name' => 'نام و نام خانوادگی',
             'id' => 'شناسه',
             'birth_date_shamsi' => 'تاریخ تولد',
@@ -21,16 +21,16 @@ class Player_List_Table extends WP_List_Table {
         ];
     }
 
-    public function column_row($item) {
-  static $row_number = 0;
+//     public function column_row($item) {
+//   static $row_number = 0;
 
-    $page = $this->get_pagenum();
-    $per_page = $this->get_items_per_page('players_per_page', 50);
+//     $page = $this->get_pagenum();
+//     $per_page = $this->get_items_per_page('players_per_page', 50);
 
-    $row_number++;
+//     $row_number++;
 
-    return (($page - 1) * $per_page) + $row_number;
-}
+//     return (($page - 1) * $per_page) + $row_number;
+// }
     public function column_full_name($item) {
         $full_name = $item['first_name'] . ' ' . $item['last_name'];
         
@@ -347,7 +347,7 @@ class Player_List_Table extends WP_List_Table {
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
-            if (isset($_GET['filter_profile']) && $_GET['filter_profile'] !== 'all') {
+            $filter_profile_statusif (isset($_GET['filter_profile']) && $_GET['filter_profile'] !== 'all') {
     $export_url = add_query_arg('filter_profile', $_GET['filter_profile'], $export_url);
 }
 

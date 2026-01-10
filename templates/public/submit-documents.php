@@ -142,10 +142,10 @@ if (empty($player_phone) && $billing_phone) {
         
         <div class="sc-form-section">
             <h3>اطلاعات تماس</h3>
-            <p>لطفا در انتخاب شماره همراه دقت فرمایید و به صورت فرمت *********09 وارد کنید - تمامی اطلاع رسانی ها به شماره های زیر ارسال خواهد شد.</p>
+            <p>لطفا در انتخاب شماره همراه دقت فرمایید و به صورت فرمت *********09 وارد کنید - تمامی اطلاع رسانی ها به شماره موبایل بازیکن ارسال خواهد شد.</p>
             
             <p class="form-row form-row-first">
-                <label for="player_phone">شماره موبایل بازیکن</label>
+                <label for="player_phone">شماره موبایل بازیکن - اطلاع رسانی SMS</label>
                 <input type="text" name="player_phone" id="player_phone" value="<?php echo esc_attr($player_phone); ?>">
             </p>
             

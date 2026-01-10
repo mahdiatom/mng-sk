@@ -337,7 +337,7 @@ if ($active_tab === 'categories') {
                 <p>هیچ هزینه‌ای یافت نشد.</p>
             </div>
         <?php else : ?>
-            <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px;">
+            <div clsass="back_attendance_list">
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
@@ -405,7 +405,7 @@ if ($active_tab === 'categories') {
         
     <?php elseif ($active_tab === 'categories') : ?>
         <!-- تب 2: مدیریت دسته‌بندی‌ها -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+        <div class="admin_category">
             <!-- فرم افزودن/ویرایش دسته‌بندی -->
             <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px;">
                 <h2><?php echo $editing_category ? 'ویرایش دسته‌بندی' : 'افزودن دسته‌بندی جدید'; ?></h2>
@@ -473,7 +473,7 @@ if ($active_tab === 'categories') {
                             <tr>
                                 <th>نام</th>
                                 <th>توضیحات</th>
-                                <th style="width: 150px;">عملیات</th>
+                                <th >عملیات</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -481,13 +481,13 @@ if ($active_tab === 'categories') {
                                 <tr>
                                     <td><strong><?php echo esc_html($category->name); ?></strong></td>
                                     <td><?php echo $category->description ? esc_html($category->description) : '-'; ?></td>
-                                    <td>
+                                    <td style="padding:5px !important;">
                                         <a href="<?php echo admin_url('admin.php?page=sc-expenses&tab=categories&action=edit_category&category_id=' . $category->id); ?>" 
                                            class="button button-small">ویرایش</a>
                                         <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=sc-expenses&tab=categories&action=delete_category&category_id=' . $category->id), 'delete_category_' . $category->id); ?>" 
-                                           class="button button-small" 
+                                           class="button button-small btn_delete_action_admin" 
                                            onclick="return confirm('آیا مطمئن هستید؟');"
-                                           style="background-color: #d63638; color: #fff; border-color: #d63638;">حذف</a>
+                                          >حذف</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

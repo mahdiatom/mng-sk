@@ -110,7 +110,7 @@ body {font-family: Arial, Helvetica, sans-serif;}
     padding: 20px;
     border: 1px solid #888;
     width: 70%;
-  
+    margin-bottom: 30%;
     border-radius: 20px;
 }
 
@@ -212,6 +212,9 @@ p.sk-modal-content p {
     border: 1px solid #ddd;
     border-radius: 4px;
     transition: background 0.2s;
+}
+.description{
+    text-align: justify;
 }
 #sc-courses-content label:hover {
     background: #f9f9f9;
@@ -548,6 +551,9 @@ p.sk-modal-content p {
 }
 input.persian-date-input{
     height:30px ;
+}
+.sc-filter-form input.persian-date-input{
+    height:40px ;
 }
 
 .sc-filter-help {
@@ -1029,3 +1035,17 @@ margin: 0; display: inline-block;
     margin-bottom: 5px;
 }
 
+/* مدیریت دسته بندی هزینه ها */
+
+.admin_category{
+     display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.btn_delete_action_admin{
+    background-color: #d63638 !important; color: #fff !important; border-color: #d63638 !important ;
+    padding: 10px;
+
+}

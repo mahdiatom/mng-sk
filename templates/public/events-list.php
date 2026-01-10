@@ -212,8 +212,15 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                 $formatted_price = '';
                 if (function_exists('wc_price')) {
                     $formatted_price = wc_price($event->price);
+                    
                 } else {
                     $formatted_price = number_format((float)$event->price, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
+
+                }
+              $price_free = number_format((float)$event->price, $decimal_places, $decimal_separator, $thousand_separator);
+               
+                if($price_free == 0 ){
+                    $formatted_price = 'رایگان';
                 }
                 
                 // تاریخ برگزاری
@@ -285,7 +292,7 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                                 <div class="sc-event-feature-icon">💰</div>
                                 <div class="sc-event-feature-content">
                                     <div class="sc-event-feature-label">قیمت</div>
-                                    <div class="sc-event-feature-price-value"><?php echo $formatted_price; ?></div>
+                                    <div class="sc-event-feature-price-value"><?php echo  $formatted_price ?></div>
                                 </div>
                             </div>
                         </div>

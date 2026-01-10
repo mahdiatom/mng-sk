@@ -15,8 +15,8 @@ class Events_List_Table extends WP_List_Table {
 
     public function get_columns() {
         return [
+            //'row' => ' ',
             'cb' => '<input type="checkbox" />',
-            'row' => 'ردیف',
             'name' => 'نام رویداد / مسابقه',
             'event_time' => 'زمان',
             'date' => 'تاریخ',
@@ -25,13 +25,13 @@ class Events_List_Table extends WP_List_Table {
         ];
     }
 
-    public function column_row($item) {
-        static $row_number = 0;
-        $page = $this->get_pagenum();
-        $per_page = $this->get_items_per_page('events_per_page', 10);
-        $row_number++;
-        return (($page - 1) * $per_page) + $row_number;
-    }
+    // public function column_row($item) {
+    //     static $row_number = 0;
+    //     $page = $this->get_pagenum();
+    //     $per_page = $this->get_items_per_page('events_per_page', 10);
+    //     $row_number++;
+    //     return (($page - 1) * $per_page) + $row_number;
+    // }
 
     public function column_name($item) {
         $name = $item['name'];
@@ -70,11 +70,18 @@ class Events_List_Table extends WP_List_Table {
                 }
                 return !empty($date_parts) ? implode('<br>', $date_parts) : '-';
             case 'price':
+
                 if (function_exists('wc_price')) {
-                    return wc_price($item['price']);
+                    $price =  number_format($item['price'], 0, '.', ',');
+                if($price == 0 ){
+                    $price = 'رایگان';
+                }
+                return $price ;
                 } else {
                     return number_format($item['price'], 0, '.', ',') . ' تومان';
+
                 }
+
             case 'is_active':
                 return $item['is_active'] ? 'فعال' : 'غیرفعال';
             default:

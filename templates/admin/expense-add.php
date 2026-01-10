@@ -12,7 +12,7 @@ $expense_categories_table = $wpdb->prefix . 'sc_expense_categories';
 // دریافت لیست دسته‌بندی‌ها
 $categories = $wpdb->get_results("SELECT id, name FROM $expense_categories_table ORDER BY name ASC");
 
-// دریافت اطلاعات هزینه در صورت ویرایش
+// دریافت اطلاعات هزینه در صورت ویرایشexpense_add
 $expense = null;
 $expense_id = isset($_GET['expense_id']) ? absint($_GET['expense_id']) : 0;
 if ($expense_id > 0) {

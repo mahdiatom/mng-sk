@@ -361,7 +361,7 @@ margin-top: 5% !important;
     font-weight: bold;
     color: #000 !important;
 }
-.form-row button{
+.form-row button , .sc-event-success-page a{
     background: #6D34FF !important;
     color: #fff !important;
     border: none !important;
@@ -422,7 +422,10 @@ ease !important;
     position: relative;
     overflow: hidden;
 }
-
+.sc-form-section label{
+    margin-bottom: 10px;
+    margin-right: 5px
+}
 
 
 .sc-form-section::before {
@@ -2492,6 +2495,9 @@ padding: 15px !important;
     padding: 0 20px;
 }
 .woocommerce-order-received .page-header h1{
+    display: none;
+}
+.page-header h1{
     display: none;
 }
 /* مخفی کردن آدرس‌ها و اطلاعات اضافی WooCommerce */

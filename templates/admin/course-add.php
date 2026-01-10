@@ -97,7 +97,7 @@ if ($course && isset($_GET['course_id'])) {
                     <th scope="row"><label for="sessions_count">تعداد جلسات</label></th>
                     <td>
                         <input name="sessions_count" type="number" id="sessions_count" value="<?php echo esc_attr($sessions_count ?? ''); ?>" class="regular-text" min="1">
-                        <p class="description"></p>
+                        <p class="description">تعداد جلسات در بازه زمانی مشخص خود را وارد کنید - فقط عدد میتوانید وارد کنید.</p>
                     </td>
                 </tr>
 

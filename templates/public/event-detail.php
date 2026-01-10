@@ -134,6 +134,12 @@ if (function_exists('wc_price')) {
 } else {
     $formatted_price = number_format((float)$event->price, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
 }
+$price_free = number_format((float)$event->price, $decimal_places, $decimal_separator, $thousand_separator);
+               
+                if($price_free == 0 ){
+                    $formatted_price = 'رایگان';
+                }
+                
 ?>
 
 <div class="sc-event-detail-page">

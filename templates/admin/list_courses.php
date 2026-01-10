@@ -7,8 +7,8 @@ class Courses_List_Table extends WP_List_Table {
 
     public function get_columns() {
         return [
+           // 'row' => 'ردیف',
             'cb' => '<input type="checkbox" />',
-            'row' => 'ردیف',
             'title' => 'عنوان دوره',
             'id' => 'شناسه',
             'price' => 'قیمت',
@@ -21,13 +21,13 @@ class Courses_List_Table extends WP_List_Table {
         ];
     }
 
-    public function column_row($item) {
-        static $row_number = 0;
-        $page = $this->get_pagenum();
-        $per_page = 10;
-        $row_number++;
-        return (($page - 1) * $per_page) + $row_number;
-    }
+    // public function column_row($item) {
+    //     static $row_number = 0;
+    //     $page = $this->get_pagenum();
+    //     $per_page = 10;
+    //     $row_number++;
+    //     return (($page - 1) * $per_page) + $row_number;
+    // }
 
     public function column_title($item) {
         $title = $item['title'];

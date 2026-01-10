@@ -17,7 +17,7 @@ class Invoices_List_Table extends WP_List_Table {
     public function get_columns() {
         return [
             'cb' => '<input type="checkbox" />',
-            'row' => 'ردیف',
+           // 'row' => 'ردیف',
             'member_name' => 'نام و نام خانوادگی کاربر',
             'order_number' => 'سفارش',
             'status' => 'وضعیت',
@@ -28,13 +28,13 @@ class Invoices_List_Table extends WP_List_Table {
         ];
     }
 
-    public function column_row($item) {
-        static $row_number = 0;
-        $page = $this->get_pagenum();
-        $per_page = $this->get_items_per_page('invoices_per_page', 20);
-        $row_number++;
-        return (($page - 1) * $per_page) + $row_number;
-    }
+    // public function column_row($item) {
+    //     static $row_number = 0;
+    //     $page = $this->get_pagenum();
+    //     $per_page = $this->get_items_per_page('invoices_per_page', 20);
+    //     $row_number++;
+    //     return (($page - 1) * $per_page) + $row_number;
+    // }
 public function column_order_number($item) {
 
     // اگر سفارش ووکامرس وجود ندارد

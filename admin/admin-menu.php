@@ -1671,7 +1671,7 @@ function sc_sprot_notices(){
         }
         if($status == 'course_deleted'){
             $type='success';
-            $messege="دوره به زباله‌دان منتقل شد";
+            $messege="دوره انتخابی حذف شد.";
         }
         if($status == 'course_restored'){
             $type='success';
@@ -1679,7 +1679,7 @@ function sc_sprot_notices(){
         }
         if($status == 'course_bulk_deleted'){
             $type='success';
-            $messege="دوره‌های انتخابی به زباله‌دان منتقل شدند";
+            $messege="دوره‌های انتخابی حذف شدند";
         }
         if($status == 'courses_activated'){
             $type='success';
@@ -1721,6 +1721,14 @@ function sc_sprot_notices(){
         if($status == 'bulk_deleted_register' ){
             $type='success';
             $messege="فرد مورد نظر با موفقیت حذف شد.";
+        }
+        if($status == 'expense_add_true' ){
+            $type='success';
+            $messege="هزینه با موفقیت ثبت شد";
+        }
+        if($status == 'expense_add_error' ){
+            $type='success';
+            $messege="خطا در ثبت هزینه - فیلد های ورودی را چک کنید.";
         }
         
     }

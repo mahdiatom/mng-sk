@@ -31,7 +31,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
             <tbody>
                 <tr>
                     <th scope="row">
-                        <label for="member_id">انتخاب کاربر <span style="color:red;">*</span></label>
+                        <label for="member_id"> کاربر <span style="color:red;">*</span></label>
                     </th>
                     <td>
                         <div class="sc-searchable-dropdown">
@@ -113,6 +113,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                                        value="<?php echo esc_attr(isset($_POST['expense_name']) ? $_POST['expense_name'] : ''); ?>" 
                                        class="regular-text" 
                                        placeholder="مثلاً: هزینه ماهانه، هزینه تغذیه و..."
+                                       required
                                        >
                             </div>
                             <div >
@@ -123,13 +124,12 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                                        value="<?php echo $amount > 0 ? number_format($amount, 0, '.', ',') : ''; ?>" 
                                        class="regular-text" 
                                        placeholder="0"
-                                      
+                                      required
                                        dir="ltr"
                                        inputmode="numeric">
                                 <input type="hidden" name="amount_raw" id="amount_raw" value="<?php echo esc_attr($amount); ?>">
                             </div>
                         </div>
-                        <p class="description">در صورت تمایل می‌توانید هزینه اضافی با نام و مبلغ مشخص اضافه کنید.</p>
                     </td>
                 </tr>
 
