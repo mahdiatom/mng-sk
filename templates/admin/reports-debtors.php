@@ -104,7 +104,7 @@ $debtors = array_slice($debtors, $offset, $per_page);
   <form method="GET" action="" class="sc-filter-form">
     <input type="hidden" name="page" value="sc-reports-debtors">
 
-    <div class="sc-filter-row">
+    <div>
 
         <!-- کاربر -->
         <div class="sc-filter-field">

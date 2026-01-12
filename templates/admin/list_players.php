@@ -1,4 +1,5 @@
 <?php
+//این فایل پاپ اپ برای اطلاعات بازیکن است که در صفحه لیست اعضا در اکشن می
 global $title ,$player_list_table;
  $playerListTable = new Player_List_Table();
     $playerListTable->prepare_items();
@@ -29,7 +30,14 @@ global $title ,$player_list_table;
   <!-- Modal content -->
   <div class="modal-content">
     <span class="close">&times;</span>
-    <p class="sk-modal-content"></p>
+    <p class="sk-modal-content hide_before_data"></p>
+    <div class="sc-modal-body">
+            <div class="sc-modal-loading" style="text-align: center; padding: 40px;">
+                <div class="sc-spinner"></div>
+                <p>در حال بارگذاری...</p>
+            </div>
+
+  
   </div>
 
 </div>
@@ -61,7 +69,18 @@ jQuery(document).ready(function($) {
             alert('خطا: المان Modal پیدا نشد');
             return;
         }
+        let $loading = $modal.find('.sc-modal-loading');
+        let $usersList = $modal.find('.sc-modal-users-list');
         
+        $loading.show();
+        $usersList.hide().empty();
+        
+        $modal.css({
+            'display': 'flex',
+            'visibility': 'visible'
+        }).addClass('show-modal');
+
+
         var ajaxUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
         console.log('AJAX URL:', ajaxUrl);
         
@@ -74,8 +93,12 @@ jQuery(document).ready(function($) {
             },
             success: function(res){
                 console.log('AJAX Success Response:', res);
+                $loading.hide();
+                
                 if(res.success){
                     let p = res.data;
+                     $(".id_user").html(p.id);
+                     $(".hide_before_data").removeClass('hide_before_data');
                     $(".sk-modal-content").html(
                         '<p><strong>شناسه:</strong> ' + p.id + '</p>' +
                         '<p><strong>نام:</strong> ' + (p.first_name || '-') + '</p>' +
@@ -101,6 +124,7 @@ jQuery(document).ready(function($) {
                         (p.sport_insurance_photo ? '<p class="p_img"><strong>عکس بیمه ورزشی:</strong></p><img class="photo" src="' + p.sport_insurance_photo + '">' : '')
                     );
                     $('#myModal').fadeIn();
+                    
                 } else {
                     alert('خطا در دریافت اطلاعات بازیکن');
                 }
@@ -109,6 +133,7 @@ jQuery(document).ready(function($) {
                 console.error('AJAX Error:', status, error);
                 console.error('Response Text:', xhr.responseText);
                 console.error('Status Code:', xhr.status);
+                $loading.hide();
                 alert('خطا در دریافت اطلاعات بازیکن. لطفاً دوباره تلاش کنید.');
             }
         });
@@ -117,12 +142,16 @@ jQuery(document).ready(function($) {
     // ---------- بستن مدال ----------
     $(document).on('click', '.close', function(e){
         e.preventDefault();
+        $(".sk-modal-content ").addClass('hide_before_data');
         $('#myModal').fadeOut();
+        
     });
     
     $(window).on('click', function(e){
         if ($(e.target).is('#myModal')) {
+            $(".sk-modal-content").addClass('hide_before_data');
             $('#myModal').fadeOut();
+            
         }
     });
 });

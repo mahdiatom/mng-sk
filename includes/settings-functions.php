@@ -263,3 +263,9 @@ function sc_check_and_apply_penalties() {
     }
 }
 
+//افزودن متن به بخش ویرایش کاربر
+
+add_action('edit_user_profile', 'add_filed_help_for_panel_edit_user');
+function add_filed_help_for_panel_edit_user() {
+    echo "برای ویرایش کاربر باید بخش اعضا ->لیست اعضا مراجعه کنید.سپس  کاربر خودرا جستجو کرده و روی ویرایش کلیک کنید . <br>";
+}

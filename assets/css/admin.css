@@ -105,7 +105,7 @@ body {font-family: Arial, Helvetica, sans-serif;}
 
 /* Modal Content */
 .modal-content {
-    background-color: #f3ebff;
+    background-color: #ffffff;
     margin: auto;
     padding: 20px;
     border: 1px solid #888;
@@ -133,6 +133,9 @@ body {font-family: Arial, Helvetica, sans-serif;}
     display: flex;
     flex-wrap: wrap;
     column-gap: 45px;
+}
+.hide_before_data{
+    display: none !important;
 }
 p.sk-modal-content p {
     
@@ -497,6 +500,7 @@ p.sk-modal-content p {
     border: 1px solid #ddd;
     border-radius: 6px;
     padding: 20px;
+    margin-bottom: 10px;
 }
 
 /* === Grid Layout === */
@@ -616,10 +620,7 @@ input.persian-date-input{
 .wp-core-ui select{
     max-width: unset;
 }
-.sc-filter-row{
-        display: flex;
-    gap: 15px;
-}
+
 /* END for fillters - section invoice */
 .back_attendance_list{
     background: #fff;
@@ -652,9 +653,7 @@ tr td.column-full_name:hover{
 }
 
 @media screen and (max-width: 600px){
-        .wp-list-table .column-row {
-        display: none;
-    }
+      
     .wp-list-table tr th {
         text-align: right !important;
     }
@@ -663,7 +662,7 @@ tr td.column-full_name:hover{
     }
 .back_attendance_list{
 
-    overflow-x: scroll !important;
+    overflow-x: auto !important;
     
 }
 table.fixed {
@@ -862,6 +861,7 @@ tbody tr td{
     
 }
 
+
 .sc_form-table #filter_course{
     width: 100% !important;
 }
@@ -882,6 +882,9 @@ tbody tr td{
 }
 .form_fillter_attendance .sc-dropdown-toggle{
     height: 38px;
+}
+.sc_form-table{
+    display: table;
 }
 }
 
@@ -960,6 +963,9 @@ label[for="send_user_notification"] {
 #toplevel_page_sc-attendance-add ul .current{
     order: 1;
 }
+.toplevel_page_sc-members li.current{
+display: none !important;
+}
 /* دوره های بازیکن در ویرایش بازیکن */
 #sc-courses-content{
     display: none; border: 1px solid #ddd; border-top: none; padding: 20px; background: #fff; border-radius: 0 0 4px 4px;
@@ -1004,7 +1010,9 @@ margin: 0; display: inline-block;
     
 }
 
-
+.sc_setting_section input[type=number].small-text{
+width: fit-content !important;
+}
 @media (max-width: 990px) {
  
 .sc_form-table th{
@@ -1049,3 +1057,26 @@ margin: 0; display: inline-block;
     padding: 10px;
 
 }
+
+.sc-dashboard-stats{
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;
+}
+#incomeExpensesChart{
+    background: #fff;padding: 20px;border: 1px solid #ddd;border-radius: 4px;box-shadow: 0 1px 3px rgba(0,0,0,0.1);margin: 20px 0;
+}
+.incomeExpenses{
+    overflow: auto;
+}
+
+/* حذف اطلاعات اضافی در ویرایش سفارش ووکامرس */
+.order_data_column , #order_custom , #woocommerce-order-downloads , #woocommerce-order-source-data,
+.woocommerce_page_wc-orders tr .quantity,
+.woocommerce_page_wc-orders tr .item_cost,
+a.page-title-action,
+.woocommerce_page_wc-orders #actions{
+    display: none !important;
+}
+.order_data_column:nth-child(1){
+    display: unset !important;
+}
+

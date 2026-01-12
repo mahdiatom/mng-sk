@@ -337,7 +337,7 @@ if ($active_tab === 'categories') {
                 <p>هیچ هزینه‌ای یافت نشد.</p>
             </div>
         <?php else : ?>
-            <div clsass="back_attendance_list">
+            <div class="back_attendance_list">
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>

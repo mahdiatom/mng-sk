@@ -279,18 +279,21 @@ $is_update_mode = !empty($existing_attendances);
             <input type="hidden" name="attendance_date" id="attendance_date_hidden_form" value="<?php echo esc_attr($selected_date); ?>">
             <input type="hidden" name="attendance_date_shamsi" id="attendance_date_shamsi_form" value="<?php echo esc_attr($selected_date_shamsi); ?>">
             
-            <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px;">
+            <div class="back_attendance_list">
                 <h2 style="margin-top: 0;">
-                    ثبت حضور و غیاب - <?php echo esc_html($course->title); ?>
-                    <span style="font-size: 16px; font-weight: normal; color: #666;">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>
-                    <?php if ($is_update_mode): ?>
+                    لیست حضور و غیاب - 
+                    
+                    
+                    <?php echo esc_html($course->title); ?>
+                    <span style="font-size: 16px; font-weight: normal; color: #666;  margin-top: 10px;">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>
+                    
+                </h2>
+                <?php if ($is_update_mode): ?>
                         <span style="margin-right:10px;color:#d63638;font-weight:bold;">شما در حال بروزرسانی یک حضور و غیاب هستید.</span>
                     <?php else: ?>
                         <span style="margin-right:10px;color:#00a32a;font-weight:bold;">
 شما در حال ثبت یک حضور غیاب جدید هستید.                        </span>
                     <?php endif; ?>
-                </h2>
-                
                 <table class="wp-list-table widefat fixed striped" style="margin-top: 20px;">
                     <thead>
                         <tr>
@@ -298,7 +301,7 @@ $is_update_mode = !empty($existing_attendances);
                             <th>نام</th>
                             <th>نام خانوادگی</th>
                             <th>شناسه بازیکن</th>
-                            <th style="width: 200px;">وضعیت</th>
+                            <th>وضعیت</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -310,7 +313,7 @@ $is_update_mode = !empty($existing_attendances);
                                 <td><?php echo esc_html($member->first_name); ?></td>
                                 <td><?php echo esc_html($member->last_name); ?></td>
                                 <td><?php echo esc_html($member->id); ?></td>
-                                <td>
+                                <td style="display: flex; margin-top: 7px; ">
                                     <label style="display: inline-block; margin-left: 20px;">
                                         <input type="radio" 
                                                name="attendance[<?php echo esc_attr($member->id); ?>]" 

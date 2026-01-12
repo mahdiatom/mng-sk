@@ -31,6 +31,33 @@ $skill_level = '';
 
 // اگر اطلاعات قبلی وجود دارد
 if ($player) {
+
+     function sc_today_shamsi() {
+            $today = getdate(time());
+            $jalali = gregorian_to_jalali(
+                $today['year'],
+                $today['mon'],
+                $today['mday']
+            );
+
+            return $jalali[0] . '/' .
+                str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
+                str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+        }
+
+        if ($player) {
+    $birth_date_shamsi = $player->birth_date_shamsi ?? '';
+    $insurance_expiry_date_shamsi = $player->insurance_expiry_date_shamsi ?? '';
+        }
+        // === ست کردن تاریخ امروز مثل start_date رویداد ===
+
+        if (empty($birth_date_shamsi)) {
+            $birth_date_shamsi = sc_today_shamsi();
+        }
+
+        if (empty($insurance_expiry_date_shamsi)) {
+            $insurance_expiry_date_shamsi = sc_today_shamsi();
+        }
     $player_id = $player->id ?? '';
     $first_name = $player->first_name ?? '';
     $last_name = $player->last_name ?? '';
@@ -40,9 +67,19 @@ if ($player) {
     $father_phone = $player->father_phone ?? '';
     $mother_phone = $player->mother_phone ?? '';
     $landline_phone = $player->landline_phone ?? '';
-    $birth_date_shamsi = $player->birth_date_shamsi ?? '';
+        
+    if (empty($birth_date_shamsi)) {
+            $today = new DateTime();
+            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+            $birth_date_shamsi = $today_jalali[0] . '/' . 
+                               str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                               str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+        }
     $birth_date_gregorian = $player->birth_date_gregorian ?? '';
-    $insurance_expiry_date_shamsi = $player->insurance_expiry_date_shamsi ?? '';
+    //$insurance_expiry_date_shamsi = $player->insurance_expiry_date_shamsi ?? '';
+    if (empty($insurance_expiry_date_shamsi)) {
+            $insurance_expiry_date_shamsi = sc_today_shamsi();
+        }
     $personal_photo = $player->personal_photo ?? '';
     $id_card_photo = $player->id_card_photo ?? '';
     $sport_insurance_photo = $player->sport_insurance_photo ?? '';
@@ -53,6 +90,8 @@ if ($player) {
     $info_verified = $player->info_verified;
     $is_active = $player->is_active;
     $skill_level = $player->skill_level ?? '';
+    
+       
 }
 
 // دریافت اطلاعات کاربر از ووکامرس
@@ -124,7 +163,13 @@ if (empty($player_phone) && $billing_phone) {
                 <label for="birth_date_shamsi">تاریخ تولد (شمسی)</label>
                 <input type="text" name="birth_date_shamsi" id="birth_date_shamsi" value="<?php echo esc_attr($birth_date_shamsi); ?>" class="persian-date-input" placeholder="مثلاً 1400/02/15" readonly>
             </p>
-            
+             <!-- <tr>
+                    <th scope="row"><label for="birth_date_shamsi">تاریخ تولد (شمسی)</label></th>
+                    <td>
+                        <input name="birth_date_shamsi" type="text" id="birth_date_shamsi" value="<?php //echo esc_attr($birth_date_shamsi); ?>" class="regular-text persian-date-input" placeholder="مثلاً 1400/02/15" readonly>
+                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+                    </td>
+                </tr> -->
             <p class="form-row form-row-last">
                 <label for="birth_date_gregorian">تاریخ تولد (میلادی)</label>
                 <span style="font-size: 12px;">تاریخ تولد میلادی شما به صورت اتوماتیک توسط سیستم از تاریخ تولد شمسی شما تبدیل می شود  </span><br>
@@ -135,9 +180,13 @@ if (empty($player_phone) && $billing_phone) {
             <p class="form-row form-row-first">
                 <label for="insurance_expiry_date_shamsi">تاریخ انقضا بیمه (شمسی)</label>
                 <input type="text" name="insurance_expiry_date_shamsi" id="insurance_expiry_date_shamsi" value="<?php echo esc_attr($insurance_expiry_date_shamsi); ?>" class="persian-date-input" placeholder="مثلاً 1403/12/29" readonly>
-                <input type="hidden" name="insurance_expiry_date_gregorian" id="insurance_expiry_date_gregorian" value="">
+                
     
             </p>
+
+            
+
+
         </div>
         
         <div class="sc-form-section">

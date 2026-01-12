@@ -280,10 +280,10 @@ foreach ($months as $month_start) {
     </form>
     
     <!-- کارت‌های خلاصه -->
-    <div class="sc-dashboard-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
+    <div class="sc-dashboard-stats">
         <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <h3 style="margin: 0 0 10px 0; color: #666;">کل درآمد</h3>
-            <div style="font-size: 36px; font-weight: bold; color: #00a32a;">
+            <div style="font-size: 24px; font-weight: bold; color: #00a32a;">
                 <?php echo number_format($total_income, 0, '.', ','); ?> تومان
             </div>
             <div style="margin-top: 10px; font-size: 14px; color: <?php echo $income_change >= 0 ? '#00a32a' : '#d63638'; ?>;">
@@ -299,7 +299,7 @@ foreach ($months as $month_start) {
         
         <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <h3 style="margin: 0 0 10px 0; color: #666;">کل هزینه‌ها</h3>
-            <div style="font-size: 36px; font-weight: bold; color: #d63638;">
+            <div style="font-size: 24px; font-weight: bold; color: #d63638;">
                 <?php echo number_format($total_expenses, 0, '.', ','); ?> تومان
             </div>
             <div style="margin-top: 10px; font-size: 14px; color: <?php echo $expenses_change >= 0 ? '#d63638' : '#00a32a'; ?>;">
@@ -315,7 +315,7 @@ foreach ($months as $month_start) {
         
         <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <h3 style="margin: 0 0 10px 0; color: #666;">سود نهایی</h3>
-            <div style="font-size: 36px; font-weight: bold; color: <?php echo $profit >= 0 ? '#00a32a' : '#d63638'; ?>;">
+            <div style="font-size: 24px; font-weight: bold; color: <?php echo $profit >= 0 ? '#00a32a' : '#d63638'; ?>;">
                 <?php echo number_format($profit, 0, '.', ','); ?> تومان
             </div>
             <div style="margin-top: 10px; font-size: 14px; color: <?php echo $profit_change >= 0 ? '#00a32a' : '#d63638'; ?>;">
@@ -331,14 +331,14 @@ foreach ($months as $month_start) {
         
         <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <h3 style="margin: 0 0 10px 0; color: #666;">تعداد صورتحساب‌های پرداخت شده</h3>
-            <div style="font-size: 36px; font-weight: bold; color: #2271b1;">
+            <div style="font-size: 24px; font-weight: bold; color: #2271b1;">
                 <?php echo $paid_invoices_count; ?>
             </div>
         </div>
     </div>
     
     <!-- نمودار میله‌ای -->
-    <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin: 20px 0;">
+    <div class="incomeExpenses">
         <h2>نمودار درآمد و هزینه‌ها (6 ماه آخر)</h2>
         <canvas id="incomeExpensesChart" style="max-height: 400px;"></canvas>
     </div>
