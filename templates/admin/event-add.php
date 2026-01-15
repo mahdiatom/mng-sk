@@ -141,7 +141,7 @@ if ($event && isset($_GET['event_id'])) {
 
 
                 <tr>
-                    <th scope="row"><label for="start_date_shamsi">تاریخ شروع (شمسی)</label></th>
+                    <th scope="row"><label for="start_date_shamsi">تاریخ شروع ثبت نام (شمسی)</label></th>
                     <td>
                         <?php
                         $start_date_shamsi = '';
@@ -168,7 +168,7 @@ if ($event && isset($_GET['event_id'])) {
                 </tr>
 
                 <tr>
-                    <th scope="row"><label for="end_date_shamsi">تاریخ پایان (شمسی)</label></th>
+                    <th scope="row"><label for="end_date_shamsi">تاریخ پایان ثبت نام (شمسی)</label></th>
                     <td>
                         <?php
                         $end_date_shamsi = '';
@@ -312,6 +312,9 @@ if ($event && isset($_GET['event_id'])) {
                             برای دریافت مختصات، به 
                             <a href="https://www.google.com/maps" target="_blank">Google Maps</a> 
                             بروید، روی مکان مورد نظر کلیک راست کنید و "مختصات" را انتخاب کنید.
+                        </p>
+                        <p class="description">
+                            هر نقطه روی نقشه یک مختصات دارد در هر برنامه نقشه می توانید مختصات مکان مورد نظر خود را پیدا کنید دو پارامتر دارد و اغلب به صورت (x,y) نمایش داده می شود.مقدار x برابر عرض جغرافیایی و مقدار y برابر طول جغرافیایی می باشد. 
                         </p>
                         <?php if (!empty($event_location_lat) && !empty($event_location_lng)) : ?>
                             <div id="map_preview" style="margin-top: 15px; width: 100%; height: 300px; border: 1px solid #ddd; border-radius: 4px;">

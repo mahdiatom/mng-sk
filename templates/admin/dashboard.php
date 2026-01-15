@@ -45,40 +45,40 @@ for ($i = 5; $i >= 0; $i--) {
 }
 ?>
 <div class="wrap">
-    <h1>داشبورد SportClub Manager</h1>
+    <h1>داشبورد مدیریت باشگاه ورزشی</h1>
     
-    <div class="sc-dashboard-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
-        <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="margin: 0 0 10px 0; color: #666;">کل بازیکنان</h3>
-            <div style="font-size: 36px; font-weight: bold; color: #2271b1;"><?php echo $total_members; ?></div>
+    <div class="sc-dashboard-stats">
+        <div class="sc-stat-box">
+            <h3>کل بازیکنان</h3>
+            <div><?php echo $total_members; ?></div>
         </div>
         
-        <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="margin: 0 0 10px 0; color: #666;">بازیکنان فعال</h3>
+        <div class="sc-stat-box" >
+            <h3>بازیکنان فعال</h3>
             <div style="font-size: 36px; font-weight: bold; color: #00a32a;"><?php echo $active_members; ?></div>
         </div>
         
-        <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="margin: 0 0 10px 0; color: #666;">بازیکنان غیرفعال</h3>
-            <div style="font-size: 36px; font-weight: bold; color: #d63638;"><?php echo $inactive_members; ?></div>
+        <div class="sc-stat-box" >
+            <h3 >بازیکنان غیرفعال</h3>
+            <div><?php echo $inactive_members; ?></div>
         </div>
         
-        <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="margin: 0 0 10px 0; color: #666;">دوره‌های فعال</h3>
-            <div style="font-size: 36px; font-weight: bold; color: #2271b1;"><?php echo $active_courses; ?></div>
+        <div class="sc-stat-box">
+            <h3>دوره‌های فعال</h3>
+            <div><?php echo $active_courses; ?></div>
         </div>
         
     </div>
     
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
-        <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <div class="chart_dashboard">
+        <div class="chart_courses_users_dashboard sc_chart">
             <h2>بازیکنان بر اساس دوره</h2>
-            <canvas id="courseChart" style="max-height: 300px;"></canvas>
+            <canvas id="courseChart" ></canvas>
         </div>
         
-        <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="new_users sc_chart ">
             <h2>بازیکنان جدید (6 ماه گذشته)</h2>
-            <canvas id="monthlyChart" style="max-height: 300px;"></canvas>
+            <canvas id="monthlyChart" ></canvas>
         </div>
     </div>
 </div>

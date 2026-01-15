@@ -7,8 +7,9 @@ global $title ,$player_list_table;
             ?>
             <div class="wrap">
             <h1 class="wp-heading-inline">لیست بازیکن ها</h1>
-            <a href="<?php echo admin_url('admin.php?page=sc-add-member'); ?>" class="page-title-action">افزودن بازیکن</a>
-            </div>
+            <a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action">افزودن بازیکن</a>
+            <p>برای  مشاهده اکشن ها روی نام کاربر بروید سپس با توجه به نیاز خود اکشن خود را انتخاب کنید (اکشن های موجود : حذف کاربر - مشاهده اطلاعات کاربر - ویرایش کاربر)</p>    
+        </div>
             <?php
             echo '<div class="wrap">';
                 echo '<form  Method="get" >';
@@ -31,6 +32,7 @@ global $title ,$player_list_table;
   <div class="modal-content">
     <span class="close">&times;</span>
     <p class="sk-modal-content hide_before_data"></p>
+    <p class="sk-modal-content_courses hide_before_data_courses"></p>
     <div class="sc-modal-body">
             <div class="sc-modal-loading" style="text-align: center; padding: 40px;">
                 <div class="sc-spinner"></div>
@@ -70,10 +72,10 @@ jQuery(document).ready(function($) {
             return;
         }
         let $loading = $modal.find('.sc-modal-loading');
-        let $usersList = $modal.find('.sc-modal-users-list');
+        let $CourseList = $modal.find('.sc-modal-users-list');
         
         $loading.show();
-        $usersList.hide().empty();
+        $CourseList.hide().empty();
         
         $modal.css({
             'display': 'flex',
@@ -97,7 +99,6 @@ jQuery(document).ready(function($) {
                 
                 if(res.success){
                     let p = res.data;
-                     $(".id_user").html(p.id);
                      $(".hide_before_data").removeClass('hide_before_data');
                     $(".sk-modal-content").html(
                         '<p><strong>شناسه:</strong> ' + p.id + '</p>' +
@@ -155,6 +156,110 @@ jQuery(document).ready(function($) {
         }
     });
 });
+
+
+//برای دوره های بازیکن 
+
+jQuery(document).ready(function($) {
+    console.log('Player modal JS loaded');
+    
+    // ---------- نمایش پاپ آپ اطلاعات بازیکن ----------
+    $(document).on('click', '.view-player', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('View player clicked');
+        
+        let playerId = $(this).data('id');
+        console.log('Player ID:', playerId);
+        
+        if (!playerId) {
+            console.error('Player ID not found');
+            alert('خطا: شناسه بازیکن پیدا نشد');
+            return;
+        }
+        
+        let $modal = $('#myModal');
+        console.log('Modal found:', $modal.length);
+        
+        if (!$modal.length) {
+            console.error('Modal not found');
+            alert('خطا: المان Modal پیدا نشد');
+            return;
+        }
+       
+      
+
+        var ajaxUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
+        console.log('AJAX URL:', ajaxUrl);
+        
+        $.ajax({
+            url: ajaxUrl,
+            type: 'post',
+            data: {
+                action: 'get_player_details_courses',
+                id: playerId
+            },
+            success: function(res){
+                console.log('AJAX Success Response:', res);
+            
+                
+               if(res.success && res.data){
+                    let courses = res.data || [];
+                    let $modal = $('#myModal');
+                    let $CourseList = $modal.find('.sk-modal-content_courses');
+                    if(courses.length > 0){
+                         $(".sk-modal-content_courses").removeClass('hide_before_data_courses');
+                        let p = res.data;
+                        console.log(p);
+                    let html = '<div class="CourseList" >';    
+                    
+                    
+                    html +=  '<div class="sc-users-summary" style="margin-bottom: 20px; padding: 15px; background-color: #f0f6fc; border-radius: 4px;"><h4>دوره های فعال بازیکن : </h4>' ;     
+                    $.each(p, function(index=0, user){
+                          html +=  '<p>' + p[index].title +'</p>' ;     
+                        
+                        
+         
+                         });
+
+                         html += '</tbody></table></div>';
+                         $CourseList.html(html).fadeIn(300);
+                    } else {
+                        let errorMsg = res.data.message || 'هیچ کاربر فعالی در این دوره یافت نشد.';
+                        $CourseList.html('<p style="text-align: center; padding: 40px; color: #666;">' + errorMsg + '</p>').fadeIn(300);
+                    }
+                } else {
+                    $CourseList.html('<p style="text-align: center; padding: 40px; color: #666;">خطا در دریافت اطلاعات. لطفاً دوباره تلاش کنید.</p>').fadeIn(300);
+                }
+            },
+            error: function(xhr, status, error){
+                console.error('AJAX Error:', status, error);
+                console.error('Response Text:', xhr.responseText);
+                console.error('Status Code:', xhr.status);
+                alert('خطا در دریافت اطلاعات بازیکن. لطفاً دوباره تلاش کنید.');
+            }
+        });
+    });
+
+    // ---------- بستن مدال ----------
+    $(document).on('click', '.close', function(e){
+        e.preventDefault();
+        $(".sk-modal-content_courses").addClass('hide_before_data_courses');
+        $('#myModal').fadeOut();
+        
+    });
+    
+    $(window).on('click', function(e){
+        if ($(e.target).is('#myModal')) {
+            $(".sk-modal-content_courses").addClass('hide_before_data_courses');
+            $('#myModal').fadeOut();
+            
+        }
+    });
+    
+});
+
+
 </script>
 
     <?php

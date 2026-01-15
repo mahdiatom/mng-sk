@@ -31,7 +31,8 @@ class Player_List_Table extends WP_List_Table {
 
 //     return (($page - 1) * $per_page) + $row_number;
 // }
-    public function column_full_name($item) {
+
+public function column_full_name($item) {
         $full_name = $item['first_name'] . ' ' . $item['last_name'];
         
         // نمایش دوره‌های بازیکن

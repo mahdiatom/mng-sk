@@ -294,21 +294,7 @@ function add_html_before_account_nav() {
                             </div>
                         </div>
                         
-                        <!-- بدهکاری -->
-                        <div class="sc-info-card" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #f0a000;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <span style="font-size: 24px;">💰</span>
-                                <strong style="font-size: 14px; color: #666;">بدهکاری شما</strong>
-                            </div>
-                            <div style="font-size: 28px; font-weight: bold; color: #856404;">
-                                <?php echo number_format($total_debt, 0, '.', ','); ?> تومان
-                            </div>
-                            <?php if ($debt_count > 0) : ?>
-                                <div style="font-size: 12px; color: #856404; margin-top: 5px;">
-                                    (<?php echo esc_html($debt_count); ?> صورت حساب)
-                                </div>
-                            <?php endif; ?>
-                        </div>
+                       
                         
                         <!-- رویدادهای ثبت‌نام شده -->
                         <div class="sc-info-card" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #00a32a;">
@@ -336,11 +322,7 @@ function add_html_before_account_nav() {
                                 </div>
                             <?php endif; ?>
                         </div>
-                    </div>
-                </div>  
-                <div class="sc-visible-section" style="display: block; margin-top: 10px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-
+                        
                         <!-- سطح شما -->
                         <div class="sc-info-card" style="background: linear-gradient(135deg, #fff5e6 0%, #ffe8cc 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #ff9800;">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
@@ -350,37 +332,12 @@ function add_html_before_account_nav() {
                             <div style="font-size: 20px; font-weight: bold; color: #e65100;">
                                 <?php echo esc_html($skill_level); ?>
                             </div>
-                        </div>                  
-                        <!-- نام کاربری -->
-                        <div class="sc-info-card" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #9c27b0;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <span style="font-size: 24px;">👤</span>
-                                <strong style="font-size: 14px; color: #666;">نام کاربری</strong>
-                            </div>
-                            <div style="font-size: 18px; font-weight: bold; color: #6a1b9a; word-break: break-all; direction: ltr; text-align: center;">
-                                <?php echo esc_html($user_login); ?>
-                            </div>
-                        </div>
-                        <div class="sc-info-card" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #9c27b0;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <span style="font-size: 24px;">👤</span>
-                                <strong style="font-size: 14px; color: #666;">نام کاربری</strong>
-                            </div>
-                            <div style="font-size: 18px; font-weight: bold; color: #6a1b9a; word-break: break-all; direction: ltr; text-align: center;">
-                                <?php echo esc_html($user_login); ?>
-                            </div>
-                        </div>
-                        <div class="sc-info-card" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #9c27b0;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <span style="font-size: 24px;">👤</span>
-                                <strong style="font-size: 14px; color: #666;">نام کاربری</strong>
-                            </div>
-                            <div style="font-size: 18px; font-weight: bold; color: #6a1b9a; word-break: break-all; direction: ltr; text-align: center;">
-                                <?php echo esc_html($user_login); ?>
-                            </div>
-                        </div>
+                        </div> 
+                </div> 
                     </div>
-                    </div>
+                 
+ 
+                
                     <!-- اطلاعات تکمیلی -->
 
                     
@@ -2628,7 +2585,7 @@ if ((float) $event->price <= 0) {
     do_action('sc_free_event_registered', $event_id, $player->id);
 
    // wc_add_notice('ثبت‌نام شما در رویداد با موفقیت انجام شد.', 'success');
-    wp_safe_redirect(wc_get_account_endpoint_url('sc-event-success'));
+    wp_safe_redirect(wc_get_account_endpoint_url("sc-event-success?event_id=$event_id&player_id=$player->id"));
 exit;
 
     exit;
@@ -2674,15 +2631,121 @@ exit;
 
 add_action('woocommerce_account_sc-event-success_endpoint', function () {
     ?>
-    <div class="sc-event-success-page form-row" >
-        <h2>🎉 ثبت‌نام شما با موفقیت انجام شد</h2>
-        <p>ثبت‌نام شما در رویداد با موفقیت انجام شد.</p>
+    
+<?php
+        if (isset($_GET['event_id'])) {
+        $event_id =  $_GET['event_id']; 
+        $player_id =  $_GET['player_id']; 
+        global $wpdb;
+        $event_table = $wpdb->prefix . 'sc_events';
+        $query = "SELECT * FROM $event_table WHERE id=$event_id";
+        $event = $wpdb->get_row($query );
 
-        <a class="button" href="<?php echo esc_url(wc_get_account_endpoint_url('sc-events')); ?>" class="button">
-            بازگشت به لیست رویدادها
-</a>
+        $name = $event->name ?? '';
+        $event_type = $event->event_type ?? 'event';
+        if($event_type =="competition"){
+           $event_type ="مسابقه";
+        }else{
+            $event_type = "رویداد"; 
+        }
+        $description = $event->description ?? '';
+
+        $holding_date = $event->holding_date_gregorian ?? '';
+        $holding_date_shamsi = $event->holding_date_shamsi ?? '';
+        $image = $event->image ?? './assets/img/no-image.jpg';
+        $event_time = $event->event_time ?? '';
+        
+        $event_location = $event->event_location ?? '';
+        $event_location_address = $event->event_location_address ?? '';
+        $event_location_lat = $event->event_location_lat ?? '';
+        $event_location_lng = $event->event_location_lng ?? '';
+
+            
+        ?>
+        <div class="sc-event-success-page form-row" >
+        <h2>🎉 ثبت‌نام شما در <strong><?php echo $name; ?> </strong> با موفقیت انجام شد.</h2>
+      </div>  
+        <div class="sc-event-detail-section">
+            <h3>اطلاعات رویداد ثبت نامی شما :</h3>
+            <p>باتشکر از شرکت در این رویداد اطلاعات زیر را به خاطر داشته باشید متنظر قدم سرسبزتان هستیم.</p>
+        </div>
+        
+        <div class="info_event_register">
+             <div class="info_box_1">
+            
+                <div class="details_event sc-event-detail-section">
+                    <div class="head">
+                    <h3><?php echo $name; ?></h3>
+                    </div>
+
+            <div class="sc-event-detail-meta-grid">
+                    <div class="sc-event-detail-meta-item">
+                    <span class="sc-event-meta-icon">📅</span>
+                    <div>
+                        <strong>تاریخ </strong>
+                        <p><?php echo $holding_date_shamsi; ?></p>
+                    </div>
+                </div>
+                <div class="sc-event-detail-meta-item">
+                    <span class="sc-event-meta-icon">🕐</span>
+                    <div>
+                        <strong>زمان </strong>
+                        <p><?php echo $event_time; ?></p>
+                    </div>
+                </div>
+                <div class="sc-event-detail-meta-item">
+                    <span class="sc-event-meta-icon">📍</span>
+                    <div>
+                        <strong>مکان </strong>
+                        <p><?php echo $event_location; ?></p>
+                    </div>
+                </div>
+            </div>
+                <div class="info_box_2 sc-event-detail-section">
+                    <h3> توضیحات  :</h3>
+                    <p>
+                    <?php echo $description; ?>
+                    </p>
+                </div>
+            
+             <div class="info_box_3 sc-event-detail-section">
+
+                <div class="address_info"><h3>آدرس دقیق :</h3>
+                <p><?php echo $event_location_address; ?>
+                </p>
+            </div>
+
+                <div class="loc_map ">
+            <?php if (!empty($event->event_location_lat) && !empty($event->event_location_lng)) : ?>
+                <div class="sc-event-detail-section">
+                    <h3>لوکیشن محل برگزاری : </h3>
+                    <div class="sc-event-map">
+                        <iframe
+                            width="100%"
+                            height="400"
+                            frameborder="0"
+                            style="border:0; border-radius: 8px;"
+                            src="https://www.google.com/maps?q=<?php echo esc_attr($event_location_lat); ?>,<?php echo esc_attr($event_location_lng); ?>&output=embed"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+            <?php endif; ?>        
+            </div>
+             </div>
+        </div>
+            
+
+
     </div>
     <?php
+
+
+}
+
+    
+    
+
 });
 
 

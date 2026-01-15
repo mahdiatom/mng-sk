@@ -134,7 +134,7 @@ body {font-family: Arial, Helvetica, sans-serif;}
     flex-wrap: wrap;
     column-gap: 45px;
 }
-.hide_before_data{
+.hide_before_data , .hide_before_data_courses{
     display: none !important;
 }
 p.sk-modal-content p {
@@ -963,9 +963,7 @@ label[for="send_user_notification"] {
 #toplevel_page_sc-attendance-add ul .current{
     order: 1;
 }
-.toplevel_page_sc-members li.current{
-display: none !important;
-}
+
 /* دوره های بازیکن در ویرایش بازیکن */
 #sc-courses-content{
     display: none; border: 1px solid #ddd; border-top: none; padding: 20px; background: #fff; border-radius: 0 0 4px 4px;
@@ -1061,18 +1059,54 @@ width: fit-content !important;
 .sc-dashboard-stats{
     display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;
 }
+.sc-stat-box{
+    background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.sc-stat-box h3{
+    margin: 0 0 20px 0; color: #666;
+    font-size: 16px;
+    
+}
+.sc-dashboard-stats div{
+font-size: 36px; font-weight: bold; color: #d63638;
+}
+.chart_dashboard{
+    display: flex;
+    gap: 10px;
+}
 #incomeExpensesChart{
     background: #fff;padding: 20px;border: 1px solid #ddd;border-radius: 4px;box-shadow: 0 1px 3px rgba(0,0,0,0.1);margin: 20px 0;
+    width: 96%;
+}
+.sc_chart{
+background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+width: 50%;
+}
+.sc_chart #ourseChart , .sc_chart #monthlyChart{
+max-height: 300px;
 }
 .incomeExpenses{
     overflow: auto;
+}
+@media (max-width: 780px) {
+.chart_dashboard{
+        flex-direction: column;
+}
+.sc_chart{
+    width: 100%;
+    padding: unset;
+
+}
+.sc_chart h2{
+    padding-right: 10px;
+}
+
 }
 
 /* حذف اطلاعات اضافی در ویرایش سفارش ووکامرس */
 .order_data_column , #order_custom , #woocommerce-order-downloads , #woocommerce-order-source-data,
 .woocommerce_page_wc-orders tr .quantity,
 .woocommerce_page_wc-orders tr .item_cost,
-a.page-title-action,
 .woocommerce_page_wc-orders #actions{
     display: none !important;
 }

@@ -99,7 +99,7 @@ if($player && $_GET['player_id'] ){
     <?php 
         if(isset($_GET['player_id'])){
             ?>
-            <a href="<?php echo admin_url('admin.php?page=sc-add-member'); ?>" class="page-title-action">افزودن بازیکن جدید</a>
+            <a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action">افزودن بازیکن جدید</a>
             <?php 
 
         }
@@ -430,6 +430,7 @@ if($player && $_GET['player_id'] ){
                         echo '</div>';
                     }
                     echo '</div>';
+                    echo '<br><strong style="margin-top:10px;">راهنما دوره های بازیکن : <br></strong>';
                     echo '<p class="description" style="margin-top: 10px;">بازیکن می‌تواند در چند دوره شرکت کند. تیک اول دوره را فعال/غیرفعال می‌کند و تیک‌های دیگر وضعیت‌های اضافی هستند. - در صورت انتخاب وضعیت های اضافی صورت حساب برای آن دوره ایجاد نخواهد شد.</p>';
                     echo '<p class="description" style="margin-top: 10px;"> دوره فعال برای بازیکن به این معنا است که بازیکن در کلاس ها حاضر است و برای بازیکن به صورت ماهیانه صورتحساب ایجاد می شود.</p>';
                     // JavaScript برای فعال/غیرفعال کردن checkbox های وضعیت

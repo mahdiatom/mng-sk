@@ -364,5 +364,36 @@ class Courses_List_Table extends WP_List_Table {
         $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
         $this->items = $results;
     }
+
+     public function extra_tablenav($which) {
+        if ($which == 'top') {
+            global $wpdb;
+            $courses_table = $wpdb->prefix . 'sc_courses';
+            $courses = $wpdb->get_results(
+                "SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
+            );
+            
+            $selected_status = isset($_GET['course_status']) ? sanitize_text_field($_GET['course_status']) : 'all';
+            
+            echo '<div class="alignleft actions">';
+            
+           
+            // فیلتر وضعیت (active/inactive)
+            echo '<select name="course_status" id="course_status" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
+            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
+            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
+            echo '</select>';
+         
+            
+            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            
+          
+
+                echo '</div>';
+        }
+    }
 }
+
+
 

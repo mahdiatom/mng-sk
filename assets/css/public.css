@@ -3041,3 +3041,44 @@ padding: 15px !important;
 #payment {
         background: rgb(109 52 255 / 13%) !important;
 }
+/* اطلاعات رویدداد ثبت نامی رایگان کاربر  */
+.info_box_1{
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    
+}
+.details_event{
+    width: 100%;
+}
+.details_event .head{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+.details_event .head h3{
+        font-size: 36px;
+}
+
+.info_box_1 img{
+    width: 400px;
+    height: 300px !important;
+    border-radius: 10px;
+    border: 1px solid #000;
+}
+
+.info_box_3{
+    margin-top: 20px;
+}
+.loc_map{
+    margin-top: 30px;
+    border-top: 1px solid #e5e5e5;
+    
+}
+.loc_map h3{
+    padding-top: 30px;
+}
+.sc-event-success-page strong{
+    color: #6d34ff;
+}

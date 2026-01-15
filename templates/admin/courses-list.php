@@ -1,4 +1,5 @@
 <?php
+//این فایل برای نمایش پاپ اپ است در صفحه لیست دوره ها
 global $courses_list_table;
 ?>
 <div class="wrap">

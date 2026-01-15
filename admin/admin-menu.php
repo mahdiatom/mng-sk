@@ -56,14 +56,7 @@ function sc_register_admin_menu() {
         'sc-add-member',
         'sc_admin_add_member_page'
     );
-    add_submenu_page(
-        'sc-members',
-        'افزودن عضو',
-        'افزودن عضو',
-        'manage_options',
-        'user-new.php',
-        ''
-    );
+
 
       // Attendance - Add
     add_menu_page(
@@ -1751,32 +1744,37 @@ function sc_sprot_notices(){
         }
 
 }
-// add_action('test','testme');
-// function testme(){
+add_action('wp_ajax_get_player_details_courses','get_player_details_courses');
+function get_player_details_courses(){
 
-//         $id = 141;
-//         global $wpdb;
-//         $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-//         $courses_table = $wpdb->prefix . 'sc_courses';
+        $id = intval($_POST['id']);
+        global $wpdb;
+        $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+        $courses_table = $wpdb->prefix . 'sc_courses';
 
-//         $courses = $wpdb->get_results($wpdb->prepare(
-//             "SELECT c.title 
-//             FROM $courses_table c
-//             INNER JOIN $member_courses_table mc ON c.id = mc.course_id
-//             WHERE mc.member_id = %d
-//             AND mc.status = 'active'
-//             AND (mc.course_status_flags IS NULL 
-//                     OR (mc.course_status_flags NOT LIKE '%canceled%' 
-//                         AND mc.course_status_flags NOT LIKE '%paused%' 
-//                         AND mc.course_status_flags NOT LIKE '%completed%'))
-//             AND c.deleted_at IS NULL
-//             LIMIT 3",
-//             $id
-//         ));
-//         foreach ($courses as $key => $course) {
-//             echo $course->title . ' - ';
-//         }
-// }
+        $courses = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.title 
+            FROM $courses_table c
+            INNER JOIN $member_courses_table mc ON c.id = mc.course_id
+            WHERE mc.member_id = %d
+            AND mc.status = 'active'
+            AND (mc.course_status_flags IS NULL 
+                    OR (mc.course_status_flags NOT LIKE '%canceled%' 
+                        AND mc.course_status_flags NOT LIKE '%paused%' 
+                        AND mc.course_status_flags NOT LIKE '%completed%'))
+            AND c.deleted_at IS NULL
+            LIMIT 30",
+            $id
+        ));
+
+         if(!$courses) {
+        echo "بازیکن یافت نشد.";
+        wp_die();
+    }
+     wp_send_json_success($courses);
+    
+      
+}
 
 
 add_action('wp_ajax_get_player_details', 'get_player_details');

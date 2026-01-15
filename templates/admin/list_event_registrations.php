@@ -25,25 +25,22 @@ $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_te
 $filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
 $filter_free = isset($_GET['filter_free']) ? absint($_GET['filter_free']) : 0;
 
-// اگر تاریخ خالی بود، تاریخ امروز را قرار بده
-if (empty($filter_date_from) && empty($filter_date_to)) {
-    $today_gregorian = current_time('Y-m-d');
-    $today = new DateTime($today_gregorian);
-    $jalali = gregorian_to_jalali(
-        (int)$today->format('Y'),
-        (int)$today->format('m'),
-        (int)$today->format('d')
-    );
-    $today_shamsi = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+// // اگر تاریخ خالی بود، تاریخ امروز را قرار بده
+// if (empty($filter_date_from) && empty($filter_date_to)) {
+//     $today_gregorian = current_time('Y-m-d');
+//     $today = new DateTime($today_gregorian);
+//     $jalali = gregorian_to_jalali(
+//         (int)$today->format('Y'),
+//         (int)$today->format('m'),
+//         (int)$today->format('d')
+//     );
+//     $today_shamsi = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
 
-    $filter_date_from        = $today_gregorian;
-    $filter_date_to          = $today_gregorian;
-    $filter_date_from_shamsi = $today_shamsi;
-    $filter_date_to_shamsi   = $today_shamsi;
-}
-//حذف ثبت نامی رویداد
-// بررسی حذف
-// حذف ثبت نامی رویداد
+//     $filter_date_from        = $today_gregorian;
+//     $filter_date_to          = $today_gregorian;
+//     $filter_date_from_shamsi = $today_shamsi;
+//     $filter_date_to_shamsi   = $today_shamsi;
+// }
 
 // حذف ثبت‌نامی رویداد
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['registration_id'])) {
@@ -238,6 +235,7 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
 
 <div class="wrap">
     <h1 class="wp-heading-inline">ثبت‌نامی‌های رویداد</h1>
+    <p class="">برای مشاهده درست حتما بازه تاریخی را در ابتدا وارد کنید.</p>
 </div>
 
 <!-- فیلترها -->
@@ -384,26 +382,34 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
     <label class="sc-filter-label">بازه تاریخ ثبت‌نام</label>
 
     <?php
-    $filter_date_from        = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
-    $filter_date_to          = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
-    $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
-    $filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+$filter_date_from        = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
+$filter_date_to          = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
+$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
 
-    if (empty($filter_date_from) && empty($filter_date_to)) {
-        $today_gregorian = current_time('Y-m-d');
-        $today = new DateTime($today_gregorian);
-        $jalali = gregorian_to_jalali(
-            (int)$today->format('Y'),
-            (int)$today->format('m'),
-            (int)$today->format('d')
-        );
-        $today_shamsi = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+if (empty($filter_date_from) && empty($filter_date_to)) {
 
-        $filter_date_from        = $today_gregorian;
-        $filter_date_to          = $today_gregorian;
-        $filter_date_from_shamsi = $today_shamsi;
-        $filter_date_to_shamsi   = $today_shamsi;
-    }
+    $today_gregorian = current_time('Y-m-d');
+
+    $today = new DateTime(current_time('Y-m-d'));
+    $jalali = gregorian_to_jalali(
+        (int)$today->format('Y'),
+        (int)$today->format('m'),
+        (int)$today->format('d')
+    );
+
+    $today_shamsi = $jalali[0] . '/' .
+        str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
+        str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+
+    $filter_date_from        = $today_gregorian;
+    $filter_date_to          = $today_gregorian;
+    $filter_date_from_shamsi = $today_shamsi;
+    $filter_date_to_shamsi   = $today_shamsi;
+
+    
+}
+
     ?>
 
     <div class="sc-date-range">
@@ -610,7 +616,7 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                     <td>
                         <a href="#" class="sc-view-registration-details" data-registration-id="<?php echo esc_attr($registration_id); ?>" style="cursor: pointer; color: #2271b1; text-decoration: none;">مشاهده جزئیات | </a>
                         <a href="<?php echo admin_url('admin.php?page=sc-event-registrations&action=delete&registration_id=' . $registration_id . '&_wpnonce=' . wp_create_nonce('sc_delete_registration_' . $registration_id)); ?>" 
-                            onclick="return confirm('آیا مطمئن هستید که می‌خواهید این ثبت‌نام را حذف کنید؟ در صورت حذف فقط در همین بخش دیتا ها حذف خواهد شد ولی هنوز اطلاعات پرداخت در صورتحساب موجود می باشد');"
+                            onclick="return confirm('آیا مطمئن هستید که می‌خواهید این ثبت‌نام را حذف کنید؟');"
                             style="color: #d63638; text-decoration: none;">
                                 حذف
                             </a>                    
