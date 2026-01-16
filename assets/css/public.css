@@ -1844,6 +1844,9 @@ padding: 15px !important;
     border-right: 4px solid;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
+.woocommerce-error::before{
+    content: unset;
+}
 
 .woocommerce-MyAccount-content .woocommerce-message {
     background: #d4edda;

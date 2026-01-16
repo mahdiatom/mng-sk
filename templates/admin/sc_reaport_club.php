@@ -219,7 +219,7 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
         </div>
     </div>
 
-<h3>مالی و حسابداری : </h3>
+<h3>مالی و حسابداری  </h3>
 
  <div class="sc-dashboard-stats">
         <div class="sc-stat-box">
@@ -259,7 +259,7 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
             </div>
         </div>
     </div>
-<h3> دوره :</h3>
+<h3> دوره</h3>
  <div class="sc-dashboard-stats">
         <div class="sc-stat-box">
             <h3>کل دوره ها</h3>
@@ -293,7 +293,7 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
         </div>
         
     </div>
-<h3>رویداد ها ( به زودی....): </h3>
+<h3>رویداد ها </h3>
  <div class="sc-dashboard-stats">
         <div class="sc-stat-box">
             <h3>کل رویداد ها</h3>
@@ -328,3 +328,4 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
         
     </div>
 <h3>حضور و غیاب ( به زودی....): </h3>
+<h3>پیامک های ارسال شده (به زودی ....) </h3>

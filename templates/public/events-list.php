@@ -224,10 +224,8 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                 }
                 
                 // تاریخ برگزاری
-                $event_date_shamsi = '';
-                if (!empty($event->start_date_gregorian)) {
-                    $event_date_shamsi = sc_date_shamsi_date_only($event->start_date_gregorian);
-                }
+                $event_date_shamsi = $event->holding_date_shamsi;
+               
                 
                 // بازه ثبت نام (از start_date و end_date استفاده می‌کنیم)
                 $registration_start = '';

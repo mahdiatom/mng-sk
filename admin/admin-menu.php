@@ -224,8 +224,8 @@ function sc_register_admin_menu() {
 
     add_submenu_page(
         'sc-reports',
-        'کاربران ',
-        'کاربران ',
+        'کاربران فعال',
+        'کاربران فعال',
         'manage_options',
         'sc-reports-active-users',
         'sc_admin_reports_active_users_page'
