@@ -4,7 +4,13 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/** @var stdClass|null $events */
+/** @var stdClass|null $event */
+
 // استفاده از تنظیمات WooCommerce برای فرمت قیمت
+
+
+
 $decimal_places = 0;
 $decimal_separator = '.';
 $thousand_separator = ',';
@@ -42,7 +48,7 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                 <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                     <option value="latest" <?php selected($filter_status, 'latest'); ?>>آخرین</option>
                     <option value="past" <?php selected($filter_status, 'past'); ?>>برگزار شده</option>
-                    <option value="upcoming" <?php selected($filter_status, 'upcoming'); ?>>به زودی</option>
+                    <option value="is_upcoming" <?php selected($filter_status, 'is_upcoming'); ?>>به زودی</option>
                     <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
                 </select>
             </div>
@@ -75,14 +81,7 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                 $can_view_details = true;
                 $tooltip_message = '';
                 $is_upcoming = false;
-                
-                // بررسی اینکه آیا در فیلتر "به زودی" هستیم
-                if ($filter_status === 'upcoming') {
-                    $is_upcoming = true;
-                    $can_enroll = false;
-                    $can_view_details = false;
-                    $tooltip_message = 'این ' . ($event->event_type === 'competition' ? 'مسابقه' : 'رویداد') . ' به زودی برگزار می‌شود.';
-                } else {
+              
                     if (!empty($event->start_date_gregorian) || !empty($event->end_date_gregorian)) {
                         $start_date_shamsi = !empty($event->start_date_gregorian) ? sc_date_shamsi_date_only($event->start_date_gregorian) : '';
                         $end_date_shamsi = !empty($event->end_date_gregorian) ? sc_date_shamsi_date_only($event->end_date_gregorian) : '';
@@ -99,14 +98,14 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                         // اگر تاریخ شروع وارد شده باشد و تاریخ امروز قبل از تاریخ شروع باشد
                         if (!empty($start_date_shamsi) && !$is_date_expired) {
                             if (sc_compare_shamsi_dates($today_shamsi, $start_date_shamsi) < 0) {
-                                $is_date_expired = true;
+                                
                                 $can_enroll = false;
+                                $is_upcoming = true;
                                 $tooltip_message = 'زمان ثبت نام این رویداد هنوز شروع نشده است.';
                             }
                         }
                     }
-                }
-                
+
                 // بررسی شرط سنی
                 $age_check_passed = true;
                 if ($event->has_age_limit && !empty($player->birth_date_shamsi)) {
@@ -238,7 +237,9 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                 }
                 
                 $event_detail_url = $can_view_details ? wc_get_endpoint_url('sc-event-detail', $event->id) : '#';
-            ?>
+           
+           
+           ?>
                 <div class="sc-event-card">
                     <div class="sc-event-card-header">
                         <h3 class="sc-event-card-title">

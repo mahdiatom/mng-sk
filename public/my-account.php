@@ -271,7 +271,23 @@ function add_html_before_account_nav() {
 
         </div>
     </div>
+    <div>
+        <?php
+        if (!empty($player->insurance_expiry_date_shamsi)) {
+        $insurance_expiry = $player->insurance_expiry_date_shamsi;
+        $today_shamsi = sc_get_today_shamsi();
+        $expiry_compare = sc_compare_shamsi_dates($today_shamsi, $insurance_expiry);
+        if ($expiry_compare > 0) {
+?>
+<div class="sc-insurance-expiry-message">
+<p>اعتبار بیمه شما به پایان رسیده لطفا نسبت به تمدید آن اقدام کنید و بعد از تمدید در بخش اطلاعات بازیکن تاریخ انقضا خود بیمه را بروزرسانی کنید همچنین عکس بیمه ورزشی جدید خود را جایگزین عکس قبلی کنید .</p>
 
+<?php 
+        }
+    }
+
+        ?>
+    </div>
 
 <div id="scRegistrationModal" class="sc-modal" visibility: hidden;">
     
@@ -591,7 +607,7 @@ function sc_display_incomplete_profile_message() {
     if ($should_show_message) {
         $profile_url = wc_get_account_endpoint_url('sc-submit-documents');
         ?>
-        <div class="sc-incomplete-profile-message" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
+        <div class="sc-incomplete-profile-message" >
             <strong style="display: block; margin-bottom: 8px;">⚠️ اطلاعات پروفایل شما کامل نیست</strong>
             <p >برای تکمیل پروفایل خود
              <a href="<?php echo esc_url($profile_url); ?>"> اینجا کلیک کنید. </a>
@@ -600,6 +616,7 @@ function sc_display_incomplete_profile_message() {
         </div>
         <?php
     }
+  
 }
 
 /**
@@ -2189,7 +2206,7 @@ function sc_my_account_events_content() {
         // رویداد/مسابقه برگزار شده - تاریخ برگزاری گذشته
         $where_conditions[] = "holding_date_gregorian IS NOT NULL AND holding_date_gregorian < %s";
         $where_values[] = $today_gregorian;
-    } elseif ($filter_status === 'upcoming') {
+    } elseif ($filter_status === 'is_upcoming') {
         // به زودی - در آینده و در بازه ثبت‌نام نیست
         $where_conditions[] = "(
             (start_date_gregorian IS NOT NULL AND start_date_gregorian > %s)

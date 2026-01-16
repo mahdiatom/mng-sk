@@ -216,17 +216,20 @@ body:not([class*=elementor-page-]) .site-main {
 
 
 
-
-
-
-/* حذف هدر و فوتر  */
-
+.sc-insurance-expiry-message{
+    background-color: #e21f1f; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #e7e7e7;
+}
+.sc-incomplete-profile-message{
+    background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;
+}
 .sc-incomplete-profile-message a{
     background-color: #5413f991;
     border-radius: 10px;
     padding: 5px 10px;
     color: white;
 }
+/* حذف هدر و فوتر  */
+
 #site-header , #site-footer{
     display: none !important;
 }
