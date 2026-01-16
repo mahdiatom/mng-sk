@@ -1062,13 +1062,14 @@ width: fit-content !important;
 .sc-stat-box{
     background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
+
 .sc-stat-box h3{
     margin: 0 0 20px 0; color: #666;
     font-size: 16px;
     
 }
 .sc-dashboard-stats div{
-font-size: 36px; font-weight: bold; color: #d63638;
+font-size: 24px; font-weight: bold; color: #d63638;
 }
 .chart_dashboard{
     display: flex;

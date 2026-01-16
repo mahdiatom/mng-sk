@@ -307,7 +307,7 @@ jQuery(document).ready(function($) {
         $modal.css({
             'display': 'block',
             'visibility': 'visible',
-            'position': 'fixed',
+            'position': 'absolute',
             'top': '8%',
             'width': '95%',
             'z-index':' 1000'

@@ -224,8 +224,8 @@ function sc_register_admin_menu() {
 
     add_submenu_page(
         'sc-reports',
-        'کاربران فعال',
-        'کاربران فعال',
+        'کاربران ',
+        'کاربران ',
         'manage_options',
         'sc-reports-active-users',
         'sc_admin_reports_active_users_page'
@@ -233,8 +233,8 @@ function sc_register_admin_menu() {
 
     add_submenu_page(
         'sc-reports',
-        'درآمد و هزینه‌ها',
-        'درآمد و هزینه‌ها',
+        'مالی و حسابداری',
+        'مالی و حسابداری',
         'manage_options',
         'sc-reports-income-expenses',
         'sc_admin_reports_income_expenses_page'
@@ -248,7 +248,14 @@ function sc_register_admin_menu() {
         'sc-reports-debtors',
         'sc_admin_reports_debtors_page'
     );
-
+    add_submenu_page(
+        'sc-reports',
+        'گزارش  حضور و غیاب',
+        ' حضور و غیاب',
+        'manage_options',
+        'sc-attendance-list_report',
+        'sc_admin_attendance_list_page'
+    );
     // add_submenu_page(
     //     'sc-reports',
     //     'پرداختی‌ها',
