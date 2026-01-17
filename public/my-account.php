@@ -2212,8 +2212,8 @@ function sc_my_account_events_content() {
             (start_date_gregorian IS NOT NULL AND start_date_gregorian > %s)
             OR (end_date_gregorian IS NOT NULL AND end_date_gregorian < %s)
         )";
-        $where_values[] = $today_gregorian;
-        $where_values[] = $today_gregorian;
+        // $where_values[] = $today_gregorian;
+        // $where_values[] = $today_gregorian;
     } elseif ($filter_status === 'all') {
         // همه - بدون محدودیت تاریخ
         // هیچ شرط اضافی اضافه نمی‌کنیم
