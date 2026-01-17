@@ -2203,25 +2203,29 @@ function sc_my_account_events_content() {
     
     // فیلتر وضعیت
     if ($filter_status === 'past') {
+        echo 'past';
         // رویداد/مسابقه برگزار شده - تاریخ برگزاری گذشته
-        $where_conditions[] = "holding_date_gregorian IS NOT NULL AND holding_date_gregorian < %s";
+        $where_conditions[] = "holding_date_gregorian < %s";
         $where_values[] = $today_gregorian;
     } elseif ($filter_status === 'is_upcoming') {
-        // به زودی - در آینده و در بازه ثبت‌نام نیست
+        echo 'is_upcoming';
+       // به زودی - در آینده و در بازه ثبت‌نام نیست
         $where_conditions[] = "(
-            (start_date_gregorian IS NOT NULL AND start_date_gregorian > %s)
-            OR (end_date_gregorian IS NOT NULL AND end_date_gregorian < %s)
+            (start_date_gregorian > %s)
+            AND (holding_date_gregorian > %s)
         )";
-        // $where_values[] = $today_gregorian;
-        // $where_values[] = $today_gregorian;
+        $where_values[] = $today_gregorian;
+        $where_values[] = $today_gregorian;
     } elseif ($filter_status === 'all') {
+        echo 'all';
         // همه - بدون محدودیت تاریخ
         // هیچ شرط اضافی اضافه نمی‌کنیم
     } else {
-        // پیش‌فرض: آخرین - در بازه ثبت‌نام
+        echo 'no filter';
+        //پیش‌فرض: آخرین - در بازه ثبت‌نام
         $where_conditions[] = "(
-            (start_date_gregorian IS NULL OR start_date_gregorian <= %s)
-            AND (end_date_gregorian IS NULL OR end_date_gregorian >= %s)
+            (start_date_gregorian <= %s)
+            AND (end_date_gregorian >= %s)
         )";
         $where_values[] = $today_gregorian;
         $where_values[] = $today_gregorian;
@@ -2232,11 +2236,14 @@ function sc_my_account_events_content() {
     // دریافت رویدادها
     $query = "SELECT * FROM $events_table 
               WHERE $where_clause
-              ORDER BY holding_date_gregorian DESC, created_at DESC";
+              ORDER BY holding_date_gregorian ASC, created_at ASC";
     
     if (!empty($where_values)) {
+      
         $events = $wpdb->get_results($wpdb->prepare($query, $where_values));
+        
     } else {
+   
         $events = $wpdb->get_results($query);
     }
     
