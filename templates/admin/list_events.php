@@ -19,7 +19,8 @@ class Events_List_Table extends WP_List_Table {
             'cb' => '<input type="checkbox" />',
             'name' => 'نام رویداد / مسابقه',
             'event_time' => 'زمان',
-            'date' => 'تاریخ',
+            'date' => 'بازه ثبت نام',
+            'date_2' => 'تاریخ برگزاری',
             'price' => 'قیمت',
             'is_active' => 'وضعیت'
         ];
@@ -68,6 +69,13 @@ class Events_List_Table extends WP_List_Table {
                 if (!empty($item['end_date_gregorian'])) {
                     $date_parts[] = 'پایان: ' . sc_date_shamsi_date_only($item['end_date_gregorian']);
                 }
+                return !empty($date_parts) ? implode('<br>', $date_parts) : '-';
+            case 'date_2':
+                $date_parts = [];
+                if (!empty($item['holding_date_gregorian'])) {
+                    $date_parts[] =  sc_date_shamsi_date_only($item['holding_date_gregorian']);
+                }
+                
                 return !empty($date_parts) ? implode('<br>', $date_parts) : '-';
             case 'price':
 

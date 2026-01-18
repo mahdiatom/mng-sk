@@ -86,7 +86,10 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($invoices as $invoice) : 
+                <?php 
+                $count_invoices =  0;
+                foreach ($invoices as $invoice) : 
+                    $count_invoices++;
                     // بررسی و اعمال جریمه در صورت نیاز
                     if ($invoice->status === 'pending' && !$invoice->penalty_applied) {
                         sc_apply_penalty_to_invoice($invoice->id);
@@ -385,9 +388,30 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                             </div>
                         </td>
                     </tr>
-                <?php endforeach; ?>
+                <?php endforeach;
+                
+                  ?>
+                 
             </tbody>
         </table>
+        <!-- Pagination -->
+            <?php if ($total_pages > 1) : ?>
+                <div class="tablenav bottom sc_paginate" style="margin: 20px 10px 50px 0px;">
+                    <div class="tablenav-pages">
+                        <?php
+                        $page_links = paginate_links([
+                            'base' => add_query_arg(['pag' => '%#%']),
+                            'format' => '',
+                            'prev_text' => '< قبلی ',
+                            'next_text' => ' بعدی >' ,
+                            'total' => $total_pages,
+                            'current' => $current_page
+                        ]);
+                        echo $page_links;
+                        ?>
+                    </div>
+                </div>
+            <?php endif; ?>
     <?php endif; ?>
 </div>
 

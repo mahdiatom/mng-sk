@@ -6,9 +6,9 @@ if (!defined('ABSPATH')) {
 
 /** @var stdClass|null $events */
 /** @var stdClass|null $event */
+//ادامه تنظمات صفحه بندی 
 
-// استفاده از تنظیمات WooCommerce برای فرمت قیمت
-
+//استفاده از تنظیمات WooCommerce برای فرمت قیمت
 
 
 $decimal_places = 0;
@@ -66,6 +66,7 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                 <button type="submit" class="button button-primary" style="padding: 8px 20px; height: auto;">اعمال فیلتر</button>
             </div>
         </form>
+          
     </div>
     
     <?php if (empty($events)) : ?>
@@ -73,7 +74,26 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
             در حال حاضر رویدادی برای ثبت نام موجود نیست.
         </div>
     <?php else : ?>
+        <!-- Pagination -->
+            <?php if ($total_pages > 1) : ?>
+                <div class="tablenav bottom sc_paginate top_pagination" style="margin-top: 20px;">
+                    <div class="tablenav-pages">
+                        <?php
+                        $page_links = paginate_links([
+                            'base' => add_query_arg(['pag' => '%#%']),
+                            'format' => '',
+                            'prev_text' => '< قبلی ',
+                            'next_text' => ' بعدی >' ,
+                            'total' => $total_pages,
+                            'current' => $current_page
+                        ]);
+                        echo $page_links;
+                        ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         <div class="sc-events-grid">
+            
             <?php foreach ($events as $event) : 
                 // بررسی محدودیت تاریخ
                 $is_date_expired = false;
@@ -348,6 +368,24 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                 </div>
             <?php endforeach; ?>
         </div>
+  <!-- Pagination -->
+            <?php if ($total_pages > 1) : ?>
+                <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
+                    <div class="tablenav-pages">
+                        <?php
+                        $page_links = paginate_links([
+                            'base' => add_query_arg(['pag' => '%#%']),
+                            'format' => '',
+                            'prev_text' => '< قبلی ',
+                            'next_text' => ' بعدی >' ,
+                            'total' => $total_pages,
+                            'current' => $current_page
+                        ]);
+                        echo $page_links;
+                        ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         
     <?php endif; ?>
 </div>

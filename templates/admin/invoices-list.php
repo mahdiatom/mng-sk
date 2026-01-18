@@ -211,8 +211,8 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
         str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
         str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
 
-    $filter_date_from        = $today_gregorian;
-    $filter_date_to          = $today_gregorian;
+    // $filter_date_from        = $today_gregorian;
+    // $filter_date_to          = $today_gregorian;
     $filter_date_from_shamsi = $today_shamsi;
     $filter_date_to_shamsi   = $today_shamsi;
 }

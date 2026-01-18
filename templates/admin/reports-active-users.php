@@ -201,7 +201,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
                         </div>
                         <div class="sc-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #8c8f94; border-top: none; border-radius: 0 0 4px 4px; max-height: 300px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: -1px;">
                             <div class="sc-dropdown-search" style="padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff;">
-                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی..." style="width: 100%; padding: 8px; border: 1px solid #8c8f94; border-radius: 4px; font-size: 14px;">
+                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
                             </div>
                             <div class="sc-dropdown-options" style="max-height: 250px; overflow-y: auto;">
                                 <div class="sc-dropdown-option sc-visible" 
@@ -332,6 +332,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
             <p>هیچ کاربر فعالی یافت نشد.</p>
         </div>
     <?php else : ?>
+        
         <div class="back_attendance_list">
             <table class="wp-list-table widefat fixed striped">
                 <thead>

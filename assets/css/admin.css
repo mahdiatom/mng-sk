@@ -796,7 +796,7 @@ tbody tr td{
 }
 
 .sc-search-input {
-    width: 100%;
+    width: 100% !important;
     padding: 8px;
     border: 1px solid #8c8f94;
     border-radius: 4px;
@@ -986,9 +986,10 @@ margin: 0; display: inline-block;
     width: 100px;
 }
 .sc_form-table td input ,  .sc_form-table td .wp-editor-wrap{
- width: 500px !important;
+ width: 450px !important;
  background: white;
 }
+
 .sc_form-table td select{
     width: 500px !important;
 }

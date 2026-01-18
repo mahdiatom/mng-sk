@@ -2138,6 +2138,9 @@ function sc_my_account_invoices_content() {
     
     $where_clause = implode(' AND ', $where_conditions);
     
+
+
+
     // ساخت ORDER BY - pending ها اول، سپس بر اساس تاریخ
     $order_by = "ORDER BY 
         CASE 
@@ -2146,20 +2149,48 @@ function sc_my_account_invoices_content() {
             ELSE 3
         END,
         i.created_at DESC";
-    
-    // دریافت تمام صورت حساب‌های کاربر
+
+
+
+    $per_page = 10;
+    $query_count = "SELECT  COUNT(*) as count
+              FROM $invoices_table i
+              LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
+              LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
+              WHERE $where_clause
+              ";
+
+    $invoices_count= $wpdb->get_results($wpdb->prepare($query_count, $where_values),ARRAY_N);
+
+    $current_page = isset($_GET['pag']) ? max(1, absint($_GET['pag'])) : 1;
+    $total_items = $invoices_count[0][0];
+        $limit = $per_page;
+    $offset = ($current_page - 1) * $per_page;
+   $total_pages = ceil($total_items / $per_page);
+
+
     $query = "SELECT i.*, c.title as course_title, c.price as course_price, e.name as event_name
               FROM $invoices_table i
               LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
               LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
               WHERE $where_clause
-              $order_by";
+              $order_by LIMIT $limit OFFSET $offset";
+
     
-    $invoices = $wpdb->get_results($wpdb->prepare($query, $where_values));
-    
-    // انتقال متغیر فیلتر به template
-   // $filter_status = $filter_status;
-    
+    $invoices= $wpdb->get_results($wpdb->prepare($query, $where_values));
+
+
+
+
+
+
+
+
+
+
+
+
+
     include SC_TEMPLATES_PUBLIC_DIR . 'invoices-list.php';
 }
 
@@ -2203,12 +2234,12 @@ function sc_my_account_events_content() {
     
     // فیلتر وضعیت
     if ($filter_status === 'past') {
-        echo 'past';
+
         // رویداد/مسابقه برگزار شده - تاریخ برگزاری گذشته
         $where_conditions[] = "holding_date_gregorian < %s";
         $where_values[] = $today_gregorian;
     } elseif ($filter_status === 'is_upcoming') {
-        echo 'is_upcoming';
+ 
        // به زودی - در آینده و در بازه ثبت‌نام نیست
         $where_conditions[] = "(
             (start_date_gregorian > %s)
@@ -2217,11 +2248,11 @@ function sc_my_account_events_content() {
         $where_values[] = $today_gregorian;
         $where_values[] = $today_gregorian;
     } elseif ($filter_status === 'all') {
-        echo 'all';
+    
         // همه - بدون محدودیت تاریخ
         // هیچ شرط اضافی اضافه نمی‌کنیم
     } else {
-        echo 'no filter';
+     
         //پیش‌فرض: آخرین - در بازه ثبت‌نام
         $where_conditions[] = "(
             (start_date_gregorian <= %s)
@@ -2232,21 +2263,42 @@ function sc_my_account_events_content() {
     }
     
     $where_clause = implode(' AND ', $where_conditions);
+    //صفحه بندی
     
+    $per_page = 10;
+
+    $query_count = "SELECT COUNT(*) FROM $events_table 
+              WHERE $where_clause
+              ";
+    $events_count = $wpdb->get_results($wpdb->prepare($query_count, $where_values),ARRAY_N);
+    $current_page = isset($_GET['pag']) ? max(1, absint($_GET['pag'])) : 1;
+    $total_items = $events_count[0][0];
+        $limit = $per_page;
+    $offset = ($current_page - 1) * $per_page;
+   $total_pages = ceil($total_items / $per_page);
+
+
+
+
+
+
+ //"
     // دریافت رویدادها
     $query = "SELECT * FROM $events_table 
               WHERE $where_clause
-              ORDER BY holding_date_gregorian ASC, created_at ASC";
-    
+              ORDER BY holding_date_gregorian ASC, created_at ASC LIMIT $limit OFFSET $offset";
+  
+  
     if (!empty($where_values)) {
       
         $events = $wpdb->get_results($wpdb->prepare($query, $where_values));
+
         
     } else {
    
         $events = $wpdb->get_results($query);
     }
-    
+
     // انتقال متغیرهای فیلتر به template
     // $filter_status = $filter_status;
     // $filter_event_type = $filter_event_type;
