@@ -277,38 +277,23 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
     </div>
     
     <!-- صفحه‌بندی -->
-    <?php if ($total_pages > 1) : ?>
-        <div class="sc-my-courses-pagination" style="margin-top: 30px; text-align: center;">
-            <?php
-            // ساخت URL base با حفظ فیلترها
-            $pagination_args = ['paged' => '%#%'];
-            if ($filter_status !== 'all') {
-                $pagination_args['filter_status'] = $filter_status;
-            }
-            
-            $page_links = paginate_links([
-                'base' => add_query_arg($pagination_args),
-                'format' => '',
-                'prev_text' => '&laquo; قبلی',
-                'next_text' => 'بعدی &raquo;',
-                'total' => $total_pages,
-                'current' => $current_page,
-                'type' => 'plain',
-                'end_size' => 2,
-                'mid_size' => 2
-            ]);
-            
-            if ($page_links) {
-                echo '<div class="pagination-wrapper" style="display: inline-block;">';
-                echo $page_links;
-                echo '</div>';
-                echo '<div style="margin-top: 10px; color: #666; font-size: 14px;">';
-                echo 'نمایش ' . (($current_page - 1) * 10 + 1) . ' تا ' . min($current_page * 10, $total_courses) . ' از ' . $total_courses . ' دوره';
-                echo '</div>';
-            }
-            ?>
-        </div>
-    <?php endif; ?>
+            <?php if ($total_pages > 1) : ?>
+                <div class="tablenav bottom sc_paginate" style="margin: 20px 10px 50px 0px;">
+                    <div class="tablenav-pages">
+                        <?php
+                        $page_links = paginate_links([
+                            'base' => add_query_arg(['pag' => '%#%']),
+                            'format' => '',
+                            'prev_text' => '< قبلی ',
+                            'next_text' => ' بعدی >' ,
+                            'total' => $total_pages,
+                            'current' => $current_page
+                        ]);
+                        echo $page_links;
+                        ?>
+                    </div>
+                </div>
+            <?php endif; ?>
     <?php endif; ?>
 </div>
 

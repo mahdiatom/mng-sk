@@ -12,12 +12,7 @@ global $title ,$player_list_table;
             <a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action">افزودن بازیکن</a>
            
         </div>
-        <div style="    background: #fff;
-    border: 1px solid #3668ffff;
-    border-right-width: 4px;
-    box-shadow: 0 1px 1px rgba(55, 2, 160, 0.04);
-    margin: 5px 0px 2px 10px;
-    padding: 1px 12px;">
+        <div class="notice_custom_list_member">
             <p>برای  مشاهده اکشن ها روی نام کاربر بروید سپس با توجه به نیاز خود اکشن خود را انتخاب کنید (اکشن های موجود : حذف کاربر - مشاهده اطلاعات کاربر - ویرایش کاربر)</p>    
             </div>
             <?php

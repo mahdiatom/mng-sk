@@ -256,7 +256,7 @@ if ($active_tab === 'categories') {
     <?php if ($active_tab === 'list') : ?>
         <!-- تب 1: لیست هزینه‌ها -->
         <!-- فیلترها -->
-        <form method="GET" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+        <form method="GET" action="" class="form_filter_general">
             <input type="hidden" name="page" value="sc-expenses">
             <input type="hidden" name="tab" value="list">
             
@@ -407,7 +407,7 @@ if ($active_tab === 'categories') {
         <!-- تب 2: مدیریت دسته‌بندی‌ها -->
         <div class="admin_category">
             <!-- فرم افزودن/ویرایش دسته‌بندی -->
-            <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px;">
+            <div class="back_form_cat">
                 <h2><?php echo $editing_category ? 'ویرایش دسته‌بندی' : 'افزودن دسته‌بندی جدید'; ?></h2>
                 
                 <?php if ($editing_category) : ?>
@@ -462,7 +462,7 @@ if ($active_tab === 'categories') {
             </div>
             
             <!-- لیست دسته‌بندی‌ها -->
-            <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px;">
+            <div class="back_form_cat">
                 <h2>لیست دسته‌بندی‌ها</h2>
                 
                 <?php if (empty($categories)) : ?>

@@ -309,7 +309,7 @@ if (empty($player_phone) && $billing_phone) {
                     <div class="sc-status-content" >
                         <strong>دوره‌های فعال بازیکن: </strong>
                         <div class="sc-courses-list">
-                            <?php echo !empty($courses_text) ? $courses_text : "<span style='color: #999;'>شما هنوز در دوره‌ای ثبت نام نکردید</span>"; ?>
+                            <?php echo !empty($courses_text) ? $courses_text : "<span style='color: #999;'>در حال حاضر هیچ دوره فعالی ندارید.</span>"; ?>
                         </div>
                     </div>
                 </div>

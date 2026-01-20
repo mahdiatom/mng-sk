@@ -220,8 +220,8 @@ if($player && $_GET['player_id'] ){
                             <button type="button" class="button-secondary sc-upload-btn" id="btn_personal_photo">انتخاب تصویر</button>
 
                             <?php if (!empty($personal_photo)) : ?>
-                                <div style="margin-top:10px;">
-                                    <img src="<?php   echo esc_url($personal_photo); ?>" alt="" style="max-width:300px;border:1px solid #ccc;border-radius:6px;">
+                                <div class="img_photo_prev">
+                                    <img src="<?php   echo esc_url($personal_photo); ?>">
                                 </div>
                             <?php endif; ?>
 
@@ -236,8 +236,8 @@ if($player && $_GET['player_id'] ){
                             <input type="text" name="id_card_photo" id="id_card_photo_txt" value="<?php  echo esc_attr($id_card_photo);?>" class="regular-text" placeholder="آدرس تصویر یا آپلود کنید" />
                             <input type="button" class="button-secondary sc-upload-btn" id="btn_id_card_photo" value="انتخاب تصویر">
                             <?php if (!empty($id_card_photo)) : ?>
-                                <div style="margin-top:10px;">
-                                    <img src="<?php   echo esc_url($id_card_photo); ?>" alt="" style="max-width:300px;border:1px solid #ccc;border-radius:6px;">
+                                <div class="img_photo_prev">
+                                    <img src="<?php   echo esc_url($id_card_photo); ?>">
                                 </div>
                             <?php endif; ?>
                     </td>
@@ -250,8 +250,8 @@ if($player && $_GET['player_id'] ){
                         <input type="text" name="sport_insurance_photo" id="sport_insurance_photo_txt" value="<?php  echo esc_attr($sport_insurance_photo);?>" class="regular-text" placeholder="آدرس تصویر یا آپلود کنید" />
                             <input type="button" class="button-secondary sc-upload-btn" id="btn_sport_insurance_photo" value="انتخاب تصویر">
                             <?php if (!empty($sport_insurance_photo)) : ?>
-                                <div style="margin-top:10px;">
-                                    <img src="<?php   echo esc_url($sport_insurance_photo); ?>" alt="" style="max-width:300px;border:1px solid #ccc;border-radius:6px;">
+                                <div class="img_photo_prev" >
+                                    <img src="<?php   echo esc_url($sport_insurance_photo); ?>">
                                 </div>
                             <?php endif; ?>
                     </td>
@@ -405,19 +405,19 @@ if($player && $_GET['player_id'] ){
                         echo '<div style="display: flex; gap: 15px; flex-wrap: wrap;">';
                         
                         // Checkbox برای paused - همیشه فعال است
-                        echo '<label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">';
+                        echo '<label class="label_cheakbox_active_courses_user">';
                         echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][paused]" value="1" ' . ($is_paused ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>متوقف شده</span>';
                         echo '</label>';
                         
                         // Checkbox برای completed - همیشه فعال است
-                        echo '<label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">';
+                        echo '<label class="label_cheakbox_active_courses_user>';
                         echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][completed]" value="1" ' . ($is_completed ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>تمام شده</span>';
                         echo '</label>';
                         
                         // Checkbox برای canceled - همیشه فعال است
-                        echo '<label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">';
+                        echo '<label class="label_cheakbox_active_courses_user>';
                         echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][canceled]" value="1" ' . ($is_canceled ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>لغو شده</span>';
                         echo '</label>';

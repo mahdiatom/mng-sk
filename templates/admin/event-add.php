@@ -66,7 +66,7 @@ if ($event && isset($_GET['event_id'])) {
     }
     ?>
     <h1 class="wp-heading-inline">
-        <?php echo isset($_GET['event_id']) ? 'بروزرسانی رویداد / مسابقه' : 'ثبت رویداد / مسابقه جدید'; ?>
+        <?php echo isset($_GET['event_id']) ? 'بروزرسانی رویداد  ' : 'ثبت رویداد جدید'; ?>
     </h1>
     <?php 
     if (isset($_GET['event_id'])) {
@@ -81,7 +81,7 @@ if ($event && isset($_GET['event_id'])) {
         <table class="form-table sc_form-table">
             <tbody>
                 <tr>
-                    <th scope="row"><label for="name">نام رویداد / مسابقه <span style="color:red;">*</span></label></th>
+                    <th scope="row"><label for="name">نام رویداد <span style="color:red;">*</span></label></th>
                     <td><input name="name" type="text" id="name" value="<?php echo esc_attr($name); ?>" class="regular-text" required></td>
                 </tr>
 
@@ -134,7 +134,7 @@ if ($event && isset($_GET['event_id'])) {
                                inputmode="numeric"
                                required>
                         <input type="hidden" name="price_raw" id="price_raw" value="<?php echo esc_attr(intval($price)); ?>">
-                        <p class="description">قیمت رویداد / مسابقه به تومان </p>
+                        <p class="description">قیمت رویداد به تومان </p>
                     </td>
                 </tr>
                 
@@ -161,7 +161,7 @@ if ($event && isset($_GET['event_id'])) {
                                class="regular-text persian-date-input" 
                                placeholder="تاریخ شروع (شمسی)" 
                                readonly
-                               style="width: 300px; padding: 5px;">
+                                 >
                         <input type="hidden" name="start_date" id="start_date" value="<?php echo esc_attr($start_date ?? ''); ?>">
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
@@ -188,7 +188,7 @@ if ($event && isset($_GET['event_id'])) {
                                class="regular-text persian-date-input" 
                                placeholder="تاریخ پایان (شمسی)" 
                                readonly
-                               style="width: 300px; padding: 5px;">
+                                 >
                         <input type="hidden" name="end_date" id="end_date" value="<?php echo esc_attr($end_date ?? ''); ?>">
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
@@ -214,7 +214,7 @@ if ($event && isset($_GET['event_id'])) {
                                class="regular-text persian-date-input" 
                                placeholder="تاریخ برگزاری (شمسی)" 
                                readonly
-                               style="width: 300px; padding: 5px;"
+                                 
                                required>
                         <input type="hidden" name="holding_date" id="holding_date" value="<?php echo esc_attr($holding_date ?? ''); ?>">
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
@@ -227,8 +227,8 @@ if ($event && isset($_GET['event_id'])) {
                         <input type="url" id="image_url" name="image" value="<?php echo esc_attr($image); ?>" class="regular-text" placeholder="آدرس عکس">
                         <button type="button" class="button" id="upload_image_button">انتخاب عکس</button>
                         <?php if (!empty($image)) : ?>
-                            <div style="margin-top: 10px;">
-                                <img src="<?php echo esc_url($image); ?>" alt="عکس رویداد" style="max-width: 300px; height: auto; border: 1px solid #ddd; border-radius: 4px;">
+                            <div class="img_photo_prev">
+                                <img src="<?php echo esc_url($image); ?>" alt="عکس رویداد">
                             </div>
                         <?php endif; ?>
                         <p class="description">آدرس URL عکس رویداد یا استفاده از دکمه انتخاب</p>
@@ -264,7 +264,7 @@ if ($event && isset($_GET['event_id'])) {
                 </tr>
 
                 <tr>
-                    <th scope="row"><label for="event_time">زمان مسابقه / رویداد</label></th>
+                    <th scope="row"><label for="event_time">زمان رویداد  </label></th>
                     <td>
                         <?php
                         wp_editor($event_time, 'event_time', [
@@ -275,20 +275,20 @@ if ($event && isset($_GET['event_id'])) {
                             'quicktags' => true
                         ]);
                         ?>
-                        <p class="description">توضیحات زمان برگزاری مسابقه / رویداد (مثلاً: گروه سنی نوجوان از ساعت ۸ - بزرگسالان از ساعت ۱۰)</p>
+                        <p class="description">توضیحات زمان برگزاری رویداد   (مثلاً: گروه سنی نوجوان از ساعت ۸ - بزرگسالان از ساعت ۱۰)</p>
                     </td>
                 </tr>
 
                 <tr>
-                    <th scope="row"><label for="event_location">مکان مسابقه / رویداد</label></th>
+                    <th scope="row"><label for="event_location">مکان رویداد  </label></th>
                     <td>
                         <input type="text" name="event_location" id="event_location" value="<?php echo esc_attr($event_location); ?>" class="regular-text" placeholder="نام مکان">
-                        <p class="description">نام مکان برگزاری مسابقه / رویداد</p>
+                        <p class="description">نام مکان برگزاری رویداد  </p>
                     </td>
                 </tr>
 
                 <tr>
-                    <th scope="row"><label for="event_location_address">آدرس مسابقه / رویداد</label></th>
+                    <th scope="row"><label for="event_location_address">آدرس رویداد  </label></th>
                     <td>
                         <textarea name="event_location_address" id="event_location_address" rows="3" class="large-text" placeholder="آدرس کامل"><?php echo esc_textarea($event_location_address); ?></textarea>
                         <p class="description">آدرس کامل محل برگزاری</p>
@@ -296,7 +296,7 @@ if ($event && isset($_GET['event_id'])) {
                 </tr>
 
                 <tr>
-                    <th scope="row"><label>لوکیشن مسابقه / رویداد (Google Maps)</label></th>
+                    <th scope="row"><label>لوکیشن رویداد  </label></th>
                     <td>
                         <div style="margin-bottom: 10px;">
                             <label for="event_location_lat">
@@ -344,7 +344,7 @@ if ($event && isset($_GET['event_id'])) {
         </table>
 
         <!-- بخش فیلدهای سفارشی رویداد -->
-        <div class="sc-event-custom-fields-section" style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+        <div class="sc-event-custom-fields-section">
             <h2 style="margin-top: 0;">فیلدهای سفارشی رویداد</h2>
             <p class="description">شما می‌توانید فیلدهای سفارشی برای این رویداد تعریف کنید که کاربران باید قبل از ثبت‌نام آن‌ها را پر کنند.</p>
             
@@ -366,10 +366,10 @@ if ($event && isset($_GET['event_id'])) {
                     foreach ($existing_fields as $field) {
                         $field_options = !empty($field->field_options) ? json_decode($field->field_options, true) : [];
                         ?>
-                        <div class="sc-event-field-item" data-field-id="<?php echo esc_attr($field->id); ?>" style="margin-bottom: 15px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
-                            <div style="display: flex; gap: 15px; align-items: flex-start;">
+                        <div class="sc-event-field-item" data-field-id="<?php echo esc_attr($field->id); ?>" >
+                            <div  class="sc-event-field-item_1">
                                 <div style="flex: 1;">
-                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">نام فیلد:</label>
+                                    <label class="label_add_field_event">نام فیلد:</label>
                                     <input type="text" name="event_fields[<?php echo esc_attr($field->id); ?>][field_name]" 
                                            value="<?php echo esc_attr($field->field_name); ?>" 
                                            class="regular-text sc-field-name" 
@@ -377,7 +377,7 @@ if ($event && isset($_GET['event_id'])) {
                                            required>
                                 </div>
                                 <div style="flex: 1;">
-                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">نوع فیلد:</label>
+                                    <label   class="label_add_field_event">نوع فیلد:</label>
                                     <select name="event_fields[<?php echo esc_attr($field->id); ?>][field_type]" 
                                             class="sc-field-type" 
                                             required>
@@ -389,7 +389,7 @@ if ($event && isset($_GET['event_id'])) {
                                     </select>
                                 </div>
                                 <div class="sc-field-options-container" style="flex: 1; <?php echo $field->field_type === 'select' ? '' : 'display: none;'; ?>">
-                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">گزینه‌های لیست (با کاما جدا کنید):</label>
+                                    <label   class="label_add_field_event">گزینه‌های لیست (با کاما جدا کنید):</label>
                                     <input type="text" 
                                            name="event_fields[<?php echo esc_attr($field->id); ?>][field_options]" 
                                            value="<?php echo esc_attr(is_array($field_options) && isset($field_options['options']) ? implode(', ', $field_options['options']) : ''); ?>" 
@@ -416,8 +416,8 @@ if ($event && isset($_GET['event_id'])) {
                 ?>
             </div>
             
-            <button type="button" id="sc-add-event-field-btn" class="button button-secondary" style="margin-top: 15px;">
-                <span style="font-size: 18px; line-height: 1; margin-left: 5px;">+</span>
+            <button type="button" id="sc-add-event-field-btn" class="button button-secondary" >
+                <span >+</span>
                 افزودن فیلد جدید
             </button>
         </div>

@@ -52,7 +52,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                                 <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $selected_member_id > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
                                 <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
                             </div>
-                            <div class="sc-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #8c8f94; border-top: none; border-radius: 0 0 4px 4px; max-height: 300px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: -1px;">
+                            <div class="sc-dropdown-menu">
                                 <div class="sc-dropdown-search" style="padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff;">
                                     <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی..." style="width: 100%; padding: 8px; border: 1px solid #8c8f94; border-radius: 4px; font-size: 14px;">
                                 </div>
@@ -79,7 +79,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                                         <div class="sc-dropdown-option <?php echo $display_class; ?>" 
                                              data-value="<?php echo esc_attr($member->id); ?>"
                                              data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
-                                             style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $is_selected ? 'background: #f0f6fc;' : ''; ?>"
+                                             style="<?php echo $is_selected ? 'background: #f0f6fc;' : ''; ?>"
                                              onclick="scSelectMember(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
                                             <?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>
                                             <?php if ($is_selected) : ?>

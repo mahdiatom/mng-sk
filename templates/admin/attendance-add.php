@@ -225,7 +225,7 @@ $is_update_mode = !empty($existing_attendances);
     <a href="<?php echo admin_url('admin.php?page=sc-attendance-list'); ?>" class="page-title-action">لیست حضور و غیاب</a>
     <hr class="wp-header-end">
     
-    <form method="GET" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+    <form method="GET" action="" class="form_attendance_add">
         <input type="hidden" name="page" value="sc-attendance-add">
         
         <table class="form-table sc_form-table">
@@ -234,7 +234,7 @@ $is_update_mode = !empty($existing_attendances);
                     <label for="course_id">انتخاب دوره</label>
                 </th>
                 <td>
-                    <select name="course_id" id="course_id" required style="width: 300px; padding: 5px;">
+                    <select name="course_id" id="course_id" required >
                         <option value="">-- انتخاب دوره --</option>
                         <?php foreach ($courses as $course) : ?>
                             <option value="<?php echo esc_attr($course->id); ?>" <?php selected($selected_course_id, $course->id); ?>>
@@ -257,7 +257,7 @@ $is_update_mode = !empty($existing_attendances);
                            placeholder="تاریخ (شمسی)" 
                            required 
                            readonly
-                           style="width: 300px; padding: 5px;">
+                           >
                     <input type="hidden" name="date" id="attendance_date_hidden" value="<?php echo esc_attr($selected_date); ?>">
                     <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                 </td>
@@ -285,13 +285,13 @@ $is_update_mode = !empty($existing_attendances);
                     
                     
                     <?php echo esc_html($course->title); ?>
-                    <span style="font-size: 16px; font-weight: normal; color: #666;  margin-top: 10px;">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>
+                    <span class="name_course_attendance">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>
                     
                 </h2>
                 <?php if ($is_update_mode): ?>
-                        <span style="margin-right:10px;color:#d63638;font-weight:bold;">شما در حال بروزرسانی یک حضور و غیاب هستید.</span>
+                        <span>شما در حال بروزرسانی یک حضور و غیاب هستید.</span>
                     <?php else: ?>
-                        <span style="margin-right:10px;color:#00a32a;font-weight:bold;">
+                        <span>
 شما در حال ثبت یک حضور غیاب جدید هستید.                        </span>
                     <?php endif; ?>
                 <table class="wp-list-table widefat fixed striped" style="margin-top: 20px;">

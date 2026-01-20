@@ -41,17 +41,14 @@ public function column_full_name($item) {
         $courses_table = $wpdb->prefix . 'sc_courses';
 
         $courses = $wpdb->get_results($wpdb->prepare(
-            "SELECT c.title 
-            FROM $courses_table c
-            INNER JOIN $member_courses_table mc ON c.id = mc.course_id
-            WHERE mc.member_id = %d
-            AND mc.status = 'active'
-            AND (mc.course_status_flags IS NULL 
-                    OR (mc.course_status_flags NOT LIKE '%canceled%' 
-                        AND mc.course_status_flags NOT LIKE '%paused%' 
-                        AND mc.course_status_flags NOT LIKE '%completed%'))
-            AND c.deleted_at IS NULL
-            LIMIT 3",
+            "SELECT c.title FROM $courses_table c 
+             INNER JOIN $member_courses_table mc ON c.id = mc.course_id 
+             WHERE mc.member_id = %d 
+             AND mc.status = 'active' 
+             AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '')
+             AND c.deleted_at IS NULL 
+             AND c.is_active = 1
+             LIMIT 10",
             $item['id']
         ));
 

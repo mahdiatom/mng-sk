@@ -519,10 +519,10 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                 }
                 $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 ?>
-                <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=individual'); ?>" class="button">پاک کردن فیلترها</a>
+                <a href="<?php echo esc_url($export_url); ?>" class="button export_excel_btn">
                     📊 خروجی Excel
                 </a>
-                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=individual'); ?>" class="button">پاک کردن فیلترها</a>
             </p>
         </form>
         
@@ -746,8 +746,8 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                                     $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                                     ?>
                                     <a href="<?php echo esc_url($export_url); ?>" 
-                                       class="button button-small" 
-                                       style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+                                       class="button button-small export_excel_btn" 
+                                       >
                                         📊 Excel
                                     </a>
                                 </td>
@@ -930,10 +930,11 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                 }
                 $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 ?>
-                <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=overall'); ?>" class="button">پاک کردن فیلترها</a>
+
+                <a href="<?php echo esc_url($export_url); ?>" class="button export_excel_btn" >
                     📊 خروجی Excel
                 </a>
-                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=overall'); ?>" class="button">پاک کردن فیلترها</a>
             </p>
         </form>
         

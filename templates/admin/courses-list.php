@@ -18,14 +18,14 @@ echo '</div>';
 ?>
 
 <!-- Modal for Course Users -->
-<div id="scCourseUsersModal" class="sc-modal" style="display: none !important; visibility: hidden !important;">
+<div id="scCourseUsersModal" class="sc-modal" >
     <div class="sc-modal-content">
         <div class="sc-modal-header">
             <h2 class="sc-modal-title">کاربران فعال دوره</h2>
             <span class="sc-modal-close">&times;</span>
         </div>
         <div class="sc-modal-body">
-            <div class="sc-modal-loading" style="text-align: center; padding: 40px;">
+            <div class="sc-modal-loading">
                 <div class="sc-spinner"></div>
                 <p>در حال بارگذاری...</p>
             </div>

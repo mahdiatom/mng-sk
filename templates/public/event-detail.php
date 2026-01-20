@@ -105,6 +105,27 @@ if (!empty($player->id)) {
         $event->id
     ));
     
+
+
+
+$event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+    $existing_register_event_free = $wpdb->get_results(
+        "SELECT event_id FROM $event_registrations_table WHERE member_id = $player->id " , ARRAY_N
+        
+    );
+    //print_r($existing_register_event_free);
+    $event_register_user = [];
+    foreach($existing_register_event_free as $event_register){
+        $event_register_user[] = $event_register[0];
+       // print_r($event);
+    }
+    if(in_array($event->id , $event_register_user)){
+        $is_enrolled = true;
+        $enrollment_tooltip = 'شما در این ' . $event_type_label . ' ثبت‌نام کرده‌اید.';
+
+    }
+    
+
     if ($existing_invoice) {
         $enrollment_status = $existing_invoice->status;
         

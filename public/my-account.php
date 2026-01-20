@@ -477,6 +477,7 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-enroll-course'] = 'ثبت نام در دوره';
     $items['sc-my-courses'] = 'دوره‌های من';
     $items['sc-events'] = 'رویدادها / مسابقات';
+    $items['sc-my-events'] = ' رویداد های من ';
     $items['sc-invoices'] = 'صورت حساب‌ها';
     $items['customer-logout'] = $logout;
     
@@ -493,6 +494,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-my-courses', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-events', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-event-detail', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-my-events', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-event-success', EP_ROOT | EP_PAGES);
 
@@ -507,6 +509,7 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-enroll-course';
     $vars[] = 'sc-my-courses';
     $vars[] = 'sc-events';
+    $vars[] = 'sc-my-events';
     $vars[] = 'sc-event-detail';
     $vars[] = 'sc-invoices';
     return $vars;
@@ -531,6 +534,9 @@ add_filter('woocommerce_endpoint_sc-my-courses_title', function() {
 
 add_filter('woocommerce_endpoint_sc-events_title', function() { 
     return 'رویدادها / مسابقات'; 
+});
+add_filter('woocommerce_endpoint_sc-my-events_title', function() { 
+    return 'رویداد های من'; 
 });
 
 add_filter('woocommerce_endpoint_sc-event-detail_title', function() { 
@@ -680,6 +686,54 @@ function sc_check_user_active_status() {
     return $player;
 }
 
+// display register event user
+add_action('woocommerce_account_sc-my-events_endpoint', 'sc_my_account_my_events_content');
+function sc_my_account_my_events_content(){
+      // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    // بررسی وضعیت فعال بودن کاربر
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return; // اگر غیرفعال بود، پیام نمایش داده شده و خروج می‌کنیم
+    }
+
+    
+    
+    $user_id = get_current_user_id();
+    global $wpdb;
+    
+    $member_event_register_table = $wpdb->prefix . 'sc_event_registrations';
+    $event_table = $wpdb->prefix . 'sc_events';
+
+
+    $query_count = " SELECT COUNT(*) FROM $member_event_register_table
+    WHERE member_id = $user_id";
+    $count_events= $wpdb->get_results(
+            "$query_count",ARRAY_N
+        );  
+
+    $per_page = 10;
+    $limit = $per_page;
+    $current_page = isset($_GET['pag']) ? absint($_GET['pag']) : 1;
+    $offset = ($current_page - 1) * $per_page;
+    $total_pages = ceil($count_events[0][0] / $per_page);
+
+
+    $query = " SELECT r.id , r.event_id , e.event_time , e.name , e.holding_date_shamsi FROM $member_event_register_table r
+    INNER JOIN $event_table e ON r.event_id = e.id 
+    WHERE member_id = $user_id LIMIT $limit OFFSET $offset" ;
+    $user_events= $wpdb->get_results(
+            "$query" , ARRAY_A
+        );  
+    
+    
+
+        
+    
+    
+    include SC_TEMPLATES_PUBLIC_DIR . 'my-events.php';
+}
 /**
  * Display content for custom tab
  */
@@ -1512,7 +1566,7 @@ function sc_my_account_my_courses_content() {
     
     // صفحه‌بندی
     $per_page = 10;
-    $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
+    $current_page = isset($_GET['pag']) ? absint($_GET['pag']) : 1;
     $offset = ($current_page - 1) * $per_page;
     $total_pages = ceil($total_courses / $per_page);
     

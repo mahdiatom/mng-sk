@@ -246,7 +246,7 @@ foreach ($months as $month_start) {
     <hr class="wp-header-end">
     
     <!-- فیلتر بازه تاریخی -->
-    <form method="GET" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+    <form method="GET" action="" class="form_filter_general">
         <input type="hidden" name="page" value="sc-reports-income-expenses">
         
         <table class="form-table sc_form-table">
@@ -281,9 +281,9 @@ foreach ($months as $month_start) {
     
     <!-- کارت‌های خلاصه -->
     <div class="sc-dashboard-stats">
-        <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="margin: 0 0 10px 0; color: #666;">کل درآمد</h3>
-            <div style="font-size: 24px; font-weight: bold; color: #00a32a;">
+        <div class="sc-stat-box" >
+            <h3 >کل درآمد</h3>
+            <div>
                 <?php echo number_format($total_income, 0, '.', ','); ?> تومان
             </div>
             <div style="margin-top: 10px; font-size: 14px; color: <?php echo $income_change >= 0 ? '#00a32a' : '#d63638'; ?>;">
@@ -297,8 +297,8 @@ foreach ($months as $month_start) {
             </div>
         </div>
         
-        <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="margin: 0 0 10px 0; color: #666;">کل هزینه‌ها</h3>
+        <div class="sc-stat-box" >
+            <h3 >کل هزینه‌ها</h3>
             <div style="font-size: 24px; font-weight: bold; color: #d63638;">
                 <?php echo number_format($total_expenses, 0, '.', ','); ?> تومان
             </div>
@@ -313,8 +313,8 @@ foreach ($months as $month_start) {
             </div>
         </div>
         
-        <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="margin: 0 0 10px 0; color: #666;">سود نهایی</h3>
+        <div class="sc-stat-box" >
+            <h3 >سود نهایی</h3>
             <div style="font-size: 24px; font-weight: bold; color: <?php echo $profit >= 0 ? '#00a32a' : '#d63638'; ?>;">
                 <?php echo number_format($profit, 0, '.', ','); ?> تومان
             </div>
@@ -329,8 +329,8 @@ foreach ($months as $month_start) {
             </div>
         </div>
         
-        <div class="sc-stat-box" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="margin: 0 0 10px 0; color: #666;">تعداد صورتحساب‌های پرداخت شده</h3>
+        <div class="sc-stat-box" >
+            <h3 >تعداد صورتحساب‌های پرداخت شده</h3>
             <div style="font-size: 24px; font-weight: bold; color: #2271b1;">
                 <?php echo $paid_invoices_count; ?>
             </div>
@@ -344,7 +344,7 @@ foreach ($months as $month_start) {
     </div>
     
     <!-- لیست ماهیانه -->
-    <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin: 20px 0;">
+    <div class="sc-stat-box">
         <h2>گزارش ماهیانه</h2>
         <div class="back_attendance_list">
             <table class="wp-list-table widefat fixed striped">

@@ -123,7 +123,7 @@ if ($course && isset($_GET['course_id'])) {
                                class="regular-text persian-date-input" 
                                placeholder="تاریخ شروع " 
                                readonly
-                               style="width: 300px; padding: 5px;">
+                                >
                         <input type="hidden" name="start_date" id="start_date" value="<?php echo esc_attr($start_date ?? ''); ?>">
                         <p class="description">برای انتخاب تاریخ، روی فیلد بالا کلیک کنید</p>
                     </td>
@@ -151,7 +151,7 @@ if ($course && isset($_GET['course_id'])) {
                                class="regular-text persian-date-input" 
                                placeholder="تاریخ پایان (شمسی)" 
                                readonly
-                               style="width: 300px; padding: 5px;">
+                                >
                         <input type="hidden" name="end_date" id="end_date" value="<?php echo esc_attr($end_date ?? ''); ?>">
                         <p class="description">برای انتخاب تاریخ، روی فیلد بالا کلیک کنید </p>
                     </td>

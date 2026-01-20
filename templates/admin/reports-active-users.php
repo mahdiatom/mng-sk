@@ -172,7 +172,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
     <hr class="wp-header-end">
     
     <!-- فیلترها -->
-    <form method="GET" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+    <form method="GET" action="" class="form_filter_general">
         <input type="hidden" name="page" value="sc-reports-active-users">
         
         <table class="form-table sc_form-table">
@@ -199,15 +199,15 @@ $members = array_slice($filtered_members, $offset, $per_page);
                             <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $filter_member > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
                             <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
                         </div>
-                        <div class="sc-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #8c8f94; border-top: none; border-radius: 0 0 4px 4px; max-height: 300px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: -1px;">
-                            <div class="sc-dropdown-search" style="padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff;">
+                        <div class="sc-dropdown-menu" >
+                            <div class="sc-dropdown-search" >
                                 <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
                             </div>
-                            <div class="sc-dropdown-options" style="max-height: 250px; overflow-y: auto;">
+                            <div class="sc-dropdown-options" >
                                 <div class="sc-dropdown-option sc-visible" 
                                      data-value="0"
                                      data-search="همه کاربران"
-                                     style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $filter_member == 0 ? 'background: #f0f6fc;' : ''; ?>"
+                                      <?php echo $filter_member == 0 ? 'background: #f0f6fc;' : ''; ?>"
                                      onclick="scSelectMemberFilter(this, '0', 'همه کاربران')">
                                     همه کاربران
                                     <?php if ($filter_member == 0) : ?>
