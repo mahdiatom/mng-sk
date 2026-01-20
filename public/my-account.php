@@ -476,6 +476,7 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-submit-documents'] = 'اطلاعات بازیکن';
     $items['sc-enroll-course'] = 'ثبت نام در دوره';
     $items['sc-my-courses'] = 'دوره‌های من';
+    $items['sc-my-attendances'] = 'حضور و غیاب های من ';
     $items['sc-events'] = 'رویدادها / مسابقات';
     $items['sc-my-events'] = ' رویداد های من ';
     $items['sc-invoices'] = 'صورت حساب‌ها';
@@ -492,6 +493,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-submit-documents', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-enroll-course', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-courses', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-my-attendances', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-events', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-event-detail', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-events', EP_ROOT | EP_PAGES);
@@ -511,6 +513,7 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-events';
     $vars[] = 'sc-my-events';
     $vars[] = 'sc-event-detail';
+    $vars[] = 'sc-my-attendances';
     $vars[] = 'sc-invoices';
     return $vars;
 }
@@ -530,6 +533,9 @@ function sc_enroll_course_endpoint_title($title) {
 
 add_filter('woocommerce_endpoint_sc-my-courses_title', function() { 
     return 'دوره‌های من'; 
+});
+add_filter('woocommerce_endpoint_sc-my-attendances_title', function() { 
+    return 'حضور و غیاب های من '; 
 });
 
 add_filter('woocommerce_endpoint_sc-events_title', function() { 
@@ -1509,6 +1515,19 @@ function sc_handle_course_cancellation() {
     
     wp_safe_redirect(wc_get_account_endpoint_url('sc-my-courses'));
     exit;
+}
+
+add_action('woocommerce_account_sc-my-attendances_endpoint', 'sc_my_account_attendances_content');
+function sc_my_account_attendances_content() {
+    global $wpdb;
+    $courses_table = $wpdb->prefix . 'sc_courses'; 
+    $attendances_table = $wpdb->prefix . 'sc_attendances';
+    $members_table = $wpdb->prefix . 'sc_members'; 
+    $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC");
+
+
+    include SC_TEMPLATES_PUBLIC_DIR . 'my-attendances.php';
+
 }
 
 add_action('woocommerce_account_sc-my-courses_endpoint', 'sc_my_account_my_courses_content');

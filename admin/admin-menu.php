@@ -131,6 +131,7 @@ function sc_register_admin_menu() {
         'sc_admin_events_list_page'
     );
 
+
     $add_event_sufix = add_submenu_page(
         'sc-events',
         'ثبت رویداد ',
@@ -283,8 +284,29 @@ function sc_register_admin_menu() {
     add_action('load-' . $list_invoices_sufix, 'process_invoices_table_data');
 
     add_action('load-' . $add_expense_sufix, 'callback_add_expense_sufix');
+    add_action("load-$list_events_sufix", 'sc_events_screen_options');
+
 
 }
+
+function sc_events_screen_options() {
+    add_screen_option('per_page', [
+        'label'   => 'تعداد رویداد در هر صفحه',
+        'default' => 10,
+        'option'  => 'events_per_page'
+    ]);
+}
+
+add_filter('set-screen-option', 'sc_events_set_screen_option', 10, 3);
+
+function sc_events_set_screen_option($status, $option, $value) {
+    if ($option == 'events_per_page') {
+        return (int) $value;
+    }
+    return $status;
+}
+
+
 function sc_members_screen_option() {
     $option = 'players_per_page';
     $args = [

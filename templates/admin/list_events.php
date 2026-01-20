@@ -101,23 +101,67 @@ class Events_List_Table extends WP_List_Table {
         return get_hidden_columns(get_current_screen());
     }
     
-    public function extra_tablenav($which) {
-        if ($which == 'top') {
-            $selected_status = isset($_GET['event_status']) ? sanitize_text_field($_GET['event_status']) : 'all';
-            ?>
-            <div class="alignleft actions">
-                <label for="filter-event-status" class="screen-reader-text">فیلتر بر اساس وضعیت</label>
-                <select name="event_status" id="filter-event-status">
-                    <option value="all" <?php selected($selected_status, 'all'); ?>>همه وضعیت‌ها</option>
-                    <option value="active" <?php selected($selected_status, 'active'); ?>>فعال</option>
-                    <option value="inactive" <?php selected($selected_status, 'inactive'); ?>>غیرفعال</option>
-                    <option value="trash" <?php selected($selected_status, 'trash'); ?>>زباله‌دان</option>
-                </select>
-                <?php submit_button('فیلتر', 'secondary', 'filter_action', false); ?>
-            </div>
-            <?php
-        }
+public function extra_tablenav($which) {
+    if ($which == 'top') {
+        // دریافت فیلترهای GET
+        $selected_status = isset($_GET['event_status']) ? sanitize_text_field($_GET['event_status']) : 'all';
+        $selected_type   = isset($_GET['event_type']) ? sanitize_text_field($_GET['event_type']) : 'all';
+        $selected_fee    = isset($_GET['event_fee']) ? sanitize_text_field($_GET['event_fee']) : 'all';
+        $start_default_shamsi = sc_date_shamsi_date_only(date('Y-m-d', strtotime('-10 days')));
+        $end_default_shamsi   = sc_date_shamsi_date_only(date('Y-m-d', strtotime('+10 days')));
+
+        $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) 
+        ? sanitize_text_field($_GET['filter_date_from_shamsi']) 
+        : $start_default_shamsi;
+
+        $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) 
+        ? sanitize_text_field($_GET['filter_date_to_shamsi']) 
+        : $end_default_shamsi;
+
+        ?>
+        <div class="alignleft actions">
+            <!-- وضعیت -->
+            <label for="filter-event-status" class="screen-reader-text">فیلتر بر اساس وضعیت</label>
+            <select name="event_status" id="filter-event-status">
+                <option value="all" <?php selected($selected_status, 'all'); ?>>همه وضعیت‌ها</option>
+                <option value="active" <?php selected($selected_status, 'active'); ?>>فعال</option>
+                <option value="inactive" <?php selected($selected_status, 'inactive'); ?>>غیرفعال</option>
+            </select>
+
+            <!-- نوع رویداد -->
+            <label for="filter-event-type" class="screen-reader-text">فیلتر نوع</label>
+            <select name="event_type" id="filter-event-type">
+                <option value="all" <?php selected($selected_type, 'all'); ?>>همه نوع ها</option>
+                <option value="event" <?php selected($selected_type, 'event'); ?>>رویداد</option>
+                <option value="competition" <?php selected($selected_type, 'competition'); ?>>مسابقه</option>
+            </select>
+
+            <!-- رایگان یا همه -->
+            <label for="filter-event-fee" class="screen-reader-text">فیلتر قیمت</label>
+            <select name="event_fee" id="filter-event-fee">
+                <option value="all" <?php selected($selected_fee, 'all'); ?>>همه قیمت ها</option>
+                <option value="free" <?php selected($selected_fee, 'free'); ?>>رایگان</option>
+            </select>
+
+            <!-- تاریخ برگزاری -->
+            <label class="screen-reader-text">بازه تاریخ برگزاری</label>
+            <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" class="persian-date-input" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="از" style=" width: 15%;">
+            <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" class="persian-date-input" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="تا" style=" width: 15%;">
+
+            <!-- hidden inputs میلادی -->
+            <input type="hidden" name="filter_date_from" id="filter_date_from">
+            <input type="hidden" name="filter_date_to" id="filter_date_to">
+
+            <?php submit_button('فیلتر', 'secondary', 'filter_action', false); ?>
+        </div>
+
+        <?php
     }
+}
+
+
+
+
 
     public function no_items() {
         if (isset($_GET['s'])) {
@@ -336,6 +380,41 @@ class Events_List_Table extends WP_List_Table {
             $where .= $wpdb->prepare(" AND (name LIKE %s OR description LIKE %s)", $search, $search);
         }
 
+        // فیلتر نوع
+        if (isset($_GET['event_type']) && $_GET['event_type'] != 'all') {
+            $event_type = sanitize_text_field($_GET['event_type']);
+            $where .= $wpdb->prepare(" AND event_type = %s", $event_type);
+        }
+
+        
+        $filter_type = isset($_GET['event_type']) ? sanitize_text_field($_GET['event_type']) : 'all';
+        $filter_fee  = isset($_GET['event_fee']) ? sanitize_text_field($_GET['event_fee']) : 'all';
+        $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
+        $filter_date_to   = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+
+        // فیلتر نوع
+        $filter_type = isset($_GET['event_type']) ? sanitize_text_field($_GET['event_type']) : 'all';
+        if($filter_type !== 'all'){
+            $where .= $wpdb->prepare(" AND event_type = %s", $filter_type);
+        }
+
+        if($filter_fee === 'free'){
+            $where .= " AND price = 0";
+        }
+
+        if($filter_date_from){
+            $where .= $wpdb->prepare(" AND holding_date_gregorian >= %s", $filter_date_from);
+        }
+
+        if($filter_date_to){
+            $where .= $wpdb->prepare(" AND holding_date_gregorian <= %s", $filter_date_to);
+        }
+
+
+
+
+
+
         $results = $wpdb->get_results(
             "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
             ARRAY_A
@@ -381,6 +460,7 @@ class Events_List_Table extends WP_List_Table {
     
     $events_list_table = new Events_List_Table();
     $events_list_table->prepare_items();
+    
     ?>
     
     <form method="get">
