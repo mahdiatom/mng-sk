@@ -432,9 +432,11 @@ public function extra_tablenav($which) {
 ?>
 
 <div class="wrap">
-    <h1 class="wp-heading-inline">لیست رویداد / مسابقه</h1>
-    <a href="<?php echo admin_url('admin.php?page=sc-add-event'); ?>" class="page-title-action">افزودن رویداد جدید</a>
-    
+    <div class="event_header_list">
+        <h1 class="wp-heading-inline">لیست رویداد / مسابقه</h1>
+        <a href="<?php echo admin_url('admin.php?page=sc-add-event'); ?>" class="page-title-action">افزودن رویداد جدید</a>
+        <p class="descriotion">فیلتر تاریخ بر اساس تاریخ برگزاری می باشد.</p>
+    </div>
     <?php
     // نمایش پیام‌های موفقیت/خطا
     if (isset($_GET['sc_status'])) {
