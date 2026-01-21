@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.1.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.2.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -193,6 +193,7 @@ function sc_create_members_table(){
             `health_verified` tinyint(1) DEFAULT 0,
             `info_verified` tinyint(1) DEFAULT 0,
             `is_active` tinyint(1) DEFAULT 1,
+            `disable_auto_invoice` tinyint(1) DEFAULT 0,
             `additional_info` text,
             `created_at` datetime NOT NULL,
             `updated_at` datetime NOT NULL,

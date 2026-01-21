@@ -27,6 +27,7 @@ if(!isset($_GET['player_id'])){
         $health_verified = 0;
         $info_verified = 0;
         $is_active = 1;
+        $disable_auto_invoice = 0;
         $additional_info = '';
         $skill_level = '';
   
@@ -60,6 +61,7 @@ if($player && $_GET['player_id'] ){
         $health_verified         = $player->health_verified ?? 0;
         $info_verified           = $player->info_verified ?? 0;
         $is_active               = $player->is_active ?? 1;
+        $disable_auto_invoice               = $player->disable_auto_invoice ?? 1;
         $additional_info         = $player->additional_info ?? '';
         $skill_level             = $player->skill_level ?? '';
 
@@ -294,6 +296,20 @@ if($player && $_GET['player_id'] ){
                 <tr>
                     <th scope="row">فعال</th>
                     <td><label class="switch" ><input name="is_active" type="checkbox" <?php checked($is_active, 1); ?> value="1"><span class="slider round"></span> بله</label></td>
+                </tr>
+                <tr>
+                    <th scope="row">غیرفعال کردن صورت حساب خودکار</th>
+                    <td>
+                        <label class="switch">
+                            <input 
+                                name="disable_auto_invoice" 
+                                type="checkbox" 
+                                <?php checked( isset($disable_auto_invoice) ? $disable_auto_invoice : 0, 1 ); ?> 
+                                value="1"
+                            >
+                            <span class="slider round"></span> بله
+                        </label>
+                    </td>
                 </tr>
 
                 <tr>

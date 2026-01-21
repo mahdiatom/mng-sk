@@ -77,49 +77,30 @@ function sc_load_shortcodes() {
  * ============================
  */
 register_activation_hook(__FILE__, 'sc_activate_plugin');
+register_activation_hook( __FILE__, 'club_create_club_coach_role' );
 register_activation_hook(__FILE__, 'sc_update_database');
 register_deactivation_hook(__FILE__, 'sc_clear_recurring_invoices_cron');
 
 function sc_activate_plugin() {
-    // اطمینان از اینکه همه فایل‌های مورد نیاز لود شده‌اند
-    if (!function_exists('sc_check_and_create_tables')) {
-        // در صورت عدم وجود تابع، خطا را لاگ کن
-        error_log('SportClub Manager: sc_check_and_create_tables function not found during activation');
-        return;
-    }
-    
-    try {
-        // بررسی و ایجاد جداول در صورت عدم وجود
+
+    // بررسی و ایجاد جداول در صورت وجود تابع
+    if (function_exists('sc_check_and_create_tables')) {
         sc_check_and_create_tables();
-        
-        // ثبت endpoint های My Account
-        add_rewrite_endpoint('sc-submit-documents', EP_ROOT | EP_PAGES);
-        add_rewrite_endpoint('sc-enroll-course', EP_ROOT | EP_PAGES);
-        add_rewrite_endpoint('sc-my-courses', EP_ROOT | EP_PAGES);
-        add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
-        add_rewrite_endpoint('sc-events', EP_ROOT | EP_PAGES);
-        add_rewrite_endpoint('sc-event-detail', EP_ROOT | EP_PAGES);
-
-        // مقداردهی اولیه تنظیمات SMS
-        if (function_exists('sc_initialize_sms_settings')) {
-            sc_initialize_sms_settings();
-        }
-
-        // Flush rewrite rules for WooCommerce endpoint
-        flush_rewrite_rules();
-    } catch (Exception $e) {
-        error_log('SportClub Manager Activation Error: ' . $e->getMessage());
-        deactivate_plugins(plugin_basename(__FILE__));
-        wp_die('خطا در فعال‌سازی افزونه: ' . esc_html($e->getMessage()));
+    } else {
+        error_log('SportClub Manager: sc_check_and_create_tables function not found during activation');
     }
-    static $checked = false;
-    if ($checked) {
-        return;
+
+    // مقداردهی اولیه تنظیمات SMS
+    if (function_exists('sc_initialize_sms_settings')) {
+        sc_initialize_sms_settings();
     }
-    $checked = true;
-    
-    
+
+    // Flush rewrite rules فقط یک بار هنگام فعال‌سازی
+    flush_rewrite_rules();
 }
+
+
+
 
 /**
  * Add user_id column to existing table if not exists
@@ -918,3 +899,5 @@ add_action( 'wp_enqueue_scripts', function () {
         '.tab-menu { background:red; }'
     );
 });
+
+

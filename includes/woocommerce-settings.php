@@ -367,30 +367,38 @@ function myadmin_autofill_email_js() {
     <?php
 }
 
+
+
+
 //پایان اعمال تغییرات روی افزودن حساب کاربری در وردپرس
- //ریدایرکت صفحه پیشفرض ووکامرس به صفحه اطلاعات بازیکن
-add_action('parse_request', function () {
-
-    // فقط آدرس دقیق
-    if (rtrim($_SERVER['REQUEST_URI'], '/') !== '/aiwp/my-account') {
-        return;
-    }
-
-    // فقط اگر لاگین کرده
+add_action('template_redirect', function () {
+    // اگر کاربر وارد نشده، کاری نکن
     if (!is_user_logged_in()) {
         return;
     }
 
+    // اطلاعات کاربر
     $user = wp_get_current_user();
 
-    // فقط نقش subscriber
-    if (!in_array('subscriber', (array) $user->roles, true)) {
-        return;
+    // مسیر دقیق URL فعلی
+    $current_url_path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
+
+    // مسیر صفحه my-account در سایت شما
+    $my_account_slug = trim(parse_url(home_url('/my-account/'), PHP_URL_PATH), '/');
+
+    // اگر کاربر ادمین یا مربی است، به داشبورد وردپرس برود
+    if (in_array('administrator', $user->roles) || in_array('club_coach', $user->roles)) {
+        wp_redirect(admin_url());
+        exit;
     }
 
-    wp_redirect('/aiwp/my-account/sc-submit-documents/', 302);
-    exit;
+    // فقط اگر کاربر مشترک باشد و مسیر دقیقاً my-account باشد
+    if (in_array('subscriber', $user->roles) && $current_url_path === $my_account_slug) {
+        wp_redirect(home_url('/my-account/sc-submit-documents/'), 301);
+        exit;
+    }
 });
+
 
 // ارتباط حذف بین رویداد و صورت حساب افزونه و صورت حساب ووکامرس
 add_action('woocommerce_before_delete_order', function($order_id) {

@@ -999,6 +999,7 @@ function callback_add_member_sufix(){
         'health_verified'      => isset($_POST['health_verified']) ? 1 : 0,
         'info_verified'        => isset($_POST['info_verified']) ? 1 : 0,
         'is_active'            => isset($_POST['is_active']) ? 1 : 0,
+        'disable_auto_invoice'            => isset($_POST['disable_auto_invoice']) ? 1 : 0,
         'created_at'           => current_time('mysql'),
         'updated_at'           => current_time('mysql'),
        ];

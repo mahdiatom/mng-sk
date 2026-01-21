@@ -6,23 +6,20 @@ if ( ! defined('ABSPATH') ) exit;
  * ایجاد نقش مدیر باشگاه (DEV MODE)
  * ===============================
  */
-add_action('init', 'club_setup_club_coach_role_for_dev');
-function club_setup_club_coach_role_for_dev() {
-
-    // DEV: حذف و ایجاد مجدد نقش
-    if ( get_role('club_coach') ) {
-        remove_role('club_coach');
+function club_create_club_coach_role() {
+    // اگر نقش وجود ندارد، ایجاد شود
+    if ( ! get_role('club_coach') ) {
+        $admin_role = get_role('administrator');
+        if ( $admin_role ) {
+            add_role(
+                'club_coach',
+                'مدیر باشگاه',
+                $admin_role->capabilities
+            );
+        }
     }
-
-    $admin_role = get_role('administrator');
-    if ( ! $admin_role ) return;
-
-    add_role(
-        'club_coach',
-        'مدیر باشگاه',
-        $admin_role->capabilities
-    );
 }
+
 
 /**
  * ===============================

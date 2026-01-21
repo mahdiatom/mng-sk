@@ -3,10 +3,14 @@
  * Recurring Invoices Functions
  */
 
+
+
 /**
  * Create recurring invoices for active courses
  * این تابع باید توسط cron job فراخوانی شود
  */
+
+
 function sc_create_recurring_invoices() {
     // لاگ شروع اجرای cron
     error_log('SC Recurring Invoices: Cron job started at ' . current_time('mysql'));
@@ -22,6 +26,10 @@ function sc_create_recurring_invoices() {
     $courses_table = $wpdb->prefix . 'sc_courses';
     $members_table = $wpdb->prefix . 'sc_members';
     
+   
+ 
+
+
     $interval_minutes = sc_get_invoice_interval_minutes();
     
     error_log("SC Recurring Invoices: Using MINUTE interval: $interval_minutes minutes");
@@ -30,7 +38,7 @@ function sc_create_recurring_invoices() {
     // فقط دوره‌هایی که آخرین صورت حساب آن‌ها (چه pending چه paid) بیشتر از interval_days روز از ایجاد آن گذشته باشد
     // و flags (paused, completed, canceled) نداشته باشند
     $active_courses = $wpdb->get_results($wpdb->prepare(
-        "SELECT mc.*, c.price, c.title as course_title, m.user_id
+        "SELECT mc.*, c.price, c.title as course_title, m.user_id, m.disable_auto_invoice
          FROM $member_courses_table mc
          INNER JOIN $courses_table c ON mc.course_id = c.id
          INNER JOIN $members_table m ON mc.member_id = m.id
@@ -82,7 +90,10 @@ function sc_create_recurring_invoices() {
     
     foreach ($active_courses as $member_course) {
         error_log("SC Recurring Invoices: Processing course - Member ID: {$member_course->member_id}, Course ID: {$member_course->course_id}, Course Title: {$member_course->course_title}");
-        
+        if (isset($member_course->disable_auto_invoice) && $member_course->disable_auto_invoice == 1) {
+        error_log("SC Recurring Invoices: Auto invoice disabled for Member ID: {$member_course->member_id}. Skipping.");
+        continue; // این کاربر نادیده گرفته می‌شود
+    }
         // ایجاد صورت حساب جدید (بدون چک کردن pending)
         $invoice_result = sc_create_course_invoice(
             $member_course->member_id,
@@ -148,6 +159,7 @@ function sc_check_and_pause_courses_with_unpaid_invoices() {
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $courses_table = $wpdb->prefix . 'sc_courses';
+    $members_table = $wpdb->prefix . 'sc_members';
     
     // دریافت تمام دوره‌های فعال که 3 یا بیشتر صورت حساب pending دارند
     // فقط صورت حساب‌هایی که مربوط به دوره هستند (دارای course_id و member_course_id)
