@@ -486,6 +486,41 @@ function sc_update_profile_completed_status($member_id) {
     return $is_completed;
 }
 
+
+
+//برای تکمیل ستون تعیین وضعیت تکمیل یا نافص بودن پروفایل
+function sc_is_profile_completed($member_id) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_members';
+
+    $member = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT 
+                first_name,
+                last_name,
+                national_id,
+                player_phone,
+                birth_date_shamsi
+             FROM $table
+             WHERE id = %d",
+            $member_id
+        ),
+        ARRAY_A
+    );
+
+    if (!$member) {
+        return false;
+    }
+
+    foreach ($member as $value) {
+        if (empty($value)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 /**
  * ============================
  * Check and create tables if not exist

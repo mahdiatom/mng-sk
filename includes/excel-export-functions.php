@@ -608,7 +608,8 @@ function sc_export_members_to_excel() {
     $filter_status = isset($_GET['player_status']) ? sanitize_text_field($_GET['player_status']) : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all');
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
-    
+    $filter_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
+
     // ساخت WHERE clause
     $where_conditions = ['1=1'];
     $where_values = [];
@@ -643,6 +644,16 @@ function sc_export_members_to_excel() {
     } else {
         $members = $wpdb->get_results($query);
     }
+    if ($filter_profile !== 'all') {
+    $members = array_filter($members, function($member) use ($filter_profile) {
+        $completed = sc_check_profile_completed($member->id);
+        if ($filter_profile === 'completed') {
+            return $completed;
+        } else { // incomplete
+            return !$completed;
+        }
+    });
+}
     
     // دریافت دوره‌های هر عضو
     foreach ($members as $member) {
@@ -981,6 +992,8 @@ function sc_export_event_registrations_to_excel() {
     $filter_date_to   = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
     $search           = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
     $filter_free = isset($_GET['filter_free']) ? absint($_GET['filter_free']) : 0;
+    $filter_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
+
 
 
     /**
@@ -1020,6 +1033,8 @@ if ($filter_free === 1) {
         $where_conditions[] = "DATE(r.created_at) <= %s";
         $where_values[] = $filter_date_to;
     }
+    
+    
 
     if ($search) {
         $search_like = '%' . $wpdb->esc_like($search) . '%';
@@ -1073,6 +1088,34 @@ if ($filter_free === 1) {
     $registrations = !empty($where_values)
         ? $wpdb->get_results($wpdb->prepare($query, $where_values))
         : $wpdb->get_results($query);
+    // ================================
+// فیلتر پروفایل (تکمیل / ناقص)
+// ================================
+if ($filter_profile !== 'all') {
+
+    $filtered_registrations = [];
+
+    foreach ($registrations as $reg) {
+
+        // member_id داریم
+        $is_completed = sc_check_profile_completed($reg->member_id);
+
+        if ($filter_profile === 'completed' && !$is_completed) {
+            continue;
+        }
+
+        if ($filter_profile === 'incomplete' && $is_completed) {
+            continue;
+        }
+
+        // اگر خواستی در اکسل استفاده کنی
+        $reg->profile_completed = $is_completed;
+
+        $filtered_registrations[] = $reg;
+    }
+
+    $registrations = $filtered_registrations;
+}
 
     /**
      * ساخت Excel

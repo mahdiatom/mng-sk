@@ -3,6 +3,25 @@
 if (!class_exists('WP_List_Table')) {
     require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class Player_List_Table extends WP_List_Table {
 
     public function get_columns() {
@@ -142,14 +161,9 @@ public function column_full_name($item) {
                 
                 return '<span style="color: #999;">-</span>';
             case 'profile_completed':
-                // بررسی و به‌روزرسانی وضعیت تکمیل پروفایل
-                $is_completed = sc_check_profile_completed($item['id']);
-                // به‌روزرسانی در دیتابیس اگر تغییر کرده باشد
-                $current_status = isset($item['profile_completed']) ? (int)$item['profile_completed'] : 0;
-                if ($current_status != (int)$is_completed) {
-                    sc_update_profile_completed_status($item['id']);
-                }
-                return $is_completed ? '<span style="color: #00a32a; font-weight: bold;">✓ تکمیل شده</span>' : '<span style="color: #d63638; font-weight: bold;">✗ ناقص</span>';
+                return $item['profile_completed']
+        ? '<span style="color:#00a32a;font-weight:bold;">✓ تکمیل شده</span>'
+        : '<span style="color:#d63638;font-weight:bold;">✗ ناقص</span>';
             case 'is_active':
                 return $item['is_active'] ? "فعال" : "غیرفعال";
             default:
@@ -343,11 +357,12 @@ public function column_full_name($item) {
             if (isset($_GET['s']) && !empty($_GET['s'])) {
                 $export_url = add_query_arg('s', $_GET['s'], $export_url);
             }
+            if (isset($_GET['filter_profile']) && $_GET['filter_profile'] !== 'all') {
+                $export_url = add_query_arg('filter_profile', $_GET['filter_profile'], $export_url);
+            }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
-            if (isset($_GET['filter_profile']) && $_GET['filter_profile'] !== 'all') {
-    $export_url = add_query_arg('filter_profile', $_GET['filter_profile'], $export_url);
-}
+ 
 
                 echo '</div>';
         }

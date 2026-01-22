@@ -971,6 +971,9 @@ function callback_add_course_sufix() {
         }
     }
 }
+
+
+
 //for save data in new member -> wpdb
 function callback_add_member_sufix(){
     // فقط برای ویرایش کاربر (وقتی player_id وجود دارد)
@@ -1221,9 +1224,9 @@ function callback_add_member_sufix(){
                     $course_flags[$course_id_int] = $flags_array;
                 }
                 sc_save_member_courses($player_id, $course_ids, $course_flags);
-                
-                // به‌روزرسانی وضعیت تکمیل پروفایل
                 sc_update_profile_completed_status($player_id);
+                // به‌روزرسانی وضعیت تکمیل پروفایل
+                
                 
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=updated&player_id=' . $player_id));
                 exit;
@@ -1383,9 +1386,10 @@ function callback_add_member_sufix(){
                     $course_flags[$course_id_int] = $flags_array;
                 }
                 sc_save_member_courses($insert_id, $course_ids, $course_flags);
-                
-                // به‌روزرسانی وضعیت تکمیل پروفایل
                 sc_update_profile_completed_status($insert_id);
+
+                // به‌روزرسانی وضعیت تکمیل پروفایل
+                
                 
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_true&player_id=' . $insert_id));
                 exit;
