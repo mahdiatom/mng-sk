@@ -265,7 +265,7 @@ if (empty($player_phone) && $billing_phone) {
             
             <p class="form-row">
                 <label for="additional_info">توضیحات اضافی</label>
-                <textarea name="additional_info" placeholder="هر آنچه که در موارد فوق نبودند و نیاز هست به مربی  گفته شود را اینجا ذکر" id="additional_info" rows="3" class="input-text"><?php echo esc_textarea($additional_info); ?></textarea>
+                <textarea name="additional_info" placeholder="هر آنچه که در موارد فوق نبودند و نیاز هست به مربی  گفته شود را اینجا بنویسید.." id="additional_info" rows="3" class="input-text"><?php echo esc_textarea($additional_info); ?></textarea>
             </p>
 
             <p class="form-row checkbox_woo_sc">

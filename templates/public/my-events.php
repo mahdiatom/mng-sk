@@ -19,7 +19,8 @@ $total_events = isset($total_events) ? $total_events : 0;
     
   
     
-    <?php if (empty($user_events)) : ?>
+    <?php 
+    if (empty($user_events)) : ?>
         <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
             <?php if ($filter_status !== 'all') : ?>
                 رویدادی با این وضعیت یافت نشد.

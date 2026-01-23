@@ -695,7 +695,7 @@ function sc_check_user_active_status() {
 // display register event user
 add_action('woocommerce_account_sc-my-events_endpoint', 'sc_my_account_my_events_content');
 function sc_my_account_my_events_content(){
-      // بررسی و ایجاد جداول در صورت عدم وجود
+          // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
     
     // بررسی وضعیت فعال بودن کاربر
@@ -706,36 +706,53 @@ function sc_my_account_my_events_content(){
 
     
     
-    $user_id = get_current_user_id();
+    $user_id_wp = get_current_user_id();
+
     global $wpdb;
     
     $member_event_register_table = $wpdb->prefix . 'sc_event_registrations';
     $event_table = $wpdb->prefix . 'sc_events';
+	$wp_user_table = $wpdb->prefix . 'users';
+	$member_table = $wpdb->prefix . 'sc_members';
+
+$results = $wpdb->get_results(
+    "SELECT m.id
+     FROM {$wp_user_table} wp
+     INNER JOIN {$member_table} m
+     ON wp.ID = m.user_id
+     WHERE wp.ID = {$user_id_wp}" , ARRAY_A
+);
+
+$user_id =  $results[0]['id'];
 
 
-    $query_count = " SELECT COUNT(*) FROM $member_event_register_table
-    WHERE member_id = $user_id";
-    $count_events= $wpdb->get_results(
-            "$query_count",ARRAY_N
-        );  
+
+    $count_events = $wpdb->get_var(
+    $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$member_event_register_table} WHERE member_id = %d",
+        $user_id
+    )
+); 
 
     $per_page = 10;
     $limit = $per_page;
     $current_page = isset($_GET['pag']) ? absint($_GET['pag']) : 1;
     $offset = ($current_page - 1) * $per_page;
-    $total_pages = ceil($count_events[0][0] / $per_page);
+	$total_pages = ceil($count_events / $per_page);
 
 
-    $query = " SELECT r.id , r.event_id , e.event_time , e.name , e.holding_date_shamsi FROM $member_event_register_table r
-    INNER JOIN $event_table e ON r.event_id = e.id 
-    WHERE member_id = $user_id LIMIT $limit OFFSET $offset" ;
-    $user_events= $wpdb->get_results(
-            "$query" , ARRAY_A
-        );  
-    
-    
+    $query = $wpdb->prepare(
+    "SELECT r.id, r.event_id, e.event_time, e.name, e.holding_date_shamsi
+     FROM {$member_event_register_table} r
+     INNER JOIN {$event_table} e ON r.event_id = e.id
+     WHERE r.member_id = %d
+     LIMIT %d OFFSET %d",
+    $user_id,
+    $limit,
+    $offset
+);
 
-        
+$user_events = $wpdb->get_results($query, ARRAY_A);
     
     
     include SC_TEMPLATES_PUBLIC_DIR . 'my-events.php';
