@@ -176,6 +176,20 @@ public function column_order_number($item) {
             
             $parts[] = '<strong>هزینه اضافی:</strong> ' . $expense_display;
         }
+        // نمایش جریمه
+        $penalty_amount = isset($item['penalty_amount']) ? floatval($item['penalty_amount']) : 0;
+
+        if ($penalty_amount > 0) {
+
+            if (function_exists('wc_price')) {
+                $penalty_display = wc_price($penalty_amount);
+            } else {
+                $penalty_display = number_format($penalty_amount, 0, '.', ',') . ' تومان';
+            }
+
+            $parts[] = '<span style="color:#d63638;font-weight:bold;">⚠️ جریمه تأخیر:</span> ' . $penalty_display;
+        }
+
         
         if (empty($parts)) {
             return '<span style="color: #999; font-style: italic;">بدون دوره</span>';
@@ -239,7 +253,9 @@ public function column_order_number($item) {
             'mark_completed' => 'تغییر وضعیت به: تایید پرداخت',
             'mark_cancelled' => 'تغییر وضعیت به: لغو شده',
             'mark_failed' => 'تغییر وضعیت به: ناموفق',
-            'delete' => 'حذف'
+            'delete' => 'حذف',
+            'remove_penalty' => 'حذف جریمه'
+
         ];
     }
 
@@ -308,6 +324,61 @@ public function column_order_number($item) {
                 
                 wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_deleted'));
                 exit;
+            case 'remove_penalty':
+
+                foreach ($invoice_ids as $invoice_id) {
+
+                    // دریافت invoice
+                    $invoice = $wpdb->get_row($wpdb->prepare(
+                        "SELECT * FROM $table_name WHERE id = %d",
+                        $invoice_id
+                    ));
+
+                    if (!$invoice) {
+                        continue;
+                    }
+
+                    // 1. صفر کردن جریمه در دیتابیس
+                    $wpdb->update(
+                        $table_name,
+                        [
+                            'penalty_amount'   => 0,
+                            'penalty_applied'  => 0,
+                            'disable_penalty'  => 1, // جلوگیری از اعمال مجدد
+                            'updated_at'       => current_time('mysql')
+                        ],
+                        ['id' => $invoice_id],
+                        ['%f', '%d', '%d', '%s'],
+                        ['%d']
+                    );
+
+                    // 2. حذف fee جریمه از سفارش ووکامرس
+                    if (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
+
+                        $order = wc_get_order($invoice->woocommerce_order_id);
+
+                        if ($order) {
+                            foreach ($order->get_items('fee') as $item_id => $item) {
+                                $name = $item->get_name();
+
+                                if (
+                                    strpos($name, 'جریمه') !== false ||
+                                    strpos($name, 'Penalty') !== false ||
+                                    strpos($name, 'تأخیر') !== false
+                                ) {
+                                    $order->remove_item($item_id);
+                                }
+                            }
+
+                            $order->calculate_totals();
+                            $order->save();
+                        }
+                    }
+                }
+
+                wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=penalty_removed'));
+                exit;
+
             default:
                 return;
         }
@@ -442,13 +513,36 @@ public function column_order_number($item) {
             'on-hold' => 'در حال بررسی',
             'completed' => 'تایید پرداخت',
             'cancelled' => 'لغو شده',
-            'failed' => 'ناموفق'
+            'failed' => 'ناموفق',
+            'penalty' => 'جریمه‌دارها'
         ];
         $views = [];
 
         foreach ($statuses as $status_key => $status_label) {
             $count = $count_all;
-            
+          
+                if ($status_key === 'penalty') {
+
+                $count_where = $where_conditions;
+                $count_where_values = $where_values;
+
+                $count_where[] = "(i.penalty_amount > 0 OR i.penalty_applied = 1)";
+                $count_where_clause = implode(' AND ', $count_where);
+
+                $count_query_status = "
+                    SELECT COUNT(*)
+                    FROM $table_name i
+                    INNER JOIN {$wpdb->prefix}sc_members m ON i.member_id = m.id
+                    WHERE $count_where_clause
+                ";
+
+                $count = $wpdb->get_var(
+                    !empty($count_where_values)
+                        ? $wpdb->prepare($count_query_status, $count_where_values)
+                        : $count_query_status
+                );
+            }
+
             if ($status_key !== 'all') {
                 $count_where = $where_conditions;
                 $count_where_values = $where_values;
@@ -539,6 +633,8 @@ public function column_order_number($item) {
 
         // دریافت فیلترها
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+        
+
         $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
         $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
         // پردازش فیلترهای تاریخ (شمسی به میلادی)
@@ -561,21 +657,29 @@ public function column_order_number($item) {
         $where_conditions = ['1=1'];
         $where_values = [];
 
-        if ($filter_status !== 'all') {
-            // برای completed، باید paid و completed را هم در نظر بگیریم
-            if ($filter_status === 'completed') {
-                $where_conditions[] = "(i.status = %s OR i.status = %s)";
-                $where_values[] = 'completed';
-                $where_values[] = 'paid';
-            } elseif ($filter_status === 'on-hold') {
-                $where_conditions[] = "(i.status = %s OR i.status = %s)";
-                $where_values[] = 'on-hold';
-                $where_values[] = 'under_review';
-            } else {
-                $where_conditions[] = "i.status = %s";
-                $where_values[] = $filter_status;
-            }
-        }
+       // فیلتر وضعیت (به جز جریمه‌دارها)
+if ($filter_status !== 'all' && $filter_status !== 'penalty') {
+
+    if ($filter_status === 'completed') {
+        $where_conditions[] = "(i.status = %s OR i.status = %s)";
+        $where_values[] = 'completed';
+        $where_values[] = 'paid';
+
+    } elseif ($filter_status === 'on-hold') {
+        $where_conditions[] = "(i.status = %s OR i.status = %s)";
+        $where_values[] = 'on-hold';
+        $where_values[] = 'under_review';
+
+    } else {
+        $where_conditions[] = "i.status = %s";
+        $where_values[] = $filter_status;
+    }
+}
+// فیلتر مخصوص جریمه‌دارها
+if ($filter_status === 'penalty') {
+    $where_conditions[] = "(i.penalty_amount > 0 OR i.penalty_applied = 1)";
+}
+
 
         if ($filter_course > 0) {
             $where_conditions[] = "i.course_id = %d";

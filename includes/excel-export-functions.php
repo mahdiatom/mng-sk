@@ -116,10 +116,15 @@ function sc_get_excel_data_style() {
  */
 function sc_get_excel_alternate_row_style() {
     return [
+        'alignment' => [
+            'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+            'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+        ],
         'fill' => [
             'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-            'startColor' => ['rgb' => 'F2F2F2'], // خاکستری روشن
+            'startColor' => ['rgb' => 'F5F5F5'],
         ],
+        
     ];
 }
 

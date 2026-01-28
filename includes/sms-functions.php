@@ -943,7 +943,7 @@ function sc_initialize_sms_settings() {
         'sms_absence_admin_pattern' => '',
 
         // Reminder Settings
-        'sms_reminder_delay_minutes' => '4320', // 3 days in minutes
+        //'sms_reminder_delay_minutes' => '4320', // 3 days in minutes
     ];
 
     foreach ($defaults as $key => $value) {

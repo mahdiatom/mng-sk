@@ -337,7 +337,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                             </span>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-actions" data-title="عملیات">
-                            <div style="display: flex;gap: 8px;flex-wrap: wrap;justify-content: center;">
+                            <div style="display: flex;gap: 8px;flex-wrap: wrap;justify-content: center;flex-direction: column;text-align: center;margin-top: 40px;">
                                 <?php 
                                 // دکمه‌های عملیات
                                 $action_buttons = [];
@@ -345,7 +345,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                 // دکمه پرداخت برای pending
                                 if ($payment_url && $invoice->status === 'pending') {
                                     $action_buttons[] = '<a href="' . esc_url($payment_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-pay"
-                                    >💳 پرداخت</a>';
+                                    > پرداخت</a>';
                                 }
                                 
                                 // دکمه مشاهده سفارش برای under_review یا سایر حالات
