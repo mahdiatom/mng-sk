@@ -54,6 +54,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                 <button type="submit" class="button button-primary" style="padding: 8px 20px; height: auto;">اعمال فیلتر</button>
             </div>
         </form>
+        
     </div>
     
     <?php if (empty($invoices)) : ?>
