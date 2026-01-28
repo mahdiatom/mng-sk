@@ -519,30 +519,7 @@ public function column_order_number($item) {
         $views = [];
 
         foreach ($statuses as $status_key => $status_label) {
-            $count = $count_all;
-          
-                if ($status_key === 'penalty') {
-
-                $count_where = $where_conditions;
-                $count_where_values = $where_values;
-
-                $count_where[] = "(i.penalty_amount > 0 OR i.penalty_applied = 1)";
-                $count_where_clause = implode(' AND ', $count_where);
-
-                $count_query_status = "
-                    SELECT COUNT(*)
-                    FROM $table_name i
-                    INNER JOIN {$wpdb->prefix}sc_members m ON i.member_id = m.id
-                    WHERE $count_where_clause
-                ";
-
-                $count = $wpdb->get_var(
-                    !empty($count_where_values)
-                        ? $wpdb->prepare($count_query_status, $count_where_values)
-                        : $count_query_status
-                );
-            }
-
+    
             if ($status_key !== 'all') {
                 $count_where = $where_conditions;
                 $count_where_values = $where_values;
@@ -555,7 +532,11 @@ public function column_order_number($item) {
                     $count_where[] = "(i.status = %s OR i.status = %s)";
                     $count_where_values[] = 'on-hold';
                     $count_where_values[] = 'under_review';
-                } else {
+                } elseif ($status_key === 'penalty') {
+                // اضافه کردن شرط برای جریمه‌دارها
+                $count_where[] = "(i.penalty_amount > 0 OR i.penalty_applied = 1)";
+            }
+                else {
                     $count_where[] = "i.status = %s";
                     $count_where_values[] = $status_key;
                 }
