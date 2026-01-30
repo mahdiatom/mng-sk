@@ -91,20 +91,6 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                 $count_invoices =  0;
                 foreach ($invoices as $invoice) : 
                     $count_invoices++;
-                    // بررسی و اعمال جریمه در صورت نیاز
-                    if ($invoice->status === 'pending' && !$invoice->penalty_applied) {
-                        sc_apply_penalty_to_invoice($invoice->id);
-                        // دریافت مجدد اطلاعات صورت حساب
-                        $events_table = $wpdb->prefix . 'sc_events';
-                        $invoice = $wpdb->get_row($wpdb->prepare(
-                            "SELECT i.*, c.title as course_title, c.price as course_price, e.name as event_name
-                             FROM {$wpdb->prefix}sc_invoices i
-                             LEFT JOIN {$wpdb->prefix}sc_courses c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
-                             LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
-                             WHERE i.id = %d",
-                            $invoice->id
-                        ));
-                    }
                     
                     $total_amount = (float)$invoice->amount + (float)($invoice->penalty_amount ?? 0);
                     

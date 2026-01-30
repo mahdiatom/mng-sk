@@ -280,6 +280,9 @@ function sc_send_payment_reminders() {
  */
 add_action('sc_every_minute_recurring_invoices_check', 'sc_send_payment_reminders');
 
+
+add_action('sc_every_minute_recurring_invoices_check', 'sc_check_and_apply_penalties');
+
 /**
  * Cleanup cron job on deactivation
  * توجه: این تابع باید در فایل اصلی افزونه register شود

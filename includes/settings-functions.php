@@ -150,6 +150,8 @@ function sc_calculate_penalty($invoice_id) {
  * Apply penalty to an invoice and update WooCommerce order
  */
 function sc_apply_penalty_to_invoice($invoice_id) {
+
+    
     if (!sc_is_penalty_enabled()) {
         return false;
     }
@@ -161,7 +163,11 @@ function sc_apply_penalty_to_invoice($invoice_id) {
         "SELECT * FROM $invoices_table WHERE id = %d",
         $invoice_id
     ));
-    
+    // اگر جریمه برای این فاکتور غیرفعال شده
+    if (isset($invoice->disable_penalty) && (int)$invoice->disable_penalty === 1) {
+        return false;
+    }
+
     if (!$invoice || $invoice->status !== 'pending') {
         return false;
     }
@@ -244,24 +250,32 @@ function sc_check_and_apply_penalties() {
     if (!sc_is_penalty_enabled()) {
         return;
     }
-    
+
     global $wpdb;
-    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $table = $wpdb->prefix . 'sc_invoices';
     $penalty_minutes = sc_get_penalty_minutes();
-    
-    // دریافت تمام صورت حساب‌های pending که جریمه اعمال نشده
-    $invoices = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM $invoices_table
+
+    $invoices = $wpdb->get_results(
+        "SELECT * FROM $table
          WHERE status = 'pending'
-         AND (penalty_applied = 0 OR penalty_applied IS NULL)
-         AND TIMESTAMPDIFF(MINUTE, created_at, NOW()) >= %d",
-        $penalty_minutes
-    ));
-    
+         AND (penalty_applied = 0 OR penalty_applied IS NULL)"
+    );
+
     foreach ($invoices as $invoice) {
-        sc_apply_penalty_to_invoice($invoice->id);
+        // اگر جریمه غیرفعال شده
+        if (isset($invoice->disable_penalty) && (int)$invoice->disable_penalty === 1) {
+            continue;
+        }
+
+        $created = strtotime($invoice->created_at);
+        $now = current_time('timestamp');
+
+        if (($now - $created) >= ($penalty_minutes * 60)) {
+            sc_apply_penalty_to_invoice($invoice->id);
+        }
     }
 }
+
 
 //افزودن متن به بخش ویرایش کاربر
 

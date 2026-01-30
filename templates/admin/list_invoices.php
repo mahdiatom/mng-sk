@@ -519,7 +519,7 @@ public function column_order_number($item) {
         $views = [];
 
         foreach ($statuses as $status_key => $status_label) {
-    
+            $count =0;
             if ($status_key !== 'all') {
                 $count_where = $where_conditions;
                 $count_where_values = $where_values;

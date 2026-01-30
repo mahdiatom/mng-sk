@@ -427,13 +427,13 @@ if($player && $_GET['player_id'] ){
                         echo '</label>';
                         
                         // Checkbox برای completed - همیشه فعال است
-                        echo '<label class="label_cheakbox_active_courses_user>';
+                        echo '<label class="label_cheakbox_active_courses_user">';
                         echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][completed]" value="1" ' . ($is_completed ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>تمام شده</span>';
                         echo '</label>';
                         
                         // Checkbox برای canceled - همیشه فعال است
-                        echo '<label class="label_cheakbox_active_courses_user>';
+                        echo '<label class="label_cheakbox_active_courses_user">';
                         echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][canceled]" value="1" ' . ($is_canceled ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>لغو شده</span>';
                         echo '</label>';
