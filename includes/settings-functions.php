@@ -283,3 +283,25 @@ add_action('edit_user_profile', 'add_filed_help_for_panel_edit_user');
 function add_filed_help_for_panel_edit_user() {
     echo "برای ویرایش کاربر باید بخش اعضا ->لیست اعضا مراجعه کنید.سپس  کاربر خودرا جستجو کرده و روی ویرایش کلیک کنید . <br>";
 }
+//اضافه کردن صورت حساب در تاریخ مشخص در ماه
+
+function sc_get_invoice_mode() {
+    return sc_get_setting('invoice_mode', 'interval');
+}
+
+function sc_get_invoice_day_of_month() {
+    return (int) sc_get_setting('invoice_day_of_month', 1);
+}
+
+function sc_get_invoice_hour() {
+    return (int) sc_get_setting('invoice_hour', 0);
+}
+
+function sc_get_invoice_last_run() {
+    return sc_get_setting('invoice_last_run', null);
+}
+
+function sc_set_invoice_last_run() {
+    sc_update_setting('invoice_last_run', current_time('mysql'), 'invoice');
+}
+

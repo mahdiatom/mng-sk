@@ -6,12 +6,53 @@
 
 
 /**
+ * ایجاد صورت حساب برای پرداخت در تاریخ مشخص 
+ */
+function sc_is_fixed_invoice_time() {
+
+    if (sc_get_invoice_mode() !== 'fixed_date') {
+        return true; // interval mode
+    }
+
+    $day_shamsi  = sc_get_invoice_day_of_month();
+    $shift = 19;
+    $day = $shift + $day_shamsi;
+    if($day > 30){
+        $day -= 30;
+    }
+
+
+    $hour = sc_get_invoice_hour();
+    $last = sc_get_invoice_last_run();
+
+    $now = current_time('timestamp');
+
+    if ((int)date('j', $now) !== $day) return false;
+    if ((int)date('G', $now) !== $hour) return false;
+
+    if ($last && date('Y-m', strtotime($last)) === date('Y-m', $now)) {
+        return false;
+    }
+
+    return true;
+}
+
+
+/**
  * Create recurring invoices for active courses
  * این تابع باید توسط cron job فراخوانی شود
  */
 
 
 function sc_create_recurring_invoices() {
+
+    if (!sc_is_fixed_invoice_time()) {
+    return;
+}
+
+sc_set_invoice_last_run();
+
+
     // لاگ شروع اجرای cron
     error_log('SC Recurring Invoices: Cron job started at ' . current_time('mysql'));
     
@@ -33,10 +74,25 @@ function sc_create_recurring_invoices() {
     $interval_minutes = sc_get_invoice_interval_minutes();
     
     error_log("SC Recurring Invoices: Using MINUTE interval: $interval_minutes minutes");
-    
+    //برای اعمال شرط برای ثبت  صورت حساب در تاریخ مشخص
+    $fixed_date_mode = (sc_get_invoice_mode() === 'fixed_date');
+    $where_month_lock = '';
+
+    if ($fixed_date_mode) {
+        $where_month_lock = "
+            AND NOT EXISTS (
+                SELECT 1 FROM $invoices_table i2
+                WHERE i2.member_course_id = mc.id
+                AND DATE_FORMAT(i2.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+            )
+        ";
+    }
     // دریافت تمام دوره‌های active که باید برای آن‌ها صورت حساب ایجاد شود
     // فقط دوره‌هایی که آخرین صورت حساب آن‌ها (چه pending چه paid) بیشتر از interval_days روز از ایجاد آن گذشته باشد
     // و flags (paused, completed, canceled) نداشته باشند
+
+
+    
     $active_courses = $wpdb->get_results($wpdb->prepare(
         "SELECT mc.*, c.price, c.title as course_title, m.user_id, m.disable_auto_invoice
          FROM $member_courses_table mc
@@ -46,6 +102,7 @@ function sc_create_recurring_invoices() {
          AND c.deleted_at IS NULL
          AND c.is_active = 1
          AND m.is_active = 1
+         $where_month_lock
          AND (
              -- دوره‌هایی که flags ندارند یا flags آن‌ها paused, completed, canceled نیست
              mc.course_status_flags IS NULL

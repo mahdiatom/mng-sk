@@ -1110,7 +1110,7 @@ max-height: 300px;
 .woocommerce_page_wc-orders tr .quantity,
 .woocommerce_page_wc-orders tr .item_cost,
 .woocommerce_page_wc-orders #actions{
-    display: none !important;
+    dispslay: none !important;
 }
 .order_data_column:nth-child(1){
     display: unset !important;

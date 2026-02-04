@@ -22,13 +22,23 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('penalty_amount', $penalty_amount, 'penalty');
 
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات جریمه با موفقیت ذخیره شد.</p></div>';
-    } elseif ($current_tab === 'invoice') {
-        $invoice_interval_minutes = isset($_POST['invoice_interval_minutes']) ? absint($_POST['invoice_interval_minutes']) : 60;
+    }elseif ($current_tab === 'invoice') {
 
+    $invoice_mode = isset($_POST['invoice_mode']) ? sanitize_text_field($_POST['invoice_mode']) : 'interval';
+
+    sc_update_setting('invoice_mode', $invoice_mode, 'invoice');
+
+    if ($invoice_mode === 'interval') {
+        $invoice_interval_minutes = absint($_POST['invoice_interval_minutes']);
         sc_update_setting('invoice_interval_minutes', $invoice_interval_minutes, 'invoice');
+    } else {
+        sc_update_setting('invoice_day_of_month', absint($_POST['invoice_day_of_month']), 'invoice');
+        sc_update_setting('invoice_hour', absint($_POST['invoice_hour']), 'invoice');
+    }
 
-        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات صورتحساب با موفقیت ذخیره شد.</p></div>';
-    } elseif ($current_tab === 'sms') {
+    echo '<div class="notice notice-success is-dismissible"><p>تنظیمات صورتحساب ذخیره شد.</p></div>';
+}
+ elseif ($current_tab === 'sms') {
         // API Settings
         $sms_api_key = isset($_POST['sms_api_key']) ? sanitize_text_field($_POST['sms_api_key']) : '';
         $sms_sender = isset($_POST['sms_sender']) ? sanitize_text_field($_POST['sms_sender']) : '';
@@ -249,23 +259,60 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
 
-                <table class="form-table  ">
-                    <tr>
-                        <th scope="row">
-                            <label for="invoice_interval_minutes">فاصله زمانی صورت حساب:</label>
-                        </th>
-                        <td>
-                            <input type="number"
-                                   name="invoice_interval_minutes"
-                                   id="invoice_interval_minutes"
-                                   value="<?php echo esc_attr($invoice_interval_minutes); ?>"
-                                   min="1"
-                                   class="regular-text"
-                                   required>
-                            <p class="description">فاصله زمانی بین دو صورت حساب -  هر صورت حساب چند روز یک بار برای کاربر ساخته شود؟ </p>
-                        </td>
-                    </tr>
-                </table>
+                <table class="form-table">
+
+<tr>
+    <th>نوع ایجاد صورتحساب</th>
+    <td>
+        <label>
+            <input type="radio" name="invoice_mode" value="interval"
+                <?php checked(sc_get_invoice_mode(), 'interval'); ?>>
+            بر اساس فاصله زمانی
+        </label>
+        <br>
+        <label>
+            <input type="radio" name="invoice_mode" value="fixed_date"
+                <?php checked(sc_get_invoice_mode(), 'fixed_date'); ?>>
+            در تاریخ مشخص ماهانه
+        </label>
+    </td>
+</tr>
+
+<tr>
+    <th>فاصله زمانی (دقیقه)</th>
+    <td>
+        <input type="number"
+               name="invoice_interval_minutes"
+               value="<?php echo esc_attr(sc_get_invoice_interval_minutes()); ?>">
+        <p class="description">فقط در حالت فاصله زمانی استفاده می‌شود</p>
+    </td>
+</tr>
+
+<tr>
+    <th>روز ماه</th>
+    <td>
+        <input type="number"
+               name="invoice_day_of_month"
+               min="1"
+               max="28"
+               value="<?php echo esc_attr(sc_get_invoice_day_of_month()); ?>">
+        <p class="description">۱ تا ۲۸</p>
+    </td>
+</tr>
+
+<tr>
+    <th>ساعت اجرا</th>
+    <td>
+        <input type="number"
+               name="invoice_hour"
+               min="0"
+               max="23"
+               value="<?php echo esc_attr(sc_get_invoice_hour()); ?>">
+    </td>
+</tr>
+
+</table>
+
 
                 <p class="submit">
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات">
