@@ -189,7 +189,16 @@ public function column_order_number($item) {
 
             $parts[] = '<span style="color:#d63638;font-weight:bold;">⚠️ جریمه تأخیر:</span> ' . $penalty_display;
         }
-
+         // ===== اضافه کردن فیلد دلخواه ووکامرس با کلید pay =====
+        if (!empty($item['woocommerce_order_id']) && function_exists('wc_get_order')) {
+            $order = wc_get_order($item['woocommerce_order_id']);
+            if ($order) {
+                $pay_value = $order->get_meta('pay'); // دریافت مقدار فیلد دلخواه
+                if (!empty($pay_value)) {
+                    $parts[] = '<strong>روش پرداخت :</strong> ' . esc_html($pay_value);
+                }
+            }
+        }
         
         if (empty($parts)) {
             return '<span style="color: #999; font-style: italic;">بدون دوره</span>';

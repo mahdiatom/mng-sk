@@ -1106,11 +1106,11 @@ max-height: 300px;
 }
 
 /* حذف اطلاعات اضافی در ویرایش سفارش ووکامرس */
-.order_data_column , #order_custom , #woocommerce-order-downloads , #woocommerce-order-source-data,
+.order_data_column , #woocommerce-order-downloads , #woocommerce-order-source-data,
 .woocommerce_page_wc-orders tr .quantity,
 .woocommerce_page_wc-orders tr .item_cost,
 .woocommerce_page_wc-orders #actions{
-    dispslay: none !important;
+    display: none !important;
 }
 .order_data_column:nth-child(1){
     display: unset !important;
