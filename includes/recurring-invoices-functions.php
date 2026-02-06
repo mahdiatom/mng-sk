@@ -13,14 +13,16 @@ function sc_is_fixed_invoice_time() {
     if (sc_get_invoice_mode() !== 'fixed_date') {
         return true; // interval mode
     }
-
+    $now = current_time('timestamp');
+    $days_in_month = (int) date('t', $now); 
+    
+    
     $day_shamsi  = sc_get_invoice_day_of_month();
     $shift = 19;
     $day = $shift + $day_shamsi;
-    if($day > 30){
-        $day -= 30;
-    }
-
+if ($day > $days_in_month) {
+    $day -= $days_in_month;
+}
 
     $hour = sc_get_invoice_hour();
     $last = sc_get_invoice_last_run();
@@ -28,7 +30,7 @@ function sc_is_fixed_invoice_time() {
     $now = current_time('timestamp');
 
     if ((int)date('j', $now) !== $day) return false;
-    if ((int)date('G', $now) !== $hour) return false;
+    if ((int)date('G', $now) < $hour) return false;
 
     if ($last && date('Y-m', strtotime($last)) === date('Y-m', $now)) {
         return false;

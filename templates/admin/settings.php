@@ -22,7 +22,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('penalty_amount', $penalty_amount, 'penalty');
 
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات جریمه با موفقیت ذخیره شد.</p></div>';
-    }elseif ($current_tab === 'invoice') {
+    }
+    elseif ($current_tab === 'invoice') {
 
     $invoice_mode = isset($_POST['invoice_mode']) ? sanitize_text_field($_POST['invoice_mode']) : 'interval';
 
@@ -37,8 +38,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     }
 
     echo '<div class="notice notice-success is-dismissible"><p>تنظیمات صورتحساب ذخیره شد.</p></div>';
-}
- elseif ($current_tab === 'sms') {
+    }
+    elseif ($current_tab === 'sms') {
         // API Settings
         $sms_api_key = isset($_POST['sms_api_key']) ? sanitize_text_field($_POST['sms_api_key']) : '';
         $sms_sender = isset($_POST['sms_sender']) ? sanitize_text_field($_POST['sms_sender']) : '';
@@ -112,6 +113,18 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
 
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات پیامک با موفقیت ذخیره شد.</p></div>';
     }
+    elseif ($current_tab === 'pro_features') {
+    $pro_mode_enabled = isset($_POST['pro_mode_enabled']) ? 1 : 0;
+    $wallet_enabled = isset($_POST['wallet_enabled']) ? 1 : 0;
+    $team_attendance_enabled = isset($_POST['team_attendance_enabled']) ? 1 : 0;
+
+    sc_update_setting('pro_mode_enabled', $pro_mode_enabled, 'pro_features');
+    sc_update_setting('wallet_enabled', $wallet_enabled, 'pro_features');
+    sc_update_setting('team_attendance_enabled', $team_attendance_enabled, 'pro_features');
+
+    echo '<div class="notice notice-success is-dismissible"><p>تنظیمات امکانات پرو با موفقیت ذخیره شد.</p></div>';
+}
+
 }
 
 // پردازش فرم بازگشت به کارخانه
@@ -171,6 +184,10 @@ $sms_absence_user_pattern = sc_get_setting('sms_absence_user_pattern', '');
 $sms_absence_admin_enabled = (int)sc_get_setting('sms_absence_admin_enabled', '1');
 $sms_absence_admin_template = sc_get_setting('sms_absence_admin_template', 'غیبت: %user_name% - دوره %course_name% - تاریخ %date%');
 $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
+// تنظیمات افزونه پرو
+$pro_mode_enabled = (int) sc_get_setting('pro_mode_enabled', 0);
+$wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
+$team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
 
 ?>
 
@@ -190,10 +207,16 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
            class="nav-tab <?php echo $current_tab === 'sms' ? 'nav-tab-active' : ''; ?>">
             پیامک
         </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=pro_features'); ?>"
+            class="nav-tab <?php echo $current_tab === 'pro_features' ? 'nav-tab-active' : ''; ?>">
+               امکانات پرو
+        </a>
+
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=reset'); ?>"
            class="nav-tab <?php echo $current_tab === 'reset' ? 'nav-tab-active' : ''; ?>">
             بازگشت به کارخانه
         </a>
+
     </nav>
 
     <div class="tab-content" style="margin-top: 20px;">
@@ -735,7 +758,47 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
                 </p>
             </form>
 
-        <?php endif; ?>
+        <?php endif; 
+        if ($current_tab === 'pro_features') : ?>
+    <form method="POST" action="">
+        <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+
+        <table class="form-table">
+            <tr>
+                <th scope="row">حالت پرو - باشگاه حرفه‌ای</th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="pro_mode_enabled" value="1" <?php checked($pro_mode_enabled, 1); ?>>
+                        فعال کردن حالت پرو
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">شارژ کیف پول</th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="wallet_enabled" value="1" <?php checked($wallet_enabled, 1); ?>>
+                        فعال کردن شارژ کیف پول
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">حضور و غیاب تیمی</th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="team_attendance_enabled" value="1" <?php checked($team_attendance_enabled, 1); ?>>
+                        فعال کردن حضور و غیاب تیمی
+                    </label>
+                </td>
+            </tr>
+        </table>
+
+        <p class="submit">
+            <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات امکانات پرو">
+        </p>
+    </form>
+<?php endif; ?>
+
     </div>
 </div>
 
