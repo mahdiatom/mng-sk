@@ -25,7 +25,6 @@ define('SC_PLUGIN_DIR', plugin_dir_path(__FILE__));              // Physical pat
 define('SC_PLUGIN_URL', plugin_dir_url(__FILE__));               // URL to the plugin
 
 define('SC_INCLUDES_DIR', SC_PLUGIN_DIR . 'includes/');          // Includes folder
-define('SC_SHORTCODES_DIR', SC_INCLUDES_DIR . 'shortcodes/');          // shortcodes folder
 define('SC_ADMIN_DIR', SC_PLUGIN_DIR . 'admin/');                // Admin pages folder
 define('SC_PUBLIC_DIR', SC_PLUGIN_DIR . 'public/');              // Public pages folder
 define('SC_TEMPLATES_DIR', SC_PLUGIN_DIR . 'templates/');        // Templates folder
@@ -61,15 +60,7 @@ require_once SC_PUBLIC_DIR . 'my-account.php';
 // Include WooCommerce Thank You Page customization
 require_once SC_PUBLIC_DIR . 'woocommerce-thankyou.php';
 
-/**
- * Load shortcodes after WordPress is fully loaded
- */
-add_action('init', 'sc_load_shortcodes');
-function sc_load_shortcodes() {
-    if (file_exists(SC_SHORTCODES_DIR . 'info_user_in_panel.php')) {
-       include(SC_SHORTCODES_DIR . 'info_user_in_panel.php');
-    }
-}
+
 
 /**
  * ============================
