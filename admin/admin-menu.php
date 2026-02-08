@@ -63,7 +63,7 @@ function sc_register_admin_menu() {
 
         'ثبت حضور و غیاب',
         'ثبت حضور و غیاب',
-        'manage_options',
+        'sc_manage_attendance', // capability سفارشی برای مربی
         'sc-attendance-add',
         'sc_admin_attendance_add_page',
         'dashicons-insert-after',
@@ -75,7 +75,7 @@ function sc_register_admin_menu() {
         'sc-attendance-add',
         'لیست حضور و غیاب',
         'لیست حضور و غیاب',
-        'manage_options',
+        'sc_manage_attendance', // capability سفارشی برای مربی
         'sc-attendance-list',
         'sc_admin_attendance_list_page'
     );
@@ -526,6 +526,11 @@ function process_coaches_table_data() {
  * Attendance management pages
  */
 function sc_admin_attendance_add_page() {
+    // بررسی دسترسی (مربی یا مدیر)
+    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
     
@@ -533,6 +538,11 @@ function sc_admin_attendance_add_page() {
 }
 
 function sc_admin_attendance_list_page() {
+    // بررسی دسترسی (مربی یا مدیر)
+    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
     
@@ -1855,6 +1865,18 @@ function sc_sprot_notices(){
         if($status == 'coach_add_error'){
             $type='error';
             $messege="خطا: مربی اضافه نشد لطفا فیلدهای ورودی را بررسی کنید.";
+        }
+        if($status == 'coaches_activated'){
+            $type='success';
+            $messege="مربیان انتخاب شده با موفقیت فعال شدند";
+        }
+        if($status == 'coaches_deactivated'){
+            $type='success';
+            $messege="مربیان انتخاب شده با موفقیت غیرفعال شدند";
+        }
+        if($status == 'coaches_deleted'){
+            $type='success';
+            $messege="مربیان انتخاب شده با موفقیت حذف شدند";
         }
         if($status == 'coach_updated'){
             $type='success';

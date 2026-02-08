@@ -69,6 +69,7 @@ require_once SC_PUBLIC_DIR . 'woocommerce-thankyou.php';
  */
 register_activation_hook(__FILE__, 'sc_activate_plugin');
 register_activation_hook( __FILE__, 'club_create_club_coach_role' );
+register_activation_hook(__FILE__, 'sc_create_coach_role');
 register_activation_hook(__FILE__, 'sc_update_database');
 register_deactivation_hook(__FILE__, 'sc_clear_recurring_invoices_cron');
 
@@ -702,16 +703,92 @@ function sc_reset_factory_data() {
 
 /**
  * ============================
+ * Auto-create member or coach when user registers
+ * ============================
+ */
+// استفاده از set_user_role hook چون نقش در user_register ممکن است هنوز تنظیم نشده باشد
+// همچنین از user_register با priority پایین استفاده می‌کنیم برای مواردی که نقش از قبل تنظیم شده
+add_action('set_user_role', 'sc_auto_create_member_or_coach_on_role_set', 10, 3);
+add_action('user_register', 'sc_auto_create_member_or_coach_on_user_register', 20, 1);
+
+/**
+ * وقتی نقش کاربر تنظیم می‌شود (hook اصلی)
+ */
+function sc_auto_create_member_or_coach_on_role_set($user_id, $role, $old_roles) {
+    sc_process_user_registration($user_id);
+}
+
+/**
+ * وقتی کاربر ثبت می‌شود (hook پشتیبان - برای مواردی که نقش از قبل تنظیم شده)
+ */
+function sc_auto_create_member_or_coach_on_user_register($user_id) {
+    // کمی تاخیر برای اطمینان از تنظیم نقش
+    // اما بهتر است از set_user_role استفاده کنیم
+    sc_process_user_registration($user_id);
+}
+
+/**
+ * پردازش ثبت کاربر بر اساس نقش
+ */
+function sc_process_user_registration($user_id) {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    
+    // بررسی اینکه آیا این کاربر قبلاً در هر یک از جداول وجود دارد
+    $existing_member = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $members_table WHERE user_id = %d LIMIT 1",
+        $user_id
+    ));
+    
+    $existing_coach = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+        $user_id
+    ));
+    
+    // اگر در هر یک از جداول وجود داشت، خروج
+    if ($existing_member || $existing_coach) {
+        return;
+    }
+    
+    // دریافت اطلاعات کاربر
+    $user = get_userdata($user_id);
+    if (!$user) {
+        return;
+    }
+    
+    // بررسی نقش کاربر
+    // اگر نقش مربی است، به جدول مربیان اضافه می‌شود
+    if (in_array('coach', $user->roles)) {
+        sc_auto_create_coach_on_user_register($user_id);
+        return;
+    }
+    
+    // اگر نقش بازیکن (subscriber) است، به جدول اعضا اضافه می‌شود
+    if (in_array('subscriber', $user->roles)) {
+        sc_auto_create_member_on_user_register($user_id);
+        return;
+    }
+    
+    // اگر نقش دیگری داشت، به صورت پیش‌فرض به اعضا اضافه می‌شود (برای سازگاری)
+    // اما بهتر است فقط subscriber و coach را پشتیبانی کنیم
+}
+
+/**
+ * ============================
  * Auto-create member when user registers
  * ============================
  */
-add_action('user_register', 'sc_auto_create_member_on_user_register');
 function sc_auto_create_member_on_user_register($user_id) {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
     
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
     
     // بررسی اینکه آیا این کاربر قبلاً در جدول اعضا وجود دارد یا نه
     $existing = $wpdb->get_var($wpdb->prepare(
@@ -722,6 +799,17 @@ function sc_auto_create_member_on_user_register($user_id) {
     // اگر وجود داشت، خروج
     if ($existing) {
         return;
+    }
+    
+    // بررسی اینکه آیا این کاربر در جدول مربیان وجود دارد یا نه
+    // اگر وجود داشت، نباید به اعضا اضافه شود (user_id منحصر به فرد است)
+    $existing_coach = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $coaches_table WHERE user_id = %d",
+        $user_id
+    ));
+    
+    if ($existing_coach) {
+        return; // کاربر قبلاً به عنوان مربی ثبت شده است
     }
     
     // دریافت اطلاعات کاربر
@@ -797,6 +885,129 @@ function sc_auto_create_member_on_user_register($user_id) {
         // لاگ خطا در صورت مشکل
         if ($wpdb->last_error) {
             error_log('SC Auto-create Member Error: ' . $wpdb->last_error);
+            error_log('SC Last Query: ' . $wpdb->last_query);
+        }
+    }
+}
+
+/**
+ * ============================
+ * Auto-create coach when user registers with coach role
+ * ============================
+ */
+function sc_auto_create_coach_on_user_register($user_id) {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    global $wpdb;
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $members_table = $wpdb->prefix . 'sc_members';
+    
+    // بررسی اینکه آیا این کاربر قبلاً در جدول مربیان وجود دارد یا نه
+    $existing = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $coaches_table WHERE user_id = %d",
+        $user_id
+    ));
+    
+    // اگر وجود داشت، خروج
+    if ($existing) {
+        return;
+    }
+    
+    // بررسی اینکه آیا این کاربر در جدول اعضا وجود دارد یا نه
+    // اگر وجود داشت، نباید به مربیان اضافه شود (user_id منحصر به فرد است)
+    $existing_member = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $members_table WHERE user_id = %d",
+        $user_id
+    ));
+    
+    if ($existing_member) {
+        return; // کاربر قبلاً به عنوان بازیکن ثبت شده است
+    }
+    
+    // دریافت اطلاعات کاربر
+    $user = get_userdata($user_id);
+    if (!$user) {
+        return;
+    }
+    
+    // تقسیم نام نمایشی به نام و نام خانوادگی
+    $display_name = $user->display_name;
+    $name_parts = explode(' ', $display_name, 2);
+    $first_name = !empty($name_parts[0]) ? $name_parts[0] : $user->user_login;
+    $last_name = !empty($name_parts[1]) ? $name_parts[1] : '';
+    
+    // اگر نام خانوادگی خالی بود، از user_login استفاده کن
+    if (empty($last_name)) {
+        $last_name = $user->user_login;
+    }
+    
+    // دریافت شماره تماس از user meta (اگر وجود داشته باشد)
+    $mobile_phone = get_user_meta($user_id, 'billing_phone', true);
+    if (empty($mobile_phone)) {
+        $mobile_phone = get_user_meta($user_id, 'phone', true);
+    }
+    
+    // ایجاد کد ملی موقت (می‌تواند بعداً توسط کاربر یا مدیر تغییر کند)
+    // استفاده از user_id به عنوان کد ملی موقت (محدود به 10 رقم)
+    // فرمت: 8 + user_id (حداکثر 9 رقم) = 10 رقم (متفاوت از بازیکن‌ها که 9 استفاده می‌کنند)
+    $temp_national_id = '8' . str_pad($user_id, 9, '0', STR_PAD_LEFT);
+    
+    // بررسی اینکه آیا این کد ملی موقت قبلاً استفاده شده یا نه
+    $duplicate = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $coaches_table WHERE national_id = %s",
+        $temp_national_id
+    ));
+    
+    // اگر تکراری بود، از user_id + timestamp استفاده کن (آخرین 9 رقم)
+    if ($duplicate) {
+        $timestamp = time();
+        $temp_national_id = '8' . str_pad(substr($timestamp, -9), 9, '0', STR_PAD_LEFT);
+        
+        // بررسی مجدد تکراری بودن
+        $duplicate = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $coaches_table WHERE national_id = %s",
+            $temp_national_id
+        ));
+        
+        // اگر باز هم تکراری بود، از ترکیب user_id و timestamp استفاده کن
+        if ($duplicate) {
+            $combined = ($user_id * 1000) + (substr($timestamp, -3));
+            $temp_national_id = '8' . str_pad(substr($combined, -9), 9, '0', STR_PAD_LEFT);
+        }
+    }
+    
+    // آماده‌سازی داده‌ها
+    $data = [
+        'user_id'              => $user_id,
+        'first_name'           => sanitize_text_field($first_name),
+        'last_name'            => sanitize_text_field($last_name),
+        'national_id'          => $temp_national_id,
+        'mobile_phone'         => !empty($mobile_phone) ? sanitize_text_field($mobile_phone) : NULL,
+        'is_active'            => 1, // به صورت پیش‌فرض فعال
+        'created_at'           => current_time('mysql'),
+        'updated_at'           => current_time('mysql'),
+    ];
+    
+    // آماده‌سازی format array برای insert
+    $format = [];
+    foreach ($data as $key => $value) {
+        if ($value === NULL) {
+            $format[] = '%s'; // NULL
+        } elseif (in_array($key, ['is_active', 'user_id'])) {
+            $format[] = '%d'; // integer
+        } else {
+            $format[] = '%s'; // string
+        }
+    }
+    
+    // افزودن به جدول
+    $inserted = $wpdb->insert($coaches_table, $data, $format);
+    
+    if ($inserted === false) {
+        // لاگ خطا در صورت مشکل
+        if ($wpdb->last_error) {
+            error_log('SC Auto-create Coach Error: ' . $wpdb->last_error);
             error_log('SC Last Query: ' . $wpdb->last_query);
         }
     }

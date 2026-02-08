@@ -11,14 +11,17 @@ if (!defined('ABSPATH')) {
 
 /**
  * ایجاد خودکار کاربر در افزونه هنگام ثبت‌نام در WordPress
+ * این hook غیرفعال شده و از sc_auto_create_member_or_coach_on_user_register استفاده می‌شود
+ * که نقش کاربر را بررسی می‌کند
  */
-add_action('user_register', 'sc_auto_create_member_on_registration', 10, 1);
+// add_action('user_register', 'sc_auto_create_member_on_registration', 10, 1);
 function sc_auto_create_member_on_registration($user_id) {
     // بررسی و ایجاد جداول
     sc_check_and_create_tables();
     
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
     
     // بررسی اینکه آیا این کاربر قبلاً در جدول members وجود دارد
     $existing = $wpdb->get_var($wpdb->prepare(
@@ -31,10 +34,26 @@ function sc_auto_create_member_on_registration($user_id) {
         return;
     }
     
+    // بررسی اینکه آیا این کاربر در جدول مربیان وجود دارد یا نه
+    // اگر وجود داشت، نباید به اعضا اضافه شود (user_id منحصر به فرد است)
+    $existing_coach = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+        $user_id
+    ));
+    
+    if ($existing_coach) {
+        return; // کاربر قبلاً به عنوان مربی ثبت شده است
+    }
+    
     // دریافت اطلاعات کاربر
     $user = get_userdata($user_id);
     if (!$user) {
         return;
+    }
+    
+    // بررسی نقش کاربر - اگر مربی است، نباید به اعضا اضافه شود
+    if (in_array('coach', $user->roles)) {
+        return; // این کاربر مربی است و باید در جدول مربیان اضافه شود
     }
     
     // دریافت اطلاعات از user meta

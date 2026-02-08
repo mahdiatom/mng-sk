@@ -20,6 +20,37 @@ function club_create_club_coach_role() {
     }
 }
 
+/**
+ * ===============================
+ * ایجاد نقش مربی
+ * ===============================
+ */
+function sc_create_coach_role() {
+    // اگر نقش وجود ندارد، ایجاد شود
+    if ( ! get_role('coach') ) {
+        // استفاده از capabilities مشابه subscriber اما با دسترسی محدود
+        $coach_caps = get_role('subscriber')->capabilities;
+        // اضافه کردن دسترسی به حضور و غیاب
+        $coach_caps['read'] = true;
+        $coach_caps['sc_manage_attendance'] = true; // capability سفارشی برای حضور و غیاب
+        
+        add_role(
+            'coach',
+            'مربی',
+            $coach_caps
+        );
+    } else {
+        // اگر نقش وجود دارد، capability را اضافه کن
+        $coach_role = get_role('coach');
+        if ($coach_role && !$coach_role->has_cap('sc_manage_attendance')) {
+            $coach_role->add_cap('sc_manage_attendance');
+        }
+    }
+}
+
+// ثبت hook برای ایجاد نقش مربی
+add_action('admin_init', 'sc_create_coach_role');
+
 
 /**
  * ===============================
@@ -28,6 +59,55 @@ function club_create_club_coach_role() {
  */
 add_action('admin_menu', 'club_hide_menus_for_coach', 999);
 function club_hide_menus_for_coach() {
+    
+    // اگر کاربر مربی است، فقط منوهای حضور و غیاب را نگه دار
+    if ( current_user_can('coach') && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
+        // حذف تمام منوها به جز حضور و غیاب
+        global $menu;
+        
+        // حذف تمام منوهای اصلی به جز حضور و غیاب و dashboard
+        foreach ($menu as $key => $item) {
+            if (isset($item[2])) {
+                // فقط dashboard و حضور و غیاب را نگه دار
+                if ($item[2] !== 'sc-attendance-add' && $item[2] !== 'index.php') {
+                    remove_menu_page($item[2]);
+                }
+            }
+        }
+        
+        // حذف منوهای وردپرس
+        remove_menu_page('plugins.php');
+        remove_menu_page('themes.php');
+        remove_menu_page('edit.php');
+        remove_menu_page('edit.php?post_type=page');
+        remove_menu_page('edit-comments.php');
+        remove_menu_page('options-general.php');
+        remove_menu_page('tools.php');
+        
+        // حذف منوهای المنتور
+        remove_menu_page('elementor');
+        remove_menu_page('edit.php?post_type=elementor_library');
+        remove_menu_page('hello-elementor');
+        
+        // حذف منوهای ووکامرس
+        remove_menu_page('woocommerce');
+        remove_menu_page('wc-admin');
+        remove_menu_page('edit.php?post_type=product');
+        remove_menu_page('edit.php?post_type=shop_coupon');
+        remove_menu_page('wc-settings');
+        
+        // حذف منوهای افزونه
+        remove_menu_page('sc-dashboard');
+        remove_menu_page('sc-members');
+        remove_menu_page('sc-courses');
+        remove_menu_page('sc-coaches');
+        remove_menu_page('sc-events');
+        remove_menu_page('sc-invoices');
+        remove_menu_page('sc-reports');
+        remove_menu_page('sc_setting');
+        
+        return;
+    }
 
     if ( ! current_user_can('club_coach') || current_user_can('administrator') ) return;
 
@@ -61,6 +141,31 @@ function club_hide_menus_for_coach() {
 add_action('admin_init', 'club_block_restricted_pages_for_coach');
 function club_block_restricted_pages_for_coach() {
 
+    // اگر کاربر مربی است، فقط دسترسی به حضور و غیاب
+    if ( current_user_can('coach') && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
+        $allowed_pages = [
+            'sc-attendance-add',
+            'sc-attendance-list',
+        ];
+        
+        $page = $_GET['page'] ?? '';
+        $path = $_GET['path'] ?? '';
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        
+        // اگر در صفحه ادمین هستیم و صفحه مجاز نیست
+        if (is_admin() && !empty($page) && !in_array($page, $allowed_pages)) {
+            // بررسی اینکه آیا صفحه اصلی dashboard است یا نه
+            if ($page !== 'index.php' && strpos($uri, 'sc-attendance') === false) {
+                wp_die(
+                    '<div><h2 style="text-align: left;">Access Denied</h2><p style="text-align: left;">شما فقط به بخش حضور و غیاب دسترسی دارید.</p></div>',
+                    'خطای دسترسی',
+                    array('response' => 403)
+                );
+            }
+        }
+        return;
+    }
+    
     if ( ! current_user_can('club_coach') || current_user_can('administrator') ) return;
 
     $blocked_pages = array(
@@ -143,7 +248,7 @@ function club_block_restricted_pages_for_coach() {
 add_action('init', 'club_cleanup_roles');
 function club_cleanup_roles() {
 
-    $keep_roles = array('administrator','subscriber','club_coach');
+    $keep_roles = array('administrator','subscriber','club_coach','coach');
 
     global $wp_roles;
     if ( ! isset($wp_roles) ) $wp_roles = new WP_Roles();

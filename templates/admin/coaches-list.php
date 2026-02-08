@@ -155,48 +155,49 @@ class Coaches_List_Table extends WP_List_Table {
     }
 
     protected function process_bulk_action() {
-        if (!isset($_POST['coach']) || !is_array($_POST['coach'])) {
+        $action = $this->current_action();
+        
+        if (!$action) {
             return;
         }
         
-        if (!wp_verify_nonce($_POST['_wpnonce'], 'bulk-' . $this->_args['plural'])) {
+        // دریافت ID های انتخاب شده از GET (مثل members-list)
+        $coach_ids = isset($_GET['coach']) ? (array) $_GET['coach'] : [];
+        if (empty($coach_ids) || !is_array($coach_ids)) {
+            return;
+        }
+        
+        $coach_ids = array_map('absint', $coach_ids);
+        if (empty($coach_ids)) {
             return;
         }
         
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_coaches';
-        $coach_ids = array_map('absint', $_POST['coach']);
-        $placeholders = implode(',', array_fill(0, count($coach_ids), '%d'));
+        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
         
-        switch ($this->current_action()) {
+        switch ($action) {
             case 'activate':
-                $wpdb->query($wpdb->prepare(
-                    "UPDATE $table_name SET is_active = 1 WHERE id IN ($placeholders)",
-                    ...$coach_ids
-                ));
+                foreach ($coach_ids as $coach_id) {
+                    $wpdb->update($table_name, ['is_active' => 1], ['id' => $coach_id], ['%d'], ['%d']);
+                }
                 wp_redirect(admin_url('admin.php?page=sc-coaches&sc_status=coaches_activated'));
                 exit;
                 
             case 'deactivate':
-                $wpdb->query($wpdb->prepare(
-                    "UPDATE $table_name SET is_active = 0 WHERE id IN ($placeholders)",
-                    ...$coach_ids
-                ));
+                foreach ($coach_ids as $coach_id) {
+                    $wpdb->update($table_name, ['is_active' => 0], ['id' => $coach_id], ['%d'], ['%d']);
+                }
                 wp_redirect(admin_url('admin.php?page=sc-coaches&sc_status=coaches_deactivated'));
                 exit;
                 
             case 'delete':
-                // حذف ارتباطات دوره
-                $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-                $wpdb->query($wpdb->prepare(
-                    "DELETE FROM $course_coaches_table WHERE coach_id IN ($placeholders)",
-                    ...$coach_ids
-                ));
-                // حذف مربیان
-                $wpdb->query($wpdb->prepare(
-                    "DELETE FROM $table_name WHERE id IN ($placeholders)",
-                    ...$coach_ids
-                ));
+                foreach ($coach_ids as $coach_id) {
+                    // حذف ارتباطات دوره
+                    $wpdb->delete($course_coaches_table, ['coach_id' => $coach_id], ['%d']);
+                    // حذف مربی
+                    $wpdb->delete($table_name, ['id' => $coach_id], ['%d']);
+                }
                 wp_redirect(admin_url('admin.php?page=sc-coaches&sc_status=coaches_deleted'));
                 exit;
         }
