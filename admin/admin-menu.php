@@ -110,6 +110,37 @@ function sc_register_admin_menu() {
         'sc_admin_add_course_page'
     );
 
+    /* ================= Coaches ================= */
+
+    add_menu_page(
+        'مربیان',
+        'مربیان',
+        'manage_options',
+        'sc-coaches',
+        'sc_admin_coaches_list_page',
+        'dashicons-groups',
+        28
+    );
+
+    $list_coaches_sufix = add_submenu_page(
+        'sc-coaches',
+        'لیست مربیان',
+        'لیست مربیان',
+        'manage_options',
+        'sc-coaches',
+        'sc_admin_coaches_list_page'
+    );
+    add_action('load-' . $list_coaches_sufix, 'sc_coaches_screen_option');
+
+    $add_coach_sufix = add_submenu_page(
+        'sc-coaches',
+        'افزودن مربی',
+        'افزودن مربی',
+        'manage_options',
+        'sc-add-coach',
+        'sc_admin_add_coach_page'
+    );
+
     /* ================= Events ================= */
 
     add_menu_page(
@@ -285,6 +316,8 @@ function sc_register_admin_menu() {
 
     add_action('load-' . $add_expense_sufix, 'callback_add_expense_sufix');
     add_action("load-$list_events_sufix", 'sc_events_screen_options');
+    add_action('load-' . $add_coach_sufix, 'callback_add_coach_sufix');
+    add_action('load-' . $list_coaches_sufix, 'process_coaches_table_data');
 
 
 }
@@ -319,6 +352,21 @@ function sc_members_screen_option() {
 
 add_filter('set-screen-option', function($status, $option, $value) {
     if ($option === 'players_per_page') return (int) $value;
+    return $status;
+}, 10, 3);
+
+function sc_coaches_screen_option() {
+    $option = 'coaches_per_page';
+    $args = [
+        'label'   => 'تعداد مربی در هر صفحه',
+        'default' => 20,
+        'option'  => $option
+    ];
+    add_screen_option('per_page', $args);
+}
+
+add_filter('set-screen-option', function($status, $option, $value) {
+    if ($option === 'coaches_per_page') return (int) $value;
     return $status;
 }, 10, 3);
 
@@ -440,6 +488,38 @@ function sc_admin_add_member_page() {
 }
 function sc_setting_callback(){
     include SC_TEMPLATES_ADMIN_DIR . 'settings.php';
+}
+
+/**
+ * Coaches management pages
+ */
+function sc_admin_coaches_list_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'list_coaches.php';
+}
+
+function sc_admin_add_coach_page() {
+    sc_check_and_create_tables();
+    
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_coaches';
+    $coach = false;
+    
+    if (isset($_GET['coach_id'])) {
+        $coach_id = absint($_GET['coach_id']);
+        if ($coach_id) {
+            $coach = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $coach_id));
+        }
+    }
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-add.php';
+}
+
+function process_coaches_table_data() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'coaches-list.php';
+    $GLOBALS['coaches_list_table'] = new Coaches_List_Table();
+    $GLOBALS['coaches_list_table']->prepare_items();
 }
 
 /**
@@ -1767,6 +1847,35 @@ function sc_sprot_notices(){
             $type='success';
             $messege="خطا در ثبت هزینه - فیلد های ورودی را چک کنید.";
         }
+        // Coach messages
+        if($status == 'coach_add_true'){
+            $type='success';
+            $messege="مربی با موفقیت اضافه شد";
+        }
+        if($status == 'coach_add_error'){
+            $type='error';
+            $messege="خطا: مربی اضافه نشد لطفا فیلدهای ورودی را بررسی کنید.";
+        }
+        if($status == 'coach_updated'){
+            $type='success';
+            $messege="اطلاعات مربی به درستی بروزرسانی شد.";
+        }
+        if($status == 'coach_deleted'){
+            $type='success';
+            $messege="مربی مورد نظر حذف شد.";
+        }
+        if($status == 'coaches_activated'){
+            $type='success';
+            $messege="مربیان انتخابی با موفقیت فعال شدند";
+        }
+        if($status == 'coaches_deactivated'){
+            $type='success';
+            $messege="مربیان انتخابی با موفقیت غیرفعال شدند";
+        }
+        if($status == 'coaches_deleted'){
+            $type='success';
+            $messege="مربیان انتخابی حذف شدند";
+        }
         
     }
         if($type && $messege){
@@ -2312,6 +2421,211 @@ function sc_ajax_change_registration_status() {
 function process_events_table_data() {
     // این تابع برای پردازش bulk actions و سایر عملیات جدول استفاده می‌شود
     // در حال حاضر خالی است و بعداً تکمیل خواهد شد
+}
+
+/**
+ * Process coach creation/update form
+ */
+function callback_add_coach_sufix() {
+    if (isset($_GET['page']) && $_GET['page'] == 'sc-add-coach' && isset($_POST['submit_coach'])) {
+        if (!isset($_POST['sc_coach_nonce']) || !wp_verify_nonce($_POST['sc_coach_nonce'], 'sc_add_coach')) {
+            wp_die('خطای امنیتی. لطفاً دوباره تلاش کنید.');
+        }
+        
+        sc_check_and_create_tables();
+        
+        global $wpdb;
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+        
+        // اعتبارسنجی
+        $first_name = sanitize_text_field($_POST['first_name']);
+        $last_name = sanitize_text_field($_POST['last_name']);
+        $national_id = sanitize_text_field($_POST['national_id']);
+        $mobile_phone = sanitize_text_field($_POST['mobile_phone']);
+        
+        if (empty($first_name) || empty($last_name) || empty($national_id) || empty($mobile_phone)) {
+            wp_redirect(admin_url('admin.php?page=sc-add-coach&sc_status=coach_add_error'));
+            exit;
+        }
+        
+        // بررسی تکراری بودن کد ملی (به جز خود مربی)
+        $coach_id = isset($_POST['coach_id']) ? absint($_POST['coach_id']) : 0;
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $coaches_table WHERE national_id = %s AND id != %d",
+            $national_id,
+            $coach_id
+        ));
+        
+        if ($existing) {
+            wp_redirect(admin_url('admin.php?page=sc-add-coach&sc_status=coach_add_error&error=duplicate_national_id'));
+            exit;
+        }
+        
+        // آماده‌سازی داده‌ها
+        $data = [
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'national_id' => $national_id,
+            'mobile_phone' => $mobile_phone,
+            'gender' => !empty($_POST['gender']) ? sanitize_text_field($_POST['gender']) : NULL,
+            'specialization' => !empty($_POST['specialization']) ? sanitize_text_field($_POST['specialization']) : NULL,
+            'coaching_level' => !empty($_POST['coaching_level']) ? sanitize_text_field($_POST['coaching_level']) : NULL,
+            'coaching_experience' => !empty($_POST['coaching_experience']) ? intval($_POST['coaching_experience']) : NULL,
+            'sports_history' => !empty($_POST['sports_history']) ? sanitize_textarea_field($_POST['sports_history']) : NULL,
+            'settlement_type' => !empty($_POST['settlement_type']) ? sanitize_text_field($_POST['settlement_type']) : 'fixed',
+            'settlement_amount' => !empty($_POST['settlement_amount']) ? floatval($_POST['settlement_amount']) : 0.00,
+            'is_active' => isset($_POST['is_active']) ? 1 : 0,
+            'updated_at' => current_time('mysql')
+        ];
+        
+        // مدیریت کاربر WordPress
+        $username = !empty($_POST['username']) ? sanitize_user($_POST['username']) : '';
+        $password = !empty($_POST['password']) ? $_POST['password'] : '';
+        
+        if ($coach_id) {
+            // ویرایش
+            $coach = $wpdb->get_row($wpdb->prepare("SELECT * FROM $coaches_table WHERE id = %d", $coach_id));
+            $user_id = $coach->user_id;
+            
+            if ($user_id) {
+                // به‌روزرسانی کاربر موجود
+                if (!empty($password)) {
+                    wp_set_password($password, $user_id);
+                }
+                wp_update_user([
+                    'ID' => $user_id,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
+                    'display_name' => $first_name . ' ' . $last_name
+                ]);
+                update_user_meta($user_id, 'billing_phone', $mobile_phone);
+            } else {
+                // ایجاد کاربر جدید
+                $user_id = sc_create_coach_wp_user($coach_id, $data, $username, $password);
+                if ($user_id) {
+                    $data['user_id'] = $user_id;
+                }
+            }
+            
+            $updated = $wpdb->update(
+                $coaches_table,
+                $data,
+                ['id' => $coach_id],
+                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%d'],
+                ['%d']
+            );
+            
+            if ($updated !== false) {
+                // به‌روزرسانی دوره‌ها
+                sc_save_coach_courses($coach_id, isset($_POST['courses']) ? $_POST['courses'] : []);
+                
+                wp_redirect(admin_url('admin.php?page=sc-add-coach&sc_status=coach_updated&coach_id=' . $coach_id));
+                exit;
+            }
+        } else {
+            // افزودن جدید
+            $data['created_at'] = current_time('mysql');
+            
+            $inserted = $wpdb->insert($coaches_table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%s']);
+            
+            if ($inserted !== false) {
+                $new_coach_id = $wpdb->insert_id;
+                
+                // ایجاد کاربر WordPress
+                $user_id = sc_create_coach_wp_user($new_coach_id, $data, $username, $password);
+                if ($user_id) {
+                    $wpdb->update($coaches_table, ['user_id' => $user_id], ['id' => $new_coach_id], ['%d'], ['%d']);
+                }
+                
+                // ذخیره دوره‌ها
+                sc_save_coach_courses($new_coach_id, isset($_POST['courses']) ? $_POST['courses'] : []);
+                
+                wp_redirect(admin_url('admin.php?page=sc-add-coach&sc_status=coach_add_true&coach_id=' . $new_coach_id));
+                exit;
+            }
+        }
+        
+        wp_redirect(admin_url('admin.php?page=sc-add-coach&sc_status=coach_add_error'));
+        exit;
+    }
+}
+
+/**
+ * Create WordPress user for coach
+ */
+function sc_create_coach_wp_user($coach_id, $data, $username = '', $password = '') {
+    if (empty($username)) {
+        $username = sanitize_user($data['national_id'], true);
+    }
+    
+    // بررسی تکراری بودن
+    $original_username = $username;
+    $counter = 1;
+    while (username_exists($username)) {
+        $username = $original_username . '_' . $counter;
+        $counter++;
+    }
+    
+    if (empty($password)) {
+        $password = wp_generate_password(12, false);
+    }
+    
+    $email = sanitize_email($data['mobile_phone'] . '@sportclub.local');
+    if (!is_email($email)) {
+        $email = 'coach_' . wp_generate_password(8, false) . '@example.local';
+    }
+    
+    $user_id = wp_create_user($username, $password, $email);
+    
+    if (!is_wp_error($user_id)) {
+        $user = new WP_User($user_id);
+        // نقش بعداً تعریف می‌شود
+        $user->set_role('subscriber');
+        
+        wp_update_user([
+            'ID' => $user_id,
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
+            'display_name' => $data['first_name'] . ' ' . $data['last_name']
+        ]);
+        
+        update_user_meta($user_id, 'billing_phone', $data['mobile_phone']);
+        
+        return $user_id;
+    }
+    
+    return false;
+}
+
+/**
+ * Save coach courses
+ */
+function sc_save_coach_courses($coach_id, $course_ids) {
+    global $wpdb;
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    
+    // حذف دوره‌های قبلی
+    $wpdb->delete($course_coaches_table, ['coach_id' => $coach_id], ['%d']);
+    
+    // افزودن دوره‌های جدید
+    if (!empty($course_ids) && is_array($course_ids)) {
+        foreach ($course_ids as $course_id) {
+            $course_id = absint($course_id);
+            if ($course_id) {
+                $wpdb->insert(
+                    $course_coaches_table,
+                    [
+                        'coach_id' => $coach_id,
+                        'course_id' => $course_id,
+                        'created_at' => current_time('mysql'),
+                        'updated_at' => current_time('mysql')
+                    ],
+                    ['%d', '%d', '%s', '%s']
+                );
+            }
+        }
+    }
 }
 
 /**

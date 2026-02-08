@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.3.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.5.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -359,6 +359,67 @@ function sc_create_event_registrations_table() {
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
 }
+
+/**
+ * Create coaches table
+ */
+function sc_create_coaches_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_coaches';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `user_id` bigint(20) unsigned DEFAULT NULL,
+        `first_name` varchar(50) NOT NULL,
+        `last_name` varchar(50) NOT NULL,
+        `national_id` char(10) NOT NULL,
+        `mobile_phone` varchar(15) DEFAULT NULL,
+        `gender` varchar(10) DEFAULT NULL,
+        `specialization` varchar(255) DEFAULT NULL,
+        `coaching_level` varchar(100) DEFAULT NULL,
+        `coaching_experience` int(11) DEFAULT NULL,
+        `sports_history` text DEFAULT NULL,
+        `settlement_type` varchar(20) DEFAULT 'fixed',
+        `settlement_amount` decimal(10,2) DEFAULT 0.00,
+        `is_active` tinyint(1) DEFAULT 1,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_national_id` (`national_id`),
+        UNIQUE KEY `idx_user_id` (`user_id`),
+        KEY `idx_is_active` (`is_active`),
+        KEY `idx_last_name` (`last_name`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create course coaches table (ارتباط دوره و مربی)
+ */
+function sc_create_course_coaches_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_course_coaches';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `coach_id` bigint(20) unsigned NOT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_course_coach` (`course_id`, `coach_id`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_coach_id` (`coach_id`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 function sc_update_database() {
     global $wpdb;
 
@@ -380,6 +441,8 @@ function sc_update_database() {
         sc_create_events_table();
         sc_create_event_fields_table();
         sc_create_event_registrations_table();
+        sc_create_coaches_table();
+        sc_create_course_coaches_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         $table_name = $wpdb->prefix . 'sc_invoices';

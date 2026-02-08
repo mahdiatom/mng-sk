@@ -354,6 +354,25 @@ function sc_add_course_status_flags_column() {
 }
 
 /**
+ * Add coach_id column to member_courses table if not exists
+ */
+add_action('admin_init', 'sc_add_coach_id_column_to_member_courses');
+function sc_add_coach_id_column_to_member_courses() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_member_courses';
+    
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'coach_id'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `coach_id` bigint(20) unsigned DEFAULT NULL AFTER `course_id`");
+        $wpdb->query("ALTER TABLE $table_name ADD KEY `idx_coach_id` (`coach_id`)");
+    }
+}
+
+/**
  * Check and create attendances table if not exists
  */
 if (!function_exists('sc_check_attendances_table')) {
@@ -532,6 +551,8 @@ function sc_check_and_create_tables() {
     $events_table = $wpdb->prefix . 'sc_events';
     $event_fields_table = $wpdb->prefix . 'sc_event_fields';
     $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -545,6 +566,8 @@ function sc_check_and_create_tables() {
     $events_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $events_table)) == $events_table;
     $event_fields_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_fields_table)) == $event_fields_table;
     $event_registrations_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_registrations_table)) == $event_registrations_table;
+    $coaches_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $coaches_table)) == $coaches_table;
+    $course_coaches_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_coaches_table)) == $course_coaches_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -579,6 +602,12 @@ function sc_check_and_create_tables() {
     }
     if (!$event_registrations_exists && function_exists('sc_create_event_registrations_table')) {
         sc_create_event_registrations_table();
+    }
+    if (!$coaches_exists && function_exists('sc_create_coaches_table')) {
+        sc_create_coaches_table();
+    }
+    if (!$course_coaches_exists && function_exists('sc_create_course_coaches_table')) {
+        sc_create_course_coaches_table();
     }
     
 }
