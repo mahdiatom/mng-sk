@@ -10,6 +10,9 @@ sc_check_and_create_tables();
 global $wpdb;
 $members_table = $wpdb->prefix . 'sc_members';
 
+// دریافت member_id از URL (اگر از صفحه مدیریت شارژ آمده باشد)
+$member_id_from_url = isset($_GET['member_id']) ? absint($_GET['member_id']) : 0;
+
 // پردازش فرم
 $message = '';
 $message_type = '';
@@ -79,7 +82,7 @@ $members = $wpdb->get_results(
                 </th>
                 <td>
                     <?php
-                    $selected_member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
+                    $selected_member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : (isset($member_id_from_url) ? $member_id_from_url : 0);
                     $selected_member_text = 'انتخاب بازیکن';
                     $selected_member_balance = 0;
                     

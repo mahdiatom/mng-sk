@@ -268,6 +268,15 @@ function sc_register_admin_menu() {
         'sc_admin_wallet_deduct_page'
     );
 
+    $wallet_manage_sufix = add_submenu_page(
+        'sc-wallet',
+        'مدیریت شارژ',
+        'مدیریت شارژ',
+        'manage_options',
+        'sc-wallet-manage',
+        'sc_admin_wallet_manage_page'
+    );
+
     /* ================= Settings ================= */
 
     $setting_sufix = add_menu_page(
@@ -658,6 +667,29 @@ function sc_admin_wallet_list_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'wallet-list.php';
 }
 
+// اضافه کردن screen options برای لیست تراکنش‌ها
+add_action('load-toplevel_page_sc-wallet', 'sc_wallet_add_screen_options');
+function sc_wallet_add_screen_options() {
+    $screen = get_current_screen();
+    if (!$screen) {
+        return;
+    }
+    
+    $screen->add_option('per_page', [
+        'label' => 'تعداد تراکنش‌ها در هر صفحه',
+        'default' => 20,
+        'option' => 'wallet_transactions_per_page'
+    ]);
+}
+
+add_filter('set-screen-option', 'sc_wallet_set_screen_option', 10, 3);
+function sc_wallet_set_screen_option($status, $option, $value) {
+    if ('wallet_transactions_per_page' == $option) {
+        return $value;
+    }
+    return $status;
+}
+
 function sc_admin_wallet_charge_page() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
@@ -670,6 +702,13 @@ function sc_admin_wallet_deduct_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'wallet-deduct.php';
+}
+
+function sc_admin_wallet_manage_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'wallet-manage.php';
 }
 
 /**

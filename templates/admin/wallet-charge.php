@@ -14,6 +14,9 @@ $members_table = $wpdb->prefix . 'sc_members';
 $message = '';
 $message_type = '';
 
+// دریافت member_id از URL (اگر از صفحه مدیریت شارژ آمده باشد)
+$member_id_from_url = isset($_GET['member_id']) ? absint($_GET['member_id']) : 0;
+
 if (isset($_POST['sc_charge_wallet']) && check_admin_referer('sc_charge_wallet_nonce', 'sc_charge_wallet_nonce')) {
     $member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
     $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
@@ -81,7 +84,7 @@ $members = $wpdb->get_results(
                 </th>
                 <td>
                     <?php
-                    $selected_member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
+                    $selected_member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : (isset($member_id_from_url) ? $member_id_from_url : 0);
                     $selected_member_text = 'انتخاب بازیکن';
                     
                     if ($selected_member_id > 0) {
