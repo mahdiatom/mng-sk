@@ -362,6 +362,8 @@ function sc_register_admin_menu() {
     add_action('load-' . $add_invoice_sufix, 'callback_add_invoice_sufix');
     add_action('load-' . $list_invoices_sufix, 'process_invoices_table_data');
 
+    add_action('load-' . $wallet_list_sufix, 'process_wallet_transactions_table_data');
+
     add_action('load-' . $add_expense_sufix, 'callback_add_expense_sufix');
     add_action("load-$list_events_sufix", 'sc_events_screen_options');
     add_action('load-' . $add_coach_sufix, 'callback_add_coach_sufix');
@@ -664,22 +666,28 @@ function sc_admin_wallet_list_page() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
     
-    include SC_TEMPLATES_ADMIN_DIR . 'wallet-list.php';
+    // لود فایل (اگر قبلاً لود نشده باشد)
+    require_once SC_TEMPLATES_ADMIN_DIR . 'wallet-list.php';
 }
 
-// اضافه کردن screen options برای لیست تراکنش‌ها
-add_action('load-toplevel_page_sc-wallet', 'sc_wallet_add_screen_options');
-function sc_wallet_add_screen_options() {
-    $screen = get_current_screen();
-    if (!$screen) {
-        return;
-    }
+// آماده‌سازی جدول تراکنش‌های کیف پول
+function process_wallet_transactions_table_data() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
     
-    $screen->add_option('per_page', [
-        'label' => 'تعداد تراکنش‌ها در هر صفحه',
+    // افزودن screen option برای تعداد رکوردها در هر صفحه
+    add_screen_option('per_page', [
         'default' => 20,
-        'option' => 'wallet_transactions_per_page'
+        'option' => 'wallet_transactions_per_page',
+        'label' => 'تعداد تراکنش‌ها در هر صفحه'
     ]);
+    
+    // لود کلاس جدول
+    include SC_TEMPLATES_ADMIN_DIR . 'list_wallet_transactions.php';
+    
+    // ایجاد و آماده‌سازی جدول
+    $GLOBALS['wallet_transactions_list_table'] = new Wallet_Transactions_List_Table();
+    $GLOBALS['wallet_transactions_list_table']->prepare_items();
 }
 
 add_filter('set-screen-option', 'sc_wallet_set_screen_option', 10, 3);
