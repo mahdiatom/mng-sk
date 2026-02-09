@@ -188,6 +188,11 @@ public function column_full_name($item) {
 
         if ($this->current_action() == 'delete' && isset($_GET['player_id'])) {
         $player_id = absint($_GET['player_id']);
+        
+        // حذف کاربر WordPress قبل از حذف از جدول
+        sc_delete_wp_user_by_table_id($table_name, $player_id);
+        
+        // حذف بازیکن از جدول
         $wpdb->delete($table_name, ['id' => $player_id]);
         wp_redirect(admin_url('admin.php?page=sc-members&sc_status=deleted'));
             exit;
@@ -198,6 +203,10 @@ public function column_full_name($item) {
             $players = isset($_GET['player']) ? $_GET['player'] : [];
            
             foreach ($players as $player_id) {
+                // حذف کاربر WordPress قبل از حذف از جدول
+                sc_delete_wp_user_by_table_id($table_name, $player_id);
+                
+                // حذف بازیکن از جدول
                 $wpdb->delete($table_name, ['id' => $player_id]);
             }
             wp_redirect(admin_url('admin.php?page=sc-members&sc_status=bulk_deleted&sc_status2=deleted_player'));

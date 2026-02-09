@@ -1,130 +1,55 @@
 <?php
-// if ( ! defined('ABSPATH') ) exit;
-
-// /**
-//  * ===============================
-//  * ایجاد نقش مدیر باشگاه (DEV MODE)
-//  * ===============================
-//  */
-// function club_create_club_coach_role() {
-//     // اگر نقش وجود ندارد، ایجاد شود
-//     if ( ! get_role('club_coach') ) {
-//         $admin_role = get_role('administrator');
-//         if ( $admin_role ) {
-//             add_role(
-//                 'club_coach',
-//                 'مدیر باشگاه',
-//                 $admin_role->capabilities
-//             );
-//         }
-//     }
-// }
-
-// /**
-//  * ===============================
-//  * ایجاد نقش مربی
-//  * ===============================
-//  */
-// function sc_create_coach_role() {
-//     // اگر نقش وجود ندارد، ایجاد شود
-//     if ( ! get_role('coach') ) {
-//         // گرفتن capabilities نقش club_coach
-//         $coach_caps = get_role('club_coach')->capabilities ?? [];
-
-//         // حذف همه capabilities به جز حضور و غیاب
-//         $allowed_caps = ['read', 'sc_manage_attendance']; // فقط این دو قابلیت باقی می‌ماند
-//         foreach ($coach_caps as $cap => $value) {
-//             if (!in_array($cap, $allowed_caps)) {
-//                 unset($coach_caps[$cap]);
-//             }
-//         }
-
-//         // اضافه کردن capability حضور و غیاب اگر وجود نداشت
-//         $coach_caps['sc_manage_attendance'] = true;
-//         $coach_caps['read'] = true;
-
-//         add_role(
-//             'coach',
-//             'مربی',
-//             $coach_caps
-//         );
-//     } else {
-//         // اگر نقش وجود دارد، فقط capability حضور و غیاب را اضافه کن
-//         $coach_role = get_role('coach');
-//         if ($coach_role && !$coach_role->has_cap('sc_manage_attendance')) {
-//             $coach_role->add_cap('sc_manage_attendance');
-//         }
-//     }
-// }
-
-// // ثبت hook برای ایجاد نقش مربی
-// add_action('admin_init', 'sc_create_coach_role');
-
-
 if ( ! defined('ABSPATH') ) exit;
 
 /**
  * ===============================
- * حالت DEV: حذف و بازسازی نقش‌ها
+ * ایجاد نقش مدیر باشگاه (DEV MODE)
  * ===============================
  */
-add_action('init', function() {
-
-    // حذف نقش‌های قدیمی
-    remove_role('club_coach');
-    remove_role('coach');
-
-    // ایجاد نقش مدیر باشگاه
-    $admin_role = get_role('administrator');
-    if ( $admin_role && ! get_role('club_coach') ) {
-        add_role(
-            'club_coach',
-            'مدیر باشگاه',
-            $admin_role->capabilities
-        );
+function club_create_club_coach_role() {
+    // اگر نقش وجود ندارد، ایجاد شود
+    if ( ! get_role('club_coach') ) {
+        $admin_role = get_role('administrator');
+        if ( $admin_role ) {
+            add_role(
+                'club_coach',
+                'مدیر باشگاه',
+                $admin_role->capabilities
+            );
+        }
     }
+}
 
-    // ایجاد نقش مربی از روی club_coach
-    $club_coach = get_role('club_coach');
-    if ( $club_coach && ! get_role('coach') ) {
+/**
+ * ===============================
+ * ایجاد نقش مربی
+ * ===============================
+ */
+function sc_create_coach_role() {
+    // اگر نقش وجود ندارد، ایجاد شود
+    if ( ! get_role('coach') ) {
+        // استفاده از capabilities مشابه subscriber اما با دسترسی محدود
+        $coach_caps = get_role('subscriber')->capabilities;
+        // اضافه کردن دسترسی به حضور و غیاب
+        $coach_caps['read'] = true;
+        $coach_caps['sc_manage_attendance'] = true; // capability سفارشی برای حضور و غیاب
+        
         add_role(
             'coach',
             'مربی',
-            $club_coach->capabilities
+            $coach_caps
         );
+    } else {
+        // اگر نقش وجود دارد، capability را اضافه کن
+        $coach_role = get_role('coach');
+        if ($coach_role && !$coach_role->has_cap('sc_manage_attendance')) {
+            $coach_role->add_cap('sc_manage_attendance');
+        }
     }
-$coach_role = get_role('coach');
-if ($coach_role) {
-    // اضافه کردن capability حضور و غیاب
-    $coach_role->add_cap('sc_manage_attendance');
-    // تضمین دسترسی به داشبورد
-    $coach_role->add_cap('read');
 }
 
-    // بروزرسانی capability کاربران فعلی
-    if ( $club_coach ) {
-        $users = get_users(array('role' => 'club_coach'));
-        foreach ($users as $user) {
-            foreach ($club_coach->capabilities as $cap => $grant) {
-                $user->add_cap($cap);
-            }
-        }
-    }
-
-    $coach_role = get_role('coach');
-    if ( $coach_role ) {
-        $users = get_users(array('role' => 'coach'));
-        foreach ($users as $user) {
-            foreach ($coach_role->capabilities as $cap => $grant) {
-                $user->add_cap($cap);
-            }
-        }
-    }
-
-});
-
-
-
+// ثبت hook برای ایجاد نقش مربی
+add_action('admin_init', 'sc_create_coach_role');
 
 
 /**

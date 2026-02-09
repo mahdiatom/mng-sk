@@ -1015,6 +1015,52 @@ function sc_auto_create_coach_on_user_register($user_id) {
 
 /**
  * ============================
+ * حذف کاربر WordPress هنگام حذف مربی یا بازیکن
+ * ============================
+ */
+function sc_delete_wp_user_by_table_id($table_name, $record_id) {
+    global $wpdb;
+    
+    // دریافت user_id از جدول
+    $user_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT user_id FROM $table_name WHERE id = %d LIMIT 1",
+        $record_id
+    ));
+    
+    // اگر user_id وجود داشت و کاربر وجود دارد، حذف کن
+    if ($user_id && get_userdata($user_id)) {
+        // بررسی اینکه آیا این کاربر در جدول دیگر هم وجود دارد یا نه
+        // اگر وجود داشت، نباید کاربر WordPress را حذف کنیم
+        $members_table = $wpdb->prefix . 'sc_members';
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+        
+        $exists_in_members = false;
+        $exists_in_coaches = false;
+        
+        if ($table_name == $members_table) {
+            // اگر از جدول members حذف می‌شود، بررسی کن که در coaches وجود نداشته باشد
+            $exists_in_coaches = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+                $user_id
+            ));
+        } elseif ($table_name == $coaches_table) {
+            // اگر از جدول coaches حذف می‌شود، بررسی کن که در members وجود نداشته باشد
+            $exists_in_members = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $members_table WHERE user_id = %d LIMIT 1",
+                $user_id
+            ));
+        }
+        
+        // اگر در هیچ یک از جداول دیگر وجود نداشت، کاربر WordPress را حذف کن
+        if (!$exists_in_members && !$exists_in_coaches) {
+            require_once(ABSPATH . 'wp-admin/includes/user.php');
+            wp_delete_user($user_id);
+        }
+    }
+}
+
+/**
+ * ============================
  * Auto-update member when user profile is updated
  * ============================
  */

@@ -7,9 +7,6 @@ if(!isset($_GET['coach_id'])){
 <?php
     exit;
 }
-
-
-
 global $wpdb;
 $coaches_table = $wpdb->prefix . 'sc_coaches';
 $courses_table = $wpdb->prefix . 'sc_courses';
