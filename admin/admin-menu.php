@@ -63,7 +63,7 @@ function sc_register_admin_menu() {
 
         'ثبت حضور و غیاب',
         'ثبت حضور و غیاب',
-        'sc_manage_attendance', // capability سفارشی برای مربی
+        'sc_manage_attendance_or_admin', // capability سفارشی برای مربی و مدیر
         'sc-attendance-add',
         'sc_admin_attendance_add_page',
         'dashicons-insert-after',
@@ -75,7 +75,7 @@ function sc_register_admin_menu() {
         'sc-attendance-add',
         'لیست حضور و غیاب',
         'لیست حضور و غیاب',
-        'sc_manage_attendance', // capability سفارشی برای مربی
+        'sc_manage_attendance_or_admin', // capability سفارشی برای مربی و مدیر
         'sc-attendance-list',
         'sc_admin_attendance_list_page'
     );
@@ -547,6 +547,30 @@ function sc_admin_attendance_list_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'attendance-list.php';
+}
+
+/**
+ * Capability سفارشی برای دسترسی به حضور و غیاب
+ * مدیران (administrator و club_coach) و مربیان (coach) دسترسی دارند
+ */
+add_filter('user_has_cap', 'sc_manage_attendance_or_admin_cap', 10, 4);
+function sc_manage_attendance_or_admin_cap($allcaps, $caps, $args, $user) {
+    // بررسی اینکه آیا یکی از capability های درخواست شده sc_manage_attendance_or_admin است
+    foreach ($caps as $cap) {
+        if ($cap === 'sc_manage_attendance_or_admin') {
+            // اگر کاربر مدیر است (administrator یا club_coach)
+            if (isset($allcaps['manage_options']) && $allcaps['manage_options']) {
+                $allcaps['sc_manage_attendance_or_admin'] = true;
+                break;
+            }
+            // اگر کاربر مربی است و sc_manage_attendance دارد
+            elseif (isset($allcaps['sc_manage_attendance']) && $allcaps['sc_manage_attendance']) {
+                $allcaps['sc_manage_attendance_or_admin'] = true;
+                break;
+            }
+        }
+    }
+    return $allcaps;
 }
 
 /**
