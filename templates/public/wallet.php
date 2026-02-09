@@ -249,7 +249,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
                                 </strong>
                             </td>
                             <td><?php echo esc_html($transaction->description ?: '-'); ?></td>
-                            <td><?php echo esc_html(sc_date_shamsi_date_time($transaction->created_at)); ?></td>
+                            <td><?php echo esc_html(sc_date_shamsi($transaction->created_at, 'Y/m/d H:i')); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

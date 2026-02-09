@@ -260,7 +260,7 @@ $members = $wpdb->get_results(
                                 <?php echo esc_html($status_label); ?>
                             </span>
                         </td>
-                        <td><?php echo esc_html(sc_date_shamsi_date_time($transaction->created_at)); ?></td>
+                            <td><?php echo esc_html(sc_date_shamsi($transaction->created_at, 'Y/m/d H:i')); ?></td>
                         <td><?php echo esc_html($created_by_name); ?></td>
                     </tr>
                 <?php endforeach; ?>

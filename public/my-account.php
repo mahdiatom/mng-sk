@@ -3038,6 +3038,41 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
         if (in_array($new_status, ['processing', 'completed'])) {
             $payment_date = current_time('mysql');
             
+            // بررسی اینکه آیا این صورت حساب برای شارژ کیف پول است
+            if (!empty($invoice->expense_name) && $invoice->expense_name === 'شارژ کیف پول' && $invoice->course_id == 0 && empty($invoice->member_course_id)) {
+                // شارژ کیف پول بعد از پرداخت موفق
+                if (sc_is_wallet_enabled()) {
+                    // بررسی اینکه آیا قبلاً تراکنش شارژ برای این صورت حساب ثبت شده است
+                    $transactions_table = $wpdb->prefix . 'sc_wallet_transactions';
+                    $existing_transaction = $wpdb->get_var($wpdb->prepare(
+                        "SELECT id FROM $transactions_table 
+                         WHERE related_invoice_id = %d 
+                         AND transaction_type = 'charge' 
+                         AND status = 'completed' 
+                         LIMIT 1",
+                        $invoice->id
+                    ));
+                    
+                    // اگر تراکنش قبلاً ثبت نشده است، آن را ثبت کن
+                    if (!$existing_transaction) {
+                        $charge_result = sc_charge_wallet(
+                            $invoice->member_id,
+                            floatval($invoice->amount),
+                            'شارژ کیف پول - پرداخت صورت حساب #' . $invoice->id,
+                            $order->get_customer_id() // created_by
+                        );
+                        
+                        if ($charge_result['success']) {
+                            error_log('SC WALLET: Charge transaction created after payment - Invoice ID: ' . $invoice->id . ', Amount: ' . $invoice->amount);
+                        } else {
+                            error_log('SC WALLET ERROR: Failed to create charge transaction - Invoice ID: ' . $invoice->id . ', Error: ' . $charge_result['message']);
+                        }
+                    } else {
+                        error_log('SC WALLET: Charge transaction already exists for Invoice ID: ' . $invoice->id);
+                    }
+                }
+            }
+            
             // فعال کردن دوره بعد از پرداخت موفق (فقط processing و completed)
             if ($invoice->member_course_id) {
                 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
