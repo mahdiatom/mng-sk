@@ -75,20 +75,63 @@ $members = $wpdb->get_results(
         <table class="form-table">
             <tr>
                 <th scope="row">
-                    <label for="member_id">بازیکن <span style="color: red;">*</span></label>
+                    <label>بازیکن <span style="color: red;">*</span></label>
                 </th>
                 <td>
-                    <select name="member_id" id="member_id" class="regular-text" required style="width: 100%;">
-                        <option value="">-- انتخاب بازیکن --</option>
-                        <?php foreach ($members as $member) : 
-                            $selected = isset($_POST['member_id']) && $_POST['member_id'] == $member->id ? 'selected' : '';
-                            $balance = sc_get_wallet_balance($member->id);
-                        ?>
-                            <option value="<?php echo esc_attr($member->id); ?>" <?php echo $selected; ?> data-balance="<?php echo esc_attr($balance); ?>">
-                                <?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id . ' (موجودی: ' . number_format($balance, 0, '.', ',') . ' تومان)'); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php
+                    $selected_member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
+                    $selected_member_text = 'انتخاب بازیکن';
+                    $selected_member_balance = 0;
+                    
+                    if ($selected_member_id > 0) {
+                        foreach ($members as $m) {
+                            if ($m->id == $selected_member_id) {
+                                $selected_member_balance = sc_get_wallet_balance($m->id);
+                                $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id . ' (موجودی: ' . number_format($selected_member_balance, 0, '.', ',') . ' تومان)';
+                                break;
+                            }
+                        }
+                    }
+                    ?>
+                    
+                    <div class="sc-searchable-dropdown" style="width: 100%;">
+                        <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>" required>
+                        
+                        <div class="sc-dropdown-toggle" style="width: 100%;">
+                            <span class="sc-dropdown-placeholder" <?php if ($selected_member_id) echo 'style="display:none"'; ?>>انتخاب بازیکن</span>
+                            <span class="sc-dropdown-selected" <?php if (!$selected_member_id) echo 'style="display:none"'; ?>>
+                                <?php echo esc_html($selected_member_text); ?>
+                            </span>
+                            <span class="sc-dropdown-arrow">▼</span>
+                        </div>
+                        
+                        <div class="sc-dropdown-menu" style="width: 100%;">
+                            <div class="sc-dropdown-search">
+                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
+                            </div>
+                            
+                            <div class="sc-dropdown-options">
+                                <?php
+                                $display_count = 0;
+                                $max_display = 10;
+                                ?>
+                                
+                                <?php foreach ($members as $member) :
+                                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                    $display_count++;
+                                    $balance = sc_get_wallet_balance($member->id);
+                                ?>
+                                    <div class="sc-dropdown-option <?php echo $display_class; ?>"
+                                         data-value="<?php echo esc_attr($member->id); ?>"
+                                         data-balance="<?php echo esc_attr($balance); ?>"
+                                         data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
+                                         onclick="scSelectMemberForWalletDeduct(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id . ' (موجودی: ' . number_format($balance, 0, '.', ',') . ' تومان)'); ?>', <?php echo esc_js($balance); ?>)">
+                                        <?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id . ' (موجودی: ' . number_format($balance, 0, '.', ',') . ' تومان)'); ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
                     <p class="description">بازیکنی که می‌خواهید از کیف پولش کسر کنید را انتخاب کنید.</p>
                 </td>
             </tr>
@@ -140,16 +183,27 @@ $members = $wpdb->get_results(
 
 <script>
 jQuery(document).ready(function($) {
-    // نمایش موجودی هنگام انتخاب بازیکن
-    $('#member_id').on('change', function() {
-        var selectedOption = $(this).find('option:selected');
-        var balance = selectedOption.data('balance');
-        if (balance !== undefined) {
-            $('#current_balance').text(parseFloat(balance).toLocaleString('fa-IR'));
-        } else {
+    // تابع انتخاب بازیکن برای کاهش کیف پول
+    window.scSelectMemberForWalletDeduct = function(element, memberId, memberText, balance) {
+        // استفاده از تابع موجود scSelectMember
+        scSelectMember(element, memberId, memberText);
+        
+        // نمایش موجودی
+        if (memberId == '0') {
             $('#current_balance').text('-');
+        } else {
+            if (balance !== undefined) {
+                $('#current_balance').text(parseFloat(balance).toLocaleString('fa-IR'));
+            } else {
+                $('#current_balance').text('-');
+            }
         }
-    });
+    };
+    
+    // نمایش موجودی اولیه در صورت انتخاب قبلی
+    <?php if ($selected_member_id > 0) : ?>
+        $('#current_balance').text(<?php echo esc_js(number_format($selected_member_balance, 0, '.', ',')); ?>);
+    <?php endif; ?>
 
     // فرمت کردن مبلغ با کاما
     $('#amount').on('input', function() {
