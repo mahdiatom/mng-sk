@@ -59,11 +59,15 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     $attendance_date
                 ));
                 
+                // دریافت user_id کاربر فعلی
+                $current_user_id = get_current_user_id();
+                
                 $data = [
                     'member_id' => $member_id,
                     'course_id' => $course_id,
                     'attendance_date' => $attendance_date,
                     'status' => $status,
+                    'user_id' => $current_user_id,
                     'updated_at' => current_time('mysql')
                 ];
                 
@@ -77,6 +81,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     // بروزرسانی رکورد موجود
                     $update_data = [
                         'status' => $status,
+                        'user_id' => $current_user_id,
                         'updated_at' => current_time('mysql')
                     ];
 
@@ -91,7 +96,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                         [
                             'id' => $existing
                         ],
-                        array_fill(0, count($update_data), '%s'),
+                        ['%s', '%d', '%s'], // status, user_id, updated_at
                         ['%d']
                     );
                     $updated_count++;
@@ -106,7 +111,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     $inserted_id = $wpdb->insert(
                         $attendances_table,
                         $data,
-                        ['%d', '%d', '%s', '%s', '%s', '%s']
+                        ['%d', '%d', '%s', '%s', '%d', '%s', '%s'] // member_id, course_id, attendance_date, status, user_id, created_at, updated_at
                     );
 
                     if ($inserted_id) {
@@ -140,12 +145,47 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
     }
 }
 
-// دریافت تمام دوره‌های فعال
-$courses = $wpdb->get_results(
-    "SELECT * FROM $courses_table 
-     WHERE deleted_at IS NULL AND is_active = 1 
-     ORDER BY title ASC"
-);
+// دریافت دوره‌های فعال
+// اگر کاربر مربی است، فقط دوره‌های مربی را نمایش بده
+$current_user_id = get_current_user_id();
+$current_user = wp_get_current_user();
+
+if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    // کاربر مربی است - فقط دوره‌های مربی را نمایش بده
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    
+    // دریافت coach_id از user_id
+    $coach = $wpdb->get_row($wpdb->prepare(
+        "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+        $current_user_id
+    ));
+    
+    if ($coach) {
+        $coach_id = $coach->id;
+        // دریافت دوره‌های مربی که فعال هستند
+        $courses = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.* 
+             FROM $courses_table c
+             INNER JOIN $course_coaches_table cc ON c.id = cc.course_id
+             WHERE cc.coach_id = %d
+             AND c.deleted_at IS NULL 
+             AND c.is_active = 1 
+             ORDER BY c.title ASC",
+            $coach_id
+        ));
+    } else {
+        // اگر مربی در جدول coaches وجود نداشت، لیست خالی
+        $courses = [];
+    }
+} else {
+    // کاربر مدیر است - همه دوره‌های فعال را نمایش بده
+    $courses = $wpdb->get_results(
+        "SELECT * FROM $courses_table 
+         WHERE deleted_at IS NULL AND is_active = 1 
+         ORDER BY title ASC"
+    );
+}
 
     // دریافت دوره انتخاب شده
     $selected_course_id = isset($_GET['course_id']) ? absint($_GET['course_id']) : (isset($_POST['course_id']) ? absint($_POST['course_id']) : 0);

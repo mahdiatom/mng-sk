@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.8.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.10.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -151,6 +151,7 @@ $sql = "CREATE TABLE `$table_name` (
     `course_id` bigint(20) unsigned NOT NULL,
     `attendance_date` date NOT NULL,
     `status` enum('present','absent') NOT NULL DEFAULT 'present',
+    `user_id` bigint(20) unsigned DEFAULT NULL,
     `absence_sms_sent` tinyint(1) DEFAULT 0,
     `created_at` datetime NOT NULL,
     `updated_at` datetime NOT NULL,
@@ -159,7 +160,8 @@ $sql = "CREATE TABLE `$table_name` (
     KEY `idx_member_id` (`member_id`),
     KEY `idx_course_id` (`course_id`),
     KEY `idx_attendance_date` (`attendance_date`),
-    KEY `idx_status` (`status`)
+    KEY `idx_status` (`status`),
+    KEY `idx_user_id` (`user_id`)
     ) ENGINE=InnoDB $table_collation";
 
             require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -446,14 +448,14 @@ function sc_update_database() {
         sc_create_course_coaches_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
-        $table_name = $wpdb->prefix . 'sc_invoices';
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare("SHOW COLUMNS FROM $table_name LIKE %s", 'disable_penalty')
-        );
+        // $table_name = $wpdb->prefix . 'sc_invoices';
+        // $column_exists = $wpdb->get_results(
+        //     $wpdb->prepare("SHOW COLUMNS FROM $table_name LIKE %s", 'disable_penalty')
+        // );
 
-        if (empty($column_exists)) {
-            $wpdb->query("ALTER TABLE $table_name ADD COLUMN `disable_penalty` TINYINT(1) NOT NULL DEFAULT 0 AFTER `penalty_applied`");
-        }
+        // if (empty($column_exists)) {
+        //     $wpdb->query("ALTER TABLE $table_name ADD COLUMN `disable_penalty` TINYINT(1) NOT NULL DEFAULT 0 AFTER `penalty_applied`");
+        // }
         
         // // بررسی و اضافه کردن ستون price_per_session به جدول courses
         // $courses_table = $wpdb->prefix . 'sc_courses';
@@ -463,6 +465,17 @@ function sc_update_database() {
         
         // if (empty($price_per_session_exists)) {
         //     $wpdb->query("ALTER TABLE $courses_table ADD COLUMN `price_per_session` decimal(10,2) NOT NULL DEFAULT 0.00 AFTER `price`");
+        // }
+        
+        // // بررسی و اضافه کردن ستون user_id به جدول attendances
+        // $attendances_table = $wpdb->prefix . 'sc_attendances';
+        // $user_id_exists = $wpdb->get_results(
+        //     $wpdb->prepare("SHOW COLUMNS FROM $attendances_table LIKE %s", 'user_id')
+        // );
+        
+        // if (empty($user_id_exists)) {
+        //     $wpdb->query("ALTER TABLE $attendances_table ADD COLUMN `user_id` bigint(20) unsigned DEFAULT NULL AFTER `status`");
+        //     $wpdb->query("ALTER TABLE $attendances_table ADD KEY `idx_user_id` (`user_id`)");
         // }
       
         // --- به روز رسانی نسخه دیتابیس ---

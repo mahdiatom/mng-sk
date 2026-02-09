@@ -34,7 +34,42 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
 }
 
 // دریافت لیست دوره‌ها و اعضا برای فیلترها
-$courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC");
+// اگر کاربر مربی است، فقط دوره‌های مربی را نمایش بده
+$current_user_id = get_current_user_id();
+$current_user = wp_get_current_user();
+
+if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    // کاربر مربی است - فقط دوره‌های مربی را نمایش بده
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    
+    // دریافت coach_id از user_id
+    $coach = $wpdb->get_row($wpdb->prepare(
+        "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+        $current_user_id
+    ));
+    
+    if ($coach) {
+        $coach_id = $coach->id;
+        // دریافت دوره‌های مربی که فعال هستند
+        $courses = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.id, c.title 
+             FROM $courses_table c
+             INNER JOIN $course_coaches_table cc ON c.id = cc.course_id
+             WHERE cc.coach_id = %d
+             AND c.deleted_at IS NULL 
+             AND c.is_active = 1 
+             ORDER BY c.title ASC",
+            $coach_id
+        ));
+    } else {
+        // اگر مربی در جدول coaches وجود نداشت، لیست خالی
+        $courses = [];
+    }
+} else {
+    // کاربر مدیر است - همه دوره‌های فعال را نمایش بده
+    $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC");
+}
 $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
 
 // ==================== تب 1: لیست حضور و غیاب کاربران ====================
@@ -71,6 +106,39 @@ if ($active_tab === 'individual') {
     // ساخت WHERE clause
     $where_conditions = ['1=1'];
     $where_values = [];
+    
+    // اگر کاربر مربی است، فقط حضور و غیاب دوره‌های مربی را نمایش بده
+    if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+        
+        // دریافت coach_id از user_id
+        $coach = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+            $current_user_id
+        ));
+        
+        if ($coach) {
+            $coach_id = $coach->id;
+            // دریافت لیست course_id های مربی
+            $coach_course_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT course_id FROM $course_coaches_table WHERE coach_id = %d",
+                $coach_id
+            ));
+            
+            if (!empty($coach_course_ids)) {
+                $placeholders = implode(',', array_fill(0, count($coach_course_ids), '%d'));
+                $where_conditions[] = "a.course_id IN ($placeholders)";
+                $where_values = array_merge($where_values, $coach_course_ids);
+            } else {
+                // اگر مربی هیچ دوره‌ای نداشت، هیچ رکوردی نمایش داده نشود
+                $where_conditions[] = "1=0";
+            }
+        } else {
+            // اگر مربی در جدول coaches وجود نداشت، هیچ رکوردی نمایش داده نشود
+            $where_conditions[] = "1=0";
+        }
+    }
 
     if ($filter_course > 0) {
         $where_conditions[] = "a.course_id = %d";
@@ -167,6 +235,39 @@ if ($active_tab === 'grouped') {
     // ساخت WHERE clause
     $where_conditions = ['1=1'];
     $where_values = [];
+    
+    // اگر کاربر مربی است، فقط حضور و غیاب دوره‌های مربی را نمایش بده
+    if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+        
+        // دریافت coach_id از user_id
+        $coach = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+            $current_user_id
+        ));
+        
+        if ($coach) {
+            $coach_id = $coach->id;
+            // دریافت لیست course_id های مربی
+            $coach_course_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT course_id FROM $course_coaches_table WHERE coach_id = %d",
+                $coach_id
+            ));
+            
+            if (!empty($coach_course_ids)) {
+                $placeholders = implode(',', array_fill(0, count($coach_course_ids), '%d'));
+                $where_conditions[] = "a.course_id IN ($placeholders)";
+                $where_values = array_merge($where_values, $coach_course_ids);
+            } else {
+                // اگر مربی هیچ دوره‌ای نداشت، هیچ رکوردی نمایش داده نشود
+                $where_conditions[] = "1=0";
+            }
+        } else {
+            // اگر مربی در جدول coaches وجود نداشت، هیچ رکوردی نمایش داده نشود
+            $where_conditions[] = "1=0";
+        }
+    }
 
     if ($filter_course > 0) {
         $where_conditions[] = "a.course_id = %d";
@@ -247,11 +348,44 @@ if ($active_tab === 'overall') {
     $where_conditions = ['1=1'];
     $where_values = [];
     
+    // اگر کاربر مربی است، فقط حضور و غیاب دوره‌های مربی را نمایش بده
+    if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+        
+        // دریافت coach_id از user_id
+        $coach = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+            $current_user_id
+        ));
+        
+        if ($coach) {
+            $coach_id = $coach->id;
+            // دریافت لیست course_id های مربی
+            $coach_course_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT course_id FROM $course_coaches_table WHERE coach_id = %d",
+                $coach_id
+            ));
+            
+            if (!empty($coach_course_ids)) {
+                $placeholders = implode(',', array_fill(0, count($coach_course_ids), '%d'));
+                $where_conditions[] = "a.course_id IN ($placeholders)";
+                $where_values = array_merge($where_values, $coach_course_ids);
+            } else {
+                // اگر مربی هیچ دوره‌ای نداشت، هیچ رکوردی نمایش داده نشود
+                $where_conditions[] = "1=0";
+            }
+        } else {
+            // اگر مربی در جدول coaches وجود نداشت، هیچ رکوردی نمایش داده نشود
+            $where_conditions[] = "1=0";
+        }
+    }
+
     if ($filter_course > 0) {
         $where_conditions[] = "a.course_id = %d";
         $where_values[] = $filter_course;
     }
-    
+
     if ($filter_member > 0) {
         $where_conditions[] = "a.member_id = %d";
         $where_values[] = $filter_member;

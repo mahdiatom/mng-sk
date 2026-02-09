@@ -394,6 +394,27 @@ function sc_add_price_per_session_column_to_courses() {
 }
 
 /**
+ * ============================
+ * Add user_id column to attendances table if not exists
+ * ============================
+ */
+add_action('admin_init', 'sc_add_user_id_column_to_attendances');
+function sc_add_user_id_column_to_attendances() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_attendances';
+    
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'user_id'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `user_id` bigint(20) unsigned DEFAULT NULL AFTER `status`");
+        $wpdb->query("ALTER TABLE $table_name ADD KEY `idx_user_id` (`user_id`)");
+    }
+}
+
+/**
  * Check and create attendances table if not exists
  */
 if (!function_exists('sc_check_attendances_table')) {
