@@ -374,6 +374,26 @@ function sc_add_coach_id_column_to_member_courses() {
 }
 
 /**
+ * ============================
+ * Add price_per_session column to courses table if not exists
+ * ============================
+ */
+add_action('admin_init', 'sc_add_price_per_session_column_to_courses');
+function sc_add_price_per_session_column_to_courses() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_courses';
+    
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'price_per_session'
+    ));
+    
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `price_per_session` decimal(10,2) NOT NULL DEFAULT 0.00 AFTER `price`");
+    }
+}
+
+/**
  * Check and create attendances table if not exists
  */
 if (!function_exists('sc_check_attendances_table')) {

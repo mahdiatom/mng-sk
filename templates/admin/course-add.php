@@ -2,6 +2,7 @@
 $title = '';
 $description = '';
 $price = '';
+$price_per_session = '';
 $capacity = '';
 $sessions_count = '';
 $start_date = '';
@@ -12,6 +13,7 @@ if ($course && isset($_GET['course_id'])) {
     $title = $course->title ?? '';
     $description = $course->description ?? '';
     $price = $course->price ?? '';
+    $price_per_session = $course->price_per_session ?? '';
     $capacity = $course->capacity ?? '';
     $sessions_count = $course->sessions_count ?? '';
     $start_date = $course->start_date ?? '';
@@ -68,19 +70,35 @@ if ($course && isset($_GET['course_id'])) {
                         $price_display = $price ?? 0;
                         // تبدیل به عدد برای اطمینان از صحت
                         $price_display = is_numeric($price_display) ? floatval($price_display) : 0;
+                        $price_per_session_display = is_numeric($price_per_session) ? floatval($price_per_session) : 0;
                         ?>
-                        <input type="text" 
-                               name="price" 
-                               id="price" 
-                               value="<?php echo $price_display > 0 ? number_format($price_display, 0, '.', ',') : ''; ?>" 
-                               class="regular-text" 
-                               placeholder="0"
-                               style="width: 300px;"
-                               dir="ltr"
-                               inputmode="numeric"
-                               required>
+                        <div style="margin-bottom: 10px;">
+                            <input type="text" 
+                                   name="price" 
+                                   id="price" 
+                                   value="<?php echo $price_display > 0 ? number_format($price_display, 0, '.', ',') : ''; ?>" 
+                                   class="regular-text" 
+                                   placeholder="قیمت کل دوره"
+                                   style="width: 300px;"
+                                   dir="ltr"
+                                   inputmode="numeric"
+                                   required>
+                            <p class="description" style="margin-top: 5px;">مبلغ کل دوره به تومان</p>
+                        </div>
+                        <div>
+                            <input type="text" 
+                                   name="price_per_session" 
+                                   id="price_per_session" 
+                                   value="<?php echo $price_per_session_display > 0 ? number_format($price_per_session_display, 0, '.', ',') : ''; ?>" 
+                                   class="regular-text" 
+                                   placeholder="قیمت هر جلسه"
+                                   style="width: 300px;"
+                                   dir="ltr"
+                                   inputmode="numeric">
+                            <p class="description" style="margin-top: 5px;">مبلغ هر جلسه به تومان (اختیاری)</p>
+                        </div>
                         <input type="hidden" name="price_raw" id="price_raw" value="<?php echo esc_attr($price_display); ?>">
-                        <p class="description">مبلغ دوره به تومان</p>
+                        <input type="hidden" name="price_per_session_raw" id="price_per_session_raw" value="<?php echo esc_attr($price_per_session_display); ?>">
                         
                     </td>
                 </tr>
@@ -180,4 +198,18 @@ if ($course && isset($_GET['course_id'])) {
         </p>
     </form>
 </div>
+
+<script type="text/javascript">
+jQuery(document).ready(function($) {
+    // فرمت کردن فیلد قیمت کل دوره
+    if ($('#price').length && $('#price_raw').length) {
+        scFormatPrice('#price', '#price_raw');
+    }
+    
+    // فرمت کردن فیلد قیمت هر جلسه
+    if ($('#price_per_session').length && $('#price_per_session_raw').length) {
+        scFormatPrice('#price_per_session', '#price_per_session_raw');
+    }
+});
+</script>
 

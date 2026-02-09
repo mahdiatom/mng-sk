@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.5.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.8.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -87,6 +87,7 @@ $sql = "CREATE TABLE `$table_name` (
         `title` varchar(255) NOT NULL,
         `description` text DEFAULT NULL,
         `price` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `price_per_session` decimal(10,2) NOT NULL DEFAULT 0.00,
         `capacity` int(11) DEFAULT NULL,
         `sessions_count` int(11) DEFAULT NULL,
         `start_date` date DEFAULT NULL,
@@ -453,7 +454,17 @@ function sc_update_database() {
         if (empty($column_exists)) {
             $wpdb->query("ALTER TABLE $table_name ADD COLUMN `disable_penalty` TINYINT(1) NOT NULL DEFAULT 0 AFTER `penalty_applied`");
         }
-
+        
+        // // بررسی و اضافه کردن ستون price_per_session به جدول courses
+        // $courses_table = $wpdb->prefix . 'sc_courses';
+        // $price_per_session_exists = $wpdb->get_results(
+        //     $wpdb->prepare("SHOW COLUMNS FROM $courses_table LIKE %s", 'price_per_session')
+        // );
+        
+        // if (empty($price_per_session_exists)) {
+        //     $wpdb->query("ALTER TABLE $courses_table ADD COLUMN `price_per_session` decimal(10,2) NOT NULL DEFAULT 0.00 AFTER `price`");
+        // }
+      
         // --- به روز رسانی نسخه دیتابیس ---
         update_option('sc_plugin_db_version', SC_PLUGIN_VERSION);
     }

@@ -988,6 +988,25 @@ function callback_add_course_sufix() {
             $price_value = 0;
         }
         
+        // پردازش قیمت هر جلسه از price_per_session_raw
+        $price_per_session_value = 0;
+        if (isset($_POST['price_per_session_raw']) && !empty($_POST['price_per_session_raw'])) {
+            // حذف کاماها و کاراکترهای غیر عددی
+            $price_per_session_raw_cleaned = str_replace(',', '', sanitize_text_field($_POST['price_per_session_raw']));
+            $price_per_session_raw_cleaned = preg_replace('/[^\d.]/', '', $price_per_session_raw_cleaned);
+            $price_per_session_value = floatval($price_per_session_raw_cleaned);
+        } elseif (isset($_POST['price_per_session']) && !empty($_POST['price_per_session'])) {
+            // حذف کاماها و کاراکترهای غیر عددی
+            $price_per_session_cleaned = str_replace(',', '', sanitize_text_field($_POST['price_per_session']));
+            $price_per_session_cleaned = preg_replace('/[^\d.]/', '', $price_per_session_cleaned);
+            $price_per_session_value = floatval($price_per_session_cleaned);
+        }
+        
+        // اطمینان از اینکه قیمت هر جلسه عدد معتبر است
+        if (!is_numeric($price_per_session_value) || $price_per_session_value < 0) {
+            $price_per_session_value = 0;
+        }
+        
         // Validation
         if (empty($_POST['title']) || $price_value <= 0) {
             wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
@@ -1013,6 +1032,7 @@ function callback_add_course_sufix() {
             'title' => sanitize_text_field($_POST['title']),
             'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
             'price' => $price_value,
+            'price_per_session' => $price_per_session_value,
             'capacity' => !empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL,
             'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
             'start_date' => $start_date,
@@ -1025,11 +1045,25 @@ function callback_add_course_sufix() {
 
         // بروزرسانی
         if ($course_id) {
+            // آماده‌سازی format array بر اساس ترتیب فیلدها در $data
+            $format = [
+                '%s', // title
+                '%s', // description
+                '%f', // price
+                '%f', // price_per_session
+                '%d', // capacity
+                '%d', // sessions_count
+                '%s', // start_date
+                '%s', // end_date
+                '%d', // is_active
+                '%s', // updated_at
+            ];
+            
             $updated = $wpdb->update(
                 $table_name,
                 $data,
                 ['id' => $course_id],
-                ['%s', '%s', '%f', '%d', '%d', '%s', '%s', '%d', '%s'],
+                $format,
                 ['%d']
             );
 
@@ -1037,17 +1071,53 @@ function callback_add_course_sufix() {
                 wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_updated&course_id=' . $course_id));
                 exit;
             } else {
+                // لاگ خطا برای دیباگ
+                if ($wpdb->last_error) {
+                    error_log('SC Course Update Error: ' . $wpdb->last_error);
+                    error_log('SC Course Update Query: ' . $wpdb->last_query);
+                    error_log('SC Course Update Data: ' . print_r($data, true));
+                    error_log('SC Course Update Format: ' . print_r($format, true));
+                }
                 wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_update_error&course_id=' . $course_id));
                 exit;
             }
         } 
         // اضافه کردن جدید
         else {
-            $data['created_at'] = current_time('mysql');
+            // آماده‌سازی داده‌ها برای insert با ترتیب صحیح
+            $insert_data = [
+                'title' => sanitize_text_field($_POST['title']),
+                'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
+                'price' => $price_value,
+                'price_per_session' => $price_per_session_value,
+                'capacity' => !empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL,
+                'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
+                'start_date' => $start_date,
+                'end_date' => $end_date,
+                'is_active' => isset($_POST['is_active']) ? 1 : 0,
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql'),
+            ];
+            
+            // آماده‌سازی format array بر اساس ترتیب فیلدها در $insert_data
+            $format = [
+                '%s', // title
+                '%s', // description
+                '%f', // price
+                '%f', // price_per_session
+                '%d', // capacity
+                '%d', // sessions_count
+                '%s', // start_date
+                '%s', // end_date
+                '%d', // is_active
+                '%s', // created_at
+                '%s', // updated_at
+            ];
+            
             $inserted = $wpdb->insert(
                 $table_name, 
-                $data,
-                ['%s', '%s', '%f', '%d', '%d', '%s', '%s', '%d', '%s', '%s']
+                $insert_data,
+                $format
             );
 
             if ($inserted !== false) {
@@ -1055,6 +1125,13 @@ function callback_add_course_sufix() {
                 wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_true&course_id=' . $insert_id));
                 exit;
             } else {
+                // لاگ خطا برای دیباگ
+                if ($wpdb->last_error) {
+                    error_log('SC Course Insert Error: ' . $wpdb->last_error);
+                    error_log('SC Course Insert Query: ' . $wpdb->last_query);
+                    error_log('SC Course Insert Data: ' . print_r($insert_data, true));
+                    error_log('SC Course Insert Format: ' . print_r($format, true));
+                }
                 wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
                 exit;
             }

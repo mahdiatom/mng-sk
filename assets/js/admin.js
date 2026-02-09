@@ -241,10 +241,17 @@ jQuery(document).ready(function($) {
 // Event Delegation برای فرمت کردن قیمت/مبلغ (برای اطمینان از کارکرد)
 jQuery(document).ready(function($) {
     // فرمت کردن برای فیلدهای قیمت/مبلغ با event delegation
-    $(document).on('input', '#price, #amount', function() {
+    $(document).on('input', '#price, #amount, #price_per_session', function() {
         var $this = $(this);
         var inputId = $this.attr('id');
-        var rawSelector = inputId === 'price' ? '#price_raw' : '#amount_raw';
+        var rawSelector = '';
+        if (inputId === 'price') {
+            rawSelector = '#price_raw';
+        } else if (inputId === 'price_per_session') {
+            rawSelector = '#price_per_session_raw';
+        } else {
+            rawSelector = '#amount_raw';
+        }
         var $raw = $(rawSelector);
         
         if (!$raw.length) {
