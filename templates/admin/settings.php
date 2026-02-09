@@ -113,13 +113,28 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
 
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات پیامک با موفقیت ذخیره شد.</p></div>';
     }
+    elseif ($current_tab === 'wallet') {
+        $wallet_enabled = isset($_POST['wallet_enabled']) ? 1 : 0;
+        $wallet_min_charge = isset($_POST['wallet_min_charge']) ? floatval($_POST['wallet_min_charge']) : 10000;
+        $wallet_max_charge = isset($_POST['wallet_max_charge']) ? floatval($_POST['wallet_max_charge']) : 0;
+        $wallet_max_negative_balance = isset($_POST['wallet_max_negative_balance']) ? floatval($_POST['wallet_max_negative_balance']) : 0;
+        $wallet_min_balance_alert = isset($_POST['wallet_min_balance_alert']) ? floatval($_POST['wallet_min_balance_alert']) : 50000;
+        $wallet_allow_partial_payment = isset($_POST['wallet_allow_partial_payment']) ? 1 : 0;
+
+        sc_update_setting('wallet_enabled', $wallet_enabled, 'wallet');
+        sc_update_setting('wallet_min_charge', $wallet_min_charge, 'wallet');
+        sc_update_setting('wallet_max_charge', $wallet_max_charge, 'wallet');
+        sc_update_setting('wallet_max_negative_balance', $wallet_max_negative_balance, 'wallet');
+        sc_update_setting('wallet_min_balance_alert', $wallet_min_balance_alert, 'wallet');
+        sc_update_setting('wallet_allow_partial_payment', $wallet_allow_partial_payment, 'wallet');
+
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات کیف پول با موفقیت ذخیره شد.</p></div>';
+    }
     elseif ($current_tab === 'pro_features') {
     $pro_mode_enabled = isset($_POST['pro_mode_enabled']) ? 1 : 0;
-    $wallet_enabled = isset($_POST['wallet_enabled']) ? 1 : 0;
     $team_attendance_enabled = isset($_POST['team_attendance_enabled']) ? 1 : 0;
 
     sc_update_setting('pro_mode_enabled', $pro_mode_enabled, 'pro_features');
-    sc_update_setting('wallet_enabled', $wallet_enabled, 'pro_features');
     sc_update_setting('team_attendance_enabled', $team_attendance_enabled, 'pro_features');
 
     echo '<div class="notice notice-success is-dismissible"><p>تنظیمات امکانات پرو با موفقیت ذخیره شد.</p></div>';
@@ -182,6 +197,14 @@ $sms_absence_user_enabled = (int)sc_get_setting('sms_absence_user_enabled', '1')
 $sms_absence_user_template = sc_get_setting('sms_absence_user_template', 'کاربر گرامی %user_name%، غیبت شما در جلسه دوره %course_name% مورخ %date% ثبت شد.');
 $sms_absence_user_pattern = sc_get_setting('sms_absence_user_pattern', '');
 $sms_absence_admin_enabled = (int)sc_get_setting('sms_absence_admin_enabled', '1');
+
+// Wallet Settings
+$wallet_enabled = (int)sc_get_setting('wallet_enabled', '0');
+$wallet_min_charge = floatval(sc_get_setting('wallet_min_charge', '10000'));
+$wallet_max_charge = floatval(sc_get_setting('wallet_max_charge', '0'));
+$wallet_max_negative_balance = floatval(sc_get_setting('wallet_max_negative_balance', '0'));
+$wallet_min_balance_alert = floatval(sc_get_setting('wallet_min_balance_alert', '50000'));
+$wallet_allow_partial_payment = (int)sc_get_setting('wallet_allow_partial_payment', '1');
 $sms_absence_admin_template = sc_get_setting('sms_absence_admin_template', 'غیبت: %user_name% - دوره %course_name% - تاریخ %date%');
 $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
 // تنظیمات افزونه پرو
@@ -206,6 +229,10 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=sms'); ?>"
            class="nav-tab <?php echo $current_tab === 'sms' ? 'nav-tab-active' : ''; ?>">
             پیامک
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=wallet'); ?>"
+           class="nav-tab <?php echo $current_tab === 'wallet' ? 'nav-tab-active' : ''; ?>">
+            کیف پول
         </a>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=pro_features'); ?>"
             class="nav-tab <?php echo $current_tab === 'pro_features' ? 'nav-tab-active' : ''; ?>">
@@ -759,6 +786,87 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
             </form>
 
         <?php endif; 
+        if ($current_tab === 'wallet') : ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">فعال کردن کیف پول</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="wallet_enabled" value="1" <?php checked($wallet_enabled, 1); ?>>
+                                فعال کردن سیستم کیف پول
+                            </label>
+                            <p class="description">با فعال کردن این گزینه، کاربران می‌توانند کیف پول خود را شارژ کنند و از آن برای پرداخت صورت حساب‌ها استفاده کنند.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">حداقل مبلغ شارژ</th>
+                        <td>
+                            <input type="number" 
+                                   name="wallet_min_charge" 
+                                   value="<?php echo esc_attr($wallet_min_charge); ?>" 
+                                   class="regular-text" 
+                                   min="0" 
+                                   step="1000">
+                            <p class="description">حداقل مبلغی که کاربر می‌تواند برای شارژ کیف پول خود وارد کند (به تومان).</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">حداکثر مبلغ شارژ</th>
+                        <td>
+                            <input type="number" 
+                                   name="wallet_max_charge" 
+                                   value="<?php echo esc_attr($wallet_max_charge); ?>" 
+                                   class="regular-text" 
+                                   min="0" 
+                                   step="1000">
+                            <p class="description">حداکثر مبلغی که کاربر می‌تواند برای شارژ کیف پول خود وارد کند (به تومان). برای بدون محدودیت، مقدار 0 وارد کنید.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">حداکثر موجودی منفی مجاز</th>
+                        <td>
+                            <input type="number" 
+                                   name="wallet_max_negative_balance" 
+                                   value="<?php echo esc_attr($wallet_max_negative_balance); ?>" 
+                                   class="regular-text" 
+                                   min="0" 
+                                   step="1000">
+                            <p class="description">حداکثر موجودی منفی که کاربر می‌تواند داشته باشد (به تومان). برای عدم اجازه موجودی منفی، مقدار 0 وارد کنید.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">حداقل موجودی برای هشدار</th>
+                        <td>
+                            <input type="number" 
+                                   name="wallet_min_balance_alert" 
+                                   value="<?php echo esc_attr($wallet_min_balance_alert); ?>" 
+                                   class="regular-text" 
+                                   min="0" 
+                                   step="1000">
+                            <p class="description">اگر موجودی کیف پول کاربر کمتر از این مقدار باشد، هشدار نمایش داده می‌شود (به تومان).</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پرداخت جزئی از کیف پول</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="wallet_allow_partial_payment" value="1" <?php checked($wallet_allow_partial_payment, 1); ?>>
+                                اجازه پرداخت جزئی از کیف پول
+                            </label>
+                            <p class="description">در صورت فعال بودن، اگر موجودی کیف پول کافی نباشد، کاربر می‌تواند مبلغ موجود را از کیف پول پرداخت کند و مابقی را از درگاه پرداخت.</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات کیف پول">
+                </p>
+            </form>
+
+        <?php endif; 
         if ($current_tab === 'pro_features') : ?>
     <form method="POST" action="">
         <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
@@ -770,15 +878,6 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
                     <label>
                         <input type="checkbox" name="pro_mode_enabled" value="1" <?php checked($pro_mode_enabled, 1); ?>>
                         فعال کردن حالت پرو
-                    </label>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row">شارژ کیف پول</th>
-                <td>
-                    <label>
-                        <input type="checkbox" name="wallet_enabled" value="1" <?php checked($wallet_enabled, 1); ?>>
-                        فعال کردن شارژ کیف پول
                     </label>
                 </td>
             </tr>

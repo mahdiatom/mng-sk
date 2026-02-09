@@ -480,6 +480,9 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-events'] = 'رویدادها / مسابقات';
     $items['sc-my-events'] = ' رویداد های من ';
     $items['sc-invoices'] = 'صورت حساب‌ها';
+    if (sc_is_wallet_enabled()) {
+        $items['sc-wallet'] = 'کیف پول';
+    }
     $items['customer-logout'] = $logout;
     
     return $items;
@@ -499,6 +502,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-my-events', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-event-success', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-wallet', EP_ROOT | EP_PAGES);
 
 }
 
@@ -515,6 +519,7 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-event-detail';
     $vars[] = 'sc-my-attendances';
     $vars[] = 'sc-invoices';
+    $vars[] = 'sc-wallet';
     return $vars;
 }
 
@@ -2054,6 +2059,78 @@ function sc_create_event_invoice($member_id, $event_id, $amount) {
 }
 
 /**
+ * Handle payment from wallet
+ */
+add_action('template_redirect', 'sc_handle_wallet_payment');
+function sc_handle_wallet_payment() {
+    if (!is_account_page() || !isset($_GET['pay_from_wallet']) || !isset($_GET['invoice_id'])) {
+        return;
+    }
+    
+    $invoice_id = absint($_GET['invoice_id']);
+    if (!$invoice_id) {
+        return;
+    }
+    
+    // بررسی nonce
+    if (!isset($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'pay_from_wallet_' . $invoice_id)) {
+        wc_add_notice('خطا در تأیید درخواست. لطفاً دوباره تلاش کنید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        exit;
+    }
+    
+    // بررسی فعال بودن کیف پول
+    if (!sc_is_wallet_enabled()) {
+        wc_add_notice('سیستم کیف پول فعال نیست.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        exit;
+    }
+    
+    // بررسی وضعیت کاربر
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        exit;
+    }
+    
+    // پرداخت از کیف پول
+    $result = sc_pay_invoice_from_wallet($invoice_id);
+    
+    if ($result['success']) {
+        if (isset($result['remaining_amount']) && $result['remaining_amount'] > 0) {
+            // پرداخت جزئی انجام شد - هدایت به صفحه پرداخت برای مابقی
+            global $wpdb;
+            $invoices_table = $wpdb->prefix . 'sc_invoices';
+            $invoice = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $invoices_table WHERE id = %d",
+                $invoice_id
+            ));
+            
+            if ($invoice && !empty($invoice->woocommerce_order_id)) {
+                $order = wc_get_order($invoice->woocommerce_order_id);
+                if ($order) {
+                    // بروزرسانی مبلغ سفارش
+                    $order->calculate_totals();
+                    $order->save();
+                    
+                    wc_add_notice('مبلغ ' . number_format($result['paid_amount'], 0, '.', ',') . ' تومان از کیف پول پرداخت شد. مابقی مبلغ: ' . number_format($result['remaining_amount'], 0, '.', ',') . ' تومان', 'success');
+                    wp_safe_redirect($order->get_checkout_payment_url());
+                    exit;
+                }
+            }
+        } else {
+            // پرداخت کامل انجام شد
+            wc_add_notice('صورت حساب با موفقیت از کیف پول پرداخت شد.', 'success');
+        }
+    } else {
+        wc_add_notice($result['message'], 'error');
+    }
+    
+    wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+    exit;
+}
+
+/**
  * Handle invoice cancellation request
  */
 add_action('template_redirect', 'sc_handle_invoice_cancellation');
@@ -2282,6 +2359,29 @@ function sc_my_account_invoices_content() {
 
 
     include SC_TEMPLATES_PUBLIC_DIR . 'invoices-list.php';
+}
+
+/**
+ * Display content for wallet tab
+ */
+add_action('woocommerce_account_sc-wallet_endpoint', 'sc_my_account_wallet_content');
+function sc_my_account_wallet_content() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    // بررسی وضعیت فعال بودن کاربر
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return; // اگر غیرفعال بود، پیام نمایش داده شده و خروج می‌کنیم
+    }
+    
+    // بررسی فعال بودن کیف پول
+    if (!sc_is_wallet_enabled()) {
+        echo '<div class="woocommerce-message woocommerce-message--info woocommerce-info">سیستم کیف پول فعال نیست.</div>';
+        return;
+    }
+    
+    include SC_TEMPLATES_PUBLIC_DIR . 'wallet.php';
 }
 
 /**

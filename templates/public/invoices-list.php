@@ -331,8 +331,41 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                 
                                 // دکمه پرداخت برای pending
                                 if ($payment_url && $invoice->status === 'pending') {
+                                    // بررسی فعال بودن کیف پول
+                                    $wallet_enabled = sc_is_wallet_enabled();
+                                    $wallet_balance = 0;
+                                    $can_pay_from_wallet = false;
+                                    
+                                    if ($wallet_enabled) {
+                                        $wallet_balance = sc_get_wallet_balance($player->id);
+                                        $total_amount = (float)$invoice->amount + (float)($invoice->penalty_amount ?? 0);
+                                        
+                                        // بررسی امکان پرداخت از کیف پول
+                                        if ($wallet_balance >= $total_amount) {
+                                            $can_pay_from_wallet = true;
+                                        } elseif (sc_is_wallet_partial_payment_allowed() && $wallet_balance > 0) {
+                                            $can_pay_from_wallet = true; // پرداخت جزئی
+                                        }
+                                    }
+                                    
+                                    // دکمه پرداخت از کیف پول
+                                    if ($can_pay_from_wallet) {
+                                        $wallet_pay_url = wp_nonce_url(
+                                            add_query_arg([
+                                                'pay_from_wallet' => '1',
+                                                'invoice_id' => $invoice->id
+                                            ], wc_get_account_endpoint_url('sc-invoices')),
+                                            'pay_from_wallet_' . $invoice->id
+                                        );
+                                        
+                                        $wallet_text = $wallet_balance >= $total_amount ? 'پرداخت از کیف پول' : 'پرداخت جزئی از کیف پول';
+                                        $action_buttons[] = '<a href="' . esc_url($wallet_pay_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-wallet" style="background: #28a745; color: white;"
+                                        >💰 ' . esc_html($wallet_text) . '</a>';
+                                    }
+                                    
+                                    // دکمه پرداخت از درگاه
                                     $action_buttons[] = '<a href="' . esc_url($payment_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-pay"
-                                    > پرداخت</a>';
+                                    >💳 پرداخت از درگاه</a>';
                                 }
                                 
                                 // دکمه مشاهده سفارش برای under_review یا سایر حالات

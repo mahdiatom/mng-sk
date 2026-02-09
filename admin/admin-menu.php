@@ -229,6 +229,45 @@ function sc_register_admin_menu() {
         'sc_admin_add_expense_page'
     );
 
+    /* ================= Wallet ================= */
+
+    add_menu_page(
+        'مدیریت کیف پول',
+        'مدیریت کیف پول',
+        'manage_options',
+        'sc-wallet',
+        'sc_admin_wallet_list_page',
+        'dashicons-wallet',
+        29
+    );
+
+    $wallet_list_sufix = add_submenu_page(
+        'sc-wallet',
+        'لیست تراکنش‌ها',
+        'لیست تراکنش‌ها',
+        'manage_options',
+        'sc-wallet',
+        'sc_admin_wallet_list_page'
+    );
+
+    $wallet_charge_sufix = add_submenu_page(
+        'sc-wallet',
+        'شارژ کیف پول',
+        'شارژ کیف پول',
+        'manage_options',
+        'sc-wallet-charge',
+        'sc_admin_wallet_charge_page'
+    );
+
+    $wallet_deduct_sufix = add_submenu_page(
+        'sc-wallet',
+        'کاهش کیف پول',
+        'کاهش کیف پول',
+        'manage_options',
+        'sc-wallet-deduct',
+        'sc_admin_wallet_deduct_page'
+    );
+
     /* ================= Settings ================= */
 
     $setting_sufix = add_menu_page(
@@ -607,6 +646,30 @@ function sc_admin_add_invoice_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'invoice-add.php';
+}
+
+/**
+ * Wallet management pages
+ */
+function sc_admin_wallet_list_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'wallet-list.php';
+}
+
+function sc_admin_wallet_charge_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'wallet-charge.php';
+}
+
+function sc_admin_wallet_deduct_page() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'wallet-deduct.php';
 }
 
 /**

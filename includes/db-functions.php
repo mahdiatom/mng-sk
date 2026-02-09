@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.10.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.11.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -423,6 +423,42 @@ function sc_create_course_coaches_table() {
     dbDelta($sql);
 }
 
+/**
+ * Create wallet_transactions table
+ */
+function sc_create_wallet_transactions_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_wallet_transactions';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `user_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه کاربر WordPress',
+        `member_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه بازیکن در sc_members',
+        `transaction_type` enum('charge','deduct','payment','refund') NOT NULL COMMENT 'نوع تراکنش: charge=شارژ, deduct=کاهش دستی, payment=پرداخت صورت حساب, refund=بازگشت وجه',
+        `amount` decimal(10,2) NOT NULL COMMENT 'مبلغ تراکنش (همیشه مثبت)',
+        `balance_before` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از تراکنش',
+        `balance_after` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی بعد از تراکنش',
+        `description` text DEFAULT NULL COMMENT 'توضیحات تراکنش',
+        `related_invoice_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه صورت حساب مرتبط (اگر مربوط به پرداخت باشد)',
+        `related_order_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه سفارش WooCommerce مرتبط',
+        `created_by` bigint(20) unsigned NOT NULL COMMENT 'شناسه کاربری که تراکنش را ایجاد کرده',
+        `status` enum('completed','pending','failed','cancelled') NOT NULL DEFAULT 'completed' COMMENT 'وضعیت تراکنش',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_user_id` (`user_id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_transaction_type` (`transaction_type`),
+        KEY `idx_status` (`status`),
+        KEY `idx_related_invoice` (`related_invoice_id`),
+        KEY `idx_created_at` (`created_at`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 function sc_update_database() {
     global $wpdb;
 
@@ -446,6 +482,7 @@ function sc_update_database() {
         sc_create_event_registrations_table();
         sc_create_coaches_table();
         sc_create_course_coaches_table();
+        sc_create_wallet_transactions_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';

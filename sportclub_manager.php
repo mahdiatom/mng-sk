@@ -52,7 +52,8 @@ require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export
 require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settings
 require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
 require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions
-require_once SC_INCLUDES_DIR . 'roles.php'; // SMS functions
+require_once SC_INCLUDES_DIR . 'roles.php'; // Roles functions
+require_once SC_INCLUDES_DIR . 'wallet-functions.php'; // Wallet functions
 
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration

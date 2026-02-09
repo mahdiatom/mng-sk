@@ -62,6 +62,10 @@ public function column_full_name($item) {
         }
         $courses_text = !empty($course_names) ? '<br><small class="courses_member_table" style="color: #666;">دوره‌ها: ' . implode(', ', $course_names) . '<br>' . '</small>' : '';
 
+        // بررسی فعال بودن کیف پول
+        $wallet_enabled = sc_is_wallet_enabled();
+        $wallet_balance = $wallet_enabled ? sc_get_wallet_balance($item['id']) : 0;
+        
         $actions = [
             'edit' => '<a href="' . admin_url('admin.php?page=sc-add-member&player_id=') . $item['id'] . '">ویرایش</a>',
             'delete' => '<a href="' . admin_url('admin.php?page=sc-members&action=delete&player_id=') . $item['id'] . '">حذف</a>',
@@ -70,6 +74,12 @@ public function column_full_name($item) {
             $item['id']
         )
         ];
+        
+        // اضافه کردن دکمه مدیریت کیف پول
+        if ($wallet_enabled) {
+            $wallet_url = admin_url('admin.php?page=sc-wallet&filter_member=' . $item['id']);
+            $actions['wallet'] = '<a href="' . esc_url($wallet_url) . '" style="color: #28a745;">💰 کیف پول (' . number_format($wallet_balance, 0, '.', ',') . ' تومان)</a>';
+        }
 
         return $full_name . $courses_text . ' ' . $this->row_actions($actions);
     }
