@@ -1284,6 +1284,237 @@ sc_auto_size_columns($sheet, count($headers));
     exit;
 }
 
+/**
+ * Export Wallet Transactions to Excel
+ * خروجی اکسل برای تراکنش‌های کیف پول (با درنظرگرفتن فیلترهای صفحه لیست تراکنش‌ها)
+ */
+function sc_export_wallet_transactions_to_excel() {
+    sc_check_phpspreadsheet();
+
+    global $wpdb;
+    $transactions_table = $wpdb->prefix . 'sc_wallet_transactions';
+    $members_table      = $wpdb->prefix . 'sc_members';
+    $users_table        = $wpdb->users;
+
+    // فیلترها مطابق صفحه لیست تراکنش‌ها
+    $filter_member     = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+    $filter_type       = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
+    $filter_status     = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+    $filter_date_from  = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
+    $filter_date_to    = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+    $filter_amount_min = isset($_GET['filter_amount_min']) && $_GET['filter_amount_min'] !== '' ? floatval($_GET['filter_amount_min']) : null;
+    $filter_amount_max = isset($_GET['filter_amount_max']) && $_GET['filter_amount_max'] !== '' ? floatval($_GET['filter_amount_max']) : null;
+    $search            = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+
+    // ساخت WHERE
+    $where_conditions = [];
+    $where_values     = [];
+
+    if ($filter_member > 0) {
+        $where_conditions[] = 'wt.member_id = %d';
+        $where_values[]     = $filter_member;
+    }
+
+    if ($filter_type !== 'all') {
+        $where_conditions[] = 'wt.transaction_type = %s';
+        $where_values[]     = $filter_type;
+    }
+
+    if ($filter_status !== 'all') {
+        $where_conditions[] = 'wt.status = %s';
+        $where_values[]     = $filter_status;
+    }
+
+    if ($filter_date_from) {
+        $where_conditions[] = 'DATE(wt.created_at) >= %s';
+        $where_values[]     = $filter_date_from;
+    }
+
+    if ($filter_date_to) {
+        $where_conditions[] = 'DATE(wt.created_at) <= %s';
+        $where_values[]     = $filter_date_to;
+    }
+
+    if ($filter_amount_min !== null) {
+        $where_conditions[] = 'wt.amount >= %f';
+        $where_values[]     = $filter_amount_min;
+    }
+
+    if ($filter_amount_max !== null) {
+        $where_conditions[] = 'wt.amount <= %f';
+        $where_values[]     = $filter_amount_max;
+    }
+
+    if (!empty($search)) {
+        $search_like         = '%' . $wpdb->esc_like($search) . '%';
+        $where_conditions[]  = '(m.first_name LIKE %s OR m.last_name LIKE %s OR m.national_id LIKE %s OR wt.description LIKE %s)';
+        $where_values[]      = $search_like;
+        $where_values[]      = $search_like;
+        $where_values[]      = $search_like;
+        $where_values[]      = $search_like;
+    }
+
+    $where_clause = '';
+    if (!empty($where_conditions)) {
+        $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
+    }
+
+    // دریافت داده‌ها (همه ردیف‌های منطبق با فیلتر، بدون صفحه‌بندی)
+    $query = "SELECT wt.*,
+                     m.first_name,
+                     m.last_name,
+                     m.national_id,
+                     m.player_phone,
+                     u.display_name AS created_by_name
+              FROM {$transactions_table} wt
+              LEFT JOIN {$members_table} m ON wt.member_id = m.id
+              LEFT JOIN {$users_table}   u ON wt.created_by = u.ID
+              {$where_clause}
+              ORDER BY wt.created_at DESC";
+
+    if (!empty($where_values)) {
+        $transactions = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    } else {
+        $transactions = $wpdb->get_results($query);
+    }
+
+    // ایجاد Excel
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet       = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('تراکنش‌های کیف پول');
+    $sheet->setRightToLeft(true);
+
+    // Header
+    $headers = [
+        'ردیف',
+        'نام و نام خانوادگی',
+        'کد ملی',
+        'شماره تماس',
+        'نوع تراکنش',
+        'مبلغ',
+        'موجودی قبل',
+        'موجودی بعد',
+        'وضعیت',
+        'توضیحات',
+        'ایجاد کننده',
+        'شناسه صورت حساب',
+        'شناسه سفارش',
+        'تاریخ'
+    ];
+
+    $col = 1;
+    foreach ($headers as $header) {
+        $sheet->setCellValueByColumnAndRow($col, 1, $header);
+        $col++;
+    }
+
+    // استایل هدر
+    $headerStyle = sc_get_excel_header_style();
+    $sheet->getStyle('A1:N1')->applyFromArray($headerStyle);
+
+    // داده‌ها
+    $row        = 2;
+    $row_number = 1;
+
+    $type_labels = [
+        'charge'  => 'شارژ',
+        'payment' => 'پرداخت',
+        'deduct'  => 'کاهش',
+        'refund'  => 'بازگشت وجه',
+    ];
+
+    $status_labels = [
+        'completed' => 'تکمیل شده',
+        'pending'   => 'در انتظار',
+        'failed'    => 'ناموفق',
+        'cancelled' => 'لغو شده',
+    ];
+
+    foreach ($transactions as $t) {
+        $col = 1;
+
+        // ردیف
+        $sheet->setCellValueByColumnAndRow($col++, $row, $row_number++);
+
+        // نام و نام خانوادگی
+        $full_name = trim(($t->first_name ?? '') . ' ' . ($t->last_name ?? ''));
+        $sheet->setCellValueByColumnAndRow($col++, $row, $full_name !== '' ? $full_name : '-');
+
+        // کد ملی
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->national_id ?? '-');
+
+        // شماره تماس
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->player_phone ?? '-');
+
+        // نوع تراکنش
+        $type_label = isset($type_labels[$t->transaction_type]) ? $type_labels[$t->transaction_type] : $t->transaction_type;
+        $sheet->setCellValueByColumnAndRow($col++, $row, $type_label);
+
+        // مبلغ
+        $sheet->setCellValueByColumnAndRow($col++, $row, number_format(floatval($t->amount), 0, '.', ',') . ' تومان');
+
+        // موجودی قبل
+        $sheet->setCellValueByColumnAndRow($col++, $row, number_format(floatval($t->balance_before), 0, '.', ',') . ' تومان');
+
+        // موجودی بعد
+        $sheet->setCellValueByColumnAndRow($col++, $row, number_format(floatval($t->balance_after), 0, '.', ',') . ' تومان');
+
+        // وضعیت
+        $status_label = isset($status_labels[$t->status]) ? $status_labels[$t->status] : $t->status;
+        $sheet->setCellValueByColumnAndRow($col++, $row, $status_label);
+
+        // توضیحات
+        $description = isset($t->description) && $t->description !== '' ? $t->description : '-';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $description);
+
+        // ایجاد کننده
+        $created_by_name = isset($t->created_by_name) && $t->created_by_name !== '' ? $t->created_by_name : '-';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $created_by_name);
+
+        // شناسه صورت حساب
+        $invoice_id = !empty($t->related_invoice_id) ? intval($t->related_invoice_id) : '';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $invoice_id !== '' ? $invoice_id : '-');
+
+        // شناسه سفارش
+        $order_id = !empty($t->related_order_id) ? intval($t->related_order_id) : '';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $order_id !== '' ? $order_id : '-');
+
+        // تاریخ
+        $date_display = !empty($t->created_at) ? sc_date_shamsi($t->created_at, 'Y/m/d H:i') : '-';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $date_display);
+
+        // استایل ردیف
+        $dataStyle = sc_get_excel_data_style();
+        if ($row % 2 === 0) {
+            $alternateStyle = sc_get_excel_alternate_row_style();
+            $sheet->getStyle("A{$row}:N{$row}")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+        } else {
+            $sheet->getStyle("A{$row}:N{$row}")->applyFromArray($dataStyle);
+        }
+
+        $row++;
+    }
+
+    // تنظیم عرض ستون‌ها
+    sc_auto_size_columns($sheet, count($headers));
+
+    // نام فایل
+    $filename = sc_generate_export_filename('wallet_transactions', []);
+
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+    header('Pragma: public');
+
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
+}
+
 
 
 

@@ -763,11 +763,40 @@ function sc_get_wallet_transactions_by_period($member_id, $period = 'monthly', $
     $table_name = $wpdb->prefix . 'sc_wallet_transactions';
     
     if ($period === 'monthly') {
-        if (!$year) $year = date('Y');
-        if (!$month) $month = date('m');
+        if (!$year) {
+            $year = date('Y');
+        }
+        if (!$month) {
+            $month = date('m');
+        }
         
-        $start_date = "$year-$month-01 00:00:00";
-        $end_date = date('Y-m-t 23:59:59', strtotime($start_date));
+        // تشخیص اینکه سال شمسی است یا میلادی (سال‌های شمسی معمولاً کمتر از 1700 هستند)
+        $is_jalali = ((int)$year < 1700);
+        
+        if ($is_jalali) {
+            // سال و ماه شمسی → بازه معادل میلادی
+            $jy = (int)$year;
+            $jm = (int)$month;
+            
+            // اول ماه
+            list($gy, $gm, $gd) = jalali_to_gregorian($jy, $jm, 1);
+            $start_date = sprintf('%04d-%02d-%02d 00:00:00', $gy, $gm, $gd);
+            
+            // اول ماه بعد
+            $next_jy = $jy;
+            $next_jm = $jm + 1;
+            if ($next_jm > 12) {
+                $next_jm = 1;
+                $next_jy++;
+            }
+            list($ngy, $ngm, $ngd) = jalali_to_gregorian($next_jy, $next_jm, 1);
+            $next_start = sprintf('%04d-%02d-%02d', $ngy, $ngm, $ngd);
+            $end_date   = date('Y-m-d 23:59:59', strtotime($next_start . ' -1 day'));
+        } else {
+            // حالت قدیمی: سال/ماه میلادی
+            $start_date = "$year-$month-01 00:00:00";
+            $end_date   = date('Y-m-t 23:59:59', strtotime($start_date));
+        }
         
         return $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM $table_name
@@ -778,10 +807,27 @@ function sc_get_wallet_transactions_by_period($member_id, $period = 'monthly', $
             $member_id, $start_date, $end_date
         ));
     } elseif ($period === 'yearly') {
-        if (!$year) $year = date('Y');
+        if (!$year) {
+            $year = date('Y');
+        }
         
-        $start_date = "$year-01-01 00:00:00";
-        $end_date = "$year-12-31 23:59:59";
+        $is_jalali = ((int)$year < 1700);
+        
+        if ($is_jalali) {
+            $jy = (int)$year;
+            // اول فروردین سال جاری
+            list($gy, $gm, $gd) = jalali_to_gregorian($jy, 1, 1);
+            $start_date = sprintf('%04d-%02d-%02d 00:00:00', $gy, $gm, $gd);
+            
+            // اول فروردین سال بعد
+            list($ngy, $ngm, $ngd) = jalali_to_gregorian($jy + 1, 1, 1);
+            $next_start = sprintf('%04d-%02d-%02d', $ngy, $ngm, $ngd);
+            $end_date   = date('Y-m-d 23:59:59', strtotime($next_start . ' -1 day'));
+        } else {
+            // حالت قدیمی: سال میلادی
+            $start_date = "$year-01-01 00:00:00";
+            $end_date   = "$year-12-31 23:59:59";
+        }
         
         return $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM $table_name
@@ -872,6 +918,25 @@ function sc_get_wallet_balance_history($member_id, $days = 30) {
     
     $start_date = date('Y-m-d 00:00:00', strtotime("-$days days"));
     
+    // موجودی قبل از شروع بازه (برای محاسبه موجودی واقعی هر روز)
+    $opening_balance = $wpdb->get_var($wpdb->prepare(
+        "SELECT COALESCE(SUM(
+                CASE 
+                    WHEN transaction_type = 'charge' THEN amount
+                    WHEN transaction_type = 'payment' THEN -amount
+                    WHEN transaction_type = 'deduct' THEN -amount
+                    WHEN transaction_type = 'refund' THEN amount
+                    ELSE 0
+                END
+            ), 0) AS balance
+         FROM $table_name
+         WHERE member_id = %d
+           AND status = 'completed'
+           AND created_at < %s",
+        $member_id,
+        $start_date
+    ));
+    
     $transactions = $wpdb->get_results($wpdb->prepare(
         "SELECT DATE(created_at) as date, 
                 SUM(CASE 
@@ -880,28 +945,32 @@ function sc_get_wallet_balance_history($member_id, $days = 30) {
                     WHEN transaction_type = 'deduct' THEN -amount
                     WHEN transaction_type = 'refund' THEN amount
                     ELSE 0
-                END) as daily_change,
-                balance_after
+                END) as daily_change
         FROM $table_name
         WHERE member_id = %d
-        AND created_at >= %s
-        AND status = 'completed'
+          AND created_at >= %s
+          AND status = 'completed'
         GROUP BY DATE(created_at)
         ORDER BY date ASC",
-        $member_id, $start_date
+        $member_id,
+        $start_date
     ));
     
-    $history = [];
-    $running_balance = sc_get_wallet_balance($member_id);
+    $history         = [];
+    $running_balance = floatval($opening_balance);
     
-    // محاسبه موجودی برای هر روز
-    foreach (array_reverse($transactions) as $transaction) {
+    foreach ($transactions as $transaction) {
+        $running_balance += floatval($transaction->daily_change);
+        
+        // تبدیل تاریخ میلادی به شمسی برای نمایش بهتر روی نمودار
+        $shamsi_date = sc_date_shamsi_date_only($transaction->date);
+        
         $history[] = [
-            'date' => $transaction->date,
-            'balance' => floatval($transaction->balance_after),
-            'change' => floatval($transaction->daily_change)
+            'date'    => $shamsi_date,
+            'balance' => $running_balance,
+            'change'  => floatval($transaction->daily_change),
         ];
     }
     
-    return array_reverse($history);
+    return $history;
 }

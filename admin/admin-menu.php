@@ -479,6 +479,9 @@ function sc_handle_excel_export() {
         case 'event_registrations':
             sc_export_event_registrations_to_excel();
             break;
+        case 'wallet_transactions':
+            sc_export_wallet_transactions_to_excel();
+            break;
         default:
             wp_die('نوع export معتبر نیست.');
     }

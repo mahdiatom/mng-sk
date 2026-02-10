@@ -152,10 +152,14 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
         $offset = ($current_page - 1) * $per_page;
         
         // پردازش فیلترها
-        $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
-        $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
-        $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
-        $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+        $filter_member     = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+        $filter_type       = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
+        $filter_status     = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+        $filter_date_from  = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
+        $filter_date_to    = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+        $filter_amount_min = isset($_GET['filter_amount_min']) && $_GET['filter_amount_min'] !== '' ? floatval($_GET['filter_amount_min']) : null;
+        $filter_amount_max = isset($_GET['filter_amount_max']) && $_GET['filter_amount_max'] !== '' ? floatval($_GET['filter_amount_max']) : null;
+        $search            = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
         
         // ساخت شرط WHERE
         $where_conditions = [];
@@ -174,6 +178,26 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
         if ($filter_status !== 'all') {
             $where_conditions[] = "wt.status = %s";
             $where_values[] = $filter_status;
+        }
+
+        if ($filter_date_from) {
+            $where_conditions[] = "DATE(wt.created_at) >= %s";
+            $where_values[]     = $filter_date_from;
+        }
+
+        if ($filter_date_to) {
+            $where_conditions[] = "DATE(wt.created_at) <= %s";
+            $where_values[]     = $filter_date_to;
+        }
+
+        if ($filter_amount_min !== null) {
+            $where_conditions[] = "wt.amount >= %f";
+            $where_values[]     = $filter_amount_min;
+        }
+
+        if ($filter_amount_max !== null) {
+            $where_conditions[] = "wt.amount <= %f";
+            $where_values[]     = $filter_amount_max;
         }
         
         if (!empty($search)) {

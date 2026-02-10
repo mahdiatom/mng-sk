@@ -269,10 +269,12 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
             
             <select id="wallet_period_year" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                 <?php 
-                $current_year = date('Y');
-                for ($i = $current_year; $i >= $current_year - 5; $i--) :
+                // نمایش سال‌های شمسی در فیلتر کاربر
+                $today_jalali = gregorian_to_jalali((int)date('Y'), (int)date('m'), (int)date('d'));
+                $current_jyear = (int)$today_jalali[0];
+                for ($i = $current_jyear; $i >= $current_jyear - 5; $i--) :
                 ?>
-                    <option value="<?php echo $i; ?>" <?php selected($i, $current_year); ?>><?php echo $i; ?></option>
+                    <option value="<?php echo $i; ?>" <?php selected($i, $current_jyear); ?>><?php echo $i; ?></option>
                 <?php endfor; ?>
             </select>
             

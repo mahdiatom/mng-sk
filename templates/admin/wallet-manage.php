@@ -177,8 +177,17 @@ if ($selected_member_id > 0) {
                 
                 <!-- لیست تراکنش‌ها -->
                 <div class="postbox">
-                    <div class="postbox-header">
-                        <h2 class="hndle">تاریخچه تراکنش‌ها</h2>
+                    <div class="postbox-header" style="display: flex; align-items: center; justify-content: space-between;">
+                        <h2 class="hndle" style="margin: 0;">تاریخچه تراکنش‌ها</h2>
+                        <?php
+                        // لینک خروجی اکسل برای تراکنش‌های همین کاربر
+                        $member_export_url = admin_url('admin.php?page=sc-wallet&sc_export=excel&export_type=wallet_transactions');
+                        $member_export_url = add_query_arg('filter_member', $selected_member_id, $member_export_url);
+                        $member_export_url = wp_nonce_url($member_export_url, 'sc_export_excel');
+                        ?>
+                        <a href="<?php echo esc_url($member_export_url); ?>" class="button button-secondary" style="margin: 4px 10px 4px auto;">
+                            📊 خروجی Excel این کاربر
+                        </a>
                     </div>
                     <div class="inside" style="padding: 0;">
                         <?php if (!empty($member_transactions)) : ?>
