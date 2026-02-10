@@ -68,13 +68,13 @@ if ($selected_member_id > 0) {
                     <h2 class="hndle">لیست کاربران</h2>
                 </div>
                 <div class="inside" style="padding: 15px;">
+                    <p style="margin-bottom: 10px;"><label for="member_id">کاربر:</label></p>
                     <div class="sc-searchable-dropdown" style="width: 100%;">
                         <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>">
-                        
                         <div class="sc-dropdown-toggle" style="width: 100%;">
                             <span class="sc-dropdown-placeholder" <?php if ($selected_member_id) echo 'style="display:none"'; ?>>انتخاب کاربر</span>
                             <span class="sc-dropdown-selected" <?php if (!$selected_member_id) echo 'style="display:none"'; ?>>
-                                <?php 
+                                <?php
                                 if ($selected_member_id > 0) {
                                     foreach ($members as $m) {
                                         if ($m->id == $selected_member_id) {
@@ -87,38 +87,26 @@ if ($selected_member_id > 0) {
                             </span>
                             <span class="sc-dropdown-arrow">▼</span>
                         </div>
-                        
-                        <div class="sc-dropdown-menu" style="width: 100%; max-height: 500px; overflow-y: auto;">
+                        <div class="sc-dropdown-menu" style="width: 100%; max-height: 400px; overflow-y: auto;">
                             <div class="sc-dropdown-search">
                                 <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
                             </div>
-                            
                             <div class="sc-dropdown-options">
                                 <?php
                                 $display_count = 0;
                                 $max_display = 10;
-                                ?>
-                                
-                                <?php foreach ($members as $member) :
+                                foreach ($members as $member) :
                                     $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
                                     $display_count++;
-                                    $member_balance = sc_get_wallet_balance($member->id);
+                                    $search_text = strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id);
+                                    $label = $member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id;
                                 ?>
-                                    <div class="sc-dropdown-option <?php echo $display_class; ?> <?php echo $selected_member_id == $member->id ? 'sc-selected' : ''; ?>"
+                                    <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?> <?php echo $selected_member_id == $member->id ? 'sc-selected' : ''; ?>"
                                          data-value="<?php echo esc_attr($member->id); ?>"
-                                         data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
-                                         onclick="scSelectMemberForManage(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                                <?php echo esc_html($member->first_name . ' ' . $member->last_name); ?>
-                                            </span>
-                                            <span style="color: <?php echo $member_balance >= 0 ? '#00a32a' : '#d63638'; ?>; font-weight: 600; font-size: 11px; margin-left: 8px; white-space: nowrap;">
-                                                <?php echo number_format($member_balance, 0, '.', ','); ?>
-                                            </span>
-                                        </div>
-                                        <small style="display: block; color: #666; font-size: 11px; margin-top: 2px;">
-                                            <?php echo esc_html($member->national_id); ?>
-                                        </small>
+                                         data-search="<?php echo esc_attr($search_text); ?>"
+                                         onclick="scSelectMemberForManage(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($label); ?>')">
+                                        <span><?php echo esc_html($member->first_name . ' ' . $member->last_name); ?></span>
+                                        <small style="display: block; color: #666; font-size: 11px;"><?php echo esc_html($member->national_id); ?></small>
                                     </div>
                                 <?php endforeach; ?>
                             </div>

@@ -76,9 +76,9 @@ function scSelectMemberFilter(element, memberId, memberText) {
     $dropdown.find('.sc-dropdown-option').removeClass('sc-selected').css('background', '');
     jQuery(element).addClass('sc-selected').css('background', '#f0f6fc');
     
-    // اضافه کردن چکمارک
-    $dropdown.find('.sc-dropdown-option span').remove();
-    jQuery(element).append('<span style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
+    // اضافه کردن چکمارک (بدون حذف متن نام کاربر)
+    $dropdown.find('.sc-option-check').remove();
+    jQuery(element).append('<span class="sc-option-check" style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
 }
 
 // تابع انتخاب رویداد برای فیلتر
@@ -107,9 +107,9 @@ function scSelectEventFilter(element, eventId, eventText) {
     $dropdown.find('.sc-dropdown-option').removeClass('sc-selected').css('background', '');
     jQuery(element).addClass('sc-selected').css('background', '#f0f6fc');
     
-    // اضافه کردن چکمارک
-    $dropdown.find('.sc-dropdown-option span').remove();
-    jQuery(element).append('<span style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
+    // اضافه کردن چکمارک (بدون حذف متن رویداد)
+    $dropdown.find('.sc-option-check').remove();
+    jQuery(element).append('<span class="sc-option-check" style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
 }
 
 // تابع انتخاب کاربر (بدون پشتیبانی از "همه کاربران")
@@ -137,9 +137,10 @@ function scSelectMember(element, memberId, memberText) {
     $dropdown.find('.sc-dropdown-option').css('background', '');
     jQuery(element).css('background', '#f0f6fc');
     
-    // اضافه کردن چکمارک
-    jQuery(element).find('span').remove();
-    jQuery(element).append('<span style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
+    // اضافه کردن چکمارک (بدون حذف نام کاربر)
+    $dropdown.find('.sc-option-check').remove();
+    jQuery(element).find('.sc-option-check').remove();
+    jQuery(element).append('<span class="sc-option-check" style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
 }
 
 // ============================================
