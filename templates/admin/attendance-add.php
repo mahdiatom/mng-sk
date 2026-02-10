@@ -39,17 +39,27 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
             $message = 'هیچ اطلاعات حضور و غیابی ثبت نشد.';
             $message_type = 'error';
         } else {
+            $courses_table = $wpdb->prefix . 'sc_courses';
+            $course_row = $wpdb->get_row($wpdb->prepare(
+                "SELECT title, price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
+                $course_id
+            ));
+            $course_title = $course_row ? $course_row->title : '';
+            $price_per_session = $course_row ? floatval($course_row->price_per_session) : 0;
+            $attendance_date_shamsi = $attendance_date ? sc_date_shamsi_date_only($attendance_date) : '';
+
             $saved_count = 0;
             $updated_count = 0;
-            
+            $wallet_failed = array(); // لیست کاربرانی که به دلیل کیف پول ثبت نشدند
+
             foreach ($attendances as $member_id => $status) {
                 $member_id = absint($member_id);
                 $status = ($status === 'present') ? 'present' : 'absent';
-                
+
                 if (!$member_id) {
                     continue;
                 }
-                
+
                 // بررسی وجود رکورد قبلی
                 $existing = $wpdb->get_var($wpdb->prepare(
                     "SELECT id FROM $attendances_table 
@@ -58,34 +68,55 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     $course_id,
                     $attendance_date
                 ));
-                
-                // دریافت user_id کاربر فعلی
+
+                $current_record = null;
+                if ($existing) {
+                    $current_record = $wpdb->get_row($wpdb->prepare(
+                        "SELECT status, absence_sms_sent FROM $attendances_table WHERE id = %d",
+                        $existing
+                    ));
+                }
+
+                // در صورت «حاضر»: اگر کیف پول فعال و قیمت جلسه > 0، ابتدا کسر را انجام بده؛ اگر کسر ناموفق بود این کاربر را ثبت نکن
+                $need_deduct = ($status === 'present' && $price_per_session > 0 && sc_is_wallet_enabled());
+                $deduct_done = false;
+                if ($need_deduct) {
+                    $should_deduct = !$existing || ($current_record && $current_record->status === 'absent');
+                    if ($should_deduct) {
+                        $deduct_result = sc_deduct_wallet_session_fee($member_id, $price_per_session, $course_title, $attendance_date_shamsi);
+                        if (!$deduct_result['success']) {
+                            $member_name = $wpdb->get_var($wpdb->prepare(
+                                "SELECT CONCAT(first_name, ' ', last_name) FROM $members_table WHERE id = %d LIMIT 1",
+                                $member_id
+                            ));
+                            $wallet_failed[] = ( $member_name ? $member_name : 'شناسه ' . $member_id ) . ' (' . ( isset($deduct_result['message']) ? $deduct_result['message'] : 'موجودی کیف پول ناکافی' ) . ')';
+                            continue;
+                        }
+                        $deduct_done = true;
+                    }
+                }
+
                 $current_user_id = get_current_user_id();
-                
-                $data = [
+                $data = array(
                     'member_id' => $member_id,
                     'course_id' => $course_id,
                     'attendance_date' => $attendance_date,
                     'status' => $status,
                     'user_id' => $current_user_id,
                     'updated_at' => current_time('mysql')
-                ];
-                
-                if ($existing) {
-                    // Get current status before update
-                    $current_record = $wpdb->get_row($wpdb->prepare(
-                        "SELECT status, absence_sms_sent FROM $attendances_table WHERE id = %d",
-                        $existing
-                    ));
+                );
 
-                    // بروزرسانی رکورد موجود
-                    $update_data = [
+                if ($existing) {
+                    // برگشت مبلغ جلسه اگر از حاضر به غایب تغییر کند
+                    if ($status === 'absent' && $current_record && $current_record->status === 'present' && $price_per_session > 0 && sc_is_wallet_enabled()) {
+                        sc_refund_wallet_session_fee($member_id, $price_per_session, $course_title, $attendance_date_shamsi);
+                    }
+
+                    $update_data = array(
                         'status' => $status,
                         'user_id' => $current_user_id,
                         'updated_at' => current_time('mysql')
-                    ];
-
-                    // If changing from absent to present, reset SMS flag
+                    );
                     if ($current_record && $current_record->status == 'absent' && $status == 'present') {
                         $update_data['absence_sms_sent'] = 0;
                     }
@@ -93,48 +124,47 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     $wpdb->update(
                         $attendances_table,
                         $update_data,
-                        [
-                            'id' => $existing
-                        ],
-                        ['%s', '%d', '%s'], // status, user_id, updated_at
-                        ['%d']
+                        array('id' => $existing),
+                        array('%s', '%d', '%s'),
+                        array('%d')
                     );
                     $updated_count++;
 
-                    // اگر غیبت باشد، هوک ارسال شود
                     if ($status === 'absent') {
                         do_action('sc_attendance_absent', $existing);
                     }
                 } else {
-                    // ایجاد رکورد جدید
                     $data['created_at'] = current_time('mysql');
                     $inserted_id = $wpdb->insert(
                         $attendances_table,
                         $data,
-                        ['%d', '%d', '%s', '%s', '%d', '%s', '%s'] // member_id, course_id, attendance_date, status, user_id, created_at, updated_at
+                        array('%d', '%d', '%s', '%s', '%d', '%s', '%s')
                     );
 
                     if ($inserted_id) {
-                        $attendance_id = $wpdb->insert_id;
-                    $saved_count++;
-
-                        // اگر غیبت باشد، هوک ارسال شود
+                        $saved_count++;
                         if ($status === 'absent') {
-                            do_action('sc_attendance_absent', $attendance_id);
+                            do_action('sc_attendance_absent', $wpdb->insert_id);
                         }
                     }
                 }
             }
-            
+
             if ($saved_count > 0 || $updated_count > 0) {
                 $message = sprintf(
                     'حضور و غیاب با موفقیت ثبت شد. (%d مورد جدید، %d مورد بروزرسانی)',
                     $saved_count,
                     $updated_count
                 );
-                $message_type = 'success';
+                if (!empty($wallet_failed)) {
+                    $message .= ' <strong>ثبت نشد (موجودی کیف پول ناکافی یا بیش از حد مجاز منفی):</strong> ' . implode('؛ ', array_map('esc_html', $wallet_failed));
+                }
+                $message_type = !empty($wallet_failed) ? 'warning' : 'success';
             } else {
                 $message = 'خطا در ثبت حضور و غیاب.';
+                if (!empty($wallet_failed)) {
+                    $message .= ' ' . implode('؛ ', array_map('esc_html', $wallet_failed));
+                }
                 $message_type = 'error';
             }
         }

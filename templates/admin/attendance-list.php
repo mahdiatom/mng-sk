@@ -18,16 +18,36 @@ $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'individ
 // پردازش حذف (فقط برای تب اول)
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['attendance_id']) && $active_tab === 'individual') {
     check_admin_referer('delete_attendance_' . $_GET['attendance_id']);
-    
+
     $attendance_id = absint($_GET['attendance_id']);
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT member_id, course_id, attendance_date, status FROM $attendances_table WHERE id = %d LIMIT 1",
+        $attendance_id
+    ));
+
+    if ($row && $row->status === 'present' && sc_is_wallet_enabled()) {
+        $course_row = $wpdb->get_row($wpdb->prepare(
+            "SELECT title, price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
+            $row->course_id
+        ));
+        if ($course_row && floatval($course_row->price_per_session) > 0) {
+            sc_refund_wallet_session_fee(
+                $row->member_id,
+                floatval($course_row->price_per_session),
+                $course_row->title,
+                sc_date_shamsi_date_only($row->attendance_date)
+            );
+        }
+    }
+
     $deleted = $wpdb->delete(
         $attendances_table,
         ['id' => $attendance_id],
         ['%d']
     );
-    
+
     if ($deleted) {
-        echo '<div class="notice notice-success is-dismissible"><p>حضور و غیاب با موفقیت حذف شد.</p></div>';
+        echo '<div class="notice notice-success is-dismissible"><p>حضور و غیاب با موفقیت حذف شد.' . ( ($row && $row->status === 'present' && sc_is_wallet_enabled()) ? ' مبلغ جلسه به کیف پول برگشت داده شد.' : '' ) . '</p></div>';
     } else {
         echo '<div class="notice notice-error is-dismissible"><p>خطا در حذف حضور و غیاب.</p></div>';
     }

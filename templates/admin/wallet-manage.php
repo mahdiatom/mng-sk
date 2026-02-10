@@ -197,20 +197,23 @@ if ($selected_member_id > 0) {
                                             'charge' => 'شارژ',
                                             'deduct' => 'کاهش',
                                             'payment' => 'پرداخت',
-                                            'refund' => 'بازگشت وجه'
+                                            'refund' => 'بازگشت وجه',
+                                            'session_fee' => 'کسر جلسه'
                                         ];
                                         $type_icons = [
                                             'charge' => '➕',
                                             'deduct' => '➖',
                                             'payment' => '💳',
-                                            'refund' => '↩'
+                                            'refund' => '↩',
+                                            'session_fee' => '📋'
                                         ];
                                         $type_label = isset($type_labels[$transaction->transaction_type]) ? $type_labels[$transaction->transaction_type] : $transaction->transaction_type;
                                         $type_color = [
                                             'charge' => '#00a32a',
                                             'deduct' => '#d63638',
                                             'payment' => '#2271b1',
-                                            'refund' => '#f0b849'
+                                            'refund' => '#f0b849',
+                                            'session_fee' => '#856404'
                                         ];
                                         
                                         $status_labels = [

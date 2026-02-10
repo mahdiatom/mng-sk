@@ -60,7 +60,8 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
             'charge' => 'شارژ',
             'deduct' => 'کاهش',
             'payment' => 'پرداخت',
-            'refund' => 'بازگشت وجه'
+            'refund' => 'بازگشت وجه',
+            'session_fee' => 'کسر جلسه'
         ];
         
         $type = $item->transaction_type ?? '';
@@ -70,14 +71,16 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
             'charge' => '➕',
             'deduct' => '➖',
             'payment' => '💳',
-            'refund' => '↩'
+            'refund' => '↩',
+            'session_fee' => '📋'
         ];
         
         $colors = [
             'charge' => '#00a32a',
             'deduct' => '#d63638',
             'payment' => '#2271b1',
-            'refund' => '#f0b849'
+            'refund' => '#f0b849',
+            'session_fee' => '#856404'
         ];
         
         $color = $colors[$type] ?? '#666';

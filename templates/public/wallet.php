@@ -321,20 +321,23 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
                             'charge' => 'شارژ',
                             'deduct' => 'کاهش',
                             'payment' => 'پرداخت',
-                            'refund' => 'بازگشت وجه'
+                            'refund' => 'بازگشت وجه',
+                            'session_fee' => 'کسر جلسه'
                         ];
                         $type_icons = [
                             'charge' => '➕',
                             'deduct' => '➖',
                             'payment' => '💳',
-                            'refund' => '↩'
+                            'refund' => '↩',
+                            'session_fee' => '📋'
                         ];
                         $type_label = isset($type_labels[$transaction->transaction_type]) ? $type_labels[$transaction->transaction_type] : $transaction->transaction_type;
                         $type_color = [
                             'charge' => '#28a745',
                             'deduct' => '#dc3545',
                             'payment' => '#007bff',
-                            'refund' => '#ffc107'
+                            'refund' => '#ffc107',
+                            'session_fee' => '#856404'
                         ];
                     ?>
                         <tr>

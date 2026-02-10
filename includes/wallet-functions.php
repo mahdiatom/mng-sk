@@ -19,6 +19,7 @@ function sc_get_wallet_balance($member_id) {
                 WHEN transaction_type = 'charge' THEN amount
                 WHEN transaction_type = 'payment' THEN -amount
                 WHEN transaction_type = 'deduct' THEN -amount
+                WHEN transaction_type = 'session_fee' THEN -amount
                 WHEN transaction_type = 'refund' THEN amount
                 ELSE 0
             END
@@ -115,7 +116,7 @@ function sc_add_wallet_transaction($data) {
     $new_balance = $current_balance;
     if ($data['transaction_type'] === 'charge' || $data['transaction_type'] === 'refund') {
         $new_balance += $data['amount'];
-    } elseif ($data['transaction_type'] === 'payment' || $data['transaction_type'] === 'deduct') {
+    } elseif ($data['transaction_type'] === 'payment' || $data['transaction_type'] === 'deduct' || $data['transaction_type'] === 'session_fee') {
         $new_balance -= $data['amount'];
     }
     
@@ -278,6 +279,78 @@ function sc_deduct_wallet($member_id, $amount, $description = '') {
         'user_id' => $user_id,
         'member_id' => $member_id,
         'transaction_type' => 'deduct',
+        'amount' => $amount,
+        'description' => $description,
+        'created_by' => get_current_user_id()
+    ]);
+}
+
+/**
+ * Deduct session fee from wallet (on attendance present)
+ * کسر مبلغ جلسه از کیف پول (هنگام ثبت حضور)
+ */
+function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $attendance_date_shamsi) {
+    if (!sc_is_wallet_enabled()) {
+        return ['success' => true, 'message' => '']; // کیف پول غیرفعال = فقط حضور ذخیره شود
+    }
+    $amount = floatval($amount);
+    if ($amount <= 0) {
+        return ['success' => true, 'message' => ''];
+    }
+    $current_balance = sc_get_wallet_balance($member_id);
+    $max_negative = sc_get_wallet_max_negative_balance();
+    if ($current_balance - $amount < -$max_negative) {
+        return [
+            'success' => false,
+            'message' => 'موجودی کیف پول نمی‌تواند کمتر از ' . number_format($max_negative, 0, '.', ',') . ' تومان باشد.'
+        ];
+    }
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $user_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT user_id FROM $members_table WHERE id = %d LIMIT 1",
+        $member_id
+    ));
+    if (!$user_id) {
+        return ['success' => false, 'message' => 'کاربر یافت نشد.'];
+    }
+    $description = $course_title . ' - ' . $attendance_date_shamsi;
+    return sc_add_wallet_transaction([
+        'user_id' => $user_id,
+        'member_id' => $member_id,
+        'transaction_type' => 'session_fee',
+        'amount' => $amount,
+        'description' => $description,
+        'created_by' => get_current_user_id()
+    ]);
+}
+
+/**
+ * Refund session fee to wallet (on attendance change to absent or delete)
+ * برگشت مبلغ جلسه به کیف پول (تغییر به غایب یا حذف رکورد حضور)
+ */
+function sc_refund_wallet_session_fee($member_id, $amount, $course_title, $attendance_date_shamsi) {
+    if (!sc_is_wallet_enabled()) {
+        return ['success' => true];
+    }
+    $amount = floatval($amount);
+    if ($amount <= 0) {
+        return ['success' => true];
+    }
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $user_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT user_id FROM $members_table WHERE id = %d LIMIT 1",
+        $member_id
+    ));
+    if (!$user_id) {
+        return ['success' => false];
+    }
+    $description = 'برگشت مبلغ جلسه - ' . $course_title . ' - ' . $attendance_date_shamsi;
+    return sc_add_wallet_transaction([
+        'user_id' => $user_id,
+        'member_id' => $member_id,
+        'transaction_type' => 'refund',
         'amount' => $amount,
         'description' => $description,
         'created_by' => get_current_user_id()
@@ -735,6 +808,7 @@ function sc_get_wallet_financial_report($member_id, $start_date = null, $end_dat
             COALESCE(SUM(CASE WHEN transaction_type = 'charge' THEN amount ELSE 0 END), 0) as total_charge,
             COALESCE(SUM(CASE WHEN transaction_type = 'payment' THEN amount ELSE 0 END), 0) as total_payment,
             COALESCE(SUM(CASE WHEN transaction_type = 'deduct' THEN amount ELSE 0 END), 0) as total_deduct,
+            COALESCE(SUM(CASE WHEN transaction_type = 'session_fee' THEN amount ELSE 0 END), 0) as total_session_fee,
             COALESCE(SUM(CASE WHEN transaction_type = 'refund' THEN amount ELSE 0 END), 0) as total_refund,
             COUNT(*) as total_transactions
         FROM $table_name
@@ -748,6 +822,7 @@ function sc_get_wallet_financial_report($member_id, $start_date = null, $end_dat
         'total_charge' => floatval($report->total_charge ?? 0),
         'total_payment' => floatval($report->total_payment ?? 0),
         'total_deduct' => floatval($report->total_deduct ?? 0),
+        'total_session_fee' => floatval($report->total_session_fee ?? 0),
         'total_refund' => floatval($report->total_refund ?? 0),
         'total_transactions' => intval($report->total_transactions ?? 0),
         'current_balance' => $current_balance,
@@ -864,6 +939,7 @@ function sc_get_wallet_admin_statistics() {
                 WHEN transaction_type = 'charge' THEN amount
                 WHEN transaction_type = 'payment' THEN -amount
                 WHEN transaction_type = 'deduct' THEN -amount
+                WHEN transaction_type = 'session_fee' THEN -amount
                 WHEN transaction_type = 'refund' THEN amount
                 ELSE 0
             END
@@ -926,6 +1002,7 @@ function sc_get_wallet_balance_history($member_id, $days = 30) {
                     WHEN transaction_type = 'charge' THEN amount
                     WHEN transaction_type = 'payment' THEN -amount
                     WHEN transaction_type = 'deduct' THEN -amount
+                    WHEN transaction_type = 'session_fee' THEN -amount
                     WHEN transaction_type = 'refund' THEN amount
                     ELSE 0
                 END
@@ -944,6 +1021,7 @@ function sc_get_wallet_balance_history($member_id, $days = 30) {
                     WHEN transaction_type = 'charge' THEN amount
                     WHEN transaction_type = 'payment' THEN -amount
                     WHEN transaction_type = 'deduct' THEN -amount
+                    WHEN transaction_type = 'session_fee' THEN -amount
                     WHEN transaction_type = 'refund' THEN amount
                     ELSE 0
                 END) as daily_change

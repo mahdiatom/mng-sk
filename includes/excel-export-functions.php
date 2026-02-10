@@ -1417,10 +1417,11 @@ function sc_export_wallet_transactions_to_excel() {
     $row_number = 1;
 
     $type_labels = [
-        'charge'  => 'شارژ',
-        'payment' => 'پرداخت',
-        'deduct'  => 'کاهش',
-        'refund'  => 'بازگشت وجه',
+        'charge'      => 'شارژ',
+        'payment'     => 'پرداخت',
+        'deduct'      => 'کاهش',
+        'refund'      => 'بازگشت وجه',
+        'session_fee' => 'کسر جلسه',
     ];
 
     $status_labels = [

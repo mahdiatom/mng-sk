@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.11.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.12.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -435,7 +435,7 @@ function sc_create_wallet_transactions_table() {
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `user_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه کاربر WordPress',
         `member_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه بازیکن در sc_members',
-        `transaction_type` enum('charge','deduct','payment','refund') NOT NULL COMMENT 'نوع تراکنش: charge=شارژ, deduct=کاهش دستی, payment=پرداخت صورت حساب, refund=بازگشت وجه',
+        `transaction_type` enum('charge','deduct','payment','refund','session_fee') NOT NULL COMMENT 'نوع تراکنش: charge=شارژ, deduct=کاهش دستی, payment=پرداخت, refund=بازگشت, session_fee=کسر جلسه حضور',
         `amount` decimal(10,2) NOT NULL COMMENT 'مبلغ تراکنش (همیشه مثبت)',
         `balance_before` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از تراکنش',
         `balance_after` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی بعد از تراکنش',
@@ -517,5 +517,12 @@ function sc_update_database() {
       
         // --- به روز رسانی نسخه دیتابیس ---
         update_option('sc_plugin_db_version', SC_PLUGIN_VERSION);
+    }
+
+    // اضافه کردن نوع تراکنش session_fee به جدول کیف پول (یک بار برای نصب‌های قبلی)
+    if (get_option('sc_wallet_session_fee_enum_added', '0') !== '1') {
+        $wt_table = $wpdb->prefix . 'sc_wallet_transactions';
+        $wpdb->query("ALTER TABLE `$wt_table` MODIFY COLUMN `transaction_type` enum('charge','deduct','payment','refund','session_fee') NOT NULL COMMENT 'نوع تراکنش'");
+        update_option('sc_wallet_session_fee_enum_added', '1');
     }
 }
