@@ -1188,11 +1188,28 @@ function sc_handle_course_enrollment() {
     }
 
     if (isset($member_course_id) && $member_course_id) {
-        // ایجاد صورت حساب و سفارش WooCommerce
+        // بازیکن تیم: صورت حساب ایجاد نمی‌شود، دوره فوراً فعال است
+        if (function_exists('sc_is_member_team') && sc_is_member_team($player->id)) {
+            $wpdb->update(
+                $member_courses_table,
+                [
+                    'status' => 'active',
+                    'enrollment_date' => current_time('Y-m-d'),
+                    'updated_at' => current_time('mysql')
+                ],
+                ['id' => $member_course_id],
+                ['%s', '%s', '%s'],
+                ['%d']
+            );
+            wc_add_notice('ثبت‌نام شما با موفقیت انجام شد. هزینه هر جلسه از کیف پول کسر می‌شود.', 'success');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+            exit;
+        }
+
+        // بازیکن عادی: ایجاد صورت حساب و سفارش WooCommerce
         $invoice_result = sc_create_course_invoice($player->id, $course_id, $member_course_id, $course->price);
-        
+
         if ($invoice_result && isset($invoice_result['success']) && $invoice_result['success']) {
-            // ریدایرکت به تب صورت حساب‌ها
             wc_add_notice('ثبت‌نام شما با موفقیت انجام شد. لطفاً صورت حساب خود را پرداخت کنید.', 'success');
             wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
             exit;

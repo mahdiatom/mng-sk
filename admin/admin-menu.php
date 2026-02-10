@@ -970,9 +970,14 @@ function callback_add_invoice_sufix() {
             "SELECT id FROM $members_table WHERE id = %d AND is_active = 1",
             $member_id
         ));
-        
+
         if (!$member) {
             wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_error'));
+            exit;
+        }
+
+        if (function_exists('sc_is_member_team') && sc_is_member_team($member_id)) {
+            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_team_member'));
             exit;
         }
         
@@ -1325,6 +1330,7 @@ function callback_add_member_sufix(){
         'info_verified'        => isset($_POST['info_verified']) ? 1 : 0,
         'is_active'            => isset($_POST['is_active']) ? 1 : 0,
         'disable_auto_invoice'            => isset($_POST['disable_auto_invoice']) ? 1 : 0,
+        'member_type'          => (isset($_POST['member_type']) && $_POST['member_type'] === 'team') ? 'team' : 'normal',
         'created_at'           => current_time('mysql'),
         'updated_at'           => current_time('mysql'),
        ];
@@ -2064,6 +2070,10 @@ function sc_sprot_notices(){
         if($status == 'invoice_add_error'){
             $type='error';
             $messege="خطا در ایجاد صورت حساب. لطفاً فیلدهای ورودی را بررسی کنید.";
+        }
+        if($status == 'invoice_add_team_member'){
+            $type='error';
+            $messege="بازیکن تیم صورت‌حساب دریافت نمی‌کند؛ هزینه هر جلسه از کیف پول کسر می‌شود.";
         }
         if($status == 'bulk_deleted' && $status2 == 'deleted_player' ){
             $type='success';

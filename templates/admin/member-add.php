@@ -28,6 +28,7 @@ if(!isset($_GET['player_id'])){
         $info_verified = 0;
         $is_active = 1;
         $disable_auto_invoice = 0;
+        $member_type = 'normal';
         $additional_info = '';
         $skill_level = '';
   
@@ -62,6 +63,7 @@ if($player && $_GET['player_id'] ){
         $info_verified           = $player->info_verified ?? 0;
         $is_active               = $player->is_active ?? 1;
         $disable_auto_invoice               = $player->disable_auto_invoice ?? 1;
+        $member_type             = isset($player->member_type) && $player->member_type === 'team' ? 'team' : 'normal';
         $additional_info         = $player->additional_info ?? '';
         $skill_level             = $player->skill_level ?? '';
 
@@ -311,7 +313,16 @@ if($player && $_GET['player_id'] ){
                         </label>
                     </td>
                 </tr>
-
+                <tr>
+                    <th scope="row"><label for="member_type">نوع عضو</label></th>
+                    <td>
+                        <select name="member_type" id="member_type" class="regular-text">
+                            <option value="normal" <?php selected($member_type, 'normal'); ?>>بازیکن عادی</option>
+                            <option value="team" <?php selected($member_type, 'team'); ?>>بازیکن تیم</option>
+                        </select>
+                        <p class="description">بازیکن عادی: صورت‌حساب دوره ایجاد می‌شود. بازیکن تیم: صورت‌حساب ایجاد نمی‌شود و هزینه هر جلسه از کیف پول کسر می‌شود.</p>
+                    </td>
+                </tr>
                 <tr>
                     <th scope="row"><label for="additional_info">توضیحات اضافی</label></th>
                     <td><textarea name="additional_info" id="additional_info" rows="3" class="large-text"><?php echo $additional_info; ?></textarea></td>

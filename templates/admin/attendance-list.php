@@ -25,7 +25,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
         $attendance_id
     ));
 
-    if ($row && $row->status === 'present' && sc_is_wallet_enabled()) {
+    if ($row && $row->status === 'present' && sc_is_member_team($row->member_id) && sc_is_wallet_enabled()) {
         $course_row = $wpdb->get_row($wpdb->prepare(
             "SELECT title, price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
             $row->course_id
@@ -47,7 +47,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
     );
 
     if ($deleted) {
-        echo '<div class="notice notice-success is-dismissible"><p>حضور و غیاب با موفقیت حذف شد.' . ( ($row && $row->status === 'present' && sc_is_wallet_enabled()) ? ' مبلغ جلسه به کیف پول برگشت داده شد.' : '' ) . '</p></div>';
+        echo '<div class="notice notice-success is-dismissible"><p>حضور و غیاب با موفقیت حذف شد.' . ( ($row && $row->status === 'present' && sc_is_member_team($row->member_id) && sc_is_wallet_enabled()) ? ' مبلغ جلسه به کیف پول برگشت داده شد.' : '' ) . '</p></div>';
     } else {
         echo '<div class="notice notice-error is-dismissible"><p>خطا در حذف حضور و غیاب.</p></div>';
     }

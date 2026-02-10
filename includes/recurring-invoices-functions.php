@@ -150,9 +150,13 @@ sc_set_invoice_last_run();
     foreach ($active_courses as $member_course) {
         error_log("SC Recurring Invoices: Processing course - Member ID: {$member_course->member_id}, Course ID: {$member_course->course_id}, Course Title: {$member_course->course_title}");
         if (isset($member_course->disable_auto_invoice) && $member_course->disable_auto_invoice == 1) {
-        error_log("SC Recurring Invoices: Auto invoice disabled for Member ID: {$member_course->member_id}. Skipping.");
-        continue; // این کاربر نادیده گرفته می‌شود
-    }
+            error_log("SC Recurring Invoices: Auto invoice disabled for Member ID: {$member_course->member_id}. Skipping.");
+            continue;
+        }
+        if (function_exists('sc_is_member_team') && sc_is_member_team($member_course->member_id)) {
+            error_log("SC Recurring Invoices: Member ID {$member_course->member_id} is team player. Skipping invoice.");
+            continue;
+        }
         // ایجاد صورت حساب جدید (بدون چک کردن pending)
         $invoice_result = sc_create_course_invoice(
             $member_course->member_id,

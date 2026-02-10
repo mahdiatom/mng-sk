@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.12.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.13.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -197,6 +197,7 @@ function sc_create_members_table(){
             `info_verified` tinyint(1) DEFAULT 0,
             `is_active` tinyint(1) DEFAULT 1,
             `disable_auto_invoice` tinyint(1) DEFAULT 0,
+            `member_type` varchar(20) NOT NULL DEFAULT 'normal' COMMENT 'normal=بازیکن عادی, team=بازیکن تیم',
             `profile_completed` TINYINT(1) NOT NULL DEFAULT 0,
             `additional_info` text,
             `created_at` datetime NOT NULL,
@@ -210,6 +211,22 @@ function sc_create_members_table(){
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
     }
+
+/**
+ * Check if member is team player (کسر از کیف پول، بدون صورت حساب)
+ */
+function sc_is_member_team($member_id) {
+    if (!$member_id) {
+        return false;
+    }
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_members';
+    $type = $wpdb->get_var($wpdb->prepare(
+        "SELECT member_type FROM $table WHERE id = %d LIMIT 1",
+        $member_id
+    ));
+    return ($type === 'team');
+}
 
 /**
  * Create expense categories table
@@ -524,5 +541,15 @@ function sc_update_database() {
         $wt_table = $wpdb->prefix . 'sc_wallet_transactions';
         $wpdb->query("ALTER TABLE `$wt_table` MODIFY COLUMN `transaction_type` enum('charge','deduct','payment','refund','session_fee') NOT NULL COMMENT 'نوع تراکنش'");
         update_option('sc_wallet_session_fee_enum_added', '1');
+    }
+
+    // اضافه کردن ستون member_type به جدول اعضا (یک بار برای نصب‌های قبلی)
+    if (get_option('sc_member_type_column_added', '0') !== '1') {
+        $members_table = $wpdb->prefix . 'sc_members';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$members_table` LIKE %s", 'member_type'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$members_table` ADD COLUMN `member_type` varchar(20) NOT NULL DEFAULT 'normal' COMMENT 'normal=بازیکن عادی, team=بازیکن تیم' AFTER `disable_auto_invoice`");
+        }
+        update_option('sc_member_type_column_added', '1');
     }
 }
