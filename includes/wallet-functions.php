@@ -157,7 +157,8 @@ function sc_add_wallet_transaction($data) {
     }
     
     // بررسی و ارسال هشدارهای موجودی
-    if ($data['status'] === 'completed') {
+    $status_for_alerts = isset($data['status']) ? $data['status'] : 'completed';
+    if ($status_for_alerts === 'completed') {
         sc_check_wallet_balance_alerts($data['member_id'], $new_balance);
     }
     

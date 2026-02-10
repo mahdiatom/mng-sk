@@ -80,6 +80,16 @@ function sc_register_admin_menu() {
         'sc_admin_attendance_list_page'
     );
 
+    // Attendance - Player Report
+    add_submenu_page(
+        'sc-attendance-add',
+        'گزارش حضور بازیکن',
+        'گزارش حضور بازیکن',
+        'sc_manage_attendance_or_admin',
+        'sc-attendance-report',
+        'sc_admin_attendance_report_page'
+    );
+
     /* ================= Courses ================= */
 
     add_menu_page(
@@ -600,6 +610,14 @@ function sc_admin_attendance_list_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'attendance-list.php';
+}
+
+function sc_admin_attendance_report_page() {
+    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'attendance-report.php';
 }
 
 /**

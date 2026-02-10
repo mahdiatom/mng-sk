@@ -65,6 +65,13 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
         
         $type = $item->transaction_type ?? '';
         $label = $type_labels[$type] ?? $type;
+
+        $type_icons = [
+            'charge' => '➕',
+            'deduct' => '➖',
+            'payment' => '💳',
+            'refund' => '↩'
+        ];
         
         $colors = [
             'charge' => '#00a32a',
@@ -74,7 +81,11 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
         ];
         
         $color = $colors[$type] ?? '#666';
-        return '<span style="color: ' . esc_attr($color) . '; font-weight: bold;">' . esc_html($label) . '</span>';
+        $icon  = $type_icons[$type] ?? '';
+        return '<span style="color: ' . esc_attr($color) . '; font-weight: bold;">' .
+               '<span style="margin-left:3px;">' . esc_html($icon) . '</span>' .
+               esc_html($label) .
+               '</span>';
     }
 
     public function column_amount($item) {

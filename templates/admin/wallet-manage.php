@@ -211,6 +211,12 @@ if ($selected_member_id > 0) {
                                             'payment' => 'پرداخت',
                                             'refund' => 'بازگشت وجه'
                                         ];
+                                        $type_icons = [
+                                            'charge' => '➕',
+                                            'deduct' => '➖',
+                                            'payment' => '💳',
+                                            'refund' => '↩'
+                                        ];
                                         $type_label = isset($type_labels[$transaction->transaction_type]) ? $type_labels[$transaction->transaction_type] : $transaction->transaction_type;
                                         $type_color = [
                                             'charge' => '#00a32a',
@@ -249,6 +255,9 @@ if ($selected_member_id > 0) {
                                                     font-size: 11px;
                                                     font-weight: 600;
                                                 ">
+                                                    <span style="margin-left: 3px;">
+                                                        <?php echo esc_html($type_icons[$transaction->transaction_type] ?? ''); ?>
+                                                    </span>
                                                     <?php echo esc_html($type_label); ?>
                                                 </span>
                                             </td>
@@ -306,6 +315,15 @@ if ($selected_member_id > 0) {
     .wrap > div[style*="grid-template-columns"] {
         grid-template-columns: 1fr !important;
     }
+}
+
+.postbox table.wp-list-table tbody tr {
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.postbox table.wp-list-table tbody tr:hover {
+    background-color: #f7f7f7;
+    transform: translateY(-1px);
 }
 </style>
 

@@ -323,6 +323,12 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
                             'payment' => 'پرداخت',
                             'refund' => 'بازگشت وجه'
                         ];
+                        $type_icons = [
+                            'charge' => '➕',
+                            'deduct' => '➖',
+                            'payment' => '💳',
+                            'refund' => '↩'
+                        ];
                         $type_label = isset($type_labels[$transaction->transaction_type]) ? $type_labels[$transaction->transaction_type] : $transaction->transaction_type;
                         $type_color = [
                             'charge' => '#28a745',
@@ -342,6 +348,9 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
                                     font-size: 13px;
                                     font-weight: 600;
                                 ">
+                                    <span style="margin-left: 4px;">
+                                        <?php echo esc_html($type_icons[$transaction->transaction_type] ?? ''); ?>
+                                    </span>
                                     <?php echo esc_html($type_label); ?>
                                 </span>
                             </td>
@@ -405,6 +414,15 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
     box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
 }
 
+.sc-wallet-transactions table tbody tr {
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.sc-wallet-transactions table tbody tr:hover {
+    background-color: #f5f5f5;
+    transform: translateY(-1px);
+}
+
 @media (max-width: 768px) {
     .sc-wallet-balance-card {
         padding: 20px !important;
@@ -416,6 +434,14 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
     
     .sc-wallet-balance-card > div > div:first-child > div {
         font-size: 28px !important;
+    }
+
+    .sc-wallet-transactions table {
+        font-size: 13px;
+    }
+
+    .sc-wallet-transactions {
+        overflow-x: auto;
     }
 }
 </style>

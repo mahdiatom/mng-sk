@@ -302,7 +302,6 @@ if (empty($filter_date_to)) {
             <input type="hidden" name="s" value="<?php echo esc_attr($_GET['s']); ?>">
         <?php endif; ?>
         
-        <?php $wallet_transactions_list_table->search_box('جستجو', 'search_wallet'); ?>
         <?php $wallet_transactions_list_table->display(); ?>
     </form>
 </div>

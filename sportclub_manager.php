@@ -1342,4 +1342,164 @@ function sc_ajax_get_wallet_period_report() {
     wp_send_json_success(['html' => $html]);
 }
 
+/**
+ * AJAX: گزارش حضور بازیکن (ادمین)
+ */
+add_action('wp_ajax_sc_attendance_report_player', 'sc_ajax_attendance_report_player');
+function sc_ajax_attendance_report_player() {
+    check_ajax_referer('sc_attendance_report_player', 'nonce');
+
+    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+
+    $member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
+    $date_from_shamsi = isset($_POST['date_from_shamsi']) ? sanitize_text_field($_POST['date_from_shamsi']) : '';
+    $date_to_shamsi = isset($_POST['date_to_shamsi']) ? sanitize_text_field($_POST['date_to_shamsi']) : '';
+
+    if (!$member_id || !$date_from_shamsi || !$date_to_shamsi) {
+        wp_send_json_error(['message' => 'کاربر و بازه تاریخ را مشخص کنید.']);
+    }
+
+    $date_from = sc_shamsi_to_gregorian_date($date_from_shamsi);
+    $date_to = sc_shamsi_to_gregorian_date($date_to_shamsi);
+    if (!$date_from || !$date_to) {
+        wp_send_json_error(['message' => 'فرمت تاریخ شمسی نامعتبر است.']);
+    }
+
+    global $wpdb;
+    $attendances_table = $wpdb->prefix . 'sc_attendances';
+    $members_table = $wpdb->prefix . 'sc_members';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, first_name, last_name, national_id FROM $members_table WHERE id = %d LIMIT 1",
+        $member_id
+    ));
+    if (!$member) {
+        wp_send_json_error(['message' => 'کاربر یافت نشد.']);
+    }
+
+    $member_name = $member->first_name . ' ' . $member->last_name;
+
+    // لیست حضور و غیاب در بازه
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT a.id, a.course_id, a.attendance_date, a.status, c.title AS course_title
+         FROM $attendances_table a
+         LEFT JOIN $courses_table c ON c.id = a.course_id
+         WHERE a.member_id = %d AND a.attendance_date >= %s AND a.attendance_date <= %s
+         ORDER BY a.attendance_date DESC, c.title ASC",
+        $member_id,
+        $date_from,
+        $date_to
+    ));
+
+    $total_present = 0;
+    $total_absent = 0;
+    $by_course = [];
+    foreach ($rows as $r) {
+        if ($r->status === 'present') {
+            $total_present++;
+        } else {
+            $total_absent++;
+        }
+        $cid = (int) $r->course_id;
+        if (!isset($by_course[$cid])) {
+            $by_course[$cid] = ['title' => $r->course_title ?: '(بدون نام)', 'present' => 0, 'absent' => 0];
+        }
+        if ($r->status === 'present') {
+            $by_course[$cid]['present']++;
+        } else {
+            $by_course[$cid]['absent']++;
+        }
+    }
+
+    ob_start();
+    ?>
+    <div class="postbox" style="margin-top: 0;">
+        <div class="postbox-header">
+            <h2 class="hndle">نتیجه گزارش</h2>
+        </div>
+        <div class="inside" style="padding: 20px;">
+            <table class="form-table" style="margin-bottom: 20px;">
+                <tr>
+                    <th scope="row" style="width: 140px;">نام کاربر:</th>
+                    <td><strong><?php echo esc_html($member_name); ?></strong></td>
+                </tr>
+                <tr>
+                    <th scope="row">بازه تاریخی:</th>
+                    <td><?php echo esc_html($date_from_shamsi); ?> تا <?php echo esc_html($date_to_shamsi); ?></td>
+                </tr>
+            </table>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px;">
+                <div style="background: #f0f6fc; padding: 15px; border-radius: 6px; border-right: 4px solid #2271b1;">
+                    <div style="font-size: 12px; color: #666;">تعداد کل جلسات حضور</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #2271b1;"><?php echo (int) $total_present; ?></div>
+                </div>
+                <div style="background: #fcf0f1; padding: 15px; border-radius: 6px; border-right: 4px solid #d63638;">
+                    <div style="font-size: 12px; color: #666;">تعداد کل جلسات غیبت</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #d63638;"><?php echo (int) $total_absent; ?></div>
+                </div>
+            </div>
+
+            <h3 style="margin: 20px 0 10px 0;">تعداد حضور در هر دوره</h3>
+            <?php if (!empty($by_course)) : ?>
+                <table class="wp-list-table widefat fixed striped" style="margin-bottom: 24px;">
+                    <thead>
+                        <tr>
+                            <th>دوره</th>
+                            <th style="width: 120px; text-align: center;">حضور</th>
+                            <th style="width: 120px; text-align: center;">غیبت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($by_course as $course_id => $info) : ?>
+                            <tr>
+                                <td><?php echo esc_html($info['title']); ?></td>
+                                <td style="text-align: center;"><?php echo (int) $info['present']; ?></td>
+                                <td style="text-align: center;"><?php echo (int) $info['absent']; ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else : ?>
+                <p style="color: #666;">در این بازه رکوردی ثبت نشده است.</p>
+            <?php endif; ?>
+
+            <h3 style="margin: 20px 0 10px 0;">لیست گزارش</h3>
+            <?php if (!empty($rows)) : ?>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th style="width: 120px;">تاریخ</th>
+                            <th>دوره</th>
+                            <th style="width: 100px;">وضعیت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($rows as $row) :
+                            $status_label = $row->status === 'present' ? 'حاضر' : 'غایب';
+                            $status_color = $row->status === 'present' ? '#00a32a' : '#d63638';
+                        ?>
+                            <tr>
+                                <td><?php echo esc_html(sc_date_shamsi_date_only($row->attendance_date)); ?></td>
+                                <td><?php echo esc_html($row->course_title ?: '-'); ?></td>
+                                <td>
+                                    <span style="color: <?php echo esc_attr($status_color); ?>; font-weight: 600;"><?php echo esc_html($status_label); ?></span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else : ?>
+                <p style="color: #666;">رکوردی در این بازه یافت نشد.</p>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+
 
