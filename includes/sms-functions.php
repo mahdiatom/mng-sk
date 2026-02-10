@@ -453,6 +453,22 @@ function sc_get_sms_template($action, $type = 'user') {
             'user' => '%user_name% عزیز، صورت حساب جدید برای %item_name% صادر شد. مبلغ %amount% تومان - سررسید: %due_date%',
             'admin' => 'صورت حساب جدید: %user_name% - %item_name% - مبلغ %amount% تومان'
         ],
+        'wallet_low_balance' => [
+            'user' => '%user_name% عزیز، موجودی کیف پول شما به %balance% تومان رسیده است. لطفاً کیف پول خود را شارژ کنید.',
+            'admin' => 'هشدار موجودی کم: %user_name% - موجودی: %balance% تومان'
+        ],
+        'wallet_negative_balance' => [
+            'user' => '%user_name% عزیز، موجودی کیف پول شما منفی شده است (%balance% تومان). لطفاً فوراً کیف پول خود را شارژ کنید.',
+            'admin' => 'هشدار موجودی منفی: %user_name% - موجودی: %balance% تومان'
+        ],
+        'wallet_charge_success' => [
+            'user' => '%user_name% عزیز، کیف پول شما به مبلغ %amount% تومان شارژ شد. موجودی فعلی: %balance% تومان.',
+            'admin' => 'شارژ کیف پول: %user_name% - مبلغ: %amount% تومان - موجودی: %balance% تومان'
+        ],
+        'wallet_payment' => [
+            'user' => '%user_name% عزیز، مبلغ %amount% تومان از کیف پول شما کسر شد. موجودی فعلی: %balance% تومان.',
+            'admin' => 'پرداخت از کیف پول: %user_name% - مبلغ: %amount% تومان - موجودی: %balance% تومان'
+        ],
         'enrollment' => [
             'user' => '%user_name% عزیز، ثبت نام شما در %item_name% تکمیل شد.',
             'admin' => 'ثبت نام جدید: %user_name% در %item_name%'

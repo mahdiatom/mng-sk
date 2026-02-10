@@ -156,6 +156,11 @@ function sc_add_wallet_transaction($data) {
         ];
     }
     
+    // بررسی و ارسال هشدارهای موجودی
+    if ($data['status'] === 'completed') {
+        sc_check_wallet_balance_alerts($data['member_id'], $new_balance);
+    }
+    
     return [
         'success' => true,
         'transaction_id' => $wpdb->insert_id,
@@ -213,7 +218,7 @@ function sc_charge_wallet($member_id, $amount, $description = '', $created_by = 
         $created_by = get_current_user_id();
     }
     
-    return sc_add_wallet_transaction([
+    $result = sc_add_wallet_transaction([
         'user_id' => $user_id,
         'member_id' => $member_id,
         'transaction_type' => 'charge',
@@ -221,6 +226,13 @@ function sc_charge_wallet($member_id, $amount, $description = '', $created_by = 
         'description' => $description,
         'created_by' => $created_by
     ]);
+    
+    // ارسال پیامک برای شارژ موفق
+    if ($result['success'] && isset($result['balance_after'])) {
+        sc_send_wallet_charge_success_sms($member_id, $amount, $result['balance_after']);
+    }
+    
+    return $result;
 }
 
 /**
@@ -364,6 +376,11 @@ function sc_pay_invoice_from_wallet($invoice_id, $amount = null) {
         return $transaction_result;
     }
     
+    // ارسال پیامک برای پرداخت از کیف پول
+    if (isset($transaction_result['balance_after'])) {
+        sc_send_wallet_payment_sms($invoice->member_id, $pay_amount, $transaction_result['balance_after'], $invoice_id);
+    }
+    
     // اگر مبلغ کامل پرداخت شد، بروزرسانی وضعیت صورت حساب
     if ($pay_amount >= $total_amount) {
         $wpdb->update(
@@ -473,3 +490,418 @@ function sc_get_wallet_transactions_count($member_id) {
     return intval($count);
 }
 
+/**
+ * Send SMS for wallet low balance alert
+ * ارسال پیامک برای هشدار موجودی کم
+ */
+function sc_send_wallet_low_balance_sms($member_id, $balance) {
+    if (!function_exists('sc_send_sms')) {
+        return false;
+    }
+    
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT first_name, last_name, player_phone FROM $members_table WHERE id = %d",
+        $member_id
+    ));
+    
+    if (!$member || empty($member->player_phone)) {
+        return false;
+    }
+    
+    $min_balance = sc_get_wallet_min_balance_alert();
+    $user_name = trim($member->first_name . ' ' . $member->last_name);
+    
+    // بررسی فعال بودن پیامک
+    if (!sc_is_sms_enabled_for('wallet_low_balance', 'user')) {
+        return false;
+    }
+    
+    $template = sc_get_sms_template('wallet_low_balance', 'user');
+    if (empty($template)) {
+        $template = 'هشدار: موجودی کیف پول شما به %balance% تومان رسیده است. لطفاً کیف پول خود را شارژ کنید.';
+    }
+    
+    $variables = [
+        'user_name' => $user_name,
+        'balance' => number_format($balance, 0, '.', ','),
+        'min_balance' => number_format($min_balance, 0, '.', ',')
+    ];
+    
+    $message = sc_replace_sms_variables($template, $variables);
+    $pattern_code = sc_get_sms_pattern('wallet_low_balance', 'user');
+    
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+}
+
+/**
+ * Send SMS for wallet negative balance alert
+ * ارسال پیامک برای هشدار موجودی منفی
+ */
+function sc_send_wallet_negative_balance_sms($member_id, $balance) {
+    if (!function_exists('sc_send_sms')) {
+        return false;
+    }
+    
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT first_name, last_name, player_phone FROM $members_table WHERE id = %d",
+        $member_id
+    ));
+    
+    if (!$member || empty($member->player_phone)) {
+        return false;
+    }
+    
+    $user_name = trim($member->first_name . ' ' . $member->last_name);
+    
+    // بررسی فعال بودن پیامک
+    if (!sc_is_sms_enabled_for('wallet_negative_balance', 'user')) {
+        return false;
+    }
+    
+    $template = sc_get_sms_template('wallet_negative_balance', 'user');
+    if (empty($template)) {
+        $template = 'هشدار: موجودی کیف پول شما منفی شده است (%balance% تومان). لطفاً فوراً کیف پول خود را شارژ کنید.';
+    }
+    
+    $variables = [
+        'user_name' => $user_name,
+        'balance' => number_format($balance, 0, '.', ',')
+    ];
+    
+    $message = sc_replace_sms_variables($template, $variables);
+    $pattern_code = sc_get_sms_pattern('wallet_negative_balance', 'user');
+    
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+}
+
+/**
+ * Send SMS for wallet charge success
+ * ارسال پیامک برای شارژ موفق کیف پول
+ */
+function sc_send_wallet_charge_success_sms($member_id, $amount, $new_balance) {
+    if (!function_exists('sc_send_sms')) {
+        return false;
+    }
+    
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT first_name, last_name, player_phone FROM $members_table WHERE id = %d",
+        $member_id
+    ));
+    
+    if (!$member || empty($member->player_phone)) {
+        return false;
+    }
+    
+    $user_name = trim($member->first_name . ' ' . $member->last_name);
+    
+    // بررسی فعال بودن پیامک
+    if (!sc_is_sms_enabled_for('wallet_charge_success', 'user')) {
+        return false;
+    }
+    
+    $template = sc_get_sms_template('wallet_charge_success', 'user');
+    if (empty($template)) {
+        $template = 'کیف پول شما به مبلغ %amount% تومان شارژ شد. موجودی فعلی: %balance% تومان.';
+    }
+    
+    $variables = [
+        'user_name' => $user_name,
+        'amount' => number_format($amount, 0, '.', ','),
+        'balance' => number_format($new_balance, 0, '.', ',')
+    ];
+    
+    $message = sc_replace_sms_variables($template, $variables);
+    $pattern_code = sc_get_sms_pattern('wallet_charge_success', 'user');
+    
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+}
+
+/**
+ * Send SMS for wallet payment
+ * ارسال پیامک برای پرداخت از کیف پول
+ */
+function sc_send_wallet_payment_sms($member_id, $amount, $new_balance, $invoice_id = null) {
+    if (!function_exists('sc_send_sms')) {
+        return false;
+    }
+    
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT first_name, last_name, player_phone FROM $members_table WHERE id = %d",
+        $member_id
+    ));
+    
+    if (!$member || empty($member->player_phone)) {
+        return false;
+    }
+    
+    $user_name = trim($member->first_name . ' ' . $member->last_name);
+    
+    // بررسی فعال بودن پیامک
+    if (!sc_is_sms_enabled_for('wallet_payment', 'user')) {
+        return false;
+    }
+    
+    $template = sc_get_sms_template('wallet_payment', 'user');
+    if (empty($template)) {
+        $template = 'مبلغ %amount% تومان از کیف پول شما کسر شد. موجودی فعلی: %balance% تومان.';
+    }
+    
+    $variables = [
+        'user_name' => $user_name,
+        'amount' => number_format($amount, 0, '.', ','),
+        'balance' => number_format($new_balance, 0, '.', ',')
+    ];
+    
+    if ($invoice_id) {
+        $variables['invoice_id'] = $invoice_id;
+    }
+    
+    $message = sc_replace_sms_variables($template, $variables);
+    $pattern_code = sc_get_sms_pattern('wallet_payment', 'user');
+    
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+}
+
+/**
+ * Check and send wallet balance alerts
+ * بررسی و ارسال هشدارهای موجودی کیف پول
+ */
+function sc_check_wallet_balance_alerts($member_id, $new_balance) {
+    $min_balance_alert = sc_get_wallet_min_balance_alert();
+    $max_negative = sc_get_wallet_max_negative_balance();
+    
+    // هشدار موجودی منفی
+    if ($new_balance < 0) {
+        // فقط یک بار در روز ارسال شود
+        $last_alert_key = 'wallet_negative_alert_' . $member_id;
+        $last_alert_date = get_transient($last_alert_key);
+        
+        if ($last_alert_date !== date('Y-m-d')) {
+            sc_send_wallet_negative_balance_sms($member_id, $new_balance);
+            set_transient($last_alert_key, date('Y-m-d'), DAY_IN_SECONDS);
+        }
+    }
+    // هشدار موجودی کم
+    elseif ($min_balance_alert > 0 && $new_balance <= $min_balance_alert && $new_balance > 0) {
+        // فقط یک بار در روز ارسال شود
+        $last_alert_key = 'wallet_low_balance_alert_' . $member_id;
+        $last_alert_date = get_transient($last_alert_key);
+        
+        if ($last_alert_date !== date('Y-m-d')) {
+            sc_send_wallet_low_balance_sms($member_id, $new_balance);
+            set_transient($last_alert_key, date('Y-m-d'), DAY_IN_SECONDS);
+        }
+    }
+}
+
+/**
+ * Get wallet financial report for a member
+ * دریافت گزارش مالی کیف پول یک بازیکن
+ */
+function sc_get_wallet_financial_report($member_id, $start_date = null, $end_date = null) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_wallet_transactions';
+    
+    $where_conditions = ["member_id = %d", "status = 'completed'"];
+    $where_values = [$member_id];
+    
+    if ($start_date) {
+        $where_conditions[] = "created_at >= %s";
+        $where_values[] = $start_date;
+    }
+    
+    if ($end_date) {
+        $where_conditions[] = "created_at <= %s";
+        $where_values[] = $end_date;
+    }
+    
+    $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
+    
+    $report = $wpdb->get_row($wpdb->prepare(
+        "SELECT 
+            COALESCE(SUM(CASE WHEN transaction_type = 'charge' THEN amount ELSE 0 END), 0) as total_charge,
+            COALESCE(SUM(CASE WHEN transaction_type = 'payment' THEN amount ELSE 0 END), 0) as total_payment,
+            COALESCE(SUM(CASE WHEN transaction_type = 'deduct' THEN amount ELSE 0 END), 0) as total_deduct,
+            COALESCE(SUM(CASE WHEN transaction_type = 'refund' THEN amount ELSE 0 END), 0) as total_refund,
+            COUNT(*) as total_transactions
+        FROM $table_name
+        $where_clause",
+        $where_values
+    ));
+    
+    $current_balance = sc_get_wallet_balance($member_id);
+    
+    return [
+        'total_charge' => floatval($report->total_charge ?? 0),
+        'total_payment' => floatval($report->total_payment ?? 0),
+        'total_deduct' => floatval($report->total_deduct ?? 0),
+        'total_refund' => floatval($report->total_refund ?? 0),
+        'total_transactions' => intval($report->total_transactions ?? 0),
+        'current_balance' => $current_balance,
+        'net_balance' => $current_balance
+    ];
+}
+
+/**
+ * Get wallet transactions by period (monthly/yearly)
+ * دریافت تراکنش‌های کیف پول بر اساس دوره (ماهانه/سالانه)
+ */
+function sc_get_wallet_transactions_by_period($member_id, $period = 'monthly', $year = null, $month = null) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_wallet_transactions';
+    
+    if ($period === 'monthly') {
+        if (!$year) $year = date('Y');
+        if (!$month) $month = date('m');
+        
+        $start_date = "$year-$month-01 00:00:00";
+        $end_date = date('Y-m-t 23:59:59', strtotime($start_date));
+        
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table_name
+            WHERE member_id = %d
+            AND created_at >= %s
+            AND created_at <= %s
+            ORDER BY created_at DESC",
+            $member_id, $start_date, $end_date
+        ));
+    } elseif ($period === 'yearly') {
+        if (!$year) $year = date('Y');
+        
+        $start_date = "$year-01-01 00:00:00";
+        $end_date = "$year-12-31 23:59:59";
+        
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table_name
+            WHERE member_id = %d
+            AND created_at >= %s
+            AND created_at <= %s
+            ORDER BY created_at DESC",
+            $member_id, $start_date, $end_date
+        ));
+    }
+    
+    return [];
+}
+
+/**
+ * Get wallet statistics for admin
+ * دریافت آمار کلی کیف پول برای مدیر
+ */
+function sc_get_wallet_admin_statistics() {
+    global $wpdb;
+    $transactions_table = $wpdb->prefix . 'sc_wallet_transactions';
+    $members_table = $wpdb->prefix . 'sc_members';
+    
+    // تعداد کاربران با کیف پول
+    $users_with_wallet = $wpdb->get_var(
+        "SELECT COUNT(DISTINCT member_id) FROM $transactions_table WHERE status = 'completed'"
+    );
+    
+    // مجموع موجودی تمام کاربران
+    $total_balance = $wpdb->get_var(
+        "SELECT COALESCE(SUM(
+            CASE 
+                WHEN transaction_type = 'charge' THEN amount
+                WHEN transaction_type = 'payment' THEN -amount
+                WHEN transaction_type = 'deduct' THEN -amount
+                WHEN transaction_type = 'refund' THEN amount
+                ELSE 0
+            END
+        ), 0) as total_balance
+        FROM $transactions_table
+        WHERE status = 'completed'"
+    );
+    
+    // تعداد کل تراکنش‌ها
+    $total_transactions = $wpdb->get_var(
+        "SELECT COUNT(*) FROM $transactions_table WHERE status = 'completed'"
+    );
+    
+    // مجموع شارژها
+    $total_charges = $wpdb->get_var(
+        "SELECT COALESCE(SUM(amount), 0) FROM $transactions_table 
+        WHERE transaction_type = 'charge' AND status = 'completed'"
+    );
+    
+    // مجموع پرداخت‌ها
+    $total_payments = $wpdb->get_var(
+        "SELECT COALESCE(SUM(amount), 0) FROM $transactions_table 
+        WHERE transaction_type = 'payment' AND status = 'completed'"
+    );
+    
+    // تعداد کاربران با موجودی منفی
+    $users_with_negative = 0;
+    $members = $wpdb->get_col("SELECT id FROM $members_table WHERE is_active = 1");
+    foreach ($members as $member_id) {
+        $balance = sc_get_wallet_balance($member_id);
+        if ($balance < 0) {
+            $users_with_negative++;
+        }
+    }
+    
+    return [
+        'users_with_wallet' => intval($users_with_wallet),
+        'total_balance' => floatval($total_balance),
+        'total_transactions' => intval($total_transactions),
+        'total_charges' => floatval($total_charges),
+        'total_payments' => floatval($total_payments),
+        'users_with_negative' => $users_with_negative
+    ];
+}
+
+/**
+ * Get wallet balance history for chart
+ * دریافت تاریخچه موجودی برای نمودار
+ */
+function sc_get_wallet_balance_history($member_id, $days = 30) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_wallet_transactions';
+    
+    $start_date = date('Y-m-d 00:00:00', strtotime("-$days days"));
+    
+    $transactions = $wpdb->get_results($wpdb->prepare(
+        "SELECT DATE(created_at) as date, 
+                SUM(CASE 
+                    WHEN transaction_type = 'charge' THEN amount
+                    WHEN transaction_type = 'payment' THEN -amount
+                    WHEN transaction_type = 'deduct' THEN -amount
+                    WHEN transaction_type = 'refund' THEN amount
+                    ELSE 0
+                END) as daily_change,
+                balance_after
+        FROM $table_name
+        WHERE member_id = %d
+        AND created_at >= %s
+        AND status = 'completed'
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC",
+        $member_id, $start_date
+    ));
+    
+    $history = [];
+    $running_balance = sc_get_wallet_balance($member_id);
+    
+    // محاسبه موجودی برای هر روز
+    foreach (array_reverse($transactions) as $transaction) {
+        $history[] = [
+            'date' => $transaction->date,
+            'balance' => floatval($transaction->balance_after),
+            'change' => floatval($transaction->daily_change)
+        ];
+    }
+    
+    return array_reverse($history);
+}

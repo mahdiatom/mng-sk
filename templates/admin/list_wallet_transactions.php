@@ -20,7 +20,6 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
 
     public function get_columns() {
         return [
-            'id' => 'شناسه',
             'member_name' => 'بازیکن',
             'transaction_type' => 'نوع',
             'amount' => 'مبلغ',
@@ -33,7 +32,6 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
 
     protected function get_sortable_columns() {
         return [
-            'id' => ['id', false],
             'created_at' => ['created_at', false],
             'amount' => ['amount', false]
         ];
@@ -141,12 +139,7 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
     }
 
     public function column_default($item, $column_name) {
-        switch ($column_name) {
-            case 'id':
-                return $item->id;
-            default:
-                return '-';
-        }
+        return '-';
     }
 
     public function prepare_items() {
@@ -209,9 +202,9 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
         }
         
         // مرتب‌سازی
-        $orderby = isset($_GET['orderby']) ? sanitize_sql_orderby($_GET['orderby']) : 'id';
-        if (!in_array($orderby, ['id', 'created_at', 'amount'])) {
-            $orderby = 'id';
+        $orderby = isset($_GET['orderby']) ? sanitize_sql_orderby($_GET['orderby']) : 'created_at';
+        if (!in_array($orderby, ['created_at', 'amount'])) {
+            $orderby = 'created_at';
         }
         
         $order = isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC' ? 'ASC' : 'DESC';

@@ -111,6 +111,39 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_absence_admin_template', $sms_absence_admin_template, 'sms');
         sc_update_setting('sms_absence_admin_pattern', $sms_absence_admin_pattern, 'sms');
 
+        // Wallet SMS Settings
+        $sms_wallet_low_balance_user_enabled = isset($_POST['sms_wallet_low_balance_user_enabled']) ? 1 : 0;
+        $sms_wallet_low_balance_user_template = isset($_POST['sms_wallet_low_balance_user_template']) ? wp_kses($_POST['sms_wallet_low_balance_user_template'], array()) : '';
+        $sms_wallet_low_balance_user_pattern = isset($_POST['sms_wallet_low_balance_user_pattern']) ? absint($_POST['sms_wallet_low_balance_user_pattern']) : '';
+        
+        $sms_wallet_negative_balance_user_enabled = isset($_POST['sms_wallet_negative_balance_user_enabled']) ? 1 : 0;
+        $sms_wallet_negative_balance_user_template = isset($_POST['sms_wallet_negative_balance_user_template']) ? wp_kses($_POST['sms_wallet_negative_balance_user_template'], array()) : '';
+        $sms_wallet_negative_balance_user_pattern = isset($_POST['sms_wallet_negative_balance_user_pattern']) ? absint($_POST['sms_wallet_negative_balance_user_pattern']) : '';
+        
+        $sms_wallet_charge_success_user_enabled = isset($_POST['sms_wallet_charge_success_user_enabled']) ? 1 : 0;
+        $sms_wallet_charge_success_user_template = isset($_POST['sms_wallet_charge_success_user_template']) ? wp_kses($_POST['sms_wallet_charge_success_user_template'], array()) : '';
+        $sms_wallet_charge_success_user_pattern = isset($_POST['sms_wallet_charge_success_user_pattern']) ? absint($_POST['sms_wallet_charge_success_user_pattern']) : '';
+        
+        $sms_wallet_payment_user_enabled = isset($_POST['sms_wallet_payment_user_enabled']) ? 1 : 0;
+        $sms_wallet_payment_user_template = isset($_POST['sms_wallet_payment_user_template']) ? wp_kses($_POST['sms_wallet_payment_user_template'], array()) : '';
+        $sms_wallet_payment_user_pattern = isset($_POST['sms_wallet_payment_user_pattern']) ? absint($_POST['sms_wallet_payment_user_pattern']) : '';
+
+        sc_update_setting('sms_wallet_low_balance_user_enabled', $sms_wallet_low_balance_user_enabled, 'sms');
+        sc_update_setting('sms_wallet_low_balance_user_template', $sms_wallet_low_balance_user_template, 'sms');
+        sc_update_setting('sms_wallet_low_balance_user_pattern', $sms_wallet_low_balance_user_pattern, 'sms');
+        
+        sc_update_setting('sms_wallet_negative_balance_user_enabled', $sms_wallet_negative_balance_user_enabled, 'sms');
+        sc_update_setting('sms_wallet_negative_balance_user_template', $sms_wallet_negative_balance_user_template, 'sms');
+        sc_update_setting('sms_wallet_negative_balance_user_pattern', $sms_wallet_negative_balance_user_pattern, 'sms');
+        
+        sc_update_setting('sms_wallet_charge_success_user_enabled', $sms_wallet_charge_success_user_enabled, 'sms');
+        sc_update_setting('sms_wallet_charge_success_user_template', $sms_wallet_charge_success_user_template, 'sms');
+        sc_update_setting('sms_wallet_charge_success_user_pattern', $sms_wallet_charge_success_user_pattern, 'sms');
+        
+        sc_update_setting('sms_wallet_payment_user_enabled', $sms_wallet_payment_user_enabled, 'sms');
+        sc_update_setting('sms_wallet_payment_user_template', $sms_wallet_payment_user_template, 'sms');
+        sc_update_setting('sms_wallet_payment_user_pattern', $sms_wallet_payment_user_pattern, 'sms');
+
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات پیامک با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'wallet') {
@@ -207,6 +240,24 @@ $wallet_min_balance_alert = floatval(sc_get_setting('wallet_min_balance_alert', 
 $wallet_allow_partial_payment = (int)sc_get_setting('wallet_allow_partial_payment', '1');
 $sms_absence_admin_template = sc_get_setting('sms_absence_admin_template', 'غیبت: %user_name% - دوره %course_name% - تاریخ %date%');
 $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
+
+// Wallet SMS Settings
+$sms_wallet_low_balance_user_enabled = (int)sc_get_setting('sms_wallet_low_balance_user_enabled', '1');
+$sms_wallet_low_balance_user_template = sc_get_setting('sms_wallet_low_balance_user_template', '');
+$sms_wallet_low_balance_user_pattern = sc_get_setting('sms_wallet_low_balance_user_pattern', '');
+
+$sms_wallet_negative_balance_user_enabled = (int)sc_get_setting('sms_wallet_negative_balance_user_enabled', '1');
+$sms_wallet_negative_balance_user_template = sc_get_setting('sms_wallet_negative_balance_user_template', '');
+$sms_wallet_negative_balance_user_pattern = sc_get_setting('sms_wallet_negative_balance_user_pattern', '');
+
+$sms_wallet_charge_success_user_enabled = (int)sc_get_setting('sms_wallet_charge_success_user_enabled', '1');
+$sms_wallet_charge_success_user_template = sc_get_setting('sms_wallet_charge_success_user_template', '');
+$sms_wallet_charge_success_user_pattern = sc_get_setting('sms_wallet_charge_success_user_pattern', '');
+
+$sms_wallet_payment_user_enabled = (int)sc_get_setting('sms_wallet_payment_user_enabled', '1');
+$sms_wallet_payment_user_template = sc_get_setting('sms_wallet_payment_user_template', '');
+$sms_wallet_payment_user_pattern = sc_get_setting('sms_wallet_payment_user_pattern', '');
+
 // تنظیمات افزونه پرو
 $pro_mode_enabled = (int) sc_get_setting('pro_mode_enabled', 0);
 $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
@@ -773,6 +824,138 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
                             <input type="number"
                                    name="sms_absence_admin_pattern"
                                    value="<?php echo esc_attr($sms_absence_admin_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Wallet SMS Settings -->
+                <h3>پیامک کیف پول</h3>
+                <table class="form-table">
+                    <!-- هشدار موجودی کم -->
+                    <tr>
+                        <th scope="row">هشدار موجودی کم</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wallet_low_balance_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_wallet_low_balance_user_enabled, 1); ?>>
+                                فعال کردن پیامک هشدار موجودی کم
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wallet_low_balance_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wallet_low_balance_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% - 
+                                موجودی = %balance% - 
+                                حداقل موجودی = %min_balance%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_wallet_low_balance_user_pattern"
+                                   value="<?php echo esc_attr($sms_wallet_low_balance_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+
+                    <!-- هشدار موجودی منفی -->
+                    <tr>
+                        <th scope="row">هشدار موجودی منفی</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wallet_negative_balance_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_wallet_negative_balance_user_enabled, 1); ?>>
+                                فعال کردن پیامک هشدار موجودی منفی
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wallet_negative_balance_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wallet_negative_balance_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% - 
+                                موجودی = %balance%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_wallet_negative_balance_user_pattern"
+                                   value="<?php echo esc_attr($sms_wallet_negative_balance_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+
+                    <!-- اعلان شارژ موفق -->
+                    <tr>
+                        <th scope="row">اعلان شارژ موفق</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wallet_charge_success_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_wallet_charge_success_user_enabled, 1); ?>>
+                                فعال کردن پیامک شارژ موفق
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wallet_charge_success_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wallet_charge_success_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% - 
+                                مبلغ شارژ = %amount% - 
+                                موجودی فعلی = %balance%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_wallet_charge_success_user_pattern"
+                                   value="<?php echo esc_attr($sms_wallet_charge_success_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+
+                    <!-- اعلان پرداخت از کیف پول -->
+                    <tr>
+                        <th scope="row">اعلان پرداخت از کیف پول</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wallet_payment_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_wallet_payment_user_enabled, 1); ?>>
+                                فعال کردن پیامک پرداخت از کیف پول
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wallet_payment_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wallet_payment_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% - 
+                                مبلغ پرداخت = %amount% - 
+                                موجودی فعلی = %balance% - 
+                                شناسه صورت حساب = %invoice_id%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_wallet_payment_user_pattern"
+                                   value="<?php echo esc_attr($sms_wallet_payment_user_pattern); ?>"
                                    class="small-text"
                                    placeholder="کد پترن (اختیاری)">
                             <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>

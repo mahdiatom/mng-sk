@@ -1254,4 +1254,92 @@ add_action( 'wp_enqueue_scripts', function () {
     );
 });
 
+/**
+ * AJAX handler for wallet period report
+ */
+add_action('wp_ajax_sc_get_wallet_period_report', 'sc_ajax_get_wallet_period_report');
+function sc_ajax_get_wallet_period_report() {
+    check_ajax_referer('sc_wallet_period_report', 'nonce');
+    
+    if (!is_user_logged_in()) {
+        wp_send_json_error(['message' => 'لطفاً ابتدا وارد حساب کاربری خود شوید.']);
+    }
+    
+    $member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
+    $period = isset($_POST['period']) ? sanitize_text_field($_POST['period']) : 'monthly';
+    $year = isset($_POST['year']) ? absint($_POST['year']) : date('Y');
+    $month = isset($_POST['month']) ? absint($_POST['month']) : date('m');
+    
+    // بررسی دسترسی کاربر به این member_id
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $current_user_id = get_current_user_id();
+    
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $members_table WHERE id = %d AND user_id = %d LIMIT 1",
+        $member_id, $current_user_id
+    ));
+    
+    if (!$member) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+    
+    $transactions = sc_get_wallet_transactions_by_period($member_id, $period, $year, $month);
+    $report = sc_get_wallet_financial_report($member_id);
+    
+    ob_start();
+    ?>
+    <div style="margin-top: 20px;">
+        <h4 style="margin-bottom: 15px;">گزارش <?php echo $period === 'monthly' ? 'ماهانه' : 'سالانه'; ?> - <?php echo $year; ?><?php echo $period === 'monthly' ? ' / ' . $month : ''; ?></h4>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
+            <div style="background: white; padding: 10px; border-radius: 4px; border-left: 3px solid #28a745;">
+                <div style="font-size: 12px; color: #666;">تعداد تراکنش</div>
+                <div style="font-size: 20px; font-weight: 700; color: #28a745;"><?php echo count($transactions); ?></div>
+            </div>
+        </div>
+        
+        <?php if (!empty($transactions)) : ?>
+            <table class="wp-list-table widefat fixed striped" style="margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th>نوع</th>
+                        <th>مبلغ</th>
+                        <th>موجودی بعد</th>
+                        <th>توضیحات</th>
+                        <th>تاریخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($transactions as $transaction) : ?>
+                        <tr>
+                            <td>
+                                <?php
+                                $type_labels = [
+                                    'charge' => 'شارژ',
+                                    'payment' => 'پرداخت',
+                                    'deduct' => 'کاهش',
+                                    'refund' => 'بازگشت'
+                                ];
+                                echo $type_labels[$transaction->transaction_type] ?? $transaction->transaction_type;
+                                ?>
+                            </td>
+                            <td><?php echo number_format(floatval($transaction->amount), 0, '.', ','); ?> تومان</td>
+                            <td><?php echo number_format(floatval($transaction->balance_after), 0, '.', ','); ?> تومان</td>
+                            <td><?php echo esc_html($transaction->description ?: '-'); ?></td>
+                            <td><?php echo esc_html(sc_date_shamsi($transaction->created_at, 'Y/m/d H:i')); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else : ?>
+            <p style="color: #666; margin-top: 15px;">تراکنشی در این دوره یافت نشد.</p>
+        <?php endif; ?>
+    </div>
+    <?php
+    $html = ob_get_clean();
+    
+    wp_send_json_success(['html' => $html]);
+}
+
 
