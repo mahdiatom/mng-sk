@@ -2814,7 +2814,7 @@ function callback_add_coach_sufix() {
             'coaching_experience' => !empty($_POST['coaching_experience']) ? intval($_POST['coaching_experience']) : NULL,
             'sports_history' => !empty($_POST['sports_history']) ? sanitize_textarea_field($_POST['sports_history']) : NULL,
             'settlement_type' => !empty($_POST['settlement_type']) ? sanitize_text_field($_POST['settlement_type']) : 'fixed',
-            'settlement_amount' => !empty($_POST['settlement_amount']) ? floatval($_POST['settlement_amount']) : 0.00,
+            'settlement_amount' => (isset($_POST['settlement_amount_raw']) && $_POST['settlement_amount_raw'] !== '') ? floatval(str_replace(',', '', $_POST['settlement_amount_raw'])) : 0.00,
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'updated_at' => current_time('mysql')
         ];

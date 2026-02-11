@@ -720,9 +720,11 @@ jQuery(document).ready(function($) {
 // ============================================
 
 jQuery(document).ready(function($) {
-    // فرمت کردن مبلغ
+    // فرمت کردن مبلغ فاکتور
     scFormatPrice('#amount', '#amount_raw');
-    });
+    // فرمت کردن مقدار تسویه ثابت ماهیانه مربی
+    scFormatPrice('#settlement_amount', '#settlement_amount_raw');
+});
     
 // ============================================
 // لیست فاکتورها (Invoice List) - فیلتر تاریخ

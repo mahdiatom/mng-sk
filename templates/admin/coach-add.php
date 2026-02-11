@@ -109,22 +109,36 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                 <th><label>نوع تسویه</label></th>
                 <td>
                     <label>
-                        <input type="radio" name="settlement_type" value="fixed" <?php checked($coach ? $coach->settlement_type : 'fixed', 'fixed'); ?>>
-                        مقداری
+                        <input type="radio" name="settlement_type" value="fixed" id="settlement_type_fixed" <?php checked($coach ? $coach->settlement_type : 'fixed', 'fixed'); ?>>
+                        ثابت
                     </label>
                     <label style="margin-right: 20px;">
-                        <input type="radio" name="settlement_type" value="percentage" <?php checked($coach ? $coach->settlement_type : '', 'percentage'); ?>>
+                        <input type="radio" name="settlement_type" value="percentage" id="settlement_type_percentage" <?php checked($coach ? $coach->settlement_type : '', 'percentage'); ?>>
                         درصدی
                     </label>
                 </td>
             </tr>
             
-            <tr>
-                <th><label for="settlement_amount">مبلغ / درصد تسویه</label></th>
-                <td><input type="number" name="settlement_amount" id="settlement_amount" value="<?php echo $coach ? esc_attr($coach->settlement_amount) : '0'; ?>" step="0.01" min="0" class="regular-text"></td>
+            <tr id="settlement_amount_row" style="<?php echo ($coach && $coach->settlement_type === 'percentage') ? 'display: none;' : ''; ?>">
+                <th><label for="settlement_amount">مقدار تسویه ثابت ماهیانه (تومان)</label></th>
+                <td>
+                    <input type="text"
+                           name="settlement_amount"
+                           id="settlement_amount"
+                           value="<?php echo ($coach && floatval($coach->settlement_amount) > 0) ? number_format($coach->settlement_amount, 0, '.', ',') : ''; ?>"
+                           class="regular-text"
+                           placeholder="0"
+                           dir="ltr"
+                           inputmode="numeric">
+                    <input type="hidden"
+                           name="settlement_amount_raw"
+                           id="settlement_amount_raw"
+                           value="<?php echo $coach ? esc_attr($coach->settlement_amount) : '0'; ?>">
+                    <p class="description">مبلغ ثابت ماهیانه که در پایان هر ماه شمسی به مربی پرداخت می‌شود.</p>
+                </td>
             </tr>
             
-            <tr>
+            <tr id="courses_row">
                 <th><label>دوره‌های مربی</label></th>
                 <td>
                     <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px;">
@@ -132,15 +146,15 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                             <table style="width: 100%; border-collapse: collapse;">
                                 <thead>
                                     <tr style="border-bottom: 2px solid #ddd;">
-                                        <th style="text-align: right; padding: 8px;">انتخاب</th>
+                                        <th style="text-align: center; padding: 4px; width: 60px;">انتخاب</th>
                                         <th style="text-align: right; padding: 8px;">نام دوره</th>
-                                        <th style="text-align: right; padding: 8px;">درصد دستمزد</th>
+                                        <th class="course-percentage-col" style="text-align: right; padding: 8px;">درصد دستمزد</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($all_courses as $course): ?>
                                         <tr style="border-bottom: 1px solid #eee;">
-                                            <td style="padding: 8px;">
+                                            <td style="padding: 4px; text-align: center; width: 60px;">
                                                 <input type="checkbox" 
                                                        name="courses[]" 
                                                        value="<?php echo $course->id; ?>" 
@@ -153,7 +167,7 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                                                     <?php echo esc_html($course->title); ?>
                                                 </label>
                                             </td>
-                                            <td style="padding: 8px;">
+                                            <td class="course-percentage-col" style="padding: 8px;">
                                                 <input type="number" 
                                                        name="course_percentage[<?php echo $course->id; ?>]" 
                                                        id="course_percentage_<?php echo $course->id; ?>"
@@ -227,6 +241,37 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
 
 <script>
 jQuery(document).ready(function($) {
+    // تابع برای نمایش/پنهان کردن فیلدها بر اساس نوع تسویه
+    function toggleSettlementFields() {
+        var settlementType = $('input[name="settlement_type"]:checked').val();
+        
+        if (settlementType === 'fixed') {
+            // اگر ثابت انتخاب شد: نمایش فیلد مبلغ ثابت، نمایش لیست دوره‌ها، پنهان کردن فقط ستون درصد دستمزد
+            $('#settlement_amount_row').show();
+            $('#courses_row').show();
+
+            // پنهان کردن ستون درصد دستمزد و غیرفعال کردن فیلدها
+            $('.course-percentage-col').hide();
+            $('.course-percentage').prop('disabled', true);
+        } else {
+            // اگر درصدی انتخاب شد: پنهان کردن فیلد مبلغ ثابت، نمایش لیست دوره‌ها و ستون درصد دستمزد
+            $('#settlement_amount_row').hide();
+            $('#courses_row').show();
+            $('.course-percentage-col').show();
+
+            // فعال کردن فیلدهای درصد برای دوره‌های انتخاب شده
+            $('.course-checkbox:checked').each(function() {
+                var courseId = $(this).data('course-id');
+                $('#course_percentage_' + courseId).prop('disabled', false);
+            });
+        }
+    }
+    
+    // تغییر نوع تسویه
+    $('input[name="settlement_type"]').on('change', function() {
+        toggleSettlementFields();
+    });
+    
     // فعال/غیرفعال کردن فیلد درصد بر اساس انتخاب دوره
     $('.course-checkbox').on('change', function() {
         var courseId = $(this).data('course-id');
@@ -241,6 +286,7 @@ jQuery(document).ready(function($) {
     });
     
     // مقداردهی اولیه
+    toggleSettlementFields();
     $('.course-checkbox').each(function() {
         $(this).trigger('change');
     });

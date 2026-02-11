@@ -32,18 +32,64 @@ $coach_id = $coach->id;
 $wallet_balance = sc_get_coach_wallet_balance($coach_id);
 
 // دریافت فیلترها
-$filter_date_from = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
-$filter_date_to = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
+$filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
 $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
+
+// اگر تاریخ‌ها خالی هستند، تاریخ پیش‌فرض امروز را تنظیم کن
+if (empty($filter_date_from_shamsi) && empty($filter_date_to_shamsi)) {
+    $today_gregorian = current_time('Y-m-d');
+    $today = new DateTime(current_time('Y-m-d'));
+    $jalali = gregorian_to_jalali(
+        (int)$today->format('Y'),
+        (int)$today->format('m'),
+        (int)$today->format('d')
+    );
+    $today_shamsi = $jalali[0] . '/' .
+        str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
+        str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+    
+    $filter_date_from_shamsi = $today_shamsi;
+    $filter_date_to_shamsi = $today_shamsi;
+    $filter_date_from = $today_gregorian;
+    $filter_date_to = $today_gregorian;
+} else {
+    // تبدیل تاریخ شمسی به میلادی
+    $filter_date_from = $filter_date_from_shamsi ? sc_shamsi_to_gregorian_date($filter_date_from_shamsi) : '';
+    $filter_date_to = $filter_date_to_shamsi ? sc_shamsi_to_gregorian_date($filter_date_to_shamsi) : '';
+}
+
+// دریافت دوره‌هایی که مربی به آن‌ها دسترسی دارد (برای فیلتر کردن)
+$course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+$coach_accessible_courses = $wpdb->get_col($wpdb->prepare(
+    "SELECT course_id FROM $course_coaches_table WHERE coach_id = %d",
+    $coach_id
+));
 
 // ساخت WHERE clause
 $where_conditions = ["coach_id = %d"];
 $where_values = [$coach_id];
 
 if ($filter_course > 0) {
-    $where_conditions[] = "course_id = %d";
-    $where_values[] = $filter_course;
+    // بررسی اینکه آیا مربی به این دوره دسترسی دارد
+    if (in_array($filter_course, $coach_accessible_courses)) {
+        $where_conditions[] = "course_id = %d";
+        $where_values[] = $filter_course;
+    } else {
+        // اگر مربی به دوره انتخاب شده دسترسی ندارد، هیچ نتیجه‌ای نمایش نده
+        $where_conditions[] = "1 = 0";
+    }
+} else {
+    // اگر دوره انتخاب نشده، فقط دوره‌هایی که مربی به آن‌ها دسترسی دارد را نمایش بده
+    if (!empty($coach_accessible_courses)) {
+        $placeholders = implode(',', array_fill(0, count($coach_accessible_courses), '%d'));
+        $where_conditions[] = "(course_id IN ($placeholders) OR course_id = 0)";
+        $where_values = array_merge($where_values, $coach_accessible_courses);
+    } else {
+        // اگر مربی به هیچ دوره‌ای دسترسی ندارد، فقط دستمزدهای ثابت را نمایش بده
+        $where_conditions[] = "course_id = 0";
+    }
 }
 
 if ($filter_type !== 'all') {
@@ -51,16 +97,14 @@ if ($filter_type !== 'all') {
     $where_values[] = $filter_type;
 }
 
-if ($filter_date_from) {
-    $date_from_gregorian = sc_shamsi_to_gregorian_date($filter_date_from);
+if (!empty($filter_date_from)) {
     $where_conditions[] = "attendance_date >= %s";
-    $where_values[] = $date_from_gregorian;
+    $where_values[] = $filter_date_from;
 }
 
-if ($filter_date_to) {
-    $date_to_gregorian = sc_shamsi_to_gregorian_date($filter_date_to);
+if (!empty($filter_date_to)) {
     $where_conditions[] = "attendance_date <= %s";
-    $where_values[] = $date_to_gregorian;
+    $where_values[] = $filter_date_to;
 }
 
 $where_clause = implode(' AND ', $where_conditions);
@@ -81,15 +125,13 @@ foreach ($salary_records as $record) {
     $total_salary += floatval($record->salary_amount);
 }
 
-// دریافت لیست دوره‌ها برای فیلتر
-$courses = $wpdb->get_results($wpdb->prepare(
-    "SELECT DISTINCT c.id, c.title 
-     FROM $courses_table c
-     INNER JOIN $salary_records_table sr ON c.id = sr.course_id
-     WHERE sr.coach_id = %d
-     ORDER BY c.title ASC",
-    $coach_id
-));
+// دریافت تمام دوره‌های فعال برای فیلتر (همه دوره‌ها)
+$all_courses_for_filter = $wpdb->get_results(
+    "SELECT id, title 
+     FROM $courses_table 
+     WHERE deleted_at IS NULL AND is_active = 1 
+     ORDER BY title ASC"
+);
 ?>
 
 <div class="wrap">
@@ -110,23 +152,33 @@ $courses = $wpdb->get_results($wpdb->prepare(
             <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
                 <div>
                     <label>از تاریخ (شمسی):</label><br>
-                    <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" 
-                           value="<?php echo esc_attr($filter_date_from); ?>" 
-                           class="persian-datepicker" style="width: 150px;">
+                    <input type="text" 
+                           name="filter_date_from_shamsi" 
+                           id="filter_date_from_shamsi" 
+                           value="<?php echo esc_attr($filter_date_from_shamsi); ?>" 
+                           class="regular-text persian-date-input" 
+                           style="width: 150px;"
+                           readonly>
+                    <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
                 </div>
                 
                 <div>
                     <label>تا تاریخ (شمسی):</label><br>
-                    <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" 
-                           value="<?php echo esc_attr($filter_date_to); ?>" 
-                           class="persian-datepicker" style="width: 150px;">
+                    <input type="text" 
+                           name="filter_date_to_shamsi" 
+                           id="filter_date_to_shamsi" 
+                           value="<?php echo esc_attr($filter_date_to_shamsi); ?>" 
+                           class="regular-text persian-date-input" 
+                           style="width: 150px;"
+                           readonly>
+                    <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
                 </div>
                 
                 <div>
                     <label>دوره:</label><br>
                     <select name="filter_course" style="width: 200px;">
                         <option value="0">همه دوره‌ها</option>
-                        <?php foreach ($courses as $course): ?>
+                        <?php foreach ($all_courses_for_filter as $course): ?>
                             <option value="<?php echo $course->id; ?>" <?php selected($filter_course, $course->id); ?>>
                                 <?php echo esc_html($course->title); ?>
                             </option>
@@ -222,16 +274,33 @@ $courses = $wpdb->get_results($wpdb->prepare(
 
 <script>
 jQuery(document).ready(function($) {
-    // فعال‌سازی datepicker شمسی
-    if (typeof initPersianDatepicker === 'function') {
-        initPersianDatepicker();
-    } else if ($.fn.persianDatepicker) {
-        $('.persian-datepicker').persianDatepicker({
-            format: 'YYYY/MM/DD',
-            observer: true,
-            altField: '.observer-example-alt',
-            altFormat: 'YYYY/MM/DD'
-        });
+    // تبدیل تاریخ شمسی به میلادی هنگام تغییر
+    function updateGregorianDate($shamsiInput) {
+        var shamsiValue = $shamsiInput.val();
+        if (!shamsiValue) return;
+        
+        var gregorianValue = convertShamsiToGregorian(shamsiValue);
+        if (gregorianValue) {
+            var inputId = $shamsiInput.attr('id');
+            if (inputId === 'filter_date_from_shamsi') {
+                $('#filter_date_from').val(gregorianValue);
+            } else if (inputId === 'filter_date_to_shamsi') {
+                $('#filter_date_to').val(gregorianValue);
+            }
+        }
     }
+    
+    // تبدیل اولیه تاریخ‌ها
+    if ($('#filter_date_from_shamsi').val()) {
+        updateGregorianDate($('#filter_date_from_shamsi'));
+    }
+    if ($('#filter_date_to_shamsi').val()) {
+        updateGregorianDate($('#filter_date_to_shamsi'));
+    }
+    
+    // تبدیل هنگام تغییر تاریخ
+    $(document).on('change', '#filter_date_from_shamsi, #filter_date_to_shamsi', function() {
+        updateGregorianDate($(this));
+    });
 });
 </script>
