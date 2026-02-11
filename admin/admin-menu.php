@@ -2075,6 +2075,13 @@ function sc_sprot_notices(){
             $type='error';
             $messege="بازیکن تیم صورت‌حساب دریافت نمی‌کند؛ هزینه هر جلسه از کیف پول کسر می‌شود.";
         }
+        if($status == 'pay_card_to_card'){
+            $type='success';
+            $updated = isset($_GET['updated']) ? absint($_GET['updated']) : 0;
+            $messege = $updated > 0
+                ? sprintf('روش پرداخت «کارت به کارت» برای %d صورت حساب ثبت شد.', $updated)
+                : 'روش پرداخت به‌روزرسانی شد.';
+        }
         if($status == 'bulk_deleted' && $status2 == 'deleted_player' ){
             $type='success';
             $messege="بازیکن مورد نظر با موفیت حذف شد.";

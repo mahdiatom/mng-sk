@@ -262,6 +262,7 @@ public function column_order_number($item) {
             'mark_completed' => 'تغییر وضعیت به: تایید پرداخت',
             'mark_cancelled' => 'تغییر وضعیت به: لغو شده',
             'mark_failed' => 'تغییر وضعیت به: ناموفق',
+            'mark_card_to_card' => 'پرداخت کارت به کارت',
             'delete' => 'حذف',
             'remove_penalty' => 'حذف جریمه'
 
@@ -386,6 +387,25 @@ public function column_order_number($item) {
                 }
 
                 wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=penalty_removed'));
+                exit;
+
+            case 'mark_card_to_card':
+                $updated = 0;
+                foreach ($invoice_ids as $invoice_id) {
+                    $invoice = $wpdb->get_row($wpdb->prepare(
+                        "SELECT woocommerce_order_id FROM $table_name WHERE id = %d",
+                        $invoice_id
+                    ));
+                    if ($invoice && !empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
+                        $order = wc_get_order($invoice->woocommerce_order_id);
+                        if ($order) {
+                            $order->update_meta_data('pay', 'کارت به کارت');
+                            $order->save();
+                            $updated++;
+                        }
+                    }
+                }
+                wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=pay_card_to_card&updated=' . $updated));
                 exit;
 
             default:
@@ -528,7 +548,7 @@ public function column_order_number($item) {
         $views = [];
 
         foreach ($statuses as $status_key => $status_label) {
-            $count =0;
+            $count = ($status_key === 'all') ? (int) $count_all : 0;
             if ($status_key !== 'all') {
                 $count_where = $where_conditions;
                 $count_where_values = $where_values;

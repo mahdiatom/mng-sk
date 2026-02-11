@@ -249,9 +249,14 @@ public function column_full_name($item) {
 
     
 
-    protected function view_create($key, $label, $url, $count = 0) {
-        $current_status = isset($_GET['player_status']) ? $_GET['player_status'] : 'all';
-        $class_view = $current_status == $key ? 'current' : '';
+    protected function view_create($key, $label, $url, $count = 0, $current_param = 'player_status') {
+        $current_val = 'all';
+        if ($current_param === 'player_status') {
+            $current_val = isset($_GET['player_status']) ? $_GET['player_status'] : 'all';
+        } elseif ($current_param === 'filter_member_type') {
+            $current_val = isset($_GET['filter_member_type']) ? $_GET['filter_member_type'] : 'all';
+        }
+        $class_view = $current_val == $key ? 'current' : '';
         if (isset($_GET['s'])) {
             $url .= "&s=" . sanitize_text_field($_GET['s']);
         }
@@ -278,32 +283,52 @@ public function column_full_name($item) {
         $count_all = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE $where");
         $count_active = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_active = 1");
         $count_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_active = 0");
+        $count_normal = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE (COALESCE(member_type, 'normal') = 'normal')");
+        $count_team = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE (COALESCE(member_type, 'normal') = 'team')");
+
+        $base_member_type = (isset($_GET['filter_member_type']) && in_array($_GET['filter_member_type'], ['normal', 'team'])) ? $_GET['filter_member_type'] : '';
+        $url_active = admin_url('admin.php?page=sc-members&player_status=active');
+        $url_inactive = admin_url('admin.php?page=sc-members&player_status=inactive');
+        if ($base_member_type) {
+            $url_active = add_query_arg('filter_member_type', $base_member_type, $url_active);
+            $url_inactive = add_query_arg('filter_member_type', $base_member_type, $url_inactive);
+        }
 
         $views = [
             'all' => $this->view_create(
                 'all',
                 'همه',
-                admin_url('admin.php?page=sc-members&player_status=all'),
+                admin_url('admin.php?page=sc-members&player_status=all&filter_member_type=all'),
                 $count_all
             ),
             'active' => $this->view_create(
                 'active',
                 'فعال',
-                admin_url('admin.php?page=sc-members&player_status=active'),
+                $url_active,
                 $count_active
-            )
-        ];
-        
-        // نمایش تب غیرفعال فقط در صورت وجود کاربر غیرفعال
-       
-            $views['inactive'] = $this->view_create(
+            ),
+            'inactive' => $this->view_create(
                 'inactive',
                 'غیرفعال',
-                admin_url('admin.php?page=sc-members&player_status=inactive'),
+                $url_inactive,
                 $count_inactive
-            );
-        
-        
+            ),
+            'member_normal' => $this->view_create(
+                'normal',
+                'بازیکن عادی',
+                admin_url('admin.php?page=sc-members&filter_member_type=normal'),
+                $count_normal,
+                'filter_member_type'
+            ),
+            'member_team' => $this->view_create(
+                'team',
+                'بازیکن تیم',
+                admin_url('admin.php?page=sc-members&filter_member_type=team'),
+                $count_team,
+                'filter_member_type'
+            ),
+        ];
+
         return $views;
     }
     
