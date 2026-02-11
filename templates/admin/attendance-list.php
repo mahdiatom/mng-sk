@@ -136,11 +136,19 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
 }
 $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
 
+$coaches_table = $wpdb->prefix . 'sc_coaches';
+// لیست مربیان برای فیلتر (فقط برای مدیر باشگاه)
+$coaches_list = [];
+if (current_user_can('club_coach') || current_user_can('administrator')) {
+    $coaches_list = $wpdb->get_results("SELECT id, first_name, last_name, user_id FROM $coaches_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+}
+
 // ==================== تب 1: لیست حضور و غیاب کاربران ====================
 if ($active_tab === 'individual') {
     // دریافت فیلترها
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+    $filter_coach = (current_user_can('club_coach') || current_user_can('administrator')) && isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
     
     // پردازش فیلترهای تاریخ (شمسی به میلادی)
     $filter_date_from = '';
@@ -229,6 +237,18 @@ if ($active_tab === 'individual') {
         $where_values[] = $filter_status;
     }
 
+    // فیلتر مربی (فقط برای مدیر باشگاه)
+    if ($filter_coach > 0) {
+        $coach_user_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT user_id FROM $coaches_table WHERE id = %d LIMIT 1",
+            $filter_coach
+        ));
+        if ($coach_user_id) {
+            $where_conditions[] = "a.user_id = %d";
+            $where_values[] = $coach_user_id;
+        }
+    }
+
     $where_clause = implode(' AND ', $where_conditions);
 
     // دریافت تعداد کل رکوردها برای pagination
@@ -244,14 +264,18 @@ if ($active_tab === 'individual') {
     $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
     $offset = ($current_page - 1) * $per_page;
 
-    // دریافت لیست حضور و غیاب‌ها
+    // دریافت لیست حضور و غیاب‌ها (با ستون ثبت‌کننده)
+    $users_table = $wpdb->users;
     $query_values = $where_values;
     $query = "SELECT a.*, 
                      m.first_name, m.last_name, m.national_id,
-                     c.title as course_title
+                     c.title as course_title,
+                     COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-') as recorded_by_name
               FROM $attendances_table a
               INNER JOIN $members_table m ON a.member_id = m.id
               INNER JOIN $courses_table c ON a.course_id = c.id
+              LEFT JOIN $coaches_table rec_coach ON rec_coach.user_id = a.user_id
+              LEFT JOIN $users_table rec_user ON rec_user.ID = a.user_id
               WHERE $where_clause
               ORDER BY a.attendance_date DESC, a.created_at DESC
               LIMIT %d OFFSET %d";
@@ -273,6 +297,7 @@ if ($active_tab === 'individual') {
 if ($active_tab === 'grouped') {
     // دریافت فیلترها
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+    $filter_coach = (current_user_can('club_coach') || current_user_can('administrator')) && isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
     // پردازش فیلترهای تاریخ (شمسی به میلادی)
     $filter_date_from = '';
     $filter_date_to = '';
@@ -348,18 +373,34 @@ if ($active_tab === 'grouped') {
         $where_values[] = $filter_date_to;
     }
 
-    $where_clause = implode(' AND ', $where_conditions);
+    // فیلتر مربی (فقط برای مدیر باشگاه)
+    if ($filter_coach > 0) {
+        $coach_user_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT user_id FROM $coaches_table WHERE id = %d LIMIT 1",
+            $filter_coach
+        ));
+        if ($coach_user_id) {
+            $where_conditions[] = "a.user_id = %d";
+            $where_values[] = $coach_user_id;
+        }
+    }
 
-    // دریافت لیست گروه‌بندی شده
+    $where_clause = implode(' AND ', $where_conditions);
+    $users_table = $wpdb->users;
+
+    // دریافت لیست گروه‌بندی شده (با ستون ثبت‌کنندگان)
     $query = "SELECT 
                 a.course_id,
                 a.attendance_date,
                 c.title as course_title,
                 COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present_count,
                 COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent_count,
-                COUNT(*) as total_count
+                COUNT(*) as total_count,
+                GROUP_CONCAT(DISTINCT COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-') SEPARATOR '، ') as recorded_by_names
               FROM $attendances_table a
               INNER JOIN $courses_table c ON a.course_id = c.id
+              LEFT JOIN $coaches_table rec_coach ON rec_coach.user_id = a.user_id
+              LEFT JOIN $users_table rec_user ON rec_user.ID = a.user_id
               WHERE $where_clause
               GROUP BY a.course_id, a.attendance_date
               ORDER BY a.attendance_date DESC, c.title ASC";
@@ -384,6 +425,7 @@ if ($active_tab === 'overall') {
     // دریافت فیلترها
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+    $filter_coach = (current_user_can('club_coach') || current_user_can('administrator')) && isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
     
     // پردازش فیلترهای تاریخ (شمسی به میلادی)
     $filter_date_from = '';
@@ -453,6 +495,18 @@ if ($active_tab === 'overall') {
     if ($filter_member > 0) {
         $where_conditions[] = "a.member_id = %d";
         $where_values[] = $filter_member;
+    }
+
+    // فیلتر مربی (فقط برای مدیر باشگاه)
+    if ($filter_coach > 0) {
+        $coach_user_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT user_id FROM $coaches_table WHERE id = %d LIMIT 1",
+            $filter_coach
+        ));
+        if ($coach_user_id) {
+            $where_conditions[] = "a.user_id = %d";
+            $where_values[] = $coach_user_id;
+        }
     }
     
     if ($filter_date_from) {
@@ -622,6 +676,19 @@ $max_display = 10;
 </div>
 </div>
 
+<?php if (!empty($coaches_list)) : ?>
+<!-- مربی ثبت‌کننده -->
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_coach">مربی ثبت‌کننده</label>
+<select name="filter_coach" id="filter_coach" class="sc-filter-control">
+<option value="0">همه</option>
+<?php foreach ($coaches_list as $coach) : ?>
+<option value="<?php echo esc_attr($coach->id); ?>" <?php selected($filter_coach ?? 0, $coach->id); ?>><?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?></option>
+<?php endforeach; ?>
+</select>
+</div>
+<?php endif; ?>
+
 <!-- وضعیت -->
 <div class="sc-filter-field">
 <label class="sc-filter-label" for="filter_status">وضعیت پرداخت</label>
@@ -706,6 +773,9 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                 $export_url = admin_url('admin.php?page=sc-attendance-list&sc_export=excel&export_type=attendance');
                 $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
                 $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
+                if (!empty($coaches_list) && isset($_GET['filter_coach']) && $_GET['filter_coach'] > 0) {
+                    $export_url = add_query_arg('filter_coach', $_GET['filter_coach'], $export_url);
+                }
                 if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
                     $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
                 }
@@ -740,6 +810,7 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                             <th>نام</th>
                             <th>نام خانوادگی</th>
                             <th>شناسه بازیکن</th>
+                            <th>ثبت‌کننده</th>
                             <th>وضعیت</th>
                             <th style="width: 150px;">عملیات</th>
                         </tr>
@@ -765,6 +836,7 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                                 <td><?php echo esc_html($attendance->first_name); ?></td>
                                 <td><?php echo esc_html($attendance->last_name); ?></td>
                                 <td><?php echo esc_html($attendance->member_id); ?></td>
+                                <td><?php echo esc_html($attendance->recorded_by_name ?? '-'); ?></td>
                                 <td>
                                     <span style="
                                         padding: 5px 10px;
@@ -794,8 +866,14 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                     <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
                         <div class="tablenav-pages">
                             <?php
+                            $pagination_args = ['paged' => '%#%', 'tab' => 'individual', 'filter_course' => $filter_course, 'filter_member' => $filter_member, 'filter_status' => $filter_status];
+                            if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
+                            if (!empty($filter_date_from)) $pagination_args['filter_date_from'] = $filter_date_from;
+                            if (!empty($filter_date_to)) $pagination_args['filter_date_to'] = $filter_date_to;
+                            if (!empty($_GET['filter_date_from_shamsi'])) $pagination_args['filter_date_from_shamsi'] = $_GET['filter_date_from_shamsi'];
+                            if (!empty($_GET['filter_date_to_shamsi'])) $pagination_args['filter_date_to_shamsi'] = $_GET['filter_date_to_shamsi'];
                             $page_links = paginate_links([
-                                'base' => add_query_arg(['paged' => '%#%', 'tab' => 'individual']),
+                                'base' => add_query_arg($pagination_args),
                                 'format' => '',
                                 'prev_text' => '< قبلی ',
                                 'next_text' => ' بعدی >',
@@ -833,6 +911,21 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                         </select>
                     </td>
                 </tr>
+                <?php if (!empty($coaches_list)) : ?>
+                <tr>
+                    <th scope="row">
+                        <label for="filter_coach">مربی ثبت‌کننده</label>
+                    </th>
+                    <td>
+                        <select name="filter_coach" id="filter_coach">
+                            <option value="0">همه</option>
+                            <?php foreach ($coaches_list as $coach) : ?>
+                                <option value="<?php echo esc_attr($coach->id); ?>" <?php selected($filter_coach ?? 0, $coach->id); ?>><?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                </tr>
+                <?php endif; ?>
                 <tr>
                     <th scope="row">
                         <label>بازه تاریخ</label>
@@ -900,6 +993,7 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                             <th class="column-row">ردیف</th>
                             <th>دوره</th>
                             <th>تاریخ</th>
+                            <th>ثبت‌کننده</th>
                             <th> حاضر</th>
                             <th> غایب</th>
                             <th>کل</th>
@@ -920,6 +1014,7 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                                     <br>
                                     <small style="color: #666;"><?php echo sc_date_shamsi($group->attendance_date, 'l'); ?></small>
                                 </td>
+                                <td><?php echo esc_html($group->recorded_by_names ?? '-'); ?></td>
                                 <td>
                                         <?php echo esc_html($group->present_count); ?> نفر
                                     </span>
@@ -941,6 +1036,9 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                                     $export_url = add_query_arg('filter_course', $group->course_id, $export_url);
                                     $export_url = add_query_arg('filter_date_from', $group->attendance_date, $export_url);
                                     $export_url = add_query_arg('filter_date_to', $group->attendance_date, $export_url);
+                                    if (!empty($coaches_list) && $filter_coach > 0) {
+                                        $export_url = add_query_arg('filter_coach', $filter_coach, $export_url);
+                                    }
                                     $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                                     ?>
                                     <a href="<?php echo esc_url($export_url); ?>" 
@@ -997,6 +1095,21 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                         </select>
                     </td>
                 </tr>
+                <?php if (!empty($coaches_list)) : ?>
+                <tr>
+                    <th scope="row">
+                        <label for="filter_coach">مربی ثبت‌کننده</label>
+                    </th>
+                    <td>
+                        <select name="filter_coach" id="filter_coach">
+                            <option value="0">همه</option>
+                            <?php foreach ($coaches_list as $coach) : ?>
+                                <option value="<?php echo esc_attr($coach->id); ?>" <?php selected($filter_coach ?? 0, $coach->id); ?>><?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                </tr>
+                <?php endif; ?>
                 <tr>
                     <th scope="row">
                         <label for="filter_member">کاربر</label>
@@ -1120,6 +1233,9 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                 $export_url = admin_url('admin.php?page=sc-attendance-list&sc_export=excel&export_type=attendance_overall');
                 $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
                 $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
+                if (!empty($coaches_list) && isset($_GET['filter_coach']) && $_GET['filter_coach'] > 0) {
+                    $export_url = add_query_arg('filter_coach', $_GET['filter_coach'], $export_url);
+                }
                 if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
                     $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
                 }

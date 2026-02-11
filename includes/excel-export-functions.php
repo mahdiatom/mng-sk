@@ -446,9 +446,13 @@ function sc_export_attendance_to_excel() {
     // دریافت فیلترها
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+    $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
     $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
     $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
     $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+    
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $users_table = $wpdb->users;
     
     // ساخت WHERE clause
     $where_conditions = ['1=1'];
@@ -462,6 +466,17 @@ function sc_export_attendance_to_excel() {
     if ($filter_member > 0) {
         $where_conditions[] = "a.member_id = %d";
         $where_values[] = $filter_member;
+    }
+    
+    if ($filter_coach > 0) {
+        $coach_user_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT user_id FROM $coaches_table WHERE id = %d LIMIT 1",
+            $filter_coach
+        ));
+        if ($coach_user_id) {
+            $where_conditions[] = "a.user_id = %d";
+            $where_values[] = $coach_user_id;
+        }
     }
     
     if ($filter_date_from) {
@@ -481,13 +496,16 @@ function sc_export_attendance_to_excel() {
     
     $where_clause = implode(' AND ', $where_conditions);
     
-    // دریافت داده‌ها
+    // دریافت داده‌ها (با ستون ثبت‌کننده)
     $query = "SELECT a.*, 
                      m.first_name, m.last_name, m.national_id,
-                     c.title as course_title
+                     c.title as course_title,
+                     COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-') as recorded_by_name
               FROM $attendances_table a
               INNER JOIN $members_table m ON a.member_id = m.id
               INNER JOIN $courses_table c ON a.course_id = c.id
+              LEFT JOIN $coaches_table rec_coach ON rec_coach.user_id = a.user_id
+              LEFT JOIN $users_table rec_user ON rec_user.ID = a.user_id
               WHERE $where_clause
               ORDER BY a.attendance_date DESC, a.created_at DESC";
     
@@ -513,6 +531,7 @@ function sc_export_attendance_to_excel() {
         'نام',
         'نام خانوادگی',
         'کد ملی',
+        'ثبت‌کننده',
         'وضعیت',
         'تاریخ ثبت'
     ];
@@ -525,7 +544,7 @@ function sc_export_attendance_to_excel() {
     
     // اعمال استایل به header
     $headerStyle = sc_get_excel_header_style();
-    $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
     
     // داده‌ها
     $row = 2;
@@ -552,6 +571,9 @@ function sc_export_attendance_to_excel() {
         // کد ملی
         $sheet->setCellValueByColumnAndRow($col++, $row, $attendance->national_id);
         
+        // ثبت‌کننده
+        $sheet->setCellValueByColumnAndRow($col++, $row, $attendance->recorded_by_name ?? '-');
+        
         // وضعیت
         $status_label = $attendance->status === 'present' ? 'حاضر' : 'غایب';
         $sheet->setCellValueByColumnAndRow($col++, $row, $status_label);
@@ -563,16 +585,16 @@ function sc_export_attendance_to_excel() {
         $dataStyle = sc_get_excel_data_style();
         if ($row % 2 == 0) {
             $alternateStyle = sc_get_excel_alternate_row_style();
-            $sheet->getStyle("A$row:H$row")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+            $sheet->getStyle("A$row:I$row")->applyFromArray(array_merge($dataStyle, $alternateStyle));
         } else {
-            $sheet->getStyle("A$row:H$row")->applyFromArray($dataStyle);
+            $sheet->getStyle("A$row:I$row")->applyFromArray($dataStyle);
         }
         
         $row++;
     }
     
     // تنظیم عرض ستون‌ها
-    sc_auto_size_columns($sheet, 8);
+    sc_auto_size_columns($sheet, 9);
     
     // ایجاد نام فایل
     $filters = [
@@ -814,8 +836,12 @@ function sc_export_attendance_overall_to_excel() {
     
     // دریافت فیلترها
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+    $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+    $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
     $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
     $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+    
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
     
     // ساخت WHERE clause
     $where_conditions = ['1=1'];
@@ -824,6 +850,22 @@ function sc_export_attendance_overall_to_excel() {
     if ($filter_course > 0) {
         $where_conditions[] = "a.course_id = %d";
         $where_values[] = $filter_course;
+    }
+    
+    if ($filter_member > 0) {
+        $where_conditions[] = "a.member_id = %d";
+        $where_values[] = $filter_member;
+    }
+    
+    if ($filter_coach > 0) {
+        $coach_user_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT user_id FROM $coaches_table WHERE id = %d LIMIT 1",
+            $filter_coach
+        ));
+        if ($coach_user_id) {
+            $where_conditions[] = "a.user_id = %d";
+            $where_values[] = $coach_user_id;
+        }
     }
     
     if ($filter_date_from) {
