@@ -171,8 +171,21 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
         $filter_status     = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
         $filter_date_from  = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
         $filter_date_to    = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
-        $filter_amount_min = isset($_GET['filter_amount_min']) && $_GET['filter_amount_min'] !== '' ? floatval($_GET['filter_amount_min']) : null;
-        $filter_amount_max = isset($_GET['filter_amount_max']) && $_GET['filter_amount_max'] !== '' ? floatval($_GET['filter_amount_max']) : null;
+        // فیلتر مبلغ از فیلدهای خام (بدون جداکننده) خوانده می‌شود
+        if (isset($_GET['filter_amount_min_raw']) && $_GET['filter_amount_min_raw'] !== '') {
+            $filter_amount_min = floatval(str_replace(',', '', $_GET['filter_amount_min_raw']));
+        } elseif (isset($_GET['filter_amount_min']) && $_GET['filter_amount_min'] !== '') {
+            $filter_amount_min = floatval(str_replace(',', '', $_GET['filter_amount_min']));
+        } else {
+            $filter_amount_min = null;
+        }
+        if (isset($_GET['filter_amount_max_raw']) && $_GET['filter_amount_max_raw'] !== '') {
+            $filter_amount_max = floatval(str_replace(',', '', $_GET['filter_amount_max_raw']));
+        } elseif (isset($_GET['filter_amount_max']) && $_GET['filter_amount_max'] !== '') {
+            $filter_amount_max = floatval(str_replace(',', '', $_GET['filter_amount_max']));
+        } else {
+            $filter_amount_max = null;
+        }
         $search            = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
         
         // ساخت شرط WHERE

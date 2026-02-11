@@ -19,7 +19,9 @@ $message_type = '';
 
 if (isset($_POST['sc_deduct_wallet']) && check_admin_referer('sc_deduct_wallet_nonce', 'sc_deduct_wallet_nonce')) {
     $member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
-    $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
+    // مبلغ را از فیلد خام (بدون جداکننده) بخوان
+    $amount_raw = isset($_POST['amount_raw']) && $_POST['amount_raw'] !== '' ? $_POST['amount_raw'] : (isset($_POST['amount']) ? $_POST['amount'] : '');
+    $amount = $amount_raw !== '' ? floatval(str_replace(',', '', $amount_raw)) : 0;
     $description = isset($_POST['description']) ? sanitize_text_field($_POST['description']) : '';
 
     if ($member_id <= 0) {
@@ -144,14 +146,19 @@ $members = $wpdb->get_results(
                     <label for="amount">مبلغ کسر (تومان) <span style="color: red;">*</span></label>
                 </th>
                 <td>
-                    <input type="number" 
+                    <input type="text" 
                            name="amount" 
                            id="amount" 
                            class="regular-text" 
-                           min="0" 
-                           step="1000" 
+                           placeholder="0"
+                           dir="ltr"
+                           inputmode="numeric"
                            value="<?php echo isset($_POST['amount']) ? esc_attr($_POST['amount']) : ''; ?>" 
                            required>
+                    <input type="hidden"
+                           name="amount_raw"
+                           id="amount_raw"
+                           value="<?php echo isset($_POST['amount_raw']) ? esc_attr($_POST['amount_raw']) : (isset($_POST['amount']) ? esc_attr($_POST['amount']) : ''); ?>">
                     <p class="description" id="balance_info">
                         موجودی فعلی: <span id="current_balance">-</span> تومان
                         <?php if (sc_get_wallet_max_negative_balance() > 0) : ?>
@@ -207,14 +214,6 @@ jQuery(document).ready(function($) {
     <?php if ($selected_member_id > 0) : ?>
         $('#current_balance').text(<?php echo esc_js(number_format($selected_member_balance, 0, '.', ',')); ?>);
     <?php endif; ?>
-
-    // فرمت کردن مبلغ با کاما
-    $('#amount').on('input', function() {
-        var value = $(this).val().replace(/,/g, '');
-        if (value && !isNaN(value)) {
-            $(this).val(parseFloat(value));
-        }
-    });
 });
 </script>
 

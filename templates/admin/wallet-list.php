@@ -225,17 +225,31 @@ if (empty($filter_date_to)) {
                 <div>
                     <label style="display: block; margin-bottom: 5px; font-weight: 600;">بازه مبلغ (تومان)</label>
                     <div>
-                        <input type="number"
+                        <input type="text"
                                name="filter_amount_min"
+                               id="filter_amount_min"
                                value="<?php echo esc_attr(isset($_GET['filter_amount_min']) ? $_GET['filter_amount_min'] : ''); ?>"
                                placeholder="از"
-                               style="width: 100px;">
+                               style="width: 100px;"
+                               dir="ltr"
+                               inputmode="numeric">
+                        <input type="hidden"
+                               name="filter_amount_min_raw"
+                               id="filter_amount_min_raw"
+                               value="<?php echo esc_attr(isset($_GET['filter_amount_min_raw']) ? $_GET['filter_amount_min_raw'] : (isset($_GET['filter_amount_min']) ? $_GET['filter_amount_min'] : '')); ?>">
                         <span>تا</span>
-                        <input type="number"
+                        <input type="text"
                                name="filter_amount_max"
+                               id="filter_amount_max"
                                value="<?php echo esc_attr(isset($_GET['filter_amount_max']) ? $_GET['filter_amount_max'] : ''); ?>"
                                placeholder="تا"
-                               style="width: 100px;">
+                               style="width: 100px;"
+                               dir="ltr"
+                               inputmode="numeric">
+                        <input type="hidden"
+                               name="filter_amount_max_raw"
+                               id="filter_amount_max_raw"
+                               value="<?php echo esc_attr(isset($_GET['filter_amount_max_raw']) ? $_GET['filter_amount_max_raw'] : (isset($_GET['filter_amount_max']) ? $_GET['filter_amount_max'] : '')); ?>">
                     </div>
                 </div>
 
@@ -265,10 +279,14 @@ if (empty($filter_date_to)) {
                     if (isset($_GET['filter_date_to']) && $_GET['filter_date_to'] !== '') {
                         $export_url = add_query_arg('filter_date_to', sanitize_text_field($_GET['filter_date_to']), $export_url);
                     }
-                    if (isset($_GET['filter_amount_min']) && $_GET['filter_amount_min'] !== '') {
+                    if (isset($_GET['filter_amount_min_raw']) && $_GET['filter_amount_min_raw'] !== '') {
+                        $export_url = add_query_arg('filter_amount_min_raw', sanitize_text_field($_GET['filter_amount_min_raw']), $export_url);
+                    } elseif (isset($_GET['filter_amount_min']) && $_GET['filter_amount_min'] !== '') {
                         $export_url = add_query_arg('filter_amount_min', sanitize_text_field($_GET['filter_amount_min']), $export_url);
                     }
-                    if (isset($_GET['filter_amount_max']) && $_GET['filter_amount_max'] !== '') {
+                    if (isset($_GET['filter_amount_max_raw']) && $_GET['filter_amount_max_raw'] !== '') {
+                        $export_url = add_query_arg('filter_amount_max_raw', sanitize_text_field($_GET['filter_amount_max_raw']), $export_url);
+                    } elseif (isset($_GET['filter_amount_max']) && $_GET['filter_amount_max'] !== '') {
                         $export_url = add_query_arg('filter_amount_max', sanitize_text_field($_GET['filter_amount_max']), $export_url);
                     }
                     if (isset($_GET['s']) && $_GET['s'] !== '') {

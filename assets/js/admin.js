@@ -720,10 +720,13 @@ jQuery(document).ready(function($) {
 // ============================================
 
 jQuery(document).ready(function($) {
-    // فرمت کردن مبلغ فاکتور
+    // فرمت کردن مبلغ فاکتور / هزینه / شارژ / کسر (هر صفحه‌ای که این فیلدها را داشته باشد)
     scFormatPrice('#amount', '#amount_raw');
     // فرمت کردن مقدار تسویه ثابت ماهیانه مربی
     scFormatPrice('#settlement_amount', '#settlement_amount_raw');
+    // فیلتر بازه مبلغ در لیست تراکنش‌های کیف پول
+    scFormatPrice('#filter_amount_min', '#filter_amount_min_raw');
+    scFormatPrice('#filter_amount_max', '#filter_amount_max_raw');
 });
     
 // ============================================

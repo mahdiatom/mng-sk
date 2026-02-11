@@ -19,7 +19,9 @@ $member_id_from_url = isset($_GET['member_id']) ? absint($_GET['member_id']) : 0
 
 if (isset($_POST['sc_charge_wallet']) && check_admin_referer('sc_charge_wallet_nonce', 'sc_charge_wallet_nonce')) {
     $member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
-    $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
+    // مبلغ را از فیلد خام (بدون جداکننده) بخوان
+    $amount_raw = isset($_POST['amount_raw']) && $_POST['amount_raw'] !== '' ? $_POST['amount_raw'] : (isset($_POST['amount']) ? $_POST['amount'] : '');
+    $amount = $amount_raw !== '' ? floatval(str_replace(',', '', $amount_raw)) : 0;
     $description = isset($_POST['description']) ? sanitize_text_field($_POST['description']) : '';
 
     if ($member_id <= 0) {
@@ -142,14 +144,19 @@ $members = $wpdb->get_results(
                     <label for="amount">مبلغ شارژ (تومان) <span style="color: red;">*</span></label>
                 </th>
                 <td>
-                    <input type="number" 
+                    <input type="text" 
                            name="amount" 
                            id="amount" 
                            class="regular-text" 
-                           min="0" 
-                           step="1000" 
+                           placeholder="0"
+                           dir="ltr"
+                           inputmode="numeric"
                            value="<?php echo isset($_POST['amount']) ? esc_attr($_POST['amount']) : ''; ?>" 
                            required>
+                    <input type="hidden"
+                           name="amount_raw"
+                           id="amount_raw"
+                           value="<?php echo isset($_POST['amount_raw']) ? esc_attr($_POST['amount_raw']) : (isset($_POST['amount']) ? esc_attr($_POST['amount']) : ''); ?>">
                     <p class="description">
                         حداقل مبلغ: <?php echo number_format(sc_get_wallet_min_charge(), 0, '.', ','); ?> تومان
                         <?php if (sc_get_wallet_max_charge() > 0) : ?>
@@ -188,14 +195,6 @@ jQuery(document).ready(function($) {
         // استفاده از تابع موجود scSelectMember
         scSelectMember(element, memberId, memberText);
     };
-    
-    // فرمت کردن مبلغ با کاما
-    $('#amount').on('input', function() {
-        var value = $(this).val().replace(/,/g, '');
-        if (value && !isNaN(value)) {
-            $(this).val(parseFloat(value));
-        }
-    });
 });
 </script>
 

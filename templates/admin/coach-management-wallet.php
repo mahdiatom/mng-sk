@@ -29,7 +29,9 @@ $action_message_type = '';
 if (isset($_POST['submit_action']) && check_admin_referer('coach_wallet_action_nonce')) {
     $action_coach_id = absint($_POST['coach_id']);
     $action_type = sanitize_text_field($_POST['action_type']);
-    $amount = floatval(str_replace(',', '', $_POST['amount']));
+    // مبلغ را از فیلد خام (در صورت وجود) یا خود فیلد اصلی بخوان
+    $amount_input = isset($_POST['amount_raw']) && $_POST['amount_raw'] !== '' ? $_POST['amount_raw'] : (isset($_POST['amount']) ? $_POST['amount'] : '');
+    $amount = floatval(str_replace(',', '', $amount_input));
     $description = sanitize_text_field($_POST['description']);
     
     if ($amount <= 0) {
@@ -137,25 +139,38 @@ if ($coach) {
                 <input type="hidden" name="coach_id" value="<?php echo $coach_id; ?>">
                 
                 <table class="form-table">
-                    <tr>
-                        <th scope="row"><label>نوع عملیات</label></th>
-                        <td>
-                            <label>
-                                <input type="radio" name="action_type" value="charge" checked>
-                                شارژ (افزودن به کیف پول)
-                            </label>
-                            <label style="margin-right: 20px;">
-                                <input type="radio" name="action_type" value="deduct">
-                                برداشت (کسر از کیف پول)
-                            </label>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="amount">مبلغ (تومان)</label></th>
-                        <td>
-                            <input type="text" id="amount" name="amount" class="regular-text" style="width: 300px;" required>
-                        </td>
-                    </tr>
+            <tr>
+                <th scope="row"><label>نوع عملیات</label></th>
+                <td>
+                    <label>
+                        <input type="radio" name="action_type" value="charge" checked>
+                        شارژ (افزودن به کیف پول)
+                    </label>
+                    <label style="margin-right: 20px;">
+                        <input type="radio" name="action_type" value="deduct">
+                        برداشت (کسر از کیف پول)
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="amount">مبلغ (تومان)</label></th>
+                <td>
+                    <input type="text"
+                           id="amount"
+                           name="amount"
+                           class="regular-text"
+                           style="width: 300px;"
+                           placeholder="0"
+                           dir="ltr"
+                           inputmode="numeric"
+                           value="<?php echo isset($_POST['amount']) ? esc_attr($_POST['amount']) : ''; ?>"
+                           required>
+                    <input type="hidden"
+                           id="amount_raw"
+                           name="amount_raw"
+                           value="<?php echo isset($_POST['amount_raw']) ? esc_attr($_POST['amount_raw']) : (isset($_POST['amount']) ? esc_attr($_POST['amount']) : ''); ?>">
+                </td>
+            </tr>
                     <tr>
                         <th scope="row"><label for="description">توضیحات</label></th>
                         <td>
