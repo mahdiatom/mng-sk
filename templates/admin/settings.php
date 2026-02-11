@@ -173,9 +173,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $coach_min_withdrawal_amount = $raw_min !== '' ? floatval($raw_min) : 0;
         $raw_neg = isset($_POST['coach_max_negative_balance_raw']) && $_POST['coach_max_negative_balance_raw'] !== '' ? str_replace(',', '', $_POST['coach_max_negative_balance_raw']) : (isset($_POST['coach_max_negative_balance']) ? $_POST['coach_max_negative_balance'] : '');
         $coach_max_negative_balance = $raw_neg !== '' ? floatval($raw_neg) : 0;
+        $coach_fixed_salary_settlement_day = isset($_POST['coach_fixed_salary_settlement_day']) ? absint($_POST['coach_fixed_salary_settlement_day']) : 0;
+        if ($coach_fixed_salary_settlement_day > 31) {
+            $coach_fixed_salary_settlement_day = 0;
+        }
         
         sc_update_setting('coach_min_withdrawal_amount', $coach_min_withdrawal_amount, 'coach_salary');
         sc_update_setting('coach_max_negative_balance', $coach_max_negative_balance, 'coach_salary');
+        sc_update_setting('coach_fixed_salary_settlement_day', $coach_fixed_salary_settlement_day, 'coach_salary');
         
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات دستمزد مربی با موفقیت ذخیره شد.</p></div>';
     }
@@ -1090,6 +1095,25 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
         if ($current_tab === 'coach_salary') : 
             $coach_min_withdrawal_amount = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
             $coach_max_negative_balance = floatval(sc_get_setting('coach_max_negative_balance', '0'));
+            $coach_fixed_salary_settlement_day = (int) sc_get_setting('coach_fixed_salary_settlement_day', '0');
+            // محاسبه تاریخ میلادی معادل برای ماه جاری و ۲ ماه بعد
+            $settlement_gregorian_list = [];
+            if ($coach_fixed_salary_settlement_day > 0 && function_exists('gregorian_to_jalali') && function_exists('jalali_to_gregorian')) {
+                $now = new DateTime();
+                $today_j = gregorian_to_jalali((int)$now->format('Y'), (int)$now->format('m'), (int)$now->format('d'));
+                $jy = $today_j[0];
+                $jm = (int)$today_j[1];
+                $month_names = ['', 'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+                for ($m = 0; $m <= 2; $m++) {
+                    $ty = $jy;
+                    $tm = $jm + $m;
+                    if ($tm > 12) { $tm -= 12; $ty++; }
+                    $last_day = function_exists('jalali_days_in_month') ? jalali_days_in_month($tm, $ty) : (($tm <= 6) ? 31 : (($tm <= 11) ? 30 : 29));
+                    $jd = min($coach_fixed_salary_settlement_day, $last_day);
+                    $g = jalali_to_gregorian($ty, $tm, $jd);
+                    $settlement_gregorian_list[] = ['label' => ($m === 0 ? 'ماه جاری' : ($m === 1 ? 'ماه بعد' : '۲ ماه بعد')) . ' (' . $month_names[$tm] . ' ' . $ty . ')', 'date' => sprintf('%04d/%02d/%02d', $g[0], $g[1], $g[2])];
+                }
+            }
         ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
@@ -1131,6 +1155,30 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
                             <p class="description">مربی می‌تواند تا این مقدار موجودی منفی داشته باشد. برای غیرفعال کردن، مقدار 0 وارد کنید.</p>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="coach_fixed_salary_settlement_day">روز پرداخت دستمزد ثابت</label>
+                        </th>
+                        <td>
+                            <input type="number" 
+                                   name="coach_fixed_salary_settlement_day" 
+                                   id="coach_fixed_salary_settlement_day"
+                                   value="<?php echo $coach_fixed_salary_settlement_day > 0 ? $coach_fixed_salary_settlement_day : ''; ?>" 
+                                   class="small-text" 
+                                   min="1" 
+                                   max="31" 
+                                   placeholder="0">
+                            <p class="description">روز شمسی هر ماه که دستمزد ثابت به کیف پول مربی‌ها واریز می‌شود (۱ تا ۳۱). خالی یا ۰ = آخر ماه شمسی.</p>
+                            <?php if ($coach_fixed_salary_settlement_day > 0 && !empty($settlement_gregorian_list)): ?>
+                                <div class="description" style="margin-top: 8px; padding: 8px; background: #f0f6fc; border-right: 3px solid #2271b1;">
+                                    <?php foreach ($settlement_gregorian_list as $item): ?>
+                                        <div><strong><?php echo esc_html($item['label']); ?>:</strong> <?php echo esc_html($item['date']); ?></div>
+                                    <?php endforeach; ?>
+                                    <div style="margin-top: 6px;"><em>محاسبه دقیق بر اساس تقویم رسمی جلالی</em></div>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
                 </table>
                 
                 <p class="submit">
@@ -1142,7 +1190,7 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
                 <h3>اطلاعات</h3>
                 <ul>
                     <li><strong>دستمزد درصدی:</strong> در زمان ثبت حضور و غیاب، به صورت خودکار محاسبه و به کیف پول مربی واریز می‌شود.</li>
-                    <li><strong>دستمزد ثابت:</strong> در آخر هر ماه شمسی به صورت خودکار محاسبه و به کیف پول مربی واریز می‌شود.</li>
+                    <li><strong>دستمزد ثابت:</strong> در روز مشخص‌شده در تنظیمات (یا آخر ماه در صورت خالی بودن) به صورت خودکار به کیف پول مربی واریز می‌شود.</li>
                     <li><strong>درخواست برداشت:</strong> مربی می‌تواند از کیف پول خود درخواست برداشت کند که نیاز به تایید مدیر دارد.</li>
                     <li><strong>مدیریت کیف پول:</strong> مدیر می‌تواند به صورت دستی کیف پول مربی را شارژ یا برداشت کند.</li>
                 </ul>

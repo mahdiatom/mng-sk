@@ -9,8 +9,8 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Calculate fixed salary for all coaches at end of Shamsi month
- * محاسبه دستمزد ثابت برای همه مربی‌ها در پایان ماه شمسی
+ * Calculate fixed salary for all coaches on settlement day
+ * محاسبه دستمزد ثابت برای همه مربی‌ها در روز تسویه مشخص‌شده
  */
 function sc_calculate_coach_fixed_salaries_monthly() {
     // دریافت تاریخ امروز به شمسی
@@ -25,12 +25,13 @@ function sc_calculate_coach_fixed_salaries_monthly() {
     $month_shamsi = (int)$today_jalali[1];
     $day_shamsi = (int)$today_jalali[2];
     
-    // بررسی اینکه آیا امروز آخر ماه شمسی است
-    // آخرین روز ماه شمسی را محاسبه می‌کنیم
+    $settlement_day = (int) (function_exists('sc_get_setting') ? sc_get_setting('coach_fixed_salary_settlement_day', '0') : 0);
     $last_day_of_month = jalali_days_in_month($month_shamsi, $year_shamsi);
     
-    // فقط در آخرین روز ماه اجرا شود
-    if ($day_shamsi != $last_day_of_month) {
+    // روز هدف: اگر تنظیم شده باشد همان روز، وگرنه آخر ماه
+    $target_day = ($settlement_day > 0) ? min($settlement_day, $last_day_of_month) : $last_day_of_month;
+    
+    if ($day_shamsi != $target_day) {
         return;
     }
     
