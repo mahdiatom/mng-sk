@@ -90,6 +90,36 @@ function sc_register_admin_menu() {
         'sc_admin_attendance_report_page'
     );
 
+    /* ================= Coach Salary & Wallet (for coaches) ================= */
+    
+    add_menu_page(
+        'دستمزد و کیف پول',
+        'دستمزد و کیف پول',
+        'sc_view_coach_salary',
+        'sc-coach-salary',
+        'sc_admin_coach_salary_page',
+        'dashicons-money-alt',
+        28.5
+    );
+    
+    add_submenu_page(
+        'sc-coach-salary',
+        'لیست دستمزد',
+        'لیست دستمزد',
+        'sc_view_coach_salary',
+        'sc-coach-salary',
+        'sc_admin_coach_salary_page'
+    );
+    
+    add_submenu_page(
+        'sc-coach-salary',
+        'کیف پول',
+        'کیف پول',
+        'sc_view_coach_salary',
+        'sc-coach-wallet',
+        'sc_admin_coach_wallet_page'
+    );
+
     /* ================= Courses ================= */
 
     add_menu_page(
@@ -298,6 +328,45 @@ function sc_register_admin_menu() {
         'dashicons-admin-generic',
         50
         
+    );
+
+    /* ================= Coach Management (for admin) ================= */
+    
+    add_menu_page(
+        'مدیریت مربیان',
+        'مدیریت مربیان',
+        'manage_options',
+        'sc-coach-management',
+        'sc_admin_coach_management_page',
+        'dashicons-groups',
+        32.5
+    );
+    
+    add_submenu_page(
+        'sc-coach-management',
+        'کیف پول مربیان',
+        'کیف پول مربیان',
+        'manage_options',
+        'sc-coach-management-wallet',
+        'sc_admin_coach_management_wallet_page'
+    );
+    
+    add_submenu_page(
+        'sc-coach-management',
+        'گزارش دستمزد مربیان',
+        'گزارش دستمزد',
+        'manage_options',
+        'sc-coach-management-salary',
+        'sc_admin_coach_management_salary_page'
+    );
+    
+    add_submenu_page(
+        'sc-coach-management',
+        'درخواست‌های برداشت',
+        'درخواست‌های برداشت',
+        'manage_options',
+        'sc-coach-management-withdrawals',
+        'sc_admin_coach_management_withdrawals_page'
     );
 
     /* ================= Reports (NO CHANGE) ================= */
@@ -2789,7 +2858,8 @@ function callback_add_coach_sufix() {
             
             if ($updated !== false) {
                 // به‌روزرسانی دوره‌ها
-                sc_save_coach_courses($coach_id, isset($_POST['courses']) ? $_POST['courses'] : []);
+                $course_percentages = isset($_POST['course_percentage']) && is_array($_POST['course_percentage']) ? $_POST['course_percentage'] : [];
+                sc_save_coach_courses($coach_id, isset($_POST['courses']) ? $_POST['courses'] : [], $course_percentages);
                 
                 wp_redirect(admin_url('admin.php?page=sc-add-coach&sc_status=coach_updated&coach_id=' . $coach_id));
                 exit;
@@ -2870,33 +2940,80 @@ function sc_create_coach_wp_user($coach_id, $data, $username = '', $password = '
 }
 
 /**
- * Save coach courses
+ * Save coach courses with salary percentage
  */
-function sc_save_coach_courses($coach_id, $course_ids) {
+function sc_save_coach_courses($coach_id, $course_ids, $course_percentages = []) {
     global $wpdb;
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
     
     // حذف دوره‌های قبلی
     $wpdb->delete($course_coaches_table, ['coach_id' => $coach_id], ['%d']);
     
-    // افزودن دوره‌های جدید
+    // افزودن دوره‌های جدید با درصد دستمزد
     if (!empty($course_ids) && is_array($course_ids)) {
         foreach ($course_ids as $course_id) {
             $course_id = absint($course_id);
             if ($course_id) {
+                $salary_percentage = isset($course_percentages[$course_id]) ? floatval($course_percentages[$course_id]) : 0.00;
+                if ($salary_percentage < 0) $salary_percentage = 0;
+                if ($salary_percentage > 100) $salary_percentage = 100;
+                
                 $wpdb->insert(
                     $course_coaches_table,
                     [
                         'coach_id' => $coach_id,
                         'course_id' => $course_id,
+                        'salary_percentage' => $salary_percentage,
                         'created_at' => current_time('mysql'),
                         'updated_at' => current_time('mysql')
                     ],
-                    ['%d', '%d', '%s', '%s']
+                    ['%d', '%d', '%f', '%s', '%s']
                 );
             }
         }
     }
+}
+
+/**
+ * Coach Salary Page (for coaches)
+ */
+function sc_admin_coach_salary_page() {
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-salary-list.php';
+}
+
+/**
+ * Coach Wallet Page (for coaches)
+ */
+function sc_admin_coach_wallet_page() {
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-wallet.php';
+}
+
+/**
+ * Coach Management Page (for admin)
+ */
+function sc_admin_coach_management_page() {
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-management.php';
+}
+
+/**
+ * Coach Management Wallet Page (for admin)
+ */
+function sc_admin_coach_management_wallet_page() {
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-management-wallet.php';
+}
+
+/**
+ * Coach Management Salary Report Page (for admin)
+ */
+function sc_admin_coach_management_salary_page() {
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-management-salary.php';
+}
+
+/**
+ * Coach Management Withdrawals Page (for admin)
+ */
+function sc_admin_coach_management_withdrawals_page() {
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-management-withdrawals.php';
 }
 
 /**

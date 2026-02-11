@@ -15,13 +15,18 @@ $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
 $coach_id = isset($_GET['coach_id']) ? absint($_GET['coach_id']) : 0;
 $coach = $coach_id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM $coaches_table WHERE id = %d", $coach_id)) : null;
 
-// دریافت دوره‌های مربی
+// دریافت دوره‌های مربی با درصد دستمزد
 $coach_courses = [];
+$coach_courses_percentage = [];
 if ($coach_id) {
-    $coach_courses = $wpdb->get_col($wpdb->prepare(
-        "SELECT course_id FROM $course_coaches_table WHERE coach_id = %d",
+    $coach_courses_data = $wpdb->get_results($wpdb->prepare(
+        "SELECT course_id, salary_percentage FROM $course_coaches_table WHERE coach_id = %d",
         $coach_id
     ));
+    foreach ($coach_courses_data as $cc) {
+        $coach_courses[] = $cc->course_id;
+        $coach_courses_percentage[$cc->course_id] = floatval($cc->salary_percentage);
+    }
 }
 
 // دریافت تمام دوره‌های فعال
@@ -122,19 +127,54 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
             <tr>
                 <th><label>دوره‌های مربی</label></th>
                 <td>
-                    <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                    <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px;">
                         <?php if (!empty($all_courses)): ?>
-                            <?php foreach ($all_courses as $course): ?>
-                                <label style="display: block; margin-bottom: 8px;">
-                                    <input type="checkbox" name="courses[]" value="<?php echo $course->id; ?>" 
-                                           <?php checked(in_array($course->id, $coach_courses)); ?>>
-                                    <?php echo esc_html($course->title); ?>
-                                </label>
-                            <?php endforeach; ?>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid #ddd;">
+                                        <th style="text-align: right; padding: 8px;">انتخاب</th>
+                                        <th style="text-align: right; padding: 8px;">نام دوره</th>
+                                        <th style="text-align: right; padding: 8px;">درصد دستمزد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($all_courses as $course): ?>
+                                        <tr style="border-bottom: 1px solid #eee;">
+                                            <td style="padding: 8px;">
+                                                <input type="checkbox" 
+                                                       name="courses[]" 
+                                                       value="<?php echo $course->id; ?>" 
+                                                       class="course-checkbox"
+                                                       data-course-id="<?php echo $course->id; ?>"
+                                                       <?php checked(in_array($course->id, $coach_courses)); ?>>
+                                            </td>
+                                            <td style="padding: 8px;">
+                                                <label for="course_<?php echo $course->id; ?>" style="cursor: pointer;">
+                                                    <?php echo esc_html($course->title); ?>
+                                                </label>
+                                            </td>
+                                            <td style="padding: 8px;">
+                                                <input type="number" 
+                                                       name="course_percentage[<?php echo $course->id; ?>]" 
+                                                       id="course_percentage_<?php echo $course->id; ?>"
+                                                       value="<?php echo isset($coach_courses_percentage[$course->id]) ? esc_attr($coach_courses_percentage[$course->id]) : '0'; ?>" 
+                                                       step="0.01" 
+                                                       min="0" 
+                                                       max="100"
+                                                       class="small-text course-percentage"
+                                                       style="width: 100px;"
+                                                       <?php echo !in_array($course->id, $coach_courses) ? 'disabled' : ''; ?>>
+                                                <span>%</span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         <?php else: ?>
                             <p>هیچ دوره فعالی وجود ندارد.</p>
                         <?php endif; ?>
                     </div>
+                    <p class="description">برای مربی‌های با نوع تسویه «درصدی»، درصد دستمزد را برای هر دوره وارد کنید.</p>
                 </td>
             </tr>
             
@@ -184,4 +224,26 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
         </p>
     </form>
 </div>
+
+<script>
+jQuery(document).ready(function($) {
+    // فعال/غیرفعال کردن فیلد درصد بر اساس انتخاب دوره
+    $('.course-checkbox').on('change', function() {
+        var courseId = $(this).data('course-id');
+        var percentageField = $('#course_percentage_' + courseId);
+        
+        if ($(this).is(':checked')) {
+            percentageField.prop('disabled', false);
+        } else {
+            percentageField.prop('disabled', true);
+            percentageField.val('0');
+        }
+    });
+    
+    // مقداردهی اولیه
+    $('.course-checkbox').each(function() {
+        $(this).trigger('change');
+    });
+});
+</script>
 

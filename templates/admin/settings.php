@@ -163,6 +163,15 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
 
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات کیف پول با موفقیت ذخیره شد.</p></div>';
     }
+    elseif ($current_tab === 'coach_salary') {
+        $coach_min_withdrawal_amount = isset($_POST['coach_min_withdrawal_amount']) ? floatval(str_replace(',', '', $_POST['coach_min_withdrawal_amount'])) : 0;
+        $coach_max_negative_balance = isset($_POST['coach_max_negative_balance']) ? floatval(str_replace(',', '', $_POST['coach_max_negative_balance'])) : 0;
+        
+        sc_update_setting('coach_min_withdrawal_amount', $coach_min_withdrawal_amount, 'coach_salary');
+        sc_update_setting('coach_max_negative_balance', $coach_max_negative_balance, 'coach_salary');
+        
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات دستمزد مربی با موفقیت ذخیره شد.</p></div>';
+    }
     elseif ($current_tab === 'pro_features') {
     $pro_mode_enabled = isset($_POST['pro_mode_enabled']) ? 1 : 0;
     $team_attendance_enabled = isset($_POST['team_attendance_enabled']) ? 1 : 0;
@@ -284,6 +293,10 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=wallet'); ?>"
            class="nav-tab <?php echo $current_tab === 'wallet' ? 'nav-tab-active' : ''; ?>">
             کیف پول
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=coach_salary'); ?>"
+           class="nav-tab <?php echo $current_tab === 'coach_salary' ? 'nav-tab-active' : ''; ?>">
+            دستمزد مربی
         </a>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=pro_features'); ?>"
             class="nav-tab <?php echo $current_tab === 'pro_features' ? 'nav-tab-active' : ''; ?>">
@@ -1050,6 +1063,59 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
             </form>
 
         <?php endif; 
+        if ($current_tab === 'coach_salary') : 
+            $coach_min_withdrawal_amount = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
+            $coach_max_negative_balance = floatval(sc_get_setting('coach_max_negative_balance', '0'));
+        ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                
+                <h2>تنظیمات دستمزد و کیف پول مربی</h2>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="coach_min_withdrawal_amount">حداقل مبلغ برداشت (تومان)</label>
+                        </th>
+                        <td>
+                            <input type="text" 
+                                   name="coach_min_withdrawal_amount" 
+                                   id="coach_min_withdrawal_amount"
+                                   value="<?php echo number_format($coach_min_withdrawal_amount, 0, '.', ','); ?>" 
+                                   class="regular-text">
+                            <p class="description">مربی نمی‌تواند کمتر از این مبلغ درخواست برداشت کند. برای غیرفعال کردن، مقدار 0 وارد کنید.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="coach_max_negative_balance">حداکثر موجودی منفی مجاز (تومان)</label>
+                        </th>
+                        <td>
+                            <input type="text" 
+                                   name="coach_max_negative_balance" 
+                                   id="coach_max_negative_balance"
+                                   value="<?php echo number_format($coach_max_negative_balance, 0, '.', ','); ?>" 
+                                   class="regular-text">
+                            <p class="description">مربی می‌تواند تا این مقدار موجودی منفی داشته باشد. برای غیرفعال کردن، مقدار 0 وارد کنید.</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات دستمزد مربی">
+                </p>
+            </form>
+            
+            <div class="card" style="margin-top: 30px;">
+                <h3>اطلاعات</h3>
+                <ul>
+                    <li><strong>دستمزد درصدی:</strong> در زمان ثبت حضور و غیاب، به صورت خودکار محاسبه و به کیف پول مربی واریز می‌شود.</li>
+                    <li><strong>دستمزد ثابت:</strong> در آخر هر ماه شمسی به صورت خودکار محاسبه و به کیف پول مربی واریز می‌شود.</li>
+                    <li><strong>درخواست برداشت:</strong> مربی می‌تواند از کیف پول خود درخواست برداشت کند که نیاز به تایید مدیر دارد.</li>
+                    <li><strong>مدیریت کیف پول:</strong> مدیر می‌تواند به صورت دستی کیف پول مربی را شارژ یا برداشت کند.</li>
+                </ul>
+            </div>
+        <?php endif; 
         if ($current_tab === 'pro_features') : ?>
     <form method="POST" action="">
         <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
@@ -1083,6 +1149,40 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
 
     </div>
 </div>
+
+<script>
+jQuery(document).ready(function($) {
+    // فرمت کردن مبلغ در تنظیمات دستمزد مربی
+    $('#coach_min_withdrawal_amount, #coach_max_negative_balance').on('input', function() {
+        var value = $(this).val().replace(/,/g, '');
+        if (!isNaN(value) && value !== '') {
+            $(this).val(number_format(value, 0, '.', ','));
+        }
+    });
+    
+    function number_format(number, decimals, dec_point, thousands_sep) {
+        number = (number + '').replace(/[^0-9+\-Ee.]/g, '');
+        var n = !isFinite(+number) ? 0 : +number,
+            prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
+            sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
+            dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
+            s = '',
+            toFixedFix = function(n, prec) {
+                var k = Math.pow(10, prec);
+                return '' + Math.round(n * k) / k;
+            };
+        s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
+        if (s[0].length > 3) {
+            s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep);
+        }
+        if ((s[1] || '').length < prec) {
+            s[1] = s[1] || '';
+            s[1] += new Array(prec - s[1].length + 1).join('0');
+        }
+        return s.join(dec);
+    }
+});
+</script>
 
 <style>
 

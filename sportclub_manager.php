@@ -54,6 +54,8 @@ require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration han
 require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions
 require_once SC_INCLUDES_DIR . 'roles.php'; // Roles functions
 require_once SC_INCLUDES_DIR . 'wallet-functions.php'; // Wallet functions
+require_once SC_INCLUDES_DIR . 'coach-wallet-functions.php'; // Coach wallet functions
+require_once SC_INCLUDES_DIR . 'coach-salary-cron.php'; // Coach salary cron jobs
 
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration

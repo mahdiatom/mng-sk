@@ -150,6 +150,40 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 }
             }
 
+            // محاسبه دستمزد مربی‌ها (درصدی) - شمارش تعداد شرکت‌کنندگان حاضر از رکوردهای ثبت شده
+            $present_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM $attendances_table 
+                 WHERE course_id = %d AND attendance_date = %s AND status = 'present'",
+                $course_id,
+                $attendance_date
+            ));
+            
+            if ($present_count > 0 && $price_per_session > 0) {
+                $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+                $coaches_table = $wpdb->prefix . 'sc_coaches';
+                
+                // دریافت مربی‌های این دوره که نوع دستمزدشان درصدی است
+                $coaches = $wpdb->get_results($wpdb->prepare(
+                    "SELECT cc.coach_id, cc.salary_percentage, c.settlement_type 
+                     FROM $course_coaches_table cc
+                     INNER JOIN $coaches_table c ON cc.coach_id = c.id
+                     WHERE cc.course_id = %d AND c.settlement_type = 'percentage' AND c.is_active = 1",
+                    $course_id
+                ));
+                
+                foreach ($coaches as $coach) {
+                    if (floatval($coach->salary_percentage) > 0) {
+                        sc_calculate_coach_percentage_salary(
+                            $coach->coach_id,
+                            $course_id,
+                            $attendance_date,
+                            $present_count,
+                            $price_per_session
+                        );
+                    }
+                }
+            }
+
             if ($saved_count > 0 || $updated_count > 0) {
                 $message = sprintf(
                     'حضور و غیاب با موفقیت ثبت شد. (%d مورد جدید، %d مورد بروزرسانی)',

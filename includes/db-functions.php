@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.13.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.14.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -476,6 +476,108 @@ function sc_create_wallet_transactions_table() {
     dbDelta($sql);
 }
 
+/**
+ * Create coach wallet transactions table
+ */
+function sc_create_coach_wallet_transactions_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_coach_wallet_transactions';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `coach_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه مربی در sc_coaches',
+        `transaction_type` enum('salary_percentage','salary_fixed','charge','deduct','withdrawal') NOT NULL COMMENT 'نوع تراکنش: salary_percentage=دستمزد درصدی, salary_fixed=دستمزد ثابت, charge=شارژ, deduct=کاهش دستی, withdrawal=برداشت',
+        `amount` decimal(10,2) NOT NULL COMMENT 'مبلغ تراکنش (همیشه مثبت)',
+        `balance_before` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از تراکنش',
+        `balance_after` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی بعد از تراکنش',
+        `description` text DEFAULT NULL COMMENT 'توضیحات تراکنش',
+        `related_course_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه دوره مرتبط (برای دستمزد درصدی)',
+        `related_attendance_date` date DEFAULT NULL COMMENT 'تاریخ حضور مرتبط (برای دستمزد درصدی)',
+        `related_salary_record_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه رکورد دستمزد مرتبط',
+        `created_by` bigint(20) unsigned NOT NULL COMMENT 'شناسه کاربری که تراکنش را ایجاد کرده',
+        `status` enum('completed','pending','failed','cancelled') NOT NULL DEFAULT 'completed' COMMENT 'وضعیت تراکنش',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_coach_id` (`coach_id`),
+        KEY `idx_transaction_type` (`transaction_type`),
+        KEY `idx_status` (`status`),
+        KEY `idx_related_course` (`related_course_id`),
+        KEY `idx_related_attendance_date` (`related_attendance_date`),
+        KEY `idx_created_at` (`created_at`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create coach salary records table
+ */
+function sc_create_coach_salary_records_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_coach_salary_records';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `coach_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه مربی',
+        `course_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه دوره',
+        `attendance_date` date NOT NULL COMMENT 'تاریخ حضور',
+        `attendance_count` int(11) NOT NULL DEFAULT 0 COMMENT 'تعداد شرکت کنندگان',
+        `price_per_session` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'قیمت هر جلسه',
+        `total_revenue` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'کل درآمد (تعداد × قیمت)',
+        `salary_percentage` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT 'درصد دستمزد',
+        `salary_amount` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ دستمزد',
+        `salary_type` enum('percentage','fixed') NOT NULL DEFAULT 'percentage' COMMENT 'نوع دستمزد',
+        `wallet_transaction_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه تراکنش کیف پول',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_coach_course_date` (`coach_id`, `course_id`, `attendance_date`),
+        KEY `idx_coach_id` (`coach_id`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_attendance_date` (`attendance_date`),
+        KEY `idx_salary_type` (`salary_type`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create coach withdrawal requests table
+ */
+function sc_create_coach_withdrawal_requests_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_coach_withdrawal_requests';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `coach_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه مربی',
+        `amount` decimal(10,2) NOT NULL COMMENT 'مبلغ درخواست',
+        `balance_before` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از درخواست',
+        `status` enum('pending','approved','rejected','paid') NOT NULL DEFAULT 'pending' COMMENT 'وضعیت: pending=در انتظار تایید, approved=تایید شده, rejected=رد شده, paid=پرداخت شده',
+        `rejection_reason` text DEFAULT NULL COMMENT 'دلیل رد (در صورت رد)',
+        `approved_by` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه کاربری که تایید کرده',
+        `paid_by` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه کاربری که پرداخت کرده',
+        `paid_at` datetime DEFAULT NULL COMMENT 'تاریخ پرداخت',
+        `wallet_transaction_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه تراکنش کیف پول (بعد از تایید)',
+        `notes` text DEFAULT NULL COMMENT 'یادداشت‌ها',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_coach_id` (`coach_id`),
+        KEY `idx_status` (`status`),
+        KEY `idx_created_at` (`created_at`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 function sc_update_database() {
     global $wpdb;
 
@@ -500,6 +602,9 @@ function sc_update_database() {
         sc_create_coaches_table();
         sc_create_course_coaches_table();
         sc_create_wallet_transactions_table();
+        sc_create_coach_wallet_transactions_table();
+        sc_create_coach_salary_records_table();
+        sc_create_coach_withdrawal_requests_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';
@@ -551,5 +656,15 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$members_table` ADD COLUMN `member_type` varchar(20) NOT NULL DEFAULT 'normal' COMMENT 'normal=بازیکن عادی, team=بازیکن تیم' AFTER `disable_auto_invoice`");
         }
         update_option('sc_member_type_column_added', '1');
+    }
+
+    // اضافه کردن ستون salary_percentage به جدول course_coaches (یک بار برای نصب‌های قبلی)
+    if (get_option('sc_coach_salary_percentage_column_added', '0') !== '1') {
+        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$course_coaches_table` LIKE %s", 'salary_percentage'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$course_coaches_table` ADD COLUMN `salary_percentage` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT 'درصد دستمزد مربی برای این دوره' AFTER `coach_id`");
+        }
+        update_option('sc_coach_salary_percentage_column_added', '1');
     }
 }

@@ -33,6 +33,7 @@ function sc_create_coach_role() {
         // اضافه کردن دسترسی به حضور و غیاب
         $coach_caps['read'] = true;
         $coach_caps['sc_manage_attendance'] = true; // capability سفارشی برای حضور و غیاب
+        $coach_caps['sc_view_coach_salary'] = true; // دسترسی به دستمزد و کیف پول مربی
         
         add_role(
             'coach',
@@ -42,8 +43,13 @@ function sc_create_coach_role() {
     } else {
         // اگر نقش وجود دارد، capability را اضافه کن
         $coach_role = get_role('coach');
-        if ($coach_role && !$coach_role->has_cap('sc_manage_attendance')) {
-            $coach_role->add_cap('sc_manage_attendance');
+        if ($coach_role) {
+            if (!$coach_role->has_cap('sc_manage_attendance')) {
+                $coach_role->add_cap('sc_manage_attendance');
+            }
+            if (!$coach_role->has_cap('sc_view_coach_salary')) {
+                $coach_role->add_cap('sc_view_coach_salary');
+            }
         }
     }
 }
@@ -146,6 +152,8 @@ function club_block_restricted_pages_for_coach() {
         $allowed_pages = [
             'sc-attendance-add',
             'sc-attendance-list',
+            'sc-coach-salary',
+            'sc-coach-wallet',
         ];
         
         $page = $_GET['page'] ?? '';

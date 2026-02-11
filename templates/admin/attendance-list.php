@@ -39,6 +39,50 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
             );
         }
     }
+    
+    // بروزرسانی دستمزد مربی‌ها بعد از حذف حضور
+    if ($row && $row->status === 'present') {
+        $course_row = $wpdb->get_row($wpdb->prepare(
+            "SELECT price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
+            $row->course_id
+        ));
+        
+        if ($course_row && floatval($course_row->price_per_session) > 0) {
+            // شمارش تعداد شرکت‌کنندگان حاضر بعد از حذف
+            $present_count_after = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM $attendances_table 
+                 WHERE course_id = %d AND attendance_date = %s AND status = 'present' AND id != %d",
+                $row->course_id,
+                $row->attendance_date,
+                $attendance_id
+            ));
+            
+            // دریافت مربی‌های این دوره با دستمزد درصدی
+            $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+            $coaches_table = $wpdb->prefix . 'sc_coaches';
+            
+            $coaches = $wpdb->get_results($wpdb->prepare(
+                "SELECT cc.coach_id, cc.salary_percentage, c.settlement_type 
+                 FROM $course_coaches_table cc
+                 INNER JOIN $coaches_table c ON cc.coach_id = c.id
+                 WHERE cc.course_id = %d AND c.settlement_type = 'percentage' AND c.is_active = 1",
+                $row->course_id
+            ));
+            
+            // بروزرسانی دستمزد برای هر مربی
+            foreach ($coaches as $coach) {
+                if (floatval($coach->salary_percentage) > 0) {
+                    sc_calculate_coach_percentage_salary(
+                        $coach->coach_id,
+                        $row->course_id,
+                        $row->attendance_date,
+                        $present_count_after,
+                        floatval($course_row->price_per_session)
+                    );
+                }
+            }
+        }
+    }
 
     $deleted = $wpdb->delete(
         $attendances_table,
