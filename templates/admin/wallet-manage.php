@@ -126,7 +126,7 @@ if ($selected_member_id > 0) {
                             <div>
                                 <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">موجودی کیف پول</div>
                                 <div style="font-size: 36px; font-weight: 700; line-height: 1.2;">
-                                    <?php echo number_format($wallet_balance, 0, '.', ','); ?> <span style="font-size: 20px; font-weight: 400;">تومان</span>
+                                    <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> <span style="font-size: 20px; font-weight: 400;">تومان</span>
                                 </div>
                             </div>
                             <div style="font-size: 60px; opacity: 0.2;">💳</div>
@@ -254,12 +254,12 @@ if ($selected_member_id > 0) {
                                             </td>
                                             <td>
                                                 <strong style="color: <?php echo esc_attr($type_color[$transaction->transaction_type] ?? '#333'); ?>;">
-                                                    <?php echo number_format(floatval($transaction->amount), 0, '.', ','); ?> تومان
+                                                    <?php echo esc_html(sc_format_amount_display(floatval($transaction->amount))); ?> تومان
                                                 </strong>
                                             </td>
                                             <td>
                                                 <strong style="color: <?php echo floatval($transaction->balance_after) < 0 ? '#d63638' : '#00a32a'; ?>;">
-                                                    <?php echo number_format(floatval($transaction->balance_after), 0, '.', ','); ?> تومان
+                                                    <?php echo esc_html(sc_format_amount_display(floatval($transaction->balance_after))); ?> تومان
                                                 </strong>
                                             </td>
                                             <td><?php echo $desc_display; ?></td>

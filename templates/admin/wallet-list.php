@@ -68,7 +68,7 @@ if (empty($filter_date_to)) {
                 <div style="background: #ffffff; border-radius: 6px; padding: 12px 14px; border-left: 4px solid #46b450; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
                     <div style="font-size: 12px; color: #666; margin-bottom: 6px;">مجموع موجودی همه کیف پول‌ها</div>
                     <div style="font-size: 20px; font-weight: 700; color: #46b450;">
-                        <?php echo number_format( floatval( $sc_wallet_stats['total_balance'] ?? 0 ), 0, '.', ',' ); ?> تومان
+                        <?php echo esc_html(sc_format_amount_display(floatval($sc_wallet_stats['total_balance'] ?? 0))); ?> تومان
                     </div>
                 </div>
 

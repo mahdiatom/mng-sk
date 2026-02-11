@@ -105,9 +105,6 @@ function sc_deduct_coach_wallet($coach_id, $amount, $description = '') {
     }
     
     $balance = sc_get_coach_wallet_balance($coach_id);
-    if ($balance < $amount) {
-        return ['success' => false, 'message' => 'موجودی ناکافی'];
-    }
     
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_coach_wallet_transactions';
@@ -456,12 +453,19 @@ function sc_create_coach_withdrawal_request($coach_id, $amount, $notes = '') {
         ];
     }
     
-    // بررسی موجودی
-    if ($amount > $balance) {
-        return ['success' => false, 'message' => 'مبلغ درخواستی بیشتر از موجودی است'];
+    global $wpdb;
+    
+    // کسر فوری از کیف پول هنگام ثبت درخواست
+    $deduct_result = sc_deduct_coach_wallet(
+        $coach_id,
+        floatval($amount),
+        'درخواست برداشت'
+    );
+    
+    if (!$deduct_result['success']) {
+        return ['success' => false, 'message' => $deduct_result['message'] ?? 'خطا در کسر از کیف پول'];
     }
     
-    global $wpdb;
     $table_name = $wpdb->prefix . 'sc_coach_withdrawal_requests';
     
     $data = [
@@ -470,20 +474,25 @@ function sc_create_coach_withdrawal_request($coach_id, $amount, $notes = '') {
         'balance_before' => $balance,
         'status' => 'pending',
         'notes' => $notes,
+        'wallet_transaction_id' => $deduct_result['transaction_id'],
         'created_at' => current_time('mysql'),
         'updated_at' => current_time('mysql')
     ];
     
-    $result = $wpdb->insert($table_name, $data, ['%d', '%f', '%f', '%s', '%s', '%s', '%s']);
+    $result = $wpdb->insert($table_name, $data, ['%d', '%f', '%f', '%s', '%s', '%d', '%s', '%s']);
     
     if ($result) {
         return [
             'success' => true,
             'request_id' => $wpdb->insert_id,
-            'message' => 'درخواست برداشت با موفقیت ثبت شد'
+            'message' => 'درخواست برداشت ثبت شد و مبلغ از کیف پول کسر شد'
         ];
     }
     
+    // در صورت خطا در ثبت، مبلغ را به کیف پول برگردان
+    if (function_exists('sc_add_coach_wallet_transaction')) {
+        sc_add_coach_wallet_transaction($coach_id, 'charge', floatval($amount), 'برگشت مبلغ - خطا در ثبت درخواست برداشت');
+    }
     return ['success' => false, 'message' => 'خطا در ثبت درخواست'];
 }
 
@@ -529,7 +538,7 @@ function sc_approve_coach_withdrawal_request($request_id) {
 
 /**
  * Reject withdrawal request
- * رد درخواست برداشت
+ * رد درخواست برداشت - در صورت کسر قبلی، مبلغ به کیف پول برمی‌گردد
  */
 function sc_reject_coach_withdrawal_request($request_id, $rejection_reason = '') {
     if (!$request_id) {
@@ -538,6 +547,21 @@ function sc_reject_coach_withdrawal_request($request_id, $rejection_reason = '')
     
     global $wpdb;
     $requests_table = $wpdb->prefix . 'sc_coach_withdrawal_requests';
+    
+    $request = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $requests_table WHERE id = %d AND status IN ('pending', 'approved') LIMIT 1",
+        $request_id
+    ));
+    
+    if ($request) {
+        // مبلغ هنگام ثبت درخواست کسر شده - برگشت به کیف پول
+        $refund = sc_add_coach_wallet_transaction(
+            $request->coach_id,
+            'charge',
+            floatval($request->amount),
+            sprintf('برگشت مبلغ - رد درخواست برداشت #%d', $request_id)
+        );
+    }
     
     $wpdb->update(
         $requests_table,
@@ -551,12 +575,12 @@ function sc_reject_coach_withdrawal_request($request_id, $rejection_reason = '')
         ['%d']
     );
     
-    return ['success' => true, 'message' => 'درخواست رد شد'];
+    return ['success' => true, 'message' => 'درخواست رد شد و مبلغ به کیف پول برگشت داده شد'];
 }
 
 /**
  * Mark withdrawal request as paid
- * علامت‌گذاری درخواست برداشت به عنوان پرداخت شده (کسر از کیف پول + تغییر وضعیت)
+ * علامت‌گذاری درخواست برداشت به عنوان پرداخت شده (مبلغ قبلاً هنگام ثبت درخواست کسر شده)
  */
 function sc_mark_coach_withdrawal_paid($request_id) {
     if (!$request_id) {
@@ -575,30 +599,19 @@ function sc_mark_coach_withdrawal_paid($request_id) {
         return ['success' => false, 'message' => 'درخواست یافت نشد یا تایید نشده است'];
     }
     
-    // کسر از کیف پول در زمان پرداخت
-    $deduct_result = sc_deduct_coach_wallet(
-        $request->coach_id,
-        $request->amount,
-        sprintf('برداشت - درخواست #%d', $request_id)
-    );
-    
-    if (!$deduct_result['success']) {
-        return ['success' => false, 'message' => 'خطا در کسر از کیف پول: ' . $deduct_result['message']];
-    }
-    
+    // مبلغ قبلاً هنگام ثبت درخواست کسر شده - فقط وضعیت را به پرداخت شده تغییر می‌دهیم
     $wpdb->update(
         $requests_table,
         [
             'status' => 'paid',
             'paid_by' => get_current_user_id(),
             'paid_at' => current_time('mysql'),
-            'wallet_transaction_id' => $deduct_result['transaction_id'],
             'updated_at' => current_time('mysql')
         ],
         ['id' => $request_id],
-        ['%s', '%d', '%s', '%d', '%s'],
+        ['%s', '%d', '%s', '%s'],
         ['%d']
     );
     
-    return ['success' => true, 'message' => 'درخواست پرداخت شد و مبلغ از کیف پول کسر شد'];
+    return ['success' => true, 'message' => 'درخواست به عنوان پرداخت شده علامت‌گذاری شد'];
 }

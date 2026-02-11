@@ -140,7 +140,7 @@ $all_courses_for_filter = $wpdb->get_results(
     
     <!-- نمایش موجودی کیف پول -->
     <div class="notice notice-info" style="padding: 15px; margin: 20px 0;">
-        <h3 style="margin-top: 0;">💰 موجودی کیف پول: <strong><?php echo number_format($wallet_balance, 0, '.', ','); ?> تومان</strong></h3>
+        <h3 style="margin-top: 0;">💰 موجودی کیف پول: <strong><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong></h3>
         <p><a href="<?php echo admin_url('admin.php?page=sc-coach-wallet'); ?>" class="button button-primary">مدیریت کیف پول</a></p>
     </div>
     

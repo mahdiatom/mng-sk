@@ -134,7 +134,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
             <div>
                 <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600; opacity: 0.9;">موجودی کیف پول</h3>
                 <div style="font-size: 36px; font-weight: 700; margin: 10px 0;">
-                    <?php echo number_format($wallet_balance, 0, '.', ','); ?> تومان
+                    <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان
                 </div>
             </div>
             <div style="font-size: 48px; opacity: 0.3;">
@@ -149,7 +149,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
             <span style="font-size: 24px;">⚠️</span>
             <div>
                 <strong style="display: block; margin-bottom: 5px;">هشدار: موجودی منفی</strong>
-                <p style="margin: 0; font-size: 14px;">موجودی کیف پول شما منفی است (<?php echo number_format($wallet_balance, 0, '.', ','); ?> تومان). لطفاً فوراً کیف پول خود را شارژ کنید.</p>
+                <p style="margin: 0; font-size: 14px;">موجودی کیف پول شما منفی است (<?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان). لطفاً فوراً کیف پول خود را شارژ کنید.</p>
             </div>
         </div>
     <?php elseif ($min_balance_alert > 0 && $wallet_balance <= $min_balance_alert && $wallet_balance >= 0) : ?>
@@ -157,7 +157,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
             <span style="font-size: 24px;">⚠️</span>
             <div>
                 <strong style="display: block; margin-bottom: 5px;">هشدار: موجودی کم</strong>
-                <p style="margin: 0; font-size: 14px;">موجودی کیف پول شما (<?php echo number_format($wallet_balance, 0, '.', ','); ?> تومان) کمتر از حد مجاز (<?php echo number_format($min_balance_alert, 0, '.', ','); ?> تومان) است. لطفاً کیف پول خود را شارژ کنید.</p>
+                <p style="margin: 0; font-size: 14px;">موجودی کیف پول شما (<?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان) کمتر از حد مجاز (<?php echo esc_html(sc_format_amount_display($min_balance_alert)); ?> تومان) است. لطفاً کیف پول خود را شارژ کنید.</p>
             </div>
         </div>
     <?php endif; ?>
@@ -227,7 +227,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
             <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
                 <div style="font-size: 13px; color: #666; margin-bottom: 5px;">موجودی فعلی</div>
                 <div style="font-size: 24px; font-weight: 700; color: <?php echo $financial_report['current_balance'] < 0 ? '#dc3545' : '#28a745'; ?>;">
-                    <?php echo number_format($financial_report['current_balance'], 0, '.', ','); ?> تومان
+                    <?php echo esc_html(sc_format_amount_display($financial_report['current_balance'])); ?> تومان
                 </div>
             </div>
             
@@ -359,12 +359,15 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
                             </td>
                             <td>
                                 <strong style="color: <?php echo esc_attr($type_color[$transaction->transaction_type] ?? '#333'); ?>;">
-                                    <?php echo number_format(floatval($transaction->amount), 0, '.', ','); ?> تومان
+                                    <?php 
+                                    $amt = floatval($transaction->amount);
+                                    $is_debit = in_array($transaction->transaction_type ?? '', ['deduct', 'payment', 'session_fee']);
+                                    echo esc_html(sc_format_amount_display($is_debit ? -$amt : $amt)); ?> تومان
                                 </strong>
                             </td>
                             <td>
                                 <strong style="color: <?php echo floatval($transaction->balance_after) < 0 ? '#dc3545' : '#28a745'; ?>;">
-                                    <?php echo number_format(floatval($transaction->balance_after), 0, '.', ','); ?> تومان
+                                    <?php echo esc_html(sc_format_amount_display(floatval($transaction->balance_after))); ?> تومان
                                 </strong>
                             </td>
                             <td><?php echo esc_html($transaction->description ?: '-'); ?></td>

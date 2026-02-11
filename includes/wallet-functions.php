@@ -408,18 +408,11 @@ function sc_pay_invoice_from_wallet($invoice_id, $amount = null) {
     // دریافت موجودی کیف پول
     $wallet_balance = sc_get_wallet_balance($invoice->member_id);
     
-    // بررسی موجودی کافی
-    if ($wallet_balance < $pay_amount) {
-        // اگر پرداخت جزئی مجاز است
-        if (sc_is_wallet_partial_payment_allowed() && $wallet_balance > 0) {
-            $pay_amount = $wallet_balance; // پرداخت تا حد موجودی
-        } else {
-            return [
-                'success' => false,
-                'message' => 'موجودی کیف پول کافی نیست. موجودی شما: ' . number_format($wallet_balance, 0, '.', ',') . ' تومان'
-            ];
-        }
+    // اگر موجودی کافی نیست و پرداخت جزئی مجاز است و موجودی مثبت است، از مبلغ موجود استفاده کن
+    if ($wallet_balance < $pay_amount && sc_is_wallet_partial_payment_allowed() && $wallet_balance > 0) {
+        $pay_amount = $wallet_balance;
     }
+    // در غیر این صورت پرداخت کامل انجام می‌شود (در صورت مجاز بودن موجودی منفی در تنظیمات، sc_add_wallet_transaction اعتبارسنجی می‌کند)
     
     // دریافت user_id
     $user_id = $wpdb->get_var($wpdb->prepare(
@@ -749,6 +742,33 @@ function sc_send_wallet_payment_sms($member_id, $amount, $new_balance, $invoice_
 }
 
 /**
+ * Notify admin when user wallet goes negative
+ * اطلاع به مدیر هنگام منفی شدن کیف پول کاربر
+ */
+function sc_notify_admin_wallet_negative_balance($member_id, $balance) {
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT first_name, last_name, national_id, player_phone FROM $members_table WHERE id = %d",
+        $member_id
+    ));
+    if (!$member) {
+        return;
+    }
+    $name = trim($member->first_name . ' ' . $member->last_name);
+    $admin_email = get_option('admin_email');
+    $subject = 'هشدار: کیف پول منفی - ' . $name;
+    $message = sprintf(
+        "کیف پول کاربر زیر منفی شده است:\n\nنام: %s\nکد ملی: %s\nتلفن: %s\nموجودی فعلی: %s تومان\n\nلطفاً در پنل مدیریت بررسی کنید.",
+        $name,
+        $member->national_id ?: '-',
+        $member->player_phone ?: '-',
+        number_format($balance, 0, '.', ',')
+    );
+    wp_mail($admin_email, $subject, $message);
+}
+
+/**
  * Check and send wallet balance alerts
  * بررسی و ارسال هشدارهای موجودی کیف پول
  */
@@ -764,6 +784,7 @@ function sc_check_wallet_balance_alerts($member_id, $new_balance) {
         
         if ($last_alert_date !== date('Y-m-d')) {
             sc_send_wallet_negative_balance_sms($member_id, $new_balance);
+            sc_notify_admin_wallet_negative_balance($member_id, $new_balance);
             set_transient($last_alert_key, date('Y-m-d'), DAY_IN_SECONDS);
         }
     }

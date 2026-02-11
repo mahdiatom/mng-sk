@@ -31,6 +31,36 @@ $coach_id = $coach->id;
 // دریافت موجودی کیف پول
 $wallet_balance = sc_get_coach_wallet_balance($coach_id);
 
+// مجموع پرداختی (درخواست‌های برداشت با وضعیت paid)
+$total_withdrawn = $wpdb->get_var($wpdb->prepare(
+    "SELECT COALESCE(SUM(amount), 0) FROM $withdrawal_table 
+     WHERE coach_id = %d AND status = 'paid'",
+    $coach_id
+));
+$total_withdrawn = floatval($total_withdrawn);
+
+// تعداد و مجموع درخواست‌های برداشت بر اساس وضعیت
+$withdrawal_stats = $wpdb->get_row($wpdb->prepare(
+    "SELECT 
+        SUM(IF(status = 'pending', 1, 0)) as count_pending,
+        SUM(IF(status = 'approved', 1, 0)) as count_approved,
+        SUM(IF(status = 'rejected', 1, 0)) as count_rejected,
+        SUM(IF(status = 'paid', 1, 0)) as count_paid,
+        COALESCE(SUM(IF(status = 'approved', amount, 0)), 0) as sum_approved,
+        COALESCE(SUM(IF(status = 'pending', amount, 0)), 0) as sum_pending
+     FROM $withdrawal_table WHERE coach_id = %d",
+    $coach_id
+), ARRAY_A);
+$count_pending = (int) ($withdrawal_stats['count_pending'] ?? 0);
+$count_approved = (int) ($withdrawal_stats['count_approved'] ?? 0);
+$count_rejected = (int) ($withdrawal_stats['count_rejected'] ?? 0);
+$count_paid = (int) ($withdrawal_stats['count_paid'] ?? 0);
+$sum_approved = floatval($withdrawal_stats['sum_approved'] ?? 0);
+$sum_pending = floatval($withdrawal_stats['sum_pending'] ?? 0);
+
+// مجموع درآمد = موجودی فعلی + مجموع پرداختی + مجموع تایید شده (منتظر پرداخت) + مجموع در انتظار تایید
+$total_income = $wallet_balance + $total_withdrawn + $sum_approved + $sum_pending;
+
 // پردازش درخواست برداشت
 $withdrawal_message = '';
 $withdrawal_message_type = '';
@@ -89,10 +119,49 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
     
     <!-- نمایش موجودی -->
     <div class="notice notice-info" style="padding: 20px; margin: 20px 0;">
-        <h2 style="margin-top: 0;">💰 موجودی کیف پول: <strong style="font-size: 24px; color: #2271b1;"><?php echo number_format($wallet_balance, 0, '.', ','); ?> تومان</strong></h2>
+        <h2 style="margin-top: 0;">💰 موجودی کیف پول: <strong style="font-size: 24px; color: #2271b1;"><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong></h2>
         <?php if ($min_withdrawal > 0): ?>
-            <p>حداقل مبلغ برداشت: <strong><?php echo number_format($min_withdrawal, 0, '.', ','); ?> تومان</strong></p>
+            <p>حداقل مبلغ برداشت: <strong><?php echo esc_html(sc_format_amount_display($min_withdrawal)); ?> تومان</strong></p>
         <?php endif; ?>
+    </div>
+    
+    <!-- آمار و اطلاعات مفید -->
+    <div class="card" style="margin: 20px 0; max-width: 100%;">
+        <h2 style="margin-top: 0;">📊 خلاصه وضعیت</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 15px;">
+            <div style="flex: 1; min-width: 200px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-right: 4px solid #0ea5e9;">
+                <strong>مجموع درآمد شما</strong><br>
+                <span style="font-size: 20px; color: #0ea5e9; font-weight: bold;"><?php echo esc_html(sc_format_amount_display($total_income)); ?> تومان</span><br>
+                <small style="color: #666;">موجودی + پرداختی + منتظر پرداخت + در انتظار تایید</small>
+            </div>
+            <div style="flex: 1; min-width: 200px; padding: 15px; background: #f0fdf4; border-radius: 8px; border-right: 4px solid #22c55e;">
+                <strong>مجموع پرداختی به شما</strong><br>
+                <span style="font-size: 20px; color: #22c55e; font-weight: bold;"><?php echo esc_html(sc_format_amount_display($total_withdrawn)); ?> تومان</span><br>
+                <small style="color: #666;">درخواست‌های پرداخت شده</small>
+            </div>
+            <div style="flex: 1; min-width: 200px; padding: 15px; background: #fff7ed; border-radius: 8px; border-right: 4px solid #f97316;">
+                <strong>در انتظار تایید</strong><br>
+                <span style="font-size: 20px; color: #f97316; font-weight: bold;"><?php echo $count_pending; ?></span> درخواست<br>
+                <small style="color: #666;">منتظر بررسی مدیر</small>
+            </div>
+            <div style="flex: 1; min-width: 200px; padding: 15px; background: #eff6ff; border-radius: 8px; border-right: 4px solid #3b82f6;">
+                <strong>تایید شده (منتظر پرداخت)</strong><br>
+                <span style="font-size: 20px; color: #3b82f6; font-weight: bold;"><?php echo $count_approved; ?></span> درخواست<br>
+                <?php if ($sum_approved > 0): ?>
+                <small style="color: #666;">مبلغ: <?php echo esc_html(sc_format_amount_display($sum_approved)); ?> تومان</small>
+                <?php endif; ?>
+            </div>
+            <div style="flex: 1; min-width: 200px; padding: 15px; background: #f0fdf4; border-radius: 8px; border-right: 4px solid #22c55e;">
+                <strong>پرداخت شده</strong><br>
+                <span style="font-size: 20px; color: #22c55e; font-weight: bold;"><?php echo $count_paid; ?></span> درخواست<br>
+                <small style="color: #666;">تسویه شده</small>
+            </div>
+            <div style="flex: 1; min-width: 200px; padding: 15px; background: #fef2f2; border-radius: 8px; border-right: 4px solid #ef4444;">
+                <strong>رد شده</strong><br>
+                <span style="font-size: 20px; color: #ef4444; font-weight: bold;"><?php echo $count_rejected; ?></span> درخواست<br>
+                <small style="color: #666;">توسط مدیر رد شده</small>
+            </div>
+        </div>
     </div>
     
     <!-- فرم درخواست برداشت -->
@@ -108,7 +177,7 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
                         <input type="text" 
                                id="withdrawal_amount" 
                                name="withdrawal_amount" 
-                               value="<?php echo number_format($wallet_balance, 0, '.', ','); ?>" 
+                               value="<?php echo esc_attr(number_format($wallet_balance < 0 ? 0 : $wallet_balance, 0, '.', ',')); ?>" 
                                class="regular-text"
                                style="width: 300px;"
                                required>
@@ -155,14 +224,14 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
                         <tr>
                             <td><?php echo $row++; ?></td>
                             <td><?php echo sc_date_shamsi($request->created_at, 'Y/m/d H:i'); ?></td>
-                            <td><strong><?php echo number_format($request->amount, 0, '.', ','); ?> تومان</strong></td>
+                            <td><strong><?php echo esc_html(sc_format_amount_display($request->amount)); ?> تومان</strong></td>
                             <td>
                                 <?php
                                 $status_labels = [
                                     'pending' => ['label' => 'در انتظار تایید', 'color' => '#f0a000'],
-                                    'approved' => ['label' => 'تایید شده', 'color' => '#2271b1'],
+                                    'approved' => ['label' => 'تایید شده (منتظر پرداخت)', 'color' => '#2271b1'],
                                     'rejected' => ['label' => 'رد شده', 'color' => '#d63638'],
-                                    'paid' => ['label' => 'پرداخت شده', 'color' => '#00a32a']
+                                    'paid' => ['label' => 'تایید و پرداخت شده', 'color' => '#00a32a']
                                 ];
                                 $status_info = $status_labels[$request->status] ?? ['label' => $request->status, 'color' => '#666'];
                                 ?>
@@ -220,14 +289,14 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
                             <td><?php echo $type_labels[$transaction->transaction_type] ?? $transaction->transaction_type; ?></td>
                             <td>
                                 <?php if (in_array($transaction->transaction_type, ['charge', 'salary_percentage', 'salary_fixed'])): ?>
-                                    <span style="color: #00a32a;">+<?php echo number_format($transaction->amount, 0, '.', ','); ?></span>
+                                    <span style="color: #00a32a;">+<?php echo esc_html(sc_format_amount_display($transaction->amount)); ?></span>
                                 <?php else: ?>
-                                    <span style="color: #d63638;">-<?php echo number_format($transaction->amount, 0, '.', ','); ?></span>
+                                    <span style="color: #d63638;"><?php echo esc_html(sc_format_amount_display(-$transaction->amount)); ?></span>
                                 <?php endif; ?>
                                 <small>تومان</small>
                             </td>
-                            <td><?php echo number_format($transaction->balance_before, 0, '.', ','); ?> تومان</td>
-                            <td><strong><?php echo number_format($transaction->balance_after, 0, '.', ','); ?> تومان</strong></td>
+                            <td><?php echo esc_html(sc_format_amount_display($transaction->balance_before)); ?> تومان</td>
+                            <td><strong><?php echo esc_html(sc_format_amount_display($transaction->balance_after)); ?> تومان</strong></td>
                             <td><?php echo esc_html($transaction->description ?: '-'); ?></td>
                         </tr>
                     <?php endforeach; ?>

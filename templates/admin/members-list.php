@@ -79,7 +79,7 @@ public function column_full_name($item) {
         // اضافه کردن دکمه مدیریت کیف پول
         if ($wallet_enabled) {
             $wallet_url = admin_url('admin.php?page=sc-wallet&filter_member=' . $item['id']);
-            $actions['wallet'] = '<a href="' . esc_url($wallet_url) . '" style="color: #28a745;">💰 کیف پول (' . number_format($wallet_balance, 0, '.', ',') . ' تومان)</a>';
+            $actions['wallet'] = '<a href="' . esc_url($wallet_url) . '" style="color: #28a745;">💰 کیف پول (' . sc_format_amount_display($wallet_balance) . ' تومان)</a>';
         }
 
         return $full_name . $courses_text . ' ' . $this->row_actions($actions);

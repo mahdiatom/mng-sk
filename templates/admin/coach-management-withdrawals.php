@@ -202,8 +202,8 @@ if (!empty($where_values)) {
                         <td><?php echo $row++; ?></td>
                         <td><?php echo sc_date_shamsi($request->created_at, 'Y/m/d H:i'); ?></td>
                         <td><strong><?php echo esc_html($request->first_name . ' ' . $request->last_name); ?></strong></td>
-                        <td><strong><?php echo number_format($request->amount, 0, '.', ','); ?> تومان</strong></td>
-                        <td><?php echo number_format($request->balance_before, 0, '.', ','); ?> تومان</td>
+                        <td><strong><?php echo esc_html(sc_format_amount_display($request->amount)); ?> تومان</strong></td>
+                        <td><?php echo esc_html(sc_format_amount_display($request->balance_before)); ?> تومان</td>
                         <td>
                             <span style="padding: 5px 10px; border-radius: 4px; font-weight: bold; background-color: <?php echo $status_info['bg']; ?>; color: <?php echo $status_info['color']; ?>;">
                                 <?php echo $status_info['label']; ?>

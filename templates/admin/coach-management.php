@@ -83,7 +83,7 @@ $coaches = $wpdb->get_results(
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <strong>موجودی:</strong> <?php echo number_format($wallet_balance, 0, '.', ','); ?> تومان<br>
+                                <strong>موجودی:</strong> <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان<br>
                                 <a href="<?php echo admin_url('admin.php?page=sc-coach-management-wallet&coach_id=' . $coach->id); ?>" class="button button-small">مدیریت کیف پول</a>
                                 <a href="<?php echo admin_url('admin.php?page=sc-add-coach&coach_id=' . $coach->id); ?>" class="button button-small">ویرایش</a>
                             </td>

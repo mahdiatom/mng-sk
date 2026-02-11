@@ -127,7 +127,7 @@ if ($coach) {
         <div class="notice notice-info" style="padding: 20px; margin: 20px 0;">
             <h2 style="margin-top: 0;">
                 مربی: <strong><?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?></strong><br>
-                موجودی کیف پول: <strong style="font-size: 24px; color: #2271b1;"><?php echo number_format($wallet_balance, 0, '.', ','); ?> تومان</strong>
+                موجودی کیف پول: <strong style="font-size: 24px; color: #2271b1;"><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong>
             </h2>
         </div>
         
@@ -221,14 +221,14 @@ if ($coach) {
                                 <td><?php echo $type_labels[$transaction->transaction_type] ?? $transaction->transaction_type; ?></td>
                                 <td>
                                     <?php if (in_array($transaction->transaction_type, ['charge', 'salary_percentage', 'salary_fixed'])): ?>
-                                        <span style="color: #00a32a;">+<?php echo number_format($transaction->amount, 0, '.', ','); ?></span>
+                                        <span style="color: #00a32a;">+<?php echo esc_html(sc_format_amount_display($transaction->amount)); ?></span>
                                     <?php else: ?>
-                                        <span style="color: #d63638;">-<?php echo number_format($transaction->amount, 0, '.', ','); ?></span>
+                                        <span style="color: #d63638;"><?php echo esc_html(sc_format_amount_display(-$transaction->amount)); ?></span>
                                     <?php endif; ?>
                                     <small>تومان</small>
                                 </td>
-                                <td><?php echo number_format($transaction->balance_before, 0, '.', ','); ?> تومان</td>
-                                <td><strong><?php echo number_format($transaction->balance_after, 0, '.', ','); ?> تومان</strong></td>
+                                <td><?php echo esc_html(sc_format_amount_display($transaction->balance_before)); ?> تومان</td>
+                                <td><strong><?php echo esc_html(sc_format_amount_display($transaction->balance_after)); ?> تومان</strong></td>
                                 <td><?php echo esc_html($transaction->description ?: '-'); ?></td>
                             </tr>
                         <?php endforeach; ?>

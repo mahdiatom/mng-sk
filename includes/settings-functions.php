@@ -4,6 +4,16 @@
  */
 
 /**
+ * Format amount for display - use "(منفی)" instead of "-" for negative amounts
+ * فرمت نمایش مبلغ - برای اعداد منفی از "(منفی)" به جای "-" استفاده می‌شود
+ */
+function sc_format_amount_display($amount) {
+    $amount = floatval($amount);
+    $formatted = number_format(abs($amount), 0, '.', ',');
+    return $amount < 0 ? '(منفی) ' . $formatted : $formatted;
+}
+
+/**
  * Get setting value
  */
 function sc_get_setting($key, $default = '') {

@@ -96,7 +96,7 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
         if (function_exists('wc_price')) {
             return wc_price($amount);
         }
-        return number_format($amount, 0, '.', ',') . ' تومان';
+        return (function_exists('sc_format_amount_display') ? sc_format_amount_display($amount) : number_format($amount, 0, '.', ',')) . ' تومان';
     }
 
     public function column_balance_after($item) {
@@ -106,7 +106,7 @@ class Wallet_Transactions_List_Table extends WP_List_Table {
         if (function_exists('wc_price')) {
             $formatted = wc_price($balance);
         } else {
-            $formatted = number_format($balance, 0, '.', ',') . ' تومان';
+            $formatted = (function_exists('sc_format_amount_display') ? sc_format_amount_display($balance) : number_format($balance, 0, '.', ',')) . ' تومان';
         }
         
         return '<span style="color: ' . esc_attr($color) . '; font-weight: bold;">' . $formatted . '</span>';
