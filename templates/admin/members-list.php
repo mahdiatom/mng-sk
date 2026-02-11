@@ -17,6 +17,7 @@ class Player_List_Table extends WP_List_Table {
             'national_id' => 'کد ملی ',
             'player_phone' => 'شماره تماس ',
             'insurance_status' => 'بیمه',
+            'member_type' => 'نوع',
             'profile_completed' => 'تکمیل پروفایل',
             'is_active' => 'وضعیت '
         ];
@@ -152,6 +153,9 @@ public function column_full_name($item) {
                 }
                 
                 return '<span style="color: #999;">-</span>';
+            case 'member_type':
+                $type = isset($item['member_type']) ? $item['member_type'] : 'normal';
+                return $type === 'team' ? 'بازیکن تیم' : 'بازیکن عادی';
             case 'profile_completed':
                 return $item['profile_completed']
         ? '<span style="color:#00a32a;font-weight:bold;">✓ تکمیل شده</span>'
@@ -314,6 +318,7 @@ public function column_full_name($item) {
             $selected_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
             $selected_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
             $selected_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
+            $selected_member_type = isset($_GET['filter_member_type']) ? sanitize_text_field($_GET['filter_member_type']) : 'all';
             
             echo '<div class="alignleft actions">';
             
@@ -341,6 +346,13 @@ public function column_full_name($item) {
             echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
             echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
             echo '</select>';
+
+            // فیلتر نوع بازیکن
+            echo '<select name="filter_member_type" id="filter_member_type" style="margin-left: 5px;">';
+            echo '<option value="all"' . ($selected_member_type == 'all' ? ' selected' : '') . '>همه انواع</option>';
+            echo '<option value="normal"' . ($selected_member_type == 'normal' ? ' selected' : '') . '>بازیکن عادی</option>';
+            echo '<option value="team"' . ($selected_member_type == 'team' ? ' selected' : '') . '>بازیکن تیم</option>';
+            echo '</select>';
             
             echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
             
@@ -360,6 +372,9 @@ public function column_full_name($item) {
             }
             if (isset($_GET['filter_profile']) && $_GET['filter_profile'] !== 'all') {
                 $export_url = add_query_arg('filter_profile', $_GET['filter_profile'], $export_url);
+            }
+            if (isset($_GET['filter_member_type']) && $_GET['filter_member_type'] !== 'all') {
+                $export_url = add_query_arg('filter_member_type', $_GET['filter_member_type'], $export_url);
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
@@ -417,6 +432,17 @@ public function column_full_name($item) {
                 " AND id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')",
                 $course_id
             );
+        }
+
+        // فیلتر نوع بازیکن
+        if (isset($_GET['filter_member_type']) && $_GET['filter_member_type'] !== 'all') {
+            $member_type = sanitize_text_field($_GET['filter_member_type']);
+            if (in_array($member_type, ['normal', 'team'])) {
+                $where .= $wpdb->prepare(
+                    " AND (COALESCE(member_type, 'normal') = %s)",
+                    $member_type
+                );
+            }
         }
 
         if (isset($_GET['s']) && !empty($_GET['s'])) {

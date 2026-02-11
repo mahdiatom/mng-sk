@@ -247,7 +247,7 @@ function sc_register_admin_menu() {
         'manage_options',
         'sc-wallet',
         'sc_admin_wallet_list_page',
-        'dashicons-wallet',
+        'dashicons-database-view',
         29
     );
 

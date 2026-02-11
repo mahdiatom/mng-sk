@@ -614,6 +614,7 @@ function sc_export_members_to_excel() {
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
     $filter_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
+    $filter_member_type = isset($_GET['filter_member_type']) ? sanitize_text_field($_GET['filter_member_type']) : 'all';
 
     // ساخت WHERE clause
     $where_conditions = ['1=1'];
@@ -623,6 +624,11 @@ function sc_export_members_to_excel() {
         $where_conditions[] = "m.is_active = 1";
     } elseif ($filter_status === 'inactive') {
         $where_conditions[] = "m.is_active = 0";
+    }
+    
+    if ($filter_member_type !== 'all' && in_array($filter_member_type, ['normal', 'team'])) {
+        $where_conditions[] = "(COALESCE(m.member_type, 'normal') = %s)";
+        $where_values[] = $filter_member_type;
     }
     
     if ($filter_course > 0) {
@@ -690,6 +696,7 @@ function sc_export_members_to_excel() {
         'کد ملی',
         'شماره تماس',
         'تاریخ تولد',
+        'نوع',
         'وضعیت',
         'تکمیل پروفایل',
         'دوره‌ها'
@@ -703,7 +710,7 @@ function sc_export_members_to_excel() {
     
     // اعمال استایل به header
     $headerStyle = sc_get_excel_header_style();
-    $sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:K1')->applyFromArray($headerStyle);
     
     // داده‌ها
     $row = 2;
@@ -733,6 +740,11 @@ function sc_export_members_to_excel() {
         // تاریخ تولد
         $sheet->setCellValueByColumnAndRow($col++, $row, $member->birth_date_shamsi ?: '-');
         
+        // نوع بازیکن
+        $member_type_val = isset($member->member_type) ? $member->member_type : 'normal';
+        $member_type_label = ($member_type_val === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $member_type_label);
+        
         // وضعیت
         $status_label = $member->is_active ? 'فعال' : 'غیرفعال';
         $sheet->setCellValueByColumnAndRow($col++, $row, $status_label);
@@ -756,16 +768,16 @@ function sc_export_members_to_excel() {
         $dataStyle = sc_get_excel_data_style();
         if ($row % 2 == 0) {
             $alternateStyle = sc_get_excel_alternate_row_style();
-            $sheet->getStyle("A$row:J$row")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+            $sheet->getStyle("A$row:K$row")->applyFromArray(array_merge($dataStyle, $alternateStyle));
         } else {
-            $sheet->getStyle("A$row:J$row")->applyFromArray($dataStyle);
+            $sheet->getStyle("A$row:K$row")->applyFromArray($dataStyle);
         }
         
         $row++;
     }
     
     // تنظیم عرض ستون‌ها
-    sc_auto_size_columns($sheet, 10);
+    sc_auto_size_columns($sheet, 11);
     
     // ایجاد نام فایل
     $filters = [
