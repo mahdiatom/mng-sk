@@ -214,7 +214,9 @@ $all_courses_for_filter = $wpdb->get_results(
     <table class="wp-list-table widefat fixed striped">
         <thead>
             <tr>
+                
                 <th>ردیف</th>
+                <th>ID</th>
                 <th>تاریخ</th>
                 <th>دوره</th>
                 <th>نوع</th>
@@ -228,7 +230,7 @@ $all_courses_for_filter = $wpdb->get_results(
         <tbody>
             <?php if (empty($salary_records)): ?>
                 <tr>
-                    <td colspan="9" style="text-align: center; padding: 30px;">
+                    <td colspan="10" style="text-align: center; padding: 30px;">
                         <p>هیچ رکورد دستمزدی یافت نشد.</p>
                     </td>
                 </tr>
@@ -237,6 +239,8 @@ $all_courses_for_filter = $wpdb->get_results(
                 <?php foreach ($salary_records as $record): ?>
                     <tr>
                         <td><?php echo $row_number++; ?></td>
+                        <td><code><?php echo esc_html($record->id ?? '-'); ?></code></td>
+                        
                         <td><?php echo sc_date_shamsi_date_only($record->attendance_date); ?></td>
                         <td>
                             <?php 
@@ -265,7 +269,7 @@ $all_courses_for_filter = $wpdb->get_results(
         </tbody>
         <tfoot>
             <tr>
-                <th colspan="8" style="text-align: left;">مجموع:</th>
+                <th colspan="9" style="text-align: left;">مجموع:</th>
                 <th><strong><?php echo number_format($total_salary, 0, '.', ','); ?> تومان</strong></th>
             </tr>
         </tfoot>
