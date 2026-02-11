@@ -96,31 +96,33 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
     </div>
     
     <!-- فرم درخواست برداشت -->
-    <div class="card" style="max-width: 600px; margin: 20px 0;">
+    <div class="card" style="margin: 20px 0;">
         <h2>درخواست برداشت</h2>
-        <form method="POST" action="">
+        <form method="POST" action="" style="max-width: 800px;">
             <?php wp_nonce_field('coach_withdrawal_nonce'); ?>
             
             <table class="form-table">
                 <tr>
-                    <th><label for="withdrawal_amount">مبلغ درخواستی (تومان)</label></th>
+                    <th scope="row"><label for="withdrawal_amount">مبلغ درخواستی (تومان)</label></th>
                     <td>
                         <input type="text" 
                                id="withdrawal_amount" 
                                name="withdrawal_amount" 
                                value="<?php echo number_format($wallet_balance, 0, '.', ','); ?>" 
                                class="regular-text"
+                               style="width: 300px;"
                                required>
                         <p class="description">پیش‌فرض: کل موجودی کیف پول. می‌توانید تغییر دهید.</p>
                     </td>
                 </tr>
                 <tr>
-                    <th><label for="withdrawal_notes">یادداشت (اختیاری)</label></th>
+                    <th scope="row"><label for="withdrawal_notes">یادداشت (اختیاری)</label></th>
                     <td>
                         <textarea id="withdrawal_notes" 
                                   name="withdrawal_notes" 
                                   rows="3" 
-                                  class="large-text"></textarea>
+                                  class="large-text"
+                                  style="width: 100%; max-width: 600px;"></textarea>
                     </td>
                 </tr>
             </table>

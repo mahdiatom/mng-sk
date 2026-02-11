@@ -130,15 +130,15 @@ if ($coach) {
         </div>
         
         <!-- فرم شارژ/برداشت -->
-        <div class="card" style="max-width: 600px; margin: 20px 0;">
+        <div class="card" style="margin: 20px 0;">
             <h2>شارژ / برداشت دستی</h2>
-            <form method="POST" action="">
+            <form method="POST" action="" style="max-width: 800px;">
                 <?php wp_nonce_field('coach_wallet_action_nonce'); ?>
                 <input type="hidden" name="coach_id" value="<?php echo $coach_id; ?>">
                 
                 <table class="form-table">
                     <tr>
-                        <th><label>نوع عملیات</label></th>
+                        <th scope="row"><label>نوع عملیات</label></th>
                         <td>
                             <label>
                                 <input type="radio" name="action_type" value="charge" checked>
@@ -151,15 +151,15 @@ if ($coach) {
                         </td>
                     </tr>
                     <tr>
-                        <th><label for="amount">مبلغ (تومان)</label></th>
+                        <th scope="row"><label for="amount">مبلغ (تومان)</label></th>
                         <td>
-                            <input type="text" id="amount" name="amount" class="regular-text" required>
+                            <input type="text" id="amount" name="amount" class="regular-text" style="width: 300px;" required>
                         </td>
                     </tr>
                     <tr>
-                        <th><label for="description">توضیحات</label></th>
+                        <th scope="row"><label for="description">توضیحات</label></th>
                         <td>
-                            <textarea id="description" name="description" rows="3" class="large-text"></textarea>
+                            <textarea id="description" name="description" rows="3" class="large-text" style="width: 100%; max-width: 600px;"></textarea>
                         </td>
                     </tr>
                 </table>

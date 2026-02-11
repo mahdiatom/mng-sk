@@ -66,16 +66,20 @@ add_action('admin_init', 'sc_create_coach_role');
 add_action('admin_menu', 'club_hide_menus_for_coach', 999);
 function club_hide_menus_for_coach() {
     
-    // اگر کاربر مربی است، فقط منوهای حضور و غیاب را نگه دار
+    // اگر کاربر مربی است، فقط منوهای حضور و غیاب و دستمزد/کیف پول را نگه دار
     if ( current_user_can('coach') && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
         // حذف تمام منوها به جز حضور و غیاب
         global $menu;
         
-        // حذف تمام منوهای اصلی به جز حضور و غیاب و dashboard
+        // حذف تمام منوهای اصلی به جز حضور و غیاب، دستمزد/کیف پول و dashboard
         foreach ($menu as $key => $item) {
             if (isset($item[2])) {
-                // فقط dashboard و حضور و غیاب را نگه دار
-                if ($item[2] !== 'sc-attendance-add' && $item[2] !== 'index.php') {
+                // فقط dashboard، حضور و غیاب و منوی دستمزد و کیف پول مربی را نگه دار
+                if (
+                    $item[2] !== 'sc-attendance-add' &&
+                    $item[2] !== 'index.php' &&
+                    $item[2] !== 'sc-coach-salary'
+                ) {
                     remove_menu_page($item[2]);
                 }
             }
