@@ -489,7 +489,7 @@ function sc_create_coach_withdrawal_request($coach_id, $amount, $notes = '') {
 
 /**
  * Approve withdrawal request
- * تایید درخواست برداشت
+ * تایید درخواست برداشت (وضعیت: منتظر پرداخت - بدون کسر از کیف پول)
  */
 function sc_approve_coach_withdrawal_request($request_id) {
     if (!$request_id) {
@@ -508,34 +508,22 @@ function sc_approve_coach_withdrawal_request($request_id) {
         return ['success' => false, 'message' => 'درخواست یافت نشد یا قبلاً پردازش شده است'];
     }
     
-    // کسر از کیف پول
-    $deduct_result = sc_deduct_coach_wallet(
-        $request->coach_id,
-        $request->amount,
-        sprintf('برداشت - درخواست #%d', $request_id)
-    );
-    
-    if (!$deduct_result['success']) {
-        return ['success' => false, 'message' => 'خطا در کسر از کیف پول: ' . $deduct_result['message']];
-    }
-    
-    // بروزرسانی وضعیت درخواست
+    // فقط بروزرسانی وضعیت - بدون کسر از کیف پول (منتظر پرداخت)
     $wpdb->update(
         $requests_table,
         [
             'status' => 'approved',
             'approved_by' => get_current_user_id(),
-            'wallet_transaction_id' => $deduct_result['transaction_id'],
             'updated_at' => current_time('mysql')
         ],
         ['id' => $request_id],
-        ['%s', '%d', '%d', '%s'],
+        ['%s', '%d', '%s'],
         ['%d']
     );
     
     return [
         'success' => true,
-        'message' => 'درخواست با موفقیت تایید شد و مبلغ از کیف پول کسر شد'
+        'message' => 'درخواست تایید شد و منتظر پرداخت است'
     ];
 }
 
@@ -568,7 +556,7 @@ function sc_reject_coach_withdrawal_request($request_id, $rejection_reason = '')
 
 /**
  * Mark withdrawal request as paid
- * علامت‌گذاری درخواست برداشت به عنوان پرداخت شده
+ * علامت‌گذاری درخواست برداشت به عنوان پرداخت شده (کسر از کیف پول + تغییر وضعیت)
  */
 function sc_mark_coach_withdrawal_paid($request_id) {
     if (!$request_id) {
@@ -587,18 +575,30 @@ function sc_mark_coach_withdrawal_paid($request_id) {
         return ['success' => false, 'message' => 'درخواست یافت نشد یا تایید نشده است'];
     }
     
+    // کسر از کیف پول در زمان پرداخت
+    $deduct_result = sc_deduct_coach_wallet(
+        $request->coach_id,
+        $request->amount,
+        sprintf('برداشت - درخواست #%d', $request_id)
+    );
+    
+    if (!$deduct_result['success']) {
+        return ['success' => false, 'message' => 'خطا در کسر از کیف پول: ' . $deduct_result['message']];
+    }
+    
     $wpdb->update(
         $requests_table,
         [
             'status' => 'paid',
             'paid_by' => get_current_user_id(),
             'paid_at' => current_time('mysql'),
+            'wallet_transaction_id' => $deduct_result['transaction_id'],
             'updated_at' => current_time('mysql')
         ],
         ['id' => $request_id],
-        ['%s', '%d', '%s', '%s'],
+        ['%s', '%d', '%s', '%d', '%s'],
         ['%d']
     );
     
-    return ['success' => true, 'message' => 'درخواست به عنوان پرداخت شده علامت‌گذاری شد'];
+    return ['success' => true, 'message' => 'درخواست پرداخت شد و مبلغ از کیف پول کسر شد'];
 }
