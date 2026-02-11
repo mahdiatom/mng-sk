@@ -96,7 +96,7 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
     </div>
     
     <!-- فرم درخواست برداشت -->
-    <div class="card" style="margin: 20px 0;">
+    <div class="card" style="margin: 20px 0; max-width: 100%;">
         <h2>درخواست برداشت</h2>
         <form method="POST" action="" style="max-width: 800px;">
             <?php wp_nonce_field('coach_withdrawal_nonce'); ?>
@@ -134,7 +134,7 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
     </div>
     
     <!-- درخواست‌های برداشت -->
-    <div class="card" style="margin: 20px 0;">
+    <div class="card" style="margin: 20px 0; max-width: 100%;">
         <h2>درخواست‌های برداشت</h2>
         <?php if (empty($withdrawal_requests)): ?>
             <p>هیچ درخواست برداشتی ثبت نشده است.</p>
@@ -185,7 +185,7 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
     </div>
     
     <!-- تراکنش‌های کیف پول -->
-    <div class="card" style="margin: 20px 0;">
+    <div class="card" style="margin: 20px 0; max-width: 100%;">
         <h2>تراکنش‌های کیف پول</h2>
         <?php if (empty($transactions)): ?>
             <p>هیچ تراکنشی ثبت نشده است.</p>

@@ -15,7 +15,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     if ($current_tab === 'penalty') {
         $penalty_enabled = isset($_POST['penalty_enabled']) ? 1 : 0;
         $penalty_minutes = isset($_POST['penalty_minutes']) ? absint($_POST['penalty_minutes']) : 7;
-        $penalty_amount = isset($_POST['penalty_amount']) ? floatval($_POST['penalty_amount']) : 500;
+        $penalty_amount_raw = isset($_POST['penalty_amount_raw']) && $_POST['penalty_amount_raw'] !== '' ? $_POST['penalty_amount_raw'] : (isset($_POST['penalty_amount']) ? $_POST['penalty_amount'] : '');
+        $penalty_amount = $penalty_amount_raw !== '' ? floatval(str_replace(',', '', $penalty_amount_raw)) : 500;
 
         sc_update_setting('penalty_enabled', $penalty_enabled, 'penalty');
         sc_update_setting('penalty_minutes', $penalty_minutes, 'penalty');
@@ -148,10 +149,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     }
     elseif ($current_tab === 'wallet') {
         $wallet_enabled = isset($_POST['wallet_enabled']) ? 1 : 0;
-        $wallet_min_charge = isset($_POST['wallet_min_charge']) ? floatval($_POST['wallet_min_charge']) : 10000;
-        $wallet_max_charge = isset($_POST['wallet_max_charge']) ? floatval($_POST['wallet_max_charge']) : 0;
-        $wallet_max_negative_balance = isset($_POST['wallet_max_negative_balance']) ? floatval($_POST['wallet_max_negative_balance']) : 0;
-        $wallet_min_balance_alert = isset($_POST['wallet_min_balance_alert']) ? floatval($_POST['wallet_min_balance_alert']) : 50000;
+        $raw_min = isset($_POST['wallet_min_charge_raw']) && $_POST['wallet_min_charge_raw'] !== '' ? str_replace(',', '', $_POST['wallet_min_charge_raw']) : (isset($_POST['wallet_min_charge']) ? $_POST['wallet_min_charge'] : '');
+        $wallet_min_charge = $raw_min !== '' ? floatval($raw_min) : 10000;
+        $raw_max = isset($_POST['wallet_max_charge_raw']) && $_POST['wallet_max_charge_raw'] !== '' ? str_replace(',', '', $_POST['wallet_max_charge_raw']) : (isset($_POST['wallet_max_charge']) ? $_POST['wallet_max_charge'] : '');
+        $wallet_max_charge = $raw_max !== '' ? floatval($raw_max) : 0;
+        $raw_neg = isset($_POST['wallet_max_negative_balance_raw']) && $_POST['wallet_max_negative_balance_raw'] !== '' ? str_replace(',', '', $_POST['wallet_max_negative_balance_raw']) : (isset($_POST['wallet_max_negative_balance']) ? $_POST['wallet_max_negative_balance'] : '');
+        $wallet_max_negative_balance = $raw_neg !== '' ? floatval($raw_neg) : 0;
+        $raw_alert = isset($_POST['wallet_min_balance_alert_raw']) && $_POST['wallet_min_balance_alert_raw'] !== '' ? str_replace(',', '', $_POST['wallet_min_balance_alert_raw']) : (isset($_POST['wallet_min_balance_alert']) ? $_POST['wallet_min_balance_alert'] : '');
+        $wallet_min_balance_alert = $raw_alert !== '' ? floatval($raw_alert) : 50000;
         $wallet_allow_partial_payment = isset($_POST['wallet_allow_partial_payment']) ? 1 : 0;
 
         sc_update_setting('wallet_enabled', $wallet_enabled, 'wallet');
@@ -164,8 +169,10 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات کیف پول با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'coach_salary') {
-        $coach_min_withdrawal_amount = isset($_POST['coach_min_withdrawal_amount']) ? floatval(str_replace(',', '', $_POST['coach_min_withdrawal_amount'])) : 0;
-        $coach_max_negative_balance = isset($_POST['coach_max_negative_balance']) ? floatval(str_replace(',', '', $_POST['coach_max_negative_balance'])) : 0;
+        $raw_min = isset($_POST['coach_min_withdrawal_amount_raw']) && $_POST['coach_min_withdrawal_amount_raw'] !== '' ? str_replace(',', '', $_POST['coach_min_withdrawal_amount_raw']) : (isset($_POST['coach_min_withdrawal_amount']) ? $_POST['coach_min_withdrawal_amount'] : '');
+        $coach_min_withdrawal_amount = $raw_min !== '' ? floatval($raw_min) : 0;
+        $raw_neg = isset($_POST['coach_max_negative_balance_raw']) && $_POST['coach_max_negative_balance_raw'] !== '' ? str_replace(',', '', $_POST['coach_max_negative_balance_raw']) : (isset($_POST['coach_max_negative_balance']) ? $_POST['coach_max_negative_balance'] : '');
+        $coach_max_negative_balance = $raw_neg !== '' ? floatval($raw_neg) : 0;
         
         sc_update_setting('coach_min_withdrawal_amount', $coach_min_withdrawal_amount, 'coach_salary');
         sc_update_setting('coach_max_negative_balance', $coach_max_negative_balance, 'coach_salary');
@@ -352,14 +359,19 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
                             <label for="penalty_amount">مبلغ جریمه (تومان)</label>
                         </th>
                         <td>
-                            <input type="number"
+                            <input type="text"
                                    name="penalty_amount"
                                    id="penalty_amount"
-                                   value="<?php echo esc_attr($penalty_amount); ?>"
-                                   min="0"
-                                   step="0.01"
+                                   value="<?php echo $penalty_amount > 0 ? number_format($penalty_amount, 0, '.', ',') : ''; ?>"
                                    class="regular-text"
+                                   placeholder="0"
+                                   dir="ltr"
+                                   inputmode="numeric"
                                    required>
+                            <input type="hidden"
+                                   name="penalty_amount_raw"
+                                   id="penalty_amount_raw"
+                                   value="<?php echo esc_attr($penalty_amount); ?>">
                             <p class="description">مبلغ جریمه که به صورت حساب اضافه می‌شود.</p>
                         </td>
                     </tr>
@@ -1000,48 +1012,60 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
                     <tr>
                         <th scope="row">حداقل مبلغ شارژ</th>
                         <td>
-                            <input type="number" 
+                            <input type="text" 
                                    name="wallet_min_charge" 
-                                   value="<?php echo esc_attr($wallet_min_charge); ?>" 
+                                   id="wallet_min_charge"
+                                   value="<?php echo $wallet_min_charge > 0 ? number_format($wallet_min_charge, 0, '.', ',') : ''; ?>" 
                                    class="regular-text" 
-                                   min="0" 
-                                   step="1000">
+                                   dir="ltr" 
+                                   inputmode="numeric" 
+                                   placeholder="0">
+                            <input type="hidden" name="wallet_min_charge_raw" id="wallet_min_charge_raw" value="<?php echo esc_attr($wallet_min_charge); ?>">
                             <p class="description">حداقل مبلغی که کاربر می‌تواند برای شارژ کیف پول خود وارد کند (به تومان).</p>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row">حداکثر مبلغ شارژ</th>
                         <td>
-                            <input type="number" 
+                            <input type="text" 
                                    name="wallet_max_charge" 
-                                   value="<?php echo esc_attr($wallet_max_charge); ?>" 
+                                   id="wallet_max_charge"
+                                   value="<?php echo $wallet_max_charge > 0 ? number_format($wallet_max_charge, 0, '.', ',') : ''; ?>" 
                                    class="regular-text" 
-                                   min="0" 
-                                   step="1000">
+                                   dir="ltr" 
+                                   inputmode="numeric" 
+                                   placeholder="0">
+                            <input type="hidden" name="wallet_max_charge_raw" id="wallet_max_charge_raw" value="<?php echo esc_attr($wallet_max_charge); ?>">
                             <p class="description">حداکثر مبلغی که کاربر می‌تواند برای شارژ کیف پول خود وارد کند (به تومان). برای بدون محدودیت، مقدار 0 وارد کنید.</p>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row">حداکثر موجودی منفی مجاز</th>
                         <td>
-                            <input type="number" 
+                            <input type="text" 
                                    name="wallet_max_negative_balance" 
-                                   value="<?php echo esc_attr($wallet_max_negative_balance); ?>" 
+                                   id="wallet_max_negative_balance"
+                                   value="<?php echo $wallet_max_negative_balance > 0 ? number_format($wallet_max_negative_balance, 0, '.', ',') : ''; ?>" 
                                    class="regular-text" 
-                                   min="0" 
-                                   step="1000">
+                                   dir="ltr" 
+                                   inputmode="numeric" 
+                                   placeholder="0">
+                            <input type="hidden" name="wallet_max_negative_balance_raw" id="wallet_max_negative_balance_raw" value="<?php echo esc_attr($wallet_max_negative_balance); ?>">
                             <p class="description">حداکثر موجودی منفی که کاربر می‌تواند داشته باشد (به تومان). برای عدم اجازه موجودی منفی، مقدار 0 وارد کنید.</p>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row">حداقل موجودی برای هشدار</th>
                         <td>
-                            <input type="number" 
+                            <input type="text" 
                                    name="wallet_min_balance_alert" 
-                                   value="<?php echo esc_attr($wallet_min_balance_alert); ?>" 
+                                   id="wallet_min_balance_alert"
+                                   value="<?php echo $wallet_min_balance_alert > 0 ? number_format($wallet_min_balance_alert, 0, '.', ',') : ''; ?>" 
                                    class="regular-text" 
-                                   min="0" 
-                                   step="1000">
+                                   dir="ltr" 
+                                   inputmode="numeric" 
+                                   placeholder="0">
+                            <input type="hidden" name="wallet_min_balance_alert_raw" id="wallet_min_balance_alert_raw" value="<?php echo esc_attr($wallet_min_balance_alert); ?>">
                             <p class="description">اگر موجودی کیف پول کاربر کمتر از این مقدار باشد، هشدار نمایش داده می‌شود (به تومان).</p>
                         </td>
                     </tr>
@@ -1082,7 +1106,11 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
                                    name="coach_min_withdrawal_amount" 
                                    id="coach_min_withdrawal_amount"
                                    value="<?php echo number_format($coach_min_withdrawal_amount, 0, '.', ','); ?>" 
-                                   class="regular-text">
+                                   class="regular-text"
+                                   dir="ltr"
+                                   inputmode="numeric"
+                                   placeholder="0">
+                            <input type="hidden" name="coach_min_withdrawal_amount_raw" id="coach_min_withdrawal_amount_raw" value="<?php echo esc_attr($coach_min_withdrawal_amount); ?>">
                             <p class="description">مربی نمی‌تواند کمتر از این مبلغ درخواست برداشت کند. برای غیرفعال کردن، مقدار 0 وارد کنید.</p>
                         </td>
                     </tr>
@@ -1095,7 +1123,11 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
                                    name="coach_max_negative_balance" 
                                    id="coach_max_negative_balance"
                                    value="<?php echo number_format($coach_max_negative_balance, 0, '.', ','); ?>" 
-                                   class="regular-text">
+                                   class="regular-text"
+                                   dir="ltr"
+                                   inputmode="numeric"
+                                   placeholder="0">
+                            <input type="hidden" name="coach_max_negative_balance_raw" id="coach_max_negative_balance_raw" value="<?php echo esc_attr($coach_max_negative_balance); ?>">
                             <p class="description">مربی می‌تواند تا این مقدار موجودی منفی داشته باشد. برای غیرفعال کردن، مقدار 0 وارد کنید.</p>
                         </td>
                     </tr>

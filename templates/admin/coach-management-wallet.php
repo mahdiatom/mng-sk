@@ -100,7 +100,7 @@ if ($coach) {
     <?php endif; ?>
     
     <!-- انتخاب مربی -->
-    <div class="card" style="margin: 20px 0;">
+    <div class="card" style="margin: 20px 0; max-width: 100%;">
         <h2>انتخاب مربی</h2>
         <form method="GET" action="">
             <input type="hidden" name="page" value="sc-coach-management-wallet">
@@ -132,7 +132,7 @@ if ($coach) {
         </div>
         
         <!-- فرم شارژ/برداشت -->
-        <div class="card" style="margin: 20px 0;">
+        <div class="card" style="margin: 20px 0; max-width: 100%;">
             <h2>شارژ / برداشت دستی</h2>
             <form method="POST" action="" style="max-width: 800px;">
                 <?php wp_nonce_field('coach_wallet_action_nonce'); ?>
@@ -186,7 +186,7 @@ if ($coach) {
         </div>
         
         <!-- تراکنش‌ها -->
-        <div class="card" style="margin: 20px 0;">
+        <div class="card" style="margin: 20px 0; max-width: 100%;">
             <h2>تراکنش‌های کیف پول</h2>
             <?php if (empty($transactions)): ?>
                 <p>هیچ تراکنشی ثبت نشده است.</p>

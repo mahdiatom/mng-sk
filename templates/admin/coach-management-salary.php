@@ -13,12 +13,19 @@ $coaches_table = $wpdb->prefix . 'sc_coaches';
 $salary_records_table = $wpdb->prefix . 'sc_coach_salary_records';
 $courses_table = $wpdb->prefix . 'sc_courses';
 
-// دریافت فیلترها
+// دریافت فیلترها - تاریخ پیش‌فرض امروز شمسی
+$today_shamsi = '';
+if (function_exists('gregorian_to_jalali')) {
+    $now = current_time('timestamp');
+    $g = explode('-', date('Y-m-d', $now));
+    $j = gregorian_to_jalali((int)$g[0], (int)$g[1], (int)$g[2]);
+    $today_shamsi = $j[0] . '/' . str_pad($j[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($j[2], 2, '0', STR_PAD_LEFT);
+}
 $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
 $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
-$filter_date_from = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
-$filter_date_to = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+$filter_date_from = isset($_GET['filter_date_from_shamsi']) && $_GET['filter_date_from_shamsi'] !== '' ? sanitize_text_field($_GET['filter_date_from_shamsi']) : $today_shamsi;
+$filter_date_to = isset($_GET['filter_date_to_shamsi']) && $_GET['filter_date_to_shamsi'] !== '' ? sanitize_text_field($_GET['filter_date_to_shamsi']) : $today_shamsi;
 
 // ساخت WHERE clause
 $where_conditions = ['1=1'];
@@ -79,10 +86,7 @@ $coaches = $wpdb->get_results(
 );
 
 $courses = $wpdb->get_results(
-    "SELECT DISTINCT co.id, co.title 
-     FROM $courses_table co
-     INNER JOIN $salary_records_table sr ON co.id = sr.course_id
-     ORDER BY co.title ASC"
+    "SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
 );
 ?>
 
@@ -131,16 +135,16 @@ $courses = $wpdb->get_results(
                 
                 <div>
                     <label>از تاریخ (شمسی):</label><br>
-                    <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" 
+                    <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi_salary" 
                            value="<?php echo esc_attr($filter_date_from); ?>" 
-                           class="persian-datepicker" style="width: 150px;">
+                           class="persian-date-input sc-filter-control" style="width: 150px;" readonly>
                 </div>
                 
                 <div>
                     <label>تا تاریخ (شمسی):</label><br>
-                    <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" 
+                    <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi_salary" 
                            value="<?php echo esc_attr($filter_date_to); ?>" 
-                           class="persian-datepicker" style="width: 150px;">
+                           class="persian-date-input sc-filter-control" style="width: 150px;" readonly>
                 </div>
                 
                 <div>

@@ -716,6 +716,19 @@ jQuery(document).ready(function($) {
 });
 
 // ============================================
+// تنظیمات باشگاه - فیلدهای مبلغ
+// ============================================
+jQuery(document).ready(function($) {
+    scFormatPrice('#penalty_amount', '#penalty_amount_raw');
+    scFormatPrice('#wallet_min_charge', '#wallet_min_charge_raw');
+    scFormatPrice('#wallet_max_charge', '#wallet_max_charge_raw');
+    scFormatPrice('#wallet_max_negative_balance', '#wallet_max_negative_balance_raw');
+    scFormatPrice('#wallet_min_balance_alert', '#wallet_min_balance_alert_raw');
+    scFormatPrice('#coach_min_withdrawal_amount', '#coach_min_withdrawal_amount_raw');
+    scFormatPrice('#coach_max_negative_balance', '#coach_max_negative_balance_raw');
+});
+
+// ============================================
 // افزودن فاکتور (Invoice Add)
 // ============================================
 

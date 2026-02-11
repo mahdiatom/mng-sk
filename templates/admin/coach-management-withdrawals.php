@@ -28,7 +28,7 @@ if (isset($_POST['approve_request']) && check_admin_referer('approve_withdrawal_
     }
 }
 
-if (isset($_POST['reject_request']) && check_admin_referer('reject_withdrawal_' . $_POST['request_id'])) {
+if (isset($_POST['reject_request']) && isset($_POST['request_id']) && check_admin_referer('reject_withdrawal_' . $_POST['request_id'], 'reject_nonce')) {
     $request_id = absint($_POST['request_id']);
     $rejection_reason = sanitize_text_field($_POST['rejection_reason']);
     $result = sc_reject_coach_withdrawal_request($request_id, $rejection_reason);
@@ -50,6 +50,46 @@ if (isset($_POST['mark_paid']) && check_admin_referer('mark_paid_withdrawal_' . 
     } else {
         $action_message = $result['message'];
         $action_message_type = 'error';
+    }
+}
+
+// پردازش اکشن دسته‌جمعی
+if (isset($_POST['bulk_action']) && isset($_POST['request_ids']) && is_array($_POST['request_ids']) && check_admin_referer('bulk_withdrawals')) {
+    $bulk_action = sanitize_text_field($_POST['bulk_action']);
+    $request_ids = array_map('absint', $_POST['request_ids']);
+    $request_ids = array_filter($request_ids);
+    
+    $success_count = 0;
+    $error_count = 0;
+    $errors = [];
+    
+    foreach ($request_ids as $rid) {
+        if ($bulk_action === 'approve') {
+            $result = sc_approve_coach_withdrawal_request($rid);
+        } elseif ($bulk_action === 'reject') {
+            $reason = isset($_POST['bulk_rejection_reason']) ? sanitize_text_field($_POST['bulk_rejection_reason']) : '';
+            $result = sc_reject_coach_withdrawal_request($rid, $reason);
+        } elseif ($bulk_action === 'mark_paid') {
+            $result = sc_mark_coach_withdrawal_paid($rid);
+        } else {
+            continue;
+        }
+        
+        if ($result['success']) {
+            $success_count++;
+        } else {
+            $error_count++;
+            $errors[] = $result['message'];
+        }
+    }
+    
+    if ($success_count > 0) {
+        $action_message = sprintf('%d مورد با موفقیت پردازش شد.', $success_count);
+        $action_message_type = 'success';
+    }
+    if ($error_count > 0) {
+        $action_message = ($action_message ? $action_message . ' ' : '') . sprintf('%d مورد خطا: %s', $error_count, implode('؛ ', array_slice(array_unique($errors), 0, 3)));
+        $action_message_type = $error_count > 0 && $success_count === 0 ? 'error' : 'warning';
     }
 }
 
@@ -106,10 +146,30 @@ if (!empty($where_values)) {
         </form>
     </div>
     
+    <!-- اکشن دسته‌جمعی -->
+    <form method="POST" action="" id="bulk-withdrawals-form">
+        <?php wp_nonce_field('bulk_withdrawals'); ?>
+        <div class="tablenav top" style="margin: 15px 0;">
+            <div class="alignleft actions bulkactions">
+                <select name="bulk_action" id="bulk-action-select">
+                    <option value="">عملیات دسته‌جمعی...</option>
+                    <option value="approve">تایید</option>
+                    <option value="reject">رد</option>
+                    <option value="mark_paid">علامت‌گذاری به عنوان پرداخت شده</option>
+                </select>
+                <input type="submit" class="button action" value="اعمال" id="bulk-apply-btn" style="margin-right: 5px;">
+            </div>
+            <div id="bulk-reject-reason-wrap" style="display: none; margin-top: 10px;">
+                <label>دلیل رد (برای اکشن «رد»):</label>
+                <textarea name="bulk_rejection_reason" id="bulk_rejection_reason" rows="2" class="large-text" style="width: 400px; margin-right: 10px;"></textarea>
+            </div>
+        </div>
+
     <!-- جدول درخواست‌ها -->
     <table class="wp-list-table widefat fixed striped">
         <thead>
             <tr>
+                <td class="check-column"><input type="checkbox" id="cb-select-all"></td>
                 <th>ردیف</th>
                 <th>تاریخ درخواست</th>
                 <th>مربی</th>
@@ -123,7 +183,7 @@ if (!empty($where_values)) {
         <tbody>
             <?php if (empty($requests)): ?>
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 30px;">
+                    <td colspan="9" style="text-align: center; padding: 30px;">
                         <p>هیچ درخواست برداشتی یافت نشد.</p>
                     </td>
                 </tr>
@@ -140,6 +200,9 @@ if (!empty($where_values)) {
                     $status_info = $status_labels[$request->status] ?? ['label' => $request->status, 'color' => '#666', 'bg' => '#f5f5f5'];
                     ?>
                     <tr>
+                        <th scope="row" class="check-column">
+                            <input type="checkbox" name="request_ids[]" value="<?php echo $request->id; ?>" class="cb-request">
+                        </th>
                         <td><?php echo $row++; ?></td>
                         <td><?php echo sc_date_shamsi($request->created_at, 'Y/m/d H:i'); ?></td>
                         <td><strong><?php echo esc_html($request->first_name . ' ' . $request->last_name); ?></strong></td>
@@ -164,7 +227,7 @@ if (!empty($where_values)) {
                                     <input type="hidden" name="request_id" value="<?php echo $request->id; ?>">
                                     <input type="submit" name="approve_request" class="button button-primary button-small" value="تایید" onclick="return confirm('آیا مطمئن هستید که می‌خواهید این درخواست را تایید کنید؟ مبلغ از کیف پول مربی کسر خواهد شد.');">
                                 </form>
-                                <button type="button" class="button button-small reject-btn" data-request-id="<?php echo $request->id; ?>" style="margin-right: 5px;">رد</button>
+                                <button type="button" class="button button-small reject-btn" data-request-id="<?php echo $request->id; ?>" data-reject-nonce="<?php echo esc_attr(wp_create_nonce('reject_withdrawal_' . $request->id)); ?>" style="margin-right: 5px;">رد</button>
                             <?php elseif ($request->status === 'approved'): ?>
                                 <form method="POST" action="" style="display: inline-block;">
                                     <?php wp_nonce_field('mark_paid_withdrawal_' . $request->id); ?>
@@ -180,14 +243,15 @@ if (!empty($where_values)) {
             <?php endif; ?>
         </tbody>
     </table>
+    </form>
 </div>
 
 <!-- فرم رد درخواست (مخفی) -->
 <div id="reject-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border: 2px solid #ddd; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
     <h3>رد درخواست برداشت</h3>
     <form method="POST" action="" id="reject-form">
-        <?php wp_nonce_field('reject_withdrawal_0', 'reject_nonce'); ?>
         <input type="hidden" name="request_id" id="reject_request_id">
+        <input type="hidden" name="reject_nonce" id="reject_nonce_input" value="">
         <table class="form-table">
             <tr>
                 <th><label for="rejection_reason">دلیل رد:</label></th>
@@ -207,10 +271,9 @@ if (!empty($where_values)) {
 jQuery(document).ready(function($) {
     $('.reject-btn').on('click', function() {
         var requestId = $(this).data('request-id');
+        var nonce = $(this).data('reject-nonce');
         $('#reject_request_id').val(requestId);
-        $('#reject-form').attr('action', '');
-        $('#reject-form input[name="reject_nonce"]').attr('name', 'reject_nonce').val('');
-        $('#reject-form').append('<input type="hidden" name="reject_nonce" value="' + '<?php echo wp_create_nonce("reject_withdrawal_' + requestId + '"); ?>' + '">');
+        $('#reject_nonce_input').val(nonce).attr('name', 'reject_nonce');
         $('#reject-modal').show();
     });
     
@@ -218,6 +281,45 @@ jQuery(document).ready(function($) {
     $(document).on('click', function(e) {
         if ($(e.target).closest('#reject-modal').length === 0 && $(e.target).closest('.reject-btn').length === 0) {
             $('#reject-modal').hide();
+        }
+    });
+
+    // Select All
+    $('#cb-select-all').on('change', function() {
+        $('.cb-request').prop('checked', $(this).prop('checked'));
+    });
+
+    // نمایش فیلد دلیل رد هنگام انتخاب اکشن «رد»
+    $('#bulk-action-select').on('change', function() {
+        var v = $(this).val();
+        if (v === 'reject') {
+            $('#bulk-reject-reason-wrap').show();
+        } else {
+            $('#bulk-reject-reason-wrap').hide();
+        }
+    });
+
+    // تأیید قبل از اعمال اکشن دسته‌جمعی
+    $('#bulk-withdrawals-form').on('submit', function(e) {
+        var action = $('#bulk-action-select').val();
+        if (!action) {
+            e.preventDefault();
+            alert('لطفاً یک عملیات انتخاب کنید.');
+            return false;
+        }
+        var checked = $('.cb-request:checked').length;
+        if (checked === 0) {
+            e.preventDefault();
+            alert('لطفاً حداقل یک مورد را انتخاب کنید.');
+            return false;
+        }
+        var msg = 'تایید';
+        if (action === 'approve') msg = 'آیا از تایید ' + checked + ' درخواست انتخاب‌شده اطمینان دارید؟ مبلغ از کیف پول مربیان کسر خواهد شد.';
+        else if (action === 'reject') msg = 'آیا از رد ' + checked + ' درخواست انتخاب‌شده اطمینان دارید؟';
+        else if (action === 'mark_paid') msg = 'آیا از علامت‌گذاری ' + checked + ' درخواست به عنوان پرداخت شده اطمینان دارید؟';
+        if (!confirm(msg)) {
+            e.preventDefault();
+            return false;
         }
     });
 });
