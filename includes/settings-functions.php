@@ -307,6 +307,10 @@ function sc_get_invoice_hour() {
     return (int) sc_get_setting('invoice_hour', 0);
 }
 
+function sc_get_invoice_minute() {
+    return (int) sc_get_setting('invoice_minute', 0);
+}
+
 function sc_get_invoice_last_run() {
     return sc_get_setting('invoice_last_run', null);
 }

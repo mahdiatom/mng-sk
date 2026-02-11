@@ -34,8 +34,10 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $invoice_interval_minutes = absint($_POST['invoice_interval_minutes']);
         sc_update_setting('invoice_interval_minutes', $invoice_interval_minutes, 'invoice');
     } else {
-        sc_update_setting('invoice_day_of_month', absint($_POST['invoice_day_of_month']), 'invoice');
-        sc_update_setting('invoice_hour', absint($_POST['invoice_hour']), 'invoice');
+        $day_val = isset($_POST['invoice_day_of_month']) && $_POST['invoice_day_of_month'] !== '' ? absint($_POST['invoice_day_of_month']) : 0;
+        sc_update_setting('invoice_day_of_month', min(31, max(0, $day_val)), 'invoice');
+        sc_update_setting('invoice_hour', min(23, max(0, absint($_POST['invoice_hour'] ?? 0))), 'invoice');
+        sc_update_setting('invoice_minute', min(59, max(0, absint($_POST['invoice_minute'] ?? 0))), 'invoice');
     }
 
     echo '<div class="notice notice-success is-dismissible"><p>تنظیمات صورتحساب ذخیره شد.</p></div>';
@@ -387,6 +389,27 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
                 </p>
             </form>
         <?php elseif ($current_tab === 'invoice') : ?>
+            <?php
+            $invoice_day_of_month = (int) sc_get_invoice_day_of_month();
+            $invoice_settlement_gregorian_list = [];
+            if (sc_get_invoice_mode() === 'fixed_date' && function_exists('gregorian_to_jalali') && function_exists('jalali_to_gregorian')) {
+                $now = new DateTime();
+                $today_j = gregorian_to_jalali((int)$now->format('Y'), (int)$now->format('m'), (int)$now->format('d'));
+                $jy = $today_j[0];
+                $jm = (int)$today_j[1];
+                $month_names = ['', 'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+                $suffix = ($invoice_day_of_month === 0) ? ' - آخر ماه' : '';
+                for ($m = 0; $m <= 2; $m++) {
+                    $ty = $jy;
+                    $tm = $jm + $m;
+                    if ($tm > 12) { $tm -= 12; $ty++; }
+                    $last_day = function_exists('jalali_days_in_month') ? jalali_days_in_month($tm, $ty) : (($tm <= 6) ? 31 : (($tm <= 11) ? 30 : 29));
+                    $jd = ($invoice_day_of_month > 0) ? min($invoice_day_of_month, $last_day) : $last_day;
+                    $g = jalali_to_gregorian($ty, $tm, $jd);
+                    $invoice_settlement_gregorian_list[] = ['label' => ($m === 0 ? 'ماه جاری' : ($m === 1 ? 'ماه بعد' : '۲ ماه بعد')) . ' (' . $month_names[$tm] . ' ' . $ty . ')' . $suffix, 'date' => sprintf('%04d/%02d/%02d', $g[0], $g[1], $g[2])];
+                }
+            }
+            ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
 
@@ -420,25 +443,45 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
 </tr>
 
 <tr>
-    <th>روز ماه</th>
+    <th>روز ماه (شمسی)</th>
     <td>
         <input type="number"
                name="invoice_day_of_month"
-               min="1"
-               max="28"
-               value="<?php echo esc_attr(sc_get_invoice_day_of_month()); ?>">
-        <p class="description">۱ تا ۲۸</p>
+               min="0"
+               max="31"
+               value="<?php echo $invoice_day_of_month > 0 ? esc_attr($invoice_day_of_month) : ''; ?>"
+               placeholder="0">
+        <p class="description">روز شمسی هر ماه (۱ تا ۳۱). خالی یا ۰ = آخر ماه شمسی.</p>
+        <?php if (sc_get_invoice_mode() === 'fixed_date' && !empty($invoice_settlement_gregorian_list)): ?>
+            <div class="description" style="margin-top: 8px; padding: 8px; background: #f0f6fc; border-right: 3px solid #2271b1;">
+                <?php foreach ($invoice_settlement_gregorian_list as $item): ?>
+                    <div><strong><?php echo esc_html($item['label']); ?>:</strong> <?php echo esc_html($item['date']); ?></div>
+                <?php endforeach; ?>
+                <div style="margin-top: 6px;"><em>محاسبه دقیق بر اساس تقویم رسمی جلالی</em></div>
+            </div>
+        <?php endif; ?>
     </td>
 </tr>
 
 <tr>
-    <th>ساعت اجرا</th>
+    <th>ساعت و دقیقه اجرا</th>
     <td>
+         
         <input type="number"
+               name="invoice_minute"
+               min="0"
+               max="59"
+               value="<?php echo esc_attr(sc_get_invoice_minute()); ?>"
+               placeholder="دقیقه"
+               style="width: 70px;"> : 
+               <input type="number"
                name="invoice_hour"
                min="0"
                max="23"
-               value="<?php echo esc_attr(sc_get_invoice_hour()); ?>">
+               value="<?php echo esc_attr(sc_get_invoice_hour()); ?>"
+               placeholder="ساعت"
+               style="width: 70px;">
+        <p class="description">مثال: 23:10 یعنی ساعت ۱۱ شب و ۱۰ دقیقه</p>
     </td>
 </tr>
 

@@ -6,36 +6,59 @@
 
 
 /**
- * ایجاد صورت حساب برای پرداخت در تاریخ مشخص 
+ * ایجاد صورت حساب برای پرداخت در تاریخ مشخص
+ * منطق بر اساس تقویم شمسی (جلالی) مشابه دستمزد مربی
  */
 function sc_is_fixed_invoice_time() {
-
     if (sc_get_invoice_mode() !== 'fixed_date') {
-        return true; // interval mode
+        return true; // در حالت interval همیشه اجازه اجرا (بر اساس فاصله زمانی)
     }
-    $now = current_time('timestamp');
-    $days_in_month = (int) date('t', $now); 
-    
-    
-    $day_shamsi  = sc_get_invoice_day_of_month();
-    $shift = 19;
-    $day = $shift + $day_shamsi;
-if ($day > $days_in_month) {
-    $day -= $days_in_month;
-}
-
-    $hour = sc_get_invoice_hour();
-    $last = sc_get_invoice_last_run();
-
-    $now = current_time('timestamp');
-
-    if ((int)date('j', $now) !== $day) return false;
-    if ((int)date('G', $now) < $hour) return false;
-
-    if ($last && date('Y-m', strtotime($last)) === date('Y-m', $now)) {
+    if (!function_exists('gregorian_to_jalali')) {
         return false;
     }
+    $now = current_time('timestamp');
+    $today = new DateTime();
+    $today->setTimestamp($now);
+    $today_j = gregorian_to_jalali(
+        (int)$today->format('Y'),
+        (int)$today->format('m'),
+        (int)$today->format('d')
+    );
+    $year_shamsi = $today_j[0];
+    $month_shamsi = (int)$today_j[1];
+    $day_shamsi = (int)$today_j[2];
 
+    $settlement_day = (int) sc_get_invoice_day_of_month();
+    $last_day_of_month = function_exists('jalali_days_in_month')
+        ? jalali_days_in_month($month_shamsi, $year_shamsi)
+        : ($month_shamsi <= 6 ? 31 : ($month_shamsi <= 11 ? 30 : 29));
+    $target_day = ($settlement_day > 0) ? min($settlement_day, $last_day_of_month) : $last_day_of_month;
+
+    if ($day_shamsi != $target_day) {
+        return false;
+    }
+    $current_hour = (int) date('G', $now);
+    $current_minute = (int) date('i', $now);
+    $target_hour = sc_get_invoice_hour();
+    $target_minute = sc_get_invoice_minute();
+    if ($current_hour < $target_hour) {
+        return false;
+    }
+    if ($current_hour == $target_hour && $current_minute < $target_minute) {
+        return false;
+    }
+    $last = sc_get_invoice_last_run();
+    if ($last) {
+        $last_dt = new DateTime($last);
+        $last_j = gregorian_to_jalali(
+            (int)$last_dt->format('Y'),
+            (int)$last_dt->format('m'),
+            (int)$last_dt->format('d')
+        );
+        if ($last_j[0] == $year_shamsi && (int)$last_j[1] == $month_shamsi) {
+            return false; // این ماه شمسی قبلاً اجرا شده
+        }
+    }
     return true;
 }
 
