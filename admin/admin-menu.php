@@ -119,6 +119,15 @@ function sc_register_admin_menu() {
         'sc-coach-wallet',
         'sc_admin_coach_wallet_page'
     );
+    
+    add_submenu_page(
+        'sc-coach-salary',
+        'درخواست‌های برداشت',
+        'درخواست‌های برداشت',
+        'sc_view_coach_salary',
+        'sc-coach-withdrawals',
+        'sc_admin_coach_withdrawals_page'
+    );
 
     /* ================= Courses ================= */
 
@@ -2986,6 +2995,13 @@ function sc_admin_coach_salary_page() {
  */
 function sc_admin_coach_wallet_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'coach-wallet.php';
+}
+
+/**
+ * Coach Withdrawals Page (for coaches)
+ */
+function sc_admin_coach_withdrawals_page() {
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-withdrawals.php';
 }
 
 /**

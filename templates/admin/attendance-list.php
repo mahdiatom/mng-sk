@@ -153,24 +153,42 @@ if ($active_tab === 'individual') {
     // پردازش فیلترهای تاریخ (شمسی به میلادی)
     $filter_date_from = '';
     $filter_date_to = '';
+    $filter_date_from_shamsi = '';
+    $filter_date_to_shamsi = '';
+    
     if (isset($_GET['filter_date_from_shamsi']) && !empty($_GET['filter_date_from_shamsi'])) {
-        $filter_date_from = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_from_shamsi']));
+        $filter_date_from_shamsi = sanitize_text_field($_GET['filter_date_from_shamsi']);
+        $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
     } elseif (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
         $filter_date_from = sanitize_text_field($_GET['filter_date_from']);
+        $filter_date_from_shamsi = sc_date_shamsi_date_only($filter_date_from);
     }
     
     if (isset($_GET['filter_date_to_shamsi']) && !empty($_GET['filter_date_to_shamsi'])) {
-        $filter_date_to = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_to_shamsi']));
+        $filter_date_to_shamsi = sanitize_text_field($_GET['filter_date_to_shamsi']);
+        $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
     } elseif (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
         $filter_date_to = sanitize_text_field($_GET['filter_date_to']);
+        $filter_date_to_shamsi = sc_date_shamsi_date_only($filter_date_to);
     }
     
-    // اگر filter_date_from_shamsi_2 یا filter_date_to_shamsi_2 موجود بود
-    if (isset($_GET['filter_date_from_shamsi_2']) && !empty($_GET['filter_date_from_shamsi_2'])) {
-        $filter_date_from = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_from_shamsi_2']));
-    }
-    if (isset($_GET['filter_date_to_shamsi_2']) && !empty($_GET['filter_date_to_shamsi_2'])) {
-        $filter_date_to = sc_shamsi_to_gregorian_date(sanitize_text_field($_GET['filter_date_to_shamsi_2']));
+    // اگر تاریخ‌ها خالی بودند، پیش‌فرض را امروز قرار بده
+    if (empty($filter_date_from) && empty($filter_date_to)) {
+        $today_gregorian = current_time('Y-m-d');
+        $today = new DateTime(current_time('Y-m-d'));
+        $jalali = gregorian_to_jalali(
+            (int)$today->format('Y'),
+            (int)$today->format('m'),
+            (int)$today->format('d')
+        );
+        $today_shamsi = $jalali[0] . '/' .
+            str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
+            str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+        
+        $filter_date_from = $today_gregorian;
+        $filter_date_to = $today_gregorian;
+        $filter_date_from_shamsi = $today_shamsi;
+        $filter_date_to_shamsi = $today_shamsi;
     }
     
     $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
@@ -727,35 +745,6 @@ $max_display = 10;
 <div class="sc-filter-field sc-filter-date">
     <label class="sc-filter-label">بازه تاریخ</label>
 
-    <?php
-    $filter_date_from        = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
-$filter_date_to          = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
-$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
-$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
-
-if (empty($filter_date_from) && empty($filter_date_to)) {
-
-    $today_gregorian = current_time('Y-m-d');
-
-    $today = new DateTime(current_time('Y-m-d'));
-    $jalali = gregorian_to_jalali(
-        (int)$today->format('Y'),
-        (int)$today->format('m'),
-        (int)$today->format('d')
-    );
-
-    $today_shamsi = $jalali[0] . '/' .
-        str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
-        str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
-
-    $filter_date_from        = $today_gregorian;
-    $filter_date_to          = $today_gregorian;
-    $filter_date_from_shamsi = $today_shamsi;
-    $filter_date_to_shamsi   = $today_shamsi;
-}
-
-    ?>
-
     <div class="sc-date-range">
         <input type="text"
                id="filter_date_from_shamsi"
@@ -893,8 +882,8 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                             if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
                             if (!empty($filter_date_from)) $pagination_args['filter_date_from'] = $filter_date_from;
                             if (!empty($filter_date_to)) $pagination_args['filter_date_to'] = $filter_date_to;
-                            if (!empty($_GET['filter_date_from_shamsi'])) $pagination_args['filter_date_from_shamsi'] = $_GET['filter_date_from_shamsi'];
-                            if (!empty($_GET['filter_date_to_shamsi'])) $pagination_args['filter_date_to_shamsi'] = $_GET['filter_date_to_shamsi'];
+                            if (!empty($filter_date_from_shamsi)) $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
+                            if (!empty($filter_date_to_shamsi)) $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
                             $page_links = paginate_links([
                                 'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
                                 'format' => '',

@@ -151,13 +151,14 @@ function club_hide_menus_for_coach() {
 add_action('admin_init', 'club_block_restricted_pages_for_coach');
 function club_block_restricted_pages_for_coach() {
 
-    // اگر کاربر مربی است، فقط دسترسی به حضور و غیاب
+    // اگر کاربر مربی است، فقط دسترسی به حضور و غیاب و دستمزد/کیف پول
     if ( current_user_can('coach') && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
         $allowed_pages = [
             'sc-attendance-add',
             'sc-attendance-list',
             'sc-coach-salary',
             'sc-coach-wallet',
+            'sc-coach-withdrawals',
         ];
         
         $page = $_GET['page'] ?? '';

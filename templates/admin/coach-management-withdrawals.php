@@ -109,8 +109,46 @@ if (isset($_POST['bulk_action']) && isset($_POST['request_ids']) && is_array($_P
 // دریافت فیلترها
 $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'pending';
 $filter_coach  = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
-$filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
-$filter_date_to   = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+
+// پردازش فیلترهای تاریخ (شمسی به میلادی)
+// اگر تاریخ‌ها خالی هستند، تاریخ پیش‌فرض امروز را تنظیم کن
+$today_gregorian = current_time('Y-m-d');
+$today = new DateTime(current_time('Y-m-d'));
+$jalali = gregorian_to_jalali(
+    (int)$today->format('Y'),
+    (int)$today->format('m'),
+    (int)$today->format('d')
+);
+$today_shamsi = $jalali[0] . '/' .
+    str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
+    str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+
+$filter_date_from = '';
+$filter_date_to = '';
+$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
+$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+
+// اگر تاریخ‌ها خالی هستند، تاریخ پیش‌فرض امروز را تنظیم کن
+if (empty($filter_date_from_shamsi) && empty($filter_date_to_shamsi)) {
+    $filter_date_from_shamsi = $today_shamsi;
+    $filter_date_to_shamsi = $today_shamsi;
+    $filter_date_from = $today_gregorian;
+    $filter_date_to = $today_gregorian;
+} else {
+    if (!empty($filter_date_from_shamsi)) {
+        $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+    } elseif (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
+        $filter_date_from = sanitize_text_field($_GET['filter_date_from']);
+        $filter_date_from_shamsi = sc_date_shamsi_date_only($filter_date_from);
+    }
+
+    if (!empty($filter_date_to_shamsi)) {
+        $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+    } elseif (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
+        $filter_date_to = sanitize_text_field($_GET['filter_date_to']);
+        $filter_date_to_shamsi = sc_date_shamsi_date_only($filter_date_to);
+    }
+}
 
 // ساخت WHERE clause
 $where_conditions = ['1=1'];
@@ -199,17 +237,39 @@ if (!empty($where_values)) {
             </div>
 
             <div style="min-width: 180px;">
-                <label for="filter_date_from">از تاریخ:</label><br>
-                <input type="date" name="filter_date_from" id="filter_date_from"
-                       value="<?php echo esc_attr($filter_date_from); ?>"
+                <label for="filter_date_from_shamsi">از تاریخ:</label><br>
+                <?php
+                if (empty($filter_date_from_shamsi) && !empty($filter_date_from)) {
+                    $filter_date_from_shamsi = sc_date_shamsi_date_only($filter_date_from);
+                }
+                ?>
+                <input type="text"
+                       name="filter_date_from_shamsi"
+                       id="filter_date_from_shamsi"
+                       value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                       class="regular-text persian-date-input"
+                       placeholder="از تاریخ (شمسی)"
+                       readonly
                        style="width: 100%;">
+                <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
             </div>
 
             <div style="min-width: 180px;">
-                <label for="filter_date_to">تا تاریخ:</label><br>
-                <input type="date" name="filter_date_to" id="filter_date_to"
-                       value="<?php echo esc_attr($filter_date_to); ?>"
+                <label for="filter_date_to_shamsi">تا تاریخ:</label><br>
+                <?php
+                if (empty($filter_date_to_shamsi) && !empty($filter_date_to)) {
+                    $filter_date_to_shamsi = sc_date_shamsi_date_only($filter_date_to);
+                }
+                ?>
+                <input type="text"
+                       name="filter_date_to_shamsi"
+                       id="filter_date_to_shamsi"
+                       value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                       class="regular-text persian-date-input"
+                       placeholder="تا تاریخ (شمسی)"
+                       readonly
                        style="width: 100%;">
+                <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
             </div>
 
             <div style="min-width: 140px;">
@@ -292,7 +352,7 @@ if (!empty($where_values)) {
                         <td class="column-notes"><?php echo esc_html($request->notes ?: '-'); ?></td>
                         <td class="column-actions">
                             <?php if ($request->status === 'pending'): ?>
-                                <!-- در انتظار تایید: امکان تایید یا رد -->
+                                <!-- فقط برای در انتظار تایید: امکان تایید یا رد -->
                                 <button type="button" class="button button-primary button-small sc-approve-btn"
                                         data-request-id="<?php echo $request->id; ?>"
                                         data-nonce="<?php echo esc_attr(wp_create_nonce('approve_withdrawal_' . $request->id)); ?>"
@@ -301,22 +361,14 @@ if (!empty($where_values)) {
                                 <button type="button" class="button button-small reject-btn"
                                         data-request-id="<?php echo $request->id; ?>"
                                         style="margin-right: 5px;">رد</button>
-
                             <?php elseif ($request->status === 'approved'): ?>
-                                <!-- تایید شده: فقط امکان رد (برگشت مبلغ)؛ پرداخت نهایی از اکشن‌های دسته‌جمعی -->
-                                <button type="button" class="button button-small reject-btn"
+                                <!-- برای تایید شده: فقط امکان پرداخت -->
+                                <button type="button" class="button button-small sc-mark-paid-btn"
                                         data-request-id="<?php echo $request->id; ?>"
-                                        style="margin-right: 5px;">رد</button>
-
-                            <?php elseif ($request->status === 'rejected'): ?>
-                                <!-- رد شده: امکان تایید دوباره -->
-                                <button type="button" class="button button-small sc-approve-btn"
-                                        data-request-id="<?php echo $request->id; ?>"
-                                        data-nonce="<?php echo esc_attr(wp_create_nonce('approve_withdrawal_' . $request->id)); ?>"
-                                        style="margin-left: 5px;">تایید</button>
-
+                                        data-nonce="<?php echo esc_attr(wp_create_nonce('mark_paid_withdrawal_' . $request->id)); ?>"
+                                        style="margin-right: 5px;">پرداخت شده</button>
                             <?php else: ?>
-                                <!-- paid یا سایر وضعیت‌ها: بدون عملیات تکی -->
+                                <!-- سایر وضعیت‌ها: بدون عملیات تکی -->
                                 <span style="color: #999;">-</span>
                             <?php endif; ?>
                         </td>
