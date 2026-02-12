@@ -598,6 +598,8 @@ function sc_check_and_create_tables() {
     $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $honor_categories_table = $wpdb->prefix . 'sc_honor_categories';
+    $honors_table = $wpdb->prefix . 'sc_honors';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -613,6 +615,8 @@ function sc_check_and_create_tables() {
     $event_registrations_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_registrations_table)) == $event_registrations_table;
     $coaches_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $coaches_table)) == $coaches_table;
     $course_coaches_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_coaches_table)) == $course_coaches_table;
+    $honor_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $honor_categories_table)) == $honor_categories_table;
+    $honors_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $honors_table)) == $honors_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -653,6 +657,12 @@ function sc_check_and_create_tables() {
     }
     if (!$course_coaches_exists && function_exists('sc_create_course_coaches_table')) {
         sc_create_course_coaches_table();
+    }
+    if (!$honor_categories_exists && function_exists('sc_create_honor_categories_table')) {
+        sc_create_honor_categories_table();
+    }
+    if (!$honors_exists && function_exists('sc_create_honors_table')) {
+        sc_create_honors_table();
     }
     
 }

@@ -326,6 +326,58 @@ function sc_register_admin_menu() {
         'sc_admin_wallet_manage_page'
     );
 
+    /* ================= Honors ================= */
+
+    add_menu_page(
+        'افتخارات',
+        'افتخارات',
+        'manage_options',
+        'sc-honors',
+        'sc_admin_honors_list_page',
+        'dashicons-awards',
+        31
+    );
+
+    $list_honors_sufix = add_submenu_page(
+        'sc-honors',
+        'لیست افتخارات',
+        'لیست افتخارات',
+        'manage_options',
+        'sc-honors',
+        'sc_admin_honors_list_page'
+    );
+    add_action('load-' . $list_honors_sufix, 'sc_honors_screen_option');
+
+    $honor_categories_sufix = add_submenu_page(
+        'sc-honors',
+        'دسته‌بندی افتخارات',
+        'دسته‌بندی افتخارات',
+        'manage_options',
+        'sc-honor-categories',
+        'sc_admin_honor_categories_page'
+    );
+
+    $add_honor_for_member_sufix = add_submenu_page(
+        'sc-honors',
+        'افزودن افتخار برای بازیکن',
+        'افزودن افتخار برای بازیکن',
+        'manage_options',
+        'sc-add-honor-for-member',
+        'sc_admin_add_honor_for_member_page'
+    );
+
+    /* ================= Coach Honors (for coaches) ================= */
+
+    add_menu_page(
+        'افتخارات من',
+        'افتخارات من',
+        'sc_view_coach_salary',
+        'sc-coach-honors',
+        'sc_admin_coach_honors_page',
+        'dashicons-awards',
+        33
+    );
+
     /* ================= Settings ================= */
 
     $setting_sufix = add_menu_page(
@@ -595,6 +647,9 @@ function sc_set_invoices_screen_option($status, $option, $value) {
     if ('invoices_per_page' === $option) {
         return $value;
     }
+    if ('honors_per_page' === $option) {
+        return $value;
+    }
     return $status;
 }
 
@@ -639,6 +694,42 @@ function sc_admin_add_member_page() {
 }
 function sc_setting_callback(){
     include SC_TEMPLATES_ADMIN_DIR . 'settings.php';
+}
+
+/**
+ * Honors management pages
+ */
+function sc_admin_honors_list_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'list_honors.php';
+}
+
+function sc_admin_honor_categories_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'honor_categories.php';
+}
+
+function sc_admin_add_honor_for_member_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'add_honor_for_member.php';
+}
+
+function sc_admin_coach_honors_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'coach_honors.php';
+}
+
+/**
+ * Screen options for honors list
+ */
+function sc_honors_screen_option() {
+    $option = 'per_page';
+    $args = [
+        'label' => 'تعداد رکورد در هر صفحه',
+        'default' => 10,
+        'option' => 'honors_per_page'
+    ];
+    add_screen_option($option, $args);
 }
 
 /**

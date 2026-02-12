@@ -18,13 +18,11 @@ jQuery(document).ready(function($) {
             reader.onload = function(e) {
                 if (previewContainer.length) {
                     previewContainer.find('img').attr('src', e.target.result);
-                } else {
-                    var previewHtml = '<div class="sc-image-preview" style="margin-top: 10px;">' +
-                        '<img src="' + e.target.result + '" alt="پیش‌نمایش" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; background: #f9f9f9;">' +
-                        '<p class="description" style="margin-top: 5px; font-size: 12px; color: #666;">پیش‌نمایش</p>' +
-                        '</div>';
-                    $(input).after(previewHtml);
-                }
+                } 
+                // else {
+                //     var previewHtml = '';
+                //     $(input).after(previewHtml);
+                // }
             };
             
             reader.readAsDataURL(input.files[0]);

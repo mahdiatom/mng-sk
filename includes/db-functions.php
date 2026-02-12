@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.14.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.17.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -578,6 +578,56 @@ function sc_create_coach_withdrawal_requests_table() {
     dbDelta($sql);
 }
 
+/**
+ * Create honor categories table
+ */
+function sc_create_honor_categories_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_honor_categories';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_name` (`name`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create honors table
+ */
+function sc_create_honors_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_honors';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned DEFAULT NULL,
+        `coach_id` bigint(20) unsigned DEFAULT NULL,
+        `name` varchar(255) NOT NULL,
+        `category_id` bigint(20) unsigned NOT NULL,
+        `description` text DEFAULT NULL,
+        `file_url` varchar(500) DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_coach_id` (`coach_id`),
+        KEY `idx_category_id` (`category_id`),
+        KEY `idx_created_at` (`created_at`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 function sc_update_database() {
     global $wpdb;
 
@@ -605,6 +655,8 @@ function sc_update_database() {
         sc_create_coach_wallet_transactions_table();
         sc_create_coach_salary_records_table();
         sc_create_coach_withdrawal_requests_table();
+        sc_create_honor_categories_table();
+        sc_create_honors_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';
@@ -666,5 +718,26 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$course_coaches_table` ADD COLUMN `salary_percentage` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT 'درصد دستمزد مربی برای این دوره' AFTER `coach_id`");
         }
         update_option('sc_coach_salary_percentage_column_added', '1');
+    }
+
+    // اضافه کردن ستون file_url به جدول honors (یک بار برای نصب‌های قبلی)
+    if (get_option('sc_honors_file_url_column_added', '0') !== '1') {
+        $honors_table = $wpdb->prefix . 'sc_honors';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$honors_table` LIKE %s", 'file_url'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$honors_table` ADD COLUMN `file_url` varchar(500) DEFAULT NULL AFTER `description`");
+        }
+        update_option('sc_honors_file_url_column_added', '1');
+    }
+
+    // اضافه کردن ستون coach_id به جدول honors (یک بار برای نصب‌های قبلی)
+    if (get_option('sc_honors_coach_id_column_added', '0') !== '1') {
+        $honors_table = $wpdb->prefix . 'sc_honors';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$honors_table` LIKE %s", 'coach_id'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$honors_table` ADD COLUMN `coach_id` bigint(20) unsigned DEFAULT NULL AFTER `member_id`");
+            $wpdb->query("ALTER TABLE `$honors_table` ADD KEY `idx_coach_id` (`coach_id`)");
+        }
+        update_option('sc_honors_coach_id_column_added', '1');
     }
 }

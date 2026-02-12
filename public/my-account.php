@@ -480,6 +480,7 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-events'] = 'رویدادها / مسابقات';
     $items['sc-my-events'] = ' رویداد های من ';
     $items['sc-invoices'] = 'صورت حساب‌ها';
+    $items['sc-my-honors'] = 'افتخارات من';
     if (sc_is_wallet_enabled()) {
         $items['sc-wallet'] = 'کیف پول';
     }
@@ -503,6 +504,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-event-success', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-wallet', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-my-honors', EP_ROOT | EP_PAGES);
 
 }
 
@@ -512,6 +514,7 @@ function sc_add_my_account_endpoint() {
 add_filter('query_vars', 'sc_add_my_account_query_vars', 0);
 function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-submit-documents';
+    $vars[] = 'sc-my-honors';
     $vars[] = 'sc-enroll-course';
     $vars[] = 'sc-my-courses';
     $vars[] = 'sc-events';
@@ -2399,6 +2402,23 @@ function sc_my_account_wallet_content() {
     }
     
     include SC_TEMPLATES_PUBLIC_DIR . 'wallet.php';
+}
+
+/**
+ * Display content for my honors tab
+ */
+add_action('woocommerce_account_sc-my-honors_endpoint', 'sc_my_account_my_honors_content');
+function sc_my_account_my_honors_content() {
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    // بررسی وضعیت فعال بودن کاربر
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return; // اگر غیرفعال بود، پیام نمایش داده شده و خروج می‌کنیم
+    }
+    
+    include SC_TEMPLATES_PUBLIC_DIR . 'my-honors.php';
 }
 
 /**
