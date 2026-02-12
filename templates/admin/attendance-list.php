@@ -251,8 +251,15 @@ if ($active_tab === 'individual') {
 
     $where_clause = implode(' AND ', $where_conditions);
 
-    // دریافت تعداد کل رکوردها برای pagination
-    $total_query = "SELECT COUNT(*) FROM $attendances_table a WHERE $where_clause";
+    // دریافت تعداد کل رکوردها برای pagination (با همان JOIN‌های کوئری اصلی)
+    $users_table = $wpdb->users;
+    $total_query = "SELECT COUNT(*) 
+                    FROM $attendances_table a
+                    INNER JOIN $members_table m ON a.member_id = m.id
+                    INNER JOIN $courses_table c ON a.course_id = c.id
+                    LEFT JOIN $coaches_table rec_coach ON rec_coach.user_id = a.user_id
+                    LEFT JOIN $users_table rec_user ON rec_user.ID = a.user_id
+                    WHERE $where_clause";
     if (!empty($where_values)) {
         $total_items = $wpdb->get_var($wpdb->prepare($total_query, $where_values));
     } else {
@@ -388,7 +395,24 @@ if ($active_tab === 'grouped') {
     $where_clause = implode(' AND ', $where_conditions);
     $users_table = $wpdb->users;
 
+    // دریافت تعداد کل گروه‌ها برای pagination
+    $total_query = "SELECT COUNT(DISTINCT CONCAT(a.course_id, '-', a.attendance_date)) 
+                    FROM $attendances_table a
+                    INNER JOIN $courses_table c ON a.course_id = c.id
+                    WHERE $where_clause";
+    if (!empty($where_values)) {
+        $total_items = $wpdb->get_var($wpdb->prepare($total_query, $where_values));
+    } else {
+        $total_items = $wpdb->get_var($total_query);
+    }
+
+    // Pagination
+    $per_page = 20;
+    $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+    $offset = ($current_page - 1) * $per_page;
+
     // دریافت لیست گروه‌بندی شده (با ستون ثبت‌کنندگان)
+    $query_values = $where_values;
     $query = "SELECT 
                 a.course_id,
                 a.attendance_date,
@@ -403,21 +427,20 @@ if ($active_tab === 'grouped') {
               LEFT JOIN $users_table rec_user ON rec_user.ID = a.user_id
               WHERE $where_clause
               GROUP BY a.course_id, a.attendance_date
-              ORDER BY a.attendance_date DESC, c.title ASC";
+              ORDER BY a.attendance_date DESC, c.title ASC
+              LIMIT %d OFFSET %d";
 
-    if (!empty($where_values)) {
-        $grouped_attendances = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    $query_values[] = $per_page;
+    $query_values[] = $offset;
+
+    if (!empty($query_values)) {
+        $grouped_attendances = $wpdb->get_results($wpdb->prepare($query, $query_values));
     } else {
         $grouped_attendances = $wpdb->get_results($query);
     }
 
-    // Pagination برای تب 2
-    $per_page = 20;
-    $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
-    $offset = ($current_page - 1) * $per_page;
-    $total_items = count($grouped_attendances);
+    // محاسبه تعداد صفحات
     $total_pages = ceil($total_items / $per_page);
-    $grouped_attendances = array_slice($grouped_attendances, $offset, $per_page);
 }
 
 // ==================== تب 3: لیست کلی حضور و غیاب ====================
@@ -866,19 +889,20 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                     <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
                         <div class="tablenav-pages">
                             <?php
-                            $pagination_args = ['paged' => '%#%', 'tab' => 'individual', 'filter_course' => $filter_course, 'filter_member' => $filter_member, 'filter_status' => $filter_status];
+                            $pagination_args = ['page' => 'sc-attendance-list', 'tab' => 'individual', 'filter_course' => $filter_course, 'filter_member' => $filter_member, 'filter_status' => $filter_status];
                             if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
                             if (!empty($filter_date_from)) $pagination_args['filter_date_from'] = $filter_date_from;
                             if (!empty($filter_date_to)) $pagination_args['filter_date_to'] = $filter_date_to;
                             if (!empty($_GET['filter_date_from_shamsi'])) $pagination_args['filter_date_from_shamsi'] = $_GET['filter_date_from_shamsi'];
                             if (!empty($_GET['filter_date_to_shamsi'])) $pagination_args['filter_date_to_shamsi'] = $_GET['filter_date_to_shamsi'];
                             $page_links = paginate_links([
-                                'base' => add_query_arg($pagination_args),
+                                'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
                                 'format' => '',
                                 'prev_text' => '< قبلی ',
                                 'next_text' => ' بعدی >',
                                 'total' => $total_pages,
-                                'current' => $current_page
+                                'current' => $current_page,
+                                'add_args' => $pagination_args
                             ]);
                             echo $page_links;
                             ?>
@@ -1054,18 +1078,31 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
                 
                 <!-- Pagination -->
                 <?php if ($total_pages > 1) : ?>
-                    <div class="tablenav bottom" style="margin-top: 20px;">
+                    <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
                         <div class="tablenav-pages">
                             <?php
+                            $pagination_args = ['page' => 'sc-attendance-list', 'tab' => 'grouped', 'filter_course' => $filter_course];
+                            if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
+                            if (!empty($filter_date_from)) $pagination_args['filter_date_from'] = $filter_date_from;
+                            if (!empty($filter_date_to)) $pagination_args['filter_date_to'] = $filter_date_to;
+                            if (!empty($_GET['filter_date_from_shamsi_2'])) $pagination_args['filter_date_from_shamsi_2'] = $_GET['filter_date_from_shamsi_2'];
+                            if (!empty($_GET['filter_date_to_shamsi_2'])) $pagination_args['filter_date_to_shamsi_2'] = $_GET['filter_date_to_shamsi_2'];
                             $page_links = paginate_links([
-                                'base' => add_query_arg(['paged' => '%#%', 'tab' => 'grouped']),
+                                'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
                                 'format' => '',
                                 'prev_text' => '< قبلی ',
                                 'next_text' => ' بعدی >',
                                 'total' => $total_pages,
-                                'current' => $current_page
+                                'current' => $current_page,
+                                'add_args' => $pagination_args
                             ]);
                             echo $page_links;
+
+
+
+
+
+
                             ?>
                         </div>
                     </div>

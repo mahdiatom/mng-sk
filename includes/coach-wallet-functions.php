@@ -581,8 +581,11 @@ function sc_reject_coach_withdrawal_request($request_id, $rejection_reason = '')
 /**
  * Mark withdrawal request as paid
  * علامت‌گذاری درخواست برداشت به عنوان پرداخت شده (مبلغ قبلاً هنگام ثبت درخواست کسر شده)
+ *
+ * @param int    $request_id   شناسه درخواست برداشت
+ * @param string $payment_note توضیحات/اطلاعات پرداخت (اختیاری)
  */
-function sc_mark_coach_withdrawal_paid($request_id) {
+function sc_mark_coach_withdrawal_paid($request_id, $payment_note = '') {
     if (!$request_id) {
         return ['success' => false, 'message' => 'شناسه درخواست نامعتبر'];
     }
@@ -599,17 +602,28 @@ function sc_mark_coach_withdrawal_paid($request_id) {
         return ['success' => false, 'message' => 'درخواست یافت نشد یا تایید نشده است'];
     }
     
+    // آماده‌سازی یادداشت پرداخت (در صورت وجود)
+    $update_data = [
+        'status'    => 'paid',
+        'paid_by'   => get_current_user_id(),
+        'paid_at'   => current_time('mysql'),
+        'updated_at'=> current_time('mysql'),
+    ];
+
+    $update_format = ['%s', '%d', '%s', '%s'];
+
+    if (!empty($payment_note)) {
+        $combined_note = trim(($request->notes ? $request->notes . ' | ' : '') . $payment_note);
+        $update_data['notes'] = $combined_note;
+        $update_format[] = '%s';
+    }
+
     // مبلغ قبلاً هنگام ثبت درخواست کسر شده - فقط وضعیت را به پرداخت شده تغییر می‌دهیم
     $wpdb->update(
         $requests_table,
-        [
-            'status' => 'paid',
-            'paid_by' => get_current_user_id(),
-            'paid_at' => current_time('mysql'),
-            'updated_at' => current_time('mysql')
-        ],
+        $update_data,
         ['id' => $request_id],
-        ['%s', '%d', '%s', '%s'],
+        $update_format,
         ['%d']
     );
     

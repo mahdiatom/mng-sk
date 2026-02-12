@@ -28,9 +28,9 @@ if (isset($_POST['approve_request']) && isset($_POST['request_id']) && check_adm
     }
 }
 
-if (isset($_POST['reject_request']) && isset($_POST['request_id']) && check_admin_referer('reject_withdrawal_' . $_POST['request_id'], 'reject_nonce')) {
+if (isset($_POST['reject_request']) && isset($_POST['request_id']) && check_admin_referer('reject_withdrawal_action', 'reject_withdrawal_nonce')) {
     $request_id = absint($_POST['request_id']);
-    $rejection_reason = sanitize_text_field($_POST['rejection_reason']);
+    $rejection_reason = isset($_POST['rejection_reason']) ? sanitize_text_field($_POST['rejection_reason']) : '';
     $result = sc_reject_coach_withdrawal_request($request_id, $rejection_reason);
     if ($result['success']) {
         $action_message = $result['message'];
@@ -43,7 +43,8 @@ if (isset($_POST['reject_request']) && isset($_POST['request_id']) && check_admi
 
 if (isset($_POST['mark_paid']) && isset($_POST['request_id']) && check_admin_referer('mark_paid_withdrawal_' . $_POST['request_id'])) {
     $request_id = absint($_POST['request_id']);
-    $result = sc_mark_coach_withdrawal_paid($request_id);
+    $payment_note = isset($_POST['payment_note']) ? sanitize_text_field($_POST['payment_note']) : '';
+    $result = sc_mark_coach_withdrawal_paid($request_id, $payment_note);
     if ($result['success']) {
         $action_message = $result['message'];
         $action_message_type = 'success';
@@ -162,18 +163,19 @@ if (!empty($where_values)) {
         </div>
 
     <!-- جدول درخواست‌ها -->
-    <table class="wp-list-table widefat fixed striped">
+    <div class="sc-withdrawals-table-wrapper">
+    <table class="wp-list-table widefat fixed striped sc-withdrawals-table">
         <thead>
             <tr>
-                <td class="check-column"><input type="checkbox" id="cb-select-all"></td>
-                <th>ردیف</th>
-                <th>تاریخ درخواست</th>
-                <th>مربی</th>
-                <th>مبلغ</th>
-                <th>موجودی قبل</th>
-                <th>وضعیت</th>
-                <th>یادداشت</th>
-                <th>عملیات</th>
+                <td class="check-column column-cb"><input type="checkbox" id="cb-select-all"></td>
+                <th class="column-index">ردیف</th>
+                <th class="column-date">تاریخ درخواست</th>
+                <th class="column-coach">مربی</th>
+                <th class="column-amount">مبلغ</th>
+                <th class="column-balance">موجودی قبل</th>
+                <th class="column-status">وضعیت</th>
+                <th class="column-notes">یادداشت</th>
+                <th class="column-actions">عملیات</th>
             </tr>
         </thead>
         <tbody>
@@ -196,15 +198,15 @@ if (!empty($where_values)) {
                     $status_info = $status_labels[$request->status] ?? ['label' => $request->status, 'color' => '#666', 'bg' => '#f5f5f5'];
                     ?>
                     <tr>
-                        <th scope="row" class="check-column">
+                        <th scope="row" class="check-column column-cb">
                             <input type="checkbox" name="request_ids[]" value="<?php echo $request->id; ?>" class="cb-request">
                         </th>
-                        <td><?php echo $row++; ?></td>
-                        <td><?php echo sc_date_shamsi($request->created_at, 'Y/m/d H:i'); ?></td>
-                        <td><strong><?php echo esc_html($request->first_name . ' ' . $request->last_name); ?></strong></td>
-                        <td><strong><?php echo esc_html(sc_format_amount_display($request->amount)); ?> تومان</strong></td>
-                        <td><?php echo esc_html(sc_format_amount_display($request->balance_before)); ?> تومان</td>
-                        <td>
+                        <td class="column-index"><?php echo $row++; ?></td>
+                        <td class="column-date"><?php echo sc_date_shamsi($request->created_at, 'Y/m/d H:i'); ?></td>
+                        <td class="column-coach"><strong><?php echo esc_html($request->first_name . ' ' . $request->last_name); ?></strong></td>
+                        <td class="column-amount"><strong><?php echo esc_html(sc_format_amount_display($request->amount)); ?> تومان</strong></td>
+                        <td class="column-balance"><?php echo esc_html(sc_format_amount_display($request->balance_before)); ?> تومان</td>
+                        <td class="column-status">
                             <span style="padding: 5px 10px; border-radius: 4px; font-weight: bold; background-color: <?php echo $status_info['bg']; ?>; color: <?php echo $status_info['color']; ?>;">
                                 <?php echo $status_info['label']; ?>
                             </span>
@@ -215,11 +217,11 @@ if (!empty($where_values)) {
                                 <br><small>پرداخت شده در: <?php echo sc_date_shamsi($request->paid_at, 'Y/m/d H:i'); ?></small>
                             <?php endif; ?>
                         </td>
-                        <td><?php echo esc_html($request->notes ?: '-'); ?></td>
-                        <td>
+                        <td class="column-notes"><?php echo esc_html($request->notes ?: '-'); ?></td>
+                        <td class="column-actions">
                             <?php if ($request->status === 'pending'): ?>
                                 <button type="button" class="button button-primary button-small sc-approve-btn" data-request-id="<?php echo $request->id; ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('approve_withdrawal_' . $request->id)); ?>" style="margin-left: 5px;">تایید</button>
-                                <button type="button" class="button button-small reject-btn" data-request-id="<?php echo $request->id; ?>" data-reject-nonce="<?php echo esc_attr(wp_create_nonce('reject_withdrawal_' . $request->id)); ?>" style="margin-right: 5px;">رد</button>
+                                <button type="button" class="button button-small reject-btn" data-request-id="<?php echo $request->id; ?>" style="margin-right: 5px;">رد</button>
                             <?php elseif ($request->status === 'approved'): ?>
                                 <button type="button" class="button button-primary button-small sc-mark-paid-btn" data-request-id="<?php echo $request->id; ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('mark_paid_withdrawal_' . $request->id)); ?>">علامت‌گذاری به عنوان پرداخت شده</button>
                             <?php else: ?>
@@ -231,18 +233,112 @@ if (!empty($where_values)) {
             <?php endif; ?>
         </tbody>
     </table>
+    </div>
     </form>
 </div>
+
+<style>
+    /* استایل اختصاصی جدول درخواست‌های برداشت مربیان */
+    .sc-withdrawals-table-wrapper {
+        overflow-x: auto;
+        margin-top: 10px;
+    }
+
+    .sc-withdrawals-table th,
+    .sc-withdrawals-table td {
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .sc-withdrawals-table .column-index {
+        width: 60px;
+        text-align: center;
+    }
+
+    .sc-withdrawals-table .column-date {
+        width: 150px;
+    }
+
+    .sc-withdrawals-table .column-coach {
+        min-width: 140px;
+    }
+
+    .sc-withdrawals-table .column-amount,
+    .sc-withdrawals-table .column-balance {
+        width: 130px;
+        text-align: right;
+    }
+
+    .sc-withdrawals-table .column-status {
+        width: 170px;
+    }
+
+    .sc-withdrawals-table .column-actions {
+        width: 190px;
+        text-align: center;
+    }
+
+    .sc-withdrawals-table .column-notes {
+        min-width: 240px;
+        white-space: normal;
+    }
+
+    @media (max-width: 960px) {
+        .sc-withdrawals-table th,
+        .sc-withdrawals-table td {
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+
+        .sc-withdrawals-table .column-actions {
+            width: 160px;
+        }
+
+        .sc-withdrawals-table .column-status {
+            width: 150px;
+        }
+    }
+
+    @media (max-width: 782px) {
+        .sc-withdrawals-table-wrapper {
+            margin: 0 -10px;
+        }
+
+        .sc-withdrawals-table th,
+        .sc-withdrawals-table td {
+            padding: 6px 6px;
+            font-size: 11px;
+        }
+
+        .sc-withdrawals-table .column-date,
+        .sc-withdrawals-table .column-coach,
+        .sc-withdrawals-table .column-amount,
+        .sc-withdrawals-table .column-balance {
+            font-size: 11px;
+        }
+
+        .sc-withdrawals-table .column-notes {
+            min-width: 260px;
+        }
+
+        .sc-withdrawals-table .column-actions {
+            width: 150px;
+        }
+    }
+</style>
 
 <!-- پس‌زمینه مودال -->
 <div id="reject-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100049;"></div>
 <!-- مودال رد درخواست (تکی و دسته‌جمعی) -->
-<div id="reject-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border: 2px solid #ddd; border-radius: 8px; z-index: 100050; box-shadow: 0 4px 20px rgba(0,0,0,0.3); min-width: 400px;">
-    <h3 id="reject-modal-title">رد درخواست برداشت</h3>
+<div id="reject-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px 24px; border-radius: 10px; z-index: 100050; box-shadow: 0 12px 30px rgba(0,0,0,0.25); min-width: 420px; max-width: 520px;">
+    <h3 id="reject-modal-title" style="margin-top: 0; margin-bottom: 10px; font-size: 18px;">رد درخواست برداشت</h3>
+    <p style="margin-top: 0; margin-bottom: 15px; font-size: 13px; color: #555;">
+        لطفاً دلیل رد این درخواست را به‌صورت واضح وارد کنید تا در سوابق و برای مربی قابل مشاهده باشد.
+    </p>
     <!-- فرم رد تکی -->
     <form method="POST" action="" id="reject-form">
         <input type="hidden" name="request_id" id="reject_request_id">
-        <input type="hidden" name="reject_nonce" id="reject_nonce_input" value="">
+        <?php wp_nonce_field('reject_withdrawal_action', 'reject_withdrawal_nonce'); ?>
         <table class="form-table">
             <tr>
                 <th><label for="rejection_reason">دلیل رد:</label></th>
@@ -251,8 +347,8 @@ if (!empty($where_values)) {
                 </td>
             </tr>
         </table>
-        <p class="submit">
-            <input type="submit" name="reject_request" class="button button-primary" value="رد درخواست">
+        <p class="submit" style="margin-top: 15px;">
+            <input type="submit" name="reject_request" class="button button-primary" value="رد درخواست" style="margin-left: 8px;">
             <button type="button" class="button reject-modal-close">انصراف</button>
         </p>
     </form>
@@ -266,11 +362,35 @@ if (!empty($where_values)) {
                 </td>
             </tr>
         </table>
-        <p class="submit">
-            <button type="button" class="button button-primary" id="bulk-reject-submit">اعمال رد</button>
+        <p class="submit" style="margin-top: 15px;">
+            <button type="button" class="button button-primary" id="bulk-reject-submit" style="margin-left: 8px;">اعمال رد</button>
             <button type="button" class="button reject-modal-close">انصراف</button>
         </p>
     </div>
+</div>
+
+<!-- مودال ثبت اطلاعات پرداخت -->
+<div id="mark-paid-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px 24px; border-radius: 10px; z-index: 100051; box-shadow: 0 12px 30px rgba(0,0,0,0.25); min-width: 420px; max-width: 520px;">
+    <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 18px;">ثبت اطلاعات پرداخت</h3>
+    <p style="margin-top: 0; margin-bottom: 15px; font-size: 13px; color: #555;">
+        این درخواست به عنوان پرداخت شده علامت‌گذاری می‌شود. لطفاً اطلاعات پرداخت (مثل شماره پیگیری، روش پرداخت یا توضیحات تکمیلی) را وارد کنید.
+    </p>
+    <form method="POST" action="" id="mark-paid-form">
+        <input type="hidden" name="request_id" id="mark_paid_request_id">
+        <input type="hidden" name="_wpnonce" id="mark_paid_nonce_input" value="">
+        <table class="form-table">
+            <tr>
+                <th><label for="payment_note">توضیحات / اطلاعات پرداخت:</label></th>
+                <td>
+                    <textarea id="payment_note" name="payment_note" rows="4" class="large-text" placeholder="مثال: پرداخت از طریق کارت به کارت، شماره پیگیری ۱۲۳۴۵۶، تاریخ پرداخت ۱۴۰۲/۰۱/۱۵"></textarea>
+                </td>
+            </tr>
+        </table>
+        <p class="submit" style="margin-top: 15px;">
+            <input type="submit" name="mark_paid" class="button button-primary" value="ثبت به عنوان پرداخت شده" style="margin-left: 8px;">
+            <button type="button" class="button mark-paid-modal-close">انصراف</button>
+        </p>
+    </form>
 </div>
 
 <script>
@@ -284,7 +404,6 @@ jQuery(document).ready(function($) {
         } else {
             $('#reject-form').show();
             $('#bulk-reject-fields').hide();
-            $('#reject_request_id').val('');
             $('#rejection_reason').val('');
         }
         $('#reject-modal-overlay').show();
@@ -294,14 +413,13 @@ jQuery(document).ready(function($) {
     function hideRejectModal() {
         $('#reject-modal-overlay').hide();
         $('#reject-modal').hide();
+        $('#mark-paid-modal').hide();
     }
 
     // رد تکی
     $(document).on('click', '.reject-btn', function() {
         var requestId = $(this).data('request-id');
-        var nonce = $(this).data('reject-nonce');
         $('#reject_request_id').val(requestId);
-        $('#reject_nonce_input').val(nonce).attr('name', 'reject_nonce');
         showRejectModal('رد درخواست برداشت', 'single');
     });
 
@@ -315,19 +433,21 @@ jQuery(document).ready(function($) {
         fid.submit();
     });
 
-    // علامت پرداخت تکی
+    // علامت پرداخت تکی - نمایش مودال اطلاعات پرداخت
     $(document).on('click', '.sc-mark-paid-btn', function() {
-        if (!confirm('آیا مطمئن هستید؟ مبلغ از کیف پول مربی کسر و به عنوان پرداخت شده علامت‌گذاری می‌شود.')) return;
-        var fid = document.createElement('form');
-        fid.method = 'POST';
-        fid.innerHTML = '<input type="hidden" name="mark_paid" value="1"><input type="hidden" name="request_id" value="' + $(this).data('request-id') + '"><input type="hidden" name="_wpnonce" value="' + $(this).data('nonce') + '">';
-        document.body.appendChild(fid);
-        fid.submit();
+        var requestId = $(this).data('request-id');
+        var nonce = $(this).data('nonce');
+        $('#mark_paid_request_id').val(requestId);
+        $('#mark_paid_nonce_input').val(nonce);
+        $('#payment_note').val('');
+        $('#reject-modal-overlay').show();
+        $('#mark-paid-modal').show();
     });
 
     // بستن مودال
     $('#reject-modal-overlay').on('click', hideRejectModal);
     $(document).on('click', '#reject-modal .reject-modal-close', hideRejectModal);
+    $(document).on('click', '#mark-paid-modal .mark-paid-modal-close', hideRejectModal);
 
     // Select All
     $('#cb-select-all').on('change', function() {
