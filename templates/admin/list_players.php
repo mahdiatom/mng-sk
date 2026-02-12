@@ -51,28 +51,21 @@ global $title ,$player_list_table;
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
-    console.log('Player modal JS loaded');
-    
     // ---------- نمایش پاپ آپ اطلاعات بازیکن ----------
     $(document).on('click', '.view-player', function(e){
         e.preventDefault();
         e.stopPropagation();
-        console.log('View player clicked');
         
         let playerId = $(this).data('id');
-        console.log('Player ID:', playerId);
         
         if (!playerId) {
-            console.error('Player ID not found');
             alert('خطا: شناسه بازیکن پیدا نشد');
             return;
         }
         
         let $modal = $('#myModal');
-        console.log('Modal found:', $modal.length);
         
         if (!$modal.length) {
-            console.error('Modal not found');
             alert('خطا: المان Modal پیدا نشد');
             return;
         }
@@ -89,7 +82,6 @@ jQuery(document).ready(function($) {
 
 
         var ajaxUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
-        console.log('AJAX URL:', ajaxUrl);
         
         $.ajax({
             url: ajaxUrl,
@@ -99,7 +91,6 @@ jQuery(document).ready(function($) {
                 id: playerId
             },
             success: function(res){
-                console.log('AJAX Success Response:', res);
                 $loading.hide();
                 
                 if(res.success){
@@ -215,7 +206,6 @@ jQuery(document).ready(function($) {
                     if(courses.length > 0){
                          $(".sk-modal-content_courses").removeClass('hide_before_data_courses');
                         let p = res.data;
-                        console.log(p);
                     let html = '<div class="CourseList" >';    
                     
                     
@@ -238,9 +228,6 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function(xhr, status, error){
-                console.error('AJAX Error:', status, error);
-                console.error('Response Text:', xhr.responseText);
-                console.error('Status Code:', xhr.status);
                 alert('خطا در دریافت اطلاعات بازیکن. لطفاً دوباره تلاش کنید.');
             }
         });

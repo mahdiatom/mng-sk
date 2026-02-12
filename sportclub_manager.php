@@ -665,6 +665,11 @@ function sc_check_and_create_tables() {
         sc_create_honors_table();
     }
     
+    // اجرای به‌روزرسانی‌های دیتابیس
+    if (function_exists('sc_update_database')) {
+        sc_update_database();
+    }
+    
 }
 
 // بررسی و ایجاد جداول در هر بار بارگذاری افزونه (فقط در پنل ادمین)

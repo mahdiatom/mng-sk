@@ -220,16 +220,6 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
     echo '<div style="background: #fff; padding: 20px; margin: 20px 0; border: 1px solid #ccc; direction: rtl;">';
     echo '<h3>اطلاعات دیباگ</h3>';
     echo '<p><strong>Query:</strong> ' . esc_html($wpdb->last_query) . '</p>';
-    echo '<p><strong>تعداد آیتم‌های یافت شده:</strong> ' . count($registrations) . '</p>';
-    echo '<p><strong>خطای آخر:</strong> ' . esc_html($wpdb->last_error ?: 'هیچ خطایی نیست') . '</p>';
-    echo '<p><strong>مقادیر Where:</strong> ' . print_r($where_values, true) . '</p>';
-    echo '<p><strong>Where Clause:</strong> ' . esc_html($where_clause ?: 'خالی') . '</p>';
-    echo '<p><strong>تعداد کل:</strong> ' . $total_items . '</p>';
-    if (!empty($registrations)) {
-        echo '<p><strong>نمونه اولین آیتم:</strong></p>';
-        echo '<pre>' . print_r($registrations[0], true) . '</pre>';
-    }
-    echo '</div>';
 }
 ?>
 

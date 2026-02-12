@@ -36,27 +36,20 @@ echo '</div>';
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
-    console.log('SC Admin JS loaded inline');
-    
     $(document).on('click', '.view-course-users', function(e){
         e.preventDefault();
         e.stopPropagation();
-        console.log('View course users clicked');
         
         let courseId = $(this).data('id');
-        console.log('Course ID:', courseId);
         
         if (!courseId) {
-            console.error('Course ID not found');
             alert('خطا: شناسه دوره پیدا نشد');
             return;
         }
         
         let $modal = $('#scCourseUsersModal');
-        console.log('Modal found:', $modal.length);
         
         if (!$modal.length) {
-            console.error('Modal not found');
             alert('خطا: المان Modal پیدا نشد');
             return;
         }
@@ -73,8 +66,6 @@ jQuery(document).ready(function($) {
         }).addClass('show-modal');
         
         var ajaxUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
-        console.log('AJAX URL:', ajaxUrl);
-        console.log('Sending AJAX request...');
         
         $.ajax({
             url: ajaxUrl,
@@ -84,7 +75,6 @@ jQuery(document).ready(function($) {
                 course_id: courseId
             },
             success: function(res){
-                console.log('AJAX Success Response:', res);
                 $loading.hide();
                 
                 if(res.success && res.data){

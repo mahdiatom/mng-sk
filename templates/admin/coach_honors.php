@@ -35,6 +35,47 @@ $coach_id = $coach->id;
 $message = '';
 $message_type = '';
 
+// پردازش حذف تکی افتخار مربی
+if (isset($_POST['delete_single_honor']) && check_admin_referer('delete_single_coach_honor_nonce')) {
+    $honor_id = isset($_POST['honor_id']) ? absint($_POST['honor_id']) : 0;
+    
+    if ($honor_id > 0) {
+        // بررسی اینکه افتخار متعلق به این مربی است
+        $honor = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, file_url FROM $honors_table WHERE id = %d AND coach_id = %d",
+            $honor_id,
+            $coach_id
+        ));
+        
+        if ($honor) {
+            // حذف فایل اگر وجود دارد
+            if (!empty($honor->file_url)) {
+                $file_path = str_replace(wp_upload_dir()['baseurl'], wp_upload_dir()['basedir'], $honor->file_url);
+                if (file_exists($file_path)) {
+                    @unlink($file_path);
+                }
+            }
+            
+            // حذف رکورد
+            $wpdb->delete($honors_table, ['id' => $honor_id], ['%d']);
+            $message = 'افتخار با موفقیت حذف شد.';
+            $message_type = 'success';
+        } else {
+            $message = 'افتخار یافت نشد یا شما دسترسی به حذف آن را ندارید.';
+            $message_type = 'error';
+        }
+        
+        wp_safe_redirect(add_query_arg('honor_deleted', '1', admin_url('admin.php?page=sc-coach-honors')));
+        exit;
+    }
+}
+
+// نمایش پیام موفقیت پس از redirect
+if (isset($_GET['honor_deleted']) && $_GET['honor_deleted'] == '1') {
+    $message = 'افتخار با موفقیت حذف شد.';
+    $message_type = 'success';
+}
+
 if (isset($_POST['save_honors']) && check_admin_referer('save_coach_honors_nonce')) {
     $honors_data = isset($_POST['honors']) && is_array($_POST['honors']) ? $_POST['honors'] : [];
     
@@ -124,24 +165,47 @@ if (isset($_POST['save_honors']) && check_admin_referer('save_coach_honors_nonce
             }
             
             // ذخیره افتخار برای مربی
+            $insert_data = [
+                'member_id' => null,
+                'coach_id' => $coach_id,
+                'name' => $honor_name,
+                'category_id' => $honor_category,
+                'description' => $honor_description ?: null,
+                'file_url' => $file_url ?: null,
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ];
+            
+            // آماده‌سازی format array
+            $insert_formats = [];
+            foreach ($insert_data as $key => $value) {
+                if ($value === null) {
+                    $insert_formats[] = '%s'; // NULL values
+                } elseif (in_array($key, ['member_id', 'coach_id', 'category_id'])) {
+                    $insert_formats[] = '%d'; // integer
+                } else {
+                    $insert_formats[] = '%s'; // string
+                }
+            }
+            
             $inserted = $wpdb->insert(
                 $honors_table,
-                [
-                    'member_id' => null,
-                    'coach_id' => $coach_id,
-                    'name' => $honor_name,
-                    'category_id' => $honor_category,
-                    'description' => $honor_description ?: null,
-                    'file_url' => $file_url,
-                    'created_at' => current_time('mysql'),
-                    'updated_at' => current_time('mysql')
-                ],
-                ['%d', '%d', '%s', '%d', '%s', '%s', '%s', '%s']
+                $insert_data,
+                $insert_formats
             );
             
-            if ($inserted) {
+            if ($inserted !== false) {
                 $saved_count++;
+            } else {
+                $db_error = $wpdb->last_error ? $wpdb->last_error : 'خطای نامشخص دیتابیس';
+                $errors[] = 'ردیف ' . ($index + 1) . ': خطا در ذخیره افتخار. ' . $db_error;
             }
+        }
+        
+        if ($saved_count > 0 && empty($errors)) {
+            // Redirect برای جلوگیری از ثبت تکراری
+            wp_safe_redirect(add_query_arg('honor_saved', '1', admin_url('admin.php?page=sc-coach-honors')));
+            exit;
         }
         
         if ($saved_count > 0) {
@@ -156,6 +220,12 @@ if (isset($_POST['save_honors']) && check_admin_referer('save_coach_honors_nonce
             }
         }
     }
+}
+
+// نمایش پیام موفقیت پس از redirect
+if (isset($_GET['honor_saved']) && $_GET['honor_saved'] == '1') {
+    $message = 'افتخار با موفقیت ذخیره شد.';
+    $message_type = 'success';
 }
 
 // دریافت لیست دسته‌ها
@@ -230,12 +300,20 @@ $total_pages = ceil($total_honors / $per_page);
                                    class="sc-honor-file-input" 
                                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
                                    style="position: absolute; opacity: 0; width: 0; height: 0;">
-                            <button type="button" 
-                                    class="sc-file-upload-btn" 
-                                    data-index="0"
-                                    style="padding: 8px 16px; font-size: 13px; background: linear-gradient(135deg, #2271b1 0%, #135e96 100%); color: #fff; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; width: 100%; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(34,113,177,0.2);">
-                                <span class="btn-text">📎 انتخاب فایل</span>
-                            </button>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button type="button" 
+                                        class="sc-file-upload-btn" 
+                                        data-index="0"
+                                        style="padding: 8px 16px; font-size: 13px; background: linear-gradient(135deg, #2271b1 0%, #135e96 100%); color: #fff; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; flex: 1; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(34,113,177,0.2);">
+                                    <span class="btn-text">📎 انتخاب فایل</span>
+                                </button>
+                                <button type="button" 
+                                        class="sc-remove-file-btn" 
+                                        data-index="0"
+                                        style="padding: 8px 12px; font-size: 13px; background: #d63638; color: #fff; border: none; border-radius: 6px; cursor: pointer; display: none; transition: all 0.3s ease;">
+                                    ✕ حذف
+                                </button>
+                            </div>
                         </div>
                         <p class="description" style="margin-top: 5px; font-size: 11px; color: #999;">حداکثر 1 مگابایت - تصاویر، PDF، Word، Excel</p>
                     </div>
@@ -269,6 +347,7 @@ $total_pages = ceil($total_honors / $per_page);
                         <th>توضیحات</th>
                         <th>فایل</th>
                         <th>تاریخ ثبت</th>
+                        <th style="width: 80px;">عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -285,6 +364,11 @@ $total_pages = ceil($total_honors / $per_page);
                                 <?php endif; ?>
                             </td>
                             <td><?php echo esc_html(sc_date_shamsi($honor->created_at, 'Y/m/d')); ?></td>
+                            <td>
+                                <button type="button" class="button delete-single-coach-honor" data-honor-id="<?php echo esc_attr($honor->id); ?>" style="background: #d63638; color: #fff; border-color: #d63638; padding: 5px 10px; font-size: 12px;">
+                                    حذف
+                                </button>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -351,12 +435,20 @@ jQuery(document).ready(function($) {
                                class="sc-honor-file-input" 
                                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
                                style="position: absolute; opacity: 0; width: 0; height: 0;">
-                        <button type="button" 
-                                class="sc-file-upload-btn" 
-                                data-index="${rowIndex}"
-                                style="padding: 8px 16px; font-size: 13px; background: linear-gradient(135deg, #2271b1 0%, #135e96 100%); color: #fff; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; width: 100%; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(34,113,177,0.2);">
-                            <span class="btn-text">📎 انتخاب فایل</span>
-                        </button>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button type="button" 
+                                    class="sc-file-upload-btn" 
+                                    data-index="${rowIndex}"
+                                    style="padding: 8px 16px; font-size: 13px; background: linear-gradient(135deg, #2271b1 0%, #135e96 100%); color: #fff; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; flex: 1; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(34,113,177,0.2);">
+                                <span class="btn-text">📎 انتخاب فایل</span>
+                            </button>
+                            <button type="button" 
+                                    class="sc-remove-file-btn" 
+                                    data-index="${rowIndex}"
+                                    style="padding: 8px 12px; font-size: 13px; background: #d63638; color: #fff; border: none; border-radius: 6px; cursor: pointer; display: none; transition: all 0.3s ease;">
+                                ✕ حذف
+                            </button>
+                        </div>
                     </div>
                     <p class="description" style="margin-top: 5px; font-size: 11px; color: #999;">حداکثر 1 مگابایت - تصاویر، PDF، Word، Excel</p>
                 </div>
@@ -383,9 +475,14 @@ jQuery(document).ready(function($) {
         $('#coach_honor_file_' + index).click();
     });
     
-    // تغییر فایل انتخاب شده - فقط بررسی اندازه (بدون پیش نمایش)
+    // تغییر فایل انتخاب شده - بررسی اندازه و نمایش پیام انتخاب (بدون پیش نمایش)
     $(document).on('change', '.sc-honor-file-input', function() {
+        const index = $(this).attr('id').replace('coach_honor_file_', '');
         const file = this.files[0];
+        const wrapper = $(this).closest('.sc-file-upload-wrapper');
+        const uploadBtn = wrapper.find('.sc-file-upload-btn[data-index="' + index + '"]');
+        const removeBtn = wrapper.find('.sc-remove-file-btn[data-index="' + index + '"]');
+        const btnText = uploadBtn.find('.btn-text');
         
         if (file) {
             // بررسی اندازه فایل (1MB)
@@ -393,9 +490,41 @@ jQuery(document).ready(function($) {
             if (file.size > maxSize) {
                 alert('حجم فایل بیش از 1 مگابایت است. لطفاً فایل کوچکتری انتخاب کنید.');
                 $(this).val('');
+                btnText.text('📎 انتخاب فایل');
+                uploadBtn.css({
+                    'background': 'linear-gradient(135deg, #2271b1 0%, #135e96 100%)',
+                    'box-shadow': '0 2px 4px rgba(34,113,177,0.2)'
+                });
+                removeBtn.hide();
                 return;
             }
+            
+            // نشان دادن انتخاب فایل (بدون پیش نمایش)
+            btnText.text('✓ فایل انتخاب شد');
+            uploadBtn.css({
+                'background': 'linear-gradient(135deg, #00a32a 0%, #008a20 100%)',
+                'box-shadow': '0 2px 4px rgba(0,163,42,0.2)'
+            });
+            removeBtn.show();
         }
+    });
+    
+    // حذف فایل انتخاب شده
+    $(document).on('click', '.sc-remove-file-btn', function() {
+        const index = $(this).data('index');
+        const fileInput = $('#coach_honor_file_' + index);
+        const wrapper = fileInput.closest('.sc-file-upload-wrapper');
+        const uploadBtn = wrapper.find('.sc-file-upload-btn[data-index="' + index + '"]');
+        const removeBtn = wrapper.find('.sc-remove-file-btn[data-index="' + index + '"]');
+        const btnText = uploadBtn.find('.btn-text');
+        
+        fileInput.val('');
+        btnText.text('📎 انتخاب فایل');
+        uploadBtn.css({
+            'background': 'linear-gradient(135deg, #2271b1 0%, #135e96 100%)',
+            'box-shadow': '0 2px 4px rgba(34,113,177,0.2)'
+        });
+        removeBtn.hide();
     });
     
     // حذف ردیف
@@ -415,15 +544,66 @@ jQuery(document).ready(function($) {
     
     // Hover effect برای دکمه فایل
     $(document).on('mouseenter', '.sc-file-upload-btn', function() {
-        $(this).css({
-            'transform': 'translateY(-2px)',
-            'box-shadow': '0 4px 8px rgba(34,113,177,0.3)'
-        });
+        if (!$(this).find('.btn-text').text().includes('✓')) {
+            $(this).css({
+                'transform': 'translateY(-2px)',
+                'box-shadow': '0 4px 8px rgba(34,113,177,0.3)'
+            });
+        }
     }).on('mouseleave', '.sc-file-upload-btn', function() {
+        if (!$(this).find('.btn-text').text().includes('✓')) {
+            $(this).css({
+                'transform': 'translateY(0)',
+                'box-shadow': '0 2px 4px rgba(34,113,177,0.2)'
+            });
+        }
+    });
+    
+    // Hover effect برای دکمه حذف فایل
+    $(document).on('mouseenter', '.sc-remove-file-btn', function() {
         $(this).css({
-            'transform': 'translateY(0)',
-            'box-shadow': '0 2px 4px rgba(34,113,177,0.2)'
+            'background': '#b32d2e',
+            'transform': 'translateY(-1px)'
         });
+    }).on('mouseleave', '.sc-remove-file-btn', function() {
+        $(this).css({
+            'background': '#d63638',
+            'transform': 'translateY(0)'
+        });
+    });
+    
+    // حذف تکی افتخار مربی
+    $(document).on('click', '.delete-single-coach-honor', function() {
+        if (!confirm('آیا از حذف این افتخار اطمینان دارید؟')) {
+            return;
+        }
+        
+        const honorId = $(this).data('honor-id');
+        const form = $('<form>', {
+            method: 'POST',
+            action: ''
+        });
+        
+        form.append($('<input>', {
+            type: 'hidden',
+            name: 'delete_single_honor',
+            value: '1'
+        }));
+        
+        form.append($('<input>', {
+            type: 'hidden',
+            name: 'honor_id',
+            value: honorId
+        }));
+        
+        form.append($('<input>', {
+            type: 'hidden',
+            name: '_wpnonce',
+            value: '<?php echo wp_create_nonce("delete_single_coach_honor_nonce"); ?>'
+        }));
+        
+        $('body').append(form);
+        form.submit();
     });
 });
 </script>

@@ -129,6 +129,18 @@ function sc_register_admin_menu() {
         'sc_admin_coach_withdrawals_page'
     );
 
+    /* ================= Coach Honors (for coaches) ================= */
+
+    add_menu_page(
+        'افتخارات من',
+        'افتخارات من',
+        'sc_view_coach_salary',
+        'sc-coach-honors',
+        'sc_admin_coach_honors_page',
+        'dashicons-awards',
+        28.6
+    );
+
     /* ================= Courses ================= */
 
     add_menu_page(
@@ -364,18 +376,6 @@ function sc_register_admin_menu() {
         'manage_options',
         'sc-add-honor-for-member',
         'sc_admin_add_honor_for_member_page'
-    );
-
-    /* ================= Coach Honors (for coaches) ================= */
-
-    add_menu_page(
-        'افتخارات من',
-        'افتخارات من',
-        'sc_view_coach_salary',
-        'sc-coach-honors',
-        'sc_admin_coach_honors_page',
-        'dashicons-awards',
-        33
     );
 
     /* ================= Settings ================= */

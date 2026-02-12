@@ -66,19 +66,20 @@ add_action('admin_init', 'sc_create_coach_role');
 add_action('admin_menu', 'club_hide_menus_for_coach', 999);
 function club_hide_menus_for_coach() {
     
-    // اگر کاربر مربی است، فقط منوهای حضور و غیاب و دستمزد/کیف پول را نگه دار
+    // اگر کاربر مربی است، فقط منوهای حضور و غیاب، دستمزد/کیف پول و افتخارات را نگه دار
     if ( current_user_can('coach') && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
-        // حذف تمام منوها به جز حضور و غیاب
+        // حذف تمام منوها به جز حضور و غیاب، دستمزد/کیف پول و افتخارات
         global $menu;
         
-        // حذف تمام منوهای اصلی به جز حضور و غیاب، دستمزد/کیف پول و dashboard
+        // حذف تمام منوهای اصلی به جز حضور و غیاب، دستمزد/کیف پول، افتخارات و dashboard
         foreach ($menu as $key => $item) {
             if (isset($item[2])) {
-                // فقط dashboard، حضور و غیاب و منوی دستمزد و کیف پول مربی را نگه دار
+                // فقط dashboard، حضور و غیاب، منوی دستمزد و کیف پول و افتخارات مربی را نگه دار
                 if (
                     $item[2] !== 'sc-attendance-add' &&
                     $item[2] !== 'index.php' &&
-                    $item[2] !== 'sc-coach-salary'
+                    $item[2] !== 'sc-coach-salary' &&
+                    $item[2] !== 'sc-coach-honors'
                 ) {
                     remove_menu_page($item[2]);
                 }
@@ -151,7 +152,7 @@ function club_hide_menus_for_coach() {
 add_action('admin_init', 'club_block_restricted_pages_for_coach');
 function club_block_restricted_pages_for_coach() {
 
-    // اگر کاربر مربی است، فقط دسترسی به حضور و غیاب و دستمزد/کیف پول
+    // اگر کاربر مربی است، فقط دسترسی به حضور و غیاب و دستمزد/کیف پول و افتخارات
     if ( current_user_can('coach') && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
         $allowed_pages = [
             'sc-attendance-add',
@@ -159,6 +160,7 @@ function club_block_restricted_pages_for_coach() {
             'sc-coach-salary',
             'sc-coach-wallet',
             'sc-coach-withdrawals',
+            'sc-coach-honors',
         ];
         
         $page = $_GET['page'] ?? '';
@@ -168,9 +170,9 @@ function club_block_restricted_pages_for_coach() {
         // اگر در صفحه ادمین هستیم و صفحه مجاز نیست
         if (is_admin() && !empty($page) && !in_array($page, $allowed_pages)) {
             // بررسی اینکه آیا صفحه اصلی dashboard است یا نه
-            if ($page !== 'index.php' && strpos($uri, 'sc-attendance') === false) {
+            if ($page !== 'index.php' && strpos($uri, 'sc-attendance') === false && strpos($uri, 'sc-coach') === false) {
                 wp_die(
-                    '<div><h2 style="text-align: left;">Access Denied</h2><p style="text-align: left;">شما فقط به بخش حضور و غیاب دسترسی دارید.</p></div>',
+                    '<div><h2 style="text-align: left;">Access Denied</h2><p style="text-align: left;">شما فقط به بخش حضور و غیاب، دستمزد و افتخارات دسترسی دارید.</p></div>',
                     'خطای دسترسی',
                     array('response' => 403)
                 );

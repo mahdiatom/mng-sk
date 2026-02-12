@@ -1169,3 +1169,7 @@ display: block; margin-bottom: 5px; font-weight: bold;
     align-items: center;
     gap: 20px;
 }
+.filter_search_honors{
+    display: flex;
+        justify-content: space-between;
+}

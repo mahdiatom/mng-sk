@@ -740,4 +740,24 @@ function sc_update_database() {
         }
         update_option('sc_honors_coach_id_column_added', '1');
     }
+
+    // تغییر member_id به nullable برای نصب‌های قبلی (یک بار)
+    if (get_option('sc_honors_member_id_nullable', '0') !== '1') {
+        $honors_table = $wpdb->prefix . 'sc_honors';
+        // بررسی اینکه آیا member_id nullable است یا نه
+        $column_info = $wpdb->get_row($wpdb->prepare(
+            "SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS 
+             WHERE TABLE_SCHEMA = %s 
+             AND TABLE_NAME = %s 
+             AND COLUMN_NAME = 'member_id'",
+            $wpdb->dbname,
+            $honors_table
+        ));
+        
+        if ($column_info && $column_info->IS_NULLABLE === 'NO') {
+            // تغییر member_id به nullable
+            $wpdb->query("ALTER TABLE `$honors_table` MODIFY COLUMN `member_id` bigint(20) unsigned DEFAULT NULL");
+        }
+        update_option('sc_honors_member_id_nullable', '1');
+    }
 }

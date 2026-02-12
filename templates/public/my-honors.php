@@ -8,6 +8,50 @@ global $wpdb;
 $honors_table = $wpdb->prefix . 'sc_honors';
 $categories_table = $wpdb->prefix . 'sc_honor_categories';
 
+// پردازش حذف تکی افتخار
+if (isset($_POST['delete_single_honor']) && check_admin_referer('delete_single_honor_nonce')) {
+    $honor_id = isset($_POST['honor_id']) ? absint($_POST['honor_id']) : 0;
+    
+    if ($honor_id > 0) {
+        // دریافت اطلاعات بازیکن
+        $current_user_id = get_current_user_id();
+        $player = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}sc_members WHERE user_id = %d LIMIT 1",
+            $current_user_id
+        ));
+        
+        if ($player) {
+            // بررسی اینکه افتخار متعلق به این بازیکن است
+            $honor = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, file_url FROM $honors_table WHERE id = %d AND member_id = %d",
+                $honor_id,
+                $player->id
+            ));
+            
+            if ($honor) {
+                // حذف فایل اگر وجود دارد
+                if (!empty($honor->file_url)) {
+                    $file_path = str_replace(wp_upload_dir()['baseurl'], wp_upload_dir()['basedir'], $honor->file_url);
+                    if (file_exists($file_path)) {
+                        @unlink($file_path);
+                    }
+                }
+                
+                // حذف رکورد
+                $wpdb->delete($honors_table, ['id' => $honor_id], ['%d']);
+                wc_add_notice('افتخار با موفقیت حذف شد.', 'success');
+            } else {
+                wc_add_notice('افتخار یافت نشد یا شما دسترسی به حذف آن را ندارید.', 'error');
+            }
+        } else {
+            wc_add_notice('خطا: اطلاعات بازیکن یافت نشد.', 'error');
+        }
+        
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-my-honors'));
+        exit;
+    }
+}
+
 // پردازش فرم افزودن افتخار
 if (isset($_POST['save_honors']) && check_admin_referer('save_honors_nonce')) {
     $honors_data = isset($_POST['honors']) && is_array($_POST['honors']) ? $_POST['honors'] : [];
@@ -257,6 +301,7 @@ $total_pages = ceil($total_honors / $per_page);
                         <th style="text-align: right; padding: 10px;">توضیحات</th>
                         <th style="text-align: right; padding: 10px;">فایل</th>
                         <th style="text-align: right; padding: 10px;">تاریخ ثبت</th>
+                        <th style="text-align: right; padding: 10px; width: 80px;">عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -282,6 +327,11 @@ $total_pages = ceil($total_honors / $per_page);
                             </td>
                             <td data-title="تاریخ ثبت" style="padding: 10px;">
                                 <?php echo esc_html(sc_date_shamsi($honor->created_at, 'Y/m/d')); ?>
+                            </td>
+                            <td data-title="عملیات" style="padding: 10px;">
+                                <button type="button" class="button delete-single-honor" data-honor-id="<?php echo esc_attr($honor->id); ?>" style="background: #d63638; color: #fff; border-color: #d63638; padding: 5px 10px; font-size: 12px;">
+                                    حذف
+                                </button>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -485,6 +535,40 @@ jQuery(document).ready(function($) {
     if ($('.honor-row').length <= 1) {
         $('.remove-row').hide();
     }
+    
+    // حذف تکی افتخار
+    $(document).on('click', '.delete-single-honor', function() {
+        if (!confirm('آیا از حذف این افتخار اطمینان دارید؟')) {
+            return;
+        }
+        
+        const honorId = $(this).data('honor-id');
+        const form = $('<form>', {
+            method: 'POST',
+            action: ''
+        });
+        
+        form.append($('<input>', {
+            type: 'hidden',
+            name: 'delete_single_honor',
+            value: '1'
+        }));
+        
+        form.append($('<input>', {
+            type: 'hidden',
+            name: 'honor_id',
+            value: honorId
+        }));
+        
+        form.append($('<input>', {
+            type: 'hidden',
+            name: '_wpnonce',
+            value: '<?php echo wp_create_nonce("delete_single_honor_nonce"); ?>'
+        }));
+        
+        $('body').append(form);
+        form.submit();
+    });
     
 });
 </script>
