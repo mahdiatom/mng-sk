@@ -498,7 +498,10 @@ function sc_create_coach_withdrawal_request($coach_id, $amount, $notes = '') {
 
 /**
  * Approve withdrawal request
- * تایید درخواست برداشت (وضعیت: منتظر پرداخت - بدون کسر از کیف پول)
+ * تایید درخواست برداشت (وضعیت: منتظر پرداخت)
+ *
+ * - اگر وضعیت فعلی pending باشد: فقط به approved تغییر می‌کند (بدون تغییر کیف پول).
+ * - اگر وضعیت فعلی rejected باشد: مبلغ دوباره از کیف پول مربی کسر می‌شود و سپس وضعیت approved می‌شود.
  */
 function sc_approve_coach_withdrawal_request($request_id) {
     if (!$request_id) {
@@ -508,8 +511,9 @@ function sc_approve_coach_withdrawal_request($request_id) {
     global $wpdb;
     $requests_table = $wpdb->prefix . 'sc_coach_withdrawal_requests';
     
+    // اجازه تایید برای وضعیت‌های pending و rejected
     $request = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $requests_table WHERE id = %d AND status = 'pending' LIMIT 1",
+        "SELECT * FROM $requests_table WHERE id = %d AND status IN ('pending','rejected') LIMIT 1",
         $request_id
     ));
     
@@ -517,7 +521,20 @@ function sc_approve_coach_withdrawal_request($request_id) {
         return ['success' => false, 'message' => 'درخواست یافت نشد یا قبلاً پردازش شده است'];
     }
     
-    // فقط بروزرسانی وضعیت - بدون کسر از کیف پول (منتظر پرداخت)
+    // اگر قبلاً رد شده بود، مبلغ را دوباره از کیف پول کسر کن
+    if ($request->status === 'rejected') {
+        $deduct = sc_deduct_coach_wallet(
+            $request->coach_id,
+            floatval($request->amount),
+            sprintf('کسر مجدد برای تایید دوباره درخواست برداشت #%d', $request_id)
+        );
+        
+        if (!$deduct['success']) {
+            return ['success' => false, 'message' => $deduct['message'] ?? 'خطا در کسر مبلغ از کیف پول هنگام تایید مجدد'];
+        }
+    }
+    
+    // بروزرسانی وضعیت به approved
     $wpdb->update(
         $requests_table,
         [
@@ -576,6 +593,53 @@ function sc_reject_coach_withdrawal_request($request_id, $rejection_reason = '')
     );
     
     return ['success' => true, 'message' => 'درخواست رد شد و مبلغ به کیف پول برگشت داده شد'];
+}
+
+/**
+ * Delete withdrawal request
+ * حذف درخواست برداشت - در صورت لزوم، مبلغ به کیف پول برگردانده می‌شود
+ */
+function sc_delete_coach_withdrawal_request($request_id) {
+    if (!$request_id) {
+        return ['success' => false, 'message' => 'شناسه درخواست نامعتبر'];
+    }
+    
+    global $wpdb;
+    $requests_table = $wpdb->prefix . 'sc_coach_withdrawal_requests';
+    
+    $request = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $requests_table WHERE id = %d LIMIT 1",
+        $request_id
+    ));
+    
+    if (!$request) {
+        return ['success' => false, 'message' => 'درخواست یافت نشد'];
+    }
+    
+    // برگشت مبلغ به کیف پول:
+    // - برای وضعیت‌های pending / approved / paid: مبلغ هنوز به طور نهایی در سیستم تسویه نشده، پس برگردان.
+    // - برای وضعیت rejected: قبلاً در رد کردن مبلغ برگشت داده شده، پس دوباره برنمی‌گردانیم.
+    if (in_array($request->status, ['pending', 'approved', 'paid'], true)) {
+        sc_add_coach_wallet_transaction(
+            $request->coach_id,
+            'charge',
+            floatval($request->amount),
+            sprintf('برگشت مبلغ - حذف درخواست برداشت #%d', $request_id)
+        );
+    }
+    
+    // حذف خود درخواست
+    $deleted = $wpdb->delete(
+        $requests_table,
+        ['id' => $request_id],
+        ['%d']
+    );
+    
+    if ($deleted) {
+        return ['success' => true, 'message' => 'درخواست با موفقیت حذف شد و مبلغ به کیف پول برگشت داده شد'];
+    }
+    
+    return ['success' => false, 'message' => 'خطا در حذف درخواست'];
 }
 
 /**

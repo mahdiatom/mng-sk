@@ -58,8 +58,11 @@ $count_paid = (int) ($withdrawal_stats['count_paid'] ?? 0);
 $sum_approved = floatval($withdrawal_stats['sum_approved'] ?? 0);
 $sum_pending = floatval($withdrawal_stats['sum_pending'] ?? 0);
 
-// مجموع درآمد = موجودی فعلی + مجموع پرداختی + مجموع تایید شده (منتظر پرداخت) + مجموع در انتظار تایید
-$total_income = $wallet_balance + $total_withdrawn + $sum_approved + $sum_pending;
+// مجموع درآمد = (موجودی مثبت) + مجموع پرداختی + مجموع تایید شده (منتظر پرداخت) + مجموع در انتظار تایید
+// اگر موجودی منفی باشد، در مجموع درآمد لحاظ نمی‌شود و به عنوان بدهی جداگانه نمایش داده می‌شود.
+$wallet_balance_positive = max(0, $wallet_balance);
+$wallet_debt = $wallet_balance < 0 ? abs($wallet_balance) : 0;
+$total_income = $wallet_balance_positive + $total_withdrawn + $sum_approved + $sum_pending;
 
 // پردازش درخواست برداشت
 $withdrawal_message = '';
@@ -85,13 +88,38 @@ if (isset($_POST['submit_withdrawal']) && check_admin_referer('coach_withdrawal_
     }
 }
 
+// فیلترهای لیست درخواست‌های برداشت (سمت مربی)
+$withdraw_filter_status = isset($_GET['withdraw_filter_status']) ? sanitize_text_field($_GET['withdraw_filter_status']) : 'all';
+$withdraw_filter_date_from = isset($_GET['withdraw_filter_date_from']) ? sanitize_text_field($_GET['withdraw_filter_date_from']) : '';
+$withdraw_filter_date_to   = isset($_GET['withdraw_filter_date_to']) ? sanitize_text_field($_GET['withdraw_filter_date_to']) : '';
+
+$withdraw_where   = ["coach_id = %d"];
+$withdraw_values  = [$coach_id];
+
+if ($withdraw_filter_status !== 'all') {
+    $withdraw_where[]  = "status = %s";
+    $withdraw_values[] = $withdraw_filter_status;
+}
+
+if (!empty($withdraw_filter_date_from)) {
+    $withdraw_where[]  = "DATE(created_at) >= %s";
+    $withdraw_values[] = $withdraw_filter_date_from;
+}
+
+if (!empty($withdraw_filter_date_to)) {
+    $withdraw_where[]  = "DATE(created_at) <= %s";
+    $withdraw_values[] = $withdraw_filter_date_to;
+}
+
+$withdraw_where_clause = implode(' AND ', $withdraw_where);
+
 // دریافت درخواست‌های برداشت
 $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
     "SELECT * FROM $withdrawal_table 
-     WHERE coach_id = %d 
+     WHERE $withdraw_where_clause
      ORDER BY created_at DESC 
      LIMIT 50",
-    $coach_id
+    $withdraw_values
 ));
 
 // دریافت تراکنش‌های کیف پول
@@ -119,7 +147,16 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
     
     <!-- نمایش موجودی -->
     <div class="notice notice-info" style="padding: 20px; margin: 20px 0;">
-        <h2 style="margin-top: 0;">💰 موجودی کیف پول: <strong style="font-size: 24px; color: #2271b1;"><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong></h2>
+        <h2 style="margin-top: 0;">💰 موجودی کیف پول: 
+            <strong style="font-size: 24px; color: <?php echo $wallet_balance < 0 ? '#d63638' : '#2271b1'; ?>;">
+                <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان
+            </strong>
+        </h2>
+        <?php if ($wallet_debt > 0): ?>
+            <p style="margin-top: 8px; color: #d63638;">
+                بدهی کیف پول: <strong><?php echo esc_html(sc_format_amount_display($wallet_debt)); ?> تومان</strong>
+            </p>
+        <?php endif; ?>
         <?php if ($min_withdrawal > 0): ?>
             <p>حداقل مبلغ برداشت: <strong><?php echo esc_html(sc_format_amount_display($min_withdrawal)); ?> تومان</strong></p>
         <?php endif; ?>
@@ -205,6 +242,47 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
     <!-- درخواست‌های برداشت -->
     <div class="card" style="margin: 20px 0; max-width: 100%;">
         <h2>درخواست‌های برداشت</h2>
+
+        <!-- فیلترهای لیست درخواست‌های برداشت (سمت مربی) -->
+        <div class="sc-filter-wrapper" style="background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 8px;">
+            <form method="GET" action="" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                <input type="hidden" name="page" value="sc-coach-wallet">
+
+                <div style="min-width: 180px;">
+                    <label for="withdraw_filter_status">وضعیت:</label><br>
+                    <select name="withdraw_filter_status" id="withdraw_filter_status" style="width: 100%;">
+                        <option value="all" <?php selected($withdraw_filter_status, 'all'); ?>>همه</option>
+                        <option value="pending" <?php selected($withdraw_filter_status, 'pending'); ?>>در انتظار تایید</option>
+                        <option value="approved" <?php selected($withdraw_filter_status, 'approved'); ?>>تایید شده (منتظر پرداخت)</option>
+                        <option value="rejected" <?php selected($withdraw_filter_status, 'rejected'); ?>>رد شده</option>
+                        <option value="paid" <?php selected($withdraw_filter_status, 'paid'); ?>>تایید و پرداخت شده</option>
+                    </select>
+                </div>
+
+                <div style="min-width: 180px;">
+                    <label for="withdraw_filter_date_from">از تاریخ:</label><br>
+                    <input type="date"
+                           name="withdraw_filter_date_from"
+                           id="withdraw_filter_date_from"
+                           value="<?php echo esc_attr($withdraw_filter_date_from); ?>"
+                           style="width: 100%;">
+                </div>
+
+                <div style="min-width: 180px;">
+                    <label for="withdraw_filter_date_to">تا تاریخ:</label><br>
+                    <input type="date"
+                           name="withdraw_filter_date_to"
+                           id="withdraw_filter_date_to"
+                           value="<?php echo esc_attr($withdraw_filter_date_to); ?>"
+                           style="width: 100%;">
+                </div>
+
+                <div style="min-width: 140px;">
+                    <button type="submit" class="button button-primary">اعمال فیلتر</button>
+                    <a href="<?php echo admin_url('admin.php?page=sc-coach-wallet'); ?>" class="button">پاک کردن</a>
+                </div>
+            </form>
+        </div>
         <?php if (empty($withdrawal_requests)): ?>
             <p>هیچ درخواست برداشتی ثبت نشده است.</p>
         <?php else: ?>

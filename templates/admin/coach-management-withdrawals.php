@@ -54,6 +54,18 @@ if (isset($_POST['mark_paid']) && isset($_POST['request_id']) && check_admin_ref
     }
 }
 
+if (isset($_POST['delete_request']) && isset($_POST['request_id']) && check_admin_referer('delete_withdrawal_' . $_POST['request_id'])) {
+    $request_id = absint($_POST['request_id']);
+    $result = sc_delete_coach_withdrawal_request($request_id);
+    if ($result['success']) {
+        $action_message = $result['message'];
+        $action_message_type = 'success';
+    } else {
+        $action_message = $result['message'];
+        $action_message_type = 'error';
+    }
+}
+
 // پردازش اکشن دسته‌جمعی
 if (isset($_POST['bulk_action']) && isset($_POST['request_ids']) && is_array($_POST['request_ids']) && check_admin_referer('bulk_withdrawals', '_wpnonce_bulk')) {
     $bulk_action = sanitize_text_field($_POST['bulk_action']);
@@ -94,8 +106,11 @@ if (isset($_POST['bulk_action']) && isset($_POST['request_ids']) && is_array($_P
     }
 }
 
-// دریافت فیلتر وضعیت
+// دریافت فیلترها
 $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'pending';
+$filter_coach  = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
+$filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
+$filter_date_to   = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
 
 // ساخت WHERE clause
 $where_conditions = ['1=1'];
@@ -106,7 +121,30 @@ if ($filter_status !== 'all') {
     $where_values[] = $filter_status;
 }
 
+if ($filter_coach > 0) {
+    $where_conditions[] = "w.coach_id = %d";
+    $where_values[] = $filter_coach;
+}
+
+if (!empty($filter_date_from)) {
+    $where_conditions[] = "DATE(w.created_at) >= %s";
+    $where_values[] = $filter_date_from;
+}
+
+if (!empty($filter_date_to)) {
+    $where_conditions[] = "DATE(w.created_at) <= %s";
+    $where_values[] = $filter_date_to;
+}
+
 $where_clause = implode(' AND ', $where_conditions);
+
+// دریافت لیست مربیان برای فیلتر
+$coaches_for_filter = $wpdb->get_results(
+    "SELECT id, first_name, last_name 
+     FROM $coaches_table 
+     WHERE is_active = 1 
+     ORDER BY last_name ASC, first_name ASC"
+);
 
 // دریافت درخواست‌ها
 $query = "SELECT w.*, c.first_name, c.last_name 
@@ -132,18 +170,52 @@ if (!empty($where_values)) {
         </div>
     <?php endif; ?>
     
-    <!-- فیلتر وضعیت -->
+    <!-- فیلترها -->
     <div class="sc-filter-wrapper" style="background: #f9f9f9; padding: 15px; margin: 20px 0; border-radius: 8px;">
-        <form method="GET" action="">
+        <form method="GET" action="" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
             <input type="hidden" name="page" value="sc-coach-management-withdrawals">
-            <label>فیلتر وضعیت:</label>
-            <select name="filter_status" onchange="this.form.submit();" style="margin-right: 10px;">
-                <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
-                <option value="pending" <?php selected($filter_status, 'pending'); ?>>در انتظار تایید</option>
-                <option value="approved" <?php selected($filter_status, 'approved'); ?>>تایید شده (منتظر پرداخت)</option>
-                <option value="rejected" <?php selected($filter_status, 'rejected'); ?>>رد شده</option>
-                <option value="paid" <?php selected($filter_status, 'paid'); ?>>تایید و پرداخت شده</option>
-            </select>
+
+            <div style="min-width: 180px;">
+                <label for="filter_status">وضعیت:</label><br>
+                <select name="filter_status" id="filter_status" style="width: 100%;">
+                    <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
+                    <option value="pending" <?php selected($filter_status, 'pending'); ?>>در انتظار تایید</option>
+                    <option value="approved" <?php selected($filter_status, 'approved'); ?>>تایید شده (منتظر پرداخت)</option>
+                    <option value="rejected" <?php selected($filter_status, 'rejected'); ?>>رد شده</option>
+                    <option value="paid" <?php selected($filter_status, 'paid'); ?>>تایید و پرداخت شده</option>
+                </select>
+            </div>
+
+            <div style="min-width: 220px;">
+                <label for="filter_coach">مربی:</label><br>
+                <select name="filter_coach" id="filter_coach" style="width: 100%;">
+                    <option value="0">همه مربیان</option>
+                    <?php foreach ($coaches_for_filter as $c): ?>
+                        <option value="<?php echo (int) $c->id; ?>" <?php selected($filter_coach, $c->id); ?>>
+                            <?php echo esc_html($c->first_name . ' ' . $c->last_name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div style="min-width: 180px;">
+                <label for="filter_date_from">از تاریخ:</label><br>
+                <input type="date" name="filter_date_from" id="filter_date_from"
+                       value="<?php echo esc_attr($filter_date_from); ?>"
+                       style="width: 100%;">
+            </div>
+
+            <div style="min-width: 180px;">
+                <label for="filter_date_to">تا تاریخ:</label><br>
+                <input type="date" name="filter_date_to" id="filter_date_to"
+                       value="<?php echo esc_attr($filter_date_to); ?>"
+                       style="width: 100%;">
+            </div>
+
+            <div style="min-width: 140px;">
+                <button type="submit" class="button button-primary">اعمال فیلتر</button>
+                <a href="<?php echo admin_url('admin.php?page=sc-coach-management-withdrawals'); ?>" class="button">پاک کردن</a>
+            </div>
         </form>
     </div>
     
@@ -156,7 +228,7 @@ if (!empty($where_values)) {
                     <option value="">عملیات دسته‌جمعی...</option>
                     <option value="approve">تایید</option>
                     <option value="reject">رد</option>
-                    <option value="mark_paid">علامت‌گذاری به عنوان پرداخت شده</option>
+                    <option value="mark_paid">پرداخت شده</option>
                 </select>
                 <button type="button" class="button action" id="bulk-apply-btn" style="margin-right: 5px;">اعمال</button>
             </div>
@@ -220,11 +292,31 @@ if (!empty($where_values)) {
                         <td class="column-notes"><?php echo esc_html($request->notes ?: '-'); ?></td>
                         <td class="column-actions">
                             <?php if ($request->status === 'pending'): ?>
-                                <button type="button" class="button button-primary button-small sc-approve-btn" data-request-id="<?php echo $request->id; ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('approve_withdrawal_' . $request->id)); ?>" style="margin-left: 5px;">تایید</button>
-                                <button type="button" class="button button-small reject-btn" data-request-id="<?php echo $request->id; ?>" style="margin-right: 5px;">رد</button>
+                                <!-- در انتظار تایید: امکان تایید یا رد -->
+                                <button type="button" class="button button-primary button-small sc-approve-btn"
+                                        data-request-id="<?php echo $request->id; ?>"
+                                        data-nonce="<?php echo esc_attr(wp_create_nonce('approve_withdrawal_' . $request->id)); ?>"
+                                        style="margin-left: 5px;">تایید</button>
+
+                                <button type="button" class="button button-small reject-btn"
+                                        data-request-id="<?php echo $request->id; ?>"
+                                        style="margin-right: 5px;">رد</button>
+
                             <?php elseif ($request->status === 'approved'): ?>
-                                <button type="button" class="button button-primary button-small sc-mark-paid-btn" data-request-id="<?php echo $request->id; ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('mark_paid_withdrawal_' . $request->id)); ?>">علامت‌گذاری به عنوان پرداخت شده</button>
+                                <!-- تایید شده: فقط امکان رد (برگشت مبلغ)؛ پرداخت نهایی از اکشن‌های دسته‌جمعی -->
+                                <button type="button" class="button button-small reject-btn"
+                                        data-request-id="<?php echo $request->id; ?>"
+                                        style="margin-right: 5px;">رد</button>
+
+                            <?php elseif ($request->status === 'rejected'): ?>
+                                <!-- رد شده: امکان تایید دوباره -->
+                                <button type="button" class="button button-small sc-approve-btn"
+                                        data-request-id="<?php echo $request->id; ?>"
+                                        data-nonce="<?php echo esc_attr(wp_create_nonce('approve_withdrawal_' . $request->id)); ?>"
+                                        style="margin-left: 5px;">تایید</button>
+
                             <?php else: ?>
+                                <!-- paid یا سایر وضعیت‌ها: بدون عملیات تکی -->
                                 <span style="color: #999;">-</span>
                             <?php endif; ?>
                         </td>
@@ -443,6 +535,7 @@ jQuery(document).ready(function($) {
         $('#reject-modal-overlay').show();
         $('#mark-paid-modal').show();
     });
+
 
     // بستن مودال
     $('#reject-modal-overlay').on('click', hideRejectModal);

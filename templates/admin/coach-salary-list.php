@@ -211,20 +211,21 @@ $all_courses_for_filter = $wpdb->get_results(
     </div>
     
     <!-- جدول دستمزد -->
-    <table class="wp-list-table widefat fixed striped">
+    <div class="sc-coach-salary-table-wrapper">
+    <table class="wp-list-table widefat fixed striped sc-coach-salary-table">
         <thead>
             <tr>
                 
-                <th>ردیف</th>
-                <th>ID</th>
-                <th>تاریخ</th>
-                <th>دوره</th>
-                <th>نوع</th>
-                <th>تعداد شرکت‌کنندگان</th>
-                <th>قیمت هر جلسه</th>
-                <th>کل درآمد</th>
-                <th>درصد دستمزد</th>
-                <th>مبلغ دستمزد</th>
+                <th class="column-index">ردیف</th>
+                <th class="column-id">ID</th>
+                <th class="column-date">تاریخ</th>
+                <th class="column-course">دوره</th>
+                <th class="column-type">نوع</th>
+                <th class="column-attendance">تعداد شرکت‌کنندگان</th>
+                <th class="column-price">قیمت هر جلسه</th>
+                <th class="column-revenue">کل درآمد</th>
+                <th class="column-percent">درصد دستمزد</th>
+                <th class="column-amount">مبلغ دستمزد</th>
             </tr>
         </thead>
         <tbody>
@@ -238,11 +239,11 @@ $all_courses_for_filter = $wpdb->get_results(
                 <?php $row_number = 1; ?>
                 <?php foreach ($salary_records as $record): ?>
                     <tr>
-                        <td><?php echo $row_number++; ?></td>
-                        <td><code><?php echo esc_html($record->id ?? '-'); ?></code></td>
+                        <td class="column-index"><?php echo $row_number++; ?></td>
+                        <td class="column-id"><code><?php echo esc_html($record->id ?? '-'); ?></code></td>
                         
-                        <td><?php echo sc_date_shamsi_date_only($record->attendance_date); ?></td>
-                        <td>
+                        <td class="column-date"><?php echo sc_date_shamsi_date_only($record->attendance_date); ?></td>
+                        <td class="column-course">
                             <?php 
                             if ($record->course_id > 0) {
                                 echo esc_html($record->course_title ?: 'دوره حذف شده');
@@ -251,18 +252,18 @@ $all_courses_for_filter = $wpdb->get_results(
                             }
                             ?>
                         </td>
-                        <td>
+                        <td class="column-type">
                             <?php if ($record->salary_type === 'percentage'): ?>
                                 <span style="color: #2271b1;">درصدی</span>
                             <?php else: ?>
                                 <span style="color: #00a32a;">ثابت</span>
                             <?php endif; ?>
                         </td>
-                        <td><?php echo $record->attendance_count > 0 ? number_format($record->attendance_count) : '-'; ?></td>
-                        <td><?php echo $record->price_per_session > 0 ? number_format($record->price_per_session, 0, '.', ',') . ' تومان' : '-'; ?></td>
-                        <td><?php echo $record->total_revenue > 0 ? number_format($record->total_revenue, 0, '.', ',') . ' تومان' : '-'; ?></td>
-                        <td><?php echo $record->salary_percentage > 0 ? number_format($record->salary_percentage, 2) . '%' : '-'; ?></td>
-                        <td><strong style="color: #00a32a;"><?php echo number_format($record->salary_amount, 0, '.', ','); ?> تومان</strong></td>
+                        <td class="column-attendance"><?php echo $record->attendance_count > 0 ? number_format($record->attendance_count) : '-'; ?></td>
+                        <td class="column-price"><?php echo $record->price_per_session > 0 ? number_format($record->price_per_session, 0, '.', ',') . ' تومان' : '-'; ?></td>
+                        <td class="column-revenue"><?php echo $record->total_revenue > 0 ? number_format($record->total_revenue, 0, '.', ',') . ' تومان' : '-'; ?></td>
+                        <td class="column-percent"><?php echo $record->salary_percentage > 0 ? number_format($record->salary_percentage, 2) . '%' : '-'; ?></td>
+                        <td class="column-amount"><strong style="color: #00a32a;"><?php echo number_format($record->salary_amount, 0, '.', ','); ?> تومان</strong></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -274,7 +275,91 @@ $all_courses_for_filter = $wpdb->get_results(
             </tr>
         </tfoot>
     </table>
+    </div>
 </div>
+
+<style>
+    /* جدول دستمزد مربی (بخش مربی) */
+    .sc-coach-salary-table-wrapper {
+        overflow-x: auto;
+        margin-top: 10px;
+    }
+
+    .sc-coach-salary-table th,
+    .sc-coach-salary-table td {
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .sc-coach-salary-table .column-index {
+        width: 50px;
+        text-align: center;
+    }
+
+    .sc-coach-salary-table .column-id {
+        width: 70px;
+        text-align: center;
+    }
+
+    .sc-coach-salary-table .column-date {
+        width: 120px;
+    }
+
+    .sc-coach-salary-table .column-course {
+        min-width: 160px;
+    }
+
+    .sc-coach-salary-table .column-type {
+        width: 90px;
+    }
+
+    .sc-coach-salary-table .column-attendance {
+        width: 110px;
+        text-align: center;
+    }
+
+    .sc-coach-salary-table .column-price,
+    .sc-coach-salary-table .column-revenue,
+    .sc-coach-salary-table .column-amount {
+        width: 130px;
+        text-align: right;
+    }
+
+    .sc-coach-salary-table .column-percent {
+        width: 110px;
+        text-align: center;
+    }
+
+    @media (max-width: 960px) {
+        .sc-coach-salary-table th,
+        .sc-coach-salary-table td {
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+    }
+
+    @media (max-width: 782px) {
+        .sc-coach-salary-table-wrapper {
+            margin: 0 -10px;
+        }
+
+        .sc-coach-salary-table th,
+        .sc-coach-salary-table td {
+            padding: 6px 6px;
+            font-size: 11px;
+        }
+
+        .sc-coach-salary-table .column-course {
+            min-width: 180px;
+        }
+
+        .sc-coach-salary-table .column-price,
+        .sc-coach-salary-table .column-revenue,
+        .sc-coach-salary-table .column-amount {
+            width: 120px;
+        }
+    }
+</style>
 
 <script>
 jQuery(document).ready(function($) {
