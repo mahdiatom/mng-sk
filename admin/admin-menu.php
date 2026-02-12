@@ -424,6 +424,16 @@ function sc_register_admin_menu() {
         'sc-attendance-list_report',
         'sc_admin_attendance_list_page'
     );
+//پیوند های یکتا 
+    add_menu_page(
+        'پیوند های یکتا',
+        'پیوند های یکتا',
+        'manage_options',
+        'options-permalink.php',
+        '',
+        'dashicons-admin-links',
+        100
+    );
     // add_submenu_page(
     //     'sc-reports',
     //     'پرداختی‌ها',

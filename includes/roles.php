@@ -190,11 +190,9 @@ function club_block_restricted_pages_for_coach() {
         'edit-comments.php',
         'options-general.php',
         'tools.php',
-        'options-permalink.php',
         'options-writing.php',
         'options-reading.php',
         'options-media.php',
-        'options-permalink.php',
         'options-privacy.php',
 
         // المنتور
