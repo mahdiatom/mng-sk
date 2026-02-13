@@ -136,11 +136,13 @@ jQuery(document).ready(function($) {
     });
 });
 </script>
+<?php sc_coach_notifications_styles(); ?>
 <?php
 function sc_coach_notifications_styles() {
     ?>
 <style>
 /* صفحه اطلاعیه‌های مربی - ظاهر مدرن و پویا */
+.wrap.sc-coach-notif-wrap { max-width: 100%; padding: 20px 20px 40px; }
 .sc-coach-notif-wrap { --sc-notif-bg: #f8fafc; --sc-notif-card: #fff; --sc-notif-border: #e2e8f0; --sc-notif-primary: #0ea5e9; --sc-notif-primary-hover: #0284c7; --sc-notif-unread-bg: #eff6ff; --sc-notif-radius: 12px; --sc-notif-shadow: 0 1px 3px rgba(0,0,0,.06); --sc-notif-shadow-hover: 0 4px 12px rgba(0,0,0,.08); }
 .sc-coach-notif-wrap * { box-sizing: border-box; }
 
@@ -194,10 +196,17 @@ function sc_coach_notifications_styles() {
 
 /* صفحه‌بندی */
 .sc-coach-notif-pagination { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--sc-notif-border); }
+.sc-coach-notif-pagination .tablenav-pages { float: none; display: block; }
 .sc-coach-notif-pagination .pagination-links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .sc-coach-notif-pagination a, .sc-coach-notif-pagination span { display: inline-block; padding: 8px 14px; border-radius: 8px; font-size: 14px; text-decoration: none; border: 1px solid var(--sc-notif-border); background: var(--sc-notif-card); color: #475569; transition: background .2s, border-color .2s, color .2s; }
 .sc-coach-notif-pagination a:hover { background: var(--sc-notif-unread-bg); border-color: var(--sc-notif-primary); color: var(--sc-notif-primary); }
 .sc-coach-notif-pagination .current { background: var(--sc-notif-primary); border-color: var(--sc-notif-primary); color: #fff; }
+
+@media (max-width: 782px) {
+    .sc-coach-notif-item-inner { flex-wrap: wrap; }
+    .sc-coach-notif-item-action { width: 100%; justify-content: center; margin-top: 8px; }
+    .sc-coach-notif-header { flex-direction: column; align-items: flex-start; }
+}
 </style>
     <?php
 }

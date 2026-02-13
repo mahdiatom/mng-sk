@@ -13,53 +13,133 @@ $coach = $wpdb->get_row($wpdb->prepare("SELECT * FROM $coaches_table WHERE id = 
 if (!$coach) {
     wp_die('اطلاعات مربی یافت نشد.');
 }
+$is_edit = isset($_GET['edit']) && $_GET['edit'] === '1';
+$base_url = admin_url('admin.php?page=sc-coach-my-profile');
+$sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status']) : '';
 ?>
 <div class="wrap">
     <h1>اطلاعات من</h1>
-    <p class="description">اطلاعات پروفایل شما (فقط نمایش). برای تغییر با مدیر تماس بگیرید.</p>
-    <div class="sc-coach-profile-card">
-        <table class="form-table">
-            <tr>
-                <th>نام</th>
-                <td><?php echo esc_html($coach->first_name); ?></td>
-            </tr>
-            <tr>
-                <th>نام خانوادگی</th>
-                <td><?php echo esc_html($coach->last_name); ?></td>
-            </tr>
-            <tr>
-                <th>کد ملی</th>
-                <td><?php echo esc_html($coach->national_id); ?></td>
-            </tr>
-            <tr>
-                <th>موبایل</th>
-                <td><?php echo esc_html($coach->mobile_phone ?: '-'); ?></td>
-            </tr>
-            <tr>
-                <th>جنسیت</th>
-                <td><?php echo esc_html($coach->gender ?: '-'); ?></td>
-            </tr>
-            <tr>
-                <th>تخصص</th>
-                <td><?php echo esc_html($coach->specialization ?: '-'); ?></td>
-            </tr>
-            <tr>
-                <th>سطح مربی‌گری</th>
-                <td><?php echo esc_html($coach->coaching_level ?: '-'); ?></td>
-            </tr>
-            <tr>
-                <th>سابقه مربی‌گری (سال)</th>
-                <td><?php echo esc_html($coach->coaching_experience !== null ? $coach->coaching_experience : '-'); ?></td>
-            </tr>
-            <tr>
-                <th>سوابق ورزشی</th>
-                <td><?php echo $coach->sports_history ? nl2br(esc_html($coach->sports_history)) : '-'; ?></td>
-            </tr>
-            <tr>
-                <th>وضعیت</th>
-                <td><?php echo $coach->is_active ? 'فعال' : 'غیرفعال'; ?></td>
-            </tr>
-        </table>
-    </div>
+    <?php if ($sc_status === 'updated') : ?>
+        <div class="notice notice-success is-dismissible"><p>اطلاعات با موفقیت به‌روزرسانی شد.</p></div>
+    <?php elseif ($sc_status === 'error') : ?>
+        <div class="notice notice-error is-dismissible"><p>خطا در ذخیره. لطفاً فیلدهای اجباری را پر کنید.</p></div>
+    <?php endif; ?>
+
+    <?php if ($is_edit) : ?>
+        <p class="description">فیلدهای زیر را ویرایش کرده و ذخیره کنید. نوع تسویه، دوره‌ها و وضعیت فعال/غیرفعال فقط توسط مدیر قابل تغییر است.</p>
+        <form method="post" action="">
+            <?php wp_nonce_field('sc_coach_profile_edit', 'sc_coach_profile_nonce'); ?>
+            <table class="form-table">
+                <tr>
+                    <th><label for="first_name">نام <span class="required">*</span></label></th>
+                    <td><input type="text" name="first_name" id="first_name" value="<?php echo esc_attr($coach->first_name); ?>" required class="regular-text"></td>
+                </tr>
+                <tr>
+                    <th><label for="last_name">نام خانوادگی <span class="required">*</span></label></th>
+                    <td><input type="text" name="last_name" id="last_name" value="<?php echo esc_attr($coach->last_name); ?>" required class="regular-text"></td>
+                </tr>
+                <tr>
+                    <th><label for="national_id">کد ملی <span class="required">*</span></label></th>
+                    <td><input type="text" name="national_id" id="national_id" value="<?php echo esc_attr($coach->national_id); ?>" required maxlength="10" pattern="[0-9]{10}" class="regular-text"></td>
+                </tr>
+                <tr>
+                    <th><label for="mobile_phone">شماره موبایل <span class="required">*</span></label></th>
+                    <td><input type="text" name="mobile_phone" id="mobile_phone" value="<?php echo esc_attr($coach->mobile_phone); ?>" required class="regular-text"></td>
+                </tr>
+                <tr>
+                    <th><label for="gender">جنسیت</label></th>
+                    <td>
+                        <select name="gender" id="gender">
+                            <option value="">انتخاب کنید</option>
+                            <option value="male" <?php selected($coach->gender, 'male'); ?>>مرد</option>
+                            <option value="female" <?php selected($coach->gender, 'female'); ?>>زن</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="specialization">تخصص</label></th>
+                    <td><input type="text" name="specialization" id="specialization" value="<?php echo esc_attr($coach->specialization); ?>" class="regular-text"></td>
+                </tr>
+                <tr>
+                    <th><label for="coaching_level">سطح مربی‌گری</label></th>
+                    <td>
+                        <select name="coaching_level" id="coaching_level">
+                            <option value="">انتخاب کنید</option>
+                            <option value="مبتدی" <?php selected($coach->coaching_level, 'مبتدی'); ?>>مبتدی</option>
+                            <option value="متوسط" <?php selected($coach->coaching_level, 'متوسط'); ?>>متوسط</option>
+                            <option value="پیشرفته" <?php selected($coach->coaching_level, 'پیشرفته'); ?>>پیشرفته</option>
+                            <option value="استاد" <?php selected($coach->coaching_level, 'استاد'); ?>>استاد</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="coaching_experience">سابقه مربی‌گری (سال)</label></th>
+                    <td><input type="number" name="coaching_experience" id="coaching_experience" value="<?php echo esc_attr($coach->coaching_experience); ?>" min="0" class="small-text"></td>
+                </tr>
+                <tr>
+                    <th><label for="sports_history">سوابق ورزشی</label></th>
+                    <td><textarea name="sports_history" id="sports_history" rows="4" class="large-text"><?php echo esc_textarea($coach->sports_history); ?></textarea></td>
+                </tr>
+                <tr>
+                    <th><label for="password">تغییر رمز عبور</label></th>
+                    <td>
+                        <input type="password" name="password" id="password" value="" class="regular-text" autocomplete="new-password">
+                        <p class="description">در صورت تمایل به تغییر رمز عبور، فیلد را پر کنید؛ در غیر این صورت خالی بگذارید.</p>
+                    </td>
+                </tr>
+            </table>
+            <p class="submit">
+                <input type="submit" name="submit_coach_profile" class="button button-primary" value="ذخیره تغییرات">
+                <a href="<?php echo esc_url($base_url); ?>" class="button">انصراف</a>
+            </p>
+        </form>
+    <?php else : ?>
+        <p class="description">اطلاعات پروفایل شما. برای ویرایش روی دکمه زیر کلیک کنید.</p>
+        <p><a href="<?php echo esc_url(add_query_arg('edit', '1', $base_url)); ?>" class="button button-primary">ویرایش اطلاعات من</a></p>
+        <div class="sc-coach-profile-card">
+            <table class="form-table">
+                <tr>
+                    <th>نام</th>
+                    <td><?php echo esc_html($coach->first_name); ?></td>
+                </tr>
+                <tr>
+                    <th>نام خانوادگی</th>
+                    <td><?php echo esc_html($coach->last_name); ?></td>
+                </tr>
+                <tr>
+                    <th>کد ملی</th>
+                    <td><?php echo esc_html($coach->national_id); ?></td>
+                </tr>
+                <tr>
+                    <th>موبایل</th>
+                    <td><?php echo esc_html($coach->mobile_phone ?: '-'); ?></td>
+                </tr>
+                <tr>
+                    <th>جنسیت</th>
+                    <td><?php echo esc_html($coach->gender ?: '-'); ?></td>
+                </tr>
+                <tr>
+                    <th>تخصص</th>
+                    <td><?php echo esc_html($coach->specialization ?: '-'); ?></td>
+                </tr>
+                <tr>
+                    <th>سطح مربی‌گری</th>
+                    <td><?php echo esc_html($coach->coaching_level ?: '-'); ?></td>
+                </tr>
+                <tr>
+                    <th>سابقه مربی‌گری (سال)</th>
+                    <td><?php echo esc_html($coach->coaching_experience !== null ? $coach->coaching_experience : '-'); ?></td>
+                </tr>
+                <tr>
+                    <th>سوابق ورزشی</th>
+                    <td><?php echo $coach->sports_history ? nl2br(esc_html($coach->sports_history)) : '-'; ?></td>
+                </tr>
+                <tr>
+                    <th>وضعیت</th>
+                    <td><?php echo $coach->is_active ? 'فعال' : 'غیرفعال'; ?></td>
+                </tr>
+            </table>
+        </div>
+    <?php endif; ?>
 </div>
 <style>.sc-coach-profile-card { background:#fff; border:1px solid #c3c4c7; border-radius:8px; padding:20px; margin-top:15px; max-width:600px; }</style>

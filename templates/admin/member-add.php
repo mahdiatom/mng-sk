@@ -96,6 +96,7 @@ if($player && $_GET['player_id'] ){
 
     }
 $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status']) : '';
+$is_coach_edit = current_user_can('sc_view_coach_salary') && !current_user_can('manage_options');
 ?>
 <div class="wrap">
     <?php if ($sc_status === 'updated') : ?>
@@ -322,11 +323,17 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 <tr>
                     <th scope="row"><label for="member_type">نوع عضو</label></th>
                     <td>
-                        <select name="member_type" id="member_type" class="regular-text">
-                            <option value="normal" <?php selected($member_type, 'normal'); ?>>بازیکن عادی</option>
-                            <option value="team" <?php selected($member_type, 'team'); ?>>بازیکن تیم</option>
-                        </select>
-                        <p class="description">بازیکن عادی: صورت‌حساب دوره ایجاد می‌شود. بازیکن تیم: صورت‌حساب ایجاد نمی‌شود و هزینه هر جلسه از کیف پول کسر می‌شود.</p>
+                        <?php if ($is_coach_edit) : ?>
+                            <input type="hidden" name="member_type" value="<?php echo esc_attr($member_type); ?>">
+                            <p style="margin: 0; padding: 6px 0; color: #50575e;"><?php echo $member_type === 'team' ? 'بازیکن تیم' : 'بازیکن عادی'; ?></p>
+                            <p class="description">فقط قابل مشاهده توسط مربی؛ ویرایش توسط مدیر امکان‌پذیر است.</p>
+                        <?php else : ?>
+                            <select name="member_type" id="member_type" class="regular-text">
+                                <option value="normal" <?php selected($member_type, 'normal'); ?>>بازیکن عادی</option>
+                                <option value="team" <?php selected($member_type, 'team'); ?>>بازیکن تیم</option>
+                            </select>
+                            <p class="description">بازیکن عادی: صورت‌حساب دوره ایجاد می‌شود. بازیکن تیم: صورت‌حساب ایجاد نمی‌شود و هزینه هر جلسه از کیف پول کسر می‌شود.</p>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <tr>
@@ -356,7 +363,40 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 global $wpdb;
                 $courses_table = $wpdb->prefix . 'sc_courses';
                 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-                
+
+                if ($is_coach_edit) :
+                    // نمای فقط خواندنی برای مربی: فقط لیست دوره‌های فعلی بازیکن
+                    if ($player && isset($_GET['player_id'])) {
+                        $player_id = absint($_GET['player_id']);
+                        $player_courses = $wpdb->get_results($wpdb->prepare(
+                            "SELECT c.title, mc.status, mc.course_status_flags FROM $member_courses_table mc
+                             INNER JOIN $courses_table c ON c.id = mc.course_id
+                             WHERE mc.member_id = %d ORDER BY c.title ASC",
+                            $player_id
+                        ));
+                        if (!empty($player_courses)) {
+                            echo '<div style="padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;">';
+                            echo '<p class="description" style="margin: 0 0 12px 0;">فقط قابل مشاهده؛ ویرایش دوره‌های بازیکن توسط مدیر امکان‌پذیر است.</p>';
+                            echo '<ul style="margin: 0; padding-right: 20px;">';
+                            foreach ($player_courses as $pc) {
+                                $status_label = $pc->status === 'active' ? 'فعال' : 'غیرفعال';
+                                $flags = [];
+                                if (!empty($pc->course_status_flags)) {
+                                    $flags = array_filter(array_map('trim', explode(',', $pc->course_status_flags)));
+                                }
+                                if (in_array('paused', $flags)) $status_label .= ' (متوقف شده)';
+                                if (in_array('completed', $flags)) $status_label .= ' (تمام شده)';
+                                if (in_array('canceled', $flags)) $status_label .= ' (لغو شده)';
+                                echo '<li><strong>' . esc_html($pc->title) . '</strong> — <span style="color: #50575e;">' . esc_html($status_label) . '</span></li>';
+                            }
+                            echo '</ul></div>';
+                        } else {
+                            echo '<p style="margin: 0; color: #646970;">این بازیکن هنوز در هیچ دوره‌ای ثبت‌نام نکرده است.</p>';
+                        }
+                    } else {
+                        echo '<p style="margin: 0; color: #646970;">—</p>';
+                    }
+                else :
                 // دریافت دوره‌های فعال
                 $courses = $wpdb->get_results(
                     "SELECT * FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
@@ -432,24 +472,20 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         echo '</label>';
                         
                         // Checkbox های وضعیت‌های اضافی
-                        // مهم: فلگ‌ها همیشه نمایش داده می‌شوند و هیچ ارتباطی با تیک دوره ندارند
                         echo '<div id="course_status_' . esc_attr($course->id) . '" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">';
                         echo '<label style="font-size: 12px; color: #666; display: block; margin-bottom: 8px;">وضعیت‌های اضافی:</label>';
                         echo '<div style="display: flex; gap: 15px; flex-wrap: wrap;">';
                         
-                        // Checkbox برای paused - همیشه فعال است
                         echo '<label class="label_cheakbox_active_courses_user">';
                         echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][paused]" value="1" ' . ($is_paused ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>متوقف شده</span>';
                         echo '</label>';
                         
-                        // Checkbox برای completed - همیشه فعال است
                         echo '<label class="label_cheakbox_active_courses_user">';
                         echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][completed]" value="1" ' . ($is_completed ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>تمام شده</span>';
                         echo '</label>';
                         
-                        // Checkbox برای canceled - همیشه فعال است
                         echo '<label class="label_cheakbox_active_courses_user">';
                         echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][canceled]" value="1" ' . ($is_canceled ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>لغو شده</span>';
@@ -466,9 +502,8 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     echo '<br><strong style="margin-top:10px;">راهنما دوره های بازیکن : <br></strong>';
                     echo '<p class="description" style="margin-top: 10px;">بازیکن می‌تواند در چند دوره شرکت کند. تیک اول دوره را فعال/غیرفعال می‌کند و تیک‌های دیگر وضعیت‌های اضافی هستند. - در صورت انتخاب وضعیت های اضافی صورت حساب برای آن دوره ایجاد نخواهد شد.</p>';
                     echo '<p class="description" style="margin-top: 10px;"> دوره فعال برای بازیکن به این معنا است که بازیکن در کلاس ها حاضر است و برای بازیکن به صورت ماهیانه صورتحساب ایجاد می شود.</p>';
-                    // JavaScript برای فعال/غیرفعال کردن checkbox های وضعیت
-                 
                 }
+                endif;
                 ?>
             </div>
         </div>

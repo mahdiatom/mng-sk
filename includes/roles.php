@@ -70,8 +70,8 @@ add_action('admin_init', 'sc_create_coach_role');
 add_action('admin_menu', 'club_hide_menus_for_coach', 999);
 function club_hide_menus_for_coach() {
     
-    // اگر کاربر مربی است (دارای دسترسی مربی و بدون مدیریت کامل)، فقط منوهای مجاز را نگه دار
-    if ( ( current_user_can('coach') || current_user_can('sc_view_coach_salary') ) && ! current_user_can('manage_options') ) {
+    // اگر کاربر مربی است، فقط منوهای حضور و غیاب، دستمزد، افتخارات، اطلاعیه‌ها، دوره‌های من، بازیکن‌های من، اطلاعات من را نگه دار (مدیر باشگاه و ادمین دسترسی کامل دارند)
+    if ( current_user_can('coach') && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
         // حذف تمام منوها به جز حضور و غیاب، دستمزد/کیف پول و افتخارات
         global $menu;
         
@@ -160,8 +160,8 @@ function club_hide_menus_for_coach() {
 add_action('admin_init', 'club_block_restricted_pages_for_coach');
 function club_block_restricted_pages_for_coach() {
 
-    // اگر کاربر مربی است، فقط دسترسی به صفحات مجاز
-    if ( ( current_user_can('coach') || current_user_can('sc_view_coach_salary') ) && ! current_user_can('manage_options') ) {
+    // اگر کاربر مربی است، فقط دسترسی به صفحات مجاز (مدیر باشگاه و ادمین دسترسی کامل دارند)
+    if ( current_user_can('coach') && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
         $allowed_pages = [
             'sc-attendance-add',
             'sc-attendance-list',

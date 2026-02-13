@@ -881,6 +881,61 @@ function sc_admin_coach_my_players_page() {
 
 function sc_admin_coach_my_profile_page() {
     sc_check_and_create_tables();
+    if (!current_user_can('sc_view_coach_salary')) {
+        wp_die('دسترسی غیرمجاز.');
+    }
+    $coach_id = function_exists('sc_current_user_coach_id') ? sc_current_user_coach_id() : 0;
+    if ($coach_id <= 0) {
+        wp_die('اطلاعات مربی یافت نشد.');
+    }
+    global $wpdb;
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $redirect_url = admin_url('admin.php?page=sc-coach-my-profile');
+    if (isset($_POST['submit_coach_profile']) && isset($_POST['sc_coach_profile_nonce']) && wp_verify_nonce($_POST['sc_coach_profile_nonce'], 'sc_coach_profile_edit')) {
+        $first_name = isset($_POST['first_name']) ? trim(sanitize_text_field($_POST['first_name'])) : '';
+        $last_name = isset($_POST['last_name']) ? trim(sanitize_text_field($_POST['last_name'])) : '';
+        $national_id = isset($_POST['national_id']) ? trim(sanitize_text_field($_POST['national_id'])) : '';
+        $mobile_phone = isset($_POST['mobile_phone']) ? trim(sanitize_text_field($_POST['mobile_phone'])) : '';
+        if (empty($first_name) || empty($last_name) || empty($national_id) || empty($mobile_phone)) {
+            wp_safe_redirect(add_query_arg('sc_status', 'error', $redirect_url));
+            exit;
+        }
+        $data = [
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'national_id' => $national_id,
+            'mobile_phone' => $mobile_phone,
+            'gender' => isset($_POST['gender']) && $_POST['gender'] !== '' ? sanitize_text_field($_POST['gender']) : null,
+            'specialization' => isset($_POST['specialization']) && trim($_POST['specialization']) !== '' ? sanitize_text_field($_POST['specialization']) : null,
+            'coaching_level' => isset($_POST['coaching_level']) && $_POST['coaching_level'] !== '' ? sanitize_text_field($_POST['coaching_level']) : null,
+            'coaching_experience' => isset($_POST['coaching_experience']) && $_POST['coaching_experience'] !== '' ? absint($_POST['coaching_experience']) : null,
+            'sports_history' => isset($_POST['sports_history']) && trim($_POST['sports_history']) !== '' ? sanitize_textarea_field($_POST['sports_history']) : null,
+            'updated_at' => current_time('mysql'),
+        ];
+        $format = ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s'];
+        $updated = $wpdb->update($coaches_table, $data, ['id' => $coach_id], $format, ['%d']);
+        if ($updated !== false) {
+            $coach_row = $wpdb->get_row($wpdb->prepare("SELECT user_id FROM $coaches_table WHERE id = %d", $coach_id));
+            if (!empty($coach_row->user_id)) {
+                if (function_exists('wp_update_user')) {
+                    wp_update_user([
+                        'ID' => $coach_row->user_id,
+                        'first_name' => $data['first_name'],
+                        'last_name' => $data['last_name'],
+                        'display_name' => $data['first_name'] . ' ' . $data['last_name'],
+                    ]);
+                    update_user_meta($coach_row->user_id, 'billing_phone', $data['mobile_phone']);
+                }
+                if (!empty($_POST['password'])) {
+                    wp_set_password($_POST['password'], $coach_row->user_id);
+                }
+            }
+            wp_safe_redirect(add_query_arg('sc_status', 'updated', $redirect_url));
+            exit;
+        }
+        wp_safe_redirect(add_query_arg('sc_status', 'error', $redirect_url));
+        exit;
+    }
     include SC_TEMPLATES_ADMIN_DIR . 'coach-my-profile.php';
 }
 
