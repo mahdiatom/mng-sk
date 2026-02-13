@@ -9,6 +9,41 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * آیا کاربر فعلی مربی است؟ در صورت بله شناسه مربی را برمی‌گرداند وگرنه 0
+ */
+function sc_current_user_coach_id() {
+    global $wpdb;
+    $user_id = get_current_user_id();
+    if (!$user_id) return 0;
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $id = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $coaches_table WHERE user_id = %d AND is_active = 1 LIMIT 1",
+        $user_id
+    ));
+    return $id ? (int)$id : 0;
+}
+
+/**
+ * برچسب ثبت‌کننده اطلاعیه برای نمایش در لیست (مدیر / مربی: نام)
+ */
+function sc_notification_creator_label($notification) {
+    global $wpdb;
+    $type = isset($notification->created_by_type) ? $notification->created_by_type : 'admin';
+    $entity_id = isset($notification->created_by_entity_id) ? (int)$notification->created_by_entity_id : 0;
+    if ($type === 'coach' && $entity_id > 0) {
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+        $coach = $wpdb->get_row($wpdb->prepare(
+            "SELECT first_name, last_name FROM $coaches_table WHERE id = %d",
+            $entity_id
+        ));
+        if ($coach) {
+            return 'مربی: ' . trim($coach->first_name . ' ' . $coach->last_name);
+        }
+    }
+    return 'مدیر';
+}
+
+/**
  * Get recipients based on target_type and target_config
  * @param string $target_type all|specific|course
  * @param array $target_config JSON decoded config
@@ -143,7 +178,9 @@ function sc_save_notification($data) {
     $content = isset($data['content']) ? sanitize_textarea_field($data['content']) : '';
     $target_type = isset($data['target_type']) ? sanitize_text_field($data['target_type']) : 'all';
     $target_config = isset($data['target_config']) ? $data['target_config'] : [];
-    $send_sms = isset($data['send_sms']) ? (int)$data['send_sms'] : 0;
+    $coach_id = function_exists('sc_current_user_coach_id') ? sc_current_user_coach_id() : 0;
+    $is_coach = $coach_id > 0;
+    $send_sms = $is_coach ? 0 : (isset($data['send_sms']) ? (int)$data['send_sms'] : 0);
     $notification_id = isset($data['id']) ? absint($data['id']) : 0;
 
     if (empty($title)) return ['success' => false, 'message' => 'عنوان الزامی است.'];
@@ -154,6 +191,8 @@ function sc_save_notification($data) {
 
     $now = current_time('mysql');
     $created_by = get_current_user_id();
+    $created_by_type = $is_coach ? 'coach' : 'admin';
+    $created_by_entity_id = $is_coach ? $coach_id : 0;
 
     if ($notification_id > 0) {
         $wpdb->update(
@@ -164,10 +203,12 @@ function sc_save_notification($data) {
                 'target_type' => $target_type,
                 'target_config' => wp_json_encode($target_config),
                 'send_sms' => $send_sms,
+                'created_by_type' => $created_by_type,
+                'created_by_entity_id' => $created_by_entity_id,
                 'updated_at' => $now
             ],
             ['id' => $notification_id],
-            ['%s', '%s', '%s', '%s', '%d', '%s'],
+            ['%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s'],
             ['%d']
         );
         $wpdb->delete($recipients_table, ['notification_id' => $notification_id], ['%d']);
@@ -181,10 +222,12 @@ function sc_save_notification($data) {
                 'target_config' => wp_json_encode($target_config),
                 'send_sms' => $send_sms,
                 'created_by' => $created_by,
+                'created_by_type' => $created_by_type,
+                'created_by_entity_id' => $created_by_entity_id,
                 'created_at' => $now,
                 'updated_at' => $now
             ],
-            ['%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s']
+            ['%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s']
         );
         $notification_id = $wpdb->insert_id;
     }
@@ -219,20 +262,25 @@ function sc_save_notification($data) {
 
 /**
  * Get user notifications (for panel)
+ * @param int  $user_id
+ * @param int  $limit
+ * @param int  $offset
+ * @param bool $unread_only فقط خوانده‌نشده‌ها
  */
-function sc_get_user_notifications($user_id, $limit = 50, $offset = 0) {
+function sc_get_user_notifications($user_id, $limit = 50, $offset = 0, $unread_only = false) {
     global $wpdb;
     $notifications_table = $wpdb->prefix . 'sc_notifications';
     $recipients_table = $wpdb->prefix . 'sc_notification_recipients';
     $reads_table = $wpdb->prefix . 'sc_notification_reads';
 
+    $where_unread = $unread_only ? ' AND r.id IS NULL' : '';
     return $wpdb->get_results($wpdb->prepare(
         "SELECT n.id, n.title, n.content, n.created_at,
                 CASE WHEN r.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read
          FROM $recipients_table nr
          INNER JOIN $notifications_table n ON nr.notification_id = n.id
-         LEFT JOIN $reads_table r ON r.notification_id = n.id AND r.user_id = %d
-         WHERE nr.user_id = %d
+         LEFT JOIN $reads_table r ON r.notification_id = nr.notification_id AND r.user_id = %d
+         WHERE nr.user_id = %d $where_unread
          ORDER BY n.created_at DESC
          LIMIT %d OFFSET %d",
         $user_id, $user_id, $limit, $offset

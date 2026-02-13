@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.19.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.20.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -615,6 +615,8 @@ function sc_create_notifications_table() {
         `target_config` longtext DEFAULT NULL COMMENT 'JSON: user_type, course_ids, recipient_ids, etc.',
         `send_sms` tinyint(1) NOT NULL DEFAULT 0,
         `created_by` bigint(20) unsigned DEFAULT NULL,
+        `created_by_type` varchar(20) NOT NULL DEFAULT 'admin' COMMENT 'admin=مدیر, coach=مربی',
+        `created_by_entity_id` bigint(20) unsigned DEFAULT 0 COMMENT 'coach_id if coach, 0 if admin',
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
@@ -835,5 +837,19 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$honors_table` MODIFY COLUMN `member_id` bigint(20) unsigned DEFAULT NULL");
         }
         update_option('sc_honors_member_id_nullable', '1');
+    }
+
+    // ستون‌های ثبت‌کننده اطلاعیه (مدیر / مربی)
+    if (get_option('sc_notifications_creator_columns_added', '0') !== '1') {
+        $notifications_table = $wpdb->prefix . 'sc_notifications';
+        $col1 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$notifications_table` LIKE %s", 'created_by_type'));
+        if (empty($col1)) {
+            $wpdb->query("ALTER TABLE `$notifications_table` ADD COLUMN `created_by_type` varchar(20) NOT NULL DEFAULT 'admin' COMMENT 'admin=مدیر, coach=مربی' AFTER `created_by`");
+        }
+        $col2 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$notifications_table` LIKE %s", 'created_by_entity_id'));
+        if (empty($col2)) {
+            $wpdb->query("ALTER TABLE `$notifications_table` ADD COLUMN `created_by_entity_id` bigint(20) unsigned DEFAULT 0 COMMENT 'coach_id if coach' AFTER `created_by_type`");
+        }
+        update_option('sc_notifications_creator_columns_added', '1');
     }
 }

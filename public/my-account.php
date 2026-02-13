@@ -482,7 +482,7 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-invoices'] = 'صورت حساب‌ها';
     $items['sc-my-honors'] = 'افتخارات من';
     $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications(get_current_user_id()) : 0;
-    $items['sc-notifications'] = 'اطلاعیه‌ها' . ($unread > 0 ? ' ( ' . $unread . ' پیام خوانده نشده' . ' ) ' : '');
+    $items['sc-notifications'] = $unread > 0 ? sprintf('اطلاعیه‌ها (%d)', $unread) : 'اطلاعیه‌ها';
     if (sc_is_wallet_enabled()) {
         $items['sc-wallet'] = 'کیف پول';
     }

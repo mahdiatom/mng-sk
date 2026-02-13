@@ -95,19 +95,25 @@ if($player && $_GET['player_id'] ){
         }
 
     }
+$sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status']) : '';
 ?>
 <div class="wrap">
+    <?php if ($sc_status === 'updated') : ?>
+        <div class="notice notice-success is-dismissible"><p>اطلاعات بازیکن با موفقیت به‌روزرسانی شد.</p></div>
+    <?php elseif ($sc_status === 'add_error' || $sc_status === 'update_error') : ?>
+        <div class="notice notice-error is-dismissible"><p>خطا در ذخیره. لطفاً فیلدهای اجباری را بررسی کنید.</p></div>
+    <?php endif; ?>
     <h1 class="wp-heading-inline">
         <?php echo isset($_GET['player_id']) ? 'بروزرسانی اطلاعات بازیکن' : 'ثبت بازکین جدید'; ?>
             </h1>
-    <?php 
-        if(isset($_GET['player_id'])){
-            ?>
-            <a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action">افزودن بازیکن جدید</a>
-            <?php 
-
+    <?php
+        if (isset($_GET['player_id'])) {
+            if (current_user_can('sc_view_coach_salary') && !current_user_can('manage_options')) {
+                ?><a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-my-players')); ?>" class="page-title-action">← بازگشت به بازیکن‌های من</a><?php
+            } else {
+                ?><a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action">افزودن بازیکن جدید</a><?php
+            }
         }
-        
     ?>
 
     <form action="" method="POST" enctype="multipart/form-data">

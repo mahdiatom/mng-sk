@@ -9,11 +9,13 @@ if ($view_id > 0) {
     if ($notification) {
         sc_mark_notification_read($view_id, $current_user_id);
         ?>
-        <div class="sc-notification-detail">
-            <p><a href="<?php echo esc_url(wc_get_account_endpoint_url('sc-notifications')); ?>" class="button">← بازگشت به لیست</a></p>
-            <h2><?php echo esc_html($notification->title); ?></h2>
-            <p class="sc-notification-date"><?php echo esc_html(sc_date_shamsi($notification->created_at, 'Y/m/d H:i')); ?></p>
-            <div class="sc-notification-content"><?php echo nl2br(esc_html($notification->content)); ?></div>
+        <div class="woocommerce-MyAccount-content sc-notifications-content">
+            <div class="sc-notification-detail-card">
+                <a href="<?php echo esc_url(wc_get_account_endpoint_url('sc-notifications')); ?>" class="sc-notification-back-link">← بازگشت به لیست</a>
+                <h2 class="sc-notification-detail-title"><?php echo esc_html($notification->title); ?></h2>
+                <p class="sc-notification-detail-meta"><?php echo esc_html(sc_date_shamsi($notification->created_at, 'l d F Y - H:i')); ?></p>
+                <div class="sc-notification-detail-body"><?php echo nl2br(esc_html($notification->content)); ?></div>
+            </div>
         </div>
         <?php
         return;
@@ -30,40 +32,43 @@ $total = $wpdb->get_var($wpdb->prepare(
 $total_pages = ceil($total / $per_page);
 ?>
 <div class="woocommerce-MyAccount-content sc-notifications-content">
-    <h2>اطلاعیه‌ها</h2>
+    <h2 class="sc-notifications-heading">اطلاعیه‌ها</h2>
     <?php wc_print_notices(); ?>
+
     <?php if (empty($notifications)) : ?>
-        <div class="woocommerce-message woocommerce-message--info woocommerce-info">هنوز اطلاعیه‌ای دریافت نکرده‌اید.</div>
+        <div class="sc-notifications-empty-state">
+            <span class="sc-notifications-empty-icon" aria-hidden="true"></span>
+            <p class="sc-notifications-empty-text">هنوز اطلاعیه‌ای دریافت نکرده‌اید.</p>
+        </div>
     <?php else : ?>
-        <table class="woocommerce-orders-table shop_table shop_table_responsive my_account_orders" style="width:100%;">
-            <thead>
-                <tr>
-                    <th style="text-align:right;">عنوان</th>
-                    <th style="text-align:right; width:120px;">تاریخ</th>
-                    <th style="text-align:right; width:100px;">وضعیت</th>
-                    <th style="text-align:right; width:140px;">عملیات</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($notifications as $n) : ?>
-                    <tr class="<?php echo $n->is_read ? '' : 'sc-notification-unread'; ?>">
-                        <td data-title="عنوان">
+        <div class="sc-notifications-grid">
+            <?php foreach ($notifications as $n) : ?>
+                <article class="sc-notification-card <?php echo $n->is_read ? 'sc-notification-read' : 'sc-notification-unread'; ?>">
+                    <div class="sc-notification-card-inner">
+                        <h3 class="sc-notification-card-title">
                             <a href="<?php echo esc_url(add_query_arg('view', $n->id, wc_get_account_endpoint_url('sc-notifications'))); ?>"><?php echo esc_html($n->title); ?></a>
-                        </td>
-                        <td data-title="تاریخ"><?php echo esc_html(sc_date_shamsi($n->created_at, 'Y/m/d')); ?></td>
-                        <td data-title="وضعیت"><?php echo $n->is_read ? 'خوانده شده' : '<span style="color:#d63638;">خوانده نشده</span>'; ?></td>
-                        <td data-title="عملیات">
+                        </h3>
+                        <div class="sc-notification-card-meta">
+                            <span class="sc-notification-card-date"><?php echo esc_html(sc_date_shamsi($n->created_at, 'Y/m/d')); ?></span>
                             <?php if (!$n->is_read) : ?>
-                                <button type="button" class="button sc-mark-read-btn" data-id="<?php echo $n->id; ?>" style="padding:5px 10px; font-size:12px;">خوانده شده</button>
+                                <span class="sc-notification-card-badge">جدید</span>
+                            <?php else : ?>
+                                <span class="sc-notification-card-badge sc-notification-card-badge-read">خوانده شده</span>
                             <?php endif; ?>
-                            <a href="<?php echo esc_url(add_query_arg('view', $n->id, wc_get_account_endpoint_url('sc-notifications'))); ?>" class="button" style="padding:5px 10px; font-size:12px;">مشاهده</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                        </div>
+                        <div class="sc-notification-card-actions">
+                            <?php if (!$n->is_read) : ?>
+                                <button type="button" class="sc-notification-btn sc-notification-btn-secondary sc-btn-mark-read" data-id="<?php echo esc_attr($n->id); ?>">خواندم</button>
+                            <?php endif; ?>
+                            <a href="<?php echo esc_url(add_query_arg('view', $n->id, wc_get_account_endpoint_url('sc-notifications'))); ?>" class="sc-notification-btn sc-notification-btn-primary">مشاهده</a>
+                        </div>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+        </div>
+
         <?php if ($total_pages > 1) : ?>
-            <div class="tablenav bottom" style="margin-top:20px;">
+            <nav class="sc-notifications-pagination" aria-label="صفحه‌بندی اطلاعیه‌ها">
                 <?php echo paginate_links([
                     'base' => add_query_arg('notif_page', '%#%'),
                     'format' => '',
@@ -72,14 +77,14 @@ $total_pages = ceil($total / $per_page);
                     'total' => $total_pages,
                     'current' => $page
                 ]); ?>
-            </div>
+            </nav>
         <?php endif; ?>
     <?php endif; ?>
 </div>
 
 <script>
 jQuery(document).ready(function($) {
-    $('.sc-mark-read-btn').on('click', function() {
+    $('.sc-btn-mark-read').on('click', function() {
         var btn = $(this);
         var id = btn.data('id');
         $.post('<?php echo admin_url("admin-ajax.php"); ?>', {
@@ -88,18 +93,9 @@ jQuery(document).ready(function($) {
             nonce: '<?php echo wp_create_nonce("sc_mark_notification_read"); ?>'
         }, function(res) {
             if (res && res.success) {
-                btn.closest('tr').removeClass('sc-notification-unread');
-                btn.closest('td').find('span').replaceWith('خوانده شده');
-                btn.remove();
-                if (typeof location.reload === 'function') location.reload();
+                location.reload();
             }
         });
     });
 });
 </script>
-<style>
-.sc-notification-badge { background:#d63638; color:#fff; padding:2px 6px; border-radius:10px; font-size:11px; margin-right:4px; }
-.sc-notification-unread { background:#fff8e6; }
-.sc-notification-detail .sc-notification-date { color:#666; font-size:14px; margin-bottom:15px; }
-.sc-notification-detail .sc-notification-content { background:#f9f9f9; padding:20px; border-radius:8px; margin-top:15px; line-height:1.8; }
-</style>
