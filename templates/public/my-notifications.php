@@ -9,24 +9,47 @@ if ($view_id > 0) {
     if ($notification) {
         sc_mark_notification_read($view_id, $current_user_id);
         
-        // خواندن پارامترهای جستجو از referrer یا session برای لینک بازگشت
+        // خواندن پارامترهای جستجو برای لینک بازگشت
+        // همیشه به sc-notifications برمی‌گردیم (نه sc-submit-documents)
         $back_url = wc_get_account_endpoint_url('sc-notifications');
-        $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
         
-        // اگر referrer وجود دارد و پارامترهای جستجو دارد، آن‌ها را استخراج می‌کنیم
-        if ($referrer && strpos($referrer, 'sc-notifications') !== false) {
-            $referrer_parts = parse_url($referrer);
-            if (isset($referrer_parts['query'])) {
-                parse_str($referrer_parts['query'], $referrer_params);
-                if (isset($referrer_params['s']) && !empty($referrer_params['s'])) {
-                    $back_url = add_query_arg('s', $referrer_params['s'], $back_url);
+        // اول از پارامتر back در URL استفاده می‌کنیم (که توسط JavaScript تنظیم می‌شود)
+        if (isset($_GET['back']) && !empty($_GET['back'])) {
+            $back_param = esc_url_raw(urldecode($_GET['back']));
+            if (strpos($back_param, 'sc-notifications') !== false) {
+                $back_url = $back_param;
+            }
+        } else {
+            // اگر پارامتر back وجود نداشت، از referrer استفاده می‌کنیم
+            $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+            
+            if ($referrer && strpos($referrer, 'sc-notifications') !== false) {
+                $referrer_parts = parse_url($referrer);
+                if (isset($referrer_parts['query'])) {
+                    parse_str($referrer_parts['query'], $referrer_params);
+                    // فقط پارامترهای مربوط به notifications را اضافه می‌کنیم
+                    if (isset($referrer_params['s']) && !empty(trim($referrer_params['s']))) {
+                        $back_url = add_query_arg('s', sanitize_text_field($referrer_params['s']), $back_url);
+                    }
+                    if (isset($referrer_params['filter']) && $referrer_params['filter'] !== 'all') {
+                        $back_url = add_query_arg('filter', sanitize_text_field($referrer_params['filter']), $back_url);
+                    }
+                    if (isset($referrer_params['notif_page']) && absint($referrer_params['notif_page']) > 1) {
+                        $back_url = add_query_arg('notif_page', absint($referrer_params['notif_page']), $back_url);
+                    }
                 }
-                if (isset($referrer_params['filter']) && $referrer_params['filter'] !== 'all') {
-                    $back_url = add_query_arg('filter', $referrer_params['filter'], $back_url);
-                }
-                if (isset($referrer_params['notif_page']) && $referrer_params['notif_page'] > 1) {
-                    $back_url = add_query_arg('notif_page', $referrer_params['notif_page'], $back_url);
-                }
+            }
+        }
+        
+        // اطمینان حاصل می‌کنیم که URL به sc-notifications است نه جای دیگر
+        if (strpos($back_url, '/sc-notifications') === false && strpos($back_url, 'sc-notifications') === false) {
+            // اگر نیست، دوباره می‌سازیم
+            $base_url = wc_get_account_endpoint_url('sc-notifications');
+            $back_query = parse_url($back_url, PHP_URL_QUERY);
+            if ($back_query) {
+                $back_url = $base_url . '?' . $back_query;
+            } else {
+                $back_url = $base_url;
             }
         }
         ?>
@@ -99,7 +122,7 @@ if ($search !== '') {
                 <article class="sc-notification-card <?php echo $n->is_read ? 'sc-notification-read' : 'sc-notification-unread'; ?>">
                     <div class="sc-notification-card-inner">
                         <h3 class="sc-notification-card-title">
-                            <a href="<?php echo esc_url(add_query_arg('view', $n->id, $base_url)); ?>"><?php echo esc_html($n->title); ?></a>
+                            <a href="<?php echo esc_url(add_query_arg('view', $n->id, $base_url)); ?>" data-back-url="<?php echo esc_attr($base_url_with_filter); ?>"><?php echo esc_html($n->title); ?></a>
                         </h3>
                         <div class="sc-notification-card-meta">
                             <span class="sc-notification-card-date"><?php echo esc_html(sc_date_shamsi($n->created_at, 'Y/m/d')); ?></span>
@@ -113,7 +136,7 @@ if ($search !== '') {
                             <?php if (!$n->is_read) : ?>
                                 <button type="button" class="sc-notification-btn sc-notification-btn-secondary sc-btn-mark-read" data-id="<?php echo esc_attr($n->id); ?>">خواندم</button>
                             <?php endif; ?>
-                            <a href="<?php echo esc_url(add_query_arg('view', $n->id, $base_url)); ?>" class="sc-notification-btn sc-notification-btn-primary">مشاهده</a>
+                            <a href="<?php echo esc_url(add_query_arg('view', $n->id, $base_url)); ?>" class="sc-notification-btn sc-notification-btn-primary" data-back-url="<?php echo esc_attr($base_url_with_filter); ?>">مشاهده</a>
                         </div>
                     </div>
                 </article>
@@ -160,29 +183,75 @@ jQuery(document).ready(function($) {
         return q.length ? '?' + q.join('&') : '';
     }
     
-    // اگر در صفحه view هستیم و پارامترهای جستجو وجود دارند، لینک بازگشت را اصلاح می‌کنیم
+    // ذخیره URL فعلی قبل از رفتن به view و اضافه کردن به لینک
+    $(document).on('click', 'a[href*="view="]', function(e) {
+        var $link = $(this);
+        var backUrl = $link.data('back-url');
+        if (!backUrl) {
+            // اگر data-back-url وجود نداشت، از URL فعلی استفاده می‌کنیم
+            backUrl = window.location.href.split('?view=')[0];
+            if (backUrl.indexOf('?') >= 0) {
+                backUrl = backUrl.split('?')[0];
+            }
+            // اضافه کردن پارامترهای فعلی
+            var currentParams = new URLSearchParams(window.location.search);
+            var params = [];
+            if (currentParams.get('s')) params.push('s=' + encodeURIComponent(currentParams.get('s')));
+            if (currentParams.get('filter') && currentParams.get('filter') !== 'all') params.push('filter=' + encodeURIComponent(currentParams.get('filter')));
+            if (currentParams.get('notif_page') && parseInt(currentParams.get('notif_page')) > 1) params.push('notif_page=' + currentParams.get('notif_page'));
+            if (params.length > 0) {
+                backUrl += '?' + params.join('&');
+            }
+        }
+        if (backUrl && backUrl.indexOf('sc-notifications') >= 0) {
+            // اضافه کردن پارامتر back به لینک view
+            var viewHref = $link.attr('href');
+            var separator = viewHref.indexOf('?') >= 0 ? '&' : '?';
+            $link.attr('href', viewHref + separator + 'back=' + encodeURIComponent(backUrl));
+            localStorage.setItem('sc_notifications_back_url', backUrl);
+        }
+    });
+    
+    // اگر در صفحه view هستیم، لینک بازگشت را از localStorage می‌خوانیم
     <?php if ($view_id > 0) : ?>
-    // خواندن پارامترهای جستجو از referrer
-    var referrer = document.referrer;
-    if (referrer && referrer.indexOf('sc-notifications') >= 0) {
-        try {
-            var referrerUrl = new URL(referrer);
-            var refParams = {
-                filter: referrerUrl.searchParams.get('filter') || 'all',
-                s: referrerUrl.searchParams.get('s') || '',
-                page: parseInt(referrerUrl.searchParams.get('notif_page')) || 1
-            };
-            if (refParams.s || refParams.filter !== 'all' || refParams.page > 1) {
-                var backUrl = baseUrl + buildQueryString(refParams.filter, refParams.s, refParams.page);
-                $('.sc-notification-back-link').attr('href', backUrl);
+    var $backLink = $('.sc-notification-back-link');
+    if ($backLink.length) {
+        // اول از localStorage تلاش می‌کنیم
+        var savedBackUrl = localStorage.getItem('sc_notifications_back_url');
+        if (savedBackUrl && savedBackUrl.indexOf('sc-notifications') >= 0) {
+            $backLink.attr('href', savedBackUrl);
+            // بعد از استفاده، پاک می‌کنیم
+            localStorage.removeItem('sc_notifications_back_url');
+        } else {
+            // اگر localStorage وجود نداشت، از referrer استفاده می‌کنیم
+            var referrer = document.referrer;
+            if (referrer && referrer.indexOf('sc-notifications') >= 0) {
+                try {
+                    var referrerUrl = new URL(referrer);
+                    var refParams = {
+                        filter: referrerUrl.searchParams.get('filter') || 'all',
+                        s: referrerUrl.searchParams.get('s') || '',
+                        page: parseInt(referrerUrl.searchParams.get('notif_page')) || 1
+                    };
+                    if (refParams.s || refParams.filter !== 'all' || refParams.page > 1) {
+                        var backUrl = baseUrl + buildQueryString(refParams.filter, refParams.s, refParams.page);
+                        $backLink.attr('href', backUrl);
+                    } else {
+                        $backLink.attr('href', baseUrl);
+                    }
+                } catch(e) {
+                    $backLink.attr('href', baseUrl);
+                }
+            } else {
+                // اگر هیچ کدام وجود نداشت، فقط baseUrl
+                $backLink.attr('href', baseUrl);
             }
-        } catch(e) {
-            // اگر URL parse نشد، از پارامترهای فعلی URL استفاده می‌کنیم
-            var urlParams = getUrlParams();
-            if (urlParams.s || urlParams.filter !== 'all') {
-                var backUrl = baseUrl + buildQueryString(urlParams.filter, urlParams.s, urlParams.page);
-                $('.sc-notification-back-link').attr('href', backUrl);
-            }
+        }
+        
+        // اطمینان حاصل می‌کنیم که لینک همیشه به sc-notifications است
+        var finalHref = $backLink.attr('href');
+        if (finalHref && finalHref.indexOf('sc-notifications') === -1) {
+            $backLink.attr('href', baseUrl);
         }
     }
     <?php endif; ?>
@@ -204,9 +273,12 @@ jQuery(document).ready(function($) {
                 var badge = n.is_read ? '<span class="sc-notification-card-badge sc-notification-card-badge-read">خوانده شده</span>' : '<span class="sc-notification-card-badge">جدید</span>';
                 var btnRead = n.is_read ? '' : '<button type="button" class="sc-notification-btn sc-notification-btn-secondary sc-btn-mark-read" data-id="' + n.id + '">خواندم</button>';
                 html += '<article class="sc-notification-card ' + cardClass + '"><div class="sc-notification-card-inner">';
-                html += '<h3 class="sc-notification-card-title"><a href="' + n.view_url + '">' + (n.title || '') + '</a></h3>';
-                html += '<div class="sc-notification-card-meta"><span class="sc-notification-card-date">' + n.created_at + '</span>' + badge + '</div>';
-                html += '<div class="sc-notification-card-actions">' + btnRead + ' <a href="' + n.view_url + '" class="sc-notification-btn sc-notification-btn-primary">مشاهده</a></div>';
+            // ذخیره URL فعلی قبل از رفتن به view
+            var currentListUrl = baseUrl + buildQueryString(filter, s, page);
+            var viewUrlWithBack = n.view_url + (n.view_url.indexOf('?') >= 0 ? '&' : '?') + 'back=' + encodeURIComponent(currentListUrl);
+            html += '<h3 class="sc-notification-card-title"><a href="' + n.view_url + '" data-back-url="' + encodeURIComponent(currentListUrl) + '">' + (n.title || '') + '</a></h3>';
+            html += '<div class="sc-notification-card-meta"><span class="sc-notification-card-date">' + n.created_at + '</span>' + badge + '</div>';
+            html += '<div class="sc-notification-card-actions">' + btnRead + ' <a href="' + n.view_url + '" class="sc-notification-btn sc-notification-btn-primary" data-back-url="' + encodeURIComponent(currentListUrl) + '">مشاهده</a></div>';
                 html += '</div></article>';
             });
             html += '</div>';

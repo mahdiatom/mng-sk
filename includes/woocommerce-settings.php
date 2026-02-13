@@ -380,42 +380,74 @@ add_action('template_redirect', function () {
     // اطلاعات کاربر
     $user = wp_get_current_user();
 
-    // مسیر دقیق URL فعلی
-    $current_url_path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
-
-    // مسیر صفحه my-account در سایت شما
-    $my_account_slug = trim(parse_url(home_url('/my-account/'), PHP_URL_PATH), '/');
-
     // اگر کاربر ادمین یا مربی است، به داشبورد وردپرس برود
     if (in_array('administrator', $user->roles) || in_array('club_coach', $user->roles)) {
-        wp_redirect(admin_url());
-        exit;
+        // فقط اگر در صفحه my-account خالی باشد
+        if (is_account_page() && !is_wc_endpoint_url()) {
+            wp_redirect(admin_url());
+            exit;
+        }
+        return;
     }
 
-    // فقط اگر کاربر مشترک باشد و مسیر دقیقاً my-account باشد (بدون endpoint)
-    // بررسی می‌کنیم که آیا endpoint خاصی در URL وجود دارد یا نه
-    $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+    // فقط برای کاربران subscriber
+    if (!in_array('subscriber', $user->roles)) {
+        return;
+    }
+
+    // بررسی اینکه آیا در صفحه my-account هستیم یا نه
+    if (!is_account_page()) {
+        return;
+    }
+
+    // بررسی مستقیم URL برای endpoint ها - این مهمترین بررسی است
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? strtolower($_SERVER['REQUEST_URI']) : '';
     $has_endpoint = false;
     
-    // بررسی endpoint ها در URL
-    $endpoints = ['sc-notifications', 'sc-submit-documents', 'sc-enroll-course', 'sc-my-courses', 
-                  'sc-my-attendances', 'sc-events', 'sc-my-events', 'sc-invoices', 
-                  'sc-event-detail', 'sc-event-success', 'sc-my-honors'];
+    $endpoints_to_check = ['sc-notifications', 'sc-submit-documents', 'sc-enroll-course', 'sc-my-courses', 
+                          'sc-my-attendances', 'sc-events', 'sc-my-events', 'sc-invoices', 
+                          'sc-event-detail', 'sc-event-success', 'sc-my-honors', 'sc-wallet'];
     
-    foreach ($endpoints as $endpoint) {
-        if (strpos($request_uri, '/' . $endpoint . '/') !== false || 
-            strpos($request_uri, '/' . $endpoint . '?') !== false ||
-            strpos($request_uri, '/' . $endpoint) === strlen($request_uri) - strlen('/' . $endpoint)) {
+    // بررسی مستقیم در URL - این باید قبل از هر چیز دیگری بررسی شود
+    foreach ($endpoints_to_check as $endpoint) {
+        $endpoint_lower = strtolower($endpoint);
+        // بررسی با الگوهای مختلف
+        if (strpos($request_uri, '/my-account/' . $endpoint_lower . '/') !== false || 
+            strpos($request_uri, '/my-account/' . $endpoint_lower . '?') !== false ||
+            preg_match('/\/my-account\/' . preg_quote($endpoint_lower, '/') . '(\/|\?|&|$)/i', $request_uri)) {
             $has_endpoint = true;
             break;
         }
     }
     
-    if (in_array('subscriber', $user->roles) && $current_url_path === $my_account_slug && !$has_endpoint) {
+    // اگر endpoint پیدا نشد، بررسی query vars در $wp
+    if (!$has_endpoint) {
+        global $wp;
+        if (isset($wp->query_vars) && is_array($wp->query_vars)) {
+            foreach ($endpoints_to_check as $endpoint) {
+                if (isset($wp->query_vars[$endpoint])) {
+                    $has_endpoint = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // اگر endpoint وجود دارد، هیچ redirect انجام نمی‌دهیم
+    if ($has_endpoint) {
+        return;
+    }
+    
+    // فقط اگر endpoint وجود نداشت و صفحه my-account خالی است، redirect می‌کنیم
+    $query_string = isset($_SERVER['QUERY_STRING']) ? trim($_SERVER['QUERY_STRING']) : '';
+    $path_only = trim(parse_url($request_uri, PHP_URL_PATH), '/');
+    
+    // فقط اگر مسیر دقیقاً my-account است و query string خالی است
+    if ($path_only === 'my-account' && empty($query_string)) {
         wp_redirect(home_url('/my-account/sc-submit-documents/'), 301);
         exit;
     }
-});
+}, 5); // priority 5 تا زودتر از سایر redirect ها اجرا شود
 
 
 // ارتباط حذف بین رویداد و صورت حساب افزونه و صورت حساب ووکامرس
