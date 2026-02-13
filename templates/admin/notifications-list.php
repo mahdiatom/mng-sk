@@ -54,15 +54,23 @@ $notifications = $wpdb->get_results($wpdb->prepare(
 ));
 $total_pages = ceil($total / $per_page);
 ?>
-<div class="wrap sc-notifications-list-wrap">
-    <h1 class="wp-heading-inline">لیست اطلاعیه‌ها</h1>
-    <a href="<?php echo esc_url($add_url); ?>" class="page-title-action">افزودن اطلاعیه جدید</a>
-    <hr class="wp-header-end">
+<div class="wrap sc-notifications-list-wrap<?php echo $is_coach ? ' sc-coach-panel-wrap' : ''; ?>">
+    <?php if ($is_coach) : ?>
+        <div class="sc-coach-panel-header">
+            <h1 class="sc-coach-panel-title">لیست اطلاعیه‌ها</h1>
+            <p class="sc-coach-panel-desc">اطلاعیه‌های ارسال‌شده توسط شما. می‌توانید ویرایش یا حذف کنید.</p>
+            <p style="margin-top: 8px;"><a href="<?php echo esc_url($add_url); ?>" class="button button-primary">افزودن اطلاعیه جدید</a></p>
+        </div>
+    <?php else : ?>
+        <h1 class="wp-heading-inline">لیست اطلاعیه‌ها</h1>
+        <a href="<?php echo esc_url($add_url); ?>" class="page-title-action">افزودن اطلاعیه جدید</a>
+        <hr class="wp-header-end">
+    <?php endif; ?>
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
     <?php endif; ?>
 
-    <div class="sc-notifications-list-card">
+    <div class="sc-notifications-list-card<?php echo $is_coach ? ' sc-coach-panel-card' : ''; ?>">
     <table class="wp-list-table widefat fixed striped sc-notifications-admin-table">
         <thead>
             <tr>

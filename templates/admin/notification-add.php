@@ -121,8 +121,16 @@ if (isset($_GET['saved']) && isset($_GET['msg'])) {
 
 $saved = $notification ? (array)json_decode($notification->target_config, true) : [];
 ?>
-<div class="wrap sc-notification-add-wrap">
-    <h1 class="sc-notification-add-title"><?php echo $edit_id ? 'ویرایش اطلاعیه' : 'افزودن اطلاعیه'; ?></h1>
+<div class="wrap sc-notification-add-wrap<?php echo $is_coach ? ' sc-coach-panel-wrap' : ''; ?>">
+    <?php if ($is_coach) : ?>
+        <div class="sc-coach-panel-header">
+            <a href="<?php echo esc_url($list_url); ?>" class="sc-coach-panel-back">← بازگشت به لیست اطلاعیه‌ها</a>
+            <h1 class="sc-coach-panel-title"><?php echo $edit_id ? 'ویرایش اطلاعیه' : 'افزودن اطلاعیه'; ?></h1>
+            <p class="sc-coach-panel-desc"><?php echo $edit_id ? 'اطلاعیه خود را ویرایش کنید.' : 'اطلاعیه جدید برای بازیکنان یا دوره‌ها ارسال کنید.'; ?></p>
+        </div>
+    <?php else : ?>
+        <h1 class="sc-notification-add-title"><?php echo $edit_id ? 'ویرایش اطلاعیه' : 'افزودن اطلاعیه'; ?></h1>
+    <?php endif; ?>
     <?php if ($is_coach && empty($courses_list)) : ?>
         <div class="notice notice-warning"><p>شما به هیچ دوره‌ای اختصاص داده نشده‌اید. برای ارسال اطلاعیه به بازیکنان، ابتدا از طریق مدیر به دوره‌ها اضافه شوید.</p></div>
     <?php endif; ?>
@@ -130,7 +138,7 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
     <?php endif; ?>
 
-    <div class="sc-notification-form-card">
+    <div class="sc-notification-form-card<?php echo $is_coach ? ' sc-coach-panel-card' : ''; ?>">
     <form method="post" id="notification-form" class="sc-notification-form">
         <?php wp_nonce_field('save_notification_nonce'); ?>
         <input type="hidden" name="edit_id" value="<?php echo $edit_id; ?>">

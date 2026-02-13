@@ -1,0 +1,217 @@
+/**
+ * پنل مربی - استایل یکپارچه و مدرن برای تمام صفحات دسترسی مربی
+ */
+/* === متغیرهای طراحی === */
+.wrap.sc-coach-panel-wrap,
+.wrap.sc-coach-notif-wrap {
+  --sc-panel-bg: #f8fafc;
+  --sc-panel-card: #fff;
+  --sc-panel-border: #e2e8f0;
+  --sc-panel-primary: #0ea5e9;
+  --sc-panel-primary-hover: #0284c7;
+  --sc-panel-accent: #eff6ff;
+  --sc-panel-radius: 12px;
+  --sc-panel-shadow: 0 1px 3px rgba(0,0,0,.06);
+  --sc-panel-text: #1e293b;
+  --sc-panel-muted: #64748b;
+  max-width: 100%;
+  padding: 20px 20px 40px;
+  box-sizing: border-box;
+}
+.wrap.sc-coach-panel-wrap *,
+.wrap.sc-coach-notif-wrap * { box-sizing: border-box; }
+
+/* === هدر صفحات === */
+.sc-coach-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--sc-panel-border, #e2e8f0);
+}
+.sc-coach-panel-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--sc-panel-text, #1e293b);
+}
+.sc-coach-panel-desc {
+  width: 100%;
+  margin: 8px 0 0 0;
+  color: var(--sc-panel-muted, #64748b);
+  font-size: 14px;
+}
+
+/* === کارت و باکس === */
+.sc-coach-panel-card {
+  background: var(--sc-panel-card, #fff);
+  border: 1px solid var(--sc-panel-border, #e2e8f0);
+  border-radius: var(--sc-panel-radius, 12px);
+  overflow: hidden;
+  box-shadow: var(--sc-panel-shadow, 0 1px 3px rgba(0,0,0,.06));
+  margin-top: 20px;
+}
+.sc-coach-panel-card .wp-list-table {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+.sc-coach-panel-card .wp-list-table thead th {
+  background: var(--sc-panel-bg, #f8fafc);
+  border-bottom: 1px solid var(--sc-panel-border, #e2e8f0);
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--sc-panel-text, #1e293b);
+}
+.sc-coach-panel-card .wp-list-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--sc-panel-border, #e2e8f0);
+  vertical-align: middle;
+}
+.sc-coach-panel-card .wp-list-table tbody tr:last-child td { border-bottom: none; }
+.sc-coach-panel-card .wp-list-table tbody tr:hover { background: var(--sc-panel-bg, #f8fafc); }
+
+/* === دکمه بازگشت و لینک‌های اکشن === */
+.sc-coach-panel-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--sc-panel-card, #fff);
+  border: 1px solid var(--sc-panel-border, #e2e8f0);
+  border-radius: 8px;
+  color: var(--sc-panel-muted, #475569);
+  text-decoration: none;
+  font-size: 13px;
+  transition: background .2s, color .2s, border-color .2s;
+}
+.sc-coach-panel-back:hover {
+  background: var(--sc-panel-accent, #eff6ff);
+  color: var(--sc-panel-primary, #0ea5e9);
+  border-color: var(--sc-panel-primary, #0ea5e9);
+}
+.sc-coach-panel-back .dashicons { font-size: 18px; width: 18px; height: 18px; }
+
+/* === دکمه اصلی و بج === */
+.sc-coach-panel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: var(--sc-panel-primary, #0ea5e9);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.sc-coach-panel-wrap .button-primary {
+  background: var(--sc-panel-primary, #0ea5e9);
+  border-color: var(--sc-panel-primary-hover, #0284c7);
+}
+.sc-coach-panel-wrap .button-primary:hover {
+  background: var(--sc-panel-primary-hover, #0284c7);
+  border-color: var(--sc-panel-primary-hover, #0284c7);
+}
+
+/* === حالت خالی === */
+.sc-coach-panel-empty {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--sc-panel-card, #fff);
+  border: 1px dashed var(--sc-panel-border, #e2e8f0);
+  border-radius: var(--sc-panel-radius, 12px);
+  margin-top: 20px;
+}
+.sc-coach-panel-empty-icon {
+  display: inline-block;
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+.sc-coach-panel-empty-text { margin: 0; color: var(--sc-panel-muted, #64748b); font-size: 15px; }
+
+/* === فرم در پنل مربی === */
+.sc-coach-panel-wrap .form-table th { color: var(--sc-panel-text, #1e293b); padding: 12px 10px 12px 0; }
+.sc-coach-panel-wrap .form-table input[type="text"],
+.sc-coach-panel-wrap .form-table input[type="number"],
+.sc-coach-panel-wrap .form-table select,
+.sc-coach-panel-wrap .form-table textarea {
+  border-radius: 8px;
+  border-color: var(--sc-panel-border, #e2e8f0);
+}
+.sc-coach-panel-wrap .form-table input:focus,
+.sc-coach-panel-wrap .form-table select:focus,
+.sc-coach-panel-wrap .form-table textarea:focus {
+  border-color: var(--sc-panel-primary, #0ea5e9);
+  box-shadow: 0 0 0 1px var(--sc-panel-primary, #0ea5e9);
+}
+.sc-coach-panel-wrap .submit .button { border-radius: 8px; }
+.sc-coach-panel-wrap .sc-coach-profile-card { max-width: 640px; }
+
+/* === لیست جدول وردپرس در بازیکن‌های من === */
+.sc-coach-panel-wrap .wp-list-table.widefat { border-radius: var(--sc-panel-radius, 12px); overflow: hidden; border: 1px solid var(--sc-panel-border, #e2e8f0); box-shadow: var(--sc-panel-shadow); }
+.sc-coach-panel-wrap .tablenav { margin-top: 16px; }
+.sc-coach-panel-wrap .search-box input[type="search"] { border-radius: 8px; border-color: var(--sc-panel-border); }
+.sc-coach-panel-wrap .search-box input[type="search"]:focus { border-color: var(--sc-panel-primary); }
+
+/* ========== اطلاعیه‌های من (همان استایل قبلی با پیشوند sc-coach-notif) ========== */
+.sc-coach-notif-wrap { --sc-notif-bg: #f8fafc; --sc-notif-card: #fff; --sc-notif-border: #e2e8f0; --sc-notif-primary: #0ea5e9; --sc-notif-unread-bg: #eff6ff; --sc-notif-radius: 12px; --sc-notif-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.sc-coach-notif-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--sc-notif-border); }
+.sc-coach-notif-page-title { margin: 0; font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+.sc-coach-notif-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--sc-notif-card); border: 1px solid var(--sc-notif-border); border-radius: 8px; color: #475569; text-decoration: none; font-size: 13px; transition: background .2s, color .2s, border-color .2s; }
+.sc-coach-notif-back:hover { background: var(--sc-notif-unread-bg); color: var(--sc-notif-primary); border-color: var(--sc-notif-primary); }
+.sc-coach-notif-back .dashicons { font-size: 18px; width: 18px; height: 18px; }
+.sc-coach-notif-badge { display: inline-flex; align-items: center; padding: 4px 10px; background: var(--sc-notif-primary); color: #fff; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.sc-coach-notif-tabs { list-style: none; margin: 0 0 20px 0; padding: 0; display: flex; gap: 4px; border-bottom: 1px solid var(--sc-notif-border); }
+.sc-coach-notif-tabs li { margin: 0; }
+.sc-coach-notif-tabs a { display: block; padding: 10px 18px; color: #64748b; text-decoration: none; font-size: 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .2s, border-color .2s; }
+.sc-coach-notif-tabs a:hover { color: var(--sc-notif-primary); }
+.sc-coach-notif-tabs li.active a { color: var(--sc-notif-primary); font-weight: 600; border-bottom-color: var(--sc-notif-primary); }
+.sc-coach-notif-list { display: flex; flex-direction: column; gap: 0; background: var(--sc-notif-card); border: 1px solid var(--sc-notif-border); border-radius: var(--sc-notif-radius); overflow: hidden; box-shadow: var(--sc-notif-shadow); }
+.sc-coach-notif-item { border-bottom: 1px solid var(--sc-notif-border); transition: background .15s; }
+.sc-coach-notif-item:last-child { border-bottom: none; }
+.sc-coach-notif-item:hover { background: var(--sc-notif-bg); }
+.sc-coach-notif-item.is-unread { background: var(--sc-notif-unread-bg); }
+.sc-coach-notif-item.is-unread:hover { background: #dbeafe; }
+.sc-coach-notif-item-inner { display: flex; align-items: center; gap: 14px; padding: 16px 20px; }
+.sc-coach-notif-dot { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--sc-notif-primary); }
+.sc-coach-notif-item-content { flex: 1; min-width: 0; }
+.sc-coach-notif-item-title { margin: 0 0 6px 0; font-size: 15px; font-weight: 600; line-height: 1.4; }
+.sc-coach-notif-item-title a { color: #1e293b; text-decoration: none; }
+.sc-coach-notif-item-title a:hover { color: var(--sc-notif-primary); }
+.sc-coach-notif-item-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: #64748b; }
+.sc-coach-notif-btn-read { padding: 4px 10px; background: transparent; border: 1px solid var(--sc-notif-primary); color: var(--sc-notif-primary); border-radius: 6px; cursor: pointer; font-size: 12px; transition: background .2s, color .2s; }
+.sc-coach-notif-btn-read:hover { background: var(--sc-notif-primary); color: #fff; }
+.sc-coach-notif-item-action { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: var(--sc-notif-card); border: 1px solid var(--sc-notif-border); border-radius: 8px; color: #475569; text-decoration: none; font-size: 13px; transition: background .2s, color .2s, border-color .2s; flex-shrink: 0; }
+.sc-coach-notif-item-action:hover { background: var(--sc-notif-primary); color: #fff; border-color: var(--sc-notif-primary); }
+.sc-coach-notif-item-action .dashicons { font-size: 18px; width: 18px; height: 18px; }
+.sc-coach-notif-empty { text-align: center; padding: 48px 24px; background: var(--sc-notif-card); border: 1px dashed var(--sc-notif-border); border-radius: var(--sc-notif-radius); margin-top: 20px; }
+.sc-coach-notif-empty-icon { display: inline-block; font-size: 48px; width: 48px; height: 48px; color: #cbd5e1; margin-bottom: 16px; }
+.sc-coach-notif-empty-text { margin: 0; color: #64748b; font-size: 15px; }
+.sc-coach-notif-detail-card { background: var(--sc-notif-card); border: 1px solid var(--sc-notif-border); border-radius: var(--sc-notif-radius); overflow: hidden; box-shadow: var(--sc-notif-shadow); margin-top: 20px; }
+.sc-coach-notif-detail-header { padding: 24px 24px 16px; border-bottom: 1px solid var(--sc-notif-border); }
+.sc-coach-notif-detail-title { margin: 0 0 8px 0; font-size: 1.35rem; font-weight: 700; color: #1e293b; line-height: 1.4; }
+.sc-coach-notif-detail-date { display: block; font-size: 13px; color: #64748b; }
+.sc-coach-notif-detail-body { padding: 24px; font-size: 15px; line-height: 1.8; color: #334155; background: var(--sc-notif-bg); white-space: pre-wrap; }
+.sc-coach-notif-pagination { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--sc-notif-border); }
+.sc-coach-notif-pagination .tablenav-pages { float: none; display: block; }
+.sc-coach-notif-pagination .pagination-links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sc-coach-notif-pagination a, .sc-coach-notif-pagination span { display: inline-block; padding: 8px 14px; border-radius: 8px; font-size: 14px; text-decoration: none; border: 1px solid var(--sc-notif-border); background: var(--sc-notif-card); color: #475569; transition: background .2s, border-color .2s, color .2s; }
+.sc-coach-notif-pagination a:hover { background: var(--sc-notif-unread-bg); border-color: var(--sc-notif-primary); color: var(--sc-notif-primary); }
+.sc-coach-notif-pagination .current { background: var(--sc-notif-primary); border-color: var(--sc-notif-primary); color: #fff; }
+
+/* باکس‌های اطلاع و فیلتر در پنل مربی */
+.sc-coach-panel-wrap .notice { border-radius: var(--sc-panel-radius, 12px); border-right-width: 4px; }
+.sc-coach-panel-wrap .notice-info { border-right-color: var(--sc-panel-primary, #0ea5e9); }
+.sc-coach-panel-wrap .sc-filter-wrapper { background: var(--sc-panel-bg, #f8fafc) !important; padding: 20px !important; border-radius: var(--sc-panel-radius, 12px) !important; border: 1px solid var(--sc-panel-border, #e2e8f0); }
+.sc-coach-panel-wrap .card { border: 1px solid var(--sc-panel-border, #e2e8f0); border-radius: var(--sc-panel-radius, 12px); box-shadow: var(--sc-panel-shadow); }
+
+@media (max-width: 782px) {
+  .sc-coach-notif-item-inner { flex-wrap: wrap; }
+  .sc-coach-notif-item-action { width: 100%; justify-content: center; margin-top: 8px; }
+  .sc-coach-notif-header { flex-direction: column; align-items: flex-start; }
+  .sc-coach-panel-header { flex-direction: column; align-items: flex-start; }
+}

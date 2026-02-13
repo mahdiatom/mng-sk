@@ -15,13 +15,17 @@ if (!$coach_players_list_table) {
     $coach_players_list_table->prepare_items();
 }
 ?>
-<div class="wrap">
-    <h1 class="wp-heading-inline">بازیکن‌های من</h1>
-    <p class="description">بازیکنان ثبت‌نام‌کرده در دوره‌های شما. می‌توانید با کلیک روی «ویرایش» اطلاعات آن‌ها را ویرایش کنید.</p>
+<div class="wrap sc-coach-panel-wrap">
+    <div class="sc-coach-panel-header">
+        <h1 class="sc-coach-panel-title">بازیکن‌های من</h1>
+        <p class="sc-coach-panel-desc">بازیکنان ثبت‌نام‌کرده در دوره‌های شما. می‌توانید با کلیک روی «ویرایش» اطلاعات آن‌ها را ویرایش کنید.</p>
+    </div>
 
     <form method="get">
         <input type="hidden" name="page" value="sc-coach-my-players" />
         <?php $coach_players_list_table->search_box('جستجو بازیکن', 'search_coach_player'); ?>
-        <?php $coach_players_list_table->display(); ?>
+        <div class="sc-coach-panel-card" style="margin-top: 12px;">
+            <?php $coach_players_list_table->display(); ?>
+        </div>
     </form>
 </div>

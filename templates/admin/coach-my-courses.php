@@ -19,13 +19,18 @@ $courses = $wpdb->get_results($wpdb->prepare(
     $coach_id
 ));
 ?>
-<div class="wrap">
-    <h1>دوره‌های من</h1>
-    <p class="description">فقط دوره‌هایی که به شما اختصاص داده شده است (فقط نمایش).</p>
+<div class="wrap sc-coach-panel-wrap">
+    <div class="sc-coach-panel-header">
+        <h1 class="sc-coach-panel-title">دوره‌های من</h1>
+        <p class="sc-coach-panel-desc">فقط دوره‌هایی که به شما اختصاص داده شده است (فقط نمایش).</p>
+    </div>
     <?php if (empty($courses)) : ?>
-        <div class="notice notice-info"><p>شما به هیچ دوره‌ای اختصاص داده نشده‌اید.</p></div>
+        <div class="sc-coach-panel-empty">
+            <span class="sc-coach-panel-empty-icon dashicons dashicons-welcome-learn-more"></span>
+            <p class="sc-coach-panel-empty-text">شما به هیچ دوره‌ای اختصاص داده نشده‌اید.</p>
+        </div>
     <?php else : ?>
-        <div class="sc-coach-courses-card">
+        <div class="sc-coach-panel-card">
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
@@ -55,4 +60,3 @@ $courses = $wpdb->get_results($wpdb->prepare(
         </div>
     <?php endif; ?>
 </div>
-<style>.sc-coach-courses-card { background:#fff; border:1px solid #c3c4c7; border-radius:8px; overflow:hidden; margin-top:15px; }</style>

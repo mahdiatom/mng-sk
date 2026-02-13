@@ -134,10 +134,11 @@ $all_courses_for_filter = $wpdb->get_results(
 );
 ?>
 
-<div class="wrap">
-    <h1 class="wp-heading-inline">لیست دستمزد</h1>
-    <hr class="wp-header-end">
-    
+<div class="wrap sc-coach-panel-wrap">
+    <div class="sc-coach-panel-header">
+        <h1 class="sc-coach-panel-title">لیست دستمزد</h1>
+        <p class="sc-coach-panel-desc">دستمزدهای ثبت‌شده بر اساس حضور و غیاب و دوره‌ها.</p>
+    </div>
     <!-- نمایش موجودی کیف پول -->
     <div class="notice notice-info" style="padding: 15px; margin: 20px 0;">
         <h3 style="margin-top: 0;">💰 موجودی کیف پول: <strong><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong></h3>

@@ -17,8 +17,11 @@ $is_edit = isset($_GET['edit']) && $_GET['edit'] === '1';
 $base_url = admin_url('admin.php?page=sc-coach-my-profile');
 $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status']) : '';
 ?>
-<div class="wrap">
-    <h1>اطلاعات من</h1>
+<div class="wrap sc-coach-panel-wrap">
+    <div class="sc-coach-panel-header">
+        <h1 class="sc-coach-panel-title">اطلاعات من</h1>
+        <p class="sc-coach-panel-desc"><?php echo $is_edit ? 'فیلدهای زیر را ویرایش کرده و ذخیره کنید. نوع تسویه، دوره‌ها و وضعیت فقط توسط مدیر قابل تغییر است.' : 'اطلاعات پروفایل شما. برای ویرایش روی دکمه زیر کلیک کنید.'; ?></p>
+    </div>
     <?php if ($sc_status === 'updated') : ?>
         <div class="notice notice-success is-dismissible"><p>اطلاعات با موفقیت به‌روزرسانی شد.</p></div>
     <?php elseif ($sc_status === 'error') : ?>
@@ -26,7 +29,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
     <?php endif; ?>
 
     <?php if ($is_edit) : ?>
-        <p class="description">فیلدهای زیر را ویرایش کرده و ذخیره کنید. نوع تسویه، دوره‌ها و وضعیت فعال/غیرفعال فقط توسط مدیر قابل تغییر است.</p>
+        <div class="sc-coach-panel-card" style="padding: 24px; margin-top: 0;">
         <form method="post" action="">
             <?php wp_nonce_field('sc_coach_profile_edit', 'sc_coach_profile_nonce'); ?>
             <table class="form-table">
@@ -93,10 +96,10 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 <a href="<?php echo esc_url($base_url); ?>" class="button">انصراف</a>
             </p>
         </form>
+        </div>
     <?php else : ?>
-        <p class="description">اطلاعات پروفایل شما. برای ویرایش روی دکمه زیر کلیک کنید.</p>
-        <p><a href="<?php echo esc_url(add_query_arg('edit', '1', $base_url)); ?>" class="button button-primary">ویرایش اطلاعات من</a></p>
-        <div class="sc-coach-profile-card">
+        <p style="margin-bottom: 16px;"><a href="<?php echo esc_url(add_query_arg('edit', '1', $base_url)); ?>" class="button button-primary">ویرایش اطلاعات من</a></p>
+        <div class="sc-coach-panel-card sc-coach-profile-card" style="padding: 24px;">
             <table class="form-table">
                 <tr>
                     <th>نام</th>
@@ -142,4 +145,3 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
         </div>
     <?php endif; ?>
 </div>
-<style>.sc-coach-profile-card { background:#fff; border:1px solid #c3c4c7; border-radius:8px; padding:20px; margin-top:15px; max-width:600px; }</style>

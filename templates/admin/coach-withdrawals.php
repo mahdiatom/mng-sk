@@ -130,10 +130,12 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
 ));
 ?>
 
-<div class="wrap">
-    <h1 class="wp-heading-inline">درخواست‌های برداشت</h1>
-    <a href="<?php echo admin_url('admin.php?page=sc-coach-wallet'); ?>" class="page-title-action">کیف پول</a>
-    <hr class="wp-header-end">
+<div class="wrap sc-coach-panel-wrap">
+    <div class="sc-coach-panel-header">
+        <h1 class="sc-coach-panel-title">درخواست‌های برداشت</h1>
+        <p class="sc-coach-panel-desc">ثبت و پیگیری درخواست‌های برداشت از کیف پول.</p>
+        <p style="margin-top: 8px;"><a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button">کیف پول</a></p>
+    </div>
     
     <?php if ($withdrawal_message): ?>
         <div class="notice notice-<?php echo $withdrawal_message_type; ?> is-dismissible">

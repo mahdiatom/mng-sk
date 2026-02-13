@@ -175,11 +175,15 @@ $withdrawal_message = '';
 $withdrawal_message_type = '';
 ?>
 
-<div class="wrap">
-    <h1 class="wp-heading-inline">کیف پول</h1>
-    <a href="<?php echo admin_url('admin.php?page=sc-coach-withdrawals'); ?>" class="page-title-action">💸 درخواست برداشت</a>
-    <a href="<?php echo admin_url('admin.php?page=sc-coach-salary'); ?>" class="page-title-action">📊 لیست دستمزد</a>
-    <hr class="wp-header-end">
+<div class="wrap sc-coach-panel-wrap">
+    <div class="sc-coach-panel-header">
+        <h1 class="sc-coach-panel-title">کیف پول</h1>
+        <p class="sc-coach-panel-desc">تراکنش‌ها و موجودی کیف پول شما.</p>
+        <p style="margin-top: 8px;">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-withdrawals')); ?>" class="button">💸 درخواست برداشت</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-salary')); ?>" class="button">📊 لیست دستمزد</a>
+        </p>
+    </div>
     
     <?php if ($withdrawal_message): ?>
         <div class="notice notice-<?php echo $withdrawal_message_type; ?> is-dismissible">
