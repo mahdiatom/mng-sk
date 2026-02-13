@@ -462,7 +462,7 @@ if (!defined('ABSPATH')) {
 /**
  * Add custom tab to WooCommerce My Account
  */
-add_filter('woocommerce_account_menu_items', 'sc_add_my_account_menu_item');
+add_filter('woocommerce_account_menu_items', 'sc_add_my_account_menu_item', 20, 1);
 function sc_add_my_account_menu_item($items) {
     // مخفی کردن تب برای مدیران
     if (current_user_can('manage_options')) {
@@ -485,7 +485,8 @@ function sc_add_my_account_menu_item($items) {
         $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications(get_current_user_id()) : 0;
         $items['sc-notifications'] = $unread > 0 ? sprintf('اطلاعیه‌ها (%d)', $unread) : 'اطلاعیه‌ها';
     }
-    if (sc_is_wallet_enabled()) {
+    // تب کیف پول: فقط امکانات پرو (هم‌سطح با پنل ادمین). محتوا تنظیم کیف پول را چک می‌کند.
+    if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {
         $items['sc-wallet'] = 'کیف پول';
     }
     $items['customer-logout'] = $logout;
@@ -2107,8 +2108,8 @@ function sc_handle_wallet_payment() {
         exit;
     }
     
-    // بررسی فعال بودن کیف پول
-    if (!sc_is_wallet_enabled()) {
+    // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
+    if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
         wc_add_notice('سیستم کیف پول فعال نیست.', 'error');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
         exit;
@@ -2403,8 +2404,12 @@ function sc_my_account_wallet_content() {
         return; // اگر غیرفعال بود، پیام نمایش داده شده و خروج می‌کنیم
     }
     
-    // بررسی فعال بودن کیف پول
-    if (!sc_is_wallet_enabled()) {
+    // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
+    if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
+        if (function_exists('sc_is_pro_feature_players_wallet_enabled') && !sc_is_pro_feature_players_wallet_enabled()) {
+            wp_safe_redirect(wc_get_account_endpoint_url('dashboard'));
+            exit;
+        }
         echo '<div class="woocommerce-message woocommerce-message--info woocommerce-info">سیستم کیف پول فعال نیست.</div>';
         return;
     }
@@ -3097,7 +3102,7 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
             // بررسی اینکه آیا این صورت حساب برای شارژ کیف پول است
             if (!empty($invoice->expense_name) && $invoice->expense_name === 'شارژ کیف پول' && $invoice->course_id == 0 && empty($invoice->member_course_id)) {
                 // شارژ کیف پول بعد از پرداخت موفق
-                if (sc_is_wallet_enabled()) {
+                if (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet()) {
                     // بررسی اینکه آیا قبلاً تراکنش شارژ برای این صورت حساب ثبت شده است
                     $transactions_table = $wpdb->prefix . 'sc_wallet_transactions';
                     $existing_transaction = $wpdb->get_var($wpdb->prepare(

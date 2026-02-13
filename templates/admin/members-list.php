@@ -63,8 +63,8 @@ public function column_full_name($item) {
         }
         $courses_text = !empty($course_names) ? '<br><small class="courses_member_table" style="color: #666;">دوره‌ها: ' . implode(', ', $course_names) . '<br>' . '</small>' : '';
 
-        // بررسی فعال بودن کیف پول
-        $wallet_enabled = sc_is_wallet_enabled();
+        // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
+        $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
         $wallet_balance = $wallet_enabled ? sc_get_wallet_balance($item['id']) : 0;
         
         $actions = [

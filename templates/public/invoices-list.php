@@ -331,8 +331,8 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                 
                                 // دکمه پرداخت برای pending
                                 if ($payment_url && $invoice->status === 'pending') {
-                                    // بررسی فعال بودن کیف پول
-                                    $wallet_enabled = sc_is_wallet_enabled();
+                                    // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
+                                    $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
                                     $wallet_balance = 0;
                                     $can_pay_from_wallet = false;
                                     

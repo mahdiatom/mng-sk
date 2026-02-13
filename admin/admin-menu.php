@@ -285,36 +285,38 @@ function sc_register_admin_menu() {
         'sc_admin_add_course_page'
     );
 
-    /* ================= Coaches ================= */
+    /* ================= Coaches (فقط وقتی امکانات پرو فعال است) ================= */
 
-    add_menu_page(
-        'مربیان',
-        'مربیان',
-        'manage_options',
-        'sc-coaches',
-        'sc_admin_coaches_list_page',
-        'dashicons-groups',
-        28
-    );
+    if (function_exists('sc_is_pro_feature_coaches_enabled') && sc_is_pro_feature_coaches_enabled()) {
+        add_menu_page(
+            'مربیان',
+            'مربیان',
+            'manage_options',
+            'sc-coaches',
+            'sc_admin_coaches_list_page',
+            'dashicons-groups',
+            28
+        );
 
-    $list_coaches_sufix = add_submenu_page(
-        'sc-coaches',
-        'لیست مربیان',
-        'لیست مربیان',
-        'manage_options',
-        'sc-coaches',
-        'sc_admin_coaches_list_page'
-    );
-    add_action('load-' . $list_coaches_sufix, 'sc_coaches_screen_option');
+        $list_coaches_sufix = add_submenu_page(
+            'sc-coaches',
+            'لیست مربیان',
+            'لیست مربیان',
+            'manage_options',
+            'sc-coaches',
+            'sc_admin_coaches_list_page'
+        );
+        add_action('load-' . $list_coaches_sufix, 'sc_coaches_screen_option');
 
-    $add_coach_sufix = add_submenu_page(
-        'sc-coaches',
-        'افزودن مربی',
-        'افزودن مربی',
-        'manage_options',
-        'sc-add-coach',
-        'sc_admin_add_coach_page'
-    );
+        $add_coach_sufix = add_submenu_page(
+            'sc-coaches',
+            'افزودن مربی',
+            'افزودن مربی',
+            'manage_options',
+            'sc-add-coach',
+            'sc_admin_add_coach_page'
+        );
+    }
 
     /* ================= Events ================= */
 
@@ -404,53 +406,55 @@ function sc_register_admin_menu() {
         'sc_admin_add_expense_page'
     );
 
-    /* ================= Wallet ================= */
+    /* ================= Wallet - کیف پول بازیکنان (فقط وقتی امکانات پرو فعال است) ================= */
 
-    add_menu_page(
-        'مدیریت کیف پول',
-        'مدیریت کیف پول',
-        'manage_options',
-        'sc-wallet',
-        'sc_admin_wallet_list_page',
-        'dashicons-database-view',
-        29
-    );
+    if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {
+        add_menu_page(
+            'مدیریت کیف پول',
+            'مدیریت کیف پول',
+            'manage_options',
+            'sc-wallet',
+            'sc_admin_wallet_list_page',
+            'dashicons-database-view',
+            29
+        );
 
-    $wallet_list_sufix = add_submenu_page(
-        'sc-wallet',
-        'لیست تراکنش‌ها',
-        'لیست تراکنش‌ها',
-        'manage_options',
-        'sc-wallet',
-        'sc_admin_wallet_list_page'
-    );
+        $wallet_list_sufix = add_submenu_page(
+            'sc-wallet',
+            'لیست تراکنش‌ها',
+            'لیست تراکنش‌ها',
+            'manage_options',
+            'sc-wallet',
+            'sc_admin_wallet_list_page'
+        );
 
-    $wallet_charge_sufix = add_submenu_page(
-        'sc-wallet',
-        'شارژ کیف پول',
-        'شارژ کیف پول',
-        'manage_options',
-        'sc-wallet-charge',
-        'sc_admin_wallet_charge_page'
-    );
+        $wallet_charge_sufix = add_submenu_page(
+            'sc-wallet',
+            'شارژ کیف پول',
+            'شارژ کیف پول',
+            'manage_options',
+            'sc-wallet-charge',
+            'sc_admin_wallet_charge_page'
+        );
 
-    $wallet_deduct_sufix = add_submenu_page(
-        'sc-wallet',
-        'کاهش کیف پول',
-        'کاهش کیف پول',
-        'manage_options',
-        'sc-wallet-deduct',
-        'sc_admin_wallet_deduct_page'
-    );
+        $wallet_deduct_sufix = add_submenu_page(
+            'sc-wallet',
+            'کاهش کیف پول',
+            'کاهش کیف پول',
+            'manage_options',
+            'sc-wallet-deduct',
+            'sc_admin_wallet_deduct_page'
+        );
 
-    $wallet_manage_sufix = add_submenu_page(
-        'sc-wallet',
-        'مدیریت شارژ',
-        'مدیریت شارژ',
-        'manage_options',
-        'sc-wallet-manage',
-        'sc_admin_wallet_manage_page'
-    );
+        $wallet_manage_sufix = add_submenu_page(
+            'sc-wallet',
+            'مدیریت شارژ',
+            'مدیریت شارژ',
+            'manage_options',
+            'sc-wallet-manage',
+            'sc_admin_wallet_manage_page'
+        );
+    }
 
     /* ================= Honors ================= */
 
@@ -626,12 +630,16 @@ function sc_register_admin_menu() {
     add_action('load-' . $add_invoice_sufix, 'callback_add_invoice_sufix');
     add_action('load-' . $list_invoices_sufix, 'process_invoices_table_data');
 
-    add_action('load-' . $wallet_list_sufix, 'process_wallet_transactions_table_data');
+    if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled() && isset($wallet_list_sufix)) {
+        add_action('load-' . $wallet_list_sufix, 'process_wallet_transactions_table_data');
+    }
 
     add_action('load-' . $add_expense_sufix, 'callback_add_expense_sufix');
     add_action("load-$list_events_sufix", 'sc_events_screen_options');
-    add_action('load-' . $add_coach_sufix, 'callback_add_coach_sufix');
-    add_action('load-' . $list_coaches_sufix, 'process_coaches_table_data');
+    if (function_exists('sc_is_pro_feature_coaches_enabled') && sc_is_pro_feature_coaches_enabled() && isset($add_coach_sufix, $list_coaches_sufix)) {
+        add_action('load-' . $add_coach_sufix, 'callback_add_coach_sufix');
+        add_action('load-' . $list_coaches_sufix, 'process_coaches_table_data');
+    }
 
     add_action('load-toplevel_page_sc-coach-my-players', 'sc_coach_my_players_load');
 }

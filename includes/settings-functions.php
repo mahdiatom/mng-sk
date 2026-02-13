@@ -327,3 +327,31 @@ function sc_is_pro_feature_notifications_enabled() {
     return (int) sc_get_setting('pro_feature_notifications', '0') === 1;
 }
 
+/**
+ * Check if Pro feature: Coaches is enabled
+ * بررسی فعال بودن امکانات پرو: مربیان
+ */
+function sc_is_pro_feature_coaches_enabled() {
+    return (int) sc_get_setting('pro_feature_coaches', '0') === 1;
+}
+
+/**
+ * Check if Pro feature: Players Wallet is enabled
+ * بررسی فعال بودن امکانات پرو: کیف پول بازیکنان
+ */
+function sc_is_pro_feature_players_wallet_enabled() {
+    return (int) sc_get_setting('pro_feature_players_wallet', '0') === 1;
+}
+
+/**
+ * Check if players wallet can be shown (pro feature + wallet setting)
+ * بررسی امکان نمایش کیف پول بازیکنان (امکانات پرو + تنظیم کیف پول)
+ * برای منوی کاربر و عملیات کیف پول استفاده شود
+ */
+function sc_can_show_players_wallet() {
+    if (!sc_is_pro_feature_players_wallet_enabled()) {
+        return false;
+    }
+    return (int) sc_get_setting('wallet_enabled', '0') === 1;
+}
+

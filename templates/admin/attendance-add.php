@@ -78,7 +78,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 }
 
                 // در صورت «حاضر»: فقط برای بازیکن تیم، اگر کیف پول فعال و قیمت جلسه > 0، ابتدا کسر را انجام بده؛ اگر کسر ناموفق بود این کاربر را ثبت نکن
-                $need_deduct = ($status === 'present' && sc_is_member_team($member_id) && $price_per_session > 0 && sc_is_wallet_enabled());
+                $need_deduct = ($status === 'present' && sc_is_member_team($member_id) && $price_per_session > 0 && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet()));
                 $deduct_done = false;
                 if ($need_deduct) {
                     $should_deduct = !$existing || ($current_record && $current_record->status === 'absent');
@@ -108,7 +108,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
 
                 if ($existing) {
                     // برگشت مبلغ جلسه اگر از حاضر به غایب تغییر کند (فقط برای بازیکن تیم)
-                    if ($status === 'absent' && $current_record && $current_record->status === 'present' && sc_is_member_team($member_id) && $price_per_session > 0 && sc_is_wallet_enabled()) {
+                    if ($status === 'absent' && $current_record && $current_record->status === 'present' && sc_is_member_team($member_id) && $price_per_session > 0 && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet())) {
                         sc_refund_wallet_session_fee($member_id, $price_per_session, $course_title, $attendance_date_shamsi);
                     }
 

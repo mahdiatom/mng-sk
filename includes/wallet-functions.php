@@ -54,8 +54,8 @@ function sc_get_wallet_balance_by_user_id($user_id) {
 }
 
 /**
- * Check if wallet is enabled
- * بررسی فعال بودن کیف پول
+ * Check if wallet is enabled (setting from wallet tab only)
+ * بررسی فعال بودن تنظیم کیف پول در تب کیف پول
  */
 function sc_is_wallet_enabled() {
     return (int)sc_get_setting('wallet_enabled', '0') === 1;
@@ -176,7 +176,7 @@ function sc_add_wallet_transaction($data) {
  * شارژ کیف پول (کاربر یا مدیر)
  */
 function sc_charge_wallet($member_id, $amount, $description = '', $created_by = null) {
-    if (!sc_is_wallet_enabled()) {
+    if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
         return [
             'success' => false,
             'message' => 'سیستم کیف پول فعال نیست.'
@@ -242,7 +242,7 @@ function sc_charge_wallet($member_id, $amount, $description = '', $created_by = 
  * کاهش از کیف پول (فقط مدیر)
  */
 function sc_deduct_wallet($member_id, $amount, $description = '') {
-    if (!sc_is_wallet_enabled()) {
+    if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
         return [
             'success' => false,
             'message' => 'سیستم کیف پول فعال نیست.'
@@ -290,7 +290,7 @@ function sc_deduct_wallet($member_id, $amount, $description = '') {
  * کسر مبلغ جلسه از کیف پول (هنگام ثبت حضور)
  */
 function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $attendance_date_shamsi) {
-    if (!sc_is_wallet_enabled()) {
+    if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
         return ['success' => true, 'message' => '']; // کیف پول غیرفعال = فقط حضور ذخیره شود
     }
     $amount = floatval($amount);
@@ -330,7 +330,7 @@ function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $atten
  * برگشت مبلغ جلسه به کیف پول (تغییر به غایب یا حذف رکورد حضور)
  */
 function sc_refund_wallet_session_fee($member_id, $amount, $course_title, $attendance_date_shamsi) {
-    if (!sc_is_wallet_enabled()) {
+    if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
         return ['success' => true];
     }
     $amount = floatval($amount);
@@ -362,7 +362,7 @@ function sc_refund_wallet_session_fee($member_id, $amount, $course_title, $atten
  * پرداخت صورت حساب از کیف پول
  */
 function sc_pay_invoice_from_wallet($invoice_id, $amount = null) {
-    if (!sc_is_wallet_enabled()) {
+    if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
         return [
             'success' => false,
             'message' => 'سیستم کیف پول فعال نیست.'
