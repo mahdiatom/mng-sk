@@ -128,44 +128,45 @@ function sc_register_admin_menu() {
         'sc_admin_attendance_report_page'
     );
 
-    /* ================= Coach Salary & Wallet (for coaches) ================= */
-    
-    add_menu_page(
-        'دستمزد و کیف پول',
-        'دستمزد و کیف پول',
-        'sc_view_coach_salary',
-        'sc-coach-salary',
-        'sc_admin_coach_salary_page',
-        'dashicons-money-alt',
-        28.5
-    );
-    
-    add_submenu_page(
-        'sc-coach-salary',
-        'لیست دستمزد',
-        'لیست دستمزد',
-        'sc_view_coach_salary',
-        'sc-coach-salary',
-        'sc_admin_coach_salary_page'
-    );
-    
-    add_submenu_page(
-        'sc-coach-salary',
-        'کیف پول',
-        'کیف پول',
-        'sc_view_coach_salary',
-        'sc-coach-wallet',
-        'sc_admin_coach_wallet_page'
-    );
-    
-    add_submenu_page(
-        'sc-coach-salary',
-        'درخواست‌های برداشت',
-        'درخواست‌های برداشت',
-        'sc_view_coach_salary',
-        'sc-coach-withdrawals',
-        'sc_admin_coach_withdrawals_page'
-    );
+    /* ================= Coach Salary & Wallet (for coaches) - فقط وقتی امکانات پرو کیف پول مربیان و دستمزد فعال است ================= */
+    if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+        add_menu_page(
+            'دستمزد و کیف پول',
+            'دستمزد و کیف پول',
+            'sc_view_coach_salary',
+            'sc-coach-salary',
+            'sc_admin_coach_salary_page',
+            'dashicons-money-alt',
+            28.5
+        );
+        
+        add_submenu_page(
+            'sc-coach-salary',
+            'لیست دستمزد',
+            'لیست دستمزد',
+            'sc_view_coach_salary',
+            'sc-coach-salary',
+            'sc_admin_coach_salary_page'
+        );
+        
+        add_submenu_page(
+            'sc-coach-salary',
+            'کیف پول',
+            'کیف پول',
+            'sc_view_coach_salary',
+            'sc-coach-wallet',
+            'sc_admin_coach_wallet_page'
+        );
+        
+        add_submenu_page(
+            'sc-coach-salary',
+            'درخواست‌های برداشت',
+            'درخواست‌های برداشت',
+            'sc_view_coach_salary',
+            'sc-coach-withdrawals',
+            'sc_admin_coach_withdrawals_page'
+        );
+    }
 
     /* ================= Coach Honors (for coaches) ================= */
 
@@ -509,44 +510,45 @@ function sc_register_admin_menu() {
         
     );
 
-    /* ================= Coach Management (for admin) ================= */
-    
-    add_menu_page(
-        'مدیریت مربیان',
-        'مدیریت مربیان',
-        'manage_options',
-        'sc-coach-management',
-        'sc_admin_coach_management_page',
-        'dashicons-groups',
-        32.5
-    );
-    
-    add_submenu_page(
-        'sc-coach-management',
-        'کیف پول مربیان',
-        'کیف پول مربیان',
-        'manage_options',
-        'sc-coach-management-wallet',
-        'sc_admin_coach_management_wallet_page'
-    );
-    
-    add_submenu_page(
-        'sc-coach-management',
-        'گزارش دستمزد مربیان',
-        'گزارش دستمزد',
-        'manage_options',
-        'sc-coach-management-salary',
-        'sc_admin_coach_management_salary_page'
-    );
-    
-    add_submenu_page(
-        'sc-coach-management',
-        'درخواست‌های برداشت',
-        'درخواست‌های برداشت',
-        'manage_options',
-        'sc-coach-management-withdrawals',
-        'sc_admin_coach_management_withdrawals_page'
-    );
+    /* ================= Coach Management (for admin) - فقط وقتی امکانات پرو کیف پول مربیان و دستمزد فعال است ================= */
+    if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+        add_menu_page(
+            'مدیریت مربیان',
+            'مدیریت مربیان',
+            'manage_options',
+            'sc-coach-management',
+            'sc_admin_coach_management_page',
+            'dashicons-groups',
+            32.5
+        );
+        
+        add_submenu_page(
+            'sc-coach-management',
+            'کیف پول مربیان',
+            'کیف پول مربیان',
+            'manage_options',
+            'sc-coach-management-wallet',
+            'sc_admin_coach_management_wallet_page'
+        );
+        
+        add_submenu_page(
+            'sc-coach-management',
+            'گزارش دستمزد مربیان',
+            'گزارش دستمزد',
+            'manage_options',
+            'sc-coach-management-salary',
+            'sc_admin_coach_management_salary_page'
+        );
+        
+        add_submenu_page(
+            'sc-coach-management',
+            'درخواست‌های برداشت',
+            'درخواست‌های برداشت',
+            'manage_options',
+            'sc-coach-management-withdrawals',
+            'sc_admin_coach_management_withdrawals_page'
+        );
+    }
 
     /* ================= Reports (NO CHANGE) ================= */
 
@@ -698,6 +700,25 @@ add_filter('set-screen-option', function($status, $option, $value) {
 
 
 
+
+/**
+ * Redirect when accessing coach wallet/salary pages and the pro feature is disabled
+ */
+add_action('admin_init', 'sc_block_coach_wallet_salary_pages_when_disabled', 5);
+function sc_block_coach_wallet_salary_pages_when_disabled() {
+    if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+        return;
+    }
+    $page = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : '';
+    $blocked_pages = [
+        'sc-coach-management', 'sc-coach-management-wallet', 'sc-coach-management-salary', 'sc-coach-management-withdrawals',
+        'sc-coach-salary', 'sc-coach-wallet', 'sc-coach-withdrawals',
+    ];
+    if (!empty($page) && in_array($page, $blocked_pages, true)) {
+        wp_safe_redirect(admin_url('index.php'));
+        exit;
+    }
+}
 
 /**
  * Export Excel endpoints

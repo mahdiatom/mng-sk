@@ -75,14 +75,15 @@ function club_hide_menus_for_coach() {
         // حذف تمام منوها به جز حضور و غیاب، دستمزد/کیف پول و افتخارات
         global $menu;
         
-        // حذف تمام منوهای اصلی به جز حضور و غیاب، دستمزد/کیف پول، افتخارات و dashboard
+        // حذف تمام منوهای اصلی به جز حضور و غیاب، دستمزد/کیف پول (در صورت فعال بودن امکانات پرو) و افتخارات
+        $keep_salary = function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled();
         foreach ($menu as $key => $item) {
             if (isset($item[2])) {
-                // فقط dashboard، حضور و غیاب، منوی دستمزد و کیف پول، افتخارات و اطلاعیه‌های مربی را نگه دار
+                // منوی دستمزد و کیف پول فقط در صورت فعال بودن امکانات پرو نمایش داده می‌شود
                 if (
                     $item[2] !== 'sc-attendance-add' &&
                     $item[2] !== 'index.php' &&
-                    $item[2] !== 'sc-coach-salary' &&
+                    ($item[2] !== 'sc-coach-salary' || !$keep_salary) &&
                     $item[2] !== 'sc-coach-honors' &&
                     $item[2] !== 'sc-coach-notifications' &&
                     $item[2] !== 'sc-coach-my-courses' &&
@@ -165,9 +166,6 @@ function club_block_restricted_pages_for_coach() {
         $allowed_pages = [
             'sc-attendance-add',
             'sc-attendance-list',
-            'sc-coach-salary',
-            'sc-coach-wallet',
-            'sc-coach-withdrawals',
             'sc-coach-honors',
             'sc-coach-notifications',
             'sc-coach-notifications-list',
@@ -176,6 +174,11 @@ function club_block_restricted_pages_for_coach() {
             'sc-coach-my-players',
             'sc-coach-my-profile',
         ];
+
+        // صفحات دستمزد و کیف پول فقط در صورت فعال بودن امکانات پرو
+        if ( function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled() ) {
+            $allowed_pages = array_merge($allowed_pages, ['sc-coach-salary', 'sc-coach-wallet', 'sc-coach-withdrawals']);
+        }
         
         $page = $_GET['page'] ?? '';
         $path = $_GET['path'] ?? '';
@@ -242,6 +245,16 @@ function club_block_restricted_pages_for_coach() {
         'product',
         'shop_coupon',
     );
+
+    // وقتی امکانات «کیف پول مربیان و دستمزد» غیرفعال است، مدیریت مربیان و دستمزد مسدود می‌شوند
+    if ( ! ( function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled() ) ) {
+        $blocked_pages = array_merge($blocked_pages, [
+            'sc-coach-management',
+            'sc-coach-salary',
+            'sc-coach-wallet',
+            'sc-coach-withdrawals',
+        ]);
+    }
 
     $page      = $_GET['page']      ?? '';
     $path      = $_GET['path']      ?? '';

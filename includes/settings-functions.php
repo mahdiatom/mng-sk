@@ -336,6 +336,14 @@ function sc_is_pro_feature_coaches_enabled() {
 }
 
 /**
+ * Check if Pro feature: Coaches Wallet and Salary is enabled
+ * بررسی فعال بودن امکانات پرو: کیف پول مربیان و دستمزد
+ */
+function sc_is_pro_feature_coaches_wallet_salary_enabled() {
+    return (int) sc_get_setting('pro_feature_coaches_wallet_salary', '0') === 1;
+}
+
+/**
  * Check if Pro feature: Players Wallet is enabled
  * بررسی فعال بودن امکانات پرو: کیف پول بازیکنان
  */
@@ -345,19 +353,13 @@ function sc_is_pro_feature_players_wallet_enabled() {
 
 /**
  * Check if players wallet can be shown (pro feature + wallet setting)
- * بررسی امکان نمایش کیف پول بازیکنان
- * معیار اصلی: تنظیم wallet_enabled از تب کیف پول (sc_is_wallet_enabled)
- * امکانات پرو: اگر فعال باشد، هر دو باید روشن باشند؛ اگر غیرفعال باشد، فقط wallet_enabled
+ * بررسی امکان نمایش کیف پول بازیکنان (امکانات پرو + تنظیم کیف پول)
+ * برای منوی کاربر و عملیات کیف پول استفاده شود
  */
 function sc_can_show_players_wallet() {
-    if (!function_exists('sc_is_wallet_enabled') || !sc_is_wallet_enabled()) {
+    if (!sc_is_pro_feature_players_wallet_enabled()) {
         return false;
     }
-    // امکانات پرو غیرفعال: فقط wallet_enabled کافی است (سازگاری)
-    if (!sc_is_pro_feature_players_wallet_enabled()) {
-        return true;
-    }
-    // امکانات پرو فعال: هر دو باید روشن باشند
-    return true;
+    return (int) sc_get_setting('wallet_enabled', '0') === 1;
 }
 
