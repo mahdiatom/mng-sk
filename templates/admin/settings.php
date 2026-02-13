@@ -187,11 +187,19 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات دستمزد مربی با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'pro_features') {
-    $pro_mode_enabled = isset($_POST['pro_mode_enabled']) ? 1 : 0;
-    $team_attendance_enabled = isset($_POST['team_attendance_enabled']) ? 1 : 0;
+    $pro_feature_notifications = isset($_POST['pro_feature_notifications']) ? 1 : 0;
+    $pro_feature_coaches = isset($_POST['pro_feature_coaches']) ? 1 : 0;
+    $pro_feature_players_wallet = isset($_POST['pro_feature_players_wallet']) ? 1 : 0;
+    $pro_feature_coaches_wallet_salary = isset($_POST['pro_feature_coaches_wallet_salary']) ? 1 : 0;
+    $pro_feature_coach_salary = isset($_POST['pro_feature_coach_salary']) ? 1 : 0;
+    $pro_feature_sms = isset($_POST['pro_feature_sms']) ? 1 : 0;
 
-    sc_update_setting('pro_mode_enabled', $pro_mode_enabled, 'pro_features');
-    sc_update_setting('team_attendance_enabled', $team_attendance_enabled, 'pro_features');
+    sc_update_setting('pro_feature_notifications', $pro_feature_notifications, 'pro_features');
+    sc_update_setting('pro_feature_coaches', $pro_feature_coaches, 'pro_features');
+    sc_update_setting('pro_feature_players_wallet', $pro_feature_players_wallet, 'pro_features');
+    sc_update_setting('pro_feature_coaches_wallet_salary', $pro_feature_coaches_wallet_salary, 'pro_features');
+    sc_update_setting('pro_feature_coach_salary', $pro_feature_coach_salary, 'pro_features');
+    sc_update_setting('pro_feature_sms', $pro_feature_sms, 'pro_features');
 
     echo '<div class="notice notice-success is-dismissible"><p>تنظیمات امکانات پرو با موفقیت ذخیره شد.</p></div>';
 }
@@ -282,9 +290,13 @@ $sms_wallet_payment_user_template = sc_get_setting('sms_wallet_payment_user_temp
 $sms_wallet_payment_user_pattern = sc_get_setting('sms_wallet_payment_user_pattern', '');
 
 // تنظیمات افزونه پرو
-$pro_mode_enabled = (int) sc_get_setting('pro_mode_enabled', 0);
+$pro_feature_notifications = (int) sc_get_setting('pro_feature_notifications', 0);
+$pro_feature_coaches = (int) sc_get_setting('pro_feature_coaches', 0);
+$pro_feature_players_wallet = (int) sc_get_setting('pro_feature_players_wallet', 0);
+$pro_feature_coaches_wallet_salary = (int) sc_get_setting('pro_feature_coaches_wallet_salary', 0);
+$pro_feature_coach_salary = (int) sc_get_setting('pro_feature_coach_salary', 0);
+$pro_feature_sms = (int) sc_get_setting('pro_feature_sms', 0);
 $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
-$team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
 
 ?>
 
@@ -1245,20 +1257,56 @@ $team_attendance_enabled = (int) sc_get_setting('team_attendance_enabled', 0);
 
         <table class="form-table">
             <tr>
-                <th scope="row">حالت پرو - باشگاه حرفه‌ای</th>
+                <th scope="row">اطلاعیه‌ها</th>
                 <td>
-                    <label>
-                        <input type="checkbox" name="pro_mode_enabled" value="1" <?php checked($pro_mode_enabled, 1); ?>>
-                        فعال کردن حالت پرو
+                    <label class="switch">
+                        <input type="checkbox" name="pro_feature_notifications" value="1" <?php checked($pro_feature_notifications, 1); ?>>
+                        <span class="slider round"></span>
                     </label>
                 </td>
             </tr>
             <tr>
-                <th scope="row">حضور و غیاب تیمی</th>
+                <th scope="row">مربیان</th>
                 <td>
-                    <label>
-                        <input type="checkbox" name="team_attendance_enabled" value="1" <?php checked($team_attendance_enabled, 1); ?>>
-                        فعال کردن حضور و غیاب تیمی
+                    <label class="switch">
+                        <input type="checkbox" name="pro_feature_coaches" value="1" <?php checked($pro_feature_coaches, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">کیف پول بازیکنان</th>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" name="pro_feature_players_wallet" value="1" <?php checked($pro_feature_players_wallet, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">کیف پول مربیان و دستمزد</th>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" name="pro_feature_coaches_wallet_salary" value="1" <?php checked($pro_feature_coaches_wallet_salary, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">دستمزد مربی</th>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" name="pro_feature_coach_salary" value="1" <?php checked($pro_feature_coach_salary, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">سامانه پیامکی</th>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" name="pro_feature_sms" value="1" <?php checked($pro_feature_sms, 1); ?>>
+                        <span class="slider round"></span>
                     </label>
                 </td>
             </tr>

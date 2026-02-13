@@ -319,3 +319,11 @@ function sc_set_invoice_last_run() {
     sc_update_setting('invoice_last_run', current_time('mysql'), 'invoice');
 }
 
+/**
+ * Check if Pro feature: Notifications is enabled
+ * بررسی فعال بودن امکانات پرو: اطلاعیه‌ها
+ */
+function sc_is_pro_feature_notifications_enabled() {
+    return (int) sc_get_setting('pro_feature_notifications', '0') === 1;
+}
+

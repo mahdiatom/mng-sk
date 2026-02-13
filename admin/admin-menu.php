@@ -24,32 +24,34 @@ function sc_register_admin_menu() {
         26
     );
 
-    /* ================= Notifications & SMS ================= */
-    add_menu_page(
-        'اطلاعیه‌ها و ارسال پیامک',
-        'اطلاعیه‌ها و ارسال پیامک',
-        'manage_options',
-        'sc-notifications',
-        'sc_admin_notifications_list_page',
-        'dashicons-email-alt',
-        26.5
-    );
-    add_submenu_page(
-        'sc-notifications',
-        'لیست اطلاعیه‌ها',
-        'لیست اطلاعیه‌ها',
-        'manage_options',
-        'sc-notifications',
-        'sc_admin_notifications_list_page'
-    );
-    add_submenu_page(
-        'sc-notifications',
-        'افزودن اطلاعیه',
-        'افزودن اطلاعیه',
-        'manage_options',
-        'sc-add-notification',
-        'sc_admin_add_notification_page'
-    );
+    /* ================= Notifications & SMS (فقط وقتی امکانات پرو فعال است) ================= */
+    if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()) {
+        add_menu_page(
+            'اطلاعیه‌ها و ارسال پیامک',
+            'اطلاعیه‌ها و ارسال پیامک',
+            'manage_options',
+            'sc-notifications',
+            'sc_admin_notifications_list_page',
+            'dashicons-email-alt',
+            26.5
+        );
+        add_submenu_page(
+            'sc-notifications',
+            'لیست اطلاعیه‌ها',
+            'لیست اطلاعیه‌ها',
+            'manage_options',
+            'sc-notifications',
+            'sc_admin_notifications_list_page'
+        );
+        add_submenu_page(
+            'sc-notifications',
+            'افزودن اطلاعیه',
+            'افزودن اطلاعیه',
+            'manage_options',
+            'sc-add-notification',
+            'sc_admin_add_notification_page'
+        );
+    }
 
     /* ================= Members ================= */
 
@@ -177,42 +179,44 @@ function sc_register_admin_menu() {
         28.6
     );
 
-    /* ================= Coach Notifications (for coaches) ================= */
-    add_menu_page(
-        'اطلاعیه‌ها',
-        'اطلاعیه‌ها',
-        'sc_view_coach_salary',
-        'sc-coach-notifications',
-        'sc_admin_coach_my_notifications_page',
-        'dashicons-email-alt',
-        28.65
-    );
-    add_submenu_page(
-        'sc-coach-notifications',
-        'اطلاعیه‌های من',
-        'اطلاعیه‌های من',
-        'sc_view_coach_salary',
-        'sc-coach-notifications',
-        'sc_admin_coach_my_notifications_page'
-    );
-    add_submenu_page(
-        'sc-coach-notifications',
-        'لیست اطلاعیه‌ها',
-        'لیست اطلاعیه‌ها',
-        'sc_view_coach_salary',
-        'sc-coach-notifications-list',
-        'sc_admin_coach_notifications_list_page'
-    );
-    add_submenu_page(
-        'sc-coach-notifications',
-        'افزودن اطلاعیه',
-        'افزودن اطلاعیه',
-        'sc_view_coach_salary',
-        'sc-coach-add-notification',
-        'sc_admin_coach_add_notification_page'
-    );
+    /* ================= Coach Notifications (for coaches) - فقط وقتی امکانات پرو فعال است ================= */
+    if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()) {
+        add_menu_page(
+            'اطلاعیه‌ها',
+            'اطلاعیه‌ها',
+            'sc_view_coach_salary',
+            'sc-coach-notifications',
+            'sc_admin_coach_my_notifications_page',
+            'dashicons-email-alt',
+            28.65
+        );
+        add_submenu_page(
+            'sc-coach-notifications',
+            'اطلاعیه‌های من',
+            'اطلاعیه‌های من',
+            'sc_view_coach_salary',
+            'sc-coach-notifications',
+            'sc_admin_coach_my_notifications_page'
+        );
+        add_submenu_page(
+            'sc-coach-notifications',
+            'لیست اطلاعیه‌ها',
+            'لیست اطلاعیه‌ها',
+            'sc_view_coach_salary',
+            'sc-coach-notifications-list',
+            'sc_admin_coach_notifications_list_page'
+        );
+        add_submenu_page(
+            'sc-coach-notifications',
+            'افزودن اطلاعیه',
+            'افزودن اطلاعیه',
+            'sc_view_coach_salary',
+            'sc-coach-add-notification',
+            'sc_admin_coach_add_notification_page'
+        );
 
-    add_action('admin_menu', 'sc_coach_notifications_menu_badge', 999);
+        add_action('admin_menu', 'sc_coach_notifications_menu_badge', 999);
+    }
 
     /* ================= Coach: دوره‌های من، بازیکن‌های من، اطلاعات من ================= */
     add_menu_page(
