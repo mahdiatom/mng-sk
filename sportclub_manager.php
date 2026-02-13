@@ -52,6 +52,7 @@ require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export
 require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settings
 require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
 require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions
+require_once SC_INCLUDES_DIR . 'notification-functions.php'; // Notification & SMS broadcast
 require_once SC_INCLUDES_DIR . 'roles.php'; // Roles functions
 require_once SC_INCLUDES_DIR . 'wallet-functions.php'; // Wallet functions
 require_once SC_INCLUDES_DIR . 'coach-wallet-functions.php'; // Coach wallet functions
@@ -600,6 +601,9 @@ function sc_check_and_create_tables() {
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
     $honor_categories_table = $wpdb->prefix . 'sc_honor_categories';
     $honors_table = $wpdb->prefix . 'sc_honors';
+    $notifications_table = $wpdb->prefix . 'sc_notifications';
+    $notification_recipients_table = $wpdb->prefix . 'sc_notification_recipients';
+    $notification_reads_table = $wpdb->prefix . 'sc_notification_reads';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -617,6 +621,9 @@ function sc_check_and_create_tables() {
     $course_coaches_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_coaches_table)) == $course_coaches_table;
     $honor_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $honor_categories_table)) == $honor_categories_table;
     $honors_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $honors_table)) == $honors_table;
+    $notifications_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notifications_table)) == $notifications_table;
+    $notification_recipients_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notification_recipients_table)) == $notification_recipients_table;
+    $notification_reads_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notification_reads_table)) == $notification_reads_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -663,6 +670,15 @@ function sc_check_and_create_tables() {
     }
     if (!$honors_exists && function_exists('sc_create_honors_table')) {
         sc_create_honors_table();
+    }
+    if (!$notifications_exists && function_exists('sc_create_notifications_table')) {
+        sc_create_notifications_table();
+    }
+    if (!$notification_recipients_exists && function_exists('sc_create_notification_recipients_table')) {
+        sc_create_notification_recipients_table();
+    }
+    if (!$notification_reads_exists && function_exists('sc_create_notification_reads_table')) {
+        sc_create_notification_reads_table();
     }
     
     // اجرای به‌روزرسانی‌های دیتابیس

@@ -24,6 +24,33 @@ function sc_register_admin_menu() {
         26
     );
 
+    /* ================= Notifications & SMS ================= */
+    add_menu_page(
+        'اطلاعیه‌ها و ارسال پیامک',
+        'اطلاعیه‌ها و ارسال پیامک',
+        'manage_options',
+        'sc-notifications',
+        'sc_admin_notifications_list_page',
+        'dashicons-email-alt',
+        26.5
+    );
+    add_submenu_page(
+        'sc-notifications',
+        'لیست اطلاعیه‌ها',
+        'لیست اطلاعیه‌ها',
+        'manage_options',
+        'sc-notifications',
+        'sc_admin_notifications_list_page'
+    );
+    add_submenu_page(
+        'sc-notifications',
+        'افزودن اطلاعیه',
+        'افزودن اطلاعیه',
+        'manage_options',
+        'sc-add-notification',
+        'sc_admin_add_notification_page'
+    );
+
     /* ================= Members ================= */
 
     add_menu_page(
@@ -712,6 +739,16 @@ function sc_admin_honor_categories_page() {
 function sc_admin_add_honor_for_member_page() {
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'add_honor_for_member.php';
+}
+
+function sc_admin_notifications_list_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'notifications-list.php';
+}
+
+function sc_admin_add_notification_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'notification-add.php';
 }
 
 function sc_admin_coach_honors_page() {

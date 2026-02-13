@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.17.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.19.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -10,7 +10,7 @@ if (!defined('SC_PLUGIN_VERSION')) {
 function sc_create_settings_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_settings';
-    $table_collation = $wpdb->get_charset_collate;
+    $table_collation = $wpdb->get_charset_collate();
 
 
 $sql = "CREATE TABLE `$table_name` (
@@ -35,7 +35,7 @@ $sql = "CREATE TABLE `$table_name` (
 function sc_create_invoices_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_invoices';
-    $table_collation = $wpdb->get_charset_collate;
+    $table_collation = $wpdb->get_charset_collate();
 
 
 $sql = "CREATE TABLE `$table_name` (
@@ -79,7 +79,7 @@ $sql = "CREATE TABLE `$table_name` (
 function sc_create_courses_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_courses';
-    $table_collation = $wpdb->get_charset_collate;
+    $table_collation = $wpdb->get_charset_collate();
 
 
 $sql = "CREATE TABLE `$table_name` (
@@ -112,7 +112,7 @@ $sql = "CREATE TABLE `$table_name` (
 function sc_create_member_courses_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_member_courses';
-    $table_collation = $wpdb->get_charset_collate;
+    $table_collation = $wpdb->get_charset_collate();
 
 
 $sql = "CREATE TABLE `$table_name` (
@@ -142,7 +142,7 @@ $sql = "CREATE TABLE `$table_name` (
 function sc_create_attendances_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_attendances';
-    $table_collation = $wpdb->get_charset_collate;
+    $table_collation = $wpdb->get_charset_collate();
 
 
 $sql = "CREATE TABLE `$table_name` (
@@ -173,7 +173,7 @@ $sql = "CREATE TABLE `$table_name` (
 function sc_create_members_table(){
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
-    $table_collation = $wpdb->get_charset_collate;
+    $table_collation = $wpdb->get_charset_collate();
 
 
         $sql = "CREATE TABLE `$table_name` (
@@ -600,6 +600,79 @@ function sc_create_honor_categories_table() {
 }
 
 /**
+ * Create notifications table
+ */
+function sc_create_notifications_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_notifications';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `title` varchar(255) NOT NULL,
+        `content` text NOT NULL,
+        `target_type` varchar(20) NOT NULL COMMENT 'all/specific/course',
+        `target_config` longtext DEFAULT NULL COMMENT 'JSON: user_type, course_ids, recipient_ids, etc.',
+        `send_sms` tinyint(1) NOT NULL DEFAULT 0,
+        `created_by` bigint(20) unsigned DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_target_type` (`target_type`),
+        KEY `idx_created_at` (`created_at`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create notification recipients table
+ */
+function sc_create_notification_recipients_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_notification_recipients';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `notification_id` bigint(20) unsigned NOT NULL,
+        `user_id` bigint(20) unsigned NOT NULL COMMENT 'WordPress user_id',
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_notification_user` (`notification_id`, `user_id`),
+        KEY `idx_user_id` (`user_id`),
+        KEY `idx_notification_id` (`notification_id`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create notification reads table
+ */
+function sc_create_notification_reads_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_notification_reads';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `notification_id` bigint(20) unsigned NOT NULL,
+        `user_id` bigint(20) unsigned NOT NULL,
+        `read_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_notification_user` (`notification_id`, `user_id`),
+        KEY `idx_user_id` (`user_id`),
+        KEY `idx_notification_id` (`notification_id`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
  * Create honors table
  */
 function sc_create_honors_table() {
@@ -657,6 +730,9 @@ function sc_update_database() {
         sc_create_coach_withdrawal_requests_table();
         sc_create_honor_categories_table();
         sc_create_honors_table();
+        sc_create_notifications_table();
+        sc_create_notification_recipients_table();
+        sc_create_notification_reads_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';

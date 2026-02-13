@@ -3177,3 +3177,13 @@ color: white;
 
      font-weight: bold;
 }
+
+/* اطلاعیه‌ها - شمارنده تب */
+.sc-notification-badge {
+    background: #d63638;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin-right: 4px;
+}
