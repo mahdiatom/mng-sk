@@ -132,9 +132,11 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
 
 <div class="wrap sc-coach-panel-wrap">
     <div class="sc-coach-panel-header">
-        <h1 class="sc-coach-panel-title">درخواست‌های برداشت</h1>
+        <div class="sc-coach-panel-title-row">
+            <h1 class="sc-coach-panel-title">درخواست‌های برداشت</h1>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button">کیف پول</a>
+        </div>
         <p class="sc-coach-panel-desc">ثبت و پیگیری درخواست‌های برداشت از کیف پول.</p>
-        <p style="margin-top: 8px;"><a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button">کیف پول</a></p>
     </div>
     
     <?php if ($withdrawal_message): ?>
@@ -143,20 +145,21 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
         </div>
     <?php endif; ?>
     
-    <!-- نمایش موجودی -->
-    <div class="notice notice-info" style="padding: 20px; margin: 20px 0;">
-        <h2 style="margin-top: 0;">💰 موجودی کیف پول: 
-            <strong style="font-size: 24px; color: <?php echo $wallet_balance < 0 ? '#d63638' : '#2271b1'; ?>;">
+    <!-- نمایش موجودی (زیر تایتل) -->
+    <div class="sc-coach-wallet-balance-box notice notice-info" style="padding: 20px; margin: 20px 0;">
+        <h3 style="margin: 0 0 8px 0; font-size: 1rem;">💰 موجودی کیف پول</h3>
+        <p style="margin: 0;">
+            <strong style="font-size: 22px; color: <?php echo $wallet_balance < 0 ? '#d63638' : '#2271b1'; ?>;">
                 <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان
             </strong>
-        </h2>
+        </p>
         <?php if ($wallet_balance < 0): ?>
-            <p style="margin-top: 8px; color: #d63638;">
+            <p style="margin: 8px 0 0 0; color: #d63638;">
                 بدهی کیف پول: <strong><?php echo esc_html(sc_format_amount_display(abs($wallet_balance))); ?> تومان</strong>
             </p>
         <?php endif; ?>
         <?php if ($min_withdrawal > 0): ?>
-            <p>حداقل مبلغ برداشت: <strong><?php echo esc_html(sc_format_amount_display($min_withdrawal)); ?> تومان</strong></p>
+            <p style="margin: 4px 0 0 0; color: #666;">حداقل مبلغ برداشت: <strong><?php echo esc_html(sc_format_amount_display($min_withdrawal)); ?> تومان</strong></p>
         <?php endif; ?>
     </div>
     

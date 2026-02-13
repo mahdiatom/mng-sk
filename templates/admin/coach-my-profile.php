@@ -19,8 +19,13 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
 ?>
 <div class="wrap sc-coach-panel-wrap">
     <div class="sc-coach-panel-header">
-        <h1 class="sc-coach-panel-title">اطلاعات من</h1>
-        <p class="sc-coach-panel-desc"><?php echo $is_edit ? 'فیلدهای زیر را ویرایش کرده و ذخیره کنید. نوع تسویه، دوره‌ها و وضعیت فقط توسط مدیر قابل تغییر است.' : 'اطلاعات پروفایل شما. برای ویرایش روی دکمه زیر کلیک کنید.'; ?></p>
+        <div class="sc-coach-panel-title-row">
+            <h1 class="sc-coach-panel-title">اطلاعات من</h1>
+            <?php if (!$is_edit) : ?>
+                <a href="<?php echo esc_url(add_query_arg('edit', '1', $base_url)); ?>" class="button button-primary">ویرایش اطلاعات من</a>
+            <?php endif; ?>
+        </div>
+        <p class="sc-coach-panel-desc"><?php echo $is_edit ? 'فیلدهای زیر را ویرایش کرده و ذخیره کنید. نوع تسویه، دوره‌ها و وضعیت فقط توسط مدیر قابل تغییر است.' : 'اطلاعات پروفایل شما. برای ویرایش روی دکمه بالا کلیک کنید.'; ?></p>
     </div>
     <?php if ($sc_status === 'updated') : ?>
         <div class="notice notice-success is-dismissible"><p>اطلاعات با موفقیت به‌روزرسانی شد.</p></div>
@@ -98,7 +103,6 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
         </form>
         </div>
     <?php else : ?>
-        <p style="margin-bottom: 16px;"><a href="<?php echo esc_url(add_query_arg('edit', '1', $base_url)); ?>" class="button button-primary">ویرایش اطلاعات من</a></p>
         <div class="sc-coach-panel-card sc-coach-profile-card" style="padding: 24px;">
             <table class="form-table">
                 <tr>

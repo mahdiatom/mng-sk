@@ -136,13 +136,15 @@ $all_courses_for_filter = $wpdb->get_results(
 
 <div class="wrap sc-coach-panel-wrap">
     <div class="sc-coach-panel-header">
-        <h1 class="sc-coach-panel-title">لیست دستمزد</h1>
+        <div class="sc-coach-panel-title-row">
+            <h1 class="sc-coach-panel-title">لیست دستمزد</h1>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button button-primary">مدیریت کیف پول</a>
+        </div>
         <p class="sc-coach-panel-desc">دستمزدهای ثبت‌شده بر اساس حضور و غیاب و دوره‌ها.</p>
     </div>
-    <!-- نمایش موجودی کیف پول -->
-    <div class="notice notice-info" style="padding: 15px; margin: 20px 0;">
-        <h3 style="margin-top: 0;">💰 موجودی کیف پول: <strong><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong></h3>
-        <p><a href="<?php echo admin_url('admin.php?page=sc-coach-wallet'); ?>" class="button button-primary">مدیریت کیف پول</a></p>
+    <!-- نمایش موجودی کیف پول (زیر تایتل) -->
+    <div class="sc-coach-wallet-balance-box notice notice-info" style="padding: 15px; margin: 20px 0;">
+        <h3 style="margin: 0; font-size: 1rem;">💰 موجودی کیف پول: <strong><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong></h3>
     </div>
     
     <!-- فیلترها -->

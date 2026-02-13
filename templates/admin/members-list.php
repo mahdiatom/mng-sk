@@ -68,12 +68,9 @@ public function column_full_name($item) {
         $wallet_balance = $wallet_enabled ? sc_get_wallet_balance($item['id']) : 0;
         
         $actions = [
+            'view' => '<a href="' . admin_url('admin.php?page=sc-view-member&player_id=') . $item['id'] . '">مشاهده</a>',
             'edit' => '<a href="' . admin_url('admin.php?page=sc-add-member&player_id=') . $item['id'] . '">ویرایش</a>',
             'delete' => '<a href="' . admin_url('admin.php?page=sc-members&action=delete&player_id=') . $item['id'] . '">حذف</a>',
-            'view' => sprintf(
-            '<p class="view-player" data-id="%s" style="cursor: pointer; display: inline; color: #2271b1; text-decoration: none;">مشاهده اطلاعات</p>',
-            $item['id']
-        )
         ];
         
         // اضافه کردن دکمه مدیریت کیف پول

@@ -84,6 +84,15 @@ function sc_register_admin_menu() {
         'sc_admin_add_member_page'
     );
 
+    add_submenu_page(
+        null, // hidden menu
+        'مشاهده اطلاعات بازیکن',
+        'مشاهده اطلاعات بازیکن',
+        'manage_options',
+        'sc-view-member',
+        'sc_admin_view_member_page'
+    );
+
 
       // Attendance - Add
     add_menu_page(
@@ -240,14 +249,6 @@ function sc_register_admin_menu() {
         'sc_view_coach_salary',
         'sc-coach-my-players',
         'sc_admin_coach_my_players_page'
-    );
-    add_submenu_page(
-        'sc-coach-my-players',
-        'ویرایش بازیکن',
-        'ویرایش بازیکن',
-        'sc_view_coach_salary',
-        'sc-coach-edit-player',
-        'sc_admin_coach_edit_player_page'
     );
 
     /* ================= Courses ================= */
@@ -784,6 +785,11 @@ function sc_report_data(){
 include SC_TEMPLATES_ADMIN_DIR . 'sc_reaport_club.php';
 }
 
+function sc_admin_view_member_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'member-view.php';
+}
+
 function sc_admin_add_member_page() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
@@ -959,125 +965,6 @@ function sc_coach_my_players_load() {
     $GLOBALS['coach_players_list_table'] = $table;
 }
 
-function sc_admin_coach_edit_player_page() {
-    sc_check_and_create_tables();
-    if (!current_user_can('sc_view_coach_salary')) {
-        wp_die('دسترسی غیرمجاز. برای ویرایش بازیکنان دسترسی مربی لازم است.');
-    }
-    $coach_id = function_exists('sc_current_user_coach_id') ? sc_current_user_coach_id() : 0;
-    if ($coach_id <= 0) {
-        wp_die('اطلاعات مربی یافت نشد.');
-    }
-    $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'sc_members';
-    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-
-    if (isset($_POST['submit_player']) && $player_id > 0) {
-        $can_edit = $wpdb->get_var($wpdb->prepare(
-            "SELECT 1 FROM $member_courses_table mc
-             INNER JOIN $course_coaches_table cc ON cc.course_id = mc.course_id AND cc.coach_id = %d
-             WHERE mc.member_id = %d AND mc.status = 'active' LIMIT 1",
-            $coach_id,
-            $player_id
-        ));
-        if (!$can_edit) {
-            wp_die('شما فقط می‌توانید بازیکنان دوره‌های خود را ویرایش کنید.');
-        }
-        $redirect_url = admin_url('admin.php?page=sc-coach-edit-player&player_id=' . $player_id);
-        $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
-        $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
-        $national_id = isset($_POST['national_id']) ? trim($_POST['national_id']) : '';
-        if (empty($first_name) || empty($last_name) || empty($national_id)) {
-            wp_safe_redirect(add_query_arg('sc_status', 'add_error', $redirect_url));
-            exit;
-        }
-        $data = [
-            'first_name' => sanitize_text_field($first_name),
-            'last_name' => sanitize_text_field($last_name),
-            'national_id' => sanitize_text_field($national_id),
-            'health_verified' => isset($_POST['health_verified']) ? 1 : 0,
-            'info_verified' => isset($_POST['info_verified']) ? 1 : 0,
-            'is_active' => isset($_POST['is_active']) ? 1 : 0,
-            'disable_auto_invoice' => isset($_POST['disable_auto_invoice']) ? 1 : 0,
-            'member_type' => (isset($_POST['member_type']) && $_POST['member_type'] === 'team') ? 'team' : 'normal',
-            'updated_at' => current_time('mysql'),
-        ];
-        $data['father_name'] = isset($_POST['father_name']) && trim($_POST['father_name']) !== '' ? sanitize_text_field($_POST['father_name']) : null;
-        $data['player_phone'] = isset($_POST['player_phone']) && trim($_POST['player_phone']) !== '' ? sanitize_text_field($_POST['player_phone']) : null;
-        $data['father_phone'] = isset($_POST['father_phone']) && trim($_POST['father_phone']) !== '' ? sanitize_text_field($_POST['father_phone']) : null;
-        $data['mother_phone'] = isset($_POST['mother_phone']) && trim($_POST['mother_phone']) !== '' ? sanitize_text_field($_POST['mother_phone']) : null;
-        $data['landline_phone'] = isset($_POST['landline_phone']) && trim($_POST['landline_phone']) !== '' ? sanitize_text_field($_POST['landline_phone']) : null;
-        $data['birth_date_shamsi'] = isset($_POST['birth_date_shamsi']) && trim($_POST['birth_date_shamsi']) !== '' ? sanitize_text_field($_POST['birth_date_shamsi']) : null;
-        $data['insurance_expiry_date_shamsi'] = isset($_POST['insurance_expiry_date_shamsi']) && trim($_POST['insurance_expiry_date_shamsi']) !== '' ? sanitize_text_field($_POST['insurance_expiry_date_shamsi']) : null;
-        $data['birth_date_gregorian'] = null;
-        if (!empty($data['birth_date_shamsi']) && function_exists('sc_shamsi_to_gregorian_date')) {
-            $data['birth_date_gregorian'] = sc_shamsi_to_gregorian_date($data['birth_date_shamsi']);
-        } elseif (isset($_POST['birth_date_gregorian']) && trim($_POST['birth_date_gregorian']) !== '') {
-            $data['birth_date_gregorian'] = sanitize_text_field($_POST['birth_date_gregorian']);
-        }
-        $data['insurance_expiry_date_gregorian'] = null;
-        if (!empty($data['insurance_expiry_date_shamsi']) && function_exists('sc_shamsi_to_gregorian_date')) {
-            $data['insurance_expiry_date_gregorian'] = sc_shamsi_to_gregorian_date($data['insurance_expiry_date_shamsi']);
-        } elseif (isset($_POST['insurance_expiry_date_gregorian']) && trim($_POST['insurance_expiry_date_gregorian']) !== '') {
-            $data['insurance_expiry_date_gregorian'] = sanitize_text_field($_POST['insurance_expiry_date_gregorian']);
-        }
-        $data['personal_photo'] = isset($_POST['personal_photo']) && trim($_POST['personal_photo']) !== '' ? esc_url_raw($_POST['personal_photo']) : null;
-        $data['id_card_photo'] = isset($_POST['id_card_photo']) && trim($_POST['id_card_photo']) !== '' ? esc_url_raw($_POST['id_card_photo']) : null;
-        $data['sport_insurance_photo'] = isset($_POST['sport_insurance_photo']) && trim($_POST['sport_insurance_photo']) !== '' ? esc_url_raw($_POST['sport_insurance_photo']) : null;
-        $data['medical_condition'] = isset($_POST['medical_condition']) && trim($_POST['medical_condition']) !== '' ? sanitize_textarea_field($_POST['medical_condition']) : null;
-        $data['sports_history'] = isset($_POST['sports_history']) && trim($_POST['sports_history']) !== '' ? sanitize_textarea_field($_POST['sports_history']) : null;
-        $data['additional_info'] = isset($_POST['additional_info']) && trim($_POST['additional_info']) !== '' ? sanitize_textarea_field($_POST['additional_info']) : null;
-        $data['skill_level'] = isset($_POST['skill_level']) && trim($_POST['skill_level']) !== '' ? sanitize_text_field($_POST['skill_level']) : null;
-        $format = [];
-        foreach ($data as $key => $value) {
-            $format[] = ($value === null) ? '%s' : (in_array($key, ['health_verified', 'info_verified', 'is_active', 'disable_auto_invoice'], true) ? '%d' : '%s');
-        }
-        $updated = $wpdb->update($table_name, $data, ['id' => $player_id], $format, ['%d']);
-        if ($updated !== false) {
-            $current_user_id = $wpdb->get_var($wpdb->prepare("SELECT user_id FROM $table_name WHERE id = %d", $player_id));
-            if ($current_user_id && function_exists('wp_update_user')) {
-                wp_update_user([
-                    'ID' => $current_user_id,
-                    'first_name' => $data['first_name'],
-                    'last_name' => $data['last_name'],
-                    'display_name' => $data['first_name'] . ' ' . $data['last_name'],
-                ]);
-                if (!empty($data['player_phone'])) {
-                    update_user_meta($current_user_id, 'billing_phone', $data['player_phone']);
-                }
-            }
-            wp_safe_redirect(add_query_arg('sc_status', 'updated', $redirect_url));
-            exit;
-        }
-        wp_safe_redirect(add_query_arg('sc_status', 'update_error', $redirect_url));
-        exit;
-    }
-
-    $player = false;
-    if ($player_id > 0) {
-        $can_edit = $wpdb->get_var($wpdb->prepare(
-            "SELECT 1 FROM $member_courses_table mc
-             INNER JOIN $course_coaches_table cc ON cc.course_id = mc.course_id AND cc.coach_id = %d
-             WHERE mc.member_id = %d AND mc.status = 'active' LIMIT 1",
-            $coach_id,
-            $player_id
-        ));
-        if (!$can_edit) {
-            wp_die('شما فقط می‌توانید بازیکنان دوره‌های خود را ویرایش کنید.');
-        }
-        $player = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $player_id));
-    }
-    if (!$player && $player_id > 0) {
-        wp_die('بازیکن یافت نشد.');
-    }
-    if (!$player) {
-        wp_safe_redirect(admin_url('admin.php?page=sc-coach-my-players'));
-        exit;
-    }
-    include SC_TEMPLATES_ADMIN_DIR . 'member-add.php';
-}
 
 function sc_admin_coach_honors_page() {
     sc_check_and_create_tables();

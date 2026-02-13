@@ -28,7 +28,6 @@ class Coach_Players_List_Table extends WP_List_Table {
             'national_id'  => 'کد ملی',
             'player_phone' => 'تلفن',
             'is_active'    => 'وضعیت',
-            'actions'      => 'عملیات',
         ];
     }
 
@@ -53,9 +52,6 @@ class Coach_Players_List_Table extends WP_List_Table {
                 return esc_html(!empty($item['player_phone']) ? $item['player_phone'] : '-');
             case 'is_active':
                 return !empty($item['is_active']) ? 'فعال' : 'غیرفعال';
-            case 'actions':
-                $edit_url = admin_url('admin.php?page=sc-coach-edit-player&player_id=' . (int) $item['id']);
-                return '<a href="' . esc_url($edit_url) . '" class="button button-small">ویرایش</a>';
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '-';
         }

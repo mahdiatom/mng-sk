@@ -175,7 +175,6 @@ function club_block_restricted_pages_for_coach() {
             'sc-coach-my-courses',
             'sc-coach-my-players',
             'sc-coach-my-profile',
-            'sc-coach-edit-player',
         ];
         
         $page = $_GET['page'] ?? '';

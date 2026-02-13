@@ -96,24 +96,15 @@ if($player && $_GET['player_id'] ){
 
     }
 $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status']) : '';
-$is_coach_edit = current_user_can('sc_view_coach_salary') && !current_user_can('manage_options');
 ?>
 <div class="wrap">
-    <?php if ($sc_status === 'updated') : ?>
-        <div class="notice notice-success is-dismissible"><p>اطلاعات بازیکن با موفقیت به‌روزرسانی شد.</p></div>
-    <?php elseif ($sc_status === 'add_error' || $sc_status === 'update_error') : ?>
-        <div class="notice notice-error is-dismissible"><p>خطا در ذخیره. لطفاً فیلدهای اجباری را بررسی کنید.</p></div>
-    <?php endif; ?>
+    <?php // نوتیف موفقیت/خطا فقط از sc_sprot_notices (admin_notices) نمایش داده می‌شود تا تکراری نباشد. ?>
     <h1 class="wp-heading-inline">
         <?php echo isset($_GET['player_id']) ? 'بروزرسانی اطلاعات بازیکن' : 'ثبت بازکین جدید'; ?>
             </h1>
     <?php
         if (isset($_GET['player_id'])) {
-            if (current_user_can('sc_view_coach_salary') && !current_user_can('manage_options')) {
-                ?><a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-my-players')); ?>" class="page-title-action">← بازگشت به بازیکن‌های من</a><?php
-            } else {
-                ?><a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action">افزودن بازیکن جدید</a><?php
-            }
+            ?><a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action">افزودن بازیکن جدید</a><?php
         }
     ?>
 
@@ -323,17 +314,11 @@ $is_coach_edit = current_user_can('sc_view_coach_salary') && !current_user_can('
                 <tr>
                     <th scope="row"><label for="member_type">نوع عضو</label></th>
                     <td>
-                        <?php if ($is_coach_edit) : ?>
-                            <input type="hidden" name="member_type" value="<?php echo esc_attr($member_type); ?>">
-                            <p style="margin: 0; padding: 6px 0; color: #50575e;"><?php echo $member_type === 'team' ? 'بازیکن تیم' : 'بازیکن عادی'; ?></p>
-                            <p class="description">فقط قابل مشاهده توسط مربی؛ ویرایش توسط مدیر امکان‌پذیر است.</p>
-                        <?php else : ?>
-                            <select name="member_type" id="member_type" class="regular-text">
-                                <option value="normal" <?php selected($member_type, 'normal'); ?>>بازیکن عادی</option>
-                                <option value="team" <?php selected($member_type, 'team'); ?>>بازیکن تیم</option>
-                            </select>
-                            <p class="description">بازیکن عادی: صورت‌حساب دوره ایجاد می‌شود. بازیکن تیم: صورت‌حساب ایجاد نمی‌شود و هزینه هر جلسه از کیف پول کسر می‌شود.</p>
-                        <?php endif; ?>
+                        <select name="member_type" id="member_type" class="regular-text">
+                            <option value="normal" <?php selected($member_type, 'normal'); ?>>بازیکن عادی</option>
+                            <option value="team" <?php selected($member_type, 'team'); ?>>بازیکن تیم</option>
+                        </select>
+                        <p class="description">بازیکن عادی: صورت‌حساب دوره ایجاد می‌شود. بازیکن تیم: صورت‌حساب ایجاد نمی‌شود و هزینه هر جلسه از کیف پول کسر می‌شود.</p>
                     </td>
                 </tr>
                 <tr>
@@ -363,40 +348,6 @@ $is_coach_edit = current_user_can('sc_view_coach_salary') && !current_user_can('
                 global $wpdb;
                 $courses_table = $wpdb->prefix . 'sc_courses';
                 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-
-                if ($is_coach_edit) :
-                    // نمای فقط خواندنی برای مربی: فقط لیست دوره‌های فعلی بازیکن
-                    if ($player && isset($_GET['player_id'])) {
-                        $player_id = absint($_GET['player_id']);
-                        $player_courses = $wpdb->get_results($wpdb->prepare(
-                            "SELECT c.title, mc.status, mc.course_status_flags FROM $member_courses_table mc
-                             INNER JOIN $courses_table c ON c.id = mc.course_id
-                             WHERE mc.member_id = %d ORDER BY c.title ASC",
-                            $player_id
-                        ));
-                        if (!empty($player_courses)) {
-                            echo '<div style="padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;">';
-                            echo '<p class="description" style="margin: 0 0 12px 0;">فقط قابل مشاهده؛ ویرایش دوره‌های بازیکن توسط مدیر امکان‌پذیر است.</p>';
-                            echo '<ul style="margin: 0; padding-right: 20px;">';
-                            foreach ($player_courses as $pc) {
-                                $status_label = $pc->status === 'active' ? 'فعال' : 'غیرفعال';
-                                $flags = [];
-                                if (!empty($pc->course_status_flags)) {
-                                    $flags = array_filter(array_map('trim', explode(',', $pc->course_status_flags)));
-                                }
-                                if (in_array('paused', $flags)) $status_label .= ' (متوقف شده)';
-                                if (in_array('completed', $flags)) $status_label .= ' (تمام شده)';
-                                if (in_array('canceled', $flags)) $status_label .= ' (لغو شده)';
-                                echo '<li><strong>' . esc_html($pc->title) . '</strong> — <span style="color: #50575e;">' . esc_html($status_label) . '</span></li>';
-                            }
-                            echo '</ul></div>';
-                        } else {
-                            echo '<p style="margin: 0; color: #646970;">این بازیکن هنوز در هیچ دوره‌ای ثبت‌نام نکرده است.</p>';
-                        }
-                    } else {
-                        echo '<p style="margin: 0; color: #646970;">—</p>';
-                    }
-                else :
                 // دریافت دوره‌های فعال
                 $courses = $wpdb->get_results(
                     "SELECT * FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
@@ -503,7 +454,6 @@ $is_coach_edit = current_user_can('sc_view_coach_salary') && !current_user_can('
                     echo '<p class="description" style="margin-top: 10px;">بازیکن می‌تواند در چند دوره شرکت کند. تیک اول دوره را فعال/غیرفعال می‌کند و تیک‌های دیگر وضعیت‌های اضافی هستند. - در صورت انتخاب وضعیت های اضافی صورت حساب برای آن دوره ایجاد نخواهد شد.</p>';
                     echo '<p class="description" style="margin-top: 10px;"> دوره فعال برای بازیکن به این معنا است که بازیکن در کلاس ها حاضر است و برای بازیکن به صورت ماهیانه صورتحساب ایجاد می شود.</p>';
                 }
-                endif;
                 ?>
             </div>
         </div>

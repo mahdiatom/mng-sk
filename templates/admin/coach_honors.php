@@ -260,13 +260,13 @@ $honors = $wpdb->get_results($wpdb->prepare(
 $total_pages = ceil($total_honors / $per_page);
 
 ?>
-<div class="wrap sc-coach-panel-wrap">
+<div class="wrap sc-coach-panel-wrap sc-coach-honors-wrap">
     <div class="sc-coach-panel-header">
         <h1 class="sc-coach-panel-title">افتخارات من</h1>
         <p class="sc-coach-panel-desc">ثبت و مدیریت افتخارات و مدارک شما.</p>
     </div>
     <!-- فرم افزودن افتخارات -->
-    <div class="sc-coach-panel-card card" style="padding: 24px; margin-top: 0;">
+    <div class="sc-coach-panel-card card sc-coach-honors-form-card" style="padding: 24px; margin-top: 0; width: 100%; max-width: none;">
         <h2>افزودن افتخارات جدید</h2>
         
         <?php if ($message) : ?>
@@ -338,7 +338,7 @@ $total_pages = ceil($total_honors / $per_page);
     
     <!-- لیست افتخارات -->
     <?php if (!empty($honors)) : ?>
-        <div class="card" style="max-width: 100%; margin-top: 20px;">
+        <div class="card sc-coach-panel-card" style="width: 100%; max-width: none; margin-top: 20px;">
             <h2>افتخارات ثبت شده</h2>
             
             <table class="wp-list-table widefat fixed striped">

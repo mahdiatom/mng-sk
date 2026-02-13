@@ -149,7 +149,30 @@
   box-shadow: 0 0 0 1px var(--sc-panel-primary, #0ea5e9);
 }
 .sc-coach-panel-wrap .submit .button { border-radius: 8px; }
-.sc-coach-panel-wrap .sc-coach-profile-card { max-width: 640px; }
+.sc-coach-panel-wrap .sc-coach-profile-card { max-width: none; width: 100%; }
+.sc-coach-panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+.sc-coach-panel-title-row .sc-coach-panel-title { margin: 0; }
+.sc-coach-panel-title-row .sc-coach-panel-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sc-coach-honors-wrap .sc-coach-panel-card,
+.sc-coach-honors-wrap .sc-coach-honors-form-card { width: 100% !important; max-width: none !important; }
+.sc-coach-players-wrap .sc-coach-players-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.sc-coach-players-wrap .sc-coach-players-search { flex-shrink: 0; }
+.sc-coach-players-wrap .sc-coach-players-search .search-box { margin: 0; float: none; }
+.sc-coach-players-wrap .sc-coach-panel-card { width: 100%; max-width: none; }
+.sc-coach-players-wrap .sc-coach-panel-card .wp-list-table { width: 100% !important; table-layout: auto; }
 
 /* === لیست جدول وردپرس در بازیکن‌های من === */
 .sc-coach-panel-wrap .wp-list-table.widefat { border-radius: var(--sc-panel-radius, 12px); overflow: hidden; border: 1px solid var(--sc-panel-border, #e2e8f0); box-shadow: var(--sc-panel-shadow); }

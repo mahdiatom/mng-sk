@@ -57,9 +57,11 @@ $total_pages = ceil($total / $per_page);
 <div class="wrap sc-notifications-list-wrap<?php echo $is_coach ? ' sc-coach-panel-wrap' : ''; ?>">
     <?php if ($is_coach) : ?>
         <div class="sc-coach-panel-header">
-            <h1 class="sc-coach-panel-title">لیست اطلاعیه‌ها</h1>
+            <div class="sc-coach-panel-title-row">
+                <h1 class="sc-coach-panel-title">لیست اطلاعیه‌ها</h1>
+                <a href="<?php echo esc_url($add_url); ?>" class="button button-primary">افزودن اطلاعیه جدید</a>
+            </div>
             <p class="sc-coach-panel-desc">اطلاعیه‌های ارسال‌شده توسط شما. می‌توانید ویرایش یا حذف کنید.</p>
-            <p style="margin-top: 8px;"><a href="<?php echo esc_url($add_url); ?>" class="button button-primary">افزودن اطلاعیه جدید</a></p>
         </div>
     <?php else : ?>
         <h1 class="wp-heading-inline">لیست اطلاعیه‌ها</h1>
