@@ -3582,6 +3582,240 @@ function sc_handle_secure_file_upload($user_id) {
 }
 
 /**
+ * AJAX: آپلود فوری یک عکس (بلافاصله بعد از انتخاب فایل)
+ */
+add_action('wp_ajax_sc_upload_player_photo', 'sc_ajax_upload_player_photo');
+function sc_ajax_upload_player_photo() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error(['message' => 'لطفاً ابتدا وارد شوید.']);
+    }
+    if (!isset($_POST['sc_documents_nonce']) || !wp_verify_nonce($_POST['sc_documents_nonce'], 'sc_submit_documents')) {
+        wp_send_json_error(['message' => 'خطای امنیتی. لطفاً صفحه را رفرش کنید.']);
+    }
+    $field_name = isset($_POST['field_name']) ? sanitize_text_field($_POST['field_name']) : '';
+    $allowed = ['personal_photo', 'id_card_photo', 'sport_insurance_photo'];
+    if (!in_array($field_name, $allowed, true)) {
+        wp_send_json_error(['message' => 'فیلد نامعتبر.']);
+    }
+    if (!isset($_FILES[$field_name]) || $_FILES[$field_name]['error'] !== UPLOAD_ERR_OK) {
+        wp_send_json_error(['message' => 'فایلی انتخاب نشده یا خطا در آپلود.']);
+    }
+    $user_id = get_current_user_id();
+    if (!function_exists('wp_handle_upload')) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+    }
+    $file = $_FILES[$field_name];
+    $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    $max_size = 5 * 1024 * 1024;
+    if (!in_array($file['type'], $allowed_types, true)) {
+        wp_send_json_error(['message' => 'فقط تصاویر (JPG, PNG, GIF, WEBP) مجاز است.']);
+    }
+    if ($file['size'] > $max_size) {
+        wp_send_json_error(['message' => 'حداکثر حجم هر فایل ۵ مگابایت است.']);
+    }
+    $image_info = @getimagesize($file['tmp_name']);
+    if ($image_info === false) {
+        wp_send_json_error(['message' => 'فایل انتخاب‌شده تصویر معتبر نیست.']);
+    }
+    $upload_overrides = [
+        'test_form' => false,
+        'mimes' => ['jpg|jpeg|jpe' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp'],
+        'unique_filename_callback' => function($dir, $name, $ext) use ($user_id, $field_name) {
+            return sanitize_file_name($user_id . '_' . $field_name . '_' . time() . $ext);
+        }
+    ];
+    $movefile = wp_handle_upload($file, $upload_overrides);
+    if ($movefile && !isset($movefile['error'])) {
+        wp_send_json_success(['url' => $movefile['url']]);
+    }
+    wp_send_json_error(['message' => isset($movefile['error']) ? $movefile['error'] : 'خطا در ذخیره فایل.']);
+}
+
+/**
+ * AJAX: ارسال فرم اطلاعات بازیکن (بدون رفرش صفحه)
+ */
+add_action('wp_ajax_sc_submit_documents_ajax', 'sc_ajax_submit_documents');
+function sc_ajax_submit_documents() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error(['message' => 'لطفاً ابتدا وارد شوید.']);
+    }
+    if (!isset($_POST['sc_documents_nonce']) || !wp_verify_nonce($_POST['sc_documents_nonce'], 'sc_submit_documents')) {
+        wp_send_json_error(['message' => 'خطای امنیتی. لطفاً صفحه را رفرش کنید.']);
+    }
+    sc_check_and_create_tables();
+    $current_user_id = get_current_user_id();
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+
+    if (empty($_POST['first_name']) || empty($_POST['last_name']) || empty($_POST['national_id'])) {
+        wp_send_json_error(['message' => 'لطفاً فیلدهای اجباری (نام، نام خانوادگی، کد ملی) را پر کنید.']);
+    }
+
+    $data = [
+        'user_id'              => $current_user_id,
+        'first_name'           => sanitize_text_field($_POST['first_name']),
+        'last_name'            => sanitize_text_field($_POST['last_name']),
+        'national_id'          => sanitize_text_field($_POST['national_id']),
+        'health_verified'      => 0,
+        'info_verified'        => 0,
+        'created_at'           => current_time('mysql'),
+        'updated_at'           => current_time('mysql'),
+    ];
+
+    $data['father_name'] = isset($_POST['father_name']) && trim($_POST['father_name']) !== '' ? sanitize_text_field($_POST['father_name']) : null;
+    $data['player_phone'] = isset($_POST['player_phone']) && trim($_POST['player_phone']) !== '' ? sanitize_text_field($_POST['player_phone']) : null;
+    $data['father_phone'] = isset($_POST['father_phone']) && trim($_POST['father_phone']) !== '' ? sanitize_text_field($_POST['father_phone']) : null;
+    $data['mother_phone'] = isset($_POST['mother_phone']) && trim($_POST['mother_phone']) !== '' ? sanitize_text_field($_POST['mother_phone']) : null;
+    $data['landline_phone'] = isset($_POST['landline_phone']) && trim($_POST['landline_phone']) !== '' ? sanitize_text_field($_POST['landline_phone']) : null;
+    $data['birth_date_shamsi'] = isset($_POST['birth_date_shamsi']) && trim($_POST['birth_date_shamsi']) !== '' ? sanitize_text_field($_POST['birth_date_shamsi']) : null;
+    $data['birth_date_gregorian'] = isset($_POST['birth_date_gregorian']) && trim($_POST['birth_date_gregorian']) !== '' ? sanitize_text_field($_POST['birth_date_gregorian']) : null;
+    $insurance_expiry_date_shamsi = isset($_POST['insurance_expiry_date_shamsi']) && trim($_POST['insurance_expiry_date_shamsi']) !== '' ? sanitize_text_field($_POST['insurance_expiry_date_shamsi']) : null;
+    $data['insurance_expiry_date_shamsi'] = $insurance_expiry_date_shamsi;
+    $insurance_expiry_date_gregorian = null;
+    if ($insurance_expiry_date_shamsi && isset($_POST['insurance_expiry_date_gregorian']) && trim($_POST['insurance_expiry_date_gregorian']) !== '') {
+        $insurance_expiry_date_gregorian = sanitize_text_field($_POST['insurance_expiry_date_gregorian']);
+    } elseif ($insurance_expiry_date_shamsi) {
+        $insurance_expiry_date_gregorian = sc_shamsi_to_gregorian_date($insurance_expiry_date_shamsi);
+    }
+    $data['insurance_expiry_date_gregorian'] = $insurance_expiry_date_gregorian;
+    $data['medical_condition'] = isset($_POST['medical_condition']) && trim($_POST['medical_condition']) !== '' ? sanitize_textarea_field($_POST['medical_condition']) : null;
+    $data['sports_history'] = isset($_POST['sports_history']) && trim($_POST['sports_history']) !== '' ? sanitize_textarea_field($_POST['sports_history']) : null;
+    $data['additional_info'] = isset($_POST['additional_info']) && trim($_POST['additional_info']) !== '' ? sanitize_textarea_field($_POST['additional_info']) : null;
+    $data['health_verified'] = (isset($_POST['health_verified']) && $_POST['health_verified']) ? 1 : 0;
+    $data['info_verified'] = (isset($_POST['info_verified']) && $_POST['info_verified']) ? 1 : 0;
+
+    $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE user_id = %d LIMIT 1", $current_user_id));
+    if (!$existing && !empty($data['national_id'])) {
+        $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE national_id = %s LIMIT 1", $data['national_id']));
+    }
+    if (!$existing && !empty($data['player_phone'])) {
+        $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE player_phone = %s LIMIT 1", $data['player_phone']));
+    }
+    if ($existing && $existing->user_id && (int) $existing->user_id !== $current_user_id) {
+        wp_send_json_error(['message' => 'این اطلاعات قبلاً به حساب کاربری دیگری اختصاص داده شده است.']);
+    }
+
+    if (current_user_can('manage_options') && isset($_POST['skill_level'])) {
+        $data['skill_level'] = trim($_POST['skill_level']) !== '' ? sanitize_text_field($_POST['skill_level']) : null;
+    } elseif ($existing && isset($existing->skill_level)) {
+        $data['skill_level'] = $existing->skill_level;
+    } else {
+        $data['skill_level'] = null;
+    }
+
+    if (isset($_POST['personal_photo_url']) && trim($_POST['personal_photo_url']) !== '') {
+        $data['personal_photo'] = esc_url_raw(trim($_POST['personal_photo_url']));
+    } elseif ($existing && !empty($existing->personal_photo)) {
+        $data['personal_photo'] = $existing->personal_photo;
+    } else {
+        $data['personal_photo'] = null;
+    }
+    if (isset($_POST['id_card_photo_url']) && trim($_POST['id_card_photo_url']) !== '') {
+        $data['id_card_photo'] = esc_url_raw(trim($_POST['id_card_photo_url']));
+    } elseif ($existing && !empty($existing->id_card_photo)) {
+        $data['id_card_photo'] = $existing->id_card_photo;
+    } else {
+        $data['id_card_photo'] = null;
+    }
+    if (isset($_POST['sport_insurance_photo_url']) && trim($_POST['sport_insurance_photo_url']) !== '') {
+        $data['sport_insurance_photo'] = esc_url_raw(trim($_POST['sport_insurance_photo_url']));
+    } elseif ($existing && !empty($existing->sport_insurance_photo)) {
+        $data['sport_insurance_photo'] = $existing->sport_insurance_photo;
+    } else {
+        $data['sport_insurance_photo'] = null;
+    }
+
+    if ($existing) {
+        $user_id_exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $table_name WHERE user_id = %d AND id != %d LIMIT 1",
+            $current_user_id,
+            $existing->id
+        ));
+        if ($user_id_exists) {
+            wp_send_json_error(['message' => 'این حساب کاربری قبلاً به بازیکن دیگری اختصاص داده شده است.']);
+        }
+        unset($data['created_at']);
+        $data['updated_at'] = current_time('mysql');
+        $data['user_id'] = $current_user_id;
+        if (!current_user_can('manage_options')) {
+            unset($data['skill_level']);
+        }
+        $format = [];
+        foreach ($data as $key => $value) {
+            if ($value === null) {
+                $format[] = '%s';
+            } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'], true)) {
+                $format[] = '%d';
+            } else {
+                $format[] = '%s';
+            }
+        }
+        $updated = $wpdb->update($table_name, $data, ['id' => $existing->id], $format, ['%d']);
+        if ($updated !== false) {
+            sc_update_profile_completed_status($existing->id);
+            wp_send_json_success(['message' => 'اطلاعات شما با موفقیت به روز شد.']);
+        }
+        wp_send_json_error(['message' => 'خطا در بروزرسانی. لطفاً دوباره تلاش کنید.']);
+    }
+
+    $duplicate_national_id = !empty($data['national_id']) ? $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE national_id = %s LIMIT 1", $data['national_id'])) : null;
+    $duplicate_phone = !empty($data['player_phone']) ? $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE player_phone = %s LIMIT 1", $data['player_phone'])) : null;
+    if ($duplicate_national_id || $duplicate_phone) {
+        $existing_id = $duplicate_national_id ?: $duplicate_phone;
+        $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d LIMIT 1", $existing_id));
+        if ($existing) {
+            $user_id_exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $table_name WHERE user_id = %d AND id != %d LIMIT 1",
+                $current_user_id,
+                $existing->id
+            ));
+            if ($user_id_exists) {
+                wp_send_json_error(['message' => 'این حساب کاربری قبلاً به بازیکن دیگری اختصاص داده شده است.']);
+            }
+            unset($data['created_at']);
+            $data['updated_at'] = current_time('mysql');
+            $data['user_id'] = $current_user_id;
+            if (!current_user_can('manage_options') && isset($existing->skill_level)) {
+                $data['skill_level'] = $existing->skill_level;
+            }
+            $format = [];
+            foreach ($data as $key => $value) {
+                if ($value === null) {
+                    $format[] = '%s';
+                } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'], true)) {
+                    $format[] = '%d';
+                } else {
+                    $format[] = '%s';
+                }
+            }
+            $updated = $wpdb->update($table_name, $data, ['id' => $existing->id], $format, ['%d']);
+            if ($updated !== false) {
+                sc_update_profile_completed_status($existing->id);
+                wp_send_json_success(['message' => 'اطلاعات شما با موفقیت به روز شد.']);
+            }
+            wp_send_json_error(['message' => 'خطا در بروزرسانی.']);
+        }
+    }
+
+    $insert_format = [];
+    foreach ($data as $key => $value) {
+        if ($value === null) {
+            $insert_format[] = '%s';
+        } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'], true)) {
+            $insert_format[] = '%d';
+        } else {
+            $insert_format[] = '%s';
+        }
+    }
+    $inserted = $wpdb->insert($table_name, $data, $insert_format);
+    if ($inserted !== false) {
+        sc_update_profile_completed_status($wpdb->insert_id);
+        wp_send_json_success(['message' => 'اطلاعات شما با موفقیت ثبت شد.']);
+    }
+    wp_send_json_error(['message' => 'خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.']);
+}
+
+/**
  * Hook برای بررسی و اعمال جریمه هنگام مشاهده صفحه پرداخت
  */
 add_action('woocommerce_before_checkout_process', 'sc_check_penalty_on_checkout');

@@ -1257,6 +1257,10 @@ function sc_admin_enqueue_assets() {
 function sc_public_enqueue_assets() {
     wp_enqueue_style('sc-public-css', SC_ASSETS_URL . 'css/public.css', array(),   time());
     wp_enqueue_script('sc-public-js', SC_ASSETS_URL . 'js/public.js', array('jquery'), '1.0', time());
+    if (is_account_page() && get_query_var('sc-submit-documents') !== false) {
+        wp_enqueue_script('sc-submit-documents-js', SC_ASSETS_URL . 'js/submit-documents.js', array('jquery'), time(), true);
+        wp_localize_script('sc-submit-documents-js', 'scDocuments', array('ajaxurl' => admin_url('admin-ajax.php')));
+    }
 }
 
 //پنهان کردن تاپ منو برای نقش مدیر باشگاه

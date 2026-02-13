@@ -451,12 +451,14 @@ function sc_ajax_notifications_filter() {
     }
     $items = [];
     foreach ($notifications as $n) {
+        // view_url فقط با base_url (بدون پارامترهای جستجو)
+        $view_url = add_query_arg('view', $n->id, $base_url);
         $items[] = [
             'id' => (int) $n->id,
             'title' => $n->title,
             'created_at' => function_exists('sc_date_shamsi') ? sc_date_shamsi($n->created_at, 'Y/m/d') : $n->created_at,
             'is_read' => !empty($n->is_read),
-            'view_url' => add_query_arg('view', $n->id, $base_url),
+            'view_url' => $view_url,
         ];
     }
     wp_send_json_success([

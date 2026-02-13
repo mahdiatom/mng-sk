@@ -8,10 +8,31 @@ if ($view_id > 0) {
     $notification = sc_get_user_notification_detail($view_id, $current_user_id);
     if ($notification) {
         sc_mark_notification_read($view_id, $current_user_id);
+        
+        // خواندن پارامترهای جستجو از referrer یا session برای لینک بازگشت
+        $back_url = wc_get_account_endpoint_url('sc-notifications');
+        $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+        
+        // اگر referrer وجود دارد و پارامترهای جستجو دارد، آن‌ها را استخراج می‌کنیم
+        if ($referrer && strpos($referrer, 'sc-notifications') !== false) {
+            $referrer_parts = parse_url($referrer);
+            if (isset($referrer_parts['query'])) {
+                parse_str($referrer_parts['query'], $referrer_params);
+                if (isset($referrer_params['s']) && !empty($referrer_params['s'])) {
+                    $back_url = add_query_arg('s', $referrer_params['s'], $back_url);
+                }
+                if (isset($referrer_params['filter']) && $referrer_params['filter'] !== 'all') {
+                    $back_url = add_query_arg('filter', $referrer_params['filter'], $back_url);
+                }
+                if (isset($referrer_params['notif_page']) && $referrer_params['notif_page'] > 1) {
+                    $back_url = add_query_arg('notif_page', $referrer_params['notif_page'], $back_url);
+                }
+            }
+        }
         ?>
         <div class="woocommerce-MyAccount-content sc-notifications-content">
             <div class="sc-notification-detail-card">
-                <a href="<?php echo esc_url(wc_get_account_endpoint_url('sc-notifications')); ?>" class="sc-notification-back-link">← بازگشت به لیست</a>
+                <a href="<?php echo esc_url($back_url); ?>" class="sc-notification-back-link">← بازگشت به لیست</a>
                 <h2 class="sc-notification-detail-title"><?php echo esc_html($notification->title); ?></h2>
                 <p class="sc-notification-detail-meta"><?php echo esc_html(sc_date_shamsi($notification->created_at, 'l d F Y - H:i')); ?></p>
                 <div class="sc-notification-detail-body"><?php echo nl2br(esc_html($notification->content)); ?></div>
@@ -120,6 +141,16 @@ jQuery(document).ready(function($) {
     var baseUrl = '<?php echo esc_js($base_url); ?>';
     var ajaxUrl = '<?php echo esc_url(admin_url("admin-ajax.php")); ?>';
     var nonceMarkRead = '<?php echo esc_js(wp_create_nonce("sc_mark_notification_read")); ?>';
+    
+    // خواندن پارامترهای جستجو از URL (برای حفظ هنگام برگشت)
+    function getUrlParams() {
+        var params = new URLSearchParams(window.location.search);
+        return {
+            filter: params.get('filter') || 'all',
+            s: params.get('s') || '',
+            page: parseInt(params.get('notif_page')) || 1
+        };
+    }
 
     function buildQueryString(filter, s, page) {
         var q = [];
@@ -128,6 +159,33 @@ jQuery(document).ready(function($) {
         if (page && page > 1) q.push('notif_page=' + page);
         return q.length ? '?' + q.join('&') : '';
     }
+    
+    // اگر در صفحه view هستیم و پارامترهای جستجو وجود دارند، لینک بازگشت را اصلاح می‌کنیم
+    <?php if ($view_id > 0) : ?>
+    // خواندن پارامترهای جستجو از referrer
+    var referrer = document.referrer;
+    if (referrer && referrer.indexOf('sc-notifications') >= 0) {
+        try {
+            var referrerUrl = new URL(referrer);
+            var refParams = {
+                filter: referrerUrl.searchParams.get('filter') || 'all',
+                s: referrerUrl.searchParams.get('s') || '',
+                page: parseInt(referrerUrl.searchParams.get('notif_page')) || 1
+            };
+            if (refParams.s || refParams.filter !== 'all' || refParams.page > 1) {
+                var backUrl = baseUrl + buildQueryString(refParams.filter, refParams.s, refParams.page);
+                $('.sc-notification-back-link').attr('href', backUrl);
+            }
+        } catch(e) {
+            // اگر URL parse نشد، از پارامترهای فعلی URL استفاده می‌کنیم
+            var urlParams = getUrlParams();
+            if (urlParams.s || urlParams.filter !== 'all') {
+                var backUrl = baseUrl + buildQueryString(urlParams.filter, urlParams.s, urlParams.page);
+                $('.sc-notification-back-link').attr('href', backUrl);
+            }
+        }
+    }
+    <?php endif; ?>
 
     function updateTabsActive(filter) {
         $('.sc-notif-tab').removeClass('active').css({'background':'#f0f0f1','color':'#1d2327'});
@@ -218,5 +276,28 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         loadNotifications($('#sc-notif-filter-value').val(), $('#sc-notif-search-input').val(), $(this).data('page'));
     });
+    
+    // مدیریت برگشت مرورگر (popstate)
+    window.addEventListener('popstate', function(e) {
+        if (e.state) {
+            // اگر state وجود دارد، از آن استفاده می‌کنیم
+            loadNotifications(e.state.filter, e.state.s, e.state.page);
+        } else {
+            // در غیر این صورت، از URL پارامترها را می‌خوانیم
+            var urlParams = getUrlParams();
+            loadNotifications(urlParams.filter, urlParams.s, urlParams.page);
+        }
+    });
+    
+    // اگر صفحه بدون view لود شد و پارامترهای جستجو در URL وجود دارند، لیست را با همان فیلترها لود می‌کنیم
+    <?php if ($view_id == 0) : ?>
+    var urlParams = getUrlParams();
+    if (urlParams.s || urlParams.filter !== 'all' || urlParams.page > 1) {
+        // فقط اگر با AJAX لود شده باشد (نه اولین بار)
+        if (window.location.search.indexOf('notif_page') >= 0 || urlParams.s || urlParams.filter !== 'all') {
+            loadNotifications(urlParams.filter, urlParams.s, urlParams.page);
+        }
+    }
+    <?php endif; ?>
 });
 </script>

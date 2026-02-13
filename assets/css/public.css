@@ -457,6 +457,51 @@ ease !important;
     gap: 10px;
 }
 
+/* آپلود فوری عکس در فرم اطلاعات بازیکن */
+.sc-upload-field {
+    position: relative;
+}
+.sc-upload-progress {
+    margin-top: 8px;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+    display: none;
+}
+.sc-upload-progress.sc-uploading,
+.sc-upload-progress.sc-upload-done,
+.sc-upload-progress.sc-upload-error {
+    display: block;
+}
+.sc-upload-progress .sc-upload-bar {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #2271b1, #135e96);
+    border-radius: 3px;
+    transition: width 0.25s ease;
+}
+.sc-upload-progress.sc-upload-done .sc-upload-bar {
+    width: 100%;
+    background: #00a32a;
+}
+.sc-upload-progress.sc-upload-error .sc-upload-bar {
+    width: 100%;
+    background: #d63638;
+}
+.sc-upload-progress .sc-upload-text {
+    display: block;
+    font-size: 12px;
+    margin-top: 4px;
+    color: #555;
+}
+.sc-upload-progress.sc-upload-error .sc-upload-text {
+    color: #d63638;
+}
+.sc-upload-progress.sc-upload-done .sc-upload-text {
+    color: #00a32a;
+}
+
 .sc-form-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));

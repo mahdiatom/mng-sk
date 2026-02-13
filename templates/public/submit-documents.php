@@ -133,8 +133,11 @@ if (empty($player_phone) && $billing_phone) {
     
     <?php wc_print_notices(); ?>
     
-    <form method="POST" enctype="multipart/form-data" class="woocommerce-form">
+    <form id="sc-documents-form" method="POST" enctype="multipart/form-data" class="woocommerce-form">
         <?php wp_nonce_field('sc_submit_documents', 'sc_documents_nonce'); ?>
+        <input type="hidden" name="personal_photo_url" id="personal_photo_url" value="<?php echo esc_attr($personal_photo); ?>">
+        <input type="hidden" name="id_card_photo_url" id="id_card_photo_url" value="<?php echo esc_attr($id_card_photo); ?>">
+        <input type="hidden" name="sport_insurance_photo_url" id="sport_insurance_photo_url" value="<?php echo esc_attr($sport_insurance_photo); ?>">
         
         <div class="sc-form-section">
             <h3>اطلاعات شخصی</h3>
@@ -215,38 +218,34 @@ if (empty($player_phone) && $billing_phone) {
         </div>
         
         <div class="sc-form-section">
-            
             <h3>مدارک و تصاویر</h3>
-            <p class="description">حداکثر حجم هر فایل: 5 مگابایت. فرمت‌های مجاز: JPG, PNG, GIF, WEBP</p>
+            <p class="description">عکس‌ها بلافاصله پس از انتخاب آپلود می‌شوند. حداکثر حجم هر فایل: ۵ مگابایت. فرمت‌های مجاز: JPG, PNG, GIF, WEBP</p>
             
-            <p class="form-row">
+            <p class="form-row sc-upload-field">
                 <label for="personal_photo">عکس پرسنلی</label>
-                <input type="file"  name="personal_photo" id="personal_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
-                <?php if (!empty($personal_photo)) : ?>
-                    <div class="sc-image-preview" style="margin-top: 10px;">
-                        <img src="<?php echo esc_url($personal_photo); ?>" alt="عکس پرسنلی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                <?php endif; ?>
+                <input type="file" name="personal_photo" id="personal_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                <div class="sc-upload-progress"><div class="sc-upload-bar"></div><span class="sc-upload-text"></span></div>
+                <div class="sc-image-preview" style="margin-top: 10px;<?php echo empty($personal_photo) ? ' display:none;' : ''; ?>">
+                    <img src="<?php echo esc_url($personal_photo); ?>" alt="عکس پرسنلی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
             </p>
             
-            <p class="form-row">
+            <p class="form-row sc-upload-field">
                 <label for="id_card_photo">عکس کارت ملی</label>
                 <input type="file" name="id_card_photo" id="id_card_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
-                <?php if (!empty($id_card_photo)) : ?>
-                    <div class="sc-image-preview" style="margin-top: 10px;">
-                        <img src="<?php echo esc_url($id_card_photo); ?>" alt="عکس کارت ملی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                <?php endif; ?>
+                <div class="sc-upload-progress"><div class="sc-upload-bar"></div><span class="sc-upload-text"></span></div>
+                <div class="sc-image-preview" style="margin-top: 10px;<?php echo empty($id_card_photo) ? ' display:none;' : ''; ?>">
+                    <img src="<?php echo esc_url($id_card_photo); ?>" alt="عکس کارت ملی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
             </p>
             
-            <p class="form-row">
+            <p class="form-row sc-upload-field">
                 <label for="sport_insurance_photo">عکس بیمه ورزشی</label>
-                <input type="file" name="sport_insurance_photo" id="sport_insurance_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" >
-                <?php if (!empty($sport_insurance_photo)) : ?>
-                    <div class="sc-image-preview" style="margin-top: 10px;">
-                        <img src="<?php echo esc_url($sport_insurance_photo); ?>" alt="عکس بیمه ورزشی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                <?php endif; ?>
+                <input type="file" name="sport_insurance_photo" id="sport_insurance_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                <div class="sc-upload-progress"><div class="sc-upload-bar"></div><span class="sc-upload-text"></span></div>
+                <div class="sc-image-preview" style="margin-top: 10px;<?php echo empty($sport_insurance_photo) ? ' display:none;' : ''; ?>">
+                    <img src="<?php echo esc_url($sport_insurance_photo); ?>" alt="عکس بیمه ورزشی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
             </p>
         </div>
         

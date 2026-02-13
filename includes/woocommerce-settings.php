@@ -392,8 +392,26 @@ add_action('template_redirect', function () {
         exit;
     }
 
-    // فقط اگر کاربر مشترک باشد و مسیر دقیقاً my-account باشد
-    if (in_array('subscriber', $user->roles) && $current_url_path === $my_account_slug) {
+    // فقط اگر کاربر مشترک باشد و مسیر دقیقاً my-account باشد (بدون endpoint)
+    // بررسی می‌کنیم که آیا endpoint خاصی در URL وجود دارد یا نه
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+    $has_endpoint = false;
+    
+    // بررسی endpoint ها در URL
+    $endpoints = ['sc-notifications', 'sc-submit-documents', 'sc-enroll-course', 'sc-my-courses', 
+                  'sc-my-attendances', 'sc-events', 'sc-my-events', 'sc-invoices', 
+                  'sc-event-detail', 'sc-event-success', 'sc-my-honors'];
+    
+    foreach ($endpoints as $endpoint) {
+        if (strpos($request_uri, '/' . $endpoint . '/') !== false || 
+            strpos($request_uri, '/' . $endpoint . '?') !== false ||
+            strpos($request_uri, '/' . $endpoint) === strlen($request_uri) - strlen('/' . $endpoint)) {
+            $has_endpoint = true;
+            break;
+        }
+    }
+    
+    if (in_array('subscriber', $user->roles) && $current_url_path === $my_account_slug && !$has_endpoint) {
         wp_redirect(home_url('/my-account/sc-submit-documents/'), 301);
         exit;
     }
