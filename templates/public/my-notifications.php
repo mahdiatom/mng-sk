@@ -102,7 +102,7 @@ if ($search !== '') {
         </ul>
         <form id="sc-notifications-search-form" style="display: flex; gap: 8px;">
             <input type="hidden" name="filter" id="sc-notif-filter-value" value="<?php echo esc_attr($filter); ?>">
-            <input type="search" name="s" id="sc-notif-search-input" value="<?php echo esc_attr($search); ?>" placeholder="جستجو..." style="width: 180px; padding: 8px;">
+            <input type="search" name="s" id="sc-notif-search-input" value="<?php echo esc_attr($search); ?>" placeholder="جستجو..." >
             <button type="submit" class="button">جستجو</button>
             <button type="button" class="button sc-notif-clear-search" <?php echo $search === '' ? ' style="display:none;"' : ''; ?>>پاک کردن جستجو</button>
         </form>

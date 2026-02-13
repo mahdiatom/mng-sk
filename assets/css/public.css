@@ -3507,3 +3507,11 @@ color: white;
         padding: 2rem 1rem;
     }
 }
+#sc-notif-search-input{
+    width: 180px;
+    padding: 8px;
+    border-radius: 10px;
+    border-color: #cc3366;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
