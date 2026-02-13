@@ -3425,7 +3425,10 @@ add_action('admin_bar_menu', 'sc_add_sms_credit_to_admin_bar', 999);
 
 function sc_add_sms_credit_to_admin_bar($wp_admin_bar) {
     // Only show for admins
-    if (!current_user_can('manage_options')) {
+    if ( !current_user_can('manage_options')  || current_user_can('coach') ) {
+        return;
+    }
+    if( !sc_is_pro_feature_sms_enabled()){
         return;
     }
 

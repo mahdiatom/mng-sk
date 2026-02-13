@@ -344,7 +344,7 @@ add_action('wp_dashboard_setup', 'club_remove_all_dashboard_widgets', 999);
 
 function club_remove_all_dashboard_widgets() {
 
-    if ( ! current_user_can('club_coach') || current_user_can('administrator') ) {
+    if ( ! (current_user_can('club_coach') || current_user_can('coach') )|| current_user_can('administrator') ) {
         return;
     }
 

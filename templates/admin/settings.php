@@ -191,14 +191,12 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     $pro_feature_coaches = isset($_POST['pro_feature_coaches']) ? 1 : 0;
     $pro_feature_players_wallet = isset($_POST['pro_feature_players_wallet']) ? 1 : 0;
     $pro_feature_coaches_wallet_salary = isset($_POST['pro_feature_coaches_wallet_salary']) ? 1 : 0;
-    $pro_feature_coach_salary = isset($_POST['pro_feature_coach_salary']) ? 1 : 0;
     $pro_feature_sms = isset($_POST['pro_feature_sms']) ? 1 : 0;
 
     sc_update_setting('pro_feature_notifications', $pro_feature_notifications, 'pro_features');
     sc_update_setting('pro_feature_coaches', $pro_feature_coaches, 'pro_features');
     sc_update_setting('pro_feature_players_wallet', $pro_feature_players_wallet, 'pro_features');
     sc_update_setting('pro_feature_coaches_wallet_salary', $pro_feature_coaches_wallet_salary, 'pro_features');
-    sc_update_setting('pro_feature_coach_salary', $pro_feature_coach_salary, 'pro_features');
     sc_update_setting('pro_feature_sms', $pro_feature_sms, 'pro_features');
 
     echo '<div class="notice notice-success is-dismissible"><p>تنظیمات امکانات پرو با موفقیت ذخیره شد.</p></div>';
@@ -294,7 +292,6 @@ $pro_feature_notifications = (int) sc_get_setting('pro_feature_notifications', 0
 $pro_feature_coaches = (int) sc_get_setting('pro_feature_coaches', 0);
 $pro_feature_players_wallet = (int) sc_get_setting('pro_feature_players_wallet', 0);
 $pro_feature_coaches_wallet_salary = (int) sc_get_setting('pro_feature_coaches_wallet_salary', 0);
-$pro_feature_coach_salary = (int) sc_get_setting('pro_feature_coach_salary', 0);
 $pro_feature_sms = (int) sc_get_setting('pro_feature_sms', 0);
 $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
 
@@ -312,18 +309,37 @@ $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
            class="nav-tab <?php echo $current_tab === 'invoice' ? 'nav-tab-active' : ''; ?>">
             صورتحساب
         </a>
+        <?php
+        if(sc_is_pro_feature_sms_enabled()){ ?>
+
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=sms'); ?>"
            class="nav-tab <?php echo $current_tab === 'sms' ? 'nav-tab-active' : ''; ?>">
             پیامک
         </a>
+     <?php }
+     
+          if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+?>
+
+     
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=wallet'); ?>"
            class="nav-tab <?php echo $current_tab === 'wallet' ? 'nav-tab-active' : ''; ?>">
             کیف پول
         </a>
+             <?php }
+     
+         if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+ ?>
+
+     
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=coach_salary'); ?>"
            class="nav-tab <?php echo $current_tab === 'coach_salary' ? 'nav-tab-active' : ''; ?>">
             دستمزد مربی
         </a>
+             <?php } 
+             
+             if ( in_array('administrator', wp_get_current_user()->roles) ) {
+?>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=pro_features'); ?>"
             class="nav-tab <?php echo $current_tab === 'pro_features' ? 'nav-tab-active' : ''; ?>">
                امکانات پرو
@@ -333,7 +349,7 @@ $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
            class="nav-tab <?php echo $current_tab === 'reset' ? 'nav-tab-active' : ''; ?>">
             بازگشت به کارخانه
         </a>
-
+<?php } ?>
     </nav>
 
     <div class="tab-content" style="margin-top: 20px;">
@@ -1288,15 +1304,6 @@ $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
                 <td>
                     <label class="switch">
                         <input type="checkbox" name="pro_feature_coaches_wallet_salary" value="1" <?php checked($pro_feature_coaches_wallet_salary, 1); ?>>
-                        <span class="slider round"></span>
-                    </label>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row">دستمزد مربی</th>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" name="pro_feature_coach_salary" value="1" <?php checked($pro_feature_coach_salary, 1); ?>>
                         <span class="slider round"></span>
                     </label>
                 </td>

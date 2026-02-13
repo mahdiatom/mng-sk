@@ -326,7 +326,10 @@ function sc_set_invoice_last_run() {
 function sc_is_pro_feature_notifications_enabled() {
     return (int) sc_get_setting('pro_feature_notifications', '0') === 1;
 }
-
+//sms
+function sc_is_pro_feature_sms_enabled() {
+    return (int) sc_get_setting('pro_feature_sms', '0') === 1;
+}
 /**
  * Check if Pro feature: Coaches is enabled
  * بررسی فعال بودن امکانات پرو: مربیان
