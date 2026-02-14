@@ -62,6 +62,9 @@ function sc_notification_creator_label($notification) {
  * @return array Array of user_ids
  */
 function sc_get_notification_recipients($target_type, $target_config) {
+    if ($target_type === 'phone') {
+        return [];
+    }
     global $wpdb;
     $members_table = $wpdb->prefix . 'sc_members';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
@@ -199,7 +202,18 @@ function sc_save_notification($data) {
     if (empty($content)) return ['success' => false, 'message' => 'متن اطلاعیه الزامی است.'];
 
     $user_ids = sc_get_notification_recipients($target_type, $target_config);
-    if (empty($user_ids)) return ['success' => false, 'message' => 'هیچ مخاطبی برای ارسال انتخاب نشده است.'];
+    $phone_numbers = [];
+    if ($target_type === 'phone') {
+        $phone_numbers = isset($target_config['phone_numbers']) ? (array)$target_config['phone_numbers'] : [];
+        if (function_exists('sc_clean_mobile_number')) {
+            $phone_numbers = array_filter(array_map('sc_clean_mobile_number', $phone_numbers));
+        } else {
+            $phone_numbers = array_filter(array_map('trim', $phone_numbers));
+        }
+        if (empty($phone_numbers)) return ['success' => false, 'message' => 'هیچ شماره موبایل معتبری وارد نشده است.'];
+    } elseif (empty($user_ids)) {
+        return ['success' => false, 'message' => 'هیچ مخاطبی برای ارسال انتخاب نشده است.'];
+    }
 
     $now = current_time('mysql');
     $created_by = get_current_user_id();
@@ -244,12 +258,14 @@ function sc_save_notification($data) {
         $notification_id = $wpdb->insert_id;
     }
 
-    foreach ($user_ids as $uid) {
-        $wpdb->insert(
-            $recipients_table,
-            ['notification_id' => $notification_id, 'user_id' => $uid, 'created_at' => $now],
-            ['%d', '%d', '%s']
-        );
+    if ($target_type !== 'phone') {
+        foreach ($user_ids as $uid) {
+            $wpdb->insert(
+                $recipients_table,
+                ['notification_id' => $notification_id, 'user_id' => $uid, 'created_at' => $now],
+                ['%d', '%d', '%s']
+            );
+        }
     }
 
     $sms_text = $title . "\n" . $content;
@@ -257,6 +273,24 @@ function sc_save_notification($data) {
     $recipients_with_phone = 0;
     $sms_fail_reason = '';
     if ($send_sms && function_exists('sc_send_sms')) {
+        if ($target_type === 'phone') {
+            foreach ($phone_numbers as $phone) {
+                $r = sc_send_sms($phone, $sms_text, false);
+                if (!empty($r['success'])) {
+                    $sms_sent++;
+                } elseif (empty($sms_fail_reason) && !empty($r['message'])) {
+                    $sms_fail_reason = $r['message'];
+                }
+                if (function_exists('sc_log_sms')) {
+                    sc_log_sms($r['success'] ? 'INFO' : 'ERROR', 'Notification SMS (phone) ' . ($r['success'] ? 'sent' : 'failed'), [
+                        'phone' => $phone,
+                        'success' => !empty($r['success']),
+                        'message' => $r['message'] ?? ''
+                    ]);
+                }
+            }
+            $recipients_with_phone = count($phone_numbers);
+        } else {
         foreach ($user_ids as $uid) {
             $phone = sc_get_user_phone($uid);
             if ($phone) {
@@ -277,12 +311,15 @@ function sc_save_notification($data) {
                 }
             }
         }
+        }
     }
+
+    $recipients_count = ($target_type === 'phone') ? count($phone_numbers) : count($user_ids);
 
     return [
         'success' => true,
         'notification_id' => $notification_id,
-        'recipients_count' => count($user_ids),
+        'recipients_count' => $recipients_count,
         'sms_sent' => $sms_sent,
         'recipients_with_phone' => $recipients_with_phone,
         'sms_fail_reason' => $sms_fail_reason
@@ -528,6 +565,16 @@ function sc_ajax_notification_recipients_count() {
     }
     if (isset($target_config['course_ids']) && is_string($target_config['course_ids'])) {
         $target_config['course_ids'] = array_map('absint', array_filter(explode(',', $target_config['course_ids'])));
+    }
+    if ($target_type === 'phone') {
+        $phones = isset($target_config['phone_numbers']) ? $target_config['phone_numbers'] : [];
+        if (is_string($phones)) {
+            $phones = array_filter(array_map('trim', explode(',', $phones)));
+        } else {
+            $phones = array_values((array)$phones);
+        }
+        wp_send_json_success(['count' => count($phones)]);
+        return;
     }
     $user_ids = sc_get_notification_recipients($target_type, $target_config);
     wp_send_json_success(['count' => count($user_ids)]);

@@ -38,9 +38,15 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
     $content = isset($_POST['content']) ? sanitize_textarea_field($_POST['content']) : '';
     $target_type = isset($_POST['target_type']) ? sanitize_text_field($_POST['target_type']) : 'all';
     $send_sms = isset($_POST['send_sms']) ? 1 : 0;
+    if ($target_type === 'phone') {
+        $send_sms = 1;
+    }
 
     $target_config = [];
-    if ($target_type === 'all') {
+    if ($target_type === 'phone') {
+        $phones_str = isset($_POST['phone_numbers_str']) ? sanitize_text_field($_POST['phone_numbers_str']) : '';
+        $target_config['phone_numbers'] = $phones_str ? array_filter(array_map('trim', explode(',', $phones_str))) : [];
+    } elseif ($target_type === 'all') {
         $target_config['user_type'] = isset($_POST['user_type']) ? sanitize_text_field($_POST['user_type']) : 'all';
         $target_config['course_scope'] = isset($_POST['course_scope']) ? sanitize_text_field($_POST['course_scope']) : 'all';
         if (!empty($_POST['course_ids']) && is_array($_POST['course_ids'])) {
@@ -64,6 +70,10 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
         $data['id'] = $edit_id;
     }
 
+    if ($target_type === 'phone' && empty($target_config['phone_numbers'])) {
+        $message = 'لطفاً حداقل یک شماره موبایل وارد کنید.';
+        $message_type = 'error';
+    } else {
     $result = sc_save_notification($data);
     if ($result['success']) {
         $msg = 'اطلاعیه با موفقیت ذخیره شد. ';
@@ -87,6 +97,7 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
     } else {
         $message = $result['message'] ?? 'خطا در ذخیره.';
         $message_type = 'error';
+    }
     }
 }
 
@@ -175,6 +186,9 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
                         <option value="all" <?php selected($notification ? $notification->target_type : 'all', 'all'); ?>>همه</option>
                         <option value="specific" <?php selected($notification ? $notification->target_type : '', 'specific'); ?>>اشخاص خاص</option>
                         <option value="course" <?php selected($notification ? $notification->target_type : '', 'course'); ?>>دوره خاص</option>
+                        <?php if (!$is_coach) : ?>
+                        <option value="phone" <?php selected($notification ? $notification->target_type : '', 'phone'); ?>>ارسال به شماره خاص</option>
+                        <?php endif; ?>
                     </select>
                 </td>
             </tr>
@@ -279,7 +293,21 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
                 </td>
             </tr>
             <?php if (!$is_coach) : ?>
-            <tr>
+            <tr id="row-target-phone" class="target-row" style="display:none;">
+                <th scope="row">شماره موبایل</th>
+                <td>
+                    <div id="phone-list" class="sc-notification-recipient-tags"></div>
+                    <div class="sc-phone-add-row" style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
+                        <input type="text" id="phone-input" class="regular-text" placeholder="۰۹۱۲۳۴۵۶۷۸۹" style="max-width: 180px;">
+                        <button type="button" id="phone-add-btn" class="button">افزودن شماره</button>
+                    </div>
+                    <p class="description">شماره موبایل را وارد کنید و افزودن را بزنید. فقط پیامک ارسال می‌شود (فاقد اپلیکیشن/پنل).</p>
+                    <input type="hidden" name="phone_numbers_str" id="phone-numbers-input" value="">
+                </td>
+            </tr>
+            <?php endif; ?>
+            <?php if (!$is_coach) : ?>
+            <tr id="row-send-sms">
                 <th scope="row">ارسال پیامک</th>
                 <td>
                     <label><input type="checkbox" name="send_sms" id="send_sms" value="1" <?php checked($notification ? $notification->send_sms : 0, 1); ?>> ارسال پیامک به مخاطبین (متن اطلاعیه)</label>
@@ -342,17 +370,37 @@ jQuery(document).ready(function($) {
             config.recipient_ids = recipientIds;
         } else if (targetType === 'course') {
             config.course_ids = ($('#course-ids-course').val() || []).map(Number);
+        } else if (targetType === 'phone') {
+            config.phone_numbers = phoneNumbers;
         }
         return config;
     }
 
     function updateSmsSummary() {
-        if (isCoach || !$('#send_sms').length || !$('#send_sms').is(':checked')) {
+        var targetType = $('#target_type').val();
+        var showSummary = !isCoach && $('#sc-sms-summary').length;
+        var sendSmsChecked = $('#send_sms').length && $('#send_sms').is(':checked');
+        if (targetType === 'phone') {
+            showSummary = true;
+            sendSmsChecked = true;
+        } else if (!sendSmsChecked) {
+            showSummary = false;
+        }
+        if (!showSummary) {
             $('#sc-sms-summary').hide();
             return;
         }
         $('#sc-sms-summary').show();
         var smsPerMsg = updateSmsCounter();
+        if (targetType === 'phone') {
+            var recipients = phoneNumbers.length;
+            var totalSms = smsPerMsg * recipients;
+            var cost = Math.round(totalSms * smsCostPerMessage);
+            $('#sms-recipients-count').text(recipients);
+            $('#sms-total-count').text(totalSms);
+            $('#sms-estimated-cost').text(cost.toLocaleString('fa-IR'));
+            return;
+        }
         var cfg = getTargetConfig();
         if (cfg.recipient_ids && Array.isArray(cfg.recipient_ids)) {
             cfg.recipient_ids = cfg.recipient_ids.join(',');
@@ -362,7 +410,7 @@ jQuery(document).ready(function($) {
         }
         $.post(ajaxUrl, {
             action: 'sc_notification_recipients_count',
-            target_type: $('#target_type').val(),
+            target_type: targetType,
             target_config: cfg
         }, function(res) {
             if (res.success && res.data && typeof res.data.count !== 'undefined') {
@@ -400,6 +448,7 @@ jQuery(document).ready(function($) {
     });
 
     var recipientIds = <?php echo json_encode(isset($saved['recipient_ids']) ? (array)$saved['recipient_ids'] : []); ?>;
+    var phoneNumbers = <?php echo json_encode(isset($saved['phone_numbers']) ? (array)$saved['phone_numbers'] : []); ?>;
     var recipientLabels = <?php
         $labels = [];
         if (!empty($saved['recipient_ids'])) {
@@ -450,6 +499,51 @@ jQuery(document).ready(function($) {
     }, true);
     renderRecipientList();
 
+    function renderPhoneList() {
+        var html = '';
+        phoneNumbers.forEach(function(ph) {
+            html += '<span class="recipient-tag phone-tag" data-phone="' + ph.replace(/"/g, '&quot;') + '">' + ph + ' <button type="button" class="recipient-remove">&times;</button></span> ';
+        });
+        if ($('#phone-list').length) {
+            $('#phone-list').html(html || '<em style="color:#999;">هنوز شماره‌ای اضافه نشده</em>');
+            $('#phone-numbers-input').val(phoneNumbers.join(','));
+            $(document).trigger('scPhoneListChanged');
+        }
+    }
+    $(document).on('click', '#phone-add-btn', function() {
+        var inp = $('#phone-input').val().trim().replace(/\D/g, '');
+        if (inp.length === 10 && inp.startsWith('9')) inp = '0' + inp;
+        else if (inp.length === 12 && inp.startsWith('98')) inp = '0' + inp.slice(2);
+        if (inp.length !== 11 || !inp.startsWith('09')) {
+            alert('شماره موبایل معتبر وارد کنید (مثال: ۰۹۱۲۳۴۵۶۷۸۹)');
+            return;
+        }
+        if (phoneNumbers.indexOf(inp) === -1) {
+            phoneNumbers.push(inp);
+            renderPhoneList();
+            $('#phone-input').val('');
+        }
+    });
+    $(document).on('click', '#phone-list .recipient-remove', function() {
+        var ph = $(this).closest('.phone-tag').data('phone');
+        phoneNumbers = phoneNumbers.filter(function(x) { return x !== ph; });
+        renderPhoneList();
+    });
+    $(document).on('keypress', '#phone-input', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            $('#phone-add-btn').click();
+        }
+    });
+    renderPhoneList();
+
+    $(document).on('scPhoneListChanged', function() {
+        if (!$('#send_sms').length || $('#send_sms').is(':checked') || $('#target_type').val() === 'phone') {
+            clearTimeout(summaryDebounce);
+            summaryDebounce = setTimeout(updateSmsSummary, 300);
+        }
+    });
+
     $('#notification-form').on('submit', function() {
         $('#recipient-ids-input').val(recipientIds.join(','));
     });
@@ -457,18 +551,34 @@ jQuery(document).ready(function($) {
     function toggleTargetRows() {
         var t = $('#target_type').val();
         $('.target-row').hide();
-        $('#row-target-' + t).show();
+        if ($('#row-target-' + t).length) $('#row-target-' + t).show();
         if (t === 'all') {
             var cs = $('#course_scope').val();
             $('#row-course-ids-all').toggle(cs === 'specific');
         }
+        if (t === 'phone' && $('#row-send-sms').length) {
+            $('#row-send-sms').hide();
+            $('#send_sms').prop('checked', true);
+        } else if ($('#row-send-sms').length) {
+            $('#row-send-sms').show();
+        }
     }
     $('#target_type, #course_scope').on('change', toggleTargetRows);
     toggleTargetRows();
+    if (!isCoach && ($('#target_type').val() === 'phone' || ($('#send_sms').length && $('#send_sms').is(':checked')))) updateSmsSummary();
 
     $('#notification-form').on('submit', function(e) {
         $('#recipient-ids-input').val(recipientIds.join(','));
-        if (!isCoach && $('#send_sms').length && $('#send_sms').is(':checked')) {
+        $('#phone-numbers-input').val(phoneNumbers.join(','));
+        var targetType = $('#target_type').val();
+        if (targetType === 'phone') {
+            if (phoneNumbers.length === 0) {
+                e.preventDefault();
+                alert('لطفاً حداقل یک شماره موبایل وارد کنید.');
+                return false;
+            }
+        }
+        if (!isCoach && (($('#send_sms').length && $('#send_sms').is(':checked')) || targetType === 'phone')) {
             e.preventDefault();
             var rc = $('#sms-recipients-count').text();
             var total = $('#sms-total-count').text();
