@@ -256,6 +256,25 @@ function sc_register_admin_menu() {
         'sc_admin_coach_my_players_page'
     );
 
+    add_menu_page(
+        'تیکت پشتیبانی',
+        'تیکت پشتیبانی',
+        'sc_view_coach_salary',
+        'sc-coach-support-tickets',
+        'sc_admin_coach_support_tickets_list_page',
+        'dashicons-tickets-alt',
+        28.85
+    );
+    add_submenu_page(
+        null,
+        'مشاهده تیکت',
+        'مشاهده تیکت',
+        'sc_view_coach_salary',
+        'sc-coach-support-ticket-view',
+        'sc_admin_coach_support_ticket_view_page'
+    );
+    add_action('admin_menu', 'sc_coach_support_tickets_menu_badge', 999);
+
     /* ================= Courses ================= */
 
     add_menu_page(
@@ -358,6 +377,35 @@ function sc_register_admin_menu() {
         'sc-event-registrations',
         'sc_admin_event_registrations_list_page'
     );
+
+    /* ================= Support Tickets ================= */
+    add_menu_page(
+        'تیکت پشتیبانی',
+        'تیکت پشتیبانی',
+        'manage_options',
+        'sc-support-tickets',
+        'sc_admin_support_tickets_list_page',
+        'dashicons-tickets-alt',
+        29.5
+    );
+    $list_support_tickets_sufix = add_submenu_page(
+        'sc-support-tickets',
+        'لیست تیکت‌ها',
+        'لیست تیکت‌ها',
+        'manage_options',
+        'sc-support-tickets',
+        'sc_admin_support_tickets_list_page'
+    );
+    add_action('load-' . $list_support_tickets_sufix, 'sc_support_tickets_screen_option');
+    add_submenu_page(
+        null,
+        'مشاهده تیکت',
+        'مشاهده تیکت',
+        'manage_options',
+        'sc-support-ticket-view',
+        'sc_admin_support_ticket_view_page'
+    );
+    add_action('admin_menu', 'sc_admin_support_tickets_menu_badge', 999);
 
     /* ================= Finance ================= */
 
@@ -794,6 +842,9 @@ function sc_set_invoices_screen_option($status, $option, $value) {
     if ('honors_per_page' === $option) {
         return $value;
     }
+    if ('support_tickets_per_page' === $option) {
+        return $value;
+    }
     return $status;
 }
 
@@ -916,6 +967,105 @@ function sc_admin_coach_my_courses_page() {
 function sc_admin_coach_my_players_page() {
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'coach-my-players.php';
+}
+
+function sc_coach_support_tickets_menu_badge() {
+    if (!current_user_can('sc_view_coach_salary') || !isset($GLOBALS['menu'])) {
+        return;
+    }
+    $coach_id = function_exists('sc_support_get_coach_id_by_user_id') ? sc_support_get_coach_id_by_user_id(get_current_user_id()) : 0;
+    if ($coach_id <= 0) return;
+    $pending = function_exists('sc_support_count_pending_reply_for_coach') ? sc_support_count_pending_reply_for_coach($coach_id) : 0;
+    if ($pending <= 0) return;
+    $badge = ' <span class="awaiting-mod"><span class="pending-count">' . (int) $pending . '</span></span>';
+    foreach ($GLOBALS['menu'] as $key => $item) {
+        if (isset($item[2]) && $item[2] === 'sc-coach-support-tickets') {
+            $GLOBALS['menu'][$key][0] = 'تیکت پشتیبانی' . $badge;
+            break;
+        }
+    }
+}
+
+function sc_admin_coach_support_tickets_list_page() {
+    sc_check_and_create_tables();
+    if (!current_user_can('sc_view_coach_salary')) wp_die('دسترسی غیرمجاز.');
+    $coach_id = function_exists('sc_support_get_coach_id_by_user_id') ? sc_support_get_coach_id_by_user_id(get_current_user_id()) : 0;
+    if ($coach_id <= 0) wp_die('اطلاعات مربی یافت نشد.');
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-support-tickets-list.php';
+}
+
+function sc_admin_coach_support_ticket_view_page() {
+    sc_check_and_create_tables();
+    if (!current_user_can('sc_view_coach_salary')) wp_die('دسترسی غیرمجاز.');
+    $ticket_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+    if ($ticket_id <= 0) wp_die('تیکت نامعتبر.');
+    $ticket = function_exists('sc_support_get_ticket') ? sc_support_get_ticket($ticket_id) : null;
+    if (!$ticket || !function_exists('sc_support_can_view_ticket') || !sc_support_can_view_ticket($ticket, get_current_user_id())) {
+        wp_die('تیکت یافت نشد یا دسترسی ندارید.');
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-support-ticket-view.php';
+}
+
+function sc_support_tickets_screen_option() {
+    add_screen_option('per_page', [
+        'label' => 'تعداد تیکت در هر صفحه',
+        'default' => 20,
+        'option' => 'support_tickets_per_page',
+    ]);
+    require_once SC_TEMPLATES_ADMIN_DIR . 'list_support_tickets.php';
+    $GLOBALS['support_tickets_list_table'] = new Support_Tickets_List_Table();
+    $GLOBALS['support_tickets_list_table']->prepare_items();
+}
+
+function sc_admin_support_tickets_menu_badge() {
+    if (!current_user_can('manage_options') || !isset($GLOBALS['menu'])) return;
+    $pending = function_exists('sc_support_count_pending_reply_for_admin') ? sc_support_count_pending_reply_for_admin() : 0;
+    if ($pending <= 0) return;
+    $badge = ' <span class="awaiting-mod"><span class="pending-count">' . (int) $pending . '</span></span>';
+    foreach ($GLOBALS['menu'] as $key => $item) {
+        if (isset($item[2]) && $item[2] === 'sc-support-tickets') {
+            $GLOBALS['menu'][$key][0] = 'تیکت پشتیبانی' . $badge;
+            break;
+        }
+    }
+}
+
+function sc_admin_support_tickets_list_page() {
+    sc_check_and_create_tables();
+    if (!current_user_can('manage_options')) wp_die('دسترسی غیرمجاز.');
+    $list_table = isset($GLOBALS['support_tickets_list_table']) ? $GLOBALS['support_tickets_list_table'] : null;
+    if (!$list_table) {
+        require_once SC_TEMPLATES_ADMIN_DIR . 'list_support_tickets.php';
+        $list_table = new Support_Tickets_List_Table();
+        $list_table->prepare_items();
+    }
+    ?>
+    <div class="wrap">
+        <h1>لیست تیکت‌های پشتیبانی</h1>
+        <form method="get">
+            <input type="hidden" name="page" value="sc-support-tickets">
+            <?php if (isset($_GET['filter_status'])) : ?>
+            <input type="hidden" name="filter_status" value="<?php echo esc_attr($_GET['filter_status']); ?>">
+            <?php endif; ?>
+            <?php if (isset($_GET['filter_department'])) : ?>
+            <input type="hidden" name="filter_department" value="<?php echo esc_attr($_GET['filter_department']); ?>">
+            <?php endif; ?>
+            <?php $list_table->search_box('جستجو (موضوع یا شناسه)', 'search_ticket'); ?>
+            <?php $list_table->views(); ?>
+            <?php $list_table->display(); ?>
+        </form>
+    </div>
+    <?php
+}
+
+function sc_admin_support_ticket_view_page() {
+    sc_check_and_create_tables();
+    if (!current_user_can('manage_options')) wp_die('دسترسی غیرمجاز.');
+    $ticket_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+    if ($ticket_id <= 0) wp_die('تیکت نامعتبر.');
+    $ticket = sc_support_get_ticket($ticket_id);
+    if (!$ticket || !sc_support_can_view_ticket($ticket, get_current_user_id())) wp_die('تیکت یافت نشد.');
+    include SC_TEMPLATES_ADMIN_DIR . 'admin-support-ticket-view.php';
 }
 
 function sc_admin_coach_my_profile_page() {

@@ -165,6 +165,16 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_wallet_payment_user_template', $sms_wallet_payment_user_template, 'sms');
         sc_update_setting('sms_wallet_payment_user_pattern', $sms_wallet_payment_user_pattern, 'sms');
 
+        // Support ticket SMS
+        $sms_ticket_new_recipient_enabled = isset($_POST['sms_ticket_new_recipient_enabled']) ? 1 : 0;
+        $sms_ticket_new_recipient_template = isset($_POST['sms_ticket_new_recipient_template']) ? wp_kses_post($_POST['sms_ticket_new_recipient_template']) : '';
+        $sms_ticket_reply_enabled = isset($_POST['sms_ticket_reply_enabled']) ? 1 : 0;
+        $sms_ticket_reply_template = isset($_POST['sms_ticket_reply_template']) ? wp_kses_post($_POST['sms_ticket_reply_template']) : '';
+        sc_update_setting('sms_ticket_new_recipient_enabled', $sms_ticket_new_recipient_enabled, 'sms');
+        sc_update_setting('sms_ticket_new_recipient_template', $sms_ticket_new_recipient_template, 'sms');
+        sc_update_setting('sms_ticket_reply_enabled', $sms_ticket_reply_enabled, 'sms');
+        sc_update_setting('sms_ticket_reply_template', $sms_ticket_reply_template, 'sms');
+
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات پیامک با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'wallet') {
@@ -315,6 +325,12 @@ $sms_wallet_charge_success_user_pattern = sc_get_setting('sms_wallet_charge_succ
 $sms_wallet_payment_user_enabled = (int)sc_get_setting('sms_wallet_payment_user_enabled', '1');
 $sms_wallet_payment_user_template = sc_get_setting('sms_wallet_payment_user_template', '');
 $sms_wallet_payment_user_pattern = sc_get_setting('sms_wallet_payment_user_pattern', '');
+
+// Support ticket SMS
+$sms_ticket_new_recipient_enabled = (int)sc_get_setting('sms_ticket_new_recipient_enabled', '0');
+$sms_ticket_new_recipient_template = sc_get_setting('sms_ticket_new_recipient_template', 'تیکت پشتیبانی جدید #{ticket_id} با موضوع: {subject}');
+$sms_ticket_reply_enabled = (int)sc_get_setting('sms_ticket_reply_enabled', '0');
+$sms_ticket_reply_template = sc_get_setting('sms_ticket_reply_template', 'پاسخ جدید به تیکت #{ticket_id}. لطفا پنل خود را بررسی کنید.');
 
 // تنظیمات افزونه پرو
 $pro_feature_notifications = (int) sc_get_setting('pro_feature_notifications', 0);
@@ -1171,6 +1187,47 @@ $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
                                    class="small-text"
                                    placeholder="کد پترن (اختیاری)">
                             <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Support ticket SMS -->
+                <h3>پیامک تیکت پشتیبانی</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">اعلان تیکت جدید به گیرنده (مدیر/مربی)</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_ticket_new_recipient_enabled"
+                                       value="1"
+                                       <?php checked($sms_ticket_new_recipient_enabled, 1); ?>>
+                                فعال کردن پیامک هنگام ارسال تیکت جدید به مدیر یا مربی
+                            </label>
+                            <br><br>
+                            <textarea name="sms_ticket_new_recipient_template"
+                                      rows="2"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_ticket_new_recipient_template); ?></textarea>
+                            <p class="description">متغیرها: {ticket_id} ، {subject}</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">اعلان پاسخ جدید</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_ticket_reply_enabled"
+                                       value="1"
+                                       <?php checked($sms_ticket_reply_enabled, 1); ?>>
+                                فعال کردن پیامک هنگام ارسال هر پاسخ (به کاربر یا به مدیر/مربی)
+                            </label>
+                            <br><br>
+                            <textarea name="sms_ticket_reply_template"
+                                      rows="2"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_ticket_reply_template); ?></textarea>
+                            <p class="description">متغیرها: {ticket_id} ، {subject}</p>
                         </td>
                     </tr>
                 </table>

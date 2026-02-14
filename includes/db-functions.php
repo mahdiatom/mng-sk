@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.21.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.23.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -703,6 +703,61 @@ function sc_create_honors_table() {
     dbDelta($sql);
 }
 
+/**
+ * Create support tickets table (تیکت پشتیبانی)
+ */
+function sc_create_support_tickets_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_support_tickets';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `user_id` bigint(20) unsigned NOT NULL COMMENT 'WordPress user_id ارسال‌کننده',
+        `department` varchar(20) NOT NULL DEFAULT 'manager' COMMENT 'manager=مدیر باشگاه, coach=مربی',
+        `coach_id` bigint(20) unsigned DEFAULT NULL COMMENT 'اگر department=coach',
+        `subject` varchar(255) NOT NULL,
+        `status` varchar(20) NOT NULL DEFAULT 'pending_reply' COMMENT 'pending_reply, answered, closed',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_user_id` (`user_id`),
+        KEY `idx_department` (`department`),
+        KEY `idx_coach_id` (`coach_id`),
+        KEY `idx_status` (`status`),
+        KEY `idx_created_at` (`created_at`),
+        KEY `idx_updated_at` (`updated_at`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create support ticket messages table
+ */
+function sc_create_support_ticket_messages_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_support_ticket_messages';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `ticket_id` bigint(20) unsigned NOT NULL,
+        `sender_type` varchar(20) NOT NULL COMMENT 'user, admin, coach',
+        `sender_id` bigint(20) unsigned DEFAULT 0,
+        `message` text NOT NULL,
+        `attachment_ids` text DEFAULT NULL COMMENT 'JSON array of attachment post IDs',
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_ticket_id` (`ticket_id`),
+        KEY `idx_created_at` (`created_at`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 function sc_update_database() {
     global $wpdb;
 
@@ -735,6 +790,8 @@ function sc_update_database() {
         sc_create_notifications_table();
         sc_create_notification_recipients_table();
         sc_create_notification_reads_table();
+        sc_create_support_tickets_table();
+        sc_create_support_ticket_messages_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';

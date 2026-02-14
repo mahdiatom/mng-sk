@@ -59,6 +59,7 @@ require_once SC_INCLUDES_DIR . 'coach-wallet-functions.php'; // Coach wallet fun
 require_once SC_INCLUDES_DIR . 'coach-salary-cron.php'; // Coach salary cron jobs
 require_once SC_INCLUDES_DIR . 'birthday-sms-cron.php'; // Birthday SMS daily cron
 require_once SC_INCLUDES_DIR . 'insurance-expiry-sms-cron.php'; // Insurance expiry SMS daily cron
+require_once SC_INCLUDES_DIR . 'support-ticket-functions.php'; // Support ticket CRUD, SMS, attachments
 
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
@@ -606,6 +607,8 @@ function sc_check_and_create_tables() {
     $notifications_table = $wpdb->prefix . 'sc_notifications';
     $notification_recipients_table = $wpdb->prefix . 'sc_notification_recipients';
     $notification_reads_table = $wpdb->prefix . 'sc_notification_reads';
+    $support_tickets_table = $wpdb->prefix . 'sc_support_tickets';
+    $support_ticket_messages_table = $wpdb->prefix . 'sc_support_ticket_messages';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -626,6 +629,8 @@ function sc_check_and_create_tables() {
     $notifications_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notifications_table)) == $notifications_table;
     $notification_recipients_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notification_recipients_table)) == $notification_recipients_table;
     $notification_reads_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notification_reads_table)) == $notification_reads_table;
+    $support_tickets_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $support_tickets_table)) == $support_tickets_table;
+    $support_ticket_messages_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $support_ticket_messages_table)) == $support_ticket_messages_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -681,6 +686,12 @@ function sc_check_and_create_tables() {
     }
     if (!$notification_reads_exists && function_exists('sc_create_notification_reads_table')) {
         sc_create_notification_reads_table();
+    }
+    if (!$support_tickets_exists && function_exists('sc_create_support_tickets_table')) {
+        sc_create_support_tickets_table();
+    }
+    if (!$support_ticket_messages_exists && function_exists('sc_create_support_ticket_messages_table')) {
+        sc_create_support_ticket_messages_table();
     }
     
     // اجرای به‌روزرسانی‌های دیتابیس

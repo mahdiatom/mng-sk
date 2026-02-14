@@ -489,6 +489,7 @@ function sc_add_my_account_menu_item($items) {
     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {
         $items['sc-wallet'] = 'کیف پول';
     }
+    $items['sc-support-tickets'] = 'تیکت پشتیبانی';
     $items['customer-logout'] = $logout;
     
     return $items;
@@ -511,6 +512,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-wallet', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-honors', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-notifications', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-support-tickets', EP_ROOT | EP_PAGES);
 
 }
 
@@ -530,6 +532,7 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-invoices';
     $vars[] = 'sc-wallet';
     $vars[] = 'sc-notifications';
+    $vars[] = 'sc-support-tickets';
     return $vars;
 }
 
@@ -567,6 +570,7 @@ add_filter('woocommerce_endpoint_sc-event-detail_title', function() {
 add_filter('woocommerce_endpoint_sc-invoices_title', 'sc_invoices_endpoint_title');
 
 add_filter('woocommerce_endpoint_sc-notifications_title', function() { return 'اطلاعیه‌ها'; });
+add_filter('woocommerce_endpoint_sc-support-tickets_title', function() { return 'تیکت پشتیبانی'; });
 function sc_invoices_endpoint_title($title) {
     return 'صورت حساب‌ها';
 }
@@ -2429,6 +2433,15 @@ function sc_my_account_notifications_content() {
         exit;
     }
     include SC_TEMPLATES_PUBLIC_DIR . 'my-notifications.php';
+}
+
+add_action('woocommerce_account_sc-support-tickets_endpoint', 'sc_my_account_support_tickets_content');
+function sc_my_account_support_tickets_content() {
+    sc_check_and_create_tables();
+    if (!is_user_logged_in()) return;
+    $player = sc_check_user_active_status();
+    if (!$player) return;
+    include SC_TEMPLATES_PUBLIC_DIR . 'support-tickets.php';
 }
 
 add_action('woocommerce_account_sc-my-honors_endpoint', 'sc_my_account_my_honors_content');
