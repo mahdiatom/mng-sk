@@ -40,18 +40,102 @@ if (isset($_GET['deleted'])) {
     $message_type = 'success';
 }
 
+// دریافت فیلترها و جستجو
+$filter_creator_type = isset($_GET['filter_creator']) ? sanitize_text_field($_GET['filter_creator']) : 'all';
+$filter_target_type = isset($_GET['filter_target']) ? sanitize_text_field($_GET['filter_target']) : '';
+$filter_sms = isset($_GET['filter_sms']) ? sanitize_text_field($_GET['filter_sms']) : 'all';
+$search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+
+// تاریخ شمسی (پیش‌فرض: امروز)
+$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
+$filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+if (empty($filter_date_from_shamsi) || empty($filter_date_to_shamsi)) {
+    if (function_exists('gregorian_to_jalali')) {
+        $today = new DateTime(current_time('Y-m-d'));
+        $jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+        $today_shamsi = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+        if (empty($filter_date_from_shamsi)) $filter_date_from_shamsi = $today_shamsi;
+        if (empty($filter_date_to_shamsi)) $filter_date_to_shamsi = $today_shamsi;
+    }
+}
+$filter_date_from = '';
+$filter_date_to = '';
+if (!empty($filter_date_from_shamsi) && function_exists('sc_shamsi_to_gregorian_date')) {
+    $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+}
+if (!empty($filter_date_to_shamsi) && function_exists('sc_shamsi_to_gregorian_date')) {
+    $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+}
+
+$where = ['1=1'];
+$where_values = [];
+
+// مربی فقط اطلاعیه‌های خودش را می‌بیند
+if ($is_coach && $current_coach_id > 0) {
+    $where[] = "n.created_by_type = 'coach' AND n.created_by_entity_id = %d";
+    $where_values[] = $current_coach_id;
+}
+
+// فیلتر ثبت‌کننده (فقط برای مدیر)
+if (!$is_coach && $filter_creator_type === 'admin') {
+    $where[] = "n.created_by_type = 'admin'";
+} elseif (!$is_coach && $filter_creator_type === 'coach') {
+    $where[] = "n.created_by_type = 'coach'";
+}
+
+// فیلتر نوع ارسال
+if ($filter_target_type !== '' && in_array($filter_target_type, ['all', 'specific', 'course'])) {
+    $where[] = "n.target_type = %s";
+    $where_values[] = $filter_target_type;
+}
+
+// فیلتر پیامک
+if ($filter_sms === '1') {
+    $where[] = "n.send_sms = 1";
+} elseif ($filter_sms === '0') {
+    $where[] = "n.send_sms = 0";
+}
+
+// فیلتر بازه تاریخ
+if (!empty($filter_date_from)) {
+    $where[] = "DATE(n.created_at) >= %s";
+    $where_values[] = $filter_date_from;
+}
+if (!empty($filter_date_to)) {
+    $where[] = "DATE(n.created_at) <= %s";
+    $where_values[] = $filter_date_to;
+}
+
+// جستجو در عنوان و متن
+if (!empty($search)) {
+    $where[] = "(n.title LIKE %s OR n.content LIKE %s)";
+    $search_like = '%' . $wpdb->esc_like($search) . '%';
+    $where_values[] = $search_like;
+    $where_values[] = $search_like;
+}
+
+$where_sql = implode(' AND ', $where);
+
 $per_page = 20;
 $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
 $offset = ($current_page - 1) * $per_page;
-$total = $wpdb->get_var("SELECT COUNT(*) FROM $notifications_table");
-$notifications = $wpdb->get_results($wpdb->prepare(
-    "SELECT n.*, 
-            (SELECT COUNT(*) FROM $recipients_table WHERE notification_id = n.id) as recipients_count
-     FROM $notifications_table n
-     ORDER BY n.created_at DESC
-     LIMIT %d OFFSET %d",
-    $per_page, $offset
-));
+
+$count_query = "SELECT COUNT(*) FROM $notifications_table n WHERE $where_sql";
+if (!empty($where_values)) {
+    $count_query = $wpdb->prepare($count_query, $where_values);
+}
+$total = $wpdb->get_var($count_query);
+
+$query = "SELECT n.*, 
+        (SELECT COUNT(*) FROM $recipients_table WHERE notification_id = n.id) as recipients_count
+ FROM $notifications_table n
+ WHERE $where_sql
+ ORDER BY n.created_at DESC
+ LIMIT %d OFFSET %d";
+$query_values = array_merge($where_values, [$per_page, $offset]);
+$query = $wpdb->prepare($query, $query_values);
+$notifications = $wpdb->get_results($query);
+
 $total_pages = ceil($total / $per_page);
 ?>
 <div class="wrap sc-notifications-list-wrap<?php echo $is_coach ? ' sc-coach-panel-wrap' : ''; ?>">
@@ -71,6 +155,49 @@ $total_pages = ceil($total / $per_page);
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
     <?php endif; ?>
+
+    <div class="sc-notifications-filters-wrap" style="margin: 15px 0;">
+        <form method="get" action="" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px;">
+            <input type="hidden" name="page" value="<?php echo esc_attr($list_page); ?>">
+            <input type="hidden" name="s" value="<?php echo esc_attr($search); ?>">
+            <?php if (!$is_coach) : ?>
+            <label>ثبت‌کننده:</label>
+            <select name="filter_creator" style="min-width: 120px;">
+                <option value="all" <?php selected($filter_creator_type, 'all'); ?>>همه</option>
+                <option value="admin" <?php selected($filter_creator_type, 'admin'); ?>>مدیر</option>
+                <option value="coach" <?php selected($filter_creator_type, 'coach'); ?>>مربی</option>
+            </select>
+            <?php endif; ?>
+            <label>نوع ارسال:</label>
+            <select name="filter_target" style="min-width: 120px;">
+                <option value="" <?php selected($filter_target_type, ''); ?>>همه</option>
+                <option value="all" <?php selected($filter_target_type, 'all'); ?>>همه اعضا</option>
+                <option value="specific" <?php selected($filter_target_type, 'specific'); ?>>اشخاص خاص</option>
+                <option value="course" <?php selected($filter_target_type, 'course'); ?>>دوره خاص</option>
+            </select>
+            <label>پیامک:</label>
+            <select name="filter_sms" style="min-width: 90px;">
+                <option value="all" <?php selected($filter_sms, 'all'); ?>>همه</option>
+                <option value="1" <?php selected($filter_sms, '1'); ?>>بله</option>
+                <option value="0" <?php selected($filter_sms, '0'); ?>>خیر</option>
+            </select>
+            <label>از تاریخ:</label>
+            <input type="text" name="filter_date_from_shamsi" class="persian-date-input" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="۱۴۰۳/۰۱/۰۱" style="width: 110px;" readonly>
+            <label>تا تاریخ:</label>
+            <input type="text" name="filter_date_to_shamsi" class="persian-date-input" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="۱۴۰۳/۱۲/۲۹" style="width: 110px;" readonly>
+            <input type="submit" class="button" value="اعمال فیلتر">
+        </form>
+        <form method="get" action="" style="display: flex; align-items: center; gap: 8px;">
+            <input type="hidden" name="page" value="<?php echo esc_attr($list_page); ?>">
+            <input type="hidden" name="filter_creator" value="<?php echo esc_attr($filter_creator_type); ?>">
+            <input type="hidden" name="filter_target" value="<?php echo esc_attr($filter_target_type); ?>">
+            <input type="hidden" name="filter_sms" value="<?php echo esc_attr($filter_sms); ?>">
+            <input type="hidden" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_date_from_shamsi); ?>">
+            <input type="hidden" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_date_to_shamsi); ?>">
+            <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." style="width: 260px;">
+            <input type="submit" class="button" value="جستجو">
+        </form>
+    </div>
 
     <div class="sc-notifications-list-card<?php echo $is_coach ? ' sc-coach-panel-card' : ''; ?>">
     <table class="wp-list-table widefat fixed striped sc-notifications-admin-table">
@@ -123,14 +250,24 @@ $total_pages = ceil($total / $per_page);
     <?php if ($total_pages > 1) : ?>
         <div class="tablenav bottom sc-notifications-tablenav">
             <div class="tablenav-pages">
-                <?php echo paginate_links([
-                    'base' => add_query_arg('paged', '%#%'),
+                <?php
+                $pagination_args = ['page' => $list_page];
+                if ($filter_creator_type !== 'all') $pagination_args['filter_creator'] = $filter_creator_type;
+                if ($filter_target_type !== '') $pagination_args['filter_target'] = $filter_target_type;
+                if ($filter_sms !== 'all') $pagination_args['filter_sms'] = $filter_sms;
+                if (!empty($filter_date_from_shamsi)) $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
+                if (!empty($filter_date_to_shamsi)) $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
+                if (!empty($search)) $pagination_args['s'] = $search;
+                echo paginate_links([
+                    'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
                     'format' => '',
                     'prev_text' => '&laquo; قبلی',
                     'next_text' => 'بعدی &raquo;',
                     'total' => $total_pages,
-                    'current' => $current_page
-                ]); ?>
+                    'current' => $current_page,
+                    'add_args' => $pagination_args
+                ]);
+                ?>
             </div>
         </div>
     <?php endif; ?>
@@ -145,4 +282,6 @@ $total_pages = ceil($total / $per_page);
 .sc-notifications-admin-table .submitdelete { color: #b32d2e; }
 .sc-notifications-admin-table .submitdelete:hover { color: #d63638; }
 .sc-notifications-tablenav { margin-top: 15px; }
+.sc-notifications-filters-wrap form label { font-weight: 500; margin-left: 4px; }
+.sc-notifications-filters-wrap .persian-date-input { cursor: pointer; }
 </style>

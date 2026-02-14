@@ -40,6 +40,18 @@ function sc_notification_creator_label($notification) {
             return 'مربی: ' . trim($coach->first_name . ' ' . $coach->last_name);
         }
     }
+    // مدیر: نمایش نام کاربر وردپرس ثبت‌کننده
+    $user_id = isset($notification->created_by) ? (int)$notification->created_by : 0;
+    if ($user_id > 0) {
+        $user = get_user_by('id', $user_id);
+        if ($user) {
+            $name = trim($user->display_name);
+            if (empty($name) && !empty($user->user_login)) {
+                $name = $user->user_login;
+            }
+            return $name ? ('مدیر: ' . $name) : 'مدیر';
+        }
+    }
     return 'مدیر';
 }
 
