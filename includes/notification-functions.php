@@ -495,3 +495,23 @@ function sc_notifications_empty_message($filter, $search) {
     }
     return 'هنوز اطلاعیه‌ای دریافت نکرده‌اید.';
 }
+
+/**
+ * AJAX: تعداد مخاطبین اطلاعیه بر اساس target_type و target_config
+ */
+add_action('wp_ajax_sc_notification_recipients_count', 'sc_ajax_notification_recipients_count');
+function sc_ajax_notification_recipients_count() {
+    if (!current_user_can('manage_options') && !current_user_can('sc_view_coach_salary')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز']);
+    }
+    $target_type = isset($_POST['target_type']) ? sanitize_text_field($_POST['target_type']) : 'all';
+    $target_config = isset($_POST['target_config']) ? (array) $_POST['target_config'] : [];
+    if (isset($target_config['recipient_ids']) && is_string($target_config['recipient_ids'])) {
+        $target_config['recipient_ids'] = array_filter(array_map('trim', explode(',', $target_config['recipient_ids'])));
+    }
+    if (isset($target_config['course_ids']) && is_string($target_config['course_ids'])) {
+        $target_config['course_ids'] = array_map('absint', array_filter(explode(',', $target_config['course_ids'])));
+    }
+    $user_ids = sc_get_notification_recipients($target_type, $target_config);
+    wp_send_json_success(['count' => count($user_ids)]);
+}

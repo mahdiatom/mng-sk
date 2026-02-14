@@ -161,11 +161,11 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
             <tr>
                 <th scope="row">نوع ارسال</th>
                 <td>
-                    <label><input type="radio" name="target_type" value="all" <?php checked(($notification ? $notification->target_type : 'all'), 'all'); ?>> همه</label>
-                    &nbsp;&nbsp;
-                    <label><input type="radio" name="target_type" value="specific" <?php checked($notification ? $notification->target_type : '', 'specific'); ?>> اشخاص خاص</label>
-                    &nbsp;&nbsp;
-                    <label><input type="radio" name="target_type" value="course" <?php checked($notification ? $notification->target_type : '', 'course'); ?>> دوره خاص</label>
+                    <select name="target_type" id="target_type" class="sc-notification-select" style="min-width: 200px;">
+                        <option value="all" <?php selected($notification ? $notification->target_type : 'all', 'all'); ?>>همه</option>
+                        <option value="specific" <?php selected($notification ? $notification->target_type : '', 'specific'); ?>>اشخاص خاص</option>
+                        <option value="course" <?php selected($notification ? $notification->target_type : '', 'course'); ?>>دوره خاص</option>
+                    </select>
                 </td>
             </tr>
             <tr id="row-target-all" class="target-row">
@@ -174,14 +174,18 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
                     <?php if (!$is_coach) : ?>
                     <p>
                         <strong>نوع کاربر:</strong>
-                        <label><input type="radio" name="user_type" value="all" <?php checked(isset($saved['user_type']) ? $saved['user_type'] : 'all', 'all'); ?>> همه (بازیکن + مربی)</label>
-                        <label><input type="radio" name="user_type" value="player" <?php checked(isset($saved['user_type']) ? $saved['user_type'] : '', 'player'); ?>> بازیکن</label>
-                        <label><input type="radio" name="user_type" value="coach" <?php checked(isset($saved['user_type']) ? $saved['user_type'] : '', 'coach'); ?>> مربی</label>
+                        <select name="user_type" id="user_type" class="sc-notification-select" style="min-width: 180px; margin-right: 12px;">
+                            <option value="all" <?php selected(isset($saved['user_type']) ? $saved['user_type'] : 'all', 'all'); ?>>همه (بازیکن + مربی)</option>
+                            <option value="player" <?php selected(isset($saved['user_type']) ? $saved['user_type'] : '', 'player'); ?>>بازیکن</option>
+                            <option value="coach" <?php selected(isset($saved['user_type']) ? $saved['user_type'] : '', 'coach'); ?>>مربی</option>
+                        </select>
                     </p>
                     <p>
                         <strong>محدوده دوره:</strong>
-                        <label><input type="radio" name="course_scope" value="all" <?php checked(isset($saved['course_scope']) ? $saved['course_scope'] : 'all', 'all'); ?>> همه</label>
-                        <label><input type="radio" name="course_scope" value="specific" <?php checked(isset($saved['course_scope']) ? $saved['course_scope'] : '', 'specific'); ?>> دوره خاص</label>
+                        <select name="course_scope" id="course_scope" class="sc-notification-select" style="min-width: 180px; margin-right: 12px;">
+                            <option value="all" <?php selected(isset($saved['course_scope']) ? $saved['course_scope'] : 'all', 'all'); ?>>همه</option>
+                            <option value="specific" <?php selected(isset($saved['course_scope']) ? $saved['course_scope'] : '', 'specific'); ?>>دوره خاص</option>
+                        </select>
                     </p>
                     <p id="row-course-ids-all" class="course-ids-row" style="display:none;">
                         <strong>انتخاب دوره:</strong><br>
@@ -273,8 +277,18 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
             </tr>
             <?php endif; ?>
         </table>
+        <?php if (!$is_coach) : ?>
+        <div id="sc-sms-summary" class="sc-sms-summary" style="display: none; margin: 20px 0; padding: 16px; background: #f0f6fc; border: 1px solid #c3c4c7; border-radius: 8px;">
+            <strong>خلاصه ارسال پیامک:</strong>
+            <p style="margin: 8px 0 0 0; color: #1d2327;">
+                تعداد مخاطبین: <span id="sms-recipients-count">0</span> نفر |
+                تعداد پیامک: <span id="sms-total-count">0</span> عدد |
+                هزینه حدودی: <span id="sms-estimated-cost">0</span> تومان
+            </p>
+        </div>
+        <?php endif; ?>
         <p class="submit">
-            <button type="submit" name="save_notification" class="button button-primary">ذخیره و ارسال</button>
+            <button type="submit" name="save_notification" id="btn-save-notification" class="button button-primary">ذخیره و ارسال</button>
             <a href="<?php echo esc_url($list_url); ?>" class="button">انصراف</a>
         </p>
     </form>
@@ -284,6 +298,10 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
 <script>
 jQuery(document).ready(function($) {
     var SMS_CHARS = 70;
+    var smsCostPerMessage = <?php echo json_encode(floatval(sc_get_setting('sms_cost_per_message', '200'))); ?>;
+    var ajaxUrl = '<?php echo esc_url(admin_url('admin-ajax.php')); ?>';
+    var isCoach = <?php echo $is_coach ? 'true' : 'false'; ?>;
+
     function updateSmsCounter() {
         var title = $('#title').val() || '';
         var content = $('#content').val() || '';
@@ -296,9 +314,80 @@ jQuery(document).ready(function($) {
         $('#sms-char-count').text(len);
         $('#sms-remaining').text(currentSmsRemaining);
         $('#sms-count').text(smsCount);
+        return smsCount;
     }
     $('#title, #content').on('input', updateSmsCounter);
     updateSmsCounter();
+
+    function getTargetConfig() {
+        var targetType = $('#target_type').val();
+        var config = {};
+        if (targetType === 'all') {
+            config.user_type = $('#user_type').val() || 'all';
+            config.course_scope = $('#course_scope').val() || 'all';
+            if (config.course_scope === 'specific') {
+                config.course_ids = ($('select[name="course_ids[]"]').val() || []).map(Number);
+            }
+        } else if (targetType === 'specific') {
+            config.recipient_ids = recipientIds;
+        } else if (targetType === 'course') {
+            config.course_ids = ($('#course-ids-course').val() || []).map(Number);
+        }
+        return config;
+    }
+
+    function updateSmsSummary() {
+        if (isCoach || !$('#send_sms').length || !$('#send_sms').is(':checked')) {
+            $('#sc-sms-summary').hide();
+            return;
+        }
+        $('#sc-sms-summary').show();
+        var smsPerMsg = updateSmsCounter();
+        var cfg = getTargetConfig();
+        if (cfg.recipient_ids && Array.isArray(cfg.recipient_ids)) {
+            cfg.recipient_ids = cfg.recipient_ids.join(',');
+        }
+        if (cfg.course_ids && Array.isArray(cfg.course_ids)) {
+            cfg.course_ids = cfg.course_ids.join(',');
+        }
+        $.post(ajaxUrl, {
+            action: 'sc_notification_recipients_count',
+            target_type: $('#target_type').val(),
+            target_config: cfg
+        }, function(res) {
+            if (res.success && res.data && typeof res.data.count !== 'undefined') {
+                var recipients = res.data.count;
+                var totalSms = smsPerMsg * recipients;
+                var cost = Math.round(totalSms * smsCostPerMessage);
+                $('#sms-recipients-count').text(recipients);
+                $('#sms-total-count').text(totalSms);
+                $('#sms-estimated-cost').text(cost.toLocaleString('fa-IR'));
+            } else {
+                $('#sms-recipients-count').text('0');
+                $('#sms-total-count').text('0');
+                $('#sms-estimated-cost').text('0');
+            }
+        }).fail(function() {
+            $('#sms-recipients-count').text('?');
+            $('#sms-total-count').text('?');
+            $('#sms-estimated-cost').text('?');
+        });
+    }
+
+    $('#target_type, #user_type, #course_scope').on('change', function() {
+        toggleTargetRows();
+        if (!$('#send_sms').length || $('#send_sms').is(':checked')) updateSmsSummary();
+    });
+    $(document).on('change', 'select[name="course_ids[]"]', function() {
+        if (!$('#send_sms').length || $('#send_sms').is(':checked')) updateSmsSummary();
+    });
+    var summaryDebounce;
+    $(document).on('scRecipientListChanged', function() {
+        if (!$('#send_sms').length || $('#send_sms').is(':checked')) {
+            clearTimeout(summaryDebounce);
+            summaryDebounce = setTimeout(updateSmsSummary, 300);
+        }
+    });
 
     var recipientIds = <?php echo json_encode(isset($saved['recipient_ids']) ? (array)$saved['recipient_ids'] : []); ?>;
     var recipientLabels = <?php
@@ -323,6 +412,7 @@ jQuery(document).ready(function($) {
         });
         $('#recipient-list').html(html || '<em style="color:#999;">هنوز کسی انتخاب نشده</em>');
         $('#recipient-ids-input').val(recipientIds.join(','));
+        $(document).trigger('scRecipientListChanged');
     }
     $(document).on('click', '.recipient-remove', function() {
         var id = $(this).closest('.recipient-tag').data('id');
@@ -355,16 +445,35 @@ jQuery(document).ready(function($) {
     });
 
     function toggleTargetRows() {
-        var t = $('input[name="target_type"]:checked').val();
+        var t = $('#target_type').val();
         $('.target-row').hide();
         $('#row-target-' + t).show();
         if (t === 'all') {
-            var cs = $('input[name="course_scope"]:checked').val();
+            var cs = $('#course_scope').val();
             $('#row-course-ids-all').toggle(cs === 'specific');
         }
     }
-    $('input[name="target_type"], input[name="course_scope"]').on('change', toggleTargetRows);
+    $('#target_type, #course_scope').on('change', toggleTargetRows);
     toggleTargetRows();
+
+    var formSubmitted = false;
+    $('#notification-form').on('submit', function(e) {
+        $('#recipient-ids-input').val(recipientIds.join(','));
+        if (!formSubmitted && !isCoach && $('#send_sms').length && $('#send_sms').is(':checked')) {
+            e.preventDefault();
+            var rc = $('#sms-recipients-count').text();
+            var total = $('#sms-total-count').text();
+            if (confirm('شما در حال ارسال ' + total + ' پیامک به ' + rc + ' مخاطب هستید. آیا مطمئن هستید؟')) {
+                formSubmitted = true;
+                $(this).submit();
+            }
+            return false;
+        }
+    });
+    if (!isCoach && $('#send_sms').length) {
+        $('#send_sms').on('change', updateSmsSummary);
+        if ($('#send_sms').is(':checked')) updateSmsSummary();
+    }
 });
 </script>
 <style>
@@ -407,6 +516,8 @@ jQuery(document).ready(function($) {
 .sc-dropdown-option-group { padding: 10px 12px; font-weight: 600; color: #1d2327; background: #f0f0f1; font-size: 12px; border-bottom: 1px solid #dcdcde; }
 .sc-sms-counter { margin-top: 10px; color: #646970; font-size: 13px; }
 .sc-notification-form-table select[multiple] { min-width: 100%; max-width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #8c8f94; }
+.sc-notification-select { padding: 8px 12px; border-radius: 8px; border: 1px solid #8c8f94; font-size: 14px; }
+.sc-notification-select:focus { border-color: #2271b1; outline: none; }
 .sc-notification-form-table .course-ids-row select { min-height: 140px; }
 .sc-notification-form-table #course-ids-course { min-height: 180px; }
 </style>

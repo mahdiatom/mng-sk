@@ -48,11 +48,13 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $sms_sender = isset($_POST['sms_sender']) ? sanitize_text_field($_POST['sms_sender']) : '';
         $sms_admin_phone = isset($_POST['sms_admin_phone']) ? sanitize_text_field($_POST['sms_admin_phone']) : '';
         $sms_reminder_delay_minutes = isset($_POST['sms_reminder_delay_minutes']) ? absint($_POST['sms_reminder_delay_minutes']) : 4320;
+        $sms_cost_per_message = isset($_POST['sms_cost_per_message']) ? floatval(str_replace(',', '', $_POST['sms_cost_per_message'])) : 200;
 
         sc_update_setting('sms_api_key', $sms_api_key, 'sms');
         sc_update_setting('sms_sender', $sms_sender, 'sms');
         sc_update_setting('sms_admin_phone', $sms_admin_phone, 'sms');
         sc_update_setting('sms_reminder_delay_minutes', $sms_reminder_delay_minutes, 'sms');
+        sc_update_setting('sms_cost_per_message', $sms_cost_per_message, 'sms');
 
         // Invoice SMS Settings
         $sms_invoice_user_enabled = isset($_POST['sms_invoice_user_enabled']) ? 1 : 0;
@@ -229,6 +231,7 @@ $sms_api_key = sc_get_setting('sms_api_key', '');
 $sms_sender = sc_get_setting('sms_sender', '');
 $sms_admin_phone = sc_get_setting('sms_admin_phone', '');
 $sms_reminder_delay_minutes = sc_get_setting('sms_reminder_delay_minutes', '4320');
+$sms_cost_per_message = floatval(sc_get_setting('sms_cost_per_message', '200'));
 
 // Invoice SMS Settings
 $sms_invoice_user_enabled = (int)sc_get_setting('sms_invoice_user_enabled', '1');
@@ -638,6 +641,20 @@ $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
                                    class="regular-text"
                                    required>
                             <p class="description">مدت زمان به دقیقه که بعد از ایجاد صورت حساب، پیامک یادآوری ارسال شود. (پیش‌فرض: 4320 دقیقه = 3 روز)</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="sms_cost_per_message">هزینه هر پیامک (تومان)</label>
+                        </th>
+                        <td>
+                            <input type="text"
+                                   name="sms_cost_per_message"
+                                   id="sms_cost_per_message"
+                                   value="<?php echo esc_attr(number_format($sms_cost_per_message, 0)); ?>"
+                                   class="regular-text"
+                                   placeholder="200">
+                            <p class="description">هزینه تقریبی هر پیامک برای نمایش در فرم افزودن اطلاعیه.</p>
                         </td>
                     </tr>
                 </table>
