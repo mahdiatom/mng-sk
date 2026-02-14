@@ -319,7 +319,7 @@ function club_disable_wc_admin_for_coach( $disabled ) {
 add_action('admin_head', 'club_hide_wc_payment_menu_with_css');
 function club_hide_wc_payment_menu_with_css() {
 
-    if ( ! current_user_can('club_coach') || current_user_can('administrator') ) {
+    if ( ! current_user_can('club_coach') && ! current_user_can('coach') ) {
         return;
     }
     ?>

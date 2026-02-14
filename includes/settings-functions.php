@@ -365,4 +365,3 @@ function sc_can_show_players_wallet() {
     }
     return (int) sc_get_setting('wallet_enabled', '0') === 1;
 }
-
