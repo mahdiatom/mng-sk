@@ -483,6 +483,9 @@ function sc_get_sms_template($action, $type = 'user') {
         ],
         'birthday' => [
             'user' => 'کاربر گرامی %user_name%، تولدتان مبارک! باشگاه ورزشی ما این روز را به شما تبریک می‌گوید.'
+        ],
+        'insurance_expiry' => [
+            'user' => 'کاربر گرامی %user_name%، تاریخ انقضای بیمه شما %expiry_date% است. لطفاً نسبت به تمدید اقدام کنید.'
         ]
     ];
 

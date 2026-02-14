@@ -124,6 +124,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_birthday_user_template', $sms_birthday_user_template, 'sms');
         sc_update_setting('sms_birthday_user_pattern', $sms_birthday_user_pattern, 'sms');
 
+        // Insurance expiry SMS Settings
+        $sms_insurance_expiry_user_enabled = isset($_POST['sms_insurance_expiry_user_enabled']) ? 1 : 0;
+        $sms_insurance_expiry_user_template = isset($_POST['sms_insurance_expiry_user_template']) ? wp_kses($_POST['sms_insurance_expiry_user_template'], array()) : '';
+        $sms_insurance_expiry_user_pattern = isset($_POST['sms_insurance_expiry_user_pattern']) ? absint($_POST['sms_insurance_expiry_user_pattern']) : '';
+        sc_update_setting('sms_insurance_expiry_user_enabled', $sms_insurance_expiry_user_enabled, 'sms');
+        sc_update_setting('sms_insurance_expiry_user_template', $sms_insurance_expiry_user_template, 'sms');
+        sc_update_setting('sms_insurance_expiry_user_pattern', $sms_insurance_expiry_user_pattern, 'sms');
+
         // Wallet SMS Settings
         $sms_wallet_low_balance_user_enabled = isset($_POST['sms_wallet_low_balance_user_enabled']) ? 1 : 0;
         $sms_wallet_low_balance_user_template = isset($_POST['sms_wallet_low_balance_user_template']) ? wp_kses($_POST['sms_wallet_low_balance_user_template'], array()) : '';
@@ -285,6 +293,11 @@ $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
 $sms_birthday_user_enabled = (int)sc_get_setting('sms_birthday_user_enabled', '0');
 $sms_birthday_user_template = sc_get_setting('sms_birthday_user_template', '');
 $sms_birthday_user_pattern = sc_get_setting('sms_birthday_user_pattern', '');
+
+// Insurance expiry SMS Settings
+$sms_insurance_expiry_user_enabled = (int)sc_get_setting('sms_insurance_expiry_user_enabled', '0');
+$sms_insurance_expiry_user_template = sc_get_setting('sms_insurance_expiry_user_template', '');
+$sms_insurance_expiry_user_pattern = sc_get_setting('sms_insurance_expiry_user_pattern', '');
 
 // Wallet SMS Settings
 $sms_wallet_low_balance_user_enabled = (int)sc_get_setting('sms_wallet_low_balance_user_enabled', '1');
@@ -989,6 +1002,40 @@ $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
                             <input type="number"
                                    name="sms_birthday_user_pattern"
                                    value="<?php echo esc_attr($sms_birthday_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Insurance expiry SMS Settings -->
+                <h3>پیامک انقضای بیمه</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">پیامک یادآوری انقضای بیمه</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_insurance_expiry_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_insurance_expiry_user_enabled, 1); ?>>
+                                فعال کردن ارسال خودکار پیامک انقضای بیمه
+                            </label>
+                            <p class="description">هر روز به صورت خودکار به کاربرانی که <strong>امروز</strong> یا <strong>۱۰ روز دیگر</strong> تاریخ انقضای بیمه‌شان است (بر اساس تاریخ انقضای ثبت‌شده در پروفایل) یک پیامک مشترک ارسال می‌شود.</p>
+                            <br><br>
+                            <textarea name="sms_insurance_expiry_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_insurance_expiry_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده: نام کاربر = %user_name% | تاریخ انقضا (شمسی) = %expiry_date% | تعداد روز مانده = %days_remaining% (۰ = امروز انقضا، ۱۰ = ده روز مانده)<br>
+                                در صورت خالی بودن، متن پیش‌فرض استفاده می‌شود: «کاربر گرامی %user_name%، تاریخ انقضای بیمه شما %expiry_date% است. لطفاً نسبت به تمدید اقدام کنید.»
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_insurance_expiry_user_pattern"
+                                   value="<?php echo esc_attr($sms_insurance_expiry_user_pattern); ?>"
                                    class="small-text"
                                    placeholder="کد پترن (اختیاری)">
                             <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
