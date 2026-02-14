@@ -88,7 +88,7 @@ if (!$is_coach && $filter_creator_type === 'admin') {
 }
 
 // فیلتر نوع ارسال
-if ($filter_target_type !== '' && in_array($filter_target_type, ['all', 'specific', 'course', 'phone'])) {
+if ($filter_target_type !== '' && in_array($filter_target_type, ['all', 'specific', 'course', 'phone', 'debtors', 'event', 'wallet_negative'])) {
     $where[] = "n.target_type = %s";
     $where_values[] = $filter_target_type;
 }
@@ -187,7 +187,12 @@ $total_pages = ceil($total / $per_page);
                 <option value="all" <?php selected($filter_target_type, 'all'); ?>>همه اعضا</option>
                 <option value="specific" <?php selected($filter_target_type, 'specific'); ?>>اشخاص خاص</option>
                 <option value="course" <?php selected($filter_target_type, 'course'); ?>>دوره خاص</option>
-                <?php if (!$is_coach) : ?><option value="phone" <?php selected($filter_target_type, 'phone'); ?>>شماره خاص</option><?php endif; ?>
+                <?php if (!$is_coach) : ?>
+                <option value="debtors" <?php selected($filter_target_type, 'debtors'); ?>>بدهکاران</option>
+                <option value="event" <?php selected($filter_target_type, 'event'); ?>>رویداد</option>
+                <option value="wallet_negative" <?php selected($filter_target_type, 'wallet_negative'); ?>>موجودی منفی</option>
+                <option value="phone" <?php selected($filter_target_type, 'phone'); ?>>شماره خاص</option>
+                <?php endif; ?>
             </select>
             <label>پیامک:</label>
             <select name="filter_sms" style="min-width: 90px;">
@@ -233,7 +238,7 @@ $total_pages = ceil($total / $per_page);
             <?php else :
                 $i = $offset + 1;
                 foreach ($notifications as $n) :
-                    $target_labels = ['all' => 'همه', 'specific' => 'اشخاص خاص', 'course' => 'دوره خاص', 'phone' => 'شماره خاص'];
+                    $target_labels = ['all' => 'همه', 'specific' => 'اشخاص خاص', 'course' => 'دوره خاص', 'debtors' => 'بدهکاران', 'event' => 'رویداد', 'wallet_negative' => 'موجودی منفی', 'phone' => 'شماره خاص'];
                     $target_label = $target_labels[$n->target_type] ?? $n->target_type;
                     $creator_label = function_exists('sc_notification_creator_label') ? sc_notification_creator_label($n) : 'مدیر';
                     $can_edit_delete = !$is_coach || ($current_coach_id > 0 && isset($n->created_by_type) && $n->created_by_type === 'coach' && (int)$n->created_by_entity_id === $current_coach_id);

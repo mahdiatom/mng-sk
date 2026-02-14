@@ -107,6 +107,72 @@ function sc_get_notification_recipients($target_type, $target_config) {
             ...$course_ids
         ));
         $user_ids = array_map('intval', (array)$user_ids);
+    } elseif ($target_type === 'debtors') {
+        // بدهکاران: اعضایی که حداقل یک صورتحساب پرداخت‌نشده دارند
+        $invoices_table = $wpdb->prefix . 'sc_invoices';
+        $course_ids = isset($target_config['course_ids']) ? array_map('absint', (array)$target_config['course_ids']) : [];
+        if (!empty($course_ids)) {
+            $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
+            $user_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT m.user_id 
+                 FROM $invoices_table i
+                 INNER JOIN $members_table m ON i.member_id = m.id
+                 WHERE i.status = 'pending' AND m.user_id IS NOT NULL AND m.is_active = 1
+                 AND i.course_id IN ($placeholders)",
+                ...$course_ids
+            ));
+        } else {
+            $user_ids = $wpdb->get_col(
+                "SELECT DISTINCT m.user_id 
+                 FROM $invoices_table i
+                 INNER JOIN $members_table m ON i.member_id = m.id
+                 WHERE i.status = 'pending' AND m.user_id IS NOT NULL AND m.is_active = 1"
+            );
+        }
+        $user_ids = array_map('intval', (array)$user_ids);
+    } elseif ($target_type === 'event') {
+        // رویداد: شرکت‌کنندگان یک یا چند رویداد؛ اختیاری: فقط اشخاص انتخاب‌شده
+        $events_table = $wpdb->prefix . 'sc_events';
+        $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+        $event_ids = isset($target_config['event_ids']) ? array_map('absint', (array)$target_config['event_ids']) : [];
+        $recipient_ids = isset($target_config['recipient_ids']) ? (array)$target_config['recipient_ids'] : [];
+        if (empty($event_ids)) return [];
+        $placeholders = implode(',', array_fill(0, count($event_ids), '%d'));
+        if (!empty($recipient_ids)) {
+            $member_ids = [];
+            foreach ($recipient_ids as $rid) {
+                if (preg_match('/^member_(\d+)$/', $rid, $m)) {
+                    $member_ids[] = (int)$m[1];
+                }
+            }
+            if (empty($member_ids)) return [];
+            $ph_m = implode(',', array_fill(0, count($member_ids), '%d'));
+            $user_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT m.user_id 
+                 FROM $event_registrations_table r
+                 INNER JOIN $members_table m ON r.member_id = m.id
+                 WHERE r.event_id IN ($placeholders) AND r.member_id IN ($ph_m) AND m.user_id IS NOT NULL",
+                array_merge($event_ids, $member_ids)
+            ));
+        } else {
+            $user_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT m.user_id 
+                 FROM $event_registrations_table r
+                 INNER JOIN $members_table m ON r.member_id = m.id
+                 WHERE r.event_id IN ($placeholders) AND m.user_id IS NOT NULL",
+                ...$event_ids
+            ));
+        }
+        $user_ids = array_map('intval', (array)$user_ids);
+    } elseif ($target_type === 'wallet_negative') {
+        if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) return [];
+        $transactions_table = $wpdb->prefix . 'sc_wallet_transactions';
+        $user_ids = $wpdb->get_col(
+            "SELECT m.user_id FROM $members_table m
+             WHERE m.user_id IS NOT NULL AND m.is_active = 1
+             AND (SELECT COALESCE(SUM(CASE WHEN wt.transaction_type IN ('charge','refund') THEN wt.amount WHEN wt.transaction_type IN ('payment','deduct','session_fee') THEN -wt.amount ELSE 0 END), 0) FROM $transactions_table wt WHERE wt.member_id = m.id AND wt.status = 'completed') < 0"
+        );
+        $user_ids = array_map('intval', array_filter((array)$user_ids));
     } else {
         // all - with user_type and course_scope
         $user_type = isset($target_config['user_type']) ? $target_config['user_type'] : 'all'; // all|player|coach
@@ -565,6 +631,9 @@ function sc_ajax_notification_recipients_count() {
     }
     if (isset($target_config['course_ids']) && is_string($target_config['course_ids'])) {
         $target_config['course_ids'] = array_map('absint', array_filter(explode(',', $target_config['course_ids'])));
+    }
+    if (isset($target_config['event_ids'])) {
+        $target_config['event_ids'] = is_array($target_config['event_ids']) ? array_map('absint', $target_config['event_ids']) : array_map('absint', array_filter(explode(',', $target_config['event_ids'])));
     }
     if ($target_type === 'phone') {
         $phones = isset($target_config['phone_numbers']) ? $target_config['phone_numbers'] : [];

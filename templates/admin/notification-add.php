@@ -57,7 +57,14 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
         $target_config['recipient_ids'] = $rids ? array_filter(array_map('trim', explode(',', $rids))) : [];
     } elseif ($target_type === 'course') {
         $target_config['course_ids'] = isset($_POST['course_ids']) && is_array($_POST['course_ids']) ? array_map('absint', $_POST['course_ids']) : [];
+    } elseif ($target_type === 'debtors') {
+        $target_config['course_ids'] = isset($_POST['debtors_course_ids']) && is_array($_POST['debtors_course_ids']) ? array_map('absint', $_POST['debtors_course_ids']) : [];
+    } elseif ($target_type === 'event') {
+        $target_config['event_ids'] = isset($_POST['event_ids']) && is_array($_POST['event_ids']) ? array_map('absint', $_POST['event_ids']) : [];
+        $rids = isset($_POST['event_recipient_ids_str']) ? sanitize_text_field($_POST['event_recipient_ids_str']) : '';
+        $target_config['recipient_ids'] = $rids ? array_filter(array_map('trim', explode(',', $rids))) : [];
     }
+    // wallet_negative: no config
 
     $data = [
         'title' => $title,
@@ -72,6 +79,9 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
 
     if ($target_type === 'phone' && empty($target_config['phone_numbers'])) {
         $message = 'لطفاً حداقل یک شماره موبایل وارد کنید.';
+        $message_type = 'error';
+    } elseif ($target_type === 'event' && empty($target_config['event_ids'])) {
+        $message = 'لطفاً حداقل یک رویداد انتخاب کنید.';
         $message_type = 'error';
     } else {
     $result = sc_save_notification($data);
@@ -133,6 +143,11 @@ if ($is_coach && $current_coach_id > 0) {
     $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id, user_id FROM $members_table WHERE user_id IS NOT NULL AND is_active = 1 ORDER BY last_name, first_name");
     $coaches = $wpdb->get_results("SELECT id, first_name, last_name, national_id, user_id FROM $coaches_table WHERE user_id IS NOT NULL AND is_active = 1 ORDER BY last_name, first_name");
     $courses_list = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title");
+    $events_table = $wpdb->prefix . 'sc_events';
+    $events_list = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') AND is_active = 1 ORDER BY name");
+}
+if ($is_coach) {
+    $events_list = isset($events_list) ? $events_list : [];
 }
 
 if (isset($_GET['saved']) && isset($_GET['msg'])) {
@@ -187,6 +202,9 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
                         <option value="specific" <?php selected($notification ? $notification->target_type : '', 'specific'); ?>>اشخاص خاص</option>
                         <option value="course" <?php selected($notification ? $notification->target_type : '', 'course'); ?>>دوره خاص</option>
                         <?php if (!$is_coach) : ?>
+                        <option value="debtors" <?php selected($notification ? $notification->target_type : '', 'debtors'); ?>>ارسال به بدهکاران</option>
+                        <option value="event" <?php selected($notification ? $notification->target_type : '', 'event'); ?>>ارسال به رویداد</option>
+                        <option value="wallet_negative" <?php selected($notification ? $notification->target_type : '', 'wallet_negative'); ?>>موجودی کیف پول منفی</option>
                         <option value="phone" <?php selected($notification ? $notification->target_type : '', 'phone'); ?>>ارسال به شماره خاص</option>
                         <?php endif; ?>
                     </select>
@@ -293,6 +311,61 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
                 </td>
             </tr>
             <?php if (!$is_coach) : ?>
+            <tr id="row-target-debtors" class="target-row" style="display:none;">
+                <th scope="row">بدهکاران</th>
+                <td>
+                    <p><strong>محدوده:</strong> اگر دوره انتخاب نکنید، به همه اعضایی که حداقل یک صورتحساب پرداخت‌نشده دارند ارسال می‌شود.</p>
+                    <p>
+                        <strong>فیلتر بر اساس دوره (اختیاری):</strong><br>
+                        <select name="debtors_course_ids[]" id="debtors-course-ids" multiple size="6" style="min-width:300px;">
+                            <?php foreach ($courses_list as $c) : ?>
+                                <option value="<?php echo $c->id; ?>" <?php echo (isset($saved['course_ids']) && in_array($c->id, (array)($saved['course_ids'] ?? []))) ? 'selected' : ''; ?>><?php echo esc_html($c->title); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <br><small>خالی = همه بدهکاران. با انتخاب دوره فقط بدهکاران آن دوره‌ها.</small>
+                    </p>
+                </td>
+            </tr>
+            <tr id="row-target-event" class="target-row" style="display:none;">
+                <th scope="row">رویداد و شرکت‌کنندگان</th>
+                <td>
+                    <p><strong>انتخاب رویداد:</strong><br>
+                        <select name="event_ids[]" id="event-ids-select" multiple size="6" style="min-width:350px;">
+                            <?php if (!empty($events_list)) : foreach ($events_list as $e) : ?>
+                                <option value="<?php echo $e->id; ?>" <?php echo (isset($saved['event_ids']) && in_array($e->id, (array)($saved['event_ids'] ?? []))) ? 'selected' : ''; ?>><?php echo esc_html($e->name); ?></option>
+                            <?php endforeach; else : ?>
+                                <option value="" disabled>رویدادی یافت نشد</option>
+                            <?php endif; ?>
+                        </select>
+                        <br><small>Ctrl+Click برای انتخاب چند رویداد. ارسال به همه ثبت‌نام‌شدگان.</small>
+                    </p>
+                    <p><strong>فقط به اشخاص زیر از این رویدادها (اختیاری):</strong><br>
+                        <div id="event-recipient-list" class="sc-notification-recipient-tags"></div>
+                        <div class="sc-searchable-dropdown sc-notification-recipient-dropdown sc-event-recipient-dropdown">
+                            <div class="sc-dropdown-toggle">
+                                <span class="sc-dropdown-placeholder">جستجو یا انتخاب بازیکن برای محدود کردن مخاطبین...</span>
+                                <span class="sc-dropdown-arrow">▼</span>
+                            </div>
+                            <div class="sc-dropdown-menu">
+                                <div class="sc-dropdown-search"><input type="text" class="sc-search-input" placeholder="جستجو..."></div>
+                                <div class="sc-dropdown-options">
+                                    <?php foreach ($members as $m) : ?>
+                                        <div class="sc-dropdown-option sc-visible" data-value="member_<?php echo $m->id; ?>" data-label="<?php echo esc_attr($m->first_name . ' ' . $m->last_name); ?>"><?php echo esc_html($m->first_name . ' ' . $m->last_name); ?></div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <br><small>خالی = همه شرکت‌کنندگان رویدادهای انتخاب‌شده.</small>
+                    </p>
+                    <input type="hidden" name="event_recipient_ids_str" id="event-recipient-ids-input" value="">
+                </td>
+            </tr>
+            <tr id="row-target-wallet_negative" class="target-row" style="display:none;">
+                <th scope="row">موجودی کیف پول منفی</th>
+                <td>
+                    <p class="description">ارسال به اعضایی که موجودی کیف پول آن‌ها منفی است. در صورت غیرفعال بودن کیف پول، این گزینه مخاطبی ندارد.</p>
+                </td>
+            </tr>
             <tr id="row-target-phone" class="target-row" style="display:none;">
                 <th scope="row">شماره موبایل</th>
                 <td>
@@ -370,6 +443,13 @@ jQuery(document).ready(function($) {
             config.recipient_ids = recipientIds;
         } else if (targetType === 'course') {
             config.course_ids = ($('#course-ids-course').val() || []).map(Number);
+        } else if (targetType === 'debtors') {
+            config.course_ids = ($('#debtors-course-ids').val() || []).map(Number);
+        } else if (targetType === 'event') {
+            config.event_ids = ($('#event-ids-select').val() || []).map(Number);
+            config.recipient_ids = eventRecipientIds;
+        } else if (targetType === 'wallet_negative') {
+            // no config
         } else if (targetType === 'phone') {
             config.phone_numbers = phoneNumbers;
         }
@@ -436,7 +516,7 @@ jQuery(document).ready(function($) {
         toggleTargetRows();
         if (!$('#send_sms').length || $('#send_sms').is(':checked')) updateSmsSummary();
     });
-    $(document).on('change', 'select[name="course_ids[]"]', function() {
+    $(document).on('change', 'select[name="course_ids[]"], #debtors-course-ids, #event-ids-select', function() {
         if (!$('#send_sms').length || $('#send_sms').is(':checked')) updateSmsSummary();
     });
     var summaryDebounce;
@@ -447,8 +527,19 @@ jQuery(document).ready(function($) {
         }
     });
 
-    var recipientIds = <?php echo json_encode(isset($saved['recipient_ids']) ? (array)$saved['recipient_ids'] : []); ?>;
+    var recipientIds = <?php echo json_encode(isset($saved['recipient_ids']) && (!$notification || $notification->target_type !== 'event') ? (array)$saved['recipient_ids'] : []); ?>;
+    var eventRecipientIds = <?php echo ($notification && isset($notification->target_type) && $notification->target_type === 'event' && !empty($saved['recipient_ids'])) ? json_encode((array)$saved['recipient_ids']) : '[]'; ?>;
     var phoneNumbers = <?php echo json_encode(isset($saved['phone_numbers']) ? (array)$saved['phone_numbers'] : []); ?>;
+    var eventRecipientLabels = {};
+    <?php
+    if (!empty($notification) && isset($notification->target_type) && $notification->target_type === 'event' && !empty($saved['recipient_ids'])) {
+        foreach ((array)$saved['recipient_ids'] as $rid) {
+            if (preg_match('/^member_(\d+)$/', $rid, $m)) {
+                foreach ($members as $mm) { if ($mm->id == $m[1]) { echo 'eventRecipientLabels["' . esc_js($rid) . '"] = ' . json_encode($mm->first_name . ' ' . $mm->last_name) . ';'; break; } }
+            }
+        }
+    }
+    ?>
     var recipientLabels = <?php
         $labels = [];
         if (!empty($saved['recipient_ids'])) {
@@ -475,9 +566,26 @@ jQuery(document).ready(function($) {
     }
     $(document).on('click', '.recipient-remove', function() {
         var id = $(this).closest('.recipient-tag').data('id');
-        recipientIds = recipientIds.filter(function(x) { return x !== id; });
-        renderRecipientList();
+        if ($(this).closest('#event-recipient-list').length) {
+            eventRecipientIds = eventRecipientIds.filter(function(x) { return x !== id; });
+            renderEventRecipientList();
+        } else {
+            recipientIds = recipientIds.filter(function(x) { return x !== id; });
+            renderRecipientList();
+        }
     });
+    function renderEventRecipientList() {
+        var html = '';
+        eventRecipientIds.forEach(function(id) {
+            var lbl = eventRecipientLabels[id] || recipientLabels[id] || id;
+            html += '<span class="recipient-tag event-recipient-tag" data-id="' + id + '">' + lbl + ' <button type="button" class="recipient-remove">&times;</button></span> ';
+        });
+        if ($('#event-recipient-list').length) {
+            $('#event-recipient-list').html(html || '<em style="color:#999;">خالی = همه شرکت‌کنندگان</em>');
+            $('#event-recipient-ids-input').val(eventRecipientIds.join(','));
+            $(document).trigger('scRecipientListChanged');
+        }
+    }
     // دراپ‌داون جستجو: با کلیک روی گزینه به لیست مخاطبین اضافه شود (استفاده از capture تا قبل از stopPropagation در admin.js اجرا شود)
     document.addEventListener('click', function(e) {
         if (!e.target || !e.target.closest) return;
@@ -488,16 +596,26 @@ jQuery(document).ready(function($) {
         var $opt = jQuery(opt);
         var val = $opt.data('value');
         var lbl = $opt.data('label') || $opt.text().trim();
-        if (val && recipientIds.indexOf(val) === -1) {
-            recipientIds.push(val);
-            recipientLabels[val] = lbl;
+        var isEventDropdown = $opt.closest('.sc-event-recipient-dropdown').length;
+        if (isEventDropdown) {
+            if (val && eventRecipientIds.indexOf(val) === -1) {
+                eventRecipientIds.push(val);
+                eventRecipientLabels[val] = lbl;
+            }
+            renderEventRecipientList();
+        } else {
+            if (val && recipientIds.indexOf(val) === -1) {
+                recipientIds.push(val);
+                recipientLabels[val] = lbl;
+            }
+            renderRecipientList();
         }
-        renderRecipientList();
         var $menu = $opt.closest('.sc-dropdown-menu');
         $menu.slideUp(200);
         $menu.find('.sc-search-input').val('').trigger('input');
     }, true);
     renderRecipientList();
+    renderEventRecipientList();
 
     function renderPhoneList() {
         var html = '';
@@ -546,6 +664,7 @@ jQuery(document).ready(function($) {
 
     $('#notification-form').on('submit', function() {
         $('#recipient-ids-input').val(recipientIds.join(','));
+        $('#event-recipient-ids-input').val(eventRecipientIds.join(','));
     });
 
     function toggleTargetRows() {
