@@ -321,7 +321,7 @@ $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
         </a>
      <?php }
      
-          if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+          if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {
 ?>
 
      

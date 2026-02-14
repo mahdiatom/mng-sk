@@ -199,12 +199,15 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
                 <td>
                     <select name="target_type" id="target_type" class="sc-notification-select" style="min-width: 200px;">
                         <option value="all" <?php selected($notification ? $notification->target_type : 'all', 'all'); ?>>همه</option>
-                        <option value="specific" <?php selected($notification ? $notification->target_type : '', 'specific'); ?>>اشخاص خاص</option>
-                        <option value="course" <?php selected($notification ? $notification->target_type : '', 'course'); ?>>دوره خاص</option>
+                        <option value="specific" <?php selected($notification ? $notification->target_type : '', 'specific'); ?>>ارسال به اشخاص خاص</option>
+                        <option value="course" <?php selected($notification ? $notification->target_type : '', 'course'); ?>>ارسال به دوره خاص</option>
                         <?php if (!$is_coach) : ?>
-                        <option value="debtors" <?php selected($notification ? $notification->target_type : '', 'debtors'); ?>>ارسال به بدهکاران</option>
-                        <option value="event" <?php selected($notification ? $notification->target_type : '', 'event'); ?>>ارسال به رویداد</option>
-                        <option value="wallet_negative" <?php selected($notification ? $notification->target_type : '', 'wallet_negative'); ?>>موجودی کیف پول منفی</option>
+                        <option value="debtors" <?php selected($notification ? $notification->target_type : '', 'debtors'); ?>>ارسال به افراد بدهکاران</option>
+                        <option value="event" <?php selected($notification ? $notification->target_type : '', 'event'); ?>>ارسال به مخاطبین رویداد</option>
+                        <?php 
+                    if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) { ?>
+                        <option value="wallet_negative" <?php selected($notification ? $notification->target_type : '', 'wallet_negative'); ?>>ارسال به افراد با کیف پول منفی</option>
+                     <?php } ?>
                         <option value="phone" <?php selected($notification ? $notification->target_type : '', 'phone'); ?>>ارسال به شماره خاص</option>
                         <?php endif; ?>
                     </select>
@@ -339,24 +342,7 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
                         </select>
                         <br><small>Ctrl+Click برای انتخاب چند رویداد. ارسال به همه ثبت‌نام‌شدگان.</small>
                     </p>
-                    <p><strong>فقط به اشخاص زیر از این رویدادها (اختیاری):</strong><br>
-                        <div id="event-recipient-list" class="sc-notification-recipient-tags"></div>
-                        <div class="sc-searchable-dropdown sc-notification-recipient-dropdown sc-event-recipient-dropdown">
-                            <div class="sc-dropdown-toggle">
-                                <span class="sc-dropdown-placeholder">جستجو یا انتخاب بازیکن برای محدود کردن مخاطبین...</span>
-                                <span class="sc-dropdown-arrow">▼</span>
-                            </div>
-                            <div class="sc-dropdown-menu">
-                                <div class="sc-dropdown-search"><input type="text" class="sc-search-input" placeholder="جستجو..."></div>
-                                <div class="sc-dropdown-options">
-                                    <?php foreach ($members as $m) : ?>
-                                        <div class="sc-dropdown-option sc-visible" data-value="member_<?php echo $m->id; ?>" data-label="<?php echo esc_attr($m->first_name . ' ' . $m->last_name); ?>"><?php echo esc_html($m->first_name . ' ' . $m->last_name); ?></div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                        </div>
-                        <br><small>خالی = همه شرکت‌کنندگان رویدادهای انتخاب‌شده.</small>
-                    </p>
+
                     <input type="hidden" name="event_recipient_ids_str" id="event-recipient-ids-input" value="">
                 </td>
             </tr>
@@ -383,7 +369,7 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
             <tr id="row-send-sms">
                 <th scope="row">ارسال پیامک</th>
                 <td>
-                    <label><input type="checkbox" name="send_sms" id="send_sms" value="1" <?php checked($notification ? $notification->send_sms : 0, 1); ?>> ارسال پیامک به مخاطبین (متن اطلاعیه)</label>
+                    <label><input type="checkbox" name="send_sms" id="send_sms" value="1" <?php checked($notification ? $notification->send_sms : 0, 1); ?>> ارسال پیامک به مخاطبین (عنوان + متن اطلاعیه)</label>
                 </td>
             </tr>
             <?php endif; ?>
