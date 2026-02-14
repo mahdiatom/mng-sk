@@ -27,8 +27,8 @@ function sc_register_admin_menu() {
     /* ================= Notifications & SMS (فقط وقتی امکانات پرو فعال است) ================= */
     if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()) {
         add_menu_page(
-            'اطلاعیه‌ها و ارسال پیامک',
-            'اطلاعیه‌ها و ارسال پیامک',
+            'اطلاعیه‌ها و پیامک',
+            'اطلاعیه‌ها و پیامک',
             'manage_options',
             'sc-notifications',
             'sc_admin_notifications_list_page',
@@ -45,8 +45,8 @@ function sc_register_admin_menu() {
         );
         add_submenu_page(
             'sc-notifications',
-            'افزودن اطلاعیه',
-            'افزودن اطلاعیه',
+            'ارسال  اطلاعیه و پیامک',
+            'افزودن اطلاعیه و پیامک',
             'manage_options',
             'sc-add-notification',
             'sc_admin_add_notification_page'

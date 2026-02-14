@@ -199,16 +199,16 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
                 <td>
                     <select name="target_type" id="target_type" class="sc-notification-select" style="min-width: 200px;">
                         <option value="all" <?php selected($notification ? $notification->target_type : 'all', 'all'); ?>>همه</option>
-                        <option value="specific" <?php selected($notification ? $notification->target_type : '', 'specific'); ?>>ارسال به اشخاص خاص</option>
-                        <option value="course" <?php selected($notification ? $notification->target_type : '', 'course'); ?>>ارسال به دوره خاص</option>
+                        <option value="specific" <?php selected($notification ? $notification->target_type : '', 'specific'); ?>>ارسال به مخاطبین خاص</option>
+                        <option value="course" <?php selected($notification ? $notification->target_type : '', 'course'); ?>>ارسال به مخاطبین دوره </option>
                         <?php if (!$is_coach) : ?>
-                        <option value="debtors" <?php selected($notification ? $notification->target_type : '', 'debtors'); ?>>ارسال به افراد بدهکاران</option>
+                        <option value="debtors" <?php selected($notification ? $notification->target_type : '', 'debtors'); ?>>ارسال به مخاطبین بدهکاران</option>
                         <option value="event" <?php selected($notification ? $notification->target_type : '', 'event'); ?>>ارسال به مخاطبین رویداد</option>
                         <?php 
                     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) { ?>
-                        <option value="wallet_negative" <?php selected($notification ? $notification->target_type : '', 'wallet_negative'); ?>>ارسال به افراد با کیف پول منفی</option>
+                        <option value="wallet_negative" <?php selected($notification ? $notification->target_type : '', 'wallet_negative'); ?>>ارسال به مخاطبین با کیف پول منفی</option>
                      <?php } ?>
-                        <option value="phone" <?php selected($notification ? $notification->target_type : '', 'phone'); ?>>ارسال به شماره خاص</option>
+                        <option value="phone" <?php selected($notification ? $notification->target_type : '', 'phone'); ?>>ارسال به شماره مخاطب خاص-</option>
                         <?php endif; ?>
                     </select>
                 </td>
@@ -360,7 +360,7 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
                         <input type="text" id="phone-input" class="regular-text" placeholder="۰۹۱۲۳۴۵۶۷۸۹" style="max-width: 180px;">
                         <button type="button" id="phone-add-btn" class="button">افزودن شماره</button>
                     </div>
-                    <p class="description">شماره موبایل را وارد کنید و افزودن را بزنید. فقط پیامک ارسال می‌شود (فاقد اپلیکیشن/پنل).</p>
+                    <p class="description">شماره موبایل را وارد کنید و افزودن را بزنید. فقط پیامک ارسال می‌شود.</p>
                     <input type="hidden" name="phone_numbers_str" id="phone-numbers-input" value="">
                 </td>
             </tr>
@@ -369,7 +369,7 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
             <tr id="row-send-sms">
                 <th scope="row">ارسال پیامک</th>
                 <td>
-                    <label><input type="checkbox" name="send_sms" id="send_sms" value="1" <?php checked($notification ? $notification->send_sms : 0, 1); ?>> ارسال پیامک به مخاطبین (عنوان + متن اطلاعیه)</label>
+                    <label><input type="checkbox" name="send_sms" id="send_sms" value="1" <?php checked($notification ? $notification->send_sms : 0, 1); ?>> ارسال پیامک به مخاطبین (فقط متن اطلاعیه)</label>
                 </td>
             </tr>
             <?php endif; ?>
@@ -400,10 +400,8 @@ jQuery(document).ready(function($) {
     var isCoach = <?php echo $is_coach ? 'true' : 'false'; ?>;
 
     function updateSmsCounter() {
-        var title = $('#title').val() || '';
         var content = $('#content').val() || '';
-        var full = title + "\n" + content;
-        var len = full.length;
+        var len = content.length;
         var smsCount = Math.max(1, Math.ceil(len / SMS_CHARS));
         var currentSmsRemaining = SMS_CHARS - (len % SMS_CHARS);
         if (len === 0) currentSmsRemaining = SMS_CHARS;
@@ -413,7 +411,7 @@ jQuery(document).ready(function($) {
         $('#sms-count').text(smsCount);
         return smsCount;
     }
-    $('#title, #content').on('input', updateSmsCounter);
+    $('#content').on('input', updateSmsCounter);
     updateSmsCounter();
 
     function getTargetConfig() {

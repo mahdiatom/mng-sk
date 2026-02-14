@@ -334,7 +334,7 @@ function sc_save_notification($data) {
         }
     }
 
-    $sms_text = $title . "\n" . $content;
+    $sms_text = $content;
     $sms_sent = 0;
     $recipients_with_phone = 0;
     $sms_fail_reason = '';
