@@ -254,12 +254,27 @@ function sc_save_notification($data) {
 
     $sms_text = $title . "\n" . $content;
     $sms_sent = 0;
+    $recipients_with_phone = 0;
+    $sms_fail_reason = '';
     if ($send_sms && function_exists('sc_send_sms')) {
         foreach ($user_ids as $uid) {
             $phone = sc_get_user_phone($uid);
             if ($phone) {
+                $recipients_with_phone++;
                 $r = sc_send_sms($phone, $sms_text, false);
-                if (!empty($r['success'])) $sms_sent++;
+                if (!empty($r['success'])) {
+                    $sms_sent++;
+                } elseif (empty($sms_fail_reason) && !empty($r['message'])) {
+                    $sms_fail_reason = $r['message'];
+                }
+                if (function_exists('sc_log_sms')) {
+                    sc_log_sms($r['success'] ? 'INFO' : 'ERROR', 'Notification SMS ' . ($r['success'] ? 'sent' : 'failed'), [
+                        'user_id' => $uid,
+                        'phone' => $phone,
+                        'success' => !empty($r['success']),
+                        'message' => $r['message'] ?? ''
+                    ]);
+                }
             }
         }
     }
@@ -268,7 +283,9 @@ function sc_save_notification($data) {
         'success' => true,
         'notification_id' => $notification_id,
         'recipients_count' => count($user_ids),
-        'sms_sent' => $sms_sent
+        'sms_sent' => $sms_sent,
+        'recipients_with_phone' => $recipients_with_phone,
+        'sms_fail_reason' => $sms_fail_reason
     ];
 }
 

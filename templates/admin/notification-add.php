@@ -68,8 +68,18 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
     if ($result['success']) {
         $msg = 'اطلاعیه با موفقیت ذخیره شد. ';
         $msg .= $result['recipients_count'] . ' مخاطب دریافت کرد';
-        if ($send_sms && $result['sms_sent'] > 0) {
-            $msg .= ' و ' . $result['sms_sent'] . ' پیامک ارسال شد';
+        if ($send_sms) {
+            if ($result['sms_sent'] > 0) {
+                $msg .= ' و ' . $result['sms_sent'] . ' پیامک ارسال شد';
+            } else {
+                $with_phone = isset($result['recipients_with_phone']) ? (int) $result['recipients_with_phone'] : 0;
+                if ($with_phone === 0) {
+                    $msg .= '. توجه: هیچ پیامکی ارسال نشد — مخاطبین شماره موبایل ثبت‌شده ندارند. لطفاً در بخش اعضا شماره موبایل را تکمیل کنید';
+                } else {
+                    $fail = isset($result['sms_fail_reason']) ? $result['sms_fail_reason'] : '';
+                    $msg .= '. توجه: پیامک ارسال نشد — ' . ($fail ? $fail : 'تنظیمات پیامک (API Key و شماره فرستنده) را در تنظیمات > پیامک بررسی کنید');
+                }
+            }
         }
         $msg .= '.';
         wp_safe_redirect(add_query_arg(['saved' => 1, 'msg' => $msg], $list_url));
