@@ -480,6 +480,9 @@ function sc_get_sms_template($action, $type = 'user') {
         'absence' => [
             'user' => 'کاربر گرامی %user_name%، غیبت شما در جلسه %item_name% مورخ %date% ثبت شد.',
             'admin' => 'غیبت: %user_name% - %item_name% - تاریخ %date%'
+        ],
+        'birthday' => [
+            'user' => 'کاربر گرامی %user_name%، تولدتان مبارک! باشگاه ورزشی ما این روز را به شما تبریک می‌گوید.'
         ]
     ];
 

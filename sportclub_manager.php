@@ -57,6 +57,7 @@ require_once SC_INCLUDES_DIR . 'roles.php'; // Roles functions
 require_once SC_INCLUDES_DIR . 'wallet-functions.php'; // Wallet functions
 require_once SC_INCLUDES_DIR . 'coach-wallet-functions.php'; // Coach wallet functions
 require_once SC_INCLUDES_DIR . 'coach-salary-cron.php'; // Coach salary cron jobs
+require_once SC_INCLUDES_DIR . 'birthday-sms-cron.php'; // Birthday SMS daily cron
 
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
