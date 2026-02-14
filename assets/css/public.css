@@ -3533,9 +3533,18 @@ color: white;
     padding-right: 1rem !important;
 }
 
+.sc-support-heading-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
 .sc-support-heading {
     padding-right: 0 !important;
-    margin: 0 0 1.5rem 0;
+    margin: 0;
     font-size: 1.5rem;
     font-weight: 700;
 }
@@ -3655,11 +3664,12 @@ color: white;
     padding: 0.5rem 1.25rem;
     font-size: 0.875rem;
     font-weight: 600;
-    border-radius: 8px;
+    border-radius: 10px;
     text-decoration: none;
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
 .sc-ticket-btn-primary {
@@ -3670,7 +3680,32 @@ color: white;
 .sc-ticket-btn-primary:hover {
     background: linear-gradient(135deg, #135e96 0%, #0d4a75 100%);
     color: #fff !important;
-    box-shadow: 0 4px 12px rgba(34, 113, 177, 0.3);
+    box-shadow: 0 4px 14px rgba(34, 113, 177, 0.35);
+    transform: translateY(-1px);
+}
+
+.sc-ticket-btn-new {
+    padding: 0.6rem 1.5rem;
+    font-size: 0.9375rem;
+}
+
+.sc-ticket-btn-submit {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+}
+
+.sc-ticket-btn-close {
+    padding: 0.6rem 1.5rem;
+    font-size: 0.9375rem;
+    background: #fff;
+    color: #646970;
+    border: 1px solid #c3c4c7;
+}
+
+.sc-ticket-btn-close:hover {
+    background: #f6f7f7;
+    color: #1d2327;
+    border-color: #8c8f94;
 }
 
 .sc-ticket-btn-secondary {
@@ -3836,11 +3871,25 @@ color: white;
     margin-top: 1.5rem;
     padding-top: 1.5rem;
     border-top: 1px solid #eee;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sc-ticket-reply-form,
+.sc-ticket-new-form,
+.sc-ticket-reopen-form {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .sc-ticket-reply-form .sc-form-row,
-.sc-ticket-new-form .sc-form-row {
+.sc-ticket-new-form .sc-form-row,
+.sc-ticket-reopen-form .sc-form-row {
     margin-bottom: 1.25rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .sc-ticket-reply-form label,
@@ -3852,9 +3901,11 @@ color: white;
 }
 
 .sc-ticket-reply-form textarea,
-.sc-ticket-new-form textarea {
-    width: 100%;
-    max-width: 100%;
+.sc-ticket-new-form textarea,
+.sc-ticket-reopen-form textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
     padding: 12px 16px;
     border: 1px solid #ddd;
     border-radius: 10px;
@@ -3863,7 +3914,8 @@ color: white;
 }
 
 .sc-ticket-reply-form textarea:focus,
-.sc-ticket-new-form textarea:focus {
+.sc-ticket-new-form textarea:focus,
+.sc-ticket-reopen-form textarea:focus {
     border-color: #2271b1;
     box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.15);
     outline: none;
@@ -3881,8 +3933,14 @@ color: white;
     margin-bottom: 0;
 }
 
+.sc-ticket-close-form-wrap {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
 .sc-ticket-close-form {
-    margin-top: 1rem;
+    margin: 0;
 }
 
 .sc-ticket-closed-notice {
@@ -3916,14 +3974,22 @@ color: white;
 }
 
 .sc-ticket-new-form .sc-form-row input[type="text"],
-.sc-ticket-new-form .sc-form-row select {
-    width: 100%;
-    max-width: 100%;
+.sc-ticket-new-form .sc-form-row select,
+.sc-ticket-new-form .sc-form-row input[type="file"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
     padding: 12px 16px;
     border: 1px solid #ddd;
     border-radius: 10px;
     font-size: 0.9375rem;
     transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sc-ticket-reply-form .sc-form-row input[type="file"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
 }
 
 .sc-ticket-new-form .sc-form-row input:focus,
@@ -3937,6 +4003,137 @@ color: white;
     margin-top: 0.35rem;
 }
 
+/* نوار فیلتر و جستجو - تیکت پشتیبانی */
+.sc-support-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.sc-support-tabs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.sc-support-tab {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: #f0f0f1;
+    color: #1d2327;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sc-support-tab:hover {
+    background: #e0e0e0;
+}
+
+.sc-support-tab.active {
+    background: #2271b1;
+    color: #fff;
+}
+
+.sc-support-search-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sc-support-search-form input[type="search"] {
+    width: 200px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+.sc-support-search-form input[type="search"]:focus {
+    border-color: #2271b1;
+    outline: none;
+}
+
+
+.sc-support-loading-placeholder {
+    padding: 2rem;
+    text-align: center;
+    color: #646970;
+}
+
+.sc-support-pagination {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.sc-support-pagination .sc-support-page-link,
+.sc-support-pagination .sc-support-page-current {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    margin: 0 0.2rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.sc-support-pagination .sc-support-page-link {
+    background: #f0f0f1;
+    color: #1d2327;
+    text-decoration: none;
+}
+
+.sc-support-pagination .sc-support-page-link:hover {
+    background: #2271b1;
+    color: #fff;
+}
+
+.sc-support-pagination .sc-support-page-current {
+    background: #2271b1;
+    color: #fff;
+}
+
+/* نمای فرم - تمام عرض و شیک */
+.sc-support-form-view {
+    width: 100%;
+}
+
+.sc-ticket-form-card-full {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.sc-support-form-view .sc-ticket-form-card-full {
+    padding: 2rem;
+}
+
+.sc-support-form-view .sc-ticket-new-form .sc-form-row input[type="text"],
+.sc-support-form-view .sc-ticket-new-form .sc-form-row select,
+.sc-support-form-view .sc-ticket-new-form .sc-form-row textarea,
+.sc-support-form-view .sc-ticket-new-form .sc-form-row input[type="file"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+}
+
+.sc-ticket-detail-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.sc-ticket-detail-card .sc-ticket-reply-form .sc-form-row,
+.sc-ticket-detail-card .sc-ticket-new-form .sc-form-row {
+    width: 100%;
+    max-width: 100%;
+}
+
 @media (max-width: 768px) {
     .sc-support-grid {
         grid-template-columns: 1fr;
@@ -3946,5 +4143,23 @@ color: white;
     .sc-ticket-detail-card,
     .sc-ticket-form-card {
         padding: 1.25rem;
+    }
+    .sc-support-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .sc-support-tabs {
+        flex-wrap: wrap;
+    }
+    .sc-support-search-form input[type="search"] {
+        width: 100%;
+    }
+    .sc-support-heading-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .sc-support-heading-row .sc-ticket-btn-new {
+        width: 100%;
+        text-align: center;
     }
 }

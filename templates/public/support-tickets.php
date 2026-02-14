@@ -125,7 +125,7 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                     <span class="sc-form-hint">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
                 </p>
                 <p class="sc-form-actions">
-                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary">ارسال پاسخ</button>
+                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال پاسخ</button>
                 </p>
             </form>
         </div>
@@ -139,123 +139,229 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                 <input type="hidden" name="sc_ticket_action" value="reply">
                 <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
                 <p class="sc-form-row"><textarea name="reply_message" rows="3" placeholder="متن پاسخ برای باز کردن تیکت..."></textarea></p>
-                <p><button type="submit" class="sc-ticket-btn sc-ticket-btn-secondary">ارسال و باز کردن تیکت</button></p>
+                <p class="sc-form-actions"><button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال و باز کردن تیکت</button></p>
             </form>
         </div>
         <?php else : ?>
-        <form method="post" class="sc-ticket-close-form">
-            <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
-            <input type="hidden" name="sc_ticket_action" value="close">
-            <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
-            <button type="submit" class="sc-ticket-btn sc-ticket-btn-outline" onclick="return confirm('آیا از بستن این تیکت اطمینان دارید؟');">بستن تیکت</button>
-        </form>
+        <div class="sc-ticket-close-form-wrap">
+            <form method="post" class="sc-ticket-close-form">
+                <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
+                <input type="hidden" name="sc_ticket_action" value="close">
+                <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
+                <button type="submit" class="sc-ticket-btn sc-ticket-btn-close" onclick="return confirm('آیا از بستن این تیکت اطمینان دارید؟');">بستن تیکت</button>
+            </form>
+        </div>
         <?php endif; ?>
     </div>
 
 <?php else : ?>
-    <h2 class="sc-support-heading">تیکت‌های پشتیبانی</h2>
     <?php wc_print_notices(); ?>
 
-    <div class="sc-support-actions">
-        <a href="#new-ticket-form" class="sc-ticket-btn sc-ticket-btn-primary">ارسال تیکت جدید</a>
+    <!-- نمای لیست تیکت‌ها (پیش‌فرض) -->
+    <div id="sc-support-list-view" class="sc-support-list-view">
+        <div class="sc-support-heading-row">
+            <h2 class="sc-support-heading">تیکت‌های پشتیبانی</h2>
+            <button type="button" id="sc-support-btn-new-ticket" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-new">ارسال تیکت جدید</button>
+        </div>
+        <div class="sc-support-toolbar">
+            <ul class="sc-support-tabs" aria-label="فیلتر وضعیت">
+                <li><a href="#" class="sc-support-tab active" data-filter="all">همه</a></li>
+                <li><a href="#" class="sc-support-tab" data-filter="pending_reply">در انتظار پاسخ</a></li>
+                <li><a href="#" class="sc-support-tab" data-filter="answered">پاسخ داده شده</a></li>
+                <li><a href="#" class="sc-support-tab" data-filter="closed">بسته شده</a></li>
+            </ul>
+            <form id="sc-support-search-form" class="sc-support-search-form">
+                <input type="hidden" name="filter_status" id="sc-support-filter-status" value="all">
+                <input type="search" name="s" id="sc-support-search-input" placeholder="جستجو (موضوع یا شناسه)...">
+                <button type="submit" class="sc-ticket-btn sc-ticket-btn-secondary">جستجو</button>
+                <button type="button" class="sc-ticket-btn sc-ticket-btn-outline sc-support-clear-search" style="display:none;">پاک کردن</button>
+            </form>
+        </div>
+        <div id="sc-support-ajax-container">
+            <div class="sc-support-loading-placeholder">در حال بارگذاری...</div>
+        </div>
     </div>
 
-    <?php
-    $tickets = sc_support_get_tickets_for_user($current_user_id, ['per_page' => 20]);
-    if (empty($tickets)) : ?>
-        <div class="sc-support-empty-state">
-            <span class="sc-support-empty-icon" aria-hidden="true"></span>
-            <p class="sc-support-empty-text">هنوز تیکتی ارسال نکرده‌اید.</p>
+    <!-- نمای فرم ارسال تیکت جدید (مخفی در ابتدا) -->
+    <div id="sc-support-form-view" class="sc-support-form-view" style="display:none;">
+        <div class="sc-ticket-form-card sc-ticket-form-card-full">
+            <a href="#" id="sc-support-back-to-list" class="sc-ticket-back-link">← بازگشت به لیست تیکت‌ها</a>
+            <h2 class="sc-ticket-form-title">ارسال تیکت جدید</h2>
+            <form method="post" enctype="multipart/form-data" class="sc-ticket-new-form">
+                <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
+                <input type="hidden" name="sc_ticket_action" value="create">
+
+                <p class="sc-form-row">
+                    <label for="ticket_subject">موضوع <span class="required">*</span></label>
+                    <input type="text" name="ticket_subject" id="ticket_subject" required maxlength="255" placeholder="موضوع تیکت را وارد کنید">
+                </p>
+
+                <p class="sc-form-row">
+                    <label for="ticket_department">بخش مورد نظر <span class="required">*</span></label>
+                    <select name="ticket_department" id="ticket_department">
+                        <option value="manager">مدیر باشگاه</option>
+                        <option value="site_support">پشتیبانی سایت</option>
+                        <?php if (!empty($coaches)) : ?>
+                        <option value="coach">مربی باشگاه</option>
+                        <?php endif; ?>
+                    </select>
+                </p>
+
+                <?php if (!empty($coaches)) : ?>
+                <p class="sc-form-row sc-ticket-coach-row" id="ticket_coach_wrap" style="display:none;">
+                    <label for="ticket_coach_id">مربی <span class="required">*</span></label>
+                    <select name="ticket_coach_id" id="ticket_coach_id">
+                        <option value="0">انتخاب کنید</option>
+                        <?php foreach ($coaches as $co) : ?>
+                        <option value="<?php echo (int) $co['coach_id']; ?>"><?php echo esc_html($co['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </p>
+                <?php endif; ?>
+
+                <p class="sc-form-row">
+                    <label for="ticket_message">متن پیام <span class="required">*</span></label>
+                    <textarea name="ticket_message" id="ticket_message" rows="5" required placeholder="متن پیام خود را بنویسید..."></textarea>
+                </p>
+
+                <p class="sc-form-row">
+                    <label>پیوست (اختیاری)</label>
+                    <input type="file" name="ticket_attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" class="sc-ticket-file-input">
+                    <span class="sc-form-hint">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
+                </p>
+
+                <p class="sc-form-actions">
+                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال تیکت</button>
+                </p>
+            </form>
         </div>
-    <?php else : ?>
-        <div class="sc-support-grid">
-            <?php foreach ($tickets as $t) : ?>
-            <article class="sc-ticket-card sc-ticket-status-<?php echo esc_attr($t->status); ?>">
-                <div class="sc-ticket-card-inner">
-                    <h3 class="sc-ticket-card-title">
-                        <a href="<?php echo esc_url($base_url . '?view_ticket=' . $t->id); ?>"><?php echo esc_html($t->subject); ?></a>
-                    </h3>
-                    <div class="sc-ticket-card-meta">
-                        <span class="sc-ticket-card-date"><?php echo esc_html(sc_date_shamsi($t->updated_at, 'Y/m/d')); ?></span>
-                        <span class="sc-ticket-card-badge sc-ticket-badge-<?php echo esc_attr($t->status); ?>"><?php echo esc_html(sc_support_status_label($t->status)); ?></span>
-                        <span class="sc-ticket-card-dept"><?php echo esc_html(sc_support_department_label($t->department, $t->coach_id)); ?></span>
-                    </div>
-                    <div class="sc-ticket-card-actions">
-                        <a href="<?php echo esc_url($base_url . '?view_ticket=' . $t->id); ?>" class="sc-ticket-btn sc-ticket-btn-primary">مشاهده</a>
-                    </div>
-                </div>
-            </article>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-
-    <div id="new-ticket-form" class="sc-ticket-form-card">
-        <h3 class="sc-ticket-form-title">ارسال تیکت جدید</h3>
-        <form method="post" enctype="multipart/form-data" class="sc-ticket-new-form">
-            <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
-            <input type="hidden" name="sc_ticket_action" value="create">
-
-            <p class="sc-form-row">
-                <label for="ticket_subject">موضوع <span class="required">*</span></label>
-                <input type="text" name="ticket_subject" id="ticket_subject" required maxlength="255" placeholder="موضوع تیکت را وارد کنید">
-            </p>
-
-            <p class="sc-form-row">
-                <label for="ticket_department">بخش مورد نظر <span class="required">*</span></label>
-                <select name="ticket_department" id="ticket_department">
-                    <option value="manager">مدیر باشگاه</option>
-                    <option value="site_support">پشتیبانی سایت</option>
-                    <?php if (!empty($coaches)) : ?>
-                    <option value="coach">مربی باشگاه</option>
-                    <?php endif; ?>
-                </select>
-            </p>
-
-            <?php if (!empty($coaches)) : ?>
-            <p class="sc-form-row sc-ticket-coach-row" id="ticket_coach_wrap" style="display:none;">
-                <label for="ticket_coach_id">مربی <span class="required">*</span></label>
-                <select name="ticket_coach_id" id="ticket_coach_id">
-                    <option value="0">انتخاب کنید</option>
-                    <?php foreach ($coaches as $co) : ?>
-                    <option value="<?php echo (int) $co['coach_id']; ?>"><?php echo esc_html($co['name']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </p>
-            <?php endif; ?>
-
-            <p class="sc-form-row">
-                <label for="ticket_message">متن پیام <span class="required">*</span></label>
-                <textarea name="ticket_message" id="ticket_message" rows="5" required placeholder="متن پیام خود را بنویسید..."></textarea>
-            </p>
-
-            <p class="sc-form-row">
-                <label>پیوست (اختیاری)</label>
-                <input type="file" name="ticket_attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" class="sc-ticket-file-input">
-                <span class="sc-form-hint">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
-            </p>
-
-            <p class="sc-form-actions">
-                <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary">ارسال تیکت</button>
-            </p>
-        </form>
     </div>
 
-    <?php if (!empty($coaches)) : ?>
     <script>
-    (function(){
+    (function($) {
+        var baseUrl = '<?php echo esc_js($base_url); ?>';
+        var ajaxUrl = '<?php echo esc_url(admin_url('admin-ajax.php')); ?>';
+        var filterStatus = 'all';
+        var searchQuery = '';
+        var currentPage = 1;
+
+        function loadTickets() {
+            var $container = $('#sc-support-ajax-container');
+            $container.css('opacity', '0.6');
+            $.post(ajaxUrl, {
+                action: 'sc_support_tickets_filter',
+                filter_status: filterStatus,
+                s: searchQuery,
+                ticket_page: currentPage
+            }, function(res) {
+                $container.css('opacity', '1');
+                if (res && res.success && res.data) {
+                    renderTickets(res.data);
+                } else {
+                    $container.html('<div class="sc-support-empty-state"><p class="sc-support-empty-text">خطا در بارگذاری.</p></div>');
+                }
+            }).fail(function() {
+                $container.css('opacity', '1');
+                $container.html('<div class="sc-support-empty-state"><p class="sc-support-empty-text">خطا در بارگذاری.</p></div>');
+            });
+        }
+
+        function renderTickets(data) {
+            var html = '';
+            if (!data.items || data.items.length === 0) {
+                html = '<div class="sc-support-empty-state"><span class="sc-support-empty-icon" aria-hidden="true"></span><p class="sc-support-empty-text">' + (data.empty_message || '') + '</p></div>';
+            } else {
+                html = '<div class="sc-support-grid">';
+                $.each(data.items, function(i, t) {
+                    html += '<article class="sc-ticket-card sc-ticket-status-' + (t.status || '') + '"><div class="sc-ticket-card-inner">';
+                    html += '<h3 class="sc-ticket-card-title"><a href="' + (t.view_url || '') + '">' + (t.subject || '') + '</a></h3>';
+                    html += '<div class="sc-ticket-card-meta"><span class="sc-ticket-card-date">' + (t.updated_at || '') + '</span>';
+                    html += '<span class="sc-ticket-card-badge sc-ticket-badge-' + (t.status || '') + '">' + (t.status_label || '') + '</span>';
+                    html += '<span class="sc-ticket-card-dept">' + (t.department_label || '') + '</span></div>';
+                    html += '<div class="sc-ticket-card-actions"><a href="' + (t.view_url || '') + '" class="sc-ticket-btn sc-ticket-btn-primary">مشاهده</a></div>';
+                    html += '</div></article>';
+                });
+                html += '</div>';
+                if (data.total_pages > 1) {
+                    html += '<nav class="sc-support-pagination" aria-label="صفحه‌بندی">';
+                    for (var p = 1; p <= data.total_pages; p++) {
+                        if (p === data.page) {
+                            html += '<span class="sc-support-page-current">' + p + '</span> ';
+                        } else {
+                            html += '<a href="#" class="sc-support-page-link" data-page="' + p + '">' + p + '</a> ';
+                        }
+                    }
+                    html += '</nav>';
+                }
+            }
+            $('#sc-support-ajax-container').html(html);
+        }
+
+        function setTabActive() {
+            $('.sc-support-tab').removeClass('active').css({'background':'#f0f0f1','color':'#1d2327'});
+            $('.sc-support-tab[data-filter="' + filterStatus + '"]').addClass('active').css({'background':'#2271b1','color':'#fff'});
+            $('#sc-support-filter-status').val(filterStatus);
+        }
+
+        $('#sc-support-list-view').on('click', '.sc-support-tab', function(e) {
+            e.preventDefault();
+            filterStatus = $(this).data('filter');
+            currentPage = 1;
+            setTabActive();
+            loadTickets();
+        });
+
+        $('#sc-support-search-form').on('submit', function(e) {
+            e.preventDefault();
+            searchQuery = $('#sc-support-search-input').val().trim();
+            currentPage = 1;
+            loadTickets();
+            if (searchQuery) $('.sc-support-clear-search').show();
+        });
+
+        $('#sc-support-ajax-container').on('click', '.sc-support-page-link', function(e) {
+            e.preventDefault();
+            currentPage = $(this).data('page');
+            loadTickets();
+        });
+
+        $('.sc-support-clear-search').on('click', function() {
+            $('#sc-support-search-input').val('');
+            searchQuery = '';
+            currentPage = 1;
+            loadTickets();
+            $(this).hide();
+        });
+
+        $('#sc-support-btn-new-ticket').on('click', function() {
+            $('#sc-support-list-view').hide();
+            $('#sc-support-form-view').show();
+        });
+
+        $('#sc-support-back-to-list').on('click', function(e) {
+            e.preventDefault();
+            $('#sc-support-form-view').hide();
+            $('#sc-support-list-view').show();
+        });
+
+        <?php if (!empty($coaches)) : ?>
         var dept = document.getElementById('ticket_department');
         var wrap = document.getElementById('ticket_coach_wrap');
         var sel = document.getElementById('ticket_coach_id');
-        if (!dept || !wrap || !sel) return;
-        function toggle() {
-            var isCoach = dept.value === 'coach';
-            wrap.style.display = isCoach ? 'block' : 'none';
-            sel.required = isCoach;
+        if (dept && wrap && sel) {
+            function toggleCoach() {
+                var isCoach = dept.value === 'coach';
+                wrap.style.display = isCoach ? 'block' : 'none';
+                sel.required = isCoach;
+            }
+            $(dept).on('change', toggleCoach);
+            toggleCoach();
         }
-        dept.addEventListener('change', toggle);
-        toggle();
-    })();
+        <?php endif; ?>
+
+        setTabActive();
+        loadTickets();
+    })(jQuery);
     </script>
-    <?php endif; ?>
 <?php endif; ?>
 </div>

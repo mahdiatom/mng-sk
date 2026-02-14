@@ -518,6 +518,63 @@ function sc_support_department_label($department, $coach_id = null) {
 }
 
 /**
+ * AJAX: فیلتر و جستجوی تیکت‌های کاربر
+ */
+add_action('wp_ajax_sc_support_tickets_filter', 'sc_ajax_support_tickets_filter');
+function sc_ajax_support_tickets_filter() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error(['message' => 'لطفاً وارد شوید.']);
+    }
+    $filter_status = isset($_POST['filter_status']) ? sanitize_text_field($_POST['filter_status']) : 'all';
+    if (!in_array($filter_status, ['all', 'pending_reply', 'answered', 'closed'], true)) {
+        $filter_status = 'all';
+    }
+    $search = isset($_POST['s']) ? sanitize_text_field(wp_unslash($_POST['s'])) : '';
+    $page = isset($_POST['ticket_page']) ? max(1, absint($_POST['ticket_page'])) : 1;
+    $per_page = 20;
+    $user_id = get_current_user_id();
+    $args = ['per_page' => $per_page, 'offset' => ($page - 1) * $per_page];
+    if ($filter_status !== 'all') {
+        $args['status'] = $filter_status;
+    }
+    if ($search !== '') {
+        $all_tickets = sc_support_get_tickets_for_user($user_id, ['per_page' => 500, 'offset' => 0] + ($filter_status !== 'all' ? ['status' => $filter_status] : []));
+        $search_lower = mb_strtolower($search);
+        $tickets = array_values(array_filter($all_tickets, function ($t) use ($search_lower) {
+            return strpos(mb_strtolower($t->subject), $search_lower) !== false || (is_numeric($search_lower) && (int) $t->id === (int) $search_lower);
+        }));
+        $total = count($tickets);
+        $tickets = array_slice($tickets, ($page - 1) * $per_page, $per_page);
+    } else {
+        $tickets = sc_support_get_tickets_for_user($user_id, $args);
+        $total = sc_support_count_tickets_for_user($user_id, $filter_status === 'all' ? '' : $filter_status);
+    }
+    $total_pages = max(1, ceil($total / $per_page));
+    $base_url = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-support-tickets') : '';
+    $items = [];
+    foreach ($tickets as $t) {
+        $items[] = [
+            'id' => (int) $t->id,
+            'subject' => $t->subject,
+            'status' => $t->status,
+            'status_label' => sc_support_status_label($t->status),
+            'department_label' => sc_support_department_label($t->department, $t->coach_id),
+            'updated_at' => sc_date_shamsi($t->updated_at, 'Y/m/d'),
+            'view_url' => add_query_arg('view_ticket', $t->id, $base_url),
+        ];
+    }
+    $empty_message = ($search !== '') ? 'نتیجه‌ای برای جستجو یافت نشد.' : 'هنوز تیکتی ارسال نکرده‌اید.';
+    wp_send_json_success([
+        'items' => $items,
+        'total' => (int) $total,
+        'total_pages' => $total_pages,
+        'page' => $page,
+        'empty_message' => $empty_message,
+        'base_url_with_filter' => $base_url,
+    ]);
+}
+
+/**
  * Secure download of ticket attachment (only if user can view ticket).
  */
 add_action('template_redirect', 'sc_support_attachment_download_handle');
