@@ -466,16 +466,16 @@ jQuery(document).ready(function($) {
     $('#target_type, #course_scope').on('change', toggleTargetRows);
     toggleTargetRows();
 
-    var formSubmitted = false;
     $('#notification-form').on('submit', function(e) {
         $('#recipient-ids-input').val(recipientIds.join(','));
-        if (!formSubmitted && !isCoach && $('#send_sms').length && $('#send_sms').is(':checked')) {
+        if (!isCoach && $('#send_sms').length && $('#send_sms').is(':checked')) {
             e.preventDefault();
             var rc = $('#sms-recipients-count').text();
             var total = $('#sms-total-count').text();
             if (confirm('شما در حال ارسال ' + total + ' پیامک به ' + rc + ' مخاطب هستید. آیا مطمئن هستید؟')) {
-                formSubmitted = true;
-                $(this).submit();
+                $(this).off('submit');
+                $(this).append('<input type="hidden" name="save_notification" value="1">');
+                this.submit();
             }
             return false;
         }

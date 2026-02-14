@@ -39,6 +39,10 @@ if (isset($_GET['deleted'])) {
     $message = 'اطلاعیه با موفقیت حذف شد.';
     $message_type = 'success';
 }
+if (isset($_GET['saved']) && isset($_GET['msg'])) {
+    $message = sanitize_text_field(wp_unslash($_GET['msg']));
+    $message_type = 'success';
+}
 
 // دریافت فیلترها و جستجو
 $filter_creator_type = isset($_GET['filter_creator']) ? sanitize_text_field($_GET['filter_creator']) : 'all';
