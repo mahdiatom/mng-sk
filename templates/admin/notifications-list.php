@@ -88,7 +88,7 @@ if (!$is_coach && $filter_creator_type === 'admin') {
 }
 
 // فیلتر نوع ارسال
-if ($filter_target_type !== '' && in_array($filter_target_type, ['all', 'specific', 'course'])) {
+if ($filter_target_type !== '' && in_array($filter_target_type, ['all', 'specific', 'course', 'phone'])) {
     $where[] = "n.target_type = %s";
     $where_values[] = $filter_target_type;
 }
@@ -140,6 +140,15 @@ $query_values = array_merge($where_values, [$per_page, $offset]);
 $query = $wpdb->prepare($query, $query_values);
 $notifications = $wpdb->get_results($query);
 
+// برای نوع phone تعداد مخاطبین از target_config.phone_numbers خوانده می‌شود
+foreach ($notifications as $n) {
+    if (isset($n->target_type) && $n->target_type === 'phone' && !empty($n->target_config)) {
+        $cfg = json_decode($n->target_config, true);
+        $phones = isset($cfg['phone_numbers']) ? (array)$cfg['phone_numbers'] : [];
+        $n->recipients_count = count($phones);
+    }
+}
+
 $total_pages = ceil($total / $per_page);
 ?>
 <div class="wrap sc-notifications-list-wrap<?php echo $is_coach ? ' sc-coach-panel-wrap' : ''; ?>">
@@ -178,6 +187,7 @@ $total_pages = ceil($total / $per_page);
                 <option value="all" <?php selected($filter_target_type, 'all'); ?>>همه اعضا</option>
                 <option value="specific" <?php selected($filter_target_type, 'specific'); ?>>اشخاص خاص</option>
                 <option value="course" <?php selected($filter_target_type, 'course'); ?>>دوره خاص</option>
+                <?php if (!$is_coach) : ?><option value="phone" <?php selected($filter_target_type, 'phone'); ?>>شماره خاص</option><?php endif; ?>
             </select>
             <label>پیامک:</label>
             <select name="filter_sms" style="min-width: 90px;">
@@ -223,7 +233,7 @@ $total_pages = ceil($total / $per_page);
             <?php else :
                 $i = $offset + 1;
                 foreach ($notifications as $n) :
-                    $target_labels = ['all' => 'همه', 'specific' => 'اشخاص خاص', 'course' => 'دوره خاص'];
+                    $target_labels = ['all' => 'همه', 'specific' => 'اشخاص خاص', 'course' => 'دوره خاص', 'phone' => 'شماره خاص'];
                     $target_label = $target_labels[$n->target_type] ?? $n->target_type;
                     $creator_label = function_exists('sc_notification_creator_label') ? sc_notification_creator_label($n) : 'مدیر';
                     $can_edit_delete = !$is_coach || ($current_coach_id > 0 && isset($n->created_by_type) && $n->created_by_type === 'coach' && (int)$n->created_by_entity_id === $current_coach_id);
