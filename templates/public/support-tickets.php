@@ -13,6 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
         if ($action === 'create') {
             $subject = sanitize_text_field($_POST['ticket_subject'] ?? '');
             $department = sanitize_text_field($_POST['ticket_department'] ?? 'manager');
+            if (!in_array($department, ['manager', 'coach', 'site_support'], true)) {
+                $department = 'manager';
+            }
             $coach_id = ($department === 'coach') ? absint($_POST['ticket_coach_id'] ?? 0) : 0;
             $message = wp_kses_post($_POST['ticket_message'] ?? '');
             $attachments = function_exists('sc_support_handle_attachments') ? sc_support_handle_attachments('ticket_attachments') : [];
@@ -62,127 +65,155 @@ if ($view_ticket_id > 0) {
 }
 
 $base_url = wc_get_account_endpoint_url('sc-support-tickets');
+$coaches = sc_support_get_coaches_for_member($member_id);
 ?>
 <div class="woocommerce-MyAccount-content sc-support-tickets-content">
 <?php if ($view_ticket_id > 0 && isset($ticket)) : ?>
-    <a href="<?php echo esc_url($base_url); ?>" class="button">← بازگشت به لیست تیکت‌ها</a>
-    <h2>تیکت #<?php echo esc_html($ticket->id); ?> – <?php echo esc_html($ticket->subject); ?></h2>
-    <p>
-        <span class="sc-ticket-meta">وضعیت: <?php echo esc_html(sc_support_status_label($ticket->status)); ?></span>
-        <span class="sc-ticket-meta">بخش: <?php echo esc_html(sc_support_department_label($ticket->department, $ticket->coach_id)); ?></span>
-        <span class="sc-ticket-meta">آخرین به‌روزرسانی: <?php echo esc_html(sc_date_shamsi($ticket->updated_at, 'Y/m/d H:i')); ?></span>
-    </p>
-    <div class="sc-ticket-messages" style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px;">
-        <?php
-        $messages = sc_support_get_messages($ticket->id);
-        foreach ($messages as $msg) :
-            $is_user = ($msg->sender_type === 'user');
-            $label = $is_user ? 'شما' : (($msg->sender_type === 'admin') ? 'مدیر' : 'مربی');
-        ?>
-        <div class="sc-ticket-msg <?php echo $is_user ? 'sc-msg-user' : 'sc-msg-staff'; ?>" style="margin-bottom: 15px; padding: 10px; background: <?php echo $is_user ? '#e8f4fc' : '#fff3e0'; ?>; border-radius: 6px;">
-            <strong><?php echo esc_html($label); ?></strong>
-            <span style="color:#666; font-size:12px;"><?php echo esc_html(sc_date_shamsi($msg->created_at, 'Y/m/d H:i')); ?></span>
-            <div style="margin-top:8px;"><?php echo wp_kses_post(wpautop($msg->message)); ?></div>
-            <?php
-            if (!empty($msg->attachment_ids)) {
-                $ids = json_decode($msg->attachment_ids, true);
-                if (is_array($ids)) {
-                    echo '<div class="sc-msg-attachments" style="margin-top:8px;">';
-                    foreach ($ids as $aid) {
-                        $url = sc_support_attachment_download_url($aid, $ticket->id);
-                        $name = get_the_title($aid) ?: 'پیوست';
-                        echo '<a href="' . esc_url($url) . '" target="_blank" class="sc-attachment-link">' . esc_html($name) . '</a> ';
-                    }
-                    echo '</div>';
-                }
-            }
-            ?>
+    <div class="sc-ticket-detail-card">
+        <a href="<?php echo esc_url($base_url); ?>" class="sc-ticket-back-link">← بازگشت به لیست تیکت‌ها</a>
+        <h2 class="sc-ticket-detail-title">تیکت #<?php echo esc_html($ticket->id); ?> – <?php echo esc_html($ticket->subject); ?></h2>
+        <div class="sc-ticket-detail-meta">
+            <span class="sc-ticket-meta-badge sc-ticket-status-<?php echo esc_attr($ticket->status); ?>"><?php echo esc_html(sc_support_status_label($ticket->status)); ?></span>
+            <span class="sc-ticket-meta-text">بخش: <?php echo esc_html(sc_support_department_label($ticket->department, $ticket->coach_id)); ?></span>
+            <span class="sc-ticket-meta-text">آخرین به‌روزرسانی: <?php echo esc_html(sc_date_shamsi($ticket->updated_at, 'Y/m/d H:i')); ?></span>
         </div>
-        <?php endforeach; ?>
-    </div>
-    <?php if ($ticket->status !== 'closed') : ?>
-    <form method="post" enctype="multipart/form-data" style="margin-top: 20px;">
-        <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
-        <input type="hidden" name="sc_ticket_action" value="reply">
-        <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
-        <p>
-            <label for="reply_message">پاسخ شما</label><br>
-            <textarea name="reply_message" id="reply_message" rows="4" class="input-text" required></textarea>
-        </p>
-        <p>
-            <label>پیوست (اختیاری)</label><br>
-            <input type="file" name="reply_attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx">
-            <span class="description">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
-        </p>
-        <p><button type="submit" class="button button-primary">ارسال پاسخ</button></p>
-    </form>
-    <?php endif; ?>
-    <?php if ($ticket->status === 'closed') : ?>
-    <p><em>این تیکت بسته شده است. با ارسال پاسخ جدید، تیکت مجدداً باز می‌شود.</em></p>
-    <form method="post" enctype="multipart/form-data">
-        <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
-        <input type="hidden" name="sc_ticket_action" value="reply">
-        <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
-        <p><textarea name="reply_message" rows="3" placeholder="متن پاسخ برای باز کردن تیکت..."></textarea></p>
-        <p><button type="submit" class="button">ارسال و باز کردن تیکت</button></p>
-    </form>
-    <?php else : ?>
-    <form method="post" style="margin-top: 15px;">
-        <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
-        <input type="hidden" name="sc_ticket_action" value="close">
-        <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
-        <button type="submit" class="button" onclick="return confirm('آیا از بستن این تیکت اطمینان دارید؟');">بستن تیکت</button>
-    </form>
-    <?php endif; ?>
 
-<?php else : ?>
-    <h2>تیکت‌های پشتیبانی</h2>
-    <p><a href="#new-ticket-form" class="button button-primary">ارسال تیکت جدید</a></p>
-    <?php
-    $tickets = sc_support_get_tickets_for_user($current_user_id, ['per_page' => 20]);
-    if (empty($tickets)) :
-        echo '<p>هنوز تیکتی ارسال نکرده‌اید.</p>';
-    else :
-        echo '<table class="woocommerce-orders-table woocommerce-MyAccount-orders shop_table shop_table_responsive my_account_orders"><thead><tr>';
-        echo '<th>شناسه</th><th>موضوع</th><th>بخش</th><th>وضعیت</th><th>تاریخ</th><th></th></tr></thead><tbody>';
-        foreach ($tickets as $t) {
-            echo '<tr>';
-            echo '<td>' . esc_html($t->id) . '</td>';
-            echo '<td>' . esc_html($t->subject) . '</td>';
-            echo '<td>' . esc_html(sc_support_department_label($t->department, $t->coach_id)) . '</td>';
-            echo '<td>' . esc_html(sc_support_status_label($t->status)) . '</td>';
-            echo '<td>' . esc_html(sc_date_shamsi($t->updated_at, 'Y/m/d')) . '</td>';
-            echo '<td><a href="' . esc_url($base_url . '?view_ticket=' . $t->id) . '" class="button">مشاهده</a></td>';
-            echo '</tr>';
-        }
-        echo '</tbody></table>';
-    endif;
-    ?>
-
-    <div id="new-ticket-form" style="margin-top: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-        <h3>ارسال تیکت جدید</h3>
-        <form method="post" enctype="multipart/form-data">
-            <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
-            <input type="hidden" name="sc_ticket_action" value="create">
-            <p>
-                <label for="ticket_subject">موضوع <span class="required">*</span></label><br>
-                <input type="text" name="ticket_subject" id="ticket_subject" class="input-text" required maxlength="255" style="width:100%; max-width:400px;">
-            </p>
-            <p>
-                <label>بخش مورد نظر <span class="required">*</span></label><br>
-                <label><input type="radio" name="ticket_department" value="manager" checked> مدیر باشگاه</label>
+        <div class="sc-ticket-messages">
+            <?php
+            $messages = sc_support_get_messages($ticket->id);
+            foreach ($messages as $msg) :
+                $is_user = ($msg->sender_type === 'user');
+                $label = $is_user ? 'شما' : (($msg->sender_type === 'admin') ? 'مدیر' : 'مربی');
+            ?>
+            <div class="sc-ticket-msg <?php echo $is_user ? 'sc-ticket-msg-user' : 'sc-ticket-msg-staff'; ?>">
+                <div class="sc-ticket-msg-header">
+                    <strong class="sc-ticket-msg-sender"><?php echo esc_html($label); ?></strong>
+                    <span class="sc-ticket-msg-date"><?php echo esc_html(sc_date_shamsi($msg->created_at, 'Y/m/d H:i')); ?></span>
+                </div>
+                <div class="sc-ticket-msg-body"><?php echo wp_kses_post(wpautop($msg->message)); ?></div>
                 <?php
-                $coaches = sc_support_get_coaches_for_member($member_id);
-                if (!empty($coaches)) {
-                    foreach ($coaches as $co) {
-                        echo '<br><label><input type="radio" name="ticket_department" value="coach" data-coach-id="' . (int)$co['coach_id'] . '"> مربی: ' . esc_html($co['name']) . '</label>';
+                if (!empty($msg->attachment_ids)) {
+                    $ids = json_decode($msg->attachment_ids, true);
+                    if (is_array($ids)) {
+                        echo '<div class="sc-ticket-msg-attachments">';
+                        foreach ($ids as $aid) {
+                            $url = sc_support_attachment_download_url($aid, $ticket->id);
+                            $name = get_the_title($aid) ?: 'پیوست';
+                            echo '<a href="' . esc_url($url) . '" target="_blank" class="sc-ticket-attachment-link">' . esc_html($name) . '</a>';
+                        }
+                        echo '</div>';
                     }
                 }
                 ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <?php if ($ticket->status !== 'closed') : ?>
+        <div class="sc-ticket-reply-form-wrap">
+            <form method="post" enctype="multipart/form-data" class="sc-ticket-reply-form">
+                <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
+                <input type="hidden" name="sc_ticket_action" value="reply">
+                <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
+                <p class="sc-form-row">
+                    <label for="reply_message">پاسخ شما</label>
+                    <textarea name="reply_message" id="reply_message" rows="4" required placeholder="متن پاسخ خود را بنویسید..."></textarea>
+                </p>
+                <p class="sc-form-row">
+                    <label>پیوست (اختیاری)</label>
+                    <input type="file" name="reply_attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" class="sc-ticket-file-input">
+                    <span class="sc-form-hint">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
+                </p>
+                <p class="sc-form-actions">
+                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary">ارسال پاسخ</button>
+                </p>
+            </form>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($ticket->status === 'closed') : ?>
+        <div class="sc-ticket-closed-notice">
+            <p>این تیکت بسته شده است. با ارسال پاسخ جدید، تیکت مجدداً باز می‌شود.</p>
+            <form method="post" enctype="multipart/form-data" class="sc-ticket-reopen-form">
+                <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
+                <input type="hidden" name="sc_ticket_action" value="reply">
+                <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
+                <p class="sc-form-row"><textarea name="reply_message" rows="3" placeholder="متن پاسخ برای باز کردن تیکت..."></textarea></p>
+                <p><button type="submit" class="sc-ticket-btn sc-ticket-btn-secondary">ارسال و باز کردن تیکت</button></p>
+            </form>
+        </div>
+        <?php else : ?>
+        <form method="post" class="sc-ticket-close-form">
+            <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
+            <input type="hidden" name="sc_ticket_action" value="close">
+            <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
+            <button type="submit" class="sc-ticket-btn sc-ticket-btn-outline" onclick="return confirm('آیا از بستن این تیکت اطمینان دارید؟');">بستن تیکت</button>
+        </form>
+        <?php endif; ?>
+    </div>
+
+<?php else : ?>
+    <h2 class="sc-support-heading">تیکت‌های پشتیبانی</h2>
+    <?php wc_print_notices(); ?>
+
+    <div class="sc-support-actions">
+        <a href="#new-ticket-form" class="sc-ticket-btn sc-ticket-btn-primary">ارسال تیکت جدید</a>
+    </div>
+
+    <?php
+    $tickets = sc_support_get_tickets_for_user($current_user_id, ['per_page' => 20]);
+    if (empty($tickets)) : ?>
+        <div class="sc-support-empty-state">
+            <span class="sc-support-empty-icon" aria-hidden="true"></span>
+            <p class="sc-support-empty-text">هنوز تیکتی ارسال نکرده‌اید.</p>
+        </div>
+    <?php else : ?>
+        <div class="sc-support-grid">
+            <?php foreach ($tickets as $t) : ?>
+            <article class="sc-ticket-card sc-ticket-status-<?php echo esc_attr($t->status); ?>">
+                <div class="sc-ticket-card-inner">
+                    <h3 class="sc-ticket-card-title">
+                        <a href="<?php echo esc_url($base_url . '?view_ticket=' . $t->id); ?>"><?php echo esc_html($t->subject); ?></a>
+                    </h3>
+                    <div class="sc-ticket-card-meta">
+                        <span class="sc-ticket-card-date"><?php echo esc_html(sc_date_shamsi($t->updated_at, 'Y/m/d')); ?></span>
+                        <span class="sc-ticket-card-badge sc-ticket-badge-<?php echo esc_attr($t->status); ?>"><?php echo esc_html(sc_support_status_label($t->status)); ?></span>
+                        <span class="sc-ticket-card-dept"><?php echo esc_html(sc_support_department_label($t->department, $t->coach_id)); ?></span>
+                    </div>
+                    <div class="sc-ticket-card-actions">
+                        <a href="<?php echo esc_url($base_url . '?view_ticket=' . $t->id); ?>" class="sc-ticket-btn sc-ticket-btn-primary">مشاهده</a>
+                    </div>
+                </div>
+            </article>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <div id="new-ticket-form" class="sc-ticket-form-card">
+        <h3 class="sc-ticket-form-title">ارسال تیکت جدید</h3>
+        <form method="post" enctype="multipart/form-data" class="sc-ticket-new-form">
+            <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
+            <input type="hidden" name="sc_ticket_action" value="create">
+
+            <p class="sc-form-row">
+                <label for="ticket_subject">موضوع <span class="required">*</span></label>
+                <input type="text" name="ticket_subject" id="ticket_subject" required maxlength="255" placeholder="موضوع تیکت را وارد کنید">
             </p>
+
+            <p class="sc-form-row">
+                <label for="ticket_department">بخش مورد نظر <span class="required">*</span></label>
+                <select name="ticket_department" id="ticket_department">
+                    <option value="manager">مدیر باشگاه</option>
+                    <option value="site_support">پشتیبانی سایت</option>
+                    <?php if (!empty($coaches)) : ?>
+                    <option value="coach">مربی باشگاه</option>
+                    <?php endif; ?>
+                </select>
+            </p>
+
             <?php if (!empty($coaches)) : ?>
-            <p id="ticket_coach_wrap" style="display:none;">
-                <label for="ticket_coach_id">مربی</label><br>
+            <p class="sc-form-row sc-ticket-coach-row" id="ticket_coach_wrap" style="display:none;">
+                <label for="ticket_coach_id">مربی <span class="required">*</span></label>
                 <select name="ticket_coach_id" id="ticket_coach_id">
                     <option value="0">انتخاب کنید</option>
                     <?php foreach ($coaches as $co) : ?>
@@ -191,31 +222,37 @@ $base_url = wc_get_account_endpoint_url('sc-support-tickets');
                 </select>
             </p>
             <?php endif; ?>
-            <p>
-                <label for="ticket_message">متن پیام <span class="required">*</span></label><br>
-                <textarea name="ticket_message" id="ticket_message" rows="5" class="input-text" required style="width:100%; max-width:500px;"></textarea>
+
+            <p class="sc-form-row">
+                <label for="ticket_message">متن پیام <span class="required">*</span></label>
+                <textarea name="ticket_message" id="ticket_message" rows="5" required placeholder="متن پیام خود را بنویسید..."></textarea>
             </p>
-            <p>
-                <label>پیوست (اختیاری)</label><br>
-                <input type="file" name="ticket_attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx">
-                <span class="description">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
+
+            <p class="sc-form-row">
+                <label>پیوست (اختیاری)</label>
+                <input type="file" name="ticket_attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" class="sc-ticket-file-input">
+                <span class="sc-form-hint">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
             </p>
-            <p><button type="submit" class="button button-primary">ارسال تیکت</button></p>
+
+            <p class="sc-form-actions">
+                <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary">ارسال تیکت</button>
+            </p>
         </form>
     </div>
+
     <?php if (!empty($coaches)) : ?>
     <script>
     (function(){
-        var deps = document.querySelectorAll('input[name="ticket_department"]');
+        var dept = document.getElementById('ticket_department');
         var wrap = document.getElementById('ticket_coach_wrap');
         var sel = document.getElementById('ticket_coach_id');
-        if (!wrap || !sel) return;
+        if (!dept || !wrap || !sel) return;
         function toggle() {
-            var isCoach = document.querySelector('input[name="ticket_department"]:checked').value === 'coach';
+            var isCoach = dept.value === 'coach';
             wrap.style.display = isCoach ? 'block' : 'none';
-            if (isCoach) sel.setAttribute('required', 'required'); else sel.removeAttribute('required');
+            sel.required = isCoach;
         }
-        deps.forEach(function(r){ r.addEventListener('change', toggle); });
+        dept.addEventListener('change', toggle);
         toggle();
     })();
     </script>

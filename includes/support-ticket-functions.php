@@ -224,12 +224,18 @@ function sc_support_create_ticket($user_id, $department, $coach_id, $subject, $f
     $tickets_table = $wpdb->prefix . 'sc_support_tickets';
     $messages_table = $wpdb->prefix . 'sc_support_ticket_messages';
     $now = current_time('mysql');
-    $coach_id = $department === 'coach' ? absint($coach_id) : null;
+    $dept_value = 'manager';
+    if ($department === 'coach') {
+        $dept_value = 'coach';
+    } elseif ($department === 'site_support') {
+        $dept_value = 'site_support';
+    }
+    $coach_id = ($department === 'coach') ? absint($coach_id) : null;
     $attachment_json = !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null;
 
     $wpdb->insert($tickets_table, [
         'user_id' => $user_id,
-        'department' => $department === 'coach' ? 'coach' : 'manager',
+        'department' => $dept_value,
         'coach_id' => $coach_id,
         'subject' => $subject,
         'status' => 'pending_reply',
@@ -430,7 +436,7 @@ function sc_support_send_sms_on_new_ticket($ticket) {
         $template = sprintf($template, $ticket->id, $ticket->subject);
     }
     $mobile = null;
-    if ($ticket->department === 'manager') {
+    if ($ticket->department === 'manager' || $ticket->department === 'site_support') {
         $mobile = sc_get_setting('sms_admin_phone', '');
     } else {
         global $wpdb;
@@ -457,7 +463,7 @@ function sc_support_send_sms_on_new_message($ticket, $sender_type, $sender_id) {
     }
     $mobile = null;
     if ($sender_type === 'user') {
-        if ($ticket->department === 'manager') {
+        if ($ticket->department === 'manager' || $ticket->department === 'site_support') {
             $mobile = sc_get_setting('sms_admin_phone', '');
         } else {
             global $wpdb;
@@ -496,6 +502,9 @@ function sc_support_department_label($department, $coach_id = null) {
     if ($department === 'manager') {
         return 'مدیر باشگاه';
     }
+    if ($department === 'site_support') {
+        return 'پشتیبانی سایت';
+    }
     if ($department === 'coach' && $coach_id) {
         global $wpdb;
         $c = $wpdb->prefix . 'sc_coaches';
@@ -503,9 +512,9 @@ function sc_support_department_label($department, $coach_id = null) {
             "SELECT TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) FROM $c WHERE id = %d",
             $coach_id
         ));
-        return $name ? 'مربی: ' . $name : 'مربی';
+        return $name ? 'مربی: ' . $name : 'مربی باشگاه';
     }
-    return 'مربی';
+    return 'مربی باشگاه';
 }
 
 /**

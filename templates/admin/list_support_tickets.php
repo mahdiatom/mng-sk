@@ -159,6 +159,7 @@ class Support_Tickets_List_Table extends WP_List_Table {
             <select name="filter_department" onchange="location.href=this.value">
                 <option value="<?php echo esc_url(add_query_arg('filter_department', 'all', $url)); ?>" <?php selected($filter_department, 'all'); ?>>همه</option>
                 <option value="<?php echo esc_url(add_query_arg('filter_department', 'manager', $url)); ?>" <?php selected($filter_department, 'manager'); ?>>مدیر باشگاه</option>
+                <option value="<?php echo esc_url(add_query_arg('filter_department', 'site_support', $url)); ?>" <?php selected($filter_department, 'site_support'); ?>>پشتیبانی سایت</option>
                 <option value="<?php echo esc_url(add_query_arg('filter_department', 'coach', $url)); ?>" <?php selected($filter_department, 'coach'); ?>>مربی</option>
             </select>
         </div>
