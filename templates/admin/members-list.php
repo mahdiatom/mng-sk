@@ -186,11 +186,15 @@ public function column_full_name($item) {
     }
 
     public function get_bulk_actions() {
-        return [
-        'delete' => 'حذف بازیکن',
-        'activate' => 'فعال کردن بازیکن',
-        'deactivate' => 'غیرفعال کردن بازیکن'
+        $actions = [
+            'delete' => 'حذف بازیکن',
+            'activate' => 'فعال کردن بازیکن',
+            'deactivate' => 'غیرفعال کردن بازیکن',
         ];
+        if (current_user_can('manage_options')) {
+            $actions['send_sms'] = 'ارسال پیامک';
+        }
+        return $actions;
     }
 
     public function process_bulk_action() {
@@ -241,7 +245,16 @@ public function column_full_name($item) {
             exit;
     }
 
-      
+        if ($this->current_action() == 'send_sms' && current_user_can('manage_options')) {
+            $players = isset($_GET['player']) ? (array) $_GET['player'] : [];
+            $players = array_filter(array_map('absint', $players));
+            if (!empty($players)) {
+                $member_ids = implode(',', $players);
+                $redirect = add_query_arg('member_ids', $member_ids, admin_url('admin.php?page=sc-add-notification'));
+                wp_safe_redirect($redirect);
+                exit;
+            }
+        }
     }
 
     

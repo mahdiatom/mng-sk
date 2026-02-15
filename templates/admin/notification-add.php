@@ -156,6 +156,17 @@ if (isset($_GET['saved']) && isset($_GET['msg'])) {
 }
 
 $saved = $notification ? (array)json_decode($notification->target_config, true) : [];
+
+// اگر از لیست اعضا با «ارسال پیامک» دسته‌جمعی آمده، اعضای انتخاب‌شده را پیش‌پر کن و نوع ارسال = افراد خاص
+$preselected_member_ids = [];
+if (!empty($_GET['member_ids']) && !$edit_id && current_user_can('manage_options')) {
+    $raw = is_array($_GET['member_ids']) ? $_GET['member_ids'] : explode(',', sanitize_text_field($_GET['member_ids']));
+    $preselected_member_ids = array_filter(array_map('absint', $raw));
+    if (!empty($preselected_member_ids)) {
+        $saved['recipient_ids'] = array_map(function ($id) { return 'member_' . $id; }, $preselected_member_ids);
+    }
+}
+$initial_target_type = $notification ? (isset($notification->target_type) ? $notification->target_type : 'all') : (!empty($preselected_member_ids) ? 'specific' : 'all');
 ?>
 <div class="wrap sc-notification-add-wrap<?php echo $is_coach ? ' sc-coach-panel-wrap' : ''; ?>">
     <?php if ($is_coach) : ?>
@@ -198,17 +209,17 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
                 <th scope="row">نوع ارسال</th>
                 <td>
                     <select name="target_type" id="target_type" class="sc-notification-select" style="min-width: 200px;">
-                        <option value="all" <?php selected($notification ? $notification->target_type : 'all', 'all'); ?>>همه</option>
-                        <option value="specific" <?php selected($notification ? $notification->target_type : '', 'specific'); ?>>ارسال به مخاطبین خاص</option>
-                        <option value="course" <?php selected($notification ? $notification->target_type : '', 'course'); ?>>ارسال به مخاطبین دوره </option>
+                        <option value="all" <?php selected($initial_target_type, 'all'); ?>>همه</option>
+                        <option value="specific" <?php selected($initial_target_type, 'specific'); ?>>ارسال به مخاطبین خاص</option>
+                        <option value="course" <?php selected($initial_target_type, 'course'); ?>>ارسال به مخاطبین دوره </option>
                         <?php if (!$is_coach) : ?>
-                        <option value="debtors" <?php selected($notification ? $notification->target_type : '', 'debtors'); ?>>ارسال به مخاطبین بدهکاران</option>
-                        <option value="event" <?php selected($notification ? $notification->target_type : '', 'event'); ?>>ارسال به مخاطبین رویداد</option>
+                        <option value="debtors" <?php selected($initial_target_type, 'debtors'); ?>>ارسال به مخاطبین بدهکاران</option>
+                        <option value="event" <?php selected($initial_target_type, 'event'); ?>>ارسال به مخاطبین رویداد</option>
                         <?php 
                     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) { ?>
-                        <option value="wallet_negative" <?php selected($notification ? $notification->target_type : '', 'wallet_negative'); ?>>ارسال به مخاطبین با کیف پول منفی</option>
+                        <option value="wallet_negative" <?php selected($initial_target_type, 'wallet_negative'); ?>>ارسال به مخاطبین با کیف پول منفی</option>
                      <?php } ?>
-                        <option value="phone" <?php selected($notification ? $notification->target_type : '', 'phone'); ?>>ارسال به شماره مخاطب خاص-</option>
+                        <option value="phone" <?php selected($initial_target_type, 'phone'); ?>>ارسال به شماره مخاطب خاص-</option>
                         <?php endif; ?>
                     </select>
                 </td>
