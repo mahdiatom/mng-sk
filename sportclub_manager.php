@@ -1248,8 +1248,15 @@ add_action('wp_enqueue_scripts', 'sc_public_enqueue_assets');
 function sc_admin_enqueue_assets() {
     wp_enqueue_style('sc-admin-css', SC_ASSETS_URL . 'css/admin.css', array(),  time());
     $is_ticket_new = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-support-ticket-new';
+    $is_ticket_view = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-support-ticket-view';
+    $is_coach_ticket_new = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-coach-support-ticket-new';
+    $is_coach_ticket_view = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-coach-support-ticket-view';
     if (current_user_can('sc_view_coach_salary') || $is_ticket_new) {
         wp_enqueue_style('sc-coach-admin-css', SC_ASSETS_URL . 'css/coach-admin.css', array('sc-admin-css'), time());
+    }
+    if ($is_ticket_new || $is_ticket_view || $is_coach_ticket_new || $is_coach_ticket_view) {
+        wp_enqueue_script('sc-ticket-attachments', SC_ASSETS_URL . 'js/ticket-attachments.js', array('jquery'), time(), true);
+        wp_localize_script('sc-ticket-attachments', 'scTicketAttach', array('ajaxurl' => admin_url('admin-ajax.php')));
     }
     // Enqueue media uploader (must be before admin.js)
     // همیشه media uploader را لود کن چون ممکن است در صفحات مختلف نیاز باشد
@@ -1274,6 +1281,10 @@ function sc_public_enqueue_assets() {
     if (is_account_page() && get_query_var('sc-submit-documents') !== false) {
         wp_enqueue_script('sc-submit-documents-js', SC_ASSETS_URL . 'js/submit-documents.js', array('jquery'), time(), true);
         wp_localize_script('sc-submit-documents-js', 'scDocuments', array('ajaxurl' => admin_url('admin-ajax.php')));
+    }
+    if (is_account_page() && get_query_var('sc-support-tickets') !== false) {
+        wp_enqueue_script('sc-ticket-attachments', SC_ASSETS_URL . 'js/ticket-attachments.js', array('jquery'), time(), true);
+        wp_localize_script('sc-ticket-attachments', 'scTicketAttach', array('ajaxurl' => admin_url('admin-ajax.php')));
     }
 }
 

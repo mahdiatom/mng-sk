@@ -26,7 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
         $recipient_id = ($recipient_type === 'member') ? absint($_POST['recipient_member_id'] ?? 0) : 0;
         $subject = sanitize_text_field($_POST['ticket_subject'] ?? '');
         $message = wp_kses_post($_POST['ticket_message'] ?? '');
-        $attachments = function_exists('sc_support_handle_attachments') ? sc_support_handle_attachments('ticket_attachments') : [];
+        $attachments = [];
+        if (!empty($_POST['ticket_attachment_ids']) && function_exists('sc_support_validate_attachment_ids')) {
+            $raw = is_array($_POST['ticket_attachment_ids']) ? $_POST['ticket_attachment_ids'] : explode(',', (string) $_POST['ticket_attachment_ids']);
+            $attachments = sc_support_validate_attachment_ids($raw, 5);
+        }
+        if (empty($attachments) && function_exists('sc_support_handle_attachments')) {
+            $attachments = sc_support_handle_attachments('ticket_attachments');
+        }
         if (empty($subject) || empty($message)) {
             $error_message = 'موضوع و متن پیام الزامی است.';
         } elseif ($recipient_type === 'member' && $recipient_id <= 0) {
@@ -53,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html($error_message); ?></p></div>
     <?php endif; ?>
     <div class="sc-coach-panel-card">
-        <form method="post" enctype="multipart/form-data" class="sc-ticket-new-form" id="sc-coach-ticket-new-form">
+        <form method="post" class="sc-ticket-new-form" id="sc-coach-ticket-new-form">
             <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
             <input type="hidden" name="sc_ticket_action" value="create">
             <table class="form-table">
@@ -125,8 +132,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
                 <tr>
                     <th scope="row"><label>پیوست</label></th>
                     <td>
-                        <input type="file" name="ticket_attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" class="regular-text">
-                        <p class="description">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</p>
+                        <div class="sc-ticket-attachment-zone" data-input-name="ticket_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>">
+                            <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
+                                <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple>
+                                <span class="sc-file-upload-icon">📎</span>
+                                <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
+                                <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت: تصویر، PDF، ورد، اکسل</span>
+                            </div>
+                            <div class="sc-ticket-upload-progress-wrap" style="display:none;">
+                                <div class="sc-upload-progress sc-ticket-upload-progress">
+                                    <div class="sc-upload-bar"></div>
+                                    <span class="sc-upload-text"></span>
+                                </div>
+                            </div>
+                            <div class="sc-ticket-uploaded-list"></div>
+                            <div class="sc-ticket-attachment-ids-hidden"></div>
+                        </div>
                     </td>
                 </tr>
             </table>

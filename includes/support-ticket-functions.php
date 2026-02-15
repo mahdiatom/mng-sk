@@ -621,6 +621,100 @@ function sc_support_handle_attachments($files_key = 'ticket_attachments') {
 }
 
 /**
+ * Validate and return attachment IDs that were uploaded by current user via AJAX.
+ * Used when form is submitted with pre-uploaded attachment IDs (background upload).
+ *
+ * @param array|string $ids Array of attachment IDs or comma-separated string.
+ * @param int          $max Maximum number of attachments to accept.
+ * @return int[] Sanitized list of attachment post IDs.
+ */
+function sc_support_validate_attachment_ids($ids, $max = 5) {
+    $user_id = get_current_user_id();
+    if ($user_id <= 0) {
+        return [];
+    }
+    if (is_string($ids)) {
+        $ids = array_map('absint', array_filter(explode(',', $ids)));
+    } else {
+        $ids = is_array($ids) ? array_map('absint', $ids) : [];
+    }
+    $ids = array_unique(array_filter($ids));
+    $result = [];
+    $n = 0;
+    foreach ($ids as $aid) {
+        if ($n >= $max) {
+            break;
+        }
+        if ($aid <= 0) {
+            continue;
+        }
+        $post = get_post($aid);
+        if (!$post || $post->post_type !== 'attachment') {
+            continue;
+        }
+        if ((int) get_post_meta($aid, '_sc_support_ticket_attachment', true) !== 1) {
+            continue;
+        }
+        $uploaded_by = (int) get_post_meta($aid, '_sc_ticket_uploaded_by', true);
+        if ($uploaded_by !== $user_id) {
+            continue;
+        }
+        $result[] = $aid;
+        $n++;
+    }
+    return $result;
+}
+
+/**
+ * AJAX: Upload a single ticket attachment (background upload). Returns attachment ID.
+ * Files are uploaded immediately on select; form later submits attachment IDs.
+ */
+add_action('wp_ajax_sc_upload_ticket_attachment', 'sc_ajax_upload_ticket_attachment');
+function sc_ajax_upload_ticket_attachment() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error(['message' => 'لطفاً ابتدا وارد شوید.']);
+    }
+    if (!isset($_POST['sc_ticket_upload_nonce']) || !wp_verify_nonce($_POST['sc_ticket_upload_nonce'], 'sc_ticket_upload_attachment')) {
+        wp_send_json_error(['message' => 'خطای امنیتی. لطفاً صفحه را رفرش کنید.']);
+    }
+    $key = isset($_FILES['file']) ? 'file' : (isset($_FILES['ticket_attachment']) ? 'ticket_attachment' : null);
+    if (!$key || empty($_FILES[$key]['name']) || $_FILES[$key]['error'] !== UPLOAD_ERR_OK) {
+        wp_send_json_error(['message' => 'فایلی انتخاب نشده یا خطا در آپلود.']);
+    }
+    $allowed = sc_support_allowed_mime_types();
+    $allowed_ext = array_keys($allowed);
+    $max_size = 5 * 1024 * 1024; // 5MB
+    $file = $_FILES[$key];
+    if (isset($file['size']) && $file['size'] > $max_size) {
+        wp_send_json_error(['message' => 'حداکثر حجم هر فایل ۵ مگابایت است.']);
+    }
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowed_ext, true)) {
+        wp_send_json_error(['message' => 'فرمت فایل مجاز نیست. مجاز: تصویر، PDF، ورد، اکسل.']);
+    }
+    require_once ABSPATH . 'wp-admin/includes/image.php';
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/media.php';
+    $upload = wp_handle_upload($file, ['test_form' => false, 'mimes' => $allowed]);
+    if (isset($upload['error'])) {
+        wp_send_json_error(['message' => $upload['error']]);
+    }
+    $attachment = [
+        'post_mime_type' => $upload['type'],
+        'post_title'     => sanitize_file_name(pathinfo($upload['file'], PATHINFO_FILENAME)),
+        'post_content'  => '',
+        'post_status'   => 'inherit',
+    ];
+    $attach_id = wp_insert_attachment($attachment, $upload['file']);
+    if (is_wp_error($attach_id)) {
+        wp_send_json_error(['message' => 'خطا در ذخیره پیوست.']);
+    }
+    update_post_meta($attach_id, '_sc_support_ticket_attachment', 1);
+    update_post_meta($attach_id, '_sc_ticket_uploaded_by', get_current_user_id());
+    wp_send_json_success(['id' => $attach_id, 'name' => basename($upload['file'])]);
+}
+
+/**
  * Get download URL for ticket attachment (secure: only if user can view ticket).
  */
 function sc_support_attachment_download_url($attachment_id, $ticket_id) {

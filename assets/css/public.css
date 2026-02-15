@@ -4029,6 +4029,71 @@ color: white;
     margin-top: 0.35rem;
 }
 
+/* پیوست تیکت - منطقه آپلود حرفه‌ای و پس‌زمینه */
+.sc-ticket-attachment-zone .sc-ticket-upload-area {
+    position: relative;
+}
+.sc-ticket-attachment-zone .sc-ticket-file-input-hidden {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+.sc-ticket-attachment-zone .sc-ticket-upload-progress-wrap {
+    margin-top: 0.75rem;
+}
+.sc-ticket-attachment-zone .sc-ticket-upload-progress-wrap .sc-upload-progress {
+    margin-top: 0;
+}
+.sc-ticket-attachment-zone .sc-ticket-upload-area.sc-upload-dragover {
+    border-color: #135e96;
+    background: linear-gradient(135deg, #d0e7ff 0%, #b8dcff 100%);
+}
+.sc-ticket-uploaded-list {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.sc-ticket-uploaded-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.6rem;
+    background: #f0f6fc;
+    border: 1px solid #c5d9ed;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    color: #1e3a5f;
+}
+.sc-ticket-uploaded-name {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sc-ticket-uploaded-list .sc-ticket-uploaded-remove {
+         display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 20px !important;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #d63638;
+    color: #fff;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.sc-ticket-uploaded-remove:hover {
+    background: #b32d2e;
+    transform: scale(1.08);
+}
+
 /* نوار فیلتر و جستجو - تیکت پشتیبانی */
 .sc-support-toolbar {
     display: flex;

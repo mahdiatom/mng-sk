@@ -16,7 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
             $t = sc_support_get_ticket($tid);
             if ($t && sc_support_can_view_ticket($t, $current_user_id)) {
                 $msg = wp_kses_post($_POST['reply_message'] ?? '');
-                $att = function_exists('sc_support_handle_attachments') ? sc_support_handle_attachments('reply_attachments') : [];
+                $att = [];
+                if (!empty($_POST['reply_attachment_ids']) && function_exists('sc_support_validate_attachment_ids')) {
+                    $raw = is_array($_POST['reply_attachment_ids']) ? $_POST['reply_attachment_ids'] : explode(',', (string) $_POST['reply_attachment_ids']);
+                    $att = sc_support_validate_attachment_ids($raw, 5);
+                }
+                if (empty($att) && function_exists('sc_support_handle_attachments')) {
+                    $att = sc_support_handle_attachments('reply_attachments');
+                }
                 sc_support_add_message($tid, 'coach', $coach_id, $msg, $att);
             }
             wp_safe_redirect(admin_url('admin.php?page=sc-coach-support-ticket-view&id=' . $tid));
@@ -96,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
 
         <?php if ($ticket->status !== 'closed') : ?>
         <div class="sc-ticket-reply-form-wrap">
-            <form method="post" enctype="multipart/form-data" class="sc-ticket-reply-form">
+            <form method="post" class="sc-ticket-reply-form">
                 <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
                 <input type="hidden" name="sc_ticket_action" value="reply">
                 <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
@@ -104,11 +111,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
                     <label for="reply_message">پاسخ شما</label>
                     <textarea name="reply_message" id="reply_message" rows="4" required placeholder="متن پاسخ خود را بنویسید..."></textarea>
                 </p>
-                <p class="sc-ticket-field">
+                <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="reply_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>">
                     <label>پیوست (اختیاری)</label>
-                    <input type="file" name="reply_attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx">
-                    <span class="sc-form-hint" style="display:block; margin-top:0.35rem; font-size:0.8125rem; color:#646970;">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
-                </p>
+                    <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
+                        <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple>
+                        <span class="sc-file-upload-icon">📎</span>
+                        <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
+                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت: تصویر، PDF، ورد، اکسل</span>
+                    </div>
+                    <div class="sc-ticket-upload-progress-wrap" style="display:none;">
+                        <div class="sc-upload-progress sc-ticket-upload-progress">
+                            <div class="sc-upload-bar"></div>
+                            <span class="sc-upload-text"></span>
+                        </div>
+                    </div>
+                    <div class="sc-ticket-uploaded-list"></div>
+                    <div class="sc-ticket-attachment-ids-hidden"></div>
+                </div>
                 <div class="sc-form-actions">
                     <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال پاسخ</button>
                 </div>
@@ -127,11 +146,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
         <?php else : ?>
         <div class="sc-ticket-closed-notice">
             <p>این تیکت بسته شده است. با ارسال پاسخ جدید، تیکت مجدداً باز می‌شود.</p>
-            <form method="post" enctype="multipart/form-data" class="sc-ticket-reopen-form">
+            <form method="post" class="sc-ticket-reopen-form">
                 <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
                 <input type="hidden" name="sc_ticket_action" value="reply">
                 <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
                 <p class="sc-ticket-field"><textarea name="reply_message" rows="3" placeholder="متن پاسخ برای باز کردن تیکت..."></textarea></p>
+                <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="reply_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>">
+                    <label>پیوست (اختیاری)</label>
+                    <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
+                        <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple>
+                        <span class="sc-file-upload-icon">📎</span>
+                        <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
+                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
+                    </div>
+                    <div class="sc-ticket-upload-progress-wrap" style="display:none;"><div class="sc-upload-progress sc-ticket-upload-progress"><div class="sc-upload-bar"></div><span class="sc-upload-text"></span></div></div>
+                    <div class="sc-ticket-uploaded-list"></div>
+                    <div class="sc-ticket-attachment-ids-hidden"></div>
+                </div>
                 <div class="sc-form-actions"><button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال و باز کردن تیکت</button></div>
             </form>
         </div>
