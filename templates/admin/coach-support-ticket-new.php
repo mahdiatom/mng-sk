@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
     }
 }
 ?>
-<div class="wrap sc-coach-panel-wrap">
+<div class="wrap sc-coach-panel-wrap sc-support-coach-wrap">
     <div class="sc-coach-panel-header">
         <a href="<?php echo esc_url($list_url); ?>" class="sc-coach-panel-back">← بازگشت به لیست تیکت‌ها</a>
         <h1 class="sc-coach-panel-title">ارسال تیکت جدید</h1>
