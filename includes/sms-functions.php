@@ -128,9 +128,50 @@ function sc_get_sms_credit() {
 }
 
 /**
- * Send SMS via sms.ir API
+ * ثبت لاگ ارسال پیامک در دیتابیس (برای گزارشات ارسال پیامک)
  */
-function sc_send_sms($mobile, $message, $is_pattern = false, $pattern_code = null, $parameters = array()) {
+function sc_sms_log_insert($mobile, $message_display, $context, $result) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_sms_log';
+    if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table)) !== $table) {
+        return;
+    }
+    $success = isset($result['success']) && $result['success'] ? 1 : 0;
+    $error_message = isset($result['message']) && !$success ? $result['message'] : null;
+    $response_message = isset($result['message']) && $success ? $result['message'] : null;
+    if (strlen((string) $response_message) > 500) {
+        $response_message = substr($response_message, 0, 497) . '…';
+    }
+    $message_id = isset($result['message_id']) ? $result['message_id'] : null;
+    $extra = [];
+    if (isset($result['error_code'])) {
+        $extra['error_code'] = $result['error_code'];
+    }
+    if (isset($result['cost'])) {
+        $extra['cost'] = $result['cost'];
+    }
+    $message_text = is_string($message_display) ? $message_display : '';
+    if (strlen($message_text) > 65530) {
+        $message_text = substr($message_text, 0, 65530);
+    }
+    $wpdb->insert($table, [
+        'created_at' => current_time('mysql'),
+        'mobile' => $mobile,
+        'message_text' => $message_text,
+        'context' => $context ?: null,
+        'success' => $success,
+        'error_message' => $error_message,
+        'response_message' => $response_message,
+        'message_id' => $message_id,
+        'extra' => empty($extra) ? null : wp_json_encode($extra),
+    ], ['%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']);
+}
+
+/**
+ * Send SMS via sms.ir API
+ * @param string $context بخش مبدا برای لاگ: ticket_new, invoice, enrollment, ...
+ */
+function sc_send_sms($mobile, $message, $is_pattern = false, $pattern_code = null, $parameters = array(), $context = '') {
     // Get SMS settings
     $api_key = sc_get_setting('sms_api_key', '');
     $sender = sc_get_setting('sms_sender', '');
@@ -159,7 +200,7 @@ function sc_send_sms($mobile, $message, $is_pattern = false, $pattern_code = nul
         $result = sc_send_regular_sms($mobile, $message);
     }
 
-    // Log the result
+    // Log the result (file)
     sc_log_sms(
         $result['success'] ? 'SUCCESS' : 'ERROR',
         $result['success'] ? 'SMS sent successfully' : $result['message'],
@@ -170,6 +211,10 @@ function sc_send_sms($mobile, $message, $is_pattern = false, $pattern_code = nul
             'message_id' => $result['message_id']
         ]
     );
+
+    // لاگ در دیتابیس برای گزارشات ارسال پیامک
+    $message_display = $is_pattern && $pattern_code ? ('پترن: ' . $pattern_code) : $message;
+    sc_sms_log_insert($mobile, $message_display, $context, $result);
 
     return $result;
 }
@@ -584,7 +629,7 @@ function sc_send_invoice_sms($invoice_id) {
         if (!empty($template)) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('invoice', 'user');
-            sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+            sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'invoice');
         }
     }
 
@@ -596,7 +641,7 @@ function sc_send_invoice_sms($invoice_id) {
             if (!empty($template)) {
                 $message = sc_replace_sms_variables($template, $variables);
                 $pattern_code = sc_get_sms_pattern('invoice', 'admin');
-                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'invoice');
             }
         }
     }
@@ -678,7 +723,7 @@ function sc_send_enrollment_sms($member_course_id) {
         if (!empty($user_template)) {
             $message = sc_replace_sms_variables($user_template, $variables);
             $pattern_code = sc_get_sms_pattern('enrollment', 'user');
-            $result = sc_send_sms($enrollment->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+            $result = sc_send_sms($enrollment->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'enrollment');
 
             sc_log_sms('INFO', 'Enrollment SMS to user sent', [
                 'phone' => $enrollment->player_phone,
@@ -705,7 +750,7 @@ function sc_send_enrollment_sms($member_course_id) {
             if (!empty($template)) {
                 $message = sc_replace_sms_variables($template, $variables);
                 $pattern_code = sc_get_sms_pattern('enrollment', 'admin');
-                $result = sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+                $result = sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'enrollment');
 
                 sc_log_sms('DEBUG', 'Enrollment SMS to admin result', [
                     'phone' => $admin_phone,
@@ -783,7 +828,7 @@ function sc_send_payment_reminder_sms($invoice_id) {
         if (!empty($template)) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('reminder', 'user');
-            sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+            sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'reminder');
         }
     }
 
@@ -795,7 +840,7 @@ function sc_send_payment_reminder_sms($invoice_id) {
             if (!empty($template)) {
                 $message = sc_replace_sms_variables($template, $variables);
                 $pattern_code = sc_get_sms_pattern('reminder', 'admin');
-                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'reminder');
             }
         }
     }
@@ -851,7 +896,7 @@ function sc_send_absence_sms($attendance_id) {
         if (!empty($template)) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('absence', 'user');
-            $result = sc_send_sms($attendance->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+            $result = sc_send_sms($attendance->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'absence');
             if ($result['success']) {
                 $sms_sent_successfully = true;
             }
@@ -866,7 +911,7 @@ function sc_send_absence_sms($attendance_id) {
             if (!empty($template)) {
                 $message = sc_replace_sms_variables($template, $variables);
                 $pattern_code = sc_get_sms_pattern('absence', 'admin');
-                $result = sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+                $result = sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'absence');
                 if ($result['success']) {
                     $sms_sent_successfully = true;
                 }

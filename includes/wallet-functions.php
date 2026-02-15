@@ -600,7 +600,7 @@ function sc_send_wallet_low_balance_sms($member_id, $balance) {
     $message = sc_replace_sms_variables($template, $variables);
     $pattern_code = sc_get_sms_pattern('wallet_low_balance', 'user');
     
-    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_low_balance');
 }
 
 /**
@@ -644,7 +644,7 @@ function sc_send_wallet_negative_balance_sms($member_id, $balance) {
     $message = sc_replace_sms_variables($template, $variables);
     $pattern_code = sc_get_sms_pattern('wallet_negative_balance', 'user');
     
-    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_negative_balance');
 }
 
 /**
@@ -689,7 +689,7 @@ function sc_send_wallet_charge_success_sms($member_id, $amount, $new_balance) {
     $message = sc_replace_sms_variables($template, $variables);
     $pattern_code = sc_get_sms_pattern('wallet_charge_success', 'user');
     
-    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_charge_success');
 }
 
 /**
@@ -738,7 +738,7 @@ function sc_send_wallet_payment_sms($member_id, $amount, $new_balance, $invoice_
     $message = sc_replace_sms_variables($template, $variables);
     $pattern_code = sc_get_sms_pattern('wallet_payment', 'user');
     
-    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_payment');
 }
 
 /**

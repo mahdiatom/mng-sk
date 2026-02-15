@@ -341,7 +341,7 @@ function sc_save_notification($data) {
     if ($send_sms && function_exists('sc_send_sms')) {
         if ($target_type === 'phone') {
             foreach ($phone_numbers as $phone) {
-                $r = sc_send_sms($phone, $sms_text, false);
+                $r = sc_send_sms($phone, $sms_text, false, null, [], 'notification');
                 if (!empty($r['success'])) {
                     $sms_sent++;
                 } elseif (empty($sms_fail_reason) && !empty($r['message'])) {
@@ -361,7 +361,7 @@ function sc_save_notification($data) {
             $phone = sc_get_user_phone($uid);
             if ($phone) {
                 $recipients_with_phone++;
-                $r = sc_send_sms($phone, $sms_text, false);
+                $r = sc_send_sms($phone, $sms_text, false, null, [], 'notification');
                 if (!empty($r['success'])) {
                     $sms_sent++;
                 } elseif (empty($sms_fail_reason) && !empty($r['message'])) {

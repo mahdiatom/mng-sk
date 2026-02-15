@@ -118,7 +118,7 @@ function sc_send_insurance_expiry_sms_daily() {
         foreach ($variables as $k => $v) {
             $message = str_replace('%' . $k . '%', $v, $message);
         }
-        sc_send_sms($m->player_phone, $message, !empty($pattern_code), $pattern_code, $variables);
+        sc_send_sms($m->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'insurance_expiry');
     }
 }
 

@@ -760,7 +760,7 @@ function sc_support_send_sms_on_new_ticket($ticket) {
         $mobile = $wpdb->get_var($wpdb->prepare("SELECT mobile_phone FROM $c WHERE id = %d", $ticket->coach_id));
     }
     if ($mobile && function_exists('sc_send_sms')) {
-        sc_send_sms($mobile, $template, false);
+        sc_send_sms($mobile, $template, false, null, [], 'ticket_new');
     }
 }
 
@@ -814,7 +814,7 @@ function sc_support_send_sms_on_new_message($ticket, $sender_type, $sender_id) {
         }
     }
     if ($mobile && function_exists('sc_send_sms')) {
-        sc_send_sms($mobile, $template, false);
+        sc_send_sms($mobile, $template, false, null, [], 'ticket_reply');
     }
 }
 

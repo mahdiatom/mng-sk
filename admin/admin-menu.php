@@ -654,6 +654,14 @@ function sc_register_admin_menu() {
     );
     add_submenu_page(
         'sc-reports',
+        'گزارشات ارسال پیامک',
+        'گزارشات ارسال پیامک',
+        'manage_options',
+        'sc-reports-sms-log',
+        'sc_admin_reports_sms_log_page'
+    );
+    add_submenu_page(
+        'sc-reports',
         'گزارش  حضور و غیاب',
         ' حضور و غیاب',
         'manage_options',
@@ -1411,6 +1419,11 @@ function sc_admin_reports_debtors_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'reports-debtors.php';
+}
+
+function sc_admin_reports_sms_log_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-sms-log.php';
 }
 
 // function sc_admin_reports_payments_page() {
