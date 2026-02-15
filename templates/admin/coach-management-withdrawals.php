@@ -110,45 +110,32 @@ if (isset($_POST['bulk_action']) && isset($_POST['request_ids']) && is_array($_P
 $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'pending';
 $filter_coach  = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
 
-// پردازش فیلترهای تاریخ (شمسی به میلادی)
-// اگر تاریخ‌ها خالی هستند، تاریخ پیش‌فرض امروز را تنظیم کن
-$today_gregorian = current_time('Y-m-d');
-$today = new DateTime(current_time('Y-m-d'));
-$jalali = gregorian_to_jalali(
-    (int)$today->format('Y'),
-    (int)$today->format('m'),
-    (int)$today->format('d')
-);
-$today_shamsi = $jalali[0] . '/' .
-    str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
-    str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
-
-$filter_date_from = '';
-$filter_date_to = '';
+// پردازش فیلترهای تاریخ — فقط از GET، بدون اعمال پیش‌فرض در فیلتر
 $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
 $filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
-
-// اگر تاریخ‌ها خالی هستند، تاریخ پیش‌فرض امروز را تنظیم کن
-if (empty($filter_date_from_shamsi) && empty($filter_date_to_shamsi)) {
-    $filter_date_from_shamsi = $today_shamsi;
-    $filter_date_to_shamsi = $today_shamsi;
-    $filter_date_from = $today_gregorian;
-    $filter_date_to = $today_gregorian;
-} else {
-    if (!empty($filter_date_from_shamsi)) {
-        $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
-    } elseif (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
-        $filter_date_from = sanitize_text_field($_GET['filter_date_from']);
-        $filter_date_from_shamsi = sc_date_shamsi_date_only($filter_date_from);
-    }
-
-    if (!empty($filter_date_to_shamsi)) {
-        $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
-    } elseif (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
-        $filter_date_to = sanitize_text_field($_GET['filter_date_to']);
-        $filter_date_to_shamsi = sc_date_shamsi_date_only($filter_date_to);
-    }
+$filter_date_from = '';
+$filter_date_to   = '';
+if (!empty($filter_date_from_shamsi)) {
+    $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+} elseif (isset($_GET['filter_date_from']) && $_GET['filter_date_from'] !== '') {
+    $filter_date_from = sanitize_text_field($_GET['filter_date_from']);
+    $filter_date_from_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_from) : '';
 }
+if (!empty($filter_date_to_shamsi)) {
+    $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+} elseif (isset($_GET['filter_date_to']) && $_GET['filter_date_to'] !== '') {
+    $filter_date_to = sanitize_text_field($_GET['filter_date_to']);
+    $filter_date_to_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_to) : '';
+}
+// فقط برای نمایش در فیلدها: وقتی کاربر تاریخی نفرستاده امروز نشان بده
+$today_shamsi_w = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+if (!$today_shamsi_w && function_exists('gregorian_to_jalali')) {
+    $today = new DateTime(current_time('Y-m-d'));
+    $jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+    $today_shamsi_w = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+}
+$display_date_from_shamsi_w = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_w;
+$display_date_to_shamsi_w   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_w;
 
 // ساخت WHERE clause
 $where_conditions = ['1=1'];
@@ -238,16 +225,11 @@ if (!empty($where_values)) {
 
             <div style="min-width: 180px;">
                 <label for="filter_date_from_shamsi">از تاریخ:</label><br>
-                <?php
-                if (empty($filter_date_from_shamsi) && !empty($filter_date_from)) {
-                    $filter_date_from_shamsi = sc_date_shamsi_date_only($filter_date_from);
-                }
-                ?>
                 <input type="text"
                        name="filter_date_from_shamsi"
                        id="filter_date_from_shamsi"
-                       value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
-                       class="regular-text persian-date-input"
+                       value="<?php echo esc_attr($display_date_from_shamsi_w); ?>"
+                       class="regular-text persian-date-input sc-no-default-date"
                        placeholder="از تاریخ (شمسی)"
                        readonly
                        style="width: 100%;">
@@ -256,16 +238,11 @@ if (!empty($where_values)) {
 
             <div style="min-width: 180px;">
                 <label for="filter_date_to_shamsi">تا تاریخ:</label><br>
-                <?php
-                if (empty($filter_date_to_shamsi) && !empty($filter_date_to)) {
-                    $filter_date_to_shamsi = sc_date_shamsi_date_only($filter_date_to);
-                }
-                ?>
                 <input type="text"
                        name="filter_date_to_shamsi"
                        id="filter_date_to_shamsi"
-                       value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
-                       class="regular-text persian-date-input"
+                       value="<?php echo esc_attr($display_date_to_shamsi_w); ?>"
+                       class="regular-text persian-date-input sc-no-default-date"
                        placeholder="تا تاریخ (شمسی)"
                        readonly
                        style="width: 100%;">

@@ -172,24 +172,15 @@ if ($active_tab === 'individual') {
         $filter_date_to_shamsi = sc_date_shamsi_date_only($filter_date_to);
     }
     
-    // اگر تاریخ‌ها خالی بودند، پیش‌فرض را امروز قرار بده
-    if (empty($filter_date_from) && empty($filter_date_to)) {
-        $today_gregorian = current_time('Y-m-d');
+    // فقط برای نمایش: وقتی کاربر تاریخی نفرستاده، امروز در فیلدها نشان بده (در فیلتر اعمال نمی‌شود)
+    $today_shamsi_tab1 = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+    if (!$today_shamsi_tab1 && function_exists('gregorian_to_jalali')) {
         $today = new DateTime(current_time('Y-m-d'));
-        $jalali = gregorian_to_jalali(
-            (int)$today->format('Y'),
-            (int)$today->format('m'),
-            (int)$today->format('d')
-        );
-        $today_shamsi = $jalali[0] . '/' .
-            str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
-            str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
-        
-        $filter_date_from = $today_gregorian;
-        $filter_date_to = $today_gregorian;
-        $filter_date_from_shamsi = $today_shamsi;
-        $filter_date_to_shamsi = $today_shamsi;
+        $jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+        $today_shamsi_tab1 = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
     }
+    $display_date_from_shamsi_tab1 = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_tab1;
+    $display_date_to_shamsi_tab1   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_tab1;
     
     $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
 
@@ -749,8 +740,8 @@ $max_display = 10;
         <input type="text"
                id="filter_date_from_shamsi"
                name="filter_date_from_shamsi"
-               class="sc-filter-control persian-date-input"
-               value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+               class="sc-filter-control persian-date-input sc-no-default-date"
+               value="<?php echo esc_attr($display_date_from_shamsi_tab1); ?>"
                readonly>
 
         <span class="sc-date-separator">تا</span>
@@ -758,8 +749,8 @@ $max_display = 10;
         <input type="text"
                id="filter_date_to_shamsi"
                name="filter_date_to_shamsi"
-               class="sc-filter-control persian-date-input"
-               value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+               class="sc-filter-control persian-date-input sc-no-default-date"
+               value="<?php echo esc_attr($display_date_to_shamsi_tab1); ?>"
                readonly>
 
         <input type="hidden"
@@ -945,40 +936,40 @@ $max_display = 10;
                     </th>
                     <td>
                         <?php 
-                        // تبدیل تاریخ‌های میلادی به شمسی برای نمایش
+                        // فقط برای نمایش: وقتی کاربر تاریخی نفرستاده امروز نشان بده (در فیلتر اعمال نمی‌شود)
                         $filter_date_from_shamsi_2 = '';
                         $filter_date_to_shamsi_2 = '';
                         if (!empty($filter_date_from)) {
                             $filter_date_from_shamsi_2 = sc_date_shamsi_date_only($filter_date_from);
                         } else {
-                            // تاریخ پیش‌فرض: امروز
-                            $today = new DateTime();
-                            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
-                            $filter_date_from_shamsi_2 = $today_jalali[0] . '/' . 
-                                                         str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
-                                                         str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                            $filter_date_from_shamsi_2 = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+                            if (!$filter_date_from_shamsi_2 && function_exists('gregorian_to_jalali')) {
+                                $today = new DateTime(current_time('Y-m-d'));
+                                $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+                                $filter_date_from_shamsi_2 = $today_jalali[0] . '/' . str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                            }
                         }
                         if (!empty($filter_date_to)) {
                             $filter_date_to_shamsi_2 = sc_date_shamsi_date_only($filter_date_to);
                         } else {
-                            // تاریخ پیش‌فرض: امروز
-                            $today = new DateTime();
-                            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
-                            $filter_date_to_shamsi_2 = $today_jalali[0] . '/' . 
-                                                       str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
-                                                       str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                            $filter_date_to_shamsi_2 = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+                            if (!$filter_date_to_shamsi_2 && function_exists('gregorian_to_jalali')) {
+                                $today = new DateTime(current_time('Y-m-d'));
+                                $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+                                $filter_date_to_shamsi_2 = $today_jalali[0] . '/' . str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                            }
                         }
                         ?>
                         <input type="text" name="filter_date_from_shamsi_2" id="filter_date_from_shamsi_2" 
                                value="<?php echo esc_attr($filter_date_from_shamsi_2); ?>" 
-                               class="regular-text persian-date-input" 
+                               class="regular-text persian-date-input sc-no-default-date" 
                                placeholder="از تاریخ (شمسی)" 
                                readonly>
                         <input type="hidden" name="filter_date_from" id="filter_date_from_2" value="<?php echo esc_attr($filter_date_from); ?>">
                         <span>تا</span>
                         <input type="text" name="filter_date_to_shamsi_2" id="filter_date_to_shamsi_2" 
                                value="<?php echo esc_attr($filter_date_to_shamsi_2); ?>" 
-                               class="regular-text persian-date-input" 
+                               class="regular-text persian-date-input sc-no-default-date" 
                                placeholder="تا تاریخ (شمسی)" 
                                 readonly>
                         <input type="hidden" name="filter_date_to" id="filter_date_to_2" value="<?php echo esc_attr($filter_date_to); ?>">
@@ -1210,40 +1201,40 @@ $max_display = 10;
                     </th>
                     <td>
                         <?php 
-                        // تبدیل تاریخ‌های میلادی به شمسی برای نمایش
+                        // فقط برای نمایش: وقتی کاربر تاریخی نفرستاده امروز نشان بده (در فیلتر اعمال نمی‌شود)
                         $filter_date_from_shamsi_3 = '';
                         $filter_date_to_shamsi_3 = '';
                         if (!empty($filter_date_from)) {
                             $filter_date_from_shamsi_3 = sc_date_shamsi_date_only($filter_date_from);
                         } else {
-                            // تاریخ پیش‌فرض: امروز
-                            $today = new DateTime();
-                            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
-                            $filter_date_from_shamsi_3 = $today_jalali[0] . '/' . 
-                                                           str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
-                                                           str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                            $filter_date_from_shamsi_3 = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+                            if (!$filter_date_from_shamsi_3 && function_exists('gregorian_to_jalali')) {
+                                $today = new DateTime(current_time('Y-m-d'));
+                                $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+                                $filter_date_from_shamsi_3 = $today_jalali[0] . '/' . str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                            }
                         }
                         if (!empty($filter_date_to)) {
                             $filter_date_to_shamsi_3 = sc_date_shamsi_date_only($filter_date_to);
                         } else {
-                            // تاریخ پیش‌فرض: امروز
-                            $today = new DateTime();
-                            $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
-                            $filter_date_to_shamsi_3 = $today_jalali[0] . '/' . 
-                                                         str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . 
-                                                         str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                            $filter_date_to_shamsi_3 = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+                            if (!$filter_date_to_shamsi_3 && function_exists('gregorian_to_jalali')) {
+                                $today = new DateTime(current_time('Y-m-d'));
+                                $today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+                                $filter_date_to_shamsi_3 = $today_jalali[0] . '/' . str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+                            }
                         }
                         ?>
                         <input type="text" name="filter_date_from_shamsi_3" id="filter_date_from_shamsi_3" 
                                value="<?php echo esc_attr($filter_date_from_shamsi_3); ?>" 
-                               class="regular-text persian-date-input" 
+                               class="regular-text persian-date-input sc-no-default-date" 
                                placeholder="از تاریخ (شمسی)" 
                                 readonly>
                         <input type="hidden" name="filter_date_from" id="filter_date_from_3" value="<?php echo esc_attr($filter_date_from); ?>">
                         <span>تا</span>
                         <input type="text" name="filter_date_to_shamsi_3" id="filter_date_to_shamsi_3" 
                                value="<?php echo esc_attr($filter_date_to_shamsi_3); ?>" 
-                               class="regular-text persian-date-input" 
+                               class="regular-text persian-date-input sc-no-default-date" 
                                placeholder="تا تاریخ (شمسی)" 
                                readonly>
                         <input type="hidden" name="filter_date_to" id="filter_date_to_3" value="<?php echo esc_attr($filter_date_to); ?>">

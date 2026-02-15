@@ -31,34 +31,23 @@ $coach_id = $coach->id;
 // دریافت موجودی کیف پول
 $wallet_balance = sc_get_coach_wallet_balance($coach_id);
 
-// دریافت فیلترها
+// دریافت فیلترها — تاریخ فقط از GET، بدون اعمال پیش‌فرض در فیلتر
 $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
-$filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+$filter_date_from = (!empty($filter_date_from_shamsi) && function_exists('sc_shamsi_to_gregorian_date')) ? sc_shamsi_to_gregorian_date($filter_date_from_shamsi) : '';
+$filter_date_to   = (!empty($filter_date_to_shamsi) && function_exists('sc_shamsi_to_gregorian_date')) ? sc_shamsi_to_gregorian_date($filter_date_to_shamsi) : '';
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
 $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
 
-// اگر تاریخ‌ها خالی هستند، تاریخ پیش‌فرض امروز را تنظیم کن
-if (empty($filter_date_from_shamsi) && empty($filter_date_to_shamsi)) {
-    $today_gregorian = current_time('Y-m-d');
+// فقط برای نمایش در فیلدها: وقتی کاربر تاریخی نفرستاده امروز نشان بده
+$today_shamsi_salary = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+if (!$today_shamsi_salary && function_exists('gregorian_to_jalali')) {
     $today = new DateTime(current_time('Y-m-d'));
-    $jalali = gregorian_to_jalali(
-        (int)$today->format('Y'),
-        (int)$today->format('m'),
-        (int)$today->format('d')
-    );
-    $today_shamsi = $jalali[0] . '/' .
-        str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
-        str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
-    
-    $filter_date_from_shamsi = $today_shamsi;
-    $filter_date_to_shamsi = $today_shamsi;
-    $filter_date_from = $today_gregorian;
-    $filter_date_to = $today_gregorian;
-} else {
-    // تبدیل تاریخ شمسی به میلادی
-    $filter_date_from = $filter_date_from_shamsi ? sc_shamsi_to_gregorian_date($filter_date_from_shamsi) : '';
-    $filter_date_to = $filter_date_to_shamsi ? sc_shamsi_to_gregorian_date($filter_date_to_shamsi) : '';
+    $jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+    $today_shamsi_salary = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
 }
+$display_date_from_shamsi_salary = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_salary;
+$display_date_to_shamsi_salary   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_salary;
 
 // دریافت دوره‌هایی که مربی به آن‌ها دسترسی دارد (برای فیلتر کردن)
 $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
@@ -158,8 +147,8 @@ $all_courses_for_filter = $wpdb->get_results(
                     <input type="text" 
                            name="filter_date_from_shamsi" 
                            id="filter_date_from_shamsi" 
-                           value="<?php echo esc_attr($filter_date_from_shamsi); ?>" 
-                           class="regular-text persian-date-input" 
+                           value="<?php echo esc_attr($display_date_from_shamsi_salary); ?>" 
+                           class="regular-text persian-date-input sc-no-default-date" 
                            style="width: 150px;"
                            readonly>
                     <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
@@ -170,8 +159,8 @@ $all_courses_for_filter = $wpdb->get_results(
                     <input type="text" 
                            name="filter_date_to_shamsi" 
                            id="filter_date_to_shamsi" 
-                           value="<?php echo esc_attr($filter_date_to_shamsi); ?>" 
-                           class="regular-text persian-date-input" 
+                           value="<?php echo esc_attr($display_date_to_shamsi_salary); ?>" 
+                           class="regular-text persian-date-input sc-no-default-date" 
                            style="width: 150px;"
                            readonly>
                     <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">

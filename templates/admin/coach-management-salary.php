@@ -13,19 +13,22 @@ $coaches_table = $wpdb->prefix . 'sc_coaches';
 $salary_records_table = $wpdb->prefix . 'sc_coach_salary_records';
 $courses_table = $wpdb->prefix . 'sc_courses';
 
-// دریافت فیلترها - تاریخ پیش‌فرض امروز شمسی
-$today_shamsi = '';
-if (function_exists('gregorian_to_jalali')) {
-    $now = current_time('timestamp');
-    $g = explode('-', date('Y-m-d', $now));
-    $j = gregorian_to_jalali((int)$g[0], (int)$g[1], (int)$g[2]);
-    $today_shamsi = $j[0] . '/' . str_pad($j[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($j[2], 2, '0', STR_PAD_LEFT);
-}
+// دریافت فیلترها — تاریخ فقط از GET، بدون اعمال پیش‌فرض در فیلتر
 $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
 $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
-$filter_date_from = isset($_GET['filter_date_from_shamsi']) && $_GET['filter_date_from_shamsi'] !== '' ? sanitize_text_field($_GET['filter_date_from_shamsi']) : $today_shamsi;
-$filter_date_to = isset($_GET['filter_date_to_shamsi']) && $_GET['filter_date_to_shamsi'] !== '' ? sanitize_text_field($_GET['filter_date_to_shamsi']) : $today_shamsi;
+$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
+$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+$filter_date_from = $filter_date_from_shamsi; // برای WHERE به شمسی تبدیل می‌شود
+$filter_date_to   = $filter_date_to_shamsi;
+$today_shamsi_sal = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+if (!$today_shamsi_sal && function_exists('gregorian_to_jalali')) {
+    $g = explode('-', current_time('Y-m-d'));
+    $j = gregorian_to_jalali((int)$g[0], (int)$g[1], (int)$g[2]);
+    $today_shamsi_sal = $j[0] . '/' . str_pad($j[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($j[2], 2, '0', STR_PAD_LEFT);
+}
+$display_date_from_sal = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_sal;
+$display_date_to_sal   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_sal;
 
 // ساخت WHERE clause
 $where_conditions = ['1=1'];
@@ -136,15 +139,15 @@ $courses = $wpdb->get_results(
                 <div>
                     <label>از تاریخ (شمسی):</label><br>
                     <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi_salary" 
-                           value="<?php echo esc_attr($filter_date_from); ?>" 
-                           class="persian-date-input sc-filter-control" style="width: 150px;" readonly>
+                           value="<?php echo esc_attr($display_date_from_sal); ?>" 
+                           class="persian-date-input sc-filter-control sc-no-default-date" style="width: 150px;" readonly>
                 </div>
                 
                 <div>
                     <label>تا تاریخ (شمسی):</label><br>
                     <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi_salary" 
-                           value="<?php echo esc_attr($filter_date_to); ?>" 
-                           class="persian-date-input sc-filter-control" style="width: 150px;" readonly>
+                           value="<?php echo esc_attr($display_date_to_sal); ?>" 
+                           class="persian-date-input sc-filter-control sc-no-default-date" style="width: 150px;" readonly>
                 </div>
                 
                 <div>

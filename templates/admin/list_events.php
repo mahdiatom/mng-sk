@@ -107,16 +107,14 @@ public function extra_tablenav($which) {
         $selected_status = isset($_GET['event_status']) ? sanitize_text_field($_GET['event_status']) : 'all';
         $selected_type   = isset($_GET['event_type']) ? sanitize_text_field($_GET['event_type']) : 'all';
         $selected_fee    = isset($_GET['event_fee']) ? sanitize_text_field($_GET['event_fee']) : 'all';
-        $start_default_shamsi = sc_date_shamsi_date_only(date('Y-m-d', strtotime('-10 days')));
-        $end_default_shamsi   = sc_date_shamsi_date_only(date('Y-m-d', strtotime('+10 days')));
-
-        $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) 
-        ? sanitize_text_field($_GET['filter_date_from_shamsi']) 
-        : $start_default_shamsi;
-
-        $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) 
-        ? sanitize_text_field($_GET['filter_date_to_shamsi']) 
-        : $end_default_shamsi;
+        // فقط برای نمایش: وقتی کاربر تاریخی نفرستاده امروز نشان بده (در فیلتر اعمال نمی‌شود)
+        $today_shamsi_display = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+        $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) && $_GET['filter_date_from_shamsi'] !== ''
+            ? sanitize_text_field($_GET['filter_date_from_shamsi'])
+            : $today_shamsi_display;
+        $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) && $_GET['filter_date_to_shamsi'] !== ''
+            ? sanitize_text_field($_GET['filter_date_to_shamsi'])
+            : $today_shamsi_display;
 
         ?>
         <div class="alignleft actions">
@@ -145,8 +143,8 @@ public function extra_tablenav($which) {
 
             <!-- تاریخ برگزاری -->
             <label class="screen-reader-text">بازه تاریخ برگزاری</label>
-            <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" class="persian-date-input" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="از" style=" width: 15%;">
-            <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" class="persian-date-input" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="تا" style=" width: 15%;">
+            <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="از" style=" width: 15%;">
+            <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="تا" style=" width: 15%;">
 
             <!-- hidden inputs میلادی -->
             <input type="hidden" name="filter_date_from" id="filter_date_from">

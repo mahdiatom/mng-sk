@@ -19,28 +19,23 @@ $filter_event = isset($_GET['filter_event']) ? absint($_GET['filter_event']) : 0
 $filter_event_type = isset($_GET['filter_event_type']) ? sanitize_text_field($_GET['filter_event_type']) : 'all';
 $filter_order = isset($_GET['filter_order']) ? sanitize_text_field($_GET['filter_order']) : '';
 $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
-$filter_date_from        = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
-$filter_date_to          = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
 $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
 $filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+$filter_date_from = '';
+$filter_date_to   = '';
+if (!empty($filter_date_from_shamsi) && function_exists('sc_shamsi_to_gregorian_date')) {
+    $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+} elseif (isset($_GET['filter_date_from']) && $_GET['filter_date_from'] !== '') {
+    $filter_date_from = sanitize_text_field($_GET['filter_date_from']);
+    $filter_date_from_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_from) : $filter_date_from_shamsi;
+}
+if (!empty($filter_date_to_shamsi) && function_exists('sc_shamsi_to_gregorian_date')) {
+    $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+} elseif (isset($_GET['filter_date_to']) && $_GET['filter_date_to'] !== '') {
+    $filter_date_to = sanitize_text_field($_GET['filter_date_to']);
+    $filter_date_to_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_to) : $filter_date_to_shamsi;
+}
 $filter_free = isset($_GET['filter_free']) ? absint($_GET['filter_free']) : 0;
-
-// // اگر تاریخ خالی بود، تاریخ امروز را قرار بده
-// if (empty($filter_date_from) && empty($filter_date_to)) {
-//     $today_gregorian = current_time('Y-m-d');
-//     $today = new DateTime($today_gregorian);
-//     $jalali = gregorian_to_jalali(
-//         (int)$today->format('Y'),
-//         (int)$today->format('m'),
-//         (int)$today->format('d')
-//     );
-//     $today_shamsi = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
-
-//     $filter_date_from        = $today_gregorian;
-//     $filter_date_to          = $today_gregorian;
-//     $filter_date_from_shamsi = $today_shamsi;
-//     $filter_date_to_shamsi   = $today_shamsi;
-// }
 
 // حذف ثبت‌نامی رویداد
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['registration_id'])) {
@@ -372,42 +367,23 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
     <label class="sc-filter-label">بازه تاریخ ثبت‌نام</label>
 
     <?php
-$filter_date_from        = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
-$filter_date_to          = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
-$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
-$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
-
-if (empty($filter_date_from) && empty($filter_date_to)) {
-
-    $today_gregorian = current_time('Y-m-d');
-
-    $today = new DateTime(current_time('Y-m-d'));
-    $jalali = gregorian_to_jalali(
-        (int)$today->format('Y'),
-        (int)$today->format('m'),
-        (int)$today->format('d')
-    );
-
-    $today_shamsi = $jalali[0] . '/' .
-        str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
-        str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
-
-    $filter_date_from        = $today_gregorian;
-    $filter_date_to          = $today_gregorian;
-    $filter_date_from_shamsi = $today_shamsi;
-    $filter_date_to_shamsi   = $today_shamsi;
-
-    
-}
-
+    // فقط برای نمایش: وقتی کاربر تاریخی نفرستاده امروز نشان بده (در فیلتر اعمال نمی‌شود)
+    $today_shamsi_reg = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+    if (!$today_shamsi_reg && function_exists('gregorian_to_jalali')) {
+        $today = new DateTime(current_time('Y-m-d'));
+        $jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+        $today_shamsi_reg = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+    }
+    $display_date_from_shamsi_reg = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_reg;
+    $display_date_to_shamsi_reg   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_reg;
     ?>
 
     <div class="sc-date-range">
         <input type="text"
                id="filter_date_from_shamsi"
                name="filter_date_from_shamsi"
-               class="sc-filter-control persian-date-input"
-               value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+               class="sc-filter-control persian-date-input sc-no-default-date"
+               value="<?php echo esc_attr($display_date_from_shamsi_reg); ?>"
                readonly>
 
         <span class="sc-date-separator">تا</span>
@@ -415,8 +391,8 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
         <input type="text"
                id="filter_date_to_shamsi"
                name="filter_date_to_shamsi"
-               class="sc-filter-control persian-date-input"
-               value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+               class="sc-filter-control persian-date-input sc-no-default-date"
+               value="<?php echo esc_attr($display_date_to_shamsi_reg); ?>"
                readonly>
 
         <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
