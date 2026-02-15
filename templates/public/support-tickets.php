@@ -92,11 +92,14 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                 </div>
                 <div class="sc-ticket-msg-body"><?php echo wp_kses_post(wpautop($msg->message)); ?></div>
                 <?php
-                if (!empty($msg->attachment_ids)) {
-                    $ids = json_decode($msg->attachment_ids, true);
-                    if (is_array($ids)) {
+                $attachment_ids_raw = isset($msg->attachment_ids) ? $msg->attachment_ids : '';
+                if ($attachment_ids_raw !== '' && $attachment_ids_raw !== null) {
+                    $ids = json_decode($attachment_ids_raw, true);
+                    if (is_array($ids) && count($ids) > 0) {
                         echo '<div class="sc-ticket-msg-attachments">';
                         foreach ($ids as $aid) {
+                            $aid = (int) $aid;
+                            if ($aid <= 0) continue;
                             $url = sc_support_attachment_download_url($aid, $ticket->id);
                             $name = get_the_title($aid) ?: 'پیوست';
                             echo '<a href="' . esc_url($url) . '" target="_blank" class="sc-ticket-attachment-link">' . esc_html($name) . '</a>';
@@ -115,18 +118,18 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                 <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
                 <input type="hidden" name="sc_ticket_action" value="reply">
                 <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
-                <p class="sc-form-row">
+                <p class="sc-ticket-field">
                     <label for="reply_message">پاسخ شما</label>
                     <textarea name="reply_message" id="reply_message" rows="4" required placeholder="متن پاسخ خود را بنویسید..."></textarea>
                 </p>
-                <p class="sc-form-row">
+                <p class="sc-ticket-field">
                     <label>پیوست (اختیاری)</label>
                     <input type="file" name="reply_attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" class="sc-ticket-file-input">
                     <span class="sc-form-hint">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
                 </p>
-                <p class="sc-form-actions">
+                <div class="sc-form-actions">
                     <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال پاسخ</button>
-                </p>
+                </div>
             </form>
         </div>
         <?php endif; ?>
@@ -138,8 +141,8 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                 <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
                 <input type="hidden" name="sc_ticket_action" value="reply">
                 <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
-                <p class="sc-form-row"><textarea name="reply_message" rows="3" placeholder="متن پاسخ برای باز کردن تیکت..."></textarea></p>
-                <p class="sc-form-actions"><button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال و باز کردن تیکت</button></p>
+                <p class="sc-ticket-field"><textarea name="reply_message" rows="3" placeholder="متن پاسخ برای باز کردن تیکت..."></textarea></p>
+                <div class="sc-form-actions"><button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال و باز کردن تیکت</button></div>
             </form>
         </div>
         <?php else : ?>
@@ -148,7 +151,9 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                 <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
                 <input type="hidden" name="sc_ticket_action" value="close">
                 <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
-                <button type="submit" class="sc-ticket-btn sc-ticket-btn-close" onclick="return confirm('آیا از بستن این تیکت اطمینان دارید؟');">بستن تیکت</button>
+                <div class="sc-form-actions">
+                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-close" onclick="return confirm('آیا از بستن این تیکت اطمینان دارید؟');">بستن تیکت</button>
+                </div>
             </form>
         </div>
         <?php endif; ?>
@@ -191,12 +196,12 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                 <?php wp_nonce_field('sc_ticket_action', 'sc_ticket_nonce'); ?>
                 <input type="hidden" name="sc_ticket_action" value="create">
 
-                <p class="sc-form-row">
+                <p class="sc-ticket-field">
                     <label for="ticket_subject">موضوع <span class="required">*</span></label>
                     <input type="text" name="ticket_subject" id="ticket_subject" required maxlength="255" placeholder="موضوع تیکت را وارد کنید">
                 </p>
 
-                <p class="sc-form-row">
+                <p class="sc-ticket-field">
                     <label for="ticket_department">بخش مورد نظر <span class="required">*</span></label>
                     <select name="ticket_department" id="ticket_department">
                         <option value="manager">مدیر باشگاه</option>
@@ -208,7 +213,7 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                 </p>
 
                 <?php if (!empty($coaches)) : ?>
-                <p class="sc-form-row sc-ticket-coach-row" id="ticket_coach_wrap" style="display:none;">
+                <p class="sc-ticket-field sc-ticket-coach-row" id="ticket_coach_wrap" style="display:none;">
                     <label for="ticket_coach_id">مربی <span class="required">*</span></label>
                     <select name="ticket_coach_id" id="ticket_coach_id">
                         <option value="0">انتخاب کنید</option>
@@ -219,20 +224,20 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                 </p>
                 <?php endif; ?>
 
-                <p class="sc-form-row">
+                <p class="sc-ticket-field">
                     <label for="ticket_message">متن پیام <span class="required">*</span></label>
                     <textarea name="ticket_message" id="ticket_message" rows="5" required placeholder="متن پیام خود را بنویسید..."></textarea>
                 </p>
 
-                <p class="sc-form-row">
+                <p class="sc-ticket-field">
                     <label>پیوست (اختیاری)</label>
                     <input type="file" name="ticket_attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" class="sc-ticket-file-input">
                     <span class="sc-form-hint">فرمت‌های مجاز: تصویر، PDF، ورد، اکسل. حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
                 </p>
 
-                <p class="sc-form-actions">
+                <div class="sc-form-actions">
                     <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال تیکت</button>
-                </p>
+                </div>
             </form>
         </div>
     </div>

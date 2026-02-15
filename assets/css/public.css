@@ -3692,14 +3692,26 @@ color: white;
 .sc-ticket-btn-submit {
     padding: 0.75rem 2rem;
     font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.05s;
+}
+
+.sc-ticket-btn-submit:hover {
+    transform: translateY(-1px);
 }
 
 .sc-ticket-btn-close {
-    padding: 0.6rem 1.5rem;
+    padding: 0.65rem 1.5rem;
     font-size: 0.9375rem;
+    font-weight: 600;
     background: #fff;
-    color: #646970;
+    color: #50575e;
     border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .sc-ticket-btn-close:hover {
@@ -3883,9 +3895,18 @@ color: white;
     box-sizing: border-box;
 }
 
-.sc-ticket-reply-form .sc-form-row,
-.sc-ticket-new-form .sc-form-row,
-.sc-ticket-reopen-form .sc-form-row {
+/* فیلدهای فرم تیکت - زیر هم، بدون گرید */
+.sc-ticket-field {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 1.25rem;
+    box-sizing: border-box;
+}
+
+.sc-ticket-reply-form .sc-ticket-field,
+.sc-ticket-new-form .sc-ticket-field,
+.sc-ticket-reopen-form .sc-ticket-field {
     margin-bottom: 1.25rem;
     width: 100%;
     max-width: 100%;
@@ -3893,7 +3914,8 @@ color: white;
 }
 
 .sc-ticket-reply-form label,
-.sc-ticket-new-form label {
+.sc-ticket-new-form label,
+.sc-ticket-reopen-form label {
     display: block;
     margin-bottom: 0.35rem;
     font-weight: 600;
@@ -3929,8 +3951,12 @@ color: white;
 }
 
 .sc-form-actions {
-    margin-top: 1rem;
+    margin-top: 1.25rem;
     margin-bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
 }
 
 .sc-ticket-close-form-wrap {
@@ -3973,9 +3999,9 @@ color: white;
     color: #1a1a1a;
 }
 
-.sc-ticket-new-form .sc-form-row input[type="text"],
-.sc-ticket-new-form .sc-form-row select,
-.sc-ticket-new-form .sc-form-row input[type="file"] {
+.sc-ticket-new-form .sc-ticket-field input[type="text"],
+.sc-ticket-new-form .sc-ticket-field select,
+.sc-ticket-new-form .sc-ticket-field input[type="file"] {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box;
@@ -3986,14 +4012,14 @@ color: white;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.sc-ticket-reply-form .sc-form-row input[type="file"] {
+.sc-ticket-reply-form .sc-ticket-field input[type="file"] {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box;
 }
 
-.sc-ticket-new-form .sc-form-row input:focus,
-.sc-ticket-new-form .sc-form-row select:focus {
+.sc-ticket-new-form .sc-ticket-field input:focus,
+.sc-ticket-new-form .sc-ticket-field select:focus {
     border-color: #2271b1;
     box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.15);
     outline: none;
@@ -4113,10 +4139,10 @@ color: white;
     padding: 2rem;
 }
 
-.sc-support-form-view .sc-ticket-new-form .sc-form-row input[type="text"],
-.sc-support-form-view .sc-ticket-new-form .sc-form-row select,
-.sc-support-form-view .sc-ticket-new-form .sc-form-row textarea,
-.sc-support-form-view .sc-ticket-new-form .sc-form-row input[type="file"] {
+.sc-support-form-view .sc-ticket-new-form .sc-ticket-field input[type="text"],
+.sc-support-form-view .sc-ticket-new-form .sc-ticket-field select,
+.sc-support-form-view .sc-ticket-new-form .sc-ticket-field textarea,
+.sc-support-form-view .sc-ticket-new-form .sc-ticket-field input[type="file"] {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box;
@@ -4128,8 +4154,8 @@ color: white;
     box-sizing: border-box;
 }
 
-.sc-ticket-detail-card .sc-ticket-reply-form .sc-form-row,
-.sc-ticket-detail-card .sc-ticket-new-form .sc-form-row {
+.sc-ticket-detail-card .sc-ticket-reply-form .sc-ticket-field,
+.sc-ticket-detail-card .sc-ticket-new-form .sc-ticket-field {
     width: 100%;
     max-width: 100%;
 }

@@ -550,23 +550,30 @@ function sc_support_close_ticket($ticket_id, $user_id) {
  * Uses wp_handle_upload; files stored in WordPress uploads, with permission check via meta.
  */
 function sc_support_handle_attachments($files_key = 'ticket_attachments') {
-    if (empty($_FILES[$files_key])) {
+    // در HTML با name="reply_attachments[]" کلید در $_FILES برابر "reply_attachments[]" است نه "reply_attachments"
+    if (empty($_FILES[$files_key]) && empty($_FILES[$files_key . '[]'])) {
         return [];
     }
+    $actual_key = !empty($_FILES[$files_key]) ? $files_key : $files_key . '[]';
     $allowed = sc_support_allowed_mime_types();
     $allowed_ext = array_keys($allowed);
     $max_size = 5 * 1024 * 1024; // 5MB per file
     $max_files = 5;
     $ids = [];
-    $names = $_FILES[$files_key]['name'];
-    $tmp = $_FILES[$files_key]['tmp_name'];
-    $error = $_FILES[$files_key]['error'];
-    $size = $_FILES[$files_key]['size'];
+    $names = $_FILES[$actual_key]['name'];
+    $tmp = $_FILES[$actual_key]['tmp_name'];
+    $error = $_FILES[$actual_key]['error'];
+    $size = $_FILES[$actual_key]['size'];
+    $type = isset($_FILES[$actual_key]['type']) ? $_FILES[$actual_key]['type'] : [];
     if (!is_array($names)) {
         $names = [$names];
         $tmp = [$tmp];
         $error = [$error];
         $size = [$size];
+        $type = is_array($type) ? $type : [$type];
+    }
+    if (!is_array($type)) {
+        $type = array_pad([], count($names), '');
     }
     $count = 0;
 
@@ -587,7 +594,7 @@ function sc_support_handle_attachments($files_key = 'ticket_attachments') {
         }
         $file = [
             'name' => $names[$i],
-            'type' => $_FILES[$files_key]['type'][$i],
+            'type' => isset($type[$i]) ? $type[$i] : '',
             'tmp_name' => $tmp[$i],
             'error' => $error[$i],
             'size' => isset($size[$i]) ? $size[$i] : 0,

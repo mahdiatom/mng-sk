@@ -7,12 +7,14 @@ if ($coach_id <= 0) {
 $tickets = sc_support_get_tickets_for_coach($coach_id, ['per_page' => 50]);
 $list_url = admin_url('admin.php?page=sc-coach-support-tickets');
 ?>
-<div class="wrap">
-    <h1 class="wp-heading-inline">تیکت‌های پشتیبانی</h1>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-support-ticket-new')); ?>" class="page-title-action">ارسال تیکت جدید</a>
-    <hr class="wp-header-end">
+<div class="wrap sc-coach-panel-wrap sc-support-coach-wrap">
+    <div class="sc-coach-panel-header">
+        <h1 class="sc-coach-panel-title">تیکت‌های پشتیبانی</h1>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-support-ticket-new')); ?>" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-new">ارسال تیکت جدید</a>
+    </div>
+    <div class="sc-coach-panel-card">
     <?php if (empty($tickets)) : ?>
-        <p>هنوز تیکتی برای شما ارسال نشده است.</p>
+        <p class="sc-coach-panel-empty-text" style="padding: 2rem;">هنوز تیکتی برای شما ارسال نشده است.</p>
     <?php else : ?>
         <table class="wp-list-table widefat fixed striped">
             <thead>
@@ -80,4 +82,5 @@ $list_url = admin_url('admin.php?page=sc-coach-support-tickets');
             </tbody>
         </table>
     <?php endif; ?>
+    </div>
 </div>

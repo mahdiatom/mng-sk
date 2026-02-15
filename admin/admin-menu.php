@@ -1064,10 +1064,12 @@ function sc_admin_support_tickets_list_page() {
         $list_table->prepare_items();
     }
     ?>
-    <div class="wrap">
-        <h1 class="wp-heading-inline">لیست تیکت‌های پشتیبانی</h1>
-        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-support-ticket-new')); ?>" class="page-title-action">ارسال تیکت جدید</a>
-        <hr class="wp-header-end">
+    <div class="wrap sc-support-admin-wrap">
+        <div class="sc-support-admin-list-header" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:1rem;">
+            <h1 class="wp-heading-inline" style="margin:0;">لیست تیکت‌های پشتیبانی</h1>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-support-ticket-new')); ?>" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-new">ارسال تیکت جدید</a>
+        </div>
+        <div class="sc-support-admin-list-card" style="background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.06); overflow:hidden;">
         <form method="get">
             <input type="hidden" name="page" value="sc-support-tickets">
             <?php if (isset($_GET['filter_status'])) : ?>
@@ -1080,6 +1082,7 @@ function sc_admin_support_tickets_list_page() {
             <?php $list_table->views(); ?>
             <?php $list_table->display(); ?>
         </form>
+        </div>
     </div>
     <?php
 }

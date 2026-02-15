@@ -1173,3 +1173,191 @@ display: block; margin-bottom: 5px; font-weight: bold;
     display: flex;
         justify-content: space-between;
 }
+
+/* ========== تیکت پشتیبانی - ظاهر حرفه‌ای (مدیر و مربی) مثل بخش کاربر ========== */
+.sc-support-admin-wrap .sc-ticket-detail-card,
+.sc-support-coach-wrap .sc-ticket-detail-card {
+    background: #fff;
+    padding: 1.75rem;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    margin-top: 1rem;
+}
+.sc-support-admin-wrap .sc-ticket-back-link,
+.sc-support-coach-wrap .sc-ticket-back-link {
+    display: inline-block;
+    color: #2271b1;
+    text-decoration: none;
+    margin-bottom: 1rem;
+    font-weight: 500;
+    padding: 6px 0;
+}
+.sc-support-admin-wrap .sc-ticket-back-link:hover,
+.sc-support-coach-wrap .sc-ticket-back-link:hover {
+    color: #135e96;
+}
+.sc-support-admin-wrap .sc-ticket-detail-title,
+.sc-support-coach-wrap .sc-ticket-detail-title {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+.sc-support-admin-wrap .sc-ticket-detail-meta,
+.sc-support-coach-wrap .sc-ticket-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+.sc-support-admin-wrap .sc-ticket-meta-badge,
+.sc-support-coach-wrap .sc-ticket-meta-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+.sc-support-admin-wrap .sc-ticket-meta-badge.sc-ticket-status-pending_reply,
+.sc-support-coach-wrap .sc-ticket-meta-badge.sc-ticket-status-pending_reply { background: #e3f2fd; color: #1565c0; }
+.sc-support-admin-wrap .sc-ticket-meta-badge.sc-ticket-status-answered,
+.sc-support-coach-wrap .sc-ticket-meta-badge.sc-ticket-status-answered { background: #e8f5e9; color: #2e7d32; }
+.sc-support-admin-wrap .sc-ticket-meta-badge.sc-ticket-status-closed,
+.sc-support-coach-wrap .sc-ticket-meta-badge.sc-ticket-status-closed { background: #f5f5f5; color: #616161; }
+.sc-support-admin-wrap .sc-ticket-meta-text,
+.sc-support-coach-wrap .sc-ticket-meta-text {
+    font-size: 0.875rem;
+    color: #646970;
+}
+.sc-support-admin-wrap .sc-ticket-messages,
+.sc-support-coach-wrap .sc-ticket-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+.sc-support-admin-wrap .sc-ticket-msg,
+.sc-support-coach-wrap .sc-ticket-msg {
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+.sc-support-admin-wrap .sc-ticket-msg-staff,
+.sc-support-coach-wrap .sc-ticket-msg-staff {
+    background: linear-gradient(135deg, #e8f4fc 0%, #f0f7ff 100%);
+    border-right: 4px solid #2271b1;
+}
+.sc-support-admin-wrap .sc-ticket-msg-user,
+.sc-support-coach-wrap .sc-ticket-msg-user {
+    background: linear-gradient(135deg, #fff8e1 0%, #fffde7 100%);
+    border-left: 4px solid #f0a000;
+}
+.sc-support-admin-wrap .sc-ticket-msg-header,
+.sc-support-coach-wrap .sc-ticket-msg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.sc-support-admin-wrap .sc-ticket-msg-body,
+.sc-support-coach-wrap .sc-ticket-msg-body {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: #333;
+}
+.sc-support-admin-wrap .sc-ticket-msg-body p,
+.sc-support-coach-wrap .sc-ticket-msg-body p { margin: 0 0 0.5rem 0; }
+.sc-support-admin-wrap .sc-ticket-msg-attachments,
+.sc-support-coach-wrap .sc-ticket-msg-attachments {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.sc-support-admin-wrap .sc-ticket-attachment-link,
+.sc-support-coach-wrap .sc-ticket-attachment-link {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    background: rgba(255,255,255,0.7);
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    color: #2271b1;
+    text-decoration: none;
+    border: 1px solid rgba(34, 113, 177, 0.3);
+}
+.sc-support-admin-wrap .sc-ticket-reply-form-wrap,
+.sc-support-coach-wrap .sc-ticket-reply-form-wrap {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+.sc-support-admin-wrap .sc-ticket-field,
+.sc-support-coach-wrap .sc-ticket-field {
+    display: block;
+    width: 100%;
+    margin-bottom: 1.25rem;
+}
+.sc-support-admin-wrap .sc-ticket-field label,
+.sc-support-coach-wrap .sc-ticket-field label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+.sc-support-admin-wrap .sc-ticket-field textarea,
+.sc-support-coach-wrap .sc-ticket-field textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    box-sizing: border-box;
+}
+.sc-support-admin-wrap .sc-form-actions,
+.sc-support-coach-wrap .sc-form-actions {
+    margin-top: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+.sc-support-admin-wrap .sc-ticket-btn,
+.sc-support-coach-wrap .sc-ticket-btn {
+    display: inline-block;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+.sc-support-admin-wrap .sc-ticket-btn-primary,
+.sc-support-coach-wrap .sc-ticket-btn-primary {
+    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
+    color: #fff;
+    border: none;
+}
+.sc-support-admin-wrap .sc-ticket-btn-close,
+.sc-support-coach-wrap .sc-ticket-btn-close {
+    background: #fff;
+    color: #50575e;
+    border: 1px solid #c3c4c7;
+}
+.sc-support-admin-wrap .sc-ticket-close-form-wrap,
+.sc-support-coach-wrap .sc-ticket-close-form-wrap {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+.sc-support-admin-wrap .sc-ticket-closed-notice,
+.sc-support-coach-wrap .sc-ticket-closed-notice {
+    margin-top: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-right: 4px solid #646970;
+}
