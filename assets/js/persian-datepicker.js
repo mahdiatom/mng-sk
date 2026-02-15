@@ -86,8 +86,8 @@
         $('.persian-date-input').each(function() {
             var $input = $(this);
             
-            // اگر مقدار پیش‌فرض خالی است، تاریخ امروز را بگذار
-            if (!$input.val() || $input.val() === '') {
+            // اگر مقدار پیش‌فرض خالی است، تاریخ امروز را بگذار (مگر اینکه کلاس sc-no-default-date داشته باشد ـ برای فیلترها که نباید پیش‌فرض اعمال شود)
+            if ((!$input.val() || $input.val() === '') && !$input.hasClass('sc-no-default-date')) {
                 var today = getTodayJalali();
                 var todayStr = today[0] + '/' + 
                               (today[1] < 10 ? '0' + today[1] : today[1]) + '/' + 

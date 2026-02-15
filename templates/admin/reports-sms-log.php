@@ -25,12 +25,27 @@ $context_labels = [
     '' => '—',
 ];
 
-// فیلترها
-$filter_date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : '';
-$filter_date_to   = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : '';
-$filter_context   = isset($_GET['context']) ? sanitize_text_field($_GET['context']) : '';
-$filter_status    = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : ''; // '', '1', '0'
-$filter_log_level = isset($_GET['log_level']) ? sanitize_text_field($_GET['log_level']) : ''; // برای لاگ تفصیلی
+// فیلترها — تاریخ: شمسی (بدون پیش‌فرض امروز) یا میلادی برای سازگاری
+$filter_date_from_shamsi = isset($_GET['date_from_shamsi']) ? sanitize_text_field($_GET['date_from_shamsi']) : '';
+$filter_date_to_shamsi   = isset($_GET['date_to_shamsi']) ? sanitize_text_field($_GET['date_to_shamsi']) : '';
+$filter_date_from = '';
+$filter_date_to   = '';
+if (!empty($filter_date_from_shamsi)) {
+    $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+} elseif (isset($_GET['date_from']) && $_GET['date_from'] !== '') {
+    $filter_date_from = sanitize_text_field($_GET['date_from']);
+    $filter_date_from_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_from) : '';
+}
+if (!empty($filter_date_to_shamsi)) {
+    $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+} elseif (isset($_GET['date_to']) && $_GET['date_to'] !== '') {
+    $filter_date_to = sanitize_text_field($_GET['date_to']);
+    $filter_date_to_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_to) : '';
+}
+$filter_context    = isset($_GET['context']) ? sanitize_text_field($_GET['context']) : '';
+$filter_status     = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : ''; // '', '1', '0'
+$filter_log_level  = isset($_GET['log_level']) ? sanitize_text_field($_GET['log_level']) : ''; // برای لاگ تفصیلی
+$filter_detail_search = isset($_GET['detail_search']) ? sanitize_text_field($_GET['detail_search']) : '';
 
 $where = ['1=1'];
 $prepare_args = [];
@@ -93,6 +108,12 @@ if ($filter_log_level !== '' && in_array($filter_log_level, ['DEBUG', 'INFO', 'S
     $where_ent[] = 'level = %s';
     $prepare_ent[] = $filter_log_level;
 }
+if ($filter_detail_search !== '') {
+    $search_like = '%' . $wpdb->esc_like($filter_detail_search) . '%';
+    $where_ent[] = '(message LIKE %s OR data LIKE %s)';
+    $prepare_ent[] = $search_like;
+    $prepare_ent[] = $search_like;
+}
 $where_ent_sql = implode(' AND ', $where_ent);
 
 $per_page_ent = 50;
@@ -125,12 +146,26 @@ if ($entries_table_exists && $total_entries > 0) {
         <input type="hidden" name="page" value="sc-reports-sms-log">
         <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
             <div>
-                <label for="date_from" style="display: block; margin-bottom: 4px; font-size: 12px;">از تاریخ</label>
-                <input type="date" name="date_from" id="date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                <label for="date_from_shamsi" style="display: block; margin-bottom: 4px; font-size: 12px;">از تاریخ</label>
+                <input type="text"
+                       name="date_from_shamsi"
+                       id="date_from_shamsi"
+                       value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                       class="regular-text persian-date-input sc-no-default-date"
+                       placeholder="انتخاب تاریخ (شمسی)"
+                       readonly
+                       style="width: 140px;">
             </div>
             <div>
-                <label for="date_to" style="display: block; margin-bottom: 4px; font-size: 12px;">تا تاریخ</label>
-                <input type="date" name="date_to" id="date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                <label for="date_to_shamsi" style="display: block; margin-bottom: 4px; font-size: 12px;">تا تاریخ</label>
+                <input type="text"
+                       name="date_to_shamsi"
+                       id="date_to_shamsi"
+                       value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                       class="regular-text persian-date-input sc-no-default-date"
+                       placeholder="انتخاب تاریخ (شمسی)"
+                       readonly
+                       style="width: 140px;">
             </div>
             <div>
                 <label for="context" style="display: block; margin-bottom: 4px; font-size: 12px;">بخش</label>
@@ -158,6 +193,16 @@ if ($entries_table_exists && $total_entries > 0) {
                     <option value="SUCCESS" <?php selected($filter_log_level, 'SUCCESS'); ?>>SUCCESS</option>
                     <option value="ERROR" <?php selected($filter_log_level, 'ERROR'); ?>>ERROR</option>
                 </select>
+            </div>
+            <div>
+                <label for="detail_search" style="display: block; margin-bottom: 4px; font-size: 12px;">جستجو در لاگ تفصیلی</label>
+                <input type="text"
+                       name="detail_search"
+                       id="detail_search"
+                       value="<?php echo esc_attr($filter_detail_search); ?>"
+                       class="regular-text"
+                       placeholder="پیام یا Data..."
+                       style="width: 160px;">
             </div>
             <div>
                 <button type="submit" class="button button-primary">اعمال فیلتر</button>
@@ -254,10 +299,12 @@ if ($entries_table_exists && $total_entries > 0) {
                         <?php
                         $base = add_query_arg('paged', '%#%');
                         $base = remove_query_arg('paged', $base);
-                        if (!empty($filter_date_from)) $base = add_query_arg('date_from', $filter_date_from, $base);
-                        if (!empty($filter_date_to))   $base = add_query_arg('date_to', $filter_date_to, $base);
+                        if (!empty($filter_date_from_shamsi)) $base = add_query_arg('date_from_shamsi', $filter_date_from_shamsi, $base);
+                        if (!empty($filter_date_to_shamsi))   $base = add_query_arg('date_to_shamsi', $filter_date_to_shamsi, $base);
                         if (!empty($filter_context))  $base = add_query_arg('context', $filter_context, $base);
                         if ($filter_status !== '')    $base = add_query_arg('status', $filter_status, $base);
+                        if (!empty($filter_detail_search)) $base = add_query_arg('detail_search', $filter_detail_search, $base);
+                        if (!empty($filter_log_level)) $base = add_query_arg('log_level', $filter_log_level, $base);
                         $base = add_query_arg('page', 'sc-reports-sms-log', $base);
                         echo paginate_links([
                             'base' => $base,
@@ -369,9 +416,10 @@ if ($entries_table_exists && $total_entries > 0) {
                         <?php
                         $base_ent = add_query_arg('detail_paged', '%#%');
                         $base_ent = remove_query_arg('detail_paged', $base_ent);
-                        if (!empty($filter_date_from)) $base_ent = add_query_arg('date_from', $filter_date_from, $base_ent);
-                        if (!empty($filter_date_to))   $base_ent = add_query_arg('date_to', $filter_date_to, $base_ent);
+                        if (!empty($filter_date_from_shamsi)) $base_ent = add_query_arg('date_from_shamsi', $filter_date_from_shamsi, $base_ent);
+                        if (!empty($filter_date_to_shamsi))   $base_ent = add_query_arg('date_to_shamsi', $filter_date_to_shamsi, $base_ent);
                         if (!empty($filter_log_level)) $base_ent = add_query_arg('log_level', $filter_log_level, $base_ent);
+                        if (!empty($filter_detail_search)) $base_ent = add_query_arg('detail_search', $filter_detail_search, $base_ent);
                         $base_ent = add_query_arg('page', 'sc-reports-sms-log', $base_ent);
                         echo paginate_links([
                             'base' => $base_ent,
