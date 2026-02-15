@@ -50,26 +50,28 @@ $filter_target_type = isset($_GET['filter_target']) ? sanitize_text_field($_GET[
 $filter_sms = isset($_GET['filter_sms']) ? sanitize_text_field($_GET['filter_sms']) : 'all';
 $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
 
-// تاریخ شمسی (پیش‌فرض: امروز)
+// تاریخ شمسی — فقط از GET (بدون اعمال پیش‌فرض در فیلتر)
 $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
-$filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
-if (empty($filter_date_from_shamsi) || empty($filter_date_to_shamsi)) {
-    if (function_exists('gregorian_to_jalali')) {
-        $today = new DateTime(current_time('Y-m-d'));
-        $jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
-        $today_shamsi = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
-        if (empty($filter_date_from_shamsi)) $filter_date_from_shamsi = $today_shamsi;
-        if (empty($filter_date_to_shamsi)) $filter_date_to_shamsi = $today_shamsi;
-    }
-}
+$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
 $filter_date_from = '';
-$filter_date_to = '';
+$filter_date_to   = '';
 if (!empty($filter_date_from_shamsi) && function_exists('sc_shamsi_to_gregorian_date')) {
     $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
 }
 if (!empty($filter_date_to_shamsi) && function_exists('sc_shamsi_to_gregorian_date')) {
     $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
 }
+// فقط برای نمایش در فیلدها: وقتی کاربر تاریخی نفرستاده، امروز نشان بده (در فیلتر اعمال نمی‌شود)
+$today_shamsi_display = '';
+if (function_exists('sc_date_shamsi_date_only')) {
+    $today_shamsi_display = sc_date_shamsi_date_only(current_time('Y-m-d'));
+} elseif (function_exists('gregorian_to_jalali')) {
+    $today = new DateTime(current_time('Y-m-d'));
+    $jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+    $today_shamsi_display = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+}
+$display_date_from_shamsi = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_display;
+$display_date_to_shamsi   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_display;
 
 $where = ['1=1'];
 $where_values = [];
@@ -201,9 +203,9 @@ $total_pages = ceil($total / $per_page);
                 <option value="0" <?php selected($filter_sms, '0'); ?>>خیر</option>
             </select>
             <label>از تاریخ:</label>
-            <input type="text" name="filter_date_from_shamsi" class="persian-date-input" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="۱۴۰۳/۰۱/۰۱" style="width: 110px;" readonly>
+            <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="۱۴۰۳/۰۱/۰۱" style="width: 110px;" readonly>
             <label>تا تاریخ:</label>
-            <input type="text" name="filter_date_to_shamsi" class="persian-date-input" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="۱۴۰۳/۱۲/۲۹" style="width: 110px;" readonly>
+            <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="۱۴۰۳/۱۲/۲۹" style="width: 110px;" readonly>
             <input type="submit" class="button" value="اعمال فیلتر">
         </form>
         <form method="get" action="" style="display: flex; align-items: center; gap: 8px;">
@@ -211,8 +213,8 @@ $total_pages = ceil($total / $per_page);
             <input type="hidden" name="filter_creator" value="<?php echo esc_attr($filter_creator_type); ?>">
             <input type="hidden" name="filter_target" value="<?php echo esc_attr($filter_target_type); ?>">
             <input type="hidden" name="filter_sms" value="<?php echo esc_attr($filter_sms); ?>">
-            <input type="hidden" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_date_from_shamsi); ?>">
-            <input type="hidden" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_date_to_shamsi); ?>">
+            <input type="hidden" name="filter_date_from_shamsi" value="<?php echo esc_attr($display_date_from_shamsi); ?>">
+            <input type="hidden" name="filter_date_to_shamsi" value="<?php echo esc_attr($display_date_to_shamsi); ?>">
             <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." style="width: 260px;">
             <input type="submit" class="button" value="جستجو">
         </form>

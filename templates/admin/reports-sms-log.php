@@ -47,6 +47,11 @@ $filter_status     = isset($_GET['status']) ? sanitize_text_field($_GET['status'
 $filter_log_level  = isset($_GET['log_level']) ? sanitize_text_field($_GET['log_level']) : ''; // برای لاگ تفصیلی
 $filter_detail_search = isset($_GET['detail_search']) ? sanitize_text_field($_GET['detail_search']) : '';
 
+// فقط برای نمایش در فیلدها: وقتی کاربر تاریخی نفرستاده، امروز نشان بده (در فیلتر اعمال نمی‌شود)
+$today_shamsi_display = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+$display_date_from = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_display;
+$display_date_to   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_display;
+
 $where = ['1=1'];
 $prepare_args = [];
 
@@ -150,7 +155,7 @@ if ($entries_table_exists && $total_entries > 0) {
                 <input type="text"
                        name="date_from_shamsi"
                        id="date_from_shamsi"
-                       value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                       value="<?php echo esc_attr($display_date_from); ?>"
                        class="regular-text persian-date-input sc-no-default-date"
                        placeholder="انتخاب تاریخ (شمسی)"
                        readonly
@@ -161,7 +166,7 @@ if ($entries_table_exists && $total_entries > 0) {
                 <input type="text"
                        name="date_to_shamsi"
                        id="date_to_shamsi"
-                       value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                       value="<?php echo esc_attr($display_date_to); ?>"
                        class="regular-text persian-date-input sc-no-default-date"
                        placeholder="انتخاب تاریخ (شمسی)"
                        readonly
