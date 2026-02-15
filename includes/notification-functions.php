@@ -600,6 +600,10 @@ function sc_ajax_notifications_filter() {
             'view_url' => $view_url,
         ];
     }
+    $count_all = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($user_id, false, false, '') : 0;
+    $count_unread = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($user_id, true, false, '') : 0;
+    $count_read = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($user_id, false, true, '') : 0;
+
     wp_send_json_success([
         'items' => $items,
         'total' => (int) $total,
@@ -607,6 +611,9 @@ function sc_ajax_notifications_filter() {
         'page' => $page,
         'empty_message' => sc_notifications_empty_message($filter, $search),
         'base_url_with_filter' => $base_url_with_filter,
+        'count_all' => (int) $count_all,
+        'count_unread' => (int) $count_unread,
+        'count_read' => (int) $count_read,
     ]);
 }
 

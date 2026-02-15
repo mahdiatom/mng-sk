@@ -1342,7 +1342,8 @@ display: block; margin-bottom: 5px; font-weight: bold;
     border: none;
 }
 .sc-support-admin-wrap .sc-ticket-attachment-zone .sc-file-upload-area,
-.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-file-upload-area {
+.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-file-upload-area,
+.sc-ticket-new-admin-wrap .sc-ticket-attachment-zone .sc-file-upload-area {
     border: 2px dashed #2271b1;
     border-radius: 12px;
     padding: 28px 20px;
@@ -1354,30 +1355,35 @@ display: block; margin-bottom: 5px; font-weight: bold;
     overflow: hidden;
 }
 .sc-support-admin-wrap .sc-ticket-attachment-zone .sc-file-upload-area:hover,
-.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-file-upload-area:hover {
+.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-file-upload-area:hover,
+.sc-ticket-new-admin-wrap .sc-ticket-attachment-zone .sc-file-upload-area:hover {
     border-color: #135e96;
     background: linear-gradient(135deg, #e7f3ff 0%, #d0e7ff 100%);
 }
 .sc-support-admin-wrap .sc-ticket-attachment-zone .sc-file-upload-icon,
-.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-file-upload-icon {
+.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-file-upload-icon,
+.sc-ticket-new-admin-wrap .sc-ticket-attachment-zone .sc-file-upload-icon {
     font-size: 36px;
     margin-bottom: 10px;
     display: block;
 }
 .sc-support-admin-wrap .sc-ticket-attachment-zone .sc-file-upload-text,
-.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-file-upload-text {
+.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-file-upload-text,
+.sc-ticket-new-admin-wrap .sc-ticket-attachment-zone .sc-file-upload-text {
     font-size: 14px;
     font-weight: 600;
     color: #2271b1;
     margin-bottom: 6px;
 }
 .sc-support-admin-wrap .sc-ticket-attachment-zone .sc-file-upload-hint,
-.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-file-upload-hint {
+.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-file-upload-hint,
+.sc-ticket-new-admin-wrap .sc-ticket-attachment-zone .sc-file-upload-hint {
     font-size: 12px;
     color: #646970;
 }
 .sc-support-admin-wrap .sc-ticket-attachment-zone .sc-ticket-file-input-hidden,
-.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-ticket-file-input-hidden {
+.sc-support-coach-wrap .sc-ticket-attachment-zone .sc-ticket-file-input-hidden,
+.sc-ticket-new-admin-wrap .sc-ticket-attachment-zone .sc-ticket-file-input-hidden {
     position: absolute;
     opacity: 0;
     width: 0;
@@ -1385,7 +1391,8 @@ display: block; margin-bottom: 5px; font-weight: bold;
     pointer-events: none;
 }
 .sc-support-admin-wrap .sc-ticket-upload-progress-wrap .sc-upload-progress,
-.sc-support-coach-wrap .sc-ticket-upload-progress-wrap .sc-upload-progress {
+.sc-support-coach-wrap .sc-ticket-upload-progress-wrap .sc-upload-progress,
+.sc-ticket-new-admin-wrap .sc-ticket-upload-progress-wrap .sc-upload-progress {
     margin-top: 0;
     height: 6px;
     background: #e0e0e0;
@@ -1393,7 +1400,8 @@ display: block; margin-bottom: 5px; font-weight: bold;
     overflow: hidden;
 }
 .sc-support-admin-wrap .sc-ticket-upload-progress-wrap .sc-upload-bar,
-.sc-support-coach-wrap .sc-ticket-upload-progress-wrap .sc-upload-bar {
+.sc-support-coach-wrap .sc-ticket-upload-progress-wrap .sc-upload-bar,
+.sc-ticket-new-admin-wrap .sc-ticket-upload-progress-wrap .sc-upload-bar {
     height: 100%;
     width: 0;
     background: linear-gradient(90deg, #2271b1, #135e96);
@@ -1401,21 +1409,24 @@ display: block; margin-bottom: 5px; font-weight: bold;
     transition: width 0.25s ease;
 }
 .sc-support-admin-wrap .sc-ticket-upload-progress-wrap .sc-upload-text,
-.sc-support-coach-wrap .sc-ticket-upload-progress-wrap .sc-upload-text {
+.sc-support-coach-wrap .sc-ticket-upload-progress-wrap .sc-upload-text,
+.sc-ticket-new-admin-wrap .sc-ticket-upload-progress-wrap .sc-upload-text {
     display: block;
     font-size: 12px;
     margin-top: 4px;
     color: #50575e;
 }
 .sc-support-admin-wrap .sc-ticket-uploaded-list,
-.sc-support-coach-wrap .sc-ticket-uploaded-list {
+.sc-support-coach-wrap .sc-ticket-uploaded-list,
+.sc-ticket-new-admin-wrap .sc-ticket-uploaded-list {
     margin-top: 0.75rem;
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
 .sc-support-admin-wrap .sc-ticket-uploaded-item,
-.sc-support-coach-wrap .sc-ticket-uploaded-item {
+.sc-support-coach-wrap .sc-ticket-uploaded-item,
+.sc-ticket-new-admin-wrap .sc-ticket-uploaded-item {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -1427,7 +1438,8 @@ display: block; margin-bottom: 5px; font-weight: bold;
     color: #1e3a5f;
 }
 .sc-support-admin-wrap .sc-ticket-uploaded-remove,
-.sc-support-coach-wrap .sc-ticket-uploaded-remove {
+.sc-support-coach-wrap .sc-ticket-uploaded-remove,
+.sc-ticket-new-admin-wrap .sc-ticket-uploaded-remove {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1444,8 +1456,85 @@ display: block; margin-bottom: 5px; font-weight: bold;
     transition: background 0.2s;
 }
 .sc-support-admin-wrap .sc-ticket-uploaded-remove:hover,
-.sc-support-coach-wrap .sc-ticket-uploaded-remove:hover {
+.sc-support-coach-wrap .sc-ticket-uploaded-remove:hover,
+.sc-ticket-new-admin-wrap .sc-ticket-uploaded-remove:hover {
     background: #b32d2e;
+}
+
+/* فرم ارسال تیکت جدید - فیلدها و اینپوت‌ها یک اندازه، مرتب، تمام عرض (مدیریت + مربی) */
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table,
+.sc-support-coach-wrap .sc-ticket-new-form .form-table {
+    width: 100%;
+    table-layout: fixed;
+}
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table th,
+.sc-support-coach-wrap .sc-ticket-new-form .form-table th {
+    width: 180px;
+    padding: 12px 14px 12px 0;
+    vertical-align: top;
+    font-weight: 600;
+    color: #1e293b;
+}
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table td,
+.sc-support-coach-wrap .sc-ticket-new-form .form-table td {
+    padding: 12px 0;
+}
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table input[type="text"],
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table select,
+.sc-support-coach-wrap .sc-ticket-new-form .form-table input[type="text"],
+.sc-support-coach-wrap .sc-ticket-new-form .form-table select {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 10px 14px;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    box-sizing: border-box;
+}
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table textarea,
+.sc-support-coach-wrap .sc-ticket-new-form .form-table textarea {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 140px;
+    padding: 12px 14px;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    box-sizing: border-box;
+}
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table .sc-searchable-dropdown,
+.sc-support-coach-wrap .sc-ticket-new-form .form-table .sc-searchable-dropdown {
+    width: 100%;
+    max-width: none;
+}
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table .sc-dropdown-toggle,
+.sc-support-coach-wrap .sc-ticket-new-form .form-table .sc-dropdown-toggle {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 36px 8px 14px;
+    border-radius: 8px;
+    border: 1px solid #c3c4c7;
+    box-sizing: border-box;
+}
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table .sc-dropdown-menu,
+.sc-support-coach-wrap .sc-ticket-new-form .form-table .sc-dropdown-menu {
+    left: 0;
+    right: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table .sc-ticket-attachment-zone,
+.sc-support-coach-wrap .sc-ticket-new-form .form-table .sc-ticket-attachment-zone {
+    width: 100%;
+    box-sizing: border-box;
+}
+.sc-ticket-new-admin-wrap .sc-ticket-new-form .form-table .description,
+.sc-support-coach-wrap .sc-ticket-new-form .form-table .description {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #646970;
 }
 
 .sc-support-admin-wrap .sc-ticket-btn-close,

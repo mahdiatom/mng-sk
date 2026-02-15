@@ -183,6 +183,17 @@
 .sc-coach-panel-wrap .search-box input[type="search"] { border-radius: 8px; border-color: var(--sc-panel-border); }
 .sc-coach-panel-wrap .search-box input[type="search"]:focus { border-color: var(--sc-panel-primary); }
 
+/* === دوره‌های من: عرض ستون‌ها تقسیم‌شده، عنوان محدود، تاریخ شمسی در قالب === */
+.sc-coach-my-courses-table { table-layout: fixed; width: 100%; }
+.sc-coach-my-courses-table .column-title { width: 20%; word-wrap: break-word; overflow-wrap: break-word; }
+.sc-coach-my-courses-table .column-price { width: 12%; }
+.sc-coach-my-courses-table .column-capacity { width: 10%; }
+.sc-coach-my-courses-table .column-sessions { width: 10%; }
+.sc-coach-my-courses-table .column-start { width: 16%; }
+.sc-coach-my-courses-table .column-end { width: 16%; }
+.sc-coach-my-courses-table .column-status { width: 12%; }
+.sc-coach-my-courses-table td.column-title { word-wrap: break-word; overflow-wrap: break-word; }
+
 /* ========== اطلاعیه‌های من (همان استایل قبلی با پیشوند sc-coach-notif) ========== */
 .sc-coach-notif-wrap { --sc-notif-bg: #f8fafc; --sc-notif-card: #fff; --sc-notif-border: #e2e8f0; --sc-notif-primary: #0ea5e9; --sc-notif-unread-bg: #eff6ff; --sc-notif-radius: 12px; --sc-notif-shadow: 0 1px 3px rgba(0,0,0,.06); }
 .sc-coach-notif-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--sc-notif-border); }

@@ -89,6 +89,9 @@ if ($filter !== 'all') {
 if ($search !== '') {
     $base_url_with_filter = add_query_arg('s', $search, $base_url_with_filter);
 }
+$count_all = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($current_user_id, false, false, '') : 0;
+$count_unread = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($current_user_id, true, false, '') : 0;
+$count_read = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($current_user_id, false, true, '') : 0;
 ?>
 <div class="woocommerce-MyAccount-content sc-notifications-content">
     <h2 class="sc-notifications-heading">اطلاعیه‌ها</h2>
@@ -96,9 +99,9 @@ if ($search !== '') {
 
     <div class="sc-notifications-filters" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px;">
         <ul class="sc-notif-tabs" style="list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; flex: 1;">
-            <li><a href="<?php echo esc_url($base_url); ?>" class="sc-notif-tab <?php echo $filter === 'all' ? 'active' : ''; ?>" data-filter="all" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'all' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">همه</a></li>
-            <li><a href="<?php echo esc_url(add_query_arg('filter', 'unread', $base_url)); ?>" class="sc-notif-tab <?php echo $filter === 'unread' ? 'active' : ''; ?>" data-filter="unread" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'unread' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">خوانده نشده</a></li>
-            <li><a href="<?php echo esc_url(add_query_arg('filter', 'read', $base_url)); ?>" class="sc-notif-tab <?php echo $filter === 'read' ? 'active' : ''; ?>" data-filter="read" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'read' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">خوانده شده</a></li>
+            <li><a href="#" class="sc-notif-tab <?php echo $filter === 'all' ? 'active' : ''; ?>" data-filter="all" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'all' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">همه <span class="sc-notif-tab-count" data-count="all">(<?php echo (int) $count_all; ?>)</span></a></li>
+            <li><a href="#" class="sc-notif-tab <?php echo $filter === 'unread' ? 'active' : ''; ?>" data-filter="unread" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'unread' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">خوانده نشده <span class="sc-notif-tab-count" data-count="unread">(<?php echo (int) $count_unread; ?>)</span></a></li>
+            <li><a href="#" class="sc-notif-tab <?php echo $filter === 'read' ? 'active' : ''; ?>" data-filter="read" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'read' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">خوانده شده <span class="sc-notif-tab-count" data-count="read">(<?php echo (int) $count_read; ?>)</span></a></li>
         </ul>
         <form id="sc-notifications-search-form" style="display: flex; gap: 8px;">
             <input type="hidden" name="filter" id="sc-notif-filter-value" value="<?php echo esc_attr($filter); ?>">
@@ -262,6 +265,13 @@ jQuery(document).ready(function($) {
         $('#sc-notif-filter-value').val(filter);
     }
 
+    function updateTabCounts(counts) {
+        if (!counts) return;
+        if (typeof counts.count_all !== 'undefined') $('.sc-notif-tab-count[data-count="all"]').text('(' + counts.count_all + ')');
+        if (typeof counts.count_unread !== 'undefined') $('.sc-notif-tab-count[data-count="unread"]').text('(' + counts.count_unread + ')');
+        if (typeof counts.count_read !== 'undefined') $('.sc-notif-tab-count[data-count="read"]').text('(' + counts.count_read + ')');
+    }
+
     function renderList(data) {
         var html = '';
         if (!data.items || data.items.length === 0) {
@@ -309,6 +319,7 @@ jQuery(document).ready(function($) {
             $container.css('opacity', '1');
             if (res && res.success && res.data) {
                 updateTabsActive(filter);
+                updateTabCounts({ count_all: res.data.count_all, count_unread: res.data.count_unread, count_read: res.data.count_read });
                 $('#sc-notif-search-input').val(s || '');
                 $('.sc-notif-clear-search').toggle(!!s);
                 renderList(res.data);
@@ -325,7 +336,7 @@ jQuery(document).ready(function($) {
         loadNotifications($('#sc-notif-filter-value').val(), $('#sc-notif-search-input').val().trim(), 1);
     });
 
-    $('.sc-notif-tab').on('click', function(e) {
+    $(document).on('click', '.sc-notif-tab', function(e) {
         e.preventDefault();
         var filter = $(this).data('filter');
         loadNotifications(filter, $('#sc-notif-search-input').val().trim(), 1);
@@ -337,11 +348,39 @@ jQuery(document).ready(function($) {
         $(this).hide();
     });
 
+    /** کارت را در DOM بدون رفرش به حالت «خوانده شده» می‌برد و شمارنده تب‌ها را به‌روز می‌کند */
+    function setCardAsRead($card) {
+        if (!$card.length) return;
+        $card.removeClass('sc-notification-unread').addClass('sc-notification-read');
+        $card.find('.sc-notification-card-meta .sc-notification-card-badge:not(.sc-notification-card-badge-read)')
+            .replaceWith('<span class="sc-notification-card-badge sc-notification-card-badge-read">خوانده شده</span>');
+        $card.find('.sc-btn-mark-read').remove();
+        var $unreadSpan = $('.sc-notif-tab-count[data-count="unread"]');
+        var $readSpan = $('.sc-notif-tab-count[data-count="read"]');
+        var u = parseInt($unreadSpan.text().replace(/\D/g, ''), 10) || 0;
+        var r = parseInt($readSpan.text().replace(/\D/g, ''), 10) || 0;
+        if (u > 0) u--;
+        r++;
+        $unreadSpan.text('(' + u + ')');
+        $readSpan.text('(' + r + ')');
+    }
+
     $(document).on('click', '.sc-btn-mark-read', function() {
         var btn = $(this), id = btn.data('id');
-        $.post(ajaxUrl, { action: 'sc_mark_notification_read', notification_id: id, nonce: nonceMarkRead }, function(res) {
-            if (res && res.success) loadNotifications($('#sc-notif-filter-value').val(), $('#sc-notif-search-input').val(), 1);
-        });
+        var $card = btn.closest('.sc-notification-card');
+        var btnText = btn.text();
+        btn.prop('disabled', true).text('...');
+        $.post(ajaxUrl, { action: 'sc_mark_notification_read', notification_id: id, nonce: nonceMarkRead })
+            .done(function(res) {
+                if (res && res.success) {
+                    setCardAsRead($card);
+                } else {
+                    btn.prop('disabled', false).text(btnText);
+                }
+            })
+            .fail(function() {
+                btn.prop('disabled', false).text(btnText);
+            });
     });
 
     $(document).on('click', '#sc-notifications-ajax-container .sc-notif-page-link', function(e) {

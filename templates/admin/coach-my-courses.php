@@ -31,28 +31,33 @@ $courses = $wpdb->get_results($wpdb->prepare(
         </div>
     <?php else : ?>
         <div class="sc-coach-panel-card">
-            <table class="wp-list-table widefat fixed striped">
+            <table class="wp-list-table widefat fixed striped sc-coach-my-courses-table">
                 <thead>
                     <tr>
-                        <th>عنوان</th>
-                        <th style="width:100px">قیمت</th>
-                        <th style="width:80px">ظرفیت</th>
-                        <th style="width:80px">جلسات</th>
-                        <th style="width:100px">تاریخ شروع</th>
-                        <th style="width:100px">تاریخ پایان</th>
-                        <th style="width:70px">وضعیت</th>
+                        <th class="column-title">عنوان</th>
+                        <th class="column-price">قیمت</th>
+                        <th class="column-capacity">ظرفیت</th>
+                        <th class="column-sessions">جلسات</th>
+                        <th class="column-start">تاریخ شروع</th>
+                        <th class="column-end">تاریخ پایان</th>
+                        <th class="column-status">وضعیت</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($courses as $c) : ?>
+                    <?php
+                    $shamsi_start = function_exists('sc_date_shamsi_date_only');
+                    foreach ($courses as $c) :
+                        $start_display = $c->start_date && $shamsi_start ? sc_date_shamsi_date_only($c->start_date) : ($c->start_date ? esc_html($c->start_date) : '-');
+                        $end_display   = $c->end_date && $shamsi_start ? sc_date_shamsi_date_only($c->end_date) : ($c->end_date ? esc_html($c->end_date) : '-');
+                    ?>
                         <tr>
-                            <td><strong><?php echo esc_html($c->title); ?></strong></td>
-                            <td><?php echo $c->price ? number_format((float)$c->price, 0) : '-'; ?></td>
-                            <td><?php echo esc_html($c->capacity ?: '-'); ?></td>
-                            <td><?php echo esc_html($c->sessions_count ?: '-'); ?></td>
-                            <td><?php echo $c->start_date ? esc_html($c->start_date) : '-'; ?></td>
-                            <td><?php echo $c->end_date ? esc_html($c->end_date) : '-'; ?></td>
-                            <td><?php echo $c->is_active ? 'فعال' : 'غیرفعال'; ?></td>
+                            <td class="column-title"><strong><?php echo esc_html($c->title); ?></strong></td>
+                            <td class="column-price"><?php echo $c->price ? number_format((float)$c->price, 0) : '-'; ?></td>
+                            <td class="column-capacity"><?php echo esc_html($c->capacity ?: '-'); ?></td>
+                            <td class="column-sessions"><?php echo esc_html($c->sessions_count ?: '-'); ?></td>
+                            <td class="column-start"><?php echo $start_display; ?></td>
+                            <td class="column-end"><?php echo $end_display; ?></td>
+                            <td class="column-status"><?php echo $c->is_active ? 'فعال' : 'غیرفعال'; ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

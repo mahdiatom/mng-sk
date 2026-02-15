@@ -10,6 +10,13 @@ sc_check_and_create_tables();
 global $wpdb;
 $table = $wpdb->prefix . 'sc_activity_log';
 
+// پاکسازی تمام لاگ‌ها (با تأیید در فرم)
+if (isset($_POST['sc_activity_log_clear_all']) && isset($_POST['sc_activity_log_clear_nonce']) && wp_verify_nonce($_POST['sc_activity_log_clear_nonce'], 'sc_activity_log_clear_all')) {
+    $wpdb->query("DELETE FROM `$table`");
+    wp_safe_redirect(add_query_arg('cleared', '1', admin_url('admin.php?page=sc-reports-activity-log')));
+    exit;
+}
+
 $filter_date_from_shamsi = isset($_GET['date_from_shamsi']) ? sanitize_text_field($_GET['date_from_shamsi']) : '';
 $filter_date_to_shamsi   = isset($_GET['date_to_shamsi']) ? sanitize_text_field($_GET['date_to_shamsi']) : '';
 $filter_date_from = '';
@@ -99,6 +106,10 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
     <h1 class="wp-heading-inline">لاگ فعالیت</h1>
     <p style="color: #646970; margin-top: 8px;">ثبت عملیات انجام‌شده در پنل ادمین (چه کسی چه عملی روی چه چیزی انجام داده).</p>
 
+    <?php if (isset($_GET['cleared']) && $_GET['cleared'] === '1') : ?>
+        <div class="notice notice-success is-dismissible"><p>تمام لاگ‌های فعالیت با موفقیت حذف شدند.</p></div>
+    <?php endif; ?>
+
     <form method="get" action="" style="margin: 20px 0;">
         <input type="hidden" name="page" value="sc-reports-activity-log">
         <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
@@ -139,6 +150,11 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
                 <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-activity-log')); ?>" class="button">پاک کردن</a>
             </div>
         </div>
+    </form>
+
+    <form method="post" action="" id="sc-activity-log-clear-form" style="margin: 0 0 16px 0;">
+        <?php wp_nonce_field('sc_activity_log_clear_all', 'sc_activity_log_clear_nonce'); ?>
+        <button type="submit" name="sc_activity_log_clear_all" value="1" class="button button-link-delete">پاکسازی تمام لاگ‌ها</button>
     </form>
 
     <p style="color: #646970; margin-bottom: 12px;">تعداد: <strong><?php echo number_format_i18n($total_items); ?></strong> مورد</p>
@@ -229,6 +245,9 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
 
 <script>
 jQuery(function($) {
+    $('#sc-activity-log-clear-form').on('submit', function() {
+        return confirm('آیا از حذف تمام لاگ‌های فعالیت اطمینان دارید؟\nاین عمل قابل بازگشت نیست.');
+    });
     function formatLogValue(v) {
         if (v == null || v === '') return '—';
         if (typeof v === 'object') return JSON.stringify(v, null, 2);

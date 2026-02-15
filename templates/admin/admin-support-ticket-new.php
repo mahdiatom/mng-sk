@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
                 <tr>
                     <th scope="row"><label for="recipient_type">گیرنده</label></th>
                     <td>
-                        <select name="recipient_type" id="recipient_type" class="regular-text" style="max-width: 280px;">
+                        <select name="recipient_type" id="recipient_type" class="regular-text">
                             <option value="member">کاربر (عضو)</option>
                             <option value="coach">مربی</option>
                         </select>
@@ -171,13 +171,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
                 <tr>
                     <th scope="row"><label for="ticket_subject">موضوع <span style="color:#d63638;">*</span></label></th>
                     <td>
-                        <input type="text" name="ticket_subject" id="ticket_subject" class="regular-text" style="max-width: 100%;" value="<?php echo esc_attr(isset($_POST['ticket_subject']) ? $_POST['ticket_subject'] : ''); ?>" required>
+                        <input type="text" name="ticket_subject" id="ticket_subject" class="regular-text" value="<?php echo esc_attr(isset($_POST['ticket_subject']) ? $_POST['ticket_subject'] : ''); ?>" required>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="ticket_message">متن پیام <span style="color:#d63638;">*</span></label></th>
                     <td>
-                        <textarea name="ticket_message" id="ticket_message" rows="6" class="large-text" style="width: 100%; max-width: 600px; border-radius: 8px; padding: 10px;" required><?php echo esc_textarea(isset($_POST['ticket_message']) ? $_POST['ticket_message'] : ''); ?></textarea>
+                        <textarea name="ticket_message" id="ticket_message" rows="6" class="large-text" required><?php echo esc_textarea(isset($_POST['ticket_message']) ? $_POST['ticket_message'] : ''); ?></textarea>
                     </td>
                 </tr>
                 <tr>
