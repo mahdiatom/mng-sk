@@ -3723,6 +3723,7 @@ color: white;
 .sc-ticket-btn-secondary {
     background: #f0f0f1;
     color: #1d2327;
+    border-radius: 10px !important;
 }
 
 .sc-ticket-btn-secondary:hover {
@@ -4254,3 +4255,4 @@ color: white;
         text-align: center;
     }
 }
+sc-ticket-btn-secondary

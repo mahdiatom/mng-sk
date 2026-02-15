@@ -108,6 +108,10 @@ if (isset($_POST['save_honor']) && check_admin_referer('save_honor_for_member_no
                 );
                 
                 if ($inserted) {
+                    $honor_id = $wpdb->insert_id;
+                    if (function_exists('sc_log_activity')) {
+                        sc_log_activity('created', 'honor', $honor_id, 'افتخار «' . $honor_name . '» برای عضو ' . $member_id . ' افزوده شد', null, ['name' => $honor_name, 'member_id' => $member_id, 'category_id' => $honor_category]);
+                    }
                     $message = 'افتخار با موفقیت افزوده شد.';
                     $message_type = 'success';
                     // پاک کردن فرم

@@ -185,6 +185,9 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
             }
 
             if ($saved_count > 0 || $updated_count > 0) {
+                if (function_exists('sc_log_activity')) {
+                    sc_log_activity('updated', 'attendance', $course_id, 'حضور و غیاب دوره «' . $course_title . '» در تاریخ ' . $attendance_date_shamsi . ' ثبت شد (' . $saved_count . ' جدید، ' . $updated_count . ' به‌روزرسانی)', null, ['course_id' => $course_id, 'attendance_date' => $attendance_date, 'saved_count' => $saved_count, 'updated_count' => $updated_count]);
+                }
                 $message = sprintf(
                     'حضور و غیاب با موفقیت ثبت شد. (%d مورد جدید، %d مورد بروزرسانی)',
                     $saved_count,

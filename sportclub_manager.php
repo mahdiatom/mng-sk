@@ -60,6 +60,7 @@ require_once SC_INCLUDES_DIR . 'coach-salary-cron.php'; // Coach salary cron job
 require_once SC_INCLUDES_DIR . 'birthday-sms-cron.php'; // Birthday SMS daily cron
 require_once SC_INCLUDES_DIR . 'insurance-expiry-sms-cron.php'; // Insurance expiry SMS daily cron
 require_once SC_INCLUDES_DIR . 'support-ticket-functions.php'; // Support ticket CRUD, SMS, attachments
+require_once SC_INCLUDES_DIR . 'activity-log-functions.php';   // Activity log (admin actions)
 
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration

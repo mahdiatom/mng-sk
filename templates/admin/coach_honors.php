@@ -42,7 +42,7 @@ if (isset($_POST['delete_single_honor']) && check_admin_referer('delete_single_c
     if ($honor_id > 0) {
         // بررسی اینکه افتخار متعلق به این مربی است
         $honor = $wpdb->get_row($wpdb->prepare(
-            "SELECT id, file_url FROM $honors_table WHERE id = %d AND coach_id = %d",
+            "SELECT id, name, file_url FROM $honors_table WHERE id = %d AND coach_id = %d",
             $honor_id,
             $coach_id
         ));
@@ -58,6 +58,9 @@ if (isset($_POST['delete_single_honor']) && check_admin_referer('delete_single_c
             
             // حذف رکورد
             $wpdb->delete($honors_table, ['id' => $honor_id], ['%d']);
+            if (function_exists('sc_log_activity')) {
+                sc_log_activity('deleted', 'honor', $honor_id, 'افتخار مربی «' . ($honor->name ?? '') . '» حذف شد', (array) $honor, null);
+            }
             $message = 'افتخار با موفقیت حذف شد.';
             $message_type = 'success';
         } else {
@@ -195,6 +198,10 @@ if (isset($_POST['save_honors']) && check_admin_referer('save_coach_honors_nonce
             );
             
             if ($inserted !== false) {
+                $new_honor_id = $wpdb->insert_id;
+                if (function_exists('sc_log_activity')) {
+                    sc_log_activity('created', 'honor', $new_honor_id, 'افتخار مربی «' . $honor_name . '» افزوده شد', null, ['name' => $honor_name, 'coach_id' => $coach_id]);
+                }
                 $saved_count++;
             } else {
                 $db_error = $wpdb->last_error ? $wpdb->last_error : 'خطای نامشخص دیتابیس';

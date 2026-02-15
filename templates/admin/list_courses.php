@@ -168,7 +168,11 @@ class Courses_List_Table extends WP_List_Table {
         // حذف دائمی (تک)
         if ($this->current_action() == 'delete_permanent' && isset($_GET['course_id'])) {
             $course_id = absint($_GET['course_id']);
+            $row = $wpdb->get_row($wpdb->prepare("SELECT id, title FROM $table_name WHERE id = %d", $course_id), ARRAY_A);
             $wpdb->delete($table_name, ['id' => $course_id]);
+            if (function_exists('sc_log_activity') && $row) {
+                sc_log_activity('deleted', 'course', $course_id, 'دوره «' . ($row['title'] ?? '') . '» حذف شد', $row, null);
+            }
             wp_redirect(admin_url('admin.php?page=sc-courses&sc_status=course_deleted'));
             exit;
         }
@@ -203,7 +207,12 @@ class Courses_List_Table extends WP_List_Table {
         if ($this->current_action() == 'delete_permanent') {
             $courses = isset($_GET['course']) ? $_GET['course'] : [];
             foreach ($courses as $course_id) {
-                $wpdb->delete($table_name, ['id' => absint($course_id)]);
+                $course_id = absint($course_id);
+                $row = $wpdb->get_row($wpdb->prepare("SELECT id, title FROM $table_name WHERE id = %d", $course_id), ARRAY_A);
+                $wpdb->delete($table_name, ['id' => $course_id]);
+                if (function_exists('sc_log_activity') && $row) {
+                    sc_log_activity('deleted', 'course', $course_id, 'دوره «' . ($row['title'] ?? '') . '» حذف شد', $row, null);
+                }
             }
             wp_redirect(admin_url('admin.php?page=sc-courses&sc_status=course_bulk_deleted'));
             exit;

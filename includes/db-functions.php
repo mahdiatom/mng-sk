@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.23.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.24.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -817,6 +817,37 @@ function sc_create_sms_log_entries_table() {
     dbDelta($sql);
 }
 
+/**
+ * جدول لاگ فعالیت ادمین (چه کسی چه عملی روی چه موجودیتی انجام داده)
+ */
+function sc_create_activity_log_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_activity_log';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `created_at` datetime NOT NULL,
+        `user_id` bigint(20) unsigned NOT NULL DEFAULT 0,
+        `user_display_name` varchar(255) DEFAULT NULL,
+        `action` varchar(50) NOT NULL COMMENT 'created, updated, deleted, ...',
+        `entity_type` varchar(80) NOT NULL COMMENT 'member, course, coach, notification, ...',
+        `entity_id` bigint(20) unsigned DEFAULT NULL,
+        `summary` varchar(500) DEFAULT NULL COMMENT 'خلاصه متن: احمد رضایی ایجاد شد',
+        `old_value` longtext DEFAULT NULL COMMENT 'JSON قبل از تغییر',
+        `new_value` longtext DEFAULT NULL COMMENT 'JSON بعد از تغییر',
+        `ip` varchar(45) DEFAULT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_created_at` (`created_at`),
+        KEY `idx_user_id` (`user_id`),
+        KEY `idx_entity` (`entity_type`, `entity_id`),
+        KEY `idx_action` (`action`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 function sc_update_database() {
     global $wpdb;
 
@@ -853,6 +884,7 @@ function sc_update_database() {
         sc_create_support_ticket_messages_table();
         sc_create_sms_log_table();
         sc_create_sms_log_entries_table();
+        sc_create_activity_log_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';

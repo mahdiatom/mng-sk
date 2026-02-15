@@ -528,6 +528,9 @@ function sc_support_add_message($ticket_id, $sender_type, $sender_id, $message, 
     if (function_exists('sc_support_send_sms_on_new_message')) {
         sc_support_send_sms_on_new_message($ticket, $sender_type, $sender_id);
     }
+    if (is_admin() && function_exists('sc_log_activity') && ($sender_type === 'admin' || $sender_type === 'coach')) {
+        sc_log_activity('updated', 'support_ticket', $ticket_id, 'پاسخ به تیکت #' . $ticket_id . ' ثبت شد', ['status' => $ticket->status], ['status' => $new_status]);
+    }
     return $message_id;
 }
 
@@ -542,6 +545,9 @@ function sc_support_close_ticket($ticket_id, $user_id) {
     global $wpdb;
     $t = $wpdb->prefix . 'sc_support_tickets';
     $wpdb->update($t, ['status' => 'closed', 'updated_at' => current_time('mysql')], ['id' => $ticket_id], ['%s', '%s'], ['%d']);
+    if (is_admin() && function_exists('sc_log_activity')) {
+        sc_log_activity('updated', 'support_ticket', $ticket_id, 'تیکت #' . $ticket_id . ' بسته شد', ['status' => $ticket->status], ['status' => 'closed']);
+    }
     return true;
 }
 

@@ -128,6 +128,10 @@ function sc_register_admin_menu() {
         'sc_admin_attendance_report_page'
     );
 
+    /* ================= منوهای فقط مربی (نه مدیر کل و نه مدیر باشگاه): دستمزد، افتخارات، اطلاعیه، دوره‌های من، بازیکن‌های من، اطلاعات من، تیکت ================= */
+    $is_coach_only = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach');
+    if ($is_coach_only) {
+
     /* ================= Coach Salary & Wallet (for coaches) - فقط وقتی امکانات پرو کیف پول مربیان و دستمزد فعال است ================= */
     if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
         add_menu_page(
@@ -282,6 +286,8 @@ function sc_register_admin_menu() {
         'sc_admin_coach_support_ticket_new_page'
     );
     add_action('admin_menu', 'sc_coach_support_tickets_menu_badge', 999);
+
+    } // پایان منوهای فقط مربی ($is_coach_only)
 
     /* ================= Courses ================= */
 
@@ -659,6 +665,14 @@ function sc_register_admin_menu() {
         'manage_options',
         'sc-reports-sms-log',
         'sc_admin_reports_sms_log_page'
+    );
+    add_submenu_page(
+        'sc-reports',
+        'لاگ فعالیت',
+        'لاگ فعالیت',
+        'manage_options',
+        'sc-reports-activity-log',
+        'sc_admin_activity_log_page'
     );
     add_submenu_page(
         'sc-reports',
@@ -1426,6 +1440,14 @@ function sc_admin_reports_sms_log_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'reports-sms-log.php';
 }
 
+function sc_admin_activity_log_page() {
+    if (!current_user_can('manage_options')) {
+        wp_die('دسترسی غیرمجاز.');
+    }
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'activity-log-list.php';
+}
+
 // function sc_admin_reports_payments_page() {
 //     // بررسی و ایجاد جداول در صورت عدم وجود
 //     sc_check_and_create_tables();
@@ -1867,6 +1889,7 @@ function callback_add_course_sufix() {
 
         // بروزرسانی
         if ($course_id) {
+            $old_course = $wpdb->get_row($wpdb->prepare("SELECT title, price, price_per_session, is_active FROM $table_name WHERE id = %d", $course_id), ARRAY_A);
             // آماده‌سازی format array بر اساس ترتیب فیلدها در $data
             $format = [
                 '%s', // title
@@ -1890,6 +1913,9 @@ function callback_add_course_sufix() {
             );
 
             if ($updated !== false) {
+                if (function_exists('sc_log_activity') && $old_course) {
+                    sc_log_activity('updated', 'course', $course_id, 'دوره «' . $data['title'] . '» ویرایش شد', $old_course, ['title' => $data['title'], 'price' => $data['price'], 'is_active' => $data['is_active']]);
+                }
                 wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_updated&course_id=' . $course_id));
                 exit;
             } else {
@@ -1944,6 +1970,9 @@ function callback_add_course_sufix() {
 
             if ($inserted !== false) {
                 $insert_id = $wpdb->insert_id;
+                if (function_exists('sc_log_activity')) {
+                    sc_log_activity('created', 'course', $insert_id, 'دوره «' . $insert_data['title'] . '» ایجاد شد', null, ['title' => $insert_data['title'], 'price' => $insert_data['price'], 'is_active' => $insert_data['is_active']]);
+                }
                 wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_true&course_id=' . $insert_id));
                 exit;
             } else {
@@ -2050,6 +2079,7 @@ function callback_add_member_sufix(){
                 }
             }
             
+            $old_member = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name, national_id, player_phone, is_active FROM $table_name WHERE id = %d", $player_id), ARRAY_A);
             $updated = $wpdb->update(
                 $table_name,
                 $data,
@@ -2215,9 +2245,9 @@ function callback_add_member_sufix(){
                 }
                 sc_save_member_courses($player_id, $course_ids, $course_flags);
                 sc_update_profile_completed_status($player_id);
-                // به‌روزرسانی وضعیت تکمیل پروفایل
-                
-                
+                if (function_exists('sc_log_activity') && $old_member) {
+                    sc_log_activity('updated', 'member', $player_id, 'عضو «' . ($data['first_name'] . ' ' . $data['last_name']) . '» ویرایش شد', $old_member, ['first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'national_id' => $data['national_id'], 'is_active' => $data['is_active']]);
+                }
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=updated&player_id=' . $player_id));
                 exit;
             } else {
@@ -2377,10 +2407,9 @@ function callback_add_member_sufix(){
                 }
                 sc_save_member_courses($insert_id, $course_ids, $course_flags);
                 sc_update_profile_completed_status($insert_id);
-
-                // به‌روزرسانی وضعیت تکمیل پروفایل
-                
-                
+                if (function_exists('sc_log_activity')) {
+                    sc_log_activity('created', 'member', $insert_id, 'عضو «' . ($data['first_name'] . ' ' . $data['last_name']) . '» ایجاد شد', null, ['first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'national_id' => $data['national_id']]);
+                }
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_true&player_id=' . $insert_id));
                 exit;
             } else {
@@ -3055,6 +3084,7 @@ function callback_add_event_sufix() {
 
         // بروزرسانی
         if ($event_id) {
+            $old_event = $wpdb->get_row($wpdb->prepare("SELECT name, event_type, price, is_active FROM $table_name WHERE id = %d", $event_id), ARRAY_A);
             $updated = $wpdb->update(
                 $table_name,
                 $data,
@@ -3064,6 +3094,9 @@ function callback_add_event_sufix() {
             );
 
             if ($updated !== false) {
+                if (function_exists('sc_log_activity') && $old_event) {
+                    sc_log_activity('updated', 'event', $event_id, 'رویداد «' . $data['name'] . '» ویرایش شد', $old_event, ['name' => $data['name'], 'event_type' => $data['event_type'], 'price' => $data['price'], 'is_active' => $data['is_active']]);
+                }
                 // ذخیره/به‌روزرسانی فیلدهای سفارشی
                 sc_save_event_fields($event_id, $_POST);
                 
@@ -3085,7 +3118,9 @@ function callback_add_event_sufix() {
 
             if ($inserted !== false) {
                 $insert_id = $wpdb->insert_id;
-                
+                if (function_exists('sc_log_activity')) {
+                    sc_log_activity('created', 'event', $insert_id, 'رویداد «' . $data['name'] . '» ایجاد شد', null, ['name' => $data['name'], 'event_type' => $data['event_type'], 'price' => $data['price'], 'is_active' => $data['is_active']]);
+                }
                 // ذخیره فیلدهای سفارشی
                 sc_save_event_fields($insert_id, $_POST);
                 
@@ -3450,6 +3485,9 @@ function callback_add_coach_sufix() {
             );
             
             if ($updated !== false) {
+                if (function_exists('sc_log_activity') && $coach) {
+                    sc_log_activity('updated', 'coach', $coach_id, 'مربی «' . $first_name . ' ' . $last_name . '» ویرایش شد', (array) $coach, ['first_name' => $first_name, 'last_name' => $last_name, 'mobile_phone' => $mobile_phone]);
+                }
                 // به‌روزرسانی دوره‌ها
                 $course_percentages = isset($_POST['course_percentage']) && is_array($_POST['course_percentage']) ? $_POST['course_percentage'] : [];
                 sc_save_coach_courses($coach_id, isset($_POST['courses']) ? $_POST['courses'] : [], $course_percentages);
@@ -3465,7 +3503,9 @@ function callback_add_coach_sufix() {
             
             if ($inserted !== false) {
                 $new_coach_id = $wpdb->insert_id;
-                
+                if (function_exists('sc_log_activity')) {
+                    sc_log_activity('created', 'coach', $new_coach_id, 'مربی «' . $first_name . ' ' . $last_name . '» ایجاد شد', null, ['first_name' => $first_name, 'last_name' => $last_name, 'mobile_phone' => $mobile_phone]);
+                }
                 // ایجاد کاربر WordPress
                 $user_id = sc_create_coach_wp_user($new_coach_id, $data, $username, $password);
                 if ($user_id) {

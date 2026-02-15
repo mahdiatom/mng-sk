@@ -30,8 +30,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
             wp_die('شما فقط می‌توانید اطلاعیه‌های خود را حذف کنید.');
         }
     }
+    $row = $wpdb->get_row($wpdb->prepare("SELECT id, title, target_type FROM $notifications_table WHERE id = %d", $id), ARRAY_A);
     $wpdb->delete($recipients_table, ['notification_id' => $id], ['%d']);
     $wpdb->delete($notifications_table, ['id' => $id], ['%d']);
+    if (function_exists('sc_log_activity') && $row) {
+        sc_log_activity('deleted', 'notification', (int) $id, 'اطلاعیه «' . ($row['title'] ?? '') . '» حذف شد', $row, null);
+    }
     wp_safe_redirect(add_query_arg('deleted', 1, $list_url));
     exit;
 }

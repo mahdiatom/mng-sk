@@ -21,7 +21,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('penalty_enabled', $penalty_enabled, 'penalty');
         sc_update_setting('penalty_minutes', $penalty_minutes, 'penalty');
         sc_update_setting('penalty_amount', $penalty_amount, 'penalty');
-
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب جریمه ذخیره شد', null, ['tab' => 'penalty']);
+        }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات جریمه با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'invoice') {
@@ -40,6 +42,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('invoice_minute', min(59, max(0, absint($_POST['invoice_minute'] ?? 0))), 'invoice');
     }
 
+    if (function_exists('sc_log_activity')) {
+        sc_log_activity('updated', 'settings', 0, 'تنظیمات تب صورتحساب ذخیره شد', null, ['tab' => 'invoice']);
+    }
     echo '<div class="notice notice-success is-dismissible"><p>تنظیمات صورتحساب ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'sms') {
@@ -174,7 +179,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_ticket_new_recipient_template', $sms_ticket_new_recipient_template, 'sms');
         sc_update_setting('sms_ticket_reply_enabled', $sms_ticket_reply_enabled, 'sms');
         sc_update_setting('sms_ticket_reply_template', $sms_ticket_reply_template, 'sms');
-
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب پیامک ذخیره شد', null, ['tab' => 'sms']);
+        }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات پیامک با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'wallet') {
@@ -195,7 +202,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('wallet_max_negative_balance', $wallet_max_negative_balance, 'wallet');
         sc_update_setting('wallet_min_balance_alert', $wallet_min_balance_alert, 'wallet');
         sc_update_setting('wallet_allow_partial_payment', $wallet_allow_partial_payment, 'wallet');
-
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کیف پول ذخیره شد', null, ['tab' => 'wallet']);
+        }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات کیف پول با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'coach_salary') {
@@ -211,7 +220,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('coach_min_withdrawal_amount', $coach_min_withdrawal_amount, 'coach_salary');
         sc_update_setting('coach_max_negative_balance', $coach_max_negative_balance, 'coach_salary');
         sc_update_setting('coach_fixed_salary_settlement_day', $coach_fixed_salary_settlement_day, 'coach_salary');
-        
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب دستمزد مربی ذخیره شد', null, ['tab' => 'coach_salary']);
+        }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات دستمزد مربی با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'pro_features') {
@@ -226,10 +237,23 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     sc_update_setting('pro_feature_players_wallet', $pro_feature_players_wallet, 'pro_features');
     sc_update_setting('pro_feature_coaches_wallet_salary', $pro_feature_coaches_wallet_salary, 'pro_features');
     sc_update_setting('pro_feature_sms', $pro_feature_sms, 'pro_features');
-
+    if (function_exists('sc_log_activity')) {
+        sc_log_activity('updated', 'settings', 0, 'تنظیمات تب امکانات پرو ذخیره شد', null, ['tab' => 'pro_features']);
+    }
     echo '<div class="notice notice-success is-dismissible"><p>تنظیمات امکانات پرو با موفقیت ذخیره شد.</p></div>';
 }
-
+    elseif ($current_tab === 'log') {
+        $log_day = isset($_POST['activity_log_cleanup_day']) ? absint($_POST['activity_log_cleanup_day']) : 1;
+        $log_day = max(1, min(28, $log_day));
+        sc_update_setting('activity_log_cleanup_day', $log_day, 'activity_log');
+        if (function_exists('sc_activity_log_schedule_cron')) {
+            sc_activity_log_schedule_cron();
+        }
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب لاگ ذخیره شد', null, ['tab' => 'log', 'activity_log_cleanup_day' => $log_day]);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات لاگ با موفقیت ذخیره شد.</p></div>';
+    }
 }
 
 // پردازش فرم بازگشت به کارخانه
@@ -340,6 +364,8 @@ $pro_feature_coaches_wallet_salary = (int) sc_get_setting('pro_feature_coaches_w
 $pro_feature_sms = (int) sc_get_setting('pro_feature_sms', 0);
 $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
 
+$activity_log_cleanup_day = max(1, min(28, (int) sc_get_setting('activity_log_cleanup_day', '1')));
+
 ?>
 
 <div class="wrap sc_setting_section" >
@@ -388,6 +414,11 @@ $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=pro_features'); ?>"
             class="nav-tab <?php echo $current_tab === 'pro_features' ? 'nav-tab-active' : ''; ?>">
                امکانات پرو
+        </a>
+
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=log'); ?>"
+            class="nav-tab <?php echo $current_tab === 'log' ? 'nav-tab-active' : ''; ?>">
+            لاگ
         </a>
 
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=reset'); ?>"
@@ -561,6 +592,28 @@ $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
 </table>
 
 
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات">
+                </p>
+            </form>
+        <?php elseif ($current_tab === 'log') : ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                <h3>تنظیمات لاگ فعالیت</h3>
+                <p class="description">لاگ فعالیت‌های ادمین (چه کسی چه عملی انجام داده) در دیتابیس ذخیره می‌شود. لاگ‌های قدیمی‌تر از یک ماه به‌صورت خودکار پاک می‌شوند.</p>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="activity_log_cleanup_day">روز پاک‌سازی ماهانه</label></th>
+                        <td>
+                            <select name="activity_log_cleanup_day" id="activity_log_cleanup_day">
+                                <?php for ($d = 1; $d <= 28; $d++) : ?>
+                                    <option value="<?php echo $d; ?>" <?php selected($activity_log_cleanup_day, $d); ?>><?php echo $d; ?> هر ماه</option>
+                                <?php endfor; ?>
+                            </select>
+                            <p class="description">در این روز از هر ماه، لاگ‌های قدیمی‌تر از ۱ ماه حذف می‌شوند.</p>
+                        </td>
+                    </tr>
+                </table>
                 <p class="submit">
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات">
                 </p>

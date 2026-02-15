@@ -104,6 +104,7 @@ class Coaches_List_Table extends WP_List_Table {
         if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['coach'])) {
             $coach_id = absint($_GET['coach']);
             if (wp_verify_nonce($_GET['_wpnonce'], 'delete_coach_' . $coach_id)) {
+                $row = $wpdb->get_row($wpdb->prepare("SELECT id, first_name, last_name, national_id FROM $table_name WHERE id = %d", $coach_id), ARRAY_A);
                 // حذف کاربر WordPress قبل از حذف از جدول
                 sc_delete_wp_user_by_table_id($table_name, $coach_id);
                 
@@ -113,6 +114,9 @@ class Coaches_List_Table extends WP_List_Table {
                 
                 // حذف مربی از جدول
                 $wpdb->delete($table_name, ['id' => $coach_id], ['%d']);
+                if (function_exists('sc_log_activity') && $row) {
+                    sc_log_activity('deleted', 'coach', $coach_id, 'مربی «' . ($row['first_name'] . ' ' . $row['last_name']) . '» حذف شد', $row, null);
+                }
                 wp_redirect(admin_url('admin.php?page=sc-coaches&sc_status=coach_deleted'));
                 exit;
             }
@@ -201,6 +205,7 @@ class Coaches_List_Table extends WP_List_Table {
                 
             case 'delete':
                 foreach ($coach_ids as $coach_id) {
+                    $row = $wpdb->get_row($wpdb->prepare("SELECT id, first_name, last_name, national_id FROM $table_name WHERE id = %d", $coach_id), ARRAY_A);
                     // حذف کاربر WordPress قبل از حذف از جدول
                     sc_delete_wp_user_by_table_id($table_name, $coach_id);
                     
@@ -209,6 +214,9 @@ class Coaches_List_Table extends WP_List_Table {
                     
                     // حذف مربی از جدول
                     $wpdb->delete($table_name, ['id' => $coach_id], ['%d']);
+                    if (function_exists('sc_log_activity') && $row) {
+                        sc_log_activity('deleted', 'coach', $coach_id, 'مربی «' . ($row['first_name'] . ' ' . $row['last_name']) . '» حذف شد', $row, null);
+                    }
                 }
                 wp_redirect(admin_url('admin.php?page=sc-coaches&sc_status=coaches_deleted'));
                 exit;

@@ -46,8 +46,12 @@ if (isset($_POST['bulk_delete']) && check_admin_referer('bulk_delete_honors')) {
         
         // حذف رکوردها از دیتابیس
         foreach ($honor_ids as $honor_id) {
+            $row = $wpdb->get_row($wpdb->prepare("SELECT id, name, member_id FROM $honors_table WHERE id = %d", $honor_id), ARRAY_A);
             $result = $wpdb->delete($honors_table, ['id' => $honor_id], ['%d']);
             if ($result !== false && $result > 0) {
+                if (function_exists('sc_log_activity') && $row) {
+                    sc_log_activity('deleted', 'honor', $honor_id, 'افتخار «' . ($row['name'] ?? '') . '» حذف شد', $row, null);
+                }
                 $deleted_count++;
             }
         }
@@ -77,7 +81,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['honor
     
     // دریافت اطلاعات افتخار برای حذف فایل
     $honor = $wpdb->get_row($wpdb->prepare(
-        "SELECT id, file_url FROM $honors_table WHERE id = %d",
+        "SELECT id, name, file_url, member_id FROM $honors_table WHERE id = %d",
         $honor_id
     ));
     
@@ -92,6 +96,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['honor
         
         // حذف رکورد از دیتابیس
         $wpdb->delete($honors_table, ['id' => $honor_id], ['%d']);
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('deleted', 'honor', $honor_id, 'افتخار «' . ($honor->name ?? '') . '» حذف شد', (array) $honor, null);
+        }
         wp_cache_flush();
     }
     

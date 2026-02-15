@@ -315,7 +315,7 @@ public function column_order_number($item) {
                 // حذف صورت حساب‌ها
                 foreach ($invoice_ids as $invoice_id) {
                     $invoice = $wpdb->get_row($wpdb->prepare(
-                        "SELECT woocommerce_order_id FROM $table_name WHERE id = %d",
+                        "SELECT id, member_id, woocommerce_order_id, status FROM $table_name WHERE id = %d",
                         $invoice_id
                     ));
                     
@@ -329,6 +329,9 @@ public function column_order_number($item) {
                     
                     // حذف صورت حساب
                     $wpdb->delete($table_name, ['id' => $invoice_id], ['%d']);
+                    if (function_exists('sc_log_activity') && $invoice) {
+                        sc_log_activity('deleted', 'invoice', $invoice_id, 'صورتحساب #' . $invoice_id . ' (عضو ' . $invoice->member_id . ') حذف شد', (array) $invoice, null);
+                    }
                 }
                  do_action('sc_invoice_deleted', $invoice_id);
                 
@@ -454,6 +457,9 @@ public function column_order_number($item) {
             }
         }
 
+        if (function_exists('sc_log_activity') && !empty($new_status)) {
+            sc_log_activity('updated', 'invoice', 0, 'وضعیت ' . count($invoice_ids) . ' صورتحساب به «' . $new_status . '» تغییر کرد', null, ['invoice_ids' => $invoice_ids, 'new_status' => $new_status]);
+        }
         // ریدایرکت با پیام موفقیت
         wp_redirect(admin_url('admin.php?page=sc-invoices&sc_status=bulk_status_updated'));
         exit;

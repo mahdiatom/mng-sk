@@ -233,7 +233,9 @@ function sc_charge_wallet($member_id, $amount, $description = '', $created_by = 
     if ($result['success'] && isset($result['balance_after'])) {
         sc_send_wallet_charge_success_sms($member_id, $amount, $result['balance_after']);
     }
-    
+    if (is_admin() && $result['success'] && function_exists('sc_log_activity')) {
+        sc_log_activity('updated', 'wallet', $member_id, 'کیف پول عضو ' . $member_id . ' به مبلغ ' . number_format($amount, 0, '.', ',') . ' تومان شارژ شد', null, ['amount' => $amount, 'balance_after' => $result['balance_after'] ?? null]);
+    }
     return $result;
 }
 
@@ -275,7 +277,7 @@ function sc_deduct_wallet($member_id, $amount, $description = '') {
         ];
     }
     
-    return sc_add_wallet_transaction([
+    $result = sc_add_wallet_transaction([
         'user_id' => $user_id,
         'member_id' => $member_id,
         'transaction_type' => 'deduct',
@@ -283,6 +285,10 @@ function sc_deduct_wallet($member_id, $amount, $description = '') {
         'description' => $description,
         'created_by' => get_current_user_id()
     ]);
+    if (is_admin() && $result['success'] && function_exists('sc_log_activity')) {
+        sc_log_activity('updated', 'wallet', $member_id, 'از کیف پول عضو ' . $member_id . ' مبلغ ' . number_format($amount, 0, '.', ',') . ' تومان کسر شد', null, ['amount' => $amount, 'balance_after' => $result['balance_after'] ?? null]);
+    }
+    return $result;
 }
 
 /**

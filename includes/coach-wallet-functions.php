@@ -546,7 +546,9 @@ function sc_approve_coach_withdrawal_request($request_id) {
         ['%s', '%d', '%s'],
         ['%d']
     );
-    
+    if (function_exists('sc_log_activity')) {
+        sc_log_activity('updated', 'withdrawal', $request_id, 'درخواست برداشت #' . $request_id . ' تایید شد', ['status' => $request->status], ['status' => 'approved']);
+    }
     return [
         'success' => true,
         'message' => 'درخواست تایید شد و منتظر پرداخت است'
@@ -591,7 +593,9 @@ function sc_reject_coach_withdrawal_request($request_id, $rejection_reason = '')
         ['%s', '%s', '%s'],
         ['%d']
     );
-    
+    if (function_exists('sc_log_activity') && $request) {
+        sc_log_activity('updated', 'withdrawal', $request_id, 'درخواست برداشت #' . $request_id . ' رد شد', ['status' => $request->status], ['status' => 'rejected']);
+    }
     return ['success' => true, 'message' => 'درخواست رد شد و مبلغ به کیف پول برگشت داده شد'];
 }
 
@@ -690,6 +694,8 @@ function sc_mark_coach_withdrawal_paid($request_id, $payment_note = '') {
         $update_format,
         ['%d']
     );
-    
+    if (function_exists('sc_log_activity') && $request) {
+        sc_log_activity('updated', 'withdrawal', $request_id, 'درخواست برداشت #' . $request_id . ' پرداخت شده ثبت شد', ['status' => $request->status], ['status' => 'paid']);
+    }
     return ['success' => true, 'message' => 'درخواست به عنوان پرداخت شده علامت‌گذاری شد'];
 }

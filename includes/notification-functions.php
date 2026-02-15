@@ -287,6 +287,7 @@ function sc_save_notification($data) {
     $created_by_entity_id = $is_coach ? $coach_id : 0;
 
     if ($notification_id > 0) {
+        $old_row = $wpdb->get_row($wpdb->prepare("SELECT title, content, target_type, target_config, send_sms FROM $notifications_table WHERE id = %d", $notification_id), ARRAY_A);
         $wpdb->update(
             $notifications_table,
             [
@@ -304,6 +305,9 @@ function sc_save_notification($data) {
             ['%d']
         );
         $wpdb->delete($recipients_table, ['notification_id' => $notification_id], ['%d']);
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'notification', $notification_id, 'اطلاعیه «' . $title . '» ویرایش شد', $old_row, ['title' => $title, 'target_type' => $target_type, 'send_sms' => $send_sms]);
+        }
     } else {
         $wpdb->insert(
             $notifications_table,
@@ -322,6 +326,9 @@ function sc_save_notification($data) {
             ['%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s']
         );
         $notification_id = $wpdb->insert_id;
+        if (function_exists('sc_log_activity') && $notification_id) {
+            sc_log_activity('created', 'notification', $notification_id, 'اطلاعیه «' . $title . '» ایجاد شد', null, ['title' => $title, 'target_type' => $target_type, 'send_sms' => $send_sms]);
+        }
     }
 
     if ($target_type !== 'phone') {

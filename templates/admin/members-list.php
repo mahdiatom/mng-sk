@@ -203,12 +203,15 @@ public function column_full_name($item) {
 
         if ($this->current_action() == 'delete' && isset($_GET['player_id'])) {
         $player_id = absint($_GET['player_id']);
-        
+        $row = $wpdb->get_row($wpdb->prepare("SELECT id, first_name, last_name, national_id FROM $table_name WHERE id = %d", $player_id), ARRAY_A);
         // حذف کاربر WordPress قبل از حذف از جدول
         sc_delete_wp_user_by_table_id($table_name, $player_id);
         
         // حذف بازیکن از جدول
         $wpdb->delete($table_name, ['id' => $player_id]);
+        if (function_exists('sc_log_activity') && $row) {
+            sc_log_activity('deleted', 'member', $player_id, 'عضو «' . ($row['first_name'] . ' ' . $row['last_name']) . '» حذف شد', $row, null);
+        }
         wp_redirect(admin_url('admin.php?page=sc-members&sc_status=deleted'));
             exit;
         
@@ -218,11 +221,16 @@ public function column_full_name($item) {
             $players = isset($_GET['player']) ? $_GET['player'] : [];
            
             foreach ($players as $player_id) {
+                $player_id = absint($player_id);
+                $row = $wpdb->get_row($wpdb->prepare("SELECT id, first_name, last_name, national_id FROM $table_name WHERE id = %d", $player_id), ARRAY_A);
                 // حذف کاربر WordPress قبل از حذف از جدول
                 sc_delete_wp_user_by_table_id($table_name, $player_id);
                 
                 // حذف بازیکن از جدول
                 $wpdb->delete($table_name, ['id' => $player_id]);
+                if (function_exists('sc_log_activity') && $row) {
+                    sc_log_activity('deleted', 'member', $player_id, 'عضو «' . ($row['first_name'] . ' ' . $row['last_name']) . '» حذف شد', $row, null);
+                }
             }
             wp_redirect(admin_url('admin.php?page=sc-members&sc_status=bulk_deleted&sc_status2=deleted_player'));
             exit;

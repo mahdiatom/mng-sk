@@ -228,7 +228,11 @@ public function extra_tablenav($which) {
         if ($this->current_action() == 'delete_permanent' && isset($_GET['event_id'])) {
             check_admin_referer('delete_permanent_event_' . $_GET['event_id']);
             $event_id = absint($_GET['event_id']);
+            $row = $wpdb->get_row($wpdb->prepare("SELECT id, name FROM $table_name WHERE id = %d", $event_id), ARRAY_A);
             $wpdb->delete($table_name, ['id' => $event_id]);
+            if (function_exists('sc_log_activity') && $row) {
+                sc_log_activity('deleted', 'event', $event_id, 'رویداد «' . ($row['name'] ?? '') . '» حذف شد', $row, null);
+            }
             wp_redirect(admin_url('admin.php?page=sc-events&sc_status=event_deleted'));
             exit;
         }
@@ -266,7 +270,12 @@ public function extra_tablenav($which) {
             check_admin_referer('bulk-' . $this->_args['plural']);
             $events = isset($_GET['event']) ? $_GET['event'] : [];
             foreach ($events as $event_id) {
-                $wpdb->delete($table_name, ['id' => absint($event_id)]);
+                $event_id = absint($event_id);
+                $row = $wpdb->get_row($wpdb->prepare("SELECT id, name FROM $table_name WHERE id = %d", $event_id), ARRAY_A);
+                $wpdb->delete($table_name, ['id' => $event_id]);
+                if (function_exists('sc_log_activity') && $row) {
+                    sc_log_activity('deleted', 'event', $event_id, 'رویداد «' . ($row['name'] ?? '') . '» حذف شد', $row, null);
+                }
             }
             wp_redirect(admin_url('admin.php?page=sc-events&sc_status=event_bulk_deleted'));
             exit;
