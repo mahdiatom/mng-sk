@@ -781,6 +781,8 @@ function sc_create_sms_log_table() {
         `response_message` varchar(500) DEFAULT NULL,
         `message_id` varchar(100) DEFAULT NULL COMMENT 'شناسه پیام از API',
         `extra` text DEFAULT NULL COMMENT 'JSON',
+        `delivery_state` varchar(100) DEFAULT NULL COMMENT 'وضعیت تحویل از API: رسیده به گوشی، لیست سیاه، ...',
+        `delivery_checked_at` datetime DEFAULT NULL COMMENT 'زمان آخرین بررسی وضعیت تحویل',
         PRIMARY KEY (`id`),
         KEY `idx_created_at` (`created_at`),
         KEY `idx_context` (`context`),
@@ -885,6 +887,17 @@ function sc_update_database() {
       
         // --- به روز رسانی نسخه دیتابیس ---
         update_option('sc_plugin_db_version', SC_PLUGIN_VERSION);
+    }
+
+    // اضافه کردن ستون‌های وضعیت تحویل به جدول لاگ پیامک (برای لیست سیاه / تحویل واقعی)
+    $sms_log_table = $wpdb->prefix . 'sc_sms_log';
+    $delivery_state_exists = $wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM `$sms_log_table` LIKE %s", 'delivery_state'));
+    if (empty($delivery_state_exists)) {
+        $wpdb->query("ALTER TABLE `$sms_log_table` ADD COLUMN `delivery_state` varchar(100) DEFAULT NULL COMMENT 'وضعیت تحویل از API' AFTER `extra`");
+    }
+    $delivery_checked_exists = $wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM `$sms_log_table` LIKE %s", 'delivery_checked_at'));
+    if (empty($delivery_checked_exists)) {
+        $wpdb->query("ALTER TABLE `$sms_log_table` ADD COLUMN `delivery_checked_at` datetime DEFAULT NULL COMMENT 'زمان آخرین بررسی وضعیت تحویل' AFTER `delivery_state`");
     }
 
     // اضافه کردن نوع تراکنش session_fee به جدول کیف پول (یک بار برای نصب‌های قبلی)

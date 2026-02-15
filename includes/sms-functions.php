@@ -168,6 +168,65 @@ function sc_sms_log_insert($mobile, $message_display, $context, $result) {
 }
 
 /**
+ * بررسی وضعیت تحویل پیام از API سامانه (sms.ir) و به‌روزرسانی رکورد لاگ
+ * برای تشخیص لیست سیاه / نرسیده به گوشی و غیره
+ *
+ * @param int $log_id شناسه رکورد در sc_sms_log
+ * @return array { success, delivery_state, message } یا خطا
+ */
+function sc_sms_log_check_delivery_status($log_id) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_sms_log';
+    $log = $wpdb->get_row($wpdb->prepare("SELECT id, message_id FROM `$table` WHERE id = %d", $log_id));
+    if (!$log || empty($log->message_id)) {
+        return ['success' => false, 'message' => 'رکورد یا شناسه پیام یافت نشد.'];
+    }
+    $status = sc_get_sms_status($log->message_id);
+    if (!isset($status['success']) || !$status['success']) {
+        return [
+            'success' => false,
+            'message' => isset($status['message']) ? $status['message'] : 'خطا در دریافت وضعیت از API',
+        ];
+    }
+    $delivery_state = isset($status['delivery_state']) ? $status['delivery_state'] : '';
+    $now = current_time('mysql');
+    $wpdb->update(
+        $table,
+        ['delivery_state' => $delivery_state, 'delivery_checked_at' => $now],
+        ['id' => $log_id],
+        ['%s', '%s'],
+        ['%d']
+    );
+    return [
+        'success' => true,
+        'delivery_state' => $delivery_state,
+        'message' => 'وضعیت تحویل به‌روزرسانی شد.',
+    ];
+}
+
+/**
+ * AJAX: بررسی وضعیت تحویل یک رکورد لاگ پیامک
+ */
+add_action('wp_ajax_sc_check_sms_delivery_status', 'sc_ajax_check_sms_delivery_status');
+function sc_ajax_check_sms_delivery_status() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+    if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'sc_check_sms_delivery')) {
+        wp_send_json_error(['message' => 'خطای امنیتی.']);
+    }
+    $log_id = isset($_POST['log_id']) ? absint($_POST['log_id']) : 0;
+    if ($log_id <= 0) {
+        wp_send_json_error(['message' => 'شناسه رکورد نامعتبر است.']);
+    }
+    $result = sc_sms_log_check_delivery_status($log_id);
+    if (!empty($result['success'])) {
+        wp_send_json_success($result);
+    }
+    wp_send_json_error(['message' => $result['message'] ?? 'خطا در بررسی وضعیت.']);
+}
+
+/**
  * Send SMS via sms.ir API
  * @param string $context بخش مبدا برای لاگ: ticket_new, invoice, enrollment, ...
  */

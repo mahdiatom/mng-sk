@@ -179,7 +179,8 @@ if ($entries_table_exists && $total_entries > 0) {
                     <th scope="col" style="width: 110px;">شماره</th>
                     <th scope="col" style="width: 120px;">بخش</th>
                     <th scope="col">متن / توضیح</th>
-                    <th scope="col" style="width: 70px;">وضعیت</th>
+                    <th scope="col" style="width: 85px;">وضعیت ارسال</th>
+                    <th scope="col" style="width: 160px;">وضعیت تحویل (واقعی)</th>
                     <th scope="col" style="width: 200px;">پیام خطا / توضیحات</th>
                     <th scope="col" style="width: 90px;">شناسه پیام</th>
                 </tr>
@@ -187,14 +188,17 @@ if ($entries_table_exists && $total_entries > 0) {
             <tbody>
                 <?php
                 $row = $offset + 1;
+                $delivery_failed_states = ['لیست سیاه', 'ناموفق', 'نرسیده به گوشی', 'نرسیده به مخابرات'];
                 foreach ($logs as $log) :
                     $msg_preview = $log->message_text;
                     if (mb_strlen($msg_preview) > 80) {
                         $msg_preview = mb_substr($msg_preview, 0, 77) . '…';
                     }
                     $context_label = isset($context_labels[$log->context]) ? $context_labels[$log->context] : $log->context;
+                    $delivery_state = isset($log->delivery_state) ? $log->delivery_state : '';
+                    $has_message_id = !empty($log->message_id);
                 ?>
-                    <tr>
+                    <tr data-log-id="<?php echo (int) $log->id; ?>">
                         <td><?php echo (int) $row; ?></td>
                         <td><?php echo esc_html($log->created_at); ?></td>
                         <td><?php echo esc_html($log->mobile); ?></td>
@@ -202,9 +206,24 @@ if ($entries_table_exists && $total_entries > 0) {
                         <td title="<?php echo esc_attr($log->message_text); ?>"><?php echo esc_html($msg_preview); ?></td>
                         <td>
                             <?php if ((int) $log->success === 1) : ?>
-                                <span style="color: #00a32a; font-weight: 600;">موفق</span>
+                                <span style="color: #00a32a;">پذیرش توسط سامانه</span>
                             <?php else : ?>
                                 <span style="color: #d63638; font-weight: 600;">ناموفق</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="sc-delivery-cell">
+                            <?php if ($delivery_state !== '') : ?>
+                                <?php if (in_array($delivery_state, $delivery_failed_states, true)) : ?>
+                                    <span class="sc-delivery-state sc-delivery-fail" style="color: #d63638; font-weight: 600;" title="وضعیت واقعی از API سامانه"><?php echo esc_html($delivery_state); ?></span>
+                                <?php elseif ($delivery_state === 'رسیده به گوشی') : ?>
+                                    <span class="sc-delivery-state sc-delivery-ok" style="color: #00a32a; font-weight: 600;"><?php echo esc_html($delivery_state); ?></span>
+                                <?php else : ?>
+                                    <span class="sc-delivery-state"><?php echo esc_html($delivery_state); ?></span>
+                                <?php endif; ?>
+                            <?php elseif ($has_message_id) : ?>
+                                <button type="button" class="button button-small sc-check-delivery-btn" data-log-id="<?php echo (int) $log->id; ?>">بررسی تحویل</button>
+                            <?php else : ?>
+                                —
                             <?php endif; ?>
                         </td>
                         <td>
@@ -254,6 +273,39 @@ if ($entries_table_exists && $total_entries > 0) {
             </div>
         <?php endif; ?>
     <?php endif; ?>
+
+    <p style="margin-top: 12px; font-size: 12px; color: #646970;">«وضعیت ارسال» یعنی پذیرش توسط سامانه؛ «وضعیت تحویل (واقعی)» از API سامانه (مثلاً لیست سیاه / رسیده به گوشی) با دکمه «بررسی تحویل» به‌روز می‌شود.</p>
+
+    <script>
+    jQuery(function($) {
+        $(document).on('click', '.sc-check-delivery-btn', function() {
+            var $btn = $(this);
+            var logId = $btn.data('log-id');
+            if (!logId) return;
+            $btn.prop('disabled', true).text('در حال بررسی...');
+            $.post(ajaxurl, {
+                action: 'sc_check_sms_delivery_status',
+                log_id: logId,
+                _wpnonce: '<?php echo esc_js(wp_create_nonce('sc_check_sms_delivery')); ?>'
+            }).done(function(r) {
+                if (r.success && r.data && r.data.delivery_state !== undefined) {
+                    var state = r.data.delivery_state;
+                    var fail = ['لیست سیاه', 'ناموفق', 'نرسیده به گوشی', 'نرسیده به مخابرات'].indexOf(state) >= 0;
+                    var ok = state === 'رسیده به گوشی';
+                    var cls = fail ? 'sc-delivery-fail' : (ok ? 'sc-delivery-ok' : '');
+                    var style = fail ? 'color:#d63638;font-weight:600;' : (ok ? 'color:#00a32a;font-weight:600;' : '');
+                    $btn.closest('td').html('<span class="sc-delivery-state ' + cls + '" style="' + style + '">' + state + '</span>');
+                } else {
+                    alert(r.data && r.data.message ? r.data.message : 'خطا در دریافت وضعیت.');
+                    $btn.prop('disabled', false).text('بررسی تحویل');
+                }
+            }).fail(function() {
+                alert('خطا در ارتباط با سرور.');
+                $btn.prop('disabled', false).text('بررسی تحویل');
+            });
+        });
+    });
+    </script>
 
     <hr style="margin: 32px 0 16px 0;" />
 
