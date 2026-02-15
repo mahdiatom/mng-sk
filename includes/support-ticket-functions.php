@@ -66,7 +66,8 @@ function sc_support_get_members_for_coach($coach_id) {
     $list = $wpdb->get_results($wpdb->prepare(
         "SELECT DISTINCT mem.id AS member_id,
                 TRIM(CONCAT(COALESCE(mem.first_name,''), ' ', COALESCE(mem.last_name,''))) AS name,
-                mem.user_id
+                mem.user_id,
+                mem.national_id
          FROM $mc mc
          INNER JOIN $cc cc ON cc.course_id = mc.course_id AND cc.coach_id = %d
          INNER JOIN $m mem ON mem.id = mc.member_id

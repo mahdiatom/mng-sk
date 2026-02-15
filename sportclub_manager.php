@@ -1247,7 +1247,8 @@ add_action('wp_enqueue_scripts', 'sc_public_enqueue_assets');
  */
 function sc_admin_enqueue_assets() {
     wp_enqueue_style('sc-admin-css', SC_ASSETS_URL . 'css/admin.css', array(),  time());
-    if (current_user_can('sc_view_coach_salary')) {
+    $is_ticket_new = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-support-ticket-new';
+    if (current_user_can('sc_view_coach_salary') || $is_ticket_new) {
         wp_enqueue_style('sc-coach-admin-css', SC_ASSETS_URL . 'css/coach-admin.css', array('sc-admin-css'), time());
     }
     // Enqueue media uploader (must be before admin.js)
