@@ -263,6 +263,7 @@ function sc_save_notification($data) {
     $is_coach = $coach_id > 0;
     $send_sms = $is_coach ? 0 : (isset($data['send_sms']) ? (int)$data['send_sms'] : 0);
     $notification_id = isset($data['id']) ? absint($data['id']) : 0;
+    $attachment_ids = isset($data['attachment_ids']) ? sc_notification_validate_attachment_ids($data['attachment_ids'], 5) : [];
 
     if (empty($title)) return ['success' => false, 'message' => 'عنوان الزامی است.'];
     if (empty($content)) return ['success' => false, 'message' => 'متن اطلاعیه الزامی است.'];
@@ -288,6 +289,7 @@ function sc_save_notification($data) {
 
     if ($notification_id > 0) {
         $old_row = $wpdb->get_row($wpdb->prepare("SELECT title, content, target_type, target_config, send_sms FROM $notifications_table WHERE id = %d", $notification_id), ARRAY_A);
+        $attachment_json = !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null;
         $wpdb->update(
             $notifications_table,
             [
@@ -295,13 +297,14 @@ function sc_save_notification($data) {
                 'content' => $content,
                 'target_type' => $target_type,
                 'target_config' => wp_json_encode($target_config),
+                'attachment_ids' => $attachment_json,
                 'send_sms' => $send_sms,
                 'created_by_type' => $created_by_type,
                 'created_by_entity_id' => $created_by_entity_id,
                 'updated_at' => $now
             ],
             ['id' => $notification_id],
-            ['%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s'],
+            ['%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s'],
             ['%d']
         );
         $wpdb->delete($recipients_table, ['notification_id' => $notification_id], ['%d']);
@@ -309,6 +312,7 @@ function sc_save_notification($data) {
             sc_log_activity('updated', 'notification', $notification_id, 'اطلاعیه «' . $title . '» ویرایش شد', $old_row, ['title' => $title, 'target_type' => $target_type, 'send_sms' => $send_sms]);
         }
     } else {
+        $attachment_json = !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null;
         $wpdb->insert(
             $notifications_table,
             [
@@ -316,6 +320,7 @@ function sc_save_notification($data) {
                 'content' => $content,
                 'target_type' => $target_type,
                 'target_config' => wp_json_encode($target_config),
+                'attachment_ids' => $attachment_json,
                 'send_sms' => $send_sms,
                 'created_by' => $created_by,
                 'created_by_type' => $created_by_type,
@@ -323,7 +328,7 @@ function sc_save_notification($data) {
                 'created_at' => $now,
                 'updated_at' => $now
             ],
-            ['%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s']
+            ['%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s']
         );
         $notification_id = $wpdb->insert_id;
         if (function_exists('sc_log_activity') && $notification_id) {
@@ -505,12 +510,161 @@ function sc_get_user_notification_detail($notification_id, $user_id) {
     $recipients_table = $wpdb->prefix . 'sc_notification_recipients';
 
     return $wpdb->get_row($wpdb->prepare(
-        "SELECT n.id, n.title, n.content, n.created_at
+        "SELECT n.id, n.title, n.content, n.attachment_ids, n.created_at
          FROM $recipients_table nr
          INNER JOIN $notifications_table n ON nr.notification_id = n.id
          WHERE nr.notification_id = %d AND nr.user_id = %d",
         $notification_id, $user_id
     ));
+}
+
+/**
+ * Validate notification attachment IDs (uploaded via AJAX for this context).
+ *
+ * @param array|string $ids Array or comma-separated string of attachment IDs.
+ * @param int          $max Maximum number of attachments.
+ * @return int[]
+ */
+function sc_notification_validate_attachment_ids($ids, $max = 5) {
+    $user_id = get_current_user_id();
+    if ($user_id <= 0) {
+        return [];
+    }
+    if (is_string($ids)) {
+        $ids = array_map('absint', array_filter(explode(',', $ids)));
+    } else {
+        $ids = is_array($ids) ? array_map('absint', $ids) : [];
+    }
+    $ids = array_unique(array_filter($ids));
+    $ids = array_slice($ids, 0, $max);
+    $valid = [];
+    foreach ($ids as $aid) {
+        if (!$aid) continue;
+        $post = get_post($aid);
+        if (!$post || $post->post_type !== 'attachment') continue;
+        if ((int) get_post_meta($aid, '_sc_notification_attachment', true) !== 1) continue;
+        if ((int) get_post_meta($aid, '_sc_notification_uploaded_by', true) !== $user_id) continue;
+        $valid[] = $aid;
+    }
+    return $valid;
+}
+
+/**
+ * AJAX: Upload a single notification attachment (admin or coach).
+ */
+add_action('wp_ajax_sc_upload_notification_attachment', 'sc_ajax_upload_notification_attachment');
+function sc_ajax_upload_notification_attachment() {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('sc_view_coach_salary'))) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+    if (!isset($_POST['sc_notification_upload_nonce']) || !wp_verify_nonce($_POST['sc_notification_upload_nonce'], 'sc_notification_upload_attachment')) {
+        wp_send_json_error(['message' => 'خطای امنیتی. لطفاً صفحه را رفرش کنید.']);
+    }
+    $key = isset($_FILES['file']) ? 'file' : (isset($_FILES['notification_attachment']) ? 'notification_attachment' : null);
+    if (!$key || empty($_FILES[$key]['name']) || $_FILES[$key]['error'] !== UPLOAD_ERR_OK) {
+        wp_send_json_error(['message' => 'فایلی انتخاب نشده یا خطا در آپلود.']);
+    }
+    $allowed = function_exists('sc_support_allowed_mime_types') ? sc_support_allowed_mime_types() : [
+        'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp',
+        'pdf' => 'application/pdf', 'doc' => 'application/msword', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls' => 'application/vnd.ms-excel', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+    $allowed_ext = array_keys($allowed);
+    $max_size = 5 * 1024 * 1024; // 5MB
+    $file = $_FILES[$key];
+    if (isset($file['size']) && $file['size'] > $max_size) {
+        wp_send_json_error(['message' => 'حداکثر حجم هر فایل ۵ مگابایت است.']);
+    }
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowed_ext, true)) {
+        wp_send_json_error(['message' => 'فرمت فایل مجاز نیست. مجاز: تصویر، PDF، ورد، اکسل.']);
+    }
+    require_once ABSPATH . 'wp-admin/includes/image.php';
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/media.php';
+    $upload = wp_handle_upload($file, ['test_form' => false, 'mimes' => $allowed]);
+    if (isset($upload['error'])) {
+        wp_send_json_error(['message' => $upload['error']]);
+    }
+    $attachment = [
+        'post_mime_type' => $upload['type'],
+        'post_title'     => sanitize_file_name(pathinfo($upload['file'], PATHINFO_FILENAME)),
+        'post_content'  => '',
+        'post_status'   => 'inherit',
+    ];
+    $attach_id = wp_insert_attachment($attachment, $upload['file']);
+    if (is_wp_error($attach_id)) {
+        wp_send_json_error(['message' => 'خطا در ذخیره پیوست.']);
+    }
+    update_post_meta($attach_id, '_sc_notification_attachment', 1);
+    update_post_meta($attach_id, '_sc_notification_uploaded_by', get_current_user_id());
+    wp_send_json_success(['id' => $attach_id, 'name' => basename($upload['file'])]);
+}
+
+/**
+ * Download URL for notification attachment (only for recipient).
+ */
+function sc_notification_attachment_download_url($attachment_id, $notification_id, $user_id) {
+    return add_query_arg([
+        'sc_notif_attachment' => (int) $attachment_id,
+        'sc_notif_id' => (int) $notification_id,
+        'sc_notif_user' => (int) $user_id,
+        'nonce' => wp_create_nonce('sc_notif_attach_' . $attachment_id . '_' . $notification_id . '_' . $user_id),
+    ], home_url('/'));
+}
+
+/**
+ * Serve notification attachment download (only if user is recipient).
+ */
+add_action('template_redirect', 'sc_notification_attachment_download_handle');
+function sc_notification_attachment_download_handle() {
+    $attach_id = isset($_GET['sc_notif_attachment']) ? absint($_GET['sc_notif_attachment']) : 0;
+    $notification_id = isset($_GET['sc_notif_id']) ? absint($_GET['sc_notif_id']) : 0;
+    $user_id = isset($_GET['sc_notif_user']) ? absint($_GET['sc_notif_user']) : 0;
+    $nonce = isset($_GET['nonce']) ? $_GET['nonce'] : '';
+    if (!$attach_id || !$notification_id || !$user_id || !wp_verify_nonce($nonce, 'sc_notif_attach_' . $attach_id . '_' . $notification_id . '_' . $user_id)) {
+        return;
+    }
+    if (get_current_user_id() !== $user_id) {
+        status_header(403);
+        exit;
+    }
+    global $wpdb;
+    $recipients_table = $wpdb->prefix . 'sc_notification_recipients';
+    $exists = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $recipients_table WHERE notification_id = %d AND user_id = %d",
+        $notification_id, $user_id
+    ));
+    if (!$exists) {
+        status_header(403);
+        exit;
+    }
+    $notifications_table = $wpdb->prefix . 'sc_notifications';
+    $row = $wpdb->get_row($wpdb->prepare("SELECT attachment_ids FROM $notifications_table WHERE id = %d", $notification_id));
+    if (!$row || !$row->attachment_ids) {
+        status_header(404);
+        exit;
+    }
+    $ids = json_decode($row->attachment_ids, true);
+    if (!is_array($ids) || !in_array($attach_id, array_map('intval', $ids), true)) {
+        status_header(404);
+        exit;
+    }
+    if (get_post_meta($attach_id, '_sc_notification_attachment', true) != '1') {
+        status_header(404);
+        exit;
+    }
+    $file = get_attached_file($attach_id);
+    if (!file_exists($file) || !is_readable($file)) {
+        status_header(404);
+        exit;
+    }
+    $filename = basename($file);
+    header('Content-Type: ' . get_post_mime_type($attach_id));
+    header('Content-Disposition: attachment; filename="' . esc_attr($filename) . '"');
+    header('Content-Length: ' . filesize($file));
+    readfile($file);
+    exit;
 }
 
 /**
@@ -628,6 +782,63 @@ function sc_notifications_empty_message($filter, $search) {
         return 'هنوز اطلاعیه‌ای به عنوان خوانده شده ندارید.';
     }
     return 'هنوز اطلاعیه‌ای دریافت نکرده‌اید.';
+}
+
+/**
+ * AJAX: فیلتر و جستجوی اطلاعیه‌های مربی (پنل ادمین - بدون ریدایرکت)
+ */
+add_action('wp_ajax_sc_coach_notifications_filter', 'sc_ajax_coach_notifications_filter');
+function sc_ajax_coach_notifications_filter() {
+    if (!is_user_logged_in() || !current_user_can('sc_view_coach_salary')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+    $filter = isset($_POST['filter']) ? sanitize_text_field($_POST['filter']) : 'all';
+    if (!in_array($filter, ['all', 'unread', 'read'], true)) {
+        $filter = 'all';
+    }
+    $search = isset($_POST['s']) ? sanitize_text_field(wp_unslash($_POST['s'])) : '';
+    $page = isset($_POST['notif_page']) ? max(1, absint($_POST['notif_page'])) : 1;
+    $per_page = 15;
+    $user_id = get_current_user_id();
+    $unread_only = ($filter === 'unread');
+    $read_only = ($filter === 'read');
+    $notifications = sc_get_user_notifications($user_id, $per_page, ($page - 1) * $per_page, $unread_only, $read_only, $search);
+    $total = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($user_id, $unread_only, $read_only, $search) : 0;
+    $total_pages = max(1, ceil($total / $per_page));
+    $base_url = admin_url('admin.php?page=sc-coach-notifications');
+    $base_url_with_filter = $base_url;
+    if ($filter !== 'all') {
+        $base_url_with_filter = add_query_arg('filter', $filter, $base_url_with_filter);
+    }
+    if ($search !== '') {
+        $base_url_with_filter = add_query_arg('s', $search, $base_url_with_filter);
+    }
+    $items = [];
+    foreach ($notifications as $n) {
+        $view_url = add_query_arg('view', $n->id, $base_url);
+        $items[] = [
+            'id' => (int) $n->id,
+            'title' => $n->title,
+            'created_at' => function_exists('sc_date_shamsi') ? sc_date_shamsi($n->created_at, 'Y/m/d - H:i') : $n->created_at,
+            'is_read' => !empty($n->is_read),
+            'view_url' => $view_url,
+        ];
+    }
+    $count_all = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($user_id, false, false, '') : 0;
+    $count_unread = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($user_id, true, false, '') : 0;
+    $count_read = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($user_id, false, true, '') : 0;
+
+    wp_send_json_success([
+        'items' => $items,
+        'total' => (int) $total,
+        'total_pages' => $total_pages,
+        'page' => $page,
+        'empty_message' => sc_notifications_empty_message($filter, $search),
+        'base_url_with_filter' => $base_url_with_filter,
+        'count_all' => (int) $count_all,
+        'count_unread' => (int) $count_unread,
+        'count_read' => (int) $count_read,
+    ]);
 }
 
 /**

@@ -18,6 +18,7 @@ $recipients_table = $wpdb->prefix . 'sc_notification_recipients';
 $message = '';
 $message_type = '';
 
+// حذف تکی
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
     check_admin_referer('delete_notification_' . $_GET['id']);
     $id = absint($_GET['id']);
@@ -39,8 +40,53 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
     wp_safe_redirect(add_query_arg('deleted', 1, $list_url));
     exit;
 }
+
+// حذف دسته‌جمعی
+if (isset($_POST['bulk_delete']) && isset($_POST['bulk_action']) && $_POST['bulk_action'] === 'delete') {
+    check_admin_referer('bulk_delete_notifications');
+    $ids = isset($_POST['notification_ids']) && is_array($_POST['notification_ids']) ? array_map('absint', $_POST['notification_ids']) : [];
+    $ids = array_filter($ids);
+    $deleted = 0;
+    foreach ($ids as $id) {
+        if (!$id) continue;
+        if ($is_coach && $current_coach_id > 0) {
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, created_by_type, created_by_entity_id FROM $notifications_table WHERE id = %d",
+                $id
+            ));
+            if (!$row || $row->created_by_type !== 'coach' || (int)$row->created_by_entity_id !== $current_coach_id) {
+                continue;
+            }
+        }
+        $row = $wpdb->get_row($wpdb->prepare("SELECT id, title, target_type FROM $notifications_table WHERE id = %d", $id), ARRAY_A);
+        $wpdb->delete($recipients_table, ['notification_id' => $id], ['%d']);
+        $wpdb->delete($notifications_table, ['id' => $id], ['%d']);
+        if (function_exists('sc_log_activity') && $row) {
+            sc_log_activity('deleted', 'notification', (int) $id, 'اطلاعیه «' . ($row['title'] ?? '') . '» حذف شد', $row, null);
+        }
+        $deleted++;
+    }
+    if ($deleted > 0) {
+        $redirect = add_query_arg(['page' => $list_page, 'bulk_deleted' => $deleted], admin_url('admin.php'));
+        if (!empty($_GET['paged'])) $redirect = add_query_arg('paged', max(1, absint($_GET['paged'])), $redirect);
+        if (isset($_GET['filter_creator']) && $_GET['filter_creator'] !== '') $redirect = add_query_arg('filter_creator', sanitize_text_field($_GET['filter_creator']), $redirect);
+        if (isset($_GET['filter_target']) && $_GET['filter_target'] !== '') $redirect = add_query_arg('filter_target', sanitize_text_field($_GET['filter_target']), $redirect);
+        if (isset($_GET['filter_sms']) && $_GET['filter_sms'] !== '') $redirect = add_query_arg('filter_sms', sanitize_text_field($_GET['filter_sms']), $redirect);
+        if (!empty($_GET['filter_date_from_shamsi'])) $redirect = add_query_arg('filter_date_from_shamsi', sanitize_text_field($_GET['filter_date_from_shamsi']), $redirect);
+        if (!empty($_GET['filter_date_to_shamsi'])) $redirect = add_query_arg('filter_date_to_shamsi', sanitize_text_field($_GET['filter_date_to_shamsi']), $redirect);
+        if (!empty($_GET['s'])) $redirect = add_query_arg('s', sanitize_text_field($_GET['s']), $redirect);
+        wp_safe_redirect($redirect);
+        exit;
+    }
+}
+
 if (isset($_GET['deleted'])) {
     $message = 'اطلاعیه با موفقیت حذف شد.';
+    $message_type = 'success';
+}
+if (isset($_GET['bulk_deleted'])) {
+    $n = absint($_GET['bulk_deleted']);
+    $message = $n > 0 ? sprintf('%d اطلاعیه حذف شد.', $n) : '';
     $message_type = 'success';
 }
 if (isset($_GET['saved']) && isset($_GET['msg'])) {
@@ -224,10 +270,24 @@ $total_pages = ceil($total / $per_page);
         </form>
     </div>
 
+    <form method="post" id="sc-notifications-bulk-form">
+        <?php wp_nonce_field('bulk_delete_notifications'); ?>
+        <div class="tablenav top" style="margin: 15px 0;">
+            <div class="alignleft actions bulkactions">
+                <select name="bulk_action" id="bulk-action-selector">
+                    <option value="">عملیات دسته‌جمعی...</option>
+                    <option value="delete">حذف</option>
+                </select>
+                <input type="submit" name="bulk_delete" id="doaction" class="button action" value="اجرا">
+            </div>
+        </div>
     <div class="sc-notifications-list-card<?php echo $is_coach ? ' sc-coach-panel-card' : ''; ?>">
     <table class="wp-list-table widefat fixed striped sc-notifications-admin-table">
         <thead>
             <tr>
+                <td class="manage-column column-cb check-column" style="width: 2.2em;">
+                    <input type="checkbox" id="cb-select-all">
+                </td>
                 <th style="width:50px">ردیف</th>
                 <th>عنوان</th>
                 <th style="width:120px">ثبت‌کننده</th>
@@ -240,7 +300,7 @@ $total_pages = ceil($total / $per_page);
         </thead>
         <tbody>
             <?php if (empty($notifications)) : ?>
-                <tr><td colspan="8">اطلاعیه‌ای یافت نشد.</td></tr>
+                <tr><td colspan="9">اطلاعیه‌ای یافت نشد.</td></tr>
             <?php else :
                 $i = $offset + 1;
                 foreach ($notifications as $n) :
@@ -250,6 +310,13 @@ $total_pages = ceil($total / $per_page);
                     $can_edit_delete = !$is_coach || ($current_coach_id > 0 && isset($n->created_by_type) && $n->created_by_type === 'coach' && (int)$n->created_by_entity_id === $current_coach_id);
             ?>
                 <tr>
+                    <th scope="row" class="check-column">
+                        <?php if ($can_edit_delete) : ?>
+                            <input type="checkbox" name="notification_ids[]" value="<?php echo esc_attr($n->id); ?>" class="cb-notification">
+                        <?php else : ?>
+                            —
+                        <?php endif; ?>
+                    </th>
                     <td><?php echo $i++; ?></td>
                     <td><strong><?php echo esc_html($n->title); ?></strong></td>
                     <td><?php echo esc_html($creator_label); ?></td>
@@ -273,7 +340,7 @@ $total_pages = ceil($total / $per_page);
     </div>
 
     <?php if ($total_pages > 1) : ?>
-        <div class="tablenav bottom sc-notifications-tablenav">
+        <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
             <div class="tablenav-pages">
                 <?php
                 $pagination_args = ['page' => $list_page];
@@ -286,8 +353,8 @@ $total_pages = ceil($total / $per_page);
                 echo paginate_links([
                     'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
                     'format' => '',
-                    'prev_text' => '&laquo; قبلی',
-                    'next_text' => 'بعدی &raquo;',
+                    'prev_text' => '< قبلی ',
+                    'next_text' => ' بعدی >',
                     'total' => $total_pages,
                     'current' => $current_page,
                     'add_args' => $pagination_args
@@ -296,6 +363,7 @@ $total_pages = ceil($total / $per_page);
             </div>
         </div>
     <?php endif; ?>
+    </form>
 </div>
 
 <style>
@@ -306,7 +374,19 @@ $total_pages = ceil($total / $per_page);
 .sc-notifications-admin-table tbody td { padding: 12px 14px; }
 .sc-notifications-admin-table .submitdelete { color: #b32d2e; }
 .sc-notifications-admin-table .submitdelete:hover { color: #d63638; }
-.sc-notifications-tablenav { margin-top: 15px; }
 .sc-notifications-filters-wrap form label { font-weight: 500; margin-left: 4px; }
 .sc-notifications-filters-wrap .persian-date-input { cursor: pointer; }
 </style>
+<script>
+jQuery(function($) {
+    $('#cb-select-all').on('change', function() {
+        $('.cb-notification').prop('checked', this.checked);
+    });
+    $('#sc-notifications-bulk-form').on('submit', function() {
+        if ($('#bulk-action-selector').val() === 'delete' && $('.cb-notification:checked').length === 0) {
+            alert('لطفاً حداقل یک اطلاعیه را انتخاب کنید.');
+            return false;
+        }
+    });
+});
+</script>

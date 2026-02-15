@@ -1034,4 +1034,14 @@ function sc_update_database() {
         }
         update_option('sc_notifications_creator_columns_added', '1');
     }
+
+    // ستون پیوست‌های اطلاعیه
+    if (get_option('sc_notifications_attachment_ids_added', '0') !== '1') {
+        $notifications_table = $wpdb->prefix . 'sc_notifications';
+        $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$notifications_table` LIKE %s", 'attachment_ids'));
+        if (empty($col)) {
+            $wpdb->query("ALTER TABLE `$notifications_table` ADD COLUMN `attachment_ids` text DEFAULT NULL COMMENT 'JSON array of attachment post IDs' AFTER `target_config`");
+        }
+        update_option('sc_notifications_attachment_ids_added', '1');
+    }
 }

@@ -59,6 +59,23 @@ if ($view_id > 0) {
                 <h2 class="sc-notification-detail-title"><?php echo esc_html($notification->title); ?></h2>
                 <p class="sc-notification-detail-meta"><?php echo esc_html(sc_date_shamsi($notification->created_at, 'l d F Y - H:i')); ?></p>
                 <div class="sc-notification-detail-body"><?php echo nl2br(esc_html($notification->content)); ?></div>
+                <?php
+                $attachment_ids = isset($notification->attachment_ids) && $notification->attachment_ids ? json_decode($notification->attachment_ids, true) : [];
+                if (!empty($attachment_ids) && is_array($attachment_ids) && function_exists('sc_notification_attachment_download_url')) :
+                    ?>
+                    <div class="sc-notification-detail-attachments" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                        <strong style="display: block; margin-bottom: 10px;">پیوست‌ها:</strong>
+                        <ul style="list-style: none; margin: 0; padding: 0;">
+                            <?php foreach (array_map('absint', $attachment_ids) as $aid) :
+                                if (!$aid) continue;
+                                $name = get_the_title($aid) ?: basename(get_attached_file($aid)) ?: 'پیوست';
+                                $url = sc_notification_attachment_download_url($aid, $notification->id, $current_user_id);
+                                ?>
+                                <li style="margin-bottom: 8px;"><a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener" class="sc-notification-attachment-link" style="display: inline-flex; align-items: center; gap: 6px;">📎 <?php echo esc_html($name); ?></a></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
         <?php

@@ -1265,7 +1265,8 @@ function sc_admin_enqueue_assets() {
     if (current_user_can('sc_view_coach_salary') || $is_ticket_new) {
         wp_enqueue_style('sc-coach-admin-css', SC_ASSETS_URL . 'css/coach-admin.css', array('sc-admin-css'), time());
     }
-    if ($is_ticket_new || $is_ticket_view || $is_coach_ticket_new || $is_coach_ticket_view) {
+    $is_notification_add = is_admin() && isset($_GET['page']) && in_array($_GET['page'], array('sc-add-notification', 'sc-coach-add-notification'), true);
+    if ($is_ticket_new || $is_ticket_view || $is_coach_ticket_new || $is_coach_ticket_view || $is_notification_add) {
         wp_enqueue_script('sc-ticket-attachments', SC_ASSETS_URL . 'js/ticket-attachments.js', array('jquery'), time(), true);
         wp_localize_script('sc-ticket-attachments', 'scTicketAttach', array('ajaxurl' => admin_url('admin-ajax.php')));
     }

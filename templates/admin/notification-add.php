@@ -66,12 +66,25 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
     }
     // wallet_negative: no config
 
+    $attachment_ids = [];
+    if (!empty($_POST['notification_attachment_ids']) && is_array($_POST['notification_attachment_ids'])) {
+        $attachment_ids = array_map('absint', $_POST['notification_attachment_ids']);
+    } elseif (!empty($_POST['notification_attachment_ids']) && is_string($_POST['notification_attachment_ids'])) {
+        $attachment_ids = array_filter(array_map('absint', explode(',', $_POST['notification_attachment_ids'])));
+    }
+    if ($edit_id && empty($attachment_ids) && $notification && !empty($notification->attachment_ids)) {
+        $existing = json_decode($notification->attachment_ids, true);
+        if (is_array($existing)) {
+            $attachment_ids = array_map('absint', $existing);
+        }
+    }
     $data = [
         'title' => $title,
         'content' => $content,
         'target_type' => $target_type,
         'target_config' => $target_config,
-        'send_sms' => $send_sms
+        'send_sms' => $send_sms,
+        'attachment_ids' => $attachment_ids
     ];
     if ($edit_id) {
         $data['id'] = $edit_id;
@@ -203,6 +216,27 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                         تا پایان پیام فعلی <span id="sms-remaining">70</span> کاراکتر |
                         معادل <span id="sms-count">0</span> پیامک
                     </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><label>پیوست</label></th>
+                <td>
+                    <div class="sc-ticket-attachment-zone sc-notification-attachment-zone" data-input-name="notification_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_notification_upload_attachment')); ?>" data-action="sc_upload_notification_attachment" data-nonce-key="sc_notification_upload_nonce">
+                        <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
+                            <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple>
+                            <span class="sc-file-upload-icon">📎</span>
+                            <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
+                            <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت: تصویر، PDF، ورد، اکسل. پیوست در پیامک ارسال نمی‌شود.</span>
+                        </div>
+                        <div class="sc-ticket-upload-progress-wrap" style="display:none;">
+                            <div class="sc-upload-progress sc-ticket-upload-progress">
+                                <div class="sc-upload-bar"></div>
+                                <span class="sc-upload-text"></span>
+                            </div>
+                        </div>
+                        <div class="sc-ticket-uploaded-list"></div>
+                        <div class="sc-ticket-attachment-ids-hidden"></div>
+                    </div>
                 </td>
             </tr>
             <tr>

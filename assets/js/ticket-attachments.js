@@ -12,6 +12,8 @@
     function initZone($zone) {
         var inputName = $zone.data('input-name') || 'reply_attachment_ids';
         var nonce = $zone.data('nonce') || '';
+        var action = $zone.data('action') || 'sc_upload_ticket_attachment';
+        var nonceKey = $zone.data('nonce-key') || 'sc_ticket_upload_nonce';
         var ajaxUrl = (typeof scTicketAttach !== 'undefined' && scTicketAttach.ajaxurl) ? scTicketAttach.ajaxurl : (typeof ajaxurl !== 'undefined' ? ajaxurl : '');
         if (!ajaxUrl || !nonce) return;
 
@@ -47,8 +49,8 @@
 
         function uploadOne(file, done) {
             var formData = new FormData();
-            formData.append('action', 'sc_upload_ticket_attachment');
-            formData.append('sc_ticket_upload_nonce', nonce);
+            formData.append('action', action);
+            formData.append(nonceKey, nonce);
             formData.append('file', file);
 
             $progressWrap.show().addClass('sc-uploading');
