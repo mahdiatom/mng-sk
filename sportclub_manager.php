@@ -1298,6 +1298,14 @@ function sc_public_enqueue_assets() {
         wp_enqueue_script('sc-ticket-attachments', SC_ASSETS_URL . 'js/ticket-attachments.js', array('jquery'), time(), true);
         wp_localize_script('sc-ticket-attachments', 'scTicketAttach', array('ajaxurl' => admin_url('admin-ajax.php')));
     }
+    if (is_account_page() && function_exists('wc_get_account_endpoint_url')) {
+        wp_enqueue_script('sc-notifications-ajax', SC_ASSETS_URL . 'js/notifications-ajax.js', array('jquery'), time(), true);
+        wp_localize_script('sc-notifications-ajax', 'scNotificationsAjax', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'baseUrl' => wc_get_account_endpoint_url('sc-notifications', '', wc_get_page_permalink('myaccount')),
+            'nonceMarkRead' => wp_create_nonce('sc_mark_notification_read'),
+        ));
+    }
 }
 
 //پنهان کردن تاپ منو برای نقش مدیر باشگاه

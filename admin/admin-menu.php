@@ -56,8 +56,8 @@ function sc_register_admin_menu() {
     /* ================= Members ================= */
 
     add_menu_page(
-        'اعضا',
-        'اعضا',
+        'بازیکنان ',
+        'بازیکنان',
         'manage_options',
         'sc-members',
         'sc_admin_members_list_page',
@@ -69,8 +69,8 @@ function sc_register_admin_menu() {
 
     $list_member_sufix = add_submenu_page(
         'sc-members',
-        'لیست اعضا',
-        'لیست اعضا',
+        'لیست بازیکنان',
+        'لیست بازیکنان',
         'manage_options',
         'sc-members',
         'sc_admin_members_list_page'
@@ -79,8 +79,8 @@ function sc_register_admin_menu() {
 
     $add_member_sufix = add_submenu_page(
         'sc-members',
-        'افزودن عضو',
-        'افزودن عضو',
+        'افزودن بازیکن',
+        'افزودن بازیکن',
         'manage_options',
         'sc-add-member',
         'sc_admin_add_member_page'
@@ -666,6 +666,7 @@ function sc_register_admin_menu() {
         'sc-reports-sms-log',
         'sc_admin_reports_sms_log_page'
     );
+    add_action('load-sc-reports_page_sc-reports-sms-log', 'sc_sms_log_screen_options');
     add_submenu_page(
         'sc-reports',
         'لاگ فعالیت',
@@ -883,7 +884,18 @@ function sc_set_invoices_screen_option($status, $option, $value) {
     if ('support_tickets_per_page' === $option) {
         return $value;
     }
+    if ('sms_report_per_page' === $option) {
+        return max(1, min(500, (int) $value));
+    }
     return $status;
+}
+
+function sc_sms_log_screen_options() {
+    add_screen_option('per_page', [
+        'label'   => 'تعداد در هر صفحه',
+        'default' => 25,
+        'option'  => 'sms_report_per_page',
+    ]);
 }
 
 /**

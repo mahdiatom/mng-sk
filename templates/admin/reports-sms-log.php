@@ -7,6 +7,20 @@ sc_check_and_create_tables();
 global $wpdb;
 $table = $wpdb->prefix . 'sc_sms_log';
 
+// پاکسازی تمام لاگ‌های پیامک (گزارش ارسال + لاگ تفصیلی)
+if (isset($_POST['sc_clear_sms_logs']) && current_user_can('manage_options')) {
+    if (wp_verify_nonce($_POST['_wpnonce_clear_sms_logs'], 'sc_clear_sms_logs')) {
+        $table_ent = $wpdb->prefix . 'sc_sms_log_entries';
+        $wpdb->query("TRUNCATE TABLE `$table`");
+        $wpdb->query("TRUNCATE TABLE `$table_ent`");
+        wp_safe_redirect(add_query_arg(['page' => 'sc-reports-sms-log', 'sc_sms_cleared' => '1'], admin_url('admin.php')));
+        exit;
+    }
+}
+if (isset($_GET['sc_sms_cleared']) && $_GET['sc_sms_cleared'] === '1') {
+    echo '<div class="notice notice-success is-dismissible"><p>تمام لاگ‌های گزارش ارسال پیامک و لاگ تفصیلی پاکسازی شدند.</p></div>';
+}
+
 // برچسب بخش‌ها برای نمایش
 $context_labels = [
     'ticket_new' => 'تیکت جدید',
@@ -75,7 +89,8 @@ if ($filter_status === '1') {
 
 $where_sql = implode(' AND ', $where);
 
-$per_page = 25;
+$screen_per_page = get_user_meta(get_current_user_id(), 'sms_report_per_page', true);
+$per_page = isset($_GET['per_page']) ? max(1, min(500, absint($_GET['per_page']))) : ($screen_per_page ? max(1, (int) $screen_per_page) : 25);
 $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
 $offset = ($current_page - 1) * $per_page;
 
@@ -121,7 +136,7 @@ if ($filter_detail_search !== '') {
 }
 $where_ent_sql = implode(' AND ', $where_ent);
 
-$per_page_ent = 50;
+$per_page_ent = $per_page;
 $current_page_ent = isset($_GET['detail_paged']) ? max(1, absint($_GET['detail_paged'])) : 1;
 
 if ($entries_table_exists) {
@@ -210,10 +225,24 @@ if ($entries_table_exists && $total_entries > 0) {
                        style="width: 160px;">
             </div>
             <div>
+                <label for="per_page" style="display: block; margin-bottom: 4px; font-size: 12px;">تعداد در هر صفحه</label>
+                <select name="per_page" id="per_page" style="width: 70px;">
+                    <?php foreach ([10, 25, 50, 100, 200] as $n) : ?>
+                        <option value="<?php echo (int) $n; ?>" <?php selected($per_page, $n); ?>><?php echo (int) $n; ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
                 <button type="submit" class="button button-primary">اعمال فیلتر</button>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-sms-log')); ?>" class="button">پاک کردن</a>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-sms-log')); ?>" class="button">پاک کردن فیلتر</a>
             </div>
         </div>
+    </form>
+
+    <form method="post" action="" style="margin-bottom: 16px;" onsubmit="return confirm('تمام لاگ‌های گزارش ارسال پیامک و لاگ تفصیلی پاک می‌شوند. مطمئن هستید؟');">
+        <?php wp_nonce_field('sc_clear_sms_logs', '_wpnonce_clear_sms_logs'); ?>
+        <input type="hidden" name="sc_clear_sms_logs" value="1">
+        <button type="submit" class="button button-secondary">پاکسازی تمام لاگ‌های پیامک</button>
     </form>
 
     <p style="color: #646970; margin-bottom: 12px;">تعداد کل: <strong><?php echo number_format($total_items); ?></strong> رکورد</p>
@@ -297,30 +326,29 @@ if ($entries_table_exists && $total_entries > 0) {
         </table>
 
         <?php if ($total_pages > 1) : ?>
-            <div class="tablenav bottom" style="margin-top: 12px;">
-                <div class="tablenav-pages">
-                    <span class="displaying-num"><?php echo number_format($total_items); ?> مورد</span>
-                    <span class="pagination-links">
+            <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
+                <div class="tablenav-pages" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <div class="displaying-num"><?php echo number_format($total_items); ?> مورد</div>
+                    <div class="pagination-links">
                         <?php
-                        $base = add_query_arg('paged', '%#%');
-                        $base = remove_query_arg('paged', $base);
-                        if (!empty($filter_date_from_shamsi)) $base = add_query_arg('date_from_shamsi', $filter_date_from_shamsi, $base);
-                        if (!empty($filter_date_to_shamsi))   $base = add_query_arg('date_to_shamsi', $filter_date_to_shamsi, $base);
-                        if (!empty($filter_context))  $base = add_query_arg('context', $filter_context, $base);
-                        if ($filter_status !== '')    $base = add_query_arg('status', $filter_status, $base);
-                        if (!empty($filter_detail_search)) $base = add_query_arg('detail_search', $filter_detail_search, $base);
-                        if (!empty($filter_log_level)) $base = add_query_arg('log_level', $filter_log_level, $base);
-                        $base = add_query_arg('page', 'sc-reports-sms-log', $base);
+                        $pagination_args = ['page' => 'sc-reports-sms-log', 'per_page' => $per_page];
+                        if (!empty($filter_date_from_shamsi)) $pagination_args['date_from_shamsi'] = $filter_date_from_shamsi;
+                        if (!empty($filter_date_to_shamsi))   $pagination_args['date_to_shamsi'] = $filter_date_to_shamsi;
+                        if (!empty($filter_context))  $pagination_args['context'] = $filter_context;
+                        if ($filter_status !== '')    $pagination_args['status'] = $filter_status;
+                        if (!empty($filter_detail_search)) $pagination_args['detail_search'] = $filter_detail_search;
+                        if (!empty($filter_log_level)) $pagination_args['log_level'] = $filter_log_level;
                         echo paginate_links([
-                            'base' => $base,
+                            'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
                             'format' => '',
-                            'prev_text' => '&laquo;',
-                            'next_text' => '&raquo;',
+                            'prev_text' => '&laquo; قبلی',
+                            'next_text' => 'بعدی &raquo;',
                             'total' => $total_pages,
                             'current' => $current_page,
+                            'add_args' => $pagination_args,
                         ]);
                         ?>
-                    </span>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>
@@ -414,25 +442,26 @@ if ($entries_table_exists && $total_entries > 0) {
         </table>
 
         <?php if ($total_pages_ent > 1) : ?>
-            <div class="tablenav bottom" style="margin-top: 12px;">
-                <div class="tablenav-pages">
+            <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
+                <div class="tablenav-pages" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <span class="displaying-num"><?php echo number_format($total_entries); ?> مورد</span>
                     <span class="pagination-links">
                         <?php
-                        $base_ent = add_query_arg('detail_paged', '%#%');
-                        $base_ent = remove_query_arg('detail_paged', $base_ent);
-                        if (!empty($filter_date_from_shamsi)) $base_ent = add_query_arg('date_from_shamsi', $filter_date_from_shamsi, $base_ent);
-                        if (!empty($filter_date_to_shamsi))   $base_ent = add_query_arg('date_to_shamsi', $filter_date_to_shamsi, $base_ent);
-                        if (!empty($filter_log_level)) $base_ent = add_query_arg('log_level', $filter_log_level, $base_ent);
-                        if (!empty($filter_detail_search)) $base_ent = add_query_arg('detail_search', $filter_detail_search, $base_ent);
-                        $base_ent = add_query_arg('page', 'sc-reports-sms-log', $base_ent);
+                        $pagination_args_ent = ['page' => 'sc-reports-sms-log', 'per_page' => $per_page];
+                        if (!empty($filter_date_from_shamsi)) $pagination_args_ent['date_from_shamsi'] = $filter_date_from_shamsi;
+                        if (!empty($filter_date_to_shamsi))   $pagination_args_ent['date_to_shamsi'] = $filter_date_to_shamsi;
+                        if (!empty($filter_log_level)) $pagination_args_ent['log_level'] = $filter_log_level;
+                        if (!empty($filter_detail_search)) $pagination_args_ent['detail_search'] = $filter_detail_search;
+                        if (!empty($filter_context)) $pagination_args_ent['context'] = $filter_context;
+                        if ($filter_status !== '') $pagination_args_ent['status'] = $filter_status;
                         echo paginate_links([
-                            'base' => $base_ent,
+                            'base' => add_query_arg(['page' => 'sc-reports-sms-log', 'detail_paged' => '%#%'], admin_url('admin.php')),
                             'format' => '',
-                            'prev_text' => '&laquo;',
-                            'next_text' => '&raquo;',
+                            'prev_text' => '&laquo; قبلی',
+                            'next_text' => 'بعدی &raquo;',
                             'total' => $total_pages_ent,
                             'current' => $current_page_ent,
+                            'add_args' => array_diff_key($pagination_args_ent, ['page' => 1]),
                         ]);
                         ?>
                     </span>

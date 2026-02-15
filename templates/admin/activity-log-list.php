@@ -183,7 +183,7 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
                 ?>
                     <tr>
                         <td><?php echo (int) $row; ?></td>
-                        <td><?php echo esc_html($log->created_at); ?></td>
+                        <td><?php echo esc_html(function_exists('sc_date_shamsi') ? sc_date_shamsi($log->created_at, 'Y/m/d H:i') : $log->created_at); ?></td>
                         <td><?php echo esc_html($log->user_display_name ?: '—'); ?></td>
                         <td><?php echo esc_html($action_label); ?></td>
                         <td><?php echo esc_html($entity_label); ?><?php echo $log->entity_id ? ' #' . (int) $log->entity_id : ''; ?></td>
@@ -204,29 +204,28 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
         </table>
 
         <?php if ($total_pages > 1) : ?>
-            <div class="tablenav bottom" style="margin-top: 12px;">
-                <div class="tablenav-pages">
-                    <span class="displaying-num"><?php echo number_format_i18n($total_items); ?> مورد</span>
-                    <span class="pagination-links">
+            <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
+                <div class="tablenav-pages" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <p class="displaying-num"><?php echo number_format_i18n($total_items); ?> مورد</p>
+                    <div class="pagination-links">
                         <?php
-                        $base = add_query_arg('paged', '%#%', admin_url('admin.php'));
-                        $base = remove_query_arg('paged', $base);
-                        $base = add_query_arg('page', 'sc-reports-activity-log', $base);
-                        if (!empty($filter_date_from_shamsi)) $base = add_query_arg('date_from_shamsi', $filter_date_from_shamsi, $base);
-                        if (!empty($filter_date_to_shamsi)) $base = add_query_arg('date_to_shamsi', $filter_date_to_shamsi, $base);
-                        if (!empty($filter_entity_type)) $base = add_query_arg('entity_type', $filter_entity_type, $base);
-                        if (!empty($filter_action)) $base = add_query_arg('action_type', $filter_action, $base);
-                        if ($filter_user_id > 0) $base = add_query_arg('user_id', $filter_user_id, $base);
+                        $pagination_args = ['page' => 'sc-reports-activity-log'];
+                        if (!empty($filter_date_from_shamsi)) $pagination_args['date_from_shamsi'] = $filter_date_from_shamsi;
+                        if (!empty($filter_date_to_shamsi)) $pagination_args['date_to_shamsi'] = $filter_date_to_shamsi;
+                        if (!empty($filter_entity_type)) $pagination_args['entity_type'] = $filter_entity_type;
+                        if (!empty($filter_action)) $pagination_args['action_type'] = $filter_action;
+                        if ($filter_user_id > 0) $pagination_args['user_id'] = $filter_user_id;
                         echo paginate_links([
-                            'base' => $base,
+                            'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
                             'format' => '',
-                            'prev_text' => '&laquo;',
-                            'next_text' => '&raquo;',
+                            'prev_text' => '&laquo; قبلی',
+                            'next_text' => 'بعدی &raquo;',
                             'total' => $total_pages,
                             'current' => $current_page,
+                            'add_args' => $pagination_args,
                         ]);
                         ?>
-                    </span>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>
