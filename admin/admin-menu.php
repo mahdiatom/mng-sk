@@ -273,6 +273,14 @@ function sc_register_admin_menu() {
         'sc-coach-support-ticket-view',
         'sc_admin_coach_support_ticket_view_page'
     );
+    add_submenu_page(
+        null,
+        'ارسال تیکت جدید',
+        'ارسال تیکت جدید',
+        'sc_view_coach_salary',
+        'sc-coach-support-ticket-new',
+        'sc_admin_coach_support_ticket_new_page'
+    );
     add_action('admin_menu', 'sc_coach_support_tickets_menu_badge', 999);
 
     /* ================= Courses ================= */
@@ -404,6 +412,14 @@ function sc_register_admin_menu() {
         'manage_options',
         'sc-support-ticket-view',
         'sc_admin_support_ticket_view_page'
+    );
+    add_submenu_page(
+        'sc-support-tickets',
+        'ارسال تیکت جدید',
+        'ارسال تیکت جدید',
+        'manage_options',
+        'sc-support-ticket-new',
+        'sc_admin_support_ticket_new_page'
     );
     add_action('admin_menu', 'sc_admin_support_tickets_menu_badge', 999);
 
@@ -1006,6 +1022,14 @@ function sc_admin_coach_support_ticket_view_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'coach-support-ticket-view.php';
 }
 
+function sc_admin_coach_support_ticket_new_page() {
+    sc_check_and_create_tables();
+    if (!current_user_can('sc_view_coach_salary')) wp_die('دسترسی غیرمجاز.');
+    $coach_id = function_exists('sc_support_get_coach_id_by_user_id') ? sc_support_get_coach_id_by_user_id(get_current_user_id()) : 0;
+    if ($coach_id <= 0) wp_die('اطلاعات مربی یافت نشد.');
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-support-ticket-new.php';
+}
+
 function sc_support_tickets_screen_option() {
     add_screen_option('per_page', [
         'label' => 'تعداد تیکت در هر صفحه',
@@ -1041,7 +1065,9 @@ function sc_admin_support_tickets_list_page() {
     }
     ?>
     <div class="wrap">
-        <h1>لیست تیکت‌های پشتیبانی</h1>
+        <h1 class="wp-heading-inline">لیست تیکت‌های پشتیبانی</h1>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-support-ticket-new')); ?>" class="page-title-action">ارسال تیکت جدید</a>
+        <hr class="wp-header-end">
         <form method="get">
             <input type="hidden" name="page" value="sc-support-tickets">
             <?php if (isset($_GET['filter_status'])) : ?>
@@ -1056,6 +1082,12 @@ function sc_admin_support_tickets_list_page() {
         </form>
     </div>
     <?php
+}
+
+function sc_admin_support_ticket_new_page() {
+    sc_check_and_create_tables();
+    if (!current_user_can('manage_options')) wp_die('دسترسی غیرمجاز.');
+    include SC_TEMPLATES_ADMIN_DIR . 'admin-support-ticket-new.php';
 }
 
 function sc_admin_support_ticket_view_page() {

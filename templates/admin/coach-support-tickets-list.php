@@ -8,7 +8,9 @@ $tickets = sc_support_get_tickets_for_coach($coach_id, ['per_page' => 50]);
 $list_url = admin_url('admin.php?page=sc-coach-support-tickets');
 ?>
 <div class="wrap">
-    <h1>تیکت‌های پشتیبانی (ارسال‌شده به شما)</h1>
+    <h1 class="wp-heading-inline">تیکت‌های پشتیبانی</h1>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-support-ticket-new')); ?>" class="page-title-action">ارسال تیکت جدید</a>
+    <hr class="wp-header-end">
     <?php if (empty($tickets)) : ?>
         <p>هنوز تیکتی برای شما ارسال نشده است.</p>
     <?php else : ?>
@@ -17,7 +19,7 @@ $list_url = admin_url('admin.php?page=sc-coach-support-tickets');
                 <tr>
                     <th>شناسه</th>
                     <th>موضوع</th>
-                    <th>ارسال‌کننده</th>
+                    <th>طرف مقابل</th>
                     <th>وضعیت</th>
                     <th>تاریخ</th>
                     <th>عملیات</th>
@@ -27,26 +29,47 @@ $list_url = admin_url('admin.php?page=sc-coach-support-tickets');
                 <?php
                 global $wpdb;
                 $members_table = $wpdb->prefix . 'sc_members';
+                $coaches_table = $wpdb->prefix . 'sc_coaches';
                 foreach ($tickets as $t) :
-                    $creator_name = '';
-                    if ($t->user_id) {
-                        $member = $wpdb->get_row($wpdb->prepare(
-                            "SELECT first_name, last_name FROM $members_table WHERE user_id = %d",
-                            $t->user_id
-                        ));
-                        if ($member) {
-                            $creator_name = trim($member->first_name . ' ' . $member->last_name);
+                    $other_name = '';
+                    if (!empty($t->created_by_coach_id) && (int) $t->created_by_coach_id === (int) $coach_id) {
+                        if ((int) $t->user_id > 0) {
+                            $member = $wpdb->get_row($wpdb->prepare(
+                                "SELECT first_name, last_name FROM $members_table WHERE user_id = %d",
+                                $t->user_id
+                            ));
+                            $other_name = $member ? trim($member->first_name . ' ' . $member->last_name) : '';
+                            if (empty($other_name)) {
+                                $u = get_userdata($t->user_id);
+                                $other_name = $u ? $u->display_name : 'کاربر #' . $t->user_id;
+                            }
+                            $other_name = 'به: ' . $other_name;
+                        } else {
+                            $other_name = 'به: مدیر باشگاه';
                         }
-                        if (empty($creator_name)) {
-                            $u = get_userdata($t->user_id);
-                            $creator_name = $u ? $u->display_name : 'کاربر #' . $t->user_id;
+                    } else {
+                        if ($t->user_id) {
+                            $member = $wpdb->get_row($wpdb->prepare(
+                                "SELECT first_name, last_name FROM $members_table WHERE user_id = %d",
+                                $t->user_id
+                            ));
+                            if ($member) {
+                                $other_name = trim($member->first_name . ' ' . $member->last_name);
+                            }
+                            if (empty($other_name)) {
+                                $u = get_userdata($t->user_id);
+                                $other_name = $u ? $u->display_name : 'کاربر #' . $t->user_id;
+                            }
+                            $other_name = 'از: ' . $other_name;
+                        } else {
+                            $other_name = '—';
                         }
                     }
                 ?>
                 <tr>
                     <td><?php echo (int) $t->id; ?></td>
                     <td><?php echo esc_html($t->subject); ?></td>
-                    <td><?php echo esc_html($creator_name); ?></td>
+                    <td><?php echo esc_html($other_name); ?></td>
                     <td><?php echo esc_html(sc_support_status_label($t->status)); ?></td>
                     <td><?php echo esc_html(sc_date_shamsi($t->updated_at, 'Y/m/d H:i')); ?></td>
                     <td>

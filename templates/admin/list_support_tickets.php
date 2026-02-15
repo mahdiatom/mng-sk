@@ -46,13 +46,30 @@ class Support_Tickets_List_Table extends WP_List_Table {
     }
 
     public function column_user($item) {
-        $name = $item['user_name'];
+        $name = isset($item['user_name']) ? trim($item['user_name']) : '';
         $uid = (int) $item['user_id'];
-        if ($uid && current_user_can('edit_users')) {
-            $url = admin_url('user-edit.php?user_id=' . $uid);
-            return '<a href="' . esc_url($url) . '">' . esc_html($name) . '</a>';
+        $created_by = isset($item['created_by_type']) ? $item['created_by_type'] : 'user';
+        $coach_name = isset($item['coach_name']) ? trim($item['coach_name']) : '';
+        if ($uid && $name !== '') {
+            $out = $name;
+            if (current_user_can('edit_users')) {
+                $url = admin_url('user-edit.php?user_id=' . $uid);
+                $out = '<a href="' . esc_url($url) . '">' . esc_html($name) . '</a>';
+            } else {
+                $out = esc_html($name);
+            }
+            if ($created_by !== 'user') {
+                $out .= ' <span class="description">(' . ($created_by === 'coach' ? 'ارسال توسط مربی' : 'ارسال توسط مدیر') . ')</span>';
+            }
+            return $out;
         }
-        return esc_html($name);
+        if ($uid) {
+            return 'کاربر #' . $uid;
+        }
+        if ((int) $item['coach_id'] > 0 && $coach_name !== '') {
+            return esc_html($coach_name) . ' <span class="description">(مربی)</span>';
+        }
+        return 'مدیر باشگاه';
     }
 
     public function column_subject($item) {
@@ -210,10 +227,14 @@ class Support_Tickets_List_Table extends WP_List_Table {
         $count_sql = "SELECT COUNT(*) FROM $t t WHERE $where_sql";
         $total = $params ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $params)) : (int) $wpdb->get_var($count_sql);
 
+        $c = $wpdb->prefix . 'sc_coaches';
         $sql = "SELECT t.id, t.user_id, t.department, t.coach_id, t.subject, t.status, t.created_at, t.updated_at,
-                TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS user_name
+                t.created_by_type, t.created_by_coach_id,
+                TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS user_name,
+                TRIM(CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,''))) AS coach_name
                 FROM $t t
                 LEFT JOIN $m m ON m.user_id = t.user_id
+                LEFT JOIN $c c ON c.id = t.coach_id
                 WHERE $where_sql
                 ORDER BY t.$orderby $order
                 LIMIT %d OFFSET %d";

@@ -42,6 +42,43 @@ function sc_support_get_coach_id_by_user_id($user_id) {
     ));
 }
 
+/** Get WordPress user_id from member_id (جدول اعضا) */
+function sc_support_get_user_id_by_member_id($member_id) {
+    global $wpdb;
+    $t = $wpdb->prefix . 'sc_members';
+    return (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT user_id FROM $t WHERE id = %d LIMIT 1",
+        $member_id
+    ));
+}
+
+/**
+ * Get list of members that this coach can send ticket to (members in coach's courses)
+ * Returns array of [ 'member_id' => int, 'name' => string, 'user_id' => int ]
+ */
+function sc_support_get_members_for_coach($coach_id) {
+    global $wpdb;
+    $mc = $wpdb->prefix . 'sc_member_courses';
+    $cc = $wpdb->prefix . 'sc_course_coaches';
+    $m = $wpdb->prefix . 'sc_members';
+    $courses = $wpdb->prefix . 'sc_courses';
+
+    $list = $wpdb->get_results($wpdb->prepare(
+        "SELECT DISTINCT mem.id AS member_id,
+                TRIM(CONCAT(COALESCE(mem.first_name,''), ' ', COALESCE(mem.last_name,''))) AS name,
+                mem.user_id
+         FROM $mc mc
+         INNER JOIN $cc cc ON cc.course_id = mc.course_id AND cc.coach_id = %d
+         INNER JOIN $m mem ON mem.id = mc.member_id
+         INNER JOIN $courses cr ON cr.id = mc.course_id AND cr.deleted_at IS NULL AND cr.is_active = 1
+         WHERE mc.status = 'active'
+         ORDER BY name",
+        $coach_id
+    ), ARRAY_A);
+
+    return is_array($list) ? $list : [];
+}
+
 /**
  * Get list of coaches that the member can send ticket to (from their courses)
  * Returns array of [ 'coach_id' => int, 'name' => string, 'mobile' => string ]
@@ -70,7 +107,7 @@ function sc_support_get_coaches_for_member($member_id) {
 }
 
 /**
- * Check if current user can view this ticket (owner, admin, or assigned coach)
+ * Check if current user can view this ticket (owner, admin, or assigned coach / creator coach)
  */
 function sc_support_can_view_ticket($ticket, $user_id) {
     if (!$ticket || !$user_id) {
@@ -83,8 +120,13 @@ function sc_support_can_view_ticket($ticket, $user_id) {
         return true;
     }
     $coach_id = sc_support_get_coach_id_by_user_id($user_id);
-    if ($coach_id && $ticket->department === 'coach' && (int) $ticket->coach_id === $coach_id) {
-        return true;
+    if ($coach_id) {
+        if ($ticket->department === 'coach' && (int) $ticket->coach_id === $coach_id) {
+            return true;
+        }
+        if (!empty($ticket->created_by_coach_id) && (int) $ticket->created_by_coach_id === $coach_id) {
+            return true;
+        }
     }
     return false;
 }
@@ -156,12 +198,12 @@ function sc_support_count_tickets_for_user($user_id, $status = '') {
     ));
 }
 
-/** Get tickets for coach (department=coach and coach_id = this coach) */
+/** Get tickets for coach (دریافت‌شده توسط این مربی یا ارسال‌شده توسط این مربی) */
 function sc_support_get_tickets_for_coach($coach_id, $args = []) {
     global $wpdb;
     $t = $wpdb->prefix . 'sc_support_tickets';
-    $where = "department = 'coach' AND coach_id = %d";
-    $params = [$coach_id];
+    $where = "(department = 'coach' AND coach_id = %d) OR (created_by_coach_id = %d)";
+    $params = [$coach_id, $coach_id];
     if (!empty($args['status'])) {
         $where .= " AND status = %s";
         $params[] = $args['status'];
@@ -187,7 +229,7 @@ function sc_support_count_pending_reply_for_admin() {
     return (int) $wpdb->get_var("SELECT COUNT(*) FROM $t WHERE status = 'pending_reply'");
 }
 
-/** Count tickets pending reply for coach */
+/** Count tickets pending reply for coach (تیکت‌های دریافتی که در انتظار پاسخ مربی هستند) */
 function sc_support_count_pending_reply_for_coach($coach_id) {
     global $wpdb;
     $t = $wpdb->prefix . 'sc_support_tickets';
@@ -239,9 +281,12 @@ function sc_support_create_ticket($user_id, $department, $coach_id, $subject, $f
         'coach_id' => $coach_id,
         'subject' => $subject,
         'status' => 'pending_reply',
+        'created_by_type' => 'user',
+        'created_by_user_id' => $user_id,
+        'created_by_coach_id' => null,
         'created_at' => $now,
         'updated_at' => $now,
-    ], ['%d', '%s', '%d', '%s', '%s', '%s', '%s']);
+    ], ['%d', '%s', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s']);
 
     if ($wpdb->last_error) {
         return new WP_Error('db_error', 'خطا در ثبت تیکت.');
@@ -252,6 +297,162 @@ function sc_support_create_ticket($user_id, $department, $coach_id, $subject, $f
         'ticket_id' => $ticket_id,
         'sender_type' => 'user',
         'sender_id' => $user_id,
+        'message' => $first_message,
+        'attachment_ids' => $attachment_json,
+        'created_at' => $now,
+    ], ['%d', '%s', '%d', '%s', '%s', '%s']);
+
+    if ($wpdb->last_error) {
+        $wpdb->delete($tickets_table, ['id' => $ticket_id], ['%d']);
+        return new WP_Error('db_error', 'خطا در ثبت پیام.');
+    }
+
+    $ticket = sc_support_get_ticket($ticket_id);
+    if ($ticket && function_exists('sc_support_send_sms_on_new_ticket')) {
+        sc_support_send_sms_on_new_ticket($ticket);
+    }
+    return $ticket_id;
+}
+
+/**
+ * Create ticket by coach: به کاربر (عضو) یا مدیر باشگاه.
+ * $recipient_type: 'member' | 'manager'
+ * $recipient_id: member_id when recipient_type=member, 0 when manager
+ * Returns ticket id or WP_Error.
+ */
+function sc_support_create_ticket_by_coach($coach_id, $recipient_type, $recipient_id, $subject, $first_message, $attachment_ids = []) {
+    global $wpdb;
+    $subject = sanitize_text_field($subject);
+    $first_message = wp_kses_post($first_message);
+    if (empty($subject) || empty($first_message)) {
+        return new WP_Error('invalid_data', 'موضوع و متن پیام الزامی است.');
+    }
+    if (!in_array($recipient_type, ['member', 'manager'], true)) {
+        return new WP_Error('invalid_data', 'نوع گیرنده نامعتبر است.');
+    }
+    $user_id = 0;
+    $department = 'manager';
+    $coach_id_val = null;
+    if ($recipient_type === 'member') {
+        $member_id = absint($recipient_id);
+        if ($member_id <= 0) {
+            return new WP_Error('invalid_data', 'باید یک کاربر را انتخاب کنید.');
+        }
+        $user_id = sc_support_get_user_id_by_member_id($member_id);
+        if ($user_id <= 0) {
+            return new WP_Error('invalid_data', 'کاربر انتخاب‌شده معتبر نیست.');
+        }
+        $department = 'coach';
+        $coach_id_val = absint($coach_id);
+    }
+
+    $tickets_table = $wpdb->prefix . 'sc_support_tickets';
+    $messages_table = $wpdb->prefix . 'sc_support_ticket_messages';
+    $now = current_time('mysql');
+    $attachment_json = !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null;
+
+    $wpdb->insert($tickets_table, [
+        'user_id' => $user_id,
+        'department' => $department,
+        'coach_id' => $coach_id_val,
+        'subject' => $subject,
+        'status' => 'pending_reply',
+        'created_by_type' => 'coach',
+        'created_by_user_id' => null,
+        'created_by_coach_id' => absint($coach_id),
+        'created_at' => $now,
+        'updated_at' => $now,
+    ], ['%d', '%s', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s']);
+
+    if ($wpdb->last_error) {
+        return new WP_Error('db_error', 'خطا در ثبت تیکت.');
+    }
+    $ticket_id = (int) $wpdb->insert_id;
+
+    $wpdb->insert($messages_table, [
+        'ticket_id' => $ticket_id,
+        'sender_type' => 'coach',
+        'sender_id' => absint($coach_id),
+        'message' => $first_message,
+        'attachment_ids' => $attachment_json,
+        'created_at' => $now,
+    ], ['%d', '%s', '%d', '%s', '%s', '%s']);
+
+    if ($wpdb->last_error) {
+        $wpdb->delete($tickets_table, ['id' => $ticket_id], ['%d']);
+        return new WP_Error('db_error', 'خطا در ثبت پیام.');
+    }
+
+    $ticket = sc_support_get_ticket($ticket_id);
+    if ($ticket && function_exists('sc_support_send_sms_on_new_ticket')) {
+        sc_support_send_sms_on_new_ticket($ticket);
+    }
+    return $ticket_id;
+}
+
+/**
+ * Create ticket by admin: به کاربر (عضو) یا مربی.
+ * $recipient_type: 'member' | 'coach'
+ * $recipient_id: member_id or coach_id
+ * Returns ticket id or WP_Error.
+ */
+function sc_support_create_ticket_by_admin($admin_user_id, $recipient_type, $recipient_id, $subject, $first_message, $attachment_ids = []) {
+    global $wpdb;
+    $subject = sanitize_text_field($subject);
+    $first_message = wp_kses_post($first_message);
+    if (empty($subject) || empty($first_message)) {
+        return new WP_Error('invalid_data', 'موضوع و متن پیام الزامی است.');
+    }
+    if (!in_array($recipient_type, ['member', 'coach'], true)) {
+        return new WP_Error('invalid_data', 'نوع گیرنده نامعتبر است.');
+    }
+    $user_id = 0;
+    $department = 'manager';
+    $coach_id_val = null;
+    if ($recipient_type === 'member') {
+        $member_id = absint($recipient_id);
+        if ($member_id <= 0) {
+            return new WP_Error('invalid_data', 'باید یک کاربر را انتخاب کنید.');
+        }
+        $user_id = sc_support_get_user_id_by_member_id($member_id);
+        if ($user_id <= 0) {
+            return new WP_Error('invalid_data', 'کاربر انتخاب‌شده معتبر نیست.');
+        }
+    } else {
+        $coach_id_val = absint($recipient_id);
+        if ($coach_id_val <= 0) {
+            return new WP_Error('invalid_data', 'باید یک مربی را انتخاب کنید.');
+        }
+        $department = 'coach';
+    }
+
+    $tickets_table = $wpdb->prefix . 'sc_support_tickets';
+    $messages_table = $wpdb->prefix . 'sc_support_ticket_messages';
+    $now = current_time('mysql');
+    $attachment_json = !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null;
+
+    $wpdb->insert($tickets_table, [
+        'user_id' => $user_id,
+        'department' => $department,
+        'coach_id' => $coach_id_val,
+        'subject' => $subject,
+        'status' => 'pending_reply',
+        'created_by_type' => 'admin',
+        'created_by_user_id' => $admin_user_id,
+        'created_by_coach_id' => null,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ], ['%d', '%s', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s']);
+
+    if ($wpdb->last_error) {
+        return new WP_Error('db_error', 'خطا در ثبت تیکت.');
+    }
+    $ticket_id = (int) $wpdb->insert_id;
+
+    $wpdb->insert($messages_table, [
+        'ticket_id' => $ticket_id,
+        'sender_type' => 'admin',
+        'sender_id' => $admin_user_id,
         'message' => $first_message,
         'attachment_ids' => $attachment_json,
         'created_at' => $now,
@@ -423,7 +624,7 @@ function sc_support_attachment_download_url($attachment_id, $ticket_id) {
 }
 
 /**
- * Send SMS when new ticket is created - to recipient (manager or coach).
+ * Send SMS when new ticket is created - to recipient (مدیر، مربی یا کاربر عضو).
  */
 function sc_support_send_sms_on_new_ticket($ticket) {
     $enabled = (int) sc_get_setting('sms_ticket_new_recipient_enabled', '0');
@@ -436,9 +637,22 @@ function sc_support_send_sms_on_new_ticket($ticket) {
         $template = sprintf($template, $ticket->id, $ticket->subject);
     }
     $mobile = null;
-    if ($ticket->department === 'manager' || $ticket->department === 'site_support') {
+    $created_by = isset($ticket->created_by_type) ? $ticket->created_by_type : 'user';
+    if ($created_by !== 'user' && !empty($ticket->user_id) && (int) $ticket->user_id > 0) {
+        $member_id = sc_support_get_member_id_by_user_id($ticket->user_id);
+        if ($member_id) {
+            global $wpdb;
+            $m = $wpdb->prefix . 'sc_members';
+            $mobile = $wpdb->get_var($wpdb->prepare("SELECT player_phone FROM $m WHERE id = %d", $member_id));
+        }
+        if (empty($mobile)) {
+            $mobile = get_user_meta($ticket->user_id, 'billing_phone', true);
+        }
+    }
+    if (!$mobile && ($ticket->department === 'manager' || $ticket->department === 'site_support')) {
         $mobile = sc_get_setting('sms_admin_phone', '');
-    } else {
+    }
+    if (!$mobile && $ticket->department === 'coach' && !empty($ticket->coach_id)) {
         global $wpdb;
         $c = $wpdb->prefix . 'sc_coaches';
         $mobile = $wpdb->get_var($wpdb->prepare("SELECT mobile_phone FROM $c WHERE id = %d", $ticket->coach_id));
@@ -472,14 +686,29 @@ function sc_support_send_sms_on_new_message($ticket, $sender_type, $sender_id) {
         }
     } else {
         $user_id = (int) $ticket->user_id;
-        $member_id = sc_support_get_member_id_by_user_id($user_id);
-        if ($member_id) {
-            global $wpdb;
-            $m = $wpdb->prefix . 'sc_members';
-            $mobile = $wpdb->get_var($wpdb->prepare("SELECT player_phone FROM $m WHERE id = %d", $member_id));
+        if ($user_id > 0) {
+            $member_id = sc_support_get_member_id_by_user_id($user_id);
+            if ($member_id) {
+                global $wpdb;
+                $m = $wpdb->prefix . 'sc_members';
+                $mobile = $wpdb->get_var($wpdb->prepare("SELECT player_phone FROM $m WHERE id = %d", $member_id));
+            }
+            if (empty($mobile)) {
+                $mobile = get_user_meta($user_id, 'billing_phone', true);
+            }
         }
-        if (empty($mobile)) {
-            $mobile = get_user_meta($user_id, 'billing_phone', true);
+        if (empty($mobile) && !empty($ticket->created_by_coach_id)) {
+            global $wpdb;
+            $c = $wpdb->prefix . 'sc_coaches';
+            $mobile = $wpdb->get_var($wpdb->prepare("SELECT mobile_phone FROM $c WHERE id = %d", $ticket->created_by_coach_id));
+        }
+        if (empty($mobile) && $ticket->department === 'manager') {
+            $mobile = sc_get_setting('sms_admin_phone', '');
+        }
+        if (empty($mobile) && $ticket->department === 'coach' && !empty($ticket->coach_id)) {
+            global $wpdb;
+            $c = $wpdb->prefix . 'sc_coaches';
+            $mobile = $wpdb->get_var($wpdb->prepare("SELECT mobile_phone FROM $c WHERE id = %d", $ticket->coach_id));
         }
     }
     if ($mobile && function_exists('sc_send_sms')) {

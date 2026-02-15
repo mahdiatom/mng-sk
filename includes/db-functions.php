@@ -713,11 +713,14 @@ function sc_create_support_tickets_table() {
 
     $sql = "CREATE TABLE `$table_name` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-        `user_id` bigint(20) unsigned NOT NULL COMMENT 'WordPress user_id ارسال‌کننده',
-        `department` varchar(20) NOT NULL DEFAULT 'manager' COMMENT 'manager=مدیر باشگاه, coach=مربی',
-        `coach_id` bigint(20) unsigned DEFAULT NULL COMMENT 'اگر department=coach',
+        `user_id` bigint(20) unsigned DEFAULT 0 COMMENT 'کاربر عضو مرتبط (گیرنده یا فرستنده)؛ 0 وقتی تیکت فقط بین مربی/مدیر است',
+        `department` varchar(20) NOT NULL DEFAULT 'manager' COMMENT 'manager=مدیر باشگاه, coach=مربی, site_support',
+        `coach_id` bigint(20) unsigned DEFAULT NULL COMMENT 'مربی مرتبط (گیرنده یا فرستنده)',
         `subject` varchar(255) NOT NULL,
         `status` varchar(20) NOT NULL DEFAULT 'pending_reply' COMMENT 'pending_reply, answered, closed',
+        `created_by_type` varchar(20) NOT NULL DEFAULT 'user' COMMENT 'user=کاربر, coach=مربی, admin=مدیر',
+        `created_by_user_id` bigint(20) unsigned DEFAULT NULL COMMENT 'user_id وقتی created_by_type=user یا admin',
+        `created_by_coach_id` bigint(20) unsigned DEFAULT NULL COMMENT 'coach_id وقتی created_by_type=coach',
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
@@ -725,6 +728,7 @@ function sc_create_support_tickets_table() {
         KEY `idx_department` (`department`),
         KEY `idx_coach_id` (`coach_id`),
         KEY `idx_status` (`status`),
+        KEY `idx_created_by_coach_id` (`created_by_coach_id`),
         KEY `idx_created_at` (`created_at`),
         KEY `idx_updated_at` (`updated_at`)
     ) $charset_collate";
@@ -894,6 +898,27 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$honors_table` MODIFY COLUMN `member_id` bigint(20) unsigned DEFAULT NULL");
         }
         update_option('sc_honors_member_id_nullable', '1');
+    }
+
+    // ستون‌های ایجادکننده تیکت (user/coach/admin) برای ارسال تیکت توسط مربی و مدیر
+    if (get_option('sc_support_tickets_created_by_columns_added', '0') !== '1') {
+        $tickets_table = $wpdb->prefix . 'sc_support_tickets';
+        $col1 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$tickets_table` LIKE %s", 'created_by_type'));
+        if (empty($col1)) {
+            $wpdb->query("ALTER TABLE `$tickets_table` ADD COLUMN `created_by_type` varchar(20) NOT NULL DEFAULT 'user' COMMENT 'user, coach, admin' AFTER `status`");
+        }
+        $col2 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$tickets_table` LIKE %s", 'created_by_user_id'));
+        if (empty($col2)) {
+            $wpdb->query("ALTER TABLE `$tickets_table` ADD COLUMN `created_by_user_id` bigint(20) unsigned DEFAULT NULL AFTER `created_by_type`");
+        }
+        $col3 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$tickets_table` LIKE %s", 'created_by_coach_id'));
+        if (empty($col3)) {
+            $wpdb->query("ALTER TABLE `$tickets_table` ADD COLUMN `created_by_coach_id` bigint(20) unsigned DEFAULT NULL AFTER `created_by_user_id`");
+            $wpdb->query("ALTER TABLE `$tickets_table` ADD KEY `idx_created_by_coach_id` (`created_by_coach_id`)");
+        }
+        $wpdb->query("UPDATE `$tickets_table` SET created_by_type = 'user', created_by_user_id = user_id WHERE created_by_user_id IS NULL");
+        $wpdb->query("ALTER TABLE `$tickets_table` MODIFY COLUMN `user_id` bigint(20) unsigned DEFAULT 0 COMMENT 'کاربر عضو مرتبط؛ 0 وقتی تیکت فقط بین مربی/مدیر است'");
+        update_option('sc_support_tickets_created_by_columns_added', '1');
     }
 
     // ستون‌های ثبت‌کننده اطلاعیه (مدیر / مربی)

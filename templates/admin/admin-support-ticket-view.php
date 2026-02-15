@@ -37,10 +37,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
     <p>
         <strong>وضعیت:</strong> <?php echo esc_html(sc_support_status_label($ticket->status)); ?>
         <strong style="margin-right:15px;">بخش:</strong> <?php echo esc_html(sc_support_department_label($ticket->department, $ticket->coach_id)); ?>
-        <strong style="margin-right:15px;">ارسال‌کننده:</strong>
+        <strong style="margin-right:15px;">طرف‌های تیکت:</strong>
         <?php
-        $member = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$wpdb->prefix}sc_members WHERE user_id = %d", $ticket->user_id));
-        echo $member ? esc_html(trim($member->first_name . ' ' . $member->last_name)) : 'کاربر #' . $ticket->user_id;
+        $created_by = isset($ticket->created_by_type) ? $ticket->created_by_type : 'user';
+        if ($created_by === 'coach' && !empty($ticket->created_by_coach_id)) {
+            $coach_row = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$wpdb->prefix}sc_coaches WHERE id = %d", $ticket->created_by_coach_id));
+            echo 'ارسال توسط مربی: ' . ($coach_row ? esc_html(trim($coach_row->first_name . ' ' . $coach_row->last_name)) : '');
+        } elseif ($created_by === 'admin') {
+            echo 'ارسال توسط مدیر';
+        } else {
+            echo 'ارسال توسط کاربر';
+        }
+        if ((int) $ticket->user_id > 0) {
+            $member = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$wpdb->prefix}sc_members WHERE user_id = %d", $ticket->user_id));
+            echo ' → گیرنده: ' . ($member ? esc_html(trim($member->first_name . ' ' . $member->last_name)) : 'کاربر #' . $ticket->user_id);
+        } elseif ($ticket->department === 'coach' && !empty($ticket->coach_id)) {
+            $coach_row = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$wpdb->prefix}sc_coaches WHERE id = %d", $ticket->coach_id));
+            echo ' → گیرنده: مربی ' . ($coach_row ? esc_html(trim($coach_row->first_name . ' ' . $coach_row->last_name)) : '');
+        } else {
+            echo ' → گیرنده: مدیر باشگاه';
+        }
         ?>
     </p>
     <div class="sc-ticket-messages" style="margin:20px 0; padding:15px; background:#f9f9f9;">

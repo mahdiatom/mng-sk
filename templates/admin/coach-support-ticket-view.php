@@ -38,10 +38,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
     <h1>تیکت #<?php echo (int) $ticket->id; ?> – <?php echo esc_html($ticket->subject); ?></h1>
     <p>
         <strong>وضعیت:</strong> <?php echo esc_html(sc_support_status_label($ticket->status)); ?>
-        <strong style="margin-right:15px;">ارسال‌کننده:</strong>
+        <strong style="margin-right:15px;">طرف مقابل:</strong>
         <?php
-        $member = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$wpdb->prefix}sc_members WHERE user_id = %d", $ticket->user_id));
-        echo $member ? esc_html(trim($member->first_name . ' ' . $member->last_name)) : 'کاربر #' . $ticket->user_id;
+        if (!empty($ticket->created_by_coach_id) && (int) $ticket->created_by_coach_id === (int) $coach_id) {
+            if ((int) $ticket->user_id > 0) {
+                $member = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$wpdb->prefix}sc_members WHERE user_id = %d", $ticket->user_id));
+                echo $member ? esc_html(trim($member->first_name . ' ' . $member->last_name)) : 'کاربر #' . $ticket->user_id;
+            } else {
+                echo 'مدیر باشگاه';
+            }
+        } else {
+            if ((int) $ticket->user_id > 0) {
+                $member = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$wpdb->prefix}sc_members WHERE user_id = %d", $ticket->user_id));
+                echo $member ? esc_html(trim($member->first_name . ' ' . $member->last_name)) : 'کاربر #' . $ticket->user_id;
+            } else {
+                echo '—';
+            }
+        }
         ?>
     </p>
     <div class="sc-ticket-messages" style="margin:20px 0; padding:15px; background:#f9f9f9;">

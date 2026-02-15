@@ -88,7 +88,8 @@ function club_hide_menus_for_coach() {
                     $item[2] !== 'sc-coach-notifications' &&
                     $item[2] !== 'sc-coach-my-courses' &&
                     $item[2] !== 'sc-coach-my-players' &&
-                    $item[2] !== 'sc-coach-my-profile'
+                    $item[2] !== 'sc-coach-my-profile' &&
+                    $item[2] !== 'sc-coach-support-tickets'
                 ) {
                     remove_menu_page($item[2]);
                 }
@@ -173,6 +174,9 @@ function club_block_restricted_pages_for_coach() {
             'sc-coach-my-courses',
             'sc-coach-my-players',
             'sc-coach-my-profile',
+            'sc-coach-support-tickets',
+            'sc-coach-support-ticket-view',
+            'sc-coach-support-ticket-new',
         ];
 
         // صفحات دستمزد و کیف پول فقط در صورت فعال بودن امکانات پرو
