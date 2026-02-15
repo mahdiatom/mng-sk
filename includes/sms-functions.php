@@ -461,11 +461,11 @@ function sc_clean_mobile_number($mobile) {
 }
 
 /**
- * Log SMS activities
+ * Log SMS activities (file + دیتابیس برای گزارشات ارسال پیامک)
  */
 function sc_log_sms($status, $message, $data = array()) {
-    $log_file = WP_CONTENT_DIR . '/sc-sms-log.txt';
     $timestamp = current_time('Y-m-d H:i:s');
+    $log_file = WP_CONTENT_DIR . '/sc-sms-log.txt';
 
     $log_entry = sprintf(
         "[%s] %s: %s\n",
@@ -486,6 +486,32 @@ function sc_log_sms($status, $message, $data = array()) {
         fwrite($fp, $log_entry);
         fclose($fp);
     }
+
+    // ذخیره در دیتابیس برای نمایش در گزارشات ارسال پیامک
+    sc_log_sms_entry_to_db($timestamp, $status, $message, $data);
+}
+
+/**
+ * ثبت هر ورودی لاگ پیامک در جدول sc_sms_log_entries
+ */
+function sc_log_sms_entry_to_db($created_at, $level, $message, $data = array()) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_sms_log_entries';
+    if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table)) !== $table) {
+        return;
+    }
+    $level = in_array($level, ['DEBUG', 'INFO', 'SUCCESS', 'ERROR'], true) ? $level : 'INFO';
+    $message = is_string($message) ? $message : '';
+    if (mb_strlen($message) > 500) {
+        $message = mb_substr($message, 0, 497) . '…';
+    }
+    $data_json = empty($data) ? null : wp_json_encode($data, JSON_UNESCAPED_UNICODE);
+    $wpdb->insert($table, [
+        'created_at' => $created_at,
+        'level' => $level,
+        'message' => $message,
+        'data' => $data_json,
+    ], ['%s', '%s', '%s', '%s']);
 }
 
 /**

@@ -792,6 +792,29 @@ function sc_create_sms_log_table() {
     dbDelta($sql);
 }
 
+/**
+ * جدول لاگ تفصیلی پیامک (هر فراخوانی sc_log_sms: DEBUG, INFO, SUCCESS, ERROR)
+ */
+function sc_create_sms_log_entries_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_sms_log_entries';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `created_at` datetime NOT NULL,
+        `level` varchar(20) NOT NULL COMMENT 'DEBUG, INFO, SUCCESS, ERROR',
+        `message` varchar(500) NOT NULL,
+        `data` longtext DEFAULT NULL COMMENT 'JSON',
+        PRIMARY KEY (`id`),
+        KEY `idx_created_at` (`created_at`),
+        KEY `idx_level` (`level`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
 function sc_update_database() {
     global $wpdb;
 
@@ -827,6 +850,7 @@ function sc_update_database() {
         sc_create_support_tickets_table();
         sc_create_support_ticket_messages_table();
         sc_create_sms_log_table();
+        sc_create_sms_log_entries_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';

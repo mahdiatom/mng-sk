@@ -610,6 +610,7 @@ function sc_check_and_create_tables() {
     $support_tickets_table = $wpdb->prefix . 'sc_support_tickets';
     $support_ticket_messages_table = $wpdb->prefix . 'sc_support_ticket_messages';
     $sms_log_table = $wpdb->prefix . 'sc_sms_log';
+    $sms_log_entries_table = $wpdb->prefix . 'sc_sms_log_entries';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -633,6 +634,7 @@ function sc_check_and_create_tables() {
     $support_tickets_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $support_tickets_table)) == $support_tickets_table;
     $support_ticket_messages_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $support_ticket_messages_table)) == $support_ticket_messages_table;
     $sms_log_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $sms_log_table)) == $sms_log_table;
+    $sms_log_entries_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $sms_log_entries_table)) == $sms_log_entries_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -697,6 +699,9 @@ function sc_check_and_create_tables() {
     }
     if (!$sms_log_exists && function_exists('sc_create_sms_log_table')) {
         sc_create_sms_log_table();
+    }
+    if (!$sms_log_entries_exists && function_exists('sc_create_sms_log_entries_table')) {
+        sc_create_sms_log_entries_table();
     }
     
     // اجرای به‌روزرسانی‌های دیتابیس

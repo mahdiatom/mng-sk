@@ -28,8 +28,9 @@ $context_labels = [
 // فیلترها
 $filter_date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : '';
 $filter_date_to   = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : '';
-$filter_context  = isset($_GET['context']) ? sanitize_text_field($_GET['context']) : '';
-$filter_status   = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : ''; // '', '1', '0'
+$filter_context   = isset($_GET['context']) ? sanitize_text_field($_GET['context']) : '';
+$filter_status    = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : ''; // '', '1', '0'
+$filter_log_level = isset($_GET['log_level']) ? sanitize_text_field($_GET['log_level']) : ''; // برای لاگ تفصیلی
 
 $where = ['1=1'];
 $prepare_args = [];
@@ -73,6 +74,47 @@ $list_sql = "SELECT * FROM `$table` WHERE $where_sql ORDER BY created_at DESC LI
 $prepare_args[] = $per_page;
 $prepare_args[] = $offset;
 $logs = $wpdb->get_results($wpdb->prepare($list_sql, $prepare_args));
+
+// --- لاگ تفصیلی (sc_sms_log_entries) ---
+$table_entries = $wpdb->prefix . 'sc_sms_log_entries';
+$entries_table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_entries)) === $table_entries;
+
+$where_ent = ['1=1'];
+$prepare_ent = [];
+if ($filter_date_from !== '') {
+    $where_ent[] = 'created_at >= %s';
+    $prepare_ent[] = $filter_date_from . ' 00:00:00';
+}
+if ($filter_date_to !== '') {
+    $where_ent[] = 'created_at <= %s';
+    $prepare_ent[] = $filter_date_to . ' 23:59:59';
+}
+if ($filter_log_level !== '' && in_array($filter_log_level, ['DEBUG', 'INFO', 'SUCCESS', 'ERROR'], true)) {
+    $where_ent[] = 'level = %s';
+    $prepare_ent[] = $filter_log_level;
+}
+$where_ent_sql = implode(' AND ', $where_ent);
+
+$per_page_ent = 50;
+$current_page_ent = isset($_GET['detail_paged']) ? max(1, absint($_GET['detail_paged'])) : 1;
+
+if ($entries_table_exists) {
+    $count_ent_sql = "SELECT COUNT(*) FROM `$table_entries` WHERE $where_ent_sql";
+    $total_entries = !empty($prepare_ent) ? (int) $wpdb->get_var($wpdb->prepare($count_ent_sql, $prepare_ent)) : (int) $wpdb->get_var($count_ent_sql);
+} else {
+    $total_entries = 0;
+}
+$total_pages_ent = $total_entries > 0 ? ceil($total_entries / $per_page_ent) : 1;
+$current_page_ent = min($current_page_ent, max(1, $total_pages_ent));
+$offset_ent = ($current_page_ent - 1) * $per_page_ent;
+
+$entries = [];
+if ($entries_table_exists && $total_entries > 0) {
+    $list_ent_sql = "SELECT * FROM `$table_entries` WHERE $where_ent_sql ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d";
+    $prepare_ent[] = $per_page_ent;
+    $prepare_ent[] = $offset_ent;
+    $entries = $wpdb->get_results($wpdb->prepare($list_ent_sql, $prepare_ent));
+}
 ?>
 
 <div class="wrap">
@@ -105,6 +147,16 @@ $logs = $wpdb->get_results($wpdb->prepare($list_sql, $prepare_args));
                     <option value="" <?php selected($filter_status, ''); ?>>همه</option>
                     <option value="1" <?php selected($filter_status, '1'); ?>>موفق</option>
                     <option value="0" <?php selected($filter_status, '0'); ?>>ناموفق</option>
+                </select>
+            </div>
+            <div>
+                <label for="log_level" style="display: block; margin-bottom: 4px; font-size: 12px;">سطح لاگ تفصیلی</label>
+                <select name="log_level" id="log_level">
+                    <option value="" <?php selected($filter_log_level, ''); ?>>همه</option>
+                    <option value="DEBUG" <?php selected($filter_log_level, 'DEBUG'); ?>>DEBUG</option>
+                    <option value="INFO" <?php selected($filter_log_level, 'INFO'); ?>>INFO</option>
+                    <option value="SUCCESS" <?php selected($filter_log_level, 'SUCCESS'); ?>>SUCCESS</option>
+                    <option value="ERROR" <?php selected($filter_log_level, 'ERROR'); ?>>ERROR</option>
                 </select>
             </div>
             <div>
@@ -195,6 +247,87 @@ $logs = $wpdb->get_results($wpdb->prepare($list_sql, $prepare_args));
                             'next_text' => '&raquo;',
                             'total' => $total_pages,
                             'current' => $current_page,
+                        ]);
+                        ?>
+                    </span>
+                </div>
+            </div>
+        <?php endif; ?>
+    <?php endif; ?>
+
+    <hr style="margin: 32px 0 16px 0;" />
+
+    <h2 style="margin-bottom: 12px;">لاگ تفصیلی پیامک</h2>
+    <p style="color: #646970; margin-bottom: 12px;">همهٔ ورودی‌های لاگ (DEBUG, INFO, SUCCESS, ERROR) مانند فایل sc-sms-log — تعداد: <strong><?php echo number_format($total_entries); ?></strong></p>
+
+    <?php if (empty($entries)) : ?>
+        <p>ورودی لاگ تفصیلی یافت نشد. از همین لحظه هر بار که پیامکی ارسال یا لاگ شود، اینجا ثبت می‌شود.</p>
+    <?php else : ?>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th scope="col" style="width: 50px;">ردیف</th>
+                    <th scope="col" style="width: 155px;">تاریخ و زمان</th>
+                    <th scope="col" style="width: 85px;">سطح</th>
+                    <th scope="col">پیام</th>
+                    <th scope="col" style="min-width: 200px;">Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $row_ent = $offset_ent + 1;
+                foreach ($entries as $ent) :
+                    $data_display = $ent->data;
+                    if (!empty($data_display)) {
+                        $dec = json_decode($ent->data, true);
+                        $data_display = is_array($dec) ? wp_json_encode($dec, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : $ent->data;
+                        if (strlen($data_display) > 1500) {
+                            $data_display = substr($data_display, 0, 1497) . '…';
+                        }
+                    } else {
+                        $data_display = '—';
+                    }
+                    $level_style = [
+                        'DEBUG' => 'color:#646970;',
+                        'INFO'  => 'color:#2271b1;',
+                        'SUCCESS' => 'color:#00a32a; font-weight:600;',
+                        'ERROR' => 'color:#d63638; font-weight:600;',
+                    ];
+                    $level_css = isset($level_style[$ent->level]) ? $level_style[$ent->level] : '';
+                ?>
+                    <tr>
+                        <td><?php echo (int) $row_ent; ?></td>
+                        <td><?php echo esc_html($ent->created_at); ?></td>
+                        <td><span style="<?php echo esc_attr($level_css); ?>"><?php echo esc_html($ent->level); ?></span></td>
+                        <td><?php echo esc_html($ent->message); ?></td>
+                        <td style="font-family: monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all;"><?php echo esc_html($data_display); ?></td>
+                    </tr>
+                <?php
+                    $row_ent++;
+                endforeach;
+                ?>
+            </tbody>
+        </table>
+
+        <?php if ($total_pages_ent > 1) : ?>
+            <div class="tablenav bottom" style="margin-top: 12px;">
+                <div class="tablenav-pages">
+                    <span class="displaying-num"><?php echo number_format($total_entries); ?> مورد</span>
+                    <span class="pagination-links">
+                        <?php
+                        $base_ent = add_query_arg('detail_paged', '%#%');
+                        $base_ent = remove_query_arg('detail_paged', $base_ent);
+                        if (!empty($filter_date_from)) $base_ent = add_query_arg('date_from', $filter_date_from, $base_ent);
+                        if (!empty($filter_date_to))   $base_ent = add_query_arg('date_to', $filter_date_to, $base_ent);
+                        if (!empty($filter_log_level)) $base_ent = add_query_arg('log_level', $filter_log_level, $base_ent);
+                        $base_ent = add_query_arg('page', 'sc-reports-sms-log', $base_ent);
+                        echo paginate_links([
+                            'base' => $base_ent,
+                            'format' => '',
+                            'prev_text' => '&laquo;',
+                            'next_text' => '&raquo;',
+                            'total' => $total_pages_ent,
+                            'current' => $current_page_ent,
                         ]);
                         ?>
                     </span>
