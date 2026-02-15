@@ -229,15 +229,21 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
 
 <script>
 jQuery(function($) {
+    function formatLogValue(v) {
+        if (v == null || v === '') return '—';
+        if (typeof v === 'object') return JSON.stringify(v, null, 2);
+        var s = String(v).trim();
+        if (s === '') return '—';
+        if (s.charAt(0) === '{' || s.charAt(0) === '[') {
+            try { return JSON.stringify(JSON.parse(s), null, 2); } catch (e) { return s; }
+        }
+        return s;
+    }
     $(document).on('click', '.sc-activity-log-detail', function() {
-        var oldVal = $(this).data('old') || '';
-        var newVal = $(this).data('new') || '';
-        try {
-            if (oldVal && oldVal.charAt(0) === '{') oldVal = JSON.stringify(JSON.parse(oldVal), null, 2);
-            if (newVal && newVal.charAt(0) === '{') newVal = JSON.stringify(JSON.parse(newVal), null, 2);
-        } catch (e) {}
-        $('#sc-activity-old').text(oldVal || '—');
-        $('#sc-activity-new').text(newVal || '—');
+        var oldRaw = $(this).attr('data-old') || '';
+        var newRaw = $(this).attr('data-new') || '';
+        $('#sc-activity-old').text(formatLogValue(oldRaw));
+        $('#sc-activity-new').text(formatLogValue(newRaw));
         $('#sc-activity-log-modal').show();
     });
     $('#sc-activity-log-close').on('click', function() {
