@@ -63,25 +63,28 @@ if ($filter_date_to) {
 
 $where_clause = implode(' AND ', $where_conditions);
 
-// دریافت رکوردهای دستمزد
+$per_page = 20;
+$current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+
+$count_sql = "SELECT COUNT(*) FROM $salary_records_table sr INNER JOIN $coaches_table c ON sr.coach_id = c.id LEFT JOIN $courses_table co ON sr.course_id = co.id WHERE $where_clause";
+$total_items = !empty($where_values) ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $where_values)) : (int) $wpdb->get_var($count_sql);
+$total_pages = $total_items > 0 ? ceil($total_items / $per_page) : 1;
+$current_page = min($current_page, max(1, $total_pages));
+$offset = ($current_page - 1) * $per_page;
+
+$sum_sql = "SELECT COALESCE(SUM(sr.salary_amount), 0) FROM $salary_records_table sr INNER JOIN $coaches_table c ON sr.coach_id = c.id LEFT JOIN $courses_table co ON sr.course_id = co.id WHERE $where_clause";
+$total_salary = !empty($where_values) ? (float) $wpdb->get_var($wpdb->prepare($sum_sql, $where_values)) : (float) $wpdb->get_var($sum_sql);
+
 $query = "SELECT sr.*, c.first_name, c.last_name, c.settlement_type, co.title as course_title 
           FROM $salary_records_table sr
           INNER JOIN $coaches_table c ON sr.coach_id = c.id
           LEFT JOIN $courses_table co ON sr.course_id = co.id
           WHERE $where_clause
-          ORDER BY sr.attendance_date DESC, sr.created_at DESC";
+          ORDER BY sr.attendance_date DESC, sr.created_at DESC
+          LIMIT %d OFFSET %d";
 
-if (!empty($where_values)) {
-    $salary_records = $wpdb->get_results($wpdb->prepare($query, $where_values));
-} else {
-    $salary_records = $wpdb->get_results($query);
-}
-
-// محاسبه مجموع
-$total_salary = 0;
-foreach ($salary_records as $record) {
-    $total_salary += floatval($record->salary_amount);
-}
+$query_values = array_merge($where_values, [$per_page, $offset]);
+$salary_records = $wpdb->get_results($wpdb->prepare($query, $query_values));
 
 // دریافت لیست مربیان و دوره‌ها برای فیلتر
 $coaches = $wpdb->get_results(
@@ -162,7 +165,7 @@ $courses = $wpdb->get_results(
     <div style="background: #fff; padding: 15px; margin: 20px 0; border-left: 4px solid #2271b1;">
         <strong>مجموع دستمزد:</strong> <?php echo number_format($total_salary, 0, '.', ','); ?> تومان
         <span style="margin-right: 30px;"></span>
-        <strong>تعداد رکورد:</strong> <?php echo count($salary_records); ?>
+        <strong>تعداد رکورد:</strong> <?php echo $total_items > 0 ? sprintf('%d تا %d از %d', $offset + 1, min($offset + count($salary_records), $total_items), $total_items) : '۰'; ?>
     </div>
     
     <!-- جدول دستمزد -->
@@ -190,7 +193,7 @@ $courses = $wpdb->get_results(
                     </td>
                 </tr>
             <?php else: ?>
-                <?php $row_number = 1; ?>
+                <?php $row_number = $offset + 1; ?>
                 <?php foreach ($salary_records as $record): ?>
                     <tr>
                         <td><?php echo $row_number++; ?></td>
@@ -234,6 +237,33 @@ $courses = $wpdb->get_results(
             </tr>
         </tfoot>
     </table>
+
+    <?php if ($total_pages > 1) : ?>
+        <div class="tablenav bottom" style="margin-top: 15px;">
+            <div class="tablenav-pages">
+                <span class="displaying-num"><?php echo number_format_i18n($total_items); ?> مورد</span>
+                <span class="pagination-links">
+                    <?php
+                    $pagination_args = ['page' => 'sc-coach-management-salary'];
+                    if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
+                    if ($filter_course > 0) $pagination_args['filter_course'] = $filter_course;
+                    if ($filter_type !== 'all') $pagination_args['filter_type'] = $filter_type;
+                    if (!empty($filter_date_from_shamsi)) $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
+                    if (!empty($filter_date_to_shamsi)) $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
+                    echo paginate_links([
+                        'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
+                        'format' => '',
+                        'prev_text' => '&laquo; قبلی',
+                        'next_text' => 'بعدی &raquo;',
+                        'total' => $total_pages,
+                        'current' => $current_page,
+                        'add_args' => $pagination_args,
+                    ]);
+                    ?>
+                </span>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>
 
 <script>

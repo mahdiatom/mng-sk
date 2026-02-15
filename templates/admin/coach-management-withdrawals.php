@@ -107,7 +107,7 @@ if (isset($_POST['bulk_action']) && isset($_POST['request_ids']) && is_array($_P
 }
 
 // دریافت فیلترها
-$filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'pending';
+$filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
 $filter_coach  = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
 
 // پردازش فیلترهای تاریخ — فقط از GET، بدون اعمال پیش‌فرض در فیلتر
@@ -171,18 +171,24 @@ $coaches_for_filter = $wpdb->get_results(
      ORDER BY last_name ASC, first_name ASC"
 );
 
-// دریافت درخواست‌ها
+$per_page = 20;
+$current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+
+$count_sql = "SELECT COUNT(*) FROM $withdrawal_table w INNER JOIN $coaches_table c ON w.coach_id = c.id WHERE $where_clause";
+$total_items = !empty($where_values) ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $where_values)) : (int) $wpdb->get_var($count_sql);
+$total_pages = $total_items > 0 ? ceil($total_items / $per_page) : 1;
+$current_page = min($current_page, max(1, $total_pages));
+$offset = ($current_page - 1) * $per_page;
+
 $query = "SELECT w.*, c.first_name, c.last_name 
           FROM $withdrawal_table w
           INNER JOIN $coaches_table c ON w.coach_id = c.id
           WHERE $where_clause
-          ORDER BY w.created_at DESC";
+          ORDER BY w.created_at DESC
+          LIMIT %d OFFSET %d";
 
-if (!empty($where_values)) {
-    $requests = $wpdb->get_results($wpdb->prepare($query, $where_values));
-} else {
-    $requests = $wpdb->get_results($query);
-}
+$query_values = array_merge($where_values, [$per_page, $offset]);
+$requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
 ?>
 
 <div class="wrap">
@@ -295,7 +301,7 @@ if (!empty($where_values)) {
                     </td>
                 </tr>
             <?php else: ?>
-                <?php $row = 1; ?>
+                <?php $row = $offset + 1; ?>
                 <?php foreach ($requests as $request): ?>
                     <?php
                     $status_labels = [
@@ -355,6 +361,31 @@ if (!empty($where_values)) {
         </tbody>
     </table>
     </div>
+
+    <?php if ($total_pages > 1) : ?>
+        <div class="tablenav bottom" style="margin-top: 15px;">
+            <div class="tablenav-pages">
+                <span class="displaying-num"><?php echo number_format_i18n($total_items); ?> مورد</span>
+                <span class="pagination-links">
+                    <?php
+                    $pagination_args = ['page' => 'sc-coach-management-withdrawals', 'filter_status' => $filter_status];
+                    if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
+                    if (!empty($filter_date_from_shamsi)) $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
+                    if (!empty($filter_date_to_shamsi)) $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
+                    echo paginate_links([
+                        'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
+                        'format' => '',
+                        'prev_text' => '&laquo; قبلی',
+                        'next_text' => 'بعدی &raquo;',
+                        'total' => $total_pages,
+                        'current' => $current_page,
+                        'add_args' => $pagination_args,
+                    ]);
+                    ?>
+                </span>
+            </div>
+        </div>
+    <?php endif; ?>
     </form>
 </div>
 
