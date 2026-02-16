@@ -254,6 +254,26 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات لاگ با موفقیت ذخیره شد.</p></div>';
     }
+    elseif ($current_tab === 'login_register') {
+        $sc_login_redirect_path   = isset($_POST['sc_login_redirect_path']) ? sanitize_text_field($_POST['sc_login_redirect_path']) : 'my-account/sc-submit-documents/';
+        $sc_login_otp_pattern     = isset($_POST['sc_login_otp_pattern']) ? absint($_POST['sc_login_otp_pattern']) : 0;
+        $sc_login_logo_url        = isset($_POST['sc_login_logo_url']) ? esc_url_raw($_POST['sc_login_logo_url']) : '';
+        $sc_login_bg_color        = isset($_POST['sc_login_bg_color']) ? sanitize_hex_color($_POST['sc_login_bg_color']) : '#ffffff';
+        $sc_login_bg_image        = isset($_POST['sc_login_bg_image']) ? esc_url_raw($_POST['sc_login_bg_image']) : '';
+        $sc_login_btn_bg         = isset($_POST['sc_login_btn_bg']) ? sanitize_hex_color($_POST['sc_login_btn_bg']) : '#e60012';
+        $sc_login_btn_color      = isset($_POST['sc_login_btn_color']) ? sanitize_hex_color($_POST['sc_login_btn_color']) : '#ffffff';
+        sc_update_setting('sc_login_redirect_path', $sc_login_redirect_path, 'login_register');
+        sc_update_setting('sc_login_otp_pattern', $sc_login_otp_pattern, 'login_register');
+        sc_update_setting('sc_login_logo_url', $sc_login_logo_url, 'login_register');
+        sc_update_setting('sc_login_bg_color', $sc_login_bg_color, 'login_register');
+        sc_update_setting('sc_login_bg_image', $sc_login_bg_image, 'login_register');
+        sc_update_setting('sc_login_btn_bg', $sc_login_btn_bg, 'login_register');
+        sc_update_setting('sc_login_btn_color', $sc_login_btn_color, 'login_register');
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب ورود و عضویت ذخیره شد', null, ['tab' => 'login_register']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات ورود و عضویت ذخیره شد.</p></div>';
+    }
 }
 
 // پردازش فرم بازگشت به کارخانه
@@ -366,6 +386,15 @@ $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
 
 $activity_log_cleanup_day = max(1, min(28, (int) sc_get_setting('activity_log_cleanup_day', '1')));
 
+// تنظیمات ورود و عضویت
+$sc_login_redirect_path = sc_get_setting('sc_login_redirect_path', 'my-account/sc-submit-documents/');
+$sc_login_otp_pattern   = sc_get_setting('sc_login_otp_pattern', '');
+$sc_login_logo_url      = sc_get_setting('sc_login_logo_url', '');
+$sc_login_bg_color      = sc_get_setting('sc_login_bg_color', '#ffffff');
+$sc_login_bg_image      = sc_get_setting('sc_login_bg_image', '');
+$sc_login_btn_bg        = sc_get_setting('sc_login_btn_bg', '#e60012');
+$sc_login_btn_color     = sc_get_setting('sc_login_btn_color', '#ffffff');
+
 ?>
 
 <div class="wrap sc_setting_section" >
@@ -387,8 +416,12 @@ $activity_log_cleanup_day = max(1, min(28, (int) sc_get_setting('activity_log_cl
            class="nav-tab <?php echo $current_tab === 'sms' ? 'nav-tab-active' : ''; ?>">
             پیامک
         </a>
-     <?php }
-     
+     <?php } ?>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=login_register'); ?>"
+           class="nav-tab <?php echo $current_tab === 'login_register' ? 'nav-tab-active' : ''; ?>">
+            ورود و عضویت
+        </a>
+        <?php
           if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {
 ?>
 
@@ -653,6 +686,140 @@ $activity_log_cleanup_day = max(1, min(28, (int) sc_get_setting('activity_log_cl
                     </p>
                 </form>
             </div>
+        <?php elseif ($current_tab === 'login_register') : ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                <h3>تنظیمات فرم ورود و عضویت</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="sc_login_redirect_path">ریدایرکت بعد از ورود</label></th>
+                        <td>
+                            <input type="text" name="sc_login_redirect_path" id="sc_login_redirect_path"
+                                   value="<?php echo esc_attr($sc_login_redirect_path); ?>"
+                                   class="regular-text" placeholder="my-account/sc-submit-documents/">
+                            <p class="description">مسیر نسبی بعد از آدرس سایت (مثال: my-account/sc-submit-documents/)</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_login_otp_pattern">کد پترن پیامک (کد یکبارمصرف)</label></th>
+                        <td>
+                            <input type="number" name="sc_login_otp_pattern" id="sc_login_otp_pattern"
+                                   value="<?php echo esc_attr($sc_login_otp_pattern); ?>"
+                                   class="small-text" min="0" placeholder="مثال: 123456">
+                            <p class="description">کد پترن از پنل sms.ir برای ارسال کد تأیید (پارامتر: Code)</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_login_logo_url">لوگو</label></th>
+                        <td>
+                            <div class="sc-lr-media-wrap">
+                                <input type="hidden" name="sc_login_logo_url" id="sc_login_logo_url"
+                                       value="<?php echo esc_attr($sc_login_logo_url); ?>">
+                                <button type="button" class="button" id="sc_login_logo_upload">انتخاب تصویر</button>
+                                <button type="button" class="button" id="sc_login_logo_remove" <?php echo empty($sc_login_logo_url) ? ' style="display:none;"' : ''; ?>>حذف</button>
+                                <div class="sc-lr-media-preview" id="sc_login_logo_preview" style="margin-top:8px;">
+                                    <?php if (!empty($sc_login_logo_url)) : ?>
+                                        <img src="<?php echo esc_url($sc_login_logo_url); ?>" alt="" style="max-width:200px;height:auto;border:1px solid #ddd;border-radius:4px;">
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <p class="description">لوگوی نمایش داده شده بالای فرم</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_login_bg_color">رنگ پس‌زمینه</label></th>
+                        <td>
+                            <input type="color" name="sc_login_bg_color" id="sc_login_bg_color"
+                                   value="<?php echo esc_attr($sc_login_bg_color); ?>"
+                                   style="vertical-align:middle;width:40px;height:32px;padding:2px;cursor:pointer;">
+                            <span class="sc-lr-color-hex" id="sc_login_bg_color_hex"><?php echo esc_html($sc_login_bg_color); ?></span>
+                            <p class="description">رنگ پس‌زمینه صفحه فرم</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_login_bg_image">تصویر پس‌زمینه</label></th>
+                        <td>
+                            <div class="sc-lr-media-wrap">
+                                <input type="hidden" name="sc_login_bg_image" id="sc_login_bg_image"
+                                       value="<?php echo esc_attr($sc_login_bg_image); ?>">
+                                <button type="button" class="button" id="sc_login_bg_upload">انتخاب تصویر</button>
+                                <button type="button" class="button" id="sc_login_bg_remove" <?php echo empty($sc_login_bg_image) ? ' style="display:none;"' : ''; ?>>حذف</button>
+                                <div class="sc-lr-media-preview" id="sc_login_bg_preview" style="margin-top:8px;">
+                                    <?php if (!empty($sc_login_bg_image)) : ?>
+                                        <img src="<?php echo esc_url($sc_login_bg_image); ?>" alt="" style="max-width:200px;max-height:80px;object-fit:cover;border:1px solid #ddd;border-radius:4px;">
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <p class="description">در صورت پر بودن، این تصویر به جای رنگ استفاده می‌شود</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_login_btn_bg">رنگ دکمه</label></th>
+                        <td>
+                            <input type="color" name="sc_login_btn_bg" id="sc_login_btn_bg"
+                                   value="<?php echo esc_attr($sc_login_btn_bg); ?>"
+                                   style="vertical-align:middle;width:40px;height:32px;padding:2px;cursor:pointer;">
+                            <span class="sc-lr-color-hex" id="sc_login_btn_bg_hex"><?php echo esc_html($sc_login_btn_bg); ?></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_login_btn_color">رنگ متن دکمه</label></th>
+                        <td>
+                            <input type="color" name="sc_login_btn_color" id="sc_login_btn_color"
+                                   value="<?php echo esc_attr($sc_login_btn_color); ?>"
+                                   style="vertical-align:middle;width:40px;height:32px;padding:2px;cursor:pointer;">
+                            <span class="sc-lr-color-hex" id="sc_login_btn_color_hex"><?php echo esc_html($sc_login_btn_color); ?></span>
+                        </td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات ورود و عضویت">
+                </p>
+            </form>
+            <script>
+            jQuery(function($) {
+                if (typeof wp === 'undefined' || !wp.media) return;
+                var logoUploader, bgUploader;
+                $('#sc_login_logo_upload').on('click', function(e) {
+                    e.preventDefault();
+                    if (logoUploader) { logoUploader.open(); return; }
+                    logoUploader = wp.media({ title: 'انتخاب لوگو', button: { text: 'استفاده از این تصویر' }, multiple: false, library: { type: 'image' } });
+                    logoUploader.on('select', function() {
+                        var att = logoUploader.state().get('selection').first().toJSON();
+                        $('#sc_login_logo_url').val(att.url);
+                        $('#sc_login_logo_preview').html('<img src="' + att.url + '" alt="" style="max-width:200px;height:auto;border:1px solid #ddd;border-radius:4px;">');
+                        $('#sc_login_logo_remove').show();
+                    });
+                    logoUploader.open();
+                });
+                $('#sc_login_logo_remove').on('click', function() {
+                    $('#sc_login_logo_url').val('');
+                    $('#sc_login_logo_preview').empty();
+                    $(this).hide();
+                });
+                $('#sc_login_bg_upload').on('click', function(e) {
+                    e.preventDefault();
+                    if (bgUploader) { bgUploader.open(); return; }
+                    bgUploader = wp.media({ title: 'انتخاب تصویر پس‌زمینه', button: { text: 'استفاده از این تصویر' }, multiple: false, library: { type: 'image' } });
+                    bgUploader.on('select', function() {
+                        var att = bgUploader.state().get('selection').first().toJSON();
+                        $('#sc_login_bg_image').val(att.url);
+                        $('#sc_login_bg_preview').html('<img src="' + att.url + '" alt="" style="max-width:200px;max-height:80px;object-fit:cover;border:1px solid #ddd;border-radius:4px;">');
+                        $('#sc_login_bg_remove').show();
+                    });
+                    bgUploader.open();
+                });
+                $('#sc_login_bg_remove').on('click', function() {
+                    $('#sc_login_bg_image').val('');
+                    $('#sc_login_bg_preview').empty();
+                    $(this).hide();
+                });
+                $('#sc_login_bg_color, #sc_login_btn_bg, #sc_login_btn_color').on('input change', function() {
+                    var id = $(this).attr('id') + '_hex';
+                    $('#' + id).text($(this).val());
+                });
+            });
+            </script>
         <?php elseif ($current_tab === 'sms') : ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>

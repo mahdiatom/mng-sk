@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.24.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.25.0'); // همان نسخه افزونه هدر
 }
 
     /**

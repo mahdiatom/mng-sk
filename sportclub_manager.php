@@ -61,6 +61,7 @@ require_once SC_INCLUDES_DIR . 'birthday-sms-cron.php'; // Birthday SMS daily cr
 require_once SC_INCLUDES_DIR . 'insurance-expiry-sms-cron.php'; // Insurance expiry SMS daily cron
 require_once SC_INCLUDES_DIR . 'support-ticket-functions.php'; // Support ticket CRUD, SMS, attachments
 require_once SC_INCLUDES_DIR . 'activity-log-functions.php';   // Activity log (admin actions)
+require_once SC_INCLUDES_DIR . 'login-register-functions.php'; // ورود و عضویت با پیامک و رمز
 
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
