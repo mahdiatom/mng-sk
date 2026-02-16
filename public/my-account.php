@@ -217,8 +217,6 @@ function add_html_before_account_nav() {
                   
                 </div>
                 <h3 class="sc-user-name"><?php echo esc_html($full_name); ?></h3>
-                  <strong>سطح : </strong></strong><p class="info_level" ><?php echo $skill_level ; ?></p>
-
             </div>
 
             <div class="sc-user-stats">
@@ -289,10 +287,10 @@ function add_html_before_account_nav() {
         ?>
     </div>
 
-<div id="scRegistrationModal" class="sc-modal" visibility: hidden;">
-    
+<div id="scRegistrationModal" class="sc-modal" aria-hidden="true">
+        <div class="sc-modal-inner">
         <div class="sc-modal-header">
-            <span class="sc-modal-close">×</span>
+            <span class="sc-modal-close" aria-label="بستن">×</span>
         </div>
       <div class="sc-modal-content-body">
             
@@ -300,52 +298,50 @@ function add_html_before_account_nav() {
                 <div class="sc-visible-section" style="display: block;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                         <!-- دوره‌های فعال -->
-                        <div class="sc-info-card" style="background: linear-gradient(135deg, #e7f3ff 0%, #d0e7ff 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #2271b1;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <span style="font-size: 24px;">📚</span>
-                                <strong style="font-size: 14px; color: #666;">دوره‌های فعال</strong>
+                        <div class="sc-info-card" style="background: #ede9fe; padding: 14px; border-radius: 10px; border-right: 4px solid #6d34ff;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <span style="font-size: 22px;">📚</span>
+                                <strong style="font-size: 13px; color: #444;">دوره‌های فعال</strong>
                             </div>
-                            <div style="font-size: 28px; font-weight: bold; color: #2271b1;">
+                            <div style="font-size: 24px; font-weight: bold; color: #4a1fb8;">
                                 <?php echo esc_html($active_courses_count); ?>
                             </div>
                         </div>
                         
-                       
-                        
                         <!-- رویدادهای ثبت‌نام شده -->
-                        <div class="sc-info-card" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #00a32a;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <span style="font-size: 24px;">🎯</span>
-                                <strong style="font-size: 14px; color: #666;">رویدادهای ثبت‌نام شده</strong>
+                        <div class="sc-info-card" style="background: #fce4f5; padding: 14px; border-radius: 10px; border-right: 4px solid #ff0c81;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <span style="font-size: 22px;">🎯</span>
+                                <strong style="font-size: 13px; color: #444;">رویدادهای ثبت‌نام شده</strong>
                             </div>
-                            <div style="font-size: 28px; font-weight: bold; color: #155724;">
+                            <div style="font-size: 24px; font-weight: bold; color: #a80654;">
                                 <?php echo esc_html($event_registrations_count); ?>
                             </div>
                         </div>
                         
                         <!-- صورت حساب‌های پرداخت شده -->
-                        <div class="sc-info-card" style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #17a2b8;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <span style="font-size: 24px;">✅</span>
-                                <strong style="font-size: 14px; color: #666;">پرداخت‌های موفق</strong>
+                        <div class="sc-info-card" style="background: #fff4ed; padding: 14px; border-radius: 10px; border-right: 4px solid #ff7d51;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <span style="font-size: 22px;">✅</span>
+                                <strong style="font-size: 13px; color: #444;">پرداخت‌های موفق</strong>
                             </div>
-                            <div style="font-size: 28px; font-weight: bold; color: #0c5460;">
+                            <div style="font-size: 24px; font-weight: bold; color: #c44d28;">
                                 <?php echo esc_html($paid_invoices_count); ?>
                             </div>
                             <?php if ($paid_invoices_total > 0) : ?>
-                                <div style="font-size: 12px; color: #0c5460; margin-top: 5px;">
+                                <div style="font-size: 12px; color: #c44d28; margin-top: 4px;">
                                     مجموع: <?php echo number_format($paid_invoices_total, 0, '.', ','); ?> تومان
                                 </div>
                             <?php endif; ?>
                         </div>
                         
                         <!-- سطح شما -->
-                        <div class="sc-info-card" style="background: linear-gradient(135deg, #fff5e6 0%, #ffe8cc 100%); padding: 15px; border-radius: 8px; border-right: 4px solid #ff9800;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <span style="font-size: 24px;">⭐</span>
-                                <strong style="font-size: 14px; color: #666;">سطح شما</strong>
+                        <div class="sc-info-card" style="background: #fef9e7; padding: 14px; border-radius: 10px; border-right: 4px solid #ffc243;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <span style="font-size: 22px;">⭐</span>
+                                <strong style="font-size: 13px; color: #444;">سطح شما</strong>
                             </div>
-                            <div style="font-size: 20px; font-weight: bold; color: #e65100;">
+                            <div style="font-size: 18px; font-weight: bold; color: #b8860b;">
                                 <?php echo esc_html($skill_level); ?>
                             </div>
                         </div> 
@@ -357,24 +353,24 @@ function add_html_before_account_nav() {
                     <!-- اطلاعات تکمیلی -->
 
                     
-                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e5e5;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
                         <!-- تاریخ عضویت -->
                         <?php if ($membership_date) : ?>
-                            <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #f9f9f9; border-radius: 6px;">
-                                <span style="font-size: 20px;">📅</span>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: #fef9e7; border-radius: 8px; border-right: 3px solid #ffc243;">
+                                <span style="font-size: 18px;">📅</span>
                                 <div>
-                                    <strong style="font-size: 13px; color: #666; display: block;">تاریخ عضویت:</strong>
+                                    <strong style="font-size: 12px; color: #555; display: block;">تاریخ عضویت:</strong>
                                     <span style="font-size: 14px; color: #333; font-weight: 600;"><?php echo esc_html($membership_date); ?></span>
                                 </div>
                             </div>
                         <?php endif; ?>
                         
                         <!-- وضعیت بیمه -->
-                        <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #f9f9f9; border-radius: 6px;">
-                            <span style="font-size: 20px;">🛡️</span>
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: #ede9fe; border-radius: 8px; border-right: 3px solid #6d34ff;">
+                            <span style="font-size: 18px;">🛡️</span>
                             <div>
-                                <strong style="font-size: 13px; color: #666; display: block;">وضعیت بیمه:</strong>
+                                <strong style="font-size: 12px; color: #555; display: block;">وضعیت بیمه:</strong>
                                 <span style="font-size: 14px; color: #333; font-weight: 600;">
                                     <?php echo esc_html($insurance_status); ?>
                                     <?php if ($insurance_expiry && $insurance_status !== 'ثبت نشده') : ?>
@@ -416,16 +412,16 @@ function add_html_before_account_nav() {
                                 $invoice_item_name = 'سایر';
                             }
                             ?>
-                            <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #f9f9f9; border-radius: 6px;">
-                                <span style="font-size: 20px;">💳</span>
-                                <div style="flex: 1;">
-                                    <strong style="font-size: 13px; color: #666; display: block; margin-bottom: 5px;">آخرین صورت حساب پرداخت شده:</strong>
-                                    <div style="font-size: 14px; color: #333; font-weight: 600;">
-                                        <div style="margin-bottom: 3px;">
-                                            <span style="color: #2271b1; font-weight: bold;"><?php echo esc_html($invoice_item_name); ?></span>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: #fff4ed; border-radius: 8px; border-right: 3px solid #ff7d51;">
+                                <span style="font-size: 18px;">💳</span>
+                                <div style="flex: 1; min-width: 0;">
+                                    <strong style="font-size: 12px; color: #555; display: block; margin-bottom: 4px;">آخرین صورت حساب پرداخت شده:</strong>
+                                    <div style="font-size: 13px; color: #333; font-weight: 600;">
+                                        <div style="margin-bottom: 2px;">
+                                            <span style="color: #6d34ff; font-weight: bold;"><?php echo esc_html($invoice_item_name); ?></span>
                                         </div>
-                                        <div style="margin-bottom: 3px; margin-top: 5px;">
-                                           مبلغ: <span style="color: #2271b1;"><?php echo number_format(floatval($last_invoice->amount), 0, '.', ','); ?> تومان</span>
+                                        <div style="margin-top: 4px;">
+                                           مبلغ: <span style="color: #6d34ff;"><?php echo number_format(floatval($last_invoice->amount), 0, '.', ','); ?> تومان</span>
                                             - <?php echo esc_html(sc_date_shamsi_date_only($last_invoice->payment_date)); ?>
                                         </div>
                                         
@@ -436,9 +432,7 @@ function add_html_before_account_nav() {
                     </div>
                 </div>
       </div>
-       
         </div>
-    </div>
 </div>
 
 

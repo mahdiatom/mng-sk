@@ -296,50 +296,42 @@ jQuery(document).ready(function($) {
     $(document).on('click', '.details_info_user_pannel', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        
-       
-        
         var $modal = $('#scRegistrationModal');
-       
-        
-        $modal.css({
-            'display': 'block',
-            'visibility': 'visible',
-            'position': 'absolute',
-            'top': '8%',
-            'width': '95%',
-            'z-index':' 1000'
-        }).addClass('show-modal');
-        
-       
-        
-      
+        $modal.attr('aria-hidden', 'false').css('display', 'flex');
+        requestAnimationFrame(function() {
+            $modal.addClass('show-modal');
+        });
     });
     
-    // بستن modal
+    function closeScRegistrationModal() {
+        var $modal = $('#scRegistrationModal');
+        $modal.removeClass('show-modal');
+        $modal.attr('aria-hidden', 'true');
+        $modal.one('transitionend', function(e) {
+            if (e.target === $modal[0]) {
+                $modal.css('display', '');
+            }
+        });
+        setTimeout(function() {
+            if (!$modal.hasClass('show-modal')) {
+                $modal.css('display', '');
+            }
+        }, 350);
+    }
+    
     $(document).on('click', '.sc-modal-close', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        var $modal = $('#scRegistrationModal');
-        $modal.removeClass('show-modal');
-        $modal.css({
-            'display': 'none',
-            'visibility': 'hidden'
-        });
+        closeScRegistrationModal();
     });
     
     $(document).on('click', '#scRegistrationModal', function(e) {
         if ($(e.target).is('#scRegistrationModal')) {
-            var $modal = $(this);
-            $modal.removeClass('show-modal');
-            $modal.css({
-                'display': 'none',
-                'visibility': 'hidden'
-            });
+            closeScRegistrationModal();
         }
     });
     
-    $(document).on('click', '.sc-modal-content', function(e) {
+    $(document).on('click', '#scRegistrationModal .sc-modal-inner', function(e) {
         e.stopPropagation();
     });
     

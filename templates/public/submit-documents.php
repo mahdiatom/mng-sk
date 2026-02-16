@@ -219,7 +219,7 @@ if (empty($player_phone) && $billing_phone) {
         
         <div class="sc-form-section">
             <h3>مدارک و تصاویر</h3>
-            <p class="description">عکس‌ها بلافاصله پس از انتخاب آپلود می‌شوند. حداکثر حجم هر فایل: ۵ مگابایت. فرمت‌های مجاز: JPG, PNG, GIF, WEBP</p>
+            <p class="description"> حداکثر حجم هر فایل: ۵ مگابایت. فرمت‌های مجاز: JPG, PNG, GIF, WEBP</p>
             
             <p class="form-row sc-upload-field">
                 <label for="personal_photo">عکس پرسنلی</label>
