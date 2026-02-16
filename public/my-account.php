@@ -20,6 +20,7 @@ function add_html_before_account_nav() {
     $user_email = $wp_user->user_email;
     $user_login = $wp_user->user_login;
     $billing_phone = get_user_meta($current_user_id, 'billing_phone', true);
+
     
     // دریافت اطلاعات بازیکن از جدول members
     $members_table = $wpdb->prefix . 'sc_members';
@@ -213,7 +214,7 @@ function add_html_before_account_nav() {
                   
                 </div>
                 <h3 class="sc-user-name"><?php echo esc_html($full_name); ?></h3>
-                  <p class="info_level" ><?php echo $skill_level ; ?></p>
+                  <strong>سطح : </strong></strong><p class="info_level" ><?php echo $skill_level ; ?></p>
 
             </div>
 
@@ -224,9 +225,9 @@ function add_html_before_account_nav() {
                 <div class="sc-info-grid">
 
                     <div class="sc-info-card sc-card-blue">
-                        <span class="sc-card-icon">📚</span>
-                        <span class="sc-card-title">دوره‌های فعال</span>
-                        <strong class="sc-card-value"><?php echo $active_courses_count; ?></strong>
+                        <span class="sc-card-icon">💳</span>
+                        <span class="sc-card-title">موجودی کیف پول</span>
+                        <strong class="sc-card-value"><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان </strong>
                     </div>
 
                     <div class="sc-info-card sc-card-yellow">
@@ -248,23 +249,19 @@ function add_html_before_account_nav() {
                         <?php echo $user_age?? ''; ?>
                     </strong>
                 </div>
-
+                   <!-- وضعیت پروفایل -->
                 <div class="sc-info-card sc-card-green">
-                    <span class="sc-card-icon">📋</span>
-                    <span class="sc-card-title">حضور و غیاب</span>
-
-                    <div class="sc-attendance-row">
-                        <div class="sc-attendance-item present">
-                            <strong><?php echo esc_html($present_count); ?></strong>
-                            <small>حضور</small>
-                        </div>
-                                |
-                        <div class="sc-attendance-item absent">
-                            <strong><?php echo esc_html($absent_count); ?></strong>
-                            <small>غیاب</small>
-                        </div>
-                    </div>
+                    <span class="sc-card-icon"><?php echo $profile_completed ? '✅' : '⚠️'; ?></span>
+                    <span class="sc-card-title">وضعیت پروفایل:</span>
+                    <strong class="sc-card-value">
+                         <span style="font-size: 14px; color: <?php echo $profile_completed ? '#155724' : '#856404'; ?>; font-weight: 600;">
+                                    <?php echo esc_html($profile_status); ?>
+                                </span>
+                    </strong>
                 </div>
+
+             
+                      
 
                 </div>
             </div>
@@ -386,16 +383,22 @@ function add_html_before_account_nav() {
                             </div>
                         </div>
                         
-                        <!-- وضعیت پروفایل -->
-                        <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #f9f9f9; border-radius: 6px;">
-                            <span style="font-size: 20px;"><?php echo $profile_completed ? '✅' : '⚠️'; ?></span>
-                            <div>
-                                <strong style="font-size: 13px; color: #666; display: block;">وضعیت پروفایل:</strong>
-                                <span style="font-size: 14px; color: <?php echo $profile_completed ? '#155724' : '#856404'; ?>; font-weight: 600;">
-                                    <?php echo esc_html($profile_status); ?>
-                                </span>
-                            </div>
+                        <div class="sc-info-card sc-card-green">
+                    <span class="sc-card-icon">📋</span>
+                    <span class="sc-card-title">حضور و غیاب</span>
+
+                    <div class="sc-attendance-row">
+                        <div class="sc-attendance-item present">
+                            <strong><?php echo esc_html($present_count); ?></strong>
+                            <small>حضور</small>
                         </div>
+                                |
+                        <div class="sc-attendance-item absent">
+                            <strong><?php echo esc_html($absent_count); ?></strong>
+                            <small>غیاب</small>
+                        </div>
+                    </div>
+                </div>
                         
                         <!-- آخرین صورت حساب پرداخت شده -->
                         <?php if ($last_invoice) : ?>

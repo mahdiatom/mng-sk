@@ -137,7 +137,7 @@ body:not([class*=elementor-page-]) .site-main {
 }
 .sc-user-phone,
 .sc-user-email {
-    font-size: 13–14px;
+    font-size: 14px;
     color: #666;
 }
 
@@ -213,7 +213,32 @@ body:not([class*=elementor-page-]) .site-main {
     border-color: #17a2b8;
     color: #0c5460;
 }
+/* details  card */
+.sc-bg-purple{
+    background-color: #6d34ff;
+}
 
+.sc-bg-pink{
+    background-color: #f900c1;
+}
+
+.sc-bg-magenta{
+    background-color: #ff0c81;
+}
+
+.sc-bg-orange{
+    background-color: #ff7d51;
+}
+
+.sc-bg-gold{
+    background-color: #ffc243;
+}
+
+.sc-bg-yellow{
+    background-color: #f9f871;
+}
+
+/* details  card */
 
 
 .sc-insurance-expiry-message{

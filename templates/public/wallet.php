@@ -170,17 +170,19 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
             <?php wp_nonce_field('sc_charge_wallet_user_nonce', 'sc_charge_wallet_user_nonce'); ?>
             
             <div style="margin-bottom: 20px;">
-                <label for="charge_amount" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                <label for="charge_amount_display" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
                     مبلغ شارژ (تومان) <span style="color: red;">*</span>
                 </label>
-                <input type="number" 
-                       name="charge_amount" 
-                       id="charge_amount" 
-                       class="input-text" 
-                       min="0" 
-                       step="1000" 
-                       required 
+                <input type="text" 
+                       id="charge_amount_display" 
+                       class="input-text sc-wallet-charge-amount" 
+                       placeholder="0"
+                       dir="ltr"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       required
                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
+                <input type="hidden" name="charge_amount" id="charge_amount" value="">
                 <p style="margin: 8px 0 0 0; font-size: 13px; color: #666;">
                     حداقل مبلغ: <?php echo number_format(sc_get_wallet_min_charge(), 0, '.', ','); ?> تومان
                     <?php if (sc_get_wallet_max_charge() > 0) : ?>
@@ -455,12 +457,21 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 jQuery(document).ready(function($) {
-    // فرمت کردن مبلغ با کاما
-    $('#charge_amount').on('input', function() {
-        var value = $(this).val().replace(/,/g, '');
-        if (value && !isNaN(value)) {
-            $(this).val(parseFloat(value));
+    // فرمت مبلغ شارژ: سه‌تا سه‌تا با کاما (مثل بقیه بخش‌ها)
+    var $chargeDisplay = $('#charge_amount_display');
+    var $chargeHidden = $('#charge_amount');
+    function formatChargeInput() {
+        var v = $chargeDisplay.val().replace(/[^\d]/g, '');
+        $chargeHidden.val(v === '' ? '' : v);
+        if (v.length > 0) {
+            var formatted = v.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            $chargeDisplay.val(formatted);
         }
+    }
+    $chargeDisplay.on('input', formatChargeInput);
+    $chargeDisplay.closest('form').on('submit', function() {
+        var v = $chargeDisplay.val().replace(/[^\d]/g, '');
+        $chargeHidden.val(v === '' ? '' : v);
     });
     
     // نمودار موجودی

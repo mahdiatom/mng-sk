@@ -362,7 +362,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                             'pay_from_wallet_' . $invoice->id
                                         );
                                         
-                                        $wallet_text = $wallet_balance >= $total_amount ? 'پرداخت از کیف پول' : 'پرداخت جزئی از کیف پول';
+                                        $wallet_text = $wallet_balance >= $total_amount ? 'پرداخت از کیف پول' : 'پرداخت از کیف پول + بقیه اش از درگاه';
                                         $action_buttons[] = '<a href="' . esc_url($wallet_pay_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-wallet" style="background: #28a745; color: white;"
                                         >💰 ' . esc_html($wallet_text) . '</a>';
                                     }
@@ -396,8 +396,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                         add_query_arg($cancel_args, $cancel_base_url),
                                         'cancel_invoice_' . $invoice->id
                                     );
-                                    $action_buttons[] = '<a href="' . esc_url($cancel_url) . '" class="woocommerce-button button cancel sc-invoice-btn sc-invoice-btn-cancel" onclick="return confirm(\'آیا از لغو این سفارش اطمینان دارید؟\');"
-                                     >لغو</a>';
+                                    
                                 }
                                 
                                 // نمایش دکمه‌ها یا پیام

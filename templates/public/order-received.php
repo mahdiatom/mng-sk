@@ -116,7 +116,7 @@ $order_items = $order->get_items();
 
         <div class="boxs_do_after_pay">
             <div class="go_to_pannel">
-                <a href="<?php echo site_url(); ?>/my-account">برو به حساب کاربری من </a>
+                <a href="<?php echo site_url(); ?>/my-account/sc-wallet/">برو به کیف پول من </a>
             </div>
             <div class="go_to_courses">
                 <a href="<?php echo site_url(); ?>/my-account/sc-enroll-course/">برو به بخش دوره ها</a>
@@ -286,11 +286,7 @@ $order_items = $order->get_items();
         </div>
     </div>
 
-    <!-- دکمه‌های عملیات -->
-    <div class="sc-thankyou-actions">
-        <a href="<?php echo esc_url(wc_get_page_permalink('myaccount')); ?>" class="sc-thankyou-btn sc-thankyou-btn-primary">
-         بازگشت به حساب کاربری
-        </a>
+  
        
     </div>
 </div>
