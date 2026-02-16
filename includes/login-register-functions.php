@@ -17,43 +17,38 @@ define('SC_LOGIN_MAX_ATTEMPTS', 5);
 /** Lock duration in seconds (3 minutes) */
 define('SC_LOGIN_LOCK_DURATION', 180);
 
+/** Pending registration transient expiry (15 minutes) */
+define('SC_REGISTER_PENDING_EXPIRY', 900);
+
 /**
- * Get WP user by mobile (user_login or billing_phone or sc_members.player_phone)
+ * Normalize phone to 09xxxxxxxxx for consistent lookup
+ */
+function sc_login_register_normalize_phone($phone) {
+    $raw = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : null;
+    if ($raw) {
+        return $raw;
+    }
+    $digits = preg_replace('/\D/', '', $phone);
+    if (preg_match('/^09\d{9}$/', $digits)) {
+        return $digits;
+    }
+    if (preg_match('/^9\d{9}$/', $digits)) {
+        return '0' . $digits;
+    }
+    return '';
+}
+
+/**
+ * Get WP user by mobile – فقط بر اساس نام کاربری (شماره موبایل)
+ * کاربر فقط وقتی وجود دارد که در wp_users با user_login = شماره موبایل رکورد داشته باشد
  */
 function sc_get_user_by_phone($phone) {
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile || !preg_match('/^09\d{9}$/', $mobile)) {
         return null;
     }
-
     $user = get_user_by('login', $mobile);
-    if ($user) {
-        return $user;
-    }
-
-    $users = get_users([
-        'meta_key'   => 'billing_phone',
-        'meta_value' => $mobile,
-        'number'     => 1,
-    ]);
-    if (!empty($users)) {
-        return $users[0];
-    }
-
-    global $wpdb;
-    $members_table = $wpdb->prefix . 'sc_members';
-    if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) !== $members_table) {
-        return null;
-    }
-    $user_id = $wpdb->get_var($wpdb->prepare(
-        "SELECT user_id FROM $members_table WHERE player_phone = %s AND user_id IS NOT NULL LIMIT 1",
-        $mobile
-    ));
-    if ($user_id) {
-        return get_userdata((int) $user_id);
-    }
-
-    return null;
+    return $user ? $user : null;
 }
 
 /**
@@ -67,7 +62,7 @@ function sc_login_register_user_exists($phone) {
  * Generate 5-digit OTP and store in transient
  */
 function sc_login_register_set_otp($phone) {
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile || !preg_match('/^09\d{9}$/', $mobile)) {
         return null;
     }
@@ -80,7 +75,7 @@ function sc_login_register_set_otp($phone) {
  * Verify OTP and clear transient on success
  */
 function sc_login_register_verify_otp($phone, $code) {
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile || !preg_match('/^09\d{9}$/', $mobile)) {
         return false;
     }
@@ -96,7 +91,7 @@ function sc_login_register_verify_otp($phone, $code) {
  * Check if login is locked for this phone (too many failed attempts)
  */
 function sc_login_register_is_locked($phone) {
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile) {
         return true;
     }
@@ -108,7 +103,7 @@ function sc_login_register_is_locked($phone) {
  * Record failed login attempt; lock if over limit
  */
 function sc_login_register_record_failed($phone) {
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile) {
         return;
     }
@@ -126,7 +121,7 @@ function sc_login_register_record_failed($phone) {
  * Clear failed attempts on successful login
  */
 function sc_login_register_clear_attempts($phone) {
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if ($mobile) {
         delete_transient('sc_login_attempts_' . $mobile);
         delete_transient('sc_login_lock_' . $mobile);
@@ -137,7 +132,7 @@ function sc_login_register_clear_attempts($phone) {
  * Send OTP SMS using pattern from settings
  */
 function sc_login_register_send_otp_sms($phone, $code) {
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile || !function_exists('sc_send_pattern_sms')) {
         return ['success' => false, 'message' => 'تنظیمات پیامک یا شماره معتبر نیست.'];
     }
@@ -162,7 +157,7 @@ function sc_login_register_redirect_url() {
  * Create WP user and let plugin create member (display_name + billing_phone)
  */
 function sc_login_register_create_user($phone, $first_name, $last_name, $password) {
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile || !preg_match('/^09\d{9}$/', $mobile)) {
         return ['success' => false, 'message' => 'شماره موبایل معتبر نیست.'];
     }
@@ -201,6 +196,11 @@ function sc_login_register_create_user($phone, $first_name, $last_name, $passwor
 
     update_user_meta($user_id, 'billing_phone', $mobile);
 
+    // استفاده از همان منطق افزونه: ایجاد رکورد در sc_members (در صورت عدم اجرای hook)
+    if (function_exists('sc_auto_create_member_on_user_register')) {
+        sc_auto_create_member_on_user_register($user_id);
+    }
+
     sc_check_and_create_tables();
     global $wpdb;
     $members_table = $wpdb->prefix . 'sc_members';
@@ -209,16 +209,18 @@ function sc_login_register_create_user($phone, $first_name, $last_name, $passwor
         $user_id
     ));
     if ($member) {
+        $national_id = '9' . str_pad((string) $user_id, 9, '0', STR_PAD_LEFT);
         $wpdb->update(
             $members_table,
             [
                 'first_name'   => $first_name,
                 'last_name'    => $last_name,
                 'player_phone' => $mobile,
-                'updated_at'  => current_time('mysql'),
+                'national_id'  => $national_id,
+                'updated_at'   => current_time('mysql'),
             ],
             ['id' => $member->id],
-            ['%s', '%s', '%s', '%s'],
+            ['%s', '%s', '%s', '%s', '%s'],
             ['%d']
         );
     }
@@ -233,7 +235,7 @@ add_action('wp_ajax_nopriv_sc_login_register_check_phone', 'sc_ajax_login_regist
 function sc_ajax_login_register_check_phone() {
     check_ajax_referer('sc_login_register', 'nonce');
     $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile || !preg_match('/^09\d{9}$/', $mobile)) {
         wp_send_json_success(['exists' => false, 'message' => 'شماره موبایل معتبر وارد کنید.']);
     }
@@ -246,7 +248,7 @@ add_action('wp_ajax_nopriv_sc_login_register_send_otp', 'sc_ajax_login_register_
 function sc_ajax_login_register_send_otp() {
     check_ajax_referer('sc_login_register', 'nonce');
     $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile || !preg_match('/^09\d{9}$/', $mobile)) {
         wp_send_json_error(['message' => 'شماره موبایل معتبر نیست.']);
     }
@@ -270,16 +272,35 @@ function sc_ajax_login_register_verify_otp() {
     check_ajax_referer('sc_login_register', 'nonce');
     $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
     $code  = isset($_POST['code']) ? sanitize_text_field($_POST['code']) : '';
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile || !preg_match('/^09\d{9}$/', $mobile)) {
         wp_send_json_error(['message' => 'شماره موبایل معتبر نیست.']);
     }
     if (!sc_login_register_verify_otp($mobile, $code)) {
         wp_send_json_error(['message' => 'کد تأیید نادرست یا منقضی است.']);
     }
+
+    $pending = get_transient('sc_register_pending_' . $mobile);
+    if ($pending && is_array($pending) && !empty($pending['first_name']) && !empty($pending['last_name']) && !empty($pending['password'])) {
+        delete_transient('sc_register_pending_' . $mobile);
+        $create = sc_login_register_create_user($mobile, $pending['first_name'], $pending['last_name'], $pending['password']);
+        if (empty($create['success'])) {
+            wp_send_json_error(['message' => isset($create['message']) ? $create['message'] : 'خطا در ایجاد حساب.']);
+        }
+        $user = get_userdata((int) $create['user_id']);
+        if (!$user) {
+            wp_send_json_error(['message' => 'خطا در ورود بعد از ثبت‌نام.']);
+        }
+        wp_clear_auth_cookie();
+        wp_set_current_user($user->ID);
+        wp_set_auth_cookie($user->ID, true);
+        sc_login_register_clear_attempts($mobile);
+        wp_send_json_success(['redirect' => sc_login_register_redirect_url()]);
+    }
+
     $user = sc_get_user_by_phone($mobile);
     if (!$user) {
-        wp_send_json_error(['message' => 'کاربر یافت نشد.']);
+        wp_send_json_error(['message' => 'کاربر یافت نشد. لطفاً دوباره درخواست کد دهید.']);
     }
     wp_clear_auth_cookie();
     wp_set_current_user($user->ID);
@@ -294,7 +315,7 @@ function sc_ajax_login_register_login_password() {
     check_ajax_referer('sc_login_register', 'nonce');
     $phone    = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
-    $mobile   = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
+    $mobile   = sc_login_register_normalize_phone($phone);
     if (!$mobile || !preg_match('/^09\d{9}$/', $mobile)) {
         wp_send_json_error(['message' => 'شماره موبایل معتبر نیست.']);
     }
@@ -326,27 +347,47 @@ function sc_ajax_login_register_register() {
     $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
     $last_name  = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
     $password   = isset($_POST['password']) ? $_POST['password'] : '';
+    $mobile     = sc_login_register_normalize_phone($phone);
+    if (!$mobile || !preg_match('/^09\d{9}$/', $mobile)) {
+        wp_send_json_error(['message' => 'شماره موبایل معتبر نیست.']);
+    }
+    if (sc_get_user_by_phone($mobile)) {
+        wp_send_json_error(['message' => 'این شماره قبلاً ثبت شده است. از ورود با رمز یا کد یکبارمصرف استفاده کنید.']);
+    }
+    if (strlen($first_name) < 2 || strlen($last_name) < 2) {
+        wp_send_json_error(['message' => 'نام و نام خانوادگی را صحیح وارد کنید.']);
+    }
     if (strlen($password) < 6) {
         wp_send_json_error(['message' => 'رمز عبور حداقل ۶ کاراکتر باشد.']);
     }
-    $create = sc_login_register_create_user($phone, $first_name, $last_name, $password);
-    if (empty($create['success'])) {
-        wp_send_json_error(['message' => isset($create['message']) ? $create['message'] : 'خطا در ثبت‌نام.']);
+    set_transient('sc_register_pending_' . $mobile, [
+        'first_name' => $first_name,
+        'last_name'  => $last_name,
+        'password'   => $password,
+    ], SC_REGISTER_PENDING_EXPIRY);
+    $code = sc_login_register_set_otp($mobile);
+    if (!$code) {
+        delete_transient('sc_register_pending_' . $mobile);
+        wp_send_json_error(['message' => 'خطا در ایجاد کد تأیید.']);
     }
-    $mobile = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : preg_replace('/\D/', '', $phone);
-    $code   = sc_login_register_set_otp($mobile);
-    if ($code) {
-        sc_login_register_send_otp_sms($mobile, $code);
+    $send = sc_login_register_send_otp_sms($mobile, $code);
+    if (empty($send['success'])) {
+        delete_transient('sc_register_pending_' . $mobile);
+        wp_send_json_error(['message' => isset($send['message']) ? $send['message'] : 'خطا در ارسال پیامک.']);
     }
-    wp_send_json_success(['message' => 'ثبت‌نام انجام شد. کد تأیید به شماره شما ارسال شد.', 'step' => 'verify_otp']);
+    wp_send_json_success(['message' => 'کد تأیید به شماره شما ارسال شد. پس از وارد کردن کد، حساب شما ساخته می‌شود.', 'step' => 'verify_otp']);
 }
 
 /**
- * ریدایرکت بعد از خروج به صفحه اصلی
+ * ریدایرکت بعد از خروج به صفحه اصلی (وردپرس و ووکامرس)
  */
 add_filter('logout_redirect', function ($redirect, $requested_redirect, $user) {
     return home_url('/');
 }, 10, 3);
+
+add_filter('woocommerce_logout_default_redirect_url', function ($redirect) {
+    return home_url('/');
+}, 10, 1);
 
 /**
  * Shortcode [sc_login_register_form]
@@ -405,39 +446,46 @@ function sc_login_register_shortcode() {
     <div class="sc-login-register-wrap" style="<?php echo $style_vars; ?>">
         <div class="sc-lr-background" aria-hidden="true"></div>
         <div class="sc-lr-card">
+            <div class="sc-lr-alert sc-lr-alert-error" id="sc-lr-global-error" role="alert" aria-live="polite" style="display:none;">
+                <span class="sc-lr-alert-icon" aria-hidden="true"></span>
+                <span class="sc-lr-alert-text" id="sc-lr-global-error-text"></span>
+            </div>
             <?php if ($logo_url) : ?>
                 <div class="sc-lr-logo">
                     <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
                 </div>
             <?php endif; ?>
-            <h2 class="sc-lr-title">ورود به <?php echo esc_html(get_bloginfo('name')); ?></h2>
-            <p class="sc-lr-desc">لطفا شماره موبایل خود را وارد کنید</p>
+            <h2 class="sc-lr-title">ورود یا ثبت‌نام در <?php echo esc_html(get_bloginfo('name')); ?></h2>
+            <p class="sc-lr-desc" id="sc-lr-desc">لطفا شماره موبایل خود را وارد کنید</p>
             <div class="sc-lr-form" id="sc-login-register-form">
                 <div class="sc-lr-step sc-lr-step-phone" data-step="phone">
                     <input type="tel" class="sc-lr-input" id="sc-lr-phone" placeholder="شماره موبایل" autocomplete="tel" maxlength="11" inputmode="numeric">
-                    <p class="sc-lr-error" id="sc-lr-phone-error" role="alert"></p>
                     <button type="button" class="sc-lr-btn" id="sc-lr-submit-phone">ورود به <?php echo esc_html(get_bloginfo('name')); ?></button>
                 </div>
                 <div class="sc-lr-step sc-lr-step-exists" data-step="exists" style="display:none;">
                     <input type="password" class="sc-lr-input" id="sc-lr-password" placeholder="رمز عبور" autocomplete="current-password">
-                    <p class="sc-lr-error" id="sc-lr-password-error" role="alert"></p>
                     <button type="button" class="sc-lr-btn" id="sc-lr-login-password">ورود</button>
-                    <p class="sc-lr-otp-link"><button type="button" class="sc-lr-link-btn" id="sc-lr-send-otp">ارسال کد یکبارمصرف</button></p>
+                    <button type="button" class="sc-lr-btn sc-lr-btn-outline" id="sc-lr-send-otp">ارسال کد یکبارمصرف</button>
                     <p class="sc-lr-back"><button type="button" class="sc-lr-link-btn" id="sc-lr-back-phone">بازگشت</button></p>
                 </div>
                 <div class="sc-lr-step sc-lr-step-register" data-step="register" style="display:none;">
                     <input type="text" class="sc-lr-input" id="sc-lr-first-name" placeholder="نام" autocomplete="given-name">
                     <input type="text" class="sc-lr-input" id="sc-lr-last-name" placeholder="نام خانوادگی" autocomplete="family-name">
                     <input type="password" class="sc-lr-input" id="sc-lr-reg-password" placeholder="رمز عبور (حداقل ۶ کاراکتر)" autocomplete="new-password">
-                    <p class="sc-lr-error" id="sc-lr-reg-error" role="alert"></p>
                     <button type="button" class="sc-lr-btn" id="sc-lr-register-submit">ثبت‌نام و دریافت کد</button>
                     <p class="sc-lr-back"><button type="button" class="sc-lr-link-btn" id="sc-lr-back-phone-reg">بازگشت</button></p>
                 </div>
                 <div class="sc-lr-step sc-lr-step-otp" data-step="otp" style="display:none;">
-                    <input type="text" class="sc-lr-input" id="sc-lr-otp" placeholder="کد تأیید" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
-                    <p class="sc-lr-error" id="sc-lr-otp-error" role="alert"></p>
+                    <button type="button" class="sc-lr-back-top" id="sc-lr-otp-back" title="بازگشت">← بازگشت</button>
+                    <p class="sc-lr-otp-timer-wrap">
+                        <span class="sc-lr-otp-timer-label">اعتبار کد:</span>
+                        <span class="sc-lr-otp-timer" id="sc-lr-otp-timer" aria-live="polite">۲:۰۰</span>
+                    </p>
+                    <input type="text" class="sc-lr-input" id="sc-lr-otp" placeholder="کد تأیید ۵ رقمی" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
                     <button type="button" class="sc-lr-btn" id="sc-lr-verify-otp">تأیید و ورود</button>
-                    <p class="sc-lr-back"><button type="button" class="sc-lr-link-btn" id="sc-lr-resend-otp">دریافت مجدد کد</button></p>
+                    <div class="sc-lr-resend-wrap" id="sc-lr-resend-wrap" style="display:none;">
+                        <button type="button" class="sc-lr-btn sc-lr-btn-outline" id="sc-lr-resend-otp">دریافت مجدد کد</button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -267,7 +267,7 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                     <textarea name="ticket_message" id="ticket_message" rows="5" required placeholder="متن پیام خود را بنویسید..."></textarea>
                 </p>
 
-                <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="ticket_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>">
+                <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="ticket_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>" data-nonce-key="sc_ticket_upload_nonce">
                     <label>پیوست (اختیاری)</label>
                     <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
                         <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple>

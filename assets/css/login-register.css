@@ -40,6 +40,37 @@
     text-align: right;
 }
 
+/* خطا – بالای لوگو، دیزاین حرفه‌ای */
+.sc-lr-alert {
+    display: none;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    align-items: flex-start;
+    gap: 10px;
+}
+.sc-lr-alert.is-visible {
+    display: flex;
+}
+.sc-lr-alert-error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+.sc-lr-alert-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    background: currentColor;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E") center/contain no-repeat;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.sc-lr-alert-text {
+    flex: 1;
+}
+
 .sc-lr-logo {
     margin-bottom: 20px;
 }
@@ -105,14 +136,68 @@ max-height: 97px;
     transition: opacity 0.2s;
 }
 
-.sc-lr-btn:hover {
-    background-color: #004499;
-
+.sc-lr-btn:hover:not(:disabled) {
+    opacity: 0.92;
 }
 
 .sc-lr-btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+.sc-lr-btn-outline {
+    background: transparent;
+    color: var(--sc-lr-btn-bg, #e60012);
+    border: 2px solid var(--sc-lr-btn-bg, #e60012);
+    margin-top: 10px;
+}
+.sc-lr-btn-outline:hover {
+    background: rgba(230, 0, 18, 0.08);
+}
+
+/* دکمه بازگشت در مرحله کد تأیید – سمت راست بالا */
+.sc-lr-step-otp {
+    position: relative;
+    padding-top: 36px;
+}
+.sc-lr-back-top {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: none;
+    border: none;
+    padding: 6px 0;
+    font-size: 0.9rem;
+    color: #555;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.2s;
+}
+.sc-lr-back-top:hover {
+    color: var(--sc-lr-btn-bg, #e60012);
+}
+
+/* شمارنده اعتبار کد OTP */
+.sc-lr-otp-timer-wrap {
+    margin: 0 0 12px;
+    font-size: 0.95rem;
+    color: #555;
+}
+.sc-lr-otp-timer-label {
+    margin-left: 6px;
+}
+.sc-lr-otp-timer {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: #0ea5e9;
+}
+.sc-lr-otp-timer-expired {
+    color: #b91c1c;
+}
+.sc-lr-resend-wrap {
+    margin-top: 10px;
 }
 
 .sc-lr-otp-link,

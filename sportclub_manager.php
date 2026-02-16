@@ -867,14 +867,15 @@ function sc_process_user_registration($user_id) {
         return;
     }
     
-    // اگر نقش بازیکن (subscriber) است، به جدول اعضا اضافه می‌شود
+    // اگر نقش بازیکن (subscriber یا customer) است، به جدول اعضا اضافه می‌شود
     if (in_array('subscriber', $user->roles)) {
         sc_auto_create_member_on_user_register($user_id);
         return;
     }
-    
-    // اگر نقش دیگری داشت، به صورت پیش‌فرض به اعضا اضافه می‌شود (برای سازگاری)
-    // اما بهتر است فقط subscriber و coach را پشتیبانی کنیم
+    if (in_array('customer', $user->roles)) {
+        sc_auto_create_member_on_user_register($user_id);
+        return;
+    }
 }
 
 /**
@@ -1295,7 +1296,7 @@ function sc_public_enqueue_assets() {
         wp_enqueue_script('sc-submit-documents-js', SC_ASSETS_URL . 'js/submit-documents.js', array('jquery'), time(), true);
         wp_localize_script('sc-submit-documents-js', 'scDocuments', array('ajaxurl' => admin_url('admin-ajax.php')));
     }
-    if (is_account_page() && get_query_var('sc-support-tickets') !== false) {
+    if (is_account_page()) {
         wp_enqueue_script('sc-ticket-attachments', SC_ASSETS_URL . 'js/ticket-attachments.js', array('jquery'), time(), true);
         wp_localize_script('sc-ticket-attachments', 'scTicketAttach', array('ajaxurl' => admin_url('admin-ajax.php')));
     }
