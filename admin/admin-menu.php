@@ -3404,6 +3404,18 @@ function process_events_table_data() {
 }
 
 /**
+ * Sanitize coach settlement amount from form: only digits, no multiplication.
+ * مقدار دستمزد ثابت را فقط از روی ارقام ورودی برمی‌گرداند (بدون ضرب یا تبدیل اضافه).
+ */
+function sc_sanitize_coach_settlement_amount($raw) {
+    if ($raw === '' || $raw === null) {
+        return 0.0;
+    }
+    $digits_only = preg_replace('/\D/', '', (string) $raw);
+    return $digits_only === '' ? 0.0 : floatval($digits_only);
+}
+
+/**
  * Process coach creation/update form
  */
 function callback_add_coach_sufix() {
@@ -3454,7 +3466,7 @@ function callback_add_coach_sufix() {
             'coaching_experience' => !empty($_POST['coaching_experience']) ? intval($_POST['coaching_experience']) : NULL,
             'sports_history' => !empty($_POST['sports_history']) ? sanitize_textarea_field($_POST['sports_history']) : NULL,
             'settlement_type' => !empty($_POST['settlement_type']) ? sanitize_text_field($_POST['settlement_type']) : 'fixed',
-            'settlement_amount' => (isset($_POST['settlement_amount_raw']) && $_POST['settlement_amount_raw'] !== '') ? floatval(str_replace(',', '', $_POST['settlement_amount_raw'])) : 0,
+            'settlement_amount' => sc_sanitize_coach_settlement_amount(isset($_POST['coach_settlement_amount_save']) ? $_POST['coach_settlement_amount_save'] : ''),
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'updated_at' => current_time('mysql')
         ];

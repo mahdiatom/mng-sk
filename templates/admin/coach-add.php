@@ -123,17 +123,14 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                 <th><label for="settlement_amount">مقدار تسویه ثابت ماهیانه (تومان)</label></th>
                 <td>
                     <input type="text"
-                           name="settlement_amount"
                            id="settlement_amount"
                            value="<?php echo ($coach && floatval($coach->settlement_amount) > 0) ? number_format($coach->settlement_amount, 0, '.', ',') : ''; ?>"
-                           class="regular-text"
+                           class="regular-text sc-coach-settlement-amount"
                            placeholder="0"
                            dir="ltr"
-                           inputmode="numeric">
-                    <input type="hidden"
-                           name="settlement_amount_raw"
-                           id="settlement_amount_raw"
-                           value="<?php echo $coach ? esc_attr($coach->settlement_amount) : '0'; ?>">
+                           inputmode="numeric"
+                           autocomplete="off">
+                    <input type="hidden" name="coach_settlement_amount_save" id="coach_settlement_amount_save" value="<?php echo $coach ? esc_attr((string)(int)floatval($coach->settlement_amount)) : '0'; ?>">
                     <p class="description">مبلغ ثابت ماهیانه که در پایان هر ماه شمسی به مربی پرداخت می‌شود.</p>
                 </td>
             </tr>
@@ -241,6 +238,27 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
 
 <script>
 jQuery(document).ready(function($) {
+    // مقدار تسویه ثابت: فقط ارقام از فیلد نمایشی قبل از ارسال در hidden قرار می‌گیرد (بدون ضرب یا تبدیل)
+    var $settlementInput = $('#settlement_amount');
+    var $settlementHidden = $('#coach_settlement_amount_save');
+    if ($settlementInput.length && $settlementHidden.length) {
+        // مقدار اولیه از فیلد نمایشی (برای ویرایش)
+        var initialVal = $settlementInput.val().replace(/[^\d]/g, '');
+        if (initialVal) $settlementHidden.val(initialVal);
+        $settlementInput.on('input', function() {
+            var v = $(this).val().replace(/[^\d]/g, '');
+            $settlementHidden.val(v === '' ? '0' : v);
+            if (v.length > 0) {
+                var formatted = v.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                $(this).val(formatted);
+            }
+        });
+        $('#coach-form').on('submit', function() {
+            var v = $settlementInput.val().replace(/[^\d]/g, '');
+            $settlementHidden.val(v === '' ? '0' : v);
+        });
+    }
+
     // تابع برای نمایش/پنهان کردن فیلدها بر اساس نوع تسویه
     function toggleSettlementFields() {
         var settlementType = $('input[name="settlement_type"]:checked').val();

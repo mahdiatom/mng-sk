@@ -441,9 +441,12 @@ function scFormatPrice(inputSelector, rawInputSelector) {
     }
     });
     
-    // قبل از submit
+    // قبل از submit: مقدار نهایی فقط از فیلد قابل‌مشاهده (منبع حقیقت) تا از ذخیرهٔ اشتباه جلوگیری شود
     $input.closest('form').on('submit.scFormatPrice', function() {
-        var rawValue = $raw.val() || '0';
+        var value = $input.val() || '';
+        var cleaned = value.replace(/,/g, '').replace(/\D/g, '');
+        var rawValue = cleaned === '' ? '0' : cleaned;
+        $raw.val(rawValue);
         $input.val(rawValue);
     });
     
@@ -735,9 +738,7 @@ jQuery(document).ready(function($) {
 jQuery(document).ready(function($) {
     // فرمت کردن مبلغ فاکتور / هزینه / شارژ / کسر (هر صفحه‌ای که این فیلدها را داشته باشد)
     scFormatPrice('#amount', '#amount_raw');
-    // فرمت کردن مقدار تسویه ثابت ماهیانه مربی
-    scFormatPrice('#settlement_amount', '#settlement_amount_raw');
-    // فیلتر بازه مبلغ در لیست تراکنش‌های کیف پول
+    // مقدار تسویه ثابت ماهیانه مربی فقط در قالب coach-add.php با اسکریپت همان صفحه مدیریت می‌شود
     scFormatPrice('#filter_amount_min', '#filter_amount_min_raw');
     scFormatPrice('#filter_amount_max', '#filter_amount_max_raw');
 });
