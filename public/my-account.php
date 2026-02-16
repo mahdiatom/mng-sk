@@ -10,7 +10,7 @@ function add_html_before_account_nav() {
     
     // بررسی و ایجاد جداول
     sc_check_and_create_tables();
-    
+
     $current_user_id = get_current_user_id();
     global $wpdb;
     
@@ -41,6 +41,9 @@ function add_html_before_account_nav() {
     if (!$player) {
         return '<div class="sc-user-info-notice">اطلاعات بازیکن یافت نشد. لطفاً پروفایل خود را تکمیل کنید.</div>';
     }
+    
+    // موجودی کیف پول بر اساس member_id (بعد از وجود player)
+    $wallet_balance = function_exists('sc_get_wallet_balance') ? sc_get_wallet_balance($player->id) : 0;
     
     // دریافت عکس پروفایل
     $profile_image = '';
