@@ -40,7 +40,6 @@ $coaches = $wpdb->get_results(
                     <th>ردیف</th>
                     <th>نام و نام خانوادگی</th>
                     <th>نوع دستمزد</th>
-                    <th>مبلغ/درصد</th>
                     <th>وضعیت</th>
                     <th>عملیات</th>
                 </tr>
@@ -68,13 +67,7 @@ $coaches = $wpdb->get_results(
                                     <span style="color: #2271b1;">درصدی</span>
                                 <?php endif; ?>
                             </td>
-                            <td>
-                                <?php if ($coach->settlement_type === 'fixed'): ?>
-                                    <?php echo number_format($coach->settlement_amount, 0, '.', ','); ?> تومان
-                                <?php else: ?>
-                                    <?php echo number_format($coach->settlement_amount, 2); ?>%
-                                <?php endif; ?>
-                            </td>
+                           
                             <td>
                                 <?php if ($coach->is_active): ?>
                                     <span style="color: #00a32a;">فعال</span>

@@ -7,7 +7,22 @@
 
     var MAX_FILES = 5;
     var MAX_SIZE = 5 * 1024 * 1024; // 5MB
-    var ACCEPT = '.jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx';
+    var ALLOWED_EXT = ['jpg', 'jpeg', 'jpe', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif', 'heic', 'heif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
+    var ACCEPT = '.' + ALLOWED_EXT.join(',.');
+
+    function getExt(name) {
+        var i = name.lastIndexOf('.');
+        return i >= 0 ? name.substring(i + 1).toLowerCase() : '';
+    }
+
+    function isAllowedExt(ext) {
+        return ALLOWED_EXT.indexOf(ext) !== -1;
+    }
+
+    function showUploadError($progressText, msg, $progressWrap) {
+        $progressText.text(msg || 'خطا در آپلود');
+        if ($progressWrap) $progressWrap.removeClass('sc-uploading').addClass('sc-upload-error');
+    }
 
     function initZone($zone) {
         var inputName = $zone.data('input-name') || 'reply_attachment_ids';
@@ -83,14 +98,20 @@
                     $progressText.text('آپلود شد');
                     $progressWrap.removeClass('sc-uploading').addClass('sc-upload-done');
                 } else {
-                    $progressText.text(res.data && res.data.message ? res.data.message : 'خطا در آپلود');
-                    $progressWrap.removeClass('sc-uploading').addClass('sc-upload-error');
+                    var errMsg = (res.data && res.data.message) ? res.data.message : 'خطا در آپلود فایل.';
+                    showUploadError($progressText, errMsg, $progressWrap);
                 }
             })
             .fail(function(xhr) {
-                var msg = (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) ? xhr.responseJSON.data.message : 'خطا در ارتباط با سرور';
-                $progressText.text(msg);
-                $progressWrap.removeClass('sc-uploading').addClass('sc-upload-error');
+                var msg = 'خطا در ارتباط با سرور.';
+                if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+                    msg = xhr.responseJSON.data.message;
+                } else if (xhr.status === 413) {
+                    msg = 'حجم فایل بیش از حد مجاز است (حداکثر ۵ مگابایت).';
+                } else if (xhr.status === 0) {
+                    msg = 'اتصال برقرار نشد. اتصال اینترنت را بررسی کنید.';
+                }
+                showUploadError($progressText, msg, $progressWrap);
             })
             .always(function() {
                 uploading = false;
@@ -116,17 +137,26 @@
 
         function addFiles(files) {
             var added = 0;
+            var errors = [];
             for (var i = 0; i < files.length && (uploadedIds.length + queue.length + added) < MAX_FILES; i++) {
                 var file = files[i];
+                var ext = getExt(file.name);
+                if (!ext || !isAllowedExt(ext)) {
+                    errors.push('فرمت «' + (ext || 'بدون پسوند') + '» مجاز نیست: ' + file.name);
+                    continue;
+                }
                 if (file.size > MAX_SIZE) {
-                    if (window.alert) alert('فایل «' + file.name + '» بیش از ۵ مگابایت است و نادیده گرفته شد.');
+                    errors.push('حجم بیش از ۵ مگابایت: ' + file.name);
                     continue;
                 }
                 queue.push(file);
                 added++;
             }
-            if (added < files.length && uploadedIds.length + queue.length >= MAX_FILES && window.alert) {
-                alert('حداکثر ' + MAX_FILES + ' فایل مجاز است.');
+            if (uploadedIds.length + queue.length + added >= MAX_FILES && files.length > added) {
+                errors.push('حداکثر ' + MAX_FILES + ' فایل مجاز است.');
+            }
+            if (errors.length > 0 && window.alert) {
+                alert(errors.join('\n'));
             }
             processQueue();
         }

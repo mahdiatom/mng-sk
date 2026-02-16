@@ -114,10 +114,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
                 <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="reply_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>">
                     <label>پیوست (اختیاری)</label>
                     <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
-                        <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple>
+                        <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,.svg,.tiff,.tif,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx" multiple>
                         <span class="sc-file-upload-icon">📎</span>
                         <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
-                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت: تصویر، PDF، ورد، اکسل</span>
+                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت‌های مجاز: تصویر (jpg, png, gif, webp, bmp, ico, svg, tiff, heic و...)، PDF، ورد، اکسل</span>
                     </div>
                     <div class="sc-ticket-upload-progress-wrap" style="display:none;">
                         <div class="sc-upload-progress sc-ticket-upload-progress">
@@ -154,10 +154,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
                 <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="reply_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>">
                     <label>پیوست (اختیاری)</label>
                     <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
-                        <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple>
+                        <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,.svg,.tiff,.tif,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx" multiple>
                         <span class="sc-file-upload-icon">📎</span>
                         <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
-                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت.</span>
+                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت‌های مجاز: تصویر (jpg, png, gif, webp, bmp, ico, svg, tiff, heic و...)، PDF، ورد، اکسل</span>
                     </div>
                     <div class="sc-ticket-upload-progress-wrap" style="display:none;"><div class="sc-upload-progress sc-ticket-upload-progress"><div class="sc-upload-bar"></div><span class="sc-upload-text"></span></div></div>
                     <div class="sc-ticket-uploaded-list"></div>

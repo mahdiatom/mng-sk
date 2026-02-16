@@ -7,19 +7,35 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-/** Allowed MIME types for ticket attachments (images, PDF, Word, Excel) */
+/** Allowed MIME types for ticket attachments (all image formats, PDF, Word, Excel) */
 function sc_support_allowed_mime_types() {
     return [
         'jpg|jpeg|jpe' => 'image/jpeg',
         'png' => 'image/png',
         'gif' => 'image/gif',
         'webp' => 'image/webp',
+        'bmp' => 'image/bmp',
+        'ico' => 'image/x-icon',
+        'svg' => 'image/svg+xml',
+        'tiff|tif' => 'image/tiff',
+        'heic' => 'image/heic',
+        'heif' => 'image/heif',
         'pdf' => 'application/pdf',
         'doc' => 'application/msword',
         'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'xls' => 'application/vnd.ms-excel',
         'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ];
+}
+
+/** لیست پسوندهای مجاز برای نمایش در پیام خطا */
+function sc_support_allowed_extensions_list() {
+    $mimes = sc_support_allowed_mime_types();
+    $exts = [];
+    foreach (array_keys($mimes) as $key) {
+        $exts = array_merge($exts, explode('|', $key));
+    }
+    return array_unique($exts);
 }
 
 /** Get member_id from WordPress user_id */
@@ -595,7 +611,14 @@ function sc_support_handle_attachments($files_key = 'ticket_attachments') {
             continue;
         }
         $ext = strtolower(pathinfo($names[$i], PATHINFO_EXTENSION));
-        if (!in_array($ext, $allowed_ext, true)) {
+        $ext_ok = false;
+        foreach ($allowed_ext as $key_pattern) {
+            if (in_array($ext, explode('|', $key_pattern), true)) {
+                $ext_ok = true;
+                break;
+            }
+        }
+        if (!$ext_ok) {
             continue;
         }
         $file = [
@@ -684,19 +707,42 @@ function sc_ajax_upload_ticket_attachment() {
         wp_send_json_error(['message' => 'خطای امنیتی. لطفاً صفحه را رفرش کنید.']);
     }
     $key = isset($_FILES['file']) ? 'file' : (isset($_FILES['ticket_attachment']) ? 'ticket_attachment' : null);
-    if (!$key || empty($_FILES[$key]['name']) || $_FILES[$key]['error'] !== UPLOAD_ERR_OK) {
-        wp_send_json_error(['message' => 'فایلی انتخاب نشده یا خطا در آپلود.']);
+    if (!$key || empty($_FILES[$key]['name'])) {
+        wp_send_json_error(['message' => 'هیچ فایلی انتخاب نشده است.']);
+    }
+    $file = $_FILES[$key];
+    $upload_err_msg = [
+        UPLOAD_ERR_INI_SIZE => 'حجم فایل از حد مجاز سرور بیشتر است.',
+        UPLOAD_ERR_FORM_SIZE => 'حجم فایل بیش از حد مجاز است.',
+        UPLOAD_ERR_PARTIAL => 'فایل فقط بخشی آپلود شده است. دوباره تلاش کنید.',
+        UPLOAD_ERR_NO_FILE => 'هیچ فایلی انتخاب نشده است.',
+        UPLOAD_ERR_NO_TMP_DIR => 'خطای سرور: پوشه موقت وجود ندارد.',
+        UPLOAD_ERR_CANT_WRITE => 'خطای سرور: ذخیره فایل ممکن نیست.',
+        UPLOAD_ERR_EXTENSION => 'آپلود به دلیل یک افزونه متوقف شد.',
+    ];
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $msg = isset($upload_err_msg[$file['error']]) ? $upload_err_msg[$file['error']] : 'خطا در آپلود فایل (کد: ' . $file['error'] . ').';
+        wp_send_json_error(['message' => $msg]);
     }
     $allowed = sc_support_allowed_mime_types();
-    $allowed_ext = array_keys($allowed);
+    $allowed_ext_flat = function_exists('sc_support_allowed_extensions_list') ? sc_support_allowed_extensions_list() : array_keys($allowed);
+    $allowed_ext_keys = array_keys($allowed);
     $max_size = 5 * 1024 * 1024; // 5MB
-    $file = $_FILES[$key];
     if (isset($file['size']) && $file['size'] > $max_size) {
-        wp_send_json_error(['message' => 'حداکثر حجم هر فایل ۵ مگابایت است.']);
+        wp_send_json_error(['message' => 'حجم فایل «' . basename($file['name']) . '» بیش از ۵ مگابایت است.']);
     }
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, $allowed_ext, true)) {
-        wp_send_json_error(['message' => 'فرمت فایل مجاز نیست. مجاز: تصویر، PDF، ورد، اکسل.']);
+    $ext_allowed = false;
+    foreach ($allowed_ext_keys as $key_pattern) {
+        $keys = explode('|', $key_pattern);
+        if (in_array($ext, $keys, true)) {
+            $ext_allowed = true;
+            break;
+        }
+    }
+    if (!$ext_allowed) {
+        $list = implode(', ', array_map(function ($e) { return '.' . $e; }, $allowed_ext_flat));
+        wp_send_json_error(['message' => 'فرمت فایل «' . $ext . '» مجاز نیست. فرمت‌های مجاز: ' . $list]);
     }
     require_once ABSPATH . 'wp-admin/includes/image.php';
     require_once ABSPATH . 'wp-admin/includes/file.php';
