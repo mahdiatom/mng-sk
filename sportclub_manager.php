@@ -162,6 +162,19 @@ function sc_add_expense_name_column() {
 }
 
 /**
+ * Add invoice_description column to invoices table if not exists
+ */
+add_action('admin_init', 'sc_add_invoice_description_column');
+function sc_add_invoice_description_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_invoices';
+    $column_exists = $wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM $table_name LIKE %s", 'invoice_description'));
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `invoice_description` text DEFAULT NULL COMMENT 'توضیحات صورت حساب (ایجاد دستی)' AFTER `expense_name`");
+    }
+}
+
+/**
  * Add event_id column to invoices table if not exists
  */
 add_action('admin_init', 'sc_add_event_id_column');

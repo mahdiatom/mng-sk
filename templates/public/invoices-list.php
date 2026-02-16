@@ -66,7 +66,8 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
             <?php endif; ?>
         </div>
     <?php else : ?>
-        <table class="woocommerce-orders-table woocommerce-MyAccount-orders shop_table shop_table_responsive my_account_orders account-orders-table sc-invoices-table">
+        <div class="sc-invoices-table-wrap">
+        <table class="woocommerce-orders-table woocommerce-MyAccount-orders shop_table my_account_orders account-orders-table sc-invoices-table sc-invoices-table-desktop">
             <thead>
                 <tr>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-number">
@@ -252,7 +253,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                     }
                 ?>
                     <tr class="woocommerce-orders-table__row woocommerce-orders-table__row--status-<?php echo esc_attr($status_class); ?> order">
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-number" data-title="شماره سفارش">
+                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-number" data-label="شماره سفارش">
                             <?php
                             // استفاده از شماره سفارش WooCommerce اگر وجود داشته باشد
                             $order_number = '#' . $invoice->id;
@@ -269,7 +270,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                 📅 <?php echo sc_date_shamsi_date_only($invoice->created_at); ?>
                             </small>
                         </td>
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-date" data-title="دوره / رویداد">
+                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-date" data-label="سفارش">
                             <?php if (!empty($invoice->course_title)) : ?>
                                 <div style="margin-bottom: 5px;">
                                     <strong style="color: #2271b1;">📚 دوره:</strong>
@@ -293,8 +294,11 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                     <small><strong style="color: #2271b1;">💰 هزینه اضافی:</strong> <?php echo esc_html($invoice->expense_name); ?></small>
                                 </div>
                             <?php endif; ?>
+                            <?php if (!empty($invoice->invoice_description)) : ?>
+                                <div class="sc-invoice-description" style="margin-top: 8px; padding: 8px 10px; background: #f5f5f5; border-radius: 6px; font-size: 13px; color: #555; line-height: 1.5; min-height: 2.5em; white-space: pre-wrap; word-wrap: break-word;"><?php echo wp_kses_post(nl2br(esc_html(trim($invoice->invoice_description)))); ?></div>
+                            <?php endif; ?>
                         </td>
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-status" data-title="مبلغ">
+                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-status" data-label="مبلغ">
                             <div style="margin-bottom: 5px;">
                                 <strong style="font-size: 16px; color: #2271b1;"><?php echo $formatted_price; ?></strong>
                             </div>
@@ -307,7 +311,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                 </div>
                             <?php endif; ?>
                         </td>
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-total" data-title="وضعیت">
+                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-total" data-label="وضعیت">
                             <span class="woocommerce-orders-table__status status-<?php echo esc_attr($status_class); ?>" style="
                                 display: inline-flex;
                                 align-items: center;
@@ -323,7 +327,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                 <?php echo esc_html($status_label); ?>
                             </span>
                         </td>
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-actions" data-title="عملیات">
+                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-actions" data-label="عملیات">
                             <div style="display: flex;gap: 8px;flex-wrap: wrap;justify-content: center;flex-direction: column;text-align: center;margin-top: 40px;">
                                 <?php 
                                 // دکمه‌های عملیات
@@ -408,12 +412,10 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                             </div>
                         </td>
                     </tr>
-                <?php endforeach;
-                
-                  ?>
-                 
+                <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
         <!-- Pagination -->
             <?php if ($total_pages > 1) : ?>
                 <div class="tablenav bottom sc_paginate" style="margin: 20px 10px 50px 0px;">

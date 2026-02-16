@@ -1630,43 +1630,57 @@ table td, table th{
     display: none !important;
 }
 
+/* رسپانسیو صورت حساب: هر سطر به صورت کارت، متن در عرض کامل شکسته می‌شود */
 @media (max-width: 768px) {
+    .sc-invoices-table-wrap {
+        overflow-x: visible;
+    }
     .sc-invoices-table {
         display: block;
         border-radius: 0;
     }
-    
     .sc-invoices-table thead {
         display: none;
     }
-    
-    .sc-invoices-table tbody,
-    .sc-invoices-table tr,
+    .sc-invoices-table tbody {
+        display: block;
+    }
+    .sc-invoices-table tr {
+        display: block;
+        width: 100%;
+        margin-bottom: 16px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
     .sc-invoices-table td {
         display: block;
         width: 100%;
-    }
-    
-    .sc-invoices-table td {
+        box-sizing: border-box;
         text-align: right;
-        padding: 12px;
+        padding: 10px 0;
+        padding-right: 0;
+        padding-left: 0;
         border-bottom: 1px solid #eee;
-        position: relative;
-        padding-right: 40%;
+        position: static;
     }
-    
-    .sc-invoices-table td:before {
-        content: attr(data-title) ": ";
-        font-weight: 600;
-        position: absolute;
-        right: 12px;
-        width: 35%;
-        text-align: right;
-        color: #666;
-    }
-    
     .sc-invoices-table td:last-child {
-        border-bottom: 2px solid #ddd;
+        border-bottom: none;
+        padding-top: 12px;
+        border-top: 1px solid #eee;
+    }
+    .sc-invoices-table td:before {
+        content: attr(data-label);
+        display: block;
+        font-weight: 600;
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 4px;
+    }
+    .sc-invoices-table td .sc-invoice-description {
+        min-height: 2.5em;
     }
 }
 

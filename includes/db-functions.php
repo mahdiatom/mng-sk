@@ -47,6 +47,7 @@ $sql = "CREATE TABLE `$table_name` (
         `woocommerce_order_id` bigint(20) unsigned DEFAULT NULL,
         `amount` decimal(10,2) NOT NULL DEFAULT 0.00,
         `expense_name` varchar(255) DEFAULT NULL,
+        `invoice_description` text DEFAULT NULL COMMENT 'توضیحات صورت حساب (ایجاد دستی)',
         `penalty_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
         `penalty_applied` tinyint(1) DEFAULT 0,
         `disable_penalty` tinyint(1) NOT NULL DEFAULT 0,

@@ -1650,6 +1650,11 @@ function callback_add_invoice_sufix() {
         $member_id = absint($_POST['member_id']);
         $course_id = !empty($_POST['course_id']) ? absint($_POST['course_id']) : NULL;
         $expense_name = !empty($_POST['expense_name']) ? sanitize_text_field($_POST['expense_name']) : NULL;
+        $invoice_description = !empty($_POST['invoice_description']) ? sanitize_textarea_field($_POST['invoice_description']) : NULL;
+        if ($invoice_description !== null) {
+            $invoice_description = wp_kses_post($invoice_description);
+            $invoice_description = trim($invoice_description) === '' ? null : $invoice_description;
+        }
         
         // دریافت مبلغ (حذف کاماها در صورت وجود)
         $amount_value = '';
@@ -1714,11 +1719,12 @@ function callback_add_invoice_sufix() {
         // ذخیره صورت حساب
         $invoice_data = [
             'member_id' => $member_id,
-            'course_id' => $course_id ? $course_id : 0, // اگر دوره انتخاب نشده باشد، 0 می‌شود
+            'course_id' => $course_id ? $course_id : 0,
             'member_course_id' => $member_course_id,
             'woocommerce_order_id' => NULL,
             'amount' => $total_amount,
             'expense_name' => $expense_name,
+            'invoice_description' => $invoice_description,
             'penalty_amount' => 0.00,
             'penalty_applied' => 0,
             'status' => 'pending',
@@ -1727,22 +1733,23 @@ function callback_add_invoice_sufix() {
             'updated_at' => current_time('mysql')
         ];
         $invoice_data['disable_penalty'] = $disable_penalty;
-        $format_array[] = '%d';
         
-        // آماده‌سازی format array برای insert
-        $format_array = ['%d', '%d', '%d', '%d', '%f', '%s', '%f', '%d', '%s', '%s', '%s', '%s'];
+        // آماده‌سازی format array برای insert (با invoice_description و disable_penalty)
+        $format_array = ['%d', '%d', '%d', '%d', '%f', '%s', '%s', '%f', '%d', '%s', '%s', '%s', '%s', '%d'];
         
-        // اگر course_id یا member_course_id NULL باشد، format را تنظیم کن
         if (!$course_id) {
             $invoice_data['course_id'] = 0;
         }
         if (!$member_course_id) {
             $invoice_data['member_course_id'] = NULL;
-            $format_array[2] = '%s'; // NULL برای member_course_id
+            $format_array[2] = '%s';
         }
         if (!$expense_name) {
             $invoice_data['expense_name'] = NULL;
-            $format_array[5] = '%s'; // NULL برای expense_name
+            $format_array[5] = '%s';
+        }
+        if ($invoice_description === null) {
+            $format_array[6] = '%s'; // NULL برای invoice_description
         }
         
         // ابتدا صورت حساب را ایجاد کن
