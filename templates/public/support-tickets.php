@@ -304,17 +304,23 @@ $coaches = sc_support_get_coaches_for_member($member_id);
             var $container = $('#sc-support-ajax-container');
             $container.css('opacity', '0.6');
             $.post(ajaxUrl, {
-                action: 'sc_support_tickets_filter',
-                filter_status: filterStatus,
-                s: searchQuery,
-                ticket_page: currentPage
-            }, function(res) {
-                $container.css('opacity', '1');
-                if (res && res.success && res.data) {
-                    renderTickets(res.data);
-                } else {
-                    $container.html('<div class="sc-support-empty-state"><p class="sc-support-empty-text">خطا در بارگذاری.</p></div>');
+            action: 'sc_support_tickets_filter',
+            filter_status: filterStatus,
+            s: searchQuery,
+            ticket_page: currentPage
+        }, function(res) {
+            $container.css('opacity', '1');
+            if (res && res.success && res.data) {
+                renderTickets(res.data);
+
+                // اسکرول نرم به بالای لیست تیکت‌ها بعد از رندر
+                const listView = document.getElementById('sc-support-list-view');
+                if (listView) {
+                    listView.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
+            } else {
+                $container.html('<div class="sc-support-empty-state"><p class="sc-support-empty-text">خطا در بارگذاری.</p></div>');
+            }
             }).fail(function() {
                 $container.css('opacity', '1');
                 $container.html('<div class="sc-support-empty-state"><p class="sc-support-empty-text">خطا در بارگذاری.</p></div>');
@@ -388,11 +394,18 @@ $coaches = sc_support_get_coaches_for_member($member_id);
             $(this).hide();
         });
 
-        $('#sc-support-btn-new-ticket').on('click', function() {
+        $('#sc-support-btn-new-ticket').on('click', function(e) {
+             e.preventDefault();
+
             $('#sc-support-list-view').hide();
             $('#sc-support-form-view').show();
-        });
 
+            // جلوگیری از اسکرول ناخواسته
+            setTimeout(function() {
+                document.getElementById('sc-support-form-view')
+                    .scrollIntoView({ behavior: "instant", block: "start" });
+            }, 10);
+        });
         $('#sc-support-back-to-list').on('click', function(e) {
             e.preventDefault();
             $('#sc-support-form-view').hide();
@@ -417,6 +430,17 @@ $coaches = sc_support_get_coaches_for_member($member_id);
         setTabActive();
         loadTickets();
     })(jQuery);
+        document.addEventListener('DOMContentLoaded', function() {
+            // بررسی هر 100ms تا المان حاضر شود
+            const interval = setInterval(function() {
+                const el = document.querySelector('.sc-support-heading-row h2'); // المان هدف
+                if (el) {
+                    // اسکرول نرم و مرکز صفحه
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    clearInterval(interval); // توقف بررسی بعد از اسکرول
+                }
+            }, 100);
+        });
     </script>
 <?php endif; ?>
 </div>

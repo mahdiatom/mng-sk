@@ -260,3 +260,16 @@ $courses = $wpdb->get_results(
     <?php endif; ?>
 
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // بررسی هر 100ms تا المان حاضر شود
+    const interval = setInterval(function() {
+        const el = document.querySelector('.wrap h2'); // المان هدف
+        if (el) {
+            // اسکرول نرم و مرکز صفحه
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval); // توقف بررسی بعد از اسکرول
+        }
+    }, 100);
+});
+</script>

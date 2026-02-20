@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+
 // دریافت متغیرهای فیلتر و صفحه‌بندی (اگر از my-account.php فراخوانی شده باشد)
 $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest');
 $current_page = isset($current_page) ? $current_page : (isset($_GET['paged']) ? absint($_GET['paged']) : 1);
@@ -167,7 +168,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     $status_label = 'ظرفیت تکمیل شده';
                     $status_color = '#d63638';
                     $status_bg = '#ffeaea';
-                    $tooltip_message = 'ظرفیت دوره تکمیل شده است برای امکان ثبت نام در این دوره با مدیر باشگاه ارتباط بگرید.';
+                    $tooltip_message = 'ظرفیت دوره تکمیل شده است برای  ثبت نام در این دوره با مدیر باشگاه ارتباط بگیرید.';
                     $course_status = 'capacity_full';
                 }
                 
@@ -180,67 +181,60 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     $course_status = 'date_expired';
                 }
             ?>
-                <div class="sc-course-accordion-item" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px; overflow: visible; position: relative;">
-                    <input type="radio" 
-                           name="course_id" 
-                           id="course_<?php echo esc_attr($course->id); ?>" 
-                           value="<?php echo esc_attr($course->id); ?>" 
-                           class="sc-course-radio"
-                           <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired || (isset($course_data['is_under_review']) && $course_data['is_under_review'])) ? 'disabled' : ''; ?>
-                           required>
-                    
-                    <label for="course_<?php echo esc_attr($course->id); ?>" 
-                           class="sc-course-accordion-header" 
-                           <?php if ($tooltip_message) : ?>
-                               data-tooltip="<?php echo esc_attr($tooltip_message); ?>"
-                           <?php endif; ?>
-                           style="display: flex; align-items: center; padding: 15px; cursor: <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired || (isset($course_data['is_under_review']) && $course_data['is_under_review'])) ? 'not-allowed' : 'pointer'; ?>; background-color: <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired || (isset($course_data['is_under_review']) && $course_data['is_under_review'])) ? '#f5f5f5' : '#fff'; ?>; transition: background-color 0.3s; position: relative;">
-                        <div style="flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 20px;">
-                            <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
-                                <span class="sc-accordion-icon" style="font-size: 18px; color: #666;">▼</span>
-                                <strong style="font-size: 16px; color: #333;"><?php echo esc_html($course->title); ?></strong>
-                            </div>
-                            
-                            <div style="display: flex; align-items: center; gap: 20px; white-space: nowrap;">
-                                <span style="color: #2271b1; font-weight: bold; font-size: 16px;">
-                                    <?php echo $formatted_price; ?>
-                                </span>
-                                
-                                <?php if ($course->sessions_count) : ?>
-                                    <span style="color: #666; font-size: 14px;">
-                                        <strong>تعداد جلسات:</strong> <?php echo esc_html($course->sessions_count); ?>
-                                    </span>
-                                <?php endif; ?>
-                                
-                                <?php if ($course->capacity) : ?>
-                                    <span style="color: <?php echo ($is_capacity_full && !$is_enrolled) ? '#d63638' : '#666'; ?>; font-size: 14px; font-weight: <?php echo ($is_capacity_full && !$is_enrolled) ? 'bold' : 'normal'; ?>;">
-                                        <strong>ظرفیت باقی مانده:</strong> <?php echo esc_html($remaining) . 'نفر '; ?> 
-                                    </span>
-                                <?php endif; ?>
-                                
-                                <?php if ($is_enrolled || $is_capacity_full || $is_date_expired || (isset($course_data['is_under_review']) && $course_data['is_under_review'])) : ?>
-                                    <span style="color: <?php echo esc_attr($status_color); ?>; font-weight: bold; background-color: <?php echo esc_attr($status_bg); ?>; padding: 5px 10px; border-radius: 4px;">
-                                        <?php if ($course_status == 'active') : ?>
-                                            ✓ <?php echo esc_html($status_label); ?>
-                                        <?php else : ?>
-                                            <?php echo esc_html($status_label); ?>
-                                        <?php endif; ?>
-                                    </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </label>
-                    
-                    <div class="sc-course-accordion-content" style="display: none; padding: 0 15px 15px 50px; background-color: #f9f9f9; border-top: 1px solid #eee; overflow: hidden;">
-                        <?php if ($course->description) : ?>
-                            <p style="margin: 10px 0 0 0; color: #666; line-height: 1.6;">
-                                <?php echo nl2br(esc_html($course->description)); ?>
-                            </p>
-                        <?php else : ?>
-                            <p style="margin: 10px 0 0 0; color: #999; font-style: italic;">توضیحاتی برای این دوره ثبت نشده است.</p>
-                        <?php endif; ?>
-                    </div>
+                <div class="sc-course-accordion-item" id="course_item_<?php echo esc_attr($course->id); ?>">
+    <div class="sc_radio_detailes_courses">  
+        <input type="radio" 
+               name="course_id" 
+               id="course_<?php echo esc_attr($course->id); ?>" 
+               value="<?php echo esc_attr($course->id); ?>" 
+               class="sc-course-radio"
+               <?php echo ($is_enrolled || $is_capacity_full || $is_date_expired) ? 'disabled' : ''; ?>
+               required>
+        
+        <label for="course_<?php echo esc_attr($course->id); ?>" 
+               class="sc-course-accordion-header" 
+               >
+            
+            <div class="sc-course-header-content">
+                <div class="sc-course-title">
+                    <strong><?php echo esc_html($course->title); ?></strong>
                 </div>
+                
+                <div class="sc-course-meta">
+                    <?php if ($status_label) : ?>
+                        <span class="sc-course-status <?php echo esc_attr($course_status); ?>"><?php echo esc_html($status_label); ?></span>
+                    <?php endif; ?>
+                    <span class="sc-course-price"><?php echo $formatted_price; ?></span>
+                    
+                    <?php if ($course->sessions_count) : ?>
+                        <span class="sc-course-sessions"><strong>تعداد جلسات:</strong> <?php echo esc_html($course->sessions_count); ?></span>
+                    <?php endif; ?>
+                    
+                    <?php if ($course->capacity) : ?>
+                        <span class="sc-course-capacity <?php echo ($is_capacity_full && !$is_enrolled) ? 'full' : ''; ?>">
+                            <strong>ظرفیت باقی مانده:</strong> <?php echo esc_html($remaining); ?> نفر
+                        </span>
+                    <?php endif; ?>
+                    
+                    
+                </div>
+                <?php if ($tooltip_message) : ?>
+                <div class="detiles_course">
+                  <?php echo esc_attr($tooltip_message); ?>
+                </div>
+                 <?php endif; ?>
+            </div>
+        </label>
+    </div>
+    
+    <div class="sc-course-accordion-content">
+        <?php if ($course->description) : ?>
+            <p><?php echo nl2br(esc_html($course->description)); ?></p>
+        <?php else : ?>
+            <p class="sc-no-description">توضیحاتی برای این دوره ثبت نشده است.</p>
+        <?php endif; ?>
+    </div>
+</div>
             <?php endforeach; ?>
         </div>
         
@@ -292,4 +286,16 @@ if (function_exists('wc_get_price_thousand_separator')) {
     </form>
     <?php endif; ?>
 </div>
-
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // بررسی هر 100ms تا المان حاضر شود
+    const interval = setInterval(function() {
+        const el = document.querySelector('.sc-enroll-course-page h2'); // المان هدف
+        if (el) {
+            // اسکرول نرم و مرکز صفحه
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval); // توقف بررسی بعد از اسکرول
+        }
+    }, 100);
+});
+</script>

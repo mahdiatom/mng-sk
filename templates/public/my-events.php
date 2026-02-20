@@ -11,9 +11,9 @@ $total_pages = isset($total_pages) ? $total_pages : 1;
 $total_events = isset($total_events) ? $total_events : 0;
 ?>
 
-<div class="sc-my-courses-page">
+<div class="sc-my-event-registers-page">
     <h2 style="margin-bottom: 25px; color: #1a1a1a; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 32px;">📚</span>
+        <span style="font-size: 32px;">🏃‍♂️</span>
         رویداد های ثبت نامی های من
     </h2>
     
@@ -31,28 +31,28 @@ $total_events = isset($total_events) ? $total_events : 0;
     <?php else : ?>
     
     <!-- نمایش رویداد ها به صورت کارت -->
-    <div class="sc-my-events_register-grid" >
-        <?php foreach ($user_events as $user) :
+    <div class="sc-my-events_register-grid">
+    <?php foreach ($user_events as $user) :
+        $event_id = $user['event_id'];
+    ?>
+    <div class="sc-event-card" id="event_<?php echo esc_attr($event_id); ?>">
+        <div class="sc-event-header">
+            <h3><?php echo esc_html($user['name']); ?></h3>
+        </div>
         
-        $event_id =$user['event_id'];
-          ?>  
-<div class="cart_event_register">
-    <div class="name_event">
-            <h2><?php echo $user['name'];  ?></h2>
+        <div class="sc-event-dates">
+            <span class="sc-event-time">🕐 <strong> زمان: </strong> <?php echo esc_html($user['event_time'] ?? 'مشخص نشده'); ?></span>
+            <span class="sc-event-holding">📅 <strong> تاریخ: </strong> <?php echo esc_html($user['holding_date_shamsi'] ?? 'مشخص نشده'); ?></span>
+        </div>
+        
+        <div class="sc-event-actions">
+            <a href="<?php echo esc_url(home_url("/my-account/sc-event-detail/$event_id")); ?>" class="button button-primary">
+                مشاهده جزئیات رویداد
+            </a>
+        </div>
     </div>
-    <div class="dates">
-        <div class="time_register">🕐 زمان : <?php echo $user['event_time'] ?? 'مشخص نشده';  ?></div>
-        <div class="time_holding">📅 تاریخ :  <?php echo $user['holding_date_shamsi'] ?? 'مشخص نشده' ?></div>
-    </div>
-    <div class="btn_details">
-
-
-            <a href="<?php echo home_url("/my-account/sc-event-detail/$event_id") ?>"> مشاهده جزئیات رویداد </a>
-    </div>
+    <?php endforeach; ?>
 </div>
-
-        <?php endforeach; ?>
-    </div>
     
     <!-- صفحه‌بندی -->
             <?php if ($total_pages > 1) : ?>
@@ -74,4 +74,16 @@ $total_events = isset($total_events) ? $total_events : 0;
             <?php endif; ?>
     <?php endif; ?>
 </div>
-
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // بررسی هر 100ms تا المان حاضر شود
+    const interval = setInterval(function() {
+        const el = document.querySelector('.sc-my-event-registers-page h2'); // المان هدف
+        if (el) {
+            // اسکرول نرم و مرکز صفحه
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval); // توقف بررسی بعد از اسکرول
+        }
+    }, 100);
+});
+</script>

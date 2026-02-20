@@ -276,7 +276,7 @@ a.details_info_user_pannel:hover {
 
 
 .sc-insurance-expiry-message{
-    background-color: #e21f1f; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #e7e7e7;
+    background-color: #ede9fe; border: 1px solid #6D34FF; border-radius: 8px; padding: 15px; margin-bottom: 20px; color: #020202;
 }
 .sc-incomplete-profile-message{
     background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;
@@ -1716,7 +1716,16 @@ ease !important;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
-
+.woocommerce-orders-table__header-order-number{
+    width: 15%;
+    
+}
+td.woocommerce-orders-table__cell-order-number{
+text-align: center !important;
+}
+.woocommerce-orders-table__header-order-date{
+    width: 35%;
+}
 .sc-invoices-table thead {
     background: #6D34FF;
     padding: 10px;
@@ -2133,9 +2142,10 @@ padding: 15px !important;
 }
 
 .woocommerce-MyAccount-content .button-primary {
-    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
-    color: #fff;
+    color: #fff !important;
+    border-radius: 10px !important;
 }
 
 .woocommerce-MyAccount-content .button-primary:hover {
@@ -4314,7 +4324,7 @@ color: white;
     margin: 0;
     padding: 0;
     display: flex;
-    gap: 0.25rem;
+    gap: 15px;
     flex: 1;
 }
 
@@ -4340,7 +4350,6 @@ color: white;
 
 .sc-support-search-form {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
 }
@@ -4458,5 +4467,775 @@ color: white;
     .sc-support-heading-row .sc-ticket-btn-new {
         width: 100%;
         text-align: center;
+    }
+}
+
+/* ============================================
+   استایل‌های مدرن برای بخش افتخارات
+   ============================================ */
+
+/* Wrapper فرم و لیست */
+.sc-honors-form-wrapper,
+.sc-honors-list-wrapper {
+    background: #fff;
+    padding: 28px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #e8e8e8;
+}
+
+.sc-honors-form-wrapper h3,
+.sc-honors-list-wrapper h3 {
+    margin-top: 0;
+    margin-bottom: 24px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1d2327;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f1;
+}
+
+/* ردیف‌های فرم */
+.honor-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr auto;
+    gap: 18px;
+    margin-bottom: 24px;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 10px;
+    border: 1px solid #e5e5e5;
+    transition: all 0.3s ease;
+}
+
+.honor-row:hover {
+    background: #f5f5f5;
+    border-color: #d0d0d0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* Label فیلدها */
+.honor-row label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #1d2327;
+}
+
+.honor-row label span[style*="color: red"] {
+    color: #d63638 !important;
+    margin-right: 4px;
+}
+
+/* Input و Select */
+.honor-row input[type="text"],
+.honor-row select,
+.honor-row textarea {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
+    border: 1.5px solid #d0d0d0;
+    border-radius: 8px;
+    background: #fff;
+    color: #1d2327;
+    transition: all 0.2s ease;
+    font-family: IRANYekanXFaNum, sans-serif;
+    box-sizing: border-box;
+}
+
+.honor-row input[type="text"]:focus,
+.honor-row select:focus,
+.honor-row textarea:focus {
+    outline: none;
+    border-color: #6d34ff;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.1);
+    background: #fff;
+}
+
+.honor-row select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231d2327' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 12px center;
+    padding-right: 14px;
+    padding-left: 32px;
+}
+
+.honor-row textarea {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.6;
+}
+
+/* دکمه افزودن ردیف */
+#add-honor-row {
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #7f7f0b 0%, #858585 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(109, 52, 255, 0.25);
+    margin-left: 10px;
+    font-family: IRANYekanXFaNum, sans-serif;
+}
+
+#add-honor-row:hover {
+    background: linear-gradient(135deg, #5a2ae6 0%, #3d1a9a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(109, 52, 255, 0.35);
+}
+
+#add-honor-row:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(109, 52, 255, 0.25);
+}
+
+/* دکمه ذخیره */
+button[name="save_honors"] {
+    padding: 14px 36px;
+    font-size: 15px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 163, 42, 0.3);
+    font-family: IRANYekanXFaNum, sans-serif;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+button[name="save_honors"] span {
+    display: inline-block;
+    margin-left: 6px;
+    transition: transform 0.3s ease;
+    font-size: 16px;
+}
+
+button[name="save_honors"]:hover {
+    background: linear-gradient(135deg, #008a20 0%, #007017 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 163, 42, 0.4);
+}
+
+button[name="save_honors"]:hover span {
+    transform: scale(1.2);
+}
+
+button[name="save_honors"]:active {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 163, 42, 0.35);
+}
+
+button[name="save_honors"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 163, 42, 0.2), 0 4px 12px rgba(0, 163, 42, 0.3);
+}
+
+/* دکمه حذف ردیف */
+.honor-row .remove-row {
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 3px 8px rgba(214, 54, 56, 0.25) !important;
+    font-family: IRANYekanXFaNum, sans-serif;
+    margin-top: 26px !important;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.honor-row .remove-row span {
+    display: inline-block;
+    margin-left: 4px;
+    transition: transform 0.3s ease;
+    font-size: 14px;
+}
+
+.honor-row .remove-row:hover {
+    background: linear-gradient(135deg, #b32d2e 0%, #9a2526 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(214, 54, 56, 0.35);
+}
+
+.honor-row .remove-row:hover span {
+    transform: scale(1.2) rotate(-10deg);
+}
+
+.honor-row .remove-row:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(214, 54, 56, 0.3);
+}
+
+.honor-row .remove-row:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(214, 54, 56, 0.2), 0 3px 8px rgba(214, 54, 56, 0.25);
+}
+
+/* دکمه انتخاب فایل (بدون تغییر - کاربر گفت خوب است) */
+.sc-file-upload-btn {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex: 1;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(34, 113, 177, 0.25);
+    font-family: IRANYekanXFaNum, sans-serif;
+}
+
+.sc-file-upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(34, 113, 177, 0.35);
+}
+
+.sc-file-upload-btn:active {
+    transform: translateY(0);
+}
+
+/* دکمه حذف فایل */
+.sc-remove-file-btn {
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #d63638;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: none;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    font-family: IRANYekanXFaNum, sans-serif;
+    box-shadow: 0 2px 4px rgba(214, 54, 56, 0.2);
+}
+
+.sc-remove-file-btn:hover {
+    background: #b32d2e;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(214, 54, 56, 0.3);
+}
+
+.sc-remove-file-btn:active {
+    transform: translateY(0);
+}
+
+/* توضیحات زیر فیلد فایل */
+.sc-file-upload-wrapper + .description {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #646970;
+    line-height: 1.5;
+}
+
+/* جدول لیست افتخارات */
+.sc-honors-list-wrapper table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.sc-honors-list-wrapper table thead {
+    background: #f6f7f7;
+}
+
+.sc-honors-list-wrapper table th {
+    text-align: right;
+    padding: 14px 12px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #1d2327;
+    border-bottom: 2px solid #d0d0d0;
+}
+
+.sc-honors-list-wrapper table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #e5e5e5;
+    color: #1d2327;
+    font-size: 14px;
+}
+
+.sc-honors-list-wrapper table tbody tr:hover {
+    background: #f9f9f9;
+}
+
+.sc-honors-list-wrapper table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.sc-honors-list-wrapper table td strong {
+    color: #1d2327;
+    font-weight: 600;
+}
+
+.sc-honors-list-wrapper table td a {
+    color: #2271b1;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.sc-honors-list-wrapper table td a:hover {
+    color: #135e96;
+    text-decoration: underline;
+}
+
+/* دکمه حذف در جدول */
+.delete-single-honor {
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #d63638;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(214, 54, 56, 0.2);
+    font-family: IRANYekanXFaNum, sans-serif;
+}
+
+.delete-single-honor:hover {
+    background: #b32d2e;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(214, 54, 56, 0.3);
+}
+
+.delete-single-honor:active {
+    transform: translateY(0);
+}
+
+/* صفحه‌بندی */
+.sc_paginate {
+    margin-top: 24px;
+    text-align: center;
+}
+
+.sc_paginate .tablenav-pages {
+    display: inline-block;
+}
+
+.sc_paginate .tablenav-pages a,
+.sc_paginate .tablenav-pages span {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 0 4px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.sc_paginate .tablenav-pages a {
+    background: #f0f0f1;
+    color: #1d2327;
+    border: 1px solid #d0d0d0;
+}
+
+.sc_paginate .tablenav-pages a:hover {
+    background: #e5e5e5;
+    border-color: #b0b0b0;
+}
+
+.sc_paginate .tablenav-pages .current {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    border-color: #6d34ff;
+    font-weight: 600;
+}
+
+/* رسپانسیو */
+@media screen and (max-width: 768px) {
+    .sc-honors-form-wrapper,
+    .sc-honors-list-wrapper {
+        padding: 20px 16px;
+    }
+    
+    .honor-row {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+        padding: 16px;
+    }
+    
+    .honor-row > div {
+        margin-bottom: 0;
+    }
+    
+    .sc-file-upload-wrapper {
+        margin-top: 0;
+    }
+    
+    .sc-honors-list-wrapper table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .sc-honors-list-wrapper table thead {
+        display: none;
+    }
+    
+    .sc-honors-list-wrapper table tbody,
+    .sc-honors-list-wrapper table tr,
+    .sc-honors-list-wrapper table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .sc-honors-list-wrapper table tr {
+        margin-bottom: 16px;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+    }
+    
+    .sc-honors-list-wrapper table td {
+        padding: 12px;
+        border-bottom: 1px solid #f0f0f1;
+        text-align: right;
+    }
+    
+    .sc-honors-list-wrapper table td:before {
+        content: attr(data-title);
+        font-weight: 700;
+        display: inline-block;
+        margin-left: 8px;
+        color: #646970;
+        font-size: 12px;
+    }
+    
+    .sc-honors-list-wrapper table td:last-child {
+        border-bottom: none;
+    }
+    
+    button[name="save_honors"],
+    #add-honor-row {
+        width: 100%;
+        margin: 8px 0;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .sc-honors-form-wrapper h3,
+    .sc-honors-list-wrapper h3 {
+        font-size: 18px;
+    }
+    
+    .honor-row {
+        padding: 12px;
+    }
+    
+    .honor-row input[type="text"],
+    .honor-row select,
+    .honor-row textarea {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+}
+/* بخش ثبت نام دوره  */
+.sc_radio_detailes_courses{
+    display: flex;
+
+}
+.sc_radio_detailes_courses input{
+    width: 38px;
+   margin-right: 15px;
+}
+
+/* فایل: sc-courses.css */
+
+/* کارت‌ها */
+.detiles_course{
+    margin-top: 20px;
+    line-height: 19px;
+}
+.sc-course-accordion-item {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+    transition: transform 0.3s, box-shadow 0.3s;
+    background-color: #fff;
+}
+
+.sc-course-accordion-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+/* هدر کارت */
+.sc-course-accordion-header {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 100%;
+}
+
+.sc-course-accordion-header:hover {
+    background-color: #f0f8ff;
+}
+
+/* محتوای هدر */
+.sc-course-header-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* عنوان و آیکون */
+.sc-course-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2271b1;
+}
+
+.sc-accordion-icon {
+    font-size: 18px;
+    transition: transform 0.3s;
+}
+
+.sc-course-accordion-content[style*="display: block"] + .sc-course-accordion-content .sc-accordion-icon {
+    transform: rotate(180deg);
+}
+
+/* اطلاعات متا */
+.sc-course-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 58px;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #555;
+    justify-content: flex-start;
+}
+
+.sc-course-meta span {
+    padding: 10px 10px;
+    border-radius: 8px;
+}
+
+/* قیمت */
+.sc-course-price {
+    color: #d63638;
+    font-weight: bold;
+    background-color: #fff0f0;
+}
+
+/* تعداد جلسات */
+.sc-course-sessions {
+    background-color: #e6f2ff;
+}
+
+/* ظرفیت */
+.sc-course-capacity {
+    background-color: #fff8e1;
+}
+
+.sc-course-capacity.full {
+    background-color: #ffeaea;
+    color: #d63638;
+    font-weight: bold;
+}
+
+/* وضعیت دوره‌ها */
+.sc-course-status {
+    padding: 5px 12px;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 600;
+}
+
+.sc-course-status.active { background-color: #00a32a; }
+.sc-course-status.paused { background-color: #f0a000; }
+.sc-course-status.completed { background-color: #666; }
+.sc-course-status.canceled { background-color: #d63638; }
+.sc-course-status.under_review { background-color: #856404; }
+.sc-course-status.pending_payment { background-color: #2271b1; }
+.sc-course-status.capacity_full { background-color: #d63638; }
+.sc-course-status.date_expired { background-color: #d63638; }
+
+/* محتوای آکاردئون */
+.sc-course-accordion-content {
+    display: none;
+    padding: 15px 20px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #eee;
+    color: #333;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.sc-course-accordion-content p {
+    margin: 0;
+}
+
+/* توضیحات خالی */
+.sc-no-description {
+    font-style: italic;
+    color: #999;
+}
+
+/* رسپانسیو */
+@media (max-width: 768px) {
+    .sc-course-header-content {
+        flex-direction: column;
+    }
+    .sc-course-meta {
+        flex-direction: column;
+        gap: 5px;
+
+    }
+    .detiles_course{
+        font-size: 12px;
+        text-align: center;
+}
+    
+    .sc-course-title {
+        font-size: 16px;
+        display: unset;
+        text-align: center;
+    }
+    .sc-course-meta span {
+        font-size: 13px;
+        padding: 10px 8px;
+        text-align: center;
+}
+    }
+/* wallet */
+#period_report_content{
+    overflow: auto;
+}
+.sc-wallet-transactions tr td{
+       padding: 15px 8px !important;
+}
+.select_report_field{
+    display: flex; gap: 15px; margin-bottom: 20px;
+}
+@media (max-width: 768px) {
+.select_report_field{
+   flex-direction: column;
+}
+
+}
+.sc-image-preview{
+        display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.sc-btn-remove-image{
+        width: fit-content !important;
+}
+.col_photos{
+    display: flex;
+}
+@media (max-width: 768px) {
+.col_photos{
+    flex-direction: column;
+}
+}
+
+
+
+
+
+
+
+
+
+/* فایل: sc-events.css */
+
+
+
+
+/* عنوان کارت */
+.sc-event-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    color: #333;
+}
+
+/* تاریخ و زمان */
+.sc-event-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #555;
+}
+
+.sc-event-dates span {
+    display: inline-block;
+}
+
+/* دکمه */
+.sc-event-actions .button-primary {
+    display: inline-block;
+    padding: 10px 18px;
+    font-size: 14px;
+    text-align: center;
+    border-radius: 6px;
+    background-color: #2271b1; /* رنگ اصلی */
+    color: #fff;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.sc-event-actions .button-primary:hover {
+    background-color: #1a5d8f;
+    transform: translateY(-2px);
+}
+.sc-event-dates span {
+    background: #f4f4f4;
+    padding: 10px 19px;
+    width: 100%;
+    display: flex;
+    gap: 15px;
+}
+.sc-my-events_register-grid img.emoji {
+        height: 23px !important;
+    width: 23px !important;
+}
+
+/* رسپانسیو */
+@media (max-width: 768px) {
+    .sc-my-events_register-grid {
+        grid-template-columns: 1fr;
+    }
+    .sc-event-dates {
+        flex-direction: column;
+        gap: 6px;
     }
 }

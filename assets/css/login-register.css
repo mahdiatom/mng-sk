@@ -232,4 +232,6 @@ max-height: 97px;
 #content{
     max-width: 100% !important;
     margin: 0;
+       padding-inline-end: 0px !important;
+        padding-inline-start: 0px !important;
 }

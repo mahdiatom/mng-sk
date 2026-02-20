@@ -241,21 +241,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
             </div>
         </div>
     </div>
-    
-    <!-- نمودار موجودی -->
-    <?php 
-    $balance_history = sc_get_wallet_balance_history($player->id, 30);
-    if (!empty($balance_history)) :
-    ?>
-    <div class="sc-wallet-chart" style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #ddd;">
-        <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 20px; color: #333; display: flex; align-items: center; gap: 10px;">
-            <span>📈</span>
-            نمودار تغییرات موجودی (30 روز گذشته)
-        </h3>
-        <canvas id="walletBalanceChart" style="max-height: 300px;"></canvas>
-    </div>
-    <?php endif; ?>
-    
+  
     <!-- گزارش ماهانه/سالانه -->
     <div class="sc-wallet-period-report" style="background: #f9f9f9; padding: 25px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #ddd;">
         <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 20px; color: #333; display: flex; align-items: center; gap: 10px;">
@@ -263,7 +249,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
             گزارش دوره‌ای
         </h3>
         
-        <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+        <div class="select_report_field">
             <select id="wallet_period_type" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                 <option value="monthly">ماهانه</option>
                 <option value="yearly">سالانه</option>
@@ -290,7 +276,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
                 <?php endforeach; ?>
             </select>
             
-            <button type="button" id="load_period_report" class="button" style="padding: 8px 20px;">بارگذاری گزارش</button>
+            <button type="button" id="load_period_report" class="button button-primary" style="padding: 8px 20px;">مشاهده گزارش</button>
         </div>
         
         <div id="period_report_content" style="display: none;">
@@ -348,7 +334,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
                                     display: inline-block;
                                     padding: 4px 10px;
                                     border-radius: 4px;
-                                    background: #f0f0f0;
+                                    
                                     color: <?php echo esc_attr($type_color[$transaction->transaction_type] ?? '#333'); ?>;
                                     font-size: 13px;
                                     font-weight: 600;
@@ -554,5 +540,37 @@ jQuery(document).ready(function($) {
         });
     });
 });
+document.addEventListener('DOMContentLoaded', function() {
+    const periodType = document.getElementById('wallet_period_type');
+    const monthSelect = document.getElementById('wallet_period_month');
+
+    // تابع برای بررسی و مخفی/نمایش ماه
+    function toggleMonthSelect() {
+        if (periodType.value === 'yearly') {
+            monthSelect.style.display = 'none';
+        } else {
+            monthSelect.style.display = 'inline-block';
+        }
+    }
+
+    // اجرا در ابتدا
+    toggleMonthSelect();
+
+    // اجرا هنگام تغییر نوع دوره
+    periodType.addEventListener('change', toggleMonthSelect);
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // بررسی هر 100ms تا المان حاضر شود
+    const interval = setInterval(function() {
+        const el = document.querySelector('.sc-wallet-page h2'); // المان هدف
+        if (el) {
+            // اسکرول نرم و مرکز صفحه
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval); // توقف بررسی بعد از اسکرول
+        }
+    }, 100);
+});
+
 </script>
 

@@ -328,7 +328,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                             </span>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-actions" data-label="عملیات">
-                            <div style="display: flex;gap: 8px;flex-wrap: wrap;justify-content: center;flex-direction: column;text-align: center;margin-top: 40px;">
+                            <div style="display: flex;gap: 8px;flex-wrap: wrap;justify-content: center;flex-direction: column;text-align: center;">
                                 <?php 
                                 // دکمه‌های عملیات
                                 $action_buttons = [];
@@ -372,14 +372,14 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                     >💳 پرداخت از درگاه</a>';
                                 }
                                 
-                                // دکمه مشاهده سفارش برای under_review یا سایر حالات
-                                if ($invoice->status === 'under_review' && !empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url')) {
-                                    $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-view"
-                                   >👁️ مشاهده</a>';
-                                } elseif (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url') && !in_array($invoice->status, ['pending', 'under_review'])) {
-                                    $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-view" 
-                                    >👁️ مشاهده</a>';
-                                }
+                                // // دکمه مشاهده سفارش برای under_review یا سایر حالات
+                                // if ($invoice->status === 'under_review' && !empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url')) {
+                                //     $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-view"
+                                //    >👁️ مشاهده</a>';
+                                // } elseif (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url') && !in_array($invoice->status, ['pending', 'under_review'])) {
+                                //     $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-view" 
+                                //     >👁️ مشاهده</a>';
+                                // }
                                 
                                 // دکمه لغو برای pending و under_review
                                 if (in_array($invoice->status, ['pending', 'under_review'])) {
@@ -435,4 +435,17 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
             <?php endif; ?>
     <?php endif; ?>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // بررسی هر 100ms تا المان حاضر شود
+    const interval = setInterval(function() {
+        const el = document.querySelector('.sc-invoices-page h2'); // المان هدف
+        if (el) {
+            // اسکرول نرم و مرکز صفحه
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval); // توقف بررسی بعد از اسکرول
+        }
+    }, 100);
+});
+</script>
 

@@ -93,6 +93,7 @@
                 if (res.success && res.data && res.data.id) {
                     uploadedIds.push({ id: res.data.id, name: res.data.name || file.name });
                     addHiddenInput(res.data.id);
+                    $uploadedList.find('.uploading').remove();
                     renderList();
                     $progressBar.css('width', '100%');
                     $progressText.text('آپلود شد');
@@ -151,6 +152,12 @@
                 }
                 queue.push(file);
                 added++;
+
+                // نمایش فوری نام فایل
+                $uploadedList.append(
+                    $('<div class="sc-ticket-uploaded-item uploading">')
+                        .text('در حال بارگذاری  ' + file.name)
+                );
             }
             if (uploadedIds.length + queue.length + added >= MAX_FILES && files.length > added) {
                 errors.push('حداکثر ' + MAX_FILES + ' فایل مجاز است.');
@@ -183,6 +190,12 @@
 
         $fileInput.on('change', function() {
             if (this.files && this.files.length) {
+
+                // 👇 نمایش فوری به کاربر
+                $progressWrap.show().addClass('sc-uploading');
+                $progressBar.css('width', '5%');
+                $progressText.text('در حال آماده‌سازی فایل...');
+
                 addFiles(this.files);
             }
             this.value = '';
@@ -192,6 +205,7 @@
             var id = $(this).data('id');
             uploadedIds = uploadedIds.filter(function(item) { return item.id !== id; });
             removeHiddenInput(id);
+            $uploadedList.find('.uploading').remove();
             renderList();
         });
     }

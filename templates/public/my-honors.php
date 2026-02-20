@@ -224,21 +224,21 @@ $total_pages = ceil($total_honors / $per_page);
     <?php wc_print_notices(); ?>
     
     <!-- فرم افزودن افتخارات -->
-    <div class="sc-honors-form-wrapper" style="background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <h3 style="margin-top: 0; margin-bottom: 20px;">افزودن افتخارات جدید</h3>
+    <div class="sc-honors-form-wrapper">
+        <h3>افزودن افتخارات جدید</h3>
         
         <form method="post" id="honors-form" enctype="multipart/form-data">
             <?php wp_nonce_field('save_honors_nonce'); ?>
             
             <div id="honors-container">
-                <div class="honor-row" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr auto; gap: 15px; margin-bottom: 20px;">
+                <div class="honor-row">
                     <div>
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">عنوان افتخار <span style="color: red;">*</span></label>
-                        <input type="text" name="honors[0][name]" class="regular-text" required style="width: 100%;">
+                        <label>عنوان افتخار <span style="color: #d63638;">*</span></label>
+                        <input type="text" name="honors[0][name]" class="regular-text" required>
                     </div>
                     <div>
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">دسته <span style="color: red;">*</span></label>
-                        <select name="honors[0][category_id]" class="regular-text" required style="width: 100%;">
+                        <label>دسته <span style="color: #d63638;">*</span></label>
+                        <select name="honors[0][category_id]" class="regular-text" required>
                             <option value="">انتخاب کنید</option>
                             <?php foreach ($categories as $category) : ?>
                                 <option value="<?php echo esc_attr($category->id); ?>"><?php echo esc_html($category->name); ?></option>
@@ -246,90 +246,91 @@ $total_pages = ceil($total_honors / $per_page);
                         </select>
                     </div>
                     <div>
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">فایل</label>
+                        <label>فایل</label>
                         <div class="sc-file-upload-wrapper" style="position: relative;">
                             <input type="file" 
                                    name="honor_file_0" 
                                    id="honor_file_0" 
                                    class="sc-honor-file-input" 
-                                   accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                                   style="position: absolute; opacity: 0; width: 0; height: 0;">
+                                   accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <button type="button" 
                                         class="sc-file-upload-btn" 
-                                        data-index="0"
-                                        style="padding: 8px 16px; font-size: 13px; background: linear-gradient(135deg, #2271b1 0%, #135e96 100%); color: #fff; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; flex: 1; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(34,113,177,0.2);">
-                                    <span class="btn-text">📎 انتخاب فایل</span>
+                                        data-index="0">
+                                    <span class="btn-text" style="color:white;">📎 انتخاب فایل</span>
                                 </button>
                                 <button type="button" 
                                         class="sc-remove-file-btn" 
-                                        data-index="0"
-                                        style="padding: 8px 12px; font-size: 13px; background: #d63638; color: #fff; border: none; border-radius: 6px; cursor: pointer; display: none; transition: all 0.3s ease;">
-                                    ✕ حذف
+                                        data-index="0">
+                                    ✕
                                 </button>
                             </div>
                         </div>
-                        <p class="description" style="margin-top: 5px; font-size: 11px; color: #999;">حداکثر 1 مگابایت - تصاویر، PDF، Word، Excel</p>
+                        <p class="description">حداکثر 1 مگابایت - تصاویر، PDF، Word، Excel</p>
                     </div>
-                    <div style="display: flex;align-items: flex-start;margin-top: 14px;">
-                        <button type="button" class="button remove-row" style="display: none;">حذف</button>
+                    <div>
+                        <button type="button" class="button remove-row" style="display: none;">
+حذف                        </button>
                     </div>
                     <div style="grid-column: 1 / -1;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">توضیحات</label>
-                        <textarea name="honors[0][description]" rows="3" class="regular-text" style="width: 100%; resize: vertical;"></textarea>
+                        <label>توضیحات</label>
+                        <textarea name="honors[0][description]" rows="3" class="regular-text"></textarea>
                     </div>
                 </div>
             </div>
             
-            <div style="margin-top: 15px;">
+            <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
                 <button type="button" id="add-honor-row" class="button">+ افزودن ردیف جدید</button>
-                <button type="submit" name="save_honors" class="button button-primary" style="margin-right: 10px;">ذخیره</button>
+                <button type="submit" name="save_honors" class="button button-primary">
+                    <span>✓</span>
+                    ذخیره
+                </button>
             </div>
         </form>
     </div>
     
     <!-- لیست افتخارات -->
     <?php if (!empty($honors)) : ?>
-        <div class="sc-honors-list-wrapper" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="margin-top: 0; margin-bottom: 20px;">افتخارات ثبت شده</h3>
+        <div class="sc-honors-list-wrapper">
+            <h3>افتخارات ثبت شده</h3>
             
-            <table class="woocommerce-orders-table woocommerce-MyAccount-orders shop_table shop_table_responsive my_account_orders account-orders-table" style="width: 100%;">
+            <table class="woocommerce-orders-table woocommerce-MyAccount-orders shop_table shop_table_responsive my_account_orders account-orders-table">
                 <thead>
                     <tr>
-                        <th style="text-align: right; padding: 10px;">عنوان افتخار</th>
-                        <th style="text-align: right; padding: 10px;">دسته</th>
-                        <th style="text-align: right; padding: 10px;">توضیحات</th>
-                        <th style="text-align: right; padding: 10px;">فایل</th>
-                        <th style="text-align: right; padding: 10px;">تاریخ ثبت</th>
-                        <th style="text-align: right; padding: 10px; width: 80px;">عملیات</th>
+                        <th>عنوان افتخار</th>
+                        <th>دسته</th>
+                        <th>توضیحات</th>
+                        <th>فایل</th>
+                        <th>تاریخ ثبت</th>
+                        <th style="width: 100px;">عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($honors as $honor) : ?>
                         <tr>
-                            <td data-title="عنوان افتخار" style="padding: 10px;">
+                            <td data-title="عنوان افتخار">
                                 <strong><?php echo esc_html($honor->name); ?></strong>
                             </td>
-                            <td data-title="دسته" style="padding: 10px;">
+                            <td data-title="دسته">
                                 <?php echo esc_html($honor->category_name ?: '-'); ?>
                             </td>
-                            <td data-title="توضیحات" style="padding: 10px;">
+                            <td data-title="توضیحات">
                                 <?php echo esc_html($honor->description ?: '-'); ?>
                             </td>
-                            <td data-title="فایل" style="padding: 10px;">
+                            <td data-title="فایل">
                                 <?php if (!empty($honor->file_url)) : ?>
-                                    <a href="<?php echo esc_url($honor->file_url); ?>" target="_blank" style="color: #2271b1; text-decoration: none;">
+                                    <a href="<?php echo esc_url($honor->file_url); ?>" target="_blank">
                                         📎 دانلود فایل
                                     </a>
                                 <?php else : ?>
                                     -
                                 <?php endif; ?>
                             </td>
-                            <td data-title="تاریخ ثبت" style="padding: 10px;">
+                            <td data-title="تاریخ ثبت">
                                 <?php echo esc_html(sc_date_shamsi($honor->created_at, 'Y/m/d')); ?>
                             </td>
-                            <td data-title="عملیات" style="padding: 10px;">
-                                <button type="button" class="button delete-single-honor" data-honor-id="<?php echo esc_attr($honor->id); ?>" style="background: #d63638; color: #fff; border-color: #d63638; padding: 5px 10px; font-size: 12px;">
+                            <td data-title="عملیات">
+                                <button type="button" class="button delete-single-honor" data-honor-id="<?php echo esc_attr($honor->id); ?>">
                                     حذف
                                 </button>
                             </td>
@@ -376,14 +377,14 @@ jQuery(document).ready(function($) {
     // افزودن ردیف جدید
     $('#add-honor-row').on('click', function() {
         const newRow = `
-            <div class="honor-row" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr auto; gap: 15px; margin-bottom: 20px;">
+            <div class="honor-row">
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">عنوان افتخار <span style="color: red;">*</span></label>
-                    <input type="text" name="honors[${rowIndex}][name]" class="regular-text" required style="width: 100%;">
+                    <label>عنوان افتخار <span style="color: #d63638;">*</span></label>
+                    <input type="text" name="honors[${rowIndex}][name]" class="regular-text" required>
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">دسته <span style="color: red;">*</span></label>
-                    <select name="honors[${rowIndex}][category_id]" class="regular-text" required style="width: 100%;">
+                    <label>دسته <span style="color: #d63638;">*</span></label>
+                    <select name="honors[${rowIndex}][category_id]" class="regular-text" required>
                         <option value="">انتخاب کنید</option>
                         <?php foreach ($categories as $category) : ?>
                             <option value="<?php echo esc_attr($category->id); ?>"><?php echo esc_html($category->name); ?></option>
@@ -391,37 +392,35 @@ jQuery(document).ready(function($) {
                     </select>
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">فایل</label>
+                    <label>فایل</label>
                     <div class="sc-file-upload-wrapper" style="position: relative;">
                         <input type="file" 
                                name="honor_file_${rowIndex}" 
                                id="honor_file_${rowIndex}" 
                                class="sc-honor-file-input" 
-                               accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                               style="position: absolute; opacity: 0; width: 0; height: 0;">
+                               accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <button type="button" 
                                     class="sc-file-upload-btn" 
-                                    data-index="${rowIndex}"
-                                    style="padding: 8px 16px; font-size: 13px; background: linear-gradient(135deg, #2271b1 0%, #135e96 100%); color: #fff; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; flex: 1; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(34,113,177,0.2);">
-                                <span class="btn-text">📎 انتخاب فایل</span>
+                                    data-index="${rowIndex}">
+                                <span class="btn-text"  style="color:white;">📎 انتخاب فایل</span>
                             </button>
                             <button type="button" 
                                     class="sc-remove-file-btn" 
-                                    data-index="${rowIndex}"
-                                    style="padding: 8px 12px; font-size: 13px; background: #d63638; color: #fff; border: none; border-radius: 6px; cursor: pointer; display: none; transition: all 0.3s ease;">
-                                ✕ حذف
+                                    data-index="${rowIndex}">
+                                ✕
                             </button>
                         </div>
                     </div>
-                    <p class="description" style="margin-top: 5px; font-size: 11px; color: #999;">حداکثر 1 مگابایت - تصاویر، PDF، Word، Excel</p>
+                    <p class="description">حداکثر 1 مگابایت - تصاویر، PDF، Word، Excel</p>
                 </div>
-                <div style="display: flex;align-items: flex-start;margin-top: 14px;">
-                    <button type="button" class="button remove-row">حذف</button>
+                <div>
+                    <button type="button" class="button remove-row"> حذف
+                   </button>
                 </div>
                 <div style="grid-column: 1 / -1;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">توضیحات</label>
-                    <textarea name="honors[${rowIndex}][description]" rows="3" class="regular-text" style="width: 100%; resize: vertical;"></textarea>
+                    <label>توضیحات</label>
+                    <textarea name="honors[${rowIndex}][description]" rows="3" class="regular-text"></textarea>
                 </div>
             </div>
         `;
@@ -466,7 +465,7 @@ jQuery(document).ready(function($) {
             btnText.text('✓ فایل انتخاب شد');
             uploadBtn.css({
                 'background': 'linear-gradient(135deg, #00a32a 0%, #008a20 100%)',
-                'box-shadow': '0 2px 4px rgba(0,163,42,0.2)'
+                'box-shadow': '0 2px 6px rgba(0,163,42,0.25)'
             });
             removeBtn.show();
         }
@@ -485,41 +484,11 @@ jQuery(document).ready(function($) {
         btnText.text('📎 انتخاب فایل');
         uploadBtn.css({
             'background': 'linear-gradient(135deg, #2271b1 0%, #135e96 100%)',
-            'box-shadow': '0 2px 4px rgba(34,113,177,0.2)'
+            'box-shadow': '0 2px 6px rgba(34,113,177,0.25)'
         });
         removeBtn.hide();
     });
     
-    
-    // Hover effect برای دکمه فایل
-    $(document).on('mouseenter', '.sc-file-upload-btn', function() {
-        if (!$(this).find('.btn-text').text().includes('✓')) {
-            $(this).css({
-                'transform': 'translateY(-2px)',
-                'box-shadow': '0 4px 8px rgba(34,113,177,0.3)'
-            });
-        }
-    }).on('mouseleave', '.sc-file-upload-btn', function() {
-        if (!$(this).find('.btn-text').text().includes('✓')) {
-            $(this).css({
-                'transform': 'translateY(0)',
-                'box-shadow': '0 2px 4px rgba(34,113,177,0.2)'
-            });
-        }
-    });
-    
-    // Hover effect برای دکمه حذف فایل
-    $(document).on('mouseenter', '.sc-remove-file-btn', function() {
-        $(this).css({
-            'background': '#b32d2e',
-            'transform': 'translateY(-1px)'
-        });
-    }).on('mouseleave', '.sc-remove-file-btn', function() {
-        $(this).css({
-            'background': '#d63638',
-            'transform': 'translateY(0)'
-        });
-    });
     
     // حذف ردیف
     $(document).on('click', '.remove-row', function() {
@@ -571,6 +540,18 @@ jQuery(document).ready(function($) {
     });
     
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    // بررسی هر 100ms تا المان حاضر شود
+    const interval = setInterval(function() {
+        const el = document.querySelector('.sc-honors-content h2'); // المان هدف
+        if (el) {
+            // اسکرول نرم و مرکز صفحه
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval); // توقف بررسی بعد از اسکرول
+        }
+    }, 100);
+});
 </script>
 
 <style>
@@ -605,15 +586,6 @@ jQuery(document).ready(function($) {
     padding-right: 20px !important;
 }
 
-.sc-file-upload-btn:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 8px rgba(34,113,177,0.3) !important;
-}
-
-.sc-file-upload-btn:active {
-    transform: translateY(0) !important;
-}
-
 /* جلوگیری از نمایش پیش‌نمایش فایل */
 .sc-file-upload-wrapper input[type="file"]::file-selector-button {
     display: none !important;
@@ -633,35 +605,5 @@ jQuery(document).ready(function($) {
     height: 0 !important;
     overflow: hidden !important;
     z-index: -1 !important;
-}
-
-/* استایل دکمه حذف فایل */
-.sc-remove-file-btn {
-    white-space: nowrap !important;
-}
-
-.sc-remove-file-btn:hover {
-    background: #b32d2e !important;
-    transform: translateY(-1px) !important;
-}
-
-@media screen and (max-width: 768px) {
-    .honor-row {
-        grid-template-columns: 1fr !important;
-    }
-    
-    .honor-row > div {
-        margin-bottom: 10px;
-    }
-    
-    .sc-file-upload-wrapper {
-        margin-top: 10px;
-    }
-    
-    .sc-honors-form-wrapper,
-    .sc-honors-list-wrapper {
-        padding-right: 15px !important;
-        padding-left: 15px !important;
-    }
 }
 </style>

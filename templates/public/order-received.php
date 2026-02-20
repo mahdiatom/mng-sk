@@ -85,6 +85,23 @@ $order_number = $order->get_order_number();
 $order_date = $order->get_date_created();
 $order_status = $order->get_status();
 $order_total = $order->get_total();
+$status_labels = array(
+    'pending'    => 'در انتظار پرداخت',
+    'processing' => 'پرداخت شده',
+    'on-hold'    => 'در انتظار بررسی',
+    'completed'  => 'تایید پرداخت',
+    'cancelled'  => 'لغو شده',
+    'refunded'   => 'بازپرداخت شده',
+    'failed'     => 'ناموفق'
+);
+
+$order_status = isset($status_labels[$order_status]) 
+    ? $status_labels[$order_status] 
+    : $order_status;
+
+
+
+
 
 // تبدیل تاریخ به شمسی
 $order_date_shamsi = '';

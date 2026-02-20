@@ -78,6 +78,15 @@ if ($view_id > 0) {
                 <?php endif; ?>
             </div>
         </div>
+        <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // فقط وقتی view داریم، روی عنوان جزئیات اسکرول کند
+    const el = document.querySelector('.sc-notification-detail-title');
+    if(el){
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
+</script>
         <?php
         return;
     }
@@ -123,8 +132,7 @@ $count_read = function_exists('sc_count_user_notifications') ? sc_count_user_not
         <form id="sc-notifications-search-form" style="display: flex; gap: 8px;">
             <input type="hidden" name="filter" id="sc-notif-filter-value" value="<?php echo esc_attr($filter); ?>">
             <input type="search" name="s" id="sc-notif-search-input" value="<?php echo esc_attr($search); ?>" placeholder="جستجو..." >
-            <button type="submit" class="button">جستجو</button>
-            <button type="button" class="button sc-notif-clear-search" <?php echo $search === '' ? ' style="display:none;"' : ''; ?>>پاک کردن جستجو</button>
+            <button type="submit" class="button button-primary">جستجو</button>
         </form>
     </div>
 
@@ -178,3 +186,22 @@ $count_read = function_exists('sc_count_user_notifications') ? sc_count_user_not
     <?php endif; ?>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const interval = setInterval(function() {
+        // اگر صفحه جزئیات است
+        let detailEl = document.querySelector('.sc-notification-detail-title');
+        // اگر صفحه لیست است
+        let listEl = document.querySelector('.sc-notifications-heading');
+
+        if (detailEl) {
+            detailEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval);
+        } else if (listEl) {
+            listEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval);
+        }
+    }, 100);
+});
+</script>

@@ -278,7 +278,8 @@ function add_html_before_account_nav() {
         if ($expiry_compare > 0) {
 ?>
 <div class="sc-insurance-expiry-message">
-<p>اعتبار بیمه شما به پایان رسیده لطفا نسبت به تمدید آن اقدام کنید و بعد از تمدید در بخش اطلاعات بازیکن تاریخ انقضا خود بیمه را بروزرسانی کنید همچنین عکس بیمه ورزشی جدید خود را جایگزین عکس قبلی کنید .</p>
+
+<p> ⚠️اطلاعیه :  اعتبار بیمه شما به پایان رسیده لطفا نسبت به تمدید آن اقدام کنید و بعد از تمدید در بخش اطلاعات بازیکن تاریخ انقضا  بیمه خود را بروزرسانی کنید همچنین عکس بیمه ورزشی جدید خود را جایگزین عکس قبلی کنید . </p>
 
 <?php 
         }
@@ -382,21 +383,22 @@ function add_html_before_account_nav() {
                             </div>
                         </div>
                         
-                        <div class="sc-info-card sc-card-green">
-                    <span class="sc-card-icon">📋</span>
-                    <span class="sc-card-title">حضور و غیاب</span>
-
-                    <div class="sc-attendance-row">
-                        <div class="sc-attendance-item present">
-                            <strong><?php echo esc_html($present_count); ?></strong>
-                            <small>حضور</small>
+                        <div class="sc-info-card sc-card-green" style="display: flex;">
+                    <span class="sc-card-icon" style="margin-top: 11px;">📋</span>
+                        <div style="padding-right: 5px;">
+                                <span class="sc-card-title" >حضور و غیاب</span>
+                                <div class="sc-attendance-row">
+                                    <div class="sc-attendance-item present">
+                                        <strong><?php echo esc_html($present_count); ?></strong>
+                                        <small>حضور</small>
+                                    </div>
+                                            |
+                                    <div class="sc-attendance-item absent">
+                                        <strong><?php echo esc_html($absent_count); ?></strong>
+                                        <small>غیاب</small>
+                                    </div>
+                                </div>
                         </div>
-                                |
-                        <div class="sc-attendance-item absent">
-                            <strong><?php echo esc_html($absent_count); ?></strong>
-                            <small>غیاب</small>
-                        </div>
-                    </div>
                 </div>
                         
                         <!-- آخرین صورت حساب پرداخت شده -->
@@ -409,7 +411,7 @@ function add_html_before_account_nav() {
                             } elseif (!empty($last_invoice->event_name)) {
                                 $invoice_item_name = $last_invoice->event_name;
                             } else {
-                                $invoice_item_name = 'سایر';
+                                $invoice_item_name = 'سایر(مثل شارژ حساب و ...)';
                             }
                             ?>
                             <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: #fff4ed; border-radius: 8px; border-right: 3px solid #ff7d51;">

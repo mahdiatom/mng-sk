@@ -220,33 +220,41 @@ if (empty($player_phone) && $billing_phone) {
         <div class="sc-form-section">
             <h3>مدارک و تصاویر</h3>
             <p class="description"> حداکثر حجم هر فایل: ۵ مگابایت. فرمت‌های مجاز: JPG, PNG, GIF, WEBP</p>
-            
-            <p class="form-row sc-upload-field">
+        <div class="col_photos">
+            <div class="form-row sc-upload-field">
                 <label for="personal_photo">عکس پرسنلی</label>
                 <input type="file" name="personal_photo" id="personal_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
                 <div class="sc-upload-progress"><div class="sc-upload-bar"></div><span class="sc-upload-text"></span></div>
                 <div class="sc-image-preview" style="margin-top: 10px;<?php echo empty($personal_photo) ? ' display:none;' : ''; ?>">
                     <img src="<?php echo esc_url($personal_photo); ?>" alt="عکس پرسنلی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
+                    <button type="button" class="sc-btn-remove-image button-primary" data-target="#personal_photo_url"> حذف عکس</button>
+
                 </div>
-            </p>
+    </div>
             
-            <p class="form-row sc-upload-field">
+            <div class="form-row sc-upload-field">
                 <label for="id_card_photo">عکس کارت ملی</label>
                 <input type="file" name="id_card_photo" id="id_card_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
                 <div class="sc-upload-progress"><div class="sc-upload-bar"></div><span class="sc-upload-text"></span></div>
                 <div class="sc-image-preview" style="margin-top: 10px;<?php echo empty($id_card_photo) ? ' display:none;' : ''; ?>">
                     <img src="<?php echo esc_url($id_card_photo); ?>" alt="عکس کارت ملی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
+                    <button type="button" class="sc-btn-remove-image button-primary" data-target="#id_card_photo">حذف عکس</button>
+
                 </div>
-            </p>
+    </div>
             
-            <p class="form-row sc-upload-field">
+            <div class="form-row sc-upload-field">
                 <label for="sport_insurance_photo">عکس بیمه ورزشی</label>
                 <input type="file" name="sport_insurance_photo" id="sport_insurance_photo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
                 <div class="sc-upload-progress"><div class="sc-upload-bar"></div><span class="sc-upload-text"></span></div>
                 <div class="sc-image-preview" style="margin-top: 10px;<?php echo empty($sport_insurance_photo) ? ' display:none;' : ''; ?>">
                     <img src="<?php echo esc_url($sport_insurance_photo); ?>" alt="عکس بیمه ورزشی" style="max-width: 200px; border: 1px solid #ddd; border-radius: 4px;">
+                     <button type="button" class="sc-btn-remove-image button-primary" data-target="#sport_insurance_photo" >حذف عکس </button>
+
                 </div>
-            </p>
+
+    </div>
+        </div>
         </div>
         
         <div class="sc-form-section">
@@ -323,3 +331,27 @@ if (empty($player_phone) && $billing_phone) {
         </p>
     </form>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // بررسی هر 100ms تا المان حاضر شود
+    const interval = setInterval(function() {
+        const el = document.querySelector('.sc-submit-documents-form h2'); // المان هدف
+        if (el) {
+            // اسکرول نرم و مرکز صفحه
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval); // توقف بررسی بعد از اسکرول
+        }
+    }, 100);
+});
+document.addEventListener('DOMContentLoaded', function() {
+    const removeBtns = document.querySelectorAll('.sc-btn-remove-image');
+    removeBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const previewDiv = btn.closest('.sc-image-preview');
+            const targetInput = document.querySelector(btn.getAttribute('data-target'));
+            if(previewDiv) previewDiv.style.display = 'none';
+            if(targetInput) targetInput.value = '';
+        });
+    });
+});
+</script>
