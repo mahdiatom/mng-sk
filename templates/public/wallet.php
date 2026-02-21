@@ -328,8 +328,8 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
                             'session_fee' => '#856404'
                         ];
                     ?>
-                        <tr>
-                            <td>
+                        <tr style="margin-bottom: 15px;">
+                            <td data-title="نوع تراکنش ">
                                 <span style="
                                     display: inline-block;
                                     padding: 4px 10px;
@@ -345,7 +345,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
                                     <?php echo esc_html($type_label); ?>
                                 </span>
                             </td>
-                            <td>
+                            <td data-title="مبلغ ">
                                 <strong style="color: <?php echo esc_attr($type_color[$transaction->transaction_type] ?? '#333'); ?>;">
                                     <?php 
                                     $amt = floatval($transaction->amount);
@@ -353,13 +353,13 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
                                     echo esc_html(sc_format_amount_display($is_debit ? -$amt : $amt)); ?> تومان
                                 </strong>
                             </td>
-                            <td>
+                            <td data-title="موجودی بعدی">
                                 <strong style="color: <?php echo floatval($transaction->balance_after) < 0 ? '#dc3545' : '#28a745'; ?>;">
                                     <?php echo esc_html(sc_format_amount_display(floatval($transaction->balance_after))); ?> تومان
                                 </strong>
                             </td>
-                            <td><?php echo esc_html($transaction->description ?: '-'); ?></td>
-                            <td><?php echo esc_html(sc_date_shamsi($transaction->created_at, 'Y/m/d H:i')); ?></td>
+                            <td data-title="توضیحات" ><?php echo esc_html($transaction->description ?: '-'); ?></td>
+                            <td data-title="تاریخ "><?php echo esc_html(sc_date_shamsi($transaction->created_at, 'Y/m/d H:i')); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

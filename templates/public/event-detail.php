@@ -133,7 +133,7 @@ $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
             $is_enrolled = true;
             $can_enroll = false;
             $enrollment_status_label = 'ثبت‌نام شده';
-            $enrollment_tooltip = 'شما در این ' . $event_type_label . ' ثبت‌نام کرده‌اید.';
+            $enrollment_tooltip = '';
         } elseif ($enrollment_status === 'cancelled') {
             // اگر invoice لغو شده است، امکان ثبت نام دوباره وجود دارد
             $is_enrolled = false;
@@ -410,8 +410,7 @@ $price_free = number_format((float)$event->price, $decimal_places, $decimal_sepa
                     </button>
                 </form>
             <?php elseif ($is_enrolled) : ?>
-                <div class="sc-event-enrolled-message" 
-                     data-tooltip="<?php echo esc_attr($enrollment_tooltip); ?>">
+                <div class="sc-event-enrolled-message">
                     <p>✅ شما در این <?php echo esc_html($event_type_label); ?> ثبت‌نام کرده‌اید.</p>
                 </div>
             <?php elseif ($enrollment_status) : ?>

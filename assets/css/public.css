@@ -40,8 +40,12 @@
 	src: url('../fonts/Woff/IRANYekanXFaNum-Regular.woff') format('woff'),   
 	url('../fonts/Woff2/IRANYekanXFaNum-Regular.woff2') format('woff2');	
 }
-
-
+.woocommerce-MyAccount-navigation .sc-menu-item-icon a::before {
+    content: var(--sc-icon-url);
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+}
 p,a,div,button,section,select,option,input{
     font-family: IRANYekanXFaNum !important;
     

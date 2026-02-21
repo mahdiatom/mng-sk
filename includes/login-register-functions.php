@@ -455,18 +455,19 @@ function sc_login_register_shortcode() {
                     <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
                 </div>
             <?php endif; ?>
-            <h2 class="sc-lr-title">ورود یا ثبت‌نام در <?php echo esc_html(get_bloginfo('name')); ?></h2>
-            <p class="sc-lr-desc" id="sc-lr-desc">لطفا شماره موبایل خود را وارد کنید</p>
+            <h2 class="sc-lr-title">ورود به سامانه <?php echo esc_html(get_bloginfo('name')); ?></h2>
             <div class="sc-lr-form" id="sc-login-register-form">
                 <div class="sc-lr-step sc-lr-step-phone" data-step="phone">
-                    <input type="tel" class="sc-lr-input" id="sc-lr-phone" placeholder="شماره موبایل" autocomplete="tel" maxlength="11" inputmode="numeric">
-                    <button type="button" class="sc-lr-btn" id="sc-lr-submit-phone">ورود به <?php echo esc_html(get_bloginfo('name')); ?></button>
+                    <p class="sc-lr-desc" id="sc-lr-desc">لطفا شماره موبایل خود را وارد کنید</p>
+                    <input type="tel" class="sc-lr-input" id="sc-lr-phone" placeholder="شماره موبایل بازیکن" autocomplete="tel" maxlength="11" inputmode="numeric">
+                    <button type="button" class="sc-lr-btn" id="sc-lr-submit-phone">ورود </button>
                 </div>
                 <div class="sc-lr-step sc-lr-step-exists" data-step="exists" style="display:none;">
+                    <p class="sc-lr-desc" id="sc-lr-desc">رمز عبور خود را وارد کنید در صورتی که فراموش کرده اید از کد یک بار مصرف استفاده کنید.</p>
                     <input type="password" class="sc-lr-input" id="sc-lr-password" placeholder="رمز عبور" autocomplete="current-password">
                     <button type="button" class="sc-lr-btn" id="sc-lr-login-password">ورود</button>
                     <button type="button" class="sc-lr-btn sc-lr-btn-outline" id="sc-lr-send-otp">ارسال کد یکبارمصرف</button>
-                    <p class="sc-lr-back"><button type="button" class="sc-lr-link-btn" id="sc-lr-back-phone">بازگشت</button></p>
+                    <p class="sc-lr-back"><button type="button" class="sc-lr-link-btn" id="sc-lr-back-phone">بازگشت و تصحیح شماره </button></p>
                 </div>
                 <div class="sc-lr-step sc-lr-step-register" data-step="register" style="display:none;">
                     <input type="text" class="sc-lr-input" id="sc-lr-first-name" placeholder="نام" autocomplete="given-name">
@@ -476,16 +477,17 @@ function sc_login_register_shortcode() {
                     <p class="sc-lr-back"><button type="button" class="sc-lr-link-btn" id="sc-lr-back-phone-reg">بازگشت</button></p>
                 </div>
                 <div class="sc-lr-step sc-lr-step-otp" data-step="otp" style="display:none;">
-                    <button type="button" class="sc-lr-back-top" id="sc-lr-otp-back" title="بازگشت">← بازگشت</button>
+                    <input type="text" class="sc-lr-input" id="sc-lr-otp" placeholder="  کد تأیید ۵ رقمی ارسال شده به " maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+                    <button type="button" class="sc-lr-btn" id="sc-lr-verify-otp">تأیید و ورود</button>
+                    <button type="button" class="sc-lr-back-top" id="sc-lr-otp-back" title="بازگشت">→ بازگشت و تصحیح شماره </button>
+                    <div class="sc-lr-resend-wrap" id="sc-lr-resend-wrap" style="display:none;">
+                        <button type="button" class="sc-lr-btn sc-lr-btn-outline" id="sc-lr-resend-otp">دریافت مجدد کد</button>
+                    </div>
                     <p class="sc-lr-otp-timer-wrap">
                         <span class="sc-lr-otp-timer-label">اعتبار کد:</span>
                         <span class="sc-lr-otp-timer" id="sc-lr-otp-timer" aria-live="polite">۲:۰۰</span>
                     </p>
-                    <input type="text" class="sc-lr-input" id="sc-lr-otp" placeholder="کد تأیید ۵ رقمی" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
-                    <button type="button" class="sc-lr-btn" id="sc-lr-verify-otp">تأیید و ورود</button>
-                    <div class="sc-lr-resend-wrap" id="sc-lr-resend-wrap" style="display:none;">
-                        <button type="button" class="sc-lr-btn sc-lr-btn-outline" id="sc-lr-resend-otp">دریافت مجدد کد</button>
-                    </div>
+                    
                 </div>
             </div>
         </div>

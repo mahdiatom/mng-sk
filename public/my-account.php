@@ -435,16 +435,7 @@ function add_html_before_account_nav() {
                 </div>
       </div>
         </div>
-</div>
-
-
-
-     
-            
-           
-   
-    
-   
+</div>  
     <?php
 
 }
@@ -470,12 +461,10 @@ function sc_add_my_account_menu_item($items) {
     if (current_user_can('manage_options')) {
         return $items;
     }
-    
     // Insert before logout
     $logout = $items['customer-logout'];
-    unset($items['customer-logout']);
-    
-    $items['sc-submit-documents'] = 'اطلاعات بازیکن';
+    unset($items['customer-logout']); 
+    $items['sc-submit-documents'] = 'اطلاعات بازیکن' ;
     $items['sc-enroll-course'] = 'ثبت نام در دوره';
     $items['sc-my-courses'] = 'دوره‌های من';
     $items['sc-my-attendances'] = 'حضور و غیاب های من ';
@@ -492,7 +481,7 @@ function sc_add_my_account_menu_item($items) {
         $items['sc-wallet'] = 'کیف پول';
     }
     $items['sc-support-tickets'] = 'تیکت پشتیبانی';
-    $items['customer-logout'] = $logout;
+    $items['customer-logout'] = 'خروج از حساب کاربری';
     
     return $items;
 }
