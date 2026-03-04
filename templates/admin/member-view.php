@@ -191,15 +191,16 @@ $player_courses = $wpdb->get_results($wpdb->prepare(
                     </tr>
                 </thead>
                 <tbody>
+                    
                     <?php foreach ($player_courses as $pc) : 
                         $flags = [];
                         if (!empty($pc->course_status_flags)) {
                             $flags = array_filter(array_map('trim', explode(',', $pc->course_status_flags)));
                         }
                         $status_label = $pc->status === 'active' ? 'فعال' : 'غیرفعال';
-                        if (in_array('paused', $flags)) $status_label .= ' (متوقف شده)';
-                        if (in_array('completed', $flags)) $status_label .= ' (تمام شده)';
-                        if (in_array('canceled', $flags)) $status_label .= ' (لغو شده)';
+                        if (in_array('paused', $flags)) $status_label = ' (متوقف شده)';
+                        if (in_array('completed', $flags)) $status_label = ' (تمام شده)';
+                        if (in_array('canceled', $flags)) $status_label = ' (لغو شده)';
                         $formatted_price = function_exists('wc_price') ? wc_price($pc->price) : number_format($pc->price, 0, '.', ',') . ' تومان';
                     ?>
                         <tr>

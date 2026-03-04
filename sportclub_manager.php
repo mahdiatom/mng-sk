@@ -514,7 +514,8 @@ function sc_check_profile_completed($member_id) {
         'sports_history',
         'health_verified',
         'info_verified',
-        'additional_info'
+        'additional_info',
+        
     ];
     
     // بررسی تمام فیلدها

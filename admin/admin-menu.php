@@ -842,6 +842,10 @@ function sc_handle_excel_export() {
         case 'members':
             sc_export_members_to_excel();
             break;
+        case 'members_coach':
+            sc_export_members_to_excel_coach();
+            break;
+
         case 'expenses':
             sc_export_expenses_to_excel();
             break;
@@ -1676,11 +1680,11 @@ function callback_add_invoice_sufix() {
             wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_error'));
             exit;
         }
-
-        if (function_exists('sc_is_member_team') && sc_is_member_team($member_id)) {
-            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_team_member'));
-            exit;
-        }
+        //برای اینکه بازیکن تیم صورت حساب دستی دریافت نکند.
+        // if (function_exists('sc_is_member_team') && sc_is_member_team($member_id)) {
+        //     wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_team_member'));
+        //     exit;
+        // }
         
         // محاسبه مبلغ کل
         $total_amount = $manual_amount;

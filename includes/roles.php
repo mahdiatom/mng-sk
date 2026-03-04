@@ -166,6 +166,7 @@ function club_block_restricted_pages_for_coach() {
     if ( current_user_can('coach') && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
         $allowed_pages = [
             'sc-attendance-add',
+            'sc-view-member',
             'sc-attendance-list',
             'sc-coach-honors',
             'sc-coach-notifications',

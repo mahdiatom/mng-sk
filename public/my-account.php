@@ -84,7 +84,7 @@ function add_html_before_account_nav() {
             SUM(amount + COALESCE(penalty_amount, 0)) as total_debt
          FROM $invoices_table
          WHERE member_id = %d 
-         AND status IN ('pending', 'under_review')",
+         AND status IN ('pending', 'under_review')  AND (course_id > 0 OR invoice_description IS NOT NULL)",
         $player->id
     ));
     $debt_count = $debt_info->count ?? 0;
@@ -196,11 +196,15 @@ function add_html_before_account_nav() {
             $insurance_status = 'منقضی شده';
         } else {
             $insurance_status = 'معتبر';
+                    $date1=date_create($today_shamsi);
+        $date2=date_create($insurance_expiry);
+        $diff=date_diff($date1,$date2 ,false);
+        $diff =  $diff->days ;
         }
     } else {
         $insurance_status = 'ثبت نشده';
     }
-    
+
     // وضعیت پروفایل
     $profile_completed = sc_check_profile_completed($player->id);
     $profile_status = $profile_completed ? 'تکمیل شده' : 'ناقص';
@@ -275,13 +279,21 @@ function add_html_before_account_nav() {
         $insurance_expiry = $player->insurance_expiry_date_shamsi;
         $today_shamsi = sc_get_today_shamsi();
         $expiry_compare = sc_compare_shamsi_dates($today_shamsi, $insurance_expiry);
-        if ($expiry_compare > 0) {
+        if ($expiry_compare >= 0) {
 ?>
 <div class="sc-insurance-expiry-message">
 
 <p> ⚠️اطلاعیه :  اعتبار بیمه شما به پایان رسیده لطفا نسبت به تمدید آن اقدام کنید و بعد از تمدید در بخش اطلاعات بازیکن تاریخ انقضا  بیمه خود را بروزرسانی کنید همچنین عکس بیمه ورزشی جدید خود را جایگزین عکس قبلی کنید . </p>
 
 <?php 
+        }elseif($expiry_compare < 0 && $diff < 30 ){
+            ?>
+            <div class="sc-insurance-expiry-message">
+            <p>هشدار :  کمتر از <?php echo $diff; ?> روز به پایان انقضاء بیمه شما مهلت باقی است لطفا در اسرع وقت نسبت به تمدید آن اقدام کنید.</p>
+            </div>
+            <?php
+
+
         }
     }
 
@@ -373,7 +385,14 @@ function add_html_before_account_nav() {
                             <div>
                                 <strong style="font-size: 12px; color: #555; display: block;">وضعیت بیمه:</strong>
                                 <span style="font-size: 14px; color: #333; font-weight: 600;">
-                                    <?php echo esc_html($insurance_status); ?>
+                                    <?php echo esc_html($insurance_status);
+                                                                                             
+                                                                                                            
+                                    
+                                    ?>
+                                    
+
+                                    
                                     <?php if ($insurance_expiry && $insurance_status !== 'ثبت نشده') : ?>
                                         <small style="display: block; color: #999; font-weight: normal; margin-top: 3px;">
                                             (انقضا: <?php echo esc_html($insurance_expiry); ?>)
@@ -3698,6 +3717,7 @@ function sc_ajax_submit_documents() {
     $data['additional_info'] = isset($_POST['additional_info']) && trim($_POST['additional_info']) !== '' ? sanitize_textarea_field($_POST['additional_info']) : null;
     $data['health_verified'] = (isset($_POST['health_verified']) && $_POST['health_verified']) ? 1 : 0;
     $data['info_verified'] = (isset($_POST['info_verified']) && $_POST['info_verified']) ? 1 : 0;
+    
 
     $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE user_id = %d LIMIT 1", $current_user_id));
     if (!$existing && !empty($data['national_id'])) {

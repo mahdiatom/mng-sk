@@ -32,6 +32,9 @@
   padding-bottom: 16px;
   border-bottom: 1px solid var(--sc-panel-border, #e2e8f0);
 }
+.sc-coach-panel-card .column-full_name{
+  width: 15%;
+}
 .sc-coach-panel-title {
   margin: 0;
   font-size: 1.5rem;

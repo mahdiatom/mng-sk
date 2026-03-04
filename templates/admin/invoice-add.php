@@ -130,8 +130,8 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                                 <input type="hidden" name="amount_raw" id="amount_raw" value="<?php echo esc_attr($amount); ?>">
                             </div>
                             <div style="margin-top: 12px;">
-                                <label for="invoice_description">توضیحات (اختیاری):</label>
-                                <textarea name="invoice_description" id="invoice_description" class="large-text" rows="3" placeholder="توضیحات برای نمایش به کاربر (۲ تا ۴ خط)" style="width: 100%; max-width: 500px;"><?php echo esc_textarea(isset($_POST['invoice_description']) ? $_POST['invoice_description'] : ''); ?></textarea>
+                                <label for="invoice_description">توضیحات (اجباری):</label>
+                                <textarea required name="invoice_description" id="invoice_description" class="large-text" rows="3" placeholder="توضیحات برای نمایش به کاربر (۲ تا ۴ خط)" style="width: 100%; max-width: 500px;"><?php echo esc_textarea(isset($_POST['invoice_description']) ? $_POST['invoice_description'] : ''); ?></textarea>
                                 <p class="description">در صورت پر کردن، در بخش صورت حساب‌های کاربر نمایش داده می‌شود.</p>
                             </div>
                         </div>

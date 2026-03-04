@@ -21,10 +21,11 @@ if (!$coach_players_list_table) {
         <div class="sc-coach-panel-header sc-coach-players-header">
             <h1 class="sc-coach-panel-title">بازیکن‌های من</h1>
             <div class="sc-coach-players-search">
+            
                 <?php $coach_players_list_table->search_box('جستجو بازیکن', 'search_coach_player'); ?>
             </div>
         </div>
-        <p class="sc-coach-panel-desc" style="margin-top: -8px; margin-bottom: 16px;">بازیکنان ثبت‌نام‌کرده در دوره‌های شما. می‌توانید با کلیک روی «ویرایش» اطلاعات آن‌ها را ویرایش کنید.</p>
+        <p class="sc-coach-panel-desc" style="margin-top: -8px; margin-bottom: 16px;"> می‌توانید با کلیک روی «مشاهده» اطلاعات آن‌ها را مشاهده  کنید امکان حذف یا ویرایش اطلاعات بازیکن برای دسترسی مربی امکان پذیر نمی باشد.</p>
         <div class="sc-coach-panel-card sc-coach-players-table-card" style="margin-top: 0;">
             <?php $coach_players_list_table->display(); ?>
         </div>

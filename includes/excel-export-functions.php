@@ -822,7 +822,212 @@ function sc_export_members_to_excel() {
     $writer->save('php://output');
     exit;
 }
+/**
+ * Export Members to Excel
+ */
+function sc_export_members_to_excel_coach() {
+    sc_check_phpspreadsheet();
+    
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    
+    // دریافت فیلترها
+    $filter_status = isset($_GET['player_status']) ? sanitize_text_field($_GET['player_status']) : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all');
+    $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+    $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+    $filter_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
+    $filter_member_type = isset($_GET['filter_member_type']) ? sanitize_text_field($_GET['filter_member_type']) : 'all';
 
+    // ساخت WHERE clause
+    $where_conditions = ['1=1'];
+    $where_values = [];
+    
+    if ($filter_status === 'active') {
+        $where_conditions[] = "m.is_active = 1";
+    } elseif ($filter_status === 'inactive') {
+        $where_conditions[] = "m.is_active = 0";
+    }
+    
+    if ($filter_member_type !== 'all' && in_array($filter_member_type, ['normal', 'team'])) {
+        $where_conditions[] = "(COALESCE(m.member_type, 'normal') = %s)";
+        $where_values[] = $filter_member_type;
+    }
+    
+    if ($filter_course > 0) {
+        $where_conditions[] = "m.id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')";
+        $where_values[] = $filter_course;
+    }
+    
+    if ($search) {
+        $search_like = '%' . $wpdb->esc_like($search) . '%';
+        $where_conditions[] = "(m.first_name LIKE %s OR m.last_name LIKE %s OR m.national_id LIKE %s OR m.player_phone LIKE %s)";
+        $where_values[] = $search_like;
+        $where_values[] = $search_like;
+        $where_values[] = $search_like;
+        $where_values[] = $search_like;
+    }
+    
+    $where_clause = implode(' AND ', $where_conditions);
+    
+
+
+
+
+    // دریافت داده‌ها
+    $query = "SELECT m.* FROM $members_table m WHERE $where_clause ORDER BY m.last_name ASC, m.first_name ASC";
+    
+    if (!empty($where_values)) {
+        $members = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    } else {
+        $members = $wpdb->get_results($query);
+    }
+    if ($filter_profile !== 'all') {
+    $members = array_filter($members, function($member) use ($filter_profile) {
+        $completed = sc_check_profile_completed($member->id);
+        if ($filter_profile === 'completed') {
+            return $completed;
+        } else { // incomplete
+            return !$completed;
+        }
+    });
+}
+    
+    // دریافت دوره‌های هر عضو
+    foreach ($members as $member) {
+        $member_courses = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.title 
+             FROM $courses_table c 
+             INNER JOIN $member_courses_table mc ON c.id = mc.course_id 
+             WHERE mc.member_id = %d AND mc.status = 'active' AND c.deleted_at IS NULL 
+             ORDER BY c.title ASC",
+            $member->id
+        ));
+        $member->courses = $member_courses;
+    }
+    
+    // ایجاد Excel
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('اعضا');
+    
+    // تنظیم جهت راست به چپ
+    $sheet->setRightToLeft(true);
+    
+    // Header
+    $headers = [
+        'ردیف',
+        'شناسه',
+        'نام',
+        'نام خانوادگی',
+        'کد ملی',
+        'شماره تماس',
+        'تاریخ تولد',
+        'نوع',
+        'وضعیت',
+        'تکمیل پروفایل',
+        'دوره‌ها'
+    ];
+    
+    $col = 1;
+    foreach ($headers as $header) {
+        $sheet->setCellValueByColumnAndRow($col, 1, $header);
+        $col++;
+    }
+    
+    // اعمال استایل به header
+    $headerStyle = sc_get_excel_header_style();
+    $sheet->getStyle('A1:K1')->applyFromArray($headerStyle);
+    
+    // داده‌ها
+    $row = 2;
+    $row_number = 1;
+    
+    foreach ($members as $member) {
+        $col = 1;
+        
+        // ردیف
+        $sheet->setCellValueByColumnAndRow($col++, $row, $row_number++);
+        
+        // شناسه
+        $sheet->setCellValueByColumnAndRow($col++, $row, $member->id);
+        
+        // نام
+        $sheet->setCellValueByColumnAndRow($col++, $row, $member->first_name);
+        
+        // نام خانوادگی
+        $sheet->setCellValueByColumnAndRow($col++, $row, $member->last_name);
+        
+        // کد ملی
+        $sheet->setCellValueByColumnAndRow($col++, $row, $member->national_id);
+        
+        // شماره تماس
+        $sheet->setCellValueByColumnAndRow($col++, $row, $member->player_phone ?: '-');
+        
+        // تاریخ تولد
+        $sheet->setCellValueByColumnAndRow($col++, $row, $member->birth_date_shamsi ?: '-');
+        
+        // نوع بازیکن
+        $member_type_val = isset($member->member_type) ? $member->member_type : 'normal';
+        $member_type_label = ($member_type_val === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $member_type_label);
+        
+        // وضعیت
+        $status_label = $member->is_active ? 'فعال' : 'غیرفعال';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $status_label);
+        
+        // تکمیل پروفایل
+        $is_completed = sc_check_profile_completed($member->id);
+        $profile_status = $is_completed ? 'تکمیل شده' : 'ناقص';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $profile_status);
+        
+        // دوره‌ها
+        $course_names = [];
+        if (!empty($member->courses)) {
+            foreach ($member->courses as $course) {
+                $course_names[] = $course->title;
+            }
+        }
+        $courses_text = !empty($course_names) ? implode('، ', $course_names) : '-';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $courses_text);
+        
+        // اعمال استایل به ردیف
+        $dataStyle = sc_get_excel_data_style();
+        if ($row % 2 == 0) {
+            $alternateStyle = sc_get_excel_alternate_row_style();
+            $sheet->getStyle("A$row:K$row")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+        } else {
+            $sheet->getStyle("A$row:K$row")->applyFromArray($dataStyle);
+        }
+        
+        $row++;
+    }
+    
+    // تنظیم عرض ستون‌ها
+    sc_auto_size_columns($sheet, 11);
+    
+    // ایجاد نام فایل
+    $filters = [
+        'status' => $filter_status
+    ];
+    $filename = sc_generate_export_filename('members', $filters);
+    
+    // پاک کردن تمام خروجی‌های قبلی
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+    
+    // ارسال فایل
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+    header('Pragma: public');
+    
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
+}
 /**
  * Export Attendance Overall (School-style attendance sheet) to Excel
  */

@@ -57,12 +57,10 @@ if (!empty($where_values)) {
 // محاسبه بدهی برای هر کاربر
 foreach ($members as $member) {
     // محاسبه کل مبلغ صورت حساب‌های پرداخت نشده
-    $debt_query = "SELECT SUM(amount) as total_debt 
-                   FROM $invoices_table 
-                   WHERE member_id = %d 
-                   AND status IN ('pending')";
     
-    $debt_result = $wpdb->get_var($wpdb->prepare($debt_query, $member->id));
+   
+    $debt_result = debt_user( $member->id)[0];
+    $debt_count =  debt_user( $member->id)[1] ?? 0;
     $member->debt_amount = $debt_result ? floatval($debt_result) : 0;
     $member->has_debt = $member->debt_amount > 0;
     
@@ -361,7 +359,7 @@ $members = array_slice($filtered_members, $offset, $per_page);
                         }
                         $courses_text = !empty($course_names) ? implode('، ', $course_names) : '-';
                     ?>
-                        <tr>
+                        <tr style="background-color: <?php echo (debt_user( $member->id)[0]) ? '#c3191957' : '' ?> !important;">
                             <td><?php echo $row_number; ?></td>
                             <td>
                                 <strong><?php echo esc_html($member->first_name . ' ' . $member->last_name); ?></strong>

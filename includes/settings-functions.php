@@ -365,3 +365,27 @@ function sc_can_show_players_wallet() {
     }
     return (int) sc_get_setting('wallet_enabled', '0') === 1;
 }
+function debt_user($id){
+     global $wpdb;
+    // محاسبه بدهکاری (صورت حساب‌های pending و under_review)
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $wallet_balance = function_exists('sc_get_wallet_balance') ? sc_get_wallet_balance($id) : 0;
+    $debt_wallet = 0;
+    if($wallet_balance < 0){
+        $debt_wallet = abs($wallet_balance);
+    }
+    
+    $debt_info = $wpdb->get_row($wpdb->prepare(
+        "SELECT 
+            COUNT(*) as count,
+            SUM(amount + COALESCE(penalty_amount, 0)) as total_debt
+         FROM $invoices_table
+         WHERE member_id = %d 
+         AND status IN ('pending', 'under_review') AND (course_id > 0 OR invoice_description IS NOT NULL)",
+        $id
+    ));
+    $debt_count = $debt_info->count ?? 0;
+    $total_debt = floatval($debt_info->total_debt ?? 0);
+    $debt = $total_debt + $debt_wallet;
+    return [$debt,$debt_count];
+}

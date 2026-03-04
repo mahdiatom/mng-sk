@@ -500,7 +500,6 @@ public function column_full_name($item) {
             "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
             ARRAY_A
         );
-
         $this->set_pagination_args([
             'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
             'per_page' => $per_page

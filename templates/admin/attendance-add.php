@@ -321,9 +321,35 @@ if ($selected_course_id) {
         
         foreach ($existing_attendances_raw as $att) {
             $existing_attendances[$att->member_id] = $att->status;
+           
         }
     }
 }
+// function debt_user($id){
+//      global $wpdb;
+//     // محاسبه بدهکاری (صورت حساب‌های pending و under_review)
+//     $invoices_table = $wpdb->prefix . 'sc_invoices';
+//     $wallet_balance = function_exists('sc_get_wallet_balance') ? sc_get_wallet_balance($id) : 0;
+//     $debt_wallet = 0;
+//     if($wallet_balance < 0){
+//         $debt_wallet = abs($wallet_balance);
+//     }
+    
+//     $debt_info = $wpdb->get_row($wpdb->prepare(
+//         "SELECT 
+//             COUNT(*) as count,
+//             SUM(amount + COALESCE(penalty_amount, 0)) as total_debt
+//          FROM $invoices_table
+//          WHERE member_id = %d 
+//          AND status IN ('pending', 'under_review') AND (course_id > 0 OR invoice_description IS NOT NULL)",
+//         $id
+//     ));
+//     $debt_count = $debt_info->count ?? 0;
+//     $total_debt = floatval($debt_info->total_debt ?? 0);
+//     return $total_debt + $debt_wallet;
+// }
+
+
 $is_update_mode = !empty($existing_attendances);
 ?>
 
@@ -407,18 +433,21 @@ $is_update_mode = !empty($existing_attendances);
                             <th class="column-row">ردیف</th>
                             <th>نام</th>
                             <th>نام خانوادگی</th>
+                            <th>مبلغ بدهی</th>
                             <th>شناسه بازیکن</th>
                             <th>وضعیت</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($active_members as $index => $member) : 
+                        <?php foreach ($active_members as $index => $member) :
+                            $debt_user = debt_user($member->id)[0];
                             $existing_status = isset($existing_attendances[$member->id]) ? $existing_attendances[$member->id] : 'present';
                         ?>
-                            <tr>
+                            <tr style="background-color: <?php echo ($debt_user > 0) ? '#c3191957' : '' ?> !important;" >
                                 <td><?php echo $index + 1; ?></td>
                                 <td><?php echo esc_html($member->first_name); ?></td>
                                 <td><?php echo esc_html($member->last_name); ?></td>
+                                <td><?php echo number_format($debt_user); ?>  تومان </td>
                                 <td><?php echo esc_html($member->id); ?></td>
                                 <td style="display: flex; margin-top: 7px; ">
                                     <label style="display: inline-block; margin-left: 20px;">

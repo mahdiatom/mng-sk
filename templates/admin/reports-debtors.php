@@ -56,16 +56,9 @@ if (!empty($where_values)) {
 $debtors = [];
 foreach ($members as $member) {
     // محاسبه کل مبلغ و تعداد صورت حساب‌های پرداخت نشده
-    $debt_info = $wpdb->get_row($wpdb->prepare(
-        "SELECT SUM(amount) as total_debt, COUNT(*) as debt_count 
-         FROM $invoices_table 
-         WHERE member_id = %d 
-         AND status IN ('pending')",
-        $member->id
-    ));
-    
-    $debt_amount = $debt_info && $debt_info->total_debt ? floatval($debt_info->total_debt) : 0;
-    $debt_count = $debt_info && $debt_info->debt_count ? intval($debt_info->debt_count) : 0;
+    $sum_count_debt =debt_user($member->id);
+    $debt_amount = $sum_count_debt[0];
+    $debt_count = $sum_count_debt[1];
     
     // فقط اگر بدهی داشته باشد، به لیست اضافه می‌کنیم
     if ($debt_amount > 0) {
@@ -245,7 +238,7 @@ $debtors = array_slice($debtors, $offset, $per_page);
                         }
                         $courses_text = !empty($course_names) ? implode('، ', $course_names) : '-';
                     ?>
-                        <tr>
+                        <tr >
                             <td><?php echo $row_number; ?></td>
                             <td>
                                 <strong><?php echo esc_html($debtor->first_name . ' ' . $debtor->last_name); ?></strong>

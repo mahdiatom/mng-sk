@@ -183,9 +183,11 @@ if (empty($player_phone) && $billing_phone) {
             <p class="form-row form-row-first">
                 <label for="insurance_expiry_date_shamsi">تاریخ انقضا بیمه (شمسی)</label>
                 <input type="text" name="insurance_expiry_date_shamsi" id="insurance_expiry_date_shamsi" value="<?php echo esc_attr($insurance_expiry_date_shamsi); ?>" class="persian-date-input" placeholder="مثلاً 1403/12/29" readonly>
+                <strong><a href="https://athlete.ifsm.ir/Login" target="_blank" class="insurance_link">جهت تمدید بیمه روی لینک کلیک کنید : athlete.ifsm.ir/Login</a></strong>
                 
     
             </p>
+            
 
             
 
