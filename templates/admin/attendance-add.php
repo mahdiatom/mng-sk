@@ -431,10 +431,8 @@ $is_update_mode = !empty($existing_attendances);
                     <thead>
                         <tr>
                             <th class="column-row">ردیف</th>
-                            <th>نام</th>
-                            <th>نام خانوادگی</th>
+                            <th> نام و نام خانوادگی </th>
                             <th>مبلغ بدهی</th>
-                            <th>شناسه بازیکن</th>
                             <th>وضعیت</th>
                         </tr>
                     </thead>
@@ -445,10 +443,8 @@ $is_update_mode = !empty($existing_attendances);
                         ?>
                             <tr style="background-color: <?php echo ($debt_user > 0) ? '#c3191957' : '' ?> !important;" >
                                 <td><?php echo $index + 1; ?></td>
-                                <td><?php echo esc_html($member->first_name); ?></td>
-                                <td><?php echo esc_html($member->last_name); ?></td>
+                                <td><?php echo esc_html($member->first_name . ' '. $member->last_name); ?></td>
                                 <td><?php echo number_format($debt_user); ?>  تومان </td>
-                                <td><?php echo esc_html($member->id); ?></td>
                                 <td style="display: flex; margin-top: 7px; ">
                                     <label style="display: inline-block; margin-left: 20px;">
                                         <input type="radio" 

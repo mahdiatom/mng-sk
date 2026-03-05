@@ -7,7 +7,7 @@
 
     var MAX_FILES = 5;
     var MAX_SIZE = 5 * 1024 * 1024; // 5MB
-    var ALLOWED_EXT = ['jpg', 'jpeg', 'jpe', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif', 'heic', 'heif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
+    var ALLOWED_EXT = ['jpg', 'jpeg', 'jpe', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif', 'heic', 'heif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip','rar'];
     var ACCEPT = '.' + ALLOWED_EXT.join(',.');
 
     function getExt(name) {

@@ -184,7 +184,7 @@
         var monthName = monthNames[month];
         
         // پیدا کردن اولین روز هفته
-        var firstDayGregorian = jalaliToGregorian(year, month, 1);
+        var firstDayGregorian = jalaliToGregorian(year, month, 0);
         var firstDate = new Date(firstDayGregorian[0], firstDayGregorian[1] - 1, firstDayGregorian[2]);
         var firstDayOfWeek = firstDate.getDay();
         var firstDayPersian = (firstDayOfWeek + 2) % 7;

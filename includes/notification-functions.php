@@ -568,6 +568,7 @@ function sc_ajax_upload_notification_attachment() {
         'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp',
         'pdf' => 'application/pdf', 'doc' => 'application/msword', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'xls' => 'application/vnd.ms-excel', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'zip' => 'file'
     ];
     $allowed_ext = array_keys($allowed);
     $max_size = 5 * 1024 * 1024; // 5MB

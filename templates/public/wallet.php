@@ -440,78 +440,78 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
 }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script //src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 jQuery(document).ready(function($) {
-    // فرمت مبلغ شارژ: سه‌تا سه‌تا با کاما (مثل بقیه بخش‌ها)
-    var $chargeDisplay = $('#charge_amount_display');
-    var $chargeHidden = $('#charge_amount');
-    function formatChargeInput() {
-        var v = $chargeDisplay.val().replace(/[^\d]/g, '');
-        $chargeHidden.val(v === '' ? '' : v);
-        if (v.length > 0) {
-            var formatted = v.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            $chargeDisplay.val(formatted);
-        }
-    }
-    $chargeDisplay.on('input', formatChargeInput);
-    $chargeDisplay.closest('form').on('submit', function() {
-        var v = $chargeDisplay.val().replace(/[^\d]/g, '');
-        $chargeHidden.val(v === '' ? '' : v);
-    });
+    // // فرمت مبلغ شارژ: سه‌تا سه‌تا با کاما (مثل بقیه بخش‌ها)
+    // var $chargeDisplay = $('#charge_amount_display');
+    // var $chargeHidden = $('#charge_amount');
+    // function formatChargeInput() {
+    //     var v = $chargeDisplay.val().replace(/[^\d]/g, '');
+    //     $chargeHidden.val(v === '' ? '' : v);
+    //     if (v.length > 0) {
+    //         var formatted = v.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    //         $chargeDisplay.val(formatted);
+    //     }
+    // }
+    // $chargeDisplay.on('input', formatChargeInput);
+    // $chargeDisplay.closest('form').on('submit', function() {
+    //     var v = $chargeDisplay.val().replace(/[^\d]/g, '');
+    //     $chargeHidden.val(v === '' ? '' : v);
+    // });
     
-    // نمودار موجودی
-    <?php if (!empty($balance_history)) : ?>
-    var balanceData = <?php echo json_encode($balance_history); ?>;
-    var ctx = document.getElementById('walletBalanceChart');
-    if (ctx) {
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: balanceData.map(function(item) {
-                    return item.date;
-                }),
-                datasets: [{
-                    label: 'موجودی (تومان)',
-                    data: balanceData.map(function(item) {
-                        return item.balance;
-                    }),
-                    borderColor: 'rgb(102, 126, 234)',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return 'موجودی: ' + context.parsed.y.toLocaleString('fa-IR') + ' تومان';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        ticks: {
-                            callback: function(value) {
-                                return value.toLocaleString('fa-IR');
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    <?php endif; ?>
+    // // نمودار موجودی
+    // <?php if (!empty($balance_history)) : ?>
+    // var balanceData = <?php echo json_encode($balance_history); ?>;
+    // var ctx = document.getElementById('walletBalanceChart');
+    // if (ctx) {
+    //     new Chart(ctx, {
+    //         type: 'line',
+    //         data: {
+    //             labels: balanceData.map(function(item) {
+    //                 return item.date;
+    //             }),
+    //             datasets: [{
+    //                 label: 'موجودی (تومان)',
+    //                 data: balanceData.map(function(item) {
+    //                     return item.balance;
+    //                 }),
+    //                 borderColor: 'rgb(102, 126, 234)',
+    //                 backgroundColor: 'rgba(102, 126, 234, 0.1)',
+    //                 tension: 0.4,
+    //                 fill: true
+    //             }]
+    //         },
+    //         options: {
+    //             responsive: true,
+    //             maintainAspectRatio: true,
+    //             plugins: {
+    //                 legend: {
+    //                     display: true,
+    //                     position: 'top'
+    //                 },
+    //                 tooltip: {
+    //                     callbacks: {
+    //                         label: function(context) {
+    //                             return 'موجودی: ' + context.parsed.y.toLocaleString('fa-IR') + ' تومان';
+    //                         }
+    //                     }
+    //                 }
+    //             },
+    //             scales: {
+    //                 y: {
+    //                     beginAtZero: false,
+    //                     ticks: {
+    //                         callback: function(value) {
+    //                             return value.toLocaleString('fa-IR');
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     });
+    // }
+    // <?php endif; ?>
     
     // بارگذاری گزارش دوره‌ای
     $('#load_period_report').on('click', function() {

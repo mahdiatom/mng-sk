@@ -26,7 +26,7 @@ $player_courses = $wpdb->get_results($wpdb->prepare(
     "SELECT c.title, c.price, mc.status, mc.course_status_flags, mc.created_at as enrolled_at
      FROM $member_courses_table mc
      INNER JOIN $courses_table c ON c.id = mc.course_id
-     WHERE mc.member_id = %d
+     WHERE mc.member_id = %d AND mc.status = 'active'
      ORDER BY mc.created_at DESC",
     $player_id
 ));
@@ -191,16 +191,15 @@ $player_courses = $wpdb->get_results($wpdb->prepare(
                     </tr>
                 </thead>
                 <tbody>
-                    
                     <?php foreach ($player_courses as $pc) : 
                         $flags = [];
                         if (!empty($pc->course_status_flags)) {
                             $flags = array_filter(array_map('trim', explode(',', $pc->course_status_flags)));
                         }
                         $status_label = $pc->status === 'active' ? 'فعال' : 'غیرفعال';
-                        if (in_array('paused', $flags)) $status_label = ' (متوقف شده)';
-                        if (in_array('completed', $flags)) $status_label = ' (تمام شده)';
-                        if (in_array('canceled', $flags)) $status_label = ' (لغو شده)';
+                        if (in_array('paused', $flags)) $status_label .= ' (متوقف شده)';
+                        if (in_array('completed', $flags)) $status_label .= ' (تمام شده)';
+                        if (in_array('canceled', $flags)) $status_label .= ' (لغو شده)';
                         $formatted_price = function_exists('wc_price') ? wc_price($pc->price) : number_format($pc->price, 0, '.', ',') . ' تومان';
                     ?>
                         <tr>
