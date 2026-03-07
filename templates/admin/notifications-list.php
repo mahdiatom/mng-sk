@@ -172,7 +172,7 @@ if (!empty($search)) {
 
 $where_sql = implode(' AND ', $where);
 
-$per_page = 20;
+$per_page = 10;
 $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
 $offset = ($current_page - 1) * $per_page;
 

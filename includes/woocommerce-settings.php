@@ -27,18 +27,22 @@ function sc_remove_default_account_menu_items($items) {
         return $items;
     }
     
-    // فقط "خروج" را نگه دار و بقیه را حذف کن
-    $logout = isset($items['customer-logout']) ? $items['customer-logout'] : 'خروج';
-    
+
     // حذف تمام منوهای پیش‌فرض
     $items = [];
+      // فقط "خروج" را نگه دار و بقیه را حذف کن
+    $logout = isset($items['customer-logout']) ? $items['customer-logout'] : 'خروج از حساب کاربری';
+    $edit_account = isset($items['edit-account']) ? $items['edit-account'] : 'تغییر اطلاعات حساب';
     
-    // فقط "خروج" را اضافه کن
     $items['customer-logout'] = $logout;
+    $items['edit-account'] = $edit_account;
     
     return $items;
 }
-
+add_action('woocommerce_edit_account_form_fields' , 'add_text_before_password');
+function add_text_before_password(){
+ echo '<p>کاربر عزیز در صورتی که قصد تغییر رمز خود را دارید و رمز پیشین خود را نمی دانید از مدیر مجموعه بخواهید تا رمز شما را به صورت دستی تغییر دهد و در اختیار تان قرار دهد سپس رمزی که مدیر داده است را به عنوان رمز پیشین وارد کنید و سپس رمز جدید خود را وارد کنید .</p>';
+}
 /**
  * حذف فیلدهای اضافی از صفحه ویرایش کاربر WordPress
  * فقط نام کاربری، رمز عبور و ایمیل نمایش داده می‌شود
@@ -70,6 +74,7 @@ add_action('admin_head-profile.php', 'sc_hide_user_profile_fields');
 function sc_hide_user_profile_fields() {
     ?>
     <style>
+        
         /* حذف بخش Contact Info */
         #your-profile h2:contains('Contact Info'),
         #your-profile .user-description-wrap,
@@ -106,7 +111,7 @@ function sc_hide_user_profile_fields() {
         #your-profile .form-table:has(th:contains('Shipping')) {
             display: none !important;
         }
-        
+       
         /* حذف تمام فیلدها به جز نام کاربری، رمز و ایمیل */
         #your-profile .form-table tr:not(:has(#user_login)):not(:has(#user_pass)):not(:has(#user_email)) {
             display: none !important;

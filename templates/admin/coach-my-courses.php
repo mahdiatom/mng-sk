@@ -22,7 +22,7 @@ $courses = $wpdb->get_results($wpdb->prepare(
 <div class="wrap sc-coach-panel-wrap">
     <div class="sc-coach-panel-header">
         <h1 class="sc-coach-panel-title">دوره‌های من</h1>
-        <p class="sc-coach-panel-desc">فقط دوره‌هایی که به شما اختصاص داده شده است (فقط نمایش).</p>
+        <p class="sc-coach-panel-desc">فقط دوره‌هایی که به شما اختصاص داده شده است  را میتوانید مشاهده کنید .</p>
     </div>
     <?php if (empty($courses)) : ?>
         <div class="sc-coach-panel-empty">

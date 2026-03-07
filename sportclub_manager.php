@@ -1518,7 +1518,7 @@ function sc_ajax_attendance_report_player() {
     ?>
     <div class="postbox" style="margin-top: 0;">
         <div class="postbox-header">
-            <h2 class="hndle">نتیجه گزارش</h2>
+            <h2 class="hndle filter_head_player">نتیجه گزارش</h2>
         </div>
         <div class="inside" style="padding: 20px;">
             <table class="form-table" style="margin-bottom: 20px;">

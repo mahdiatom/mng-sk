@@ -40,6 +40,27 @@
 	src: url('../fonts/Woff/IRANYekanXFaNum-Regular.woff') format('woff'),   
 	url('../fonts/Woff2/IRANYekanXFaNum-Regular.woff2') format('woff2');	
 }
+ .woocommerce-EditAccountForm .form-row-first , .woocommerce-EditAccountForm .form-row-last {
+            display: none !important;
+        }
+      .woocommerce-EditAccountForm .woocommerce-form-row--wid:nth-child(1){
+            display: none !important;
+        }    
+  .woocommerce-EditAccountForm .show-password-input{
+            width: 1px !important;
+    background: #fffefe00 !important;
+    border: none !important;
+    box-shadow: none !important;
+      }
+
+.woocommerce-Button{
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+    margin-top: 10px !important;
+    padding: 16px !important;
+}
 .woocommerce-MyAccount-navigation .sc-menu-item-icon a::before {
     content: var(--sc-icon-url);
     display: inline-block;
@@ -2117,7 +2138,7 @@ padding: 15px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 .woocommerce-error::before{
-    content: unset;
+    content: '' !important;
 }
 
 .woocommerce-MyAccount-content .woocommerce-message {
@@ -3642,7 +3663,7 @@ color: white;
     border: 1px solid #e5e7eb;
 }
 
-.sc-notification-back-link {
+.sc-notification-back-link-new {
     display: inline-block;
     color: #2271b1;
     text-decoration: none;
@@ -3651,7 +3672,7 @@ color: white;
     transition: color 0.2s;
 }
 
-.sc-notification-back-link:hover {
+.sc-notification-back-link-new:hover {
     color: #135e96;
 }
 
@@ -5248,4 +5269,10 @@ button[name="save_honors"]:focus {
         flex-direction: column;
         gap: 6px;
     }
+}
+.sc-notif-tabs{
+
+list-style: none; margin: 0; padding: 0; display: flex; column-gap: 4px; 
+row-gap: 24px;
+flex-wrap: wrap;
 }

@@ -26,14 +26,14 @@ $nonce = wp_create_nonce('sc_attendance_report_player');
     <h1 class="wp-heading-inline">گزارش حضور بازیکن</h1>
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-add')); ?>" class="page-title-action">ثبت حضور و غیاب</a>
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list')); ?>" class="page-title-action">لیست حضور و غیاب</a>
-    <hr class="wp-header-end">
+    <hr class="wp-header-end ">
 
-    <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; margin-top: 20px;">
+    <div class="report_player_attendance">
         <!-- فیلترها -->
         <div>
             <div class="postbox" style="margin-top: 0;">
                 <div class="postbox-header">
-                    <h2 class="hndle">فیلتر گزارش</h2>
+                    <h2 class="hndle filter_head_player">فیلتر گزارش</h2>
                 </div>
                 <div class="inside" style="padding: 15px;">
                     <p style="margin-bottom: 10px;"><label for="report_member_id">کاربر:</label></p>
@@ -104,7 +104,7 @@ $nonce = wp_create_nonce('sc_attendance_report_player');
                     <div class="postbox" style="margin-top: 0;">
                         <div class="inside" style="padding: 40px; text-align: center;">
                             <div style="font-size: 48px; opacity: 0.3; margin-bottom: 15px;">📋</div>
-                            <h2 style="margin: 0 0 10px 0; color: #666;">گزارش حضور بازیکن</h2>
+                            <h2 style="margin: 0 0 10px 0; color: #666;" >گزارش حضور بازیکن</h2>
                             <p style="color: #999; margin: 0;">کاربر را انتخاب کنید و بازه تاریخ را مشخص کنید، سپس روی «مشاهده گزارش» کلیک کنید.</p>
                         </div>
                     </div>

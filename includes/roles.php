@@ -361,8 +361,5 @@ function club_remove_all_dashboard_widgets() {
 
 
 
-//حذف دسترسی های اضافی برای ووکامرس و کاربر عادی در افزودن کاربر وردپرس 
-
-
 
 

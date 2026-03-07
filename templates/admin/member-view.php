@@ -34,14 +34,14 @@ $player_courses = $wpdb->get_results($wpdb->prepare(
 ?>
 <div class="wrap">
     <h1 class="wp-heading-inline">مشاهده اطلاعات بازیکن</h1>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-members')); ?>" class="page-title-action">← بازگشت به لیست بازیکنان</a>
+    <a href="<?php echo (wc_current_user_has_role('coach')) ? esc_url(admin_url('admin.php?page=sc-coach-my-players')) : esc_url(admin_url('admin.php?page=sc-members')); ?>" class="page-title-action">← بازگشت به لیست بازیکنان</a>
+    <?php if( !wc_current_user_has_role('coach')){ ?>
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-member&player_id=' . $player_id)); ?>" class="page-title-action">ویرایش</a>
+    <?php } ?>
     <hr class="wp-header-end">
 
-    <div class="sc-member-view-card" style="background: #fff; border: 1px solid #c3c4c7; border-radius: 8px; padding: 24px; margin-top: 20px; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
-        
-        <h2 style="margin-top: 0; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">اطلاعات شخصی</h2>
-        
+    <div class="sc-member-view-card info_user_player" >
+                
         <table class="form-table" style="margin-top: 0;">
             <tbody>
                 <tr>
@@ -91,7 +91,7 @@ $player_courses = $wpdb->get_results($wpdb->prepare(
                 <tr>
                     <th>وضعیت</th>
                     <td>
-                        <span style="display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: 600; <?php echo $player->is_active ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'; ?>">
+                        <span class="sc_status_course_player" style=" <?php echo $player->is_active ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'; ?>">
                             <?php echo $player->is_active ? 'فعال' : 'غیرفعال'; ?>
                         </span>
                     </td>
@@ -118,7 +118,7 @@ $player_courses = $wpdb->get_results($wpdb->prepare(
                 </tr>
                 <tr>
                     <th>سطح بازیکن</th>
-                    <td><?php echo esc_html($player->skill_level ?: '-'); ?></td>
+                    <td><?php echo esc_html($player->skill_level ?: 'تعیین نشده'); ?></td>
                 </tr>
             </tbody>
         </table>
@@ -180,11 +180,11 @@ $player_courses = $wpdb->get_results($wpdb->prepare(
         <?php endif; ?>
 
         <?php if (!empty($player_courses)) : ?>
-            <h2 style="margin-top: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">دوره‌های بازیکن</h2>
+            <h2 class="course_active_palyer">دوره‌های بازیکن</h2>
             <table class="wp-list-table widefat fixed striped" style="margin-top: 16px;">
                 <thead>
                     <tr>
-                        <th>نام دوره</th>
+                        <th style="width: 120px;">نام دوره</th>
                         <th style="width: 120px;">قیمت</th>
                         <th style="width: 120px;">وضعیت</th>
                         <th style="width: 150px;">تاریخ ثبت‌نام</th>
@@ -206,7 +206,7 @@ $player_courses = $wpdb->get_results($wpdb->prepare(
                             <td><strong><?php echo esc_html($pc->title); ?></strong></td>
                             <td><?php echo $formatted_price; ?></td>
                             <td>
-                                <span style="display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: 600; <?php echo $pc->status === 'active' ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'; ?>">
+                                <span class="sc_status_course_player" style="<?php echo $pc->status === 'active' ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'; ?>">
                                     <?php echo esc_html($status_label); ?>
                                 </span>
                             </td>

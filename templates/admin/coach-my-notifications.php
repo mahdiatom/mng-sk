@@ -57,7 +57,7 @@ if ($view_id > 0) {
     }
 }
 
-$per_page = 15;
+$per_page = 10;
 $page = isset($_GET['notif_page']) ? max(1, absint($_GET['notif_page'])) : 1;
 $unread_count = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications($current_user_id) : 0;
 $unread_only = ($filter === 'unread');
@@ -105,7 +105,6 @@ $count_read = function_exists('sc_count_user_notifications') ? sc_count_user_not
             <input type="hidden" name="filter" id="sc-coach-notif-filter-value" value="<?php echo esc_attr($filter); ?>">
             <input type="search" name="s" id="sc-coach-notif-search-input" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." class="regular-text" style="width: 220px;">
             <button type="submit" class="button">جستجو</button>
-            <button type="button" class="button sc-coach-notif-clear-search" <?php echo $search === '' ? ' style="display:none;"' : ''; ?>>پاک کردن جستجو</button>
         </form>
     </div>
 

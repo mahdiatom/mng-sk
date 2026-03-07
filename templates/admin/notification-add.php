@@ -253,7 +253,7 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) { ?>
                         <option value="wallet_negative" <?php selected($initial_target_type, 'wallet_negative'); ?>>ارسال به مخاطبین با کیف پول منفی</option>
                      <?php } ?>
-                        <option value="phone" <?php selected($initial_target_type, 'phone'); ?>>ارسال به شماره مخاطب خاص-</option>
+                        <option value="phone" <?php selected($initial_target_type, 'phone'); ?>>ارسال به شماره مخاطب خاص</option>
                         <?php endif; ?>
                     </select>
                 </td>

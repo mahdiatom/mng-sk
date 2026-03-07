@@ -8,54 +8,13 @@ if ($view_id > 0) {
     $notification = sc_get_user_notification_detail($view_id, $current_user_id);
     if ($notification) {
         sc_mark_notification_read($view_id, $current_user_id);
-        
-        // خواندن پارامترهای جستجو برای لینک بازگشت
-        // همیشه به sc-notifications برمی‌گردیم (نه sc-submit-documents)
+       
         $back_url = wc_get_account_endpoint_url('sc-notifications');
-        
-        // اول از پارامتر back در URL استفاده می‌کنیم (که توسط JavaScript تنظیم می‌شود)
-        if (isset($_GET['back']) && !empty($_GET['back'])) {
-            $back_param = esc_url_raw(urldecode($_GET['back']));
-            if (strpos($back_param, 'sc-notifications') !== false) {
-                $back_url = $back_param;
-            }
-        } else {
-            // اگر پارامتر back وجود نداشت، از referrer استفاده می‌کنیم
-            $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
-            
-            if ($referrer && strpos($referrer, 'sc-notifications') !== false) {
-                $referrer_parts = parse_url($referrer);
-                if (isset($referrer_parts['query'])) {
-                    parse_str($referrer_parts['query'], $referrer_params);
-                    // فقط پارامترهای مربوط به notifications را اضافه می‌کنیم
-                    if (isset($referrer_params['s']) && !empty(trim($referrer_params['s']))) {
-                        $back_url = add_query_arg('s', sanitize_text_field($referrer_params['s']), $back_url);
-                    }
-                    if (isset($referrer_params['filter']) && $referrer_params['filter'] !== 'all') {
-                        $back_url = add_query_arg('filter', sanitize_text_field($referrer_params['filter']), $back_url);
-                    }
-                    if (isset($referrer_params['notif_page']) && absint($referrer_params['notif_page']) > 1) {
-                        $back_url = add_query_arg('notif_page', absint($referrer_params['notif_page']), $back_url);
-                    }
-                }
-            }
-        }
-        
-        // اطمینان حاصل می‌کنیم که URL به sc-notifications است نه جای دیگر
-        if (strpos($back_url, '/sc-notifications') === false && strpos($back_url, 'sc-notifications') === false) {
-            // اگر نیست، دوباره می‌سازیم
-            $base_url = wc_get_account_endpoint_url('sc-notifications');
-            $back_query = parse_url($back_url, PHP_URL_QUERY);
-            if ($back_query) {
-                $back_url = $base_url . '?' . $back_query;
-            } else {
-                $back_url = $base_url;
-            }
-        }
+ 
         ?>
         <div class="woocommerce-MyAccount-content sc-notifications-content">
             <div class="sc-notification-detail-card">
-                <a href="<?php echo esc_url($back_url); ?>" class="sc-notification-back-link">← بازگشت به لیست</a>
+                <a href="<?php echo esc_url($back_url); ?>" class="sc-notification-back-link-new">← بازگشت به لیست</a>
                 <h2 class="sc-notification-detail-title"><?php echo esc_html($notification->title); ?></h2>
                 <p class="sc-notification-detail-meta"><?php echo esc_html(sc_date_shamsi($notification->created_at, 'l d F Y - H:i')); ?></p>
                 <div class="sc-notification-detail-body"><?php echo nl2br(esc_html($notification->content)); ?></div>
@@ -124,7 +83,7 @@ $count_read = function_exists('sc_count_user_notifications') ? sc_count_user_not
     <?php wc_print_notices(); ?>
 
     <div class="sc-notifications-filters" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px;">
-        <ul class="sc-notif-tabs" style="list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; flex: 1;">
+        <ul class="sc-notif-tabs" >
             <li><a href="#" class="sc-notif-tab <?php echo $filter === 'all' ? 'active' : ''; ?>" data-filter="all" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'all' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">همه <span class="sc-notif-tab-count" data-count="all">(<?php echo (int) $count_all; ?>)</span></a></li>
             <li><a href="#" class="sc-notif-tab <?php echo $filter === 'unread' ? 'active' : ''; ?>" data-filter="unread" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'unread' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">خوانده نشده <span class="sc-notif-tab-count" data-count="unread">(<?php echo (int) $count_unread; ?>)</span></a></li>
             <li><a href="#" class="sc-notif-tab <?php echo $filter === 'read' ? 'active' : ''; ?>" data-filter="read" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'read' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">خوانده شده <span class="sc-notif-tab-count" data-count="read">(<?php echo (int) $count_read; ?>)</span></a></li>

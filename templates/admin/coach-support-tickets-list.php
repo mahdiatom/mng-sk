@@ -4,7 +4,7 @@ $coach_id = function_exists('sc_support_get_coach_id_by_user_id') ? sc_support_g
 if ($coach_id <= 0) {
     wp_die('اطلاعات مربی یافت نشد.');
 }
-$tickets = sc_support_get_tickets_for_coach($coach_id, ['per_page' => 50]);
+$tickets = sc_support_get_tickets_for_coach($coach_id, ['per_page' => 100]);
 $list_url = admin_url('admin.php?page=sc-coach-support-tickets');
 ?>
 <div class="wrap sc-coach-panel-wrap sc-support-coach-wrap">

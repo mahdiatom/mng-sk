@@ -2785,10 +2785,10 @@ function sc_sprot_notices(){
             $type='error';
             $messege="خطا در ایجاد صورت حساب. لطفاً فیلدهای ورودی را بررسی کنید.";
         }
-        if($status == 'invoice_add_team_member'){
-            $type='error';
-            $messege="بازیکن تیم صورت‌حساب دریافت نمی‌کند؛ هزینه هر جلسه از کیف پول کسر می‌شود.";
-        }
+        // if($status == 'invoice_add_team_member'){
+        //     $type='error';
+        //     $messege="بازیکن تیم صورت‌حساب دریافت نمی‌کند؛ هزینه هر جلسه از کیف پول کسر می‌شود.";
+        // }
         if($status == 'pay_card_to_card'){
             $type='success';
             $updated = isset($_GET['updated']) ? absint($_GET['updated']) : 0;
