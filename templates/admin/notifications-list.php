@@ -269,7 +269,7 @@ $total_pages = ceil($total / $per_page);
             <input type="submit" class="button" value="جستجو">
         </form>
     </div>
-
+   
     <form method="post" id="sc-notifications-bulk-form">
         <?php wp_nonce_field('bulk_delete_notifications'); ?>
         <div class="tablenav top" style="margin: 15px 0;">
@@ -289,7 +289,7 @@ $total_pages = ceil($total / $per_page);
                     <input type="checkbox" id="cb-select-all">
                 </td>
                 <th style="width:50px">ردیف</th>
-                <th>عنوان</th>
+                <th style="width:120px">عنوان</th>
                 <th style="width:120px">ثبت‌کننده</th>
                 <th style="width:120px">نوع ارسال</th>
                 <th style="width:80px">تعداد مخاطب</th>

@@ -12,6 +12,8 @@ function sc_support_allowed_mime_types() {
     return [
         'jpg|jpeg|jpe' => 'image/jpeg',
         'png' => 'image/png',
+        'jpg' => 'image/jpg',
+        'jpeg' => 'image/jpeg',
         'gif' => 'image/gif',
         'webp' => 'image/webp',
         'bmp' => 'image/bmp',

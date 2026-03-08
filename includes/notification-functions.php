@@ -565,10 +565,9 @@ function sc_ajax_upload_notification_attachment() {
         wp_send_json_error(['message' => 'فایلی انتخاب نشده یا خطا در آپلود.']);
     }
     $allowed = function_exists('sc_support_allowed_mime_types') ? sc_support_allowed_mime_types() : [
-        'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp',
+        'jpg' => 'image/jpg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp',
         'pdf' => 'application/pdf', 'doc' => 'application/msword', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'xls' => 'application/vnd.ms-excel', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'zip' => 'file'
+        'xls' => 'application/vnd.ms-excel', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ];
     $allowed_ext = array_keys($allowed);
     $max_size = 5 * 1024 * 1024; // 5MB

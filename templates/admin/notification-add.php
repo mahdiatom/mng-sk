@@ -237,8 +237,30 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                         <div class="sc-ticket-uploaded-list"></div>
                         <div class="sc-ticket-attachment-ids-hidden"></div>
                     </div>
+                    <?php 
+                     $attachment_ids = isset($notification->attachment_ids) && $notification->attachment_ids ? json_decode($notification->attachment_ids, true) : [];
+                if (!empty($attachment_ids) && is_array($attachment_ids) && function_exists('sc_notification_attachment_download_url')) :
+                    ?>
+                    <div class="sc-notification-detail-attachments" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                        <strong style="display: block; margin-bottom: 10px;">پیوست‌ها:</strong>
+                        <ul style="list-style: none; margin: 0; padding: 0;">
+                            <?php foreach (array_map('absint', $attachment_ids) as $aid) :
+                                if (!$aid) continue;
+                                $current_user_id = get_current_user_id();
+                                $name = get_the_title($aid) ?: basename(get_attached_file($aid)) ?: 'پیوست';
+                                $url = sc_notification_attachment_download_url($aid, $notification->id, $current_user_id);
+                                ?>
+                                <li style="margin-bottom: 8px;"><a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener" class="sc-notification-attachment-link" style="display: inline-flex; align-items: center; gap: 6px;">📎 <?php echo esc_html($name); ?></a></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+                
                 </td>
             </tr>
+
+
+
             <tr>
                 <th scope="row">نوع ارسال</th>
                 <td>
@@ -325,6 +347,7 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                                     $search = strtolower($m->first_name . ' ' . $m->last_name . ' ' . ($m->national_id ?: ''));
                                     $vis = ($opt_index < $max_visible) ? 'sc-visible' : 'sc-hidden';
                                     $opt_index++;
+                                    
                                 ?>
                                     <div class="sc-dropdown-option <?php echo $vis; ?>" data-value="<?php echo esc_attr($val); ?>" data-label="<?php echo esc_attr($label); ?>" data-search="<?php echo esc_attr($search); ?>"><?php echo esc_html($m->first_name . ' ' . $m->last_name . ' - ' . ($m->national_id ?: $m->id)); ?></div>
                                 <?php endforeach; ?>
@@ -744,48 +767,4 @@ jQuery(document).ready(function($) {
     }
 });
 </script>
-<style>
-/* کارت فرم - تمام عرض و ظاهر مدرن */
-.sc-notification-add-wrap { max-width: none; }
-.sc-notification-add-title { margin-bottom: 0; padding-bottom: 10px; }
-.sc-notification-form-card {
-    background: #fff;
-    border: 1px solid #c3c4c7;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.06);
-    padding: 28px 32px;
-    margin-top: 20px;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-.sc-notification-form-table { margin: 0; width: 100%; max-width: 100%; }
-.sc-notification-form-table th { padding: 14px 16px 14px 0; width: 200px; font-weight: 600; color: #1d2327; vertical-align: top; }
-.sc-notification-form-table td { padding: 14px 0; }
-.sc-notification-input { width: 100%; max-width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #8c8f94; font-size: 14px; box-sizing: border-box; }
-.sc-notification-input:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: none; }
-.sc-notification-textarea { width: 100%; max-width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #8c8f94; font-size: 14px; line-height: 1.6; resize: vertical; box-sizing: border-box; }
-.sc-notification-textarea:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: none; }
-.sc-notification-form-table .target-row td { padding-top: 16px; padding-bottom: 16px; }
-.sc-notification-form-table label { margin-left: 12px; margin-right: 0; cursor: pointer; }
-.sc-notification-form-table label:first-of-type { margin-left: 0; }
-.sc-notification-form-table p.submit { margin-top: 24px; margin-bottom: 0; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-.sc-notification-form-table .button-primary { padding: 10px 24px; border-radius: 8px; font-weight: 600; }
-/* مخاطبین و دراپ‌داون */
-.sc-notification-recipient-tags { min-height: 48px; padding: 12px 14px; background: #f6f7f7; border: 1px solid #dcdcde; border-radius: 8px; margin-bottom: 14px; }
-.sc-notification-recipient-tags .recipient-tag { display: inline-block; background: #2271b1; color: #fff; padding: 6px 12px; margin: 4px 4px 4px 0; border-radius: 8px; font-size: 13px; }
-.sc-notification-recipient-tags .recipient-tag .recipient-remove { background: transparent; border: none; color: #fff; cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1; margin-right: 4px; }
-.sc-notification-recipient-tags .recipient-tag .recipient-remove:hover { color: #ffcc00; }
-.sc-notification-recipient-tags em { color: #646970; font-style: normal; }
-.sc-notification-recipient-dropdown { max-width: 100%; width: 100%; }
-.sc-notification-recipient-dropdown .sc-dropdown-toggle { min-height: 44px; padding: 10px 36px 10px 14px; display: flex; align-items: center; border-radius: 8px; border: 1px solid #8c8f94; background: #fff; }
-.sc-notification-recipient-dropdown .sc-dropdown-placeholder { color: #646970; }
-.sc-notification-recipient-dropdown .sc-dropdown-menu { border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
-.sc-dropdown-option-group { padding: 10px 12px; font-weight: 600; color: #1d2327; background: #f0f0f1; font-size: 12px; border-bottom: 1px solid #dcdcde; }
-.sc-sms-counter { margin-top: 10px; color: #646970; font-size: 13px; }
-.sc-notification-form-table select[multiple] { min-width: 100%; max-width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #8c8f94; }
-.sc-notification-select { padding: 8px 12px; border-radius: 8px; border: 1px solid #8c8f94; font-size: 14px; }
-.sc-notification-select:focus { border-color: #2271b1; outline: none; }
-.sc-notification-form-table .course-ids-row select { min-height: 140px; }
-.sc-notification-form-table #course-ids-course { min-height: 180px; }
-</style>
+

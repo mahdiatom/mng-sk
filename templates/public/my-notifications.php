@@ -82,7 +82,7 @@ $count_read = function_exists('sc_count_user_notifications') ? sc_count_user_not
     <h2 class="sc-notifications-heading">اطلاعیه‌ها</h2>
     <?php wc_print_notices(); ?>
 
-    <div class="sc-notifications-filters" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px;">
+    <div class="sc-notifications-filters" >
         <ul class="sc-notif-tabs" >
             <li><a href="#" class="sc-notif-tab <?php echo $filter === 'all' ? 'active' : ''; ?>" data-filter="all" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'all' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">همه <span class="sc-notif-tab-count" data-count="all">(<?php echo (int) $count_all; ?>)</span></a></li>
             <li><a href="#" class="sc-notif-tab <?php echo $filter === 'unread' ? 'active' : ''; ?>" data-filter="unread" style="padding: 8px 14px; border-radius: 6px; text-decoration: none; <?php echo $filter === 'unread' ? 'background: #2271b1; color: #fff;' : 'background: #f0f0f1; color: #1d2327;'; ?>">خوانده نشده <span class="sc-notif-tab-count" data-count="unread">(<?php echo (int) $count_unread; ?>)</span></a></li>

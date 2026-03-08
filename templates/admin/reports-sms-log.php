@@ -164,7 +164,7 @@ if ($entries_table_exists && $total_entries > 0) {
 
     <form method="get" action="" style="margin-bottom: 20px;">
         <input type="hidden" name="page" value="sc-reports-sms-log">
-        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+        <div class="input_from_shamsi_date_smslog">
             <div>
                 <label for="date_from_shamsi" style="display: block; margin-bottom: 4px; font-size: 12px;">از تاریخ</label>
                 <input type="text"
@@ -174,7 +174,7 @@ if ($entries_table_exists && $total_entries > 0) {
                        class="regular-text persian-date-input sc-no-default-date"
                        placeholder="انتخاب تاریخ (شمسی)"
                        readonly
-                       style="width: 140px;">
+                       >
             </div>
             <div>
                 <label for="date_to_shamsi" style="display: block; margin-bottom: 4px; font-size: 12px;">تا تاریخ</label>
@@ -185,10 +185,10 @@ if ($entries_table_exists && $total_entries > 0) {
                        class="regular-text persian-date-input sc-no-default-date"
                        placeholder="انتخاب تاریخ (شمسی)"
                        readonly
-                       style="width: 140px;">
+                       >
             </div>
-            <div>
-                <label for="context" style="display: block; margin-bottom: 4px; font-size: 12px;">بخش</label>
+            <div class="section_filter_sms_log">
+                <label for="context">بخش</label>
                 <select name="context" id="context">
                     <option value="">همه</option>
                     <?php foreach ($context_labels as $ctx => $label) : if ($ctx === '') continue; ?>
@@ -196,9 +196,9 @@ if ($entries_table_exists && $total_entries > 0) {
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div>
+            <div class="state_filter_sms_log">
                 <label for="status" style="display: block; margin-bottom: 4px; font-size: 12px;">وضعیت</label>
-                <select name="status" id="status">
+                <select name="status" id="status" style="width: 100%;">
                     <option value="" <?php selected($filter_status, ''); ?>>همه</option>
                     <option value="1" <?php selected($filter_status, '1'); ?>>موفق</option>
                     <option value="0" <?php selected($filter_status, '0'); ?>>ناموفق</option>
@@ -250,18 +250,19 @@ if ($entries_table_exists && $total_entries > 0) {
     <?php if (empty($logs)) : ?>
         <p>رکوردی یافت نشد.</p>
     <?php else : ?>
+        <div class="back_list_log_admin" >
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
-                    <th scope="col" style="width: 50px;">ردیف</th>
-                    <th scope="col" style="width: 140px;">تاریخ و زمان</th>
-                    <th scope="col" style="width: 110px;">شماره</th>
-                    <th scope="col" style="width: 120px;">بخش</th>
-                    <th scope="col">متن / توضیح</th>
-                    <th scope="col" style="width: 85px;">وضعیت ارسال</th>
-                    <th scope="col" style="width: 160px;">وضعیت تحویل (واقعی)</th>
-                    <th scope="col" style="width: 200px;">پیام خطا / توضیحات</th>
-                    <th scope="col" style="width: 90px;">شناسه پیام</th>
+                    <th scope="col" style="width: 10%;">ردیف</th>
+                    <th scope="col" style="width: 25%;">تاریخ و زمان</th>
+                    <th scope="col" style="width: 20%;">شماره</th>
+                    <th scope="col" style="width: 10%;">بخش</th>
+                    <th scope="col" style="width: 30%;">متن / توضیح</th>
+                    <th scope="col" style="width: 20%;">وضعیت ارسال</th>
+                    <th scope="col" style="width: 20%;">وضعیت تحویل </th>
+                    <th scope="col" style="width: 25%;">پیام خطا / توضیحات</th>
+                    <th scope="col" style="width: 15%;">شناسه پیام</th>
                 </tr>
             </thead>
             <tbody>
@@ -324,7 +325,7 @@ if ($entries_table_exists && $total_entries > 0) {
                 ?>
             </tbody>
         </table>
-
+                </div>
         <?php if ($total_pages > 1) : ?>
             <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
                 <div class="tablenav-pages" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -390,18 +391,19 @@ if ($entries_table_exists && $total_entries > 0) {
     <hr style="margin: 32px 0 16px 0;" />
 
     <h2 style="margin-bottom: 12px;">لاگ تفصیلی پیامک</h2>
-    <p style="color: #646970; margin-bottom: 12px;">همهٔ ورودی‌های لاگ (DEBUG, INFO, SUCCESS, ERROR) مانند فایل sc-sms-log — تعداد: <strong><?php echo number_format($total_entries); ?></strong></p>
+    <p style="color: #646970; margin-bottom: 12px;"> تعداد لاگ ها :  <strong><?php echo number_format($total_entries); ?></strong></p>
 
     <?php if (empty($entries)) : ?>
         <p>ورودی لاگ تفصیلی یافت نشد. از همین لحظه هر بار که پیامکی ارسال یا لاگ شود، اینجا ثبت می‌شود.</p>
     <?php else : ?>
+        <div class="back_list_log_admin">
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
                     <th scope="col" style="width: 50px;">ردیف</th>
                     <th scope="col" style="width: 155px;">تاریخ و زمان</th>
                     <th scope="col" style="width: 85px;">سطح</th>
-                    <th scope="col">پیام</th>
+                    <th scope="col" style="width: 85px;">پیام</th>
                     <th scope="col" style="min-width: 200px;">Data</th>
                 </tr>
             </thead>
@@ -440,7 +442,7 @@ if ($entries_table_exists && $total_entries > 0) {
                 ?>
             </tbody>
         </table>
-
+                </div>
         <?php if ($total_pages_ent > 1) : ?>
             <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
                 <div class="tablenav-pages" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">

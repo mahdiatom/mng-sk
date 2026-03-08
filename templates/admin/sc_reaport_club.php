@@ -177,8 +177,10 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
 ?>
 
 
-
+<div class="title_head_btn_report">
 <h3>کاربران</h3>
+<a href="<?php echo admin_url('admin.php?page=sc-members'); ?>">مدیریت لیست کاربران</a>
+</div>
 <div class="sc-dashboard-stats">
         <div class="sc-stat-box">
             <h3>کل کاربران </h3>
@@ -218,9 +220,11 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
             </div>
         </div>
     </div>
-
+<div class="title_head_btn_report">
 <h3>مالی و حسابداری  </h3>
+<a href="<?php echo admin_url('admin.php?page=sc-reports-income-expenses'); ?>">مشاهده جزئیات مالی باشگاه</a>
 
+</div>
  <div class="sc-dashboard-stats">
         <div class="sc-stat-box">
             <h3>کل درآمد</h3>
@@ -259,7 +263,11 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
             </div>
         </div>
     </div>
+
+    <div class="title_head_btn_report">
 <h3> دوره</h3>
+        <a href="<?php echo admin_url('admin.php?page=sc-courses'); ?>">مدیریت لیست دوره ها </a>
+</div>
  <div class="sc-dashboard-stats">
         <div class="sc-stat-box">
             <h3>کل دوره ها</h3>
@@ -293,7 +301,12 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
         </div>
         
     </div>
+
+
+    <div class="title_head_btn_report">
 <h3>رویداد ها </h3>
+        <a href="<?php echo admin_url('admin.php?page=sc-events'); ?>">مدیریت لیست رویداد ها </a>
+    </div>
  <div class="sc-dashboard-stats">
         <div class="sc-stat-box">
             <h3>کل رویداد ها</h3>
@@ -327,5 +340,6 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
         </div>
         
     </div>
+
 <h3>حضور و غیاب ( به زودی....): </h3>
 <h3>پیامک های ارسال شده (به زودی ....) </h3>

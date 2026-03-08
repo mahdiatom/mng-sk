@@ -33,7 +33,7 @@ $nonce = wp_create_nonce('sc_attendance_report_player');
         <div>
             <div class="postbox" style="margin-top: 0;">
                 <div class="postbox-header">
-                    <h2 class="hndle filter_head_player">فیلتر گزارش</h2>
+                    <h2 class=" filter_head_player">فیلتر گزارش</h2>
                 </div>
                 <div class="inside" style="padding: 15px;">
                     <p style="margin-bottom: 10px;"><label for="report_member_id">کاربر:</label></p>

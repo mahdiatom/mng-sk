@@ -17,9 +17,9 @@ class Support_Tickets_List_Table extends WP_List_Table {
 
     public function get_columns() {
         return [
-            'id' => 'شناسه',
-            'user' => 'ارسال‌کننده',
             'subject' => 'موضوع',
+             'id' => 'شناسه',
+            'user' => 'ارسال‌کننده',
             'department' => 'بخش',
             'status' => 'وضعیت',
             'created_at' => 'تاریخ ایجاد',
@@ -114,11 +114,13 @@ class Support_Tickets_List_Table extends WP_List_Table {
         $t = $wpdb->prefix . 'sc_support_tickets';
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
         $filter_department = isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all';
+        
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
 
         $base = ['1=1'];
         $params = [];
         if ($filter_department !== 'all') {
+     
             $base[] = 'department = %s';
             $params[] = $filter_department;
         }
@@ -144,7 +146,6 @@ class Support_Tickets_List_Table extends WP_List_Table {
             }
             return $p ? (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t WHERE $w", $p)) : (int) $wpdb->get_var("SELECT COUNT(*) FROM $t WHERE $w");
         };
-
         $count_all = $run(null);
         $count_pending = $run('pending_reply');
         $count_answered = $run('answered');
@@ -171,8 +172,8 @@ class Support_Tickets_List_Table extends WP_List_Table {
         if (isset($_GET['filter_status'])) $url = add_query_arg('filter_status', $_GET['filter_status'], $url);
         if (isset($_GET['s'])) $url = add_query_arg('s', $_GET['s'], $url);
         ?>
-        <div class="alignleft actions">
-            <label>بخش:</label>
+        <div class="alignleft actions section_filter">
+            <label>بخش :</label>
             <select name="filter_department" onchange="location.href=this.value">
                 <option value="<?php echo esc_url(add_query_arg('filter_department', 'all', $url)); ?>" <?php selected($filter_department, 'all'); ?>>همه</option>
                 <option value="<?php echo esc_url(add_query_arg('filter_department', 'manager', $url)); ?>" <?php selected($filter_department, 'manager'); ?>>مدیر باشگاه</option>

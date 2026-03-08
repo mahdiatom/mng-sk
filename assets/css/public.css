@@ -3701,7 +3701,9 @@ color: white;
 .sc-notifications-pagination {
     margin-top: 2rem;
     text-align: center;
+    
 }
+
 
 .sc-notifications-pagination .page-numbers {
     display: inline-flex;
@@ -3718,7 +3720,28 @@ color: white;
     border: 1px solid #e5e7eb;
     transition: all 0.2s;
 }
+.sc-notifications-pagination span{
+    padding: 4px 13px !important;
+    background-color: #0c02c9 !important;
+    color: white !important;
+    border-radius: 5px;
 
+}
+.sc-notifications-pagination a{
+    padding: 4px 13px !important;
+    background-color: #e7e7e7 !important;
+ 
+    border-radius: 5px;
+
+}
+.sc-notifications-filters{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    justify-content: space-between;
+}
 .sc-notifications-pagination .page-numbers:hover,
 .sc-notifications-pagination .page-numbers.current {
     background: #2271b1;

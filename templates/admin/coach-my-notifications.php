@@ -37,7 +37,7 @@ if ($view_id > 0) {
                 $attachment_ids = isset($notification->attachment_ids) && $notification->attachment_ids ? json_decode($notification->attachment_ids, true) : [];
                 if (!empty($attachment_ids) && is_array($attachment_ids) && function_exists('sc_notification_attachment_download_url')) :
                     ?>
-                    <div class="sc-coach-notif-detail-attachments" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--sc-notif-border, #e2e8f0);">
+                    <div class="sc-coach-notif-detail-attachments" >
                         <strong style="display: block; margin-bottom: 10px;">پیوست‌ها:</strong>
                         <ul style="list-style: none; margin: 0; padding: 0;">
                             <?php foreach (array_map('absint', $attachment_ids) as $aid) :
@@ -57,7 +57,7 @@ if ($view_id > 0) {
     }
 }
 
-$per_page = 10;
+$per_page = 15;
 $page = isset($_GET['notif_page']) ? max(1, absint($_GET['notif_page'])) : 1;
 $unread_count = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications($current_user_id) : 0;
 $unread_only = ($filter === 'unread');

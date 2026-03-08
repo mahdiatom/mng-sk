@@ -366,6 +366,12 @@ p.sk-modal-content p {
     background-color: #f8f9fa;
     z-index: 10;
 }
+.section_filter{
+        display: flex;
+    align-items: center;
+    gap: 11px;
+    padding-right: 10px !important;
+}
 
 .sc-users-table-container thead th {
     background-color: #f8f9fa;
@@ -660,11 +666,14 @@ tr td.column-full_name:hover{
     .column-cb{
             width: 17% !important;
     }
-.back_attendance_list{
+.back_attendance_list {
 
     overflow-x: auto !important;
     
 }
+ .back_list_log_admin{
+    overflow-x:scroll !important;
+ }
 table.fixed {
     table-layout: unset !important;
 }
@@ -1058,10 +1067,10 @@ width: fit-content !important;
 }
 
 .sc-dashboard-stats{
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 10px;
 }
 .sc-stat-box{
-    background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 3px rgba(50, 44, 245, 0.714);
 }
 
 .sc-stat-box h3{
@@ -1070,7 +1079,7 @@ width: fit-content !important;
     
 }
 .sc-dashboard-stats div{
-font-size: 24px; font-weight: bold; color: #d63638;
+font-size: 24px; font-weight: bold; color: #0c02c9;
 }
 .chart_dashboard{
     display: flex;
@@ -1606,5 +1615,104 @@ display: block; margin-bottom: 5px; font-weight: bold;
 @media screen and (max-width:780px){
     .report_player_attendance{
     grid-template-columns: unset;
+     gap: 10px;
+      margin-top: 10px;
     }
+}
+.title_head_btn_report{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fafafa;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid #fafafa;
+    margin:  20px 10px;
+    box-shadow: 2px 1px 0 #0c02c9e1;
+}
+.title_head_btn_report a{
+background-color: #0c02c9;
+color: white;
+border-radius: 5px;
+padding: 10px 15px;
+}
+/* sms log */
+.input_from_shamsi_date_smslog{
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+}
+.input_from_shamsi_date_smslog .persian-date-input{
+    width: 120px;
+}
+.section_filter_sms_log label{
+    display: block; margin-bottom: 4px; font-size: 12px;
+}
+@media screen and (max-width:780px){
+  .state_filter_sms_log , .section_filter_sms_log{
+    width: 48% !important;
+} 
+.input_from_shamsi_date_smslog .persian-date-input{
+    width: 140px;
+}
+}
+@media screen and (max-width:960px){
+  .persian-calendar-popup{
+    left: 10px !important;
+  }
+}
+/* اطلاعیه */
+.sc-notifications-list-card{
+    overflow: auto !important;
+}
+
+/* بخش ارسال نوتیف مدیر */
+
+/* کارت فرم - تمام عرض و ظاهر مدرن */
+.sc-notification-add-wrap { max-width: none; }
+.sc-notification-add-title { margin-bottom: 0; padding-bottom: 10px; }
+.sc-notification-form-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    padding: 28px 32px;
+    margin-top: 20px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.sc-notification-form-table { margin: 0; width: 100%; max-width: 100%; }
+.sc-notification-form-table th { padding: 14px 16px 14px 0; width: 200px; font-weight: 600; color: #1d2327; vertical-align: top; }
+.sc-notification-form-table td { padding: 14px 0; }
+.sc-notification-input { width: 100%; max-width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #8c8f94; font-size: 14px; box-sizing: border-box; }
+.sc-notification-input:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: none; }
+.sc-notification-textarea { width: 100%; max-width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #8c8f94; font-size: 14px; line-height: 1.6; resize: vertical; box-sizing: border-box; }
+.sc-notification-textarea:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: none; }
+.sc-notification-form-table .target-row td { padding-top: 16px; padding-bottom: 16px; }
+.sc-notification-form-table label { margin-left: 12px; margin-right: 0; cursor: pointer; }
+.sc-notification-form-table label:first-of-type { margin-left: 0; }
+.sc-notification-form-table p.submit { margin-top: 24px; margin-bottom: 0; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+.sc-notification-form-table .button-primary { padding: 10px 24px; border-radius: 8px; font-weight: 600; }
+/* مخاطبین و دراپ‌داون */
+.sc-notification-recipient-tags { min-height: 48px; padding: 12px 14px; background: #f6f7f7; border: 1px solid #dcdcde; border-radius: 8px; margin-bottom: 14px; }
+.sc-notification-recipient-tags .recipient-tag { display: inline-block; background: #2271b1; color: #fff; padding: 6px 12px; margin: 4px 4px 4px 0; border-radius: 8px; font-size: 13px; }
+.sc-notification-recipient-tags .recipient-tag .recipient-remove { background: transparent; border: none; color: #fff; cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1; margin-right: 4px; }
+.sc-notification-recipient-tags .recipient-tag .recipient-remove:hover { color: #ffcc00; }
+.sc-notification-recipient-tags em { color: #646970; font-style: normal; }
+.sc-notification-recipient-dropdown { max-width: 100%; width: 100%; }
+.sc-notification-recipient-dropdown .sc-dropdown-toggle { min-height: 44px; padding: 10px 36px 10px 14px; display: flex; align-items: center; border-radius: 8px; border: 1px solid #8c8f94; background: #fff; }
+.sc-notification-recipient-dropdown .sc-dropdown-placeholder { color: #646970; }
+.sc-notification-recipient-dropdown .sc-dropdown-menu { border-radius: 8px;  box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+.sc-dropdown-option-group { padding: 10px 12px; font-weight: 600; color: #1d2327; background: #f0f0f1; font-size: 12px; border-bottom: 1px solid #dcdcde; }
+.sc-sms-counter { margin-top: 10px; color: #646970; font-size: 13px; }
+.sc-notification-form-table select[multiple] { min-width: 100%; max-width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #8c8f94; }
+.sc-notification-select { padding: 8px 12px; border-radius: 8px; border: 1px solid #8c8f94; font-size: 14px; }
+.sc-notification-select:focus { border-color: #2271b1; outline: none; }
+.sc-notification-form-table .course-ids-row select { min-height: 140px; }
+.sc-notification-form-table #course-ids-course { min-height: 180px; }
+.sc-notification-form-card{
+    height: 1500px !important;
+}
+/* پایان ارسال نوتیف مدیر */
+.back_table_list{
+    overflow: auto;
 }

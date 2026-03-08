@@ -16,6 +16,7 @@ $list_url = admin_url('admin.php?page=sc-coach-support-tickets');
     <?php if (empty($tickets)) : ?>
         <p class="sc-coach-panel-empty-text" style="padding: 2rem;">هنوز تیکتی برای شما ارسال نشده است.</p>
     <?php else : ?>
+        <div class="back_table_list">
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -82,5 +83,6 @@ $list_url = admin_url('admin.php?page=sc-coach-support-tickets');
             </tbody>
         </table>
     <?php endif; ?>
+    </div>
     </div>
 </div>

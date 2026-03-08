@@ -60,7 +60,7 @@ if ($filter_user_id > 0) {
 }
 
 $where_sql = implode(' AND ', $where);
-$per_page = 25;
+$per_page = 10;
 $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
 
 $count_sql = "SELECT COUNT(*) FROM `$table` WHERE $where_sql";
@@ -103,6 +103,7 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
 ?>
 
 <div class="wrap">
+    <div class="back_list_log_admin">
     <h1 class="wp-heading-inline">لاگ فعالیت</h1>
     <p style="color: #646970; margin-top: 8px;">ثبت عملیات انجام‌شده در پنل ادمین (چه کسی چه عملی روی چه چیزی انجام داده).</p>
 
@@ -161,7 +162,9 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
 
     <?php if (empty($logs)) : ?>
         <p>رکوردی یافت نشد.</p>
+        </div>
     <?php else : ?>
+        <div class="back_list_log_admin">
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -170,7 +173,7 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
                     <th style="width: 120px;">کاربر</th>
                     <th style="width: 90px;">عملیات</th>
                     <th style="width: 100px;">موجودیت</th>
-                    <th>خلاصه</th>
+                    <th style="width: 100px;">خلاصه</th>
                     <th style="width: 80px;">جزئیات</th>
                 </tr>
             </thead>
@@ -202,6 +205,7 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
                 ?>
             </tbody>
         </table>
+    </div>
 
         <?php if ($total_pages > 1) : ?>
             <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
