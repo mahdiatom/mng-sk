@@ -299,6 +299,9 @@
           padding-top: 10px
 }
 }
+.wp-list-table tr th , .wp-list-table tr td{
+  text-align: center;
+}
 
 /* کیف پول */
       /* استایل اختصاصی جدول تراکنش‌های کیف پول */
@@ -370,3 +373,13 @@
        top: -24px;
      }
     }
+
+/* غیرفعال کردن حالت مخففی فیلتر بازیکن های من پیشفرض قالب */
+    @media screen and (max-width: 782px) {
+    .tablenav .view-switch, .tablenav.top .actions {
+        display: flex !important;
+        flex-direction: column;
+        margin-right: 20px;
+
+    }
+}

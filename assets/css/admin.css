@@ -1604,7 +1604,7 @@ display: block; margin-bottom: 5px; font-weight: bold;
     margin-top: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;
 }
 .info_user_player .form-table th{
-    background-color: #fafafa;
+    background-color: #ede9fe;
     border-radius: 10px;
     padding: 10px;
     margin-bottom: 5px;
@@ -1612,8 +1612,12 @@ display: block; margin-bottom: 5px; font-weight: bold;
 }
 .info_user_player .form-table tbody{
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    row-gap: 10px;
+    flex-wrap: wrap;
+}
+.info_user_player .form-table tbody tr{
+    width: 32%;
 }
 .info_user_player .form-table th::after{
     content: ':';
