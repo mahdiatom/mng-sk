@@ -155,11 +155,11 @@ $categories = $wpdb->get_results("SELECT * FROM $categories_table ORDER BY name 
         </div>
     <?php endif; ?>
     
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+    <div class="sections_cat_honors">
         <!-- فرم افزودن یا ویرایش دسته -->
-        <div class="postbox">
+        <div class="postbox edit_cat_honors">
             <div class="postbox-header">
-                <h2 class="hndle"><?php echo $editing_category ? 'ویرایش دسته' : 'افزودن دسته جدید'; ?></h2>
+                <h2 class=""><?php echo $editing_category ? 'ویرایش دسته' : 'افزودن دسته جدید'; ?></h2>
             </div>
             <div class="inside" style="padding: 20px;">
                 <?php if ($editing_category) : ?>
@@ -205,9 +205,9 @@ $categories = $wpdb->get_results("SELECT * FROM $categories_table ORDER BY name 
         </div>
         
         <!-- لیست دسته‌ها -->
-        <div class="postbox">
+        <div class="postbox list_cat_honores">
             <div class="postbox-header">
-                <h2 class="hndle">لیست دسته‌ها</h2>
+                <h2 class="">لیست دسته‌ها</h2>
             </div>
             <div class="inside" style="padding: 20px;">
                 <?php if (!empty($categories)) : ?>

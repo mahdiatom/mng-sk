@@ -1182,7 +1182,19 @@ display: block; margin-bottom: 5px; font-weight: bold;
     display: flex;
         justify-content: space-between;
 }
+.edit_cat_honors h2 , .list_cat_honores h2{
+    padding-right: 10px;
+}
+.edit_cat_honors , .list_cat_honores{
+    border-radius: 10px;
 
+}
+ .edit_cat_honors input {
+    border-radius: 5px;
+}
+.sections_cat_honors{
+     margin-top: 20px;
+}
 /* ========== تیکت پشتیبانی - ظاهر حرفه‌ای (مدیر و مربی) مثل بخش کاربر ========== */
 .sc-support-admin-wrap .sc-ticket-detail-card,
 .sc-support-coach-wrap .sc-ticket-detail-card {
@@ -1716,3 +1728,131 @@ padding: 10px 15px;
 .back_table_list{
     overflow: auto;
 }
+.section_right_manage_wallet{
+    width: 20%;
+}
+.section_left_manage_wallet{
+    width: 90%;
+}
+.info_balance_wallet{
+    
+    border-radius: 10px;
+    background: linear-gradient(#0c02c9 , #1565c0);
+    color: #fafafa;
+}
+.info_balance_wallet p{
+    font-size: 20px;
+
+}
+.choose_coach , .list_records_wallet , .charge_wallet {
+    border-radius: 10px !important;
+    box-shadow: 3px 0 0 #0c02c9 !important;
+}
+.charge_wallet  input#amount ,.charge_wallet textarea , .choose_coach select{
+    border-radius: 6px;
+    width: 100%;
+    border: 1px solid #dadada;
+    padding: 10px 5px;
+    
+}
+.charge_wallet h2 ,.list_records_wallet h2 , .choose_coach h2{
+    background: #f3f1f1;
+    width: fit-content;
+    padding: 13px 29px;
+    border-radius: 5px;
+}
+
+/* مدیریت درخواست برداشت */
+
+    /* استایل اختصاصی جدول درخواست‌های برداشت مربیان */
+    .sc-withdrawals-table-wrapper {
+        overflow-x: auto;
+        margin-top: 10px;
+    }
+
+    .sc-withdrawals-table th,
+    .sc-withdrawals-table td {
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .sc-withdrawals-table .column-index {
+        width: 2%;
+        text-align: center;
+    }
+
+    .sc-withdrawals-table .column-date {
+        width: 20%;
+    }
+
+    .sc-withdrawals-table .column-coach {
+        width: 35%;
+    }
+
+    .sc-withdrawals-table .column-amount,
+    .sc-withdrawals-table .column-balance {
+        width: 20%;
+        text-align: right;
+    }
+
+    .sc-withdrawals-table .column-status {
+        width: 20%;
+          
+    }
+
+    .sc-withdrawals-table .column-actions {
+        width: 20%;
+        text-align: center;
+    }
+
+    .sc-withdrawals-table .column-notes {
+        width: 30%;
+        white-space: normal;
+    }
+.sc-withdrawals-table .column-actions .button-small{
+
+width: fit-content;
+}
+.small-tag{
+    padding-right: 10px;
+
+}
+.btns_actions{
+    display: flex;
+    
+}
+    .filter_honors_list{
+display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.filter_honors_list .sc-dropdown-toggle{
+    width: 250px !important;
+    height: 31px;
+}
+@media screen and (max-width:780px) {
+    .filter_honors_list{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+            align-items: stretch;
+}
+.filter_honors_list .sc-dropdown-toggle{
+    width: 97% !important;
+        height: 43px;
+}
+}
+
+.sc-honor-add-card{
+    border-radius: 10px;
+    overflow: hidden;
+
+}
+.sc-honor-add-card input , .sc-honor-add-card select  ,.sc-honor-add-card textarea ,.sc-honor-add-card .sc-dropdown-toggle{
+    border-radius: 5px  !important;
+    border: 1px solid #d6d6d6 !important;
+    width: 100% !important;
+    height:40px;
+}
+

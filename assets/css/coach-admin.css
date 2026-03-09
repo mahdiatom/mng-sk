@@ -32,6 +32,11 @@
   padding-bottom: 16px;
   border-bottom: 1px solid var(--sc-panel-border, #e2e8f0);
 }
+.sc-coach-panel-header_honors{
+  display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
 .sc-coach-panel-card .column-full_name{
   width: 15%;
 }
@@ -53,7 +58,7 @@
   background: var(--sc-panel-card, #fff);
   border: 1px solid var(--sc-panel-border, #e2e8f0);
   border-radius: var(--sc-panel-radius, 12px);
-  overflow: hidden;
+  overflow: auto;
   box-shadow: var(--sc-panel-shadow, 0 1px 3px rgba(0,0,0,.06));
   margin-top: 20px;
 }
@@ -262,3 +267,106 @@
   margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--sc-notif-border, #e2e8f0);
   padding-right: 20px;
 }
+.info_balance_wallet_coach{
+    border-radius: 10px;
+    background: linear-gradient(#0ea5e9, #0972a1); 
+    color: #fafafa;
+    padding: 30px 15px;
+    display: flex;
+    justify-content: space-between;
+}
+.info_balance_wallet_coach h3{
+  color: #fff;
+}
+.info_balance_wallet_coach p{
+  color: white;
+
+}
+.details_wallet_coach{
+  font-weight: bold
+}
+@media screen and (max-width:780px) {
+  .info_balance_wallet_coach{
+ 
+    display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+}
+.details_wallet_coach{
+          border-top: 2px solid #fff;
+          padding-top: 10px
+}
+}
+
+/* کیف پول */
+      /* استایل اختصاصی جدول تراکنش‌های کیف پول */
+        .sc-wallet-transactions-table-wrapper {
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        .sc-wallet-transactions-table th,
+        .sc-wallet-transactions-table td {
+            vertical-align: middle;
+        }
+
+        .sc-wallet-transactions-table .column-index {
+            width: 10%;
+            text-align: center;
+        }
+
+        .sc-wallet-transactions-table .column-date {
+            width: 30%;
+        }
+
+        .sc-wallet-transactions-table .column-type {
+            width: 30%;
+        }
+
+        .sc-wallet-transactions-table .column-amount
+        {
+            width: 45%;
+            text-align: right;
+        }
+
+        .sc-wallet-transactions-table .column-description {
+            width: 40%;
+            white-space: normal;
+        }
+
+      #coach-honors-container{
+            display: flex;
+            flex-direction: column;
+            gap: 47px;
+      }
+
+     #coach-honors-container input , #coach-honors-container select  , #coach-honors-container textarea{
+      border-radius: 5px !important;
+      border: 1px solid #dfdfdf !important;
+      height: 35px;
+     }
+     .honor-row{
+      position: relative;
+      border-bottom:1px solid #dfdfdf;
+          margin-bottom: 40px;
+    padding-bottom: 40px !important;
+    display: grid;grid-template-columns: 2fr 1.5fr 1fr auto;gap: 15px;margin-bottom: 20px;
+     }
+     .remove-row{
+      
+      border-radius: 10px !important;
+      position: absolute;
+      left: -14px;
+      top: -24px;
+      
+     }
+     @media screen and (max-width:780px) {
+       .honor-row{
+    display: unset;
+     }
+     .remove-row{
+       top: -24px;
+     }
+    }

@@ -65,7 +65,7 @@ if ($selected_member_id > 0) {
         <div>
             <div class="postbox" style="margin-top: 0;">
                 <div class="postbox-header">
-                    <h2 class="hndle">لیست کاربران</h2>
+                    <h2 class="filter_head_player">لیست کاربران</h2>
                 </div>
                 <div class="inside" style="padding: 15px;">
                     <p style="margin-bottom: 10px;"><label for="member_id">کاربر:</label></p>
@@ -137,7 +137,7 @@ if ($selected_member_id > 0) {
                 <!-- اطلاعات کاربر -->
                 <div class="postbox">
                     <div class="postbox-header">
-                        <h2 class="hndle">اطلاعات کاربر</h2>
+                        <h2 class="filter_head_player">اطلاعات کاربر</h2>
                     </div>
                     <div class="inside">
                         <table class="form-table">
@@ -164,9 +164,10 @@ if ($selected_member_id > 0) {
                 </div>
                 
                 <!-- لیست تراکنش‌ها -->
+                 
                 <div class="postbox">
                     <div class="postbox-header" style="display: flex; align-items: center; justify-content: space-between;">
-                        <h2 class="hndle" style="margin: 0;">تاریخچه تراکنش‌ها</h2>
+                        <h2 class="filter_head_player" style="margin: 0;">تاریخچه تراکنش‌ها</h2>
                         <?php
                         // لینک خروجی اکسل برای تراکنش‌های همین کاربر
                         $member_export_url = admin_url('admin.php?page=sc-wallet&sc_export=excel&export_type=wallet_transactions');
@@ -179,16 +180,16 @@ if ($selected_member_id > 0) {
                     </div>
                     <div class="inside" style="padding: 0;">
                         <?php if (!empty($member_transactions)) : ?>
+                            <div class="back_table_list">
                             <table class="wp-list-table widefat fixed striped" style="margin: 0;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 70px;">شناسه</th>
-                                        <th style="width: 100px;">نوع</th>
-                                        <th style="width: 120px;">مبلغ</th>
-                                        <th style="width: 130px;">موجودی بعد</th>
-                                        <th>توضیحات</th>
-                                        <th style="width: 100px;">وضعیت</th>
-                                        <th style="width: 140px;">تاریخ</th>
+                                        <th style="width: 10%;">شناسه</th>
+                                        <th style="width: 25%;">نوع</th>
+                                        <th style="width: 30%;">مبلغ</th>
+                                        <th style="width: 30%">موجودی بعد</th>
+                                        <th style="width: 40%;">توضیحات</th>
+                                        <th style="width: 25%;">تاریخ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -263,24 +264,13 @@ if ($selected_member_id > 0) {
                                                 </strong>
                                             </td>
                                             <td><?php echo $desc_display; ?></td>
-                                            <td>
-                                                <span style="
-                                                    display: inline-block;
-                                                    padding: 3px 8px;
-                                                    border-radius: 3px;
-                                                    background: <?php echo esc_attr($status_color[$transaction->status] ?? '#333'); ?>20;
-                                                    color: <?php echo esc_attr($status_color[$transaction->status] ?? '#333'); ?>;
-                                                    font-size: 11px;
-                                                    font-weight: 600;
-                                                ">
-                                                    <?php echo esc_html($status_label); ?>
-                                                </span>
-                                            </td>
+                                          
                                             <td><?php echo esc_html(sc_date_shamsi($transaction->created_at, 'Y/m/d H:i')); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
+                            </div>
                         <?php else : ?>
                             <div class="notice notice-info inline" style="margin: 15px;">
                                 <p>این کاربر هنوز تراکنشی ندارد.</p>

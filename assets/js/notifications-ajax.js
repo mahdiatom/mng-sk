@@ -13,7 +13,7 @@
         var params = new URLSearchParams(window.location.search);
         return {
             filter: params.get('filter') || 'all',
-            s: params.get('s') || '',
+            s: params.get('search') || '',
             page: parseInt(params.get('notif_page'), 10) || 1
         };
     }
@@ -21,7 +21,7 @@
     function buildQueryString(filter, s, page) {
         var q = [];
         if (filter && filter !== 'all') q.push('filter=' + encodeURIComponent(filter));
-        if (s) q.push('s=' + encodeURIComponent(s));
+        if (s) q.push('search=' + encodeURIComponent(s));
         if (page && page > 1) q.push('notif_page=' + page);
         return q.length ? '?' + q.join('&') : '';
     }

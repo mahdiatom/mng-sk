@@ -29,6 +29,11 @@ $is_active = 0;
 $skill_level = '';
 
 
+
+  $query_string = isset($_SERVER['QUERY_STRING']) ? trim($_SERVER['QUERY_STRING']) : '';
+    //$path_only = trim(parse_url($request_uri, PHP_URL_PATH), '/');
+    print_r($_SERVER['QUERY_STRING']);
+
 // اگر اطلاعات قبلی وجود دارد
 if ($player) {
 

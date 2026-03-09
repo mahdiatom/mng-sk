@@ -196,7 +196,7 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
     <hr class="wp-header-end">
     
     <?php if ($action_message): ?>
-        <div class="notice notice-<?php echo $action_message_type; ?> is-dismissible">
+        <div class=" notice-<?php echo $action_message_type; ?> is-dismissible">
             <p><?php echo esc_html($action_message); ?></p>
         </div>
     <?php endif; ?>
@@ -287,7 +287,6 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
                 <th class="column-date">تاریخ درخواست</th>
                 <th class="column-coach">مربی</th>
                 <th class="column-amount">مبلغ</th>
-                <th class="column-balance">موجودی قبل</th>
                 <th class="column-status">وضعیت</th>
                 <th class="column-notes">یادداشت</th>
                 <th class="column-actions">عملیات</th>
@@ -320,36 +319,41 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
                         <td class="column-date"><?php echo sc_date_shamsi($request->created_at, 'Y/m/d H:i'); ?></td>
                         <td class="column-coach"><strong><?php echo esc_html($request->first_name . ' ' . $request->last_name); ?></strong></td>
                         <td class="column-amount"><strong><?php echo esc_html(sc_format_amount_display($request->amount)); ?> تومان</strong></td>
-                        <td class="column-balance"><?php echo esc_html(sc_format_amount_display($request->balance_before)); ?> تومان</td>
                         <td class="column-status">
                             <span style="padding: 5px 10px; border-radius: 4px; font-weight: bold; background-color: <?php echo $status_info['bg']; ?>; color: <?php echo $status_info['color']; ?>;">
                                 <?php echo $status_info['label']; ?>
                             </span>
-                            <?php if ($request->status === 'rejected' && $request->rejection_reason): ?>
-                                <br><small style="color: #d63638;">دلیل: <?php echo esc_html($request->rejection_reason); ?></small>
+                            
+                        </td>
+                        <td class="column-notes">
+                           <?php if ($request->status === 'rejected' && $request->rejection_reason): ?>
+                               <br><small class="small-tag" style="color: #d63638;">دلیل رد درخواست: <?php echo esc_html($request->rejection_reason); ?></small>
                             <?php endif; ?>
                             <?php if ($request->status === 'paid' && $request->paid_at): ?>
-                                <br><small>پرداخت شده در: <?php echo sc_date_shamsi($request->paid_at, 'Y/m/d H:i'); ?></small>
-                            <?php endif; ?>
-                        </td>
-                        <td class="column-notes"><?php echo esc_html($request->notes ?: '-'); ?></td>
+                                <br><small class="small-tag">پرداخت شده در: <?php echo sc_date_shamsi($request->paid_at, 'Y/m/d H:i'); ?></small>
+                            <?php endif; ?> 
+                            <br>
+                        <?php echo   esc_html( $request->notes ? 'یادداشت:' . $request->notes : ''); ?>
+                    </td>
                         <td class="column-actions">
                             <?php if ($request->status === 'pending'): ?>
                                 <!-- فقط برای در انتظار تایید: امکان تایید یا رد -->
+                                 <div class="btns_actions">
                                 <button type="button" class="button button-primary button-small sc-approve-btn"
                                         data-request-id="<?php echo $request->id; ?>"
                                         data-nonce="<?php echo esc_attr(wp_create_nonce('approve_withdrawal_' . $request->id)); ?>"
-                                        style="margin-left: 5px;">تایید</button>
-
+                                        style="margin-left: 10px;">تایید</button>
+                                
                                 <button type="button" class="button button-small reject-btn"
                                         data-request-id="<?php echo $request->id; ?>"
-                                        style="margin-right: 5px;">رد</button>
+                                        style="margin-right: 10px;">رد</button>
+                                        </div>
                             <?php elseif ($request->status === 'approved'): ?>
                                 <!-- برای تایید شده: فقط امکان پرداخت -->
                                 <button type="button" class="button button-small sc-mark-paid-btn"
                                         data-request-id="<?php echo $request->id; ?>"
                                         data-nonce="<?php echo esc_attr(wp_create_nonce('mark_paid_withdrawal_' . $request->id)); ?>"
-                                        style="margin-right: 5px;">پرداخت شده</button>
+                                        style="margin-right: 10px;">پرداخت شده</button>
                             <?php else: ?>
                                 <!-- سایر وضعیت‌ها: بدون عملیات تکی -->
                                 <span style="color: #999;">-</span>
@@ -363,10 +367,9 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
     </div>
 
     <?php if ($total_pages > 1) : ?>
-        <div class="tablenav bottom" style="margin-top: 15px;">
+        <div class="tablenav bottom sc_paginate" style="margin-top: 15px;">
             <div class="tablenav-pages">
-                <span class="displaying-num"><?php echo number_format_i18n($total_items); ?> مورد</span>
-                <span class="pagination-links">
+                <p class="pagination-links">
                     <?php
                     $pagination_args = ['page' => 'sc-coach-management-withdrawals', 'filter_status' => $filter_status];
                     if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
@@ -382,102 +385,14 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
                         'add_args' => $pagination_args,
                     ]);
                     ?>
-                </span>
+                </p>
             </div>
         </div>
     <?php endif; ?>
     </form>
 </div>
 
-<style>
-    /* استایل اختصاصی جدول درخواست‌های برداشت مربیان */
-    .sc-withdrawals-table-wrapper {
-        overflow-x: auto;
-        margin-top: 10px;
-    }
 
-    .sc-withdrawals-table th,
-    .sc-withdrawals-table td {
-        vertical-align: middle;
-        white-space: nowrap;
-    }
-
-    .sc-withdrawals-table .column-index {
-        width: 60px;
-        text-align: center;
-    }
-
-    .sc-withdrawals-table .column-date {
-        width: 150px;
-    }
-
-    .sc-withdrawals-table .column-coach {
-        min-width: 140px;
-    }
-
-    .sc-withdrawals-table .column-amount,
-    .sc-withdrawals-table .column-balance {
-        width: 130px;
-        text-align: right;
-    }
-
-    .sc-withdrawals-table .column-status {
-        width: 170px;
-    }
-
-    .sc-withdrawals-table .column-actions {
-        width: 190px;
-        text-align: center;
-    }
-
-    .sc-withdrawals-table .column-notes {
-        min-width: 240px;
-        white-space: normal;
-    }
-
-    @media (max-width: 960px) {
-        .sc-withdrawals-table th,
-        .sc-withdrawals-table td {
-            padding: 6px 8px;
-            font-size: 12px;
-        }
-
-        .sc-withdrawals-table .column-actions {
-            width: 160px;
-        }
-
-        .sc-withdrawals-table .column-status {
-            width: 150px;
-        }
-    }
-
-    @media (max-width: 782px) {
-        .sc-withdrawals-table-wrapper {
-            margin: 0 -10px;
-        }
-
-        .sc-withdrawals-table th,
-        .sc-withdrawals-table td {
-            padding: 6px 6px;
-            font-size: 11px;
-        }
-
-        .sc-withdrawals-table .column-date,
-        .sc-withdrawals-table .column-coach,
-        .sc-withdrawals-table .column-amount,
-        .sc-withdrawals-table .column-balance {
-            font-size: 11px;
-        }
-
-        .sc-withdrawals-table .column-notes {
-            min-width: 260px;
-        }
-
-        .sc-withdrawals-table .column-actions {
-            width: 150px;
-        }
-    }
-</style>
 
 <!-- پس‌زمینه مودال -->
 <div id="reject-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100049;"></div>

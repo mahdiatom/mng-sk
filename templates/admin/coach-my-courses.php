@@ -11,7 +11,7 @@ global $wpdb;
 $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
 $courses_table = $wpdb->prefix . 'sc_courses';
 $courses = $wpdb->get_results($wpdb->prepare(
-    "SELECT c.id, c.title, c.description, c.price, c.price_per_session, c.capacity, c.sessions_count, c.start_date, c.end_date, c.is_active
+    "SELECT c.id, c.title, cc.salary_percentage , c.price, c.sessions_count, c.start_date, c.end_date, c.is_active
      FROM $courses_table c
      INNER JOIN $course_coaches_table cc ON cc.course_id = c.id AND cc.coach_id = %d
      WHERE c.deleted_at IS NULL
@@ -36,10 +36,8 @@ $courses = $wpdb->get_results($wpdb->prepare(
                     <tr>
                         <th class="column-title">عنوان</th>
                         <th class="column-price">قیمت</th>
-                        <th class="column-capacity">ظرفیت</th>
-                        <th class="column-sessions">جلسات</th>
-                        <th class="column-start">تاریخ شروع</th>
-                        <th class="column-end">تاریخ پایان</th>
+                        <th class="column-price">نوع همکاری</th>
+                        <th class="column-salary_percentage">درصد همکاری</th>
                         <th class="column-status">وضعیت</th>
                     </tr>
                 </thead>
@@ -53,10 +51,8 @@ $courses = $wpdb->get_results($wpdb->prepare(
                         <tr>
                             <td class="column-title"><strong><?php echo esc_html($c->title); ?></strong></td>
                             <td class="column-price"><?php echo $c->price ? number_format((float)$c->price, 0) : '-'; ?></td>
-                            <td class="column-capacity"><?php echo esc_html($c->capacity ?: '-'); ?></td>
-                            <td class="column-sessions"><?php echo esc_html($c->sessions_count ?: '-'); ?></td>
-                            <td class="column-start"><?php echo $start_display; ?></td>
-                            <td class="column-end"><?php echo $end_display; ?></td>
+                            <td class="column-salary_percentage"><?php echo $c->salary_percentage >0 ? 'درصدی' : 'ثابت '; ?></td>
+                            <td class="column-salary_percentage"><?php echo $c->salary_percentage >0 ? number_format((float)$c->salary_percentage, 0) : '__'; ?></td>
                             <td class="column-status"><?php echo $c->is_active ? 'فعال' : 'غیرفعال'; ?></td>
                         </tr>
                     <?php endforeach; ?>

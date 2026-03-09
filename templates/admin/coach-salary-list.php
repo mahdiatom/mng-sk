@@ -135,14 +135,13 @@ $all_courses_for_filter = $wpdb->get_results(
 
 <div class="wrap sc-coach-panel-wrap">
     <div class="sc-coach-panel-header">
-        <div class="sc-coach-panel-title-row">
+        <div class="sc-coach-panel-title-row ">
             <h1 class="sc-coach-panel-title">لیست دستمزد</h1>
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button button-primary">مدیریت کیف پول</a>
         </div>
-        <p class="sc-coach-panel-desc">دستمزدهای ثبت‌شده بر اساس حضور و غیاب و دوره‌ها.</p>
     </div>
     <!-- نمایش موجودی کیف پول (زیر تایتل) -->
-    <div class="sc-coach-wallet-balance-box notice notice-info" style="padding: 15px; margin: 20px 0;">
+    <div class="sc-coach-wallet-balance-box info_balance_wallet_coach" style="padding: 15px; margin: 20px 0;">
         <h3 style="margin: 0; font-size: 1rem;">💰 موجودی کیف پول: <strong><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong></h3>
     </div>
     
@@ -280,10 +279,9 @@ $all_courses_for_filter = $wpdb->get_results(
     </div>
 
     <?php if ($total_pages > 1) : ?>
-        <div class="tablenav bottom" style="margin-top: 15px;">
+        <div class="tablenav bottom sc_paginate" style="margin-top: 15px;">
             <div class="tablenav-pages">
-                <span class="displaying-num"><?php echo number_format_i18n($total_items); ?> مورد</span>
-                <span class="pagination-links">
+                <p class="pagination-links">
                     <?php
                     $pagination_args = ['page' => 'sc-coach-salary'];
                     if (!empty($filter_date_from_shamsi)) $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
@@ -300,7 +298,7 @@ $all_courses_for_filter = $wpdb->get_results(
                         'add_args' => $pagination_args,
                     ]);
                     ?>
-                </span>
+                </p>
             </div>
         </div>
     <?php endif; ?>

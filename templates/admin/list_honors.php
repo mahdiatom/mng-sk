@@ -225,11 +225,11 @@ $total_pages = ceil($total_items / $per_page);
     <?php endif; ?>
 <div class="filter_search_honors">
     <!-- فیلترها -->
-    <form method="get" action="" style="margin: 15px 0;">
+    <form method="get" action="" class="filter_honors_list">
         <input type="hidden" name="page" value="sc-honors">
         <input type="hidden" name="s" value="<?php echo esc_attr($search); ?>">
         <label for="filter_user" style="margin-left: 5px;">نام کاربر:</label>
-        <div class="sc-searchable-dropdown" style="display: inline-block; width: 260px; vertical-align: middle; margin-left: 5px;">
+        <div class="sc-searchable-dropdown">
             <input type="hidden" name="filter_user" id="filter_user" value="<?php echo esc_attr($filter_user); ?>">
             <div class="sc-dropdown-toggle" style="width: 100%;">
                 <span class="sc-dropdown-placeholder" <?php if (!empty($filter_user) && $filter_user !== '0') echo 'style="display:none"'; ?>>همه کاربران</span>
@@ -325,7 +325,7 @@ $total_pages = ceil($total_items / $per_page);
                 <input type="submit" name="bulk_delete" id="doaction" class="button action" value="اجرا">
             </div>
         </div>
-
+            <div class="back_table_list">
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -423,7 +423,7 @@ $total_pages = ceil($total_items / $per_page);
                 <?php endif; ?>
             </tbody>
         </table>
-
+        </div>
         <!-- Pagination (دقیقاً مثل حضور و غیاب) -->
         <?php if ($total_pages > 1) : ?>
             <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">

@@ -134,9 +134,8 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
     <div class="sc-coach-panel-header">
         <div class="sc-coach-panel-title-row">
             <h1 class="sc-coach-panel-title">درخواست‌های برداشت</h1>
-            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button">کیف پول</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button button-primary">کیف پول</a>
         </div>
-        <p class="sc-coach-panel-desc">ثبت و پیگیری درخواست‌های برداشت از کیف پول.</p>
     </div>
     
     <?php if ($withdrawal_message): ?>
@@ -146,21 +145,25 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
     <?php endif; ?>
     
     <!-- نمایش موجودی (زیر تایتل) -->
-    <div class="sc-coach-wallet-balance-box notice notice-info" style="padding: 20px; margin: 20px 0;">
-        <h3 style="margin: 0 0 8px 0; font-size: 1rem;">💰 موجودی کیف پول</h3>
+    <div class="sc-coach-wallet-balance-box info_balance_wallet_coach" style="padding: 20px; margin: 20px 0;">
+        <div class="">
+        <h3 >💰 موجودی کیف پول</h3>
         <p style="margin: 0;">
-            <strong style="font-size: 22px; color: <?php echo $wallet_balance < 0 ? '#d63638' : '#2271b1'; ?>;">
+            <strong >
                 <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان
             </strong>
         </p>
+        </div>
+        <div class="details_wallet_coach">
         <?php if ($wallet_balance < 0): ?>
-            <p style="margin: 8px 0 0 0; color: #d63638;">
+            <p >
                 بدهی کیف پول: <strong><?php echo esc_html(sc_format_amount_display(abs($wallet_balance))); ?> تومان</strong>
             </p>
         <?php endif; ?>
         <?php if ($min_withdrawal > 0): ?>
-            <p style="margin: 4px 0 0 0; color: #666;">حداقل مبلغ برداشت: <strong><?php echo esc_html(sc_format_amount_display($min_withdrawal)); ?> تومان</strong></p>
+            <p >حداقل مبلغ برداشت: <strong><?php echo esc_html(sc_format_amount_display($min_withdrawal)); ?> تومان</strong></p>
         <?php endif; ?>
+        </div>
     </div>
     
     <!-- فرم درخواست برداشت -->
@@ -178,7 +181,7 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
                                name="withdrawal_amount" 
                                value="<?php echo esc_attr(number_format($wallet_balance < 0 ? 0 : $wallet_balance, 0, '.', ',')); ?>" 
                                class="regular-text"
-                               style="width: 300px;"
+                               
                                required>
                         <p class="description">پیش‌فرض: کل موجودی کیف پول. می‌توانید تغییر دهید.</p>
                     </td>
@@ -267,6 +270,7 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
         <?php if (empty($withdrawal_requests)): ?>
             <p>هیچ درخواست برداشتی ثبت نشده است.</p>
         <?php else: ?>
+            <div class="back_table_list">
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
@@ -282,7 +286,7 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
                     <?php foreach ($withdrawal_requests as $request): ?>
                         <tr>
                             <td><?php echo $row++; ?></td>
-                            <td><?php echo sc_date_shamsi($request->created_at, 'Y/m/d H:i'); ?></td>
+                            <td style="width:200px"><?php echo sc_date_shamsi($request->created_at, 'Y/m/d H:i'); ?></td>
                             <td><strong><?php echo esc_html(sc_format_amount_display($request->amount)); ?> تومان</strong></td>
                             <td>
                                 <?php
@@ -309,6 +313,7 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
         <?php endif; ?>
     </div>
 </div>

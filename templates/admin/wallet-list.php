@@ -213,7 +213,7 @@ if (empty($filter_date_to)) {
                                value="<?php echo esc_attr($filter_date_to_shamsi_default); ?>"
                                class="regular-text persian-date-input"
                                placeholder="تا تاریخ"
-                               style="padding: 5px; margin: 0 5px; width: 130px;"
+                               style="padding: 5px; margin: 10px 5px; width: 130px;"
                                readonly>
                         <input type="hidden"
                                name="filter_date_to"

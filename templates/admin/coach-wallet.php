@@ -184,7 +184,6 @@ $withdrawal_message_type = '';
                 <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-salary')); ?>" class="button">📊 لیست دستمزد</a>
             </div>
         </div>
-        <p class="sc-coach-panel-desc">تراکنش‌ها و موجودی کیف پول شما.</p>
     </div>
     
     <?php if ($withdrawal_message): ?>
@@ -194,21 +193,25 @@ $withdrawal_message_type = '';
     <?php endif; ?>
     
     <!-- نمایش موجودی (زیر تایتل) -->
-    <div class="sc-coach-wallet-balance-box notice notice-info" style="padding: 20px; margin: 20px 0;">
-        <h3 style="margin: 0 0 8px 0; font-size: 1rem;">💰 موجودی کیف پول</h3>
+    <div class="sc-coach-wallet-balance-box info_balance_wallet_coach" style="padding: 20px; margin: 20px 0;">
+        <div class="balance_wallet">
+        <h3>💰 موجودی کیف پول</h3>
         <p style="margin: 0;">
-            <strong style="font-size: 22px; color: <?php echo $wallet_balance < 0 ? '#d63638' : '#2271b1'; ?>;">
+            <strong>
                 <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان
             </strong>
         </p>
+        </div>
+        <div class="details_wallet_coach">
         <?php if ($wallet_debt > 0): ?>
-            <p style="margin: 8px 0 0 0; color: #d63638;">
+            <p >
                 بدهی کیف پول: <strong><?php echo esc_html(sc_format_amount_display($wallet_debt)); ?> تومان</strong>
             </p>
         <?php endif; ?>
         <?php if ($min_withdrawal > 0): ?>
-            <p style="margin: 4px 0 0 0; color: #666;">حداقل مبلغ برداشت: <strong><?php echo esc_html(sc_format_amount_display($min_withdrawal)); ?> تومان</strong></p>
+            <p >حداقل مبلغ برداشت: <strong><?php echo esc_html(sc_format_amount_display($min_withdrawal)); ?> تومان</strong></p>
         <?php endif; ?>
+        </div>
     </div>
     
     <!-- آمار و اطلاعات مفید -->
@@ -333,8 +336,6 @@ $withdrawal_message_type = '';
                         <th class="column-date">تاریخ</th>
                         <th class="column-type">نوع</th>
                         <th class="column-amount">مبلغ</th>
-                        <th class="column-balance-before">موجودی قبل</th>
-                        <th class="column-balance-after">موجودی بعد</th>
                         <th class="column-description">توضیحات</th>
                     </tr>
                 </thead>
@@ -364,8 +365,6 @@ $withdrawal_message_type = '';
                                 <?php endif; ?>
                                 <small>تومان</small>
                             </td>
-                            <td class="column-balance-before"><?php echo esc_html(sc_format_amount_display($transaction->balance_before)); ?> تومان</td>
-                            <td class="column-balance-after"><strong><?php echo esc_html(sc_format_amount_display($transaction->balance_after)); ?> تومان</strong></td>
                             <td class="column-description"><?php echo esc_html($transaction->description ?: '-'); ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -402,74 +401,6 @@ $withdrawal_message_type = '';
         <?php endif; ?>
     </div>
     
-    <style>
-        /* استایل اختصاصی جدول تراکنش‌های کیف پول */
-        .sc-wallet-transactions-table-wrapper {
-            overflow-x: auto;
-            margin-top: 10px;
-        }
-
-        .sc-wallet-transactions-table th,
-        .sc-wallet-transactions-table td {
-            vertical-align: middle;
-        }
-
-        .sc-wallet-transactions-table .column-index {
-            width: 60px;
-            text-align: center;
-        }
-
-        .sc-wallet-transactions-table .column-date {
-            width: 150px;
-        }
-
-        .sc-wallet-transactions-table .column-type {
-            width: 130px;
-        }
-
-        .sc-wallet-transactions-table .column-amount,
-        .sc-wallet-transactions-table .column-balance-before,
-        .sc-wallet-transactions-table .column-balance-after {
-            width: 140px;
-            text-align: right;
-        }
-
-        .sc-wallet-transactions-table .column-description {
-            min-width: 240px;
-            white-space: normal;
-        }
-
-        @media (max-width: 960px) {
-            .sc-wallet-transactions-table th,
-            .sc-wallet-transactions-table td {
-                padding: 6px 8px;
-                font-size: 12px;
-            }
-        }
-
-        @media (max-width: 782px) {
-            .sc-wallet-transactions-table-wrapper {
-                margin: 0 -10px;
-            }
-
-            .sc-wallet-transactions-table th,
-            .sc-wallet-transactions-table td {
-                padding: 6px 6px;
-                font-size: 11px;
-            }
-
-            .sc-wallet-transactions-table .column-date,
-            .sc-wallet-transactions-table .column-type,
-            .sc-wallet-transactions-table .column-amount,
-            .sc-wallet-transactions-table .column-balance-before,
-            .sc-wallet-transactions-table .column-balance-after {
-                font-size: 11px;
-            }
-
-            .sc-wallet-transactions-table .column-description {
-                min-width: 260px;
-            }
-        }
-    </style>
+   
 </div>
 

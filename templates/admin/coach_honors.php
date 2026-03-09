@@ -268,9 +268,8 @@ $total_pages = ceil($total_honors / $per_page);
 
 ?>
 <div class="wrap sc-coach-panel-wrap sc-coach-honors-wrap">
-    <div class="sc-coach-panel-header">
+    <div class="sc-coach-panel-header_honors">
         <h1 class="sc-coach-panel-title">افتخارات من</h1>
-        <p class="sc-coach-panel-desc">ثبت و مدیریت افتخارات و مدارک شما.</p>
     </div>
     <!-- فرم افزودن افتخارات -->
     <div class="sc-coach-panel-card card sc-coach-honors-form-card" style="padding: 24px; margin-top: 0; width: 100%; max-width: none;">
@@ -286,7 +285,7 @@ $total_pages = ceil($total_honors / $per_page);
             <?php wp_nonce_field('save_coach_honors_nonce'); ?>
             
             <div id="coach-honors-container">
-                <div class="honor-row" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr auto; gap: 15px; margin-bottom: 20px;">
+                <div class="honor-row">
                     <div>
                         <label style="display: block; margin-bottom: 5px; font-weight: 600;">عنوان  <span style="color: red;">*</span></label>
                         <input type="text" name="honors[0][name]" class="regular-text" required style="width: 100%;">
@@ -326,12 +325,12 @@ $total_pages = ceil($total_honors / $per_page);
                         </div>
                         <p class="description" style="margin-top: 5px; font-size: 11px; color: #999;">حداکثر 1 مگابایت - تصاویر، PDF، Word، Excel</p>
                     </div>
-                    <div style="display: flex;align-items: flex-start;margin-top: 14px;">
-                        <button type="button" class="button remove-row" style="display: none;">حذف</button>
+                    <div class="delete_honor">
+                        <button type="button" class="button remove-row" style="display: none;"> حذف مورد</button>
                     </div>
                     <div style="grid-column: 1 / -1;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 600;">توضیحات</label>
-                        <textarea name="honors[0][description]" rows="3" class="regular-text" style="width: 100%; resize: vertical;"></textarea>
+                        <textarea name="honors[0][description]" rows="3" class="regular-text" style=" height:180px;  width: 100%; resize: vertical;"></textarea>
                     </div>
                 </div>
             </div>
@@ -421,7 +420,7 @@ jQuery(document).ready(function($) {
     // افزودن ردیف جدید
     $('#add-coach-honor-row').on('click', function() {
         const newRow = `
-            <div class="honor-row" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr auto; gap: 15px; margin-bottom: 20px;">
+            <div class="honor-row">
                 <div>
                     <label style="display: block; margin-bottom: 5px; font-weight: 600;">عنوان افتخار <span style="color: red;">*</span></label>
                     <input type="text" name="honors[${rowIndex}][name]" class="regular-text" required style="width: 100%;">
@@ -462,11 +461,11 @@ jQuery(document).ready(function($) {
                     <p class="description" style="margin-top: 5px; font-size: 11px; color: #999;">حداکثر 1 مگابایت - تصاویر، PDF، Word، Excel</p>
                 </div>
                 <div style="display: flex;align-items: flex-start;margin-top: 14px;">
-                    <button type="button" class="button remove-row">حذف</button>
+                    <button type="button" class="button remove-row"> حذف مورد</button>
                 </div>
                 <div style="grid-column: 1 / -1;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 600;">توضیحات</label>
-                    <textarea name="honors[${rowIndex}][description]" rows="3" class="regular-text" style="width: 100%; resize: vertical;"></textarea>
+                    <textarea name="honors[${rowIndex}][description]" rows="3" class="regular-text" style="height:180px; width: 100%; resize: vertical;"></textarea>
                 </div>
             </div>
         `;

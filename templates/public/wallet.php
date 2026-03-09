@@ -367,7 +367,7 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
             
             <!-- Pagination -->
             <?php if ($total_pages > 1) : ?>
-                <div class="tablenav bottom" style="margin-top: 20px;">
+                <div class="tablenav bottom pagination_wallet sc-notifications-pagination" style="margin-top: 20px;">
                     <div class="tablenav-pages">
                         <?php
                         $page_links = paginate_links([

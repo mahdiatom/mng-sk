@@ -100,7 +100,7 @@ if ($coach) {
     <?php endif; ?>
     
     <!-- انتخاب مربی -->
-    <div class="card" style="margin: 20px 0; max-width: 100%;">
+    <div class="card choose_coach" style="margin: 20px 0; max-width: 100%;">
         <h2>انتخاب مربی</h2>
         <form method="GET" action="">
             <input type="hidden" name="page" value="sc-coach-management-wallet">
@@ -124,15 +124,19 @@ if ($coach) {
     
     <?php if ($coach): ?>
         <!-- نمایش موجودی -->
-        <div class="notice notice-info" style="padding: 20px; margin: 20px 0;">
-            <h2 style="margin-top: 0;">
-                مربی: <strong><?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?></strong><br>
-                موجودی کیف پول: <strong style="font-size: 24px; color: #2271b1;"><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong>
-            </h2>
+        <div class="info_balance_wallet" style="padding: 20px; margin: 20px 0;">
+            <p style="margin-top: 0;">
+                <span> <strong>مربی: </strong> <?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?> </span> 
+    </p>
+            <p style="margin-top: 0;">
+                <span> <strong>  موجودی کیف پول:  </strong> <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان </span> 
+    </p>
+                  </strong>
+
         </div>
         
         <!-- فرم شارژ/برداشت -->
-        <div class="card" style="margin: 20px 0; max-width: 100%;">
+        <div class="card charge_wallet" style="margin: 20px 0; max-width: 100%;">
             <h2>شارژ / برداشت دستی</h2>
             <form method="POST" action="" style="max-width: 800px;">
                 <?php wp_nonce_field('coach_wallet_action_nonce'); ?>
@@ -159,7 +163,7 @@ if ($coach) {
                            id="amount"
                            name="amount"
                            class="regular-text"
-                           style="width: 300px;"
+                           
                            placeholder="0"
                            dir="ltr"
                            inputmode="numeric"
@@ -186,11 +190,12 @@ if ($coach) {
         </div>
         
         <!-- تراکنش‌ها -->
-        <div class="card" style="margin: 20px 0; max-width: 100%;">
+        <div class="card list_records_wallet " style="margin: 20px 0; max-width: 100%;">
             <h2>تراکنش‌های کیف پول</h2>
             <?php if (empty($transactions)): ?>
                 <p>هیچ تراکنشی ثبت نشده است.</p>
             <?php else: ?>
+                <div class="back_table_list">
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
@@ -234,6 +239,7 @@ if ($coach) {
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             <?php endif; ?>
         </div>
     <?php endif; ?>

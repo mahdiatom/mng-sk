@@ -441,17 +441,37 @@ add_action('template_redirect', function () {
     // اگر endpoint وجود دارد، هیچ redirect انجام نمی‌دهیم
     if ($has_endpoint) {
         return;
+
     }
+
+
+
+                    wp_redirect(home_url('/my-account/sc-submit-documents/'), 301);
+
+//     $request_uri = isset($_SERVER['REQUEST_URI']) ? strtolower($_SERVER['REQUEST_URI']) : '';
+
+//     $query_string = isset($_SERVER['QUERY_STRING']) ? trim($_SERVER['QUERY_STRING']) : '';
+//    $path_only = trim(parse_url($request_uri, PHP_URL_PATH), '/');
+//    $q = $_GET['s'];
+//     //print_r($url1,$url2);
+//     //echo $path_only;
+//     if($path_only == site_url('my-account')  && ($query_string ||  $q)){
+//                             wp_redirect(site_url('sc-notifications'), 301);
+
+//     }
+
+    // $url1 = PHP_URL_QUERY;
+    // $url2 = PHP_URL_PATH;
+    // print_r($url1,$url2);
+    // // فقط اگر endpoint وجود نداشت و صفحه my-account خالی است، redirect می‌کنیم
+    // $query_string = isset($_SERVER['QUERY_STRING']) ? trim($_SERVER['QUERY_STRING']) : '';
+    // $path_only = trim(parse_url($request_uri, PHP_URL_PATH), '/?');
     
-    // فقط اگر endpoint وجود نداشت و صفحه my-account خالی است، redirect می‌کنیم
-    $query_string = isset($_SERVER['QUERY_STRING']) ? trim($_SERVER['QUERY_STRING']) : '';
-    $path_only = trim(parse_url($request_uri, PHP_URL_PATH), '/');
-    
-    // فقط اگر مسیر دقیقاً my-account است و query string خالی است
-    if ($path_only === 'my-account' && empty($query_string)) {
-        wp_redirect(home_url('/my-account/sc-submit-documents/'), 301);
-        exit;
-    }
+    // // فقط اگر مسیر دقیقاً my-account است و query string خالی است
+    // if ($path_only === 'my-account' || $query_string) {
+
+    //     exit;
+    // }
 }, 5); // priority 5 تا زودتر از سایر redirect ها اجرا شود
 
 

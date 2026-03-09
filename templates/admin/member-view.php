@@ -14,6 +14,8 @@ global $wpdb;
 $table_name = $wpdb->prefix . 'sc_members';
 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
 $courses_table = $wpdb->prefix . 'sc_courses';
+$honors_table = $wpdb->prefix . 'sc_honors';
+$honor_categories_table = $wpdb->prefix . 'sc_honor_categories';
 
 $player = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $player_id));
 
@@ -30,6 +32,15 @@ $player_courses = $wpdb->get_results($wpdb->prepare(
      ORDER BY mc.created_at DESC",
     $player_id
 ));
+// دریافت افتخاراات بازیکن 
+$honors_player = $wpdb->get_results($wpdb->prepare(
+    "SELECT h.name , hc.name as name_cat  , h.file_url , h.description, h.created_at
+     FROM $honors_table h
+     INNER JOIN $honor_categories_table hc ON hc.id = h.category_id   
+     WHERE member_id = %d 
+     ORDER BY h.created_at DESC",
+    $player_id
+) ,ARRAY_A);
 
 ?>
 <div class="wrap">
@@ -218,6 +229,40 @@ $player_courses = $wpdb->get_results($wpdb->prepare(
         <?php else : ?>
             <h2 style="margin-top: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">دوره‌های بازیکن</h2>
             <p style="margin-top: 16px; color: #646970;">این بازیکن در هیچ دوره‌ای ثبت‌نام نکرده است.</p>
+        <?php endif; ?>
+        
+        <?php
+        if (!empty($honors_player)) : ?>
+            <h2 class="course_active_palyer">افتخارات بازیکن</h2>
+            <table class="wp-list-table widefat fixed striped" style="margin-top: 16px;">
+                <thead>
+                    <tr>
+                        <th style="width: 120px;">عنوان</th>
+                        <th style="width: 120px;">دسته </th>
+                        <th style="width: 120px;">فایل</th>
+                        <th style="width: 150px;">توضیحات</th>
+                        <th style="width: 150px;">تاریخ ثبت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($honors_player as $h) : 
+                      
+                    ?>
+                        <tr>
+                            <td><strong><?php echo esc_html($h['name']); ?></strong></td>
+                            <td><?php echo esc_html($h['name_cat']); ?></td>
+                            <td>
+                                  <a  href="<?php echo esc_html($h['file_url']); ?>"> <?php echo esc_html($h['file_url']) ? 'مشاهده' : '-' ?>    </a>
+                            </td>
+                            <td><?php echo esc_html($h['description'] ? $h['description'] : '-'); ?></td>
+                            <td><?php echo esc_html($h['created_at'] ? sc_date_shamsi($h['created_at'], 'Y/m/d') : '-'); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else : ?>
+            <h2 style="margin-top: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">افتخارات بازیکن</h2>
+            <p style="margin-top: 16px; color: #646970;">این بازیکن تا کنون هیچ افتخاری ارسال نکرده است.</p>
         <?php endif; ?>
 
     </div>

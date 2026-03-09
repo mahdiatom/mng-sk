@@ -136,7 +136,6 @@ $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FRO
     <h1>افزودن افتخار برای بازیکن</h1>
     
     <div class="card sc-honor-add-card">
-        <h2 class="sc-honor-add-title">افزودن افتخار برای بازیکن</h2>
         
         <?php if ($message) : ?>
             <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
