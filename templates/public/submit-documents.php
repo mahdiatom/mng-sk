@@ -27,6 +27,7 @@ $info_verified = 0;
 $health_verified = 0;
 $is_active = 0;
 $skill_level = '';
+$team_player = '';
 
 
 
@@ -95,6 +96,7 @@ if ($player) {
     $info_verified = $player->info_verified;
     $is_active = $player->is_active;
     $skill_level = $player->skill_level ?? '';
+    $team_player = $player->team_player ?? '';
     
        
 }
@@ -304,6 +306,22 @@ if (empty($player_phone) && $billing_phone) {
                     
                     <div style="padding: 10px; background: #f9f9f9; border-radius: 4px; color: #333; font-weight: 600;">
                         <?php echo esc_html($skill_level); ?>
+                    </div>
+                    
+                </p>
+            <?php endif; ?>
+            <?php if (current_user_can('manage_options')) : ?>
+                <p class="form-row">
+                    <label for="skill_level">تیم شما</label>
+                    <input type="text" name="skill_level" id="skill_level" value="<?php echo esc_attr($team_player); ?>" class="input-text">
+                    <p class="description">این فیلد فقط توسط مدیر قابل ویرایش است.</p>
+                </p>
+            <?php elseif (!empty($team_player)) : ?>
+                <p class="form-row level">
+                    <label>تیم شما ( این فیلد فقط توسط مدیر قابل ویرایش است )</label>
+                    
+                    <div style="padding: 10px; background: #f9f9f9; border-radius: 4px; color: #333; font-weight: 600;">
+                        <?php echo esc_html($team_player); ?>
                     </div>
                     
                 </p>

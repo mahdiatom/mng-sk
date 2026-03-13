@@ -192,7 +192,7 @@ if (empty($filter_date_to)) {
                 </div>
 
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">بازه تاریخ (شمسی)</label>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">بازه تاریخ</label>
                     <div>
                         <input type="text"
                                name="filter_date_from_shamsi"
@@ -213,7 +213,7 @@ if (empty($filter_date_to)) {
                                value="<?php echo esc_attr($filter_date_to_shamsi_default); ?>"
                                class="regular-text persian-date-input"
                                placeholder="تا تاریخ"
-                               style="padding: 5px; margin: 10px 5px; width: 130px;"
+                               style="padding: 5px; width: 130px;"
                                readonly>
                         <input type="hidden"
                                name="filter_date_to"
@@ -221,44 +221,16 @@ if (empty($filter_date_to)) {
                                value="<?php echo esc_attr($filter_date_to); ?>">
                     </div>
                 </div>
-
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">بازه مبلغ (تومان)</label>
-                    <div>
-                        <input type="text"
-                               name="filter_amount_min"
-                               id="filter_amount_min"
-                               value="<?php echo esc_attr(isset($_GET['filter_amount_min']) ? $_GET['filter_amount_min'] : ''); ?>"
-                               placeholder="از"
-                               style="width: 100px;"
-                               dir="ltr"
-                               inputmode="numeric">
-                        <input type="hidden"
-                               name="filter_amount_min_raw"
-                               id="filter_amount_min_raw"
-                               value="<?php echo esc_attr(isset($_GET['filter_amount_min_raw']) ? $_GET['filter_amount_min_raw'] : (isset($_GET['filter_amount_min']) ? $_GET['filter_amount_min'] : '')); ?>">
-                        <span>تا</span>
-                        <input type="text"
-                               name="filter_amount_max"
-                               id="filter_amount_max"
-                               value="<?php echo esc_attr(isset($_GET['filter_amount_max']) ? $_GET['filter_amount_max'] : ''); ?>"
-                               placeholder="تا"
-                               style="width: 100px;"
-                               dir="ltr"
-                               inputmode="numeric">
-                        <input type="hidden"
-                               name="filter_amount_max_raw"
-                               id="filter_amount_max_raw"
-                               value="<?php echo esc_attr(isset($_GET['filter_amount_max_raw']) ? $_GET['filter_amount_max_raw'] : (isset($_GET['filter_amount_max']) ? $_GET['filter_amount_max'] : '')); ?>">
-                    </div>
-                </div>
-
-                <div>
+                <div class="search_box_wallet">
                     <label for="s" style="display: block; margin-bottom: 5px; font-weight: 600;">جستجو:</label>
-                    <input type="text" name="s" id="s" value="<?php echo esc_attr(isset($_GET['s']) ? $_GET['s'] : ''); ?>" placeholder="نام، نام خانوادگی، کد ملی، توضیحات">
+                    <input type="text" name="s" id="s" value="<?php echo esc_attr(isset($_GET['s']) ? $_GET['s'] : ''); ?>" placeholder="جستجو در نام یا توضیحات ">
                 </div>
+
+                </div>
+
                 
-                <div>
+                
+                <div class="btns_list_wallet_trans">
                     <input type="submit" class="button button-primary" value="اعمال فیلتر">
                     <?php
                     // ساخت URL خروجی اکسل با درنظرگرفتن فیلترهای فعلی

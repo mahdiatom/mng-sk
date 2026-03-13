@@ -62,9 +62,279 @@ function sc_create_coach_role() {
 add_action('admin_init', 'sc_create_coach_role');
 
 
+
+
 /**
  * ===============================
- * مخفی کردن منوها (UI)
+ * ایجاد نقش حسابدار
+ * ===============================
+ */
+function sc_create_accountant_role(){
+  
+    if( get_role('accountantt')){
+        return;
+    }
+    else{
+        $admin_role = get_role('club_coach');
+        add_role(
+            'accountantt',
+            'حسابدار باشگاه',
+            $admin_role->capabilities
+        );
+      
+// $accountant_caps = get_role('accountantt')->capabilities;
+//   foreach($accountant_caps as $key => $accountant_cap){
+//         $accountant_caps[$key] = false;
+
+
+//   }
+
+  $accountant_caps = get_role('accountantt')->capabilities;
+  $accountant_caps['accountantt'] = true;
+     }
+}
+
+
+
+ add_action('admin_init', 'sc_create_accountant_role');
+
+
+// /**
+//  * ===============================
+//  * مخفی کردن منوها (UI) برای حسابدار
+//  * ===============================
+//  */
+add_action('admin_menu', 'club_hide_menus_for_accountant', 999);
+function club_hide_menus_for_accountant() {
+    
+    // اگر کاربر مربی است، فقط منوهای حضور و غیاب، دستمزد، افتخارات، اطلاعیه‌ها، دوره‌های من، بازیکن‌های من، اطلاعات من را نگه دار (مدیر باشگاه و ادمین دسترسی کامل دارند)
+    if ( current_user_can('accountantt')  && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
+        // حذف تمام منوها به جز حضور و غیاب، دستمزد/کیف پول و افتخارات
+        global $menu;
+        //print_r($menu);
+        foreach ($menu as $key => $item) {
+            
+            if (isset($item[2])) {
+                //echo $item[2] . '<br>';
+                // منوی دستمزد و کیف پول فقط در صورت فعال بودن امکانات پرو نمایش داده می‌شود
+                if (
+                    $item[2] !== 'sc-invoices' && 
+                    $item[2] !== 'sc-wallet' && 
+                    $item[2] !== 'sc-reports' && 
+                    $item[2] !== 'sc-coach-management' && 
+                    $item[2] !== 'sc-ticket'
+             
+                ) {
+                    remove_menu_page($item[2]);
+                }
+            }
+        }
+
+        
+        // حذف منوهای وردپرس
+        remove_menu_page('plugins.php');
+        remove_menu_page('themes.php');
+        remove_menu_page('edit.php');
+        remove_menu_page('edit.php?post_type=page');
+        remove_menu_page('edit-comments.php');
+        remove_menu_page('options-general.php');
+        remove_menu_page('tools.php');
+        
+        // حذف منوهای المنتور
+        remove_menu_page('elementor');
+        remove_menu_page('edit.php?post_type=elementor_library');
+        remove_menu_page('hello-elementor');
+        
+        // حذف منوهای ووکامرس
+        remove_menu_page('woocommerce');
+        remove_menu_page('wc-admin');
+        remove_menu_page('edit.php?post_type=product');
+        remove_menu_page('edit.php?post_type=shop_coupon');
+        remove_menu_page('wc-settings');
+        
+        // حذف منوهای افزونه
+        remove_menu_page('sc-dashboard');
+       // remove_menu_page('sc-members');
+        remove_menu_page('sc-courses');
+        remove_menu_page('sc-coaches');
+        remove_menu_page('sc-events');
+       // remove_menu_page('sc-invoices');
+       // remove_menu_page('sc-reports');
+        remove_menu_page('sc_setting');
+        
+        return;
+
+   // وردپرس
+   
+    remove_menu_page('plugins.php');
+    remove_menu_page('themes.php');
+    remove_menu_page('edit.php');
+    remove_menu_page('edit.php?post_type=page');
+    remove_menu_page('edit-comments.php');
+    remove_menu_page('options-general.php');
+    remove_menu_page('tools.php');
+
+    // المنتور
+    remove_menu_page('elementor');
+    remove_menu_page('edit.php?post_type=elementor_library');
+    remove_menu_page('hello-elementor');
+
+    // ووکامرس (کامل)
+    remove_menu_page('woocommerce');
+    remove_menu_page('wc-admin');
+    remove_menu_page('edit.php?post_type=product');
+    remove_menu_page('edit.php?post_type=shop_coupon');
+    remove_menu_page('wc-settings');
+   
+    }
+
+   
+
+ 
+}
+
+/**
+ * ===============================
+ * حسابدار -  جلوگیری از دسترسی مستقیم (SECURITY)
+ * ===============================
+ */
+add_action('admin_menu', 'club_block_restricted_pages_for_accountant');
+function club_block_restricted_pages_for_accountant() {
+
+    // اگر کاربر مربی است، فقط دسترسی به صفحات مجاز (مدیر باشگاه و ادمین دسترسی کامل دارند)
+    if ( current_user_can('accountantt') && ! current_user_can('coach') && ! current_user_can('administrator') && ! current_user_can('club_coach') ) {
+        $allowed_pages = [
+            'sc-attendance-list_report',
+            'sc-reports-income-expenses',
+            'sc-add-expense',
+            'sc-expenses',
+            'sc-add-invoice',
+            'sc-attendance-list_report',
+            'sc-invoices',
+            'sc-wallet',
+            'sc-wallet-charge',
+            'sc-wallet-deduct',
+            'sc-wallet-manage',
+            'sc-reports-debtors',
+            'sc-coach-management',
+            'sc-coach-management-wallet',
+            'sc-coach-management-salary',
+            'sc-coach-management-withdrawals'
+            
+            
+        ];
+
+       
+        $page = $_GET['page'] ?? '';
+        $path = $_GET['path'] ?? '';
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        
+        // اگر در صفحه ادمین هستیم و صفحه مجاز نیست
+        if (is_admin() && !empty($page) && !in_array($page, $allowed_pages)) {
+            // بررسی اینکه آیا صفحه اصلی dashboard است یا نه
+                wp_die(
+                    '<div><h2 style="text-align: left;">Access Denied</h2><p style="text-align: left;">شما دسترسی لازم برای مشاهده این بخش را ندارید.</p></div>',
+                    'خطای دسترسی',
+                    array('response' => 403)
+                );
+            
+        }
+        return;
+    }
+    
+    if ( ! current_user_can('club_coach') || current_user_can('administrator') || ! current_user_can('coach') ) return;
+
+    $blocked_pages = array(
+        // وردپرس
+        'plugins.php',
+        'plugin-editor.php',
+        'themes.php',
+        'edit.php',
+        'edit-comments.php',
+        'options-general.php',
+        'tools.php',
+        'options-writing.php',
+        'options-reading.php',
+        'options-media.php',
+        'options-privacy.php',
+
+        // المنتور
+        'elementor',
+        'hello-elementor',
+
+        // ووکامرس اصلی
+        'wc-admin',
+       // 'wc-orders',
+        'wc-settings',
+        'wc-status',
+        'wc-reports',
+        'coupons-moved',
+
+        // ووکامرس admin + analytics + marketing
+        '/analytics',
+        '/analytics/overview',
+        '/analytics/products',
+        '/analytics/orders',
+        '/analytics/variations',
+        '/analytics/categories',
+        '/analytics/taxes',
+        '/analytics/coupons',
+        '/analytics/stock',
+        '/analytics/settings',
+        '/analytics/downloads',
+        '/analytics/revenue',
+        '/marketing',
+
+        // محصولات و کوپن‌ها
+        'product',
+        'shop_coupon',
+    );
+
+    // وقتی امکانات «کیف پول مربیان و دستمزد» غیرفعال است، مدیریت مربیان و دستمزد مسدود می‌شوند
+    if ( ! ( function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled() ) ) {
+        $blocked_pages = array_merge($blocked_pages, [
+            'sc-coach-management',
+            'sc-coach-salary',
+            'sc-coach-wallet',
+            'sc-coach-withdrawals',
+        ]);
+    }
+
+    $page      = $_GET['page']      ?? '';
+    $path      = $_GET['path']      ?? '';
+    $post_type = $_GET['post_type'] ?? '';
+    $uri       = $_SERVER['REQUEST_URI'];
+
+    foreach ( $blocked_pages as $blocked ) {
+        if (
+            strpos($page, $blocked) !== false ||
+            strpos($path, $blocked) !== false ||
+            strpos($post_type, $blocked) !== false ||
+            strpos($uri, $blocked) !== false
+        ) {
+            wp_die(
+                '
+                <div >
+                <h2 style="text-align: left;">Access Denied</h2>
+                <p style="text-align: left;">You have access to this section. - accountant</p>',
+                'خطای دسترسی',
+                array('response' => 403)
+            );
+        }
+    }
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////
+
+
+
+/**
+ * ===============================
+ *  مخفی کردن منوها  برای مربی
+ * (UI)
  * ===============================
  */
 add_action('admin_menu', 'club_hide_menus_for_coach', 999);
@@ -156,7 +426,7 @@ function club_hide_menus_for_coach() {
 
 /**
  * ===============================
- * جلوگیری از دسترسی مستقیم (SECURITY)
+ * مربی -  جلوگیری از دسترسی مستقیم (SECURITY)
  * ===============================
  */
 add_action('admin_init', 'club_block_restricted_pages_for_coach');
@@ -178,12 +448,10 @@ function club_block_restricted_pages_for_coach() {
             'sc-coach-support-tickets',
             'sc-coach-support-ticket-view',
             'sc-coach-support-ticket-new',
+           
         ];
 
-        // صفحات دستمزد و کیف پول فقط در صورت فعال بودن امکانات پرو
-        if ( function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled() ) {
-            $allowed_pages = array_merge($allowed_pages, ['sc-coach-salary', 'sc-coach-wallet', 'sc-coach-withdrawals']);
-        }
+    
         
         $page = $_GET['page'] ?? '';
         $path = $_GET['path'] ?? '';
@@ -192,13 +460,14 @@ function club_block_restricted_pages_for_coach() {
         // اگر در صفحه ادمین هستیم و صفحه مجاز نیست
         if (is_admin() && !empty($page) && !in_array($page, $allowed_pages)) {
             // بررسی اینکه آیا صفحه اصلی dashboard است یا نه
-            if ($page !== 'index.php' && strpos($uri, 'sc-attendance') === false && strpos($uri, 'sc-coach') === false) {
+                       if ($page !== 'index.php' && strpos($uri, 'sc-attendance') === false && strpos($uri, 'sc-coach') === false) {
+
                 wp_die(
                     '<div><h2 style="text-align: left;">Access Denied</h2><p style="text-align: left;">شما فقط به بخش حضور و غیاب، دستمزد و افتخارات دسترسی دارید.</p></div>',
                     'خطای دسترسی',
                     array('response' => 403)
                 );
-            }
+                       }
         }
         return;
     }
@@ -293,7 +562,7 @@ function club_block_restricted_pages_for_coach() {
 add_action('init', 'club_cleanup_roles');
 function club_cleanup_roles() {
 
-    $keep_roles = array('administrator','subscriber','club_coach','coach');
+    $keep_roles = array('administrator','subscriber','club_coach','coach','accountantt');
 
     global $wp_roles;
     if ( ! isset($wp_roles) ) $wp_roles = new WP_Roles();
@@ -324,7 +593,7 @@ function club_disable_wc_admin_for_coach( $disabled ) {
 add_action('admin_head', 'club_hide_wc_payment_menu_with_css');
 function club_hide_wc_payment_menu_with_css() {
 
-    if ( ! current_user_can('club_coach') && ! current_user_can('coach') ) {
+    if ( ! current_user_can('club_coach') && ! current_user_can('coach') && ! current_user_can('accountantt') ) {
         return;
     }
     ?>
@@ -341,6 +610,7 @@ function club_hide_wc_payment_menu_with_css() {
         li[id*="PAYMENTS_MENU_ITEM"] {
             display: none !important;
         }
+       
     </style>
     <?php
 }
@@ -358,8 +628,6 @@ function club_remove_all_dashboard_widgets() {
     // حذف همه ابزارک‌ها
     $wp_meta_boxes['dashboard'] = array();
 }
-
-
 
 
 

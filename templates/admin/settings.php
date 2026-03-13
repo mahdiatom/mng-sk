@@ -207,6 +207,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات کیف پول با موفقیت ذخیره شد.</p></div>';
     }
+    elseif($current_tab === 'attendance'){
+        $deduction_wallet_enabled = isset($_POST['deduction_wallet']) ? 1 : 0;
+        sc_update_setting('deduction_wallet_enabled' , $deduction_wallet_enabled , 'attendance');
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کیف پول ذخیره شد', null, ['tab' => 'attendance']);
+        }
+                echo '<div class="notice notice-success is-dismissible"><p>تنظیمات حضور و غیاب با موفقیت ذخیره شد.</p></div>';
+    }
     elseif ($current_tab === 'coach_salary') {
         $raw_min = isset($_POST['coach_min_withdrawal_amount_raw']) && $_POST['coach_min_withdrawal_amount_raw'] !== '' ? str_replace(',', '', $_POST['coach_min_withdrawal_amount_raw']) : (isset($_POST['coach_min_withdrawal_amount']) ? $_POST['coach_min_withdrawal_amount'] : '');
         $coach_min_withdrawal_amount = $raw_min !== '' ? floatval($raw_min) : 0;
@@ -312,6 +320,7 @@ $sms_invoice_admin_template = sc_get_setting('sms_invoice_admin_template', '');
 $sms_invoice_admin_pattern = sc_get_setting('sms_invoice_admin_pattern', '');
 
 // Enrollment SMS Settings
+
 $sms_enrollment_user_enabled = (int)sc_get_setting('sms_enrollment_user_enabled', '1');
 $sms_enrollment_user_template = sc_get_setting('sms_enrollment_user_template', '');
 $sms_enrollment_user_pattern = sc_get_setting('sms_enrollment_user_pattern', '');
@@ -394,6 +403,9 @@ $sc_login_bg_color      = sc_get_setting('sc_login_bg_color', '#ffffff');
 $sc_login_bg_image      = sc_get_setting('sc_login_bg_image', '');
 $sc_login_btn_bg        = sc_get_setting('sc_login_btn_bg', '#e60012');
 $sc_login_btn_color     = sc_get_setting('sc_login_btn_color', '#ffffff');
+// تنطیمات حضور و غیاب 
+
+$deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
 
 ?>
 
@@ -434,6 +446,11 @@ $sc_login_btn_color     = sc_get_setting('sc_login_btn_color', '#ffffff');
      
          if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
  ?>
+
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=attendance'); ?>"
+            class="nav-tab <?php echo $current_tab === 'attendance' ? 'nav-tab-active' : ''; ?>">
+               حضور و غیاب
+        </a>
 
      
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=coach_salary'); ?>"
@@ -1458,6 +1475,7 @@ $sc_login_btn_color     = sc_get_setting('sc_login_btn_color', '#ffffff');
             </form>
 
         <?php endif; 
+
         if ($current_tab === 'wallet') : ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
@@ -1543,6 +1561,32 @@ $sc_login_btn_color     = sc_get_setting('sc_login_btn_color', '#ffffff');
                             <p class="description">در صورت فعال بودن، اگر موجودی کیف پول کافی نباشد، کاربر می‌تواند مبلغ موجود را از کیف پول پرداخت کند و مابقی را از درگاه پرداخت.</p>
                         </td>
                     </tr>
+                </table>
+
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات کیف پول">
+                </p>
+            </form>
+
+        <?php endif; 
+        if ($current_tab === 'attendance') : ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce');
+                $deduction_wallet_enabled = sc_get_setting('deduction_wallet_enabled'); 
+                ?>
+
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">کسر از کیف پول برای حضور و غیاب</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="deduction_wallet" value="1" <?php checked($deduction_wallet_enabled, 1); ?>>
+                                فعال کردن کسر از کیف پول برای حضور و غیاب
+                            </label>
+                            <p class="description">در این صورت با هر بار حضور و غیاب کاربر به ازای قیمت هر جلسه دوره از کیف پول بازیکن کسر میگردد.</p>
+                        </td>
+                    </tr>
+                
                 </table>
 
                 <p class="submit">

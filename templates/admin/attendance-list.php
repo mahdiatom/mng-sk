@@ -854,10 +854,10 @@ $max_display = 10;
                                 <td>
                                     <a href="<?php echo admin_url('admin.php?page=sc-attendance-add&course_id=' . $attendance->course_id . '&date=' . $attendance->attendance_date); ?>" 
                                        class="button button-small">ویرایش</a>
-                                    <!-- <a href="<?php //echo wp_nonce_url(admin_url('admin.php?page=sc-attendance-list&tab=individual&action=delete&attendance_id=' . $attendance->id), 'delete_attendance_' . $attendance->id); ?>" 
+                                    <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=sc-attendance-list&tab=individual&action=delete&attendance_id=' . $attendance->id), 'delete_attendance_' . $attendance->id); ?>" 
                                        class="button button-small button_delete_attendance" 
                                        onclick="return confirm('آیا مطمئن هستید که می‌خواهید این حضور و غیاب را حذف کنید؟');"
-                                       >حذف</a> -->
+                                       >حذف</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

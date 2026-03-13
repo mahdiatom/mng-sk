@@ -620,6 +620,7 @@ function sc_register_admin_menu() {
         );
     }
 
+
     /* ================= Reports (NO CHANGE) ================= */
 
     add_menu_page(
@@ -701,6 +702,51 @@ function sc_register_admin_menu() {
     //     'sc-reports-payments',
     //     'sc_admin_reports_payments_page'
     // );
+
+ /* ================= cate_team and level ================= */
+
+    add_menu_page(
+        ' دسته بندی تیم و سطج ',
+        'تیم و سطح ',
+        'manage_options',
+        'sc_team',
+        'sc_admin_team_categories_page',
+        '',
+        10
+    );
+
+add_submenu_page(
+        'sc_team',
+        'دسته تیم بندی',
+        'دسته تیم بندی',
+        'manage_options',
+        'sc_team',
+        'sc_admin_team_categories_page'
+    );
+
+add_submenu_page(
+        'sc_team',
+        'دسته سطح بندی',
+        'دسته سطح بندی',
+        'manage_options',
+        'sc_level',
+        'sc_admin_level_categories_page'
+    );
+
+
+ /* ================= chapter ================= */
+
+    add_menu_page(
+        ' شعبه های باشگاه',
+        'شعبه های باشگاه',
+        'manage_options',
+        'sc_chapter',
+        'sc_admin_chapter_page',
+        '',
+        9
+    );
+
+
 
     /* ================= Load Hooks (همه حفظ شده) ================= */
 
@@ -958,6 +1004,18 @@ function sc_admin_honors_list_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'list_honors.php';
 }
 
+function sc_admin_team_categories_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'team.php';
+}
+function sc_admin_level_categories_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'level.php';
+}
+function sc_admin_chapter_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'chapter.php';
+}
 function sc_admin_honor_categories_page() {
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'honor_categories.php';
@@ -2083,6 +2141,7 @@ function callback_add_member_sufix(){
        $data['sports_history'] = isset($_POST['sports_history']) && !empty(trim($_POST['sports_history'])) ? sanitize_textarea_field($_POST['sports_history']) : NULL;
        $data['additional_info'] = isset($_POST['additional_info']) && !empty(trim($_POST['additional_info'])) ? sanitize_textarea_field($_POST['additional_info']) : NULL;
        $data['skill_level'] = isset($_POST['skill_level']) && !empty(trim($_POST['skill_level'])) ? sanitize_text_field($_POST['skill_level']) : NULL;
+       $data['team_player'] = isset($_POST['team_player']) && !empty(trim($_POST['team_player'])) ? sanitize_text_field($_POST['team_player']) : NULL;
                     
         $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
 

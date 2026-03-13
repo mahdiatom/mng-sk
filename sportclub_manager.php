@@ -619,6 +619,7 @@ function sc_check_and_create_tables() {
     $coaches_table = $wpdb->prefix . 'sc_coaches';
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
     $honor_categories_table = $wpdb->prefix . 'sc_honor_categories';
+    $team_categories_table = $wpdb->prefix . 'sc_team_categories';
     $honors_table = $wpdb->prefix . 'sc_honors';
     $notifications_table = $wpdb->prefix . 'sc_notifications';
     $notification_recipients_table = $wpdb->prefix . 'sc_notification_recipients';
@@ -643,6 +644,7 @@ function sc_check_and_create_tables() {
     $coaches_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $coaches_table)) == $coaches_table;
     $course_coaches_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_coaches_table)) == $course_coaches_table;
     $honor_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $honor_categories_table)) == $honor_categories_table;
+    $team_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $team_categories_table)) == $team_categories_table;
     $honors_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $honors_table)) == $honors_table;
     $notifications_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notifications_table)) == $notifications_table;
     $notification_recipients_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notification_recipients_table)) == $notification_recipients_table;
@@ -691,6 +693,9 @@ function sc_check_and_create_tables() {
     }
     if (!$course_coaches_exists && function_exists('sc_create_course_coaches_table')) {
         sc_create_course_coaches_table();
+    }
+    if (!$team_categories_exists && function_exists('sc_create_team_categories_table')) {
+        sc_create_team_categories_table();
     }
     if (!$honor_categories_exists && function_exists('sc_create_honor_categories_table')) {
         sc_create_honor_categories_table();

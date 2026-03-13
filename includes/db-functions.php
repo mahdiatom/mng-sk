@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.25.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.30.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -93,6 +93,7 @@ $sql = "CREATE TABLE `$table_name` (
         `sessions_count` int(11) DEFAULT NULL,
         `start_date` date DEFAULT NULL,
         `end_date` date DEFAULT NULL,
+        `chapter` varchar(255) NOT NULL,
         `is_active` tinyint(1) DEFAULT 1,
         `deleted_at` datetime DEFAULT NULL,
         `created_at` datetime NOT NULL,
@@ -151,7 +152,7 @@ $sql = "CREATE TABLE `$table_name` (
     `member_id` bigint(20) unsigned NOT NULL,
     `course_id` bigint(20) unsigned NOT NULL,
     `attendance_date` date NOT NULL,
-    `status` enum('present','absent') NOT NULL DEFAULT 'present',
+    `status` enum('present','absent','any') NOT NULL DEFAULT 'present',
     `user_id` bigint(20) unsigned DEFAULT NULL,
     `absence_sms_sent` tinyint(1) DEFAULT 0,
     `created_at` datetime NOT NULL,
@@ -197,6 +198,8 @@ function sc_create_members_table(){
             `health_verified` tinyint(1) DEFAULT 0,
             `info_verified` tinyint(1) DEFAULT 0,
             `is_active` tinyint(1) DEFAULT 1,
+            `skill_level` varchar(100) DEFAULT NULL,
+            `team_player` varchar(100) DEFAULT NULL,
             `disable_auto_invoice` tinyint(1) DEFAULT 0,
             `member_type` varchar(20) NOT NULL DEFAULT 'normal' COMMENT 'normal=بازیکن عادی, team=بازیکن تیم',
             `profile_completed` TINYINT(1) NOT NULL DEFAULT 0,
@@ -601,6 +604,61 @@ function sc_create_honor_categories_table() {
 }
 
 /**
+ * Create team -  level categories table
+ */
+function sc_create_team_categories_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_team_categories';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_name` (`name`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+function sc_create_chapter_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_chapter_categories';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_name` (`name`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+function sc_create_level_categories_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_level_categories';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_name` (`name`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
  * Create notifications table
  */
 function sc_create_notifications_table() {
@@ -886,6 +944,9 @@ function sc_update_database() {
         sc_create_sms_log_table();
         sc_create_sms_log_entries_table();
         sc_create_activity_log_table();
+        sc_create_team_categories_table();
+        sc_create_level_categories_table();
+        sc_create_chapter_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';

@@ -78,10 +78,11 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 }
 
                 // در صورت «حاضر»: فقط برای بازیکن تیم، اگر کیف پول فعال و قیمت جلسه > 0، ابتدا کسر را انجام بده؛ اگر کسر ناموفق بود این کاربر را ثبت نکن
-                $need_deduct = ($status === 'present' && sc_is_member_team($member_id) && $price_per_session > 0 && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet()));
+                $need_deduct = ( ($status === 'present' ||  $status === 'absent' ) && sc_is_member_team($member_id) && $price_per_session > 0 && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet()));
                 $deduct_done = false;
                 if ($need_deduct) {
-                    $should_deduct = !$existing || ($current_record && $current_record->status === 'absent');
+                    $should_deduct = !$existing || ! $current_record ;
+                    // before =>  $should_deduct = !$existing || ($current_record && $current_record->status === 'absent');
                     if ($should_deduct) {
                         $deduct_result = sc_deduct_wallet_session_fee($member_id, $price_per_session, $course_title, $attendance_date_shamsi);
                         if (!$deduct_result['success']) {
@@ -108,9 +109,9 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
 
                 if ($existing) {
                     // برگشت مبلغ جلسه اگر از حاضر به غایب تغییر کند (فقط برای بازیکن تیم)
-                    if ($status === 'absent' && $current_record && $current_record->status === 'present' && sc_is_member_team($member_id) && $price_per_session > 0 && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet())) {
-                        sc_refund_wallet_session_fee($member_id, $price_per_session, $course_title, $attendance_date_shamsi);
-                    }
+                    // if ($status === 'absent' && $current_record && $current_record->status === 'present' && sc_is_member_team($member_id) && $price_per_session > 0 && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet())) {
+                    //     sc_refund_wallet_session_fee($member_id, $price_per_session, $course_title, $attendance_date_shamsi);
+                    // }
 
                     $update_data = array(
                         'status' => $status,
@@ -194,7 +195,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     $updated_count
                 );
                 if (!empty($wallet_failed)) {
-                    $message .= ' <strong>ثبت نشد (موجودی کیف پول ناکافی یا بیش از حد مجاز منفی):</strong> ' . implode('؛ ', array_map('esc_html', $wallet_failed));
+                    $message .= ' ثبت نشد (موجودی کیف پول ناکافی یا بیش از حد مجاز منفی): ' . implode('؛ ', array_map('esc_html', $wallet_failed));
                 }
                 $message_type = !empty($wallet_failed) ? 'warning' : 'success';
             } else {
@@ -439,19 +440,19 @@ $is_update_mode = !empty($existing_attendances);
                     <tbody>
                         <?php foreach ($active_members as $index => $member) :
                             $debt_user = debt_user($member->id)[0];
-                            $existing_status = isset($existing_attendances[$member->id]) ? $existing_attendances[$member->id] : 'present';
+                            $existing_status = isset($existing_attendances[$member->id]) ? $existing_attendances[$member->id] : '';
                         ?>
-                            <tr style="background-color: <?php echo ($debt_user > 0) ? '#c3191957' : '' ?> !important;" >
+                            <tr style="width = 800px; background-color: <?php echo ($debt_user > 0) ? '#c3191957' : '' ?> !important; background-color: <?php echo ( number_format($debt_user) >= sc_get_wallet_max_negative_balance()-1) ? '#f20e0e9a' : '2222' ?> !important;" >
                                 <td><?php echo $index + 1; ?></td>
                                 <td><?php echo esc_html($member->first_name . ' '. $member->last_name); ?></td>
-                                <td><?php echo number_format($debt_user); ?>  تومان </td>
+                                <td ><?php echo number_format($debt_user); ?>  تومان    <?php echo (number_format($debt_user) >= sc_get_wallet_max_negative_balance()-1) ? 'سقف موجودی - عدم ثبت رکورد کاربر' : ''; ?></td>
                                 <td style="display: flex; margin-top: 7px; ">
                                     <label style="display: inline-block; margin-left: 20px;">
                                         <input type="radio" 
                                                name="attendance[<?php echo esc_attr($member->id); ?>]" 
                                                value="present" 
                                                <?php checked($existing_status, 'present'); ?> 
-                                               required>
+                                               >
                                         <span style="color: #00a32a; font-weight: bold;">حاضر</span>
                                     </label>
                                     <label style="display: inline-block; margin-left: 20px;">
@@ -459,7 +460,7 @@ $is_update_mode = !empty($existing_attendances);
                                                name="attendance[<?php echo esc_attr($member->id); ?>]" 
                                                value="absent"
                                                <?php checked($existing_status, 'absent'); ?> 
-                                               required>
+                                               >
                                         <span style="color: #d63638; font-weight: bold;">غایب</span>
                                     </label>
                                 </td>

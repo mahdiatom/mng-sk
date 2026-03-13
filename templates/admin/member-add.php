@@ -30,6 +30,7 @@ if(!isset($_GET['player_id'])){
         $disable_auto_invoice = 0;
         $member_type = 'normal';
         $additional_info = '';
+        $team_player = '';
         $skill_level = '';
   
 
@@ -65,6 +66,7 @@ if($player && $_GET['player_id'] ){
         $disable_auto_invoice               = $player->disable_auto_invoice ?? 1;
         $member_type             = isset($player->member_type) && $player->member_type === 'team' ? 'team' : 'normal';
         $additional_info         = $player->additional_info ?? '';
+        $team_player             = $player->team_player ?? '';
         $skill_level             = $player->skill_level ?? '';
 
         function sc_today_shamsi() {
@@ -310,7 +312,24 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             <span class="slider round"></span> بله
                         </label>
                     </td>
+                    <?php 
+                          $team_table = $wpdb->prefix . 'sc_team_categories';
+                $level_table = $wpdb->prefix . 'sc_level_categories';
+
+                
+                // دریافت تیم ها
+                $teams = $wpdb->get_results(
+                    "SELECT * FROM $team_table ORDER BY id ASC"
+                );
+                
+                // دریافت سطح ها
+                $levels = $wpdb->get_results(
+                    "SELECT * FROM $level_table ORDER BY id ASC"
+                );
+                
+                    ?>
                 </tr>
+    
                 <tr>
                     <th scope="row"><label for="member_type">نوع عضو</label></th>
                     <td>
@@ -322,17 +341,41 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     </td>
                 </tr>
                 <tr>
+                    <th scope="row"><label for="team">انتخاب تیم بازیکن </label></th>
+                    <td>
+
+                        <select name="team_player" id="team_player" class="regular-text">
+                          <?php 
+                          
+                          foreach($teams as $team){ 
+                            ?>
+                            <option value="<?php echo  $team->name; ?>" <?php  selected($team_player,  $team->name); ?>><?php echo $team->name; ?></option>
+                           <?php } ?>
+                        </select>
+                        <p class="description">برای افزودن تیم باید از قسمت تیم و سطح -> دسته بندی تیم ها ، تیم های باشگاه خود را اضافه کنید.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="member_type">انتخاب سطح بازیکن </label></th>
+                    <td>
+
+                        <select name="skill_level" id="skill_level" class="regular-text">
+                          <?php 
+                      
+                          
+                          foreach($levels as $level){ ?>
+                            <option value="<?php echo $level->name; ?>" <?php selected($skill_level,  $level->name); ?>><?php echo $level->name; ?></option>
+                           <?php } ?>
+                        </select>
+                        <p class="description">برای انتخاب سطح از بخش تیم و سطح ->دسته بندی سطح، سطح های باشگاه خودرا اضافه کنید</p>
+                    </td>
+                </tr>
+                <tr>
                     <th scope="row"><label for="additional_info">توضیحات اضافی</label></th>
                     <td><textarea name="additional_info" id="additional_info" rows="3" class="large-text"><?php echo $additional_info; ?></textarea></td>
                 </tr>
 
-                <tr>
-                    <th scope="row"><label for="skill_level">سطح بازیکن</label></th>
-                    <td>
-                        <input name="skill_level" type="text" id="skill_level" value="<?php echo esc_attr($skill_level); ?>" class="regular-text" placeholder="مثلاً: مبتدی، متوسط، پیشرفته">
-                        <p class="description">سطح مهارت بازیکن را وارد کنید</p>
-                    </td>
-                </tr>
+              
 
             </tbody>
         </table>
@@ -348,6 +391,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 global $wpdb;
                 $courses_table = $wpdb->prefix . 'sc_courses';
                 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+              
                 // دریافت دوره‌های فعال
                 $courses = $wpdb->get_results(
                     "SELECT * FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"

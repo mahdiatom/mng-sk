@@ -131,6 +131,15 @@ $honors_player = $wpdb->get_results($wpdb->prepare(
                     <th>سطح بازیکن</th>
                     <td><?php echo esc_html($player->skill_level ?: 'تعیین نشده'); ?></td>
                 </tr>
+            <?php
+            if($player->team_player){
+            ?>
+                <tr>
+                    <th>نام تیم </th>
+                    <td><?php echo esc_html($player->team_player ?: 'تعیین نشده'); ?></td>
+                </tr>
+
+                <?php } ?>
             </tbody>
         </table>
 
