@@ -59,7 +59,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                 <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">شعبه:</label>
                 
                 <select name="chapter" id="chapter" class="regular-text">
-                          <option value="all" <?php selected($chapter, 'all'); ?>>همه دوره ها</option>
+                          <option value="all" <?php selected($chapter, 'all'); ?>>همه شعبه ها</option>
                           <?php 
                           foreach($chapters as $ch){ ?>
                             <option value="<?php echo $ch->name; ?>" <?php selected($chapter,  $ch->name); ?>><?php echo $ch->name; ?></option>

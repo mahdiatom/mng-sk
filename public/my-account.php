@@ -500,6 +500,8 @@ function sc_add_my_account_menu_item($items) {
         $items['sc-wallet'] = 'کیف پول';
     }
     $items['sc-support-tickets'] = 'تیکت پشتیبانی';
+        $items['sc-faq'] = ' سوالات متداول ';
+
     $items['customer-logout'] = 'خروج از حساب کاربری';
     
     return $items;
@@ -517,6 +519,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-events', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-event-detail', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-events', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-faq', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-event-success', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-wallet', EP_ROOT | EP_PAGES);
@@ -537,6 +540,7 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-my-courses';
     $vars[] = 'sc-events';
     $vars[] = 'sc-my-events';
+    $vars[] = 'sc-faq';
     $vars[] = 'sc-event-detail';
     $vars[] = 'sc-my-attendances';
     $vars[] = 'sc-invoices';
@@ -571,6 +575,9 @@ add_filter('woocommerce_endpoint_sc-events_title', function() {
 });
 add_filter('woocommerce_endpoint_sc-my-events_title', function() { 
     return 'رویداد های من'; 
+});
+add_filter('woocommerce_endpoint_sc-faq_title', function() { 
+    return 'پرسش و پاسخ '; 
 });
 
 add_filter('woocommerce_endpoint_sc-event-detail_title', function() { 
@@ -787,6 +794,15 @@ $user_events = $wpdb->get_results($query, ARRAY_A);
     
     
     include SC_TEMPLATES_PUBLIC_DIR . 'my-events.php';
+}
+// display register event user
+add_action('woocommerce_account_sc-faq_endpoint', 'sc_my_account_faq_content');
+function sc_my_account_faq_content(){
+          // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+ 
+    include SC_TEMPLATES_PUBLIC_DIR . 'faq.php';
 }
 /**
  * Display content for custom tab
@@ -1055,7 +1071,7 @@ function sc_my_account_enroll_course_content() {
                LIMIT %d OFFSET %d";
 
             
-    print_r($query);
+    
     $query_values = array_merge($where_values, [$per_page, $offset]);
     $courses = $wpdb->get_results($wpdb->prepare($query, $query_values));
     

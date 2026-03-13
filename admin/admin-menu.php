@@ -745,8 +745,19 @@ add_submenu_page(
         '',
         9
     );
+ /* ================= faq ================= */
 
+    add_menu_page(
+        ' سوالات متداول ',
+        ' سوالات متداول ',
+        'manage_options',
+        'sc_faq',
+        'sc_admin_faq',
+        '',
+        40
+    );
 
+   
 
     /* ================= Load Hooks (همه حفظ شده) ================= */
 
@@ -1363,6 +1374,11 @@ function sc_admin_attendance_report_page() {
     }
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'attendance-report.php';
+}
+function sc_admin_faq() {
+    
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'faq.php';
 }
 
 /**

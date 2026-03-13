@@ -375,104 +375,104 @@ function myadmin_autofill_email_js() {
 
 
 
-//پایان اعمال تغییرات روی افزودن حساب کاربری در وردپرس
-add_action('template_redirect', function () {
-    // اگر کاربر وارد نشده، کاری نکن
-    if (!is_user_logged_in()) {
-        return;
-    }
+// //پایان اعمال تغییرات روی افزودن حساب کاربری در وردپرس
+// add_action('template_redirect', function () {
+//     // اگر کاربر وارد نشده، کاری نکن
+//     if (!is_user_logged_in()) {
+//         return;
+//     }
 
-    // اطلاعات کاربر
-    $user = wp_get_current_user();
+//     // اطلاعات کاربر
+//     $user = wp_get_current_user();
 
-    // اگر کاربر ادمین یا مربی است، به داشبورد وردپرس برود
-    if (in_array('administrator', $user->roles) || in_array('club_coach', $user->roles)) {
-        // فقط اگر در صفحه my-account خالی باشد
-        if (is_account_page() && !is_wc_endpoint_url()) {
-            wp_redirect(admin_url());
-            exit;
-        }
-        return;
-    }
+//     // اگر کاربر ادمین یا مربی است، به داشبورد وردپرس برود
+//     if (in_array('administrator', $user->roles) || in_array('club_coach', $user->roles)) {
+//         // فقط اگر در صفحه my-account خالی باشد
+//         if (is_account_page() && !is_wc_endpoint_url()) {
+//             wp_redirect(admin_url());
+//             exit;
+//         }
+//         return;
+//     }
 
-    // فقط برای کاربران subscriber
-    if (!in_array('subscriber', $user->roles)) {
-        return;
-    }
+//     // فقط برای کاربران subscriber
+//     if (!in_array('subscriber', $user->roles)) {
+//         return;
+//     }
 
-    // بررسی اینکه آیا در صفحه my-account هستیم یا نه
-    if (!is_account_page()) {
-        return;
-    }
+//     // بررسی اینکه آیا در صفحه my-account هستیم یا نه
+//     if (!is_account_page()) {
+//         return;
+//     }
 
-    // بررسی مستقیم URL برای endpoint ها - این مهمترین بررسی است
-    $request_uri = isset($_SERVER['REQUEST_URI']) ? strtolower($_SERVER['REQUEST_URI']) : '';
-    $has_endpoint = false;
-    
-    $endpoints_to_check = ['sc-notifications', 'sc-submit-documents', 'sc-enroll-course', 'sc-my-courses', 
-                          'sc-my-attendances', 'sc-events', 'sc-my-events', 'sc-invoices', 
-                          'sc-event-detail', 'sc-event-success', 'sc-my-honors', 'sc-wallet'];
-    
-    // بررسی مستقیم در URL - این باید قبل از هر چیز دیگری بررسی شود
-    foreach ($endpoints_to_check as $endpoint) {
-        $endpoint_lower = strtolower($endpoint);
-        // بررسی با الگوهای مختلف
-        if (strpos($request_uri, '/my-account/' . $endpoint_lower . '/') !== false || 
-            strpos($request_uri, '/my-account/' . $endpoint_lower . '?') !== false ||
-            preg_match('/\/my-account\/' . preg_quote($endpoint_lower, '/') . '(\/|\?|&|$)/i', $request_uri)) {
-            $has_endpoint = true;
-            break;
-        }
-    }
-    
-    // اگر endpoint پیدا نشد، بررسی query vars در $wp
-    if (!$has_endpoint) {
-        global $wp;
-        if (isset($wp->query_vars) && is_array($wp->query_vars)) {
-            foreach ($endpoints_to_check as $endpoint) {
-                if (isset($wp->query_vars[$endpoint])) {
-                    $has_endpoint = true;
-                    break;
-                }
-            }
-        }
-    }
-    
-    // اگر endpoint وجود دارد، هیچ redirect انجام نمی‌دهیم
-    if ($has_endpoint) {
-        return;
-
-    }
-
-
-
-                    wp_redirect(home_url('/my-account/sc-submit-documents/'), 301);
-
+//     // بررسی مستقیم URL برای endpoint ها - این مهمترین بررسی است
 //     $request_uri = isset($_SERVER['REQUEST_URI']) ? strtolower($_SERVER['REQUEST_URI']) : '';
-
-//     $query_string = isset($_SERVER['QUERY_STRING']) ? trim($_SERVER['QUERY_STRING']) : '';
-//    $path_only = trim(parse_url($request_uri, PHP_URL_PATH), '/');
-//    $q = $_GET['s'];
-//     //print_r($url1,$url2);
-//     //echo $path_only;
-//     if($path_only == site_url('my-account')  && ($query_string ||  $q)){
-//                             wp_redirect(site_url('sc-notifications'), 301);
+//     $has_endpoint = false;
+    
+//     $endpoints_to_check = ['sc-notifications', 'sc-submit-documents', 'sc-enroll-course', 'sc-my-courses', 
+//                           'sc-my-attendances', 'sc-events', 'sc-my-events', 'sc-invoices', 
+//                           'sc-event-detail', 'sc-event-success', 'sc-my-honors', 'sc-wallet'];
+    
+//     // بررسی مستقیم در URL - این باید قبل از هر چیز دیگری بررسی شود
+//     foreach ($endpoints_to_check as $endpoint) {
+//         $endpoint_lower = strtolower($endpoint);
+//         // بررسی با الگوهای مختلف
+//         if (strpos($request_uri, '/my-account/' . $endpoint_lower . '/') !== false || 
+//             strpos($request_uri, '/my-account/' . $endpoint_lower . '?') !== false ||
+//             preg_match('/\/my-account\/' . preg_quote($endpoint_lower, '/') . '(\/|\?|&|$)/i', $request_uri)) {
+//             $has_endpoint = true;
+//             break;
+//         }
+//     }
+    
+//     // اگر endpoint پیدا نشد، بررسی query vars در $wp
+//     if (!$has_endpoint) {
+//         global $wp;
+//         if (isset($wp->query_vars) && is_array($wp->query_vars)) {
+//             foreach ($endpoints_to_check as $endpoint) {
+//                 if (isset($wp->query_vars[$endpoint])) {
+//                     $has_endpoint = true;
+//                     break;
+//                 }
+//             }
+//         }
+//     }
+    
+//     // اگر endpoint وجود دارد، هیچ redirect انجام نمی‌دهیم
+//     if ($has_endpoint) {
+//         return;
 
 //     }
 
-    // $url1 = PHP_URL_QUERY;
-    // $url2 = PHP_URL_PATH;
-    // print_r($url1,$url2);
-    // // فقط اگر endpoint وجود نداشت و صفحه my-account خالی است، redirect می‌کنیم
-    // $query_string = isset($_SERVER['QUERY_STRING']) ? trim($_SERVER['QUERY_STRING']) : '';
-    // $path_only = trim(parse_url($request_uri, PHP_URL_PATH), '/?');
-    
-    // // فقط اگر مسیر دقیقاً my-account است و query string خالی است
-    // if ($path_only === 'my-account' || $query_string) {
 
-    //     exit;
-    // }
-}, 5); // priority 5 تا زودتر از سایر redirect ها اجرا شود
+
+//                    // wp_redirect(home_url('/my-account/sc-submit-documents/'), 301);
+
+// //     $request_uri = isset($_SERVER['REQUEST_URI']) ? strtolower($_SERVER['REQUEST_URI']) : '';
+
+// //     $query_string = isset($_SERVER['QUERY_STRING']) ? trim($_SERVER['QUERY_STRING']) : '';
+// //    $path_only = trim(parse_url($request_uri, PHP_URL_PATH), '/');
+// //    $q = $_GET['s'];
+// //     //print_r($url1,$url2);
+// //     //echo $path_only;
+// //     if($path_only == site_url('my-account')  && ($query_string ||  $q)){
+// //                             wp_redirect(site_url('sc-notifications'), 301);
+
+// //     }
+
+//     // $url1 = PHP_URL_QUERY;
+//     // $url2 = PHP_URL_PATH;
+//     // print_r($url1,$url2);
+//     // // فقط اگر endpoint وجود نداشت و صفحه my-account خالی است، redirect می‌کنیم
+//     // $query_string = isset($_SERVER['QUERY_STRING']) ? trim($_SERVER['QUERY_STRING']) : '';
+//     // $path_only = trim(parse_url($request_uri, PHP_URL_PATH), '/?');
+    
+//     // // فقط اگر مسیر دقیقاً my-account است و query string خالی است
+//     // if ($path_only === 'my-account' || $query_string) {
+
+//     //     exit;
+//     // }
+// }, 5); // priority 5 تا زودتر از سایر redirect ها اجرا شود
 
 
 // ارتباط حذف بین رویداد و صورت حساب افزونه و صورت حساب ووکامرس
