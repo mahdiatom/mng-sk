@@ -855,6 +855,8 @@ function sc_my_account_enroll_course_content() {
     // دریافت فیلتر وضعیت - پیش‌فرض: آخرین دوره‌ها (دوره‌های فعال که کاربر می‌تواند ثبت نام کند)
     $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest';
     
+    $chapter = isset($chapter) ? $chapter : (isset($_GET['chapter']) ? sanitize_text_field($_GET['chapter']) : 'all');
+
     // ساخت شرط WHERE
     $where_conditions = ["c.deleted_at IS NULL", "c.is_active = 1"];
     $where_values = [];
@@ -1018,6 +1020,16 @@ function sc_my_account_enroll_course_content() {
         // هیچ شرط اضافی اضافه نمی‌کنیم
     }
     
+
+    // فیلتر بر اساس شعبه
+    if($chapter !== 'all'){
+        $where_conditions[] = " chapter LIKE '%$chapter%' ";
+        //$where_values = $chapter;
+    }
+
+
+
+
     $where_clause = implode(' AND ', $where_conditions);
     
     // محاسبه تعداد کل
@@ -1040,8 +1052,10 @@ function sc_my_account_enroll_course_content() {
               FROM $courses_table c
               WHERE $where_clause
               ORDER BY c.created_at DESC
-              LIMIT %d OFFSET %d";
-    
+               LIMIT %d OFFSET %d";
+
+            
+    print_r($query);
     $query_values = array_merge($where_values, [$per_page, $offset]);
     $courses = $wpdb->get_results($wpdb->prepare($query, $query_values));
     

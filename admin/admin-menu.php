@@ -1937,6 +1937,8 @@ function callback_add_course_sufix() {
             wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
             exit;
         }
+        // Validation
+        
         
         // پردازش تاریخ شمسی به میلادی
         $start_date = NULL;
@@ -1964,6 +1966,7 @@ function callback_add_course_sufix() {
             'end_date' => $end_date,
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'updated_at' => current_time('mysql'),
+            'chapter' =>  !empty($_POST['chapter']) ? sanitize_text_field($_POST['chapter']) : NULL,
         ];
 
         $course_id = isset($_GET['course_id']) ? absint($_GET['course_id']) : 0;
@@ -1981,8 +1984,10 @@ function callback_add_course_sufix() {
                 '%d', // sessions_count
                 '%s', // start_date
                 '%s', // end_date
+                '%s', // chapter
                 '%d', // is_active
                 '%s', // updated_at
+                
             ];
             
             $updated = $wpdb->update(
@@ -2023,6 +2028,7 @@ function callback_add_course_sufix() {
                 'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
                 'start_date' => $start_date,
                 'end_date' => $end_date,
+                'chapter' => sanitize_text_field($_POST['chapter']),
                 'is_active' => isset($_POST['is_active']) ? 1 : 0,
                 'created_at' => current_time('mysql'),
                 'updated_at' => current_time('mysql'),
@@ -2038,6 +2044,7 @@ function callback_add_course_sufix() {
                 '%d', // sessions_count
                 '%s', // start_date
                 '%s', // end_date
+                '%s', // chapter
                 '%d', // is_active
                 '%s', // created_at
                 '%s', // updated_at

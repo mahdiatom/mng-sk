@@ -8,6 +8,7 @@ $sessions_count = '';
 $start_date = '';
 $end_date = '';
 $is_active = 1;
+$chapter = '';
 
 if ($course && isset($_GET['course_id'])) {
     $title = $course->title ?? '';
@@ -18,8 +19,16 @@ if ($course && isset($_GET['course_id'])) {
     $sessions_count = $course->sessions_count ?? '';
     $start_date = $course->start_date ?? '';
     $end_date = $course->end_date ?? '';
+    $chapter = $course->chapter ?? '';
     $is_active = $course->is_active ?? 1;
 }
+global $wpdb;
+$chapter_table = $wpdb->prefix . 'sc_chapter_categories';
+$chapters = $wpdb->get_results(
+                    "SELECT * FROM $chapter_table ORDER BY id ASC"
+                );
+
+
 ?>
 <div class="wrap">
     <h1 class="wp-heading-inline">
@@ -177,7 +186,23 @@ if ($course && isset($_GET['course_id'])) {
                 <th>
                     <td class="description">توجه: در صورتی که تاریخ دوره گذشته باشد امکان ثبت نام برای کاربر وجود ندارد در ثبت تاریخ دقت کنید.</td>
 
-                    </th>         
+                    </th> 
+                    
+                    <tr>
+                <th scope="row"><label for="chapter">شعبه</label></th>
+                    <td>
+
+                        <select name="chapter" id="chapter" class="regular-text">
+                          <?php 
+                      
+                          
+                          foreach($chapters as $ch){ ?>
+                            <option value="<?php echo $ch->name; ?>" <?php selected($chapter,  $ch->name); ?>><?php echo $ch->name; ?></option>
+                           <?php } ?>
+                        </select>
+                        <p class="description">برای افزودن شعبه از بخش شعبه های باشگاه شعبه های  خودرا اضافه کنید.</p>
+                    </td>
+                </tr>
                 <tr>
                    
                     <th scope="row">وضعیت</th>

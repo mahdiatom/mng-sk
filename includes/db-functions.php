@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.30.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.31.0'); // همان نسخه افزونه هدر
 }
 
     /**
@@ -906,6 +906,23 @@ function sc_create_activity_log_table() {
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
 }
+function  sc_create_faq_table(){
+        global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_faq';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `question` text NOT NULL,
+        `answer` text NOT NULL,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_created_at` (`created_at`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
 
 function sc_update_database() {
     global $wpdb;
@@ -947,6 +964,7 @@ function sc_update_database() {
         sc_create_team_categories_table();
         sc_create_level_categories_table();
         sc_create_chapter_table();
+        sc_create_faq_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';

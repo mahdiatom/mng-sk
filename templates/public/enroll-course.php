@@ -7,14 +7,22 @@ if (!defined('ABSPATH')) {
 
 // دریافت متغیرهای فیلتر و صفحه‌بندی (اگر از my-account.php فراخوانی شده باشد)
 $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest');
+$chapter = isset($chapter) ? $chapter : (isset($_GET['chapter']) ? sanitize_text_field($_GET['chapter']) : 'all');
 $current_page = isset($current_page) ? $current_page : (isset($_GET['paged']) ? absint($_GET['paged']) : 1);
 $total_pages = isset($total_pages) ? $total_pages : 1;
 $total_courses = isset($total_courses) ? $total_courses : 0;
+
 
 // استفاده از تنظیمات WooCommerce برای فرمت قیمت
 $decimal_places = 0;
 $decimal_separator = '.';
 $thousand_separator = ',';
+
+global $wpdb;
+$chapter_table = $wpdb->prefix . 'sc_chapter_categories';
+$chapters = $wpdb->get_results(
+                    "SELECT * FROM $chapter_table ORDER BY id ASC"
+                );
 
 if (function_exists('wc_get_price_decimals')) {
     $decimal_places = wc_get_price_decimals();
@@ -46,6 +54,18 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     <option value="expired" <?php selected($filter_status, 'expired'); ?>>مهلت ثبت نام تمام شده</option>
                     <option value="all" <?php selected($filter_status, 'all'); ?>>همه دوره‌ها</option>
                 </select>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">شعبه:</label>
+                
+                <select name="chapter" id="chapter" class="regular-text">
+                          <option value="all" <?php selected($chapter, 'all'); ?>>همه دوره ها</option>
+                          <?php 
+                          foreach($chapters as $ch){ ?>
+                            <option value="<?php echo $ch->name; ?>" <?php selected($chapter,  $ch->name); ?>><?php echo $ch->name; ?></option>
+                           <?php } ?>
+                        </select>
+
             </div>
             
             <div>
