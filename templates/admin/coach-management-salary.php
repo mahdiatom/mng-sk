@@ -239,10 +239,9 @@ $courses = $wpdb->get_results(
     </table>
 
     <?php if ($total_pages > 1) : ?>
-        <div class="tablenav bottom" style="margin-top: 15px;">
+        <div class="tablenav bottom sc_paginate" style="margin-top: 15px;">
             <div class="tablenav-pages">
-                <span class="displaying-num"><?php echo number_format_i18n($total_items); ?> مورد</span>
-                <span class="pagination-links">
+                <p class="pagination-links">
                     <?php
                     $pagination_args = ['page' => 'sc-coach-management-salary'];
                     if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
@@ -260,7 +259,7 @@ $courses = $wpdb->get_results(
                         'add_args' => $pagination_args,
                     ]);
                     ?>
-                </span>
+                </p>
             </div>
         </div>
     <?php endif; ?>

@@ -27,7 +27,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات جریمه با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'invoice') {
-
+    $pro_create_invoice_player_team = isset($_POST['pro_create_invoice_player_team']) ? 1 : 0;
+     sc_update_setting('pro_create_invoice_player_team' , $pro_create_invoice_player_team , 'invoice' );   
     $invoice_mode = isset($_POST['invoice_mode']) ? sanitize_text_field($_POST['invoice_mode']) : 'interval';
 
     sc_update_setting('invoice_mode', $invoice_mode, 'invoice');
@@ -568,7 +569,16 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
 
                 <table class="form-table">
-
+<tr>
+                <th scope="row">ایجاد صورت حساب برای بازیکن تیم</th>
+                <td>
+                    <?php  $pro_create_invoice_player_team = sc_get_setting('pro_create_invoice_player_team'); ?>
+                    <label class="switch">
+                        <input type="checkbox" name="pro_create_invoice_player_team" value="1" <?php checked($pro_create_invoice_player_team, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
 <tr>
     <th>نوع ایجاد صورتحساب</th>
     <td>

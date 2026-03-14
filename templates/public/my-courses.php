@@ -92,6 +92,7 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
                     $user_course->course_id
                 ));
                 
+                
                 if ($invoice_status) {
                     if ($invoice_status->status === 'under_review') {
                         $is_under_review = true;
@@ -119,6 +120,7 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
             $status_bg = '#d4edda';
             $status_icon = '✅';
             $status_tooltip = '';
+            $display = true;
             
             if ($is_canceled) {
                 // دوره لغو شده: در صورتی که دوره فعال باشه و flag لغو شده داشته باشه
@@ -162,7 +164,8 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
                 $status_bg = '#d4edda';
                 $status_icon = '✅';
                 $status_tooltip = 'این دوره فعال است و شما در آن ثبت‌نام کرده‌اید.';
-            } else {
+            } 
+            else {
                 // حالت پیش‌فرض (اگر هیچکدام از شرایط بالا برقرار نبود)
                 // این حالت نباید اتفاق بیفتد، اما برای اطمینان اضافه شده
                 $status_labels[] = 'نامشخص';
@@ -170,21 +173,24 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
                 $status_bg = '#f5f5f5';
                 $status_icon = '❓';
                 $status_tooltip = 'وضعیت این دوره نامشخص است.';
+                $display = false;
             }
             
             $status_display = implode('، ', $status_labels);
             // فقط دوره‌های فعال (بدون هیچ flag و بدون pending payment و بدون under_review) می‌توانند لغو شوند
             $can_cancel = !$has_flags && !$is_pending_payment && !$is_under_review && $user_course->status === 'active';
         ?>
+        
             <div class="sc-course-card" style="
                 background: #fff;
-                border-radius: 12px;
+                border-radius: 13px;
                 padding: 20px;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
                 transition: all 0.3s ease;
                 border: 2px solid transparent;
                 position: relative;
                 overflow: hidden;
+                display : <?php echo $display === false ? 'none' : 'block' ?>;
             " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 6px 20px rgba(0, 0, 0, 0.12)'; this.style.borderColor='#2271b1';" 
                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 0, 0, 0.08)'; this.style.borderColor='transparent';">
                 

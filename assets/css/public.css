@@ -5302,3 +5302,54 @@ flex-wrap: wrap;
 .pagination_wallet a:hover{
     color:#000 !important;
 }
+.faq {
+    background: white;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #cfcfcf;
+    margin: 0 10px;
+}
+.faq .section_box {
+    background: white;
+   
+    margin-top: 10px;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+.faq .section_box .question{
+    border-radius: 10px 10px 0 0 ;
+    border: 1px solid #cfcfcf;
+    width: 100%;
+    padding: 10px;
+    cursor: pointer;
+    position: relative;
+    font-weight: bold;
+}
+.faq .section_box .answer{
+   background-color: #ede9fe;
+       border-radius: 0 0 10px 10px;
+       width: 100%;
+       padding: 10px;
+       opacity: 0;
+    overflow: hidden;
+    max-height: 0; /* شروع از صفر */
+    transition: max-height 0.4s ease-out, opacity 0.4s ease-out;
+}
+.faq .section_box .answer.show {
+       max-height: 500px; /* مقداری که پاسخ نیاز داره (باید بیشتر از ارتفاع واقعی باشه) */
+    opacity: 1;
+    padding: 10px;
+   }
+
+.question:after{
+    content: "▽";
+    left: 11px;
+    position: absolute;
+    top: 15px;
+    transition: transform 0.3s ease;
+}
+.faq .section_box .question.active:after {
+    content: "△";
+}
