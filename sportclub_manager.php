@@ -1521,7 +1521,7 @@ function sc_ajax_attendance_report_player() {
 
     ob_start();
     ?>
-    <div class="postbox" style="margin-top: 0;">
+    <div class="postbox" style="margin-top: 0;">     
         <div class="postbox-header">
             <h2 class=" filter_head_player">نتیجه گزارش</h2>
         </div>
@@ -1602,6 +1602,7 @@ function sc_ajax_attendance_report_player() {
             <?php endif; ?>
         </div>
     </div>
+
     <?php
     $html = ob_get_clean();
     wp_send_json_success(['html' => $html]);

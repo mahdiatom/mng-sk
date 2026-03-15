@@ -82,8 +82,61 @@ a{
 font-family: IRANYekanXFaNum !important ;
 color: #000 !important;
 }
+#content{
+    margin: 30px !important;
+}
 
-/* font */
+/* ============================================
+  - قالب وردپرس 2026 دیزاین مدرن و جذاب برای پنل کاربری
+   ============================================ */
+/* 
+.woocommerce-account main .woocommerce {
+    max-width: 100% !important;
+    margin: 0 !important;
+}
+.wp-block-group.alignfull.has-global-padding.is-layout-constrained.wp-block-group-is-layout-constrained {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+#wp--skip-link--target{
+    margin: 0 !important;
+}
+
+
+
+.wp-block-post-title{
+    display: none !important;
+}
+
+.sc-invoices-table-wrap{
+    width: 140% !important;
+   
+}
+
+.woocommerce{
+    overflow-x: hidden;
+    max-width: 100% !important;
+}
+img.emoji {
+    display: none !important;
+}
+#order_review .shop_table{
+    width: 100%;
+}
+.woocommerce-MyAccount-navigation li{
+    font-size: 14px;
+}
+.woocommerce-MyAccount-content{
+    width: 75% !important;
+    background: #6d34ff33;
+} */
+/* ============================================
+  -الب وردپرس 2026 دیزاین مدرن و جذاب برای پنل کاربری چ   End
+   ============================================ */
+
+
+
+
 /* ============================================
    دیزاین مدرن و جذاب برای پنل کاربری
    ============================================ */
@@ -97,6 +150,13 @@ color: #000 !important;
 
 
 */
+.woocommerce-MyAccount-navigation li{
+    font-size: 14px;
+}
+.woocommerce-MyAccount-content{
+    width: 78% !important;
+    background: #f5f0ff33;
+}
 
 
 @media (min-width: 1200px) {
@@ -363,10 +423,7 @@ a.details_info_user_pannel:hover {
     border-radius: 10px;
 
 }
-.woocommerce-MyAccount-content{
-    width: 78% !important;
-    background: #6d34ff33;
-}
+
 .woocommerce-MyAccount-navigation ul li{
      list-style: none;
     padding: 12px 12px !important;
