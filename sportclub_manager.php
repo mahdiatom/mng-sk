@@ -68,6 +68,8 @@ include(SC_ADMIN_DIR . 'admin-menu.php');
 require_once SC_PUBLIC_DIR . 'my-account.php';
 // Include WooCommerce Thank You Page customization
 require_once SC_PUBLIC_DIR . 'woocommerce-thankyou.php';
+require_once SC_PUBLIC_DIR . 'header.php';
+require_once SC_PUBLIC_DIR . 'footer.php';
 
 
 
@@ -1607,5 +1609,4 @@ function sc_ajax_attendance_report_player() {
     $html = ob_get_clean();
     wp_send_json_success(['html' => $html]);
 }
-
 

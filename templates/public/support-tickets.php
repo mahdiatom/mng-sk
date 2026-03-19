@@ -154,7 +154,7 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                     <div class="sc-ticket-attachment-ids-hidden"></div>
                 </div>
                 <div class="sc-form-actions">
-                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال پاسخ</button>
+                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit button-primary">ارسال پاسخ</button>
                 </div>
             </form>
         </div>
@@ -180,7 +180,7 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                     <div class="sc-ticket-uploaded-list"></div>
                     <div class="sc-ticket-attachment-ids-hidden"></div>
                 </div>
-                <div class="sc-form-actions"><button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit">ارسال و باز کردن تیکت</button></div>
+                <div class="sc-form-actions"><button type="submit" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-submit button-primary">ارسال و باز کردن تیکت</button></div>
             </form>
         </div>
         <?php else : ?>
@@ -190,7 +190,7 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                 <input type="hidden" name="sc_ticket_action" value="close">
                 <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
                 <div class="sc-form-actions">
-                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-close" onclick="return confirm('آیا از بستن این تیکت اطمینان دارید؟');">بستن تیکت</button>
+                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-close button-primary" onclick="return confirm('آیا از بستن این تیکت اطمینان دارید؟');">بستن تیکت</button>
                 </div>
             </form>
         </div>
@@ -204,7 +204,7 @@ $coaches = sc_support_get_coaches_for_member($member_id);
     <div id="sc-support-list-view" class="sc-support-list-view">
         <div class="sc-support-heading-row">
             <h2 class="sc-support-heading">تیکت‌های پشتیبانی</h2>
-            <button type="button" id="sc-support-btn-new-ticket" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-new">ارسال تیکت جدید</button>
+            <button type="button" id="sc-support-btn-new-ticket" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-new button-primary">ارسال تیکت جدید</button>
         </div>
         <div class="sc-support-toolbar">
             <ul class="sc-support-tabs" aria-label="فیلتر وضعیت">

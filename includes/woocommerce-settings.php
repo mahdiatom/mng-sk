@@ -491,6 +491,182 @@ add_action('woocommerce_before_delete_order', function($order_id) {
 
 
 
+// افزودن فیلتر به صفحه دسته‌بندی ووکامرس
+add_action( 'woocommerce_before_shop_loop', 'add_custom_category_tag_filter', 15 );
+function add_custom_category_tag_filter() {
+    global $wp_query;
+// فقط در صفحه دسته‌بندی (category) اجرا شود
+    // if ( ! is_product_category() ) {
+    //     return;
+    // }
+// دریافت دسته‌بندی فعلی
+    $current_category = get_queried_object();
+// فرم فیلتر
+    echo '<div class="custom-product-filter" style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px;">';
+    echo '<h4 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">فیلتر محصولات</h4>';
+// 1. فیلتر جستجو (Search)
+    echo '<div style="margin-bottom: 10px;">';
+    echo '<label for="filter-search" style="display: block; margin-bottom: 5px; font-weight: 500;">جستجو:</label>';
+    echo '<input type="text" id="filter-search" name="s" placeholder="نام محصول را وارد کنید..." value="' . esc_attr( get_search_query() ) . '" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">';
+    echo '</div>';
+// 2. فیلتر دسته‌بندی (Categories)
+    echo '<div style="margin-bottom: 10px;">';
+    echo '<label for="filter-category" style="display: block; margin-bottom: 5px; font-weight: 500;">دسته‌بندی:</label>';
+    echo '<select id="filter-category" name="product_cat" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">';
+    echo '<option value="">همه دسته‌بندی‌ها</option>';
+// دریافت تمام دسته‌بندی‌های محصولات (فقط فرزندان دسته‌بندی فعلی یا زیرمجموعه‌های آن)
+    $args = array(
+        'taxonomy'     => 'product_cat',
+        'hide_empty'   => true,
+       // 'parent'       => $current_category->term_id,
+        'orderby'      => 'name',
+        'order'        => 'ASC'
+    );
+    $categories = get_categories( $args );
+foreach ( $categories as $cat ) {
+        $selected = ( get_query_var( 'product_cat' ) == $cat->slug ) ? 'selected' : '';
+        echo '<option value="' . esc_attr( $cat->slug ) . '" ' . $selected . '>' . esc_html( $cat->name ) . '</option>';
+    }
+echo '</select>';
+    echo '</div>';
+// 3. فیلتر برچسب‌ها (Tags)
+    echo '<div style="margin-bottom: 10px;">';
+    echo '<label for="filter-tag" style="display: block; margin-bottom: 5px; font-weight: 500;">برچسب:</label>';
+    echo '<select id="filter-tag" name="product_tag" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">';
+    echo '<option value="">همه برچسب‌ها</option>';
+// دریافت تمام برچسب‌های محصولات (فقط برچسب‌های مرتبط با دسته‌بندی فعلی)
+    $tags = get_terms( array(
+        'taxonomy'   => 'product_tag',
+        'hide_empty' => true,
+        'orderby'    => 'name',
+        'order'      => 'ASC'
+    ) );
+foreach ( $tags as $tag ) {
+        $selected = ( get_query_var( 'product_tag' ) == $tag->slug ) ? 'selected' : '';
+        echo '<option value="' . esc_attr( $tag->slug ) . '" ' . $selected . '>' . esc_html( $tag->name ) . '</option>';
+    }
+echo '</select>';
+    echo '</div>';
+// دکمه اعمال فیلتر (می‌توانید از فرم ارسال کنید)
+    echo '<button type="submit" id="button_filter_custom" style="background: #0073aa; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">اعمال فیلتر</button>';
+    echo '<input type="hidden" name="filter" value="1" />'; // نشانه فیلتر فعال شده
+    echo '</div>';
+// اضافه کردن فرم جستجو به صفحه
+    echo '<form method="get" style="display: none;">';
+    echo '<input type="hidden" name="post_type" value="product" />';
+    echo '<input type="hidden" name="product_cat" value="' . esc_attr( get_query_var( 'product_cat' ) ) . '" />';
+    echo '<input type="hidden" name="product_tag" value="' . esc_attr( get_query_var( 'product_tag' ) ) . '" />';
+    echo '</form>';
+}
 
+add_action( 'wp_enqueue_scripts', 'enqueue_custom_filter_script' );
+function enqueue_custom_filter_script() {
+  
+wp_enqueue_script( 'custom-filter-js', get_stylesheet_directory_uri() . '/js/custom-filter.js', array( 'jquery' ), '1.0', true );
+// ✅ اضافه کردن نونس به JavaScript
+    wp_localize_script( 'custom-filter-js', 'ajax_object', array(
+        'ajax_url' => admin_url( 'admin-ajax.php' ),
+        'nonce'    => wp_create_nonce( 'filter_products_nonce' ) // ✅ این خط مهم است!
+    ) );
+}
+
+
+// افزودن عملکرد AJAX برای فیلتر محصولات
+add_action( 'wp_ajax_filter_products_ajax', 'filter_products_ajax_callback' );
+add_action( 'wp_ajax_nopriv_filter_products_ajax', 'filter_products_ajax_callback' );
+
+function filter_products_ajax_callback() {
+    // بررسی نونس (Nonce) برای امنیت
+   if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( $_GET['nonce'], 'filter_products_nonce' ) ) {
+    wp_die( 'Unauthorized access.' );
+}
+// دریافت داده‌های فیلتر
+    $search = sanitize_text_field( $_GET['search'] );
+    $category = sanitize_text_field( $_GET['category'] );
+    $tag = sanitize_text_field( $_GET['tag'] );
+    
+// تنظیمات کوئری محصولات
+    $args = array(
+        'post_type' => 'product',
+        'post_status' => 'publish',
+        'posts_per_page' => 12, // تعداد محصولات نمایش داده شده
+        'orderby' => 'price',
+        'order' => 'DESC',
+        'tax_query' => array(),
+    );
+// اگر جستجو وجود داشت
+    if ( ! empty( $search ) ) {
+        $args['s'] = $search;
+    }
+// اگر دسته‌بندی انتخاب شده بود
+    if ( ! empty( $category ) ) {
+        $args['tax_query'][] = array(
+            'taxonomy' => 'product_cat',
+            'field'    => 'slug',
+            'terms'    => $category,
+        );
+    }
+// اگر برچسب انتخاب شده بود
+    if ( ! empty( $tag ) ) {
+        $args['tax_query'][] = array(
+            'taxonomy' => 'product_tag',
+            'field'    => 'slug',
+            'terms'    => $tag,
+        );
+    }
+// اگر دو تا یا بیشتر تکسونومی داشتیم، باید AND باشه
+    if ( count( $args['tax_query'] ) > 1 ) {
+        $args['tax_query']['relation'] = 'AND';
+    }
+// اجرای کوئری
+    $query = new WP_Query( $args );
+// اگر محصولی وجود نداشت
+    if (  $query->have_posts() ) {
+        
+   
+// جمع‌آوری محتوای محصولات
+  ob_start();
+?>
+<div class="woocommerce products">
+    <?php
+    $count = 0;
+    while ( $query->have_posts() ) {
+        $count++;
+        $query->the_post();
+        wc_get_template_part( 'content', 'product' );
+    }
+
+    ?>
+</div>
+<?php
+$html = ob_get_clean();
+$count = 'تعداد نتایج فیلتر شده : ' . $count;
+
+
+    }
+    else{
+          ob_start();
+?>
+<div class="products-no-product">
+    <?php
+    $count = 0;
+    ?>
+        <div> محصولی در این فیلتر انتخابی وجود ندارد برای مشاهده تمامی محصولات به فروشگاه بروید.</div>
+        <a class="button button_filter_custom" href="<?php echo site_url('shop'); ?> " >  رفتن به فروشگاه </a>
+
+</div>
+<?php
+$html = ob_get_clean();
+$count = 'تعداد نتایج فیلتر شده : ' . $count;
+
+    }
+
+// بازگشت محتوای HTML به AJAX
+   wp_send_json_success(['html' => $html , 'count' => $count]);
+  
+
+// خاتمه
+    wp_die();
+}
 
 

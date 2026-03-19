@@ -255,7 +255,7 @@ $total_pages = ceil($total_honors / $per_page);
                                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <button type="button" 
-                                        class="sc-file-upload-btn" 
+                                        class="sc-file-upload-btn button-primary" 
                                         data-index="0">
                                     <span class="btn-text" style="color:white;">📎 انتخاب فایل</span>
                                 </button>
@@ -330,7 +330,7 @@ $total_pages = ceil($total_honors / $per_page);
                                 <?php echo esc_html(sc_date_shamsi($honor->created_at, 'Y/m/d')); ?>
                             </td>
                             <td data-title="عملیات">
-                                <button type="button" class="button delete-single-honor" data-honor-id="<?php echo esc_attr($honor->id); ?>">
+                                <button type="button" class="button delete-single-honor button-primary" data-honor-id="<?php echo esc_attr($honor->id); ?>">
                                     حذف
                                 </button>
                             </td>
@@ -401,7 +401,7 @@ jQuery(document).ready(function($) {
                                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <button type="button" 
-                                    class="sc-file-upload-btn" 
+                                    class="sc-file-upload-btn button-primary" 
                                     data-index="${rowIndex}">
                                 <span class="btn-text"  style="color:white;">📎 انتخاب فایل</span>
                             </button>

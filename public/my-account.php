@@ -490,6 +490,7 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-events'] = 'رویدادها / مسابقات';
     $items['sc-my-events'] = ' رویداد های من ';
     $items['sc-invoices'] = 'صورت حساب‌ها';
+    $items['shop'] = 'فروشگاه';
     $items['sc-my-honors'] = 'افتخارات من';
     if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()) {
         $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications(get_current_user_id()) : 0;
@@ -521,6 +522,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-my-events', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-faq', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('shop', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-event-success', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-wallet', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-honors', EP_ROOT | EP_PAGES);
@@ -1272,7 +1274,7 @@ function sc_handle_course_enrollment() {
         $invoice_result = sc_create_course_invoice($player->id, $course_id, $member_course_id, $course->price);
 
         if ($invoice_result && isset($invoice_result['success']) && $invoice_result['success']) {
-            wc_add_notice('ثبت‌نام شما با موفقیت انجام شد. لطفاً صورت حساب خود را پرداخت کنید.', 'success');
+            wc_add_notice('مرحله اول ثبت‌نام شما با موفقیت انجام شد جهت فعال شدن دوره لطفاً صورت حساب خود را پرداخت کنید .', 'success');
             wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
             exit;
         } else {
@@ -3002,7 +3004,7 @@ exit;
         );
         
         // ریدایرکت به تب صورت حساب‌ها
-        wc_add_notice('ثبت‌نام شما با موفقیت انجام شد. لطفاً صورت حساب خود را پرداخت کنید.', 'success');
+        wc_add_notice('مرحله اول ثبت‌نام شما با موفقیت انجام شد جهت فعال شدن دوره لطفاً صورت حساب خود را پرداخت کنید .', 'success');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
         exit;
     } else {
@@ -3950,3 +3952,4 @@ function sc_scheduled_penalty_check() {
     // ذخیره زمان آخرین بررسی (24 ساعت)
     set_transient('sc_last_penalty_check', current_time('timestamp'), DAY_IN_SECONDS);
 }
+

@@ -1,3 +1,4 @@
+
 jQuery(document).ready(function($) {
     // پیش‌نمایش تصاویر قبل از آپلود
     $('input[type="file"]').on('change', function(e) {
@@ -344,12 +345,48 @@ jQuery(document).ready(function($) {
 
 
 
+jQuery(document).ready(function($) {
+    // ---------- نمایش پاپ آپ اطلاعات منو ----------
+    $(document).on('click', '.menu-header_moblie', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        
+        
+        
+        
+        let $modal = $('#myModal');
+        
+        if (!$modal.length) {
+            alert('خطا: المان Modal پیدا نشد');
+            return;
+        }
+        let $loading = $modal.find('.sc-modal-loading');
+        let $CourseList = $modal.find('.sc-modal-users-list');
+        
+        $loading.show();
+        $CourseList.hide().empty();
+        
+        $modal.css({
+            'display': 'flex',
+            'visibility': 'visible'
+        }).addClass('show-modal');
+    $(document).on('click', '.close', function(e){
+        e.preventDefault();
+        $(".sk-modal-content ").addClass('hide_before_data');
+        $('#myModal').fadeOut();
+        
+    });
+    
+    $(window).on('click', function(e){
+        if ($(e.target).is('#myModal')) {
+            $(".sk-modal-content").addClass('hide_before_data');
+            $('#myModal').fadeOut();
+            
+        }
+    });
+});
 
-
-
-
-
-
+});
 
 
 

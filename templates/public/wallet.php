@@ -114,6 +114,9 @@ if (isset($_POST['sc_charge_wallet_user']) && check_admin_referer('sc_charge_wal
         }
     }
 }
+
+
+
 ?>
 
 <div class="sc-wallet-page">

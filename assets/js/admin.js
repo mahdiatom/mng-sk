@@ -1193,3 +1193,76 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
+
+    if (
+        currentPath === '/shop/' || 
+        currentPath.startsWith('/shop/') || 
+        currentPath.includes('/product-category/') || 
+        currentPath.includes('/product-tag/')
+    ) {
+
+jQuery(document).ready(function($) {
+    
+    // فیلتر زنده با AJAX
+    function applyFilter() {
+        const $search = $('#filter-search').val();
+        const $category = $('#filter-category').val();
+        const $tag = $('#filter-tag').val();
+// ساخت URL جدید
+        const url = new URL(window.location.href);
+        url.searchParams.delete('s');
+        url.searchParams.delete('product_cat');
+        url.searchParams.delete('product_tag');
+if ($search) url.searchParams.set('s', $search);
+        if ($category) url.searchParams.set('product_cat', $category);
+        if ($tag) url.searchParams.set('product_tag', $tag);
+window.history.pushState({}, '', url.toString());
+// ارسال درخواست AJAX
+        $.ajax({
+            url: ajax_object.ajax_url,
+            type: 'GET',
+            data: {
+                action: 'filter_products_ajax',
+                search: $search,
+                category: $category,
+                tag: $tag,
+                nonce: ajax_object.nonce
+            },
+            success: function(response) {
+                
+                $('.products').html(response.data.html).show();
+                $('p.woocommerce-result-count').html(response.data.count);
+                window.history.pushState({}, '', url.toString());
+                $('html, body').animate({ scrollTop: 0 }, 300);
+            },
+            error: function() {
+                alert('خطا در بارگذاری محصولات. لطفاً دوباره تلاش کنید.');
+            }
+        });
+    }
+// اعمال فیلتر وقتی کاربر تایپ یا تغییر دهد
+    $('#filter-search, #filter-category, #filter-tag').on('change keyup', function(e) {
+        if (e.type === 'keyup' && e.which !== 13) return;
+        applyFilter();
+    });
+// اعمال فیلتر وقتی دکمه بزنند
+    $('button[type="submit"]').on('click', function(e) {
+        e.preventDefault();
+        applyFilter();
+    });
+// اعمال فیلتر وقتی از لینک دسته‌بندی/برچسب کلیک کنند
+    $(document).on('click', 'a.product-category-link, a.product-tag-link', function(e) {
+        e.preventDefault();
+        const href = $(this).attr('href');
+        const url = new URL(href, window.location.origin);
+        const category = url.searchParams.get('product_cat');
+        const tag = url.searchParams.get('product_tag');
+        const search = url.searchParams.get('s');
+$('#filter-search').val(search || '');
+        $('#filter-category').val(category || '');
+        $('#filter-tag').val(tag || '');
+applyFilter();
+    });
+});
+
+    }
