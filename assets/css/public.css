@@ -3256,12 +3256,12 @@ padding: 15px !important;
 }
 
 /* کانتینر اصلی صفحه تشکر (برای سازگاری با کلاس‌های WooCommerce) */
-.woocommerce-order-received,
+/* .woocommerce-order-received,
 .woocommerce-thankyou-order-received {
     max-width: 1200px;
     margin: 30px auto;
     padding: 0 20px;
-}
+} */
 .woocommerce-order-received .page-header h1{
     display: none;
 }

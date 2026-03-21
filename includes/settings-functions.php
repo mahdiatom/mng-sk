@@ -389,3 +389,99 @@ function debt_user($id){
     $debt = $total_debt + $debt_wallet;
     return [$debt,$debt_count];
 }
+
+
+// تغییر فرمت درست شماره تماس ها 
+
+// تبدیل اعداد فارسی و عربی به انگلیسی
+function fa_to_en_digits( $string ) {
+    $western = ['0','1','2','3','4','5','6','7','8','9'];
+    $persian = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+    $arabic  = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+
+    $string = str_replace( $persian, $western, $string );
+    return str_replace( $arabic, $western, $string );
+}
+
+/**
+ * نرمال‌سازی شماره موبایل ایران
+ */
+function sanitize_iran_phone( $phone ) {
+
+    $phone = fa_to_en_digits( trim( $phone ) );
+
+    // حذف فاصله و نقطه
+    $phone = str_replace( [' ', '.'], '', $phone );
+
+    // .915xxxxxxx
+    if ( strpos( $phone, '.' ) === 0 ) {
+        $phone = '0' . substr( $phone, 1 );
+    }
+
+    // 0098xxxxxxxxxx
+    if ( strpos( $phone, '0098' ) === 0 ) {
+        $phone = substr( $phone, 4 );
+    }
+
+    // +98xxxxxxxxxx
+    if ( strpos( $phone, '+98' ) === 0 ) {
+        $phone = substr( $phone, 3 );
+    }
+
+    // 98xxxxxxxxxx
+    if ( strpos( $phone, '98' ) === 0 ) {
+        $phone = substr( $phone, 2 );
+    }
+
+    // اضافه کردن صفر در صورت نبود
+    if ( strpos( $phone, '0' ) !== 0 ) {
+        $phone = '0' . $phone;
+    }
+
+    // فقط عدد باشد
+    if ( ! ctype_digit( $phone ) ) {
+        return false;
+    }
+
+    // طول موبایل ایران
+    if ( strlen( $phone ) !== 11 ) {
+        return false;
+    }
+
+    // شروع با 09
+    if ( strpos( $phone, '09' ) !== 0 ) {
+        return false;
+    }
+
+    return $phone;
+}
+add_filter( 'woocommerce_checkout_posted_data', function ( $data ) {
+
+    if ( ! empty( $data['billing_phone'] ) ) {
+        $phone = sanitize_iran_phone( $data['billing_phone'] );
+
+        if ( $phone !== false ) {
+            $data['billing_phone'] = $phone;
+        }
+    }
+
+    return $data;
+});
+add_action( 'woocommerce_after_checkout_validation', function ( $data, $errors ) {
+
+    if ( empty( $data['billing_phone'] ) ) {
+        return;
+    }
+
+    $phone = sanitize_iran_phone( $data['billing_phone'] );
+
+    if ( $phone === false ) {
+        $errors->add(
+            'billing_phone_error',
+            'شماره موبایل وارد شده معتبر نیست.'
+        );
+    }
+}, 100, 2 );
+
+
+//پایان فرمت صحیح شماره تماس ها 

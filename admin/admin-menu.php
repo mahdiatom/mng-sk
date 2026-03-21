@@ -758,6 +758,53 @@ add_submenu_page(
     );
 
    
+ /* ================= faq ================= */
+
+    add_menu_page(
+        ' فروشگاه',
+        ' فروشگاه',
+        'manage_woocommerce',
+        'sc_orders',
+        'sc_custom_orders',
+        '',
+        40
+    );
+    add_submenu_page(
+        'sc_orders',
+        'لیست سفارشات',
+        'لیست سفارشات',
+        'manage_woocommerce',
+        'sc_orders',
+        'sc_custom_orders'
+    );
+    add_submenu_page(
+        'sc_orders',
+        'لیست کد تخفیف ها',
+        '  لیست کد تخفیف ها' ,
+        'manage_woocommerce',
+        'edit.php?post_type=shop_coupon',
+        ''
+    );
+    add_submenu_page(
+        'sc_orders',
+        'افزودن کد تخفیف',
+        '  افزودن کد تخفیف ' ,
+        'manage_woocommerce',
+        'post-new.php?post_type=shop_coupon',
+        ''
+    );
+    add_submenu_page(
+        'sc_orders',
+        'تجزیه و تحلیل',
+        'تجزیه و تحلیل',
+        'manage_woocommerce',
+        '/admin.php?page=wc-admin&path=%2Fanalytics%2Foverview',
+        ''
+    );
+   
+
+
+   
 
     /* ================= Load Hooks (همه حفظ شده) ================= */
 
@@ -978,6 +1025,27 @@ function sc_admin_members_list_page() {
 function sc_report_data(){
 
 include SC_TEMPLATES_ADMIN_DIR . 'sc_reaport_club.php';
+}
+function sc_custom_orders(){
+
+    // افزودن screen option برای تعداد رکوردها در هر صفحه
+    add_screen_option('per_page', [
+        'default' => 20,
+        'option' => 'list_orders_per_page',
+        'label' => 'تعداد تراکنش‌ها در هر صفحه'
+    ]);
+include SC_TEMPLATES_ADMIN_DIR . 'list_order.php';
+$orders_list_table = new orders_List_Table;
+
+echo '<div class="wrap">';
+
+//echo '<input type="hidden" name="page" value="sc-ordersssssss">';
+$orders_list_table->prepare_items();
+$orders_list_table->display();
+$orders_list_table->views();
+
+echo '</div>';
+
 }
 
 function sc_admin_view_member_page() {

@@ -192,6 +192,7 @@ public function column_order_number($item) {
          // ===== اضافه کردن فیلد دلخواه ووکامرس با کلید pay =====
         if (!empty($item['woocommerce_order_id']) && function_exists('wc_get_order')) {
             $order = wc_get_order($item['woocommerce_order_id']);
+
             if ($order) {
                 $pay_value = $order->get_meta('pay'); // دریافت مقدار فیلد دلخواه
                 if (!empty($pay_value)) {
