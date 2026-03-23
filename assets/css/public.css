@@ -58,9 +58,28 @@ a {
     text-decoration: none;
 
 }
+svg path,
+svg circle {
+    stroke: white !important;      /* این کار می‌کنه: رنگ خطوط رو عوض می‌کنه */
+    stroke-width: 2 !important;  /* فقط اگر داخل شکل داره (مثلاً دایره پر شده) */
+   /* ضخامت خط (اختیاری، ولی معمولاً لازمه) */
+}
+svg{
+    width: 20px;
+    height: fit-content;
+}
+
 li {
     list-style: none;
 }
+h2{
+    font-size: 24px !important; 
+}
+.wc-block-components-totals-coupon svg path{
+     stroke: rgb(63, 63, 63) !important;      /* این کار می‌کنه: رنگ خطوط رو عوض می‌کنه */
+    stroke-width: 1 !important;
+}
+
 /* فوتر */
 .custom-footer{
     display: flex;
@@ -68,8 +87,158 @@ li {
    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;    color: white;
     padding-top: 10px;
     font-weight: bold;
+    margin-top: 50px;
+}
+
+@media screen and (max-width: 780px) {
+
+
+.custom-footer{
+    
+    align-items: center;
+    flex-direction: column;
+    padding: 14px;
+
+}
+.custom-footer p{
+    text-align: center;
+    font-size: 14px;
+}
 }
 /* هدر */
+.menus_header{
+    display: flex;
+}
+.megamenu-box {
+    border-left: 1px dotted #ffffff;
+    padding-left: 20px;
+    margin-left: 9px;
+}
+.megamenu-box .t-m {
+    color: #161A1D;
+    font-weight: 450;
+    cursor: pointer;
+}
+.megamenu-box:hover > .pishro-megamenu > ul {
+    visibility: visible;
+    opacity: 1;
+    top: 16px;
+}
+.pishro-megamenu {
+    position: relative;
+}
+.megamenu-box:hover > .pishro-megamenu > ul {
+    visibility: visible;
+    opacity: 1;
+    top: 16px;
+}
+.pishro-megamenu > ul:before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 24px;
+    top: -20px;
+}
+.pishro-megamenu > ul {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #ddd;
+    top: 25px;
+    right: 0px;
+    width: 222px;
+    visibility: hidden;
+    opacity: 0;
+    transition: all .2s ease-in-out;
+    z-index: 99;
+}
+.pishro-megamenu > ul > li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.pishro-megamenu > ul > li:hover {
+    background: #f7f7f8;
+}
+.pishro-megamenu > ul > li:hover > a {
+    color: #F93423;
+}
+.pishro-megamenu > ul > li > a {
+    padding: 12px;
+    font-weight: 450;
+}
+.pishro-megamenu > ul > li > i {
+    margin-left: 12px;
+    font-size: 9px;
+}
+.pishro-megamenu > ul > li:hover > ul {
+    display:flex;
+}
+.pishro-megamenu > ul > li > ul {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #ddd;
+    top: 0;
+    right: 100%;
+   width: 700px;
+    min-height: 100%;
+    display: flex;
+    padding: 12px;
+    border-right: 2px solid #ddd;
+    display: none;
+}
+.pishro-megamenu > ul > li > ul > li {
+    width: 100%;
+}
+.pishro-megamenu > ul > li > ul > li > a {
+    font-weight: 450;
+    color: #000;
+    border-right: 3px solid #6d34ff ;
+    padding-right: 5px;
+    margin-bottom: 7px;
+    display: inline-block;
+}
+.pishro-megamenu > ul > li > ul > li > ul li a {
+    color: #666;
+    font-size: 13px;
+    font-weight: 400;
+    padding: 4px;
+    display: inline-block;
+}
+.pishro-megamenu ul.menu{
+    padding-right: 5px !important;
+    margin-left: 2px;
+    border-radius: 10px;
+}
+.pishro-megamenu ul{
+    height: fit-content !important;
+
+
+}
+.pishro-megamenu ul li ul.sub-menu{
+padding-right: 10px;
+    /* display: flex; */
+    /* flex-wrap: wrap; */
+
+}
+.pishro-megamenu ul li ul{
+    background: #fafafa;
+    border-radius: 12px;
+
+}
+.pishro-megamenu ul li ul.sub-menu a{
+font-size: 14px;
+}
+.pishro-megamenu ul li ul.sub-menu li .menu-item-has-children {
+    padding: 10px;
+}
+
+
+
+
+
+
+
+
 .menu_custom_gym ul.menu{
     display: flex;
     gap: 31px;
@@ -96,9 +265,9 @@ li {
 .custom-header {
     position: relative;
         background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+   
     transition: all 0.3s ease;
-    z-index: 1000;
+    
     padding: 10px 20px;
     display: flex;
     justify-content: space-between;
@@ -106,26 +275,82 @@ li {
 }
 
 
+span.arrow-b svg{
+    width: 16px;
+    height: 16px;
+    margin-right: 2px;
+}
+a.icon_adv{
+        margin: 0px 15px;
+    position: relative;
+
+}
+a.icon_shop{
+    margin-right: 10px;
+
+
+}
+a.icon_adv svg path,
+a.icon_adv svg circle{
+   stroke-width: 1 !important;
+}
+.woo_panel_mini .count_unread_notif{
+       background-color: #fee716a8;
+    border-radius: 100%;
+    color: #000;
+        padding: 2px 7px 1px 7px;
+    font-size: 11px;
+    position: absolute;
+    right: -9px;
+    top: -13px;
+}
+.woo_panel_mini .count_unread_notif_mini{
+       background-color:  #1144f6;;
+    border-radius: 100%;
+    color: #ffffff;
+        padding: 2px 7px 1px 7px;
+    font-size: 11px;
+    
+}
 .custom-header.fixed {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     z-index: 9999;
     padding: 10px 20px;
     background-color: #fff !important;
 }
 .woo_panel_mini{
     display: flex;
-    gap: 20px;
+
     margin-left: 20px !important;
     font-weight: bold;
+       
 }
-@media screen and(max-width :780px) {
-    .menu_custom_gym ul.menu{
-        display: none;
+.icon_name{
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    border: 1px solid #cccccc;
+    margin: 10px;
+    border-radius: 10px;
+}
+.menu_header_left ul li ul{
+    border-radius: 10px !important;
+}
+
+@media screen and (max-width: 780px) {
+
+    .woo_panel_mini{
+            margin-left: 0 !important;
     }
+ .logo_custom_gym img{
+    margin-right: 0 !important;
+ }
+ .menu_header_left ul.menu{
+    padding:0 !important;
+ }
     
 }
 
@@ -474,9 +699,9 @@ a{
 font-family: IRANYekanXFaNum !important ;
 color: #000 !important;
 }
-#content{
+/* #content{
     margin: 30px  0 !important;
-}
+} */
 .wp-block-woocommerce-checkout-actions-block .e19lxcc00 {
 display: none;
 }
@@ -599,6 +824,16 @@ body:not([class*=elementor-page-]) .site-main {
     margin: 0 auto 12px;
     box-shadow: 0 2px 10px rgba(109,52,255,0.25);
 }
+.sc-user-avatar_megamenu{
+       width: 50px;
+    height: 50px;
+    max-width: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #6d34ff;
+    margin: 4px 0px;
+    box-shadow: 0 2px 10px rgba(109,52,255,0.25);
+}
 .sc-attendance-row {
     display: flex;
     gap: 16px;
@@ -615,6 +850,7 @@ body:not([class*=elementor-page-]) .site-main {
     height: 100%;
     object-fit: cover;
 }
+
 
 .sc-user-name {
     font-size: 15px;
@@ -832,7 +1068,8 @@ a.details_info_user_pannel:hover {
 
 }
 .woocommerce-dashboard .woocommerce{
-margin-top: 5% !important;
+margin-top: 2% !important;
+margin-right: 5% !important;
 }
 .img_user_info {
     width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 4px solid #2271b1; margin: 0 auto 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -3457,7 +3694,22 @@ padding: 15px !important;
     border-color: #d63638;
     color: #d63638;
 }
-
+ul.woocommerce-error {
+       background: linear-gradient(135deg, #5a2ae6 0%, #4a1fd1 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(109, 52, 255, 0.4);
+    color: #fff;
+        border-radius: 10px;
+    border: none;
+    
+}
+ul.woocommerce-error a{
+        background: yellow !important;
+    color: black !important;
+    border-radius: 10px !important;
+    padding-top: 10px !important;
+    font-size: 13px !important;
+}
 /* دکمه‌های صفحه تشکر */
 .woocommerce-order-received .button,
 .woocommerce-thankyou-order-received .button {
@@ -5848,7 +6100,11 @@ flex-wrap: wrap;
 display: block;
 } */
 .menu-item-has-children{
-    position: relative !important;
+    position: relative !important; 
+   
+}
+.megamenu-box .menu-item-has-children{
+    position: unset !important;
 }
 
 .menu-header > ul > li {
@@ -5865,10 +6121,7 @@ display: block;
 .sub-menu li a{
      color: black !important;
 }
-.sub-menu li a:hover{
-     color: white !important;
 
-}
 .menu-header > ul > li > a:hover {
     border-bottom: 1px solid #F93423;
 }
@@ -5880,6 +6133,7 @@ display: block;
 .menu-header ul li ul {
     position: absolute;
     top: 10px;
+    left: 0;
     background: #fff;
     border: 1px solid #ddd;
     padding: 7px 0;
@@ -5897,7 +6151,7 @@ display: block;
   
 }
 .menu-header ul li ul li a:hover {
-      background-color: #1144f6;
+      background-color: #1144f638;
       color: white;
 }
 .menu-header_moblie{
@@ -5961,16 +6215,137 @@ display: block;
         padding-bottom: 25px;
 }
 
+.info_megamenu{
+    width: 60% !important;
+}
+.info_megamenu span{
+  padding: 0px 16px !important;
+  padding-right: 0 !important;
+  font-size: 10px !important;
+  font-weight: normal !important;
+}
+
+.arrow_megamenu_account svg {
+    position: absolute;
+}
+.arrow_megamenu_account svg path{
+   stroke: rgb(80, 79, 79) !important;     
+    stroke-width: 1 !important; 
+}
+.menu_header_left a{
+    font-weight: normal !important;
+    padding: 5px 10px !important;
+}
+.btn_login {
+    padding: 6px 10px !important;
+    font-size: 12px;
+    background: white;
+    color: black !important;
+    border-radius: 8px;
+    margin-top: -19px;
+}
+
+.li_btn_login{
+        background: white;
+    padding: 6px 3px;
+    margin-top: -9px !important;
+    border-radius: 10px;
+}
+.megamenu-box span{
+    color: white;
+}
+.megamenu-box svg path , #volha{
+      fill: #fff !important;
+
+}
 
 
+/* 1. آیکن فلش به سمت چپ برای سطح اول (menu-item-has-children در سطح اول) */
+.pishro-megamenu .menu-item-has-children > a::after {
+    content: "\f053"; /* fa-chevron-left در Font Awesome 5 */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 12px;
+    color: #666;
+    width: 16px;
+    text-align: center;
+        position: absolute;
+    left: 7px;
+}
+/* 2. آیکن فلش به سمت پایین برای زیرمنوها (هر جایی که menu-item-has-children داخل sub-menu باشه) */
+.pishro-megamenu .menu-item-has-children > ul .menu-item-has-children > a::after {
+    content: ""; /* fa-chevron-down در Font Awesome 5 */
 
+}
+.menu-header .menu-item-has-children > a::after {
+    content: "\f078"; /* fa-chevron-down در Font Awesome 5 */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 12px;
+    color: #fff;
+    width: 16px;
+    text-align: center;
+}
 
+@media screen and (max-width:780px){
+    .header_bottom .menus{
+        display: flex !important;
+        justify-content: space-between;
+    width: 100% !important;
+    }
+    .menu-header_moblie svg{
+        width: 24px !important;
+    }
+    .pishro-megamenu ul li ul.sub-menu {
+            flex-wrap: wrap;
+            width: 150px;
+            height: 100% !important;
+            overflow-y: scroll;
+            
+    }
+    .pishro-megamenu > ul{
+        width: 157px !important;
+    }
+   .modal-menu_mobile .menu-header ul li ul {
+        position: unset !important;
+    }
+    .modal-menu_mobile .menu-header ul li ul{
+        display: none;
+    }
+    .modal-menu_mobile .menu-header ul li:hover ul{
+        display: block;
+         background: #05050524;
+    border: none;
+    width: 100%;
+    margin-right: -20px;
 
+    }
+    .modal-menu_mobile .menu-header ul li a{
+        color: white !important;
+    }
+    
+    
+}
+/* فیلتر محصولات  */
+.orderby{display: none;}
+#button_filter_custom{  
+     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none;
+    color: #fff !important;
+    border-radius: 10px !important;
+}
+@media screen and (min-width:780px){
 
+.input_filters{
+        display: flex;
+    justify-content: flex-start;
+    gap: 20px;
+}
 
-
-
-
-
+}
 
 

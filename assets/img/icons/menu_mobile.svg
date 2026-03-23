@@ -1,0 +1,10 @@
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24">
+  <g id="menu-3" transform="translate(0 0.379)">
+    <rect id="Rectangle_8" data-name="Rectangle 8" width="24" height="24" transform="translate(0 -0.379)" fill="none"/>
+    <g id="Group_7" data-name="Group 7" transform="translate(0 3.701)">
+      <path id="Path_5" data-name="Path 5" d="M23,13H1a1,1,0,0,1,0-2H23a1,1,0,0,1,0,2Z" transform="translate(0 -4)" fill="#8a94a6"/>
+      <path id="Path_6" data-name="Path 6" d="M23,6H1A1,1,0,0,1,1,4H23a1,1,0,0,1,0,2Z" transform="translate(0 -4)" fill="#8a94a6"/>
+      <path id="Path_7" data-name="Path 7" d="M23,20H12a1,1,0,0,1,0-2H23a1,1,0,0,1,0,2Z" transform="translate(0 -4)" fill="#8a94a6"/>
+    </g>
+  </g>
+</svg>

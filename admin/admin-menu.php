@@ -801,8 +801,16 @@ add_submenu_page(
         '/admin.php?page=wc-admin&path=%2Fanalytics%2Foverview',
         ''
     );
-   
-
+  
+    add_menu_page(
+        ' فهرست های منو',
+        ' فهرست های منو',
+        'manage_options',
+        'nav-menus.php',
+        '',
+        "",
+        40
+    );
 
    
 
@@ -3878,4 +3886,13 @@ function sc_add_sms_credit_to_admin_bar($wp_admin_bar) {
             )
         ));
     }
+}
+
+
+// ست کردن جایگاه منو
+add_action('admin_menu','add_place_menu');
+
+function add_place_menu(){
+    register_nav_menu('main_menu_header' , 'منو اصلی هدر');
+    register_nav_menu('maga_menu_product' , 'مگا منو محصولات  ');
 }

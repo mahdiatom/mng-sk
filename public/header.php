@@ -2,25 +2,102 @@
 
 add_action('wp_head', 'custom_header_output');
 function custom_header_output() {
+    global $wpdb;
+$unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications(get_current_user_id()) : 0;
+ $members_table = $wpdb->prefix . 'sc_members';
+ $user_id = get_current_user_id();
+ $results = $wpdb->get_results(
+    "SELECT CONCAT( first_name , ' ' , last_name) AS name , personal_photo AS photo , user_id , player_phone
+     FROM $members_table
+     WHERE user_id = $user_id " , ARRAY_A
+);
+
+
     ?>
-    <header class="custom-header" >
+    <header class="custom-header header_top" >
+        
         
     <div class="logo_custom_gym">
         <img src="<?php echo sc_get_setting('sc_login_logo_url'); ?>" alt="">
     
     </div>
-    <div class="menus">
-        <nav class="menu_custom_gym menu-header menu-header_dl"><?php wp_nav_menu() ?></nav>
-        
-        <nav class="menu_custom_gym menu-header_moblie "><img class="menu-header_moblie" src="<?php echo SC_PLUGIN_URL; ?>assets/img/icon_menu.png" width="32"></nav>
-
-    </div>
+  
     <div class="woo_panel_mini">
-        <p>اطلاعیه ها</p>
-        <p>ثبت تیکت</p>
+        <nav class="menu_custom_gym menu-header  menu_header_left" >
+            <ul  class="menu">
+                 <?php if(is_user_logged_in()){ ?>
+                <li class="menu-item-has-children "> 
+                    <span class="icon_user">
+                    <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/user3.svg'); echo '<span class=arrow-b>' . file_get_contents(SC_ASSETS_DIR . '/img/icons/arrow-down.svg') . '</span>';   ?>
+                    </span>
+                   
+                    <ul class="sub-menu">
+                        <li class="icon_name" >
+                            <div class="sc-user-avatar_megamenu" ><img src="<?php echo $results[0]['photo']; ?>"></div>
+                            <div class="info_megamenu">
+                                <span href="#"> <?php echo $results[0]['name'] ?? ''; ?></apan>
+                                <span href="#"> <?php echo $results[0]['player_phone'] ?? ''; ?></apan>
+                            </div>
+                            
+                        </li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>edit-account" class="edit-account"> تغییر رمز ورود </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-submit-documents" class="sc-submit-documents"> اطلاعات بازیکن  </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-enroll-course" class="sc-enroll-course"> دوره ها  </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-my-courses" class="sc-my-courses"> دوره های من  </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-my-attendances" class="sc-my-attendances"> حضور و غیاب های من </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-events" class="sc-events"> رویداد / مسابقات</a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-my-events" class="sc-my-events"> رویداد های من  </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-invoices" class="sc-invoices"> صورتحساب </a></li>
+                        <li><a href="<?php echo home_url('/'); ?>shop" class="shop"> فروشگاه  </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-my-honors" class="sc-my-honors">افتخارات من </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-notifications" class="sc-notifications"> اطلاعیه ها <?php  if($unread > 0) { echo '<span class="count_unread_notif_mini">' . $unread .'</span>' ;} ?> </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-wallet" class="sc-wallet"> کیف پول </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-support-tickets" class="sc-support-tickets">  تیکت پشتیبانی </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-faq" class="sc-faq"> سوالات متداول </a></li>
+                        <li><a href="<?php echo wp_logout_url( wc_get_page_permalink( 'myaccount' ) ); ?>">خروج از حساب کاربری</a></li>    
+                    </ul>
+                    
+                </li>
+                <?php }
+                else{ ?>
+                    <li class="li_btn_login">
+                        <a href="<?php echo site_url(); ?>" class="btn_login">ورود به حساب کاربری</a>
+                    </li>
+                    <?php } ?>
+            </ul>
+        </nav>
+          <?php if(is_user_logged_in()){ ?>
+    <a class="icon_adv" href="<?php echo site_url('my-account/sc-notifications/');  ?>">                      
+                      <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/adv.svg');  if($unread > 0) { echo '<span class="count_unread_notif">' . $unread .'</span>' ;}   ?>  
+                    </a>
+                    <?php } ?>
+        <a class="icon_shop" href="<?php echo site_url('cart'); ?>"> 
+                      <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/shop.svg');  ?>  
+                    </a>
+      
     </div>
 
     </header>
+      <header class="custom-header header_bottom" >
+       
+        <div class="menus">
+                <div class="menus_header" >
+                    <div class="megamenu-box">
+                    
+                        <div class="t-m">
+                           
+                            <span><?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/charkhone.svg');  ?>  دسته بندی فروشگاه </span>
+                        </div>
+                        <div class="pishro-megamenu">
+                            <?php wp_nav_menu( array( 'theme_location' => 'maga_menu_product' , 'container' => ''  ) ); ?>
+                        </div>
+                </div>
+                <nav class="menu_custom_gym menu-header menu-header_dl"><?php wp_nav_menu(array('theme_location'=>'main_menu_header')); ?></nav>
+                </div>
+                <nav class="menu_custom_gym menu-header_moblie "> <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/hamberher-menu.svg');  ?></nav>
+
+            </div>
+      </header>
 
     <!-- The Modal -->
 <div id="myModal" class="modal" style="visibility : hidden; display: none;">
@@ -31,7 +108,7 @@ function custom_header_output() {
     <p class="sk-modal-content hide_before_data"></p>
     <p class="sk-modal-content_courses hide_before_data_courses"></p>
     <div class="sc-modal-body">
-                    <nav class="menu_custom_gym_popup menu-header"><?php wp_nav_menu() ?></nav>
+                    <nav class="menu_custom_gym_popup menu-header"><?php wp_nav_menu(array('theme_location'=>'main_menu_header')); ?></nav>
 
             </div>
 
@@ -40,44 +117,9 @@ function custom_header_output() {
 
 </div>
 </div>
+
     <?php
 }
 
 
 
-
-// sql ="SELECT 
-//     -- اسم کاربر: از فیلدهای پرداخت (billing) در سفارش گرفته شده است
-//     CONCAT(billing_first_name, ' ', billing_last_name) AS `اسم_کاربر`,  
-
-//     -- محصولات سفارش داده: لیست کاملاً خوانا و با تعداد هر محصول
-//     GROUP_CONCAT(CONCAT(' - ', product_name, ' (تعداد: ', quantity, ')') SEPARATOR '; ') AS `محصولات_سفارش_داده`,
-
-//     -- وضعیت سفارش
-//     post_status AS `وضعیت`,  
-
-//     -- تاریخ ثبت سفارش
-//     post_date AS `تاریخ`,
-    
-//     -- قیمت کل صورت حساب
-//     pm.meta_value AS `قیمت_کل_صورت_حساب`
-    
-// FROM 
-//     wp_posts p  -- جدول اصلی پست‌ها، ما سفارشات را از اینجا می‌گیریم
-    
-// LEFT JOIN 
-//     wp_postmeta pmeta ON p.ID = pmeta.post_id AND pmeta.meta_key IN ('_billing_first_name', '_billing_last_name') 
-
-// -- برای نمایش لیست محصولاتی که در یک سفارش وجود دارد
-// LEFT JOIN 
-//     wp_woocommerce_order_items oi ON p.ID = oi.order_id
-
-// LEFT JOIN 
-//     wp_woocommerce_order_itemmeta oitem ON oi.order_item_id = oitem.order_item_id AND oitem.meta_key = '_product_name'
-
-// LEFT JOIN 
-//     wp_woocommerce_order_itemmeta oim ON oi.order_item_id = oim.order_item_id AND oim.meta_key = '_quantity' -- برای گرفتن تعداد
-
-// -- هر سفارشی فقط یک ردیف خواهد داشت، بنابراین از GROUP BY استفاده می‌کنیم
-// GROUP BY 
-//     p.ID, p.post_status, p.post_date, pm.meta_value, billing_first_name, billing_last_name";

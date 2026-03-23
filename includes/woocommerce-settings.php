@@ -505,7 +505,8 @@ function add_custom_category_tag_filter() {
     echo '<div class="custom-product-filter" style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px;">';
     echo '<h4 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">فیلتر محصولات</h4>';
 // 1. فیلتر جستجو (Search)
-    echo '<div style="margin-bottom: 10px;">';
+    echo '<div class="input_filters">';
+    echo '<div style="margin-bottom: 10px; ">';
     echo '<label for="filter-search" style="display: block; margin-bottom: 5px; font-weight: 500;">جستجو:</label>';
     echo '<input type="text" id="filter-search" name="s" placeholder="نام محصول را وارد کنید..." value="' . esc_attr( get_search_query() ) . '" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">';
     echo '</div>';
@@ -547,8 +548,9 @@ foreach ( $tags as $tag ) {
     }
 echo '</select>';
     echo '</div>';
+    echo '</div>';
 // دکمه اعمال فیلتر (می‌توانید از فرم ارسال کنید)
-    echo '<button type="submit" id="button_filter_custom" style="background: #0073aa; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">اعمال فیلتر</button>';
+    echo '<button type="submit" id="button_filter_custom" class="button button-primary" >اعمال فیلتر</button>';
     echo '<input type="hidden" name="filter" value="1" />'; // نشانه فیلتر فعال شده
     echo '</div>';
 // اضافه کردن فرم جستجو به صفحه
@@ -668,5 +670,3 @@ $count = 'تعداد نتایج فیلتر شده : ' . $count;
 // خاتمه
     wp_die();
 }
-
-

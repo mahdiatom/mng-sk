@@ -15,6 +15,7 @@ $message = '';
 $message_type = '';
 $editing_faq = null;
 
+
 if (isset($_POST['add_faq']) && check_admin_referer('add_faq_faq')) {
     $question = isset($_POST['question']) ? sanitize_text_field($_POST['question']) : '';
     $answer = isset($_POST['answer']) ? sanitize_text_field($_POST['answer']) : '';

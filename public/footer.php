@@ -77,29 +77,12 @@ window.history.pushState({}, '', url.toString());
     $(document).on('click', '#button_filter_custom' , function(){
             applyFilter();
     } );
-// // اعمال فیلتر وقتی کاربر تایپ یا تغییر دهد
-//     $('#filter-search, #filter-category, #filter-tag').on('change keyup', function(e) {
-//         if (e.type === 'keyup' && e.which !== 13) return;
-//         applyFilter();
-//     });
 
-// // اعمال فیلتر وقتی از لینک دسته‌بندی/برچسب کلیک کنند
-//     $(document).on('click', 'a.product-category-link, a.product-tag-link', function(e) {
-//         e.preventDefault();
-//         const href = $(this).attr('href');
-//         const url = new URL(href, window.location.origin);
-//         const category = url.searchParams.get('product_cat');
-//         const tag = url.searchParams.get('product_tag');
-//         const search = url.searchParams.get('s');
-// $('#filter-search').val(search || '');
-//         $('#filter-category').val(category || '');
-//         $('#filter-tag').val(tag || '');
-// applyFilter();
-//     });
 });
 
     
 </script>
+
 
     <?php
     }

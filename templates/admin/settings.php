@@ -716,7 +716,7 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
         <?php elseif ($current_tab === 'login_register') : ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
-                <h3>تنظیمات فرم ورود و عضویت</h3>
+                <h3>تنظیمات فرم ورود و عضویت - [sc_login_register_form]</h3>
                 <table class="form-table">
                     <tr>
                         <th scope="row"><label for="sc_login_redirect_path">ریدایرکت بعد از ورود</label></th>
