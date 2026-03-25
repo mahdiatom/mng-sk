@@ -294,16 +294,49 @@ a.icon_adv svg path,
 a.icon_adv svg circle{
    stroke-width: 1 !important;
 }
+
 .woo_panel_mini .count_unread_notif{
-       background-color: #fee716a8;
+        background-color: #fee716;
     border-radius: 100%;
     color: #000;
-        padding: 2px 7px 1px 7px;
     font-size: 11px;
     position: absolute;
-    right: -9px;
+    left: 15px;
     top: -13px;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    padding-top: 4px;
 }
+.icon_shop{
+    position: relative;
+}
+.count_card{
+       background-color: #fee716;
+    border-radius: 100%;
+    color: #000;
+    font-size: 11px;
+    position: absolute;
+    left: 15px;
+    top: -13px;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    padding-top: 4px;
+}
+.sum_card{
+        background: #fff;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    color: black;
+    position: absolute;
+    left: -10px;
+    top: 22px;
+    z-index: 1;
+  text-align: center;
+}
+
 .woo_panel_mini .count_unread_notif_mini{
        background-color:  #1144f6;;
     border-radius: 100%;
@@ -312,6 +345,9 @@ a.icon_adv svg circle{
     font-size: 11px;
     
 }
+
+
+
 .custom-header.fixed {
     position: fixed;
     top: 0;
@@ -537,7 +573,7 @@ border-bottom: 2px solid rgba(91, 106, 160, 0.387);
     height: 40px;
     color: white;
 }
-.woocommerce-tabs .active{
+.woocommerce-tabs ul .active{
              background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     color: white !important;
 }
@@ -6234,15 +6270,17 @@ display: block;
 }
 .menu_header_left a{
     font-weight: normal !important;
-    padding: 5px 10px !important;
+    
 }
 .btn_login {
     padding: 6px 10px !important;
     font-size: 12px;
-    background: white;
+    
     color: black !important;
     border-radius: 8px;
     margin-top: -19px;
+        position: relative;
+    padding-right: 36px !important;
 }
 
 .li_btn_login{
@@ -6250,6 +6288,10 @@ display: block;
     padding: 6px 3px;
     margin-top: -9px !important;
     border-radius: 10px;
+}
+.btn_login svg{
+    position: absolute;
+    right: 5px !important;
 }
 .megamenu-box span{
     color: white;
@@ -6347,5 +6389,84 @@ display: block;
 }
 
 }
+.button-primary {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none;
+    color: #fff !important;
+    border-radius: 10px !important;
+}
 
+.wc-block-cart-items__row , .wp-block-woocommerce-cart-items-block{
+ margin: 5px;
+   
+}
+.wp-block-woocommerce-filled-cart-block{
+    overflow-x:auto ;
+}
+.wp-block-woocommerce-filled-cart-block{
+    margin-top: 30px;
+}
+.wp-block-woocommerce-cart-order-summary-block{
+    margin-top: 10px;
+}
+.wc-block-cart__empty-cart__title {
+    display: none !important;
 
+}
+.wp-block-woocommerce-empty-cart-block .wp-block-heading{
+    display: none !important;
+}
+.icon_empty_cart{
+    text-align: center;
+    padding-top: 100px;
+}
+
+.title_empty_card{
+        font-size: 14px !important;
+    text-align: center;
+    font-weight: normal !important;
+    padding:15px 10px;
+}
+.desc_empty{
+text-align: right;
+    background: #0000ff26;
+    padding: 10px;
+    border-radius: 10px;
+    color: #0f0f0f;
+    font-size: 13px;
+      position: absolute;
+    top: 0;
+}
+.section_empty_cart{
+    position: relative;
+}
+
+.section_empty_cart .button-primary{
+    padding: 10px;
+    margin: 10px;
+    text-align: center;
+}
+.section_empty_cart p{
+    text-align: center;
+}
+.product_some_emptycard{
+    margin-top: 100px;
+}
+.star-rating span::before{
+    display: none !important;
+}
+.rating{
+    display: none !important;
+}
+.woocommerce .star-rating{
+    display: none ;
+}
+.woocommerce-info a{
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none;
+    color: #fff !important;
+    border-radius: 10px !important;
+}
+.woocommerce-info::before{
+    display: none !important;
+}

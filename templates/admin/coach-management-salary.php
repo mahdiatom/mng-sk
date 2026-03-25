@@ -156,6 +156,26 @@ $courses = $wpdb->get_results(
                 <div>
                     <input type="submit" class="button button-primary" value="فیلتر">
                     <a href="<?php echo admin_url('admin.php?page=sc-coach-management-salary'); ?>" class="button">پاک کردن فیلترها</a>
+                     <?php
+            // ساخت URL برای export Excel با حفظ فیلترها
+            $export_url = admin_url('admin.php?page=sc-coach-management-salary&sc_export=excel&export_type=coach_management_salary');
+            $export_url = add_query_arg('filter_status', isset($_GET['filter_status']) ? $_GET['filter_status'] : 'all', $export_url);
+            $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
+            $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
+            if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
+                $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
+            }
+            if (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
+                $export_url = add_query_arg('filter_date_to', $_GET['filter_date_to'], $export_url);
+            }
+            if (isset($_GET['s']) && !empty($_GET['s'])) {
+                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            }
+            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+            ?>
+            <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+                📊 خروجی Excel
+            </a>
                 </div>
             </div>
         </form>

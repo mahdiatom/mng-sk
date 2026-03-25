@@ -759,7 +759,9 @@ add_submenu_page(
 
    
  /* ================= faq ================= */
+$pro_feature_shop = (int) sc_get_setting('pro_feature_shop', 0);
 
+if($pro_feature_shop){
     add_menu_page(
         ' فروشگاه',
         ' فروشگاه',
@@ -779,20 +781,13 @@ add_submenu_page(
     );
     add_submenu_page(
         'sc_orders',
-        'لیست کد تخفیف ها',
-        '  لیست کد تخفیف ها' ,
+        ' کد تخفیف ',
+        ' لیست کد تخفیف ' ,
         'manage_woocommerce',
         'edit.php?post_type=shop_coupon',
         ''
     );
-    add_submenu_page(
-        'sc_orders',
-        'افزودن کد تخفیف',
-        '  افزودن کد تخفیف ' ,
-        'manage_woocommerce',
-        'post-new.php?post_type=shop_coupon',
-        ''
-    );
+
     add_submenu_page(
         'sc_orders',
         'تجزیه و تحلیل',
@@ -801,6 +796,8 @@ add_submenu_page(
         '/admin.php?page=wc-admin&path=%2Fanalytics%2Foverview',
         ''
     );
+
+}
   
     add_menu_page(
         ' فهرست های منو',
@@ -978,6 +975,12 @@ function sc_handle_excel_export() {
             break;
         case 'wallet_transactions':
             sc_export_wallet_transactions_to_excel();
+            break;
+        case 'coach_management_salary':
+            sc_export_sc_coach_management_salary_to_excel();
+            break;
+        case 'coach_management_withdrawals':
+            sc_export_coach_management_withdrawals_to_excel();
             break;
         default:
             wp_die('نوع export معتبر نیست.');

@@ -320,6 +320,13 @@ function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $atten
     if (!$user_id) {
         return ['success' => false, 'message' => 'کاربر یافت نشد.'];
     }
+    if(debt_user($member_id)[0] > floatval(sc_get_setting('max_debt_for_attendance', '0'))){
+        return [
+            'success' => false,
+            'message' => 'عدم ثبت به علت بدهی بیشتر از سقف بدهی' 
+        ];
+    }
+
     $description = $course_title . ' - ' . $attendance_date_shamsi;
     return sc_add_wallet_transaction([
         'user_id' => $user_id,

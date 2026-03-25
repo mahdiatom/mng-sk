@@ -485,3 +485,20 @@ add_action( 'woocommerce_after_checkout_validation', function ( $data, $errors )
 
 
 //پایان فرمت صحیح شماره تماس ها 
+
+
+
+function get_cart_item_count() {
+    $cart = WC()->cart;
+
+    if ( $cart ) {
+        return ['count' => $cart->get_cart_contents_count() , 'sum' => number_format( $cart->get_total( true ) )]; // تعداد کل اقلام (با توجه به تعداد هر محصول)
+       
+    }
+    return 0;
+}
+
+// function check_max_debt_user($member_id,){
+//     if()
+
+// }

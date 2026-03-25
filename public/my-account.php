@@ -491,6 +491,7 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-my-events'] = ' رویداد های من ';
     $items['sc-invoices'] = 'صورت حساب‌ها';
     $items['shop'] = 'فروشگاه';
+    $items['my-orders'] = 'سفارش های فروشگاه';
     $items['sc-my-honors'] = 'افتخارات من';
     if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()) {
         $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications(get_current_user_id()) : 0;
@@ -523,6 +524,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-faq', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-invoices', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('shop', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('my-orders', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-event-success', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-wallet', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-honors', EP_ROOT | EP_PAGES);
@@ -549,6 +551,7 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-wallet';
     $vars[] = 'sc-notifications';
     $vars[] = 'sc-support-tickets';
+    $vars[] = 'my-orders';
     return $vars;
 }
 
@@ -584,6 +587,9 @@ add_filter('woocommerce_endpoint_sc-faq_title', function() {
 
 add_filter('woocommerce_endpoint_sc-event-detail_title', function() { 
     return 'جزئیات رویداد'; 
+});
+add_filter('woocommerce_endpoint_my-orders_title', function() { 
+    return 'سفارش های فروشگاه'; 
 });
 
 add_filter('woocommerce_endpoint_sc-invoices_title', 'sc_invoices_endpoint_title');
@@ -2351,6 +2357,89 @@ function sc_handle_invoice_cancellation() {
     wp_safe_redirect($redirect_url);
     exit;
 }
+/**
+ * Handle invoice cancellation request
+ */
+add_action('template_redirect', 'sc_handle_order_cancellation');
+function sc_handle_order_cancellation() {
+    // بررسی درخواست لغو
+    if (!isset($_GET['cancel_order']) || !isset($_GET['order_id']) || !isset($_GET['_wpnonce'])) {
+        return;
+    }
+    
+    // بررسی اینکه آیا در صفحه invoices هستیم
+    if (!is_account_page()) {
+        return;
+    }
+    
+    // بررسی nonce
+    if (!wp_verify_nonce($_GET['_wpnonce'], 'cancel_order_' . $_GET['order_id'])) {
+        wc_add_notice('درخواست نامعتبر است.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('my-orders'));
+        exit;
+    }
+    
+    // بررسی لاگین بودن کاربر
+    if (!is_user_logged_in()) {
+        wc_add_notice('لطفاً ابتدا وارد حساب کاربری خود شوید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('my-orders'));
+        exit;
+    }
+    
+    // بررسی و ایجاد جداول
+    sc_check_and_create_tables();
+    
+   
+    
+    $order_id = absint($_GET['order_id']);
+    
+
+    // بررسی اینکه فقط سفارش‌های با وضعیت pending یا under_review قابل لغو هستند
+    
+    
+    
+    global $wpdb;
+
+ $members_table = $wpdb->prefix . 'sc_members';
+        $orders_table = $wpdb->prefix . 'wc_orders';
+        $woocommerce_order_items_table = $wpdb->prefix . 'woocommerce_order_items';
+        $woocommerce_order_itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+
+// حذف صورت حساب‌ها
+                
+                    $invoice = $wpdb->get_row($wpdb->prepare(
+                        "SELECT wo.id , wo.status
+                    from wp_wc_orders wo
+                    INNER JOIN wp_woocommerce_order_items woi ON wo.id = woi.order_id
+                    WHERE woi.order_item_type NOT IN ('fee') AND wo.customer_id NOT IN (0) AND wo.id = %d 
+                    GROUP BY 
+                        wo.id, wo.status, wo.total_amount, wo.payment_method_title;",
+                                            $order_id
+                    ));
+                 
+                    if (!in_array($invoice->status, ['pending', 'under_review' , 'wc-checkout-draft'])) {
+                        wc_add_notice("'فقط سفارش‌های در انتظار پرداخت یا در حال بررسی قابل لغو هستند.' ", 'error');
+                        wp_safe_redirect(wc_get_account_endpoint_url('my-orders'));
+                        exit;
+                    }
+                                    // حذف صورت حساب
+                  $orderdelete1 =  $wpdb->delete($orders_table, ['id' => $order_id], ['%d']);
+                   $orderdelete2 =  $wpdb->delete($woocommerce_order_items_table, ['order_id' => $order_id], ['%d']);
+
+
+ 
+        
+       if($orderdelete1 && $orderdelete2 ){
+        
+      
+          wc_add_notice('سفارش با موفقیت حذف شد.', 'success');
+
+    wp_safe_redirect(wc_get_account_endpoint_url('my-orders'));
+                  
+    
+    exit;
+       }
+}
 
 /**
  * Display content for invoices tab
@@ -2491,6 +2580,72 @@ function sc_my_account_support_tickets_content() {
     if (!$player) return;
     include SC_TEMPLATES_PUBLIC_DIR . 'support-tickets.php';
 }
+
+add_action('woocommerce_account_my-orders_endpoint', 'sc_my_account_my_orders_content');
+
+
+function sc_my_account_my_orders_content() {
+//    سفارش های فروشگاه کاربر
+global $wpdb;
+
+        $members_table = $wpdb->prefix . 'sc_members';
+        $orders_table = $wpdb->prefix . 'wc_orders';
+        $woocommerce_order_items_table = $wpdb->prefix . 'woocommerce_order_items';
+        $woocommerce_order_itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+        $user_id = get_current_user_id();
+        
+        
+        $per_page = 20;
+       // $current_page = $this->get_pagenum();
+       // $offset = ($current_page - 1) * $per_page;
+        $query = "SELECT 
+            wo.id AS id_order,
+            sm.user_id,
+             
+            wo.status,
+            wo.payment_method_title,
+            GROUP_CONCAT(
+                CONCAT(
+                    woi.order_item_name,
+                    ' (', 
+                    woi_qty.meta_value, 
+                    ')'
+                ) 
+                SEPARATOR '<br>'
+            ) AS products_with_quantity,
+            wo.total_amount,
+            wo.payment_method_title,
+            wo.date_created_gmt
+        FROM 
+            $members_table sm
+            INNER JOIN $orders_table wo ON wo.customer_id = sm.user_id
+            INNER JOIN $woocommerce_order_items_table woi ON woi.order_id = wo.id
+            -- تعداد هر محصول (از order_itemmeta)
+            INNER JOIN $woocommerce_order_itemmeta woi_qty 
+                ON woi.order_item_id = woi_qty.order_item_id 
+                AND woi_qty.meta_key = '_qty'
+        WHERE 
+            woi.order_item_type = 'line_item' AND sm.user_id = $user_id  -- فقط محصولات
+
+        GROUP BY 
+            wo.id, sm.first_name, sm.last_name, sm.player_phone, wo.status, wo.total_amount, wo.payment_method_title
+        ORDER BY 
+            wo.id DESC";
+$orders= $wpdb->get_results($wpdb->prepare($query));
+
+    include SC_TEMPLATES_PUBLIC_DIR . 'my_orders.php';
+
+
+
+
+
+
+}
+
+
+
+
+
 
 add_action('woocommerce_account_sc-my-honors_endpoint', 'sc_my_account_my_honors_content');
 function sc_my_account_my_honors_content() {

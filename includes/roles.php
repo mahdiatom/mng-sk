@@ -7,7 +7,7 @@ if ( ! defined('ABSPATH') ) exit;
  */
 function club_create_club_coach_role() {
 
-       //     remove_role('club_coach');
+           remove_role('club_coach');
 
     // اگر نقش وجود ندارد، ایجاد شود
     if ( ! get_role('club_coach') ) {
@@ -345,8 +345,8 @@ function club_add_woocommerce_capabilities_to_club_coach() {
             // حذف منوهای وردپرس
             remove_menu_page('plugins.php');
             remove_menu_page('themes.php');
-            remove_menu_page('edit.php');
-            remove_menu_page('edit.php?post_type=page');
+            //remove_menu_page('edit.php');
+            //remove_menu_page('edit.php?post_type=page');
             remove_menu_page('edit-comments.php');
             remove_menu_page('options-general.php');
             remove_menu_page('tools.php');
@@ -392,8 +392,8 @@ function club_add_woocommerce_capabilities_to_club_coach() {
             'options-media.php',
             'options-privacy.php',
           //  'media-new.php',
-            'edit.php?post_type=page',
-            'post-new.php?post_type=page',
+          //  'edit.php?post_type=page',
+          //  'post-new.php?post_type=page',
           //  'users.php',
           //  'options-permalink.php',
 
@@ -990,4 +990,24 @@ function club_hide_wc_payment_menu_with_css() {
        
     </style>
     <?php
+}
+
+
+
+
+//بستن دسترسی کلی بوفه و فروشگاه
+add_action('admin_init', 'close_acsses_shop');
+function close_acsses_shop(){
+
+$pro_feature_shop = (int) sc_get_setting('pro_feature_shop', 0);
+
+if(!$pro_feature_shop && !current_user_can('administrator')){
+    remove_menu_page('wc-admin');
+    remove_menu_page('edit.php?post_type=product');
+    remove_menu_page('edit.php?post_type=shop_coupon');
+    remove_menu_page('wc-settings');
+
+
+}
+
 }

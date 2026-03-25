@@ -11,11 +11,18 @@ if (!class_exists('WP_List_Table')) {
 class orders_List_Table extends WP_List_Table {
 
     public function display() {
+
+        
         echo '<form method="post">';
         wp_nonce_field('bulk-' . $this->_args['plural']);
+        
         parent::display();
+      
         echo '</form>';
     }
+
+    
+   
     public function get_columns() {
         return [
              'cb' => '<input type="checkbox" />',

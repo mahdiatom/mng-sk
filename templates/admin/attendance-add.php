@@ -76,9 +76,9 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                         $existing
                     ));
                 }
-
+                    // debt_user($member_id)[0] < floatval(sc_get_setting('max_debt_for_attendance', '0'))
                 // در صورت «حاضر»: فقط برای بازیکن تیم، اگر کیف پول فعال و قیمت جلسه > 0، ابتدا کسر را انجام بده؛ اگر کسر ناموفق بود این کاربر را ثبت نکن
-                $need_deduct = ( ($status === 'present' ||  $status === 'absent' ) && sc_is_member_team($member_id) && $price_per_session > 0 && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet()));
+                $need_deduct = ( ($status === 'present' ||  $status === 'absent' )  &&  sc_is_member_team($member_id) && $price_per_session > 0 && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet()));
                 $deduct_done = false;
                 if ($need_deduct) {
                     $should_deduct = !$existing || ! $current_record ;
@@ -326,29 +326,7 @@ if ($selected_course_id) {
         }
     }
 }
-// function debt_user($id){
-//      global $wpdb;
-//     // محاسبه بدهکاری (صورت حساب‌های pending و under_review)
-//     $invoices_table = $wpdb->prefix . 'sc_invoices';
-//     $wallet_balance = function_exists('sc_get_wallet_balance') ? sc_get_wallet_balance($id) : 0;
-//     $debt_wallet = 0;
-//     if($wallet_balance < 0){
-//         $debt_wallet = abs($wallet_balance);
-//     }
-    
-//     $debt_info = $wpdb->get_row($wpdb->prepare(
-//         "SELECT 
-//             COUNT(*) as count,
-//             SUM(amount + COALESCE(penalty_amount, 0)) as total_debt
-//          FROM $invoices_table
-//          WHERE member_id = %d 
-//          AND status IN ('pending', 'under_review') AND (course_id > 0 OR invoice_description IS NOT NULL)",
-//         $id
-//     ));
-//     $debt_count = $debt_info->count ?? 0;
-//     $total_debt = floatval($debt_info->total_debt ?? 0);
-//     return $total_debt + $debt_wallet;
-// }
+
 
 
 $is_update_mode = !empty($existing_attendances);
@@ -442,10 +420,10 @@ $is_update_mode = !empty($existing_attendances);
                             $debt_user = debt_user($member->id)[0];
                             $existing_status = isset($existing_attendances[$member->id]) ? $existing_attendances[$member->id] : '';
                         ?>
-                            <tr style="width = 800px; background-color: <?php echo ($debt_user > 0) ? '#c3191957' : '' ?> !important; background-color: <?php echo ( number_format($debt_user) >= sc_get_wallet_max_negative_balance()-1) ? '#f20e0e9a' : '2222' ?> !important;" >
+                            <tr style="width = 800px; background-color: <?php echo ($debt_user > 0) ? '#c3191957' : '' ?> !important; background-color: <?php echo ( $debt_user >= floatval(sc_get_setting('max_debt_for_attendance', '0'))) ? '#f20e0e9a' : '2222' ?> !important;" >
                                 <td><?php echo $index + 1; ?></td>
                                 <td><?php echo esc_html($member->first_name . ' '. $member->last_name); ?></td>
-                                <td ><?php echo number_format($debt_user); ?>  تومان    <?php echo (number_format($debt_user) >= sc_get_wallet_max_negative_balance()-1) ? 'سقف موجودی - عدم ثبت رکورد کاربر' : ''; ?></td>
+                                <td ><?php echo number_format($debt_user) ; ?>  تومان    <?php echo ($debt_user >= floatval(sc_get_setting('max_debt_for_attendance', '0'))) ? 'سقف موجودی - عدم ثبت رکورد کاربر' : ' '; ?></td>
                                 <td style="display: flex; margin-top: 7px; ">
                                     <label style="display: inline-block; margin-left: 20px;">
                                         <input type="radio" 

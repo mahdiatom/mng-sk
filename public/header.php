@@ -11,7 +11,10 @@ $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_not
      FROM $members_table
      WHERE user_id = $user_id " , ARRAY_A
 );
+// مبلغ کل با تخفیف (مثلاً تخفیف کد تخفیف)
 
+$count_product_card = get_cart_item_count()['count'];
+$sum_price_card = get_cart_item_count()['sum'];
 
     ?>
     <header class="custom-header header_top" >
@@ -61,7 +64,7 @@ $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_not
                 <?php }
                 else{ ?>
                     <li class="li_btn_login">
-                        <a href="<?php echo site_url(); ?>" class="btn_login">ورود به حساب کاربری</a>
+                        <a href="<?php echo site_url(); ?>" class="btn_login" > <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/login.svg');  ?> ورود | ثبت نام</a>
                     </li>
                     <?php } ?>
             </ul>
@@ -71,7 +74,10 @@ $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_not
                       <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/adv.svg');  if($unread > 0) { echo '<span class="count_unread_notif">' . $unread .'</span>' ;}   ?>  
                     </a>
                     <?php } ?>
-        <a class="icon_shop" href="<?php echo site_url('cart'); ?>"> 
+
+        <a class="icon_shop" href="<?php echo site_url('cart'); ?>">
+             <?php if($count_product_card > 0) { echo '<span class="count_card">' . $count_product_card .'</span>' ;}   ?>  
+             <?php if($sum_price_card > 0) { echo '<span class="sum_card">  ' . $sum_price_card .' تومان </span>' ;}   ?>  
                       <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/shop.svg');  ?>  
                     </a>
       

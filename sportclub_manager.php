@@ -1612,5 +1612,15 @@ function sc_ajax_attendance_report_player() {
     <?php
     $html = ob_get_clean();
     wp_send_json_success(['html' => $html]);
+
+}
+
+add_action('woocommerce_blocks_enqueue_cart_block_scripts_before' , 'addwoocommerce_cart_is_empty_sc');
+function addwoocommerce_cart_is_empty_sc(){
+    $count = get_cart_item_count()['count'];
+    
+    if(is_page('cart') && $count == 0  ){
+        include SC_TEMPLATES_PUBLIC_DIR . 'empty_cart.php';
+    }
 }
 

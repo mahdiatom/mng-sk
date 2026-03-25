@@ -210,7 +210,11 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     }
     elseif($current_tab === 'attendance'){
         $deduction_wallet_enabled = isset($_POST['deduction_wallet']) ? 1 : 0;
+   
+        $raw_neg_debt = isset($_POST['max_debt_for_attendance']) && $_POST['max_debt_for_attendance'] !== '' ? str_replace(',', '', $_POST['max_debt_for_attendance']) : (isset($_POST['max_debt_for_attendance']) ? $_POST['max_debt_for_attendance'] : '');
+        $max_debt_for_attendance = $raw_neg_debt !== '' ? floatval($raw_neg_debt) : 0;
         sc_update_setting('deduction_wallet_enabled' , $deduction_wallet_enabled , 'attendance');
+        sc_update_setting('max_debt_for_attendance' , $max_debt_for_attendance , 'attendance');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کیف پول ذخیره شد', null, ['tab' => 'attendance']);
         }
@@ -240,12 +244,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     $pro_feature_players_wallet = isset($_POST['pro_feature_players_wallet']) ? 1 : 0;
     $pro_feature_coaches_wallet_salary = isset($_POST['pro_feature_coaches_wallet_salary']) ? 1 : 0;
     $pro_feature_sms = isset($_POST['pro_feature_sms']) ? 1 : 0;
+    $pro_feature_shop = isset($_POST['pro_feature_shop']) ? 1 : 0;
 
     sc_update_setting('pro_feature_notifications', $pro_feature_notifications, 'pro_features');
     sc_update_setting('pro_feature_coaches', $pro_feature_coaches, 'pro_features');
     sc_update_setting('pro_feature_players_wallet', $pro_feature_players_wallet, 'pro_features');
     sc_update_setting('pro_feature_coaches_wallet_salary', $pro_feature_coaches_wallet_salary, 'pro_features');
     sc_update_setting('pro_feature_sms', $pro_feature_sms, 'pro_features');
+    sc_update_setting('pro_feature_shop', $pro_feature_shop, 'pro_features');
     if (function_exists('sc_log_activity')) {
         sc_log_activity('updated', 'settings', 0, 'تنظیمات تب امکانات پرو ذخیره شد', null, ['tab' => 'pro_features']);
     }
@@ -392,6 +398,7 @@ $pro_feature_coaches = (int) sc_get_setting('pro_feature_coaches', 0);
 $pro_feature_players_wallet = (int) sc_get_setting('pro_feature_players_wallet', 0);
 $pro_feature_coaches_wallet_salary = (int) sc_get_setting('pro_feature_coaches_wallet_salary', 0);
 $pro_feature_sms = (int) sc_get_setting('pro_feature_sms', 0);
+$pro_feature_shop = (int) sc_get_setting('pro_feature_shop', 0);
 $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
 
 $activity_log_cleanup_day = max(1, min(28, (int) sc_get_setting('activity_log_cleanup_day', '1')));
@@ -472,10 +479,10 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
             لاگ
         </a>
 
-        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=reset'); ?>"
-           class="nav-tab <?php echo $current_tab === 'reset' ? 'nav-tab-active' : ''; ?>">
+        <!-- <a href="<?php // echo admin_url('admin.php?page=sc_setting&tab=reset'); ?>"
+           class="nav-tab <?php // echo $current_tab === 'reset' ? 'nav-tab-active' : ''; ?>">
             بازگشت به کارخانه
-        </a>
+        </a> -->
 <?php } ?>
     </nav>
 
@@ -1583,6 +1590,7 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce');
                 $deduction_wallet_enabled = sc_get_setting('deduction_wallet_enabled'); 
+                $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0'));
                 ?>
 
                 <table class="form-table">
@@ -1594,6 +1602,21 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
                                 فعال کردن کسر از کیف پول برای حضور و غیاب
                             </label>
                             <p class="description">در این صورت با هر بار حضور و غیاب کاربر به ازای قیمت هر جلسه دوره از کیف پول بازیکن کسر میگردد.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">حداکثر بدهی منفی مجاز برای عدم ثبت حضور و غیاب</th>
+                        <td>
+                            <input type="text" 
+                                   name="max_debt_for_attendance" 
+                                   id="max_debt_for_attendance"
+                                   value="<?php echo $max_debt_for_attendance > 0 ? number_format($max_debt_for_attendance, 0, '.', ',') : ''; ?>" 
+                                   class="regular-text" 
+                                   dir="ltr" 
+                                   inputmode="numeric" 
+                                   placeholder="0">
+                            <input type="hidden" name="max_debt_for_attendance_raw" id="max_debt_for_attendance_raw" value="<?php echo esc_attr($max_debt_for_attendance); ?>">
+                            <p class="description">حداکثر موجودی منفی که کاربر می‌تواند داشته باشد (به تومان). برای عدم اجازه موجودی منفی، مقدار 0 وارد کنید. هنگام منفی شدن کیف پول، مدیر از طریق ایمیل مطلع می‌شود.</p>
                         </td>
                     </tr>
                 
@@ -1759,6 +1782,15 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
                     </label>
                 </td>
             </tr>
+            <tr>
+                <th scope="row">فروشگاه </th>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" name="pro_feature_shop" value="1" <?php checked($pro_feature_shop, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
         </table>
 
         <p class="submit">
@@ -1773,7 +1805,7 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
 <script>
 jQuery(document).ready(function($) {
     // فرمت کردن مبلغ در تنظیمات دستمزد مربی
-    $('#coach_min_withdrawal_amount, #coach_max_negative_balance').on('input', function() {
+    $('#coach_min_withdrawal_amount, #coach_max_negative_balance , #max_debt_for_attendance').on('input', function() {
         var value = $(this).val().replace(/,/g, '');
         if (!isNaN(value) && value !== '') {
             $(this).val(number_format(value, 0, '.', ','));

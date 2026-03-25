@@ -22,6 +22,7 @@ if (!defined('ABSPATH')) {
  */
 add_filter('woocommerce_account_menu_items', 'sc_remove_default_account_menu_items', 5, 1);
 function sc_remove_default_account_menu_items($items) {
+    
     // اگر کاربر مدیر است، منوهای پیش‌فرض را نگه دار
     if (current_user_can('manage_options')) {
         return $items;
@@ -33,9 +34,11 @@ function sc_remove_default_account_menu_items($items) {
       // فقط "خروج" را نگه دار و بقیه را حذف کن
     $logout = isset($items['customer-logout']) ? $items['customer-logout'] : 'خروج از حساب کاربری';
     $edit_account = isset($items['edit-account']) ? $items['edit-account'] : 'تغییر اطلاعات حساب';
+    $downloads = isset($items['downloads']) ? $items['downloads'] : 'فایل های دانلودی';
     
     $items['customer-logout'] = $logout;
-    $items['edit-account'] = $edit_account;
+    $items['edit-account'] = $edit_account;   
+    $items['downloads'] = $downloads;
     
     return $items;
 }

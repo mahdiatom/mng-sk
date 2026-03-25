@@ -172,7 +172,7 @@ function sc_sms_log_insert($mobile, $message_display, $context, $result) {
  * برای تشخیص لیست سیاه / نرسیده به گوشی و غیره
  *
  * @param int $log_id شناسه رکورد در sc_sms_log
- * @return array { success, delivery_state, message } یا خطا
+ * @return array// { success, delivery_state, message } یا خطا
  */
 function sc_sms_log_check_delivery_status($log_id) {
     global $wpdb;

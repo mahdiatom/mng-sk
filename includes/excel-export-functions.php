@@ -1774,6 +1774,417 @@ function sc_export_wallet_transactions_to_excel() {
     $writer->save('php://output');
     exit;
 }
+/**
+ * Export sc_export_wallet_transactions_to_excel to Excel
+ * خروجی اکسل برای تراکنش‌های کیف پول (با درنظرگرفتن فیلترهای صفحه لیست تراکنش‌ها)
+ */
+function sc_export_sc_coach_management_salary_to_excel() {
+    sc_check_phpspreadsheet();
+global $wpdb;
+$coaches_table = $wpdb->prefix . 'sc_coaches';
+$salary_records_table = $wpdb->prefix . 'sc_coach_salary_records';
+$courses_table = $wpdb->prefix . 'sc_courses';
+
+// دریافت فیلترها — تاریخ فقط از GET، بدون اعمال پیش‌فرض در فیلتر
+$filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
+$filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+$filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
+$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
+$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+$filter_date_from = $filter_date_from_shamsi; // برای WHERE به شمسی تبدیل می‌شود
+$filter_date_to   = $filter_date_to_shamsi;
+$today_shamsi_sal = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+if (!$today_shamsi_sal && function_exists('gregorian_to_jalali')) {
+    $g = explode('-', current_time('Y-m-d'));
+    $j = gregorian_to_jalali((int)$g[0], (int)$g[1], (int)$g[2]);
+    $today_shamsi_sal = $j[0] . '/' . str_pad($j[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($j[2], 2, '0', STR_PAD_LEFT);
+}
+$display_date_from_sal = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_sal;
+$display_date_to_sal   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_sal;
+
+// ساخت WHERE clause
+$where_conditions = ['1=1'];
+$where_values = [];
+
+if ($filter_coach > 0) {
+    $where_conditions[] = "sr.coach_id = %d";
+    $where_values[] = $filter_coach;
+}
+
+if ($filter_course > 0) {
+    $where_conditions[] = "sr.course_id = %d";
+    $where_values[] = $filter_course;
+}
+
+if ($filter_type !== 'all') {
+    $where_conditions[] = "sr.salary_type = %s";
+    $where_values[] = $filter_type;
+}
+
+if ($filter_date_from) {
+    $date_from_gregorian = sc_shamsi_to_gregorian_date($filter_date_from);
+    $where_conditions[] = "sr.attendance_date >= %s";
+    $where_values[] = $date_from_gregorian;
+}
+
+if ($filter_date_to) {
+    $date_to_gregorian = sc_shamsi_to_gregorian_date($filter_date_to);
+    $where_conditions[] = "sr.attendance_date <= %s";
+    $where_values[] = $date_to_gregorian;
+}
+
+$where_clause = implode(' AND ', $where_conditions);
+
+
+
+$sum_sql = "SELECT COALESCE(SUM(sr.salary_amount), 0) FROM $salary_records_table sr INNER JOIN $coaches_table c ON sr.coach_id = c.id LEFT JOIN $courses_table co ON sr.course_id = co.id WHERE $where_clause";
+
+$query = "SELECT sr.*, c.first_name, c.last_name, c.settlement_type, co.title as course_title 
+          FROM $salary_records_table sr
+          INNER JOIN $coaches_table c ON sr.coach_id = c.id
+          LEFT JOIN $courses_table co ON sr.course_id = co.id
+          WHERE $where_clause
+          ORDER BY sr.attendance_date DESC, sr.created_at DESC
+          ";
+
+
+
+
+
+
+
+
+
+
+
+if (!empty($where_values)) {
+        $transactions = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    } else {
+        $transactions = $wpdb->get_results($query);
+    }
+
+    // ایجاد Excel
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet       = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('دستمزد مربیان');
+    $sheet->setRightToLeft(true);
+
+    // Header
+    $headers = [
+            'ردیف',
+            'شناسه',
+            'تاریخ ',
+            'نام مربی',
+            'دوره',
+            'نوع تسویه حساب',
+            'تعداد شرکت کننده',
+            'قیمت هر جلسه',
+            'کل در آمد',
+            'درصد همکاری',
+            'مبلغ دستمزد'
+    ];
+
+    $col = 1;
+    foreach ($headers as $header) {
+        $sheet->setCellValueByColumnAndRow($col, 1, $header);
+        $col++;
+    }
+// استایل هدر
+    $headerStyle = sc_get_excel_header_style();
+    $sheet->getStyle('A1:N1')->applyFromArray($headerStyle);
+
+// داده‌ها
+    $row        = 2;
+    $row_number = 1;
+
+    $settlement_type = [
+        'percentage'      => 'درصدی',
+   
+    ];
+
+
+    foreach ($transactions as $t) {
+        $col = 1;
+
+// ردیف
+        $sheet->setCellValueByColumnAndRow($col++, $row, $row_number++);
+
+
+// شناسه
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->id ?? '-');
+//تاریخ 
+    $date_display = !empty($t->attendance_date) ? sc_date_shamsi($t->attendance_date, 'Y/m/d H:i') : '-';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $date_display);
+
+
+//نام مربی
+
+       $full_name = trim(($t->first_name ?? '') . ' ' . ($t->last_name ?? ''));
+        $sheet->setCellValueByColumnAndRow($col++, $row, $full_name !== '' ? $full_name : '-');
+
+      // نام دوره 
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->course_title ?? '-');
+
+      // نام دوره 
+      $value_settlement = $t->settlement_type ; 
+        $sheet->setCellValueByColumnAndRow($col++, $row, $settlement_type["$value_settlement"] ?? '-');
+
+// قیمت هر جلسه
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->price_per_session ?? '-');
+
+
+//کل درآمد 
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->total_revenue ?? '-');
+
+
+//درصد همکاری 
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->salary_percentage ?? '-');
+
+
+//درصد همکاری 
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->salary_amount ?? '-');
+
+
+        // استایل ردیف
+        $dataStyle = sc_get_excel_data_style();
+        if ($row % 2 === 0) {
+            $alternateStyle = sc_get_excel_alternate_row_style();
+            $sheet->getStyle("A{$row}:N{$row}")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+        } else {
+            $sheet->getStyle("A{$row}:N{$row}")->applyFromArray($dataStyle);
+        }
+
+        $row++;
+    }
+
+    // تنظیم عرض ستون‌ها
+    sc_auto_size_columns($sheet, count($headers));
+
+    // نام فایل
+    $filename = sc_generate_export_filename('دستمزد مربی', []);
+
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+    header('Pragma: public');
+
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
+}
+/**
+ * Export sc_export_wallet_transactions_to_excel to Excel
+ * خروجی اکسل برای تراکنش‌های کیف پول (با درنظرگرفتن فیلترهای صفحه لیست تراکنش‌ها)
+ */
+function sc_export_coach_management_withdrawals_to_excel() {
+    sc_check_phpspreadsheet();
+
+    
+global $wpdb;
+$withdrawal_table = $wpdb->prefix . 'sc_coach_withdrawal_requests';
+$coaches_table = $wpdb->prefix . 'sc_coaches';
+// دریافت فیلترها
+$filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+$filter_coach  = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
+
+// پردازش فیلترهای تاریخ — فقط از GET، بدون اعمال پیش‌فرض در فیلتر
+$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
+$filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+$filter_date_from = '';
+$filter_date_to   = '';
+if (!empty($filter_date_from_shamsi)) {
+    $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+} elseif (isset($_GET['filter_date_from']) && $_GET['filter_date_from'] !== '') {
+    $filter_date_from = sanitize_text_field($_GET['filter_date_from']);
+    $filter_date_from_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_from) : '';
+}
+if (!empty($filter_date_to_shamsi)) {
+    $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+} elseif (isset($_GET['filter_date_to']) && $_GET['filter_date_to'] !== '') {
+    $filter_date_to = sanitize_text_field($_GET['filter_date_to']);
+    $filter_date_to_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_to) : '';
+}
+// فقط برای نمایش در فیلدها: وقتی کاربر تاریخی نفرستاده امروز نشان بده
+$today_shamsi_w = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+if (!$today_shamsi_w && function_exists('gregorian_to_jalali')) {
+    $today = new DateTime(current_time('Y-m-d'));
+    $jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+    $today_shamsi_w = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+}
+$display_date_from_shamsi_w = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_w;
+$display_date_to_shamsi_w   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_w;
+
+// ساخت WHERE clause
+$where_conditions = ['1=1'];
+$where_values = [];
+
+if ($filter_status !== 'all') {
+    $where_conditions[] = "w.status = %s";
+    $where_values[] = $filter_status;
+}
+
+if ($filter_coach > 0) {
+    $where_conditions[] = "w.coach_id = %d";
+    $where_values[] = $filter_coach;
+}
+
+if (!empty($filter_date_from)) {
+    $where_conditions[] = "DATE(w.created_at) >= %s";
+    $where_values[] = $filter_date_from;
+}
+
+if (!empty($filter_date_to)) {
+    $where_conditions[] = "DATE(w.created_at) <= %s";
+    $where_values[] = $filter_date_to;
+}
+
+$where_clause = implode(' AND ', $where_conditions);
+
+// دریافت لیست مربیان برای فیلتر
+$coaches_for_filter = $wpdb->get_results(
+    "SELECT id, first_name, last_name 
+     FROM $coaches_table 
+     WHERE is_active = 1 
+     ORDER BY last_name ASC, first_name ASC"
+);
+
+$per_page = 20;
+$current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+
+$count_sql = "SELECT COUNT(*) FROM $withdrawal_table w INNER JOIN $coaches_table c ON w.coach_id = c.id WHERE $where_clause";
+$total_items = !empty($where_values) ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $where_values)) : (int) $wpdb->get_var($count_sql);
+$total_pages = $total_items > 0 ? ceil($total_items / $per_page) : 1;
+$current_page = min($current_page, max(1, $total_pages));
+$offset = ($current_page - 1) * $per_page;
+
+$query = "SELECT w.*, c.first_name, c.last_name 
+          FROM $withdrawal_table w
+          INNER JOIN $coaches_table c ON w.coach_id = c.id
+          WHERE $where_clause
+          ORDER BY w.created_at DESC
+          ";
+
+
+if (!empty($where_values)) {
+        $transactions = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    } else {
+        $transactions = $wpdb->get_results($query);
+    }
+
+    // ایجاد Excel
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet       = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('دستمزد مربیان');
+    $sheet->setRightToLeft(true);
+
+    // Header
+    $headers = [
+            'ردیف',
+            'شناسه',
+            ' تاریخ تسویه',
+            'نام مربی',
+            'مبلغ درخواستی',
+            'وضعیت',
+            'یادداشت'
+
+    ];
+
+    $col = 1;
+    foreach ($headers as $header) {
+        $sheet->setCellValueByColumnAndRow($col, 1, $header);
+        $col++;
+    }
+// استایل هدر
+    $headerStyle = sc_get_excel_header_style();
+    $sheet->getStyle('A1:N1')->applyFromArray($headerStyle);
+
+// داده‌ها
+    $row        = 2;
+    $row_number = 1;
+
+    $status_type = [
+        'paid'      => 'تایید و پرداخت شده',
+        'rejected'      => 'رد شده',
+        'pending'      => 'در انتظار تایید',
+        'approved'      => 'تایید شده ( منتظر پرداخت )'
+   
+    ];
+
+
+    foreach ($transactions as $t) {
+        $col = 1;
+
+// ردیف
+        $sheet->setCellValueByColumnAndRow($col++, $row, $row_number++);
+
+
+// شناسه
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->id ?? '-');
+//تاریخ 
+    $date_display = !empty($t->created_at ) ? sc_date_shamsi($t->created_at , 'Y/m/d H:i') : '-';
+        $sheet->setCellValueByColumnAndRow($col++, $row, $date_display);
+
+
+//نام مربی
+
+       $full_name = trim(($t->first_name ?? '') . ' ' . ($t->last_name ?? ''));
+        $sheet->setCellValueByColumnAndRow($col++, $row, $full_name !== '' ? $full_name : '-');
+
+
+
+ 
+
+// مبلغ درخواستی
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->amount ?? '-');
+
+
+      // وضعیت
+      $value_status = $t->status ; 
+        $sheet->setCellValueByColumnAndRow($col++, $row, $status_type["$value_status"] ?? '-');
+
+
+
+//یادداشت
+        $sheet->setCellValueByColumnAndRow($col++, $row, $t->notes ?? '-');
+
+
+
+
+        // استایل ردیف
+        $dataStyle = sc_get_excel_data_style();
+        if ($row % 2 === 0) {
+            $alternateStyle = sc_get_excel_alternate_row_style();
+            $sheet->getStyle("A{$row}:N{$row}")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+        } else {
+            $sheet->getStyle("A{$row}:N{$row}")->applyFromArray($dataStyle);
+        }
+
+        $row++;
+    }
+
+    // تنظیم عرض ستون‌ها
+    sc_auto_size_columns($sheet, count($headers));
+
+    // نام فایل
+    $filename = sc_generate_export_filename('درخواست برداشت', []);
+
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+    header('Pragma: public');
+
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
+}
 
 
 

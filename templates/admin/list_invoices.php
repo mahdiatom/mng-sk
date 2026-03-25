@@ -35,6 +35,7 @@ class Invoices_List_Table extends WP_List_Table {
     //     $row_number++;
     //     return (($page - 1) * $per_page) + $row_number;
     // }
+    
 public function column_order_number($item) {
 
     // اگر سفارش ووکامرس وجود ندارد
