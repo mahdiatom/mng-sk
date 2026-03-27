@@ -1616,7 +1616,7 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
                                    inputmode="numeric" 
                                    placeholder="0">
                             <input type="hidden" name="max_debt_for_attendance_raw" id="max_debt_for_attendance_raw" value="<?php echo esc_attr($max_debt_for_attendance); ?>">
-                            <p class="description">حداکثر موجودی منفی که کاربر می‌تواند داشته باشد (به تومان). برای عدم اجازه موجودی منفی، مقدار 0 وارد کنید. هنگام منفی شدن کیف پول، مدیر از طریق ایمیل مطلع می‌شود.</p>
+                            <p class="description">در صورتی که بدهی کل کاربر بیشتر از این مبلغ باشد امکان ثبت رکورد حضور و غیاب برای آن کاربر امکان پذیر نمی باشد.</p>
                         </td>
                     </tr>
                 

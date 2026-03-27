@@ -6470,3 +6470,7 @@ text-align: right;
 .woocommerce-info::before{
     display: none !important;
 }
+.menu_header_left .sub-menu{
+        height: 400px;
+    overflow: auto;
+}

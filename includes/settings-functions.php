@@ -498,7 +498,3 @@ function get_cart_item_count() {
     return 0;
 }
 
-// function check_max_debt_user($member_id,){
-//     if()
-
-// }

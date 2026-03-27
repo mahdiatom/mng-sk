@@ -480,6 +480,7 @@ function sc_add_my_account_menu_item($items) {
     if (current_user_can('manage_options')) {
         return $items;
     }
+    //انتخاب اسم 
     // Insert before logout
     $logout = $items['customer-logout'];
     unset($items['customer-logout']); 
@@ -490,7 +491,7 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-events'] = 'رویدادها / مسابقات';
     $items['sc-my-events'] = ' رویداد های من ';
     $items['sc-invoices'] = 'صورت حساب‌ها';
-    $items['shop'] = 'فروشگاه';
+    $items['shop'] = 'فروشگاه ' ;
     $items['my-orders'] = 'سفارش های فروشگاه';
     $items['sc-my-honors'] = 'افتخارات من';
     if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()) {
