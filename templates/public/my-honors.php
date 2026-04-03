@@ -218,7 +218,7 @@ $total_pages = ceil($total_honors / $per_page);
 
 ?>
 <div class="woocommerce-MyAccount-content sc-honors-content" style="max-width: 100%; padding: 0; margin: 0;">
-    <h2>افتخارات من</h2>
+    <h2 id="list_honors">افتخارات من</h2>
     
     <!-- نمایش پیام‌های WooCommerce (اگر از redirect آمده باشیم) -->
     <?php wc_print_notices(); ?>
@@ -364,7 +364,7 @@ $total_pages = ceil($total_honors / $per_page);
             <?php endif; ?>
         </div>
     <?php else : ?>
-        <div class="woocommerce-message woocommerce-message--info woocommerce-info" style="margin-top: 20px;">
+        <div class="woocommerce-message woocommerce-message--info woocommerce-info" id="list_honors" style="margin-top: 20px;">
             هنوز افتخاری ثبت نشده است.
         </div>
     <?php endif; ?>
@@ -542,16 +542,23 @@ jQuery(document).ready(function($) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+
+    // اگر هَش آدرس برابر با #list_honors باشد، کد اجرا نشود
+    if (window.location.hash === '#list_honors') {
+        return;
+    }
+
     // بررسی هر 100ms تا المان حاضر شود
     const interval = setInterval(function() {
         const el = document.querySelector('.sc-honors-content h2'); // المان هدف
         if (el) {
-            // اسکرول نرم و مرکز صفحه
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            clearInterval(interval); // توقف بررسی بعد از اسکرول
+            clearInterval(interval);
         }
     }, 100);
+
 });
+
 </script>
 
 <style>

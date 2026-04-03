@@ -64,11 +64,13 @@ require_once SC_INCLUDES_DIR . 'activity-log-functions.php';   // Activity log (
 require_once SC_INCLUDES_DIR . 'login-register-functions.php'; // ورود و عضویت با پیامک و رمز
 require_once SC_INCLUDES_DIR . 'redirect.php'; // ورود و عضویت با پیامک و رمز
 
+
 include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
 require_once SC_PUBLIC_DIR . 'my-account.php';
 // Include WooCommerce Thank You Page customization
 require_once SC_PUBLIC_DIR . 'woocommerce-thankyou.php';
+//header footer
 require_once SC_PUBLIC_DIR . 'header.php';
 require_once SC_PUBLIC_DIR . 'footer.php';
 
@@ -84,6 +86,7 @@ register_activation_hook( __FILE__, 'club_create_club_coach_role' );
 register_activation_hook(__FILE__, 'sc_create_coach_role');
 register_activation_hook(__FILE__, 'sc_update_database');
 register_deactivation_hook(__FILE__, 'sc_clear_recurring_invoices_cron');
+
 
 function sc_activate_plugin() {
 

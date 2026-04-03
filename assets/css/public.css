@@ -502,7 +502,182 @@ border-bottom: 2px solid rgba(91, 106, 160, 0.387);
 .wp-block-woocommerce-checkout-order-summary-block .wc-block-components-product-metadata{
     display: none !important;
 }
+/* شروع برای سبد خرید و صورت حساب کلاسیک */
+
+/* سبد خرید */
+.woocommerce .woocommerce-cart-form {
+        border-radius: 15px;
+    
+        margin: 15px 0;
+}
+.woocommerce .woocommerce-cart-form button {
+         background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none;
+    color: #fff !important;
+    border-radius: 10px !important;
+    padding: 20px !important;
+}
+.woocommerce .woocommerce-cart-form #coupon_code{
+        width: 300px !important;
+    height: 53px;
+    border-radius: 10px;
+    margin-left: 14px;
+}
+.woocommerce .calculated_shipping {
+            background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none;
+    color: #fff !important;
+    border-radius: 10px !important;
+    padding: 20px !important;
+    width: 100% !important;
+    margin-bottom: 300px;
+
+}
+.woocommerce .wc-proceed-to-checkout a{
+background-color: white !important;
+color: #000 !important;
+border-radius: 10px !important;
+}
+.woocommerce .wc-proceed-to-checkout .woocommerce-Price-amount  {
+color: white !important;
+}
+.woocommerce .woocommerce-cart-form .size-woocommerce_thumbnail{
+        width: 80px;
+    border-radius: 10px;
+}
+.woocommerce .woocommerce-cart-form .product-remove a {
+        background: red;
+    padding: 3px;
+    color: white !important;
+}
+.woocommerce .wc-empty-cart-message .woocommerce-info{
+            background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none;
+    color: #fff !important;
+    border-radius: 10px !important;
+    padding: 20px !important;
+    width: 100% !important;
+}
+.woocommerce .return-to-shop .wc-backward {
+             background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none;
+    color: #fff !important;
+    border-radius: 10px !important;
+    padding: 20px !important;
+
+}
+
+.woocommerce .woocommerce-checkout{
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 300px;
+
+}
+
+.woocommerce #customer_details{
+        display: flex;
+    flex-direction: column;
+    width: 65%;
+    max-width: 100%;
+}
+.woocommerce .woocommerce-checkout .col-1{
+    width: 92% !important;
+}
+.woocommerce .woocommerce-checkout .col-2{
+    width: 92% !important;
+}
+.woocommerce .woocommerce-checkout #order_review{
+
+    width: 62% !important;
+
+}
+
+ #order_review_heading{
+    display: none !important;
+} 
+.woocommerce .woocommerce-checkout .woocommerce-billing-fields .input-text ,
+ .woocommerce .woocommerce-checkout .woocommerce-billing-fields span.select2-selection,
+ .woocommerce .woocommerce-checkout #order_comments
+
+ {
+        padding: 16px !important;
+    border: 1px solid #dbdbdb !important;
+    border-radius: 10px !important;
+} 
+.select2-results__options{
+      font-family: IRANYekanXFaNum !important;
+}
+
+.woocommerce .woocommerce-form-coupon-toggle .woocommerce-info{
+        background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none;
+    color: #fff !important;
+    border-radius: 10px !important;
+}
+.woocommerce-message a{
+    
+    padding: 4px 19px;
+    border-radius: 10px;
+
+}
+
+@media screen and (max-width:780px) {
+    .woocommerce .woocommerce-cart-form .coupon{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+    .woocommerce .woocommerce-checkout{
+            display: flex !important;
+    flex-direction: column !important;
+    }
+    .woocommerce .woocommerce-checkout .col-1{
+    width: 100% !important;
+}
+.woocommerce .woocommerce-checkout .col-2{
+    width: 100% !important;
+}
+.woocommerce .woocommerce-checkout #order_review{
+
+    width: 100% !important;
+
+}
+.woocommerce #customer_details{
+width: 100% !important;
+}
+.woocommerce .woocommerce-form-coupon{
+    display: flex;
+        flex-direction: column;
+        gap: 10px;
+}
+.woocommerce .woocommerce-form-coupon .form-row-first{
+    width: 100%;
+}
+.woocommerce .woocommerce-form-coupon .form-row-last{
+    width: 100% !important;
+}
+.woocommerce .woocommerce-form-coupon .form-row-last button{
+    width: 100%;
+}
+}
+/* پایان سبد خرید برای سبد خرید کلاسیک */
+
+
+
 /* پایان سبد خرید  */
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /* کارت های محصولات  */
@@ -523,8 +698,9 @@ border-bottom: 2px solid rgba(91, 106, 160, 0.387);
     flex-direction: column !important;
     justify-content: space-around !important;
 }
+
 .price del bdi{
-    font-size: 14px !important;
+    font-size: 10px !important;
     
 }
 .price{
@@ -573,6 +749,11 @@ border-bottom: 2px solid rgba(91, 106, 160, 0.387);
     height: 40px;
     color: white;
 }
+a.add_to_cart_button{
+    font-size: 12px !important;
+}
+
+
 .woocommerce-tabs ul .active{
              background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     color: white !important;
@@ -619,7 +800,7 @@ textarea#comment{
 .variations select option{
     color: #000 !important;
 }
-.woocommerce-Price-amount {
+.woocommerce-LoopProduct-link .woocommerce-Price-amount , .product  .woocommerce-Price-amount  {
     color: #000 !important;
 }
 .in-stock{
@@ -678,6 +859,10 @@ textarea#comment{
 @media screen and (max-width: 780px) {
     .woocommerce-product-gallery {
     width: 100% !important;
+}
+.products .product h2{
+
+    font-size: 12px !important;
 }
 .woocommerce-page div.product div.summary{
     width: 100% !important;
@@ -1092,6 +1277,11 @@ a.details_info_user_pannel:hover {
     padding: 10px;
     border-radius: 10px;
 
+}
+@media screen and (max-width:780px) {
+    .woocommerce-MyAccount-navigation{
+        display: none;
+    }
 }
 
 .woocommerce-MyAccount-navigation ul li{
@@ -2911,6 +3101,13 @@ padding: 15px !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
+}
+@media screen and (max-width:780px) {
+    #button_filter_custom {
+            width: 100%;
+    margin-top: 11px;
+    padding: 14px;
+    }
 }
 .products-no-product{
         text-align: center;
@@ -6458,8 +6655,8 @@ text-align: right;
 .rating{
     display: none !important;
 }
-.woocommerce .star-rating{
-    display: none ;
+.star-rating{
+    display: none !important;
 }
 .woocommerce-info a{
     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;

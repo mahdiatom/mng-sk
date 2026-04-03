@@ -673,3 +673,58 @@ $count = 'تعداد نتایج فیلتر شده : ' . $count;
 // خاتمه
     wp_die();
 }
+
+
+//شروع محدود کردن فیلد های صورت حساب کلاسیک
+
+
+/* Remove Woocommerce User Fields
+این کد برای نگه داشتن اسم و نام خانوادگی و شماره و ایمیل هست اگر موارد دیگه ای میخوای باقی بمونه از اینجا پاک کن 
+ */
+add_filter( 'woocommerce_checkout_fields' , 'custom_override_checkout_fields' );
+add_filter( 'woocommerce_billing_fields' , 'custom_override_billing_fields' );
+add_filter( 'woocommerce_shipping_fields' , 'custom_override_shipping_fields' );
+
+ 
+function custom_override_checkout_fields( $fields ) {  
+  unset($fields['billing']['billing_country']);
+  unset($fields['billing']['billing_company']); 
+  unset($fields['billing']['billing_address_1']);  
+  unset($fields['billing']['billing_address_2']);  
+  unset($fields['billing']['billing_state']);  
+  unset($fields['billing']['billing_city']);  
+  unset($fields['billing']['billing_email']);  
+  unset($fields['billing']['billing_postcode']);  
+   unset($fields['shipping']['shipping_country']);
+  unset($fields['shipping']['shipping_company']);
+  unset($fields['shipping']['shipping_address_2']);  
+  unset( $fields['shipping']['billing_email'] );
+  return $fields;
+}
+function custom_override_billing_fields( $fields ) {  
+  unset($fields['billing_country']);
+  unset($fields['billing_company']);  
+  unset($fields['billing_address_2']);
+  unset( $fields['billing']['billing_email'] );
+  return $fields;
+}
+function custom_override_shipping_fields( $fields ) { 
+  unset($fields['shipping_country']);
+  unset($fields['shipping_company']);
+  unset($fields['shipping_address_2']);
+	
+
+  return $fields;
+}
+
+
+add_filter( 'woocommerce_checkout_fields', 'remove_email_checkout_field' );
+
+function remove_email_checkout_field( $fields ) {
+ 
+	
+// 	$fields['billing']['billing_state']['priority'] = 20; // استان
+//     $fields['billing']['billing_city']['priority'] = 30; // شهر
+    return $fields;
+}
+/* End - Remove Woocommerce User Fields */

@@ -196,8 +196,8 @@ class orders_List_Table extends WP_List_Table {
                 foreach ($invoice_ids as $invoice_id) {
                     $invoice = $wpdb->get_row($wpdb->prepare(
                         "SELECT wo.id 
-                    from wp_wc_orders wo
-                    INNER JOIN wp_woocommerce_order_items woi ON wo.id = woi.order_id
+                    from $orders_table wo
+                    INNER JOIN $woocommerce_order_items_table woi ON wo.id = woi.order_id
                     WHERE woi.order_item_type NOT IN ('fee') AND wo.customer_id NOT IN (0) AND wo.id = %d
                     GROUP BY 
                         wo.id, wo.status, wo.total_amount, wo.payment_method_title;",
@@ -231,8 +231,8 @@ class orders_List_Table extends WP_List_Table {
                 foreach ($invoice_ids as $invoice_id) {
                     $invoice = $wpdb->get_row($wpdb->prepare(
                         "SELECT wo.id 
-                        from wp_wc_orders wo
-                        INNER JOIN wp_woocommerce_order_items woi ON wo.id = woi.order_id
+                        from $orders_table wo
+                        INNER JOIN $woocommerce_order_items_table woi ON wo.id = woi.order_id
                         WHERE woi.order_item_type NOT IN ('fee') AND wo.customer_id NOT IN (0) AND wo.id = %d
                         GROUP BY 
                             wo.id, wo.status, wo.total_amount, wo.payment_method_title;",
