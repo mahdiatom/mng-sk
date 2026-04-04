@@ -28,7 +28,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
 <div class="sc-orders-page">
     <h2 style="margin-bottom: 25px; color: #1a1a1a; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
         <span style="font-size: 32px;">💳</span>
-        صورت حساب‌ها
+سفارشات
     </h2>
     
     <!-- فیلتر وضعیت -->
@@ -60,9 +60,9 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
     <?php if (empty($orders)) : ?>
         <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
             <?php if ($filter_status !== 'all') : ?>
-                صورت حسابی با این وضعیت یافت نشد.
+                سفارشی با این وضعیت یافت نشد.
             <?php else : ?>
-                شما هنوز صورت حسابی ندارید.
+                شما هنوز سفارشی ثبت نکرده اید.
             <?php endif; ?>
         </div>
     <?php else : ?>
@@ -356,7 +356,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                     }
                                     
                                     // دکمه پرداخت از درگاه
-                                    $action_buttons[] = '<a href="' . esc_url($payment_url) . '" class="woocommerce-button button view sc-order-btn sc-order-btn-pay"
+                                    $action_buttons[] = '<a href="' . esc_url($payment_url) . '" class="woocommerce-button button view sc-order-btn sc-order-btn-pay button-primary"
                                     >💳 پرداخت از درگاه</a>';
                                 }
                                 
@@ -386,9 +386,9 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                     );
                                     $action_buttons[] = '<a href="' . esc_url($cancel_url) . '" 
                                         class="woocommerce-button button sc-order-btn sc-order-btn-cancel"
-                                        onclick="return confirm(\'آیا مطمئن هستید می‌خواهید این صورت‌حساب را حذف کنید؟ ✖ این عملیات غیرقابل برگشت است🗑\')"
+                                        onclick="return confirm(\'آیا مطمئن هستید می‌خواهید این سفارش را حذف کنید؟ ✖ این عملیات غیرقابل برگشت است🗑\')"
                                         style="background:#dc3545;color:#fff;">
-                                         حذف صورتحساب
+                                         حذف سفارش
                                     </a>';
                                     
                                 }

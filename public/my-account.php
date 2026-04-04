@@ -491,8 +491,10 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-events'] = 'رویدادها / مسابقات';
     $items['sc-my-events'] = ' رویداد های من ';
     $items['sc-invoices'] = 'صورت حساب‌ها';
+    if(sc_get_setting('pro_feature_shop')){ 
     $items['shop'] = 'فروشگاه ' ;
     $items['my-orders'] = 'سفارش های فروشگاه';
+    }
     $items['sc-my-honors'] = 'افتخارات من';
     if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()) {
         $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications(get_current_user_id()) : 0;

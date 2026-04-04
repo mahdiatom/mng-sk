@@ -21,7 +21,7 @@ $sum_price_card = get_cart_item_count()['sum'];
         
         
     <div class="logo_custom_gym">
-        <img src="<?php echo sc_get_setting('sc_login_logo_url'); ?>" alt="">
+        <img src="<?php echo sc_get_setting('sc_club_logo_url'); ?>" alt="">
     
     </div>
   
@@ -44,6 +44,7 @@ $sum_price_card = get_cart_item_count()['sum'];
                             
                         </li>
                         <li><a href="<?php echo home_url('my-account/'); ?>edit-account" class="edit-account"> تغییر رمز ورود </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>bot-connect" class="bot-connect">اتصال به ربات </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-submit-documents" class="sc-submit-documents"> اطلاعات بازیکن  </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-enroll-course" class="sc-enroll-course"> دوره ها  </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-my-courses" class="sc-my-courses"> دوره های من  </a></li>
@@ -51,11 +52,21 @@ $sum_price_card = get_cart_item_count()['sum'];
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-events" class="sc-events"> رویداد / مسابقات</a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-my-events" class="sc-my-events"> رویداد های من  </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-invoices" class="sc-invoices"> صورتحساب </a></li>
+                        <?php 
+                         if(sc_get_setting('pro_feature_shop')){ ?>
                         <li><a href="<?php echo home_url('/'); ?>shop" class="shop"> فروشگاه  </a></li>
+                        <li><a href="<?php echo home_url('/'); ?>my-account/my-orders" class="my-orders"> سفارش های فروشگاه </a></li>
+                        <?php } ?>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-my-honors" class="sc-my-honors">افتخارات من </a></li>
+                        <?php if(sc_get_setting('pro_feature_notifications')){ ?>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-notifications" class="sc-notifications"> اطلاعیه ها <?php  if($unread > 0) { echo '<span class="count_unread_notif_mini">' . $unread .'</span>' ;} ?> </a></li>
+                        <?php }
+                         if(sc_get_setting('pro_feature_players_wallet')){?>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-wallet" class="sc-wallet"> کیف پول </a></li>
+                        <?php } ?>
+                
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-support-tickets" class="sc-support-tickets">  تیکت پشتیبانی </a></li>
+                     
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-faq" class="sc-faq"> سوالات متداول </a></li>
                         <li><a href="<?php echo wp_logout_url( wc_get_page_permalink( 'myaccount' ) ); ?>">خروج از حساب کاربری</a></li>    
                     </ul>
@@ -69,7 +80,7 @@ $sum_price_card = get_cart_item_count()['sum'];
                     <?php } ?>
             </ul>
         </nav>
-          <?php if(is_user_logged_in()){ ?>
+          <?php if(is_user_logged_in() && sc_get_setting('pro_feature_notifications') ){ ?>
     <a class="icon_adv" href="<?php echo site_url('my-account/sc-notifications/');  ?>">                      
                       <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/adv.svg');  if($unread > 0) { echo '<span class="count_unread_notif">' . $unread .'</span>' ;}   ?>  
                     </a>
@@ -88,19 +99,28 @@ $sum_price_card = get_cart_item_count()['sum'];
        
         <div class="menus">
                 <div class="menus_header" >
+                   <?php  if(sc_get_setting('pro_feature_shop')){ ?>
                     <div class="megamenu-box">
                     
                         <div class="t-m">
                            
-                            <span><?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/charkhone.svg');  ?>  دسته بندی فروشگاه </span>
+                         <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/charkhone.svg');  ?>   <span style="padding-right: 28px;">دسته بندی فروشگاه </span>
                         </div>
                         <div class="pishro-megamenu">
                             <?php wp_nav_menu( array( 'theme_location' => 'maga_menu_product' , 'container' => ''  ) ); ?>
                         </div>
                 </div>
+                <?php }
+
+                ?>
+                
                 <nav class="menu_custom_gym menu-header menu-header_dl"><?php wp_nav_menu(array('theme_location'=>'main_menu_header')); ?></nav>
-                </div>
+                <?php  if(sc_get_setting('sc_phone_club')){?>
+                <a href="tel:<?php echo sc_get_setting('sc_phone_club'); ?>" class="header_phone"><?php  echo sc_get_setting('sc_phone_club');  echo file_get_contents(SC_ASSETS_DIR . '/img/icons/call.svg'); ?> </a>
+                <?php } ?>
+            </div>
                 <nav class="menu_custom_gym menu-header_moblie "> <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/hamberher-menu.svg');  ?></nav>
+                
 
             </div>
       </header>

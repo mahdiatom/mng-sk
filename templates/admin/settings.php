@@ -289,6 +289,21 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات ورود و عضویت ذخیره شد.</p></div>';
     }
+    elseif ($current_tab === 'about') {
+
+        $sc_name_club   = isset($_POST['sc_name_club']) ? sanitize_text_field($_POST['sc_name_club']) : 'باشگاه اتم';
+        $sc_club_logo_url        = isset($_POST['sc_club_logo_url']) ? esc_url_raw($_POST['sc_club_logo_url']) : '';
+        $sc_phone_club        = isset($_POST['sc_phone_club']) ? sanitize_text_field($_POST['sc_phone_club']) : '';
+
+        sc_update_setting('sc_name_club', $sc_name_club, 'abaut_club');
+        sc_update_setting('sc_club_logo_url', $sc_club_logo_url, 'abaut_club');
+        sc_update_setting('sc_phone_club', $sc_phone_club, 'abaut_club');
+
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب درباره مجموعه ذخیره شد', null, ['tab' => 'about']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات درباره مجموعه شد.</p></div>';
+    }
 }
 
 // پردازش فرم بازگشت به کارخانه
@@ -414,7 +429,11 @@ $sc_login_btn_color     = sc_get_setting('sc_login_btn_color', '#ffffff');
 // تنطیمات حضور و غیاب 
 
 $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
+// تنظیمات درباره مجموعه
 
+$sc_name_club      = sc_get_setting('sc_name_club', '');
+$sc_club_logo_url      = sc_get_setting('sc_club_logo_url', '');
+$sc_phone_club      = sc_get_setting('sc_phone_club', '');
 ?>
 
 <div class="wrap sc_setting_section" >
@@ -440,6 +459,10 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=login_register'); ?>"
            class="nav-tab <?php echo $current_tab === 'login_register' ? 'nav-tab-active' : ''; ?>">
             ورود و عضویت
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=about'); ?>"
+           class="nav-tab <?php echo $current_tab === 'about' ? 'nav-tab-active' : ''; ?>">
+            درباره  مجموعه
         </a>
         <?php
           if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {
@@ -723,7 +746,7 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
         <?php elseif ($current_tab === 'login_register') : ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
-                <h3>تنظیمات فرم ورود و عضویت - [sc_login_register_form]</h3>
+                    <h3>تنظیمات فرم ورود و عضویت - [sc_login_register_form]</h3>
                 <table class="form-table">
                     <tr>
                         <th scope="row"><label for="sc_login_redirect_path">ریدایرکت بعد از ورود</label></th>
@@ -810,50 +833,56 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات ورود و عضویت">
                 </p>
             </form>
-            <script>
-            jQuery(function($) {
-                if (typeof wp === 'undefined' || !wp.media) return;
-                var logoUploader, bgUploader;
-                $('#sc_login_logo_upload').on('click', function(e) {
-                    e.preventDefault();
-                    if (logoUploader) { logoUploader.open(); return; }
-                    logoUploader = wp.media({ title: 'انتخاب لوگو', button: { text: 'استفاده از این تصویر' }, multiple: false, library: { type: 'image' } });
-                    logoUploader.on('select', function() {
-                        var att = logoUploader.state().get('selection').first().toJSON();
-                        $('#sc_login_logo_url').val(att.url);
-                        $('#sc_login_logo_preview').html('<img src="' + att.url + '" alt="" style="max-width:200px;height:auto;border:1px solid #ddd;border-radius:4px;">');
-                        $('#sc_login_logo_remove').show();
-                    });
-                    logoUploader.open();
-                });
-                $('#sc_login_logo_remove').on('click', function() {
-                    $('#sc_login_logo_url').val('');
-                    $('#sc_login_logo_preview').empty();
-                    $(this).hide();
-                });
-                $('#sc_login_bg_upload').on('click', function(e) {
-                    e.preventDefault();
-                    if (bgUploader) { bgUploader.open(); return; }
-                    bgUploader = wp.media({ title: 'انتخاب تصویر پس‌زمینه', button: { text: 'استفاده از این تصویر' }, multiple: false, library: { type: 'image' } });
-                    bgUploader.on('select', function() {
-                        var att = bgUploader.state().get('selection').first().toJSON();
-                        $('#sc_login_bg_image').val(att.url);
-                        $('#sc_login_bg_preview').html('<img src="' + att.url + '" alt="" style="max-width:200px;max-height:80px;object-fit:cover;border:1px solid #ddd;border-radius:4px;">');
-                        $('#sc_login_bg_remove').show();
-                    });
-                    bgUploader.open();
-                });
-                $('#sc_login_bg_remove').on('click', function() {
-                    $('#sc_login_bg_image').val('');
-                    $('#sc_login_bg_preview').empty();
-                    $(this).hide();
-                });
-                $('#sc_login_bg_color, #sc_login_btn_bg, #sc_login_btn_color').on('input change', function() {
-                    var id = $(this).attr('id') + '_hex';
-                    $('#' + id).text($(this).val());
-                });
-            });
-            </script>
+         
+        <?php elseif ($current_tab === 'about') :
+            
+            ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                    <h3>اطلاعات مجموعه </h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="sc_name_club">نام مجموعه </label></th>
+                        <td>
+                            <input type="text" name="sc_name_club" 
+                                   value="<?php echo esc_attr($sc_name_club); ?>"
+                                   class="regular-text" placeholder="مثلا اتم کلاب">
+                            <p class="description">در قسمت هایی که نام باشگاه وجود دارد از این قسمت خوانده می شود. هدر - فوتر و ...</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row"><label for="sc_club_logo_url">لوگو</label></th>
+                        <td>
+                            <div class="sc-lr-media-wrap">
+                                <input type="hidden" name="sc_club_logo_url" id="sc_club_logo_url"
+                                       value="<?php echo esc_attr($sc_logo_club); ?>">
+                                <button type="button" class="button" id="sc_club_logo_upload">انتخاب تصویر</button>
+                                <button type="button" class="button" id="sc_club_logo_remove" <?php echo empty($sc_club_logo_url) ? ' style="display:none;"' : ''; ?>>حذف</button>
+                                <div class="sc-lr-media-preview" id="sc_club_logo_preview" style="margin-top:8px;">
+                                    <?php if (!empty($sc_club_logo_url)) : ?>
+                                        <img src="<?php echo esc_url($sc_club_logo_url); ?>" alt="" style="max-width:200px;height:auto;border:1px solid #ddd;border-radius:4px;">
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <p class="description">لوگوی نمایش داده شده بالای فرم</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_phone_club">شماره تماس پشتیبانی </label></th>
+                        <td>
+                            <input type="text" name="sc_phone_club" 
+                                   value="<?php echo esc_attr($sc_phone_club); ?>"
+                                   class="regular-text" placeholder="مثلا : 09944338956  ">
+                            <p class="description">شماره تماس در هدر و فوتر قسمت درباره مجموعه نمایش داده خواهد شد</p>
+                        </td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات ورود و عضویت">
+                </p>
+            </form>
+         
         <?php elseif ($current_tab === 'sms') : ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
@@ -1802,6 +1831,83 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
     </div>
 </div>
 
+
+
+
+
+
+   <script name="for login_club">
+            jQuery(function($) {
+                if (typeof wp === 'undefined' || !wp.media) return;
+                var logoUploader, bgUploader;
+                $('#sc_login_logo_upload').on('click', function(e) {
+                    e.preventDefault();
+                    if (logoUploader) { logoUploader.open(); return; }
+                    logoUploader = wp.media({ title: 'انتخاب لوگو', button: { text: 'استفاده از این تصویر' }, multiple: false, library: { type: 'image' } });
+                    logoUploader.on('select', function() {
+                        var att = logoUploader.state().get('selection').first().toJSON();
+                        $('#sc_login_logo_url').val(att.url);
+                        $('#sc_login_logo_preview').html('<img src="' + att.url + '" alt="" style="max-width:200px;height:auto;border:1px solid #ddd;border-radius:4px;">');
+                        $('#sc_login_logo_remove').show();
+                    });
+                    logoUploader.open();
+                });
+                $('#sc_login_logo_remove').on('click', function() {
+                    $('#sc_login_logo_url').val('');
+                    $('#sc_login_logo_preview').empty();
+                    $(this).hide();
+                });
+                $('#sc_login_bg_upload').on('click', function(e) {
+                    e.preventDefault();
+                    if (bgUploader) { bgUploader.open(); return; }
+                    bgUploader = wp.media({ title: 'انتخاب تصویر پس‌زمینه', button: { text: 'استفاده از این تصویر' }, multiple: false, library: { type: 'image' } });
+                    bgUploader.on('select', function() {
+                        var att = bgUploader.state().get('selection').first().toJSON();
+                        $('#sc_login_bg_image').val(att.url);
+                        $('#sc_login_bg_preview').html('<img src="' + att.url + '" alt="" style="max-width:200px;max-height:80px;object-fit:cover;border:1px solid #ddd;border-radius:4px;">');
+                        $('#sc_login_bg_remove').show();
+                    });
+                    bgUploader.open();
+                });
+                $('#sc_login_bg_remove').on('click', function() {
+                    $('#sc_login_bg_image').val('');
+                    $('#sc_login_bg_preview').empty();
+                    $(this).hide();
+                });
+                $('#sc_login_bg_color, #sc_login_btn_bg, #sc_login_btn_color').on('input change', function() {
+                    var id = $(this).attr('id') + '_hex';
+                    $('#' + id).text($(this).val());
+                });
+            });
+            </script>
+
+<script name="for logo_club">
+            jQuery(function($) {
+                if (typeof wp === 'undefined' || !wp.media) return;
+                var logoUploader2;
+                $('#sc_club_logo_upload').on('click', function(e) {
+                    e.preventDefault();
+                    if (logoUploader2) { logoUploader2.open(); return; }
+                    logoUploader2 = wp.media({ title: 'انتخاب لوگو', button: { text: 'استفاده از این تصویر' }, multiple: false, library: { type: 'image' } });
+                    logoUploader2.on('select', function() {
+                        var att = logoUploader2.state().get('selection').first().toJSON();
+                        $('#sc_club_logo_url').val(att.url);
+                        $('#sc_club_logo_preview').html('<img src="' + att.url + '" alt="" style="max-width:200px;height:auto;border:1px solid #ddd;border-radius:4px;">');
+                        $('#sc_club_logo_remove').show();
+                    });
+                    logoUploader2.open();
+                });
+                $('#sc_club_logo_remove').on('click', function() {
+                    $('#sc_club_logo_url').val('');
+                    $('#sc_club_logo_preview').empty();
+                    $(this).hide();
+                });
+                 
+                
+            });
+            </script>
+
+
 <script>
 jQuery(document).ready(function($) {
     // فرمت کردن مبلغ در تنظیمات دستمزد مربی
@@ -1836,6 +1942,3 @@ jQuery(document).ready(function($) {
 });
 </script>
 
-<style>
-
-</style>

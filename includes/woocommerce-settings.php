@@ -728,3 +728,19 @@ function remove_email_checkout_field( $fields ) {
     return $fields;
 }
 /* End - Remove Woocommerce User Fields */
+
+
+// شمسی سازی تاریخ کامنت 
+
+add_filter('get_comment_date', 'my_convert_comment_date_to_jalali', 10, 3);
+
+function my_convert_comment_date_to_jalali($date, $format, $comment){
+
+    // timestamp کامنت
+    $timestamp =$comment->comment_date;
+
+    // تبدیل با تابع شمسی خودت
+    $jalali_date = sc_date_shamsi_date_only($timestamp); 
+
+    return "تاریخ ثبت نظر : " . $jalali_date;
+}

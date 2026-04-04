@@ -454,8 +454,10 @@ function sc_login_register_shortcode() {
                 <div class="sc-lr-logo">
                     <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
                 </div>
-            <?php endif; ?>
-            <h2 class="sc-lr-title">ورود به سامانه <?php echo esc_html(get_bloginfo('name')); ?></h2>
+            <?php endif;
+            $sc_name_club      = sc_get_setting('sc_name_club', '');
+            ?>
+            <h2 class="sc-lr-title">ورود به  <?php echo $sc_name_club; ?></h2>
             <div class="sc-lr-form" id="sc-login-register-form">
                 <div class="sc-lr-step sc-lr-step-phone" data-step="phone">
                     <p class="sc-lr-desc" id="sc-lr-desc">لطفا شماره موبایل خود را وارد کنید</p>
