@@ -1,4 +1,5 @@
 <?php
+if ( ! defined('ABSPATH') ) exit;
 // this is a file for filter invoices in list_invoices.php
 global $invoices_list_table;
 

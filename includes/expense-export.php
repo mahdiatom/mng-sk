@@ -2,6 +2,9 @@
 /**
  * Export Expenses to Excel
  */
+if (!defined('ABSPATH')) {
+    exit;
+}
 function sc_export_expenses_to_excel() {
     sc_check_phpspreadsheet();
     

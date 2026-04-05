@@ -3,7 +3,7 @@
  * Wallet Functions
  * توابع مربوط به کیف پول
  */
-
+if ( ! defined('ABSPATH') ) exit;
 /**
  * Get wallet balance for a member
  * دریافت موجودی کیف پول یک بازیکن

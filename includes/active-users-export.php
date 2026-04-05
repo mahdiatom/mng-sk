@@ -2,6 +2,9 @@
 /**
  * Export Active Users to Excel
  */
+if (!defined('ABSPATH')) {
+    exit;
+}
 function sc_export_active_users_to_excel() {
     sc_check_phpspreadsheet();
     

@@ -1,4 +1,6 @@
 <?php
+
+if ( ! defined('ABSPATH') ) exit;
 //این فایل برای نمایش پاپ اپ است در صفحه لیست دوره ها
 global $courses_list_table;
 ?>

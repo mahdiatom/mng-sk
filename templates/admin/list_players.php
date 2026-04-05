@@ -1,4 +1,6 @@
 <?php
+
+if ( ! defined('ABSPATH') ) exit;
 //این فایل پاپ اپ برای اطلاعات بازیکن است که در صفحه لیست اعضا در اکشن می
 global $title ,$player_list_table;
  $playerListTable = new Player_List_Table();

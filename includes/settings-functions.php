@@ -2,7 +2,7 @@
 /**
  * Settings Functions
  */
-
+if ( ! defined('ABSPATH') ) exit;
 /**
  * Format amount for display - use "(منفی)" instead of "-" for negative amounts
  * فرمت نمایش مبلغ - برای اعداد منفی از "(منفی)" به جای "-" استفاده می‌شود

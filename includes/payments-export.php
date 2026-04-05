@@ -2,6 +2,9 @@
 /**
  * Export Payments to Excel
  */
+if (!defined('ABSPATH')) {
+    exit;
+}
 function sc_export_payments_to_excel() {
     sc_check_phpspreadsheet();
     

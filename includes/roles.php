@@ -4,7 +4,8 @@ if ( ! defined('ABSPATH') ) exit;
  * ===============================
  * ایجاد نقش مدیر باشگاه (DEV MODE)
  * ===============================
- */
+*/
+
 function club_create_club_coach_role() {
 
            remove_role('club_coach');

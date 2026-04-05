@@ -1,5 +1,5 @@
 <?php 
-
+if ( ! defined('ABSPATH') ) exit;
 ?>
 
 <div class="section_empty_cart">

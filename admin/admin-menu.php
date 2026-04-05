@@ -1,5 +1,7 @@
 <?php 
-
+if (!defined('ABSPATH')) {
+    exit;
+}
 use HelloTheme\Includes\Script;
 
 

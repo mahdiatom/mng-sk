@@ -1,6 +1,6 @@
 <?php
 // start dashbord - info user summery
-
+if ( ! defined('ABSPATH') ) exit;
 add_action( 'woocommerce_before_account_navigation', 'add_html_before_account_nav' );
 function add_html_before_account_nav() {
 

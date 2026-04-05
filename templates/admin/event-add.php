@@ -1,4 +1,5 @@
 <?php
+if ( ! defined('ABSPATH') ) exit;
 $name = '';
 $event_type = 'event';
 $description = '';

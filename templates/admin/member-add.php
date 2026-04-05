@@ -1,4 +1,5 @@
 <?php 
+if ( ! defined('ABSPATH') ) exit;
 if(!isset($_GET['player_id'])){
 ?>
     <h1>افزودن بازیکن جدید</h1>

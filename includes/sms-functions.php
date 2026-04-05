@@ -3,7 +3,7 @@
  * SMS Functions for SportClub Manager
  * Integration with sms.ir API
  */
-
+if ( ! defined('ABSPATH') ) exit;
 /**
  * Send SMS by pattern (shortcut function)
  */
@@ -665,7 +665,7 @@ function sc_send_invoice_sms($invoice_id) {
     $invoice = $wpdb->get_row($wpdb->prepare(
         "SELECT i.*, m.first_name, m.last_name, m.player_phone,
                 c.title as course_title, c.price as course_price,
-                e.name as event_name, e.price as event_price
+                e.name as event_name, e.price as event_price 
          FROM $invoices_table i
          LEFT JOIN $members_table m ON i.member_id = m.id
          LEFT JOIN $courses_table c ON i.course_id = c.id
@@ -716,6 +716,12 @@ function sc_send_invoice_sms($invoice_id) {
             $pattern_code = sc_get_sms_pattern('invoice', 'user');
             sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'invoice');
         }
+        $bot_id = sc_get_user_bale_chat_id($invoice->id);
+        if($bot_id > 0 && function_exists('bale_send_message') ){
+            bale_send_message($bot_id ,$message );
+        }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
+            sc_bale_send_by_phone(sc_convert_phone_to_98($invoice->player_phone) , $message);
+        }
     }
 
     // Send SMS to admin
@@ -727,6 +733,7 @@ function sc_send_invoice_sms($invoice_id) {
                 $message = sc_replace_sms_variables($template, $variables);
                 $pattern_code = sc_get_sms_pattern('invoice', 'admin');
                 sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'invoice');
+                
             }
         }
     }
@@ -815,6 +822,13 @@ function sc_send_enrollment_sms($member_course_id) {
                 'success' => $result['success'] ? 'yes' : 'no',
                 'message' => $result['message']
             ]);
+
+            $bot_id = sc_get_user_bale_chat_id($enrollment->member_id);
+            if($bot_id > 0 && function_exists('bale_send_message') ){
+                bale_send_message($bot_id ,$message );
+            }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
+                sc_bale_send_by_phone(sc_convert_phone_to_98($enrollment->player_phone) , $message);
+            }
         } else {
             sc_log_sms('DEBUG', 'Enrollment SMS to user skipped - no template');
         }
@@ -914,6 +928,12 @@ function sc_send_payment_reminder_sms($invoice_id) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('reminder', 'user');
             sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'reminder');
+            $bot_id = sc_get_user_bale_chat_id($invoice->id);
+            if($bot_id > 0 && function_exists('bale_send_message') ){
+                bale_send_message($bot_id ,$message );
+            }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
+                sc_bale_send_by_phone(sc_convert_phone_to_98($invoice->player_phone) , $message);
+            }
         }
     }
 
@@ -982,6 +1002,12 @@ function sc_send_absence_sms($attendance_id) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('absence', 'user');
             $result = sc_send_sms($attendance->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'absence');
+            $bot_id = sc_get_user_bale_chat_id($attendance->member_id);
+            if($bot_id > 0 && function_exists('bale_send_message') ){
+                bale_send_message($bot_id ,$message );
+            }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
+                sc_bale_send_by_phone(sc_convert_phone_to_98($attendance->member_id) , $message);
+            }
             if ($result['success']) {
                 $sms_sent_successfully = true;
             }

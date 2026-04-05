@@ -1,4 +1,5 @@
 <?php
+if ( ! defined('ABSPATH') ) exit;
 global $title, $coaches_list_table;
 if (!isset($coaches_list_table)) {
     $coaches_list_table = new Coaches_List_Table();

@@ -1,5 +1,5 @@
 <?php 
-
+if ( ! defined('ABSPATH') ) exit;
 add_action('wp_head', 'custom_header_output');
 function custom_header_output() {
     global $wpdb;

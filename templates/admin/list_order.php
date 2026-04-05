@@ -78,7 +78,7 @@ class orders_List_Table extends WP_List_Table {
                     'wc-refunded' => ['label' => 'بازگشت شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
                     'wc-failed' => ['label' => 'ناموفق', 'color' => '#d63638', 'bg' => '#ffeaea'],
                     'trash' => ['label' => 'پاک شده - زباله دان', 'color' => '#d63638', 'bg' => '#ffeaea'],
-                    'wc-checkout-draft' => ['label' => 'پیش نویس', 'color' => '#d63638', 'bg' => '#ffeaea'],
+                    'wc-checkout-draft' => ['label' => 'در انتظار پرداحت', 'color' => '#d63638', 'bg' => '#ffeaea'],
                 ];
                 
                 $status_info = isset($status_labels[$status]) ? $status_labels[$status] : ['label' => $status, 'color' => '#666', 'bg' => '#f5f5f5'];

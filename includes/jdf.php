@@ -3,7 +3,9 @@
  * کتابخانه JDF برای تبدیل تاریخ میلادی به شمسی
  * نسخه بهبود یافته
  */
-
+if (!defined('ABSPATH')) {
+    exit;
+}
 if (!function_exists('gregorian_to_jalali')) {
     /**
      * تبدیل تاریخ میلادی به شمسی

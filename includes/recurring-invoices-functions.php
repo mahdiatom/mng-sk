@@ -2,7 +2,9 @@
 /**
  * Recurring Invoices Functions
  */
-
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 
 /**

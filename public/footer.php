@@ -1,4 +1,6 @@
 <?php 
+
+if ( ! defined('ABSPATH') ) exit;
 // اضافه کردن فوتر
 add_action('wp_footer', 'custom_footer_output');
 function custom_footer_output() {

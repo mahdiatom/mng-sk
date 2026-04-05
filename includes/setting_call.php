@@ -1,5 +1,5 @@
 <?php
-
+if ( ! defined('ABSPATH') ) exit;
 $ch = curl_init("https://s.api.ir/api/sw1/SendSms");
 
 curl_setopt($ch, CURLOPT_POST, true);

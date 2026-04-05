@@ -3,6 +3,10 @@ if (!defined('SC_PLUGIN_VERSION')) {
     define('SC_PLUGIN_VERSION', '1.31.0'); // همان نسخه افزونه هدر
 }
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
     /**
  * create sc_settings
  */

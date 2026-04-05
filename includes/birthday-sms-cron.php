@@ -22,7 +22,7 @@ function sc_get_members_with_birthday_today() {
 
     // 1) Members with birth_date_gregorian matching today's month and day
     $by_gregorian = $wpdb->get_results($wpdb->prepare(
-        "SELECT id, first_name, last_name, player_phone, birth_date_gregorian, birth_date_shamsi
+        "SELECT id, first_name, last_name, player_phone, birth_date_gregorian, birth_date_shamsi , bot_id
          FROM $members_table
          WHERE birth_date_gregorian IS NOT NULL AND birth_date_gregorian != '' AND birth_date_gregorian != '0000-00-00'
          AND MONTH(birth_date_gregorian) = %d AND DAY(birth_date_gregorian) = %d
@@ -34,7 +34,7 @@ function sc_get_members_with_birthday_today() {
 
     // 2) Members with only birth_date_shamsi: fetch and filter in PHP
     $by_shamsi_raw = $wpdb->get_results(
-        "SELECT id, first_name, last_name, player_phone, birth_date_gregorian, birth_date_shamsi
+        "SELECT id, first_name, last_name, player_phone, birth_date_gregorian, birth_date_shamsi , bot_id
          FROM $members_table
          WHERE (birth_date_gregorian IS NULL OR birth_date_gregorian = '' OR birth_date_gregorian = '0000-00-00')
          AND birth_date_shamsi IS NOT NULL AND birth_date_shamsi != ''
@@ -100,12 +100,19 @@ function sc_send_birthday_sms_daily() {
 
     foreach ($members as $member) {
         $user_name = trim($member->first_name . ' ' . $member->last_name);
+        $bot_id = $member->bot_id ?? null;
         if ($user_name === '') {
             $user_name = 'کاربر';
         }
         $variables = ['user_name' => $user_name];
         $message = function_exists('sc_replace_sms_variables') ? sc_replace_sms_variables($template, $variables) : str_replace('%user_name%', $user_name, $template);
         sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'birthday');
+        if($bot_id > 0 && function_exists('bale_send_message') ){
+            bale_send_message($bot_id ,$message );
+        }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
+            sc_bale_send_by_phone(sc_convert_phone_to_98($member->player_phone) , $message);
+        }
+
     }
 }
 

@@ -1,4 +1,5 @@
 <?php
+if ( ! defined('ABSPATH') ) exit;
 sc_check_and_create_tables();
 function sc_get_profile_completion_stats() {
     global $wpdb;

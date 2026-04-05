@@ -350,10 +350,12 @@ function sc_save_notification($data) {
     $sms_sent = 0;
     $recipients_with_phone = 0;
     $sms_fail_reason = '';
+    $bot_id = sc_get_user_bale_chat_id($uid);
     if ($send_sms && function_exists('sc_send_sms')) {
         if ($target_type === 'phone') {
             foreach ($phone_numbers as $phone) {
                 $r = sc_send_sms($phone, $sms_text, false, null, [], 'notification');
+
                 if (!empty($r['success'])) {
                     $sms_sent++;
                 } elseif (empty($sms_fail_reason) && !empty($r['message'])) {
@@ -365,6 +367,11 @@ function sc_save_notification($data) {
                         'success' => !empty($r['success']),
                         'message' => $r['message'] ?? ''
                     ]);
+                }
+                if($bot_id > 0 && function_exists('bale_send_message') ){
+                    bale_send_message($bot_id ,$r['message'] );
+                }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
+                    sc_bale_send_by_phone(sc_convert_phone_to_98($phone) , $r['message']);
                 }
             }
             $recipients_with_phone = count($phone_numbers);
@@ -386,6 +393,11 @@ function sc_save_notification($data) {
                         'success' => !empty($r['success']),
                         'message' => $r['message'] ?? ''
                     ]);
+                }
+                if($bot_id > 0 && function_exists('bale_send_message') ){
+                    bale_send_message($bot_id ,$r['message'] );
+                }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
+                    sc_bale_send_by_phone(sc_convert_phone_to_98($phone) , $r['message']);
                 }
             }
         }

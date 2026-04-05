@@ -856,7 +856,7 @@ $sc_phone_club      = sc_get_setting('sc_phone_club', '');
                         <td>
                             <div class="sc-lr-media-wrap">
                                 <input type="hidden" name="sc_club_logo_url" id="sc_club_logo_url"
-                                       value="<?php echo esc_attr($sc_logo_club); ?>">
+                                       value="<?php echo esc_attr($sc_club_logo_url); ?>">
                                 <button type="button" class="button" id="sc_club_logo_upload">انتخاب تصویر</button>
                                 <button type="button" class="button" id="sc_club_logo_remove" <?php echo empty($sc_club_logo_url) ? ' style="display:none;"' : ''; ?>>حذف</button>
                                 <div class="sc-lr-media-preview" id="sc_club_logo_preview" style="margin-top:8px;">
@@ -865,7 +865,7 @@ $sc_phone_club      = sc_get_setting('sc_phone_club', '');
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <p class="description">لوگوی نمایش داده شده بالای فرم</p>
+                            <p class="description">نمایش در هدر و فوتر</p>
                         </td>
                     </tr>
                     <tr>

@@ -2,7 +2,9 @@
 /**
  * Helper functions for Persian DatePicker
  */
-
+if (!defined('ABSPATH')) {
+    exit;
+}
 if (!function_exists('sc_enqueue_persian_datepicker')) {
     /**
      * اضافه کردن فایل‌های CSS و JS تقویم شمسی

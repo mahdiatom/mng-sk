@@ -1,4 +1,5 @@
 <?php
+if ( ! defined('ABSPATH') ) exit;
 if(!isset($_GET['coach_id'])){
 ?>
     <h1>افزودن مربی جدید</h1>

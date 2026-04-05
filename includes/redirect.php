@@ -1,4 +1,7 @@
 <?php 
+if (!defined('ABSPATH')) {
+    exit;
+}
 add_action('template_redirect', 'redirect_my_account_shop_to_shop');
 function redirect_my_account_shop_to_shop() {
     // بررسی اینکه آیا کاربر در بخش فرانت‌اند هست (نه در پنل ادمین)

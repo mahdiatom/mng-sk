@@ -1,4 +1,5 @@
 <?php
+if ( ! defined('ABSPATH') ) exit;
 global $wpdb;
 $faq_table = $wpdb->prefix . 'sc_faq';
 $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
