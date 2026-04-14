@@ -120,8 +120,8 @@ h2{
 }
 .menus .header_phone svg {
     position: absolute;
-    left: -37px;
-    top: 0px;
+    left: -23px;
+    top: 4px;
 }
 .menus_header{
     display: flex;
@@ -1010,9 +1010,7 @@ img.emoji {
 
 */
 
-img.emoji {
-    display: none !important;
-}
+
 .woocommerce-MyAccount-navigation li{
     font-size: 14px;
 }
@@ -6511,6 +6509,8 @@ display: block;
 }
 .megamenu-box span{
     color: white;
+        padding-right: 28px;
+    font-size: 12px;
 }
 .megamenu-box svg path , #volha{
       fill: #fff !important;
@@ -6694,8 +6694,31 @@ text-align: right;
     overflow: auto;
 }
 
+
 /* بات بله  */
 .conect_auto_bot{
     font-weight: bold;
     font-size: 14px;
+}
+.wc-block-components-checkbox .wc-block-components-checkbox__input[type=checkbox]:checked
+ {
+    background: #2a0aca;
+}
+.sc-orders-page .sc-orders-table-wrap{
+        overflow: auto;
+}
+.sc-order-btn-cancel{
+    border-radius: 10px !important;
+}
+.woocommerce-table--order-details .product-quantity{
+    color: #000 !important;
+}
+
+.info_bot svg{
+    width: 100px;
+    background: white;
+    padding: 6px;
+    border-radius: 10px;
+    border: 1px solid #e4e4e4;
+    box-shadow: 1px 2px 1px #e4e4e4;
 }

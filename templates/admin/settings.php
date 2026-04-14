@@ -294,10 +294,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $sc_name_club   = isset($_POST['sc_name_club']) ? sanitize_text_field($_POST['sc_name_club']) : 'باشگاه اتم';
         $sc_club_logo_url        = isset($_POST['sc_club_logo_url']) ? esc_url_raw($_POST['sc_club_logo_url']) : '';
         $sc_phone_club        = isset($_POST['sc_phone_club']) ? sanitize_text_field($_POST['sc_phone_club']) : '';
+        $sc_token_club        = isset($_POST['sc_token_club']) ? sanitize_text_field($_POST['sc_token_club']) : '';
+        $sc_botname_club        = isset($_POST['sc_botname_club']) ? sanitize_text_field($_POST['sc_botname_club']) : '';
 
         sc_update_setting('sc_name_club', $sc_name_club, 'abaut_club');
         sc_update_setting('sc_club_logo_url', $sc_club_logo_url, 'abaut_club');
         sc_update_setting('sc_phone_club', $sc_phone_club, 'abaut_club');
+        sc_update_setting('sc_token_club', $sc_token_club, 'bot');
+        sc_update_setting('sc_botname_club', $sc_botname_club, 'bot');
 
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب درباره مجموعه ذخیره شد', null, ['tab' => 'about']);
@@ -434,6 +438,8 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
 $sc_name_club      = sc_get_setting('sc_name_club', '');
 $sc_club_logo_url      = sc_get_setting('sc_club_logo_url', '');
 $sc_phone_club      = sc_get_setting('sc_phone_club', '');
+$sc_token_club      = sc_get_setting('sc_token_club', '');
+$sc_botname_club      = sc_get_setting('sc_botname_club', '');
 ?>
 
 <div class="wrap sc_setting_section" >
@@ -875,6 +881,25 @@ $sc_phone_club      = sc_get_setting('sc_phone_club', '');
                                    value="<?php echo esc_attr($sc_phone_club); ?>"
                                    class="regular-text" placeholder="مثلا : 09944338956  ">
                             <p class="description">شماره تماس در هدر و فوتر قسمت درباره مجموعه نمایش داده خواهد شد</p>
+                        </td>
+                    </tr>
+                
+                    <tr>
+                        <th scope="row"><label for="sc_token_club">توکن ربات بله</label></th>
+                        <td>
+                            <input type="password" name="sc_token_club" 
+                                   value="<?php echo esc_attr($sc_token_club); ?>"
+                                   class="regular-text" placeholder="مثلا : 123456789:xxkjdkjfkjdfiejdekjdf  ">
+                            <p class="description">برای ساخت توکن ربات وارد آیدی @botfather در اپ بله شوید سپس احراز هویت شوید و یک ربات بسازید در انتها یک توکن عددی- متنی می دهد.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_botname_club">نام کاربری ربات بله</label></th>
+                        <td>
+                            <input type="text" name="sc_botname_club" 
+                                   value="<?php echo esc_attr($sc_botname_club); ?>"
+                                   class="regular-text" placeholder="مثلا : mahdi_bot  ">
+                            <p class="description">نام رباتی که در @botfather ساختید را وارد کنید.</p>
                         </td>
                     </tr>
                 </table>

@@ -67,7 +67,7 @@ class orders_List_Table extends WP_List_Table {
     }
     public function column_status($item) {
         $status = $item->status;
-            
+                
         // برچسب‌های وضعیت WooCommerce
                 $status_labels = [
                     'wc-pending' => ['label' => 'در انتظار پرداخت', 'color' => '#f0a000', 'bg' => '#fff8e1'],

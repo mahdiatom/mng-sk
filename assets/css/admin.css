@@ -1195,6 +1195,15 @@ display: block; margin-bottom: 5px; font-weight: bold;
 .sections_cat_honors{
      margin-top: 20px;
 }
+.edit_cat_team h2,
+.list_cat_team h2,
+.edit_cat_chapter h2,
+.list_cat_chapter h2,
+.list_cat_level h2,
+.sections_cat_level h2
+{
+    padding-right: 10px !important;
+}
 /* ========== تیکت پشتیبانی - ظاهر حرفه‌ای (مدیر و مربی) مثل بخش کاربر ========== */
 .sc-support-admin-wrap .sc-ticket-detail-card,
 .sc-support-coach-wrap .sc-ticket-detail-card {
@@ -1591,7 +1600,9 @@ display: block; margin-bottom: 5px; font-weight: bold;
     border-radius: 10px;
     border-right: 4px solid #646970;
 }
-
+.sc-support-admin-list-card{
+    background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.06); overflow:hidden;
+}
 /* وضعیت دوره کاربر در صفحه اطلاعات کاربر مدیر */
 .sc_status_course_player {
     display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: 600;

@@ -58,7 +58,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
     </div>
     
     <?php if (empty($orders)) : ?>
-        <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
+        <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404; width: 140px;">
             <?php if ($filter_status !== 'all') : ?>
                 سفارشی با این وضعیت یافت نشد.
             <?php else : ?>
@@ -71,10 +71,10 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
             <thead>
                 <tr>
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-number">
-                        <span class="nobr">شماره و تاریخ سفارش</span>
+                        <span class="nobr">سفارش</span>
                     </th>
-                    <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-date">
-                        <span class="nobr">جزئیات سفارش</span>
+                    <th style="width: 200px;" class="woocommerce-orders-table__header woocommerce-orders-table__header-order-date">
+                        <span class="nobr">جزئیات </span>
                     </th>
                     
                     <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-total">
@@ -175,7 +175,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                             $status_icon = '⚠️';
                             break;
                         default:
-                            $status_label = 'در انتظار پرداخت - سبد خرید';
+                            $status_label = 'در انتظار پرداخت ';
                             $status_class = 'pending';
                             $status_bg = '#fff3cd';
                             $status_color = '#856404';
@@ -260,15 +260,17 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                 
                             }
                             ?>
-                            <strong style="color: #2271b1; font-size: 15px;"><?php echo esc_html($order_number); ?></strong>
-                            <br>
-                            <small style="color: #666; font-size: 12px;">
-                                📅 <?php echo sc_date_shamsi_date_only($order->date_created_gmt); ?>
-                            </small>
+                            <div class="dateorder" style="width: 100px;">
+                                <strong style="color: #2271b1; font-size: 15px;"><?php echo esc_html($order_number); ?></strong>
+                                <br>
+                                <small style="color: #666; font-size: 12px;">
+                                    📅 <?php echo sc_date_shamsi_date_only($order->date_created_gmt); ?>
+                                </small>
+                            </div>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-date" data-label="سفارش">
                             <?php if (!empty($order->products_with_quantity)) : ?>
-                                <div style="margin-bottom: 5px;">
+                                <div style="margin-bottom: 5px; width:200px">
                                     
                                     <span style="color: #333;"><?php echo $order->products_with_quantity; ?></span>
                                 </div>
@@ -295,7 +297,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                             <?php endif; ?>
                         </td>
                         <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-status" data-label="مبلغ">
-                            <div style="margin-bottom: 5px;">
+                            <div style="margin-bottom: 5px; width: 140px;">
                                 <strong style="font-size: 16px; color: #2271b1;"><?php echo number_format( $order->total_amount) . '  تومان' ;  ?></strong>
                             </div>
                         </td>
@@ -310,6 +312,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                 font-size: 13px;
                                 background-color: <?php echo esc_attr($status_bg); ?>;
                                 color: <?php echo esc_attr($status_color); ?>;
+                                width: 140px;
                             ">
                                 <span style="font-size: 16px;"><?php echo esc_html($status_icon); ?></span>
                                 <?php echo esc_html($status_label); ?>

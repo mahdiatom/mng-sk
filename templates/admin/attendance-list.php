@@ -723,7 +723,7 @@ $max_display = 10;
 
 <!-- وضعیت -->
 <div class="sc-filter-field">
-<label class="sc-filter-label" for="filter_status">وضعیت پرداخت</label>
+<label class="sc-filter-label" for="filter_status">وضعیت</label>
       <select name="filter_status" id="filter_status" class="sc-filter-control">
                                 <option value="all" <?php selected($filter_status, 'all'); ?>>همه وضعیت‌ها</option>
                                 <option value="present" <?php selected($filter_status, 'present'); ?>>حاضر</option>

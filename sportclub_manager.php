@@ -62,7 +62,8 @@ require_once SC_INCLUDES_DIR . 'insurance-expiry-sms-cron.php'; // Insurance exp
 require_once SC_INCLUDES_DIR . 'support-ticket-functions.php'; // Support ticket CRUD, SMS, attachments
 require_once SC_INCLUDES_DIR . 'activity-log-functions.php';   // Activity log (admin actions)
 require_once SC_INCLUDES_DIR . 'login-register-functions.php'; // ورود و عضویت با پیامک و رمز
-require_once SC_INCLUDES_DIR . 'redirect.php'; // ورود و عضویت با پیامک و رمز
+require_once SC_INCLUDES_DIR . 'redirect.php'; // ورود و عضویت با پیامک و رمز‌
+require_once SC_INCLUDES_DIR . 'cleanup.php'; // حدف درخواست های خارجی  برای عملکرد بهتر‌
 
 
 include(SC_ADMIN_DIR . 'admin-menu.php');

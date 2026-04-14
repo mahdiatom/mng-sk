@@ -43,7 +43,7 @@ $sum_price_card = get_cart_item_count()['sum'];
                             </div>
                             
                         </li>
-                        <li><a href="<?php echo home_url('my-account/'); ?>edit-account" class="edit-account"> تغییر رمز ورود </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>edit-account#account_display_name" class="edit-account"> تغییر رمز ورود </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>bot-connect" class="bot-connect">اتصال به ربات </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-submit-documents" class="sc-submit-documents"> اطلاعات بازیکن  </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-enroll-course" class="sc-enroll-course"> دوره ها  </a></li>
@@ -68,7 +68,7 @@ $sum_price_card = get_cart_item_count()['sum'];
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-support-tickets" class="sc-support-tickets">  تیکت پشتیبانی </a></li>
                      
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-faq" class="sc-faq"> سوالات متداول </a></li>
-                        <li><a href="<?php echo wp_logout_url( wc_get_page_permalink( 'myaccount' ) ); ?>">خروج از حساب کاربری</a></li>    
+                        <li><a href="<?php echo wp_logout_url( wc_get_page_permalink( 'myaccount' ) ); ?>  " onclick="confirm('شما در حال خروج از حساب کاربری هستید از این کار اطمنیان دارید؟')" >خروج از حساب کاربری</a></li>    
                     </ul>
                     
                 </li>
@@ -104,7 +104,7 @@ $sum_price_card = get_cart_item_count()['sum'];
                     
                         <div class="t-m">
                            
-                         <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/charkhone.svg');  ?>   <span style="padding-right: 28px;">دسته بندی فروشگاه </span>
+                         <?php echo file_get_contents(SC_ASSETS_DIR . '/img/icons/charkhone.svg');  ?>   <span>دسته بندی</span>
                         </div>
                         <div class="pishro-megamenu">
                             <?php wp_nav_menu( array( 'theme_location' => 'maga_menu_product' , 'container' => ''  ) ); ?>
