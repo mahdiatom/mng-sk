@@ -24,7 +24,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
     } elseif (isset($_POST['attendance_date']) && !empty($_POST['attendance_date'])) {
         $attendance_date = sanitize_text_field($_POST['attendance_date']);
     }
-    
+  
     if (!$course_id) {
         $message = 'لطفاً یک دوره را انتخاب کنید.';
         $message_type = 'error';
@@ -54,8 +54,13 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
 
             foreach ($attendances as $member_id => $status) {
                 $member_id = absint($member_id);
-                $status = ($status === 'present') ? 'present' : 'absent';
-
+                if($status === 'present'){
+                    $status ='present';
+                }elseif($status === 'absent'){
+                    $status = 'absent';
+                }else{
+                    $status = 'excused';
+                }
                 if (!$member_id) {
                     continue;
                 }
@@ -71,6 +76,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
 
                 $current_record = null;
                 if ($existing) {
+
                     $current_record = $wpdb->get_row($wpdb->prepare(
                         "SELECT status, absence_sms_sent FROM $attendances_table WHERE id = %d",
                         $existing
@@ -113,6 +119,8 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     //     sc_refund_wallet_session_fee($member_id, $price_per_session, $course_title, $attendance_date_shamsi);
                     // }
 
+             
+
                     $update_data = array(
                         'status' => $status,
                         'user_id' => $current_user_id,
@@ -144,6 +152,9 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
 
                     if ($inserted_id) {
                         $saved_count++;
+                        if ($status === 'present' || $status === 'absent' ) {
+                            sc_decrease_member_session($member_id, $course_id);
+                        }
                         if ($status === 'absent') {
                             do_action('sc_attendance_absent', $wpdb->insert_id);
                         }
@@ -440,6 +451,14 @@ $is_update_mode = !empty($existing_attendances);
                                                <?php checked($existing_status, 'absent'); ?> 
                                                >
                                         <span style="color: #d63638; font-weight: bold;">غایب</span>
+                                    </label>
+                                    <label style="display: inline-block; margin-left: 20px;">
+                                        <input type="radio" 
+                                               name="attendance[<?php echo esc_attr($member->id); ?>]" 
+                                               value="excused"
+                                               <?php checked($existing_status, 'excused'); ?> 
+                                               >
+                                        <span style="color: #d63638; font-weight: bold;">غایب مجاز</span>
                                     </label>
                                 </td>
                             </tr>

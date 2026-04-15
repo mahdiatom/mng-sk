@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.31.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.33.0'); // همان نسخه افزونه هدر
 }
 
 if (!defined('ABSPATH')) {
@@ -126,6 +126,8 @@ $sql = "CREATE TABLE `$table_name` (
         `member_id` bigint(20) unsigned NOT NULL,
         `course_id` bigint(20) unsigned NOT NULL,
         `enrollment_date` date DEFAULT NULL,
+        `total_sessions` bigint(20) unsigned NOT NULL,
+        `remaining_sessions` bigint(20) unsigned NOT NULL,
         `status` varchar(20) DEFAULT 'active',
         `course_status_flags` varchar(255) DEFAULT NULL,
         `created_at` datetime NOT NULL,
@@ -156,7 +158,7 @@ $sql = "CREATE TABLE `$table_name` (
     `member_id` bigint(20) unsigned NOT NULL,
     `course_id` bigint(20) unsigned NOT NULL,
     `attendance_date` date NOT NULL,
-    `status` enum('present','absent','any') NOT NULL DEFAULT 'present',
+    `status` enum('present','absent','excused') NOT NULL DEFAULT 'present',
     `user_id` bigint(20) unsigned DEFAULT NULL,
     `absence_sms_sent` tinyint(1) DEFAULT 0,
     `created_at` datetime NOT NULL,

@@ -498,3 +498,61 @@ function get_cart_item_count() {
     return 0;
 }
 
+//کم کردن یک جلسه برای کاربر
+function sc_decrease_member_session($member_id, $course_id) {
+    global $wpdb;
+
+    $table = $wpdb->prefix . 'sc_member_courses';
+
+    $member_course = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, remaining_sessions 
+         FROM $table 
+         WHERE member_id = %d AND course_id = %d AND status = 'active'
+         LIMIT 1",
+        $member_id,
+        $course_id
+    ));
+
+    if (!$member_course) {
+        return false;
+    }
+
+    if ($member_course->remaining_sessions <= 0) {
+        return false;
+    }
+
+    $wpdb->query($wpdb->prepare(
+        "UPDATE $table
+         SET remaining_sessions = remaining_sessions - 1,
+             updated_at = %s
+         WHERE id = %d",
+        current_time('mysql'),
+        $member_course->id
+    ));
+
+    return true;
+}
+//حذف سوخت جلسه غیبت - بازگرداندن یک جلسه 
+
+function sc_increase_member_session($member_id, $course_id) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_member_courses';
+
+    // پیدا کردن رکورد فعال کاربر در دوره
+    $member_course = $wpdb->get_row($wpdb->prepare("
+        SELECT id FROM $table 
+        WHERE member_id = %d AND course_id = %d AND status = 'active'
+        LIMIT 1
+    ", $member_id, $course_id));
+
+    if (!$member_course) return false;
+
+    // افزایش یک جلسه
+    $wpdb->query($wpdb->prepare("
+        UPDATE $table 
+        SET remaining_sessions = remaining_sessions + 1, updated_at = %s 
+        WHERE id = %d
+    ", current_time('mysql'), $member_course->id));
+
+    return true;
+}

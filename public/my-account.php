@@ -3357,17 +3357,23 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
             if ($invoice->member_course_id) {
                 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
                 $courses_table = $wpdb->prefix . 'sc_courses';
-
+                $course = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $courses_table WHERE id = %d",
+                $invoice->course_id
+                ));
+                $total_sessions = !empty($course->sessions_count) ? intval($course->sessions_count) : 0;
                 // بروزرسانی وضعیت دوره به active
                 $wpdb->update(
                     $member_courses_table,
                     [
                         'status' => 'active',
                         'enrollment_date' => current_time('Y-m-d'),
+                        'total_sessions' => $total_sessions,
+                        'remaining_sessions' => $total_sessions,
                         'updated_at' => current_time('mysql')
                     ],
                     ['id' => $invoice->member_course_id],
-                    ['%s', '%s', '%s'],
+                    ['%s', '%s', '%d', '%d', '%s'],
                     ['%d']
                 );
 

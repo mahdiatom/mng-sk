@@ -83,7 +83,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
             }
         }
     }
-
+    // بازگردانی یک جلسه بعد از حذف رکورد حضور یا غیاب
+if ($row && ($row->status === 'present' || $row->status === 'absent')) {
+    sc_increase_member_session($row->member_id, $row->course_id);
+}
     $deleted = $wpdb->delete(
         $attendances_table,
         ['id' => $attendance_id],
@@ -96,6 +99,45 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
         echo '<div class="notice notice-error is-dismissible"><p>خطا در حذف حضور و غیاب.</p></div>';
     }
 }
+
+// --- بخش جدید: پردازش مجاز کردن غیبت ---
+if (isset($_GET['action']) && $_GET['action'] === 'justify' && isset($_GET['attendance_id']) && $active_tab === 'individual') {
+    check_admin_referer('justify_attendance_' . $_GET['attendance_id']);
+
+    $attendance_id = absint($_GET['attendance_id']);
+    
+    // دریافت اطلاعات رکورد
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, member_id, course_id, status FROM $attendances_table WHERE id = %d LIMIT 1",
+        $attendance_id
+    ));
+
+    // فقط اگر وضعیت "غایب" باشد عملیات انجام شود
+    if ($row && $row->status === 'absent') {
+        
+        // ۱. بازگرداندن یک جلسه به موجودی کاربر
+        $increased = sc_increase_member_session($row->member_id, $row->course_id);
+
+        if ($increased) {
+            // ۲. تغییر وضعیت رکورد به "excused" (غیبت مجاز) برای اینکه دکمه غیب شود و دوباره نشود زد
+            $wpdb->update(
+                $attendances_table,
+                ['status' => 'excused'], // وضعیت جدید
+                ['id' => $attendance_id],
+                ['%s'],
+                ['%d']
+            );
+
+            echo '<div class="notice notice-success is-dismissible"><p>غیبت با موفقیت مجاز شد و یک جلسه به کاربر بازگردانده شد.</p></div>';
+        } else {
+            echo '<div class="notice notice-error is-dismissible"><p>خطا در بازگرداندن جلسه. ممکن است دوره کاربر فعال نباشد.</p></div>';
+        }
+    } else {
+        echo '<div class="notice notice-warning is-dismissible"><p>این رکورد غایب نیست یا قبلاً مجاز شده است.</p></div>';
+    }
+}
+
+
 
 // دریافت لیست دوره‌ها و اعضا برای فیلترها
 // اگر کاربر مربی است، فقط دوره‌های مربی را نمایش بده
@@ -858,6 +900,29 @@ $max_display = 10;
                                        class="button button-small button_delete_attendance" 
                                        onclick="return confirm('آیا مطمئن هستید که می‌خواهید این حضور و غیاب را حذف کنید؟');"
                                        >حذف</a>
+
+                                <?php
+                                    // لینک مجاز کردن غیبت
+                                    $justify_url = wp_nonce_url(
+                                        admin_url('admin.php?page=sc-attendance-list&tab=individual&action=justify&attendance_id=' . $attendance->id),
+                                        'justify_attendance_' . $attendance->id
+                                    );
+
+                                    // فقط برای وضعیت absent دکمه نمایش داده شود
+                                    if ($attendance->status === 'absent') {
+                                        echo '<a href="' . esc_url($justify_url) . '" 
+                                                class="button button-small" 
+                                                style="color:#2271b1; border-color:#2271b1;" 
+                                                onclick="return confirm(\'آیا از مجاز کردن این غیبت و بازگرداندن جلسه مطمئن هستید؟\');">
+                                                مجاز کردن
+                                            </a>';
+                                    }
+
+                                    // وضعیت پس از مجاز شدن
+                                    if ($attendance->status === 'excused') {
+                                        echo '<p style="font-size:10px; color:green; font-weight:bold;">(مجاز شده)</p>';
+                                    }
+                                    ?>    
                                 </td>
                             </tr>
                         <?php endforeach; ?>
