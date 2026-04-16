@@ -556,3 +556,5 @@ function sc_increase_member_session($member_id, $course_id) {
 
     return true;
 }
+
+

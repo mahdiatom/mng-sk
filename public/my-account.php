@@ -1305,8 +1305,10 @@ function sc_handle_course_enrollment() {
 /**
  * Create invoice and WooCommerce order for course enrollment
  */
-function sc_create_course_invoice($member_id, $course_id, $member_course_id, $amount) {
+function sc_create_course_invoice($member_id, $course_id, $member_course_id, $amount , $type = '') {
     // بررسی فعال بودن WooCommerce
+
+
     if (!class_exists('WooCommerce')) {
         return ['success' => false, 'message' => 'WooCommerce فعال نیست.'];
     }
@@ -1493,7 +1495,8 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
             'penalty_applied' => 0,
             'status' => 'pending',
             'created_at' => current_time('mysql'),
-            'updated_at' => current_time('mysql')
+            'updated_at' => current_time('mysql'),
+            'type' => $type
         ],
         ['%d', '%d', '%d', '%d', '%f', '%f', '%d', '%s', '%s', '%s']
     );
@@ -3399,6 +3402,11 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
                     error_log('SC PAYMENT SUCCESS: Enrollment SMS skipped - course not active or not found');
                 }
             }
+
+            // ======== اضافه‌شده (شناسایی پرداخت موفق) ========
+    do_action('sc_invoice_paid', $invoice->id);
+    // ================================================
+
         }
         
         $wpdb->update(

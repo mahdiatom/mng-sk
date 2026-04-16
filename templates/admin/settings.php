@@ -31,6 +31,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
      sc_update_setting('pro_create_invoice_player_team' , $pro_create_invoice_player_team , 'invoice' );   
     $invoice_mode = isset($_POST['invoice_mode']) ? sanitize_text_field($_POST['invoice_mode']) : 'interval';
 
+
+
+
+
+
+
+
+
     sc_update_setting('invoice_mode', $invoice_mode, 'invoice');
 
     if ($invoice_mode === 'interval') {
@@ -628,6 +636,12 @@ $sc_botname_club      = sc_get_setting('sc_botname_club', '');
             <input type="radio" name="invoice_mode" value="fixed_date"
                 <?php checked(sc_get_invoice_mode(), 'fixed_date'); ?>>
             در تاریخ مشخص ماهانه
+        </label>
+        <br>
+        <label>
+            <input type="radio" name="invoice_mode" value="sessions_threshold"
+                <?php checked(sc_get_invoice_mode(), 'sessions_threshold'); ?>>
+            برحسب تعداد جلسات کاربر
         </label>
     </td>
 </tr>

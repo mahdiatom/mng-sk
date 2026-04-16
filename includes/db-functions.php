@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.33.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.35.0'); // همان نسخه افزونه هدر
 }
 
 if (!defined('ABSPATH')) {
@@ -51,6 +51,7 @@ $sql = "CREATE TABLE `$table_name` (
         `woocommerce_order_id` bigint(20) unsigned DEFAULT NULL,
         `amount` decimal(10,2) NOT NULL DEFAULT 0.00,
         `expense_name` varchar(255) DEFAULT NULL,
+        `type` varchar(255) DEFAULT NULL,
         `invoice_description` text DEFAULT NULL COMMENT 'توضیحات صورت حساب (ایجاد دستی)',
         `penalty_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
         `penalty_applied` tinyint(1) DEFAULT 0,
@@ -128,6 +129,7 @@ $sql = "CREATE TABLE `$table_name` (
         `enrollment_date` date DEFAULT NULL,
         `total_sessions` bigint(20) unsigned NOT NULL,
         `remaining_sessions` bigint(20) unsigned NOT NULL,
+        `threshold_invoiced` TINYINT(1) DEFAULT 0,
         `status` varchar(20) DEFAULT 'active',
         `course_status_flags` varchar(255) DEFAULT NULL,
         `created_at` datetime NOT NULL,
