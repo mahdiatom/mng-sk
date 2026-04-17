@@ -241,7 +241,20 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
                         <?php echo esc_html($status_display); ?>
                     </span>
                 </div>
-                
+                <div class="created_at_class">
+                        <span class="key">تاریخ ثبت نام: </span>
+                        <span class="val"> <?php echo sc_date_shamsi_date_only($user_course->created_at); ?> </span>
+                </div>
+                <?php if($user_course->total_sessions > 0): ?>
+                <div class="total_sessions">
+                        <span class="key">کل جلسات دوره : </span>
+                        <span class="val"> <?php echo $user_course->total_sessions ?> </span>
+                </div>
+                <div class="remaining_sessions">
+                        <span class="key">جلسات باقی مانده : </span>
+                        <span class="val"> <?php echo $user_course->remaining_sessions  ?> </span>
+                </div>
+                <?php endif; ?>
                 <!-- دکمه عملیات -->
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
                     <?php if ($can_cancel) : ?>

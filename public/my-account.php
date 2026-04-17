@@ -1498,7 +1498,7 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
             'updated_at' => current_time('mysql'),
             'type' => $type
         ],
-        ['%d', '%d', '%d', '%d', '%f', '%f', '%d', '%s', '%s', '%s']
+        ['%d', '%d', '%d', '%d', '%f', '%f', '%d', '%s', '%s', '%s', '%s']
     );
     
     if ($invoice_inserted === false) {
@@ -3357,7 +3357,7 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
             }
             
             // فعال کردن دوره بعد از پرداخت موفق (فقط processing و completed)
-            if ($invoice->member_course_id) {
+            if ($invoice->member_course_id && $invoice->type !== 'session_auto') {
                 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
                 $courses_table = $wpdb->prefix . 'sc_courses';
                 $course = $wpdb->get_row($wpdb->prepare(

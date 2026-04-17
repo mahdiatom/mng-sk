@@ -81,12 +81,14 @@ function sc_is_fixed_invoice_time() {
 
 function sc_create_recurring_invoices() {
 
-// $invoice_mode = sc_get_invoice_mode();
 
-// if ($invoice_mode === 'sessions_threshold') {
+
+$invoice_mode = sc_get_invoice_mode();
+
+if ($invoice_mode === 'sessions_threshold') {
     
-//     return sc_create_threshold_invoices();
-// }
+    return sc_create_threshold_invoices();
+}
     if (!sc_is_fixed_invoice_time()) {
     return;
 }
@@ -202,7 +204,7 @@ sc_set_invoice_last_run();
             $member_course->course_id,
             $member_course->id,
             $member_course->price,
-            ''
+            'system defalt'
         );
         
         // بررسی نتیجه
@@ -249,7 +251,21 @@ function sc_register_recurring_invoices_cron() {
 /**
  * Hook for cron job
  */
-add_action('sc_every_minute_recurring_invoices_check', 'sc_create_recurring_invoices');
+/**
+ * Connect correct invoice generator to cron
+ * (must NOT be inside init)
+ */
+if (sc_get_invoice_mode() === 'sessions_threshold') {
+
+    add_action('sc_every_minute_recurring_invoices_check', 'sc_create_threshold_invoices');
+
+} else {
+
+    add_action('sc_every_minute_recurring_invoices_check', 'sc_create_recurring_invoices');
+
+}
+
+
 
 /**
  * بررسی و اعمال flag paused برای دوره‌هایی با 3 یا بیشتر صورت حساب pending
@@ -399,18 +415,6 @@ function sc_clear_recurring_invoices_cron() {
     }
 }
 
-
-
-
-
-
-
-
-
-add_action('sc_every_minute_recurring_invoices_check', 'sc_create_threshold_invoices');
-
-
-
 // // ساخت صورت حساب فقط در زمانی که بر حسب تعداد جلسات انتخاب شده 
 function sc_create_threshold_invoices() {
     
@@ -458,11 +462,11 @@ function sc_create_threshold_invoices() {
     foreach ($courses as $course) {
 
         // تابع کمکی که تعداد جلسات باقی‌مانده را از جدول جلسات برمی‌گرداند
-        $remaining = $course->remaining_sessions;
+       $remaining = intval($course->remaining_sessions);
 
-        if ($remaining !== 2) {
-            continue; // فقط دقیقاً = 2
-        }
+		if ($remaining !== 2) {
+			continue;
+		}
 
         // ایجاد صورت حساب
         $invoice = sc_create_course_invoice(
@@ -470,7 +474,7 @@ function sc_create_threshold_invoices() {
             $course->course_id,
             $course->id,
             $course->price,
-            ''
+            'session_auto'
         );
 
         if ($invoice && isset($invoice['success']) && $invoice['success']) {
@@ -511,13 +515,13 @@ function sc_refill_sessions_after_payment($invoice_id) {
     if (!$invoice) return;
 
     // فقط برای فاکتورهای حالت آستانه جلسات
-    if ($invoice->invoice_type !== 'session_auto') return;
+    if ($invoice->type !== 'session_auto') return;
 
     $refill = 10; // بهتر است از تنظیمات خوانده شود
 
     // اطلاعات دوره مربوطه
     $member_course = $wpdb->get_row($wpdb->prepare(
-        "SELECT remaining_sessions, total_sessions 
+        "SELECT remaining_sessions, total_sessions ,threshold_invoiced
          FROM {$wpdb->prefix}sc_member_courses 
          WHERE id = %d",
         $invoice->member_course_id
@@ -526,8 +530,9 @@ function sc_refill_sessions_after_payment($invoice_id) {
     if (!$member_course) return;
 
     // شارژ جلسات
-    $new_remaining = (int)$member_course->remaining_sessions + $refill;
-    $new_total     = (int)$member_course->total_sessions + $refill;
+    $new_remaining = (int)$member_course->remaining_sessions + (int)$member_course->total_sessions;
+    $new_total     = (int)$member_course->total_sessions ;
+	$threshold_invoiced = 0;
 
     // بروزرسانی تعداد جلسات
     $wpdb->update(
@@ -535,7 +540,7 @@ function sc_refill_sessions_after_payment($invoice_id) {
         [
             'total_sessions'     => $new_total,
             'remaining_sessions' => $new_remaining,
-            'threshold_invoiced' => 0   // ***** مهم‌ترین بخش: ریست قفل *****
+            'threshold_invoiced' => $threshold_invoiced   // ***** مهم‌ترین بخش: ریست قفل *****
         ],
         ['id' => $invoice->member_course_id],
         ['%d', '%d', '%d'],
@@ -559,108 +564,3 @@ function sc_refill_sessions_after_payment($invoice_id) {
 
 
 
-
-
-
-// add_action('sc_every_minute_recurring_invoices_check', 'sc_invoice_on_sessions_threshold');
-
-// function sc_invoice_on_sessions_threshold() {
-//     global $wpdb;
-
-//     // آیا حالت سوم فعال است؟
-//     if (sc_get_invoice_mode() !== 'sessions_threshold') {
-//         return;
-//     }
-
-//     $threshold = 2; // مثلاً 3
-//     $refill_sessions = 10; // مثلاً 10‌ (بعد پرداخت) شارژ میشه سشن 
-
-//     $member_courses = $wpdb->get_results("
-//         SELECT mc.*, c.price, c.title
-//         FROM {$wpdb->prefix}sc_member_courses mc
-//         JOIN {$wpdb->prefix}sc_courses c ON c.id = mc.course_id
-//         WHERE mc.status = 'active'
-//         AND mc.remaining_sessions = {$threshold}
-//     ");
-
-//     if (empty($member_courses)) {
-//         return;
-//     }
-
-//     foreach ($member_courses as $mc) {
-
-//         // بررسی: آیا همین امروز قبلاً صورت حساب ساخته شده؟
-//         $already = $wpdb->get_var("
-//             SELECT COUNT(*) FROM {$wpdb->prefix}sc_invoices
-//             WHERE member_course_id = {$mc->id}
-//             AND invoice_type = 'session_auto'
-//             AND DATE(created_at) = CURDATE()
-//         ");
-
-//         if ($already > 0) {
-//             continue;
-//         }
-
-//         // ساخت صورت حساب
-//         $invoice = sc_create_course_invoice(
-//             $mc->member_id,
-//             $mc->course_id,
-//             $mc->id,
-//             $mc->price,
-//             'session_auto'
-//         );
-
-//         if ($invoice && !empty($invoice['success'])) {
-
-//             // فقط صورت حساب می‌سازیم و منتظر پرداخت می‌مانیم
-//             // ریست جلسات بعد از پرداخت انجام می‌شود
-
-//             do_action('sc_invoice_created', $invoice['invoice_id']);
-//         }
-//     }
-// }
-
-
-// //ریست خودکار جلسات بعد از پرداخت
-
-// add_action('sc_invoice_paid', 'sc_refill_sessions_after_payment');
-
-// function sc_refill_sessions_after_payment($invoice_id) {
-//     global $wpdb;
-
-//     $invoice = $wpdb->get_row($wpdb->prepare(
-//         "SELECT * FROM {$wpdb->prefix}sc_invoices WHERE id = %d",
-//         $invoice_id
-//     ));
-
-//     if (!$invoice) return;
-
-//     // فقط مخصوص حالت سوم
-//     if ($invoice->invoice_type !== 'session_auto') return;
-
-//     $refill = 10; // بهتره از تنظیمات گرفته بشه
-
-//     // گرفتن مقدار فعلی جلسات
-//     $member_course = $wpdb->get_row($wpdb->prepare(
-//         "SELECT remaining_sessions, total_sessions 
-//          FROM {$wpdb->prefix}sc_member_courses 
-//          WHERE id = %d",
-//         $invoice->member_course_id
-//     ));
-
-//     if (!$member_course) return;
-
-//     $new_remaining = (int)$member_course->remaining_sessions + $refill;
-//     $new_total     = (int)$member_course->total_sessions + $refill;
-
-//     $wpdb->update(
-//         "{$wpdb->prefix}sc_member_courses",
-//         [
-//             'total_sessions'     => $new_total,
-//             'remaining_sessions' => $new_remaining,
-//         ],
-//         ['id' => $invoice->member_course_id],
-//         ['%d', '%d'],
-//         ['%d']
-//     );
-// }

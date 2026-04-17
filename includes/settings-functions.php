@@ -532,7 +532,7 @@ function sc_decrease_member_session($member_id, $course_id) {
 
     return true;
 }
-//حذف سوخت جلسه غیبت - بازگرداندن یک جلسه 
+//حذف سوخت جلسه غیبت - بازگرداندن یک جلسه  افزایش یک جلسه
 
 function sc_increase_member_session($member_id, $course_id) {
     global $wpdb;
