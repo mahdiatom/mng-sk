@@ -25,7 +25,7 @@ if (!$player) {
 
 // دریافت دوره‌های بازیکن
 $player_courses = $wpdb->get_results($wpdb->prepare(
-    "SELECT c.title, c.price, mc.status, mc.course_status_flags, mc.created_at as enrolled_at
+    "SELECT c.title, c.price, mc.status, mc.course_status_flags, mc.created_at as enrolled_at , c.id
      FROM $member_courses_table mc
      INNER JOIN $courses_table c ON c.id = mc.course_id
      WHERE mc.member_id = %d AND mc.status = 'active'
@@ -208,6 +208,7 @@ $honors_player = $wpdb->get_results($wpdb->prepare(
                         <th style="width: 120px;">قیمت</th>
                         <th style="width: 120px;">وضعیت</th>
                         <th style="width: 150px;">تاریخ ثبت‌نام</th>
+                        <th style="width: 150px;">جلسات دوره </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -231,6 +232,38 @@ $honors_player = $wpdb->get_results($wpdb->prepare(
                                 </span>
                             </td>
                             <td><?php echo esc_html($pc->enrolled_at ? sc_date_shamsi($pc->enrolled_at, 'Y/m/d') : '-'); ?></td>
+                            <td>
+                    <?php 
+                    
+                             $query = "SELECT course_id , total_sessions , remaining_sessions
+                            FROM $member_courses_table 
+                            WHERE member_id = $player_id AND  course_id = $pc->id
+                            ";
+                    
+                    
+                    $user_courses = $wpdb->get_results($wpdb->prepare($query));
+                   
+                    if($user_courses):
+
+                        ?>
+
+                    <div class="total_sessions">
+                            <span class="key">کل جلسات دوره : </span>
+                            <span class="val"> <?php echo $user_courses[0]->total_sessions; ?> </span>
+                    </div>
+                    <div class="remaining_sessions">
+                            <span class="key">جلسات باقی مانده : </span>
+                            <span class="val"> <?php  echo $user_courses[0]->remaining_sessions;  ?> </span>
+                    </div>
+
+
+                        <?php
+                        endif;
+                        ?>
+
+
+
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

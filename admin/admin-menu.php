@@ -2179,11 +2179,12 @@ function callback_add_course_sufix() {
 
 //for save data in new member -> wpdb
 function callback_add_member_sufix(){
+
     // فقط برای ویرایش کاربر (وقتی player_id وجود دارد)
     if(isset($_GET['page']) && $_GET['page'] == 'sc-add-member' && isset($_POST['submit_player']) && isset($_GET['player_id']) && !empty($_GET['player_id'])) {
        // بررسی و ایجاد جداول در صورت عدم وجود
        sc_check_and_create_tables();
-       
+           
        global $wpdb;
        $table_name = $wpdb->prefix . 'sc_members';
        
@@ -2191,6 +2192,9 @@ function callback_add_member_sufix(){
        $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
        $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
        $national_id = isset($_POST['national_id']) ? trim($_POST['national_id']) : '';
+       $remaining_sessions = isset($_POST['remaining_sessions']) ? $_POST['remaining_sessions'] : '';
+       $player_id_corse_sessions = isset($_POST['player_id']) ? $_POST['player_id'] : '';
+
        
        if (empty($first_name) || empty($last_name) || empty($national_id)) {
            wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_error'));
@@ -2434,6 +2438,31 @@ function callback_add_member_sufix(){
                 if (function_exists('sc_log_activity') && $old_member) {
                     sc_log_activity('updated', 'member', $player_id, 'عضو «' . ($data['first_name'] . ' ' . $data['last_name']) . '» ویرایش شد', $old_member, ['first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'national_id' => $data['national_id'], 'is_active' => $data['is_active']]);
                 }
+
+                if (!empty($_POST['remaining_sessions']) && is_array($_POST['remaining_sessions'])) {
+
+                    $member_id = intval($player_id);
+                    $table = $wpdb->prefix . 'sc_member_courses';
+
+                    foreach ($_POST['remaining_sessions'] as $course_id => $remaining) {
+
+                        $course_id = intval($course_id);
+                        $remaining = intval($remaining);
+
+                        // آپدیت هر دوره
+                        $wpdb->update(
+                            $table,
+                            ['remaining_sessions' => $remaining],
+                            ['member_id' => $member_id, 'course_id' => $course_id],
+                            ['%d'],
+                            ['%d', '%d']
+                        );
+                    }
+                }
+
+
+
+
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=updated&player_id=' . $player_id));
                 exit;
             } else {
@@ -2609,6 +2638,7 @@ function callback_add_member_sufix(){
             }
         }
     }
+ 
 
 }
 

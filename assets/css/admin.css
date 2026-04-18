@@ -1639,6 +1639,22 @@ display: block; margin-bottom: 5px; font-weight: bold;
 .report_player_attendance{
     display: grid; grid-template-columns: 350px 1fr; gap: 20px; margin-top: 20px;
 }
+.session_course_member{
+     padding: 15px;
+    border: 1px solid #dfdfdf;
+    margin: 18px;
+    border-radius: 10px;
+    display: flex;
+    gap: 40px;
+    align-items: center;
+    width: fit-content;
+    font-weight: bold;
+    
+}
+.remaining_sessions input{
+    width: 60px !important;
+    border-radius: 10px;
+}
 @media screen and (max-width:780px){
     .report_player_attendance{
     grid-template-columns: unset;

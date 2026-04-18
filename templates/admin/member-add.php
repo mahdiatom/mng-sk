@@ -404,7 +404,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 if ($player && isset($_GET['player_id'])) {
                     $player_id = absint($_GET['player_id']);
                     $player_courses_data = $wpdb->get_results($wpdb->prepare(
-                        "SELECT course_id, status, course_status_flags FROM $member_courses_table WHERE member_id = %d",
+                        "SELECT course_id, status, course_status_flags  FROM $member_courses_table WHERE member_id = %d",
                         $player_id
                     ), ARRAY_A);
                     if ($player_courses_data) {
@@ -456,20 +456,47 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         // اطلاعات دوره
                         echo '<div style="flex: 1;">';
                         echo '<label for="course_cb_' . esc_attr($course->id) . '" style="cursor: pointer; display: block; margin-bottom: 10px;">';
-                        echo '<strong>' . esc_html($course->title) . '</strong>';
-                        $formatted_price = function_exists('wc_price') 
-                            ? wc_price($course->price) 
-                            : number_format($course->price, 0, '.', ',') . ' تومان';
-                        echo '<span style="color: #666; margin: 0 10px;">- ' . $formatted_price . '</span>';
-                        echo '<span' . $capacity_warning . '>' . $capacity_text . '</span>';
-                        if ($course->description) {
-                            echo '<p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">' . esc_html(wp_trim_words($course->description, 20)) . '</p>';
-                        }
+                        echo '<strong>' . esc_html($course->title) . '</strong>';                 
+                        // دریافت دوره‌های کاربر با صفحه‌بندی
+                        // ترتیب: اول دوره‌های فعال و بدون flag، سپس بقیه
+          
+                    
+                    $query = "SELECT course_id , total_sessions , remaining_sessions
+                            FROM $member_courses_table 
+                            WHERE member_id = $player_id AND status = 'active' AND course_status_flags IS NULL AND course_id = $course->id
+                            ";
+                    
+                    
+                    $user_courses = $wpdb->get_results($wpdb->prepare($query));
+                   
+                    if($user_courses):
+
+                        ?>
+                        <div class="session_course_member">
+
+                    <div class="total_sessions" >
+                            <span class="key">کل جلسات دوره : </span>
+                            <span class="val"> <?php echo $user_courses[0]->total_sessions; ?> </span>
+                    </div>
+                    <div class="remaining_sessions">
+                            <span class="key">جلسات باقی مانده : </span>
+                            <input type="number" name="remaining_sessions[<?php echo $user_courses[0]->course_id;; ?>]"
+                            value="<?php echo $user_courses[0]->remaining_sessions; ?>">
+
+                    </div>
+
+                    </div>
+                        <?php
+                        endif;
+
+
+                            
+
                         echo '</label>';
                         
                         // Checkbox های وضعیت‌های اضافی
                         echo '<div id="course_status_' . esc_attr($course->id) . '" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">';
-                        echo '<label style="font-size: 12px; color: #666; display: block; margin-bottom: 8px;">وضعیت‌های اضافی:</label>';
+                        echo '<label style="font-size: 18px; display: block; font-weight:bold;" > <p>وضعیت‌های اضافی: </p>';
                         echo '<div style="display: flex; gap: 15px; flex-wrap: wrap;">';
                         
                         echo '<label class="label_cheakbox_active_courses_user">';
@@ -486,6 +513,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][canceled]" value="1" ' . ($is_canceled ? 'checked' : '') . ' style="margin-left: 5px;">';
                         echo '<span>لغو شده</span>';
                         echo '</label>';
+                        echo '</label>';
                         
                         echo '</div>';
                         echo '</div>';
@@ -495,9 +523,9 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         echo '</div>';
                     }
                     echo '</div>';
-                    echo '<br><strong style="margin-top:10px;">راهنما دوره های بازیکن : <br></strong>';
-                    echo '<p class="description" style="margin-top: 10px;">بازیکن می‌تواند در چند دوره شرکت کند. تیک اول دوره را فعال/غیرفعال می‌کند و تیک‌های دیگر وضعیت‌های اضافی هستند. - در صورت انتخاب وضعیت های اضافی صورت حساب برای آن دوره ایجاد نخواهد شد.</p>';
-                    echo '<p class="description" style="margin-top: 10px;"> دوره فعال برای بازیکن به این معنا است که بازیکن در کلاس ها حاضر است و برای بازیکن به صورت ماهیانه صورتحساب ایجاد می شود.</p>';
+                    echo '<br><strong style="margin-top:10px;  font-size:24px; font-weight:bold; ">راهنما دوره های بازیکن : <br></strong>';
+                    echo '<p class="description" style="margin-top: 10px; font-size:20px; ">بازیکن می‌تواند در چند دوره شرکت کند. تیک اول دوره را فعال/غیرفعال می‌کند و تیک‌های دیگر وضعیت‌های اضافی هستند. - در صورت انتخاب وضعیت های اضافی صورت حساب برای آن دوره ایجاد نخواهد شد.</p>';
+                    echo '<p class="description" style="margin-top: 10px;  font-size:20px; "> دوره فعال برای بازیکن به این معنا است که بازیکن در کلاس ها حاضر است و برای بازیکن به صورت ماهیانه صورتحساب ایجاد می شود.</p>';
                 }
                 ?>
             </div>

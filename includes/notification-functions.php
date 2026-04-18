@@ -885,3 +885,62 @@ function sc_ajax_notification_recipients_count() {
     $user_ids = sc_get_notification_recipients($target_type, $target_config);
     wp_send_json_success(['count' => count($user_ids)]);
 }
+
+
+
+// ارسال نوتیفیکشن خودکار به کاربران
+add_action('sc_invoice_created', 'sc_send_invoice_notification_delayed');
+function sc_send_invoice_notification_delayed($invoice_id) {
+    wp_schedule_single_event(time() + 10, 'sc_delayed_wc_invoice_notification', [$invoice_id]);
+}
+
+add_action('sc_delayed_wc_invoice_notification', 'sc_send_invoice_notification_real');
+
+function sc_send_invoice_notification_real($invoice_id) {
+    global $wpdb;
+
+    $invoice_table = $wpdb->prefix . 'sc_invoices';
+    $members_table = $wpdb->prefix . 'sc_members';
+    $invoice = $wpdb->get_row(
+        $wpdb->prepare("
+         SELECT * , i.woocommerce_order_id
+         FROM $invoice_table i
+         INNER JOIN $members_table m on i.member_id = m.id
+         WHERE i.id = %d
+         ",
+         $invoice_id)
+    );
+
+    if (!$invoice) {
+        return;
+    }
+
+    // ---------- دریافت اطلاعات کاربر ----------
+    
+    $member_name = $invoice ? $invoice->first_name : 'کاربر عزیز';
+
+    // ---------- محاسبه و فرمت مبلغ ----------
+    $amount = number_format($invoice->amount);
+
+    // ---------- ساخت لینک ورود کاربر ----------
+   
+
+    // ---------- ساخت متن نوتیف شخصی‌سازی‌شده ----------
+    $content  = $member_name . " عزیز،\n\n";
+    $content .= "یک فاکتور جدید برای شما صادر شد.\n";
+    $content .= "شماره فاکتور: " . $invoice->woocommerce_order_id . "\n";
+    $content .= "مبلغ: " . $amount . " تومان\n\n";
+    $content .= "توضیحات : " . $invoice->invoice_description . " \n\n";
+    
+    // ---------- ساخت نوتیف ----------
+    sc_save_notification([
+        'title' => " صدور فاکتور جدید - شماره " . $invoice->woocommerce_order_id ,
+        'content' => $content,
+        'target_type' => 'specific',
+        'target_config' => [
+            'recipient_ids' => ['member_' . $invoice->member_id]
+        ],
+        'notification_type' => 'admin', // نوع نوتیف
+        'send_sms' => 0 // پیامک نمی‌فرستیم
+    ]);
+}

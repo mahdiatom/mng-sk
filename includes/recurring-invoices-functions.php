@@ -436,7 +436,7 @@ function sc_create_threshold_invoices() {
     // paused/completed/canceled نیستند
     // threshold_invoiced != 1 (یعنی قبلاً فاکتور threshold نگرفته‌اند)
     $courses = $wpdb->get_results("
-        SELECT mc.*, c.price, c.title AS course_title, m.user_id , mc.remaining_sessions
+        SELECT mc.*, c.price, c.title AS course_title, m.user_id , mc.remaining_sessions , m.player_phone 
         FROM $member_courses_table mc
         INNER JOIN $courses_table c ON mc.course_id = c.id
         INNER JOIN $members_table m ON mc.member_id = m.id
@@ -476,6 +476,7 @@ function sc_create_threshold_invoices() {
             $course->price,
             'session_auto'
         );
+       
 
         if ($invoice && isset($invoice['success']) && $invoice['success']) {
 
@@ -517,7 +518,7 @@ function sc_refill_sessions_after_payment($invoice_id) {
     // فقط برای فاکتورهای حالت آستانه جلسات
     if ($invoice->type !== 'session_auto') return;
 
-    $refill = 10; // بهتر است از تنظیمات خوانده شود
+  
 
     // اطلاعات دوره مربوطه
     $member_course = $wpdb->get_row($wpdb->prepare(
