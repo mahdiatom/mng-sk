@@ -94,6 +94,17 @@ $count_read = function_exists('sc_count_user_notifications') ? sc_count_user_not
             <button type="submit" class="button button-primary">جستجو</button>
         </form>
     </div>
+<!-- اضاف کردن دکمه خواندن همه  -->
+
+<div class="sc-notifications-mass-actions" style="margin: 15px 0;">
+    <?php if (($filter === 'all' || $filter === 'unread') && $count_unread > 0) : ?>
+        <button id="sc-mark-all-as-read" class="button" style="background:#2271b1; color:#fff;">
+            علامت‌گذاری همه به عنوان خوانده‌شده (<?php echo (int) $count_unread; ?>)
+        </button>
+    <?php endif; ?>
+</div>
+
+<!-- اضاف کردن دکمه خواندن همه  -->
 
     <div id="sc-notifications-ajax-container">
     <?php if (empty($notifications)) : ?>
@@ -164,3 +175,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
 });
 </script>
+
+
+
+<script name="all_read">
+     var ajaxurl = '<?php echo admin_url("admin-ajax.php"); ?>';
+jQuery(document).ready(function($){
+
+    $('#sc-mark-all-as-read').on('click', function () {
+
+        if (!confirm('آیا تمام اطلاعیه‌های خوانده‌نشده خوانده شوند؟')) return;
+
+        $.post(
+            ajaxurl,
+            {
+                action: 'sc_mark_all_notifications_read',
+                security: '<?php echo wp_create_nonce("sc_mark_all_read_nonce"); ?>'
+            },
+            function(response){
+                if(response.success){
+                    alert(response.data);
+                    location.reload();
+                } else {
+                    alert('خطا: ' + response.data);
+                }
+            }
+        );
+    });
+
+});
+
+</script>
+

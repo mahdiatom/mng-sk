@@ -944,3 +944,51 @@ function sc_send_invoice_notification_real($invoice_id) {
         'send_sms' => 0 // پیامک نمی‌فرستیم
     ]);
 }
+
+
+
+//افزودن دکمه خوانده همه 
+add_action('wp_ajax_sc_mark_all_notifications_read', 'sc_mark_all_notifications_read_callback');
+function sc_mark_all_notifications_read_callback() {
+
+    check_ajax_referer('sc_mark_all_read_nonce', 'security');
+
+
+    if (!is_user_logged_in()) {
+        wp_send_json_error('دسترسی غیرمجاز');
+    }
+
+    global $wpdb;
+    $user_id = get_current_user_id();
+
+    $recipients_table = $wpdb->prefix . 'sc_notification_recipients';
+    $reads_table = $wpdb->prefix . 'sc_notification_reads';
+
+    $unread_ids = $wpdb->get_col($wpdb->prepare("
+        SELECT nr.notification_id
+        FROM $recipients_table nr
+        LEFT JOIN $reads_table r 
+            ON r.notification_id = nr.notification_id 
+            AND r.user_id = %d
+        WHERE nr.user_id = %d 
+        AND r.id IS NULL
+    ", $user_id, $user_id));
+
+    if (empty($unread_ids)) {
+        wp_send_json_success('هیچ اطلاعیه خوانده‌نشده‌ای وجود ندارد.');
+    }
+
+    foreach ($unread_ids as $nid) {
+        $wpdb->insert(
+            $reads_table,
+            [
+                'notification_id' => $nid,
+                'user_id' => $user_id,
+                'read_at' => current_time('mysql')
+            ],
+            ['%d', '%d', '%s']  // اصلاح شد
+        );
+    }
+
+    wp_send_json_success('تمام اعلان‌ها خوانده شدند.');
+}
