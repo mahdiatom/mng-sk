@@ -4454,6 +4454,12 @@ color: white;
 }
 
 /* اطلاعیه‌ها - شمارنده تب */
+#sc-mark-all-as-read{
+    background: #2271b1;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+}
 .sc-notification-badge {
     background: #d63638;
     color: #fff;

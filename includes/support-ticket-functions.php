@@ -963,6 +963,12 @@ function sc_ajax_support_tickets_filter() {
         ];
     }
     $empty_message = ($search !== '') ? 'نتیجه‌ای برای جستجو یافت نشد.' : 'هنوز تیکتی ارسال نکرده‌اید.';
+    
+    
+    
+    
+    
+    
     wp_send_json_success([
         'items' => $items,
         'total' => (int) $total,
