@@ -25,20 +25,37 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
         $attendance_id
     ));
 
-    if ($row && $row->status === 'present' && sc_is_member_team($row->member_id) && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet())) {
-        $course_row = $wpdb->get_row($wpdb->prepare(
-            "SELECT title, price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
-            $row->course_id
-        ));
-        if ($course_row && floatval($course_row->price_per_session) > 0) {
-            sc_refund_wallet_session_fee(
-                $row->member_id,
-                floatval($course_row->price_per_session),
-                $course_row->title,
-                sc_date_shamsi_date_only($row->attendance_date)
-            );
+
+
+
+
+        if (
+            $row &&
+            ($row->status === 'present' || $row->status === 'absent') &&
+            sc_is_member_team($row->member_id) &&
+            (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet())
+        ) {
+            $course_row = $wpdb->get_row($wpdb->prepare(
+                "SELECT title, price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
+                $row->course_id
+            ));
+            if ($course_row && floatval($course_row->price_per_session) > 0) {
+                sc_refund_wallet_session_fee(
+                    $row->member_id,
+                    floatval($course_row->price_per_session),
+                    $course_row->title,
+                    sc_date_shamsi_date_only($row->attendance_date)
+                );
+            }
         }
-    }
+
+
+
+
+
+
+
+
     
     // بروزرسانی دستمزد مربی‌ها بعد از حذف حضور
     if ($row && $row->status === 'present') {
@@ -108,12 +125,33 @@ if (isset($_GET['action']) && $_GET['action'] === 'justify' && isset($_GET['atte
     
     // دریافت اطلاعات رکورد
     $row = $wpdb->get_row($wpdb->prepare(
-        "SELECT id, member_id, course_id, status FROM $attendances_table WHERE id = %d LIMIT 1",
+        "SELECT id, member_id, course_id, attendance_date  ,status FROM $attendances_table WHERE id = %d LIMIT 1",
         $attendance_id
     ));
 
     // فقط اگر وضعیت "غایب" باشد عملیات انجام شود
     if ($row && $row->status === 'absent') {
+
+                // refund برای تبدیل غیبت به غیبت مجاز
+        $course_row = $wpdb->get_row($wpdb->prepare(
+            "SELECT title, price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
+            $row->course_id
+        ));
+
+        if (
+            $course_row &&
+            floatval($course_row->price_per_session) > 0 &&
+            sc_is_member_team($row->member_id) &&
+            (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet())
+        ) {
+            sc_refund_wallet_session_fee(
+                $row->member_id,
+                floatval($course_row->price_per_session),
+                $course_row->title,
+                sc_date_shamsi_date_only($row->attendance_date)
+            );
+        }
+
         
         // ۱. بازگرداندن یک جلسه به موجودی کاربر
         $increased = sc_increase_member_session($row->member_id, $row->course_id);
@@ -350,7 +388,99 @@ if ($active_tab === 'individual') {
     // محاسبه تعداد صفحات
     $total_pages = ceil($total_items / $per_page);
 }
+//if absent
 
+if ($active_tab === 'absents') {
+
+    // ====== فیلترها دقیقاً مثل تب individual ======
+    $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+    $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+    $filter_coach = (current_user_can('club_coach') || current_user_can('administrator')) && isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
+
+    // تاریخ
+    $filter_date_from = '';
+    $filter_date_to = '';
+    $filter_date_from_shamsi = '';
+    $filter_date_to_shamsi = '';
+
+    if (!empty($_GET['filter_date_from_shamsi'])) {
+        $filter_date_from_shamsi = sanitize_text_field($_GET['filter_date_from_shamsi']);
+        $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+    }
+    if (!empty($_GET['filter_date_to_shamsi'])) {
+        $filter_date_to_shamsi = sanitize_text_field($_GET['filter_date_to_shamsi']);
+        $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+    }
+
+    $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+    $display_date_from_shamsi = $filter_date_from_shamsi ?: $today_shamsi;
+    $display_date_to_shamsi   = $filter_date_to_shamsi   ?: $today_shamsi;
+
+    // ====== ساخت WHERE ======
+    $where_conditions = ['1=1'];
+    $where_values = [];
+
+    // *** نکته مهم: فقط غایبین ***
+    $where_conditions[] = "a.status = 'absent'";
+
+    // فیلتر دوره
+    if ($filter_course > 0) {
+        $where_conditions[] = "a.course_id = %d";
+        $where_values[] = $filter_course;
+    }
+
+    // فیلتر کاربر
+    if ($filter_member > 0) {
+        $where_conditions[] = "a.member_id = %d";
+        $where_values[] = $filter_member;
+    }
+
+    // فیلتر مربی ثبت‌کننده
+    if ($filter_coach > 0) {
+        $coach_user_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT user_id FROM $coaches_table WHERE id = %d LIMIT 1", 
+            $filter_coach
+        ));
+        if ($coach_user_id) {
+            $where_conditions[] = "a.user_id = %d";
+            $where_values[] = $coach_user_id;
+        }
+    }
+
+    // فیلتر تاریخ
+    if ($filter_date_from) {
+        $where_conditions[] = "a.attendance_date >= %s";
+        $where_values[] = $filter_date_from;
+    }
+    if ($filter_date_to) {
+        $where_conditions[] = "a.attendance_date <= %s";
+        $where_values[] = $filter_date_to;
+    }
+
+    $where_clause = implode(" AND ", $where_conditions);
+
+    // ====== کوئری ======
+    $users_table = $wpdb->users;
+
+    $query = "SELECT a.*,
+                     m.first_name, m.last_name, m.national_id,
+                     c.title as course_title,
+                     COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-') as recorded_by_name
+              FROM $attendances_table a
+              INNER JOIN $members_table m ON a.member_id = m.id
+              INNER  JOIN $courses_table c ON a.course_id = c.id
+              LEFT JOIN $coaches_table rec_coach ON rec_coach.user_id = a.user_id
+              LEFT JOIN $users_table rec_user ON rec_user.ID = a.user_id
+              WHERE $where_clause
+              ORDER BY a.attendance_date DESC, a.created_at DESC";
+
+    if (!empty($where_values)) {
+        $absents = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    } else {
+        $absents = $wpdb->get_results($query);
+    }
+
+}
 // ==================== تب 2: لیست گروه‌بندی شده بر اساس دوره و تاریخ ====================
 if ($active_tab === 'grouped') {
     // دریافت فیلترها
@@ -640,6 +770,9 @@ if ($active_tab === 'overall') {
     // مرتب‌سازی تاریخ‌ها
     sort($dates_list);
 }
+
+
+
 ?>
 
 <div class="wrap">
@@ -658,10 +791,15 @@ if ($active_tab === 'overall') {
         <a href="?page=sc-attendance-list&tab=overall" class="nav-tab <?php echo $active_tab === 'overall' ? 'nav-tab-active' : ''; ?>">
         گزارش اشخاص     
     </a>
+    <a href="?page=sc-attendance-list&tab=absents" 
+            class="nav-tab <?php echo $active_tab === 'absents' ? 'nav-tab-active' : ''; ?>">
+        غایبین
+    </a>
+
     </h2>
     
     <?php if ($active_tab === 'individual') : ?>
-        <!-- تب 1: لیست حضور و غیاب کاربران -->
+    <!-- تب 1: لیست حضور و غیاب کاربران -->
         <!-- فیلترها -->
         <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
             <input type="hidden" name="page" value="sc-attendance-list">
@@ -866,7 +1004,15 @@ $max_display = 10;
                         foreach ($attendances as $index => $attendance) : 
                         
                             $row_number = $start_number + $index + 1;
-                            $status_label = $attendance->status === 'present' ? 'حاضر' : 'غایب';
+                            //$status_label = $attendance->status === 'present' ? 'حاضر' : 'غایب';
+                            if($attendance->status === 'present'){
+                                $status_label = 'حاضر' ;
+                            }elseif($attendance->status === 'absent'){
+                                 $status_label = 'غیبت' ;
+                            }
+                            else{
+                                 $status_label = 'غیبت -  مجاز' ;
+                            }
                             $status_color = $attendance->status === 'present' ? '#00a32a' : '#d63638';
                             $status_bg = $attendance->status === 'present' ? '#d4edda' : '#ffeaea';
                         ?>
@@ -918,10 +1064,7 @@ $max_display = 10;
                                             </a>';
                                     }
 
-                                    // وضعیت پس از مجاز شدن
-                                    if ($attendance->status === 'excused') {
-                                        echo '<p style="font-size:10px; color:green; font-weight:bold;">(مجاز شده)</p>';
-                                    }
+                                    
                                     ?>    
                                 </td>
                             </tr>
@@ -956,7 +1099,323 @@ $max_display = 10;
                 <?php endif; ?>
             </div>
         <?php endif; ?>
-        
+
+
+
+        <!-- //tab 4 -->
+<?php elseif ($active_tab === 'absents') : ?>
+
+<?php
+// -------------------- پردازش فیلترها مانند تب individual --------------------
+$filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+$filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+$filter_coach  = (current_user_can('club_coach') || current_user_can('administrator')) && isset($_GET['filter_coach']) 
+                 ? absint($_GET['filter_coach']) 
+                 : 0;
+
+$filter_date_from = '';
+$filter_date_to   = '';
+$filter_date_from_shamsi = '';
+$filter_date_to_shamsi   = '';
+
+if (!empty($_GET['filter_date_from_shamsi'])) {
+    $filter_date_from_shamsi = sanitize_text_field($_GET['filter_date_from_shamsi']);
+    $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+}
+if (!empty($_GET['filter_date_to_shamsi'])) {
+    $filter_date_to_shamsi = sanitize_text_field($_GET['filter_date_to_shamsi']);
+    $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+}
+
+$today_shamsi = function_exists('sc_date_shamsi_date_only') 
+                ? sc_date_shamsi_date_only(current_time('Y-m-d')) 
+                : '';
+$display_date_from_shamsi = $filter_date_from_shamsi ?: $today_shamsi;
+$display_date_to_shamsi   = $filter_date_to_shamsi ?: $today_shamsi;
+
+
+
+$where_conditions = ["1=1"];
+$where_values = [];
+
+if ($filter_course > 0) {
+    $where_conditions[] = "a.course_id = %d";
+    $where_values[] = $filter_course;
+}
+
+if ($filter_member > 0) {
+    $where_conditions[] = "a.member_id = %d";
+    $where_values[] = $filter_member;
+}
+
+if ($filter_coach > 0) {
+    $coach_user_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT user_id FROM {$wpdb->prefix}sc_coaches WHERE id=%d LIMIT 1",
+        $filter_coach
+    ));
+
+    if ($coach_user_id) {
+        $where_conditions[] = "a.user_id = %d";
+        $where_values[] = $coach_user_id;
+    }
+}
+
+if (!empty($filter_date_from)) {
+    $where_conditions[] = "a.attendance_date >= %s";
+    $where_values[] = $filter_date_from;
+}
+
+if (!empty($filter_date_to)) {
+    $where_conditions[] = "a.attendance_date <= %s";
+    $where_values[] = $filter_date_to;
+}
+
+$where_clause = implode(" AND ", $where_conditions);
+
+
+$query = "
+SELECT 
+    m.id AS member_id,
+    m.first_name,
+    m.last_name,
+    m.national_id,
+
+    COUNT(CASE WHEN a.status = 'absent' THEN 1 END)   AS absent_count,
+    COUNT(CASE WHEN a.status = 'excused' THEN 1 END)  AS excused_count,
+
+    MAX(CASE WHEN a.status = 'absent' THEN a.attendance_date END) AS last_absent_date
+
+FROM $attendances_table a
+INNER JOIN $members_table m ON a.member_id = m.id
+INNER JOIN $courses_table c ON a.course_id = c.id
+LEFT JOIN {$wpdb->prefix}sc_coaches rec_coach ON rec_coach.user_id = a.user_id
+LEFT JOIN {$wpdb->users} rec_user ON rec_user.ID = a.user_id
+
+WHERE $where_clause
+
+GROUP BY a.member_id
+HAVING absent_count > 0
+ORDER BY absent_count DESC
+";
+
+
+
+
+
+$absents = !empty($where_values)
+           ? $wpdb->get_results($wpdb->prepare($query, $where_values))
+           : $wpdb->get_results($query);
+
+
+          
+?>
+
+
+<form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+    <input type="hidden" name="page" value="sc-attendance-list">
+    <input type="hidden" name="tab" value="absents">
+
+<div class="sc-filter-grid">
+
+<!-- دوره -->
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_course">دوره</label>
+<select name="filter_course" id="filter_course" class="sc-filter-control">
+<option value="0">همه دوره‌ها</option>
+<?php foreach ($courses as $course) : ?>
+<option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
+<?php echo esc_html($course->title); ?>
+</option>
+<?php endforeach; ?>
+</select>
+</div>
+
+<!-- کاربر (Dropdown جستجو) -->
+<div class="sc-filter-field">
+<label class="sc-filter-label">کاربر</label>
+
+<?php
+$selected_member_text = 'همه کاربران';
+if ($filter_member > 0) {
+    foreach ($members as $m) {
+        if ($m->id == $filter_member) {
+            $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
+            break;
+        }
+    }
+}
+?>
+
+<div class="sc-searchable-dropdown">
+    <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
+
+    <div class="sc-dropdown-toggle">
+        <span class="sc-dropdown-placeholder" <?php if ($filter_member) echo 'style="display:none"'; ?>>همه کاربران</span>
+        <span class="sc-dropdown-selected" <?php if (!$filter_member) echo 'style="display:none"'; ?>>
+            <?php echo esc_html($selected_member_text); ?>
+        </span>
+        <span class="sc-dropdown-arrow">▼</span>
+    </div>
+
+    <div class="sc-dropdown-menu">
+        <div class="sc-dropdown-search">
+            <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
+        </div>
+
+        <div class="sc-dropdown-options">
+            <div class="sc-dropdown-option sc-visible"
+                 data-value="0"
+                 onclick="scSelectMemberFilter(this,'0','همه کاربران')">
+                همه کاربران
+            </div>
+
+            <?php foreach ($members as $member) : ?>
+                <div class="sc-dropdown-option sc-visible"
+                     data-value="<?php echo esc_attr($member->id); ?>"
+                     data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
+                     onclick="scSelectMemberFilter(this,'<?php echo esc_js($member->id); ?>',
+                     '<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
+                    <?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+</div>
+
+<?php if (!empty($coaches_list)) : ?>
+<!-- مربی -->
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_coach">مربی ثبت‌کننده</label>
+<select name="filter_coach" id="filter_coach" class="sc-filter-control">
+<option value="0">همه</option>
+<?php foreach ($coaches_list as $coach) : ?>
+<option value="<?php echo esc_attr($coach->id); ?>" <?php selected($filter_coach, $coach->id); ?>>
+<?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?>
+</option>
+<?php endforeach; ?>
+</select>
+</div>
+<?php endif; ?>
+
+<!-- تاریخ -->
+<div class="sc-filter-field sc-filter-date">
+<label class="sc-filter-label">بازه تاریخ</label>
+
+<div class="sc-date-range">
+    <input type="text"
+           name="filter_date_from_shamsi"
+           class="sc-filter-control persian-date-input sc-no-default-date"
+           value="<?php echo esc_attr($display_date_from_shamsi); ?>"
+           readonly>
+
+    <span class="sc-date-separator">تا</span>
+
+    <input type="text"
+           name="filter_date_to_shamsi"
+           class="sc-filter-control persian-date-input sc-no-default-date"
+           value="<?php echo esc_attr($display_date_to_shamsi); ?>"
+           readonly>
+
+    <input type="hidden" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+    <input type="hidden" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+</div>
+</div>
+
+</div>
+
+<p class="submit">
+    <input type="submit" class="button button-primary" value="اعمال فیلتر">
+    <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=absents'); ?>" class="button">پاک کردن فیلترها</a>
+</p>
+
+</form>
+
+
+<!-- =================== لیست غایبین =================== -->
+<?php if (empty($absents)) : ?>
+    <div class="notice notice-info"><p>هیچ غایبی یافت نشد.</p></div>
+<?php else : ?>
+
+<div class="back_attendance_list">
+    <table class="wp-list-table widefat fixed striped">
+<thead>
+    <tr>
+        <th>ردیف</th>
+        <th>نام</th>
+        <th>نام خانوادگی</th>
+        <th>کل غیبت ها</th>
+        <th>غیبت غیر مجاز</th>
+        <th>غیبت مجاز</th>
+        <th>آخرین غیبت</th>
+        <th>عملیات</th>
+    </tr>
+</thead>
+
+<tbody>
+<?php foreach ($absents as $i => $a): ?>
+<tr>
+    <td><?php echo $i + 1; ?></td>
+
+    <td><?php echo esc_html($a->first_name); ?></td>
+    <td><?php echo esc_html($a->last_name); ?></td>
+    
+
+    <td>
+        <strong style="color:#000 text-alingh">
+            <?php echo intval($a->absent_count + $a->excused_count); ?> 
+        </strong>
+    </td>
+    <td>
+        <strong style="color:#d63638">
+            <?php echo intval($a->absent_count); ?> 
+        </strong>
+    </td>
+
+    <td>
+        <strong style="color:#0073aa">
+            <?php echo intval($a->excused_count); ?> 
+        </strong>
+    </td>
+
+    <td>
+        <?php if ($a->last_absent_date): ?>
+            <strong>
+                <?php echo sc_date_shamsi_date_only($a->last_absent_date); ?>
+            </strong>
+        <?php else: ?>
+            -
+        <?php endif; ?>
+    </td>
+
+    <td>
+     <a class="button button-small"
+   href="<?php echo admin_url(
+       'admin.php?page=sc-attendance-list'
+       .'&tab=individual'
+       .'&filter_member=' . $a->member_id
+       .'&filter_status=absent'
+       .($filter_course > 0 ? '&filter_course=' . $filter_course : '')
+       .($filter_coach > 0 ? '&filter_coach=' . $filter_coach : '')
+       .(!empty($filter_date_from) ? '&filter_date_from=' . $filter_date_from : '')
+       .(!empty($filter_date_to) ? '&filter_date_to=' . $filter_date_to : '')
+   ); ?>">
+    مشاهده جزئیات
+</a>
+
+    </td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+</div>
+
+<?php endif; ?>
+
+
+
+
+
     <?php elseif ($active_tab === 'grouped') : ?>
         <!-- تب 2: لیست بر اساس دوره و تاریخ -->
         <!-- فیلترها -->

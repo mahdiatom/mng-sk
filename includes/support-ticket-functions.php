@@ -963,12 +963,6 @@ function sc_ajax_support_tickets_filter() {
         ];
     }
     $empty_message = ($search !== '') ? 'نتیجه‌ای برای جستجو یافت نشد.' : 'هنوز تیکتی ارسال نکرده‌اید.';
-    
-    
-    
-    
-    
-    
     wp_send_json_success([
         'items' => $items,
         'total' => (int) $total,
@@ -1014,3 +1008,46 @@ function sc_support_attachment_download_handle() {
     readfile($file);
     exit;
 }
+
+
+
+
+function sc_count_user_tickets($user_id, $status = 'all') {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_support_tickets';
+
+    // شمارش همه تیکت‌ها
+    if ($status === 'all') {
+        return (int)$wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) 
+                 FROM $table 
+                 WHERE user_id = %d",
+                $user_id
+            )
+        );
+    }
+
+    // شمارش بر اساس وضعیت
+    $allowed_statuses = [
+        'pending_reply',
+        'answered',
+        'closed',
+    ];
+
+    if (!in_array($status, $allowed_statuses, true)) {
+        return 0;
+    }
+
+    return (int)$wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*) 
+             FROM $table 
+             WHERE user_id = %d 
+               AND status = %s",
+            $user_id,
+            $status
+        )
+    );
+}
+

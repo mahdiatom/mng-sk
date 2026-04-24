@@ -1,8 +1,8 @@
 <?php
 if (!defined('ABSPATH')) exit;
-if (!current_user_can('sc_view_coach_salary')) {
-    wp_die('دسترسی غیرمجاز.');
-}
+// if (!current_user_can('sc_view_coach_salary') || !current_user_can('administrator') ) {
+//     wp_die('دسترسی غیرمجاز.');
+// }
 global $wpdb;
 $current_user_id = get_current_user_id();
 $base_url = admin_url('admin.php?page=sc-coach-notifications');
@@ -310,6 +310,9 @@ jQuery(document).ready(function($) {
     });
 });
 </script>
+
+
 <?php
-/* استایل‌های اطلاعیه‌های من از فایل coach-admin.css لود می‌شوند */
+
+
 ?>

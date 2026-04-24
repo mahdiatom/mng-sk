@@ -18,6 +18,7 @@ class Player_List_Table extends WP_List_Table {
             'player_phone' => 'شماره تماس ',
             'insurance_status' => 'بیمه',
             'member_type' => 'نوع',
+            'team_level' => 'تیم و سطح ',
             'profile_completed' => 'تکمیل پروفایل',
             'is_active' => 'وضعیت '
         ];
@@ -61,7 +62,7 @@ public function column_full_name($item) {
                 $course_names[] = $course->title;
             }
         }
-        $courses_text = !empty($course_names) ? '<br><small class="courses_member_table" style="color: #666;">دوره‌ها: ' . implode(', ', $course_names) . '<br>' . '</small>' : '';
+        //$courses_text = !empty($course_names) ? '<br><small class="courses_member_table" style="color: #666;">دوره‌ها: ' . implode(', ', $course_names) . '<br>' . '</small>' : '';
 
         // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
         $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
@@ -73,13 +74,13 @@ public function column_full_name($item) {
             'delete' => '<a href="' . admin_url('admin.php?page=sc-members&action=delete&player_id=') . $item['id'] . '">حذف</a>',
         ];
         
-        // اضافه کردن دکمه مدیریت کیف پول
-        if ($wallet_enabled) {
-            $wallet_url = admin_url('admin.php?page=sc-wallet&filter_member=' . $item['id']);
-            $actions['wallet'] = '<a href="' . esc_url($wallet_url) . '" style="color: #28a745;">💰 کیف پول (' . sc_format_amount_display($wallet_balance) . ' تومان)</a>';
-        }
+        // // اضافه کردن دکمه مدیریت کیف پول
+        // if ($wallet_enabled) {
+        //     $wallet_url = admin_url('admin.php?page=sc-wallet&filter_member=' . $item['id']);
+        //     $actions['wallet'] = '<a href="' . esc_url($wallet_url) . '" style="color: #28a745;">💰 کیف پول (' . sc_format_amount_display($wallet_balance) . ' تومان)</a>';
+        // }
 
-        return $full_name . $courses_text . ' ' . $this->row_actions($actions);
+        return $full_name  . ' ' . $this->row_actions($actions);
     }
 
     public function column_cb($item) {
@@ -196,6 +197,18 @@ public function column_full_name($item) {
         }
         return $actions;
     }
+    public function column_team_level($item) {
+
+    $team  = !empty($item['team_player']) ? $item['team_player'] : '-';
+    $level = !empty($item['skill_level']) ? $item['skill_level'] : '-';
+
+    if ($team == '-' && $level == '-') {
+        return '<span style="color:#999;">-</span>';
+    }
+
+    return '<strong>' . esc_html($team) . '</strong><br><small style="color:#666;">سطح: ' . esc_html($level) . '</small>';
+    }
+
 
     public function process_bulk_action() {
          global $wpdb;
@@ -396,6 +409,7 @@ public function column_full_name($item) {
             echo '<option value="normal"' . ($selected_member_type == 'normal' ? ' selected' : '') . '>بازیکن عادی</option>';
             echo '<option value="team"' . ($selected_member_type == 'team' ? ' selected' : '') . '>بازیکن تیم</option>';
             echo '</select>';
+            
             
             echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
             

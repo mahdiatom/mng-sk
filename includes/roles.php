@@ -8,7 +8,7 @@ if ( ! defined('ABSPATH') ) exit;
 
 function club_create_club_coach_role() {
 
-           remove_role('club_coach');
+          // remove_role('club_coach');
 
     // اگر نقش وجود ندارد، ایجاد شود
     if ( ! get_role('club_coach') ) {

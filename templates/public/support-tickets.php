@@ -3,6 +3,15 @@ if (!defined('ABSPATH')) exit;
 $current_user_id = get_current_user_id();
 $member_id = isset($player->id) ? (int) $player->id : 0;
 $view_ticket_id = isset($_GET['view_ticket']) ? absint($_GET['view_ticket']) : 0;
+$user_id = get_current_user_id();
+
+$counts = [
+    'all'           => sc_count_user_tickets($user_id, 'all'),
+    'pending_reply' => sc_count_user_tickets($user_id, 'pending_reply'),
+    'answered'      => sc_count_user_tickets($user_id, 'answered'),
+    'closed'        => sc_count_user_tickets($user_id, 'closed'),
+];
+
 
 // Process POST actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action'])) {
@@ -208,10 +217,10 @@ $coaches = sc_support_get_coaches_for_member($member_id);
         </div>
         <div class="sc-support-toolbar">
             <ul class="sc-support-tabs" aria-label="فیلتر وضعیت">
-                <li><a href="#" class="sc-support-tab active" data-filter="all">همه</a></li>
-                <li><a href="#" class="sc-support-tab" data-filter="pending_reply">در انتظار پاسخ</a></li>
-                <li><a href="#" class="sc-support-tab" data-filter="answered">پاسخ داده شده</a></li>
-                <li><a href="#" class="sc-support-tab" data-filter="closed">بسته شده</a></li>
+                <li><a href="#" class="sc-support-tab active" data-filter="all">همه ( <?php echo $counts['all']; ?> )</a></li>
+                <li><a href="#" class="sc-support-tab" data-filter="pending_reply"> در انتظار پاسخ ( <?php echo $counts['pending_reply']; ?> )</a></li>
+                <li><a href="#" class="sc-support-tab" data-filter="answered">پاسخ داده شده  ( <?php echo $counts['answered']; ?> )  </a></li>
+                <li><a href="#" class="sc-support-tab" data-filter="closed">بسته شده ( <?php echo $counts['closed']; ?> ) </a></li>
             </ul>
             <form id="sc-support-search-form" class="sc-support-search-form">
                 <input type="hidden" name="filter_status" id="sc-support-filter-status" value="all">

@@ -295,7 +295,7 @@ function sc_deduct_wallet($member_id, $amount, $description = '') {
  * Deduct session fee from wallet (on attendance present)
  * کسر مبلغ جلسه از کیف پول (هنگام ثبت حضور)
  */
-function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $attendance_date_shamsi) {
+function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $attendance_date_shamsi ) {
     if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
         return ['success' => true, 'message' => '']; // کیف پول غیرفعال = فقط حضور ذخیره شود
     }
@@ -326,6 +326,9 @@ function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $atten
             'message' => 'عدم ثبت به علت بدهی بیشتر از سقف بدهی' 
         ];
     }
+  
+
+
 
     $description = $course_title . ' - ' . $attendance_date_shamsi;
     return sc_add_wallet_transaction([
@@ -340,7 +343,7 @@ function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $atten
 
 /**
  * Refund session fee to wallet (on attendance change to absent or delete)
- * برگشت مبلغ جلسه به کیف پول (تغییر به غایب یا حذف رکورد حضور)
+ * 
  */
 function sc_refund_wallet_session_fee($member_id, $amount, $course_title, $attendance_date_shamsi) {
     if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {

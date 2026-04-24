@@ -65,14 +65,14 @@ function sc_get_notification_recipients($target_type, $target_config) {
     if ($target_type === 'phone') {
         return [];
     }
-    global $wpdb;
-    $members_table = $wpdb->prefix . 'sc_members';
-    $coaches_table = $wpdb->prefix . 'sc_coaches';
-    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-    $courses_table = $wpdb->prefix . 'sc_courses';
+        global $wpdb;
+        $members_table = $wpdb->prefix . 'sc_members';
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+        $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+        $courses_table = $wpdb->prefix . 'sc_courses';
 
-    $user_ids = [];
+        $user_ids = [];
 
     if ($target_type === 'specific') {
         // recipient_ids: array of "member_123" or "coach_456"
@@ -173,6 +173,84 @@ function sc_get_notification_recipients($target_type, $target_config) {
              AND (SELECT COALESCE(SUM(CASE WHEN wt.transaction_type IN ('charge','refund') THEN wt.amount WHEN wt.transaction_type IN ('payment','deduct','session_fee') THEN -wt.amount ELSE 0 END), 0) FROM $transactions_table wt WHERE wt.member_id = m.id AND wt.status = 'completed') < 0"
         );
         $user_ids = array_map('intval', array_filter((array)$user_ids));
+    } elseif ($target_type === 'team') {
+       // team_names: array of team names
+        $team_names = isset($target_config['team_names']) 
+            ? array_map('sanitize_text_field', (array)$target_config['team_names']) 
+            : [];
+
+        if (empty($team_names)) return [];
+
+        global $wpdb;
+        $members_table = $wpdb->prefix . 'sc_members';
+
+        // تعداد placeholder ها مثل: %s, %s, %s
+        $placeholders = implode(',', array_fill(0, count($team_names), '%s'));
+
+        $user_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT user_id
+            FROM $members_table
+            WHERE team_player IN ($placeholders)
+            AND is_active = 1
+            AND user_id IS NOT NULL",
+            ...$team_names
+        ));
+
+        return array_map('intval', (array)$user_ids);
+    } elseif ($target_type === 'level') {
+
+    // level_names: array of level names
+    $level_names = isset($target_config['level_names']) 
+        ? array_map('sanitize_text_field', (array)$target_config['level_names']) 
+        : [];
+
+    if (empty($level_names)) return [];
+
+    $placeholders = implode(',', array_fill(0, count($level_names), '%s'));
+
+    $user_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT DISTINCT user_id
+         FROM $members_table
+         WHERE skill_level IN ($placeholders)
+         AND is_active = 1
+         AND user_id IS NOT NULL",
+        ...$level_names
+    ));
+
+    $user_ids = array_map('intval', (array)$user_ids);
+    } elseif ($target_type === 'team_level') {
+        // team_names + level_names both required
+        $team_names = isset($target_config['team_names'])
+            ? array_map('sanitize_text_field', (array)$target_config['team_names'])
+            : [];
+
+        $level_names = isset($target_config['level_names'])
+            ? array_map('sanitize_text_field', (array)$target_config['level_names'])
+            : [];
+
+        if (empty($team_names) || empty($level_names)) {
+            return [];
+        }
+
+        // placeholders
+        $team_ph = implode(',', array_fill(0, count($team_names), '%s'));
+        $level_ph = implode(',', array_fill(0, count($level_names), '%s'));
+
+        // merge params
+        $params = array_merge($team_names, $level_names);
+
+        $user_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT user_id
+            FROM $members_table
+            WHERE team_player IN ($team_ph)
+            AND skill_level IN ($level_ph)
+            AND is_active = 1
+            AND user_id IS NOT NULL",
+            ...$params
+        ));
+
+        return array_map('intval', (array)$user_ids);
+
     } else {
         // all - with user_type and course_scope
         $user_type = isset($target_config['user_type']) ? $target_config['user_type'] : 'all'; // all|player|coach
@@ -350,7 +428,7 @@ function sc_save_notification($data) {
     $sms_sent = 0;
     $recipients_with_phone = 0;
     $sms_fail_reason = '';
-    $bot_id = sc_get_user_bale_chat_id($uid);
+    
     if ($send_sms && function_exists('sc_send_sms')) {
         if ($target_type === 'phone') {
             foreach ($phone_numbers as $phone) {
@@ -368,16 +446,13 @@ function sc_save_notification($data) {
                         'message' => $r['message'] ?? ''
                     ]);
                 }
-                if($bot_id > 0 && function_exists('bale_send_message') ){
-                    bale_send_message($bot_id ,$r['message'] );
-                }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
-                    sc_bale_send_by_phone(sc_convert_phone_to_98($phone) , $r['message']);
-                }
+                
             }
             $recipients_with_phone = count($phone_numbers);
         } else {
         foreach ($user_ids as $uid) {
             $phone = sc_get_user_phone($uid);
+            $bot_id = sc_get_user_bale_chat_id($uid);
             if ($phone) {
                 $recipients_with_phone++;
                 $r = sc_send_sms($phone, $sms_text, false, null, [], 'notification');

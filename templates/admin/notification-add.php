@@ -29,6 +29,7 @@ if ($edit_id) {
     }
 }
 
+
 $message = '';
 $message_type = '';
 
@@ -55,7 +56,28 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
     } elseif ($target_type === 'specific') {
         $rids = isset($_POST['recipient_ids_str']) ? sanitize_text_field($_POST['recipient_ids_str']) : '';
         $target_config['recipient_ids'] = $rids ? array_filter(array_map('trim', explode(',', $rids))) : [];
-    } elseif ($target_type === 'course') {
+    }
+     elseif ($target_type === 'team') {
+    $target_config['team_names'] = isset($_POST['team_names']) && is_array($_POST['team_names'])
+        ? array_map('sanitize_text_field', $_POST['team_names'])
+        : [];
+    }
+     elseif ($target_type === 'level') {
+    $target_config['level_names'] = isset($_POST['level_names']) && is_array($_POST['level_names'])
+        ? array_map('sanitize_text_field', $_POST['level_names'])
+        : [];
+    }
+     elseif ($target_type === 'team_level') {
+        $target_config['team_names'] = isset($_POST['team_names']) && is_array($_POST['team_names'])
+            ? array_map('sanitize_text_field', $_POST['team_names'])
+            : [];
+
+        $target_config['level_names'] = isset($_POST['level_names']) && is_array($_POST['level_names'])
+            ? array_map('sanitize_text_field', $_POST['level_names'])
+            : [];
+    }
+
+    elseif ($target_type === 'course') {
         $target_config['course_ids'] = isset($_POST['course_ids']) && is_array($_POST['course_ids']) ? array_map('absint', $_POST['course_ids']) : [];
     } elseif ($target_type === 'debtors') {
         $target_config['course_ids'] = isset($_POST['debtors_course_ids']) && is_array($_POST['debtors_course_ids']) ? array_map('absint', $_POST['debtors_course_ids']) : [];
@@ -271,6 +293,12 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                         <?php if (!$is_coach) : ?>
                         <option value="debtors" <?php selected($initial_target_type, 'debtors'); ?>>ارسال به مخاطبین بدهکاران</option>
                         <option value="event" <?php selected($initial_target_type, 'event'); ?>>ارسال به مخاطبین رویداد</option>
+                        <option value="team" <?php selected($initial_target_type, 'team'); ?>>ارسال به تیم</option>
+                        <option value="level" <?php selected($initial_target_type, 'level'); ?>>ارسال به سطح بازیکن</option>
+                        <option value="team_level" <?php selected($initial_target_type, 'team_level'); ?>>
+                            ارسال به تیم + سطح
+                        </option>
+
                         <?php 
                     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) { ?>
                         <option value="wallet_negative" <?php selected($initial_target_type, 'wallet_negative'); ?>>ارسال به مخاطبین با کیف پول منفی</option>
@@ -278,8 +306,11 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                         <option value="phone" <?php selected($initial_target_type, 'phone'); ?>>ارسال به شماره مخاطب خاص</option>
                         <?php endif; ?>
                     </select>
+                        
                 </td>
+                
             </tr>
+
             <tr id="row-target-all" class="target-row">
                 <th scope="row"><?php echo $is_coach ? 'بازیکنان دوره‌های من' : 'فیلتر مخاطبین (همه)'; ?></th>
                 <td>
@@ -432,12 +463,79 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                     <input type="hidden" name="phone_numbers_str" id="phone-numbers-input" value="">
                 </td>
             </tr>
+            <tr id="row-target-team" class="target-row" style="display:none;">
+                <th scope="row">انتخاب تیم</th>
+                <td>
+                    <select name="team_names[]" id="team-names-select" multiple size="6" style="min-width:300px;">
+                        <?php 
+                        $team_table = $wpdb->prefix . 'sc_team_categories';
+                        $teams_list = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name ASC");
+                        foreach ($teams_list as $t) : ?>
+                            <option value="<?php echo esc_attr($t->name); ?>" 
+                                <?php echo (isset($saved['team_names']) && in_array($t->name, (array)$saved['team_names'])) ? 'selected' : ''; ?>>
+                                <?php echo esc_html($t->name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <br><small>Ctrl+Click برای انتخاب چند تیم. پیام برای بازیکنان همین تیم‌ها ارسال می‌شود.</small>
+                </td>
+            </tr>
+            <tr id="row-target-level" class="target-row" style="display:none;">
+                <th scope="row">انتخاب سطح</th>
+                <td>
+                    <select name="level_names[]" id="level-names-select" multiple size="6" style="min-width:300px;">
+                        <?php 
+                        $level_table = $wpdb->prefix . 'sc_level_categories';
+                        $levels_list = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name ASC");
+                        foreach ($levels_list as $t) : ?>
+                            <option value="<?php echo esc_attr($t->name); ?>" 
+                                <?php echo (isset($saved['level_names']) && in_array($t->name, (array)$saved['level_names'])) ? 'selected' : ''; ?>>
+                                <?php echo esc_html($t->name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <br><small>Ctrl+Click برای انتخاب چند سطح. پیام برای بازیکنان همین تیم‌ها ارسال می‌شود.</small>
+                </td>
+            </tr>
+            <tr id="row-target-team_level" class="target-row" style="display:none;">
+                <th scope="row">تیم + سطح</th>
+                <td>
+
+                    <p><strong>انتخاب تیم:</strong></p>
+                    <select name="team_names[]" id="team-level-team-select" multiple size="6" style="min-width:300px;">
+                        <?php foreach ($teams_list as $t) : ?>
+                            <option value="<?php echo esc_attr($t->name); ?>"
+                                <?php echo (isset($saved['team_names']) && in_array($t->name, (array)$saved['team_names'])) ? 'selected' : ''; ?>>
+                                <?php echo esc_html($t->name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <br><br>
+
+                    <p><strong>انتخاب سطح:</strong></p>
+                    <select name="level_names[]" id="team-level-level-select" multiple size="6" style="min-width:300px;">
+                        <?php foreach ($levels_list as $t) : ?>
+                            <option value="<?php echo esc_attr($t->name); ?>"
+                                <?php echo (isset($saved['level_names']) && in_array($t->name, (array)$saved['level_names'])) ? 'selected' : ''; ?>>
+                                <?php echo esc_html($t->name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <br>
+                    <small>فقط بازیکنانی که هم در تیم انتخاب‌شده باشند و هم سطح انتخاب‌شده داشته باشند پیام را دریافت می‌کنند.</small>
+
+                </td>
+            </tr>
+
+
             <?php endif; ?>
             <?php if (!$is_coach) : ?>
             <tr id="row-send-sms">
                 <th scope="row">ارسال پیامک</th>
                 <td>
-                    <label><input type="checkbox" name="send_sms" id="send_sms" value="1" <?php checked($notification ? $notification->send_sms : 0, 1); ?>> ارسال پیامک به مخاطبین (فقط متن اطلاعیه)</label>
+                    <label><input type="checkbox" name="send_sms" id="send_sms" value="1" <?php checked($notification ? $notification->send_sms : 0, 1); ?>> ارسال پیامک  ( sms ) به مخاطبین + جزئیات هزینه و تعداد ارسالی ها </label>
                 </td>
             </tr>
             <?php endif; ?>
@@ -495,7 +593,14 @@ jQuery(document).ready(function($) {
             config.recipient_ids = recipientIds;
         } else if (targetType === 'course') {
             config.course_ids = ($('#course-ids-course').val() || []).map(Number);
-        } else if (targetType === 'debtors') {
+        }
+        else if (targetType === 'team') {
+             config.team_names = ($('#team-names-select').val() || []);
+        }
+        else if (targetType === 'level') {
+             config.level_names = ($('#level-names-select').val() || []);
+        }
+         else if (targetType === 'debtors') {
             config.course_ids = ($('#debtors-course-ids').val() || []).map(Number);
         } else if (targetType === 'event') {
             config.event_ids = ($('#event-ids-select').val() || []).map(Number);
@@ -504,6 +609,9 @@ jQuery(document).ready(function($) {
             // no config
         } else if (targetType === 'phone') {
             config.phone_numbers = phoneNumbers;
+        } else if (targetType === 'team_level') {
+            config.team_names = ($('#team-level-team-select').val() || []);
+            config.level_names = ($('#team-level-level-select').val() || []);
         }
         return config;
     }
@@ -568,9 +676,13 @@ jQuery(document).ready(function($) {
         toggleTargetRows();
         if (!$('#send_sms').length || $('#send_sms').is(':checked')) updateSmsSummary();
     });
-    $(document).on('change', 'select[name="course_ids[]"], #debtors-course-ids, #event-ids-select', function() {
-        if (!$('#send_sms').length || $('#send_sms').is(':checked')) updateSmsSummary();
+    $(document).on('change', 
+    'select[name="course_ids[]"], #debtors-course-ids, #event-ids-select, #team-names-select, #level-names-select , #team-level-team-select, #team-level-level-select' , 
+        function() {
+            if (!$('#send_sms').length || $('#send_sms').is(':checked')) 
+                updateSmsSummary();
     });
+
     var summaryDebounce;
     $(document).on('scRecipientListChanged', function() {
         if (!$('#send_sms').length || $('#send_sms').is(':checked')) {
@@ -719,21 +831,34 @@ jQuery(document).ready(function($) {
         $('#event-recipient-ids-input').val(eventRecipientIds.join(','));
     });
 
-    function toggleTargetRows() {
-        var t = $('#target_type').val();
-        $('.target-row').hide();
-        if ($('#row-target-' + t).length) $('#row-target-' + t).show();
-        if (t === 'all') {
-            var cs = $('#course_scope').val();
-            $('#row-course-ids-all').toggle(cs === 'specific');
-        }
-        if (t === 'phone' && $('#row-send-sms').length) {
-            $('#row-send-sms').hide();
-            $('#send_sms').prop('checked', true);
-        } else if ($('#row-send-sms').length) {
-            $('#row-send-sms').show();
-        }
+ function toggleTargetRows() {
+    var t = $('#target_type').val();
+
+    // همیشه اول همهٔ ردیف‌های هدف را مخفی کن
+    $('.target-row').hide();
+
+    // نمایش ردیف مرتبط با target_type (team, level, course, event, ...)
+    if ($('#row-target-' + t).length) {
+        $('#row-target-' + t).show();
     }
+
+    // منطق انتخابی مخصوص ALL
+    if (t === 'all') {
+        var cs = $('#course_scope').val();
+        $('#row-course-ids-all').toggle(cs === 'specific');
+    }
+
+    // hide ارسال sms وقتی target phone باشد
+    if (t === 'phone' && $('#row-send-sms').length) {
+        $('#row-send-sms').hide();
+        $('#send_sms').prop('checked', true);
+    }
+    // در تمام حالت‌های دیگر -> نمایش ارسال sms
+    else if ($('#row-send-sms').length) {
+        $('#row-send-sms').show();
+    }
+}
+
     $('#target_type, #course_scope').on('change', toggleTargetRows);
     toggleTargetRows();
     if (!isCoach && ($('#target_type').val() === 'phone' || ($('#send_sms').length && $('#send_sms').is(':checked')))) updateSmsSummary();

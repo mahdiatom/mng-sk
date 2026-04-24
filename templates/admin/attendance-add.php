@@ -78,19 +78,19 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 if ($existing) {
 
                     $current_record = $wpdb->get_row($wpdb->prepare(
-                        "SELECT status, absence_sms_sent FROM $attendances_table WHERE id = %d",
+                        "SELECT status, absence_sms_sent , user_id FROM $attendances_table WHERE id = %d",
                         $existing
                     ));
                 }
                     // debt_user($member_id)[0] < floatval(sc_get_setting('max_debt_for_attendance', '0'))
                 // در صورت «حاضر»: فقط برای بازیکن تیم، اگر کیف پول فعال و قیمت جلسه > 0، ابتدا کسر را انجام بده؛ اگر کسر ناموفق بود این کاربر را ثبت نکن
-                $need_deduct = ( ($status === 'present' ||  $status === 'absent' )  &&  sc_is_member_team($member_id) && $price_per_session > 0 && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet()));
+                $need_deduct = ( ($status === 'present' ||  $status === 'absent' || $status === 'excused' )  &&  sc_is_member_team($member_id) && $price_per_session > 0 && (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet()));
                 $deduct_done = false;
                 if ($need_deduct) {
                     $should_deduct = !$existing || ! $current_record ;
                     // before =>  $should_deduct = !$existing || ($current_record && $current_record->status === 'absent');
                     if ($should_deduct) {
-                        $deduct_result = sc_deduct_wallet_session_fee($member_id, $price_per_session, $course_title, $attendance_date_shamsi);
+                        $deduct_result = sc_deduct_wallet_session_fee($member_id, $price_per_session, $course_title, $attendance_date_shamsi );
                         if (!$deduct_result['success']) {
                             $member_name = $wpdb->get_var($wpdb->prepare(
                                 "SELECT CONCAT(first_name, ' ', last_name) FROM $members_table WHERE id = %d LIMIT 1",
@@ -119,13 +119,34 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     //     sc_refund_wallet_session_fee($member_id, $price_per_session, $course_title, $attendance_date_shamsi);
                     // }
 
-             
+                // refund اگر غیبت تبدیل به غیبت مجاز شود
+                    if (
+                        $current_record &&
+                        $current_record->status === 'absent' &&
+                        $status === 'excused' &&
+                        sc_is_member_team($member_id) &&
+                        $price_per_session > 0 &&
+                        (function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet())
+                    ) {
+                        sc_refund_wallet_session_fee(
+                            $member_id,
+                            $price_per_session,
+                            $course_title,
+                            $attendance_date_shamsi
+                        );
+                    }
+
 
                     $update_data = array(
-                        'status' => $status,
-                        'user_id' => $current_user_id,
-                        'updated_at' => current_time('mysql')
-                    );
+                            'status' => $status,
+                            'updated_at' => current_time('mysql')
+                        );
+
+                        // فقط اگر ثبت‌کننده قبلاً مشخص نشده باشد مقدار بده
+                        if (empty($current_record->user_id)) {
+                            $update_data['user_id'] = $current_user_id;
+                        }
+
                     if ($current_record && $current_record->status == 'absent' && $status == 'present') {
                         $update_data['absence_sms_sent'] = 0;
                     }
@@ -163,9 +184,11 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
             }
 
             // محاسبه دستمزد مربی‌ها (درصدی) - شمارش تعداد شرکت‌کنندگان حاضر از رکوردهای ثبت شده
-            $present_count = $wpdb->get_var($wpdb->prepare(
+            $calc_couch_salary = sc_get_setting('calc_couch_salary');
+            $where_calc = ($calc_couch_salary) ? "AND status = 'present'" : '';
+            $present_count  =  $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM $attendances_table 
-                 WHERE course_id = %d AND attendance_date = %s AND status = 'present'",
+                 WHERE course_id = %d AND attendance_date = %s $where_calc",
                 $course_id,
                 $attendance_date
             ));
@@ -436,29 +459,33 @@ $is_update_mode = !empty($existing_attendances);
                                 <td><?php echo esc_html($member->first_name . ' '. $member->last_name); ?></td>
                                 <td ><?php echo number_format($debt_user) ; ?>  تومان    <?php echo ($debt_user >= floatval(sc_get_setting('max_debt_for_attendance', '0'))) ? 'سقف موجودی - عدم ثبت رکورد کاربر' : ' '; ?></td>
                                 <td style="display: flex; margin-top: 7px; ">
-                                    <label style="display: inline-block; margin-left: 20px;">
+                                    <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
                                         <input type="radio" 
                                                name="attendance[<?php echo esc_attr($member->id); ?>]" 
                                                value="present" 
-                                               <?php checked($existing_status, 'present'); ?> 
+                                               <?php checked($existing_status, 'present'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?> 
                                                >
+                                               <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br> علت :  حالت غیبت مجاز</span>
                                         <span style="color: #00a32a; font-weight: bold;">حاضر</span>
                                     </label>
-                                    <label style="display: inline-block; margin-left: 20px;">
+                                    <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
                                         <input type="radio" 
                                                name="attendance[<?php echo esc_attr($member->id); ?>]" 
                                                value="absent"
-                                               <?php checked($existing_status, 'absent'); ?> 
+                                               <?php checked($existing_status, 'absent'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?> 
                                                >
-                                        <span style="color: #d63638; font-weight: bold;">غایب</span>
+                                                <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br> علت :  حالت غیبت مجاز</span>
+                                               <span style="color: #d63638; font-weight: bold;">غایب</span>
                                     </label>
-                                    <label style="display: inline-block; margin-left: 20px;">
+                                    <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
                                         <input type="radio" 
                                                name="attendance[<?php echo esc_attr($member->id); ?>]" 
                                                value="excused"
-                                               <?php checked($existing_status, 'excused'); ?> 
+                                               <?php checked($existing_status, 'excused');  ?> 
+                                               disabled
                                                >
                                         <span style="color: #d63638; font-weight: bold;">غایب مجاز</span>
+                                        <span class="tooltip_text_abset_acc">برای مجاز کردن غیبت <br>به لیست غایبین مراجعه کنید.</span>
                                     </label>
                                 </td>
                             </tr>

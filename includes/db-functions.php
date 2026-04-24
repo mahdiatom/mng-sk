@@ -240,6 +240,8 @@ function sc_is_member_team($member_id) {
     return ($type === 'team');
 }
 
+
+
 /**
  * Create expense categories table
  */

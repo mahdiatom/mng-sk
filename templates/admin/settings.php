@@ -233,6 +233,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $coach_min_withdrawal_amount = $raw_min !== '' ? floatval($raw_min) : 0;
         $raw_neg = isset($_POST['coach_max_negative_balance_raw']) && $_POST['coach_max_negative_balance_raw'] !== '' ? str_replace(',', '', $_POST['coach_max_negative_balance_raw']) : (isset($_POST['coach_max_negative_balance']) ? $_POST['coach_max_negative_balance'] : '');
         $coach_max_negative_balance = $raw_neg !== '' ? floatval($raw_neg) : 0;
+        $calc_couch_salary = isset($_POST['calc_couch_salary']) ? 1 : 0;
         $coach_fixed_salary_settlement_day = isset($_POST['coach_fixed_salary_settlement_day']) ? absint($_POST['coach_fixed_salary_settlement_day']) : 0;
         if ($coach_fixed_salary_settlement_day > 31) {
             $coach_fixed_salary_settlement_day = 0;
@@ -241,6 +242,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('coach_min_withdrawal_amount', $coach_min_withdrawal_amount, 'coach_salary');
         sc_update_setting('coach_max_negative_balance', $coach_max_negative_balance, 'coach_salary');
         sc_update_setting('coach_fixed_salary_settlement_day', $coach_fixed_salary_settlement_day, 'coach_salary');
+        sc_update_setting('calc_couch_salary', $calc_couch_salary, 'coach_salary');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب دستمزد مربی ذخیره شد', null, ['tab' => 'coach_salary']);
         }
@@ -1782,6 +1784,20 @@ $sc_botname_club      = sc_get_setting('sc_botname_club', '');
                                 </div>
                             <?php endif; ?>
                         </td>
+
+                      
+                    </tr>
+                    <tr>                  
+                      <th scope="row">محاسبه دستمزد مربی بر اساس  بازیکنان حاضر در کلاس</th>
+                            <td>
+                                <?php  $calc_couch_salary = sc_get_setting('calc_couch_salary'); ?>
+                                <label class="switch">
+                                    <input type="checkbox" name="calc_couch_salary" value="1" <?php checked($calc_couch_salary, 1); ?>>
+                                    <span class="slider round"></span>
+                                </label>
+                                <p class="description">با فعال کردن این بخش دستمزد مربی بر اساس بازیکنان حاضر محاسبه می شود و در  صورت غیرفعال بودن بر اساس تعداد کل شرکت کننده های  کلاس </p>
+
+                            </td>
                     </tr>
                 </table>
                 

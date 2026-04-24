@@ -52,7 +52,10 @@ function sc_register_admin_menu() {
             'manage_options',
             'sc-add-notification',
             'sc_admin_add_notification_page'
+
         );
+
+        
     }
 
     /* ================= Members ================= */
@@ -412,6 +415,7 @@ function sc_register_admin_menu() {
         'sc-support-tickets',
         'sc_admin_support_tickets_list_page'
     );
+    
     add_action('load-' . $list_support_tickets_sufix, 'sc_support_tickets_screen_option');
     add_submenu_page(
         null,
@@ -1266,7 +1270,7 @@ function sc_admin_support_tickets_list_page() {
             <?php if (isset($_GET['filter_department'])) : ?>
             <input type="hidden" name="filter_department" value="<?php echo esc_attr($_GET['filter_department']); ?>">
             <?php endif; ?>
-            <?php $list_table->search_box('جستجو (موضوع یا شناسه)', 'search_ticket'); ?>
+            <?php // $list_table->search_box('جستجو (موضوع یا شناسه)', 'search_ticket'); ?>
             <?php $list_table->views(); ?>
             <?php $list_table->display(); ?>
         </form>

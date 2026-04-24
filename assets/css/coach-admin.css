@@ -169,6 +169,12 @@
   gap: 12px;
   width: 100%;
 }
+.sc-coach-players-wrap{
+      padding: 5px !important;
+}
+.sc-coach-players-table-card{
+  padding: 14px;
+}
 .sc-coach-panel-title-row .sc-coach-panel-title { margin: 0; }
 .sc-coach-panel-title-row .sc-coach-panel-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .sc-coach-honors-wrap .sc-coach-panel-card,

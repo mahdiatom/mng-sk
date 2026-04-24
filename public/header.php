@@ -16,6 +16,11 @@ $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_not
 $count_product_card = get_cart_item_count()['count'];
 $sum_price_card = get_cart_item_count()['sum'];
 
+
+
+
+$unread_ticket = sc_count_user_tickets(get_current_user_id(), 'pending_reply');
+
     ?>
     <header class="custom-header header_top" >
         
@@ -65,7 +70,7 @@ $sum_price_card = get_cart_item_count()['sum'];
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-wallet" class="sc-wallet"> کیف پول </a></li>
                         <?php } ?>
                 
-                        <li><a href="<?php echo home_url('my-account/'); ?>sc-support-tickets" class="sc-support-tickets">  تیکت پشتیبانی </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-support-tickets" class="sc-support-tickets">  تیکت پشتیبانی  <?php if($unread_ticket > 0) {  echo '<span class="count_unread_notif_mini">' . $unread_ticket .'</span>' ; } ?> </a></li>
                      
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-faq" class="sc-faq"> سوالات متداول </a></li>
                         <li><a href="<?php echo wp_logout_url( wc_get_page_permalink( 'myaccount' ) ); ?>  " onclick="confirm('شما در حال خروج از حساب کاربری هستید از این کار اطمنیان دارید؟')" >خروج از حساب کاربری</a></li>    

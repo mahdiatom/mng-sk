@@ -20,7 +20,7 @@ function add_html_before_account_nav() {
     $user_email = $wp_user->user_email;
     $user_login = $wp_user->user_login;
     $billing_phone = get_user_meta($current_user_id, 'billing_phone', true);
-
+   
     
     // دریافت اطلاعات بازیکن از جدول members
     $members_table = $wpdb->prefix . 'sc_members';
@@ -504,8 +504,11 @@ function sc_add_my_account_menu_item($items) {
     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {
         $items['sc-wallet'] = 'کیف پول';
     }
-    $items['sc-support-tickets'] = 'تیکت پشتیبانی';
-        $items['sc-faq'] = ' سوالات متداول ';
+    $unread_ticket = sc_count_user_tickets(get_current_user_id(), 'pending_reply');
+    $items['sc-support-tickets'] = $unread_ticket > 0 ? sprintf('تیکت پشتیبانی  (%d)', $unread_ticket) : 'تیکت پشتیبانی ';
+
+
+    $items['sc-faq'] = ' سوالات متداول ';
 
     $items['customer-logout'] = 'خروج از حساب کاربری';
     

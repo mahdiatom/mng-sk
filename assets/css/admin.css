@@ -153,7 +153,9 @@ p.sk-modal-content p {
 .column-row,.column-id{
      width: 40px !important;
 }
-
+.toplevel_page_sc-members #full_name{
+    width: 160px;
+}
 
 .sportclub-manager_page_sc-members .column-row,.column-id{
     width: 40px;
@@ -972,6 +974,34 @@ label[for="send_user_notification"] {
 #toplevel_page_sc-attendance-add ul .current{
     order: 1;
 }
+.tooltip-container {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.tooltip_text_abset_acc {
+    visibility: hidden;
+    opacity: 0;
+    width: max-content;
+    background-color: #333;
+    color: #fff;
+    padding: 5px 8px;
+    border-radius: 4px;
+    position: absolute;
+    z-index: 99;
+    bottom: 120%;
+    left: 80%;
+    transform: translateX(-50%);
+    transition: 0.2s;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.tooltip-container:hover .tooltip_text_abset_acc {
+    visibility: visible;
+    opacity: 1;
+}
 
 /* دوره های بازیکن در ویرایش بازیکن */
 #sc-courses-content{
@@ -1601,7 +1631,15 @@ display: block; margin-bottom: 5px; font-weight: bold;
     border-right: 4px solid #646970;
 }
 .sc-support-admin-list-card{
-    background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.06); overflow:hidden;
+    background:#fff;
+     border-radius:12px;
+     box-shadow:0 2px 12px rgba(0,0,0,0.06);
+     border:1px solid rgba(0,0,0,0.06);
+     overflow:hidden;
+    padding: 20px;
+}
+.table-view-list th#id{
+    width: 80px !important;
 }
 /* وضعیت دوره کاربر در صفحه اطلاعات کاربر مدیر */
 .sc_status_course_player {
@@ -1703,6 +1741,11 @@ padding: 10px 15px;
   }
 }
 /* اطلاعیه */
+
+
+
+
+
 .sc-notifications-list-card{
     overflow: auto !important;
 }
