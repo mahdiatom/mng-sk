@@ -1331,7 +1331,10 @@ function sc_admin_support_tickets_list_page() {
             <h1 class="wp-heading-inline" style="margin:0;">لیست تیکت‌های پشتیبانی</h1>
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-support-ticket-new')); ?>" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-new">ارسال تیکت جدید</a>
         </div>
+        </div>
+        <div class="wrap sc-support-admin-wrap">
         <div class="sc-support-admin-list-card">
+
         <form method="get">
             <input type="hidden" name="page" value="sc-support-tickets">
             <?php if (isset($_GET['filter_status'])) : ?>

@@ -445,6 +445,7 @@ public function extra_tablenav($which) {
         <a href="<?php echo admin_url('admin.php?page=sc-add-event'); ?>" class="page-title-action">افزودن رویداد جدید</a>
         <p class="descriotion">فیلتر تاریخ بر اساس تاریخ برگزاری می باشد.</p>
     </div>
+     </div>
     <?php
     // نمایش پیام‌های موفقیت/خطا
     if (isset($_GET['sc_status'])) {
@@ -472,7 +473,7 @@ public function extra_tablenav($which) {
     $events_list_table->prepare_items();
     
     ?>
-    
+    <div class="wrap">
     <form method="get">
         <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page']); ?>">
         <?php $events_list_table->search_box('جستجو', 'search_id'); ?>

@@ -69,10 +69,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
 ?>
 <div class="wrap sc-coach-panel-wrap sc-ticket-new-admin-wrap">
     <div class="sc-coach-panel-header">
-        <a href="<?php echo esc_url($list_url); ?>" class="sc-coach-panel-back">← بازگشت به لیست تیکت‌ها</a>
+        <a href="<?php echo esc_url($list_url); ?>" class="sc-coach-panel-back"> بازگشت به لیست تیکت‌ها</a>
         <h1 class="sc-coach-panel-title">ارسال تیکت جدید</h1>
         <p class="sc-coach-panel-desc">تیکت را به کاربر (عضو) یا به یکی از مربیان ارسال کنید.</p>
     </div>
+    </div>
+    <div class="wrap sc-coach-panel-wrap sc-ticket-new-admin-wrap">
+
     <?php if ($error_message) : ?>
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html($error_message); ?></p></div>
     <?php endif; ?>

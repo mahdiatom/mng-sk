@@ -27,7 +27,8 @@ $nonce = wp_create_nonce('sc_attendance_report_player');
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-add')); ?>" class="page-title-action">ثبت حضور و غیاب</a>
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list')); ?>" class="page-title-action">لیست حضور و غیاب</a>
     <hr class="wp-header-end ">
-
+    </div>
+<div class="wrap">
     <div class="report_player_attendance">
         <!-- فیلترها -->
         <div>

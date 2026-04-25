@@ -49,7 +49,9 @@ if (empty($filter_date_to)) {
     <a href="<?php echo admin_url('admin.php?page=sc-wallet-charge'); ?>" class="page-title-action">شارژ کیف پول</a>
     <a href="<?php echo admin_url('admin.php?page=sc-wallet-deduct'); ?>" class="page-title-action">کاهش کیف پول</a>
     <hr class="wp-header-end">
+</div>
 
+<div class="wrap">
     <?php
     // داشبورد خلاصه کیف پول برای مدیر
     if (function_exists('sc_get_wallet_admin_statistics')) :
@@ -277,6 +279,7 @@ if (empty($filter_date_to)) {
     </div>
 
     <!-- نمایش جدول -->
+     <div class="wrap">
     <form method="GET">
         <input type="hidden" name="page" value="sc-wallet">
         <?php if (isset($_GET['filter_member'])) : ?>
@@ -294,4 +297,5 @@ if (empty($filter_date_to)) {
         
         <?php $wallet_transactions_list_table->display(); ?>
     </form>
+</div>
 </div>

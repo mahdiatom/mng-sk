@@ -42,7 +42,8 @@ $chapters = $wpdb->get_results(
         <?php 
     }
     ?>
-
+    </div>
+<div class="wrap"> 
     <form action="" method="POST">
         <table class="form-table sc_form-table">
             <tbody>

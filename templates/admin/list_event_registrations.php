@@ -613,7 +613,7 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
             </div>
         <?php endif; ?>
     <?php else : ?>
-        <div class="notice notice-info">
+        <div class="notif_register_event">
             <p>هیچ ثبت‌نامی یافت نشد.</p>
         </div>
     <?php endif; ?>

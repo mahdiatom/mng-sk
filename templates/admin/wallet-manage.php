@@ -59,7 +59,8 @@ if ($selected_member_id > 0) {
     <a href="<?php echo admin_url('admin.php?page=sc-wallet-deduct'); ?>" class="page-title-action">کاهش کیف پول</a>
     <a href="<?php echo admin_url('admin.php?page=sc-wallet'); ?>" class="page-title-action">لیست تراکنش‌ها</a>
     <hr class="wp-header-end">
-
+</div>
+<div class="wrap">
     <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; margin-top: 20px;">
         <!-- ستون سمت راست: لیست کاربران -->
         <div>
@@ -184,7 +185,7 @@ if ($selected_member_id > 0) {
                             <table class="wp-list-table widefat fixed striped" style="margin: 0;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 10%;">شناسه</th>
+                                        <th style="width: 15%;">شناسه</th>
                                         <th style="width: 25%;">نوع</th>
                                         <th style="width: 30%;">مبلغ</th>
                                         <th style="width: 30%">موجودی بعد</th>
@@ -288,6 +289,7 @@ if ($selected_member_id > 0) {
                 </div>
             <?php endif; ?>
         </div>
+    </div>
     </div>
 </div>
 

@@ -75,111 +75,120 @@ $members = $wpdb->get_results(
             <p><?php echo esc_html($message); ?></p>
         </div>
     <?php endif; ?>
-
-    <form method="POST" action="" style="max-width: 600px; margin-top: 20px;">
+</div>
+<div class="wrap">
+    <form method="POST" action="" >
         <?php wp_nonce_field('sc_charge_wallet_nonce', 'sc_charge_wallet_nonce'); ?>
 
-        <table class="form-table">
-            <tr>
-                <th scope="row">
-                    <label>بازیکن <span style="color: red;">*</span></label>
-                </th>
-                <td>
-                    <?php
-                    $selected_member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : (isset($member_id_from_url) ? $member_id_from_url : 0);
-                    $selected_member_text = 'انتخاب بازیکن';
-                    
-                    if ($selected_member_id > 0) {
-                        foreach ($members as $m) {
-                            if ($m->id == $selected_member_id) {
-                                $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
-                                break;
-                            }
-                        }
+    <div class="sc-form-flex">
+
+    <div class="sc-form-row">
+
+        <div class="sc-form-field">
+            <label>بازیکن <span style="color: red;">*</span></label>
+
+            <?php
+            $selected_member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : (isset($member_id_from_url) ? $member_id_from_url : 0);
+            $selected_member_text = 'انتخاب بازیکن';
+
+            if ($selected_member_id > 0) {
+                foreach ($members as $m) {
+                    if ($m->id == $selected_member_id) {
+                        $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
+                        break;
                     }
-                    ?>
-                    
-                    <div class="sc-searchable-dropdown" style="width: 100%;">
-                        <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>" required>
-                        
-                        <div class="sc-dropdown-toggle" style="width: 100%;">
-                            <span class="sc-dropdown-placeholder" <?php if ($selected_member_id) echo 'style="display:none"'; ?>>انتخاب بازیکن</span>
-                            <span class="sc-dropdown-selected" <?php if (!$selected_member_id) echo 'style="display:none"'; ?>>
-                                <?php echo esc_html($selected_member_text); ?>
-                            </span>
-                            <span class="sc-dropdown-arrow">▼</span>
-                        </div>
-                        
-                        <div class="sc-dropdown-menu" style="width: 100%;">
-                            <div class="sc-dropdown-search">
-                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
-                            </div>
-                            
-                            <div class="sc-dropdown-options">
-                                <?php
-                                $display_count = 0;
-                                $max_display = 10;
-                                ?>
-                                
-                                <?php foreach ($members as $member) :
-                                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
-                                    $display_count++;
-                                ?>
-                                    <div class="sc-dropdown-option <?php echo $display_class; ?>"
-                                         data-value="<?php echo esc_attr($member->id); ?>"
-                                         data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
-                                         onclick="scSelectMemberForWallet(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
-                                        <?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
+                }
+            }
+            ?>
+
+            <div class="sc-searchable-dropdown">
+                <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>" required>
+
+                <div class="sc-dropdown-toggle">
+                    <span class="sc-dropdown-placeholder" <?php if ($selected_member_id) echo 'style="display:none"'; ?>>انتخاب بازیکن</span>
+                    <span class="sc-dropdown-selected" <?php if (!$selected_member_id) echo 'style="display:none"'; ?>>
+                        <?php echo esc_html($selected_member_text); ?>
+                    </span>
+                    <span class="sc-dropdown-arrow">▼</span>
+                </div>
+
+                <div class="sc-dropdown-menu">
+                    <div class="sc-dropdown-search">
+                        <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
                     </div>
-                    <p class="description">بازیکنی که می‌خواهید کیف پولش را شارژ کنید را انتخاب کنید.</p>
-                </td>
-            </tr>
 
-            <tr>
-                <th scope="row">
-                    <label for="amount">مبلغ شارژ (تومان) <span style="color: red;">*</span></label>
-                </th>
-                <td>
-                    <input type="text" 
-                           name="amount" 
-                           id="amount" 
-                           class="regular-text" 
-                           placeholder="0"
-                           dir="ltr"
-                           inputmode="numeric"
-                           value="<?php echo isset($_POST['amount']) ? esc_attr($_POST['amount']) : ''; ?>" 
-                           required>
-                    <input type="hidden"
-                           name="amount_raw"
-                           id="amount_raw"
-                           value="<?php echo isset($_POST['amount_raw']) ? esc_attr($_POST['amount_raw']) : (isset($_POST['amount']) ? esc_attr($_POST['amount']) : ''); ?>">
-                    <p class="description">
-                        حداقل مبلغ: <?php echo number_format(sc_get_wallet_min_charge(), 0, '.', ','); ?> تومان
-                        <?php if (sc_get_wallet_max_charge() > 0) : ?>
-                            - حداکثر مبلغ: <?php echo number_format(sc_get_wallet_max_charge(), 0, '.', ','); ?> تومان
-                        <?php endif; ?>
-                    </p>
-                </td>
-            </tr>
+                    <div class="sc-dropdown-options">
+                        <?php
+                        $display_count = 0;
+                        $max_display = 10;
+                        ?>
 
-            <tr>
-                <th scope="row">
-                    <label for="description">توضیحات</label>
-                </th>
-                <td>
-                    <textarea name="description" 
-                              id="description" 
-                              class="large-text" 
-                              rows="3" 
-                              placeholder="توضیحات اختیاری برای این تراکنش"><?php echo isset($_POST['description']) ? esc_textarea($_POST['description']) : ''; ?></textarea>
-                    <p class="description">توضیحات اختیاری برای این تراکنش شارژ (مثلاً: شارژ دستی توسط مدیر)</p>
-                </td>
-            </tr>
-        </table>
+                        <?php foreach ($members as $member) :
+                            $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                            $display_count++;
+                        ?>
+                            <div class="sc-dropdown-option <?php echo $display_class; ?>"
+                                data-value="<?php echo esc_attr($member->id); ?>"
+                                data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
+                                onclick="scSelectMemberForWallet(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
+                                <?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="sc-form-field">
+            <label for="amount">مبلغ شارژ (تومان) <span style="color: red;">*</span></label>
+
+            <input type="text"
+                   name="amount"
+                   id="amount"
+                   class="regular-text"
+                   placeholder="0"
+                   dir="ltr"
+                   inputmode="numeric"
+                   value="<?php echo isset($_POST['amount']) ? esc_attr($_POST['amount']) : ''; ?>"
+                   required>
+
+            <input type="hidden"
+                   name="amount_raw"
+                   id="amount_raw"
+                   value="<?php echo isset($_POST['amount_raw']) ? esc_attr($_POST['amount_raw']) : (isset($_POST['amount']) ? esc_attr($_POST['amount']) : ''); ?>">
+        </div>
+
+    </div>
+
+
+    <div class="sc-form-description">
+        <p class="description">بازیکنی که می‌خواهید کیف پولش را شارژ کنید را انتخاب کنید.</p>
+
+        <p class="description">
+            حداقل مبلغ: <?php echo number_format(sc_get_wallet_min_charge(), 0, '.', ','); ?> تومان
+            <?php if (sc_get_wallet_max_charge() > 0) : ?>
+                - حداکثر مبلغ: <?php echo number_format(sc_get_wallet_max_charge(), 0, '.', ','); ?> تومان
+            <?php endif; ?>
+        </p>
+    </div>
+
+
+    <div class="sc-form-field sc-full">
+        <label for="description">توضیحات</label>
+
+        <textarea name="description"
+                  id="description"
+                  class="large-text"
+                  rows="3"
+                  placeholder="توضیحات اختیاری برای این تراکنش"><?php echo isset($_POST['description']) ? esc_textarea($_POST['description']) : ''; ?></textarea>
+
+        <p class="description">توضیحات اختیاری برای این تراکنش شارژ (مثلاً: شارژ دستی توسط مدیر)</p>
+    </div>
+
+</div>
+
 
         <p class="submit">
             <input type="submit" name="sc_charge_wallet" class="button button-primary" value="شارژ کیف پول">
@@ -187,6 +196,7 @@ $members = $wpdb->get_results(
         </p>
     </form>
 </div>
+                    
 
 <script>
 jQuery(document).ready(function($) {

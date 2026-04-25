@@ -76,7 +76,8 @@ if ($event && isset($_GET['event_id'])) {
         <?php 
     }
     ?>
-
+    </div>
+<div class="wrap">
     <form action="" method="POST" enctype="multipart/form-data">
         <?php wp_nonce_field('sc_event_form', 'sc_event_nonce'); ?>
         <table class="form-table sc_form-table">

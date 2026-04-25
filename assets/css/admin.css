@@ -55,7 +55,40 @@ a{
     text-decoration: none !important;
 } 
 
-
+.wrap{
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+}
+input {
+    height: 40px;
+}
+input[type="checkbox"] {
+    height: 15px ;
+}
+/* a.button{
+    height: 40px;
+    padding-top: 6px !important;
+} */
+input , textarea , select{
+        border: 1px solid #dfdfdf !important;
+    padding: 5px 23px !important;
+    margin-bottom: 10px;
+    
+}
+#current-page-selector{
+        padding: unset !important;
+    margin-bottom: 10px;
+    height: unset !important;
+}
+#search-submit{
+    margin-top: -10px;
+}
+.wrap a.page-title-action{
+        padding: 5px 25px !important;
+    border-radius: 7px !important;
+    border: 1px solid #dfdfdf !important;
+}
 /* font */
 .switch {
             position: relative;
@@ -451,6 +484,10 @@ p.sk-modal-content p {
 .nav-tab-wrapper {
     margin-bottom: 20px;
 }
+.nav-tab-wrapper a{
+        border-radius: 10px;
+    margin: 2px;
+}
 .nav-tab {
     padding: 10px 15px;
     text-decoration: none;
@@ -562,7 +599,7 @@ p.sk-modal-content p {
     font-weight: 600;
 }
 input.persian-date-input{
-    height:30px ;
+    height:40px ;
 }
 .sc-filter-form input.persian-date-input{
     height:40px ;
@@ -630,6 +667,14 @@ input.persian-date-input{
 }
 
 /* END for fillters - section invoice */
+
+.list_all_attendance th{
+    width: 80px;
+}
+.postbox {
+        border-radius: 10px;
+    padding: 10px;
+}
 .back_attendance_list{
     background: #fff;
     padding: 20px;
@@ -753,9 +798,9 @@ tbody tr td{
 .sc-dropdown-toggle {
     position: relative;
     cursor: pointer;
-    border: 1px solid #8c8f94;
+    border: 1px solid #dfdfdf ;
     border-radius: 4px;
-    height: 30px;
+    height: 41px;
     background: #fff;
     padding-right: 6px;
     display: flex;
@@ -768,10 +813,10 @@ tbody tr td{
     height: 40px;
 }
 .event_registrs .sc-dropdown-toggle{
-      height: 38px !important;
+      height: 42px !important;
 }
 .invoice_form .sc-dropdown-toggle{
-      height: 38px !important;
+      height: 42px !important;
 }
 .sc-dropdown-arrow {
     position: absolute;
@@ -782,6 +827,7 @@ tbody tr td{
 }
 
 .sc-dropdown-menu {
+    overflow: hidden;
     display: none;
     position: absolute;
     top: 100%;
@@ -792,7 +838,7 @@ tbody tr td{
     border-top: none;
     border-radius: 0 0 4px 4px;
     max-height: 300px;
-    overflow-y: auto;
+  
     z-index: 1000;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     margin-top: -1px;
@@ -1025,7 +1071,7 @@ margin: 0; display: inline-block;
     width: 100px;
 }
 .sc_form-table td input ,  .sc_form-table td .wp-editor-wrap{
- width: 500px !important;
+ width:100% !important;
  background: white;
 }
 
@@ -1829,12 +1875,74 @@ padding: 10px 15px;
     padding: 10px 5px;
     
 }
+input#amount{
+    width: 100%;
+}
+input.large-text, textarea.large-text {
+    width: 100%;
+}
 .charge_wallet h2 ,.list_records_wallet h2 , .choose_coach h2{
     background: #f3f1f1;
     width: fit-content;
     padding: 13px 29px;
     border-radius: 5px;
 }
+
+
+/* بخش کاهش کیف پول  */
+.sc-form-flex{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    
+}
+
+.sc-form-row{
+    display:flex;
+    gap:20px;
+    align-items:flex-start;
+}
+
+.sc-form-field{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+}
+
+.sc-form-field label{
+    margin-bottom:6px;
+    font-weight:600;
+}
+
+.sc-form-description{
+    margin-top:-5px;
+}
+
+.sc-full{
+    width:100%;
+}
+
+.sc-searchable-dropdown,
+.sc-dropdown-toggle,
+.sc-dropdown-menu{
+    width:100%;
+}
+
+/* پایان کاهش کیف پول */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* مدیریت درخواست برداشت */
 
@@ -1933,3 +2041,5 @@ display: flex;
 .btns_list_wallet_trans{
     margin-top: 10px;
 }
+
+
