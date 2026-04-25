@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.35.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.37.0'); // همان نسخه افزونه هدر
 }
 
 if (!defined('ABSPATH')) {
@@ -74,7 +74,29 @@ $sql = "CREATE TABLE `$table_name` (
     }
 
 
+/**
+ * Create API device attendance logs table
+ */
+function sc_create_api_attendance_logs_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_api_attendance_logs';
+    $table_collation = $wpdb->get_charset_collate();
 
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `employee_code` varchar(50) NOT NULL COMMENT 'کد شخص در دستگاه',
+        `log_date` date NOT NULL,
+        `log_time` time NOT NULL,
+        `log_datetime` datetime NOT NULL,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_emp_datetime` (`employee_code`, `log_datetime`),
+        KEY `idx_log_date` (`log_date`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
 
 
     
@@ -976,6 +998,7 @@ function sc_update_database() {
         sc_create_level_categories_table();
         sc_create_chapter_table();
         sc_create_faq_table();
+        sc_create_api_attendance_logs_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';

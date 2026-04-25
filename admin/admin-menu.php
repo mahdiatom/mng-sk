@@ -586,6 +586,73 @@ function sc_register_admin_menu() {
         
     );
 
+    add_submenu_page(
+        'sc_setting',
+        'جریمه',
+        'جریمه',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=penalty'
+    );
+
+    add_submenu_page(
+        'sc_setting',
+        'صورت حساب',
+        'صورت حساب',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=invoice'
+    );
+
+    add_submenu_page(
+        'sc_setting',
+        'پیامک',
+        'پیامک',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=sms'
+    );
+
+    add_submenu_page(
+        'sc_setting',
+        'ورود و عضویت',
+        'ورود و عضویت',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=login_register'
+    );
+
+    add_submenu_page(
+        'sc_setting',
+        'درباره مجموعه',
+        'درباره مجموعه',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=about'
+    );
+
+    add_submenu_page(
+        'sc_setting',
+        'کیف پول',
+        'کیف پول',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=wallet'
+    );
+
+    add_submenu_page(
+        'sc_setting',
+        'حضور و غیاب',
+        'حضور و غیاب',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=attendance'
+    );
+
+    add_submenu_page(
+        'sc_setting',
+        'دستمزد مربی',
+        'دستمزد مربی',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=coach_salary'
+    );
+  
+
+
+
     /* ================= Coach Management (for admin) - فقط وقتی امکانات پرو کیف پول مربیان و دستمزد فعال است ================= */
     if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
         add_menu_page(
@@ -717,7 +784,7 @@ function sc_register_admin_menu() {
         'manage_options',
         'sc_team',
         'sc_admin_team_categories_page',
-        '',
+        'dashicons-universal-access',
         10
     );
 
@@ -748,7 +815,7 @@ add_submenu_page(
         'manage_options',
         'sc_chapter',
         'sc_admin_chapter_page',
-        '',
+        'dashicons-location',
         9
     );
  /* ================= faq ================= */
@@ -759,7 +826,7 @@ add_submenu_page(
         'manage_options',
         'sc_faq',
         'sc_admin_faq',
-        '',
+        'dashicons-editor-help',
         40
     );
 
@@ -774,7 +841,7 @@ if($pro_feature_shop){
         'manage_woocommerce',
         'sc_orders',
         'sc_custom_orders',
-        '',
+        'dashicons-cart',
         40
     );
     add_submenu_page(
@@ -811,7 +878,7 @@ if($pro_feature_shop){
         'manage_options',
         'nav-menus.php',
         '',
-        "",
+        "dashicons-list-view",
         40
     );
 
@@ -1090,6 +1157,9 @@ function sc_admin_add_member_page() {
 }
 function sc_setting_callback(){
     include SC_TEMPLATES_ADMIN_DIR . 'settings.php';
+    
+
+
 }
 
 /**
@@ -3935,3 +4005,8 @@ function add_place_menu(){
     register_nav_menu('main_menu_header' , 'منو اصلی هدر');
     register_nav_menu('maga_menu_product' , 'مگا منو محصولات  ');
 }
+
+
+
+
+
