@@ -259,7 +259,7 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
 
 <div class="sc-filter-actions">
 <input type="submit" class="button button-primary" value="اعمال فیلتر">
-<a href="<?php echo admin_url('admin.php?page=sc-invoices'); ?>" class="button">پاک کردن فیلترها</a>
+<a href="<?php echo admin_url('admin.php?page=sc-invoices'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
   <?php
             // ساخت URL برای export Excel با حفظ فیلترها
             $export_url = admin_url('admin.php?page=sc-invoices&sc_export=excel&export_type=invoices');
@@ -277,7 +277,7 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             ?>
-            <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+            <a href="<?php echo esc_url($export_url); ?>" class="button button_export">
                 📊 خروجی Excel
             </a>
 </div>

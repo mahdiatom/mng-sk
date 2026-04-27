@@ -370,6 +370,7 @@ $is_update_mode = !empty($existing_attendances);
     <h1 class="wp-heading-inline">ثبت حضور و غیاب</h1>
     <a href="<?php echo admin_url('admin.php?page=sc-attendance-list'); ?>" class="page-title-action">لیست حضور و غیاب</a>
     <hr class="wp-header-end">
+    
 </div> 
    <div class="wrap">
     <form method="GET" action="" class="form_attendance_add">

@@ -971,8 +971,8 @@ $max_display = 10;
                 }
                 $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 ?>
-                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=individual'); ?>" class="button">پاک کردن فیلترها</a>
-                <a href="<?php echo esc_url($export_url); ?>" class="button export_excel_btn">
+                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=individual'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                <a href="<?php echo esc_url($export_url); ?>" class="button export_excel_btn button_export">
                     📊 خروجی Excel
                 </a>
             </p>
@@ -1788,7 +1788,7 @@ if ($filter_member > 0) {
                 ?>
                 <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=overall'); ?>" class="button">پاک کردن فیلترها</a>
 
-                <a href="<?php echo esc_url($export_url); ?>" class="button export_excel_btn" >
+                <a href="<?php echo esc_url($export_url); ?>" class="button export_excel_btn button_export" >
                     📊 خروجی Excel
                 </a>
             </p>

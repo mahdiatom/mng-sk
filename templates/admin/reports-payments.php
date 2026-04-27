@@ -266,10 +266,10 @@ $total_pages = ceil($total_items / $per_page);
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             ?>
-            <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+            <a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
                 📊 خروجی Excel
             </a>
-            <a href="<?php echo admin_url('admin.php?page=sc-reports-payments'); ?>" class="button">پاک کردن فیلترها</a>
+            <a href="<?php echo admin_url('admin.php?page=sc-reports-payments'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
         </p>
     </form>
     

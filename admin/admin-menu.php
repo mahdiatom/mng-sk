@@ -757,6 +757,14 @@ function sc_register_admin_menu() {
         'sc-attendance-list_report',
         'sc_admin_attendance_list_page'
     );
+    add_submenu_page(
+        'sc-reports',
+        'لاگ تردد های دستگاه ',
+        'لاگ های تردد دستگاه حضور و غیاب',
+        'manage_options',
+        'sc-attendance-logs',
+        'sc_admin_attendance_logs'
+    );
 //پیوند های یکتا 
     add_menu_page(
         'پیوند های یکتا',
@@ -1524,6 +1532,17 @@ function sc_admin_attendance_list_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'attendance-list.php';
+}
+function sc_admin_attendance_logs() {
+    // بررسی دسترسی (مربی یا مدیر)
+    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    
+    // بررسی و ایجاد جداول در صورت عدم وجود
+    sc_check_and_create_tables();
+    
+    include SC_TEMPLATES_ADMIN_DIR . 'list_attendance_logs.php';
 }
 
 function sc_admin_attendance_report_page() {

@@ -1806,7 +1806,7 @@ $sc_botname_club      = sc_get_setting('sc_botname_club', '');
                 </p>
             </form>
             
-            <div class="card" style="margin-top: 30px;">
+            <div class="info_coach_salary" style="margin-top: 30px;">
                 <h3>اطلاعات</h3>
                 <ul>
                     <li><strong>دستمزد درصدی:</strong> در زمان ثبت حضور و غیاب، به صورت خودکار محاسبه و به کیف پول مربی واریز می‌شود.</li>

@@ -248,31 +248,46 @@ foreach ($months as $month_start) {
     <!-- فیلتر بازه تاریخی -->
     <form method="GET" action="" class="form_filter_general">
         <input type="hidden" name="page" value="sc-reports-income-expenses">
-        
-        <table class="form-table sc_form-table">
-            <tr>
-                <th scope="row">
-                    <label>بازه تاریخ (شمسی)</label>
-                </th>
-                <td>
-                    <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" 
-                           value="<?php echo esc_attr($filter_date_from_shamsi); ?>" 
-                           class="regular-text persian-date-input" 
-                           placeholder="از تاریخ (شمسی)" 
-                           style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
-                    <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                    <span>تا</span>
-                    <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" 
-                           value="<?php echo esc_attr($filter_date_to_shamsi); ?>" 
-                           class="regular-text persian-date-input" 
-                           placeholder="تا تاریخ (شمسی)" 
-                           style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
-                    <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                    <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
-                </td>
-            </tr>
-        </table>
-        
+  <div class="sc-form-flex">
+
+    <div class="sc-form-field sc-full">
+        <label>بازه تاریخ (شمسی)</label>
+
+        <div class="sc-form-row">
+
+            <input type="text"
+                name="filter_date_from_shamsi"
+                id="filter_date_from_shamsi"
+                value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                class="regular-text persian-date-input"
+                placeholder="از تاریخ (شمسی)"
+                style="padding:5px;margin-left:10px;width:150px;"
+                readonly>
+
+            <input type="hidden" name="filter_date_from" id="filter_date_from"
+                value="<?php echo esc_attr($filter_date_from); ?>">
+
+            <span style="padding-top:8px;">تا</span>
+
+            <input type="text"
+                name="filter_date_to_shamsi"
+                id="filter_date_to_shamsi"
+                value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                class="regular-text persian-date-input"
+                placeholder="تا تاریخ (شمسی)"
+                style="padding:5px;margin-left:10px;width:150px;"
+                readonly>
+
+            <input type="hidden" name="filter_date_to" id="filter_date_to"
+                value="<?php echo esc_attr($filter_date_to); ?>">
+
+        </div>
+
+        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+    </div>
+
+</div>
+
         <p class="submit">
             <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
             <a href="<?php echo admin_url('admin.php?page=sc-reports-income-expenses'); ?>" class="button">بازنشانی</a>

@@ -168,7 +168,8 @@ $members = array_slice($filtered_members, $offset, $per_page);
 <div class="wrap">
     <h1 class="wp-heading-inline">گزارشات باشگاه - کاربران فعال</h1>
     <hr class="wp-header-end">
-    
+    </div>
+    <div class="wrap">
     <!-- فیلترها -->
     <form method="GET" action="" class="form_filter_general">
         <input type="hidden" name="page" value="sc-reports-active-users">
@@ -317,10 +318,10 @@ $members = array_slice($filtered_members, $offset, $per_page);
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             ?>
-            <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+            <a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
                 📊 خروجی Excel
             </a>
-            <a href="<?php echo admin_url('admin.php?page=sc-reports-active-users'); ?>" class="button">پاک کردن فیلترها</a>
+            <a href="<?php echo admin_url('admin.php?page=sc-reports-active-users'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
         </p>
     </form>
     

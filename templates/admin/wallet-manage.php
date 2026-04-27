@@ -175,7 +175,7 @@ if ($selected_member_id > 0) {
                         $member_export_url = add_query_arg('filter_member', $selected_member_id, $member_export_url);
                         $member_export_url = wp_nonce_url($member_export_url, 'sc_export_excel');
                         ?>
-                        <a href="<?php echo esc_url($member_export_url); ?>" class="button button-secondary" style="margin: 4px 10px 4px auto;">
+                        <a href="<?php echo esc_url($member_export_url); ?>" class="button_export button button-secondary" >
                             📊 خروجی Excel این کاربر
                         </a>
                     </div>

@@ -200,7 +200,8 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
             <p><?php echo esc_html($action_message); ?></p>
         </div>
     <?php endif; ?>
-    
+    </div>
+<div class="wrap">    
     <!-- فیلترها -->
     <div class="sc-filter-wrapper" style="background: #f9f9f9; padding: 15px; margin: 20px 0; border-radius: 8px;">
         <form method="GET" action="" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
@@ -256,8 +257,8 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
             </div>
 
             <div style="min-width: 140px;">
-                <button type="submit" class="button button-primary">اعمال فیلتر</button>
-                <a href="<?php echo admin_url('admin.php?page=sc-coach-management-withdrawals'); ?>" class="button">پاک کردن</a>
+                <button type="submit" class="button button-primary" id="btn-filter-coach-management-withdrawals">اعمال فیلتر</button>
+                <a href="<?php echo admin_url('admin.php?page=sc-coach-management-withdrawals'); ?>" class="button delete_fillter">پاک کردن</a>
                         <?php
             // ساخت URL برای export Excel با حفظ فیلترها
             $export_url = admin_url('admin.php?page=sc-coach-management-withdrawals&sc_export=excel&export_type=coach_management_withdrawals');
@@ -275,13 +276,15 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             ?>
-            <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+            <a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
                 📊 خروجی Excel
             </a>
             </div>
         </form>
     </div>
-    
+
+    </div>
+    <div class="wrap">
     <!-- اکشن دسته‌جمعی و جدول -->
     <form method="POST" action="" id="bulk-withdrawals-form">
         <?php wp_nonce_field('bulk_withdrawals', '_wpnonce_bulk'); ?>
@@ -293,7 +296,7 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
                     <option value="reject">رد</option>
                     <option value="mark_paid">پرداخت شده</option>
                 </select>
-                <button type="button" class="button action" id="bulk-apply-btn" style="margin-right: 5px;">اعمال</button>
+                <button type="button" class="button action" id="bulk-apply-btn" style="margin-right: 5px;" >اعمال</button>
             </div>
         </div>
 

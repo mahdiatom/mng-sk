@@ -217,7 +217,8 @@ $total_pages = ceil($total_items / $per_page);
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honor-categories')); ?>" class="page-title-action">دسته‌بندی افتخارات</a>
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-honor-for-member')); ?>" class="page-title-action">افزودن افتخار برای بازیکن</a>
     <hr class="wp-header-end">
-
+ </div>
+    <div class="wrap">
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
             <p><?php echo esc_html($message); ?></p>
@@ -228,7 +229,7 @@ $total_pages = ceil($total_items / $per_page);
     <form method="get" action="" class="filter_honors_list">
         <input type="hidden" name="page" value="sc-honors">
         <input type="hidden" name="s" value="<?php echo esc_attr($search); ?>">
-        <label for="filter_user" style="margin-left: 5px;">نام کاربر:</label>
+        <label for="filter_user" style="margin-left: 5px; width: 100px;">نام کاربر:</label>
         <div class="sc-searchable-dropdown">
             <input type="hidden" name="filter_user" id="filter_user" value="<?php echo esc_attr($filter_user); ?>">
             <div class="sc-dropdown-toggle" style="width: 100%;">
@@ -236,7 +237,7 @@ $total_pages = ceil($total_items / $per_page);
                 <span class="sc-dropdown-selected" <?php if (empty($filter_user) || $filter_user === '0') echo 'style="display:none"'; ?>><?php echo esc_html($filter_user_text); ?></span>
                 <span class="sc-dropdown-arrow">▼</span>
             </div>
-            <div class="sc-dropdown-menu" style="width: 100%; max-height: 300px; overflow-y: auto;">
+            <div class="sc-dropdown-menu" >
                 <div class="sc-dropdown-search">
                     <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
                 </div>
@@ -312,6 +313,10 @@ $total_pages = ceil($total_items / $per_page);
         </div>
     </div>
             </div>
+
+
+             </div>
+    <div class="wrap">
     <!-- فرم حذف دسته‌جمعی و جدول -->
     <form method="post" id="honors-form">
         <?php wp_nonce_field('bulk_delete_honors'); ?>

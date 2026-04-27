@@ -23,139 +23,149 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
     <a href="<?php echo admin_url('admin.php?page=sc-invoices'); ?>" class="page-title-action">بازگشت به لیست صورت حساب‌ها</a>
     
     <hr class="wp-header-end">
-    
+    </div>
+   <div class="wrap create_invoice">
     <form method="POST" action="" >
         <?php wp_nonce_field('sc_add_invoice', 'sc_invoice_nonce'); ?>
-        
-        <table class="form-table sc_form-table">
-            <tbody>
-                <tr>
-                    <th scope="row">
-                        <label for="member_id"> کاربر <span style="color:red;">*</span></label>
-                    </th>
-                    <td>
-                        <div class="sc-searchable-dropdown">
-                            <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>" required>
-                            <?php
-                            $selected_member_text = '';
-                            if ($selected_member_id > 0) {
-                                foreach ($members as $member) {
-                                    if ($member->id == $selected_member_id) {
-                                        $selected_member_text = $member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id;
-                                        break;
-                                    }
-                                }
-                            }
-                            ?>
-                            <div class="sc-dropdown-toggle" >
-                                <span class="sc-dropdown-placeholder" style="color: #757575; display: <?php echo $selected_member_id > 0 ? 'none' : 'inline'; ?>;">-- انتخاب کاربر --</span>
-                                <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $selected_member_id > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
-                                <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
-                            </div>
-                            <div class="sc-dropdown-menu">
-                                <div class="sc-dropdown-search" style="padding: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: #fff;">
-                                    <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی..." style="width: 100%; padding: 8px; border: 1px solid #8c8f94; border-radius: 4px; font-size: 14px;">
-                                </div>
-                                <div class="sc-dropdown-options" style="max-height: 250px; overflow-y: auto;">
-                                    <?php 
-                                    $display_count = 0;
-                                    $max_display = 10;
-                                    $selected_index = -1;
-                                    
-                                    // پیدا کردن ایندکس کاربر انتخاب شده
-                                    foreach ($members as $idx => $member) {
-                                        if ($selected_member_id == $member->id) {
-                                            $selected_index = $idx;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    foreach ($members as $idx => $member) : 
-                                        $is_selected = ($selected_member_id == $member->id);
-                                        // نمایش 10 مورد اول + مورد انتخاب شده (اگر خارج از 10 مورد اول باشد)
-                                        $should_display = ($display_count < $max_display) || $is_selected;
-                                        $display_class = $should_display ? 'sc-visible' : 'sc-hidden';
-                                    ?>
-                                        <div class="sc-dropdown-option <?php echo $display_class; ?>" 
-                                             data-value="<?php echo esc_attr($member->id); ?>"
-                                             data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
-                                             style="<?php echo $is_selected ? 'background: #f0f6fc;' : ''; ?>"
-                                             onclick="scSelectMember(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
-                                            <?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>
-                                            <?php if ($is_selected) : ?>
-                                                <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php 
-                                        if ($should_display) {
-                                            $display_count++;
-                                        }
-                                    endforeach; 
-                                    ?>
-                                </div>
-                            </div>
-                        </div>
-                        <p class="description">کاربر مورد نظر برای دریافت صورت حساب را انتخاب کنید. می‌توانید جستجو کنید.</p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th scope="row">
-                        <label>هزینه</label>
-                    </th>
-                    <td>
-                        <div class="input_text_expense"  >
-                            <div>
-                                <label for="expense_name" >نام هزینه:</label>
-                                <input type="text" 
-                                       name="expense_name" 
-                                       id="expense_name" 
-                                       value="<?php echo esc_attr(isset($_POST['expense_name']) ? $_POST['expense_name'] : ''); ?>" 
-                                       class="regular-text" 
-                                       placeholder="مثلاً: هزینه ماهانه، هزینه تغذیه و..."
-                                       required
-                                       >
-                            </div>
-                            <div >
-                                <label for="amount">مبلغ (تومان):</label>
-                                <input type="text" 
-                                       name="amount" 
-                                       id="amount" 
-                                       value="<?php echo $amount > 0 ? number_format($amount, 0, '.', ',') : ''; ?>" 
-                                       class="regular-text" 
-                                       placeholder="0"
-                                      required
-                                       dir="ltr"
-                                       inputmode="numeric">
-                                <input type="hidden" name="amount_raw" id="amount_raw" value="<?php echo esc_attr($amount); ?>">
-                            </div>
-                            <div style="margin-top: 12px;">
-                                <label for="invoice_description">توضیحات (اجباری):</label>
-                                <textarea required name="invoice_description" id="invoice_description" class="large-text" rows="3" placeholder="توضیحات برای نمایش به کاربر (۲ تا ۴ خط)" style="width: 100%; max-width: 500px;"><?php echo esc_textarea(isset($_POST['invoice_description']) ? $_POST['invoice_description'] : ''); ?></textarea>
-                                <p class="description">در صورت پر کردن، در بخش صورت حساب‌های کاربر نمایش داده می‌شود.</p>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
+ <div class="sc-form-flex">
 
-            <tr>
-                <th scope="row">
-                    <label for="disable_penalty">جریمه</label>
-                </th>
-                <td>
-                    <label>
-                        <input type="checkbox" name="disable_penalty" value="1"
-                            <?php checked(isset($_POST['disable_penalty'])); ?>>
-                        این صورت‌حساب شامل جریمه نشود
-                    </label>
-                    <p class="description">
-                        اگر تیک زده شود، برای این صورت‌حساب هیچ جریمه‌ای محاسبه نخواهد شد.
-                    </p>
-                </td>
-            </tr>
+    <!-- فیلد: کاربر -->
+    <div class="sc-form-field sc-full">
+        <label for="member_id">کاربر <span style="color:red;">*</span></label>
 
-            </tbody>
-        </table>
+        <div class="sc-searchable-dropdown">
+            <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>" required>
+
+            <?php
+            $selected_member_text = '';
+            if ($selected_member_id > 0) {
+                foreach ($members as $member) {
+                    if ($member->id == $selected_member_id) {
+                        $selected_member_text = $member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id;
+                        break;
+                    }
+                }
+            }
+            ?>
+
+            <div class="sc-dropdown-toggle">
+                <span class="sc-dropdown-placeholder" style="color:#757575;display:<?php echo $selected_member_id > 0 ? 'none' : 'inline'; ?>;">-- انتخاب کاربر --</span>
+                <span class="sc-dropdown-selected" style="color:#2c3338;display:<?php echo $selected_member_id > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
+                <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#757575;">▼</span>
+            </div>
+
+            <div class="sc-dropdown-menu">
+                <div class="sc-dropdown-search" >
+                    <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی..." style="width:100%;padding:8px;border:1px solid #8c8f94;border-radius:4px;font-size:14px;">
+                </div>
+
+                <div class="sc-dropdown-options" style="max-height:250px;overflow-y:auto;">
+                    <?php
+                    $display_count = 0;
+                    $max_display = 10;
+                    $selected_index = -1;
+
+                    foreach ($members as $idx => $member) {
+                        if ($selected_member_id == $member->id) {
+                            $selected_index = $idx;
+                            break;
+                        }
+                    }
+
+                    foreach ($members as $idx => $member):
+                        $is_selected = ($selected_member_id == $member->id);
+                        $should_display = ($display_count < $max_display) || $is_selected;
+                        $display_class = $should_display ? 'sc-visible' : 'sc-hidden';
+                    ?>
+                        <div class="sc-dropdown-option <?php echo $display_class; ?>"
+                             data-value="<?php echo esc_attr($member->id); ?>"
+                             data-search="<?php echo esc_attr(strtolower($member->first_name.' '.$member->last_name.' '.$member->national_id)); ?>"
+                             style="<?php echo $is_selected ? 'background:#f0f6fc;' : ''; ?>"
+                             onclick="scSelectMember(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($member->first_name.' '.$member->last_name.' - '.$member->national_id); ?>')">
+
+                            <?php echo esc_html($member->first_name.' '.$member->last_name.' - '.$member->national_id); ?>
+                            
+                            <?php if ($is_selected): ?>
+                                <span style="float:left;color:#2271b1;font-weight:bold;">✓</span>
+                            <?php endif; ?>
+                        </div>
+                    <?php
+                        if ($should_display) $display_count++;
+                    endforeach;
+                    ?>
+                </div>
+            </div>
+        </div>
+
+        <p class="description">کاربر مورد نظر برای دریافت صورت حساب را انتخاب کنید. می‌توانید جستجو کنید.</p>
+    </div>
+
+
+
+    <!-- هزینه: نام + مبلغ -->
+    <div class="sc-form-row">
+
+        <div class="sc-form-field">
+            <label for="expense_name">نام هزینه:</label>
+            <input type="text"
+                   name="expense_name"
+                   id="expense_name"
+                   value="<?php echo esc_attr(isset($_POST['expense_name']) ? $_POST['expense_name'] : ''); ?>"
+                   class=""
+                   placeholder="مثلاً: هزینه ماهانه، هزینه تغذیه و..."
+                   required>
+        </div>
+
+        <div class="sc-form-field">
+            <label for="amount">مبلغ (تومان):</label>
+
+            <input type="text"
+                   name="amount"
+                   id="amount"
+                   value="<?php echo $amount > 0 ? number_format($amount, 0, '.', ',') : ''; ?>"
+                   class=""
+                   placeholder="0"
+                   required
+                   dir="ltr"
+                   inputmode="numeric">
+
+            <input type="hidden" name="amount_raw" id="amount_raw" value="<?php echo esc_attr($amount); ?>">
+        </div>
+
+    </div>
+
+
+    <!-- توضیحات -->
+    <div class="sc-form-field sc-full">
+        <label for="invoice_description">توضیحات (اجباری):</label>
+
+        <textarea required
+                  name="invoice_description"
+                  id="invoice_description"
+                  class="large-text"
+                  rows="3"
+                  placeholder="توضیحات برای نمایش به کاربر (۲ تا ۴ خط)"
+                  ><?php echo esc_textarea(isset($_POST['invoice_description']) ? $_POST['invoice_description'] : ''); ?></textarea>
+
+        <p class="description">در صورت پر کردن، در بخش صورت حساب‌های کاربر نمایش داده می‌شود.</p>
+    </div>
+
+
+
+    <!-- جریمه -->
+    <div class="sc-form-field sc-full">
+        <label>
+            <input type="checkbox" name="disable_penalty" value="1" <?php checked(isset($_POST['disable_penalty'])); ?>>
+            این صورت‌حساب شامل جریمه نشود
+        </label>
+
+        <p class="description">
+            اگر تیک زده شود، برای این صورت‌حساب هیچ جریمه‌ای محاسبه نخواهد شد.
+        </p>
+    </div>
+
+</div>
+
         
         <p class="submit">
             <input type="submit" name="submit_invoice" class="button button-primary" value="ثبت صورت حساب">

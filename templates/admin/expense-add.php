@@ -49,13 +49,15 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
     <h1 class="wp-heading-inline">
         <?php echo $expense_id > 0 ? 'ویرایش هزینه' : 'ثبت هزینه جدید'; ?>
     </h1>
+   
     <a href="<?php echo admin_url('admin.php?page=sc-expenses'); ?>" class="page-title-action">بازگشت به لیست هزینه‌ها</a>
     <?php if ($expense_id > 0) : ?>
         <a href="<?php echo admin_url('admin.php?page=sc-add-expense'); ?>" class="page-title-action">ثبت هزینه جدید</a>
     <?php endif; ?>
     
     <hr class="wp-header-end">
-    
+     </div>
+    <div class="wrap">
     <form method="POST" action="">
         <?php wp_nonce_field('sc_add_expense', 'sc_expense_nonce'); ?>
         <?php if ($expense_id > 0) : ?>

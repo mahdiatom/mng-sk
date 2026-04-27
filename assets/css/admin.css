@@ -41,7 +41,13 @@
 	src: url('../fonts/Woff/IRANYekanXFaNum-Regular.woff') format('woff'),   
 	url('../fonts/Woff2/IRANYekanXFaNum-Regular.woff2') format('woff2');	
 }
+.button-primary{
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none;
+    color: #fff !important;
+    border-radius: 10px !important;
 
+}
 
  p,a,div,button,section,select,option,input{
     font-family: IRANYekanXFaNum !important;
@@ -73,7 +79,7 @@ input[type="checkbox"] {
 input , textarea , select{
         border: 1px solid #dfdfdf !important;
     padding: 5px 23px !important;
-    margin-bottom: 10px;
+
     
 }
 #current-page-selector{
@@ -81,9 +87,7 @@ input , textarea , select{
     margin-bottom: 10px;
     height: unset !important;
 }
-#search-submit{
-    margin-top: -10px;
-}
+
 .wrap a.page-title-action{
         padding: 5px 25px !important;
     border-radius: 7px !important;
@@ -134,6 +138,16 @@ body {font-family: Arial, Helvetica, sans-serif;}
   overflow: auto; /* Enable scroll if needed */
   background-color: rgb(0,0,0); /* Fallback color */
   background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+th{
+    vertical-align: middle !important;
+}
+
+/* غیرفعال کردن حالت دیفالت  */
+@media screen and (max-width: 782px) {
+    .wp-core-ui .button, .wp-core-ui .button.button-large, .wp-core-ui .button.button-small, a.preview, input#publish, input#save-post {
+        line-height: unset !important;
+    }
 }
 
 /* Modal Content */
@@ -667,7 +681,9 @@ input.persian-date-input{
 }
 
 /* END for fillters - section invoice */
-
+#report_btn_view{
+    padding: 5px;
+}
 .list_all_attendance th{
     width: 80px;
 }
@@ -699,6 +715,8 @@ input.persian-date-input{
 tr td.column-full_name:hover{
     transform: unset;
 } */
+
+
 .button_delete_attendance{
     background-color: #d63638 !important;
     color: #fff !important;
@@ -727,6 +745,7 @@ table.fixed {
 .button-small{
      width: 100%;
     text-align: center;
+    
 }
 .button_delete_attendance{
     background-color: #d63638 !important;
@@ -951,6 +970,9 @@ tbody tr td{
     justify-content: center;
 }
 
+.tablenav{
+    height: auto;
+}
 .sc_paginate .tablenav-pages span ,.sc_paginate .tablenav-pages a {
     font-size: 16px !important;
     padding: 5px !important;
@@ -1097,6 +1119,12 @@ margin: 0; display: inline-block;
 .sc_setting_section input[type=number].small-text{
 width: fit-content !important;
 }
+.info_coach_salary{
+    border: 1px solid #dfdfdf;
+    border-radius: 10px;
+    padding: 10px;
+
+}
 @media (max-width: 990px) {
  
 .sc_form-table th{
@@ -1241,6 +1269,10 @@ display: block; margin-bottom: 5px; font-weight: bold;
 .back_form_cat{
     background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px;
 }
+.notice{
+        border-radius: 10px;
+    padding: 7px;
+}
 .notice_custom_list_member{
         background: #fff;
     border: 1px solid #3668ffff;
@@ -1256,7 +1288,7 @@ display: block; margin-bottom: 5px; font-weight: bold;
 }
 .filter_search_honors{
     display: flex;
-        justify-content: space-between;
+    flex-direction: column;
 }
 .edit_cat_honors h2 , .list_cat_honores h2{
     padding-right: 10px;
@@ -1271,6 +1303,97 @@ display: block; margin-bottom: 5px; font-weight: bold;
 .sections_cat_honors{
      margin-top: 20px;
 }
+/* add honors member */
+.sc-honor-add-card { max-width: 100%; margin-top: 20px; }
+.sc-honor-add-title { margin-top: 0; padding-bottom: 10px; border-bottom: 1px solid #c3c4c7; }
+.sc-honor-add-form .form-table { margin-top: 0; }
+.sc-honor-add-form .form-table th { width: 180px; padding: 15px 10px 15px 0; vertical-align: top; }
+.sc-honor-add-form .form-table td { padding: 15px 10px; }
+.sc-honor-add-form .form-table .description { margin-top: 6px; margin-bottom: 0; color: #646970; }
+.sc-honor-add-form .required { color: #d63638; }
+
+.sc-honor-member-dropdown { position: relative; max-width: 400px; }
+.sc-honor-member-dropdown .sc-dropdown-toggle {
+    display: block; width: 100%; cursor: pointer; padding: 8px 32px 8px 12px;
+    border: 1px solid #8c8f94; border-radius: 4px; background: #fff; min-height: 36px;
+    box-sizing: border-box; line-height: 1.4;
+}
+.sc-honor-member-dropdown .sc-dropdown-placeholder { color: #646970; }
+.sc-honor-member-dropdown .sc-dropdown-arrow {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: #2c3338; font-size: 10px; pointer-events: none;
+}
+.sc-honor-member-dropdown .sc-dropdown-menu {
+    display: none; position: absolute; left: 0; right: 0; top: 100%; margin-top: -1px;
+    max-height: 280px; overflow: hidden; z-index: 1000;
+    background: #fff; border: 1px solid #8c8f94; border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.sc-honor-member-dropdown .sc-dropdown-search { padding: 8px; border-bottom: 1px solid #c3c4c7; background: #fff; }
+.sc-honor-member-dropdown .sc-search-input { width: 100%; padding: 6px 10px; }
+.sc-honor-member-dropdown .sc-dropdown-options { max-height: 220px; overflow-y: auto; }
+.sc-honor-member-dropdown .sc-dropdown-option {
+    padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1;
+    transition: background 0.15s ease;
+}
+.sc-honor-member-dropdown .sc-dropdown-option:hover,
+.sc-honor-member-dropdown .sc-dropdown-option.sc-selected { background: #f0f6fc; }
+
+.sc-file-upload-wrapper-admin { display: inline-flex; align-items: center; gap: 10px; }
+.sc-file-upload-wrapper-admin input[type="file"] { position: absolute; opacity: 0; width: 0; height: 0; }
+.sc-file-upload-btn-admin { margin: 0; }
+
+.sc-honor-upload-zone{
+    max-width:500px;
+}
+
+.sc-file-upload-area{
+    border:2px dashed #c3c4c7;
+    border-radius:8px;
+    padding:25px;
+    text-align:center;
+    cursor:pointer;
+    background:#fafafa;
+    transition:all .2s ease;
+}
+
+.sc-file-upload-area:hover{
+    border-color:#2271b1;
+    background:#f6f7f7;
+}
+
+.sc-file-upload-icon{
+    font-size:26px;
+    display:block;
+    margin-bottom:8px;
+}
+
+.sc-file-upload-text{
+    font-weight:600;
+    display:block;
+    margin-bottom:6px;
+}
+
+.sc-file-upload-hint{
+    font-size:12px;
+    color:#646970;
+}
+
+.sc-ticket-file-input-hidden{
+    position:absolute;
+    opacity:0;
+    width:100%;
+    height:100%;
+    left:0;
+    top:0;
+    cursor:pointer;
+}
+
+/* end add honors member */
+
+
+
+
 .edit_cat_team h2,
 .list_cat_team h2,
 .edit_cat_chapter h2,
@@ -1738,6 +1861,7 @@ display: block; margin-bottom: 5px; font-weight: bold;
 .remaining_sessions input{
     width: 60px !important;
     border-radius: 10px;
+    padding: 0 10px !important;
 }
 @media screen and (max-width:780px){
     .report_player_attendance{
@@ -1789,8 +1913,26 @@ padding: 10px 15px;
 /* اطلاعیه */
 
 
-
-
+#sc-notifications-bulk-form , #bulk-withdrawals-form{
+        display: flex !important;
+    flex-direction: column !important;
+}
+#search_btn_notif{
+        border-top: 1px solid #dfdfdf;
+    padding-top: 26px;
+}
+#btn-filter-coach-management-withdrawals{
+    height: 40px;
+}
+#bulk-apply-btn{
+        height: 40px !important;
+    margin-left: 5px !important;
+    height: 40px;
+    padding: 7px !important;
+    border-radius: 10px !important;
+    border: 1px solid #dfdfdf !important;
+    text-align: center;
+}
 
 .sc-notifications-list-card{
     overflow: auto !important;
@@ -1922,11 +2064,11 @@ input.large-text, textarea.large-text {
     width:100%;
 }
 
-.sc-searchable-dropdown,
+/* .sc-searchable-dropdown,
 .sc-dropdown-toggle,
 .sc-dropdown-menu{
     width:100%;
-}
+} */
 
 /* پایان کاهش کیف پول */
 
@@ -2003,15 +2145,24 @@ width: fit-content;
     display: flex;
     
 }
+#honors-form{
+        display: flex;
+    flex-direction: column;
+    gap: 23px;
+}
     .filter_honors_list{
 display: flex;
     gap: 10px;
     align-items: center;
+    border-bottom: 1px solid #dfdfdf;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
 }
-.filter_honors_list .sc-dropdown-toggle{
-    width: 250px !important;
-    height: 31px;
+.filter_search_honors .sc-searchable-dropdown{
+    width: 30%;
+        margin-left: 10px;
 }
+
 @media screen and (max-width:780px) {
     .filter_honors_list{
     display: flex;
@@ -2037,9 +2188,49 @@ display: flex;
     width: 100% !important;
     height:40px;
 }
-
+#honor_description{
+    height: unset !important;
+}
 .btns_list_wallet_trans{
     margin-top: 10px;
 }
 
 
+
+.button_export{
+        background-color: #00a32a !important;
+    border-color: #00a32a !important;
+    color: #fff !important;
+    
+    height: 40px ;
+    padding: 7px !important;
+    border-radius: 10px !important;
+}
+.delete_fillter{
+    height: 40px !important;
+    margin-left: 5px !important;
+    height: 40px ;
+    padding: 7px !important;
+    border-radius: 10px !important;
+    border: 1px solid #dfdfdf !important;
+  
+    text-align: center;
+}
+
+/* لاگ حضور و غیاب  */
+/* کانتینر اصلی فیلتر */
+.col-1-attendance ,.col-2-attendance  {
+        display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.filter_attendance_log_list{
+    display: flex;
+    flex-direction: column;
+    gap: 23px;
+}
+
+
+/* لاگ حضور و غیاب پایان  */

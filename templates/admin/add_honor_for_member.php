@@ -217,7 +217,7 @@ $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FRO
                     <tr>
                         <th scope="row"><label for="honor_description">توضیحات</label></th>
                         <td>
-                            <textarea name="honor_description" id="honor_description" rows="4" class="large-text"><?php echo isset($_POST['honor_description']) ? esc_textarea($_POST['honor_description']) : ''; ?></textarea>
+                            <textarea name="honor_description" id="honor_description" rows="4"  class="large-text"><?php echo isset($_POST['honor_description']) ? esc_textarea($_POST['honor_description']) : ''; ?></textarea>
                         </td>
                     </tr>
                     <tr>
@@ -227,9 +227,10 @@ $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FRO
                                 <input type="file" name="honor_file" id="honor_file" class="sc-honor-file-input-admin" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
                                 <button type="button" class="button sc-file-upload-btn-admin">
                                     <span class="btn-text-admin">📎 انتخاب فایل</span>
-                                </button>
+                                
                             </div>
                             <p class="description">حداکثر ۱ مگابایت. فرمت‌های مجاز: تصاویر، PDF، Word، Excel</p>
+                                    </button>
                         </td>
                     </tr>
                 </tbody>
@@ -242,46 +243,7 @@ $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FRO
     </div>
 </div>
 
-<style>
-.sc-honor-add-card { max-width: 100%; margin-top: 20px; }
-.sc-honor-add-title { margin-top: 0; padding-bottom: 10px; border-bottom: 1px solid #c3c4c7; }
-.sc-honor-add-form .form-table { margin-top: 0; }
-.sc-honor-add-form .form-table th { width: 180px; padding: 15px 10px 15px 0; vertical-align: top; }
-.sc-honor-add-form .form-table td { padding: 15px 10px; }
-.sc-honor-add-form .form-table .description { margin-top: 6px; margin-bottom: 0; color: #646970; }
-.sc-honor-add-form .required { color: #d63638; }
 
-.sc-honor-member-dropdown { position: relative; max-width: 400px; }
-.sc-honor-member-dropdown .sc-dropdown-toggle {
-    display: block; width: 100%; cursor: pointer; padding: 8px 32px 8px 12px;
-    border: 1px solid #8c8f94; border-radius: 4px; background: #fff; min-height: 36px;
-    box-sizing: border-box; line-height: 1.4;
-}
-.sc-honor-member-dropdown .sc-dropdown-placeholder { color: #646970; }
-.sc-honor-member-dropdown .sc-dropdown-arrow {
-    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-    color: #2c3338; font-size: 10px; pointer-events: none;
-}
-.sc-honor-member-dropdown .sc-dropdown-menu {
-    display: none; position: absolute; left: 0; right: 0; top: 100%; margin-top: -1px;
-    max-height: 280px; overflow: hidden; z-index: 1000;
-    background: #fff; border: 1px solid #8c8f94; border-radius: 0 0 4px 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.sc-honor-member-dropdown .sc-dropdown-search { padding: 8px; border-bottom: 1px solid #c3c4c7; background: #fff; }
-.sc-honor-member-dropdown .sc-search-input { width: 100%; padding: 6px 10px; }
-.sc-honor-member-dropdown .sc-dropdown-options { max-height: 220px; overflow-y: auto; }
-.sc-honor-member-dropdown .sc-dropdown-option {
-    padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1;
-    transition: background 0.15s ease;
-}
-.sc-honor-member-dropdown .sc-dropdown-option:hover,
-.sc-honor-member-dropdown .sc-dropdown-option.sc-selected { background: #f0f6fc; }
-
-.sc-file-upload-wrapper-admin { display: inline-flex; align-items: center; gap: 10px; }
-.sc-file-upload-wrapper-admin input[type="file"] { position: absolute; opacity: 0; width: 0; height: 0; }
-.sc-file-upload-btn-admin { margin: 0; }
-</style>
 
 <script>
 jQuery(document).ready(function($) {

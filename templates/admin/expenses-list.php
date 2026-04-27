@@ -242,7 +242,8 @@ if ($active_tab === 'categories') {
     <h1 class="wp-heading-inline">لیست هزینه‌ها</h1>
     <a href="<?php echo admin_url('admin.php?page=sc-add-expense'); ?>" class="page-title-action">ثبت هزینه جدید</a>
     <hr class="wp-header-end">
-    
+   </div> 
+   <div class="wrap">
     <!-- تب‌ها -->
     <h2 class="nav-tab-wrapper">
         <a href="?page=sc-expenses&tab=list" class="nav-tab <?php echo $active_tab === 'list' ? 'nav-tab-active' : ''; ?>">
@@ -324,10 +325,10 @@ if ($active_tab === 'categories') {
                 }
                 $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 ?>
-                <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+                <a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
                     📊 خروجی Excel
                 </a>
-                <a href="<?php echo admin_url('admin.php?page=sc-expenses&tab=list'); ?>" class="button">پاک کردن فیلترها</a>
+                <a href="<?php echo admin_url('admin.php?page=sc-expenses&tab=list'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
             </p>
         </form>
         

@@ -3,7 +3,7 @@
 Plugin Name: SportClub Manager
 Plugin URI:  https://example.com
 Description: Sport club management plugin (members, courses, payments, attendance, etc.)
-Version:     1.3.5
+Version:     1.3.6
 Author:      Mahdi Babashahi
 Author URI:  https://example.com
 License:     GPL2

@@ -98,7 +98,8 @@ if ($coach) {
             <p><?php echo esc_html($action_message); ?></p>
         </div>
     <?php endif; ?>
-    
+    </div>
+    <div class="wrap">
     <!-- انتخاب مربی -->
     <div class="card choose_coach" style="margin: 20px 0; max-width: 100%;">
         <h2>انتخاب مربی</h2>

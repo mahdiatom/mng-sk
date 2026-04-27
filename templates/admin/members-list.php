@@ -434,7 +434,7 @@ public function column_full_name($item) {
                 $export_url = add_query_arg('filter_member_type', $_GET['filter_member_type'], $export_url);
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
-            echo '<a href="' . esc_url($export_url) . '" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff; margin-left: 5px;">📊 خروجی Excel</a>';
+            echo '<a href="' . esc_url($export_url) . '" class="button button_export" >📊 خروجی Excel</a>';
  
 
                 echo '</div>';

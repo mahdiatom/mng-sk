@@ -22,15 +22,9 @@ $coaches = $wpdb->get_results(
 <div class="wrap">
     <h1 class="wp-heading-inline">مدیریت مربیان</h1>
     <hr class="wp-header-end">
-    
-    <div class="card" style="margin: 20px 0; max-width: 100%;">
-        <h2>دسترسی‌های مدیریت مربیان</h2>
-        <ul>
-            <li><a href="<?php echo admin_url('admin.php?page=sc-coach-management-wallet'); ?>">💰 مدیریت کیف پول مربیان</a> - شارژ و برداشت از کیف پول مربیان</li>
-            <li><a href="<?php echo admin_url('admin.php?page=sc-coach-management-salary'); ?>">📊 گزارش دستمزد مربیان</a> - مشاهده سوابق دستمزد و گزارش‌گیری</li>
-            <li><a href="<?php echo admin_url('admin.php?page=sc-coach-management-withdrawals'); ?>">💸 درخواست‌های برداشت</a> - مدیریت و تایید درخواست‌های برداشت مربیان</li>
-        </ul>
     </div>
+    <div class="wrap">
+
     
     <div class="card" style="margin: 20px 0; max-width: 100%;">
         <h2>لیست مربیان</h2>

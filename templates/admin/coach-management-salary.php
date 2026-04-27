@@ -99,7 +99,8 @@ $courses = $wpdb->get_results(
 <div class="wrap">
     <h1 class="wp-heading-inline">گزارش دستمزد مربیان</h1>
     <hr class="wp-header-end">
-    
+</div>
+    <div class="wrap">
     <!-- فیلترها -->
     <div class="sc-filter-wrapper" style="background: #f9f9f9; padding: 20px; margin: 20px 0; border-radius: 8px;">
         <form method="GET" action="">
@@ -155,7 +156,7 @@ $courses = $wpdb->get_results(
                 
                 <div>
                     <input type="submit" class="button button-primary" value="فیلتر">
-                    <a href="<?php echo admin_url('admin.php?page=sc-coach-management-salary'); ?>" class="button">پاک کردن فیلترها</a>
+                    <a href="<?php echo admin_url('admin.php?page=sc-coach-management-salary'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
                      <?php
             // ساخت URL برای export Excel با حفظ فیلترها
             $export_url = admin_url('admin.php?page=sc-coach-management-salary&sc_export=excel&export_type=coach_management_salary');
@@ -173,7 +174,7 @@ $courses = $wpdb->get_results(
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             ?>
-            <a href="<?php echo esc_url($export_url); ?>" class="button" style="background-color: #00a32a; border-color: #00a32a; color: #fff;">
+            <a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
                 📊 خروجی Excel
             </a>
                 </div>

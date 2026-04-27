@@ -106,7 +106,9 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
     <div class="back_list_log_admin">
     <h1 class="wp-heading-inline">لاگ فعالیت</h1>
     <p style="color: #646970; margin-top: 8px;">ثبت عملیات انجام‌شده در پنل ادمین (چه کسی چه عملی روی چه چیزی انجام داده).</p>
-
+</div>
+</div>
+<div class="wrap">
     <?php if (isset($_GET['cleared']) && $_GET['cleared'] === '1') : ?>
         <div class="notice notice-success is-dismissible"><p>تمام لاگ‌های فعالیت با موفقیت حذف شدند.</p></div>
     <?php endif; ?>

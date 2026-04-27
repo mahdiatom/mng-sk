@@ -89,7 +89,7 @@ jQuery(document).ready(function($) {
                         
                         let html = '<div class="sc-users-summary" style="margin-bottom: 20px; padding: 15px; background-color: #f0f6fc; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">';
                         html += '<strong>تعداد کاربران فعال: ' + count + ' نفر</strong>';
-                        html += '<a href="' + exportUrl + '" class="button button-secondary" style="background-color: #00a32a; border-color: #00a32a; color: #fff; text-decoration: none;">📊 خروجی Excel</a>';
+                        html += '<a href="' + exportUrl + '" class="button button-secondary button_export" >📊 خروجی Excel</a>';
                         html += '</div>';
                         html += '<div class="sc-users-table-container" style="max-height: 500px; overflow-y: auto;">';
                         html += '<table class="wp-list-table widefat fixed striped"><thead><tr>';

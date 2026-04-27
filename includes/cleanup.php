@@ -57,3 +57,18 @@ function atom_disable_emojis_remove_dns_prefetch( $urls, $relation_type ) {
     }
     return $urls;
 }
+
+//حذف نوتیف ها وردپرس
+
+add_action('admin_init', function () {
+    
+    if (!is_admin()) {
+        return;
+    }
+
+    // حذف تمام نوتیف های admin_notices
+    remove_all_actions('admin_notices');
+    remove_all_actions('all_admin_notices');
+
+
+});
