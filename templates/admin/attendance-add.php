@@ -466,8 +466,11 @@ $is_update_mode = !empty($existing_attendances);
                                                name="attendance[<?php echo esc_attr($member->id); ?>]" 
                                                value="present" 
                                                <?php checked($existing_status, 'present'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?> 
+                                              
                                                >
+                                                <?php  if($existing_status === 'excused'){ ?>
                                                <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br> علت :  حالت غیبت مجاز</span>
+                                               <?php } ?>
                                         <span style="color: #00a32a; font-weight: bold;">حاضر</span>
                                     </label>
                                     <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
@@ -476,7 +479,9 @@ $is_update_mode = !empty($existing_attendances);
                                                value="absent"
                                                <?php checked($existing_status, 'absent'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?> 
                                                >
-                                                <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br> علت :  حالت غیبت مجاز</span>
+                                                <?php  if($existing_status === 'excused'){ ?>
+                                               <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br> علت :  حالت غیبت مجاز</span>
+                                               <?php } ?>
                                                <span style="color: #d63638; font-weight: bold;">غایب</span>
                                     </label>
                                     <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
@@ -487,7 +492,14 @@ $is_update_mode = !empty($existing_attendances);
                                                disabled
                                                >
                                         <span style="color: #d63638; font-weight: bold;">غایب مجاز</span>
-                                        <span class="tooltip_text_abset_acc">برای مجاز کردن غیبت <br>به لیست غایبین مراجعه کنید.</span>
+                                        <?php  if($existing_status === 'excused'){ ?>
+                                                  <span class="tooltip_text_abset_acc">غیبت مجاز شده است<br>برای ویرایش یا حذف به بخش حضور و غیاب جزئی بروید.</span>
+                                               <?php }else{
+                                                ?>
+                                                    <span class="tooltip_text_abset_acc">برای مجاز کردن غیبت <br>به لیست غایبین مراجعه کنید.</span>
+
+                                                <?php
+                                               } ?>
                                     </label>
                                 </td>
                             </tr>

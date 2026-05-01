@@ -30,21 +30,18 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     $pro_create_invoice_player_team = isset($_POST['pro_create_invoice_player_team']) ? 1 : 0;
      sc_update_setting('pro_create_invoice_player_team' , $pro_create_invoice_player_team , 'invoice' );   
     $invoice_mode = isset($_POST['invoice_mode']) ? sanitize_text_field($_POST['invoice_mode']) : 'interval';
-
-
-
-
-
-
-
-
+       
 
     sc_update_setting('invoice_mode', $invoice_mode, 'invoice');
 
     if ($invoice_mode === 'interval') {
         $invoice_interval_minutes = absint($_POST['invoice_interval_minutes']);
         sc_update_setting('invoice_interval_minutes', $invoice_interval_minutes, 'invoice');
-    } else {
+    } elseif($invoice_mode === 'sessions_threshold'){
+         $sessions_count_threshold = isset($_POST['sessions_count_threshold']) ? $_POST['sessions_count_threshold'] : 1;
+         sc_update_setting('sessions_count_threshold' , $sessions_count_threshold , 'invoice' ); 
+    }
+    else {
         $day_val = isset($_POST['invoice_day_of_month']) && $_POST['invoice_day_of_month'] !== '' ? absint($_POST['invoice_day_of_month']) : 0;
         sc_update_setting('invoice_day_of_month', min(31, max(0, $day_val)), 'invoice');
         sc_update_setting('invoice_hour', min(23, max(0, absint($_POST['invoice_hour'] ?? 0))), 'invoice');
@@ -450,6 +447,9 @@ $sc_club_logo_url      = sc_get_setting('sc_club_logo_url', '');
 $sc_phone_club      = sc_get_setting('sc_phone_club', '');
 $sc_token_club      = sc_get_setting('sc_token_club', '');
 $sc_botname_club      = sc_get_setting('sc_botname_club', '');
+
+// ذخیره سازی صورتحساب
+$sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
 ?>
 
 <div class="wrap sc_setting_section" >
@@ -589,8 +589,9 @@ $sc_botname_club      = sc_get_setting('sc_botname_club', '');
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات">
                 </p>
             </form>
-        <?php elseif ($current_tab === 'invoice') : ?>
-            <?php
+
+    <?php elseif ($current_tab === 'invoice') : 
+           
             $invoice_day_of_month = (int) sc_get_invoice_day_of_month();
             $invoice_settlement_gregorian_list = [];
             if (sc_get_invoice_mode() === 'fixed_date' && function_exists('gregorian_to_jalali') && function_exists('jalali_to_gregorian')) {
@@ -610,104 +611,114 @@ $sc_botname_club      = sc_get_setting('sc_botname_club', '');
                     $invoice_settlement_gregorian_list[] = ['label' => ($m === 0 ? 'ماه جاری' : ($m === 1 ? 'ماه بعد' : '۲ ماه بعد')) . ' (' . $month_names[$tm] . ' ' . $ty . ')' . $suffix, 'date' => sprintf('%04d/%02d/%02d', $g[0], $g[1], $g[2])];
                 }
             }
-            ?>
-            <form method="POST" action="">
-                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                ?>
+                <form method="POST" action="">
+         <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
 
-                <table class="form-table">
-<tr>
-                <th scope="row">ایجاد صورت حساب برای بازیکن تیم</th>
-                <td>
-                    <?php  $pro_create_invoice_player_team = sc_get_setting('pro_create_invoice_player_team'); ?>
-                    <label class="switch">
-                        <input type="checkbox" name="pro_create_invoice_player_team" value="1" <?php checked($pro_create_invoice_player_team, 1); ?>>
-                        <span class="slider round"></span>
-                    </label>
-                </td>
-            </tr>
-<tr>
-    <th>نوع ایجاد صورتحساب</th>
-    <td>
-        <label>
-            <input type="radio" name="invoice_mode" value="interval"
-                <?php checked(sc_get_invoice_mode(), 'interval'); ?>>
-            بر اساس فاصله زمانی
-        </label>
-        <br>
-        <label>
-            <input type="radio" name="invoice_mode" value="fixed_date"
-                <?php checked(sc_get_invoice_mode(), 'fixed_date'); ?>>
-            در تاریخ مشخص ماهانه
-        </label>
-        <br>
-        <label>
-            <input type="radio" name="invoice_mode" value="sessions_threshold"
-                <?php checked(sc_get_invoice_mode(), 'sessions_threshold'); ?>>
-            برحسب تعداد جلسات کاربر
-        </label>
-    </td>
-</tr>
-
-<tr>
-    <th>فاصله زمانی (دقیقه)</th>
-    <td>
-        <input type="number"
-               name="invoice_interval_minutes"
-               value="<?php echo esc_attr(sc_get_invoice_interval_minutes()); ?>">
-        <p class="description">فقط در حالت فاصله زمانی استفاده می‌شود</p>
-    </td>
-</tr>
-
-<tr>
-    <th>روز ماه (شمسی)</th>
-    <td>
-        <input type="number"
-               name="invoice_day_of_month"
-               min="0"
-               max="31"
-               value="<?php echo $invoice_day_of_month > 0 ? esc_attr($invoice_day_of_month) : ''; ?>"
-               placeholder="0">
-        <p class="description">روز شمسی هر ماه (۱ تا ۳۱). خالی یا ۰ = آخر ماه شمسی.</p>
-        <?php if (sc_get_invoice_mode() === 'fixed_date' && !empty($invoice_settlement_gregorian_list)): ?>
-            <div class="description" style="margin-top: 8px; padding: 8px; background: #f0f6fc; border-right: 3px solid #2271b1;">
-                <?php foreach ($invoice_settlement_gregorian_list as $item): ?>
-                    <div><strong><?php echo esc_html($item['label']); ?>:</strong> <?php echo esc_html($item['date']); ?></div>
-                <?php endforeach; ?>
-                <div style="margin-top: 6px;"><em>محاسبه دقیق بر اساس تقویم رسمی جلالی</em></div>
-            </div>
-        <?php endif; ?>
-    </td>
-</tr>
-
-<tr>
-    <th>ساعت و دقیقه اجرا</th>
-    <td>
-         
-        <input type="number"
-               name="invoice_minute"
-               min="0"
-               max="59"
-               value="<?php echo esc_attr(sc_get_invoice_minute()); ?>"
-               placeholder="دقیقه"
-               style="width: 70px;"> : 
-               <input type="number"
-               name="invoice_hour"
-               min="0"
-               max="23"
-               value="<?php echo esc_attr(sc_get_invoice_hour()); ?>"
-               placeholder="ساعت"
-               style="width: 70px;">
-        <p class="description">مثال: 23:10 یعنی ساعت ۱۱ شب و ۱۰ دقیقه</p>
-    </td>
-</tr>
-
-</table>
+                        <table class="form-table">
+                    <tr>
+                        <th scope="row">ایجاد صورت حساب برای بازیکن تیم</th>
+                        <td>
+                            <?php  $pro_create_invoice_player_team = sc_get_setting('pro_create_invoice_player_team'); ?>
+                            <label class="switch">
+                                <input type="checkbox" name="pro_create_invoice_player_team" value="1" <?php checked($pro_create_invoice_player_team, 1); ?>>
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>نوع ایجاد صورتحساب</th>
+                        <td>
+                            <select name="invoice_mode" id="invoice_mode_select" style="width: 200px;">
+                                <option value="interval" <?php selected(sc_get_invoice_mode(), 'interval'); ?>>
+                                    بر اساس فاصله زمانی
+                                </option>
+                                <option value="fixed_date" <?php selected(sc_get_invoice_mode(), 'fixed_date'); ?>>
+                                    در تاریخ مشخص ماهانه
+                                </option>
+                                <option value="sessions_threshold" <?php selected(sc_get_invoice_mode(), 'sessions_threshold'); ?>>
+                                    بر حسب تعداد جلسات کاربر
+                                </option>
+                            </select>
+                        </td>
+                    </tr>
 
 
-                <p class="submit">
-                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات">
-                </p>
-            </form>
+                    <tr class="invoice-row interval-row">
+                        <th>فاصله زمانی (دقیقه)</th>
+                        <td>
+                            <input type="number"
+                                name="invoice_interval_minutes"
+                                value="<?php echo esc_attr(sc_get_invoice_interval_minutes()); ?>">
+                            <p class="description">فقط در حالت فاصله زمانی استفاده می‌شود</p>
+                        </td>
+                    </tr>
+
+                    <tr class="invoice-row fixed-date-row-day">
+                        <th>روز ماه (شمسی)</th>
+                        <td>
+                            <input type="number"invoice_day_of_month
+                                name=""
+                                min="0"
+                                max="31"
+                                value="<?php echo $invoice_day_of_month > 0 ? esc_attr($invoice_day_of_month) : ''; ?>"
+                                placeholder="0">
+                            <p class="description">روز شمسی هر ماه (۱ تا ۳۱). خالی یا ۰ = آخر ماه شمسی.</p>
+                            <?php if (sc_get_invoice_mode() === 'fixed_date' && !empty($invoice_settlement_gregorian_list)): ?>
+                                <div class="description" style="margin-top: 8px; padding: 8px; background: #f0f6fc; border-right: 3px solid #2271b1;">
+                                    <?php foreach ($invoice_settlement_gregorian_list as $item): ?>
+                                        <div><strong><?php echo esc_html($item['label']); ?>:</strong> <?php echo esc_html($item['date']); ?></div>
+                                    <?php endforeach; ?>
+                                    <div style="margin-top: 6px;"><em>محاسبه دقیق بر اساس تقویم رسمی جلالی</em></div>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+
+                    <tr class="invoice-row fixed-date-row-time">
+                        <th>ساعت و دقیقه اجرا</th>
+                        <td>
+                            
+                            <input type="number"
+                                name="invoice_minute"
+                                min="0"
+                                max="59"
+                                value="<?php echo esc_attr(sc_get_invoice_minute()); ?>"
+                                placeholder="دقیقه"
+                                style="width: 70px;"> : 
+                                <input type="number"
+                                name="invoice_hour"
+                                min="0"
+                                max="23"
+                                value="<?php echo esc_attr(sc_get_invoice_hour()); ?>"
+                                placeholder="ساعت"
+                                style="width: 70px;">
+                            <p class="description">مثال: 23:10 یعنی ساعت ۱۱ شب و ۱۰ دقیقه</p>
+                        </td>
+                    </tr>
+                    <tr class="invoice-row sessions-row">
+                        <th>تعداد جلسات باقی مانده </th>
+                        <td>
+                            <input type="number"
+                                name="sessions_count_threshold"
+                                min="1"
+                                max="100"
+                                value="<?php echo $sessions_count_threshold > 0 ? esc_attr($sessions_count_threshold) : '1'; ?>"
+                                placeholder="0">
+                            <p class="description">وقتی به این عدد تعداد جلسات باقی مانده برسد یک فاکتور برای کاربر ساخته می شود.</p>
+                                
+                                
+                            
+                        </td>
+                    </tr>
+
+                    </table>
+
+
+                      <p class="submit">
+                      <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات">
+                                    </p>
+                  </form>
         <?php elseif ($current_tab === 'log') : ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
@@ -1996,4 +2007,40 @@ jQuery(document).ready(function($) {
     }
 });
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const select = document.getElementById("invoice_mode_select");
+
+    function updateInvoiceFields() {
+        const mode = select.value;
+
+        // همه مخفی
+        document.querySelectorAll(".invoice-row").forEach(el => {
+            el.style.display = "none";
+        });
+
+        if (mode === "interval") {
+            document.querySelector(".interval-row").style.display = "table-row";
+        }
+
+        if (mode === "fixed_date") {
+            document.querySelector(".fixed-date-row-day").style.display = "table-row";
+            document.querySelector(".fixed-date-row-time").style.display = "table-row";
+        }
+
+        if (mode === "sessions_threshold") {
+            document.querySelector(".sessions-row").style.display = "table-row";
+        }
+    }
+
+    // وقتی کاربر انتخاب می‌کند
+    select.addEventListener("change", updateInvoiceFields);
+
+    // اجرا هنگام بارگذاری
+    updateInvoiceFields();
+
+});
+</script>
+
 

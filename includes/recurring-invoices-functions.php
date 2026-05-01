@@ -463,8 +463,9 @@ function sc_create_threshold_invoices() {
 
         // تابع کمکی که تعداد جلسات باقی‌مانده را از جدول جلسات برمی‌گرداند
        $remaining = intval($course->remaining_sessions);
+       $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
 
-		if ($remaining !== 2) {
+		if ($remaining !== $sessions_count_threshold) {
 			continue;
 		}
 
