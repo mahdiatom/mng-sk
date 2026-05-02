@@ -76,11 +76,15 @@ input[type="checkbox"] {
     height: 40px;
     padding-top: 6px !important;
 } */
-input , textarea , select{
+input , textarea {
         border: 1px solid #dfdfdf !important;
     padding: 5px !important;
 
     
+}
+select{
+    border: 1px solid #dfdfdf !important;
+    padding: 5px 23px !important;
 }
 #current-page-selector{
         padding: unset !important;
@@ -144,6 +148,9 @@ body {font-family: Arial, Helvetica, sans-serif;}
 }
 th{
     vertical-align: middle !important;
+}
+#submit{
+    width: 100px;
 }
 
 /* غیرفعال کردن حالت دیفالت  */
@@ -1093,7 +1100,7 @@ margin: 0; display: inline-block;
 }
 .sc_form-table td{
         min-width: 100px !important;
-    width: 100px;
+    width: 500px;
 }
 .sc_form-table td input ,  .sc_form-table td .wp-editor-wrap{
  width:100% !important;
@@ -1222,12 +1229,12 @@ max-height: 300px;
 }
 
 /* حذف اطلاعات اضافی در ویرایش سفارش ووکامرس */
-.order_data_column , #woocommerce-order-downloads , #woocommerce-order-source-data,
+/* .order_data_column , #woocommerce-order-downloads , #woocommerce-order-source-data,
 .woocommerce_page_wc-orders tr .quantity,
 .woocommerce_page_wc-orders tr .item_cost,
 .woocommerce_page_wc-orders #actions{
     display: none !important;
-}
+} */
 .order_data_column:nth-child(1){
     display: unset !important;
 }
@@ -1315,7 +1322,7 @@ display: block; margin-bottom: 5px; font-weight: bold;
 .sc-honor-add-form .form-table .description { margin-top: 6px; margin-bottom: 0; color: #646970; }
 .sc-honor-add-form .required { color: #d63638; }
 
-.sc-honor-member-dropdown { position: relative; max-width: 400px; }
+.sc-honor-member-dropdown { position: relative; }
 .sc-honor-member-dropdown .sc-dropdown-toggle {
     display: block; width: 100%; cursor: pointer; padding: 8px 32px 8px 12px;
     border: 1px solid #8c8f94; border-radius: 4px; background: #fff; min-height: 36px;
@@ -2196,6 +2203,9 @@ display: flex;
 }
 .btns_list_wallet_trans{
     margin-top: 10px;
+}
+#save_honor{
+    width: 100px !important;
 }
 
 

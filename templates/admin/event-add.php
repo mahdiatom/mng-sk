@@ -425,7 +425,7 @@ if ($event && isset($_GET['event_id'])) {
         </div>
 
         <p class="submit">
-            <input type="submit" name="submit" id="submit" class="button button-primary" value="<?php echo isset($_GET['event_id']) ? 'بروزرسانی' : 'ثبت'; ?>">
+            <input type="submit" name="submit" id="submit" class="button button-primary"  value="<?php echo isset($_GET['event_id']) ? 'بروزرسانی' : 'ثبت'; ?>">
         </p>
     </form>
 </div>

@@ -237,7 +237,7 @@ $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FRO
             </table>
             
             <p class="submit">
-                <input type="submit" name="save_honor" class="button button-primary" value="ذخیره افتخار">
+                <input type="submit" name="save_honor" id="save_honor" class="button button-primary" value="ذخیره افتخار">
             </p>
         </form>
     </div>

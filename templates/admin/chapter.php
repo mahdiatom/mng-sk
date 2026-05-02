@@ -148,11 +148,14 @@ $categories = $wpdb->get_results("SELECT * FROM $categories_table ORDER BY name 
 ?>
 <div class="wrap">
     <h1>شعبه های باشگاه  </h1>
-    
+ </div>
+<div class="wrap">  
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
             <p><?php echo esc_html($message); ?></p>
         </div>
+    </div>
+    
     <?php endif; ?>
     
     <div class="sections_cat_chapter">
@@ -211,10 +214,10 @@ $categories = $wpdb->get_results("SELECT * FROM $categories_table ORDER BY name 
             </div>
             <div class="inside" style="padding: 20px;">
                 <?php if (!empty($categories)) : ?>
-                    <table class="wp-list-table widefat fixed striped">
+                    <table class="wp-list-table widefat fixed striped " style="border-radius: 10px;">
                         <thead>
                             <tr>
-                                <th style="width: 50px;">ردیف</th>
+                                <th style="width: 50px; padding:20px;">ردیف</th>
                                 <th>نام شعبه</th>
                                 <th style="width: 150px;">عملیات</th>
                             </tr>
@@ -235,7 +238,7 @@ $categories = $wpdb->get_results("SELECT * FROM $categories_table ORDER BY name 
                                         ?>
                                         <a href="<?php echo esc_url($delete_url); ?>" 
                                            onclick="return confirm('آیا مطمئن هستید؟')" 
-                                           class="button button-small">حذف</a>
+                                           class="button button-small btn_delete_action_admin">حذف</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

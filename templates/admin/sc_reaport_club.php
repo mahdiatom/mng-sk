@@ -177,7 +177,7 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
 
 ?>
 
-
+<div class="wrap">
 <div class="title_head_btn_report">
 <h3>کاربران</h3>
 <a href="<?php echo admin_url('admin.php?page=sc-members'); ?>">مدیریت لیست کاربران</a>
@@ -344,3 +344,4 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
 
 <h3>حضور و غیاب ( به زودی....): </h3>
 <h3>پیامک های ارسال شده (به زودی ....) </h3>
+</div>
