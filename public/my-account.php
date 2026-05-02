@@ -1155,7 +1155,29 @@ function sc_handle_course_enrollment() {
         wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
         exit;
     }
-    
+
+    $has_pkg = function_exists('sc_course_has_packages') && sc_course_has_packages($course_id);
+    $enrollment_sessions_sel = isset($_POST['enrollment_sessions']) ? absint($_POST['enrollment_sessions']) : 0;
+    $invoice_amount = floatval($course->price);
+    $fee_label = function_exists('sc_course_enrollment_fee_label')
+        ? sc_course_enrollment_fee_label($course->title, null)
+        : ('ثبت نام دوره: ' . $course->title);
+
+    if ($has_pkg) {
+        if (!$enrollment_sessions_sel || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($course_id, $enrollment_sessions_sel)) {
+            wc_add_notice('لطفاً پکیج (تعداد جلسه) را انتخاب کنید.', 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+            exit;
+        }
+        $pkg = sc_get_course_package_by_sessions($course_id, $enrollment_sessions_sel);
+        $invoice_amount = floatval($pkg->price);
+        $fee_label = sc_course_enrollment_fee_label($course->title, (int) $pkg->sessions_count);
+    } elseif ($invoice_amount <= 0) {
+        wc_add_notice('قیمت این دوره ثبت نشده است. لطفاً با پشتیبانی تماس بگیرید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+        exit;
+    }
+
     // بررسی ظرفیت دوره (فقط دوره‌های active را در نظر می‌گیریم)
     if ($course->capacity) {
         $enrolled_count = $wpdb->get_var($wpdb->prepare(
@@ -1202,15 +1224,22 @@ function sc_handle_course_enrollment() {
         } elseif (in_array($existing->status, ['canceled', 'completed', 'paused', 'inactive'])) {
             // اگر دوره قبلاً cancel، complete، paused یا inactive بود (بدون pending invoice)، می‌تواند دوباره ثبت‌نام کند
             // رکورد موجود را به inactive تغییر می‌دهیم (بعد از پرداخت فعال می‌شود)
+            $upd_inactive = [
+                'status' => 'inactive',
+                'enrollment_date' => null,
+                'updated_at' => current_time('mysql'),
+            ];
+            if ($has_pkg && $enrollment_sessions_sel) {
+                $upd_inactive['enrollment_sessions'] = $enrollment_sessions_sel;
+            } else {
+                $upd_inactive['enrollment_sessions'] = null;
+            }
+            $fmt_inactive = ['%s', '%s', '%s', '%s'];
             $updated = $wpdb->update(
                 $member_courses_table,
-                [
-                    'status' => 'inactive',
-                    'enrollment_date' => NULL, // بعد از پرداخت تنظیم می‌شود
-                    'updated_at' => current_time('mysql')
-                ],
+                $upd_inactive,
                 ['id' => $existing->id],
-                ['%s', '%s', '%s'],
+                $fmt_inactive,
                 ['%d']
             );
             
@@ -1232,17 +1261,19 @@ function sc_handle_course_enrollment() {
             exit;
         }
         // اگر رکورد وجود ندارد، insert می‌کنیم با status = inactive (بعد از پرداخت فعال می‌شود)
+        $insert_mc = [
+            'member_id' => $player->id,
+            'course_id' => $course_id,
+            'enrollment_date' => null,
+            'status' => 'inactive',
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql'),
+            'enrollment_sessions' => ($has_pkg && $enrollment_sessions_sel) ? $enrollment_sessions_sel : null,
+        ];
         $inserted = $wpdb->insert(
             $member_courses_table,
-            [
-                'member_id' => $player->id,
-                'course_id' => $course_id,
-                'enrollment_date' => NULL, // بعد از پرداخت تنظیم می‌شود
-                'status' => 'inactive',
-                'created_at' => current_time('mysql'),
-                'updated_at' => current_time('mysql')
-            ],
-            ['%d', '%d', '%s', '%s', '%s', '%s']
+            $insert_mc,
+            ['%d', '%d', '%s', '%s', '%s', '%s', '%s']
         );
         
         // اگر خطا در insert بود، لاگ کن
@@ -1261,15 +1292,28 @@ function sc_handle_course_enrollment() {
         // بازیکن تیم: صورت حساب ایجاد نمی‌شود، دوره فوراً فعال است - فعلا غیرفعال شود تا بررسی شود 
     
         if (function_exists('sc_is_member_team') && sc_is_member_team($player->id) && !sc_get_setting('pro_create_invoice_player_team')) {
+            $sf_team = function_exists('sc_member_course_session_fields_for_course')
+                ? sc_member_course_session_fields_for_course($course_id, $has_pkg ? $enrollment_sessions_sel : null)
+                : ['enrollment_sessions' => null, 'total_sessions' => 0, 'remaining_sessions' => 0];
+            $team_upd = [
+                'status' => 'active',
+                'enrollment_date' => current_time('Y-m-d'),
+                'updated_at' => current_time('mysql'),
+                'total_sessions' => (int) $sf_team['total_sessions'],
+                'remaining_sessions' => (int) $sf_team['remaining_sessions'],
+            ];
+            if ($sf_team['enrollment_sessions'] === null) {
+                $team_upd['enrollment_sessions'] = null;
+            } else {
+                $team_upd['enrollment_sessions'] = (int) $sf_team['enrollment_sessions'];
+            }
+            $team_fmt = ['%s', '%s', '%s', '%d', '%d'];
+            $team_fmt[] = $sf_team['enrollment_sessions'] === null ? '%s' : '%d';
             $wpdb->update(
                 $member_courses_table,
-                [
-                    'status' => 'active',
-                    'enrollment_date' => current_time('Y-m-d'),
-                    'updated_at' => current_time('mysql')
-                ],
+                $team_upd,
                 ['id' => $member_course_id],
-                ['%s', '%s', '%s'],
+                $team_fmt,
                 ['%d']
             );
             if(sc_get_setting('deduction_wallet_enabled')){
@@ -1283,7 +1327,7 @@ function sc_handle_course_enrollment() {
         }
 
         // بازیکن عادی: ایجاد صورت حساب و سفارش WooCommerce
-        $invoice_result = sc_create_course_invoice($player->id, $course_id, $member_course_id, $course->price);
+        $invoice_result = sc_create_course_invoice($player->id, $course_id, $member_course_id, $invoice_amount, '', $fee_label);
 
         if ($invoice_result && isset($invoice_result['success']) && $invoice_result['success']) {
             wc_add_notice('مرحله اول ثبت‌نام شما با موفقیت انجام شد جهت فعال شدن دوره لطفاً صورت حساب خود را پرداخت کنید .', 'success');
@@ -1308,7 +1352,7 @@ function sc_handle_course_enrollment() {
 /**
  * Create invoice and WooCommerce order for course enrollment
  */
-function sc_create_course_invoice($member_id, $course_id, $member_course_id, $amount , $type = '') {
+function sc_create_course_invoice($member_id, $course_id, $member_course_id, $amount, $type = '', $fee_display_name = '') {
     // بررسی فعال بودن WooCommerce
 
 
@@ -1441,7 +1485,10 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
     
     // اضافه کردن Fee به سفارش با استفاده از WC_Order_Item_Fee
     $fee = new WC_Order_Item_Fee();
-    $fee->set_name('هزینه دوره: ' . $course->title);
+    $fee_name = ($fee_display_name !== '' && $fee_display_name !== null)
+        ? $fee_display_name
+        : ('هزینه دوره: ' . $course->title);
+    $fee->set_name($fee_name);
     $fee->set_amount($amount);
     $fee->set_tax_class('');
     $fee->set_tax_status('none');
@@ -3367,7 +3414,16 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
                 "SELECT * FROM $courses_table WHERE id = %d",
                 $invoice->course_id
                 ));
-                $total_sessions = !empty($course->sessions_count) ? intval($course->sessions_count) : 0;
+                $mc_pay = $wpdb->get_row($wpdb->prepare(
+                    "SELECT * FROM $member_courses_table WHERE id = %d LIMIT 1",
+                    $invoice->member_course_id
+                ));
+                $total_sessions = 0;
+                if ($mc_pay && isset($mc_pay->enrollment_sessions) && $mc_pay->enrollment_sessions !== null && $mc_pay->enrollment_sessions !== '') {
+                    $total_sessions = (int) $mc_pay->enrollment_sessions;
+                } elseif ($course && !empty($course->sessions_count)) {
+                    $total_sessions = (int) $course->sessions_count;
+                }
                 // بروزرسانی وضعیت دوره به active
                 $wpdb->update(
                     $member_courses_table,

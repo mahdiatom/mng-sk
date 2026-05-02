@@ -957,6 +957,31 @@ function  sc_create_faq_table(){
     dbDelta($sql);
 }
 
+/**
+ * پکیج‌های قیمت دوره (تعداد جلسه + قیمت) — مشابه متغیر ووکامرس
+ */
+function sc_create_course_packages_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_course_packages';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `sessions_count` int(11) unsigned NOT NULL,
+        `price` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `sort_order` int(11) unsigned NOT NULL DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_course_sessions` (`course_id`,`sessions_count`),
+        KEY `idx_course_id` (`course_id`)
+    ) $charset_collate";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
 function sc_update_database() {
     global $wpdb;
 
@@ -999,6 +1024,7 @@ function sc_update_database() {
         sc_create_chapter_table();
         sc_create_faq_table();
         sc_create_api_attendance_logs_table();
+        sc_create_course_packages_table();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';
@@ -1157,5 +1183,22 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$notifications_table` ADD COLUMN `attachment_ids` text DEFAULT NULL COMMENT 'JSON array of attachment post IDs' AFTER `target_config`");
         }
         update_option('sc_notifications_attachment_ids_added', '1');
+    }
+
+    // جدول پکیج‌های قیمت دوره (مهاجرت برای نصب‌های قبلی)
+    if (get_option('sc_course_packages_table_added', '0') !== '1') {
+        if (function_exists('sc_create_course_packages_table')) {
+            sc_create_course_packages_table();
+        }
+        update_option('sc_course_packages_table_added', '1');
+    }
+
+    // تعداد جلسات انتخاب‌شده هنگام ثبت‌نام (پکیج)
+    $member_courses_tbl = $wpdb->prefix . 'sc_member_courses';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $member_courses_tbl)) === $member_courses_tbl) {
+        $ens_col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$member_courses_tbl` LIKE %s", 'enrollment_sessions'));
+        if (empty($ens_col)) {
+            $wpdb->query("ALTER TABLE `$member_courses_tbl` ADD COLUMN `enrollment_sessions` int(11) unsigned DEFAULT NULL COMMENT 'پکیج: تعداد جلسه انتخابی' AFTER `remaining_sessions`");
+        }
     }
 }

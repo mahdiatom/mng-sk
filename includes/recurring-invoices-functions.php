@@ -199,12 +199,19 @@ sc_set_invoice_last_run();
             continue;
         }
         // ایجاد صورت حساب جدید (بدون چک کردن pending)
+        $amount_for_invoice = function_exists('sc_get_course_billing_amount_for_member_course')
+            ? sc_get_course_billing_amount_for_member_course((object) ['id' => $member_course->course_id, 'price' => $member_course->price, 'title' => $member_course->course_title], $member_course)
+            : (float) $member_course->price;
+        $fee_label = function_exists('sc_course_enrollment_fee_label')
+            ? sc_course_enrollment_fee_label($member_course->course_title, !empty($member_course->enrollment_sessions) ? (int) $member_course->enrollment_sessions : null)
+            : ('ثبت نام دوره: ' . $member_course->course_title);
         $invoice_result = sc_create_course_invoice(
             $member_course->member_id,
             $member_course->course_id,
             $member_course->id,
-            $member_course->price,
-            'system defalt'
+            $amount_for_invoice,
+            'system defalt',
+            $fee_label
         );
         
         // بررسی نتیجه
@@ -470,12 +477,19 @@ function sc_create_threshold_invoices() {
 		}
 
         // ایجاد صورت حساب
+        $amount_for_invoice = function_exists('sc_get_course_billing_amount_for_member_course')
+            ? sc_get_course_billing_amount_for_member_course((object) ['id' => $course->course_id, 'price' => $course->price, 'title' => $course->course_title], $course)
+            : (float) $course->price;
+        $fee_label = function_exists('sc_course_enrollment_fee_label')
+            ? sc_course_enrollment_fee_label($course->course_title, !empty($course->enrollment_sessions) ? (int) $course->enrollment_sessions : null)
+            : ('ثبت نام دوره: ' . $course->course_title);
         $invoice = sc_create_course_invoice(
             $course->member_id,
             $course->course_id,
             $course->id,
-            $course->price,
-            'session_auto'
+            $amount_for_invoice,
+            'session_auto',
+            $fee_label
         );
        
 

@@ -478,6 +478,59 @@ function scFormatPrice(inputSelector, rawInputSelector) {
     }, 100);
 }
 
+// مدیریت ردیف‌های پکیج قیمت دوره در صفحه افزودن/ویرایش دوره
+window.scInitCoursePackagesUI = function () {
+    var $ = jQuery;
+    var $wrap = $('#sc-course-packages-wrap');
+    if (!$wrap.length) {
+        return;
+    }
+
+    var $body = $('#sc-course-packages-body');
+    var $addBtn = $('#sc-add-course-package-row');
+
+    function bindRowPriceFormatter($row) {
+        var $price = $row.find('.sc-pkg-price-input');
+        var $raw = $row.find('.sc-pkg-price-raw');
+        if ($price.length && $raw.length) {
+            scFormatPrice($price, $raw);
+        }
+    }
+
+    function makeRow() {
+        return $(
+            '<tr class="sc-course-package-row">' +
+                '<td><input type="number" min="1" class="regular-text sc-pkg-sessions-input" name="pkg_sessions[]" style="max-width:150px;"></td>' +
+                '<td>' +
+                    '<input type="text" class="regular-text sc-pkg-price-input" name="pkg_price[]" style="max-width:220px;" dir="ltr" inputmode="numeric">' +
+                    '<input type="hidden" class="sc-pkg-price-raw" name="pkg_price_raw[]" value="0">' +
+                '</td>' +
+                '<td><button type="button" class="button sc-remove-package-row">حذف</button></td>' +
+            '</tr>'
+        );
+    }
+
+    if (!$body.children().length) {
+        var $first = makeRow();
+        $body.append($first);
+        bindRowPriceFormatter($first);
+    } else {
+        $body.find('.sc-course-package-row').each(function () {
+            bindRowPriceFormatter($(this));
+        });
+    }
+
+    $addBtn.off('click.scCoursePkg').on('click.scCoursePkg', function () {
+        var $row = makeRow();
+        $body.append($row);
+        bindRowPriceFormatter($row);
+    });
+
+    $body.off('click.scCoursePkg', '.sc-remove-package-row').on('click.scCoursePkg', '.sc-remove-package-row', function () {
+        $(this).closest('tr').remove();
+    });
+};
+
 // ============================================
 // بخش افزودن حضور و غیاب
 // ============================================

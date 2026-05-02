@@ -41,6 +41,7 @@ define('SC_ASSETS_URL', SC_PLUGIN_URL . 'assets/');              // Assets URL
 require_once SC_INCLUDES_DIR . 'jdf.php';                  // JDF library for Persian date conversion
 require_once SC_INCLUDES_DIR . 'persian-datepicker-helper.php'; // Persian datepicker helper
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
+require_once SC_INCLUDES_DIR . 'course-packages-functions.php'; // پکیج‌های قیمت دوره
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions
@@ -636,6 +637,7 @@ function sc_check_and_create_tables() {
     $support_ticket_messages_table = $wpdb->prefix . 'sc_support_ticket_messages';
     $sms_log_table = $wpdb->prefix . 'sc_sms_log';
     $sms_log_entries_table = $wpdb->prefix . 'sc_sms_log_entries';
+    $course_packages_table = $wpdb->prefix . 'sc_course_packages';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -661,6 +663,7 @@ function sc_check_and_create_tables() {
     $support_ticket_messages_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $support_ticket_messages_table)) == $support_ticket_messages_table;
     $sms_log_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $sms_log_table)) == $sms_log_table;
     $sms_log_entries_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $sms_log_entries_table)) == $sms_log_entries_table;
+    $course_packages_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_packages_table)) == $course_packages_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -731,6 +734,9 @@ function sc_check_and_create_tables() {
     }
     if (!$sms_log_entries_exists && function_exists('sc_create_sms_log_entries_table')) {
         sc_create_sms_log_entries_table();
+    }
+    if (!$course_packages_exists && function_exists('sc_create_course_packages_table')) {
+        sc_create_course_packages_table();
     }
     
     // اجرای به‌روزرسانی‌های دیتابیس

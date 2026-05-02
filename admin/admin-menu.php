@@ -2124,13 +2124,23 @@ function callback_add_course_sufix() {
         if (!is_numeric($price_per_session_value) || $price_per_session_value < 0) {
             $price_per_session_value = 0;
         }
-        
-        // Validation
-        if (empty($_POST['title']) || $price_value <= 0) {
+
+        $parsed_packages = function_exists('sc_parse_course_packages_from_post') ? sc_parse_course_packages_from_post() : [];
+        if (is_wp_error($parsed_packages)) {
+            wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_pkg_error&course_id=' . (isset($_GET['course_id']) ? absint($_GET['course_id']) : 0)));
+            exit;
+        }
+        $has_course_packages = !empty($parsed_packages);
+
+        // Validation: بدون پکیج، قیمت دوره اجباری؛ با پکیج، قیمت/تعداد جلسهٔ تک‌خطی برای ثبت‌نام استفاده نمی‌شود
+        if (empty($_POST['title'])) {
             wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
             exit;
         }
-        // Validation
+        if (!$has_course_packages && $price_value <= 0) {
+            wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
+            exit;
+        }
         
         
         // پردازش تاریخ شمسی به میلادی
@@ -2192,6 +2202,9 @@ function callback_add_course_sufix() {
             );
 
             if ($updated !== false) {
+                if (function_exists('sc_replace_course_packages')) {
+                    sc_replace_course_packages($course_id, $parsed_packages);
+                }
                 if (function_exists('sc_log_activity') && $old_course) {
                     sc_log_activity('updated', 'course', $course_id, 'دوره «' . $data['title'] . '» ویرایش شد', $old_course, ['title' => $data['title'], 'price' => $data['price'], 'is_active' => $data['is_active']]);
                 }
@@ -2251,6 +2264,9 @@ function callback_add_course_sufix() {
 
             if ($inserted !== false) {
                 $insert_id = $wpdb->insert_id;
+                if (function_exists('sc_replace_course_packages')) {
+                    sc_replace_course_packages($insert_id, $parsed_packages);
+                }
                 if (function_exists('sc_log_activity')) {
                     sc_log_activity('created', 'course', $insert_id, 'دوره «' . $insert_data['title'] . '» ایجاد شد', null, ['title' => $insert_data['title'], 'price' => $insert_data['price'], 'is_active' => $insert_data['is_active']]);
                 }
@@ -2529,7 +2545,26 @@ function callback_add_member_sufix(){
                     }
                     $course_flags[$course_id_int] = $flags_array;
                 }
-                sc_save_member_courses($player_id, $course_ids, $course_flags);
+                $course_package_sessions = [];
+                if (isset($_POST['course_enrollment_package']) && is_array($_POST['course_enrollment_package'])) {
+                    foreach ($_POST['course_enrollment_package'] as $cid => $sess) {
+                        $course_package_sessions[absint($cid)] = absint($sess);
+                    }
+                }
+                foreach ($course_ids as $cid_pkg) {
+                    $cid_pkg = absint($cid_pkg);
+                    if (!$cid_pkg) {
+                        continue;
+                    }
+                    if (function_exists('sc_course_has_packages') && sc_course_has_packages($cid_pkg)) {
+                        $sel = isset($course_package_sessions[$cid_pkg]) ? absint($course_package_sessions[$cid_pkg]) : 0;
+                        if (!$sel || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel)) {
+                            wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=member_pkg_error&player_id=' . $player_id));
+                            exit;
+                        }
+                    }
+                }
+                sc_save_member_courses($player_id, $course_ids, $course_flags, $course_package_sessions);
                 sc_update_profile_completed_status($player_id);
                 if (function_exists('sc_log_activity') && $old_member) {
                     sc_log_activity('updated', 'member', $player_id, 'عضو «' . ($data['first_name'] . ' ' . $data['last_name']) . '» ویرایش شد', $old_member, ['first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'national_id' => $data['national_id'], 'is_active' => $data['is_active']]);
@@ -2716,7 +2751,26 @@ function callback_add_member_sufix(){
                     }
                     $course_flags[$course_id_int] = $flags_array;
                 }
-                sc_save_member_courses($insert_id, $course_ids, $course_flags);
+                $course_package_sessions = [];
+                if (isset($_POST['course_enrollment_package']) && is_array($_POST['course_enrollment_package'])) {
+                    foreach ($_POST['course_enrollment_package'] as $cid => $sess) {
+                        $course_package_sessions[absint($cid)] = absint($sess);
+                    }
+                }
+                foreach ($course_ids as $cid_pkg) {
+                    $cid_pkg = absint($cid_pkg);
+                    if (!$cid_pkg) {
+                        continue;
+                    }
+                    if (function_exists('sc_course_has_packages') && sc_course_has_packages($cid_pkg)) {
+                        $sel = isset($course_package_sessions[$cid_pkg]) ? absint($course_package_sessions[$cid_pkg]) : 0;
+                        if (!$sel || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel)) {
+                            wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=member_pkg_error'));
+                            exit;
+                        }
+                    }
+                }
+                sc_save_member_courses($insert_id, $course_ids, $course_flags, $course_package_sessions);
                 sc_update_profile_completed_status($insert_id);
                 if (function_exists('sc_log_activity')) {
                     sc_log_activity('created', 'member', $insert_id, 'عضو «' . ($data['first_name'] . ' ' . $data['last_name']) . '» ایجاد شد', null, ['first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'national_id' => $data['national_id']]);
@@ -2835,11 +2889,22 @@ function sc_save_event_fields($event_id, $post_data) {
 
 /**
  * Save member courses
+ *
+ * @param array<int,int> $course_package_sessions course_id => تعداد جلسهٔ پکیج انتخابی (در صورت وجود پکیج برای دوره)
  */
-function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
+function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $course_package_sessions = []) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_member_courses';
-    
+
+    $resolve_sessions = static function ($course_id, $course_package_sessions) {
+        $course_id = absint($course_id);
+        $pkg_sel = isset($course_package_sessions[$course_id]) ? absint($course_package_sessions[$course_id]) : 0;
+        if (function_exists('sc_member_course_session_fields_for_course')) {
+            return sc_member_course_session_fields_for_course($course_id, $pkg_sel > 0 ? $pkg_sel : null);
+        }
+        return ['enrollment_sessions' => null, 'total_sessions' => 0, 'remaining_sessions' => 0];
+    };
+
     // مهم: فلگ‌ها مستقل از تیک دوره هستند
     // اول فلگ‌ها را برای همه دوره‌ها (چه تیک خورده چه تیک نخورده) ذخیره می‌کنیم
     if (!empty($course_flags) && is_array($course_flags)) {
@@ -2847,24 +2912,24 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
             $course_id = absint($course_id);
             if ($course_id) {
                 // تبدیل flags به string (مثلاً "paused,completed")
-                $flags_string = !empty($flags_array) && is_array($flags_array) 
-                    ? implode(',', array_map('sanitize_text_field', $flags_array)) 
+                $flags_string = !empty($flags_array) && is_array($flags_array)
+                    ? implode(',', array_map('sanitize_text_field', $flags_array))
                     : NULL;
-                
+
                 // بررسی وجود قبلی
                 $existing = $wpdb->get_var($wpdb->prepare(
                     "SELECT id FROM $table_name WHERE member_id = %d AND course_id = %d",
                     $member_id,
                     $course_id
                 ));
-                
+
                 if ($existing) {
                     // فقط فلگ‌ها را به‌روزرسانی می‌کنیم (status را تغییر نمی‌دهیم)
                     $wpdb->update(
                         $table_name,
                         [
                             'course_status_flags' => $flags_string,
-                            'updated_at' => current_time('mysql')
+                            'updated_at' => current_time('mysql'),
                         ],
                         ['id' => $existing],
                         ['%s', '%s'],
@@ -2873,25 +2938,33 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
                 } else {
                     // اگر رکورد وجود ندارد و تیک دوره هم خورده، رکورد جدید ایجاد می‌کنیم
                     if (!empty($course_ids) && in_array($course_id, $course_ids)) {
-                        $wpdb->insert(
-                            $table_name,
-                            [
-                                'member_id' => $member_id,
-                                'course_id' => $course_id,
-                                'enrollment_date' => current_time('Y-m-d'),
-                                'status' => 'active',
-                                'course_status_flags' => $flags_string,
-                                'created_at' => current_time('mysql'),
-                                'updated_at' => current_time('mysql')
-                            ],
-                            ['%d', '%d', '%s', '%s', '%s', '%s', '%s']
-                        );
+                        $sf = $resolve_sessions($course_id, $course_package_sessions);
+                        $insert_row = [
+                            'member_id' => $member_id,
+                            'course_id' => $course_id,
+                            'enrollment_date' => current_time('Y-m-d'),
+                            'status' => 'active',
+                            'course_status_flags' => $flags_string,
+                            'total_sessions' => (int) $sf['total_sessions'],
+                            'remaining_sessions' => (int) $sf['remaining_sessions'],
+                            'created_at' => current_time('mysql'),
+                            'updated_at' => current_time('mysql'),
+                        ];
+                        $fmt = ['%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'];
+                        if ($sf['enrollment_sessions'] === null) {
+                            $insert_row['enrollment_sessions'] = null;
+                            $fmt[] = '%s';
+                        } else {
+                            $insert_row['enrollment_sessions'] = (int) $sf['enrollment_sessions'];
+                            $fmt[] = '%d';
+                        }
+                        $wpdb->insert($table_name, $insert_row, $fmt);
                     }
                 }
             }
         }
     }
-    
+
     // غیرفعال کردن دوره‌هایی که دیگر انتخاب نشده‌اند (فقط status را تغییر می‌دهیم، فلگ‌ها حفظ می‌شوند)
     if (!empty($course_ids) && is_array($course_ids)) {
         $course_ids_safe = array_map('absint', $course_ids);
@@ -2914,56 +2987,74 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = []) {
             $member_id
         ));
     }
-    
+
     // افزودن یا به‌روزرسانی دوره‌های جدید (تیک خورده)
     if (!empty($course_ids) && is_array($course_ids)) {
         foreach ($course_ids as $course_id) {
             $course_id = absint($course_id);
             if ($course_id) {
                 // دریافت flags از آرایه course_flags (اگر وجود داشته باشد)
-                $flags_array = isset($course_flags[$course_id]) && is_array($course_flags[$course_id]) 
-                    ? $course_flags[$course_id] 
+                $flags_array = isset($course_flags[$course_id]) && is_array($course_flags[$course_id])
+                    ? $course_flags[$course_id]
                     : [];
-                
+
                 // تبدیل flags به string
                 $flags_string = !empty($flags_array) ? implode(',', array_map('sanitize_text_field', $flags_array)) : NULL;
-                
+
+                $sf = $resolve_sessions($course_id, $course_package_sessions);
+
                 // بررسی وجود قبلی
                 $existing = $wpdb->get_var($wpdb->prepare(
                     "SELECT id FROM $table_name WHERE member_id = %d AND course_id = %d",
                     $member_id,
                     $course_id
                 ));
-                
+
                 if ($existing) {
-                    // به‌روزرسانی: status را active می‌کنیم و فلگ‌ها را به‌روزرسانی می‌کنیم
+                    $upd = [
+                        'status' => 'active',
+                        'course_status_flags' => $flags_string,
+                        'enrollment_date' => current_time('Y-m-d'),
+                        'total_sessions' => (int) $sf['total_sessions'],
+                        'remaining_sessions' => (int) $sf['remaining_sessions'],
+                        'updated_at' => current_time('mysql'),
+                    ];
+                    $fmt = ['%s', '%s', '%s', '%d', '%d', '%s'];
+                    if ($sf['enrollment_sessions'] === null) {
+                        $upd['enrollment_sessions'] = null;
+                        $fmt[] = '%s';
+                    } else {
+                        $upd['enrollment_sessions'] = (int) $sf['enrollment_sessions'];
+                        $fmt[] = '%d';
+                    }
                     $wpdb->update(
                         $table_name,
-                        [
-                            'status' => 'active',
-                            'course_status_flags' => $flags_string,
-                            'enrollment_date' => current_time('Y-m-d'),
-                            'updated_at' => current_time('mysql')
-                        ],
+                        $upd,
                         ['id' => $existing],
-                        ['%s', '%s', '%s', '%s'],
+                        $fmt,
                         ['%d']
                     );
                 } else {
-                    // افزودن جدید
-                    $wpdb->insert(
-                        $table_name,
-                        [
-                            'member_id' => $member_id,
-                            'course_id' => $course_id,
-                            'enrollment_date' => current_time('Y-m-d'),
-                            'status' => 'active',
-                            'course_status_flags' => $flags_string,
-                            'created_at' => current_time('mysql'),
-                            'updated_at' => current_time('mysql')
-                        ],
-                        ['%d', '%d', '%s', '%s', '%s', '%s', '%s']
-                    );
+                    $insert_row = [
+                        'member_id' => $member_id,
+                        'course_id' => $course_id,
+                        'enrollment_date' => current_time('Y-m-d'),
+                        'status' => 'active',
+                        'course_status_flags' => $flags_string,
+                        'total_sessions' => (int) $sf['total_sessions'],
+                        'remaining_sessions' => (int) $sf['remaining_sessions'],
+                        'created_at' => current_time('mysql'),
+                        'updated_at' => current_time('mysql'),
+                    ];
+                    $fmt = ['%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'];
+                    if ($sf['enrollment_sessions'] === null) {
+                        $insert_row['enrollment_sessions'] = null;
+                        $fmt[] = '%s';
+                    } else {
+                        $insert_row['enrollment_sessions'] = (int) $sf['enrollment_sessions'];
+                        $fmt[] = '%d';
+                    }
+                    $wpdb->insert($table_name, $insert_row, $fmt);
                 }
             }
         }
@@ -3028,6 +3119,14 @@ function sc_sprot_notices(){
         if($status == 'course_add_error'){
             $type='error';
             $messege="خطا: دوره اضافه نشد لطفا فیلدهای ورودی را بررسی کنید.";
+        }
+        if($status == 'course_pkg_error'){
+            $type='error';
+            $messege="خطا در پکیج‌های قیمت: تعداد جلسه تکراری است یا مقدار ناقص است.";
+        }
+        if($status == 'member_pkg_error'){
+            $type='error';
+            $messege="برای دوره‌های دارای پکیج، انتخاب پکیج (تعداد جلسه) الزامی است.";
         }
         if($status == 'course_updated'){
             $type='success';

@@ -86,8 +86,9 @@ if (function_exists('wc_get_price_thousand_separator')) {
         </div>
     <?php else : ?>
     
-    <form method="POST" action="" class="sc-enroll-course-form">
+    <form method="POST" action="" class="sc-enroll-course-form sc-enroll-course-form-packages">
         <?php wp_nonce_field('sc_enroll_course', 'sc_enroll_course_nonce'); ?>
+        <input type="hidden" name="enrollment_sessions" id="sc-enrollment-sessions-field" value="">
         
         <div class="sc-courses-accordion">
             <?php foreach ($courses as $index => $course) : 
@@ -139,8 +140,20 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     }
                 }
                 
+                $course_packages = function_exists('sc_get_course_packages') ? sc_get_course_packages($course->id) : [];
+                $has_course_packages = !empty($course_packages);
                 $formatted_price = '';
-                if (function_exists('wc_price')) {
+                if ($has_course_packages) {
+                    $prices_only = array_map(function ($pkg_row) {
+                        return (float) $pkg_row->price;
+                    }, $course_packages);
+                    $min_price = !empty($prices_only) ? min($prices_only) : 0;
+                    if (function_exists('wc_price')) {
+                        $formatted_price = 'پکیج‌ها - از ' . wc_price($min_price);
+                    } else {
+                        $formatted_price = 'پکیج‌ها - از ' . number_format($min_price, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
+                    }
+                } elseif (function_exists('wc_price')) {
                     $formatted_price = wc_price($course->price);
                 } else {
                     $formatted_price = number_format((float)$course->price, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
@@ -201,7 +214,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     $course_status = 'date_expired';
                 }
             ?>
-                <div class="sc-course-accordion-item" id="course_item_<?php echo esc_attr($course->id); ?>">
+                <div class="sc-course-accordion-item" id="course_item_<?php echo esc_attr($course->id); ?>" data-course-id="<?php echo esc_attr($course->id); ?>" data-has-packages="<?php echo $has_course_packages ? '1' : '0'; ?>">
     <div class="sc_radio_detailes_courses">  
         <input type="radio" 
                name="course_id" 
@@ -226,7 +239,9 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     <?php endif; ?>
                     <span class="sc-course-price"><?php echo $formatted_price; ?></span>
                     
-                    <?php if ($course->sessions_count) : ?>
+                    <?php if ($has_course_packages) : ?>
+                        <span class="sc-course-sessions"><strong>نوع قیمت:</strong> پکیج جلسه‌ای</span>
+                    <?php elseif ($course->sessions_count) : ?>
                         <span class="sc-course-sessions"><strong>تعداد جلسات:</strong> <?php echo esc_html($course->sessions_count); ?></span>
                     <?php endif; ?>
                     
@@ -252,6 +267,25 @@ if (function_exists('wc_get_price_thousand_separator')) {
             <p><?php echo nl2br(esc_html($course->description)); ?></p>
         <?php else : ?>
             <p class="sc-no-description">توضیحاتی برای این دوره ثبت نشده است.</p>
+        <?php endif; ?>
+        <?php if ($has_course_packages && !$is_enrolled && !$is_capacity_full && !$is_date_expired) : ?>
+            <div class="sc-course-packages-enroll" style="margin-top:16px;padding:12px;background:#f6f7f7;border:1px solid #ddd;border-radius:6px;">
+                <strong>انتخاب پکیج</strong>
+                <div style="margin-top:8px;">
+                    <?php foreach ($course_packages as $pkg) : ?>
+                        <label style="display:block;margin:8px 0;">
+                            <input type="radio"
+                                   class="sc-enroll-pkg-radio"
+                                   name="sc_pkg_course_<?php echo esc_attr($course->id); ?>"
+                                   value="<?php echo esc_attr((int) $pkg->sessions_count); ?>"
+                                   data-course-id="<?php echo esc_attr($course->id); ?>">
+                            <?php echo esc_html((int) $pkg->sessions_count); ?> جلسه -
+                            <?php echo function_exists('wc_price') ? wp_kses_post(wc_price((float) $pkg->price)) : esc_html(number_format((float) $pkg->price, 0, '.', ',')) . ' تومان'; ?>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+                <div class="sc-enroll-pkg-live-price" data-course-id="<?php echo esc_attr($course->id); ?>" style="margin-top:10px;font-size:15px;"></div>
+            </div>
         <?php endif; ?>
     </div>
 </div>
@@ -317,5 +351,87 @@ document.addEventListener('DOMContentLoaded', function() {
             clearInterval(interval); // توقف بررسی بعد از اسکرول
         }
     }, 100);
+
+    const form = document.querySelector('.sc-enroll-course-form-packages');
+    if (!form) {
+        return;
+    }
+    const selectedSessionsInput = document.getElementById('sc-enrollment-sessions-field');
+    const nonce = '<?php echo esc_js(wp_create_nonce('sc_enroll_package')); ?>';
+    const ajaxUrl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
+    let selectedCourseId = 0;
+
+    document.querySelectorAll('.sc-course-radio').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            selectedCourseId = parseInt(this.value || '0', 10);
+            if (selectedSessionsInput) {
+                selectedSessionsInput.value = '';
+            }
+        });
+    });
+
+    document.querySelectorAll('.sc-enroll-pkg-radio').forEach(function (pkgRadio) {
+        pkgRadio.addEventListener('change', function () {
+            const courseId = parseInt(this.getAttribute('data-course-id') || '0', 10);
+            const sessions = parseInt(this.value || '0', 10);
+            const courseRadio = document.getElementById('course_' + courseId);
+            if (courseRadio && !courseRadio.disabled) {
+                courseRadio.checked = true;
+                selectedCourseId = courseId;
+            }
+            if (selectedSessionsInput) {
+                selectedSessionsInput.value = String(sessions);
+            }
+
+            const live = document.querySelector('.sc-enroll-pkg-live-price[data-course-id="' + courseId + '"]');
+            if (!live || !courseId || !sessions) {
+                return;
+            }
+            live.textContent = 'در حال محاسبه...';
+            const params = new URLSearchParams();
+            params.append('action', 'sc_enroll_course_package_preview');
+            params.append('nonce', nonce);
+            params.append('course_id', String(courseId));
+            params.append('sessions', String(sessions));
+
+            fetch(ajaxUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: params.toString()
+            }).then(function (res) {
+                return res.json();
+            }).then(function (json) {
+                if (json && json.success && json.data) {
+                    live.innerHTML = '<strong>مبلغ انتخابی:</strong> ' + json.data.amount_html;
+                } else {
+                    live.textContent = 'خطا در دریافت قیمت پکیج';
+                }
+            }).catch(function () {
+                live.textContent = 'خطا در ارتباط با سرور';
+            });
+        });
+    });
+
+    form.addEventListener('submit', function (e) {
+        const checkedCourse = form.querySelector('input[name="course_id"]:checked');
+        if (!checkedCourse) {
+            return;
+        }
+        const courseId = checkedCourse.value;
+        const courseItem = document.getElementById('course_item_' + courseId);
+        const hasPackages = courseItem && courseItem.getAttribute('data-has-packages') === '1';
+        if (hasPackages) {
+            const checkedPkg = form.querySelector('input[name="sc_pkg_course_' + courseId + '"]:checked');
+            if (!checkedPkg) {
+                e.preventDefault();
+                alert('برای این دوره باید یکی از پکیج‌ها را انتخاب کنید.');
+                return false;
+            }
+            if (selectedSessionsInput) {
+                selectedSessionsInput.value = checkedPkg.value;
+            }
+        }
+        return true;
+    });
 });
 </script>

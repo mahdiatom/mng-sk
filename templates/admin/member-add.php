@@ -401,10 +401,11 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 // دریافت دوره‌های فعلی بازیکن با وضعیت آن‌ها
                 $player_courses_active = [];
                 $player_courses_flags = [];
+                $player_courses_enrollment_sessions = [];
                 if ($player && isset($_GET['player_id'])) {
                     $player_id = absint($_GET['player_id']);
                     $player_courses_data = $wpdb->get_results($wpdb->prepare(
-                        "SELECT course_id, status, course_status_flags  FROM $member_courses_table WHERE member_id = %d",
+                        "SELECT course_id, status, course_status_flags, enrollment_sessions FROM $member_courses_table WHERE member_id = %d",
                         $player_id
                     ), ARRAY_A);
                     if ($player_courses_data) {
@@ -420,6 +421,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                                 $flags = array_filter($flags); // حذف مقادیر خالی
                             }
                             $player_courses_flags[$pc['course_id']] = $flags;
+                            $player_courses_enrollment_sessions[$pc['course_id']] = isset($pc['enrollment_sessions']) ? (int) $pc['enrollment_sessions'] : 0;
                         }
                     }
                 }
@@ -442,6 +444,9 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             "SELECT COUNT(*) FROM $member_courses_table WHERE course_id = %d AND status = 'active'",
                             $course->id
                         ));
+                        $course_packages = function_exists('sc_get_course_packages') ? sc_get_course_packages($course->id) : [];
+                        $has_course_packages = !empty($course_packages);
+                        $selected_pkg_sessions = isset($player_courses_enrollment_sessions[$course->id]) ? (int) $player_courses_enrollment_sessions[$course->id] : 0;
                         $capacity_text = $course->capacity ? "($enrolled/{$course->capacity})" : "(نامحدود)";
                         $capacity_warning = ($course->capacity && $enrolled >= $course->capacity) ? ' style="color: #d63638; font-weight: bold;"' : '';
                         
@@ -488,6 +493,22 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     </div>
                         <?php
                         endif;
+
+                        if ($has_course_packages) {
+                            echo '<div style="margin-top:8px;padding:8px;background:#f6f7f7;border:1px solid #ddd;border-radius:4px;">';
+                            echo '<strong style="display:block;margin-bottom:6px;">پکیج ثبت‌نام</strong>';
+                            echo '<select name="course_enrollment_package[' . esc_attr($course->id) . ']" style="min-width:220px;">';
+                            echo '<option value="">انتخاب پکیج</option>';
+                            foreach ($course_packages as $pkg) {
+                                $sel = selected($selected_pkg_sessions, (int) $pkg->sessions_count, false);
+                                echo '<option value="' . esc_attr((int) $pkg->sessions_count) . '" ' . $sel . '>';
+                                echo esc_html((int) $pkg->sessions_count) . ' جلسه - ' . esc_html(number_format((float) $pkg->price, 0, '.', ',')) . ' تومان';
+                                echo '</option>';
+                            }
+                            echo '</select>';
+                            echo '<p class="description" style="margin-top:6px;">برای دوره‌های دارای پکیج، انتخاب این مقدار الزامی است.</p>';
+                            echo '</div>';
+                        }
 
 
                             

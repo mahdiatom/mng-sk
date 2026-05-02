@@ -28,6 +28,10 @@ $chapter_table = $wpdb->prefix . 'sc_chapter_categories';
 $chapters = $wpdb->get_results(
                     "SELECT * FROM $chapter_table ORDER BY id ASC"
                 );
+$course_packages = [];
+if (!empty($course->id) && function_exists('sc_get_course_packages')) {
+    $course_packages = sc_get_course_packages((int) $course->id);
+}
 
 
 ?>
@@ -92,8 +96,7 @@ $chapters = $wpdb->get_results(
                                    placeholder="قیمت کل دوره"
                                    style="width: 300px;"
                                    dir="ltr"
-                                   inputmode="numeric"
-                                   required>
+                                   inputmode="numeric">
                             <p class="description" style="margin-top: 5px;">مبلغ کل دوره به تومان</p>
                         </div>
                         <div>
@@ -126,7 +129,49 @@ $chapters = $wpdb->get_results(
                     <th scope="row"><label for="sessions_count">تعداد جلسات</label></th>
                     <td>
                         <input name="sessions_count" type="number" id="sessions_count" value="<?php echo esc_attr($sessions_count ?? ''); ?>" class="regular-text" min="1">
-                        <p class="description">تعداد جلسات در بازه زمانی مشخص خود را وارد کنید - فقط عدد میتوانید وارد کنید.</p>
+                        <p class="description">حالت ساده: اگر پکیج تعریف نشده باشد، این تعداد جلسه استفاده می‌شود.</p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">پکیج‌های قیمت دوره</th>
+                    <td>
+                        <div id="sc-course-packages-wrap">
+                            <p class="description" style="margin-bottom:10px;">
+                                حالت حرفه‌ای: برای هر تعداد جلسه یک قیمت تعیین کن. در صورت داشتن حداقل یک پکیج، قیمت و تعداد جلسه حالت ساده در ثبت‌نام نادیده گرفته می‌شود.
+                            </p>
+                            <table class="widefat striped" style="max-width:760px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width:180px;">تعداد جلسه</th>
+                                        <th style="width:260px;">قیمت (تومان)</th>
+                                        <th style="width:120px;">حذف</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sc-course-packages-body">
+                                <?php if (!empty($course_packages)) : ?>
+                                    <?php foreach ($course_packages as $pkg) : ?>
+                                        <tr class="sc-course-package-row">
+                                            <td>
+                                                <input type="number" min="1" class="regular-text sc-pkg-sessions-input" name="pkg_sessions[]" value="<?php echo esc_attr((int) $pkg->sessions_count); ?>" style="max-width:150px;">
+                                            </td>
+                                            <td>
+                                                <input type="text" class="regular-text sc-pkg-price-input" name="pkg_price[]" value="<?php echo esc_attr(number_format((float) $pkg->price, 0, '.', ',')); ?>" style="max-width:220px;" dir="ltr" inputmode="numeric">
+                                                <input type="hidden" class="sc-pkg-price-raw" name="pkg_price_raw[]" value="<?php echo esc_attr((float) $pkg->price); ?>">
+                                            </td>
+                                            <td>
+                                                <button type="button" class="button sc-remove-package-row">حذف</button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                                </tbody>
+                            </table>
+                            <p style="margin-top:10px;">
+                                <button type="button" class="button button-secondary" id="sc-add-course-package-row">+ افزودن ردیف پکیج</button>
+                            </p>
+                            <p class="description">تعداد جلسه در هر دوره باید یکتا باشد. تکراری بودن سمت سرور رد می‌شود.</p>
+                        </div>
                     </td>
                 </tr>
 
@@ -236,6 +281,10 @@ jQuery(document).ready(function($) {
     // فرمت کردن فیلد قیمت هر جلسه
     if ($('#price_per_session').length && $('#price_per_session_raw').length) {
         scFormatPrice('#price_per_session', '#price_per_session_raw');
+    }
+
+    if (typeof window.scInitCoursePackagesUI === 'function') {
+        window.scInitCoursePackagesUI();
     }
 });
 </script>
