@@ -1025,6 +1025,7 @@ function sc_update_database() {
         sc_create_faq_table();
         sc_create_api_attendance_logs_table();
         sc_create_course_packages_table();
+        sc_create_discount_codes_tables();
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';
@@ -1201,4 +1202,149 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$member_courses_tbl` ADD COLUMN `enrollment_sessions` int(11) unsigned DEFAULT NULL COMMENT 'پکیج: تعداد جلسه انتخابی' AFTER `remaining_sessions`");
         }
     }
+
+    // جداول کدهای تخفیف صورت‌حساب
+    if (get_option('sc_discount_codes_tables_created', '0') !== '1') {
+        if (function_exists('sc_create_discount_codes_tables')) {
+            sc_create_discount_codes_tables();
+        }
+        update_option('sc_discount_codes_tables_created', '1');
+    }
+
+    // ستون‌های گزارش تخفیف در صورت‌حساب
+    if (get_option('sc_invoices_discount_columns_added', '0') !== '1') {
+        $inv_tbl = $wpdb->prefix . 'sc_invoices';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $inv_tbl)) === $inv_tbl) {
+            $c1 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$inv_tbl` LIKE %s", 'subtotal_amount'));
+            if (empty($c1)) {
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `subtotal_amount` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ قبل از تخفیف' AFTER `amount`");
+            }
+            $c2 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$inv_tbl` LIKE %s", 'discount_amount'));
+            if (empty($c2)) {
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `discount_amount` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ تخفیف' AFTER `subtotal_amount`");
+            }
+            $c3 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$inv_tbl` LIKE %s", 'discount_code_id'));
+            if (empty($c3)) {
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `discount_code_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه کد تخفیف افزونه' AFTER `discount_amount`");
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD KEY `idx_discount_code_id` (`discount_code_id`)");
+            }
+            $c4 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$inv_tbl` LIKE %s", 'discount_code'));
+            if (empty($c4)) {
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `discount_code` varchar(64) DEFAULT NULL COMMENT ' متن کد تخفیف (اسنپ‌شات)' AFTER `discount_code_id`");
+            }
+            // Backfill: رکوردهای قبلی subtotal = amount
+            $wpdb->query("UPDATE `$inv_tbl` SET subtotal_amount = amount WHERE (subtotal_amount IS NULL OR subtotal_amount = 0) AND (discount_amount IS NULL OR discount_amount = 0)");
+        }
+        update_option('sc_invoices_discount_columns_added', '1');
+    }
+}
+
+/**
+ * جداول کدهای تخفیف مخصوص صورت‌حساب‌های ثبت‌نام (افزونه)
+ */
+function sc_create_discount_codes_tables() {
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $codes = $wpdb->prefix . 'sc_discount_codes';
+    $sql = "CREATE TABLE `$codes` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `code` varchar(64) NOT NULL,
+        `description` text DEFAULT NULL,
+        `discount_type` varchar(20) NOT NULL DEFAULT 'percent',
+        `discount_value` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `max_discount_amount` decimal(10,2) DEFAULT NULL,
+        `min_subtotal` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `starts_at` datetime DEFAULT NULL,
+        `ends_at` datetime DEFAULT NULL,
+        `usage_limit_total` int(11) unsigned DEFAULT NULL,
+        `usage_limit_per_member` int(11) unsigned DEFAULT NULL,
+        `allow_course` tinyint(1) NOT NULL DEFAULT 1,
+        `allow_event` tinyint(1) NOT NULL DEFAULT 1,
+        `is_active` tinyint(1) NOT NULL DEFAULT 1,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_sc_discount_code` (`code`),
+        KEY `idx_sc_discount_active` (`is_active`),
+        KEY `idx_sc_discount_dates` (`starts_at`,`ends_at`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+
+    $t = $wpdb->prefix . 'sc_discount_code_courses';
+    $sql = "CREATE TABLE `$t` (
+        `discount_code_id` bigint(20) unsigned NOT NULL,
+        `course_id` bigint(20) unsigned NOT NULL,
+        PRIMARY KEY (`discount_code_id`,`course_id`),
+        KEY `idx_course_id` (`course_id`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+
+    $t = $wpdb->prefix . 'sc_discount_code_events';
+    $sql = "CREATE TABLE `$t` (
+        `discount_code_id` bigint(20) unsigned NOT NULL,
+        `event_id` bigint(20) unsigned NOT NULL,
+        PRIMARY KEY (`discount_code_id`,`event_id`),
+        KEY `idx_event_id` (`event_id`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+
+    $t = $wpdb->prefix . 'sc_discount_code_chapters';
+    $sql = "CREATE TABLE `$t` (
+        `discount_code_id` bigint(20) unsigned NOT NULL,
+        `chapter_name` varchar(191) NOT NULL,
+        PRIMARY KEY (`discount_code_id`,`chapter_name`),
+        KEY `idx_chapter` (`chapter_name`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+
+    $t = $wpdb->prefix . 'sc_discount_code_teams';
+    $sql = "CREATE TABLE `$t` (
+        `discount_code_id` bigint(20) unsigned NOT NULL,
+        `team_name` varchar(191) NOT NULL,
+        PRIMARY KEY (`discount_code_id`,`team_name`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+
+    $t = $wpdb->prefix . 'sc_discount_code_levels';
+    $sql = "CREATE TABLE `$t` (
+        `discount_code_id` bigint(20) unsigned NOT NULL,
+        `level_name` varchar(191) NOT NULL,
+        PRIMARY KEY (`discount_code_id`,`level_name`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+
+    $t = $wpdb->prefix . 'sc_discount_code_members_allow';
+    $sql = "CREATE TABLE `$t` (
+        `discount_code_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned NOT NULL,
+        PRIMARY KEY (`discount_code_id`,`member_id`),
+        KEY `idx_member` (`member_id`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+
+    $t = $wpdb->prefix . 'sc_discount_code_members_deny';
+    $sql = "CREATE TABLE `$t` (
+        `discount_code_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned NOT NULL,
+        PRIMARY KEY (`discount_code_id`,`member_id`),
+        KEY `idx_member` (`member_id`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+
+    $t = $wpdb->prefix . 'sc_discount_code_usages';
+    $sql = "CREATE TABLE `$t` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `discount_code_id` bigint(20) unsigned NOT NULL,
+        `invoice_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `amount_saved` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_invoice_once` (`invoice_id`),
+        KEY `idx_discount_code_id` (`discount_code_id`),
+        KEY `idx_member_id` (`member_id`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
 }

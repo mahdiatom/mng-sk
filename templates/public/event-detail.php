@@ -404,6 +404,17 @@ $price_free = number_format((float)$event->price, $decimal_places, $decimal_sepa
                         </div>
                     </div>
                     <?php endif; ?>
+
+                    <?php if ((float) $event->price > 0) : ?>
+                    <div class="sc-event-discount-row" style="margin: 24px 0; padding: 16px; background: #f6f7f7; border: 1px solid #ddd; border-radius: 8px;">
+                        <label for="sc_invoice_discount_code_event" style="display: block; font-weight: 600; margin-bottom: 8px;">کد تخفیف (اختیاری)</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                            <input type="text" name="sc_invoice_discount_code" id="sc_invoice_discount_code_event" class="regular-text" autocomplete="off" placeholder="کد تخفیف" style="flex: 1; min-width: 200px; padding: 8px 12px;">
+                            <button type="button" class="button" id="sc-preview-discount-event">بررسی کد</button>
+                        </div>
+                        <div id="sc-discount-preview-event" style="margin-top: 12px; font-size: 14px; line-height: 1.6;"></div>
+                    </div>
+                    <?php endif; ?>
                     
                     <button type="submit" name="sc_enroll_event" class="button button-primary sc-enroll-event-btn">
                         ثبت‌نام در <?php echo esc_html($event_type_label); ?>
@@ -448,6 +459,38 @@ document.addEventListener('DOMContentLoaded', function() {
             clearInterval(interval); // توقف بررسی بعد از اسکرول
         }
     }, 100);
+
+    const previewBtn = document.getElementById('sc-preview-discount-event');
+    const previewBox = document.getElementById('sc-discount-preview-event');
+    const discountInput = document.getElementById('sc_invoice_discount_code_event');
+    if (previewBtn && previewBox && discountInput) {
+        const ajaxUrl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
+        const discountNonce = '<?php echo esc_js(wp_create_nonce('sc_discount_preview')); ?>';
+        const eventId = <?php echo isset($event->id) ? absint($event->id) : 0; ?>;
+        previewBtn.addEventListener('click', function () {
+            const code = (discountInput.value || '').trim();
+            previewBox.textContent = 'در حال بررسی...';
+            const params = new URLSearchParams();
+            params.append('action', 'sc_preview_sc_discount_event');
+            params.append('nonce', discountNonce);
+            params.append('event_id', String(eventId));
+            params.append('code', code);
+            fetch(ajaxUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: params.toString()
+            }).then(function (res) { return res.json(); }).then(function (json) {
+                if (json && json.success && json.data) {
+                    previewBox.innerHTML = json.data.summary_html || '';
+                } else {
+                    var msg = (json && json.data && json.data.message) ? json.data.message : 'خطا';
+                    previewBox.innerHTML = '<span style="color:#d63638;">' + msg + '</span>';
+                }
+            }).catch(function () {
+                previewBox.textContent = 'خطا در ارتباط با سرور';
+            });
+        });
+    }
 });
 </script>
 

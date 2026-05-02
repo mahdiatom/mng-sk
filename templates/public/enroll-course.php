@@ -331,6 +331,16 @@ if (function_exists('wc_get_price_thousand_separator')) {
                 ?>
             </div>
         <?php endif; ?>
+
+        <div class="sc-enroll-discount-row" style="margin-top: 24px; padding: 16px; background: #f6f7f7; border: 1px solid #ddd; border-radius: 8px; max-width: 560px;">
+            <label for="sc_invoice_discount_code" style="display: block; font-weight: 600; margin-bottom: 8px;">کد تخفیف (اختیاری)</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                <input type="text" name="sc_invoice_discount_code" id="sc_invoice_discount_code" class="regular-text" autocomplete="off" placeholder="مثال: SUMMER1404" style="flex: 1; min-width: 200px; padding: 8px 12px;">
+                <button type="button" class="button" id="sc-preview-discount-course"><?php esc_html_e('بررسی کد', 'sportclub-manager'); ?></button>
+            </div>
+            <p class="description" style="margin: 8px 0 0; color: #646970; font-size: 13px;">پس از انتخاب دوره (و در صورت وجود، پکیج)، می‌توانید کد را بررسی کنید تا مبلغ نهایی نمایش داده شود.</p>
+            <div id="sc-discount-preview-course" style="margin-top: 12px; font-size: 14px; line-height: 1.6;"></div>
+        </div>
         
         <p class="form-row" style="margin-top: 20px;">
             <button type="submit" name="sc_enroll_course" class="button button-primary" style="padding: 12px 30px; font-size: 16px;">
@@ -358,6 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const selectedSessionsInput = document.getElementById('sc-enrollment-sessions-field');
     const nonce = '<?php echo esc_js(wp_create_nonce('sc_enroll_package')); ?>';
+    const discountNonce = '<?php echo esc_js(wp_create_nonce('sc_discount_preview')); ?>';
     const ajaxUrl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
     let selectedCourseId = 0;
 
@@ -433,5 +444,51 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return true;
     });
+
+    const previewBtn = document.getElementById('sc-preview-discount-course');
+    const previewBox = document.getElementById('sc-discount-preview-course');
+    const discountInput = document.getElementById('sc_invoice_discount_code');
+    if (previewBtn && previewBox && discountInput) {
+        previewBtn.addEventListener('click', function () {
+            const checkedCourse = form.querySelector('input[name="course_id"]:checked');
+            if (!checkedCourse) {
+                previewBox.innerHTML = '<span style="color:#d63638;">ابتدا یک دوره انتخاب کنید.</span>';
+                return;
+            }
+            const courseId = parseInt(checkedCourse.value || '0', 10);
+            const courseItem = document.getElementById('course_item_' + courseId);
+            const hasPackages = courseItem && courseItem.getAttribute('data-has-packages') === '1';
+            let sessions = 0;
+            if (hasPackages) {
+                const checkedPkg = form.querySelector('input[name="sc_pkg_course_' + courseId + '"]:checked');
+                if (!checkedPkg) {
+                    previewBox.innerHTML = '<span style="color:#d63638;">برای این دوره ابتدا پکیج را انتخاب کنید.</span>';
+                    return;
+                }
+                sessions = parseInt(checkedPkg.value || '0', 10);
+            }
+            const code = (discountInput.value || '').trim();
+            previewBox.textContent = 'در حال بررسی...';
+            const params = new URLSearchParams();
+            params.append('action', 'sc_preview_sc_discount_course');
+            params.append('nonce', discountNonce);
+            params.append('course_id', String(courseId));
+            params.append('sessions', String(sessions));
+            params.append('code', code);
+            fetch(ajaxUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: params.toString()
+            }).then(function (res) { return res.json(); }).then(function (json) {
+                if (json && json.success && json.data) {
+                    previewBox.innerHTML = json.data.summary_html || '';
+                } else {
+                    previewBox.innerHTML = '<span style="color:#d63638;">' + (json && json.data && json.data.message ? json.data.message : 'کد نامعتبر است.') + '</span>';
+                }
+            }).catch(function () {
+                previewBox.textContent = 'خطا در ارتباط با سرور';
+            });
+        });
+    }
 });
 </script>

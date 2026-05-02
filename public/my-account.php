@@ -1327,7 +1327,33 @@ function sc_handle_course_enrollment() {
         }
 
         // بازیکن عادی: ایجاد صورت حساب و سفارش WooCommerce
-        $invoice_result = sc_create_course_invoice($player->id, $course_id, $member_course_id, $invoice_amount, '', $fee_label);
+        $discount_meta = null;
+        $raw_discount = isset($_POST['sc_invoice_discount_code']) ? sanitize_text_field(wp_unslash($_POST['sc_invoice_discount_code'])) : '';
+        if ($raw_discount !== '' && function_exists('sc_validate_sc_discount_code')) {
+            $vd = sc_validate_sc_discount_code($raw_discount, [
+                'context' => 'course',
+                'member_id' => (int) $player->id,
+                'subtotal' => $invoice_amount,
+                'course_id' => $course_id,
+                'course' => $course,
+            ]);
+            if (is_wp_error($vd)) {
+                wc_add_notice($vd->get_error_message(), 'error');
+                wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+                exit;
+            }
+            if ($vd['discount_amount'] > 0) {
+                $discount_meta = [
+                    'discount_code_id' => $vd['discount_code_id'],
+                    'discount_code' => $vd['code'],
+                    'discount_amount' => $vd['discount_amount'],
+                    'net_amount' => $vd['net_amount'],
+                    'subtotal' => $vd['subtotal'],
+                ];
+            }
+        }
+
+        $invoice_result = sc_create_course_invoice($player->id, $course_id, $member_course_id, $invoice_amount, '', $fee_label, $discount_meta);
 
         if ($invoice_result && isset($invoice_result['success']) && $invoice_result['success']) {
             wc_add_notice('مرحله اول ثبت‌نام شما با موفقیت انجام شد جهت فعال شدن دوره لطفاً صورت حساب خود را پرداخت کنید .', 'success');
@@ -1352,7 +1378,7 @@ function sc_handle_course_enrollment() {
 /**
  * Create invoice and WooCommerce order for course enrollment
  */
-function sc_create_course_invoice($member_id, $course_id, $member_course_id, $amount, $type = '', $fee_display_name = '') {
+function sc_create_course_invoice($member_id, $course_id, $member_course_id, $amount, $type = '', $fee_display_name = '', $discount_meta = null) {
     // بررسی فعال بودن WooCommerce
 
 
@@ -1482,6 +1508,20 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
     
     // ذخیره اولیه برای اطمینان از تنظیمات
     $order->save();
+
+    $subtotal = round(floatval($amount), 2);
+    $discount_amt = 0;
+    $discount_code_id = null;
+    $discount_code_str = null;
+    $net_total = $subtotal;
+    if (is_array($discount_meta) && isset($discount_meta['discount_amount']) && floatval($discount_meta['discount_amount']) > 0) {
+        $discount_amt = round(floatval($discount_meta['discount_amount']), 2);
+        $discount_code_id = isset($discount_meta['discount_code_id']) ? absint($discount_meta['discount_code_id']) : null;
+        $discount_code_str = isset($discount_meta['discount_code']) ? sanitize_text_field($discount_meta['discount_code']) : '';
+        $net_total = isset($discount_meta['net_amount'])
+            ? round(floatval($discount_meta['net_amount']), 2)
+            : round(max(0, $subtotal - $discount_amt), 2);
+    }
     
     // اضافه کردن Fee به سفارش با استفاده از WC_Order_Item_Fee
     $fee = new WC_Order_Item_Fee();
@@ -1489,11 +1529,24 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
         ? $fee_display_name
         : ('هزینه دوره: ' . $course->title);
     $fee->set_name($fee_name);
-    $fee->set_amount($amount);
+    $fee->set_amount($subtotal);
     $fee->set_tax_class('');
     $fee->set_tax_status('none');
-    $fee->set_total($amount);
+    $fee->set_total($subtotal);
     $order->add_item($fee);
+
+    if ($discount_amt > 0) {
+        $disc_fee = new WC_Order_Item_Fee();
+        $disc_label = $discount_code_str
+            ? ('تخفیف (' . $discount_code_str . ')')
+            : 'تخفیف';
+        $disc_fee->set_name($disc_label);
+        $disc_fee->set_amount(-$discount_amt);
+        $disc_fee->set_tax_class('');
+        $disc_fee->set_tax_status('none');
+        $disc_fee->set_total(-$discount_amt);
+        $order->add_item($disc_fee);
+    }
     
     // تنظیم وضعیت سفارش به pending
     $order->set_status('pending', 'سفارش ایجاد شده از طریق ثبت‌نام در دوره');
@@ -1533,23 +1586,33 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
     $order->save();
     
     // ایجاد رکورد صورت حساب در دیتابیس
-    $invoice_inserted = $wpdb->insert(
-        $invoices_table,
-        [
-            'member_id' => $member_id,
-            'course_id' => $course_id,
-            'member_course_id' => $member_course_id,
-            'woocommerce_order_id' => $order_id,
-            'amount' => $amount,
-            'penalty_amount' => 0.00,
-            'penalty_applied' => 0,
-            'status' => 'pending',
-            'created_at' => current_time('mysql'),
-            'updated_at' => current_time('mysql'),
-            'type' => $type
-        ],
-        ['%d', '%d', '%d', '%d', '%f', '%f', '%d', '%s', '%s', '%s', '%s']
-    );
+    $invoice_row = [
+        'member_id' => $member_id,
+        'course_id' => $course_id,
+        'member_course_id' => $member_course_id,
+        'woocommerce_order_id' => $order_id,
+        'amount' => $net_total,
+        'penalty_amount' => 0.00,
+        'penalty_applied' => 0,
+        'status' => 'pending',
+        'created_at' => current_time('mysql'),
+        'updated_at' => current_time('mysql'),
+        'type' => $type,
+    ];
+    $invoice_fmt = ['%d', '%d', '%d', '%d', '%f', '%f', '%d', '%s', '%s', '%s', '%s'];
+
+    if (function_exists('sc_invoices_support_discount_columns') && sc_invoices_support_discount_columns()) {
+        $invoice_row['subtotal_amount'] = $subtotal;
+        $invoice_row['discount_amount'] = $discount_amt;
+        $invoice_row['discount_code_id'] = ($discount_amt > 0 && $discount_code_id) ? $discount_code_id : null;
+        $invoice_row['discount_code'] = ($discount_amt > 0 && $discount_code_str) ? $discount_code_str : null;
+        $invoice_fmt[] = '%f';
+        $invoice_fmt[] = '%f';
+        $invoice_fmt[] = '%s';
+        $invoice_fmt[] = '%s';
+    }
+
+    $invoice_inserted = $wpdb->insert($invoices_table, $invoice_row, $invoice_fmt);
     
     if ($invoice_inserted === false) {
         // در صورت خطا، سفارش را حذف می‌کنیم
@@ -1560,6 +1623,9 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
     // بررسی و اعمال جریمه در صورت نیاز
     $invoice_id = $wpdb->insert_id;
     if ($invoice_id) {
+        if ($discount_amt > 0 && $discount_code_id && function_exists('sc_record_sc_discount_usage')) {
+            sc_record_sc_discount_usage($discount_code_id, $invoice_id, $member_id, $discount_amt);
+        }
         sc_apply_penalty_to_invoice($invoice_id);
 
         // ارسال SMS صورت حساب
@@ -2019,6 +2085,13 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
         "SELECT * FROM $invoices_table WHERE id = %d",
         $invoice_id
     ));
+
+    $inv_disc = 0.0;
+    $inv_sub = null;
+    if ($invoice && function_exists('sc_invoices_support_discount_columns') && sc_invoices_support_discount_columns()) {
+        $inv_disc = isset($invoice->discount_amount) ? floatval($invoice->discount_amount) : 0.0;
+        $inv_sub = isset($invoice->subtotal_amount) ? floatval($invoice->subtotal_amount) : null;
+    }
     
     $events_table = $wpdb->prefix . 'sc_events';
     $event = null;
@@ -2028,8 +2101,49 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
             $invoice->event_id
         ));
     }
-    
-    if ($course && $course->price > 0) {
+
+    $fee_discount_handled = false;
+    if ($invoice && $inv_disc > 0 && $inv_sub !== null && $inv_sub > 0) {
+        if ($course && $course_id > 0 && floatval($course->price) > 0) {
+            $course_amount = $inv_sub;
+            $fee = new WC_Order_Item_Fee();
+            $fee->set_name('دوره: ' . $course->title);
+            $fee->set_amount($inv_sub);
+            $fee->set_tax_class('');
+            $fee->set_tax_status('none');
+            $fee->set_total($inv_sub);
+            $order->add_item($fee);
+            $disc_fee = new WC_Order_Item_Fee();
+            $dl = !empty($invoice->discount_code) ? ('تخفیف (' . $invoice->discount_code . ')') : 'تخفیف';
+            $disc_fee->set_name($dl);
+            $disc_fee->set_amount(-$inv_disc);
+            $disc_fee->set_tax_class('');
+            $disc_fee->set_tax_status('none');
+            $disc_fee->set_total(-$inv_disc);
+            $order->add_item($disc_fee);
+            $fee_discount_handled = true;
+        } elseif ($event && !empty($invoice->event_id) && floatval($event->price) > 0) {
+            $course_amount = $inv_sub;
+            $fee = new WC_Order_Item_Fee();
+            $fee->set_name('رویداد / مسابقه: ' . $event->name);
+            $fee->set_amount($inv_sub);
+            $fee->set_tax_class('');
+            $fee->set_tax_status('none');
+            $fee->set_total($inv_sub);
+            $order->add_item($fee);
+            $disc_fee = new WC_Order_Item_Fee();
+            $dl = !empty($invoice->discount_code) ? ('تخفیف (' . $invoice->discount_code . ')') : 'تخفیف';
+            $disc_fee->set_name($dl);
+            $disc_fee->set_amount(-$inv_disc);
+            $disc_fee->set_tax_class('');
+            $disc_fee->set_tax_status('none');
+            $disc_fee->set_total(-$inv_disc);
+            $order->add_item($disc_fee);
+            $fee_discount_handled = true;
+        }
+    }
+
+    if (!$fee_discount_handled && $course && $course->price > 0) {
         $course_amount = floatval($course->price);
         // اضافه کردن هزینه دوره به سفارش
         $fee = new WC_Order_Item_Fee();
@@ -2039,7 +2153,7 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
         $fee->set_tax_status('none');
         $fee->set_total($course_amount);
         $order->add_item($fee);
-    } elseif ($event && $event->price > 0) {
+    } elseif (!$fee_discount_handled && $event && $event->price > 0) {
         $course_amount = floatval($event->price);
         // اضافه کردن هزینه رویداد به سفارش
         $fee = new WC_Order_Item_Fee();
@@ -2084,7 +2198,7 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
  * Create invoice and WooCommerce order for event enrollment
  */
 if (!function_exists('sc_create_event_invoice')) {
-function sc_create_event_invoice($member_id, $event_id, $amount) {
+function sc_create_event_invoice($member_id, $event_id, $amount, $discount_meta = null) {
     // بررسی فعال بودن WooCommerce
     if (!class_exists('WooCommerce')) {
         return ['success' => false, 'message' => 'WooCommerce فعال نیست.'];
@@ -2110,6 +2224,20 @@ function sc_create_event_invoice($member_id, $event_id, $amount) {
     if (empty($amount) || $amount == 0) {
         $amount = floatval($event->price);
     }
+
+    $subtotal = round(floatval($amount), 2);
+    $discount_amt = 0;
+    $discount_code_id = null;
+    $discount_code_str = null;
+    $net_total = $subtotal;
+    if (is_array($discount_meta) && isset($discount_meta['discount_amount']) && floatval($discount_meta['discount_amount']) > 0) {
+        $discount_amt = round(floatval($discount_meta['discount_amount']), 2);
+        $discount_code_id = isset($discount_meta['discount_code_id']) ? absint($discount_meta['discount_code_id']) : null;
+        $discount_code_str = isset($discount_meta['discount_code']) ? sanitize_text_field($discount_meta['discount_code']) : '';
+        $net_total = isset($discount_meta['net_amount'])
+            ? round(floatval($discount_meta['net_amount']), 2)
+            : round(max(0, $subtotal - $discount_amt), 2);
+    }
     
     // ایجاد صورت حساب
     $invoice_data = [
@@ -2118,25 +2246,28 @@ function sc_create_event_invoice($member_id, $event_id, $amount) {
         'course_id' => 0, // برای رویداد، course_id باید 0 باشد نه NULL
         'member_course_id' => NULL,
         'woocommerce_order_id' => NULL,
-        'amount' => $amount,
+        'amount' => $net_total,
         'expense_name' => NULL,
         'penalty_amount' => 0.00,
         'penalty_applied' => 0,
         'status' => 'pending',
         'payment_date' => NULL,
         'created_at' => current_time('mysql'),
-        'updated_at' => current_time('mysql')
+        'updated_at' => current_time('mysql'),
     ];
-    
-    // آماده‌سازی format array برای insert
-    // ترتیب: member_id, event_id, course_id, member_course_id, woocommerce_order_id, amount, expense_name, penalty_amount, penalty_applied, status, payment_date, created_at, updated_at
+
     $format_array = ['%d', '%d', '%d', '%s', '%s', '%f', '%s', '%f', '%d', '%s', '%s', '%s', '%s'];
-    
-    // تنظیم format برای فیلدهای NULL (index از 0 شروع می‌شود)
-    // member_course_id (index 3) = NULL
-    // woocommerce_order_id (index 4) = NULL  
-    // expense_name (index 6) = NULL
-    // payment_date (index 10) = NULL
+
+    if (function_exists('sc_invoices_support_discount_columns') && sc_invoices_support_discount_columns()) {
+        $invoice_data['subtotal_amount'] = $subtotal;
+        $invoice_data['discount_amount'] = $discount_amt;
+        $invoice_data['discount_code_id'] = ($discount_amt > 0 && $discount_code_id) ? $discount_code_id : null;
+        $invoice_data['discount_code'] = ($discount_amt > 0 && $discount_code_str) ? $discount_code_str : null;
+        $format_array[] = '%f';
+        $format_array[] = '%f';
+        $format_array[] = '%s';
+        $format_array[] = '%s';
+    }
     
     $inserted = $wpdb->insert(
         $invoices_table,
@@ -2154,12 +2285,15 @@ function sc_create_event_invoice($member_id, $event_id, $amount) {
     
     $invoice_id = $wpdb->insert_id;
 
+    if ($invoice_id && $discount_amt > 0 && $discount_code_id && function_exists('sc_record_sc_discount_usage')) {
+        sc_record_sc_discount_usage($discount_code_id, $invoice_id, $member_id, $discount_amt);
+    }
+
     // Trigger SMS hook for event invoices
     do_action('sc_invoice_created', $invoice_id);
 
-    // ایجاد سفارش WooCommerce
-    // توجه: course_id را 0 می‌فرستیم چون این یک رویداد است، نه دوره
-    $order_result = sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, 0, $amount, $event->name);
+    // ایجاد سفارش WooCommerce (مبلغ ورودی = خالص پس از تخفیف برای هم‌خوانی با هزینه اضافی)
+    $order_result = sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, 0, $net_total, $event->name);
     
     if ($order_result && isset($order_result['success']) && $order_result['success'] && !empty($order_result['order_id'])) {
         $order_id = $order_result['order_id'];
@@ -3190,7 +3324,33 @@ exit;
     exit;
 }
 
-    $invoice_result = sc_create_event_invoice($player->id, $event_id, $event->price);
+    $discount_meta = null;
+    $raw_discount = isset($_POST['sc_invoice_discount_code']) ? sanitize_text_field(wp_unslash($_POST['sc_invoice_discount_code'])) : '';
+    if ($raw_discount !== '' && function_exists('sc_validate_sc_discount_code')) {
+        $vd = sc_validate_sc_discount_code($raw_discount, [
+            'context' => 'event',
+            'member_id' => (int) $player->id,
+            'subtotal' => floatval($event->price),
+            'event_id' => $event_id,
+            'event' => $event,
+        ]);
+        if (is_wp_error($vd)) {
+            wc_add_notice($vd->get_error_message(), 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-event-detail'));
+            exit;
+        }
+        if ($vd['discount_amount'] > 0) {
+            $discount_meta = [
+                'discount_code_id' => $vd['discount_code_id'],
+                'discount_code' => $vd['code'],
+                'discount_amount' => $vd['discount_amount'],
+                'net_amount' => $vd['net_amount'],
+                'subtotal' => $vd['subtotal'],
+            ];
+        }
+    }
+
+    $invoice_result = sc_create_event_invoice($player->id, $event_id, $event->price, $discount_meta);
     
     error_log('SC Event Enrollment: Invoice result: ' . print_r($invoice_result, true));
     

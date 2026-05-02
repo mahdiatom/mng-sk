@@ -483,6 +483,24 @@ function sc_register_admin_menu() {
         'sc_admin_add_expense_page'
     );
 
+    add_submenu_page(
+        'sc-invoices',
+        'کدهای تخفیف',
+        'کدهای تخفیف',
+        'manage_options',
+        'sc-discount-codes',
+        'sc_admin_discount_codes_list_page'
+    );
+
+    add_submenu_page(
+        'sc-invoices',
+        'افزودن کد تخفیف',
+        'افزودن کد تخفیف',
+        'manage_options',
+        'sc-add-discount-code',
+        'sc_admin_discount_code_edit_page'
+    );
+
     /* ================= Wallet - کیف پول بازیکنان (فقط وقتی امکانات پرو فعال است) ================= */
 
     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {
