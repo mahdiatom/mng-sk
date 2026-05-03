@@ -473,7 +473,7 @@ document.addEventListener('DOMContentLoaded', function() {
             params.append('action', 'sc_preview_sc_discount_course');
             params.append('nonce', discountNonce);
             params.append('course_id', String(courseId));
-            params.append('sessions', String(sessions));
+            params.append('enrollment_sessions', String(sessions));
             params.append('code', code);
             fetch(ajaxUrl, {
                 method: 'POST',

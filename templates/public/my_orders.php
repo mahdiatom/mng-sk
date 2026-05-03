@@ -39,14 +39,14 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                 <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
                 <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                     <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
-                    <option value="wc-checkout-draft" <?php selected($filter_status, 'wc-checkout-draft'); ?>>در انتظار پرداخت</option>
-                    <option value="wc-under_review" <?php selected($filter_status, 'wc-under_review'); ?>>در حال بررسی</option>
-                    <option value="wc-processing" <?php selected($filter_status, 'wc-processing'); ?>>پرداخت شده</option>
-                    <option value="wc-completed" <?php selected($filter_status, 'wc-completed'); ?>>تایید پرداخت</option>
-                    <option value="wc-paid" <?php selected($filter_status, 'wc-paid'); ?>>تایید پرداخت</option>
-                    <option value="wc-cancelled" <?php selected($filter_status, 'wc-cancelled'); ?>>لغو شده</option>
-                    <option value="wc-refunded" <?php selected($filter_status, 'wc-refunded'); ?>>بازگشت شده</option>
-                    <option value="wc-failed" <?php selected($filter_status, 'wc-failed'); ?>>ناموفق</option>
+                    <option value="pending" <?php selected($filter_status, 'pending'); ?>>در انتظار پرداخت</option>
+                    <option value="on-hold" <?php selected($filter_status, 'on-hold'); ?>>در حال بررسی</option>
+                    <option value="processing" <?php selected($filter_status, 'processing'); ?>>پرداخت شده</option>
+                    <option value="completed" <?php selected($filter_status, 'completed'); ?>>تایید پرداخت</option>
+                    <option value="cancelled" <?php selected($filter_status, 'cancelled'); ?>>لغو شده</option>
+                    <option value="failed" <?php selected($filter_status, 'failed'); ?>>ناموفق</option>
+                    <option value="refunded" <?php selected($filter_status, 'refunded'); ?>>بازگشت شده</option>
+                    <option value="penalty" <?php selected($filter_status, 'penalty'); ?>>جریمه‌دار (صورت‌حساب)</option>
                 </select>
             </div>
             
@@ -189,7 +189,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                     $has_valid_order = false;
                     
                     // بررسی وجود id_order و وضعیت pending یا under_review
-                    if (!empty($order->id_order) && in_array($order->status, ['wc-pending','wc-checkout-draft', 'wc-under_review'])) {
+                    if (!empty($order->id_order) && in_array($order->status, ['wc-pending', 'wc-checkout-draft', 'wc-under_review', 'wc-on-hold'], true)) {
                         if (function_exists('wc_get_order')) {
                             $order_object = wc_get_order($order->id_order);
                             if ($order_object) {
@@ -220,7 +220,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                     }
                     
                     // اگر لینک پرداخت وجود ندارد اما id_order و وضعیت pending یا under_review دارد، لینک را ایجاد کن
-                    if (empty($payment_url) && !empty($order->id_order) && in_array($order->status, ['wc-pending', 'wc-under_review','wc-checkout-draft'])) {
+                    if (empty($payment_url) && !empty($order->id_order) && in_array($order->status, ['wc-pending', 'wc-under_review', 'wc-checkout-draft', 'wc-on-hold'], true)) {
                         // اگر order پیدا نشد، دوباره تلاش کن
                         if (!$order_object && function_exists('wc_get_order')) {
                             $order_object = wc_get_order($order->id_order);
@@ -343,19 +343,25 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                         }
                                     }
                                     
-                                    // دکمه پرداخت از کیف پول
+                                    // دکمه پرداخت از کیف پول (نیاز به صورت‌حساب مرتبط با همین سفارش ووکامرس)
                                     if ($can_pay_from_wallet) {
-                                        $wallet_pay_url = wp_nonce_url(
-                                            add_query_arg([
-                                                'pay_from_wallet' => '1',
-                                                'order_id' => $order->id
-                                            ], wc_get_account_endpoint_url('my-orders')),
-                                            'pay_from_wallet_' . $order->id
-                                        );
-                                        
-                                        $wallet_text = $wallet_balance >= $total_amount ? 'پرداخت از کیف پول' : 'پرداخت از کیف پول + بقیه اش از درگاه';
-                                        $action_buttons[] = '<a href="' . esc_url($wallet_pay_url) . '" class="woocommerce-button button view sc-order-btn sc-order-btn-wallet" style="background: #28a745; color: white;"
+                                        global $wpdb;
+                                        $invoice_id_wallet = (int) $wpdb->get_var($wpdb->prepare(
+                                            "SELECT id FROM {$wpdb->prefix}sc_invoices WHERE woocommerce_order_id = %d LIMIT 1",
+                                            $order->id_order
+                                        ));
+                                        if ($invoice_id_wallet > 0) {
+                                            $wallet_pay_url = wp_nonce_url(
+                                                add_query_arg([
+                                                    'pay_from_wallet' => '1',
+                                                    'invoice_id' => $invoice_id_wallet,
+                                                ], wc_get_account_endpoint_url('my-orders')),
+                                                'pay_from_wallet_' . $invoice_id_wallet
+                                            );
+                                            $wallet_text = $wallet_balance >= $total_amount ? 'پرداخت از کیف پول' : 'پرداخت از کیف پول + بقیه اش از درگاه';
+                                            $action_buttons[] = '<a href="' . esc_url($wallet_pay_url) . '" class="woocommerce-button button view sc-order-btn sc-order-btn-wallet" style="background: #28a745; color: white;"
                                         >💰 ' . esc_html($wallet_text) . '</a>';
+                                        }
                                     }
                                     
                                     // دکمه پرداخت از درگاه
@@ -363,17 +369,17 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                     >💳 پرداخت از درگاه</a>';
                                 }
                                 
-                                // دکمه مشاهده سفارش برای under_review یا سایر حالات
-                                if ($order->status === 'under_review' && !empty($order->id_order) && function_exists('wc_get_endpoint_url')) {
+                                $pending_like = ['wc-pending', 'wc-under_review', 'wc-checkout-draft', 'wc-on-hold'];
+                                if (in_array($order->status, ['wc-on-hold', 'wc-under_review'], true) && !empty($order->id_order) && function_exists('wc_get_endpoint_url')) {
                                     $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $order->id_order)) . '" class="woocommerce-button button view sc-order-btn sc-order-btn-view button-primary"
                                    >👁️ مشاهده</a>';
-                                } elseif (!empty($order->id_order) && function_exists('wc_get_endpoint_url') && !in_array($order->status, ['wc-pending', 'wc-under_review','wc-checkout-draft'])) {
+                                } elseif (!empty($order->id_order) && function_exists('wc_get_endpoint_url') && !in_array($order->status, $pending_like, true)) {
                                     $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $order->id_order)) . '" class="woocommerce-button button view sc-order-btn sc-order-btn-view button-primary" 
                                     >👁️ مشاهده</a>';
                                 }
                                 
                                 // دکمه لغو برای pending و under_review
-                                if (in_array($order->status, ['wc-pending', 'wc-under_review','wc-checkout-draft'])) {
+                                if (in_array($order->status, ['wc-pending', 'wc-under_review', 'wc-checkout-draft', 'wc-on-hold'], true)) {
                                     $cancel_base_url = wc_get_account_endpoint_url('my-orders');
                                     $cancel_args = [
                                         'cancel_order' => '1',
@@ -399,7 +405,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                                 // نمایش دکمه‌ها یا پیام
                                 if (!empty($action_buttons)) {
                                     echo implode('', $action_buttons);
-                                } elseif (in_array($order->status, ['wc-pending', 'wc-under_review','wc-checkout-draft']) && empty($order->id_order)) {
+                                } elseif (in_array($order->status, ['wc-pending', 'wc-under_review', 'wc-checkout-draft', 'wc-on-hold'], true) && empty($order->id_order)) {
                                     echo '<span style="color: #d63638; font-size: 12px; padding: 8px; background: #ffeaea; border-radius: 6px; display: inline-block;">⏳ در انتظار ایجاد سفارش</span>';
                                 } else {
                                     echo '<span style="color: #999;">-</span>';

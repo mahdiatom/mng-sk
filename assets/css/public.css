@@ -2964,6 +2964,9 @@ padding: 15px !important;
     color: #2271b1;
     font-weight: 700;
 }
+.my_account_orders .woocommerce-orders-table__header-order-status{
+width: 150px;
+}
 
 .woocommerce-customer-details {
     background: #fff;

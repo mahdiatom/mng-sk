@@ -2775,23 +2775,67 @@ add_action('woocommerce_account_my-orders_endpoint', 'sc_my_account_my_orders_co
 
 
 function sc_my_account_my_orders_content() {
-//    سفارش های فروشگاه کاربر
-global $wpdb;
+    global $wpdb;
 
-        $members_table = $wpdb->prefix . 'sc_members';
-        $orders_table = $wpdb->prefix . 'wc_orders';
-        $woocommerce_order_items_table = $wpdb->prefix . 'woocommerce_order_items';
-        $woocommerce_order_itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
-        $user_id = get_current_user_id();
-        
-        
-        $per_page = 20;
-       // $current_page = $this->get_pagenum();
-       // $offset = ($current_page - 1) * $per_page;
-        $query = "SELECT 
+    $members_table = $wpdb->prefix . 'sc_members';
+    $orders_table = $wpdb->prefix . 'wc_orders';
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $woocommerce_order_items_table = $wpdb->prefix . 'woocommerce_order_items';
+    $woocommerce_order_itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+
+    $user_id = get_current_user_id();
+    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all';
+
+    $where_conditions = [
+        'woi.order_item_type = %s',
+        'sm.user_id = %d',
+        'wo.customer_id > 0',
+    ];
+    $where_values = ['line_item', $user_id];
+
+    $type_col = $wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM `{$orders_table}` LIKE %s", 'type'));
+    if ($type_col) {
+        $where_conditions[] = 'wo.type = %s';
+        $where_values[] = 'shop_order';
+    }
+
+    if ($filter_status !== 'all' && $filter_status !== 'penalty') {
+        if ($filter_status === 'completed') {
+            $where_conditions[] = '(wo.status = %s OR wo.status = %s)';
+            $where_values[] = 'wc-completed';
+            $where_values[] = 'wc-processing';
+        } elseif ($filter_status === 'on-hold') {
+            $where_conditions[] = '(wo.status = %s OR wo.status = %s)';
+            $where_values[] = 'wc-on-hold';
+            $where_values[] = 'wc-under_review';
+        } elseif ($filter_status === 'pending') {
+            $where_conditions[] = '(wo.status = %s OR wo.status = %s)';
+            $where_values[] = 'wc-pending';
+            $where_values[] = 'wc-checkout-draft';
+        } elseif ($filter_status === 'paid') {
+            $where_conditions[] = 'wo.status = %s';
+            $where_values[] = 'wc-completed';
+        } else {
+            $map = [
+                'processing' => 'wc-processing',
+                'cancelled' => 'wc-cancelled',
+                'failed' => 'wc-failed',
+                'refunded' => 'wc-refunded',
+            ];
+            if (isset($map[$filter_status])) {
+                $where_conditions[] = 'wo.status = %s';
+                $where_values[] = $map[$filter_status];
+            }
+        }
+    } elseif ($filter_status === 'penalty') {
+        $where_conditions[] = "EXISTS (SELECT 1 FROM {$invoices_table} invp WHERE invp.woocommerce_order_id = wo.id AND (invp.penalty_amount > 0 OR invp.penalty_applied = 1))";
+    }
+
+    $where_sql = implode(' AND ', $where_conditions);
+
+    $query = "SELECT 
             wo.id AS id_order,
             sm.user_id,
-             
             wo.status,
             wo.payment_method_title,
             GROUP_CONCAT(
@@ -2804,24 +2848,22 @@ global $wpdb;
                 SEPARATOR '<br>'
             ) AS products_with_quantity,
             wo.total_amount,
-            wo.payment_method_title,
             wo.date_created_gmt
         FROM 
-            $members_table sm
-            INNER JOIN $orders_table wo ON wo.customer_id = sm.user_id
-            INNER JOIN $woocommerce_order_items_table woi ON woi.order_id = wo.id
-            -- تعداد هر محصول (از order_itemmeta)
-            INNER JOIN $woocommerce_order_itemmeta woi_qty 
+            {$members_table} sm
+            INNER JOIN {$orders_table} wo ON wo.customer_id = sm.user_id
+            INNER JOIN {$woocommerce_order_items_table} woi ON woi.order_id = wo.id
+            INNER JOIN {$woocommerce_order_itemmeta} woi_qty 
                 ON woi.order_item_id = woi_qty.order_item_id 
                 AND woi_qty.meta_key = '_qty'
         WHERE 
-            woi.order_item_type = 'line_item' AND sm.user_id = $user_id  -- فقط محصولات
-
+            {$where_sql}
         GROUP BY 
-            wo.id, sm.first_name, sm.last_name, sm.player_phone, wo.status, wo.total_amount, wo.payment_method_title
+            wo.id, sm.first_name, sm.last_name, sm.player_phone, wo.status, wo.total_amount, wo.payment_method_title, wo.date_created_gmt
         ORDER BY 
             wo.id DESC";
-$orders= $wpdb->get_results($wpdb->prepare($query));
+
+    $orders = $wpdb->get_results($wpdb->prepare($query, $where_values));
 
     include SC_TEMPLATES_PUBLIC_DIR . 'my_orders.php';
 

@@ -10,28 +10,25 @@ if (!class_exists('WP_List_Table')) {
 
 class orders_List_Table extends WP_List_Table {
 
-    public function display() {
-
-        
-        echo '<form method="post">';
-        wp_nonce_field('bulk-' . $this->_args['plural']);
-        
-        parent::display();
-      
-        echo '</form>';
+    public function __construct() {
+        parent::__construct([
+            'singular' => 'order',
+            'plural' => 'orders',
+            'ajax' => false,
+        ]);
     }
 
-    
-   
     public function get_columns() {
         return [
-             'cb' => '<input type="checkbox" />',
-             'full_name' => 'شماره سفارش+نام مشتری',
+            'cb' => '<input type="checkbox" />',
+            'full_name' => 'شماره سفارش+نام مشتری',
             'date_order' => 'تاریخ سفارش',
-           'phone' => 'شماره تماس',
-           'status' => 'وضعیت',
-           'items' => 'جزئیات',
-           'total_amount' => 'هزینه کل',
+            'phone' => 'شماره تماس',
+            'status' => 'وضعیت',
+            'items' => 'جزئیات',
+            'product_categories' => 'دسته محصولات',
+            'order_addresses' => 'آدرس',
+            'total_amount' => 'هزینه کل',
         ];
     }
     public function column_full_name($item) {
@@ -71,6 +68,7 @@ class orders_List_Table extends WP_List_Table {
         // برچسب‌های وضعیت WooCommerce
                 $status_labels = [
                     'wc-pending' => ['label' => 'در انتظار پرداخت', 'color' => '#f0a000', 'bg' => '#fff8e1'],
+                    'wc-under_review' => ['label' => 'در حال بررسی', 'color' => '#2271b1', 'bg' => '#e5f5fa'],
                     'wc-on-hold' => ['label' => 'در حال بررسی', 'color' => '#2271b1', 'bg' => '#e5f5fa'],
                     'wc-processing' => ['label' => 'پرداخت شده', 'color' => '#00a32a', 'bg' => '#d4edda'],
                     'wc-completed' => ['label' => 'تایید پرداخت', 'color' => '#00a32a', 'bg' => '#d4edda'],
@@ -91,11 +89,74 @@ class orders_List_Table extends WP_List_Table {
                 );
                 }
                 public function column_cb($item) {
-                return '<input type="checkbox" value="' . $item->id_order . ' " name="order[]" />';
+                return '<input type="checkbox" value="' . esc_attr($item->id_order) . '" name="order[]" />';
             }
         public function column_items($item) {
                 return $item->products_with_quantity;
         }
+
+    public function column_product_categories($item) {
+        $txt = isset($item->product_categories) ? trim((string) $item->product_categories) : '';
+        if ($txt === '' && function_exists('wc_get_order')) {
+            $order = wc_get_order((int) $item->id_order);
+            if ($order) {
+                $names = [];
+                foreach ($order->get_items('line_item') as $li) {
+                    if (!is_object($li) || !method_exists($li, 'get_product_id')) {
+                        continue;
+                    }
+                    $pid = (int) $li->get_product_id();
+                    if (!$pid) {
+                        continue;
+                    }
+                    $id_for_terms = $pid;
+                    if (function_exists('wc_get_product')) {
+                        $prod = wc_get_product($pid);
+                        if ($prod && $prod->is_type('variation')) {
+                            $id_for_terms = (int) $prod->get_parent_id();
+                        }
+                    }
+                    $terms = get_the_terms($id_for_terms, 'product_cat');
+                    if (!empty($terms) && !is_wp_error($terms)) {
+                        foreach ($terms as $t) {
+                            $names[$t->term_id] = $t->name;
+                        }
+                    }
+                }
+                $txt = $names ? implode('، ', $names) : '';
+            }
+        }
+        if ($txt === '') {
+            return '<span style="color:#999;">—</span>';
+        }
+        return '<span style="font-size:12px;line-height:1.5;">' . esc_html($txt) . '</span>';
+    }
+
+    public function column_order_addresses($item) {
+        $bill = isset($item->billing_address) ? trim((string) $item->billing_address) : '';
+        $ship = isset($item->shipping_address) ? trim((string) $item->shipping_address) : '';
+
+        if (($bill === '' && $ship === '') && function_exists('wc_get_order')) {
+            $order = wc_get_order((int) $item->id_order);
+            if ($order) {
+                $bill = trim(preg_replace('/\s+/u', ' ', wp_strip_all_tags(str_replace(['<br/>', '<br />', '<br>'], '، ', $order->get_formatted_billing_address()))));
+                $ship = trim(preg_replace('/\s+/u', ' ', wp_strip_all_tags(str_replace(['<br/>', '<br />', '<br>'], '، ', $order->get_formatted_shipping_address()))));
+            }
+        }
+
+        $parts = [];
+        if ($bill !== '') {
+            $parts[] = '<strong style="display:block;margin-bottom:4px;">صورتحساب</strong><span style="font-size:12px;line-height:1.5;">' . esc_html($bill) . '</span>';
+        }
+        if ($ship !== '') {
+            $parts[] = '<strong style="display:block;margin:6px 0 4px;">ارسال</strong><span style="font-size:12px;line-height:1.5;">' . esc_html($ship) . '</span>';
+        }
+        if (empty($parts)) {
+            return '<span style="color:#999;">—</span>';
+        }
+        return '<div style="max-width:280px;">' . implode('', $parts) . '</div>';
+    }
+
         public function column_total_amount($item) {
             $price = number_format((int) $item->total_amount);
             $order = wc_get_order($item->id_order) ?? 0;
@@ -110,7 +171,8 @@ class orders_List_Table extends WP_List_Table {
                 return $price . ' ' . 'تومان' . '<br>' .  $pay ;
     }
     public function get_hidden_columns() {
-        return get_hidden_columns(get_current_screen());
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        return $screen ? get_hidden_columns($screen) : [];
     }  
     public function column_default($item, $column_name) {
         return '-';
@@ -149,13 +211,10 @@ class orders_List_Table extends WP_List_Table {
         if (!$action) {
             return;
         }
-        print_r($_POST);
-            // print_r($action);
 
         // دریافت ID های انتخاب شده
         $invoice_ids = isset($_POST['order']) ? $_POST['order'] : [];
         $invoice_ids = array_map('absint', $invoice_ids);
-        print_r($invoice_ids);
         if (empty($invoice_ids)) {
             return;
         }
@@ -192,33 +251,21 @@ class orders_List_Table extends WP_List_Table {
                 $new_status = 'wc-failed';
                 break;
             case 'delete':
-                // حذف صورت حساب‌ها
                 foreach ($invoice_ids as $invoice_id) {
-                    $invoice = $wpdb->get_row($wpdb->prepare(
-                        "SELECT wo.id 
-                    from $orders_table wo
-                    INNER JOIN $woocommerce_order_items_table woi ON wo.id = woi.order_id
-                    WHERE woi.order_item_type NOT IN ('fee') AND wo.customer_id NOT IN (0) AND wo.id = %d
-                    GROUP BY 
-                        wo.id, wo.status, wo.total_amount, wo.payment_method_title;",
-                                            $invoice_id
-                    ));
-                    
-                    // حذف سفارش WooCommerce اگر وجود دارد
-                    if ($invoice && !empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
-                        $order = wc_get_order($invoice->woocommerce_order_id);
+                    $deleted = false;
+                    if (function_exists('wc_get_order')) {
+                        $order = wc_get_order($invoice_id);
                         if ($order) {
-                            $order->delete(true); // true = force delete
+                            $order->delete(true);
+                            $deleted = true;
                         }
                     }
-                    
-                    // حذف صورت حساب
-                    $wpdb->delete($orders_table, ['id' => $invoice_id], ['%d']);
-                    $wpdb->delete($woocommerce_order_items_table, ['order_id' => $invoice_id], ['%d']);
-
-
-                    if (function_exists('sc_log_activity') && $invoice) {
-                        sc_log_activity('deleted', 'invoice', $invoice_id, 'صورتحساب #' . $invoice_id . ' (عضو ' . $invoice->member_id . ') حذف شد', (array) $invoice, null);
+                    if (!$deleted) {
+                        $wpdb->delete($orders_table, ['id' => $invoice_id], ['%d']);
+                        $wpdb->delete($woocommerce_order_items_table, ['order_id' => $invoice_id], ['%d']);
+                    }
+                    if (function_exists('sc_log_activity')) {
+                        sc_log_activity('deleted', 'order', $invoice_id, 'سفارش #' . $invoice_id . ' حذف شد', null, null);
                     }
                 }
                  
@@ -239,7 +286,7 @@ class orders_List_Table extends WP_List_Table {
                                                 $invoice_id
                     ));
                     if ($invoice && !empty($invoice->id) && function_exists('wc_get_order')) {
-                        $order = wc_get_order($invoice->id);
+                        $order = wc_get_order((int) $invoice->id);
                         if ($order) {
                             $order->update_meta_data('pay', 'کارت به کارت');
                             $order->save();
@@ -280,9 +327,10 @@ class orders_List_Table extends WP_List_Table {
                 ));
                 
                 if ($invoice) {
-                    $order = wc_get_order($invoice->woocommerce_order_id);
+                    $order = wc_get_order((int) $invoice_id);
                     if ($order) {
-                        $order->update_status($new_status, 'تغییر وضعیت از طریق bulk action');
+                        $slug = preg_replace('/^wc-/', '', $new_status);
+                        $order->update_status($slug, 'تغییر وضعیت از طریق bulk action');
                     }
                 }
             }
@@ -298,105 +346,171 @@ class orders_List_Table extends WP_List_Table {
     public function prepare_items() {
         global $wpdb;
         $this->process_bulk_action();
+
         $members_table = $wpdb->prefix . 'sc_members';
         $orders_table = $wpdb->prefix . 'wc_orders';
+        $invoices_table = $wpdb->prefix . 'sc_invoices';
         $woocommerce_order_items_table = $wpdb->prefix . 'woocommerce_order_items';
         $woocommerce_order_itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
-        
-        
+
         $per_page = $this->get_items_per_page('list_orders_per_page', 20);
         $current_page = $this->get_pagenum();
         $offset = ($current_page - 1) * $per_page;
-        
-        // پردازش فیلترها
-        $filter_member     = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
-        $filter_type       = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
-        $filter_status     = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
-        $filter_date_from  = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
-        $filter_date_to    = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
-        
-        $search            = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
-        
-        // ساخت شرط WHERE
-        $where_conditions = [];
-        $where_values = [];
-        
+
+        $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+        $filter_product_cat = isset($_GET['filter_product_cat']) ? absint($_GET['filter_product_cat']) : 0;
+        $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all';
+
+        $filter_date_from = '';
+        $filter_date_to = '';
+        if (!empty($_GET['filter_date_from_shamsi']) && function_exists('sc_shamsi_to_gregorian_date')) {
+            $filter_date_from = sc_shamsi_to_gregorian_date(sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])));
+        } elseif (!empty($_GET['filter_date_from'])) {
+            $filter_date_from = sanitize_text_field(wp_unslash($_GET['filter_date_from']));
+        }
+        if (!empty($_GET['filter_date_to_shamsi']) && function_exists('sc_shamsi_to_gregorian_date')) {
+            $filter_date_to = sc_shamsi_to_gregorian_date(sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])));
+        } elseif (!empty($_GET['filter_date_to'])) {
+            $filter_date_to = sanitize_text_field(wp_unslash($_GET['filter_date_to']));
+        }
+
+        $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+
+        $where_conditions = [
+            'woi.order_item_type = %s',
+            'wo.customer_id > 0',
+        ];
+        $where_values = ['line_item'];
+
+        $type_col = $wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM `{$orders_table}` LIKE %s", 'type'));
+        if ($type_col) {
+            $where_conditions[] = 'wo.type = %s';
+            $where_values[] = 'shop_order';
+        }
+
         if ($filter_member > 0) {
-            $where_conditions[] = "wt.member_id = %d";
+            $where_conditions[] = 'sm.id = %d';
             $where_values[] = $filter_member;
         }
-        
-        if ($filter_type !== 'all') {
-            $where_conditions[] = "wt.transaction_type = %s";
-            $where_values[] = $filter_type;
-        }
-        
-        if ($filter_status !== 'all') {
-            $where_conditions[] = "wt.status = %s";
-            $where_values[] = $filter_status;
+
+        if ($filter_product_cat > 0 && taxonomy_exists('product_cat')) {
+            $posts_table = $wpdb->posts;
+            $where_conditions[] = "EXISTS (
+                SELECT 1 FROM {$woocommerce_order_items_table} woi_fc
+                INNER JOIN {$woocommerce_order_itemmeta} oim_fc ON oim_fc.order_item_id = woi_fc.order_item_id AND oim_fc.meta_key = '_product_id'
+                INNER JOIN {$posts_table} p_fc ON CAST(oim_fc.meta_value AS UNSIGNED) = p_fc.ID AND p_fc.post_type IN ('product','product_variation')
+                INNER JOIN {$posts_table} pr_fc ON pr_fc.ID = IF(p_fc.post_type = 'product_variation', p_fc.post_parent, p_fc.ID)
+                INNER JOIN {$wpdb->term_relationships} tr_fc ON tr_fc.object_id = pr_fc.ID
+                INNER JOIN {$wpdb->term_taxonomy} tt_fc ON tt_fc.term_taxonomy_id = tr_fc.term_taxonomy_id AND tt_fc.taxonomy = 'product_cat' AND tt_fc.term_id = %d
+                WHERE woi_fc.order_id = wo.id AND woi_fc.order_item_type = 'line_item'
+            )";
+            $where_values[] = $filter_product_cat;
         }
 
-        if ($filter_date_from) {
-            $where_conditions[] = "DATE(wt.created_at) >= %s";
-            $where_values[]     = $filter_date_from;
+        if ($filter_status !== 'all' && $filter_status !== 'penalty') {
+            if ($filter_status === 'completed') {
+                $where_conditions[] = '(wo.status = %s OR wo.status = %s)';
+                $where_values[] = 'wc-completed';
+                $where_values[] = 'wc-processing';
+            } elseif ($filter_status === 'on-hold') {
+                $where_conditions[] = '(wo.status = %s OR wo.status = %s)';
+                $where_values[] = 'wc-on-hold';
+                $where_values[] = 'wc-under_review';
+            } elseif ($filter_status === 'pending') {
+                $where_conditions[] = '(wo.status = %s OR wo.status = %s)';
+                $where_values[] = 'wc-pending';
+                $where_values[] = 'wc-checkout-draft';
+            } elseif ($filter_status === 'paid') {
+                $where_conditions[] = 'wo.status = %s';
+                $where_values[] = 'wc-completed';
+            } else {
+                $map = [
+                    'processing' => 'wc-processing',
+                    'cancelled' => 'wc-cancelled',
+                    'failed' => 'wc-failed',
+                    'refunded' => 'wc-refunded',
+                ];
+                if (isset($map[$filter_status])) {
+                    $where_conditions[] = 'wo.status = %s';
+                    $where_values[] = $map[$filter_status];
+                }
+            }
+        } elseif ($filter_status === 'penalty') {
+            $where_conditions[] = "EXISTS (SELECT 1 FROM {$invoices_table} invp WHERE invp.woocommerce_order_id = wo.id AND (invp.penalty_amount > 0 OR invp.penalty_applied = 1))";
         }
 
-        if ($filter_date_to) {
-            $where_conditions[] = "DATE(wt.created_at) <= %s";
-            $where_values[]     = $filter_date_to;
+        if ($filter_date_from !== '') {
+            $where_conditions[] = 'DATE(wo.date_created_gmt) >= %s';
+            $where_values[] = $filter_date_from;
+        }
+        if ($filter_date_to !== '') {
+            $where_conditions[] = 'DATE(wo.date_created_gmt) <= %s';
+            $where_values[] = $filter_date_to;
         }
 
-     
-        
-        if (!empty($search)) {
+        if ($search !== '') {
             $search_like = '%' . $wpdb->esc_like($search) . '%';
-            $where_conditions[] = "(m.first_name LIKE %s OR m.last_name LIKE %s OR m.national_id LIKE %s OR wt.description LIKE %s)";
+            $where_conditions[] = '(CAST(wo.id AS CHAR) LIKE %s OR sm.first_name LIKE %s OR sm.last_name LIKE %s OR sm.national_id LIKE %s OR sm.player_phone LIKE %s OR woi.order_item_name LIKE %s)';
+            $where_values[] = $search_like;
+            $where_values[] = $search_like;
             $where_values[] = $search_like;
             $where_values[] = $search_like;
             $where_values[] = $search_like;
             $where_values[] = $search_like;
         }
-        
-        $where_clause = " woi.order_item_type = 'line_item' ";
-        if (!empty($where_conditions)) {
-            $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
+
+        $where_sql = implode(' AND ', $where_conditions);
+
+        $from_sql = "
+            FROM {$members_table} sm
+            INNER JOIN {$orders_table} wo ON wo.customer_id = sm.user_id
+            INNER JOIN {$woocommerce_order_items_table} woi ON woi.order_id = wo.id
+            INNER JOIN {$woocommerce_order_itemmeta} woi_qty
+                ON woi.order_item_id = woi_qty.order_item_id AND woi_qty.meta_key = '_qty'
+            WHERE {$where_sql}
+        ";
+
+        $count_sql = "SELECT COUNT(DISTINCT wo.id) {$from_sql}";
+        $total_items = (int) $wpdb->get_var($wpdb->prepare($count_sql, $where_values));
+
+        $orderby_raw = isset($_GET['orderby']) ? sanitize_text_field(wp_unslash($_GET['orderby'])) : 'date_order';
+        $order_dir = isset($_GET['order']) && strtoupper(sanitize_text_field(wp_unslash($_GET['order']))) === 'ASC' ? 'ASC' : 'DESC';
+        $orderby_sql = 'wo.date_created_gmt';
+        if ($orderby_raw === 'total_amount') {
+            $orderby_sql = 'wo.total_amount';
+        } elseif ($orderby_raw === 'status') {
+            $orderby_sql = 'wo.status';
+        } elseif ($orderby_raw === 'date_order') {
+            $orderby_sql = 'wo.date_created_gmt';
         }
-        
-        // محاسبه تعداد کل
-        $count_query = "SELECT COUNT(*) AS total_records
-        FROM (
-            SELECT 
-                wo.id AS id_order
-            FROM 
-                $members_table sm
-            INNER JOIN $orders_table wo ON wo.customer_id = sm.user_id
-            INNER JOIN $woocommerce_order_items_table woi ON woi.order_id = wo.id
-            -- تعداد هر محصول (از order_itemmeta)
-            INNER JOIN $woocommerce_order_itemmeta woi_qty 
-                ON woi.order_item_id = woi_qty.order_item_id 
-                AND woi_qty.meta_key = '_qty'
-            WHERE 
-                woi.order_item_type = 'line_item'
-            GROUP BY 
-                wo.id, sm.first_name, sm.last_name, sm.player_phone, wo.status, wo.total_amount, wo.payment_method_title
-        ) AS subquery;";
-                
-                if (!empty($where_values)) {
-                    $total_items = $wpdb->get_var($wpdb->prepare($count_query, $where_values));
-                } else {
-                    $total_items = $wpdb->get_var($count_query);
-                }
-                
-                // مرتب‌سازی
-                $orderby = isset($_GET['orderby']) ? sanitize_sql_orderby($_GET['orderby']) : 'created_at';
-                if (!in_array($orderby, ['created_at', 'amount'])) {
-                    $orderby = 'created_at';
-                }
-                
-                $order = isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC' ? 'ASC' : 'DESC';
-                
-                // دریافت داده‌ها
-                $query = "SELECT 
+
+        $posts_table = $wpdb->posts;
+        $extra_select = ",
+            (SELECT GROUP_CONCAT(DISTINCT t_pc.name ORDER BY t_pc.name SEPARATOR '، ')
+                FROM {$woocommerce_order_items_table} woi_pc
+                INNER JOIN {$woocommerce_order_itemmeta} oim_pc ON oim_pc.order_item_id = woi_pc.order_item_id AND oim_pc.meta_key = '_product_id'
+                INNER JOIN {$posts_table} p_pc ON CAST(oim_pc.meta_value AS UNSIGNED) = p_pc.ID AND p_pc.post_type IN ('product','product_variation')
+                INNER JOIN {$posts_table} pr_pc ON pr_pc.ID = IF(p_pc.post_type = 'product_variation', p_pc.post_parent, p_pc.ID)
+                INNER JOIN {$wpdb->term_relationships} tr_pc ON tr_pc.object_id = pr_pc.ID
+                INNER JOIN {$wpdb->term_taxonomy} tt_pc ON tt_pc.term_taxonomy_id = tr_pc.term_taxonomy_id AND tt_pc.taxonomy = 'product_cat'
+                INNER JOIN {$wpdb->terms} t_pc ON t_pc.term_id = tt_pc.term_id
+                WHERE woi_pc.order_id = wo.id AND woi_pc.order_item_type = 'line_item'
+            ) AS product_categories";
+
+        $addr_tbl = $wpdb->prefix . 'wc_order_addresses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $addr_tbl)) === $addr_tbl) {
+            $extra_select .= ",
+            (SELECT TRIM(CONCAT_WS('، ', NULLIF(oa_b.address_1, ''), NULLIF(oa_b.address_2, ''), NULLIF(oa_b.city, ''), NULLIF(oa_b.state, ''), NULLIF(oa_b.postcode, '')))
+                FROM {$addr_tbl} oa_b WHERE oa_b.order_id = wo.id AND oa_b.address_type = 'billing' LIMIT 1) AS billing_address,
+            (SELECT TRIM(CONCAT_WS('، ', NULLIF(oa_s.address_1, ''), NULLIF(oa_s.address_2, ''), NULLIF(oa_s.city, ''), NULLIF(oa_s.state, ''), NULLIF(oa_s.postcode, '')))
+                FROM {$addr_tbl} oa_s WHERE oa_s.order_id = wo.id AND oa_s.address_type = 'shipping' LIMIT 1) AS shipping_address";
+        } else {
+            $extra_select .= ",
+            NULL AS billing_address,
+            NULL AS shipping_address";
+        }
+
+        $data_sql = "SELECT
             wo.id AS id_order,
             sm.first_name,
             sm.last_name,
@@ -404,44 +518,28 @@ class orders_List_Table extends WP_List_Table {
             wo.status,
             wo.payment_method_title,
             GROUP_CONCAT(
-                CONCAT(
-                    woi.order_item_name,
-                    ' (', 
-                    woi_qty.meta_value, 
-                    ')'
-                ) 
+                CONCAT(woi.order_item_name, ' (', woi_qty.meta_value, ')')
+                ORDER BY woi.order_item_id
                 SEPARATOR '<br>'
             ) AS products_with_quantity,
             wo.total_amount,
-            wo.payment_method_title,
             wo.date_created_gmt
-        FROM 
-            $members_table sm
-            INNER JOIN $orders_table wo ON wo.customer_id = sm.user_id
-            INNER JOIN $woocommerce_order_items_table woi ON woi.order_id = wo.id
-            -- تعداد هر محصول (از order_itemmeta)
-            INNER JOIN $woocommerce_order_itemmeta woi_qty 
-                ON woi.order_item_id = woi_qty.order_item_id 
-                AND woi_qty.meta_key = '_qty'
-        WHERE 
-            $where_clause  -- فقط محصولات
+            {$extra_select}
+            {$from_sql}
+            GROUP BY wo.id, sm.first_name, sm.last_name, sm.player_phone, wo.status, wo.total_amount, wo.payment_method_title, wo.date_created_gmt
+            ORDER BY {$orderby_sql} {$order_dir}
+            LIMIT %d OFFSET %d";
 
-        GROUP BY 
-            wo.id, sm.first_name, sm.last_name, sm.player_phone, wo.status, wo.total_amount, wo.payment_method_title
-        ORDER BY 
-            wo.id DESC";
-                
-                $where_values[] = $per_page;
-                $where_values[] = $offset;
-                
-                $this->items = $wpdb->get_results($wpdb->prepare($query, $where_values));
-                
-                $this->set_pagination_args([
-                    'total_items' => $total_items,
-                    'per_page' => $per_page
-                ]);
-                
-                $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
+        $data_values = array_merge($where_values, [$per_page, $offset]);
+        $this->items = $wpdb->get_results($wpdb->prepare($data_sql, $data_values));
+
+        $this->set_pagination_args([
+            'total_items' => $total_items,
+            'per_page' => $per_page,
+            'total_pages' => (int) ceil(max(1, $total_items) / max(1, $per_page)),
+        ]);
+
+        $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
     }
         
 

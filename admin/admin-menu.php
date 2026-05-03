@@ -926,6 +926,7 @@ if($pro_feature_shop){
 
     add_action('load-' . $add_invoice_sufix, 'callback_add_invoice_sufix');
     add_action('load-' . $list_invoices_sufix, 'process_invoices_table_data');
+    add_action('load-toplevel_page_sc_orders', 'process_orders_table_data');
 
     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled() && isset($wallet_list_sufix)) {
         add_action('load-' . $wallet_list_sufix, 'process_wallet_transactions_table_data');
@@ -1136,26 +1137,33 @@ function sc_report_data(){
 
 include SC_TEMPLATES_ADMIN_DIR . 'sc_reaport_club.php';
 }
-function sc_custom_orders(){
+function sc_custom_orders() {
+    if (!current_user_can('manage_woocommerce')) {
+        wp_die(esc_html__('شما به این صفحه دسترسی ندارید.', 'sportclub-manager'));
+    }
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'orders-list.php';
+}
 
-    // افزودن screen option برای تعداد رکوردها در هر صفحه
+/**
+ * آماده‌سازی لیست سفارشات ادمین (فیلترها و صفحه‌بندی)
+ */
+function process_orders_table_data() {
+    if (!current_user_can('manage_woocommerce')) {
+        return;
+    }
+    sc_check_and_create_tables();
     add_screen_option('per_page', [
         'default' => 20,
         'option' => 'list_orders_per_page',
-        'label' => 'تعداد تراکنش‌ها در هر صفحه'
+        'label' => 'تعداد سفارش‌ها در هر صفحه',
     ]);
-include SC_TEMPLATES_ADMIN_DIR . 'list_order.php';
-$orders_list_table = new orders_List_Table;
-
-echo '<div class="wrap">';
-
-//echo '<input type="hidden" name="page" value="sc-ordersssssss">';
-$orders_list_table->prepare_items();
-$orders_list_table->display();
-$orders_list_table->views();
-
-echo '</div>';
-
+    if (!class_exists('WP_List_Table')) {
+        require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
+    }
+    require_once SC_TEMPLATES_ADMIN_DIR . 'list_order.php';
+    $GLOBALS['orders_list_table'] = new orders_List_Table();
+    $GLOBALS['orders_list_table']->prepare_items();
 }
 
 function sc_admin_view_member_page() {
