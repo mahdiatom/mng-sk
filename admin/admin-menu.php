@@ -2589,21 +2589,7 @@ function callback_add_member_sufix(){
                 // ذخیره دوره‌های بازیکن
                 $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
                 $course_flags_raw = isset($_POST['course_flags']) && is_array($_POST['course_flags']) ? $_POST['course_flags'] : [];
-                $course_flags = [];
-                foreach ($course_flags_raw as $course_id => $flags) {
-                    $course_id_int = absint($course_id);
-                    $flags_array = [];
-                    if (isset($flags['paused']) && $flags['paused'] == '1') {
-                        $flags_array[] = 'paused';
-                    }
-                    if (isset($flags['completed']) && $flags['completed'] == '1') {
-                        $flags_array[] = 'completed';
-                    }
-                    if (isset($flags['canceled']) && $flags['canceled'] == '1') {
-                        $flags_array[] = 'canceled';
-                    }
-                    $course_flags[$course_id_int] = $flags_array;
-                }
+                $course_flags = sc_parse_member_course_flags_from_post($course_flags_raw, $course_ids);
                 $course_package_sessions = [];
                 if (isset($_POST['course_enrollment_package']) && is_array($_POST['course_enrollment_package'])) {
                     foreach ($_POST['course_enrollment_package'] as $cid => $sess) {
@@ -2795,21 +2781,7 @@ function callback_add_member_sufix(){
                 $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
                 // دریافت فلگ‌های دوره‌ها - مهم: فلگ‌ها مستقل از تیک دوره هستند
                 $course_flags_raw = isset($_POST['course_flags']) && is_array($_POST['course_flags']) ? $_POST['course_flags'] : [];
-                $course_flags = [];
-                foreach ($course_flags_raw as $course_id => $flags) {
-                    $course_id_int = absint($course_id);
-                    $flags_array = [];
-                    if (isset($flags['paused']) && $flags['paused'] == '1') {
-                        $flags_array[] = 'paused';
-                    }
-                    if (isset($flags['completed']) && $flags['completed'] == '1') {
-                        $flags_array[] = 'completed';
-                    }
-                    if (isset($flags['canceled']) && $flags['canceled'] == '1') {
-                        $flags_array[] = 'canceled';
-                    }
-                    $course_flags[$course_id_int] = $flags_array;
-                }
+                $course_flags = sc_parse_member_course_flags_from_post($course_flags_raw, $course_ids);
                 $course_package_sessions = [];
                 if (isset($_POST['course_enrollment_package']) && is_array($_POST['course_enrollment_package'])) {
                     foreach ($_POST['course_enrollment_package'] as $cid => $sess) {
@@ -2947,6 +2919,48 @@ function sc_save_event_fields($event_id, $post_data) {
 }
 
 /**
+ * تبدیل POST فلگ‌های دوره به آرایهٔ نرمال‌شده.
+ * اگر برای یک دورهٔ فعال هیچ فلگی POST نشود (همه تیک‌ها برداشته)، کلید course_flags در $_POST نیست؛
+ * برای هر course_id انتخاب‌شده یک آرایهٔ خالی می‌گذاریم تا خالی‌سازی در DB اعمال شود.
+ *
+ * @param array $course_flags_raw
+ * @param array<int,int> $course_ids
+ * @return array<int, array<int, string>>
+ */
+function sc_parse_member_course_flags_from_post($course_flags_raw, $course_ids) {
+    if (!is_array($course_flags_raw)) {
+        $course_flags_raw = [];
+    }
+    $course_flags = [];
+    foreach ($course_flags_raw as $course_id => $flags) {
+        $course_id_int = absint($course_id);
+        if (!$course_id_int || !is_array($flags)) {
+            continue;
+        }
+        $flags_array = [];
+        if (isset($flags['paused']) && (string) $flags['paused'] === '1') {
+            $flags_array[] = 'paused';
+        }
+        if (isset($flags['completed']) && (string) $flags['completed'] === '1') {
+            $flags_array[] = 'completed';
+        }
+        if (isset($flags['canceled']) && (string) $flags['canceled'] === '1') {
+            $flags_array[] = 'canceled';
+        }
+        $course_flags[$course_id_int] = $flags_array;
+    }
+    if (is_array($course_ids)) {
+        foreach ($course_ids as $cid) {
+            $cid = absint($cid);
+            if ($cid && !array_key_exists($cid, $course_flags)) {
+                $course_flags[$cid] = [];
+            }
+        }
+    }
+    return $course_flags;
+}
+
+/**
  * Save member courses
  *
  * @param array<int,int> $course_package_sessions course_id => تعداد جلسهٔ پکیج انتخابی (در صورت وجود پکیج برای دوره)
@@ -2970,10 +2984,10 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
         foreach ($course_flags as $course_id => $flags_array) {
             $course_id = absint($course_id);
             if ($course_id) {
-                // تبدیل flags به string (مثلاً "paused,completed")
-                $flags_string = !empty($flags_array) && is_array($flags_array)
+                // تبدیل flags به رشته؛ برای خالی از '' استفاده می‌کنیم (wpdb->update مقدار null را در SET نادیده می‌گیرد)
+                $flags_string = (!empty($flags_array) && is_array($flags_array))
                     ? implode(',', array_map('sanitize_text_field', $flags_array))
-                    : NULL;
+                    : '';
 
                 // بررسی وجود قبلی
                 $existing = $wpdb->get_var($wpdb->prepare(
@@ -2996,7 +3010,7 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                     );
                 } else {
                     // اگر رکورد وجود ندارد و تیک دوره هم خورده، رکورد جدید ایجاد می‌کنیم
-                    if (!empty($course_ids) && in_array($course_id, $course_ids)) {
+                    if (!empty($course_ids) && in_array($course_id, array_map('absint', $course_ids), true)) {
                         $sf = $resolve_sessions($course_id, $course_package_sessions);
                         $insert_row = [
                             'member_id' => $member_id,
@@ -3057,8 +3071,8 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                     ? $course_flags[$course_id]
                     : [];
 
-                // تبدیل flags به string
-                $flags_string = !empty($flags_array) ? implode(',', array_map('sanitize_text_field', $flags_array)) : NULL;
+                // تبدیل flags به رشته (خالی = '')
+                $flags_string = !empty($flags_array) ? implode(',', array_map('sanitize_text_field', $flags_array)) : '';
 
                 $sf = $resolve_sessions($course_id, $course_package_sessions);
 

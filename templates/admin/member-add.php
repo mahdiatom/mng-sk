@@ -383,11 +383,10 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
 
         <!-- بخش آکاردئونی دوره‌ها -->
         <div class="sc-courses-accordion" style="margin-top: 20px;">
-            <div class="sc-accordion-header" onclick="toggleCoursesAccordion()">
-                <h3 >دوره‌های بازیکن</h3>
-                <span id="courses-accordion-icon" >▼</span>
+            <div class="sc-accordion-header" style="cursor: default;">
+                <h3>دوره‌های بازیکن</h3>
             </div>
-            <div id="sc-courses-content" >
+            <div id="sc-courses-content" style="display: block;">
                 <?php
                 global $wpdb;
                 $courses_table = $wpdb->prefix . 'sc_courses';
