@@ -1187,15 +1187,12 @@ function sc_admin_add_member_page() {
     global $wpdb ;
             $table_name = $wpdb->prefix . 'sc_members';
             $player=false;
-                if( isset($_GET['player_id'] ) ){
-                    $player_id = absint($_GET['player_id']);
-                    if($player_id){
-                        $sql = $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d",[$player_id]);
-                    $player = $wpdb->get_row( $sql
-                        
-                    );
-                }
-            }
+    if (isset($_GET['player_id'])) {
+        $player_id = absint($_GET['player_id']);
+        if ($player_id) {
+            $player = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d", $player_id));
+        }
+    }
     include SC_TEMPLATES_ADMIN_DIR . 'member-add.php';
 }
 function sc_setting_callback(){
@@ -2107,8 +2104,7 @@ function sc_admin_add_course_page() {
     if (isset($_GET['course_id'])) {
         $course_id = absint($_GET['course_id']);
         if ($course_id) {
-            $sql = $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d AND deleted_at IS NULL", [$course_id]);
-            $course = $wpdb->get_row($sql);
+            $course = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d AND deleted_at IS NULL", $course_id));
         }
     }
     $course_schedule_blocks = [];
@@ -2615,17 +2611,18 @@ function callback_add_member_sufix(){
                     sc_log_activity('updated', 'member', $player_id, 'عضو «' . ($data['first_name'] . ' ' . $data['last_name']) . '» ویرایش شد', $old_member, ['first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'national_id' => $data['national_id'], 'is_active' => $data['is_active']]);
                 }
 
-                if (!empty($_POST['remaining_sessions']) && is_array($_POST['remaining_sessions'])) {
-
-                    $member_id = intval($player_id);
+                if (isset($_POST['remaining_sessions']) && is_array($_POST['remaining_sessions'])) {
+                    $member_id = (int) $player_id;
                     $table = $wpdb->prefix . 'sc_member_courses';
-
                     foreach ($_POST['remaining_sessions'] as $course_id => $remaining) {
-
-                        $course_id = intval($course_id);
-                        $remaining = intval($remaining);
-
-                        // آپدیت هر دوره
+                        $course_id = (int) $course_id;
+                        if ($course_id < 1) {
+                            continue;
+                        }
+                        $remaining = (int) $remaining;
+                        if ($remaining < 0) {
+                            $remaining = 0;
+                        }
                         $wpdb->update(
                             $table,
                             ['remaining_sessions' => $remaining],

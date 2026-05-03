@@ -33,9 +33,11 @@ if(!isset($_GET['player_id'])){
         $additional_info = '';
         $team_player = '';
         $skill_level = '';
-  
+if (!isset($player)) {
+    $player = false;
+}
 
-if($player && $_GET['player_id'] ){
+if ($player && !empty($_GET['player_id'])) {
         $first_name              = $player->first_name ?? '';
         $last_name               = $player->last_name ?? '';
         $father_name             = $player->father_name ?? '';
@@ -83,9 +85,9 @@ if($player && $_GET['player_id'] ){
                 str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
         }
 
-        if ($player && $_GET['player_id']) {
-    $birth_date_shamsi = $player->birth_date_shamsi ?? '';
-    $insurance_expiry_date_shamsi = $player->insurance_expiry_date_shamsi ?? '';
+        if ($player && !empty($_GET['player_id'])) {
+            $birth_date_shamsi = $player->birth_date_shamsi ?? '';
+            $insurance_expiry_date_shamsi = $player->insurance_expiry_date_shamsi ?? '';
         }
         // === ست کردن تاریخ امروز مثل start_date رویداد ===
 
@@ -143,7 +145,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 
                 <?php
                 // دریافت user_id اگر وجود دارد
-                $member_user_id = isset($player->user_id) ? $player->user_id : null;
+                $member_user_id = ($player && isset($player->user_id)) ? (int) $player->user_id : null;
                 $member_username = '';
                 if ($member_user_id) {
                     $member_user = get_userdata($member_user_id);
@@ -401,26 +403,35 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 $player_courses_active = [];
                 $player_courses_flags = [];
                 $player_courses_enrollment_sessions = [];
-                if ($player && isset($_GET['player_id'])) {
-                    $player_id = absint($_GET['player_id']);
+                /** ثبت‌نام فعال بدون فلگ وضعیت (paused/completed/canceled): course_id => [ total_sessions, remaining_sessions ] */
+                $player_courses_sessions = [];
+                $edit_member_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
+                if ($edit_member_id) {
                     $player_courses_data = $wpdb->get_results($wpdb->prepare(
-                        "SELECT course_id, status, course_status_flags, enrollment_sessions FROM $member_courses_table WHERE member_id = %d",
-                        $player_id
+                        "SELECT course_id, status, course_status_flags, enrollment_sessions, total_sessions, remaining_sessions FROM $member_courses_table WHERE member_id = %d",
+                        $edit_member_id
                     ), ARRAY_A);
                     if ($player_courses_data) {
                         foreach ($player_courses_data as $pc) {
+                            $cid = absint($pc['course_id']);
+                            if (!$cid) {
+                                continue;
+                            }
                             if ($pc['status'] === 'active') {
-                                $player_courses_active[$pc['course_id']] = true;
+                                $player_courses_active[$cid] = true;
                             }
-                            // پردازش course_status_flags - برای همه دوره‌ها (چه active چه inactive)
                             $flags = [];
-                            if (!empty($pc['course_status_flags'])) {
-                                $flags = explode(',', $pc['course_status_flags']);
-                                $flags = array_map('trim', $flags);
-                                $flags = array_filter($flags); // حذف مقادیر خالی
+                            if (isset($pc['course_status_flags']) && $pc['course_status_flags'] !== '' && $pc['course_status_flags'] !== null) {
+                                $flags = array_filter(array_map('trim', explode(',', (string) $pc['course_status_flags'])));
                             }
-                            $player_courses_flags[$pc['course_id']] = $flags;
-                            $player_courses_enrollment_sessions[$pc['course_id']] = isset($pc['enrollment_sessions']) ? (int) $pc['enrollment_sessions'] : 0;
+                            $player_courses_flags[$cid] = $flags;
+                            $player_courses_enrollment_sessions[$cid] = isset($pc['enrollment_sessions']) ? (int) $pc['enrollment_sessions'] : 0;
+                            if ($pc['status'] === 'active' && empty($flags)) {
+                                $player_courses_sessions[$cid] = [
+                                    'total_sessions' => (int) ($pc['total_sessions'] ?? 0),
+                                    'remaining_sessions' => (int) ($pc['remaining_sessions'] ?? 0),
+                                ];
+                            }
                         }
                     }
                 }
@@ -460,38 +471,23 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         // اطلاعات دوره
                         echo '<div style="flex: 1;">';
                         echo '<label for="course_cb_' . esc_attr($course->id) . '" style="cursor: pointer; display: block; margin-bottom: 10px;">';
-                        echo '<strong>' . esc_html($course->title) . '</strong>';                 
-                        // دریافت دوره‌های کاربر با صفحه‌بندی
-                        // ترتیب: اول دوره‌های فعال و بدون flag، سپس بقیه
-          
-                    
-                    $query = "SELECT course_id , total_sessions , remaining_sessions
-                            FROM $member_courses_table 
-                            WHERE member_id = $player_id AND status = 'active' AND course_status_flags IS NULL AND course_id = $course->id
-                            ";
-                    
-                    
-                    $user_courses = $wpdb->get_results($wpdb->prepare($query));
-                   
-                    if($user_courses):
-
-                        ?>
+                        echo '<strong>' . esc_html($course->title) . '</strong>';
+                        if ($edit_member_id && isset($player_courses_sessions[$course->id])) {
+                            $ps = $player_courses_sessions[$course->id];
+                            ?>
                         <div class="session_course_member">
-
-                    <div class="total_sessions" >
-                            <span class="key">کل جلسات دوره : </span>
-                            <span class="val"> <?php echo $user_courses[0]->total_sessions; ?> </span>
-                    </div>
-                    <div class="remaining_sessions">
-                            <span class="key">جلسات باقی مانده : </span>
-                            <input type="number" name="remaining_sessions[<?php echo $user_courses[0]->course_id;; ?>]"
-                            value="<?php echo $user_courses[0]->remaining_sessions; ?>">
-
-                    </div>
-
-                    </div>
-                        <?php
-                        endif;
+                            <div class="total_sessions">
+                                <span class="key">کل جلسات دوره : </span>
+                                <span class="val"><?php echo (int) $ps['total_sessions']; ?></span>
+                            </div>
+                            <div class="remaining_sessions">
+                                <span class="key">جلسات باقی مانده : </span>
+                                <input type="number" name="remaining_sessions[<?php echo esc_attr((string) $course->id); ?>]" min="0" step="1"
+                                    value="<?php echo (int) $ps['remaining_sessions']; ?>">
+                            </div>
+                        </div>
+                            <?php
+                        }
 
                         if ($has_course_packages) {
                             echo '<div style="margin-top:8px;padding:8px;background:#f6f7f7;border:1px solid #ddd;border-radius:4px;">';
