@@ -222,12 +222,20 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $attendance_grace_before_minutes = isset($_POST['attendance_grace_before_minutes']) ? max(0, absint($_POST['attendance_grace_before_minutes'])) : 15;
         $attendance_grace_after_minutes = isset($_POST['attendance_grace_after_minutes']) ? max(0, absint($_POST['attendance_grace_after_minutes'])) : 30;
         $attendance_absent_after_end_minutes = isset($_POST['attendance_absent_after_end_minutes']) ? max(0, absint($_POST['attendance_absent_after_end_minutes'])) : 15;
+        $attendance_logs_col_employee_code = isset($_POST['attendance_logs_col_employee_code']) ? 1 : 0;
+        $attendance_logs_col_user_id = isset($_POST['attendance_logs_col_user_id']) ? 1 : 0;
+        $attendance_logs_col_course = isset($_POST['attendance_logs_col_course']) ? 1 : 0;
+        $attendance_logs_show_course_filter = isset($_POST['attendance_logs_show_course_filter']) ? 1 : 0;
         sc_update_setting('deduction_wallet_enabled' , $deduction_wallet_enabled , 'attendance');
         sc_update_setting('max_debt_for_attendance' , $max_debt_for_attendance , 'attendance');
         sc_update_setting('attendance_api_auto_enabled', $attendance_api_auto_enabled, 'attendance');
         sc_update_setting('attendance_grace_before_minutes', (string) $attendance_grace_before_minutes, 'attendance');
         sc_update_setting('attendance_grace_after_minutes', (string) $attendance_grace_after_minutes, 'attendance');
         sc_update_setting('attendance_absent_after_end_minutes', (string) $attendance_absent_after_end_minutes, 'attendance');
+        sc_update_setting('attendance_logs_col_employee_code', $attendance_logs_col_employee_code, 'attendance');
+        sc_update_setting('attendance_logs_col_user_id', $attendance_logs_col_user_id, 'attendance');
+        sc_update_setting('attendance_logs_col_course', $attendance_logs_col_course, 'attendance');
+        sc_update_setting('attendance_logs_show_course_filter', $attendance_logs_show_course_filter, 'attendance');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کیف پول ذخیره شد', null, ['tab' => 'attendance']);
         }
@@ -1684,6 +1692,10 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 $attendance_grace_before_minutes = (int) sc_get_setting('attendance_grace_before_minutes', '15');
                 $attendance_grace_after_minutes = (int) sc_get_setting('attendance_grace_after_minutes', '30');
                 $attendance_absent_after_end_minutes = (int) sc_get_setting('attendance_absent_after_end_minutes', '15');
+                $attendance_logs_col_employee_code = (int) sc_get_setting('attendance_logs_col_employee_code', '1');
+                $attendance_logs_col_user_id = (int) sc_get_setting('attendance_logs_col_user_id', '1');
+                $attendance_logs_col_course = (int) sc_get_setting('attendance_logs_col_course', '1');
+                $attendance_logs_show_course_filter = (int) sc_get_setting('attendance_logs_show_course_filter', '1');
                 ?>
 
                 <table class="form-table">
@@ -1743,11 +1755,42 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                             <p class="description">در صورتی که بدهی کل کاربر بیشتر از این مبلغ باشد امکان ثبت رکورد حضور و غیاب برای آن کاربر امکان پذیر نمی باشد.</p>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row" colspan="2"><h2 style="margin:0;">صفحهٔ «لاگ دستگاه حضور و غیاب» (ادمین)</h2></th>
+                    </tr>
+                    <tr>
+                        <th scope="row">ستون‌ها</th>
+                        <td>
+                            <label style="display:block;margin-bottom:6px;">
+                                <input type="checkbox" name="attendance_logs_col_employee_code" value="1" <?php checked($attendance_logs_col_employee_code, 1); ?>>
+                                نمایش ستون <code>employee_code</code> (کد دستگاه / عضو)
+                            </label>
+                            <label style="display:block;margin-bottom:6px;">
+                                <input type="checkbox" name="attendance_logs_col_user_id" value="1" <?php checked($attendance_logs_col_user_id, 1); ?>>
+                                نمایش شناسهٔ کاربر وردپرس عضو (<code>user_id</code>)
+                            </label>
+                            <label style="display:block;margin-bottom:6px;">
+                                <input type="checkbox" name="attendance_logs_col_course" value="1" <?php checked($attendance_logs_col_course, 1); ?>>
+                                نمایش دورهٔ مرتبط با حضور ثبت‌شده از لاگ (پس از تطبیق خودکار)
+                            </label>
+                            <p class="description">اگر هنوز لاگ به رکورد حضور وصل نشده باشد، ستون دوره خالی یا «—» است.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">فیلتر دوره</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="attendance_logs_show_course_filter" value="1" <?php checked($attendance_logs_show_course_filter, 1); ?>>
+                                نمایش فیلتر «دوره» در بالای لیست لاگ
+                            </label>
+                            <p class="description">فقط روی لاگ‌هایی که قبلاً به حضور تطبیق داده شده‌اند و همان حضور به آن دوره ثبت شده، اثر دارد.</p>
+                        </td>
+                    </tr>
                 
                 </table>
 
                 <p class="submit">
-                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات کیف پول">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات حضور و غیاب">
                 </p>
             </form>
 

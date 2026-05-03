@@ -12,12 +12,21 @@ if (!defined('ABSPATH')) exit;
 
     $logs_table    = $wpdb->prefix . 'sc_api_attendance_logs';
     $members_table = $wpdb->prefix . 'sc_members';
+    $att_table     = $wpdb->prefix . 'sc_attendances';
+    $courses_table = $wpdb->prefix . 'sc_courses';
 
+    $log_has_matched_cols = !empty($wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `{$logs_table}` LIKE %s", 'matched_to_attendance')));
+
+    $show_col_employee = (int) sc_get_setting('attendance_logs_col_employee_code', '1') === 1;
+    $show_col_user_id = (int) sc_get_setting('attendance_logs_col_user_id', '1') === 1;
+    $show_col_course = (int) sc_get_setting('attendance_logs_col_course', '1') === 1;
+    $show_course_filter = (int) sc_get_setting('attendance_logs_show_course_filter', '1') === 1;
 
 // -----------------------------
 //  فیلترها
 // -----------------------------
 $filter_user       = isset($_GET['filter_user']) ? sanitize_text_field($_GET['filter_user']) : '';
+$filter_course     = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
 
 $filter_date_from  = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
 $filter_date_to    = isset($_GET['filter_date_to'])   ? sanitize_text_field($_GET['filter_date_to'])   : '';
@@ -132,15 +141,26 @@ if (!empty($search)) {
     $where_values[] = $like;
 }
 
+if ($filter_course > 0 && $log_has_matched_cols) {
+    $where .= ' AND att.course_id = %d';
+    $where_values[] = $filter_course;
+}
+
 
     // -----------------------------
     //  count
     // -----------------------------
+    $join_att_course_count = '';
+    if ($log_has_matched_cols) {
+        $join_att_course_count = " LEFT JOIN `{$att_table}` att ON att.id = l.matched_attendance_id
+            LEFT JOIN `{$courses_table}` co ON co.id = att.course_id ";
+    }
     $count_query = "
         SELECT COUNT(*)
         FROM $logs_table l
         INNER JOIN $members_table m
         ON m.id = CAST(l.employee_code AS UNSIGNED)
+        {$join_att_course_count}
         WHERE $where
     ";
 
@@ -151,12 +171,19 @@ if (!empty($search)) {
     $total_items = $wpdb->get_var($count_query);
     $total_pages = ceil($total_items / $per_page);
 
-    $log_has_matched_cols = !empty($wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `{$logs_table}` LIKE %s", 'matched_to_attendance')));
+    $join_att_course = '';
+    if ($log_has_matched_cols) {
+        $join_att_course = " LEFT JOIN `{$att_table}` att ON att.id = l.matched_attendance_id
+            LEFT JOIN `{$courses_table}` co ON co.id = att.course_id ";
+    }
 
     // -----------------------------
     //  دریافت رکوردها
     // -----------------------------
-    $log_extra_select = $log_has_matched_cols ? ', l.matched_to_attendance, l.matched_attendance_id' : '';
+    $log_extra_select = ', l.employee_code, m.id AS member_wp_user_id';
+    if ($log_has_matched_cols) {
+        $log_extra_select .= ', l.matched_to_attendance, l.matched_attendance_id, att.course_id AS matched_course_id, co.title AS matched_course_title';
+    }
     $main_query = "
         SELECT 
             l.id,
@@ -167,6 +194,7 @@ if (!empty($search)) {
         FROM $logs_table l
         INNER JOIN $members_table m
             ON m.id = CAST(l.employee_code AS UNSIGNED)
+        {$join_att_course}
         WHERE $where
         ORDER BY l.log_datetime DESC
         LIMIT %d OFFSET %d
@@ -188,6 +216,23 @@ if (!empty($search)) {
     
     ");
 
+    $courses_for_filter = [];
+    if ($show_course_filter && $log_has_matched_cols) {
+        $courses_for_filter = $wpdb->get_results(
+            "SELECT id, title FROM `{$courses_table}` WHERE deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00' ORDER BY title ASC"
+        );
+    }
+
+    $table_colspan = 5 + ($log_has_matched_cols ? 1 : 0);
+    if ($show_col_employee) {
+        $table_colspan++;
+    }
+    if ($show_col_user_id) {
+        $table_colspan++;
+    }
+    if ($show_col_course && $log_has_matched_cols) {
+        $table_colspan++;
+    }
 
     ?>
 
@@ -250,6 +295,20 @@ if (!empty($search)) {
                 </div>
             </div>
         </div>
+        <?php if ($show_course_filter && $log_has_matched_cols) : ?>
+        <br>
+        <label for="filter_course" style="margin-left: 5px; width: 100px;">دوره:</label>
+        <select name="filter_course" id="filter_course" style="min-width:220px;max-width:100%;">
+            <option value="0" <?php selected($filter_course, 0); ?>>همه دوره‌ها</option>
+            <?php foreach ($courses_for_filter as $crs) : ?>
+                <option value="<?php echo esc_attr((string) $crs->id); ?>" <?php selected($filter_course, (int) $crs->id); ?>>
+                    <?php echo esc_html($crs->title); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <?php elseif ($show_course_filter && !$log_has_matched_cols) : ?>
+        <p class="description" style="margin-top:8px;">فیلتر دوره پس از به‌روزرسانی دیتابیس (ستون‌های تطبیق لاگ) فعال می‌شود.</p>
+        <?php endif; ?>
         <br>
             <!-- فیلتر تاریخ: از -->
             <label style="margin-left:10px;width:60px;">از تاریخ:</label>
@@ -291,8 +350,12 @@ if (!empty($search)) {
             <form method="get" action="">
                 <input type="hidden" name="page" value="sc-attendance-logs">
                 <input type="hidden" name="filter_user" value="<?php echo esc_attr($filter_user); ?>">
-                <input type="hidden" name="filter_date" value="<?php echo esc_attr($filter_date); ?>">
-                <input type="hidden" name="filter_time" value="<?php echo esc_attr($filter_time); ?>">
+                <input type="hidden" name="filter_course" value="<?php echo esc_attr((string) $filter_course); ?>">
+                <input type="hidden" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                <input type="hidden" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                <input type="hidden" name="filter_time_from" value="<?php echo esc_attr($filter_time_from); ?>">
+                <input type="hidden" name="filter_time_to" value="<?php echo esc_attr($filter_time_to); ?>">
+                <input type="hidden" name="count_item_page" value="<?php echo esc_attr((string) $count_item_page); ?>">
                 <label class="screen-reader-text" for="search_id">جستجو:</label>
                 <input type="search" id="search_id" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجوی نام بازیکن..." style="width: 220px;">
                 <input type="submit" id="search-submit" class="button" value="جستجو">
@@ -314,10 +377,19 @@ if (!empty($search)) {
                     <td id="cb" class="manage-column check-column">
                         <input type="checkbox" id="cb-select-all">
                     </td>
-                    <th>شناسه </th>
+                    <th> رکوردشناسه </th>
                     <th>نام کاربر</th>
                     <th>تاریخ</th>
                     <th>زمان</th>
+                    <?php if ($show_col_employee) : ?>
+                    <th><code>employee_code</code></th>
+                    <?php endif; ?>
+                    <?php if ($show_col_user_id) : ?>
+                    <th>شناسه کاربر </th>
+                    <?php endif; ?>
+                    <?php if ($show_col_course && $log_has_matched_cols) : ?>
+                    <th>دورهٔ حضور ثبت‌شده</th>
+                    <?php endif; ?>
                     <?php if ($log_has_matched_cols) : ?>
                     <th>حضور خودکار</th>
                     <?php endif; ?>
@@ -326,8 +398,9 @@ if (!empty($search)) {
 
                 <tbody>
 
-                <?php if ($logs): ?>
-
+                <?php if ($logs):
+                    ?>
+                       
                     <?php foreach ($logs as $log): ?>
                         <?php
                             $date =sc_date_shamsi_date_only( date('Y/m/d', strtotime($log->log_datetime)));
@@ -343,6 +416,27 @@ if (!empty($search)) {
                             <td><?php echo esc_html($log->first_name . ' ' . $log->last_name); ?></td>
                             <td><?php echo esc_html($date); ?></td>
                             <td><?php echo esc_html($time); ?></td>
+                            <?php if ($show_col_employee) : ?>
+                            <td><?php echo esc_html((string) ($log->employee_code ?? '')); ?></td>
+                            <?php endif; ?>
+                            <?php if ($show_col_user_id) : ?>
+                            <td><?php
+                                $uid = isset($log->member_wp_user_id) ? $log->member_wp_user_id : null;
+                                echo ($uid !== null && $uid !== '' && (int) $uid > 0) ? esc_html((string) (int) $uid) : '—';
+                            ?></td>
+                            <?php endif; ?>
+                            <?php if ($show_col_course && $log_has_matched_cols) : ?>
+                            <td><?php
+                            if (!empty($log->matched_to_attendance) && !empty($log->matched_course_title)) {
+                                echo esc_html($log->matched_course_title);
+                                if (!empty($log->matched_attendance_id)) {
+                                    echo ' <span class="description">(حضور #' . (int) $log->matched_attendance_id . ')</span>';
+                                }
+                            } else {
+                                echo '—';
+                            }
+                            ?></td>
+                            <?php endif; ?>
                             <?php if ($log_has_matched_cols) : ?>
                             <td><?php echo !empty($log->matched_to_attendance) ? 'بله' . (!empty($log->matched_attendance_id) ? ' (#' . (int) $log->matched_attendance_id . ')' : '') : '—'; ?></td>
                             <?php endif; ?>
@@ -352,7 +446,7 @@ if (!empty($search)) {
 
                 <?php else: ?>
                     <tr>
-                        <td colspan="<?php echo $log_has_matched_cols ? 6 : 5; ?>" style="text-align:center;padding:20px;">
+                        <td colspan="<?php echo (int) $table_colspan; ?>" style="text-align:center;padding:20px;">
                             هیچ لاگی یافت نشد.
                         </td>
                     </tr>
