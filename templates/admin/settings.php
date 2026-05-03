@@ -226,6 +226,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $attendance_logs_col_user_id = isset($_POST['attendance_logs_col_user_id']) ? 1 : 0;
         $attendance_logs_col_course = isset($_POST['attendance_logs_col_course']) ? 1 : 0;
         $attendance_logs_show_course_filter = isset($_POST['attendance_logs_show_course_filter']) ? 1 : 0;
+        $attendance_logs_bulk_delete = isset($_POST['attendance_logs_bulk_delete']) ? 1 : 0;
+        $attendance_logs_bulk_clear_match = isset($_POST['attendance_logs_bulk_clear_match']) ? 1 : 0;
+        $attendance_logs_default_days_back = isset($_POST['attendance_logs_default_days_back']) ? max(1, min(366, absint($_POST['attendance_logs_default_days_back']))) : 7;
         sc_update_setting('deduction_wallet_enabled' , $deduction_wallet_enabled , 'attendance');
         sc_update_setting('max_debt_for_attendance' , $max_debt_for_attendance , 'attendance');
         sc_update_setting('attendance_api_auto_enabled', $attendance_api_auto_enabled, 'attendance');
@@ -236,6 +239,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('attendance_logs_col_user_id', $attendance_logs_col_user_id, 'attendance');
         sc_update_setting('attendance_logs_col_course', $attendance_logs_col_course, 'attendance');
         sc_update_setting('attendance_logs_show_course_filter', $attendance_logs_show_course_filter, 'attendance');
+        sc_update_setting('attendance_logs_bulk_delete', $attendance_logs_bulk_delete, 'attendance');
+        sc_update_setting('attendance_logs_bulk_clear_match', $attendance_logs_bulk_clear_match, 'attendance');
+        sc_update_setting('attendance_logs_default_days_back', (string) $attendance_logs_default_days_back, 'attendance');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کیف پول ذخیره شد', null, ['tab' => 'attendance']);
         }
@@ -1696,6 +1702,15 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 $attendance_logs_col_user_id = (int) sc_get_setting('attendance_logs_col_user_id', '1');
                 $attendance_logs_col_course = (int) sc_get_setting('attendance_logs_col_course', '1');
                 $attendance_logs_show_course_filter = (int) sc_get_setting('attendance_logs_show_course_filter', '1');
+                $attendance_logs_bulk_delete = (int) sc_get_setting('attendance_logs_bulk_delete', '1');
+                $attendance_logs_bulk_clear_match = (int) sc_get_setting('attendance_logs_bulk_clear_match', '1');
+                $attendance_logs_default_days_back = (int) sc_get_setting('attendance_logs_default_days_back', '7');
+                if ($attendance_logs_default_days_back < 1) {
+                    $attendance_logs_default_days_back = 7;
+                }
+                if ($attendance_logs_default_days_back > 366) {
+                    $attendance_logs_default_days_back = 366;
+                }
                 ?>
 
                 <table class="form-table">
@@ -1784,6 +1799,28 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                                 نمایش فیلتر «دوره» در بالای لیست لاگ
                             </label>
                             <p class="description">فقط روی لاگ‌هایی که قبلاً به حضور تطبیق داده شده‌اند و همان حضور به آن دوره ثبت شده، اثر دارد.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">عملیات دسته‌جمعی در لیست لاگ</th>
+                        <td>
+                            <label style="display:block;margin-bottom:6px;">
+                                <input type="checkbox" name="attendance_logs_bulk_delete" value="1" <?php checked($attendance_logs_bulk_delete, 1); ?>>
+                                اجازهٔ <strong>حذف دسته‌جمعی</strong> رکوردهای لاگ دستگاه
+                            </label>
+                            <label style="display:block;margin-bottom:6px;">
+                                <input type="checkbox" name="attendance_logs_bulk_clear_match" value="1" <?php checked($attendance_logs_bulk_clear_match, 1); ?>>
+                                اجازهٔ <strong>لغو تطبیق دسته‌جمعی</strong> (بازگرداندن لاگ به حالت «بدون اتصال به حضور»؛ رکورد حضور حذف نمی‌شود)
+                            </label>
+                            <p class="description">اگر هر دو غیرفعال باشند، ستون انتخاب و نوار اعمال در صفحهٔ لاگ نمایش داده نمی‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پیش‌فرض بازهٔ تاریخ (لیست لاگ)</th>
+                        <td>
+                            <input type="number" name="attendance_logs_default_days_back" value="<?php echo esc_attr((string) $attendance_logs_default_days_back); ?>" min="1" max="366" class="small-text" dir="ltr">
+                            <span>روز به عقب از امروز وقتی کاربر تاریخ «از» را خالی بگذارد.</span>
+                            <p class="description">تعداد رکورد در هر صفحه فقط از همان صفحهٔ لاگ (فیلتر) قابل تنظیم است؛ در اینجا ذخیره نمی‌شود.</p>
                         </td>
                     </tr>
                 

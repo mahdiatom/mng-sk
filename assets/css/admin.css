@@ -158,7 +158,11 @@ th{
     .wp-core-ui .button, .wp-core-ui .button.button-large, .wp-core-ui .button.button-small, a.preview, input#publish, input#save-post {
         line-height: unset !important;
     }
+     .tablenav .view-switch, .tablenav.top .actions {
+        display: block !important;
+    }
 }
+
 
 /* Modal Content */
 .modal-content {
@@ -699,7 +703,7 @@ input.persian-date-input{
 }
 .postbox {
         border-radius: 10px;
-    padding: 10px;
+    
 }
 .back_attendance_list{
     background: #fff;
@@ -2232,11 +2236,61 @@ display: flex;
 
 /* لاگ حضور و غیاب  */
 /* کانتینر اصلی فیلتر */
+
+            .wrap_log_attendance{ 
+                display: flex;
+                justify-content: space-between;
+                    /* align-items: center; */
+
+            }
+            #sc-attendance-logs-page-settings-box{
+                max-width:920px;
+                margin-top:12px;
+                position: absolute;
+                left: 37px;
+                top: 16px;
+                z-index: 99;
+            }
+            .sc-attendance-logs-settings-postbox.closed .inside { display: none; }
+            .sc-attendance-logs-settings-header {
+                display: flex;
+                align-items: stretch;
+                cursor: pointer;
+                user-select: none;
+                border-bottom: 1px solid #c3c4c7;
+                background: #f6f7f7;
+            }
+            .sc-attendance-logs-settings-header:hover { background: #f0f0f1; }
+            .sc-attendance-logs-settings-header .handlediv {
+                    width: 50px;
+                height: 50px;
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .sc-attendance-logs-settings-postbox.closed .toggle-indicator::before { content: "\f140"; font: normal 20px/1 dashicons; color: #787c82; speak: never; }
+            .sc-attendance-logs-settings-postbox:not(.closed) .toggle-indicator::before { content: "\f142"; font: normal 20px/1 dashicons; color: #787c82; speak: never; }
+        
+
+
 .col-1-attendance ,.col-2-attendance  {
         display: flex;
     width: 100%;
     align-items: center;
-    justify-content: space-between;
+        justify-content: flex-start;
+    gap: 15px;
+}
+.wrap_filter{
+    position: relative;
+}
+.search_log {
+    position: absolute;
+    left: 10px;
+    bottom: 30px;
 }
 
 .filter_attendance_log_list{
@@ -2244,6 +2298,41 @@ display: flex;
     flex-direction: column;
     gap: 23px;
 }
+.filter_search_logs .sc-searchable-dropdown{
+    width: 30%;
+        margin-left: 10px;
+}
 
+@media screen and (max-width:780px) {
+    
+.col-1-attendance ,.col-2-attendance  {
+        display: flex;
+    flex-direction: column;
+  gap: 5px;
+  align-items: stretch;
+}
+.col-2-attendance{
+    gap: 20px;
+}
+.filter_search_logs .sc-searchable-dropdown{
+    width: 100%;
+        margin-left: 10px;
+}
+.wrap_table_log_attendance{
+    overflow: auto;
+}
+.col-1-attendance .persian-date-input {
+    width: 100% !important;
+}
+#sc-attendance-logs-page-settings-box{
+       display: none;
+}
+.search_log {
+    position: unset;
+}
+.search_log #search_id{
+    width: 85% !important;
+}
+}
 
 /* لاگ حضور و غیاب پایان  */

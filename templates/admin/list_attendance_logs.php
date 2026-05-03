@@ -21,6 +21,63 @@ if (!defined('ABSPATH')) exit;
     $show_col_user_id = (int) sc_get_setting('attendance_logs_col_user_id', '1') === 1;
     $show_col_course = (int) sc_get_setting('attendance_logs_col_course', '1') === 1;
     $show_course_filter = (int) sc_get_setting('attendance_logs_show_course_filter', '1') === 1;
+    $bulk_delete_on = (int) sc_get_setting('attendance_logs_bulk_delete', '1') === 1;
+    $bulk_clear_match_setting = (int) sc_get_setting('attendance_logs_bulk_clear_match', '1') === 1;
+    $bulk_clear_on = $bulk_clear_match_setting && $log_has_matched_cols;
+    $show_bulk_bar = $bulk_delete_on || $bulk_clear_on;
+    $default_days_back = max(1, min(366, (int) sc_get_setting('attendance_logs_default_days_back', '7')));
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_attendance_logs_bulk_submit'])) {
+        check_admin_referer('sc_attendance_logs_bulk', 'sc_attendance_logs_bulk_nonce');
+        $bulk_action = isset($_POST['bulk_action']) ? sanitize_text_field(wp_unslash($_POST['bulk_action'])) : '';
+        $log_ids_in = isset($_POST['log_ids']) ? array_map('absint', (array) $_POST['log_ids']) : [];
+        $log_ids_in = array_values(array_filter($log_ids_in));
+        $notice = '';
+        if ($bulk_action === '' || $bulk_action === '-1') {
+            $notice = 'pick_action';
+        } elseif (empty($log_ids_in)) {
+            $notice = 'no_ids';
+        } elseif ($bulk_action === 'delete' && $bulk_delete_on) {
+            $in = implode(',', $log_ids_in);
+            $wpdb->query("DELETE FROM `{$logs_table}` WHERE id IN ({$in})");
+            $notice = 'deleted';
+        } elseif ($bulk_action === 'clear_match' && $bulk_clear_on) {
+            $in = implode(',', $log_ids_in);
+            $wpdb->query("UPDATE `{$logs_table}` SET matched_to_attendance = 0, matched_attendance_id = NULL WHERE id IN ({$in})");
+            $notice = 'cleared';
+        } else {
+            $notice = 'forbidden';
+        }
+        $ref = wp_get_referer();
+        if (!$ref) {
+            $ref = admin_url('admin.php?page=sc-attendance-logs');
+        }
+        wp_safe_redirect(add_query_arg('sc_logs_notice', $notice, remove_query_arg('sc_logs_notice', $ref)));
+        exit;
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_attendance_logs_save_page_settings'])) {
+        check_admin_referer('sc_attendance_logs_page_settings', 'sc_attendance_logs_page_settings_nonce');
+        $attendance_logs_col_employee_code = isset($_POST['attendance_logs_col_employee_code']) ? 1 : 0;
+        $attendance_logs_col_user_id = isset($_POST['attendance_logs_col_user_id']) ? 1 : 0;
+        $attendance_logs_col_course = isset($_POST['attendance_logs_col_course']) ? 1 : 0;
+        $attendance_logs_show_course_filter = isset($_POST['attendance_logs_show_course_filter']) ? 1 : 0;
+        $attendance_logs_bulk_delete = isset($_POST['attendance_logs_bulk_delete']) ? 1 : 0;
+        $attendance_logs_bulk_clear_match = isset($_POST['attendance_logs_bulk_clear_match']) ? 1 : 0;
+        $attendance_logs_default_days_back = isset($_POST['attendance_logs_default_days_back']) ? max(1, min(366, absint($_POST['attendance_logs_default_days_back']))) : 7;
+        sc_update_setting('attendance_logs_col_employee_code', $attendance_logs_col_employee_code, 'attendance');
+        sc_update_setting('attendance_logs_col_user_id', $attendance_logs_col_user_id, 'attendance');
+        sc_update_setting('attendance_logs_col_course', $attendance_logs_col_course, 'attendance');
+        sc_update_setting('attendance_logs_show_course_filter', $attendance_logs_show_course_filter, 'attendance');
+        sc_update_setting('attendance_logs_bulk_delete', $attendance_logs_bulk_delete, 'attendance');
+        sc_update_setting('attendance_logs_bulk_clear_match', $attendance_logs_bulk_clear_match, 'attendance');
+        sc_update_setting('attendance_logs_default_days_back', (string) $attendance_logs_default_days_back, 'attendance');
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات صفحهٔ لاگ دستگاه حضور و غیاب از همان صفحه ذخیره شد', null, ['context' => 'attendance_logs_page']);
+        }
+        wp_safe_redirect(add_query_arg('sc_logs_settings_saved', '1', admin_url('admin.php?page=sc-attendance-logs')));
+        exit;
+    }
 
 // -----------------------------
 //  فیلترها
@@ -65,8 +122,7 @@ function jalali_days_before($days) {
 
 // اگر کاربر مقدار وارد نکرده باشد → مقدار پیش‌فرض فعال شود
 if (empty($filter_date_from)) {
-    // یک هفته قبل
-    $filter_date_from = jalali_days_before(7);
+    $filter_date_from = jalali_days_before($default_days_back);
 }
 
 if (empty($filter_date_to)) {
@@ -91,7 +147,7 @@ $g_date_to   = jalali_to_greg($filter_date_to);
     //  pagination
     // -----------------------------
     $screen_per_page = get_user_meta(get_current_user_id(), 'attendance_logs_per_page', true);
-    $per_page = $screen_per_page ? max(1, (int)$screen_per_page) :$count_item_page;
+    $per_page = $screen_per_page ? max(1, (int) $screen_per_page) : max(1, absint(trim((string) $count_item_page)));
 
     $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
     $offset = ($current_page - 1) * $per_page;
@@ -223,7 +279,7 @@ if ($filter_course > 0 && $log_has_matched_cols) {
         );
     }
 
-    $table_colspan = 5 + ($log_has_matched_cols ? 1 : 0);
+    $table_colspan = ($show_bulk_bar ? 5 : 4) + ($log_has_matched_cols ? 1 : 0);
     if ($show_col_employee) {
         $table_colspan++;
     }
@@ -234,16 +290,118 @@ if ($filter_course > 0 && $log_has_matched_cols) {
         $table_colspan++;
     }
 
+    $logs_notice = isset($_GET['sc_logs_notice']) ? sanitize_text_field(wp_unslash($_GET['sc_logs_notice'])) : '';
+    $logs_settings_saved = isset($_GET['sc_logs_settings_saved']) && (string) $_GET['sc_logs_settings_saved'] === '1';
+
     ?>
 
-    <div class="wrap">
+    <div class="wrap wrap_log_attendance">
 
         <h1 class="wp-heading-inline">لاگ حضور و غیاب</h1>
-        <hr class="wp-header-end">
+    
+
+        <?php if ($logs_settings_saved) : ?>
+            <div class="notice notice-success is-dismissible"><p>تنظیمات صفحهٔ لاگ ذخیره شد.</p></div>
+        <?php endif; ?>
+
+        <?php
+        // مثل metabox وردپرس: پیش‌فرض بسته؛ بعد از ذخیرهٔ موفق باز می‌ماند تا پیام را ببینند.
+        $sc_logs_settings_box_open = $logs_settings_saved;
+        ?>
+        <div id="sc-attendance-logs-page-settings-box" class="postbox sc-attendance-logs-settings-postbox<?php echo $sc_logs_settings_box_open ? '' : ' closed'; ?>" >
+            <div class="postbox-header sc-attendance-logs-settings-header" role="button" tabindex="0" aria-expanded="<?php echo $sc_logs_settings_box_open ? 'true' : 'false'; ?>" aria-controls="sc-attendance-logs-page-settings-inside">
+                <h2  style="flex:1;padding:10px 12px;margin:0;font-size:14px;line-height:1.4;border:none;">تنظیمات  صفحه </h2>
+                <div class="handle-actions hide-if-no-js">
+                    <button type="button" class="handlediv sc-attendance-logs-settings-toggle" aria-expanded="<?php echo $sc_logs_settings_box_open ? 'true' : 'false'; ?>">
+                        <span class="screen-reader-text">باز و بسته کردن تنظیمات صفحهٔ لاگ</span>
+                        <span class="toggle-indicator" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+            <div id="sc-attendance-logs-page-settings-inside" class="inside" style="padding:14px 16px;margin:0;">
+                <p class="description" style="margin-top:0;">این موارد همان مقادیر تب «حضور و غیاب» در تنظیمات افزونه است؛ از اینجا هم می‌توانید بدون ترک صفحهٔ لاگ ویرایش کنید. تعداد رکورد در هر صفحه فقط از فیلتر پایین (فیلد «تعداد نمایش») قابل تغییر است.</p>
+                <form method="post" action="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-logs')); ?>">
+                    <?php wp_nonce_field('sc_attendance_logs_page_settings', 'sc_attendance_logs_page_settings_nonce'); ?>
+                    <input type="hidden" name="sc_attendance_logs_save_page_settings" value="1">
+                    <table class="form-table" role="presentation" style="margin-top:0;">
+                        <tbody>
+                        <tr>
+                            <th scope="row">ستون‌ها</th>
+                            <td>
+                                <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="attendance_logs_col_employee_code" value="1" <?php checked($show_col_employee, true); ?>> <code>employee_code</code></label>
+                                <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="attendance_logs_col_user_id" value="1" <?php checked($show_col_user_id, true); ?>> شناسهٔ کاربر وردپرس عضو</label>
+                                <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="attendance_logs_col_course" value="1" <?php checked($show_col_course, true); ?>> دورهٔ مرتبط با حضور (بعد از تطبیق)</label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">فیلتر دوره</th>
+                            <td>
+                                <label><input type="checkbox" name="attendance_logs_show_course_filter" value="1" <?php checked($show_course_filter, true); ?>> نمایش فیلتر دوره در بالای لیست</label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">عملیات دسته‌جمعی</th>
+                            <td>
+                                <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="attendance_logs_bulk_delete" value="1" <?php checked($bulk_delete_on, true); ?>> حذف دسته‌جمعی</label>
+                                <label style="display:block;margin-bottom:6px;"><input type="checkbox" name="attendance_logs_bulk_clear_match" value="1" <?php checked($bulk_clear_match_setting, true); ?>> لغو تطبیق دسته‌جمعی <?php if (!$log_has_matched_cols) : ?><span class="description">(پس از به‌روزرسانی دیتابیس)</span><?php endif; ?></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">پیش‌فرض «از تاریخ»</th>
+                            <td>
+                                <input name="attendance_logs_default_days_back" type="number" min="1" max="366" class="small-text" value="<?php echo esc_attr((string) $default_days_back); ?>" dir="ltr">
+                                <span class="description">روز به عقب وقتی کاربر تاریخ «از» را خالی بگذارد.</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <p class="submit" style="margin:0;padding-top:4px;">
+                        <button type="submit" class="button button-primary">ذخیرهٔ تنظیمات صفحه</button>
+                    </p>
+                </form>
+            </div>
+        </div>
+   
+        <script>
+        (function () {
+            var box = document.getElementById('sc-attendance-logs-page-settings-box');
+            if (!box) return;
+            function setOpen(open) {
+                box.classList.toggle('closed', !open);
+                var hdr = box.querySelector('.sc-attendance-logs-settings-header');
+                var btn = box.querySelector('.sc-attendance-logs-settings-toggle');
+                if (hdr) hdr.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+            function toggle() {
+                setOpen(box.classList.contains('closed'));
+            }
+            var hdr = box.querySelector('.sc-attendance-logs-settings-header');
+            var btn = box.querySelector('.sc-attendance-logs-settings-toggle');
+            if (hdr) {
+                hdr.addEventListener('click', function (e) {
+                    if (e.target.closest('button.handlediv')) return;
+                    toggle();
+                });
+                hdr.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggle();
+                    }
+                });
+            }
+            if (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    toggle();
+                });
+            }
+        })();
+        </script>
 </div>
 
-<div class="filter_search_honors">
- <div class="wrap">
+<div class="filter_search_logs">
+ <div class="wrap wrap_filter">
     <!-- فیلترها -->
     <form method="get" action="" class="filter_attendance_log_list">
         <input type="hidden" name="page" value="sc-attendance-logs">
@@ -340,13 +498,13 @@ if ($filter_course > 0 && $log_has_matched_cols) {
             <label style="margin-left:10px;">تا زمان:</label>
             <input type="time" class="filter_time" name="filter_time_to" value="<?php echo esc_attr($filter_time_to); ?>">
              <label >تعداد نمایش رکورد ها در صفحه </label>
-            <input type="text" style="width:60px" name="count_item_page" value="<?php echo $count_item_page; ?> " >
+            <input type="text" style="width:60px" name="count_item_page" value="<?php echo esc_attr(trim((string) $count_item_page)); ?>" >
         <input type="submit" class="button" value="اعمال فیلتر" style="margin-left: 10px;">
     </form>
 </div>
     <!-- جستجو بالای جدول -->
     <div class="tablenav top" style="margin-bottom: 0;">
-        <div class="alignleft actions">
+        <div class="search_log actions">
             <form method="get" action="">
                 <input type="hidden" name="page" value="sc-attendance-logs">
                 <input type="hidden" name="filter_user" value="<?php echo esc_attr($filter_user); ?>">
@@ -366,18 +524,52 @@ if ($filter_course > 0 && $log_has_matched_cols) {
 </div>
 
 </div>
- <div class="wrap">
-        <form method="post">
-            <?php wp_nonce_field('delete_attendance_logs_nonce'); ?>
-            <input type="hidden" name="action" value="delete">
+ <div class="wrap ">
+        <?php
+        if ($logs_notice === 'deleted') {
+            echo '<div class="notice notice-success is-dismissible"><p>رکوردهای انتخاب‌شده از لاگ حذف شدند.</p></div>';
+        } elseif ($logs_notice === 'cleared') {
+            echo '<div class="notice notice-success is-dismissible"><p>تطبیق انتخاب‌شده‌ها با حضور لغو شد (رکورد حضور دست‌نخورده است).</p></div>';
+        } elseif ($logs_notice === 'no_ids') {
+            echo '<div class="notice notice-warning is-dismissible"><p>حداقل یک ردیف را انتخاب کنید.</p></div>';
+        } elseif ($logs_notice === 'pick_action') {
+            echo '<div class="notice notice-warning is-dismissible"><p>یک عملیات دسته‌جمعی از فهرست انتخاب کنید.</p></div>';
+        } elseif ($logs_notice === 'forbidden') {
+            echo '<div class="notice notice-error is-dismissible"><p>این عملیات مجاز نیست یا از تنظیمات غیرفعال شده است.</p></div>';
+        }
+        ?>
+        <form method="post" class="wrap_table_log_attendance">
+            <?php wp_nonce_field('sc_attendance_logs_bulk', 'sc_attendance_logs_bulk_nonce'); ?>
+
+            <?php if ($show_bulk_bar) : ?>
+            <div class="tablenav top" style="margin-bottom:10px;">
+                <div class="alignleft actions bulkactions">
+                    <label for="bulk-action-selector" class="screen-reader-text">عملیات دسته‌جمعی</label>
+                    <select name="bulk_action" id="bulk-action-selector">
+                        <option value="-1">عملیات دسته‌جمعی…</option>
+                        <?php if ($bulk_delete_on) : ?>
+                        <option value="delete">حذف رکوردهای لاگ</option>
+                        <?php endif; ?>
+                        <?php if ($bulk_clear_on) : ?>
+                        <option value="clear_match">لغو تطبیق با حضور</option>
+                        <?php endif; ?>
+                    </select>
+                    <input type="submit" name="sc_attendance_logs_bulk_submit" id="doaction" class="button action" value="اعمال"
+                           onclick="return confirm('عملیات روی ردیف‌های انتخاب‌شده اعمال شود؟');">
+                </div>
+                <br class="clear">
+            </div>
+            <?php endif; ?>
 
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                 <tr>
+                    <?php if ($show_bulk_bar) : ?>
                     <td id="cb" class="manage-column check-column">
                         <input type="checkbox" id="cb-select-all">
                     </td>
-                    <th> رکوردشناسه </th>
+                    <?php endif; ?>
+                    <th>شناسه</th>
                     <th>نام کاربر</th>
                     <th>تاریخ</th>
                     <th>زمان</th>
@@ -408,10 +600,11 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                         ?>
 
                         <tr>
-
+                            <?php if ($show_bulk_bar) : ?>
                             <th class="check-column">
                                 <input type="checkbox" name="log_ids[]" value="<?php echo esc_attr($log->id); ?>">
                             </th>
+                            <?php endif; ?>
                             <td><?php echo esc_html($log->id); ?></td>
                             <td><?php echo esc_html($log->first_name . ' ' . $log->last_name); ?></td>
                             <td><?php echo esc_html($date); ?></td>
@@ -456,25 +649,33 @@ if ($filter_course > 0 && $log_has_matched_cols) {
 
             </table>
 
-            <br>
-
-            <input type="submit" class="button button-danger" value="حذف انتخاب‌شده‌ها"
-                   onclick="return confirm('آیا مطمئن هستید؟');">
-
         </form>
 
         <div class="tablenav bottom sc_paginate">
             <div class="tablenav-pages">
                 <?php
-                   
+                    $pagination_base = add_query_arg(
+                        [
+                            'page' => 'sc-attendance-logs',
+                            'paged' => '%#%',
+                            'filter_user' => $filter_user,
+                            'filter_course' => $filter_course,
+                            'filter_date_from' => $filter_date_from,
+                            'filter_date_to' => $filter_date_to,
+                            'filter_time_from' => $filter_time_from,
+                            'filter_time_to' => $filter_time_to,
+                            'count_item_page' => trim((string) $count_item_page),
+                            's' => $search,
+                        ],
+                        admin_url('admin.php')
+                    );
                     $page_links = paginate_links([
-                        'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
+                        'base' => esc_url($pagination_base),
                         'format' => '',
                         'prev_text' => '< قبلی ',
                         'next_text' => ' بعدی >',
                         'total' => $total_pages,
-                        'current' => $current_page
-                        
+                        'current' => $current_page,
                     ]);
                     echo $page_links;
                     ?>
@@ -486,10 +687,13 @@ if ($filter_course > 0 && $log_has_matched_cols) {
     <!-- JS -->
     <script>
     // انتخاب همه
-    document.getElementById('cb-select-all').addEventListener('click', function () {
-        const items = document.querySelectorAll('input[name="log_ids[]"]');
-        items.forEach(ch => ch.checked = this.checked);
-    });
+    const cbAll = document.getElementById('cb-select-all');
+    if (cbAll) {
+        cbAll.addEventListener('click', function () {
+            const items = document.querySelectorAll('input[name="log_ids[]"]');
+            items.forEach(ch => { ch.checked = this.checked; });
+        });
+    }
 
    
 
@@ -528,46 +732,7 @@ if ($filter_course > 0 && $log_has_matched_cols) {
 
     <!-- CSS -->
     <style>
-    .sc-searchable-dropdown {
-        position: relative;
-        width: 250px;
-        display: inline-block;
-        cursor: pointer;
-    }
-    .sc-dropdown-toggle {
-        padding: 7px 10px;
-        background: #fff;
-        border: 1px solid #ccc;
-    }
-    .sc-dropdown-arrow {
-        float: right;
-    }
-    .sc-dropdown-menu {
-        display: none;
-        position: absolute;
-        width: 100%;
-        background: #fff;
-        border: 1px solid #ddd;
-        z-index: 999;
-        max-height: 260px;
-        overflow-y: auto;
-    }
-    .sc-dropdown-search {
-        padding: 8px;
-        background: #f5f5f5;
-        border-bottom: 1px solid #ddd;
-    }
-    .sc-search-input {
-        width: 100%;
-        padding: 6px;
-    }
-    .sc-dropdown-option {
-        padding: 8px 10px;
-        border-bottom: 1px solid #eee;
-    }
-    .sc-dropdown-option:hover {
-        background: #f1f1f1;
-    }
+
     </style>
 
 <?php
