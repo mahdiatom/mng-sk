@@ -1,140 +1,185 @@
-<?php 
+<?php
 
-// --- (تغییر جدید) --- 
-// افزودن زمان‌بندی ۱ دقیقه‌ای به وردپرس
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 add_filter('cron_schedules', 'sc_add_every_minute_schedule');
 function sc_add_every_minute_schedule($schedules) {
-    $schedules['every_minute'] = array(
-        'interval' => 60,
-        'display'  => 'هر یک دقیقه'
-    );
+    if (!isset($schedules['every_minute'])) {
+        $schedules['every_minute'] = [
+            'interval' => 60,
+            'display'  => 'هر یک دقیقه',
+        ];
+    }
     return $schedules;
 }
-// --------------------
 
-// 1. ثبت زمان‌بندی (Cron) در وردپرس
 add_action('init', 'sc_schedule_attendance_sync');
 function sc_schedule_attendance_sync() {
     if (!wp_next_scheduled('sc_sync_attendance_cron_event')) {
-        // --- (تغییر جدید: hourly به every_minute تغییر کرد) ---
         wp_schedule_event(time(), 'every_minute', 'sc_sync_attendance_cron_event');
     }
 }
 
-// 2. متصل کردن تابع دریافت اطلاعات به هوک Cron
 add_action('sc_sync_attendance_cron_event', 'sc_fetch_and_store_api_attendance');
 
-// 3. تابع اصلی برای گرفتن دیتا از API و ذخیره در دیتابیس
-function sc_fetch_and_store_api_attendance() {
+function sc_get_attendance_api_base_url() {
+    $default = 'https://api.hozoran.ir';
+    $raw = trim((string) sc_get_setting('attendance_api_base_url', $default));
+    if ($raw === '') {
+        $raw = $default;
+    }
+    return untrailingslashit($raw);
+}
+
+function sc_get_attendance_api_key() {
+    return trim((string) sc_get_setting('attendance_api_key', ''));
+}
+
+function sc_get_attendance_api_bearer_token() {
+    return trim((string) sc_get_setting('attendance_api_bearer_token', ''));
+}
+
+function sc_attendance_build_api_url($path, $params = []) {
+    $base = sc_get_attendance_api_base_url();
+    return add_query_arg($params, $base . $path);
+}
+
+function sc_attendance_api_request_headers() {
+    $headers = [
+        'Accept' => 'application/json',
+        'Content-Type' => 'application/json',
+    ];
+    $token = sc_get_attendance_api_bearer_token();
+    if ($token !== '') {
+        $headers['Authorization'] = 'Bearer ' . $token;
+    }
+    return $headers;
+}
+
+function sc_attendance_store_records($records) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_api_attendance_logs';
-    
-    $api_key = 'TEST123'; // می‌توانید این را از جدول sc_settings بخوانید
-    $api_url = 'https://api.hozoran.ir/attendance/sync';
+    $inserted_count = 0;
+    $latest_dt = null;
+    $now = current_time('mysql');
 
-    // --- (تغییر جدید: 2 days به 365 days تغییر کرد) ---
-    // دریافت زمان آخرین سینک از تنظیمات. اگر بار اول بود، از 365 روز پیش شروع کند
+    foreach ($records as $record) {
+        $employee_code = isset($record['employee_code']) ? trim((string) $record['employee_code']) : '';
+        $log_date = isset($record['log_date']) ? trim((string) $record['log_date']) : '';
+        $log_time = isset($record['log_time']) ? trim((string) $record['log_time']) : '';
+        $datetime = isset($record['datetime']) ? trim((string) $record['datetime']) : '';
+        if ($employee_code === '' || $log_date === '' || $log_time === '' || $datetime === '') {
+            continue;
+        }
+
+        $result = $wpdb->query(
+            $wpdb->prepare(
+                "INSERT IGNORE INTO `$table_name` (`employee_code`, `log_date`, `log_time`, `log_datetime`, `created_at`) VALUES (%s, %s, %s, %s, %s)",
+                $employee_code,
+                $log_date,
+                $log_time,
+                $datetime,
+                $now
+            )
+        );
+        if ($result === 1) {
+            $inserted_count++;
+        }
+        if ($latest_dt === null || strcmp($datetime, $latest_dt) > 0) {
+            $latest_dt = $datetime;
+        }
+    }
+
+    if ($latest_dt !== null) {
+        update_option('sc_last_attendance_sync', $latest_dt);
+    }
+    return $inserted_count;
+}
+
+function sc_fetch_and_store_api_attendance() {
+    $api_key = sc_get_attendance_api_key();
+    if ($api_key === '') {
+        return;
+    }
+
     $last_sync = get_option('sc_last_attendance_sync', gmdate('Y-m-d H:i:s', strtotime('-365 days')));
-
-    // ساخت URL به همراه پارامترها
-    $request_url = add_query_arg([
+    $request_url = sc_attendance_build_api_url('/attendance/sync', [
         'api_key' => $api_key,
-        'since'   => $last_sync
-    ], $api_url);
-
-    // ارسال درخواست GET
-    $response = wp_remote_get($request_url, [
-        'timeout' => 60, // (تغییر جدید: افزایش تایم‌اوت به دلیل حجم بالای دیتای ۱ ساله)
-        'sslverify' => false 
+        'since'   => $last_sync,
     ]);
 
+    $response = wp_remote_get($request_url, [
+        'timeout' => 60,
+        'sslverify' => false,
+        'headers' => sc_attendance_api_request_headers(),
+    ]);
     if (is_wp_error($response)) {
         return;
     }
 
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body, true);
-
-    // بررسی اینکه آیا رکوردی وجود دارد یا خیر
-    if (!empty($data['records']) && is_array($data['records'])) {
-        foreach ($data['records'] as $record) {
-            // استفاده از INSERT IGNORE برای جلوگیری از ثبت دیتای تکراری
-            $wpdb->query(
-                $wpdb->prepare(
-                    "INSERT IGNORE INTO `$table_name` 
-                    (`employee_code`, `log_date`, `log_time`, `log_datetime`, `created_at`) 
-                    VALUES (%s, %s, %s, %s, %s)",
-                    $record['employee_code'],
-                    $record['log_date'],
-                    $record['log_time'],
-                    $record['datetime'],
-                    current_time('mysql')
-                )
-            );
-         update_option('sc_last_attendance_sync', $record['datetime']);
-		}
+    $code = (int) wp_remote_retrieve_response_code($response);
+    if ($code < 200 || $code >= 300) {
+        return;
     }
+
+    $data = json_decode(wp_remote_retrieve_body($response), true);
+    if (!is_array($data) || empty($data['records']) || !is_array($data['records'])) {
+        return;
+    }
+
+    sc_attendance_store_records($data['records']);
 
     if (function_exists('sc_attendance_auto_process_api_logs') && (int) sc_get_setting('attendance_api_auto_enabled', '1') === 1) {
         sc_attendance_auto_process_api_logs(80);
     }
 }
 
-
-/* ============================
-   3) MANUAL HISTORICAL IMPORT (FINAL VERSION)
-============================ */
-
 add_action('admin_init', 'sc_manual_fetch_historical_attendance_data');
-
 function sc_manual_fetch_historical_attendance_data() {
-    
-    if (!isset($_GET['sc_sync_history']) || $_GET['sc_sync_history'] != '1') {
+    if (!isset($_GET['sc_sync_history']) || $_GET['sc_sync_history'] !== '1') {
+        return;
+    }
+    if (!current_user_can('manage_options') && !current_user_can('sc_manage_attendance')) {
         return;
     }
 
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'sc_api_attendance_logs';
+    $api_key = sc_get_attendance_api_key();
+    if ($api_key === '') {
+        wp_die('ابتدا API Key را از تنظیمات حضور و غیاب ثبت کنید.');
+    }
 
-    // API تاریخ-به-تاریخ
-    $api_url = 'https://api.hozoran.ir/attendance/by-date?api_key=TEST123&start=2026-03-01&end=2026-04-25';
+    $start = isset($_GET['start']) ? sanitize_text_field(wp_unslash($_GET['start'])) : '';
+    $end = isset($_GET['end']) ? sanitize_text_field(wp_unslash($_GET['end'])) : '';
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+        wp_die('پارامترهای start و end با فرمت YYYY-MM-DD الزامی هستند.');
+    }
 
-    $response = wp_remote_get($api_url, ['timeout' => 60]);
+    $request_url = sc_attendance_build_api_url('/attendance/by-date', [
+        'api_key' => $api_key,
+        'start' => $start,
+        'end' => $end,
+    ]);
 
+    $response = wp_remote_get($request_url, [
+        'timeout' => 60,
+        'sslverify' => false,
+        'headers' => sc_attendance_api_request_headers(),
+    ]);
     if (is_wp_error($response)) {
         wp_die('خطا در ارتباط با سرور: ' . $response->get_error_message());
     }
+    $code = (int) wp_remote_retrieve_response_code($response);
+    if ($code < 200 || $code >= 300) {
+        wp_die('خطای API: HTTP ' . $code);
+    }
 
-    $body = wp_remote_retrieve_body($response);
-    $data_response = json_decode($body, true);
-
-    if (!isset($data_response['records']) || !is_array($data_response['records'])) {
+    $data = json_decode(wp_remote_retrieve_body($response), true);
+    if (!is_array($data) || !isset($data['records']) || !is_array($data['records'])) {
         wp_die('داده‌ای یافت نشد یا ساختار پاسخ معتبر نیست.');
     }
 
-    $inserted_count = 0;
-    $current_time = current_time('mysql');
-
-    foreach ($data_response['records'] as $log) {
-
-        // فیلدهای درست API
-        $result = $wpdb->query(
-            $wpdb->prepare(
-                "INSERT IGNORE INTO $table_name 
-                (employee_code, log_date, log_time, log_datetime, created_at) 
-                VALUES (%s, %s, %s, %s, %s)",
-                $log['employee_code'],
-                $log['log_date'],
-                $log['log_time'],
-                $log['datetime'],
-                $current_time
-            )
-        );
-
-        if ($result) {
-            $inserted_count++;
-        }
-    }
-
-    wp_die('عملیات با موفقیت انجام شد! تعداد رکوردهای جدید ذخیره‌شده: ' . $inserted_count );
+    $inserted_count = sc_attendance_store_records($data['records']);
+    wp_die('عملیات با موفقیت انجام شد. تعداد رکورد جدید: ' . (int) $inserted_count);
 }

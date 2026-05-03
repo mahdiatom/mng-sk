@@ -219,6 +219,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $raw_neg_debt = isset($_POST['max_debt_for_attendance']) && $_POST['max_debt_for_attendance'] !== '' ? str_replace(',', '', $_POST['max_debt_for_attendance']) : (isset($_POST['max_debt_for_attendance']) ? $_POST['max_debt_for_attendance'] : '');
         $max_debt_for_attendance = $raw_neg_debt !== '' ? floatval($raw_neg_debt) : 0;
         $attendance_api_auto_enabled = isset($_POST['attendance_api_auto_enabled']) ? 1 : 0;
+        $attendance_api_base_url = isset($_POST['attendance_api_base_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_api_base_url']))) : '';
+        $attendance_api_key = isset($_POST['attendance_api_key']) ? sanitize_text_field(wp_unslash($_POST['attendance_api_key'])) : '';
+        $attendance_api_bearer_token = isset($_POST['attendance_api_bearer_token']) ? sanitize_text_field(wp_unslash($_POST['attendance_api_bearer_token'])) : '';
         $attendance_grace_before_minutes = isset($_POST['attendance_grace_before_minutes']) ? max(0, absint($_POST['attendance_grace_before_minutes'])) : 15;
         $attendance_grace_after_minutes = isset($_POST['attendance_grace_after_minutes']) ? max(0, absint($_POST['attendance_grace_after_minutes'])) : 30;
         $attendance_absent_after_end_minutes = isset($_POST['attendance_absent_after_end_minutes']) ? max(0, absint($_POST['attendance_absent_after_end_minutes'])) : 15;
@@ -232,6 +235,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('deduction_wallet_enabled' , $deduction_wallet_enabled , 'attendance');
         sc_update_setting('max_debt_for_attendance' , $max_debt_for_attendance , 'attendance');
         sc_update_setting('attendance_api_auto_enabled', $attendance_api_auto_enabled, 'attendance');
+        sc_update_setting('attendance_api_base_url', $attendance_api_base_url, 'attendance');
+        sc_update_setting('attendance_api_key', $attendance_api_key, 'attendance');
+        sc_update_setting('attendance_api_bearer_token', $attendance_api_bearer_token, 'attendance');
         sc_update_setting('attendance_grace_before_minutes', (string) $attendance_grace_before_minutes, 'attendance');
         sc_update_setting('attendance_grace_after_minutes', (string) $attendance_grace_after_minutes, 'attendance');
         sc_update_setting('attendance_absent_after_end_minutes', (string) $attendance_absent_after_end_minutes, 'attendance');
@@ -1695,6 +1701,9 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 $deduction_wallet_enabled = sc_get_setting('deduction_wallet_enabled'); 
                 $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0'));
                 $attendance_api_auto_enabled = (int) sc_get_setting('attendance_api_auto_enabled', '1');
+                $attendance_api_base_url = (string) sc_get_setting('attendance_api_base_url', 'https://api.hozoran.ir');
+                $attendance_api_key = (string) sc_get_setting('attendance_api_key', '');
+                $attendance_api_bearer_token = (string) sc_get_setting('attendance_api_bearer_token', '');
                 $attendance_grace_before_minutes = (int) sc_get_setting('attendance_grace_before_minutes', '15');
                 $attendance_grace_after_minutes = (int) sc_get_setting('attendance_grace_after_minutes', '30');
                 $attendance_absent_after_end_minutes = (int) sc_get_setting('attendance_absent_after_end_minutes', '15');
@@ -1722,6 +1731,27 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                                 فعال (کرون هر ۵ دقیقه + بعد از سینک API)
                             </label>
                             <p class="description">کد عضو در دستگاه باید برابر <code>member_id</code> باشد. برنامهٔ هفتگی هر دوره (۱=شنبه تا ۷=جمعه) با تاریخ میلادی لاگ تطبیق داده می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">آدرس پایه API دستگاه</th>
+                        <td>
+                            <input type="url" name="attendance_api_base_url" value="<?php echo esc_attr($attendance_api_base_url); ?>" class="regular-text" dir="ltr" placeholder="https://api.hozoran.ir">
+                            <p class="description">فقط دامنه/آدرس پایه. مسیرهای <code>/attendance/sync</code> و <code>/attendance/by-date</code> به‌صورت خودکار افزوده می‌شوند.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">API Key دستگاه</th>
+                        <td>
+                            <input type="text" name="attendance_api_key" value="<?php echo esc_attr($attendance_api_key); ?>" class="regular-text" dir="ltr" autocomplete="off" placeholder="TEST123">
+                            <p class="description">این کلید برای دریافت تردد از API جدید استفاده می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Bearer Token (JWT)</th>
+                        <td>
+                            <input type="text" name="attendance_api_bearer_token" value="<?php echo esc_attr($attendance_api_bearer_token); ?>" class="regular-text" dir="ltr" autocomplete="off" placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOi...">
+                            <p class="description">درخواست‌ها با هدر <code>Authorization: Bearer &lt;token&gt;</code> ارسال می‌شوند (مطابق فایل‌های نمونه).</p>
                         </td>
                     </tr>
                     <tr>
