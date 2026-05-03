@@ -2656,7 +2656,7 @@ function sc_my_account_invoices_content() {
     $events_table = $wpdb->prefix . 'sc_events';
     
     // دریافت فیلتر وضعیت
-    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all';
     /** @var stdClass|null $player */
     // ساخت شرط WHERE
     $where_conditions = ["i.member_id = %d"];
@@ -2669,47 +2669,38 @@ function sc_my_account_invoices_content() {
     }
     
     $where_clause = implode(' AND ', $where_conditions);
-    
 
-
+    $from_sql = "FROM {$invoices_table} i
+              LEFT JOIN {$courses_table} c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
+              LEFT JOIN {$events_table} e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
+              WHERE {$where_clause}";
 
     // ساخت ORDER BY - pending ها اول، سپس بر اساس تاریخ
-    $order_by = "ORDER BY 
-        CASE 
+    $order_by = "ORDER BY
+        CASE
             WHEN i.status = 'pending' THEN 1
             WHEN i.status = 'under_review' THEN 2
             ELSE 3
         END,
         i.created_at DESC";
 
-
+    $count_sql = "SELECT COUNT(*) {$from_sql}";
+    $total_items = (int) $wpdb->get_var($wpdb->prepare($count_sql, $where_values));
 
     $per_page = 10;
-    $query_count = "SELECT  COUNT(*) as count
-              FROM $invoices_table i
-              LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
-              LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
-              WHERE $where_clause
-              ";
-
-    $invoices_count= $wpdb->get_results($wpdb->prepare($query_count, $where_values),ARRAY_N);
-
+    $total_pages = max(1, (int) ceil($total_items / $per_page));
     $current_page = isset($_GET['pag']) ? max(1, absint($_GET['pag'])) : 1;
-    $total_items = $invoices_count[0][0];
-        $limit = $per_page;
+    if ($current_page > $total_pages) {
+        $current_page = $total_pages;
+    }
     $offset = ($current_page - 1) * $per_page;
-   $total_pages = ceil($total_items / $per_page);
-
 
     $query = "SELECT i.*, c.title as course_title, c.price as course_price, e.name as event_name
-              FROM $invoices_table i
-              LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
-              LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
-              WHERE $where_clause
-              $order_by LIMIT $limit OFFSET $offset";
+              {$from_sql}
+              {$order_by}
+              LIMIT %d OFFSET %d";
 
-    
-    $invoices= $wpdb->get_results($wpdb->prepare($query, $where_values));
+    $invoices = $wpdb->get_results($wpdb->prepare($query, array_merge($where_values, [$per_page, $offset])));
 
 
 
@@ -2838,7 +2829,28 @@ function sc_my_account_my_orders_content() {
 
     $where_sql = implode(' AND ', $where_conditions);
 
-    $query = "SELECT 
+    $from_sql = "
+            {$members_table} sm
+            INNER JOIN {$orders_table} wo ON wo.customer_id = sm.user_id
+            INNER JOIN {$woocommerce_order_items_table} woi ON woi.order_id = wo.id
+            INNER JOIN {$woocommerce_order_itemmeta} woi_qty
+                ON woi.order_item_id = woi_qty.order_item_id
+                AND woi_qty.meta_key = '_qty'
+        WHERE
+            {$where_sql}";
+
+    $count_sql = "SELECT COUNT(DISTINCT wo.id) FROM {$from_sql}";
+    $total_orders = (int) $wpdb->get_var($wpdb->prepare($count_sql, $where_values));
+
+    $per_page = 10;
+    $total_pages = max(1, (int) ceil($total_orders / $per_page));
+    $current_page = isset($_GET['pag']) ? max(1, absint($_GET['pag'])) : 1;
+    if ($current_page > $total_pages) {
+        $current_page = $total_pages;
+    }
+    $offset = ($current_page - 1) * $per_page;
+
+    $query = "SELECT
             wo.id AS id_order,
             sm.user_id,
             wo.status,
@@ -2846,29 +2858,23 @@ function sc_my_account_my_orders_content() {
             GROUP_CONCAT(
                 CONCAT(
                     woi.order_item_name,
-                    ' (', 
-                    woi_qty.meta_value, 
+                    ' (',
+                    woi_qty.meta_value,
                     ')'
-                ) 
+                )
                 SEPARATOR '<br>'
             ) AS products_with_quantity,
             wo.total_amount,
             wo.date_created_gmt
-        FROM 
-            {$members_table} sm
-            INNER JOIN {$orders_table} wo ON wo.customer_id = sm.user_id
-            INNER JOIN {$woocommerce_order_items_table} woi ON woi.order_id = wo.id
-            INNER JOIN {$woocommerce_order_itemmeta} woi_qty 
-                ON woi.order_item_id = woi_qty.order_item_id 
-                AND woi_qty.meta_key = '_qty'
-        WHERE 
-            {$where_sql}
-        GROUP BY 
-            wo.id, sm.first_name, sm.last_name, sm.player_phone, wo.status, wo.total_amount, wo.payment_method_title, wo.date_created_gmt
-        ORDER BY 
-            wo.id DESC";
+        FROM
+            {$from_sql}
+        GROUP BY
+            wo.id, sm.user_id, sm.first_name, sm.last_name, sm.player_phone, wo.status, wo.total_amount, wo.payment_method_title, wo.date_created_gmt
+        ORDER BY
+            wo.id DESC
+        LIMIT %d OFFSET %d";
 
-    $orders = $wpdb->get_results($wpdb->prepare($query, $where_values));
+    $orders = $wpdb->get_results($wpdb->prepare($query, array_merge($where_values, [$per_page, $offset])));
 
     include SC_TEMPLATES_PUBLIC_DIR . 'my_orders.php';
 

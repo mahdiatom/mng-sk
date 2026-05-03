@@ -4367,47 +4367,112 @@ ul.woocommerce-error a{
     color: #6d34ff;
 }
 /* صفحه بندی  */
-.tablenav-pages{
-        width: fit-content;
+
+/* container */
+.sc_paginate {
+    margin-top: 24px;
+    text-align: center;
+}
+
+.tablenav-pages {
+    width: fit-content;
     margin: 0 auto;
 }
-.top_pagination .tablenav-pages{
-        display: flex;
-    justify-content: flex-end;
-            width: unset;
-    margin:unset;
+
+.sc_paginate .tablenav-pages {
+    display: inline-block;
 }
+
+/* page numbers wrapper */
+.tablenav-pages .page-numbers{
+    display: flex;
+}
+
+/* links & numbers */
+.sc_paginate .tablenav-pages a,
+.sc_paginate .tablenav-pages span {
+    display: inline-block;
+    height: 40px;
+    padding: 10px 16px;
+    margin: 0 4px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 16px !important;
+    transition: all 0.2s ease;
+}
+
+/* links */
+.sc_paginate .tablenav-pages a {
+    background: #f0f0f1;
+    color: #000;
+    border: 1px solid #d0d0d0;
+}
+
+.sc_paginate .tablenav-pages a:hover {
+    background: #e5e5e5;
+    border-color: #b0b0b0;
+}
+
+/* current page */
+.sc_paginate .tablenav-pages .current {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    border: 1px solid #6d34ff;
+    font-weight: 600;
+}
+
+/* span style override */
+.sc_paginate .tablenav-pages span{
+    color: #0c02c9;
+    background-color: #fff;
+    border: 1px solid #0c02c9;
+    border-radius: 5px;
+}
+
+/* prev / next */
+.sc_paginate .tablenav-pages .prev,
+.sc_paginate .tablenav-pages .next{
+    font-size: 12px !important;
+}
+
+/* top pagination overrides */
+.top_pagination .tablenav-pages{
+    display: flex;
+    justify-content: flex-end;
+    width: unset;
+    margin: unset;
+}
+
 .top_pagination .tablenav-pages .current{
     height: 27px !important;
     margin-top: 2px;
 }
-.sc_paginate .tablenav-pages span ,.sc_paginate .tablenav-pages a {
-    font-size: 16px !important;
-    padding: 5px !important;
-}
-.sc_paginate .tablenav-pages span{
-        color: #0c02c9;
-    background-color: white;
-    border-radius: 5px;
-    border: 1px solid #0c02c9;
-    padding: 1px 9px !important;
-}
-.sc_paginate .tablenav-pages a {
-    color:#000;
-}
-.sc_paginate .tablenav-pages .prev{
-    font-size: 12px !important;
-}
-.sc_paginate .tablenav-pages .next{
-    font-size: 12px !important;
-}
-.top_pagination .sc_paginate .tablenav-pages .prev{
-    margin-top: 3px !important;    
-}
-.top_pagination .sc_paginate .tablenav-pages .next{
-        margin-top: 2px !important;    
 
+.top_pagination .sc_paginate .tablenav-pages .prev{
+    margin-top: 3px !important;
 }
+
+.top_pagination .sc_paginate .tablenav-pages .next{
+    margin-top: 2px !important;
+}
+
+
+/* صفحه بندی  */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .sc-my-events_register-grid{
   display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px;
 }
@@ -5877,44 +5942,7 @@ button[name="save_honors"]:focus {
     transform: translateY(0);
 }
 
-/* صفحه‌بندی */
-.sc_paginate {
-    margin-top: 24px;
-    text-align: center;
-}
 
-.sc_paginate .tablenav-pages {
-    display: inline-block;
-}
-
-.sc_paginate .tablenav-pages a,
-.sc_paginate .tablenav-pages span {
-    display: inline-block;
-    padding: 8px 12px;
-    margin: 0 4px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.sc_paginate .tablenav-pages a {
-    background: #f0f0f1;
-    color: #1d2327;
-    border: 1px solid #d0d0d0;
-}
-
-.sc_paginate .tablenav-pages a:hover {
-    background: #e5e5e5;
-    border-color: #b0b0b0;
-}
-
-.sc_paginate .tablenav-pages .current {
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
-    color: #fff;
-    border-color: #6d34ff;
-    font-weight: 600;
-}
 
 /* رسپانسیو */
 @media screen and (max-width: 768px) {

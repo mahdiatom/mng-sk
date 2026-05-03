@@ -22,7 +22,10 @@ if (function_exists('wc_get_price_thousand_separator')) {
 
 <?php
 // دریافت متغیر فیلتر (اگر از my-account.php فراخوانی شده باشد)
-$filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all');
+$filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all');
+$invoices = isset($invoices) ? $invoices : [];
+$current_page = isset($current_page) ? max(1, absint($current_page)) : 1;
+$total_pages = isset($total_pages) ? max(1, absint($total_pages)) : 1;
 ?>
 
 <div class="sc-invoices-page">
@@ -34,7 +37,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
     <!-- فیلتر وضعیت -->
     <div class="sc-invoices-filters" style="margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
         <form method="GET" action="<?php echo esc_url(wc_get_account_endpoint_url('sc-invoices')); ?>" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-            
+            <input type="hidden" name="pag" value="1" />
             <div style="flex: 1; min-width: 200px;">
                 <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
                 <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
@@ -426,15 +429,23 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                 <div class="tablenav bottom sc_paginate" style="margin: 20px 10px 50px 0px;">
                     <div class="tablenav-pages">
                         <?php
+                        $sc_inv_pag_base = wc_get_account_endpoint_url('sc-invoices');
+                        if ($filter_status !== '' && $filter_status !== 'all') {
+                            $sc_inv_pag_base = add_query_arg('filter_status', $filter_status, $sc_inv_pag_base);
+                        }
+                        $sc_inv_pag_base = remove_query_arg('pag', $sc_inv_pag_base);
+                        $sc_inv_pag_join = (strpos($sc_inv_pag_base, '?') !== false) ? '&' : '?';
+                        $sc_inv_pagination_base = esc_url($sc_inv_pag_base) . $sc_inv_pag_join . 'pag=%#%';
                         $page_links = paginate_links([
-                            'base' => add_query_arg(['pag' => '%#%']),
+                            'base' => $sc_inv_pagination_base,
                             'format' => '',
+                            'type' => 'list',
                             'prev_text' => '< قبلی ',
-                            'next_text' => ' بعدی >' ,
+                            'next_text' => ' بعدی >',
                             'total' => $total_pages,
-                            'current' => $current_page
+                            'current' => $current_page,
                         ]);
-                        echo $page_links;
+                        echo $page_links ? $page_links : '';
                         ?>
                     </div>
                 </div>
