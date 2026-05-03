@@ -68,6 +68,7 @@ require_once SC_INCLUDES_DIR . 'login-register-functions.php'; // ورود و ع
 require_once SC_INCLUDES_DIR . 'redirect.php'; // ورود و عضویت با پیامک و رمز‌
 require_once SC_INCLUDES_DIR . 'cleanup.php'; // حدف درخواست های خارجی  برای عملکرد بهتر‌
 require_once SC_INCLUDES_DIR . 'attendance_logs.php'; // ارتباط با api حضور غیاب برای لاگ دستگاه
+require_once SC_INCLUDES_DIR . 'attendance-auto.php'; // تطبیق لاگ دستگاه با حضور و غیاب (کرون)
 
 
 include(SC_ADMIN_DIR . 'admin-menu.php');
@@ -782,6 +783,7 @@ function sc_reset_factory_data() {
     $delete_order = [
         'sc_attendances',      // وابسته به members و courses
         'sc_member_courses',   // وابسته به members و courses
+        'sc_course_session_cancellations',
         'sc_course_weekly_schedule', // برنامه هفتگی کلاس (وابسته به دوره)
         'sc_invoices',         // وابسته به members و courses
         'sc_members',          // جدول اصلی

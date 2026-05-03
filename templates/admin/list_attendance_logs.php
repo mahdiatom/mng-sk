@@ -6,6 +6,8 @@
 
 if (!defined('ABSPATH')) exit;
 
+    sc_check_and_create_tables();
+
     global $wpdb;
 
     $logs_table    = $wpdb->prefix . 'sc_api_attendance_logs';
@@ -149,15 +151,19 @@ if (!empty($search)) {
     $total_items = $wpdb->get_var($count_query);
     $total_pages = ceil($total_items / $per_page);
 
+    $log_has_matched_cols = !empty($wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `{$logs_table}` LIKE %s", 'matched_to_attendance')));
+
     // -----------------------------
     //  دریافت رکوردها
     // -----------------------------
+    $log_extra_select = $log_has_matched_cols ? ', l.matched_to_attendance, l.matched_attendance_id' : '';
     $main_query = "
         SELECT 
             l.id,
             l.log_datetime,
             m.first_name,
             m.last_name
+            {$log_extra_select}
         FROM $logs_table l
         INNER JOIN $members_table m
             ON m.id = CAST(l.employee_code AS UNSIGNED)
@@ -312,7 +318,9 @@ if (!empty($search)) {
                     <th>نام کاربر</th>
                     <th>تاریخ</th>
                     <th>زمان</th>
-                    
+                    <?php if ($log_has_matched_cols) : ?>
+                    <th>حضور خودکار</th>
+                    <?php endif; ?>
                 </tr>
                 </thead>
 
@@ -335,16 +343,16 @@ if (!empty($search)) {
                             <td><?php echo esc_html($log->first_name . ' ' . $log->last_name); ?></td>
                             <td><?php echo esc_html($date); ?></td>
                             <td><?php echo esc_html($time); ?></td>
-
-                         
-
+                            <?php if ($log_has_matched_cols) : ?>
+                            <td><?php echo !empty($log->matched_to_attendance) ? 'بله' . (!empty($log->matched_attendance_id) ? ' (#' . (int) $log->matched_attendance_id . ')' : '') : '—'; ?></td>
+                            <?php endif; ?>
                         </tr>
 
                     <?php endforeach; ?>
 
                 <?php else: ?>
                     <tr>
-                        <td colspan="5" style="text-align:center;padding:20px;">
+                        <td colspan="<?php echo $log_has_matched_cols ? 6 : 5; ?>" style="text-align:center;padding:20px;">
                             هیچ لاگی یافت نشد.
                         </td>
                     </tr>

@@ -84,14 +84,17 @@ function sc_create_api_attendance_logs_table() {
 
     $sql = "CREATE TABLE `$table_name` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-        `employee_code` varchar(50) NOT NULL COMMENT 'کد شخص در دستگاه',
+        `employee_code` varchar(50) NOT NULL COMMENT 'کد شخص در دستگاه (معادل member_id)',
         `log_date` date NOT NULL,
         `log_time` time NOT NULL,
         `log_datetime` datetime NOT NULL,
         `created_at` datetime NOT NULL,
+        `matched_to_attendance` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1=به حضور وصل شد',
+        `matched_attendance_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه رکورد sc_attendances',
         PRIMARY KEY (`id`),
         UNIQUE KEY `idx_emp_datetime` (`employee_code`, `log_datetime`),
-        KEY `idx_log_date` (`log_date`)
+        KEY `idx_log_date` (`log_date`),
+        KEY `idx_matched_pending` (`matched_to_attendance`, `id`)
     ) ENGINE=InnoDB $table_collation";
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -181,6 +184,7 @@ $sql = "CREATE TABLE `$table_name` (
     `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
     `member_id` bigint(20) unsigned NOT NULL,
     `course_id` bigint(20) unsigned NOT NULL,
+    `schedule_slot_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'sc_course_weekly_schedule.id، 0=ثبت دستی روزانه',
     `attendance_date` date NOT NULL,
     `status` enum('present','absent','excused') NOT NULL DEFAULT 'present',
     `user_id` bigint(20) unsigned DEFAULT NULL,
@@ -188,7 +192,7 @@ $sql = "CREATE TABLE `$table_name` (
     `created_at` datetime NOT NULL,
     `updated_at` datetime NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `idx_member_course_date` (`member_id`,`course_id`,`attendance_date`),
+    UNIQUE KEY `idx_member_course_date_slot` (`member_id`,`course_id`,`attendance_date`,`schedule_slot_id`),
     KEY `idx_member_id` (`member_id`),
     KEY `idx_course_id` (`course_id`),
     KEY `idx_attendance_date` (`attendance_date`),
@@ -1248,6 +1252,53 @@ function sc_update_database() {
         }
         update_option('sc_invoices_discount_columns_added', '1');
     }
+
+    // لاگ دستگاه: ستون‌های تطبیق با حضور خودکار
+    if (get_option('sc_api_attendance_logs_matched_cols_added', '0') !== '1') {
+        $t = $wpdb->prefix . 'sc_api_attendance_logs';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $t)) === $t) {
+            $c1 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$t` LIKE %s", 'matched_to_attendance'));
+            if (empty($c1)) {
+                $wpdb->query("ALTER TABLE `$t` ADD COLUMN `matched_to_attendance` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1=به حضور وصل شد' AFTER `created_at`");
+            }
+            $c2 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$t` LIKE %s", 'matched_attendance_id'));
+            if (empty($c2)) {
+                $wpdb->query("ALTER TABLE `$t` ADD COLUMN `matched_attendance_id` bigint(20) unsigned DEFAULT NULL COMMENT 'sc_attendances.id' AFTER `matched_to_attendance`");
+            }
+            $idx = $wpdb->get_results("SHOW INDEX FROM `$t` WHERE Key_name = 'idx_matched_pending'");
+            if (empty($idx)) {
+                $wpdb->query("ALTER TABLE `$t` ADD KEY `idx_matched_pending` (`matched_to_attendance`, `id`)");
+            }
+        }
+        update_option('sc_api_attendance_logs_matched_cols_added', '1');
+    }
+
+    // حضور: اسلات برنامهٔ هفتگی + ایندکس یکتا
+    if (get_option('sc_attendances_schedule_slot_migration_done', '0') !== '1') {
+        $att = $wpdb->prefix . 'sc_attendances';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $att)) === $att) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$att` LIKE %s", 'schedule_slot_id'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$att` ADD COLUMN `schedule_slot_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'sc_course_weekly_schedule.id' AFTER `course_id`");
+            }
+            $old_idx = $wpdb->get_results("SHOW INDEX FROM `$att` WHERE Key_name = 'idx_member_course_date'");
+            if (!empty($old_idx)) {
+                $wpdb->query("ALTER TABLE `$att` DROP INDEX `idx_member_course_date`");
+            }
+            $new_idx = $wpdb->get_results("SHOW INDEX FROM `$att` WHERE Key_name = 'idx_member_course_date_slot'");
+            if (empty($new_idx)) {
+                $wpdb->query("ALTER TABLE `$att` ADD UNIQUE KEY `idx_member_course_date_slot` (`member_id`,`course_id`,`attendance_date`,`schedule_slot_id`)");
+            }
+        }
+        update_option('sc_attendances_schedule_slot_migration_done', '1');
+    }
+
+    if (get_option('sc_course_session_cancellations_table_created', '0') !== '1') {
+        if (function_exists('sc_create_course_session_cancellations_table')) {
+            sc_create_course_session_cancellations_table();
+        }
+        update_option('sc_course_session_cancellations_table_created', '1');
+    }
 }
 
 /**
@@ -1372,7 +1423,7 @@ function sc_create_course_weekly_schedule_table() {
     $sql = "CREATE TABLE `$t` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `course_id` bigint(20) unsigned NOT NULL,
-        `weekday` tinyint(1) unsigned NOT NULL COMMENT '1=شنبه تا 7=جمعه',
+        `weekday` tinyint(1) unsigned NOT NULL COMMENT '۱=شنبه تا ۷=جمعه (تقویم ایران، از تاریخ میلادی لاگ محاسبه می‌شود)',
         `time_start` time NOT NULL,
         `time_end` time NOT NULL,
         `sort_order` smallint(5) unsigned NOT NULL DEFAULT 0,
@@ -1381,6 +1432,30 @@ function sc_create_course_weekly_schedule_table() {
         PRIMARY KEY (`id`),
         KEY `idx_course_weekday` (`course_id`,`weekday`),
         KEY `idx_course_time` (`course_id`,`time_start`,`time_end`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+}
+
+/**
+ * لغو بازهٔ زمانی یک جلسه (تاریخ میلادی + ساعت) — کرون حضور خودکار این بازه را نادیده می‌گیرد
+ */
+function sc_create_course_session_cancellations_table() {
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $t = $wpdb->prefix . 'sc_course_session_cancellations';
+    $sql = "CREATE TABLE `$t` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `session_date` date NOT NULL COMMENT 'تاریخ میلادی روز جلسه',
+        `time_start` time NOT NULL,
+        `time_end` time NOT NULL,
+        `reason` varchar(255) DEFAULT NULL,
+        `created_by` bigint(20) unsigned DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_course_session_date` (`course_id`, `session_date`)
     ) ENGINE=InnoDB $charset_collate";
     dbDelta($sql);
 }

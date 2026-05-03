@@ -22,6 +22,26 @@ function sc_course_weekday_labels_ir() {
 }
 
 /**
+ * از تاریخ میلادی (Y-m-d) به شمارهٔ روز هفتهٔ جدول برنامه (۱=شنبه … ۷=جمعه)
+ *
+ * @param string $ymd
+ * @return int|null ۱ تا ۷
+ */
+function sc_course_ir_weekday_from_gregorian_ymd($ymd) {
+    $ymd = is_string($ymd) ? trim($ymd) : '';
+    if ($ymd === '') {
+        return null;
+    }
+    $ts = strtotime($ymd . ' 12:00:00');
+    if (!$ts) {
+        return null;
+    }
+    $w = (int) date('w', $ts); // PHP: 0=Sunday … 6=Saturday
+    // شنبه=۶ → ۱، یکشنبه=۰ → ۲، … جمعه=۵ → ۷
+    return (($w + 1) % 7) + 1;
+}
+
+/**
  * @param string $input
  * @return string|null H:i:s
  */

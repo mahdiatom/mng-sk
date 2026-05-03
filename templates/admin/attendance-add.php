@@ -68,7 +68,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 // بررسی وجود رکورد قبلی
                 $existing = $wpdb->get_var($wpdb->prepare(
                     "SELECT id FROM $attendances_table 
-                     WHERE member_id = %d AND course_id = %d AND attendance_date = %s",
+                     WHERE member_id = %d AND course_id = %d AND attendance_date = %s AND schedule_slot_id = 0",
                     $member_id,
                     $course_id,
                     $attendance_date
@@ -107,6 +107,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 $data = array(
                     'member_id' => $member_id,
                     'course_id' => $course_id,
+                    'schedule_slot_id' => 0,
                     'attendance_date' => $attendance_date,
                     'status' => $status,
                     'user_id' => $current_user_id,
@@ -168,7 +169,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     $inserted_id = $wpdb->insert(
                         $attendances_table,
                         $data,
-                        array('%d', '%d', '%s', '%s', '%d', '%s', '%s')
+                        array('%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s')
                     );
 
                     if ($inserted_id) {

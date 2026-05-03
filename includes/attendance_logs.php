@@ -75,7 +75,9 @@ function sc_fetch_and_store_api_attendance() {
 		}
     }
 
- 
+    if (function_exists('sc_attendance_auto_process_api_logs') && (int) sc_get_setting('attendance_api_auto_enabled', '1') === 1) {
+        sc_attendance_auto_process_api_logs(80);
+    }
 }
 
 

@@ -218,8 +218,16 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
    
         $raw_neg_debt = isset($_POST['max_debt_for_attendance']) && $_POST['max_debt_for_attendance'] !== '' ? str_replace(',', '', $_POST['max_debt_for_attendance']) : (isset($_POST['max_debt_for_attendance']) ? $_POST['max_debt_for_attendance'] : '');
         $max_debt_for_attendance = $raw_neg_debt !== '' ? floatval($raw_neg_debt) : 0;
+        $attendance_api_auto_enabled = isset($_POST['attendance_api_auto_enabled']) ? 1 : 0;
+        $attendance_grace_before_minutes = isset($_POST['attendance_grace_before_minutes']) ? max(0, absint($_POST['attendance_grace_before_minutes'])) : 15;
+        $attendance_grace_after_minutes = isset($_POST['attendance_grace_after_minutes']) ? max(0, absint($_POST['attendance_grace_after_minutes'])) : 30;
+        $attendance_absent_after_end_minutes = isset($_POST['attendance_absent_after_end_minutes']) ? max(0, absint($_POST['attendance_absent_after_end_minutes'])) : 15;
         sc_update_setting('deduction_wallet_enabled' , $deduction_wallet_enabled , 'attendance');
         sc_update_setting('max_debt_for_attendance' , $max_debt_for_attendance , 'attendance');
+        sc_update_setting('attendance_api_auto_enabled', $attendance_api_auto_enabled, 'attendance');
+        sc_update_setting('attendance_grace_before_minutes', (string) $attendance_grace_before_minutes, 'attendance');
+        sc_update_setting('attendance_grace_after_minutes', (string) $attendance_grace_after_minutes, 'attendance');
+        sc_update_setting('attendance_absent_after_end_minutes', (string) $attendance_absent_after_end_minutes, 'attendance');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کیف پول ذخیره شد', null, ['tab' => 'attendance']);
         }
@@ -1672,9 +1680,44 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce');
                 $deduction_wallet_enabled = sc_get_setting('deduction_wallet_enabled'); 
                 $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0'));
+                $attendance_api_auto_enabled = (int) sc_get_setting('attendance_api_auto_enabled', '1');
+                $attendance_grace_before_minutes = (int) sc_get_setting('attendance_grace_before_minutes', '15');
+                $attendance_grace_after_minutes = (int) sc_get_setting('attendance_grace_after_minutes', '30');
+                $attendance_absent_after_end_minutes = (int) sc_get_setting('attendance_absent_after_end_minutes', '15');
                 ?>
 
                 <table class="form-table">
+                    <tr>
+                        <th scope="row">حضور خودکار از لاگ دستگاه</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="attendance_api_auto_enabled" value="1" <?php checked($attendance_api_auto_enabled, 1); ?>>
+                                فعال (کرون هر ۵ دقیقه + بعد از سینک API)
+                            </label>
+                            <p class="description">کد عضو در دستگاه باید برابر <code>member_id</code> باشد. برنامهٔ هفتگی هر دوره (۱=شنبه تا ۷=جمعه) با تاریخ میلادی لاگ تطبیق داده می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">حاشیهٔ قبل از شروع کلاس (دقیقه)</th>
+                        <td>
+                            <input type="number" name="attendance_grace_before_minutes" value="<?php echo esc_attr($attendance_grace_before_minutes); ?>" min="0" max="180" class="small-text">
+                            <p class="description">مثلاً ۱۵ یعنی از این مدت قبل از ساعت شروع کلاس، تَگ دستگاه برای حضور پذیرفته می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">حاشیهٔ بعد از پایان کلاس (دقیقه)</th>
+                        <td>
+                            <input type="number" name="attendance_grace_after_minutes" value="<?php echo esc_attr($attendance_grace_after_minutes); ?>" min="0" max="180" class="small-text">
+                            <p class="description">مثلاً ۳۰ یعنی تا این مدت بعد از پایان بازهٔ کلاس، تَگ برای حضور پذیرفته می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">ثبت غیبت بعد از پایان کلاس (دقیقه)</th>
+                        <td>
+                            <input type="number" name="attendance_absent_after_end_minutes" value="<?php echo esc_attr($attendance_absent_after_end_minutes); ?>" min="0" max="240" class="small-text">
+                            <p class="description">بعد از گذشت این مدت از <strong>پایان ساعت کلاس</strong>، برای اعضای فعال بدون رکورد حضور برای همان اسلات، غیبت ثبت می‌شود.</p>
+                        </td>
+                    </tr>
                     <tr>
                         <th scope="row">کسر از کیف پول برای حضور و غیاب</th>
                         <td>

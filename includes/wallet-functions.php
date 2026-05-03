@@ -295,7 +295,7 @@ function sc_deduct_wallet($member_id, $amount, $description = '') {
  * Deduct session fee from wallet (on attendance present)
  * کسر مبلغ جلسه از کیف پول (هنگام ثبت حضور)
  */
-function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $attendance_date_shamsi ) {
+function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $attendance_date_shamsi, $created_by_user_id = null) {
     if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
         return ['success' => true, 'message' => '']; // کیف پول غیرفعال = فقط حضور ذخیره شود
     }
@@ -331,13 +331,14 @@ function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $atten
 
 
     $description = $course_title . ' - ' . $attendance_date_shamsi;
+    $created_by = $created_by_user_id !== null ? $created_by_user_id : get_current_user_id();
     return sc_add_wallet_transaction([
         'user_id' => $user_id,
         'member_id' => $member_id,
         'transaction_type' => 'session_fee',
         'amount' => $amount,
         'description' => $description,
-        'created_by' => get_current_user_id()
+        'created_by' => $created_by,
     ]);
 }
 

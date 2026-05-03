@@ -133,6 +133,15 @@ function sc_register_admin_menu() {
         'sc_admin_attendance_report_page'
     );
 
+    add_submenu_page(
+        'sc-attendance-add',
+        'تعطیلی بازهٔ جلسه',
+        'تعطیلی بازهٔ جلسه',
+        'sc_manage_attendance_or_admin',
+        'sc-attendance-session-cancellations',
+        'sc_admin_attendance_session_cancellations_page'
+    );
+
     /* ================= منوهای فقط مربی (نه مدیر کل و نه مدیر باشگاه): دستمزد، افتخارات، اطلاعیه، دوره‌های من، بازیکن‌های من، اطلاعات من، تیکت ================= */
     $is_coach_only = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach');
     if ($is_coach_only) {
@@ -1559,6 +1568,15 @@ function sc_admin_attendance_list_page() {
     
     include SC_TEMPLATES_ADMIN_DIR . 'attendance-list.php';
 }
+
+function sc_admin_attendance_session_cancellations_page() {
+    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'course-session-cancellations.php';
+}
+
 function sc_admin_attendance_logs() {
     // بررسی دسترسی (مربی یا مدیر)
     if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
