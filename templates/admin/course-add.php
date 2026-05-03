@@ -250,6 +250,56 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                         <p class="description">برای افزودن شعبه از بخش شعبه های باشگاه شعبه های  خودرا اضافه کنید.</p>
                     </td>
                 </tr>
+
+                <tr>
+                    <th scope="row">برنامه هفتگی کلاس</th>
+                    <td>
+                        <p class="description" style="margin-bottom:10px;">
+                            روزهای برگزاری را تیک بزنید و بازهٔ ساعت را وارد کنید (مثال ۰۸:۰۰ تا ۱۰:۰۰). می‌توانید چند ردیف برای زمان‌های مختلف داشته باشید. این داده بعداً برای حضور و غیاب و دستگاه قابل استفاده است.
+                        </p>
+                        <?php
+                        $wd_labels = function_exists('sc_course_weekday_labels_ir') ? sc_course_weekday_labels_ir() : [];
+                        if (!isset($course_schedule_blocks) || !is_array($course_schedule_blocks)) {
+                            $course_schedule_blocks = [['wd' => [], 'start' => '08:00:00', 'end' => '10:00:00']];
+                        }
+                        ?>
+                        <table class="widefat striped" style="max-width:920px;">
+                            <thead>
+                                <tr>
+                                    <th style="min-width:420px;">روزهای هفته</th>
+                                    <th style="width:110px;">شروع</th>
+                                    <th style="width:110px;">پایان</th>
+                                    <th style="width:90px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="sc-csched-tbody">
+                                <?php foreach ($course_schedule_blocks as $bi => $block) :
+                                    $sel = isset($block['wd']) && is_array($block['wd']) ? array_map('intval', $block['wd']) : [];
+                                    $st = isset($block['start']) ? substr((string) $block['start'], 0, 5) : '';
+                                    $en = isset($block['end']) ? substr((string) $block['end'], 0, 5) : '';
+                                    ?>
+                                <tr class="sc-csched-row">
+                                    <td style="line-height:2;">
+                                        <?php foreach ($wd_labels as $num => $lab) : ?>
+                                            <label style="margin-left:10px;white-space:nowrap;">
+                                                <input type="checkbox" name="csched_row[<?php echo (int) $bi; ?>][wd][]" value="<?php echo esc_attr((string) $num); ?>" <?php checked(in_array((int) $num, $sel, true)); ?>>
+                                                <?php echo esc_html($lab); ?>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </td>
+                                    <td><input type="time" class="regular-text" name="csched_row[<?php echo (int) $bi; ?>][start]" value="<?php echo esc_attr($st); ?>"></td>
+                                    <td><input type="time" class="regular-text" name="csched_row[<?php echo (int) $bi; ?>][end]" value="<?php echo esc_attr($en); ?>"></td>
+                                    <td><button type="button" class="button sc-csched-remove-row">حذف</button></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <p style="margin-top:10px;">
+                            <button type="button" class="button" id="sc-csched-add">+ افزودن ردیف زمان</button>
+                        </p>
+                    </td>
+                </tr>
+
                 <tr>
                    
                     <th scope="row">وضعیت</th>
@@ -286,6 +336,40 @@ jQuery(document).ready(function($) {
     if (typeof window.scInitCoursePackagesUI === 'function') {
         window.scInitCoursePackagesUI();
     }
+
+    (function () {
+        var $tb = jQuery('#sc-csched-tbody');
+        if (!$tb.length) {
+            return;
+        }
+        function reindexCschedRows() {
+            $tb.find('tr.sc-csched-row').each(function (idx) {
+                jQuery(this).find('input[name^="csched_row["]').each(function () {
+                    var $el = jQuery(this);
+                    var n = $el.attr('name');
+                    if (!n) {
+                        return;
+                    }
+                    $el.attr('name', n.replace(/csched_row\[\d+\]/, 'csched_row[' + idx + ']'));
+                });
+            });
+        }
+        jQuery('#sc-csched-add').on('click', function () {
+            var $rows = $tb.find('tr.sc-csched-row');
+            var $clone = $rows.last().clone();
+            $clone.find('input[type="checkbox"]').prop('checked', false);
+            $clone.find('input[type="time"]').val('');
+            $tb.append($clone);
+            reindexCschedRows();
+        });
+        $tb.on('click', '.sc-csched-remove-row', function () {
+            if ($tb.find('tr.sc-csched-row').length <= 1) {
+                return;
+            }
+            jQuery(this).closest('tr').remove();
+            reindexCschedRows();
+        });
+    })();
 });
 </script>
 

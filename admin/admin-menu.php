@@ -2093,6 +2093,15 @@ function sc_admin_add_course_page() {
             $course = $wpdb->get_row($sql);
         }
     }
+    $course_schedule_blocks = [];
+    if (is_object($course) && !empty($course->id) && function_exists('sc_get_course_weekly_schedule_rows') && function_exists('sc_group_course_schedule_for_form')) {
+        $course_schedule_blocks = sc_group_course_schedule_for_form(sc_get_course_weekly_schedule_rows((int) $course->id));
+    }
+    if (empty($course_schedule_blocks)) {
+        $course_schedule_blocks = [
+            ['wd' => [], 'start' => '08:00:00', 'end' => '10:00:00'],
+        ];
+    }
     include SC_TEMPLATES_ADMIN_DIR . 'course-add.php';
 }
 
@@ -2231,6 +2240,9 @@ function callback_add_course_sufix() {
                 if (function_exists('sc_replace_course_packages')) {
                     sc_replace_course_packages($course_id, $parsed_packages);
                 }
+                if (function_exists('sc_save_course_weekly_schedule_from_post')) {
+                    sc_save_course_weekly_schedule_from_post($course_id);
+                }
                 if (function_exists('sc_log_activity') && $old_course) {
                     sc_log_activity('updated', 'course', $course_id, 'دوره «' . $data['title'] . '» ویرایش شد', $old_course, ['title' => $data['title'], 'price' => $data['price'], 'is_active' => $data['is_active']]);
                 }
@@ -2292,6 +2304,9 @@ function callback_add_course_sufix() {
                 $insert_id = $wpdb->insert_id;
                 if (function_exists('sc_replace_course_packages')) {
                     sc_replace_course_packages($insert_id, $parsed_packages);
+                }
+                if (function_exists('sc_save_course_weekly_schedule_from_post')) {
+                    sc_save_course_weekly_schedule_from_post($insert_id);
                 }
                 if (function_exists('sc_log_activity')) {
                     sc_log_activity('created', 'course', $insert_id, 'دوره «' . $insert_data['title'] . '» ایجاد شد', null, ['title' => $insert_data['title'], 'price' => $insert_data['price'], 'is_active' => $insert_data['is_active']]);

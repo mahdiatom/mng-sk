@@ -1875,7 +1875,12 @@ function sc_my_account_my_courses_content() {
     // $pending_invoices = isset($pending_invoices) ? $pending_invoices : [];
     // $under_review_invoices = isset($under_review_invoices) ? $under_review_invoices : [];
     // $player = $player; // پاس دادن player به template
-    
+
+    $sc_weekly_schedule_matrix = ['days' => [], 'cells' => []];
+    if (function_exists('sc_get_member_weekly_schedule_matrix')) {
+        $sc_weekly_schedule_matrix = sc_get_member_weekly_schedule_matrix((int) $player->id);
+    }
+
     include SC_TEMPLATES_PUBLIC_DIR . 'my-courses.php';
 }
 

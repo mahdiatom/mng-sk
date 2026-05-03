@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 // دریافت متغیرهای فیلتر و صفحه‌بندی (اگر از my-account.php فراخوانی شده باشد)
 $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all');
-$current_page = isset($current_page) ? $current_page : (isset($_GET['paged']) ? absint($_GET['paged']) : 1);
+$current_page = isset($current_page) ? $current_page : (isset($_GET['pag']) ? absint($_GET['pag']) : 1);
 $total_pages = isset($total_pages) ? $total_pages : 1;
 $total_courses = isset($total_courses) ? $total_courses : 0;
 ?>
@@ -16,11 +16,66 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
         <span style="font-size: 32px;">📚</span>
         دوره‌های من
     </h2>
+
+    <?php
+    if (!isset($sc_weekly_schedule_matrix) || !is_array($sc_weekly_schedule_matrix)) {
+        $sc_weekly_schedule_matrix = ['days' => [], 'cells' => []];
+    }
+    $ws_days = isset($sc_weekly_schedule_matrix['days']) && is_array($sc_weekly_schedule_matrix['days']) ? $sc_weekly_schedule_matrix['days'] : [];
+    $ws_cells = isset($sc_weekly_schedule_matrix['cells']) && is_array($sc_weekly_schedule_matrix['cells']) ? $sc_weekly_schedule_matrix['cells'] : [];
+    $ws_has_any = false;
+    foreach (range(1, 7) as $d) {
+        if (!empty($ws_cells[$d])) {
+            $ws_has_any = true;
+            break;
+        }
+    }
+    ?>
+    <div class="sc-weekly-schedule-card" style="margin-bottom: 28px; padding: 20px; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04);">
+        <h3 style="margin: 0 0 14px; font-size: 18px; font-weight: 700; color: #1a1a1a;">📅 برنامه هفتگی کلاس‌ها</h3>
+        <?php if (!$ws_has_any) : ?>
+            <p style="margin:0;color:#666;font-size:14px;">هنوز برای دوره‌های شما زمان ثابت هفتگی تعریف نشده است. پس از تعریف توسط باشگاه، اینجا نمایش داده می‌شود.</p>
+        <?php else : ?>
+            <div style="overflow-x:auto;">
+                <table class="sc-weekly-schedule-table" style="width:100%; min-width:640px; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                        <tr>
+                            <?php foreach ($ws_days as $num => $lab) : ?>
+                                <th style="padding:10px 8px; background:#2271b1; color:#fff; text-align:center; border:1px solid #1e5a96; font-weight:600;">
+                                    <?php echo esc_html($lab); ?>
+                                </th>
+                            <?php endforeach; ?>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <?php foreach (range(1, 7) as $d) : ?>
+                                <td style="vertical-align:top; padding:10px 8px; border:1px solid #ddd; background:#fafafa; min-height:80px;">
+                                    <?php if (empty($ws_cells[$d])) : ?>
+                                        <span style="color:#bbb;">—</span>
+                                    <?php else : ?>
+                                        <?php foreach ($ws_cells[$d] as $slot) : ?>
+                                            <div style="margin-bottom:10px; padding:10px; background:#eef6ff; border-radius:8px; border-right:3px solid #2271b1;">
+                                                <div style="font-weight:700; color:#2271b1; margin-bottom:4px;">
+                                                    <?php echo esc_html($slot['start'] ?? ''); ?> – <?php echo esc_html($slot['end'] ?? ''); ?>
+                                                </div>
+                                                <div style="color:#333; line-height:1.4;"><?php echo esc_html($slot['title'] ?? ''); ?></div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </td>
+                            <?php endforeach; ?>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </div>
     
     <!-- فیلتر وضعیت -->
     <div class="sc-my-courses-filters" style="margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
         <form method="GET" action="<?php echo esc_url(wc_get_account_endpoint_url('sc-my-courses')); ?>" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-            <input type="hidden" name="paged" value="1">
+            <input type="hidden" name="pag" value="1">
             
             <div style="flex: 1; min-width: 200px;">
                 <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>

@@ -1026,6 +1026,9 @@ function sc_update_database() {
         sc_create_api_attendance_logs_table();
         sc_create_course_packages_table();
         sc_create_discount_codes_tables();
+        if (function_exists('sc_create_course_weekly_schedule_table')) {
+            sc_create_course_weekly_schedule_table();
+        }
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';
@@ -1203,6 +1206,14 @@ function sc_update_database() {
         }
     }
 
+    // جدول زمان‌بندی هفتگی دوره‌ها (کلاس‌ها)
+    if (get_option('sc_course_weekly_schedule_table_added', '0') !== '1') {
+        if (function_exists('sc_create_course_weekly_schedule_table')) {
+            sc_create_course_weekly_schedule_table();
+        }
+        update_option('sc_course_weekly_schedule_table_added', '1');
+    }
+
     // جداول کدهای تخفیف صورت‌حساب
     if (get_option('sc_discount_codes_tables_created', '0') !== '1') {
         if (function_exists('sc_create_discount_codes_tables')) {
@@ -1345,6 +1356,31 @@ function sc_create_discount_codes_tables() {
         UNIQUE KEY `idx_invoice_once` (`invoice_id`),
         KEY `idx_discount_code_id` (`discount_code_id`),
         KEY `idx_member_id` (`member_id`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+}
+
+/**
+ * زمان‌بندی هفتگی دوره (روز + بازهٔ ساعت) — پایه برای حضور و غیاب و نمایش برنامه به بازیکن
+ */
+function sc_create_course_weekly_schedule_table() {
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $t = $wpdb->prefix . 'sc_course_weekly_schedule';
+    $sql = "CREATE TABLE `$t` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `weekday` tinyint(1) unsigned NOT NULL COMMENT '1=شنبه تا 7=جمعه',
+        `time_start` time NOT NULL,
+        `time_end` time NOT NULL,
+        `sort_order` smallint(5) unsigned NOT NULL DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_course_weekday` (`course_id`,`weekday`),
+        KEY `idx_course_time` (`course_id`,`time_start`,`time_end`)
     ) ENGINE=InnoDB $charset_collate";
     dbDelta($sql);
 }

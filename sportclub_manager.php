@@ -42,6 +42,7 @@ require_once SC_INCLUDES_DIR . 'jdf.php';                  // JDF library for Pe
 require_once SC_INCLUDES_DIR . 'persian-datepicker-helper.php'; // Persian datepicker helper
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
 require_once SC_INCLUDES_DIR . 'course-packages-functions.php'; // پکیج‌های قیمت دوره
+require_once SC_INCLUDES_DIR . 'course-schedule-functions.php'; // برنامه هفتگی کلاس دوره
 require_once SC_INCLUDES_DIR . 'discount-codes-functions.php'; // کدهای تخفیف صورت‌حساب
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
@@ -640,6 +641,7 @@ function sc_check_and_create_tables() {
     $sms_log_entries_table = $wpdb->prefix . 'sc_sms_log_entries';
     $course_packages_table = $wpdb->prefix . 'sc_course_packages';
     $discount_codes_table = $wpdb->prefix . 'sc_discount_codes';
+    $course_weekly_schedule_table = $wpdb->prefix . 'sc_course_weekly_schedule';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -667,6 +669,7 @@ function sc_check_and_create_tables() {
     $sms_log_entries_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $sms_log_entries_table)) == $sms_log_entries_table;
     $course_packages_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_packages_table)) == $course_packages_table;
     $discount_codes_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $discount_codes_table)) == $discount_codes_table;
+    $course_weekly_schedule_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_weekly_schedule_table)) == $course_weekly_schedule_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -744,6 +747,9 @@ function sc_check_and_create_tables() {
     if (!$discount_codes_exists && function_exists('sc_create_discount_codes_tables')) {
         sc_create_discount_codes_tables();
     }
+    if (!$course_weekly_schedule_exists && function_exists('sc_create_course_weekly_schedule_table')) {
+        sc_create_course_weekly_schedule_table();
+    }
     
     // اجرای به‌روزرسانی‌های دیتابیس
     if (function_exists('sc_update_database')) {
@@ -776,6 +782,7 @@ function sc_reset_factory_data() {
     $delete_order = [
         'sc_attendances',      // وابسته به members و courses
         'sc_member_courses',   // وابسته به members و courses
+        'sc_course_weekly_schedule', // برنامه هفتگی کلاس (وابسته به دوره)
         'sc_invoices',         // وابسته به members و courses
         'sc_members',          // جدول اصلی
         'sc_courses',          // جدول اصلی

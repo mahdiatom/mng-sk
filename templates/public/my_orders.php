@@ -46,7 +46,6 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                     <option value="cancelled" <?php selected($filter_status, 'cancelled'); ?>>لغو شده</option>
                     <option value="failed" <?php selected($filter_status, 'failed'); ?>>ناموفق</option>
                     <option value="refunded" <?php selected($filter_status, 'refunded'); ?>>بازگشت شده</option>
-                    <option value="penalty" <?php selected($filter_status, 'penalty'); ?>>جریمه‌دار (صورت‌حساب)</option>
                 </select>
             </div>
             
@@ -419,7 +418,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
         </table>
         </div>
         <!-- Pagination -->
-            <!-- <?php if ($total_pages > 1) : ?>
+             <?php if ($total_pages > 1) : ?>
                 <div class="tablenav bottom sc_paginate" style="margin: 20px 10px 50px 0px;">
                     <div class="tablenav-pages">
                         <?php
@@ -435,7 +434,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
                         ?>
                     </div>
                 </div>
-            <?php endif; ?> -->
+            <?php endif; ?> 
     <?php endif; ?>
 </div>
 <script>
