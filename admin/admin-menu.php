@@ -3129,6 +3129,10 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
             }
         }
     }
+
+    if (!empty($course_ids) && is_array($course_ids) && function_exists('sc_maybe_create_initial_invoices_after_member_courses_save')) {
+        sc_maybe_create_initial_invoices_after_member_courses_save($member_id, $course_ids);
+    }
 }
 //callback display list member in 
 function procces_table_data(){

@@ -516,7 +516,119 @@ function sc_create_threshold_invoices() {
     return;
 }
 
+/**
+ * پس از ذخیرهٔ دوره‌های عضو توسط مدیر: اگر برای این ثبت‌نام (member_course) هنوز هیچ صورت‌حسابی ثبت نشده باشد
+ * و شرایط مشابه کرون برقرار باشد، یک صورت‌حساب در انتظار پرداخت ایجاد می‌شود.
+ *
+ * حالت آستانهٔ جلسات: کرون فقط وقتی remaining برابر آستانه است فاکتور می‌زند؛ با فعال‌سازی دستی جلسات معمولاً کامل است.
+ * حالت تاریخ ثابت: تا روز/ساعت تسویه، بدنهٔ اصلی کرون اجرا نمی‌شود.
+ *
+ * @param int $member_id
+ * @param array<int,int|string> $course_ids شناسهٔ دوره‌های تیک‌خورده در فرم
+ */
+function sc_maybe_create_initial_invoices_after_member_courses_save($member_id, $course_ids) {
+    if (!class_exists('WooCommerce') || !function_exists('sc_create_course_invoice')) {
+        return;
+    }
+    $member_id = absint($member_id);
+    if ($member_id < 1 || empty($course_ids) || !is_array($course_ids)) {
+        return;
+    }
 
+    global $wpdb;
+    $mc_table = $wpdb->prefix . 'sc_member_courses';
+    $inv_table = $wpdb->prefix . 'sc_invoices';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $members_table = $wpdb->prefix . 'sc_members';
+
+    $member = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$members_table} WHERE id = %d", $member_id));
+    if (!$member || (int) $member->is_active !== 1) {
+        return;
+    }
+    if (isset($member->disable_auto_invoice) && (int) $member->disable_auto_invoice === 1) {
+        return;
+    }
+    if (function_exists('sc_is_member_team') && sc_is_member_team($member_id) && !sc_get_setting('pro_create_invoice_player_team')) {
+        return;
+    }
+
+    foreach ($course_ids as $course_id) {
+        $course_id = absint($course_id);
+        if ($course_id < 1) {
+            continue;
+        }
+
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT mc.*, c.price, c.title AS course_title
+             FROM {$mc_table} mc
+             INNER JOIN {$courses_table} c ON c.id = mc.course_id
+             WHERE mc.member_id = %d AND mc.course_id = %d AND mc.status = 'active'
+             AND c.deleted_at IS NULL AND c.is_active = 1
+             LIMIT 1",
+            $member_id,
+            $course_id
+        ));
+        if (!$row) {
+            continue;
+        }
+
+        $fs = isset($row->course_status_flags) ? (string) $row->course_status_flags : '';
+        if ($fs !== '') {
+            $low = strtolower($fs);
+            if (strpos($low, 'paused') !== false || strpos($low, 'completed') !== false || strpos($low, 'canceled') !== false) {
+                continue;
+            }
+        }
+
+        $inv_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$inv_table} WHERE member_course_id = %d",
+            (int) $row->id
+        ));
+        if ($inv_count > 0) {
+            continue;
+        }
+
+        $amount = function_exists('sc_get_course_billing_amount_for_member_course')
+            ? sc_get_course_billing_amount_for_member_course(
+                (object) ['id' => (int) $row->course_id, 'price' => $row->price, 'title' => $row->course_title],
+                $row
+            )
+            : (float) $row->price;
+        $fee_label = function_exists('sc_course_enrollment_fee_label')
+            ? sc_course_enrollment_fee_label(
+                $row->course_title,
+                !empty($row->enrollment_sessions) ? (int) $row->enrollment_sessions : null
+            )
+            : ('ثبت نام دوره: ' . $row->course_title);
+
+        $mode = function_exists('sc_get_invoice_mode') ? sc_get_invoice_mode() : 'interval';
+        $inv_type = ($mode === 'sessions_threshold') ? 'session_auto' : 'system defalt';
+
+        $res = sc_create_course_invoice(
+            $member_id,
+            $course_id,
+            (int) $row->id,
+            (float) $amount,
+            $inv_type,
+            $fee_label
+        );
+
+        if (is_array($res) && !empty($res['success'])) {
+            if ($mode === 'sessions_threshold') {
+                $wpdb->update(
+                    $mc_table,
+                    ['threshold_invoiced' => 1],
+                    ['id' => (int) $row->id],
+                    ['%d'],
+                    ['%d']
+                );
+            }
+            if (!empty($res['invoice_id'])) {
+                do_action('sc_invoice_created', (int) $res['invoice_id']);
+            }
+        }
+    }
+}
 
 add_action('sc_invoice_paid', 'sc_refill_sessions_after_payment');
 
