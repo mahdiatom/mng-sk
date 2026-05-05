@@ -30,6 +30,7 @@ function sc_users_export_get_default_templates() {
             'columns_count' => 2,
             'layout_columns_count' => 2,
             'image_only_mode' => 0,
+            'card_footer_text' => '',
         ],
     ];
 }
@@ -113,6 +114,7 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
         'columns_count' => $columns_count,
         'layout_columns_count' => $layout_columns_count,
         'image_only_mode' => !empty($template['image_only_mode']) ? 1 : 0,
+        'card_footer_text' => isset($template['card_footer_text']) ? sanitize_textarea_field($template['card_footer_text']) : '',
     ];
 }
 

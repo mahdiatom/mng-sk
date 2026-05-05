@@ -616,6 +616,9 @@ function sc_get_sms_template($action, $type = 'user') {
         ],
         'insurance_expiry' => [
             'user' => 'کاربر گرامی %user_name%، تاریخ انقضای بیمه شما %expiry_date% است. لطفاً نسبت به تمدید اقدام کنید.'
+        ],
+        'identity_verified' => [
+            'user' => 'کاربر گرامی %user_name%، احراز هویت شما تایید شد.'
         ]
     ];
 
@@ -1070,6 +1073,56 @@ function sc_send_penalty_sms($invoice_id) {
 }
 
 /**
+ * Send SMS + fixed notification when identity verification is approved by admin
+ */
+function sc_send_identity_verified_notifications($member_id) {
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, user_id, first_name, last_name, player_phone FROM $members_table WHERE id = %d LIMIT 1",
+        $member_id
+    ));
+    if (!$member) {
+        return;
+    }
+
+    $user_name = trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? ''));
+    if ($user_name === '') {
+        $user_name = 'کاربر گرامی';
+    }
+
+    // Fixed in-app notification text
+    if (function_exists('sc_save_notification')) {
+        sc_save_notification([
+            'title' => 'تایید احراز هویت',
+            'content' => 'کاربر گرامی .... احراز هویت شما تایید شد.',
+            'target_type' => 'specific',
+            'target_config' => [
+                'recipient_ids' => ['member_' . (int) $member->id]
+            ],
+            'send_sms' => 0
+        ]);
+    }
+
+    // SMS (configurable from settings)
+    if (!function_exists('sc_is_sms_enabled_for') || !function_exists('sc_get_sms_template') || !function_exists('sc_send_sms')) {
+        return;
+    }
+
+    if (sc_is_sms_enabled_for('identity_verified', 'user') && !empty($member->player_phone)) {
+        $template = sc_get_sms_template('identity_verified', 'user');
+        if (!empty($template)) {
+            $variables = [
+                'user_name' => $user_name
+            ];
+            $message = sc_replace_sms_variables($template, $variables);
+            $pattern_code = sc_get_sms_pattern('identity_verified', 'user');
+            sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'identity_verified');
+        }
+    }
+}
+
+/**
  * Initialize SMS settings defaults
  */
 function sc_initialize_sms_settings() {
@@ -1122,6 +1175,9 @@ function sc_initialize_sms_settings() {
 
         // Reminder Settings
         //'sms_reminder_delay_minutes' => '4320', // 3 days in minutes
+        'sms_identity_verified_user_enabled' => '1',
+        'sms_identity_verified_user_template' => 'کاربر گرامی %user_name%، احراز هویت شما تایید شد.',
+        'sms_identity_verified_user_pattern' => '',
     ];
 
     foreach ($defaults as $key => $value) {

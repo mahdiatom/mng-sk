@@ -472,6 +472,7 @@ jQuery(function ($) {
                 '  <div class="sc-row"><label>تصویر پس‌زمینه کارت</label><div class="sc-bg-image-picker"><input type="text" class="sc-bg-image-input" name="templates[' + templateKey + '][background_image]" value="" placeholder="URL تصویر"><button type="button" class="button sc-select-bg-image">انتخاب تصویر</button></div></div>' +
                 '  <div class="sc-row"><label>شفافیت تصویر پس‌زمینه (0 تا 1)</label><input type="number" min="0" max="1" step="0.05" name="templates[' + templateKey + '][background_opacity]" value="0.2"></div>' +
                 '  <div class="sc-row"><label class="sc-inline-check"><input type="checkbox" name="templates[' + templateKey + '][image_only_mode]" value="1"> خروجی فقط عکس باشد (تمام عرض، زیر هم، بک‌گراند شفاف)</label></div>' +
+                '  <div class="sc-row"><label>متن اضافی زیر کارت</label><textarea name="templates[' + templateKey + '][card_footer_text]" rows="3" placeholder="متن دلخواه برای نمایش پایین هر کارت"></textarea></div>' +
                 '  <div class="sc-fields-grid">' + fieldsHtml + '</div>' +
                 '  <div class="sc-template-layout-builder" data-template="' + templateKey + '">' +
                 '    <h3>چیدمان گرافیکی فیلدها</h3>' +

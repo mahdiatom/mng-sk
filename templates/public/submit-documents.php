@@ -14,6 +14,9 @@ $player_phone = '';
 $father_phone = '';
 $mother_phone = '';
 $landline_phone = '';
+$province = '';
+$city = '';
+$gender = '';
 $birth_date_shamsi = '';
 $birth_date_gregorian = '';
 $insurance_expiry_date_shamsi = '';
@@ -73,6 +76,9 @@ if ($player) {
     $father_phone = $player->father_phone ?? '';
     $mother_phone = $player->mother_phone ?? '';
     $landline_phone = $player->landline_phone ?? '';
+    $province = $player->province ?? '';
+    $city = $player->city ?? '';
+    $gender = $player->gender ?? '';
         
     if (empty($birth_date_shamsi)) {
             $today = new DateTime();
@@ -223,6 +229,22 @@ if (empty($player_phone) && $billing_phone) {
             <p class="form-row form-row-last">
                 <label for="landline_phone">تلفن ثابت</label>
                 <input type="text" name="landline_phone" id="landline_phone" value="<?php echo esc_attr($landline_phone); ?>">
+            </p>
+            <p class="form-row form-row-first">
+                <label for="province">استان</label>
+                <input type="text" name="province" id="province" value="<?php echo esc_attr($province); ?>">
+            </p>
+            <p class="form-row form-row-last">
+                <label for="city">شهر</label>
+                <input type="text" name="city" id="city" value="<?php echo esc_attr($city); ?>">
+            </p>
+            <p class="form-row form-row-first">
+                <label for="gender">جنسیت</label>
+                <select name="gender" id="gender">
+                    <option value="">انتخاب کنید</option>
+                    <option value="male" <?php selected($gender, 'male'); ?>>مرد</option>
+                    <option value="female" <?php selected($gender, 'female'); ?>>زن</option>
+                </select>
             </p>
         </div>
         

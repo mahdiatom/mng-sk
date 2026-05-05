@@ -94,6 +94,32 @@ body.sc-users-export-print-page {
     display: block;
 }
 
+.sc-photo-placeholder {
+    width: 100%;
+    max-width: 150px;
+    height: 190px;
+    border: 1px dashed #b9c0cc;
+    border-radius: 6px;
+    background: #f7f8fa;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    gap: 8px;
+}
+
+.sc-photo-placeholder-icon {
+    font-size: 34px;
+    line-height: 1;
+}
+
+.sc-photo-placeholder-text {
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .sc-card.has-photo {
     grid-template-columns: 150px 1fr;
     grid-template-areas: "photo content";
@@ -114,11 +140,13 @@ body.sc-users-export-print-page {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 6px 12px;
+    padding-top: 25px;
 }
 
 .sc-card-col {
     display: grid;
-    gap: 6px;
+    gap: 25px;
+    align-content: start;
 }
 
 .sc-card-content .sc-card-field {
@@ -143,6 +171,11 @@ body.sc-users-export-print-page {
     background: #fff;
     border: 1px solid #dcdcde;
     border-radius: 6px;
+}
+
+.sc-card-inline-image strong {
+    display: block;
+    margin-bottom: 4px;
 }
 
 .sc-card-inline-image--id_card_photo img,
@@ -234,6 +267,14 @@ body[data-columns="4"] {
 .sc-image-only-info-item {
     font-size: 12px;
     line-height: 1.6;
+}
+
+.sc-card-additional-note {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #c3c4c7;
+    font-size: 12px;
+    line-height: 1.7;
 }
 
 @media print {

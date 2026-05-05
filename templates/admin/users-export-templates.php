@@ -137,6 +137,10 @@ if (isset($_POST['sc_save_export_templates'])) {
                                     خروجی فقط عکس باشد (تمام عرض، زیر هم، بک‌گراند شفاف)
                                 </label>
                             </div>
+                            <div class="sc-row">
+                                <label>متن اضافی زیر کارت</label>
+                                <textarea name="templates[<?php echo esc_attr($template['key']); ?>][card_footer_text]" rows="3" placeholder="متن دلخواه برای نمایش پایین هر کارت"><?php echo esc_textarea($template['card_footer_text'] ?? ''); ?></textarea>
+                            </div>
                             <div class="sc-fields-grid">
                                 <?php foreach ($field_labels as $field_key => $field_label) : ?>
                                     <label class="sc-inline-check">

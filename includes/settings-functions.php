@@ -365,6 +365,13 @@ function sc_can_show_players_wallet() {
     }
     return (int) sc_get_setting('wallet_enabled', '0') === 1;
 }
+
+/**
+ * Check if player verification is required before accessing account sections
+ */
+function sc_is_player_verification_required() {
+    return (int) sc_get_setting('player_verification_required', '0') === 1;
+}
 function debt_user($id){
      global $wpdb;
     // محاسبه بدهکاری (صورت حساب‌های pending و under_review)

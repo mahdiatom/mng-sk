@@ -323,6 +323,57 @@ function sc_add_profile_completed_column() {
 }
 
 /**
+ * Add identity_verified column to members table if not exists
+ */
+add_action('admin_init', 'sc_add_identity_verified_column');
+function sc_add_identity_verified_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'identity_verified'
+    ));
+
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `identity_verified` tinyint(1) DEFAULT 0 AFTER `info_verified`");
+    }
+}
+
+/**
+ * Add province/city/gender columns to members table if not exists
+ */
+add_action('admin_init', 'sc_add_member_location_gender_columns');
+function sc_add_member_location_gender_columns() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+
+    $province_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'province'
+    ));
+    if (empty($province_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `province` varchar(100) DEFAULT NULL AFTER `landline_phone`");
+    }
+
+    $city_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'city'
+    ));
+    if (empty($city_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `city` varchar(100) DEFAULT NULL AFTER `province`");
+    }
+
+    $gender_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'gender'
+    ));
+    if (empty($gender_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `gender` varchar(10) DEFAULT NULL AFTER `city`");
+    }
+}
+
+/**
  * Add holding_date columns to events table if not exists
  */
 add_action('admin_init', 'sc_add_holding_date_columns');
@@ -1023,6 +1074,7 @@ function sc_auto_create_member_on_user_register($user_id) {
         'player_phone'         => !empty($player_phone) ? sanitize_text_field($player_phone) : NULL,
         'health_verified'      => 0,
         'info_verified'        => 0,
+        'identity_verified'    => 0,
         'is_active'            => 1, // به صورت پیش‌فرض فعال
         'created_at'           => current_time('mysql'),
         'updated_at'           => current_time('mysql'),

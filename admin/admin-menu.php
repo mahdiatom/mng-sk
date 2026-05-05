@@ -2411,12 +2411,14 @@ function callback_add_member_sufix(){
         'national_id'          => sanitize_text_field($national_id),
         'health_verified'      => isset($_POST['health_verified']) ? 1 : 0,
         'info_verified'        => isset($_POST['info_verified']) ? 1 : 0,
+        'identity_verified'    => isset($_POST['identity_verified']) ? 1 : 0,
         'is_active'            => isset($_POST['is_active']) ? 1 : 0,
         'disable_auto_invoice'            => isset($_POST['disable_auto_invoice']) ? 1 : 0,
         'member_type'          => (isset($_POST['member_type']) && $_POST['member_type'] === 'team') ? 'team' : 'normal',
         'created_at'           => current_time('mysql'),
         'updated_at'           => current_time('mysql'),
        ];
+       $new_identity_verified = isset($_POST['identity_verified']) ? 1 : 0;
        
        // فیلدهای اختیاری - همیشه به‌روزرسانی می‌شوند (حتی اگر خالی باشند)
        // برای فیلدهای متنی: اگر خالی باشند، NULL ذخیره می‌شود
@@ -2425,6 +2427,9 @@ function callback_add_member_sufix(){
        $data['father_phone'] = isset($_POST['father_phone']) && !empty(trim($_POST['father_phone'])) ? sanitize_text_field($_POST['father_phone']) : NULL;
        $data['mother_phone'] = isset($_POST['mother_phone']) && !empty(trim($_POST['mother_phone'])) ? sanitize_text_field($_POST['mother_phone']) : NULL;
        $data['landline_phone'] = isset($_POST['landline_phone']) && !empty(trim($_POST['landline_phone'])) ? sanitize_text_field($_POST['landline_phone']) : NULL;
+       $data['province'] = isset($_POST['province']) && !empty(trim($_POST['province'])) ? sanitize_text_field($_POST['province']) : NULL;
+       $data['city'] = isset($_POST['city']) && !empty(trim($_POST['city'])) ? sanitize_text_field($_POST['city']) : NULL;
+       $data['gender'] = isset($_POST['gender']) && in_array($_POST['gender'], ['male', 'female'], true) ? sanitize_text_field($_POST['gender']) : NULL;
        $data['birth_date_shamsi'] = isset($_POST['birth_date_shamsi']) && !empty(trim($_POST['birth_date_shamsi'])) ? sanitize_text_field($_POST['birth_date_shamsi']) : NULL;
        $data['insurance_expiry_date_shamsi'] = isset($_POST['insurance_expiry_date_shamsi']) && !empty(trim($_POST['insurance_expiry_date_shamsi'])) ? sanitize_text_field($_POST['insurance_expiry_date_shamsi']) : NULL;
        
@@ -2463,7 +2468,7 @@ function callback_add_member_sufix(){
             foreach ($data as $key => $value) {
                 if ($value === NULL) {
                     $format[] = '%s'; // NULL
-                } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'])) {
+                } elseif (in_array($key, ['health_verified', 'info_verified', 'identity_verified', 'is_active', 'user_id'])) {
                     $format[] = '%d'; // integer
                 } elseif (in_array($key, ['price', 'capacity', 'sessions_count'])) {
                     $format[] = '%d'; // integer (برای دوره‌ها)
@@ -2472,7 +2477,7 @@ function callback_add_member_sufix(){
                 }
             }
             
-            $old_member = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name, national_id, player_phone, is_active FROM $table_name WHERE id = %d", $player_id), ARRAY_A);
+            $old_member = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name, national_id, player_phone, is_active, identity_verified FROM $table_name WHERE id = %d", $player_id), ARRAY_A);
             $updated = $wpdb->update(
                 $table_name,
                 $data,
@@ -2643,6 +2648,9 @@ function callback_add_member_sufix(){
                 }
                 sc_save_member_courses($player_id, $course_ids, $course_flags, $course_package_sessions);
                 sc_update_profile_completed_status($player_id);
+                if (isset($old_member['identity_verified']) && (int)$old_member['identity_verified'] !== 1 && $new_identity_verified === 1 && function_exists('sc_send_identity_verified_notifications')) {
+                    sc_send_identity_verified_notifications($player_id);
+                }
                 if (function_exists('sc_log_activity') && $old_member) {
                     sc_log_activity('updated', 'member', $player_id, 'عضو «' . ($data['first_name'] . ' ' . $data['last_name']) . '» ویرایش شد', $old_member, ['first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'national_id' => $data['national_id'], 'is_active' => $data['is_active']]);
                 }
@@ -2702,7 +2710,7 @@ function callback_add_member_sufix(){
             foreach ($data as $key => $value) {
                 if ($value === NULL) {
                     $format[] = '%s'; // NULL
-                } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'])) {
+                } elseif (in_array($key, ['health_verified', 'info_verified', 'identity_verified', 'is_active', 'user_id'])) {
                     $format[] = '%d'; // integer
                 } else {
                     $format[] = '%s'; // string
@@ -3305,6 +3313,10 @@ function sc_sprot_notices(){
         if($status == 'bulk_deactivated' ){
             $type='success';
             $messege="بازیکن مورد نظر با موفقیت غیرفعال شد.";
+        }
+        if($status == 'bulk_identity_verified' ){
+            $type='success';
+            $messege="احراز هویت بازیکنان انتخاب‌شده با موفقیت تایید شد.";
         }
         if($status == 'bulk_deleted_register' ){
             $type='success';

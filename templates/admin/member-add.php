@@ -17,6 +17,9 @@ if(!isset($_GET['player_id'])){
         $father_phone = '';
         $mother_phone = '';
         $landline_phone = '';
+        $province = '';
+        $city = '';
+        $gender = '';
         $birth_date_shamsi = '';
         $birth_date_gregorian = '';
         $personal_photo = '';
@@ -27,6 +30,7 @@ if(!isset($_GET['player_id'])){
         $sports_history = '';
         $health_verified = 0;
         $info_verified = 0;
+        $identity_verified = 0;
         $is_active = 1;
         $disable_auto_invoice = 0;
         $member_type = 'normal';
@@ -46,6 +50,9 @@ if ($player && !empty($_GET['player_id'])) {
         $father_phone            = $player->father_phone ?? '';
         $mother_phone            = $player->mother_phone ?? '';
         $landline_phone          = $player->landline_phone ?? '';
+        $province                = $player->province ?? '';
+        $city                    = $player->city ?? '';
+        $gender                  = $player->gender ?? '';
         $birth_date_shamsi       = $player->birth_date_shamsi ?? '';
         $birth_date_gregorian    = $player->birth_date_gregorian ?? '';
         
@@ -65,6 +72,7 @@ if ($player && !empty($_GET['player_id'])) {
         $sports_history          = $player->sports_history ?? '';
         $health_verified         = $player->health_verified ?? 0;
         $info_verified           = $player->info_verified ?? 0;
+        $identity_verified       = $player->identity_verified ?? 0;
         $is_active               = $player->is_active ?? 1;
         $disable_auto_invoice               = $player->disable_auto_invoice ?? 1;
         $member_type             = isset($player->member_type) && $player->member_type === 'team' ? 'team' : 'normal';
@@ -196,6 +204,24 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     <th scope="row"><label for="landline_phone">تلفن ثابت</label></th>
                     <td><input name="landline_phone" type="text" id="landline_phone" value="<?php echo $landline_phone; ?>" class="regular-text"></td>
                 </tr>
+                <tr>
+                    <th scope="row"><label for="province">استان</label></th>
+                    <td><input name="province" type="text" id="province" value="<?php echo esc_attr($province); ?>" class="regular-text"></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="city">شهر</label></th>
+                    <td><input name="city" type="text" id="city" value="<?php echo esc_attr($city); ?>" class="regular-text"></td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="gender">جنسیت</label></th>
+                    <td>
+                        <select name="gender" id="gender" class="regular-text">
+                            <option value="">انتخاب کنید</option>
+                            <option value="male" <?php selected($gender, 'male'); ?>>مرد</option>
+                            <option value="female" <?php selected($gender, 'female'); ?>>زن</option>
+                        </select>
+                    </td>
+                </tr>
 
               
                 <tr>
@@ -295,6 +321,10 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 <tr>
                     <th scope="row">اطلاعات تأیید شده</th>
                     <td><label><input name="info_verified" type="checkbox" <?php checked($info_verified, 1); ?> value="1"> بله</label></td>
+                </tr>
+                <tr>
+                    <th scope="row">احراز هویت تایید شده</th>
+                    <td><label><input name="identity_verified" type="checkbox" <?php checked($identity_verified, 1); ?> value="1"> بله</label></td>
                 </tr>
 
                

@@ -20,6 +20,7 @@ class Player_List_Table extends WP_List_Table {
             'member_type' => 'نوع',
             'team_level' => 'تیم و سطح ',
             'profile_completed' => 'تکمیل پروفایل',
+            'identity_verified' => 'احراز هویت',
             'is_active' => 'وضعیت '
         ];
     }
@@ -158,6 +159,10 @@ public function column_full_name($item) {
                 return $item['profile_completed']
         ? '<span style="color:#00a32a;font-weight:bold;">✓ تکمیل شده</span>'
         : '<span style="color:#d63638;font-weight:bold;">✗ ناقص</span>';
+            case 'identity_verified':
+                return !empty($item['identity_verified'])
+                    ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;background:#d1e7dd;color:#0f5132;font-weight:700;">تایید شده</span>'
+                    : '<span style="display:inline-block;padding:2px 8px;border-radius:12px;background:#f8d7da;color:#842029;font-weight:700;">در انتظار بررسی</span>';
             case 'is_active':
                 return $item['is_active'] ? "فعال" : "غیرفعال";
             default:
@@ -191,6 +196,7 @@ public function column_full_name($item) {
             'delete' => 'حذف بازیکن',
             'activate' => 'فعال کردن بازیکن',
             'deactivate' => 'غیرفعال کردن بازیکن',
+            'verify_identity' => 'تایید احراز هویت',
         ];
         if (current_user_can('manage_options')) {
             $actions['send_sms'] = 'ارسال پیامک';
@@ -263,6 +269,23 @@ public function column_full_name($item) {
                 $wpdb->update($table_name, ['is_active' => 0], ['id' => $player_id]);
             }
             wp_redirect(admin_url('admin.php?page=sc-members&sc_status=bulk_deactivated'));
+            exit;
+    }
+
+    if ($this->current_action() == 'verify_identity') {
+            $players = isset($_GET['player']) ? $_GET['player'] : [];
+            foreach ($players as $player_id) {
+                $player_id = absint($player_id);
+                if (!$player_id) {
+                    continue;
+                }
+                $old_status = (int) $wpdb->get_var($wpdb->prepare("SELECT identity_verified FROM $table_name WHERE id = %d", $player_id));
+                $wpdb->update($table_name, ['identity_verified' => 1], ['id' => $player_id], ['%d'], ['%d']);
+                if ($old_status !== 1 && function_exists('sc_send_identity_verified_notifications')) {
+                    sc_send_identity_verified_notifications($player_id);
+                }
+            }
+            wp_redirect(admin_url('admin.php?page=sc-members&sc_status=bulk_identity_verified'));
             exit;
     }
 

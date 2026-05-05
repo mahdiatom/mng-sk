@@ -143,6 +143,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_insurance_expiry_user_template', $sms_insurance_expiry_user_template, 'sms');
         sc_update_setting('sms_insurance_expiry_user_pattern', $sms_insurance_expiry_user_pattern, 'sms');
 
+        // Identity verification approved SMS settings
+        $sms_identity_verified_user_enabled = isset($_POST['sms_identity_verified_user_enabled']) ? 1 : 0;
+        $sms_identity_verified_user_template = isset($_POST['sms_identity_verified_user_template']) ? wp_kses($_POST['sms_identity_verified_user_template'], array()) : '';
+        $sms_identity_verified_user_pattern = isset($_POST['sms_identity_verified_user_pattern']) ? absint($_POST['sms_identity_verified_user_pattern']) : '';
+        sc_update_setting('sms_identity_verified_user_enabled', $sms_identity_verified_user_enabled, 'sms');
+        sc_update_setting('sms_identity_verified_user_template', $sms_identity_verified_user_template, 'sms');
+        sc_update_setting('sms_identity_verified_user_pattern', $sms_identity_verified_user_pattern, 'sms');
+
         // Wallet SMS Settings
         $sms_wallet_low_balance_user_enabled = isset($_POST['sms_wallet_low_balance_user_enabled']) ? 1 : 0;
         $sms_wallet_low_balance_user_template = isset($_POST['sms_wallet_low_balance_user_template']) ? wp_kses($_POST['sms_wallet_low_balance_user_template'], array()) : '';
@@ -238,6 +246,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب حضور و غیاب ذخیره شد', null, ['tab' => 'attendance']);
         }
                 echo '<div class="notice notice-success is-dismissible"><p>تنظیمات حضور و غیاب با موفقیت ذخیره شد.</p></div>';
+    }
+    elseif ($current_tab === 'player_info') {
+        $player_verification_required = isset($_POST['player_verification_required']) ? 1 : 0;
+        sc_update_setting('player_verification_required', $player_verification_required, 'player_info');
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب اطلاعات بازیکن ذخیره شد', null, ['tab' => 'player_info']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات اطلاعات بازیکن با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'coach_salary') {
         $raw_min = isset($_POST['coach_min_withdrawal_amount_raw']) && $_POST['coach_min_withdrawal_amount_raw'] !== '' ? str_replace(',', '', $_POST['coach_min_withdrawal_amount_raw']) : (isset($_POST['coach_min_withdrawal_amount']) ? $_POST['coach_min_withdrawal_amount'] : '');
@@ -409,6 +425,11 @@ $sms_insurance_expiry_user_enabled = (int)sc_get_setting('sms_insurance_expiry_u
 $sms_insurance_expiry_user_template = sc_get_setting('sms_insurance_expiry_user_template', '');
 $sms_insurance_expiry_user_pattern = sc_get_setting('sms_insurance_expiry_user_pattern', '');
 
+// Identity verification approved SMS settings
+$sms_identity_verified_user_enabled = (int)sc_get_setting('sms_identity_verified_user_enabled', '1');
+$sms_identity_verified_user_template = sc_get_setting('sms_identity_verified_user_template', 'کاربر گرامی %user_name%، احراز هویت شما تایید شد.');
+$sms_identity_verified_user_pattern = sc_get_setting('sms_identity_verified_user_pattern', '');
+
 // Wallet SMS Settings
 $sms_wallet_low_balance_user_enabled = (int)sc_get_setting('sms_wallet_low_balance_user_enabled', '1');
 $sms_wallet_low_balance_user_template = sc_get_setting('sms_wallet_low_balance_user_template', '');
@@ -493,6 +514,10 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=about'); ?>"
            class="nav-tab <?php echo $current_tab === 'about' ? 'nav-tab-active' : ''; ?>">
             درباره  مجموعه
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=player_info'); ?>"
+            class="nav-tab <?php echo $current_tab === 'player_info' ? 'nav-tab-active' : ''; ?>">
+               اطلاعات بازیکن
         </a>
         <?php
           if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {
@@ -1408,6 +1433,37 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                <h3>پیامک تایید احراز هویت</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">پیامک بعد از تایید احراز هویت</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_identity_verified_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_identity_verified_user_enabled, 1); ?>>
+                                فعال کردن ارسال پیامک پس از تایید احراز هویت بازیکن
+                            </label>
+                            <br><br>
+                            <textarea name="sms_identity_verified_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_identity_verified_user_template); ?></textarea>
+                            <p class="description">
+                                متغیر قابل استفاده: نام کاربر = %user_name%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_identity_verified_user_pattern"
+                                   value="<?php echo esc_attr($sms_identity_verified_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                </table>
+
                 <!-- Wallet SMS Settings -->
                 <h3>پیامک کیف پول</h3>
                 <table class="form-table">
@@ -1777,6 +1833,29 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
 
                 <p class="submit">
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات حضور و غیاب">
+                </p>
+            </form>
+
+        <?php endif; 
+        if ($current_tab === 'player_info') :
+            $player_verification_required = (int) sc_get_setting('player_verification_required', '0');
+        ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">اجبار احراز هویت بازیکن</th>
+                        <td>
+                            <label class="switch">
+                                <input type="checkbox" name="player_verification_required" value="1" <?php checked($player_verification_required, 1); ?>>
+                                <span class="slider round"></span>
+                            </label>
+                            <p class="description">در صورت فعال بودن، بازیکن تا زمان تایید احراز هویت فقط به بخش «اطلاعات بازیکن» دسترسی خواهد داشت.</p>
+                        </td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات اطلاعات بازیکن">
                 </p>
             </form>
 

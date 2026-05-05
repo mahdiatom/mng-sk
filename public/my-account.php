@@ -510,6 +510,16 @@ function sc_add_my_account_menu_item($items) {
 
     $items['sc-faq'] = ' سوالات متداول ';
 
+    $player = sc_get_current_member_for_account_user();
+    if (sc_is_member_verification_gate_enabled_for_user($player)) {
+        $allowed_when_unverified = ['sc-submit-documents', 'my-orders', 'shop', 'customer-logout'];
+        foreach (array_keys($items) as $item_key) {
+            if (!in_array($item_key, $allowed_when_unverified, true)) {
+                unset($items[$item_key]);
+            }
+        }
+    }
+
     $items['customer-logout'] = 'خروج از حساب کاربری';
     
     return $items;
@@ -607,6 +617,75 @@ function sc_invoices_endpoint_title($title) {
 }
 
 /**
+ * Get current logged in member row for account checks
+ * @return object|null
+ */
+function sc_get_current_member_for_account_user() {
+    if (!is_user_logged_in()) {
+        return null;
+    }
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+    $current_user_id = get_current_user_id();
+    $billing_phone = get_user_meta($current_user_id, 'billing_phone', true);
+
+    $player = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE user_id = %d LIMIT 1",
+        $current_user_id
+    ));
+
+    if (!$player && $billing_phone) {
+        $player = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE player_phone = %s LIMIT 1",
+            $billing_phone
+        ));
+    }
+
+    return $player ?: null;
+}
+
+/**
+ * Check if verification gate is active for current user
+ */
+function sc_is_member_verification_gate_enabled_for_user($player = null) {
+    if (current_user_can('manage_options')) {
+        return false;
+    }
+    if (!function_exists('sc_is_player_verification_required') || !sc_is_player_verification_required()) {
+        return false;
+    }
+    if (!$player) {
+        $player = sc_get_current_member_for_account_user();
+    }
+    return $player && (int)($player->identity_verified ?? 0) !== 1;
+}
+
+/**
+ * Check if endpoint should be blocked until verification
+ */
+function sc_is_member_verification_locked_endpoint($endpoint = '') {
+    $allowed = ['sc-submit-documents', 'my-orders', 'shop', 'customer-logout'];
+    return !in_array($endpoint, $allowed, true);
+}
+
+/**
+ * Render message for restricted endpoints
+ */
+function sc_render_member_verification_required_message() {
+    $profile_url = wc_get_account_endpoint_url('sc-submit-documents');
+    ?>
+    <div class="sc-inactive-user-message" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 20px; margin: 20px 0; color: #856404;">
+        <strong style="display: block; margin-bottom: 10px; font-size: 16px;">⚠️ برای ادامه لازم است احراز هویت انجام شود</strong>
+        <p style="margin: 0; font-size: 14px;">
+            لطفا ابتدا اطلاعات بازیکن خود را تکمیل/به‌روزرسانی کنید تا توسط مدیر بررسی و تایید شود.
+            <a href="<?php echo esc_url($profile_url); ?>">رفتن به اطلاعات بازیکن</a>
+        </p>
+    </div>
+    <?php
+}
+
+/**
  * نمایش پیام در بالای صفحه My Account برای کاربرانی که پروفایل ناقص دارند
  */
 add_action('woocommerce_account_content', 'sc_display_incomplete_profile_message', 5);
@@ -701,25 +780,7 @@ function sc_check_user_active_status() {
     
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
-    
-    $current_user_id = get_current_user_id();
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'sc_members';
-    $billing_phone = get_user_meta($current_user_id, 'billing_phone', true);
-    
-    // بررسی وجود اطلاعات بازیکن بر اساس user_id
-    $player = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $table_name WHERE user_id = %d LIMIT 1",
-        $current_user_id
-    ));
-    
-    // اگر پیدا نشد، بر اساس شماره تماس بررسی می‌کنیم
-    if (!$player && $billing_phone) {
-        $player = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table_name WHERE player_phone = %s LIMIT 1",
-            $billing_phone
-        ));
-    }
+    $player = sc_get_current_member_for_account_user();
     
     // اگر کاربر در جدول اعضا وجود نداشت
     if (!$player) {
@@ -739,6 +800,19 @@ function sc_check_user_active_status() {
         </div>
         <?php
         return false;
+    }
+
+    // اگر احراز هویت اجباری است و کاربر تایید نشده، فقط تب اطلاعات بازیکن در دسترس است
+    if (sc_is_member_verification_gate_enabled_for_user($player)) {
+        $current_endpoint = '';
+        if (function_exists('WC') && WC() && isset(WC()->query)) {
+            $current_endpoint = (string) WC()->query->get_current_endpoint();
+        }
+        // endpoint خالی یعنی داشبورد ووکامرس
+        if ($current_endpoint === '' || sc_is_member_verification_locked_endpoint($current_endpoint)) {
+            sc_render_member_verification_required_message();
+            return false;
+        }
     }
     
     return $player;
@@ -814,6 +888,10 @@ add_action('woocommerce_account_sc-faq_endpoint', 'sc_my_account_faq_content');
 function sc_my_account_faq_content(){
           // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return;
+    }
     
  
     include SC_TEMPLATES_PUBLIC_DIR . 'faq.php';
@@ -826,39 +904,19 @@ function sc_my_account_documents_content() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
     
-    // بررسی وضعیت فعال بودن کاربر
-    $player = sc_check_user_active_status();
-    if ($player === false) {
-        // اگر کاربر در جدول اعضا وجود نداشت یا غیرفعال بود
-        // اگر غیرفعال بود، پیام در تابع sc_check_user_active_status نمایش داده شده است
-        // اگر در جدول اعضا وجود نداشت، باید بررسی کنیم
-        $current_user_id = get_current_user_id();
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'sc_members';
-        $billing_phone = get_user_meta($current_user_id, 'billing_phone', true);
-        
-        // بررسی وجود اطلاعات بازیکن بر اساس user_id
-        $player_check = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table_name WHERE user_id = %d LIMIT 1",
-            $current_user_id
-        ));
-        
-        // اگر پیدا نشد، بر اساس شماره تماس بررسی می‌کنیم
-        if (!$player_check && $billing_phone) {
-            $player_check = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $table_name WHERE player_phone = %s LIMIT 1",
-                $billing_phone
-            ));
-        }
-        
-        // اگر کاربر در جدول اعضا وجود نداشت، اجازه می‌دهیم صفحه اطلاعات بازیکن را ببیند
-        // (چون باید بتواند اطلاعاتش را تکمیل کند)
-        if (!$player_check) {
-            $player = null; // برای استفاده در template
-        } else {
-            // اگر کاربر وجود داشت اما غیرفعال بود، خروج می‌کنیم
-            return;
-        }
+    // در تب اطلاعات بازیکن، حتی کاربر احرازنشده باید فرم را ببیند.
+    // فقط اگر کاربر غیرفعال باشد، دسترسی قطع می‌شود.
+    $player = sc_get_current_member_for_account_user();
+    if ($player && isset($player->is_active) && (int)$player->is_active === 0) {
+        ?>
+        <div class="sc-inactive-user-message" style="background-color: #f8d7da; border: 1px solid #dc3545; border-radius: 4px; padding: 20px; margin: 20px 0; color: #721c24;">
+            <strong style="display: block; margin-bottom: 10px; font-size: 16px;">⚠️ حساب شما غیر فعال است</strong>
+            <p style="margin: 0; font-size: 14px;">
+                حساب کاربری شما غیر فعال شده است. در صورتی که نیاز به فعال شدن دارید با مدیریت باشگاه ارتباط بگیرید.
+            </p>
+        </div>
+        <?php
+        return;
     }
     
     include SC_TEMPLATES_PUBLIC_DIR . 'submit-documents.php';
@@ -2751,6 +2809,8 @@ add_action('woocommerce_account_sc-notifications_endpoint', 'sc_my_account_notif
 function sc_my_account_notifications_content() {
     sc_check_and_create_tables();
     if (!is_user_logged_in()) return;
+    $player = sc_check_user_active_status();
+    if (!$player) return;
     if (function_exists('sc_is_pro_feature_notifications_enabled') && !sc_is_pro_feature_notifications_enabled()) {
         wp_safe_redirect(wc_get_account_endpoint_url('dashboard'));
         exit;
@@ -2772,6 +2832,10 @@ add_action('woocommerce_account_my-orders_endpoint', 'sc_my_account_my_orders_co
 
 function sc_my_account_my_orders_content() {
     global $wpdb;
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return;
+    }
 
     $members_table = $wpdb->prefix . 'sc_members';
     $orders_table = $wpdb->prefix . 'wc_orders';
@@ -3748,6 +3812,9 @@ function sc_handle_documents_submission() {
     $data['father_phone'] = isset($_POST['father_phone']) && !empty(trim($_POST['father_phone'])) ? sanitize_text_field($_POST['father_phone']) : NULL;
     $data['mother_phone'] = isset($_POST['mother_phone']) && !empty(trim($_POST['mother_phone'])) ? sanitize_text_field($_POST['mother_phone']) : NULL;
     $data['landline_phone'] = isset($_POST['landline_phone']) && !empty(trim($_POST['landline_phone'])) ? sanitize_text_field($_POST['landline_phone']) : NULL;
+    $data['province'] = isset($_POST['province']) && !empty(trim($_POST['province'])) ? sanitize_text_field($_POST['province']) : NULL;
+    $data['city'] = isset($_POST['city']) && !empty(trim($_POST['city'])) ? sanitize_text_field($_POST['city']) : NULL;
+    $data['gender'] = isset($_POST['gender']) && in_array($_POST['gender'], ['male', 'female'], true) ? sanitize_text_field($_POST['gender']) : NULL;
     $data['birth_date_shamsi'] = isset($_POST['birth_date_shamsi']) && !empty(trim($_POST['birth_date_shamsi'])) ? sanitize_text_field($_POST['birth_date_shamsi']) : NULL;
     $data['birth_date_gregorian'] = isset($_POST['birth_date_gregorian']) && !empty(trim($_POST['birth_date_gregorian'])) ? sanitize_text_field($_POST['birth_date_gregorian']) : NULL;
     
@@ -3774,6 +3841,8 @@ function sc_handle_documents_submission() {
     // برای checkbox ها: اگر تیک نخورده باشد، 0 ذخیره می‌شود
     $data['health_verified'] = isset($_POST['health_verified']) && !empty($_POST['health_verified']) ? 1 : 0;
     $data['info_verified'] = isset($_POST['info_verified']) && !empty($_POST['info_verified']) ? 1 : 0;
+    // هر تغییری توسط بازیکن، وضعیت احراز را به انتظار بررسی برمی‌گرداند
+    $data['identity_verified'] = 0;
    
     // بررسی وجود اطلاعات قبلی
     // مهم: باید رکورد موجود را پیدا کنیم تا از ایجاد رکورد تکراری جلوگیری کنیم
@@ -3871,7 +3940,7 @@ function sc_handle_documents_submission() {
         foreach ($update_data as $key => $value) {
             if ($value === NULL) {
                 $format[] = '%s'; // NULL
-            } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'])) {
+            } elseif (in_array($key, ['health_verified', 'info_verified', 'identity_verified', 'is_active', 'user_id'])) {
                 $format[] = '%d'; // integer
             } else {
                 $format[] = '%s'; // string
@@ -3957,7 +4026,7 @@ function sc_handle_documents_submission() {
                 foreach ($update_data as $key => $value) {
                     if ($value === NULL) {
                         $format[] = '%s';
-                    } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'])) {
+                    } elseif (in_array($key, ['health_verified', 'info_verified', 'identity_verified', 'is_active', 'user_id'])) {
                         $format[] = '%d';
                     } else {
                         $format[] = '%s';
@@ -3993,7 +4062,7 @@ function sc_handle_documents_submission() {
         foreach ($data as $key => $value) {
             if ($value === NULL) {
                 $insert_format[] = '%s'; // NULL
-            } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'])) {
+            } elseif (in_array($key, ['health_verified', 'info_verified', 'identity_verified', 'is_active', 'user_id'])) {
                 $insert_format[] = '%d'; // integer
             } else {
                 $insert_format[] = '%s'; // string
@@ -4183,6 +4252,9 @@ function sc_ajax_submit_documents() {
     $data['father_phone'] = isset($_POST['father_phone']) && trim($_POST['father_phone']) !== '' ? sanitize_text_field($_POST['father_phone']) : null;
     $data['mother_phone'] = isset($_POST['mother_phone']) && trim($_POST['mother_phone']) !== '' ? sanitize_text_field($_POST['mother_phone']) : null;
     $data['landline_phone'] = isset($_POST['landline_phone']) && trim($_POST['landline_phone']) !== '' ? sanitize_text_field($_POST['landline_phone']) : null;
+    $data['province'] = isset($_POST['province']) && trim($_POST['province']) !== '' ? sanitize_text_field($_POST['province']) : null;
+    $data['city'] = isset($_POST['city']) && trim($_POST['city']) !== '' ? sanitize_text_field($_POST['city']) : null;
+    $data['gender'] = isset($_POST['gender']) && in_array($_POST['gender'], ['male', 'female'], true) ? sanitize_text_field($_POST['gender']) : null;
     $data['birth_date_shamsi'] = isset($_POST['birth_date_shamsi']) && trim($_POST['birth_date_shamsi']) !== '' ? sanitize_text_field($_POST['birth_date_shamsi']) : null;
     $data['birth_date_gregorian'] = isset($_POST['birth_date_gregorian']) && trim($_POST['birth_date_gregorian']) !== '' ? sanitize_text_field($_POST['birth_date_gregorian']) : null;
     $insurance_expiry_date_shamsi = isset($_POST['insurance_expiry_date_shamsi']) && trim($_POST['insurance_expiry_date_shamsi']) !== '' ? sanitize_text_field($_POST['insurance_expiry_date_shamsi']) : null;
@@ -4199,6 +4271,7 @@ function sc_ajax_submit_documents() {
     $data['additional_info'] = isset($_POST['additional_info']) && trim($_POST['additional_info']) !== '' ? sanitize_textarea_field($_POST['additional_info']) : null;
     $data['health_verified'] = (isset($_POST['health_verified']) && $_POST['health_verified']) ? 1 : 0;
     $data['info_verified'] = (isset($_POST['info_verified']) && $_POST['info_verified']) ? 1 : 0;
+    $data['identity_verified'] = 0;
     
 
     $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE user_id = %d LIMIT 1", $current_user_id));
@@ -4261,7 +4334,7 @@ function sc_ajax_submit_documents() {
         foreach ($data as $key => $value) {
             if ($value === null) {
                 $format[] = '%s';
-            } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'], true)) {
+            } elseif (in_array($key, ['health_verified', 'info_verified', 'identity_verified', 'is_active', 'user_id'], true)) {
                 $format[] = '%d';
             } else {
                 $format[] = '%s';
@@ -4299,7 +4372,7 @@ function sc_ajax_submit_documents() {
             foreach ($data as $key => $value) {
                 if ($value === null) {
                     $format[] = '%s';
-                } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'], true)) {
+                } elseif (in_array($key, ['health_verified', 'info_verified', 'identity_verified', 'is_active', 'user_id'], true)) {
                     $format[] = '%d';
                 } else {
                     $format[] = '%s';
@@ -4318,7 +4391,7 @@ function sc_ajax_submit_documents() {
     foreach ($data as $key => $value) {
         if ($value === null) {
             $insert_format[] = '%s';
-        } elseif (in_array($key, ['health_verified', 'info_verified', 'is_active', 'user_id'], true)) {
+        } elseif (in_array($key, ['health_verified', 'info_verified', 'identity_verified', 'is_active', 'user_id'], true)) {
             $insert_format[] = '%d';
         } else {
             $insert_format[] = '%s';
