@@ -496,6 +496,7 @@ function sc_add_my_account_menu_item($items) {
     $items['my-orders'] = 'سفارش های فروشگاه';
     }
     $items['sc-my-honors'] = 'افتخارات من';
+    $items['sc-my-certificates'] = 'گواهینامه‌ها';
     if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()) {
         $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications(get_current_user_id()) : 0;
         $items['sc-notifications'] = $unread > 0 ? sprintf('اطلاعیه‌ها (%d)', $unread) : 'اطلاعیه‌ها';
@@ -544,6 +545,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-event-success', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-wallet', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-honors', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-my-certificates', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-notifications', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-support-tickets', EP_ROOT | EP_PAGES);
 
@@ -556,6 +558,7 @@ add_filter('query_vars', 'sc_add_my_account_query_vars', 0);
 function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-submit-documents';
     $vars[] = 'sc-my-honors';
+    $vars[] = 'sc-my-certificates';
     $vars[] = 'sc-enroll-course';
     $vars[] = 'sc-my-courses';
     $vars[] = 'sc-events';
@@ -612,6 +615,7 @@ add_filter('woocommerce_endpoint_sc-invoices_title', 'sc_invoices_endpoint_title
 
 add_filter('woocommerce_endpoint_sc-notifications_title', function() { return 'اطلاعیه‌ها'; });
 add_filter('woocommerce_endpoint_sc-support-tickets_title', function() { return 'تیکت پشتیبانی'; });
+add_filter('woocommerce_endpoint_sc-my-certificates_title', function() { return 'گواهینامه‌ها'; });
 function sc_invoices_endpoint_title($title) {
     return 'صورت حساب‌ها';
 }
@@ -3032,6 +3036,16 @@ function sc_my_account_my_honors_content() {
     }
     
     include SC_TEMPLATES_PUBLIC_DIR . 'my-honors.php';
+}
+
+add_action('woocommerce_account_sc-my-certificates_endpoint', 'sc_my_account_my_certificates_content');
+function sc_my_account_my_certificates_content() {
+    sc_check_and_create_tables();
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return;
+    }
+    include SC_TEMPLATES_PUBLIC_DIR . 'my-certificates.php';
 }
 
 /**

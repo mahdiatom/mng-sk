@@ -812,6 +812,37 @@ function sc_create_honors_table() {
 }
 
 /**
+ * Create certificates table
+ */
+function sc_create_certificates_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_certificates';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `template_key` varchar(100) DEFAULT NULL,
+        `title` varchar(255) NOT NULL,
+        `message_text` longtext DEFAULT NULL,
+        `background_image` varchar(500) DEFAULT NULL,
+        `signature_one_text` varchar(255) DEFAULT NULL,
+        `signature_one_image` varchar(500) DEFAULT NULL,
+        `signature_two_text` varchar(255) DEFAULT NULL,
+        `signature_two_image` varchar(500) DEFAULT NULL,
+        `created_by` bigint(20) unsigned DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_created_at` (`created_at`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
  * Create support tickets table (تیکت پشتیبانی)
  */
 function sc_create_support_tickets_table() {
@@ -1027,6 +1058,7 @@ function sc_update_database() {
         sc_create_coach_withdrawal_requests_table();
         sc_create_honor_categories_table();
         sc_create_honors_table();
+        sc_create_certificates_table();
         sc_create_notifications_table();
         sc_create_notification_recipients_table();
         sc_create_notification_reads_table();

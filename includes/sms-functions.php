@@ -619,6 +619,9 @@ function sc_get_sms_template($action, $type = 'user') {
         ],
         'identity_verified' => [
             'user' => 'کاربر گرامی %user_name%، احراز هویت شما تایید شد.'
+        ],
+        'certificate' => [
+            'user' => 'کاربر گرامی %user_name%، یک گواهینامه برای شما صادر شد. لطفا به پنل خود مراجعه کنید.'
         ]
     ];
 
@@ -1178,6 +1181,9 @@ function sc_initialize_sms_settings() {
         'sms_identity_verified_user_enabled' => '1',
         'sms_identity_verified_user_template' => 'کاربر گرامی %user_name%، احراز هویت شما تایید شد.',
         'sms_identity_verified_user_pattern' => '',
+        'sms_certificate_user_enabled' => '1',
+        'sms_certificate_user_template' => 'کاربر گرامی %user_name%، یک گواهینامه برای شما صادر شد. لطفا به پنل خود مراجعه کنید.',
+        'sms_certificate_user_pattern' => '',
     ];
 
     foreach ($defaults as $key => $value) {

@@ -48,6 +48,7 @@ require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions
 require_once SC_INCLUDES_DIR . 'users-info-export-functions.php'; // Users info export (PDF/Excel)
+require_once SC_INCLUDES_DIR . 'certificates-functions.php'; // Certificates templates and issue
 require_once SC_INCLUDES_DIR . 'expense-export.php'; // Expense export functions
 require_once SC_INCLUDES_DIR . 'debtors-export.php'; // Debtors export functions
 require_once SC_INCLUDES_DIR . 'active-users-export.php'; // Active users export functions
@@ -724,6 +725,7 @@ function sc_check_and_create_tables() {
     $honor_categories_table = $wpdb->prefix . 'sc_honor_categories';
     $team_categories_table = $wpdb->prefix . 'sc_team_categories';
     $honors_table = $wpdb->prefix . 'sc_honors';
+    $certificates_table = $wpdb->prefix . 'sc_certificates';
     $notifications_table = $wpdb->prefix . 'sc_notifications';
     $notification_recipients_table = $wpdb->prefix . 'sc_notification_recipients';
     $notification_reads_table = $wpdb->prefix . 'sc_notification_reads';
@@ -752,6 +754,7 @@ function sc_check_and_create_tables() {
     $honor_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $honor_categories_table)) == $honor_categories_table;
     $team_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $team_categories_table)) == $team_categories_table;
     $honors_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $honors_table)) == $honors_table;
+    $certificates_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $certificates_table)) == $certificates_table;
     $notifications_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notifications_table)) == $notifications_table;
     $notification_recipients_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notification_recipients_table)) == $notification_recipients_table;
     $notification_reads_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $notification_reads_table)) == $notification_reads_table;
@@ -811,6 +814,9 @@ function sc_check_and_create_tables() {
     }
     if (!$honors_exists && function_exists('sc_create_honors_table')) {
         sc_create_honors_table();
+    }
+    if (!$certificates_exists && function_exists('sc_create_certificates_table')) {
+        sc_create_certificates_table();
     }
     if (!$notifications_exists && function_exists('sc_create_notifications_table')) {
         sc_create_notifications_table();
@@ -1426,7 +1432,7 @@ function sc_admin_enqueue_assets() {
         'nonce' => wp_create_nonce('sc_admin_nonce')
     ));
 
-    if (in_array($current_page, array('sc-users-info-export', 'sc-users-export-templates'), true)) {
+    if (in_array($current_page, array('sc-users-info-export', 'sc-users-export-templates', 'sc-certificates-issue', 'sc-certificates-templates'), true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
         wp_enqueue_script('sc-users-export-admin-js', SC_ASSETS_URL . 'js/users-export-admin.js', array('jquery', 'sc-admin-js'), time(), true);
     }

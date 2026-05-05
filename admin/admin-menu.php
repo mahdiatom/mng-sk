@@ -84,6 +84,32 @@ function sc_register_admin_menu() {
         'sc_admin_users_export_templates_page'
     );
 
+    add_menu_page(
+        'گواهینامه‌ها',
+        'گواهینامه‌ها',
+        'manage_options',
+        'sc-certificates-issue',
+        'sc_admin_certificates_issue_page',
+        'dashicons-awards',
+        26.9
+    );
+    add_submenu_page(
+        'sc-certificates-issue',
+        'صدور گواهینامه',
+        'صدور گواهینامه',
+        'manage_options',
+        'sc-certificates-issue',
+        'sc_admin_certificates_issue_page'
+    );
+    add_submenu_page(
+        'sc-certificates-issue',
+        'تعریف قالب گواهینامه',
+        'تعریف قالب گواهینامه',
+        'manage_options',
+        'sc-certificates-templates',
+        'sc_admin_certificates_templates_page'
+    );
+
     /* ================= Members ================= */
 
     add_menu_page(
@@ -1277,6 +1303,16 @@ function sc_admin_users_info_export_page() {
 function sc_admin_users_export_templates_page() {
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'users-export-templates.php';
+}
+
+function sc_admin_certificates_issue_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'certificates-issue.php';
+}
+
+function sc_admin_certificates_templates_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'certificates-templates.php';
 }
 
 function sc_admin_coach_my_notifications_page() {
