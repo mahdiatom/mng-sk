@@ -162,8 +162,10 @@ jQuery(function ($) {
         return {
             right_fields: rightFields,
             left_fields: leftFields,
-            has_photo: fields.indexOf('personal_photo') !== -1,
-            photo_position: currentTemplate && currentTemplate.layout ? (currentTemplate.layout.photo_position || 'left') : 'left'
+            has_photo:
+                fields.indexOf('personal_photo') !== -1 ||
+                fields.indexOf('id_card_photo') !== -1 ||
+                fields.indexOf('sport_insurance_photo') !== -1
         };
     }
 
@@ -178,7 +180,7 @@ jQuery(function ($) {
         var layout = resolveTemplateLayout(fields);
         var rightCount = Math.min(layout.right_fields.length, 4);
         var leftCount = Math.min(layout.left_fields.length, 4);
-        var hasPhoto = layout.has_photo && layout.photo_position !== 'none';
+        var hasPhoto = layout.has_photo;
         for (var i = 0; i < maxCards; i++) {
             var photoHtml = hasPhoto ? '<div class="sc-mini-photo"></div>' : '';
             var rightLines = '';
@@ -198,9 +200,6 @@ jQuery(function ($) {
             var cardClasses = 'sc-mini-card';
             if (hasPhoto) {
                 cardClasses += ' has-photo';
-                if (layout.photo_position === 'right') {
-                    cardClasses += ' photo-right';
-                }
             }
             $grid.append(
                 '<div class="' + cardClasses + '">' +
@@ -211,7 +210,10 @@ jQuery(function ($) {
     }
 
     function enforceFormatRules() {
-        var hasPhoto = $('input[name="fields[]"][value="personal_photo"]').is(':checked');
+        var hasPhoto =
+            $('input[name="fields[]"][value="personal_photo"]').is(':checked') ||
+            $('input[name="fields[]"][value="id_card_photo"]').is(':checked') ||
+            $('input[name="fields[]"][value="sport_insurance_photo"]').is(':checked');
         var $format = $('#sc-export-format');
         if (hasPhoto) {
             $format.val('pdf');
@@ -308,22 +310,22 @@ jQuery(function ($) {
                 return;
             }
             $templateItem.find('.sc-layout-dropzone').each(function () {
-                var side = $(this).attr('data-side');
+                var columnKey = $(this).attr('data-column');
                 $(this).find('input[type="hidden"]').remove();
                 $(this).find('.sc-layout-chip').each(function () {
                     var field = $(this).attr('data-field');
                     $(this).after(
-                        '<input type="hidden" name="templates[' + templateKey + '][layout][' + side + '_fields][]" value="' + field + '">'
+                        '<input type="hidden" name="templates[' + templateKey + '][layout][columns][' + columnKey + '][]" value="' + field + '">'
                     );
                 });
             });
         }
 
-        function ensureChipInRight($templateItem, fieldKey) {
-            var $right = $templateItem.find('.sc-layout-dropzone[data-side="right"]');
+        function ensureChipInFirstColumn($templateItem, fieldKey) {
+            var $first = $templateItem.find('.sc-layout-dropzone').first();
             var exists = $templateItem.find('.sc-layout-chip[data-field="' + fieldKey + '"]').length > 0;
             if (!exists) {
-                $right.append('<div class="sc-layout-chip" draggable="true" data-field="' + fieldKey + '">' + (fieldLabels[fieldKey] || fieldKey) + '</div>');
+                $first.append('<div class="sc-layout-chip" draggable="true" data-field="' + fieldKey + '">' + (fieldLabels[fieldKey] || fieldKey) + '</div>');
             }
             syncDropzoneInputs($templateItem);
         }
@@ -331,6 +333,21 @@ jQuery(function ($) {
         function removeChipEverywhere($templateItem, fieldKey) {
             $templateItem.find('.sc-layout-chip[data-field="' + fieldKey + '"]').remove();
             syncDropzoneInputs($templateItem);
+        }
+
+        function getDragAfterElement($container, y) {
+            var chips = $container.find('.sc-layout-chip').toArray();
+            var closest = null;
+            var closestOffset = Number.NEGATIVE_INFINITY;
+            chips.forEach(function (chip) {
+                var rect = chip.getBoundingClientRect();
+                var offset = y - rect.top - rect.height / 2;
+                if (offset < 0 && offset > closestOffset) {
+                    closestOffset = offset;
+                    closest = chip;
+                }
+            });
+            return closest;
         }
 
         function bindDnd($scope) {
@@ -345,6 +362,15 @@ jQuery(function ($) {
             $scope.on('dragover', '.sc-layout-dropzone', function (e) {
                 e.preventDefault();
                 $(this).addClass('is-over');
+                if (!dragged) {
+                    return;
+                }
+                var afterElement = getDragAfterElement($(this), e.originalEvent.clientY);
+                if (!afterElement) {
+                    this.appendChild(dragged);
+                } else if (afterElement !== dragged) {
+                    this.insertBefore(dragged, afterElement);
+                }
             });
             $scope.on('dragleave', '.sc-layout-dropzone', function () {
                 $(this).removeClass('is-over');
@@ -353,11 +379,39 @@ jQuery(function ($) {
                 e.preventDefault();
                 $(this).removeClass('is-over');
                 if (dragged) {
-                    this.appendChild(dragged);
                     var $templateItem = $(this).closest('.sc-template-item');
                     syncDropzoneInputs($templateItem);
                 }
             });
+        }
+
+        function buildLayoutColumnsHtml(columnsCount) {
+            var html = '';
+            for (var i = 1; i <= columnsCount; i++) {
+                var colKey = 'column_' + i;
+                html += '' +
+                    '<div class="sc-layout-column">' +
+                    '  <h4>ستون ' + i + '</h4>' +
+                    '  <div class="sc-layout-dropzone" data-column="' + colKey + '"></div>' +
+                    '</div>';
+            }
+            return html;
+        }
+
+        function rebalanceLayoutColumns($templateItem, columnsCount) {
+            var chips = [];
+            $templateItem.find('.sc-layout-chip').each(function () {
+                chips.push($(this).attr('data-field'));
+            });
+            var $columnsWrap = $templateItem.find('.sc-layout-columns');
+            $columnsWrap.attr('data-columns-count', columnsCount);
+            $columnsWrap.html(buildLayoutColumnsHtml(columnsCount));
+            chips.forEach(function (fieldKey, idx) {
+                var target = (idx % columnsCount) + 1;
+                $columnsWrap.find('.sc-layout-dropzone[data-column="column_' + target + '"]')
+                    .append('<div class="sc-layout-chip" draggable="true" data-field="' + fieldKey + '">' + (fieldLabels[fieldKey] || fieldKey) + '</div>');
+            });
+            syncDropzoneInputs($templateItem);
         }
 
         function activateTemplate(templateKey) {
@@ -385,10 +439,17 @@ jQuery(function ($) {
             var $templateItem = $(this).closest('.sc-template-item');
             var fieldKey = $(this).val();
             if ($(this).is(':checked')) {
-                ensureChipInRight($templateItem, fieldKey);
+                ensureChipInFirstColumn($templateItem, fieldKey);
             } else {
                 removeChipEverywhere($templateItem, fieldKey);
             }
+        });
+
+        $templatesContainer.on('change', 'select[name$="[layout_columns_count]"]', function () {
+            var $templateItem = $(this).closest('.sc-template-item');
+            var columnsCount = parseInt($(this).val(), 10) || 2;
+            columnsCount = Math.max(1, Math.min(4, columnsCount));
+            rebalanceLayoutColumns($templateItem, columnsCount);
         });
 
         function buildTemplateCard(templateKey) {
@@ -405,15 +466,17 @@ jQuery(function ($) {
                 '  <div class="sc-row"><label>توضیحات</label><textarea name="templates[' + templateKey + '][description]" rows="3"></textarea></div>' +
                 '  <div class="sc-row"><label>اندازه صفحه</label><select name="templates[' + templateKey + '][page_size]"><option value="A4">A4</option><option value="A5">A5</option></select></div>' +
                 '  <div class="sc-row"><label>تعداد کارت در صفحه</label><select name="templates[' + templateKey + '][cards_per_page]"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div>' +
-                '  <div class="sc-row"><label>جایگاه عکس</label><select name="templates[' + templateKey + '][layout][photo_position]"><option value="left">سمت چپ</option><option value="right">سمت راست</option><option value="none">بدون عکس</option></select></div>' +
+                '  <div class="sc-row"><label>تعداد ستون خروجی</label><select name="templates[' + templateKey + '][columns_count]"><option value="1">1 ستونه</option><option value="2" selected>2 ستونه</option><option value="3">3 ستونه</option><option value="4">4 ستونه</option></select></div>' +
+                '  <div class="sc-row"><label>تعداد ستون چیدمان فیلدها</label><select class="sc-layout-columns-count-select" name="templates[' + templateKey + '][layout_columns_count]"><option value="1">1 ستونه</option><option value="2" selected>2 ستونه</option><option value="3">3 ستونه</option><option value="4">4 ستونه</option></select></div>' +
+                '  <div class="sc-row"><label>رنگ پس‌زمینه کارت</label><input type="color" name="templates[' + templateKey + '][background_color]" value="#ffffff"></div>' +
+                '  <div class="sc-row"><label>تصویر پس‌زمینه کارت</label><div class="sc-bg-image-picker"><input type="text" class="sc-bg-image-input" name="templates[' + templateKey + '][background_image]" value="" placeholder="URL تصویر"><button type="button" class="button sc-select-bg-image">انتخاب تصویر</button></div></div>' +
+                '  <div class="sc-row"><label>شفافیت تصویر پس‌زمینه (0 تا 1)</label><input type="number" min="0" max="1" step="0.05" name="templates[' + templateKey + '][background_opacity]" value="0.2"></div>' +
+                '  <div class="sc-row"><label class="sc-inline-check"><input type="checkbox" name="templates[' + templateKey + '][image_only_mode]" value="1"> خروجی فقط عکس باشد (تمام عرض، زیر هم، بک‌گراند شفاف)</label></div>' +
                 '  <div class="sc-fields-grid">' + fieldsHtml + '</div>' +
                 '  <div class="sc-template-layout-builder" data-template="' + templateKey + '">' +
                 '    <h3>چیدمان گرافیکی فیلدها</h3>' +
                 '    <p class="description">فیلدها را با Drag & Drop بین ستون‌ها جابه‌جا کنید.</p>' +
-                '    <div class="sc-layout-columns">' +
-                '      <div class="sc-layout-column"><h4>ستون راست</h4><div class="sc-layout-dropzone" data-side="right"></div></div>' +
-                '      <div class="sc-layout-column"><h4>ستون چپ</h4><div class="sc-layout-dropzone" data-side="left"></div></div>' +
-                '    </div>' +
+                '    <div class="sc-layout-columns" data-columns-count="2">' + buildLayoutColumnsHtml(2) + '</div>' +
                 '  </div>' +
                 '</div>';
         }
@@ -456,6 +519,28 @@ jQuery(function ($) {
             if ($first.length) {
                 activateTemplate($first.attr('data-template-key'));
             }
+        });
+
+        $(document).on('click', '.sc-select-bg-image', function (e) {
+            e.preventDefault();
+            var $button = $(this);
+            var $input = $button.closest('.sc-bg-image-picker').find('.sc-bg-image-input');
+            if (typeof wp === 'undefined' || !wp.media) {
+                return;
+            }
+            var frame = wp.media({
+                title: 'انتخاب تصویر پس‌زمینه',
+                button: { text: 'انتخاب' },
+                multiple: false,
+                library: { type: 'image' }
+            });
+            frame.on('select', function () {
+                var attachment = frame.state().get('selection').first().toJSON();
+                if (attachment && attachment.url) {
+                    $input.val(attachment.url).trigger('change');
+                }
+            });
+            frame.open();
         });
     }
 });

@@ -64,9 +64,15 @@ if (isset($_POST['sc_save_export_templates'])) {
                 <div id="sc-templates-container">
                     <?php foreach ($templates as $template) :
                         $layout = isset($template['layout']) && is_array($template['layout']) ? $template['layout'] : [];
-                        $photo_position = isset($layout['photo_position']) ? $layout['photo_position'] : 'left';
-                        $right_fields = isset($layout['right_fields']) ? (array) $layout['right_fields'] : [];
-                        $left_fields = isset($layout['left_fields']) ? (array) $layout['left_fields'] : [];
+                        $columns_count = max(1, min(4, (int) ($template['columns_count'] ?? 2)));
+                        $layout_columns_count = max(1, min(4, (int) ($template['layout_columns_count'] ?? $columns_count)));
+                        $layout_columns = isset($layout['columns']) && is_array($layout['columns']) ? $layout['columns'] : [];
+                        if (empty($layout_columns)) {
+                            $layout_columns = [
+                                'column_1' => isset($layout['right_fields']) ? (array) $layout['right_fields'] : [],
+                                'column_2' => isset($layout['left_fields']) ? (array) $layout['left_fields'] : [],
+                            ];
+                        }
                         ?>
                         <div class="sc-template-item<?php echo $template['key'] === $first_template_key ? ' is-active' : ''; ?>" data-template-key="<?php echo esc_attr($template['key']); ?>">
                             <h2><?php echo esc_html($template['title']); ?> <small>(<?php echo esc_html($template['key']); ?>)</small></h2>
@@ -95,12 +101,41 @@ if (isset($_POST['sc_save_export_templates'])) {
                                 </select>
                             </div>
                             <div class="sc-row">
-                                <label>جایگاه عکس</label>
-                                <select name="templates[<?php echo esc_attr($template['key']); ?>][layout][photo_position]">
-                                    <option value="left" <?php selected($photo_position, 'left'); ?>>سمت چپ</option>
-                                    <option value="right" <?php selected($photo_position, 'right'); ?>>سمت راست</option>
-                                    <option value="none" <?php selected($photo_position, 'none'); ?>>بدون عکس</option>
+                                <label>تعداد ستون خروجی</label>
+                                <select name="templates[<?php echo esc_attr($template['key']); ?>][columns_count]">
+                                    <?php for ($i = 1; $i <= 4; $i++) : ?>
+                                        <option value="<?php echo $i; ?>" <?php selected($columns_count, $i); ?>><?php echo $i; ?> ستونه</option>
+                                    <?php endfor; ?>
                                 </select>
+                            </div>
+                            <div class="sc-row">
+                                <label>تعداد ستون چیدمان فیلدها</label>
+                                <select name="templates[<?php echo esc_attr($template['key']); ?>][layout_columns_count]" class="sc-layout-columns-count-select">
+                                    <?php for ($i = 1; $i <= 4; $i++) : ?>
+                                        <option value="<?php echo $i; ?>" <?php selected($layout_columns_count, $i); ?>><?php echo $i; ?> ستونه</option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
+                            <div class="sc-row">
+                                <label>رنگ پس‌زمینه کارت</label>
+                                <input type="color" name="templates[<?php echo esc_attr($template['key']); ?>][background_color]" value="<?php echo esc_attr($template['background_color'] ?? '#ffffff'); ?>">
+                            </div>
+                            <div class="sc-row">
+                                <label>تصویر پس‌زمینه کارت</label>
+                                <div class="sc-bg-image-picker">
+                                    <input type="text" class="sc-bg-image-input" name="templates[<?php echo esc_attr($template['key']); ?>][background_image]" value="<?php echo esc_attr($template['background_image'] ?? ''); ?>" placeholder="URL تصویر">
+                                    <button type="button" class="button sc-select-bg-image">انتخاب تصویر</button>
+                                </div>
+                            </div>
+                            <div class="sc-row">
+                                <label>شفافیت تصویر پس‌زمینه (0 تا 1)</label>
+                                <input type="number" name="templates[<?php echo esc_attr($template['key']); ?>][background_opacity]" min="0" max="1" step="0.05" value="<?php echo esc_attr($template['background_opacity'] ?? 0.2); ?>">
+                            </div>
+                            <div class="sc-row">
+                                <label class="sc-inline-check">
+                                    <input type="checkbox" name="templates[<?php echo esc_attr($template['key']); ?>][image_only_mode]" value="1" <?php checked(!empty($template['image_only_mode'])); ?>>
+                                    خروجی فقط عکس باشد (تمام عرض، زیر هم، بک‌گراند شفاف)
+                                </label>
                             </div>
                             <div class="sc-fields-grid">
                                 <?php foreach ($field_labels as $field_key => $field_label) : ?>
@@ -113,33 +148,25 @@ if (isset($_POST['sc_save_export_templates'])) {
                             <div class="sc-template-layout-builder" data-template="<?php echo esc_attr($template['key']); ?>">
                                 <h3>چیدمان گرافیکی فیلدها</h3>
                                 <p class="description">فیلدها را با Drag & Drop بین ستون‌ها جابه‌جا کنید.</p>
-                                <div class="sc-layout-columns">
-                                    <div class="sc-layout-column">
-                                        <h4>ستون راست</h4>
-                                        <div class="sc-layout-dropzone" data-side="right">
-                                            <?php foreach ($right_fields as $field_key) :
-                                                if (!isset($field_labels[$field_key])) {
-                                                    continue;
-                                                }
-                                                ?>
-                                                <div class="sc-layout-chip" draggable="true" data-field="<?php echo esc_attr($field_key); ?>"><?php echo esc_html($field_labels[$field_key]); ?></div>
-                                                <input type="hidden" name="templates[<?php echo esc_attr($template['key']); ?>][layout][right_fields][]" value="<?php echo esc_attr($field_key); ?>">
-                                            <?php endforeach; ?>
+                                <div class="sc-layout-columns" data-columns-count="<?php echo (int) $layout_columns_count; ?>">
+                                    <?php for ($i = 1; $i <= $layout_columns_count; $i++) :
+                                        $col_key = 'column_' . $i;
+                                        $col_fields = isset($layout_columns[$col_key]) && is_array($layout_columns[$col_key]) ? $layout_columns[$col_key] : [];
+                                        ?>
+                                        <div class="sc-layout-column">
+                                            <h4>ستون <?php echo (int) $i; ?></h4>
+                                            <div class="sc-layout-dropzone" data-column="<?php echo esc_attr($col_key); ?>">
+                                                <?php foreach ($col_fields as $field_key) :
+                                                    if (!isset($field_labels[$field_key])) {
+                                                        continue;
+                                                    }
+                                                    ?>
+                                                    <div class="sc-layout-chip" draggable="true" data-field="<?php echo esc_attr($field_key); ?>"><?php echo esc_html($field_labels[$field_key]); ?></div>
+                                                    <input type="hidden" name="templates[<?php echo esc_attr($template['key']); ?>][layout][columns][<?php echo esc_attr($col_key); ?>][]" value="<?php echo esc_attr($field_key); ?>">
+                                                <?php endforeach; ?>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="sc-layout-column">
-                                        <h4>ستون چپ</h4>
-                                        <div class="sc-layout-dropzone" data-side="left">
-                                            <?php foreach ($left_fields as $field_key) :
-                                                if (!isset($field_labels[$field_key])) {
-                                                    continue;
-                                                }
-                                                ?>
-                                                <div class="sc-layout-chip" draggable="true" data-field="<?php echo esc_attr($field_key); ?>"><?php echo esc_html($field_labels[$field_key]); ?></div>
-                                                <input type="hidden" name="templates[<?php echo esc_attr($template['key']); ?>][layout][left_fields][]" value="<?php echo esc_attr($field_key); ?>">
-                                            <?php endforeach; ?>
-                                        </div>
-                                    </div>
+                                    <?php endfor; ?>
                                 </div>
                             </div>
                         </div>

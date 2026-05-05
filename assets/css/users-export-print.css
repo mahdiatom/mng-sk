@@ -25,6 +25,8 @@ body.sc-users-export-print-page {
     font-family: "IRANYekanXFaNum", Tahoma, Arial, sans-serif;
     background: #fff;
     color: #111;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
 }
 
 .sc-print-header {
@@ -53,6 +55,7 @@ body.sc-users-export-print-page {
 .sc-print-grid {
     display: grid;
     gap: 12px;
+    grid-template-columns: repeat(var(--sc-columns, 2), minmax(0, 1fr));
 }
 
 .sc-card {
@@ -65,6 +68,8 @@ body.sc-users-export-print-page {
     grid-template-columns: 1fr;
     gap: 8px;
     overflow: hidden;
+    position: relative;
+    isolation: isolate;
 }
 
 .sc-card-field {
@@ -79,24 +84,30 @@ body.sc-users-export-print-page {
 
 .sc-card-photo img {
     width: 100%;
-    max-height: 170px;
-    object-fit: cover;
+    max-width: 150px;
+    height: 190px;
+    object-fit: contain;
+    background: #fff;
     border-radius: 6px;
     border: 1px solid #dcdcde;
+    margin: 0 auto;
+    display: block;
 }
 
 .sc-card.has-photo {
     grid-template-columns: 150px 1fr;
+    grid-template-areas: "photo content";
     align-items: start;
+    direction: ltr;
 }
 
 .sc-card.has-photo .sc-card-photo {
-    grid-column: 1;
-    grid-row: 1 / span 20;
+    grid-area: photo;
 }
 
-.sc-card.has-photo.photo-right .sc-card-photo {
-    grid-column: 2;
+.sc-card.has-photo .sc-card-content {
+    grid-area: content;
+    direction: rtl;
 }
 
 .sc-card-content {
@@ -114,20 +125,49 @@ body.sc-users-export-print-page {
     margin-bottom: 0;
 }
 
-.sc-card.has-photo .sc-card-content {
-    grid-column: 2;
+.sc-card-background-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    z-index: -1;
 }
 
-.sc-card.has-photo.photo-right .sc-card-content {
-    grid-column: 1;
+.sc-card-inline-image img {
+    display: block;
+    width: 100%;
+    max-height: 140px;
+    margin-top: 6px;
+    object-fit: contain;
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+}
+
+.sc-card-inline-image--id_card_photo img,
+.sc-card-inline-image--sport_insurance_photo img {
+    max-width: 260px;
+    height: 150px;
+    max-height: 150px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.sc-card-inline-image--personal_photo img {
+    max-width: 150px;
+    height: 190px;
+    max-height: 190px;
+    margin-right: auto;
+    margin-left: auto;
 }
 
 body[data-page-size="A4"][data-cards="2"] .sc-print-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(var(--sc-columns, 2), minmax(0, 1fr));
 }
 
 body[data-page-size="A4"][data-cards="4"] .sc-print-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(var(--sc-columns, 2), minmax(0, 1fr));
 }
 
 body[data-page-size="A4"][data-cards="4"] .sc-card {
@@ -136,7 +176,64 @@ body[data-page-size="A4"][data-cards="4"] .sc-card {
 
 body[data-page-size="A5"] .sc-print-grid,
 body[data-cards="1"] .sc-print-grid {
+    grid-template-columns: repeat(var(--sc-columns, 2), minmax(0, 1fr));
+}
+
+body[data-columns="1"] {
+    --sc-columns: 1;
+}
+
+body[data-columns="2"] {
+    --sc-columns: 2;
+}
+
+body[data-columns="3"] {
+    --sc-columns: 3;
+}
+
+body[data-columns="4"] {
+    --sc-columns: 4;
+}
+
+.sc-card.image-only .sc-card-photo,
+.sc-card.image-only .sc-card-col {
+    display: none !important;
+}
+
+.sc-card.image-only .sc-card-content {
+    display: grid;
     grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.sc-card.image-only .sc-card-inline-image img {
+    width: 100%;
+    object-fit: contain;
+}
+
+.sc-card.image-only .sc-card-inline-image--personal_photo img {
+    max-width: 180px;
+    height: 220px;
+    max-height: 220px;
+}
+
+.sc-card.image-only .sc-card-inline-image--id_card_photo img,
+.sc-card.image-only .sc-card-inline-image--sport_insurance_photo img {
+    max-width: 380px;
+    height: 210px;
+    max-height: 210px;
+}
+
+.sc-image-only-info-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-bottom: 4px;
+}
+
+.sc-image-only-info-item {
+    font-size: 12px;
+    line-height: 1.6;
 }
 
 @media print {

@@ -24,6 +24,12 @@ function sc_users_export_get_default_templates() {
                 'right_fields' => ['full_name', 'father_name', 'player_phone', 'skill_level', 'insurance_expiry_date_shamsi'],
                 'left_fields' => [],
             ],
+            'background_color' => '#ffffff',
+            'background_image' => '',
+            'background_opacity' => 0.2,
+            'columns_count' => 2,
+            'layout_columns_count' => 2,
+            'image_only_mode' => 0,
         ],
     ];
 }
@@ -61,17 +67,33 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
     }
 
     $layout = isset($template['layout']) && is_array($template['layout']) ? $template['layout'] : [];
-    $photo_position = isset($layout['photo_position']) && in_array($layout['photo_position'], ['left', 'right', 'none'], true)
-        ? $layout['photo_position']
-        : 'left';
-    $right_fields = isset($layout['right_fields']) && is_array($layout['right_fields']) ? array_map('sanitize_text_field', $layout['right_fields']) : [];
-    $left_fields = isset($layout['left_fields']) && is_array($layout['left_fields']) ? array_map('sanitize_text_field', $layout['left_fields']) : [];
-    $right_fields = array_values(array_intersect($right_fields, $fields));
-    $left_fields = array_values(array_intersect($left_fields, $fields));
-    $assigned = array_fill_keys(array_merge($right_fields, $left_fields), true);
+    $columns_count = isset($template['columns_count']) ? max(1, min(4, (int) $template['columns_count'])) : 2;
+    $layout_columns_count = isset($template['layout_columns_count']) ? max(1, min(4, (int) $template['layout_columns_count'])) : $columns_count;
+    $columns = [];
+    if (isset($layout['columns']) && is_array($layout['columns'])) {
+        for ($i = 1; $i <= $layout_columns_count; $i++) {
+            $col_key = 'column_' . $i;
+            $col_fields = isset($layout['columns'][$col_key]) && is_array($layout['columns'][$col_key]) ? array_map('sanitize_text_field', $layout['columns'][$col_key]) : [];
+            $columns[$col_key] = array_values(array_intersect($col_fields, $fields));
+        }
+    } else {
+        $right_fields = isset($layout['right_fields']) && is_array($layout['right_fields']) ? array_map('sanitize_text_field', $layout['right_fields']) : [];
+        $left_fields = isset($layout['left_fields']) && is_array($layout['left_fields']) ? array_map('sanitize_text_field', $layout['left_fields']) : [];
+        $columns['column_1'] = array_values(array_intersect($right_fields, $fields));
+        $columns['column_2'] = array_values(array_intersect($left_fields, $fields));
+        for ($i = 3; $i <= $layout_columns_count; $i++) {
+            $columns['column_' . $i] = [];
+        }
+    }
+    $assigned = [];
+    foreach ($columns as $col_fields) {
+        foreach ($col_fields as $f) {
+            $assigned[$f] = true;
+        }
+    }
     foreach ($fields as $field_key) {
         if (!isset($assigned[$field_key]) && $field_key !== 'personal_photo') {
-            $right_fields[] = $field_key;
+            $columns['column_1'][] = $field_key;
         }
     }
 
@@ -83,23 +105,23 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
         'cards_per_page' => isset($template['cards_per_page']) ? max(1, min(6, (int) $template['cards_per_page'])) : 2,
         'fields' => $fields,
         'layout' => [
-            'photo_position' => $photo_position,
-            'right_fields' => $right_fields,
-            'left_fields' => $left_fields,
+            'columns' => $columns,
         ],
+        'background_color' => isset($template['background_color']) ? sanitize_text_field($template['background_color']) : '#ffffff',
+        'background_image' => isset($template['background_image']) ? esc_url_raw($template['background_image']) : '',
+        'background_opacity' => isset($template['background_opacity']) ? max(0, min(1, (float) $template['background_opacity'])) : 0.2,
+        'columns_count' => $columns_count,
+        'layout_columns_count' => $layout_columns_count,
+        'image_only_mode' => !empty($template['image_only_mode']) ? 1 : 0,
     ];
 }
 
 function sc_users_export_get_field_labels() {
     return [
         'member_id' => 'شناسه بازیکن',
-        'user_id' => 'شناسه کاربر وردپرس',
         'full_name' => 'نام و نام خانوادگی',
-        'first_name' => 'نام',
-        'last_name' => 'نام خانوادگی',
         'father_name' => 'نام پدر',
         'national_id' => 'کد ملی',
-        'birth_certificate_number' => 'شماره شناسنامه',
         'birthday_place' => 'محل تولد',
         'player_phone' => 'شماره همراه',
         'father_phone' => 'موبایل پدر',
@@ -109,7 +131,6 @@ function sc_users_export_get_field_labels() {
         'birth_date_shamsi' => 'تاریخ تولد',
         'health_verified' => 'تایید سلامت',
         'info_verified' => 'تایید اطلاعات',
-        'profile_completed' => 'پروفایل کامل',
         'skill_level' => 'سطح بازیکن',
         'member_type' => 'نوع بازیکن',
         'team_player' => 'تیم بازیکن',
@@ -120,6 +141,8 @@ function sc_users_export_get_field_labels() {
         'sports_history' => 'سابقه ورزشی',
         'additional_info' => 'اطلاعات تکمیلی',
         'personal_photo' => 'عکس پرسنلی',
+        'id_card_photo' => 'عکس کارت ملی',
+        'sport_insurance_photo' => 'عکس بیمه ورزشی',
     ];
 }
 
@@ -363,6 +386,7 @@ function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = 
         'title' => $export_title,
         'page_size' => $page_size,
         'cards_per_page' => $cards_per_page,
+        'columns_count' => (int) (($template['columns_count'] ?? $cards_per_page) ?: 2),
         'rows' => $rows,
         'fields' => $fields,
         'labels' => $labels,
@@ -439,7 +463,8 @@ function sc_users_info_export_handler() {
         'cards_per_page' => isset($_POST['cards_per_page']) ? absint($_POST['cards_per_page']) : (int) ($template['cards_per_page'] ?? 2),
     ];
 
-    if (in_array('personal_photo', $fields, true)) {
+    $image_fields = ['personal_photo', 'id_card_photo', 'sport_insurance_photo'];
+    if (!empty(array_intersect($fields, $image_fields))) {
         $format = 'pdf';
     }
 

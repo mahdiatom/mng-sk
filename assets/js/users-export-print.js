@@ -20,14 +20,21 @@
     var title = payload.title || 'خروجی اطلاعات کاربران';
     var pageSize = payload.page_size || 'A4';
     var cardsPerPage = parseInt(payload.cards_per_page, 10) || 2;
+    var columnsCount = parseInt(payload.columns_count, 10) || 2;
     var template = payload.template && typeof payload.template === 'object' ? payload.template : null;
     var templateLayout = template && template.layout ? template.layout : {};
-    var photoPosition = templateLayout.photo_position || 'left';
+    var imageFields = ['personal_photo', 'id_card_photo', 'sport_insurance_photo'];
+    var columnsCountFromTemplate = template && template.columns_count ? parseInt(template.columns_count, 10) : 2;
+    var contentColumnsCount = Math.max(1, Math.min(4, columnsCountFromTemplate || 2));
+    var layoutColumns = templateLayout && templateLayout.columns && typeof templateLayout.columns === 'object'
+        ? templateLayout.columns
+        : null;
     var rightFields = Array.isArray(templateLayout.right_fields) ? templateLayout.right_fields : [];
     var leftFields = Array.isArray(templateLayout.left_fields) ? templateLayout.left_fields : [];
 
     document.body.setAttribute('data-page-size', pageSize);
     document.body.setAttribute('data-cards', String(cardsPerPage));
+    document.body.setAttribute('data-columns', String(Math.max(1, Math.min(4, columnsCount))));
 
     var header = document.createElement('div');
     header.className = 'sc-print-header';
@@ -43,71 +50,126 @@
     rows.forEach(function (row) {
         var card = document.createElement('div');
         card.className = 'sc-card';
+        var imageOnlyMode = template && Number(template.image_only_mode) === 1;
+        if (imageOnlyMode) {
+            card.classList.add('image-only');
+        }
         var hasPhoto = fields.indexOf('personal_photo') !== -1 && row.personal_photo && row.personal_photo !== '-';
         if (hasPhoto) {
             card.classList.add('has-photo');
-            if (photoPosition === 'right') {
-                card.classList.add('photo-right');
+        }
+        var rawFields = fields.filter(function (f) { return imageFields.indexOf(f) === -1; });
+        var used = {};
+        var columnsFields = [];
+        for (var c = 1; c <= contentColumnsCount; c++) {
+            columnsFields.push([]);
+        }
+        if (layoutColumns) {
+            for (var i = 1; i <= contentColumnsCount; i++) {
+                var colArr = Array.isArray(layoutColumns['column_' + i]) ? layoutColumns['column_' + i] : [];
+                colArr.forEach(function (f) {
+                    if (rawFields.indexOf(f) !== -1 && !used[f]) {
+                        columnsFields[i - 1].push(f);
+                        used[f] = true;
+                    }
+                });
+            }
+        } else {
+            rightFields.forEach(function (f) {
+                if (rawFields.indexOf(f) !== -1 && !used[f]) {
+                    columnsFields[0].push(f);
+                    used[f] = true;
+                }
+            });
+            if (contentColumnsCount > 1) {
+                leftFields.forEach(function (f) {
+                    if (rawFields.indexOf(f) !== -1 && !used[f]) {
+                        columnsFields[1].push(f);
+                        used[f] = true;
+                    }
+                });
             }
         }
-        var rawFields = fields.filter(function (f) { return f !== 'personal_photo'; });
-        var used = {};
-        var rightColumnFields = [];
-        var leftColumnFields = [];
-        rightFields.forEach(function (f) {
-            if (rawFields.indexOf(f) !== -1 && !used[f]) {
-                rightColumnFields.push(f);
-                used[f] = true;
-            }
-        });
-        leftFields.forEach(function (f) {
-            if (rawFields.indexOf(f) !== -1 && !used[f]) {
-                leftColumnFields.push(f);
-                used[f] = true;
-            }
-        });
         rawFields.forEach(function (f) {
             if (!used[f]) {
-                if (rightColumnFields.length <= leftColumnFields.length) {
-                    rightColumnFields.push(f);
-                } else {
-                    leftColumnFields.push(f);
+                var minIdx = 0;
+                for (var j = 1; j < columnsFields.length; j++) {
+                    if (columnsFields[j].length < columnsFields[minIdx].length) {
+                        minIdx = j;
+                    }
                 }
+                columnsFields[minIdx].push(f);
             }
         });
 
         if (hasPhoto) {
             var photoField = document.createElement('div');
             photoField.className = 'sc-card-field sc-card-photo';
-            photoField.innerHTML =
-                '<strong>' + escapeHtml(labels.personal_photo || 'عکس پرسنلی') + ':</strong><br>' +
-                '<img src="' + escapeAttr(String(row.personal_photo)) + '" alt="photo">';
+            photoField.innerHTML = '<img src="' + escapeAttr(String(row.personal_photo)) + '" alt="photo">';
             card.appendChild(photoField);
         }
 
         var content = document.createElement('div');
         content.className = 'sc-card-content';
-        var rightCol = document.createElement('div');
-        rightCol.className = 'sc-card-col sc-card-col-right';
-        var leftCol = document.createElement('div');
-        leftCol.className = 'sc-card-col sc-card-col-left';
+        content.style.gridTemplateColumns = 'repeat(' + contentColumnsCount + ', minmax(0, 1fr))';
 
-        rightColumnFields.forEach(function (field) {
-            rightCol.appendChild(buildField(field, row[field]));
-        });
-        leftColumnFields.forEach(function (field) {
-            leftCol.appendChild(buildField(field, row[field]));
-        });
-        if (!rightColumnFields.length) {
-            rightCol.appendChild(buildField('-', '-'));
+        if (!imageOnlyMode) {
+            columnsFields.forEach(function (fieldsInCol) {
+                var col = document.createElement('div');
+                col.className = 'sc-card-col';
+                fieldsInCol.forEach(function (field) {
+                    col.appendChild(buildField(field, row[field]));
+                });
+                if (!fieldsInCol.length) {
+                    col.appendChild(buildField('-', '-'));
+                }
+                content.appendChild(col);
+            });
+        } else {
+            var infoRow = document.createElement('div');
+            infoRow.className = 'sc-image-only-info-row';
+            rawFields.forEach(function (field) {
+                var value = row[field] == null ? '-' : String(row[field]);
+                if (value === '-' || value.trim() === '') {
+                    return;
+                }
+                var infoItem = document.createElement('span');
+                infoItem.className = 'sc-image-only-info-item';
+                infoItem.innerHTML = '<strong>' + escapeHtml(labels[field] || field) + ':</strong> ' + escapeHtml(value);
+                infoRow.appendChild(infoItem);
+            });
+            if (infoRow.childNodes.length) {
+                content.appendChild(infoRow);
+            }
         }
-        if (!leftColumnFields.length) {
-            leftCol.appendChild(buildField('-', '-'));
+
+        imageFields.forEach(function (imgField) {
+            if (imgField === 'personal_photo') {
+                return;
+            }
+            if (fields.indexOf(imgField) !== -1 && row[imgField] && row[imgField] !== '-') {
+                var imageFieldEl = document.createElement('div');
+                imageFieldEl.className = 'sc-card-field sc-card-inline-image sc-card-inline-image--' + imgField;
+                imageFieldEl.innerHTML =
+                    '<img src="' + escapeAttr(String(row[imgField])) + '" alt="' + escapeAttr(labels[imgField] || imgField) + '">';
+                if (imageOnlyMode) {
+                    content.appendChild(imageFieldEl);
+                } else {
+                    var firstCol = content.querySelector('.sc-card-col');
+                    if (firstCol) {
+                        firstCol.appendChild(imageFieldEl);
+                    } else {
+                        content.appendChild(imageFieldEl);
+                    }
+                }
+            }
+        });
+        if (imageOnlyMode && hasPhoto) {
+            content.insertBefore(photoFieldClone(String(row.personal_photo)), content.firstChild);
         }
-        content.appendChild(rightCol);
-        content.appendChild(leftCol);
 
         card.appendChild(content);
+        applyCardBackground(card);
         grid.appendChild(card);
     });
 
@@ -145,5 +207,30 @@
         var cleanValue = value == null ? '-' : String(value);
         fieldEl.innerHTML = '<strong>' + escapeHtml(labels[field] || field) + ':</strong> ' + escapeHtml(cleanValue);
         return fieldEl;
+    }
+
+    function applyCardBackground(card) {
+        var bgColor = template && template.background_color ? String(template.background_color) : '#ffffff';
+        var bgImage = template && template.background_image ? String(template.background_image) : '';
+        var bgOpacity = template && typeof template.background_opacity !== 'undefined' ? parseFloat(template.background_opacity) : 0.2;
+        if (Number.isNaN(bgOpacity)) {
+            bgOpacity = 0.2;
+        }
+        bgOpacity = Math.max(0, Math.min(1, bgOpacity));
+        card.style.backgroundColor = bgImage ? 'transparent' : bgColor;
+        if (bgImage) {
+            var layer = document.createElement('div');
+            layer.className = 'sc-card-background-layer';
+            layer.style.backgroundImage = 'url("' + escapeAttr(bgImage) + '")';
+            layer.style.opacity = String(bgOpacity);
+            card.insertBefore(layer, card.firstChild);
+        }
+    }
+
+    function photoFieldClone(src) {
+        var imageFieldEl = document.createElement('div');
+        imageFieldEl.className = 'sc-card-field sc-card-inline-image sc-card-inline-image--personal_photo';
+        imageFieldEl.innerHTML = '<img src="' + escapeAttr(src) + '" alt="photo">';
+        return imageFieldEl;
     }
 })();
