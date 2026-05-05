@@ -374,6 +374,45 @@ function sc_add_member_location_gender_columns() {
 }
 
 /**
+ * Add restriction columns to courses/events tables if not exists
+ */
+add_action('admin_init', 'sc_add_course_event_restriction_columns');
+function sc_add_course_event_restriction_columns() {
+    global $wpdb;
+
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $events_table = $wpdb->prefix . 'sc_events';
+
+    $targets = [
+        $courses_table => ['chapter'],
+        $events_table => ['event_location_lng'],
+    ];
+
+    foreach ($targets as $table_name => $after_map) {
+        $restriction_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM $table_name LIKE %s", 'restriction_enabled'));
+        if (empty($restriction_exists)) {
+            $after_col = $after_map[0];
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN `restriction_enabled` tinyint(1) DEFAULT 0 AFTER `$after_col`");
+        }
+
+        $teams_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM $table_name LIKE %s", 'allowed_teams'));
+        if (empty($teams_exists)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN `allowed_teams` text DEFAULT NULL AFTER `restriction_enabled`");
+        }
+
+        $levels_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM $table_name LIKE %s", 'allowed_levels'));
+        if (empty($levels_exists)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN `allowed_levels` text DEFAULT NULL AFTER `allowed_teams`");
+        }
+
+        $gender_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM $table_name LIKE %s", 'allowed_gender'));
+        if (empty($gender_exists)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN `allowed_gender` varchar(10) DEFAULT 'both' AFTER `allowed_levels`");
+        }
+    }
+}
+
+/**
  * Add holding_date columns to events table if not exists
  */
 add_action('admin_init', 'sc_add_holding_date_columns');

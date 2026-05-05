@@ -19,6 +19,10 @@ $event_location_address = '';
 $event_location_lat = '';
 $event_location_lng = '';
 $is_active = 1;
+$restriction_enabled = 0;
+$allowed_teams = [];
+$allowed_levels = [];
+$allowed_gender = 'both';
 
 if ($event && isset($_GET['event_id'])) {
     $name = $event->name ?? '';
@@ -40,7 +44,22 @@ if ($event && isset($_GET['event_id'])) {
     $event_location_lat = $event->event_location_lat ?? '';
     $event_location_lng = $event->event_location_lng ?? '';
     $is_active = $event->is_active ?? 1;
+    $restriction_enabled = isset($event->restriction_enabled) ? (int)$event->restriction_enabled : 0;
+    $allowed_gender = !empty($event->allowed_gender) ? $event->allowed_gender : 'both';
+    $allowed_teams = !empty($event->allowed_teams) ? json_decode($event->allowed_teams, true) : [];
+    $allowed_levels = !empty($event->allowed_levels) ? json_decode($event->allowed_levels, true) : [];
+    if (!is_array($allowed_teams)) {
+        $allowed_teams = [];
+    }
+    if (!is_array($allowed_levels)) {
+        $allowed_levels = [];
+    }
 }
+global $wpdb;
+$team_table = $wpdb->prefix . 'sc_team_categories';
+$teams = $wpdb->get_results("SELECT * FROM $team_table ORDER BY id ASC");
+$level_table = $wpdb->prefix . 'sc_level_categories';
+$levels = $wpdb->get_results("SELECT * FROM $level_table ORDER BY id ASC");
 ?>
 <div class="wrap">
     <?php
@@ -334,6 +353,38 @@ if ($event && isset($_GET['event_id'])) {
                 </tr>
 
                 <tr>
+                    <th scope="row">محدودیت رویداد</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="restriction_enabled" id="event_restriction_enabled" value="1" <?php checked($restriction_enabled, 1); ?>>
+                            اعمال محدودیت برای نمایش/ثبت نام
+                        </label>
+                        <div id="event-restrictions-box" style="margin-top:12px; <?php echo $restriction_enabled ? '' : 'display:none;'; ?>">
+                            <p><strong>جنسیت مجاز</strong></p>
+                            <select name="allowed_gender" class="regular-text">
+                                <option value="both" <?php selected($allowed_gender, 'both'); ?>>هردو</option>
+                                <option value="male" <?php selected($allowed_gender, 'male'); ?>>مرد</option>
+                                <option value="female" <?php selected($allowed_gender, 'female'); ?>>زن</option>
+                            </select>
+                            <p style="margin-top:10px;"><strong>تیم‌های مجاز</strong></p>
+                            <?php if (!empty($teams)) : foreach ($teams as $team) : ?>
+                                <label style="display:inline-block;margin-left:12px;">
+                                    <input type="checkbox" name="allowed_teams[]" value="<?php echo esc_attr($team->name); ?>" <?php checked(in_array($team->name, $allowed_teams, true)); ?>>
+                                    <?php echo esc_html($team->name); ?>
+                                </label>
+                            <?php endforeach; endif; ?>
+                            <p style="margin-top:10px;"><strong>سطح‌های مجاز</strong></p>
+                            <?php if (!empty($levels)) : foreach ($levels as $level) : ?>
+                                <label style="display:inline-block;margin-left:12px;">
+                                    <input type="checkbox" name="allowed_levels[]" value="<?php echo esc_attr($level->name); ?>" <?php checked(in_array($level->name, $allowed_levels, true)); ?>>
+                                    <?php echo esc_html($level->name); ?>
+                                </label>
+                            <?php endforeach; endif; ?>
+                            <p class="description">در صورت فعال بودن محدودیت، فقط بازیکنانی که با شروط بالا سازگارند رویداد را می‌بینند و می‌توانند ثبت‌نام کنند.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
                     <th scope="row">وضعیت</th>
                     <td>
                         <label class="switch">
@@ -432,3 +483,14 @@ if ($event && isset($_GET['event_id'])) {
 
 
 
+<script>
+jQuery(document).ready(function($){
+    $('#event_restriction_enabled').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('#event-restrictions-box').slideDown(150);
+        } else {
+            $('#event-restrictions-box').slideUp(150);
+        }
+    });
+});
+</script>

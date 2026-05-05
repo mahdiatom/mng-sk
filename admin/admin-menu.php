@@ -2252,6 +2252,10 @@ function callback_add_course_sufix() {
             'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
             'start_date' => $start_date,
             'end_date' => $end_date,
+            'restriction_enabled' => isset($_POST['restriction_enabled']) ? 1 : 0,
+            'allowed_teams' => !empty($_POST['allowed_teams']) && is_array($_POST['allowed_teams']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_teams'])), JSON_UNESCAPED_UNICODE) : NULL,
+            'allowed_levels' => !empty($_POST['allowed_levels']) && is_array($_POST['allowed_levels']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_levels'])), JSON_UNESCAPED_UNICODE) : NULL,
+            'allowed_gender' => (isset($_POST['allowed_gender']) && in_array($_POST['allowed_gender'], ['male', 'female', 'both'], true)) ? sanitize_text_field($_POST['allowed_gender']) : 'both',
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'updated_at' => current_time('mysql'),
             'chapter' =>  !empty($_POST['chapter']) ? sanitize_text_field($_POST['chapter']) : NULL,
@@ -2262,21 +2266,18 @@ function callback_add_course_sufix() {
         // بروزرسانی
         if ($course_id) {
             $old_course = $wpdb->get_row($wpdb->prepare("SELECT title, price, price_per_session, is_active FROM $table_name WHERE id = %d", $course_id), ARRAY_A);
-            // آماده‌سازی format array بر اساس ترتیب فیلدها در $data
-            $format = [
-                '%s', // title
-                '%s', // description
-                '%f', // price
-                '%f', // price_per_session
-                '%d', // capacity
-                '%d', // sessions_count
-                '%s', // start_date
-                '%s', // end_date
-                '%s', // chapter
-                '%d', // is_active
-                '%s', // updated_at
-                
-            ];
+            $format = [];
+            foreach ($data as $key => $value) {
+                if ($value === NULL) {
+                    $format[] = '%s';
+                } elseif (in_array($key, ['price', 'price_per_session'], true)) {
+                    $format[] = '%f';
+                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active'], true)) {
+                    $format[] = '%d';
+                } else {
+                    $format[] = '%s';
+                }
+            }
             
             $updated = $wpdb->update(
                 $table_name,
@@ -2322,27 +2323,28 @@ function callback_add_course_sufix() {
                 'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
                 'start_date' => $start_date,
                 'end_date' => $end_date,
+                'restriction_enabled' => isset($_POST['restriction_enabled']) ? 1 : 0,
+                'allowed_teams' => !empty($_POST['allowed_teams']) && is_array($_POST['allowed_teams']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_teams'])), JSON_UNESCAPED_UNICODE) : NULL,
+                'allowed_levels' => !empty($_POST['allowed_levels']) && is_array($_POST['allowed_levels']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_levels'])), JSON_UNESCAPED_UNICODE) : NULL,
+                'allowed_gender' => (isset($_POST['allowed_gender']) && in_array($_POST['allowed_gender'], ['male', 'female', 'both'], true)) ? sanitize_text_field($_POST['allowed_gender']) : 'both',
                 'chapter' => sanitize_text_field($_POST['chapter']),
                 'is_active' => isset($_POST['is_active']) ? 1 : 0,
                 'created_at' => current_time('mysql'),
                 'updated_at' => current_time('mysql'),
             ];
             
-            // آماده‌سازی format array بر اساس ترتیب فیلدها در $insert_data
-            $format = [
-                '%s', // title
-                '%s', // description
-                '%f', // price
-                '%f', // price_per_session
-                '%d', // capacity
-                '%d', // sessions_count
-                '%s', // start_date
-                '%s', // end_date
-                '%s', // chapter
-                '%d', // is_active
-                '%s', // created_at
-                '%s', // updated_at
-            ];
+            $format = [];
+            foreach ($insert_data as $key => $value) {
+                if ($value === NULL) {
+                    $format[] = '%s';
+                } elseif (in_array($key, ['price', 'price_per_session'], true)) {
+                    $format[] = '%f';
+                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active'], true)) {
+                    $format[] = '%d';
+                } else {
+                    $format[] = '%s';
+                }
+            }
             
             $inserted = $wpdb->insert(
                 $table_name, 
@@ -3609,6 +3611,10 @@ function callback_add_event_sufix() {
             'event_location_address' => !empty($_POST['event_location_address']) ? sanitize_textarea_field($_POST['event_location_address']) : NULL,
             'event_location_lat' => $event_location_lat,
             'event_location_lng' => $event_location_lng,
+            'restriction_enabled' => isset($_POST['restriction_enabled']) ? 1 : 0,
+            'allowed_teams' => !empty($_POST['allowed_teams']) && is_array($_POST['allowed_teams']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_teams'])), JSON_UNESCAPED_UNICODE) : NULL,
+            'allowed_levels' => !empty($_POST['allowed_levels']) && is_array($_POST['allowed_levels']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_levels'])), JSON_UNESCAPED_UNICODE) : NULL,
+            'allowed_gender' => (isset($_POST['allowed_gender']) && in_array($_POST['allowed_gender'], ['male', 'female', 'both'], true)) ? sanitize_text_field($_POST['allowed_gender']) : 'both',
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'updated_at' => current_time('mysql'),
         ];
@@ -3622,7 +3628,21 @@ function callback_add_event_sufix() {
                 $table_name,
                 $data,
                 ['id' => $event_id],
-                ['%s', '%s', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%f', '%f', '%d', '%s'],
+                (function($row){
+                    $format = [];
+                    foreach ($row as $key => $value) {
+                        if ($value === NULL) {
+                            $format[] = '%s';
+                        } elseif (in_array($key, ['price', 'event_location_lat', 'event_location_lng'], true)) {
+                            $format[] = '%f';
+                        } elseif (in_array($key, ['has_age_limit', 'min_age', 'max_age', 'capacity', 'restriction_enabled', 'is_active'], true)) {
+                            $format[] = '%d';
+                        } else {
+                            $format[] = '%s';
+                        }
+                    }
+                    return $format;
+                })($data),
                 ['%d']
             );
 
@@ -3646,7 +3666,21 @@ function callback_add_event_sufix() {
             $inserted = $wpdb->insert(
                 $table_name, 
                 $data,
-                ['%s', '%s', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%f', '%f', '%d', '%s', '%s']
+                (function($row){
+                    $format = [];
+                    foreach ($row as $key => $value) {
+                        if ($value === NULL) {
+                            $format[] = '%s';
+                        } elseif (in_array($key, ['price', 'event_location_lat', 'event_location_lng'], true)) {
+                            $format[] = '%f';
+                        } elseif (in_array($key, ['has_age_limit', 'min_age', 'max_age', 'capacity', 'restriction_enabled', 'is_active'], true)) {
+                            $format[] = '%d';
+                        } else {
+                            $format[] = '%s';
+                        }
+                    }
+                    return $format;
+                })($data)
             );
 
             if ($inserted !== false) {

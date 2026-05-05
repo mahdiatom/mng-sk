@@ -686,6 +686,60 @@ function sc_render_member_verification_required_message() {
 }
 
 /**
+ * Check whether a member can access a restricted item (course/event).
+ * Restriction applies only when restriction_enabled = 1.
+ */
+function sc_member_matches_item_restrictions($item, $player = null) {
+    if (!$item) {
+        return false;
+    }
+    if (!$player) {
+        $player = sc_get_current_member_for_account_user();
+    }
+    if (!$player) {
+        return false;
+    }
+
+    $enabled = isset($item->restriction_enabled) ? (int) $item->restriction_enabled : 0;
+    if ($enabled !== 1) {
+        return true;
+    }
+
+    $player_gender = isset($player->gender) ? (string) $player->gender : '';
+    $player_team = isset($player->team_player) ? trim((string) $player->team_player) : '';
+    $player_level = isset($player->skill_level) ? trim((string) $player->skill_level) : '';
+
+    $allowed_gender = isset($item->allowed_gender) && $item->allowed_gender !== '' ? (string) $item->allowed_gender : 'both';
+    if (in_array($allowed_gender, ['male', 'female'], true) && $player_gender !== $allowed_gender) {
+        return false;
+    }
+
+    $allowed_teams = [];
+    if (!empty($item->allowed_teams)) {
+        $decoded = json_decode((string) $item->allowed_teams, true);
+        if (is_array($decoded)) {
+            $allowed_teams = array_values(array_filter(array_map('trim', $decoded)));
+        }
+    }
+    if (!empty($allowed_teams) && ($player_team === '' || !in_array($player_team, $allowed_teams, true))) {
+        return false;
+    }
+
+    $allowed_levels = [];
+    if (!empty($item->allowed_levels)) {
+        $decoded = json_decode((string) $item->allowed_levels, true);
+        if (is_array($decoded)) {
+            $allowed_levels = array_values(array_filter(array_map('trim', $decoded)));
+        }
+    }
+    if (!empty($allowed_levels) && ($player_level === '' || !in_array($player_level, $allowed_levels, true))) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
  * نمایش پیام در بالای صفحه My Account برای کاربرانی که پروفایل ناقص دارند
  */
 add_action('woocommerce_account_content', 'sc_display_incomplete_profile_message', 5);
@@ -1146,6 +1200,13 @@ function sc_my_account_enroll_course_content() {
     
     $query_values = array_merge($where_values, [$per_page, $offset]);
     $courses = $wpdb->get_results($wpdb->prepare($query, $query_values));
+
+    // اعمال محدودیت تیم/سطح/جنسیت روی دوره‌ها
+    if (!empty($courses)) {
+        $courses = array_values(array_filter($courses, function ($course) use ($player) {
+            return sc_member_matches_item_restrictions($course, $player);
+        }));
+    }
     
     // انتقال متغیرهای فیلتر و صفحه‌بندی به template
     // $filter_status = $filter_status;
@@ -1203,13 +1264,18 @@ function sc_handle_course_enrollment() {
     $course_id = absint($_POST['course_id']);
     
     // بررسی وجود دوره
-    $course = $wpdb->get_row($wpdb->prepare(
+        $course = $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM $courses_table WHERE id = %d AND deleted_at IS NULL AND is_active = 1",
         $course_id
     ));
     
     if (!$course) {
         wc_add_notice('دوره انتخاب شده معتبر نیست.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+        exit;
+    }
+    if (!sc_member_matches_item_restrictions($course, $player)) {
+        wc_add_notice('شما مجاز به مشاهده یا ثبت‌نام در این دوره نیستید.', 'error');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
         exit;
     }
@@ -3073,6 +3139,12 @@ function sc_my_account_events_content() {
         $events = $wpdb->get_results($query);
     }
 
+    if (!empty($events)) {
+        $events = array_values(array_filter($events, function ($event) use ($player) {
+            return sc_member_matches_item_restrictions($event, $player);
+        }));
+    }
+
     // انتقال متغیرهای فیلتر به template
     // $filter_status = $filter_status;
     // $filter_event_type = $filter_event_type;
@@ -3113,6 +3185,11 @@ function sc_my_account_event_detail_content() {
     
     if (!$event) {
         wc_add_notice('رویداد یافت نشد یا غیرفعال است.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-events'));
+        exit;
+    }
+    if (!sc_member_matches_item_restrictions($event, $player)) {
+        wc_add_notice('شما مجاز به مشاهده این رویداد نیستید.', 'error');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-events'));
         exit;
     }
@@ -3166,6 +3243,11 @@ function sc_handle_event_enrollment() {
     
     if (!$event) {
         wc_add_notice('رویداد انتخاب شده معتبر نیست.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-events'));
+        exit;
+    }
+    if (!sc_member_matches_item_restrictions($event, $player)) {
+        wc_add_notice('شما مجاز به ثبت‌نام در این رویداد نیستید.', 'error');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-events'));
         exit;
     }
