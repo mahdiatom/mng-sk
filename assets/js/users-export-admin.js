@@ -9,6 +9,7 @@ jQuery(function ($) {
     // --------------------------
     if ($form.length) {
         var selectedMemberIds = [];
+        var currentTemplate = null;
 
     function toggleFilterBlocks() {
         var targetType = $('#sc-target-type').val();
@@ -110,6 +111,62 @@ jQuery(function ($) {
         renderLayoutPreview(pageSize, cards);
     }
 
+    function getSelectedFields() {
+        var selected = [];
+        $('input[name="fields[]"]:checked').each(function () {
+            selected.push($(this).val());
+        });
+        return selected;
+    }
+
+    function resolveTemplateLayout(fields) {
+        var filtered = fields.filter(function (f) { return f !== 'personal_photo'; });
+        var rightFields = [];
+        var leftFields = [];
+        if (currentTemplate && currentTemplate.layout) {
+            var used = {};
+            if (Array.isArray(currentTemplate.layout.right_fields)) {
+                currentTemplate.layout.right_fields.forEach(function (field) {
+                    if (filtered.indexOf(field) !== -1 && !used[field]) {
+                        rightFields.push(field);
+                        used[field] = true;
+                    }
+                });
+            }
+            if (Array.isArray(currentTemplate.layout.left_fields)) {
+                currentTemplate.layout.left_fields.forEach(function (field) {
+                    if (filtered.indexOf(field) !== -1 && !used[field]) {
+                        leftFields.push(field);
+                        used[field] = true;
+                    }
+                });
+            }
+            filtered.forEach(function (field) {
+                if (!used[field]) {
+                    if (rightFields.length <= leftFields.length) {
+                        rightFields.push(field);
+                    } else {
+                        leftFields.push(field);
+                    }
+                }
+            });
+        } else {
+            filtered.forEach(function (field, idx) {
+                if (idx % 2 === 0) {
+                    rightFields.push(field);
+                } else {
+                    leftFields.push(field);
+                }
+            });
+        }
+        return {
+            right_fields: rightFields,
+            left_fields: leftFields,
+            has_photo: fields.indexOf('personal_photo') !== -1,
+            photo_position: currentTemplate && currentTemplate.layout ? (currentTemplate.layout.photo_position || 'left') : 'left'
+        };
+    }
+
     function renderLayoutPreview(pageSize, cards) {
         var $grid = $('#sc-template-preview-grid');
         $grid.empty();
@@ -117,13 +174,37 @@ jQuery(function ($) {
         $grid.attr('data-cards', cards);
 
         var maxCards = Math.min(cards, 4);
+        var fields = getSelectedFields();
+        var layout = resolveTemplateLayout(fields);
+        var rightCount = Math.min(layout.right_fields.length, 4);
+        var leftCount = Math.min(layout.left_fields.length, 4);
+        var hasPhoto = layout.has_photo && layout.photo_position !== 'none';
         for (var i = 0; i < maxCards; i++) {
+            var photoHtml = hasPhoto ? '<div class="sc-mini-photo"></div>' : '';
+            var rightLines = '';
+            var leftLines = '';
+            var j;
+            for (j = 0; j < Math.max(1, rightCount); j++) {
+                rightLines += '<span></span>';
+            }
+            for (j = 0; j < Math.max(1, leftCount); j++) {
+                leftLines += '<span></span>';
+            }
+            var contentHtml = '' +
+                '<div class="sc-mini-fields">' +
+                '  <div class="sc-mini-col">' + rightLines + '</div>' +
+                '  <div class="sc-mini-col">' + leftLines + '</div>' +
+                '</div>';
+            var cardClasses = 'sc-mini-card';
+            if (hasPhoto) {
+                cardClasses += ' has-photo';
+                if (layout.photo_position === 'right') {
+                    cardClasses += ' photo-right';
+                }
+            }
             $grid.append(
-                '<div class="sc-mini-card">' +
-                '  <div class="sc-mini-photo"></div>' +
-                '  <div class="sc-mini-lines">' +
-                '    <span></span><span></span><span></span>' +
-                '  </div>' +
+                '<div class="' + cardClasses + '">' +
+                photoHtml + contentHtml +
                 '</div>'
             );
         }
@@ -141,7 +222,9 @@ jQuery(function ($) {
     }
 
     function applyTemplateToForm(template) {
+        currentTemplate = template || null;
         if (!template) {
+            updatePreview();
             return;
         }
         if (!$('#sc-override-template-fields').is(':checked') && Array.isArray(template.fields)) {
@@ -161,7 +244,10 @@ jQuery(function ($) {
     }
 
         $('#sc-target-type').on('change', toggleFilterBlocks);
-        $('input[name="fields[]"]').on('change', enforceFormatRules);
+        $('input[name="fields[]"]').on('change', function () {
+            enforceFormatRules();
+            updatePreview();
+        });
         $('#sc-page-size, #sc-cards-per-page').on('change', updatePreview);
 
         $(document).on('click', '.sc-remove-tag', function () {
@@ -176,6 +262,8 @@ jQuery(function ($) {
         var selected = $(this).find(':selected');
         var raw = selected.attr('data-template');
         if (!raw) {
+            currentTemplate = null;
+            updatePreview();
             return;
         }
         try {
@@ -272,7 +360,26 @@ jQuery(function ($) {
             });
         }
 
+        function activateTemplate(templateKey) {
+            if (!templateKey) {
+                return;
+            }
+            $('.sc-template-list-item, .sc-template-item').removeClass('is-active');
+            $('.sc-template-list-item[data-template-key="' + templateKey + '"]').addClass('is-active');
+            $('.sc-template-item[data-template-key="' + templateKey + '"]').addClass('is-active');
+        }
+
+        function bindTitleSync($templateItem) {
+            $templateItem.find('.sc-template-title-input').on('input', function () {
+                var templateKey = $templateItem.attr('data-template-key');
+                $('.sc-template-list-item[data-template-key="' + templateKey + '"] .sc-template-list-title').text($(this).val() || 'قالب جدید');
+            });
+        }
+
         bindDnd($templatesContainer);
+        $templatesContainer.find('.sc-template-item').each(function () {
+            bindTitleSync($(this));
+        });
 
         $templatesContainer.on('change', '.sc-fields-grid input[type="checkbox"]', function () {
             var $templateItem = $(this).closest('.sc-template-item');
@@ -291,10 +398,10 @@ jQuery(function ($) {
             });
 
             return '' +
-                '<div class="sc-users-export-card sc-template-item" data-template-key="' + templateKey + '">' +
+                '<div class="sc-template-item" data-template-key="' + templateKey + '">' +
                 '  <h2>قالب جدید <small>(' + templateKey + ')</small></h2>' +
                 '  <input type="hidden" name="templates[' + templateKey + '][key]" value="' + templateKey + '">' +
-                '  <div class="sc-row"><label>عنوان قالب</label><input type="text" name="templates[' + templateKey + '][title]" value="قالب جدید"></div>' +
+                '  <div class="sc-row"><label>عنوان قالب</label><input type="text" class="sc-template-title-input" name="templates[' + templateKey + '][title]" value="قالب جدید"></div>' +
                 '  <div class="sc-row"><label>توضیحات</label><textarea name="templates[' + templateKey + '][description]" rows="3"></textarea></div>' +
                 '  <div class="sc-row"><label>اندازه صفحه</label><select name="templates[' + templateKey + '][page_size]"><option value="A4">A4</option><option value="A5">A5</option></select></div>' +
                 '  <div class="sc-row"><label>تعداد کارت در صفحه</label><select name="templates[' + templateKey + '][cards_per_page]"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div>' +
@@ -311,9 +418,44 @@ jQuery(function ($) {
                 '</div>';
         }
 
+        function buildTemplateListItem(templateKey, title) {
+            return '' +
+                '<div class="sc-template-list-item" data-template-key="' + templateKey + '">' +
+                '  <div class="sc-template-list-title">' + title + '</div>' +
+                '  <div class="sc-template-list-actions">' +
+                '    <button type="button" class="button sc-edit-template">ویرایش</button>' +
+                '    <button type="button" class="button sc-delete-template">حذف</button>' +
+                '  </div>' +
+                '</div>';
+        }
+
         $('#sc-add-new-template').on('click', function () {
             var templateKey = 'tpl_' + Date.now();
-            $templatesContainer.append(buildTemplateCard(templateKey));
+            var $newCard = $(buildTemplateCard(templateKey));
+            $templatesContainer.append($newCard);
+            $('#sc-templates-list').append(buildTemplateListItem(templateKey, 'قالب جدید'));
+            bindTitleSync($newCard);
+            activateTemplate(templateKey);
+        });
+
+        $(document).on('click', '.sc-edit-template', function () {
+            var templateKey = $(this).closest('.sc-template-list-item').attr('data-template-key');
+            activateTemplate(templateKey);
+        });
+
+        $(document).on('click', '.sc-delete-template', function () {
+            var $item = $(this).closest('.sc-template-list-item');
+            var templateKey = $item.attr('data-template-key');
+            var $card = $('.sc-template-item[data-template-key="' + templateKey + '"]');
+            if (!window.confirm('این قالب حذف شود؟')) {
+                return;
+            }
+            $item.remove();
+            $card.remove();
+            var $first = $('.sc-template-list-item').first();
+            if ($first.length) {
+                activateTemplate($first.attr('data-template-key'));
+            }
         });
     }
 });

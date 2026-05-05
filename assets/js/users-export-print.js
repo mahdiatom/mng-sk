@@ -52,29 +52,29 @@
         }
         var rawFields = fields.filter(function (f) { return f !== 'personal_photo'; });
         var used = {};
-        var orderedFields = [];
-
-        if (rightFields.length || leftFields.length) {
-            rightFields.forEach(function (f) {
-                if (rawFields.indexOf(f) !== -1 && !used[f]) {
-                    orderedFields.push(f);
-                    used[f] = true;
+        var rightColumnFields = [];
+        var leftColumnFields = [];
+        rightFields.forEach(function (f) {
+            if (rawFields.indexOf(f) !== -1 && !used[f]) {
+                rightColumnFields.push(f);
+                used[f] = true;
+            }
+        });
+        leftFields.forEach(function (f) {
+            if (rawFields.indexOf(f) !== -1 && !used[f]) {
+                leftColumnFields.push(f);
+                used[f] = true;
+            }
+        });
+        rawFields.forEach(function (f) {
+            if (!used[f]) {
+                if (rightColumnFields.length <= leftColumnFields.length) {
+                    rightColumnFields.push(f);
+                } else {
+                    leftColumnFields.push(f);
                 }
-            });
-            leftFields.forEach(function (f) {
-                if (rawFields.indexOf(f) !== -1 && !used[f]) {
-                    orderedFields.push(f);
-                    used[f] = true;
-                }
-            });
-            rawFields.forEach(function (f) {
-                if (!used[f]) {
-                    orderedFields.push(f);
-                }
-            });
-        } else {
-            orderedFields = rawFields.slice();
-        }
+            }
+        });
 
         if (hasPhoto) {
             var photoField = document.createElement('div');
@@ -87,14 +87,25 @@
 
         var content = document.createElement('div');
         content.className = 'sc-card-content';
+        var rightCol = document.createElement('div');
+        rightCol.className = 'sc-card-col sc-card-col-right';
+        var leftCol = document.createElement('div');
+        leftCol.className = 'sc-card-col sc-card-col-left';
 
-        orderedFields.forEach(function (field) {
-            var value = row[field] == null ? '-' : String(row[field]);
-            var fieldEl = document.createElement('div');
-            fieldEl.className = 'sc-card-field';
-            fieldEl.innerHTML = '<strong>' + escapeHtml(labels[field] || field) + ':</strong> ' + escapeHtml(value);
-            content.appendChild(fieldEl);
+        rightColumnFields.forEach(function (field) {
+            rightCol.appendChild(buildField(field, row[field]));
         });
+        leftColumnFields.forEach(function (field) {
+            leftCol.appendChild(buildField(field, row[field]));
+        });
+        if (!rightColumnFields.length) {
+            rightCol.appendChild(buildField('-', '-'));
+        }
+        if (!leftColumnFields.length) {
+            leftCol.appendChild(buildField('-', '-'));
+        }
+        content.appendChild(rightCol);
+        content.appendChild(leftCol);
 
         card.appendChild(content);
         grid.appendChild(card);
@@ -122,5 +133,17 @@
 
     function escapeAttr(str) {
         return escapeHtml(str).replace(/"/g, '&quot;');
+    }
+
+    function buildField(field, value) {
+        var fieldEl = document.createElement('div');
+        fieldEl.className = 'sc-card-field';
+        if (field === '-') {
+            fieldEl.innerHTML = '&nbsp;';
+            return fieldEl;
+        }
+        var cleanValue = value == null ? '-' : String(value);
+        fieldEl.innerHTML = '<strong>' + escapeHtml(labels[field] || field) + ':</strong> ' + escapeHtml(cleanValue);
+        return fieldEl;
     }
 })();

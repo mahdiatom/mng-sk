@@ -29,11 +29,14 @@ function sc_users_export_get_default_templates() {
 }
 
 function sc_users_export_get_saved_templates() {
-    $saved = get_option('sc_users_export_templates', []);
-    if (!is_array($saved)) {
-        $saved = [];
+    $saved = get_option('sc_users_export_templates', null);
+    if ($saved === null) {
+        return sc_users_export_get_default_templates();
     }
-    return array_replace(sc_users_export_get_default_templates(), $saved);
+    if (!is_array($saved)) {
+        return sc_users_export_get_default_templates();
+    }
+    return $saved;
 }
 
 function sc_users_export_save_templates($templates) {
@@ -65,6 +68,12 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
     $left_fields = isset($layout['left_fields']) && is_array($layout['left_fields']) ? array_map('sanitize_text_field', $layout['left_fields']) : [];
     $right_fields = array_values(array_intersect($right_fields, $fields));
     $left_fields = array_values(array_intersect($left_fields, $fields));
+    $assigned = array_fill_keys(array_merge($right_fields, $left_fields), true);
+    foreach ($fields as $field_key) {
+        if (!isset($assigned[$field_key]) && $field_key !== 'personal_photo') {
+            $right_fields[] = $field_key;
+        }
+    }
 
     return [
         'key' => $key,
@@ -84,15 +93,32 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
 function sc_users_export_get_field_labels() {
     return [
         'member_id' => 'شناسه بازیکن',
+        'user_id' => 'شناسه کاربر وردپرس',
         'full_name' => 'نام و نام خانوادگی',
+        'first_name' => 'نام',
+        'last_name' => 'نام خانوادگی',
         'father_name' => 'نام پدر',
         'national_id' => 'کد ملی',
+        'birth_certificate_number' => 'شماره شناسنامه',
+        'birthday_place' => 'محل تولد',
         'player_phone' => 'شماره همراه',
+        'father_phone' => 'موبایل پدر',
+        'mother_phone' => 'موبایل مادر',
+        'landline_phone' => 'تلفن ثابت',
+        'address' => 'آدرس',
         'birth_date_shamsi' => 'تاریخ تولد',
+        'health_verified' => 'تایید سلامت',
+        'info_verified' => 'تایید اطلاعات',
+        'profile_completed' => 'پروفایل کامل',
         'skill_level' => 'سطح بازیکن',
+        'member_type' => 'نوع بازیکن',
         'team_player' => 'تیم بازیکن',
+        'active_events' => 'رویدادهای ثبت نام شده',
         'insurance_expiry_date_shamsi' => 'تاریخ بیمه',
         'active_courses' => 'دوره‌های فعال',
+        'medical_condition' => 'وضعیت پزشکی',
+        'sports_history' => 'سابقه ورزشی',
+        'additional_info' => 'اطلاعات تکمیلی',
         'personal_photo' => 'عکس پرسنلی',
     ];
 }
@@ -107,6 +133,7 @@ function sc_users_export_get_members($target_type, $config = []) {
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $courses_table = $wpdb->prefix . 'sc_courses';
     $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+    $events_table = $wpdb->prefix . 'sc_events';
 
     $where = ["m.is_active = 1"];
     $params = [];
@@ -207,6 +234,17 @@ function sc_users_export_get_members($target_type, $config = []) {
             $member->id
         ));
         $member->active_courses = !empty($courses) ? implode('، ', $courses) : '-';
+
+        $events = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT e.name
+             FROM $event_registrations_table er
+             INNER JOIN $events_table e ON e.id = er.event_id
+             WHERE er.member_id = %d
+               AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
+             ORDER BY e.name ASC",
+            $member->id
+        ));
+        $member->active_events = !empty($events) ? implode('، ', $events) : '-';
     }
 
     return $members;
@@ -226,6 +264,21 @@ function sc_users_export_prepare_rows($members, $fields) {
                     break;
                 case 'active_courses':
                     $row[$field] = isset($member->active_courses) ? $member->active_courses : '-';
+                    break;
+                case 'active_events':
+                    $row[$field] = isset($member->active_events) ? $member->active_events : '-';
+                    break;
+                case 'member_type':
+                    if (!empty($member->member_type) && $member->member_type === 'team') {
+                        $row[$field] = 'بازیکن تیم';
+                    } else {
+                        $row[$field] = 'بازیکن عادی';
+                    }
+                    break;
+                case 'health_verified':
+                case 'info_verified':
+                case 'profile_completed':
+                    $row[$field] = !empty($member->{$field}) ? 'بله' : 'خیر';
                     break;
                 default:
                     $row[$field] = isset($member->{$field}) && $member->{$field} !== '' ? $member->{$field} : '-';
@@ -323,6 +376,7 @@ function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?php echo esc_html($export_title); ?></title>
+        <link rel="stylesheet" href="<?php echo esc_url(SC_ASSETS_URL . 'css/admin.css'); ?>">
         <link rel="stylesheet" href="<?php echo esc_url(SC_ASSETS_URL . 'css/users-export-print.css'); ?>">
     </head>
     <body class="sc-users-export-print-page">

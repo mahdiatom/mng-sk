@@ -22,7 +22,7 @@ body.sc-users-export-print-page {
     margin: 0;
     padding: 12px;
     direction: rtl;
-    font-family: IRANYekanXFaNum, Tahoma, Arial, sans-serif;
+    font-family: "IRANYekanXFaNum", Tahoma, Arial, sans-serif;
     background: #fff;
     color: #111;
 }
@@ -103,6 +103,11 @@ body.sc-users-export-print-page {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 6px 12px;
+}
+
+.sc-card-col {
+    display: grid;
+    gap: 6px;
 }
 
 .sc-card-content .sc-card-field {
