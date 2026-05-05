@@ -1,0 +1,84 @@
+@page {
+    margin: 10mm;
+}
+
+body.sc-users-export-print-page {
+    margin: 0;
+    padding: 12px;
+    direction: rtl;
+    font-family: Tahoma, Arial, sans-serif;
+    background: #fff;
+    color: #111;
+}
+
+.sc-print-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.sc-print-title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.sc-print-actions button {
+    border: 1px solid #2271b1;
+    background: #2271b1;
+    color: #fff;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    margin-left: 6px;
+}
+
+.sc-print-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.sc-card {
+    border: 1px solid #c3c4c7;
+    border-radius: 10px;
+    padding: 12px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.sc-card-field {
+    margin-bottom: 7px;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.sc-card-field strong {
+    margin-left: 6px;
+}
+
+.sc-card-photo img {
+    max-width: 100%;
+    max-height: 160px;
+    border-radius: 6px;
+    border: 1px solid #dcdcde;
+}
+
+body[data-page-size="A4"][data-cards="2"] .sc-print-grid {
+    grid-template-columns: 1fr 1fr;
+}
+
+body[data-page-size="A4"][data-cards="4"] .sc-print-grid {
+    grid-template-columns: 1fr 1fr;
+}
+
+body[data-page-size="A5"] .sc-print-grid,
+body[data-cards="1"] .sc-print-grid {
+    grid-template-columns: 1fr;
+}
+
+@media print {
+    .sc-print-actions {
+        display: none;
+    }
+}

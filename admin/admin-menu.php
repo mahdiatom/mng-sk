@@ -58,6 +58,32 @@ function sc_register_admin_menu() {
         
     }
 
+    add_menu_page(
+        'خروجی اطلاعات کاربران',
+        'خروجی اطلاعات کاربران',
+        'manage_options',
+        'sc-users-info-export',
+        'sc_admin_users_info_export_page',
+        'dashicons-media-spreadsheet',
+        26.8
+    );
+    add_submenu_page(
+        'sc-users-info-export',
+        'خروجی اطلاعات کاربران',
+        'خروجی اطلاعات کاربران',
+        'manage_options',
+        'sc-users-info-export',
+        'sc_admin_users_info_export_page'
+    );
+    add_submenu_page(
+        'sc-users-info-export',
+        'تعریف قالب خروجی',
+        'تعریف قالب خروجی',
+        'manage_options',
+        'sc-users-export-templates',
+        'sc_admin_users_export_templates_page'
+    );
+
     /* ================= Members ================= */
 
     add_menu_page(
@@ -1241,6 +1267,16 @@ function sc_admin_add_notification_page() {
     sc_check_and_create_tables();
     $GLOBALS['sc_notification_is_coach'] = false;
     include SC_TEMPLATES_ADMIN_DIR . 'notification-add.php';
+}
+
+function sc_admin_users_info_export_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'users-info-export.php';
+}
+
+function sc_admin_users_export_templates_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'users-export-templates.php';
 }
 
 function sc_admin_coach_my_notifications_page() {

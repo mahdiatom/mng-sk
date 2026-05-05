@@ -47,6 +47,7 @@ require_once SC_INCLUDES_DIR . 'discount-codes-functions.php'; // کدهای ت�
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions
+require_once SC_INCLUDES_DIR . 'users-info-export-functions.php'; // Users info export (PDF/Excel)
 require_once SC_INCLUDES_DIR . 'expense-export.php'; // Expense export functions
 require_once SC_INCLUDES_DIR . 'debtors-export.php'; // Debtors export functions
 require_once SC_INCLUDES_DIR . 'active-users-export.php'; // Active users export functions
@@ -1308,6 +1309,7 @@ add_action('wp_enqueue_scripts', 'sc_public_enqueue_assets');
  */
 function sc_admin_enqueue_assets() {
     wp_enqueue_style('sc-admin-css', SC_ASSETS_URL . 'css/admin.css', array(),  time());
+    $current_page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
     $is_ticket_new = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-support-ticket-new';
     $is_ticket_view = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-support-ticket-view';
     $is_coach_ticket_new = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-coach-support-ticket-new';
@@ -1332,6 +1334,11 @@ function sc_admin_enqueue_assets() {
         'ajaxurl' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('sc_admin_nonce')
     ));
+
+    if (in_array($current_page, array('sc-users-info-export', 'sc-users-export-templates'), true)) {
+        wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+        wp_enqueue_script('sc-users-export-admin-js', SC_ASSETS_URL . 'js/users-export-admin.js', array('jquery', 'sc-admin-js'), time(), true);
+    }
 }
 
 /**
