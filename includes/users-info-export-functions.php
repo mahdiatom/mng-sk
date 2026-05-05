@@ -19,6 +19,11 @@ function sc_users_export_get_default_templates() {
                 'personal_photo',
                 'insurance_expiry_date_shamsi',
             ],
+            'layout' => [
+                'photo_position' => 'left',
+                'right_fields' => ['full_name', 'father_name', 'player_phone', 'skill_level', 'insurance_expiry_date_shamsi'],
+                'left_fields' => [],
+            ],
         ],
     ];
 }
@@ -36,6 +41,44 @@ function sc_users_export_save_templates($templates) {
         return;
     }
     update_option('sc_users_export_templates', $templates, false);
+}
+
+function sc_users_export_normalize_template($template, $fallback_key = '') {
+    $labels = sc_users_export_get_field_labels();
+    $allowed_fields = array_keys($labels);
+    $key = isset($template['key']) ? sanitize_key($template['key']) : sanitize_key($fallback_key);
+    if ($key === '') {
+        $key = 'template_' . wp_generate_password(6, false, false);
+    }
+
+    $fields = isset($template['fields']) && is_array($template['fields']) ? array_map('sanitize_text_field', $template['fields']) : [];
+    $fields = array_values(array_intersect($fields, $allowed_fields));
+    if (empty($fields)) {
+        $fields = ['full_name', 'player_phone'];
+    }
+
+    $layout = isset($template['layout']) && is_array($template['layout']) ? $template['layout'] : [];
+    $photo_position = isset($layout['photo_position']) && in_array($layout['photo_position'], ['left', 'right', 'none'], true)
+        ? $layout['photo_position']
+        : 'left';
+    $right_fields = isset($layout['right_fields']) && is_array($layout['right_fields']) ? array_map('sanitize_text_field', $layout['right_fields']) : [];
+    $left_fields = isset($layout['left_fields']) && is_array($layout['left_fields']) ? array_map('sanitize_text_field', $layout['left_fields']) : [];
+    $right_fields = array_values(array_intersect($right_fields, $fields));
+    $left_fields = array_values(array_intersect($left_fields, $fields));
+
+    return [
+        'key' => $key,
+        'title' => isset($template['title']) ? sanitize_text_field($template['title']) : 'قالب جدید',
+        'description' => isset($template['description']) ? sanitize_textarea_field($template['description']) : '',
+        'page_size' => (isset($template['page_size']) && in_array($template['page_size'], ['A4', 'A5'], true)) ? $template['page_size'] : 'A4',
+        'cards_per_page' => isset($template['cards_per_page']) ? max(1, min(6, (int) $template['cards_per_page'])) : 2,
+        'fields' => $fields,
+        'layout' => [
+            'photo_position' => $photo_position,
+            'right_fields' => $right_fields,
+            'left_fields' => $left_fields,
+        ],
+    ];
 }
 
 function sc_users_export_get_field_labels() {
@@ -257,7 +300,7 @@ function sc_users_export_to_excel($rows, $fields) {
     exit;
 }
 
-function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = '') {
+function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = '', $template = null) {
     $labels = sc_users_export_get_field_labels();
     $page_size = isset($layout['page_size']) && in_array($layout['page_size'], ['A4', 'A5'], true) ? $layout['page_size'] : 'A4';
     $cards_per_page = isset($layout['cards_per_page']) ? max(1, min(6, (int) $layout['cards_per_page'])) : 2;
@@ -270,6 +313,7 @@ function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = 
         'rows' => $rows,
         'fields' => $fields,
         'labels' => $labels,
+        'template' => is_array($template) ? $template : null,
     ];
 
     ?>
@@ -321,6 +365,9 @@ function sc_users_info_export_handler() {
     $template_key = isset($_POST['template_key']) ? sanitize_text_field(wp_unslash($_POST['template_key'])) : '';
     $templates = sc_users_export_get_saved_templates();
     $template = ($template_key && isset($templates[$template_key])) ? $templates[$template_key] : null;
+    if ($template) {
+        $template = sc_users_export_normalize_template($template, $template_key);
+    }
 
     if ($template && !empty($template['fields']) && empty($_POST['override_template_fields'])) {
         $fields = array_values(array_intersect((array) $template['fields'], array_keys($field_labels)));
@@ -348,5 +395,5 @@ function sc_users_info_export_handler() {
     }
 
     $title = $template && !empty($template['title']) ? $template['title'] : 'خروجی اطلاعات کاربران';
-    sc_users_export_render_pdf_page($rows, $fields, $layout, $title);
+    sc_users_export_render_pdf_page($rows, $fields, $layout, $title, $template);
 }

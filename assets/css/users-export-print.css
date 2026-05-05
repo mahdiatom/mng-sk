@@ -1,3 +1,19 @@
+@font-face {
+    font-family: IRANYekanXFaNum;
+    font-style: normal;
+    font-weight: normal;
+    src: url('../fonts/Woff/IRANYekanXFaNum-Regular.woff') format('woff'),
+         url('../fonts/Woff2/IRANYekanXFaNum-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: IRANYekanXFaNum;
+    font-style: normal;
+    font-weight: bold;
+    src: url('../fonts/Woff/IRANYekanXFaNum-Bold.woff') format('woff'),
+         url('../fonts/Woff2/IRANYekanXFaNum-Bold.woff2') format('woff2');
+}
+
 @page {
     margin: 10mm;
 }
@@ -6,7 +22,7 @@ body.sc-users-export-print-page {
     margin: 0;
     padding: 12px;
     direction: rtl;
-    font-family: Tahoma, Arial, sans-serif;
+    font-family: IRANYekanXFaNum, Tahoma, Arial, sans-serif;
     background: #fff;
     color: #111;
 }
@@ -42,9 +58,13 @@ body.sc-users-export-print-page {
 .sc-card {
     border: 1px solid #c3c4c7;
     border-radius: 10px;
-    padding: 12px;
+    padding: 14px;
     page-break-inside: avoid;
     break-inside: avoid;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    overflow: hidden;
 }
 
 .sc-card-field {
@@ -58,10 +78,43 @@ body.sc-users-export-print-page {
 }
 
 .sc-card-photo img {
-    max-width: 100%;
-    max-height: 160px;
+    width: 100%;
+    max-height: 170px;
+    object-fit: cover;
     border-radius: 6px;
     border: 1px solid #dcdcde;
+}
+
+.sc-card.has-photo {
+    grid-template-columns: 150px 1fr;
+    align-items: start;
+}
+
+.sc-card.has-photo .sc-card-photo {
+    grid-column: 1;
+    grid-row: 1 / span 20;
+}
+
+.sc-card.has-photo.photo-right .sc-card-photo {
+    grid-column: 2;
+}
+
+.sc-card-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+}
+
+.sc-card-content .sc-card-field {
+    margin-bottom: 0;
+}
+
+.sc-card.has-photo .sc-card-content {
+    grid-column: 2;
+}
+
+.sc-card.has-photo.photo-right .sc-card-content {
+    grid-column: 1;
 }
 
 body[data-page-size="A4"][data-cards="2"] .sc-print-grid {
@@ -70,6 +123,10 @@ body[data-page-size="A4"][data-cards="2"] .sc-print-grid {
 
 body[data-page-size="A4"][data-cards="4"] .sc-print-grid {
     grid-template-columns: 1fr 1fr;
+}
+
+body[data-page-size="A4"][data-cards="4"] .sc-card {
+    min-height: 180px;
 }
 
 body[data-page-size="A5"] .sc-print-grid,

@@ -20,6 +20,11 @@
     var title = payload.title || 'خروجی اطلاعات کاربران';
     var pageSize = payload.page_size || 'A4';
     var cardsPerPage = parseInt(payload.cards_per_page, 10) || 2;
+    var template = payload.template && typeof payload.template === 'object' ? payload.template : null;
+    var templateLayout = template && template.layout ? template.layout : {};
+    var photoPosition = templateLayout.photo_position || 'left';
+    var rightFields = Array.isArray(templateLayout.right_fields) ? templateLayout.right_fields : [];
+    var leftFields = Array.isArray(templateLayout.left_fields) ? templateLayout.left_fields : [];
 
     document.body.setAttribute('data-page-size', pageSize);
     document.body.setAttribute('data-cards', String(cardsPerPage));
@@ -38,26 +43,60 @@
     rows.forEach(function (row) {
         var card = document.createElement('div');
         card.className = 'sc-card';
-        fields.forEach(function (field) {
-            var value = row[field] == null ? '-' : String(row[field]);
-            if (field === 'personal_photo') {
-                var photo = document.createElement('div');
-                photo.className = 'sc-card-field sc-card-photo';
-                if (value && value !== '-') {
-                    photo.innerHTML =
-                        '<strong>' + escapeHtml(labels[field] || field) + ':</strong><br>' +
-                        '<img src="' + escapeAttr(value) + '" alt="photo">';
-                } else {
-                    photo.innerHTML = '<strong>' + escapeHtml(labels[field] || field) + ':</strong> -';
-                }
-                card.appendChild(photo);
-                return;
+        var hasPhoto = fields.indexOf('personal_photo') !== -1 && row.personal_photo && row.personal_photo !== '-';
+        if (hasPhoto) {
+            card.classList.add('has-photo');
+            if (photoPosition === 'right') {
+                card.classList.add('photo-right');
             }
+        }
+        var rawFields = fields.filter(function (f) { return f !== 'personal_photo'; });
+        var used = {};
+        var orderedFields = [];
+
+        if (rightFields.length || leftFields.length) {
+            rightFields.forEach(function (f) {
+                if (rawFields.indexOf(f) !== -1 && !used[f]) {
+                    orderedFields.push(f);
+                    used[f] = true;
+                }
+            });
+            leftFields.forEach(function (f) {
+                if (rawFields.indexOf(f) !== -1 && !used[f]) {
+                    orderedFields.push(f);
+                    used[f] = true;
+                }
+            });
+            rawFields.forEach(function (f) {
+                if (!used[f]) {
+                    orderedFields.push(f);
+                }
+            });
+        } else {
+            orderedFields = rawFields.slice();
+        }
+
+        if (hasPhoto) {
+            var photoField = document.createElement('div');
+            photoField.className = 'sc-card-field sc-card-photo';
+            photoField.innerHTML =
+                '<strong>' + escapeHtml(labels.personal_photo || 'عکس پرسنلی') + ':</strong><br>' +
+                '<img src="' + escapeAttr(String(row.personal_photo)) + '" alt="photo">';
+            card.appendChild(photoField);
+        }
+
+        var content = document.createElement('div');
+        content.className = 'sc-card-content';
+
+        orderedFields.forEach(function (field) {
+            var value = row[field] == null ? '-' : String(row[field]);
             var fieldEl = document.createElement('div');
             fieldEl.className = 'sc-card-field';
             fieldEl.innerHTML = '<strong>' + escapeHtml(labels[field] || field) + ':</strong> ' + escapeHtml(value);
-            card.appendChild(fieldEl);
+            content.appendChild(fieldEl);
         });
+
+        card.appendChild(content);
         grid.appendChild(card);
     });
 
