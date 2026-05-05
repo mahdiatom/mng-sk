@@ -374,7 +374,7 @@ function sc_register_admin_menu() {
         'manage_options',
         'sc-events',
         'sc_admin_events_list_page',
-        'dashicons-tickets-alt',
+        'dashicons-calendar-alt',
         29
     );
 

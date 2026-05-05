@@ -2241,7 +2241,7 @@ display: flex;
                 display: flex;
                 justify-content: space-between;
                     /* align-items: center; */
-
+                flex-direction: column;
             }
             #sc-attendance-logs-page-settings-box{
                 max-width:920px;
@@ -2257,10 +2257,10 @@ display: flex;
                 align-items: stretch;
                 cursor: pointer;
                 user-select: none;
-                border-bottom: 1px solid #c3c4c7;
-                background: #f6f7f7;
+                
+                
             }
-            .sc-attendance-logs-settings-header:hover { background: #f0f0f1; }
+           
             .sc-attendance-logs-settings-header .handlediv {
                     width: 50px;
                 height: 50px;
