@@ -11,6 +11,31 @@ jQuery(function ($) {
         var selectedMemberIds = [];
         var excludedMemberIds = [];
         var currentTemplate = null;
+        var certificatesPreviewLoaded = false;
+        var usersPreviewLoaded = false;
+
+    function getExcludedMemberIndexById(id) {
+        return excludedMemberIds.findIndex(function (item) {
+            return item.id === id;
+        });
+    }
+
+    function addExcludedMember(id, label) {
+        if (!id) {
+            return;
+        }
+        var idx = getExcludedMemberIndexById(id);
+        if (idx !== -1) {
+            return;
+        }
+        excludedMemberIds.push({ id: id, label: label || ('کاربر #' + id) });
+    }
+
+    function removeExcludedMember(id) {
+        excludedMemberIds = excludedMemberIds.filter(function (item) {
+            return item.id !== id;
+        });
+    }
 
     function toggleFilterBlocks() {
         var targetType = $('#sc-target-type').val();
@@ -73,6 +98,162 @@ jQuery(function ($) {
                 ' <button type="button" class="sc-remove-exclude-tag">&times;</button></span>'
             );
             $inputs.append('<input type="hidden" name="excluded_member_ids[]" value="' + item.id + '">');
+        });
+    }
+
+    function initCertificatesPreviewSelectionBindings() {
+        var $checks = $('.sc-cert-preview-member-check');
+        if (!$checks.length) {
+            return;
+        }
+
+        $checks.each(function () {
+            var id = parseInt($(this).attr('data-member-id'), 10);
+            var idx = getExcludedMemberIndexById(id);
+            if (idx !== -1) {
+                $(this).prop('checked', false);
+            } else {
+                $(this).prop('checked', true);
+            }
+        });
+
+        var checkedCount = $('.sc-cert-preview-member-check:checked').length;
+        $('#sc-cert-preview-select-all').prop('checked', checkedCount === $checks.length);
+
+        $(document).off('change.scCertPreviewMember').on('change.scCertPreviewMember', '.sc-cert-preview-member-check', function () {
+            var id = parseInt($(this).attr('data-member-id'), 10);
+            var label = $(this).attr('data-member-label') || ('کاربر #' + id);
+            if (!id) {
+                return;
+            }
+            if ($(this).is(':checked')) {
+                removeExcludedMember(id);
+            } else {
+                addExcludedMember(id, label);
+            }
+            renderExcludedMembers();
+
+            var allCount = $('.sc-cert-preview-member-check').length;
+            var selectedCount = $('.sc-cert-preview-member-check:checked').length;
+            $('#sc-cert-preview-select-all').prop('checked', allCount > 0 && selectedCount === allCount);
+        });
+
+        $(document).off('change.scCertPreviewSelectAll').on('change.scCertPreviewSelectAll', '#sc-cert-preview-select-all', function () {
+            var shouldCheck = $(this).is(':checked');
+            $('.sc-cert-preview-member-check').prop('checked', shouldCheck).trigger('change');
+        });
+    }
+
+    function buildCertificatesPreviewPayload() {
+        var data = $form.serializeArray();
+        data.push({ name: 'action', value: 'sc_certificates_preview_members' });
+        data.push({ name: 'nonce', value: $('#sc-cert-preview-nonce').val() || '' });
+        return data;
+    }
+
+    function initCertificatesPreview() {
+        var $btn = $('#sc-cert-preview-btn');
+        var $result = $('#sc-cert-preview-result');
+        if (!$btn.length || !$result.length) {
+            return;
+        }
+
+        $btn.on('click', function () {
+            $btn.prop('disabled', true);
+            $result.html('<p class="description">در حال دریافت پیش نمایش...</p>');
+
+            $.post((typeof ajaxurl !== 'undefined' ? ajaxurl : ''), buildCertificatesPreviewPayload())
+                .done(function (res) {
+                    if (res && res.success && res.data) {
+                        $result.html(res.data.html || '');
+                        certificatesPreviewLoaded = true;
+                        initCertificatesPreviewSelectionBindings();
+                    } else {
+                        $result.html('<p class="description">خطا در دریافت پیش نمایش.</p>');
+                    }
+                })
+                .fail(function () {
+                    $result.html('<p class="description">خطا در ارتباط با سرور.</p>');
+                })
+                .always(function () {
+                    $btn.prop('disabled', false);
+                });
+        });
+    }
+
+    function initUsersPreviewSelectionBindings() {
+        var $checks = $('.sc-users-preview-member-check');
+        if (!$checks.length) {
+            return;
+        }
+
+        $checks.each(function () {
+            var id = parseInt($(this).attr('data-member-id'), 10);
+            var idx = getExcludedMemberIndexById(id);
+            $(this).prop('checked', idx === -1);
+        });
+
+        var checkedCount = $('.sc-users-preview-member-check:checked').length;
+        $('#sc-users-preview-select-all').prop('checked', checkedCount === $checks.length);
+
+        $(document).off('change.scUsersPreviewMember').on('change.scUsersPreviewMember', '.sc-users-preview-member-check', function () {
+            var id = parseInt($(this).attr('data-member-id'), 10);
+            var label = $(this).attr('data-member-label') || ('کاربر #' + id);
+            if (!id) {
+                return;
+            }
+            if ($(this).is(':checked')) {
+                removeExcludedMember(id);
+            } else {
+                addExcludedMember(id, label);
+            }
+            renderExcludedMembers();
+
+            var allCount = $('.sc-users-preview-member-check').length;
+            var selectedCount = $('.sc-users-preview-member-check:checked').length;
+            $('#sc-users-preview-select-all').prop('checked', allCount > 0 && selectedCount === allCount);
+        });
+
+        $(document).off('change.scUsersPreviewSelectAll').on('change.scUsersPreviewSelectAll', '#sc-users-preview-select-all', function () {
+            var shouldCheck = $(this).is(':checked');
+            $('.sc-users-preview-member-check').prop('checked', shouldCheck).trigger('change');
+        });
+    }
+
+    function buildUsersPreviewPayload() {
+        var data = $form.serializeArray();
+        data.push({ name: 'action', value: 'sc_users_export_preview_members' });
+        data.push({ name: 'nonce', value: $('#sc-users-preview-nonce').val() || '' });
+        return data;
+    }
+
+    function initUsersPreview() {
+        var $btn = $('#sc-users-preview-btn');
+        var $result = $('#sc-users-preview-result');
+        if (!$btn.length || !$result.length) {
+            return;
+        }
+
+        $btn.on('click', function () {
+            $btn.prop('disabled', true);
+            $result.html('<p class="description">در حال دریافت پیش نمایش...</p>');
+
+            $.post((typeof ajaxurl !== 'undefined' ? ajaxurl : ''), buildUsersPreviewPayload())
+                .done(function (res) {
+                    if (res && res.success && res.data) {
+                        $result.html(res.data.html || '');
+                        usersPreviewLoaded = true;
+                        initUsersPreviewSelectionBindings();
+                    } else {
+                        $result.html('<p class="description">خطا در دریافت پیش نمایش.</p>');
+                    }
+                })
+                .fail(function () {
+                    $result.html('<p class="description">خطا در ارتباط با سرور.</p>');
+                })
+                .always(function () {
+                    $btn.prop('disabled', false);
+                });
         });
     }
 
@@ -320,6 +501,10 @@ jQuery(function ($) {
     }
 
         $('#sc-target-type').on('change', toggleFilterBlocks);
+        $('#sc-target-type, #sc-member-type, #sc-course-ids, #sc-event-ids, #sc-team-names, #sc-level-names').on('change', function () {
+            usersPreviewLoaded = false;
+            certificatesPreviewLoaded = false;
+        });
         $('input[name="fields[]"]').on('change', function () {
             enforceFormatRules();
             updatePreview();
@@ -364,11 +549,19 @@ jQuery(function ($) {
             alert('حداقل یک کاربر انتخاب کنید.');
             return false;
         }
+        if ($('#sc-cert-preview-btn').length && !certificatesPreviewLoaded) {
+            return confirm('پیش نمایش کاربران هنوز اجرا نشده است. ادامه می‌دهید؟');
+        }
+        if ($('#sc-users-preview-btn').length && !usersPreviewLoaded) {
+            return confirm('پیش نمایش کاربران هنوز اجرا نشده است. ادامه می‌دهید؟');
+        }
         return true;
     });
 
         bindSearchableDropdown();
         bindExcludeDropdown();
+        initCertificatesPreview();
+        initUsersPreview();
         toggleFilterBlocks();
         renderSelectedMembers();
         renderExcludedMembers();

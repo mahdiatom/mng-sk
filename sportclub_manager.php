@@ -326,6 +326,22 @@ function sc_add_profile_completed_column() {
 }
 
 /**
+ * Add member_extra_fields column to members table if not exists
+ */
+add_action('admin_init', 'sc_add_member_extra_fields_column');
+function sc_add_member_extra_fields_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'member_extra_fields'
+    ));
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `member_extra_fields` longtext DEFAULT NULL AFTER `additional_info`");
+    }
+}
+
+/**
  * Add identity_verified column to members table if not exists
  */
 add_action('admin_init', 'sc_add_identity_verified_column');
@@ -653,43 +669,49 @@ function sc_check_profile_completed($member_id) {
         return false;
     }
     
-    // فیلدهایی که باید بررسی شوند (به جز is_active و profile_completed و created_at و updated_at)
-    $fields_to_check = [
-        'first_name',
-        'last_name',
-        'father_name',
-        'national_id',
-        'player_phone',
-        'father_phone',
-        'mother_phone',
-        'landline_phone',
-        'birth_date_shamsi',
-        'birth_date_gregorian',
-        'personal_photo',
-        'id_card_photo',
-        'sport_insurance_photo',
-        'medical_condition',
-        'sports_history',
-        'health_verified',
-        'info_verified',
-        'additional_info',
-        
-    ];
-    
-    // بررسی تمام فیلدها
-    foreach ($fields_to_check as $field) {
-        $value = $member->$field;
-        
-        // برای فیلدهای boolean (health_verified, info_verified) باید true باشند
-        if ($field == 'health_verified' || $field == 'info_verified') {
-            if ($value != 1 && $value !== '1' && $value !== true) {
+    $builtin_fields = function_exists('sc_get_player_info_builtin_fields') ? sc_get_player_info_builtin_fields() : [];
+    $rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
+    foreach ($rules as $field_key => $rule) {
+        if (empty($rule['visible']) || empty($rule['required'])) {
+            continue;
+        }
+        if (!isset($builtin_fields[$field_key])) {
+            continue;
+        }
+        $value = isset($member->{$field_key}) ? $member->{$field_key} : null;
+        if (in_array($field_key, ['health_verified', 'info_verified'], true)) {
+            if ((int) $value !== 1) {
                 return false;
             }
+            continue;
         }
-        // برای فیلدهای متنی و دیگر فیلدها باید خالی نباشند
-        else {
-            // بررسی اینکه آیا فیلد خالی است یا نه
-            if (empty($value) || trim($value) === '') {
+        if (empty($value) || (is_string($value) && trim($value) === '')) {
+            return false;
+        }
+    }
+
+    $custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
+    $extra_values = !empty($member->member_extra_fields) ? json_decode((string) $member->member_extra_fields, true) : [];
+    if (!is_array($extra_values)) {
+        $extra_values = [];
+    }
+    foreach ($custom_fields as $field) {
+        if (empty($field['visible']) || empty($field['required']) || empty($field['key'])) {
+            continue;
+        }
+        $key = $field['key'];
+        $value = $extra_values[$key] ?? null;
+        $type = $field['type'] ?? 'text';
+        if ($type === 'multiselect') {
+            if (!is_array($value) || empty($value)) {
+                return false;
+            }
+        } elseif ($type === 'image') {
+            if (!is_string($value) || trim($value) === '') {
+                return false;
+            }
+        } else {
+            if (!is_string($value) || trim($value) === '') {
                 return false;
             }
         }

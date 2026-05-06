@@ -3878,6 +3878,134 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
 /**
  * Handle form submission
  */
+function sc_player_info_get_posted_value($post, $key) {
+    if (!isset($post[$key])) {
+        return '';
+    }
+    $value = is_string($post[$key]) ? trim(wp_unslash($post[$key])) : '';
+    return $value;
+}
+
+function sc_player_info_validate_required_fields($post, $files, $existing_member = null) {
+    $errors = [];
+    $rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
+    $builtin = function_exists('sc_get_player_info_builtin_fields') ? sc_get_player_info_builtin_fields() : [];
+    foreach ($rules as $field_key => $rule) {
+        if (empty($rule['visible']) || empty($rule['required'])) {
+            continue;
+        }
+        $label = isset($builtin[$field_key]['label']) ? $builtin[$field_key]['label'] : $field_key;
+        if (in_array($field_key, ['personal_photo', 'id_card_photo', 'sport_insurance_photo'], true)) {
+            $url_field = $field_key . '_url';
+            $has_url = !empty($post[$url_field]);
+            $has_existing = $existing_member && !empty($existing_member->{$field_key});
+            $has_new_file = isset($files[$field_key]) && isset($files[$field_key]['error']) && (int) $files[$field_key]['error'] === UPLOAD_ERR_OK;
+            if (!$has_url && !$has_existing && !$has_new_file) {
+                $errors[] = sprintf('فیلد «%s» اجباری است.', $label);
+            }
+            continue;
+        }
+        $val = sc_player_info_get_posted_value($post, $field_key);
+        if ($val === '') {
+            $errors[] = sprintf('فیلد «%s» اجباری است.', $label);
+        }
+    }
+
+    $custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
+    $existing_extra = ($existing_member && !empty($existing_member->member_extra_fields)) ? json_decode((string) $existing_member->member_extra_fields, true) : [];
+    if (!is_array($existing_extra)) {
+        $existing_extra = [];
+    }
+    foreach ($custom_fields as $field) {
+        if (empty($field['visible']) || empty($field['required']) || empty($field['key'])) {
+            continue;
+        }
+        $key = $field['key'];
+        $label = $field['label'] ?? $key;
+        $type = $field['type'] ?? 'text';
+        if ($type === 'multiselect') {
+            $vals = isset($post['player_custom_fields_multi'][$key]) ? (array) $post['player_custom_fields_multi'][$key] : [];
+            $vals = array_values(array_filter(array_map('sanitize_text_field', $vals)));
+            if (empty($vals) && empty($existing_extra[$key])) {
+                $errors[] = sprintf('فیلد «%s» اجباری است.', $label);
+            }
+        } elseif ($type === 'image') {
+            $posted_url = isset($post['player_custom_fields_images'][$key]) ? esc_url_raw(wp_unslash($post['player_custom_fields_images'][$key])) : '';
+            $has_existing = !empty($existing_extra[$key]);
+            $has_new_file = isset($files['player_custom_fields_files']['error'][$key]) && (int) $files['player_custom_fields_files']['error'][$key] === UPLOAD_ERR_OK;
+            if ($posted_url === '' && !$has_existing && !$has_new_file) {
+                $errors[] = sprintf('فیلد «%s» اجباری است.', $label);
+            }
+        } else {
+            $val = isset($post['player_custom_fields'][$key]) ? trim(wp_unslash($post['player_custom_fields'][$key])) : '';
+            if ($val === '' && empty($existing_extra[$key])) {
+                $errors[] = sprintf('فیلد «%s» اجباری است.', $label);
+            }
+        }
+    }
+
+    return $errors;
+}
+
+function sc_player_info_extract_custom_values($post, $files, $user_id, $existing_member = null) {
+    $custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
+    $existing_values = ($existing_member && !empty($existing_member->member_extra_fields)) ? json_decode((string) $existing_member->member_extra_fields, true) : [];
+    if (!is_array($existing_values)) {
+        $existing_values = [];
+    }
+    $values = $existing_values;
+    foreach ($custom_fields as $field) {
+        if (empty($field['key']) || empty($field['visible'])) {
+            continue;
+        }
+        $key = $field['key'];
+        $type = $field['type'] ?? 'text';
+        if ($type === 'multiselect') {
+            $vals = isset($post['player_custom_fields_multi'][$key]) ? (array) $post['player_custom_fields_multi'][$key] : [];
+            $vals = array_values(array_filter(array_map('sanitize_text_field', $vals)));
+            $values[$key] = $vals;
+        } elseif ($type === 'image') {
+            $url = isset($post['player_custom_fields_images'][$key]) ? esc_url_raw(wp_unslash($post['player_custom_fields_images'][$key])) : '';
+            if ($url !== '') {
+                $values[$key] = $url;
+            } elseif (!empty($values[$key])) {
+                $values[$key] = $values[$key];
+            } else {
+                $values[$key] = '';
+            }
+            if (isset($files['player_custom_fields_files']['error'][$key]) && (int) $files['player_custom_fields_files']['error'][$key] === UPLOAD_ERR_OK) {
+                $single_file = [
+                    'name' => $files['player_custom_fields_files']['name'][$key],
+                    'type' => $files['player_custom_fields_files']['type'][$key],
+                    'tmp_name' => $files['player_custom_fields_files']['tmp_name'][$key],
+                    'error' => $files['player_custom_fields_files']['error'][$key],
+                    'size' => $files['player_custom_fields_files']['size'][$key],
+                ];
+                $uploaded = sc_handle_secure_file_upload($user_id, [$key => $single_file], true);
+                if (!empty($uploaded[$key])) {
+                    $values[$key] = $uploaded[$key];
+                }
+            }
+        } else {
+            $values[$key] = isset($post['player_custom_fields'][$key]) ? sanitize_text_field(wp_unslash($post['player_custom_fields'][$key])) : '';
+        }
+    }
+
+    return wp_json_encode($values, JSON_UNESCAPED_UNICODE);
+}
+
+function sc_player_info_apply_hidden_field_policy(&$data, $existing_member = null) {
+    $rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
+    foreach ($rules as $field_key => $rule) {
+        if (!empty($rule['visible'])) {
+            continue;
+        }
+        if (array_key_exists($field_key, $data)) {
+            $data[$field_key] = $existing_member && isset($existing_member->{$field_key}) ? $existing_member->{$field_key} : null;
+        }
+    }
+}
+
 add_action('template_redirect', 'sc_handle_documents_submission');
 function sc_handle_documents_submission() {
     if (!is_user_logged_in() || !isset($_POST['sc_submit_documents'])) {
@@ -3897,9 +4025,15 @@ function sc_handle_documents_submission() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
     
-    // Validation
-    if (empty($_POST['first_name']) || empty($_POST['last_name']) || empty($_POST['national_id'])) {
-        wc_add_notice('لطفاً فیلدهای اجباری را پر کنید.', 'error');
+    $existing_for_validation = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE user_id = %d LIMIT 1",
+        $current_user_id
+    ));
+    $required_errors = sc_player_info_validate_required_fields($_POST, $_FILES, $existing_for_validation);
+    if (!empty($required_errors)) {
+        foreach ($required_errors as $err) {
+            wc_add_notice($err, 'error');
+        }
         return;
     }
     
@@ -3953,6 +4087,8 @@ function sc_handle_documents_submission() {
     $data['info_verified'] = isset($_POST['info_verified']) && !empty($_POST['info_verified']) ? 1 : 0;
     // هر تغییری توسط بازیکن، وضعیت احراز را به انتظار بررسی برمی‌گرداند
     $data['identity_verified'] = 0;
+    $data['member_extra_fields'] = sc_player_info_extract_custom_values($_POST, $_FILES, $current_user_id, $existing_for_validation);
+    sc_player_info_apply_hidden_field_policy($data, $existing_for_validation);
    
     // بررسی وجود اطلاعات قبلی
     // مهم: باید رکورد موجود را پیدا کنیم تا از ایجاد رکورد تکراری جلوگیری کنیم
@@ -4204,7 +4340,7 @@ function sc_handle_documents_submission() {
 /**
  * Handle secure file upload
  */
-function sc_handle_secure_file_upload($user_id) {
+function sc_handle_secure_file_upload($user_id, $files_data = null, $is_custom_field = false) {
     if (!function_exists('wp_handle_upload')) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
     }
@@ -4213,37 +4349,51 @@ function sc_handle_secure_file_upload($user_id) {
     $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     $max_file_size = 5 * 1024 * 1024; // 5MB
     
-    $file_fields = [
-        'personal_photo' => 'عکس پرسنلی',
-        'id_card_photo' => 'عکس کارت ملی',
-        'sport_insurance_photo' => 'عکس بیمه ورزشی'
-    ];
+    $file_fields = [];
+    if ($files_data === null) {
+        $file_fields = [
+            'personal_photo' => 'عکس پرسنلی',
+            'id_card_photo' => 'عکس کارت ملی',
+            'sport_insurance_photo' => 'عکس بیمه ورزشی'
+        ];
+        $files_data = $_FILES;
+    } else {
+        foreach ($files_data as $field_name => $file_meta) {
+            $file_fields[$field_name] = $is_custom_field ? 'فیلد تصویری سفارشی' : $field_name;
+        }
+    }
     
     foreach ($file_fields as $field_name => $field_label) {
-        if (!isset($_FILES[$field_name]) || $_FILES[$field_name]['error'] !== UPLOAD_ERR_OK) {
+        if (!isset($files_data[$field_name]) || $files_data[$field_name]['error'] !== UPLOAD_ERR_OK) {
             continue;
         }
         
-        $file = $_FILES[$field_name];
+        $file = $files_data[$field_name];
         
         // بررسی نوع فایل
         $mime_type = $file['type'];
         
         if (!in_array($mime_type, $allowed_types)) {
-            wc_add_notice("نوع فایل $field_label معتبر نیست. فقط تصاویر (JPG, PNG, GIF, WEBP) مجاز است.", 'error');
+            if (!$is_custom_field) {
+                wc_add_notice("نوع فایل $field_label معتبر نیست. فقط تصاویر (JPG, PNG, GIF, WEBP) مجاز است.", 'error');
+            }
             continue;
         }
         
         // بررسی اندازه فایل
         if ($file['size'] > $max_file_size) {
-            wc_add_notice("حجم فایل $field_label بیش از 5 مگابایت است.", 'error');
+            if (!$is_custom_field) {
+                wc_add_notice("حجم فایل $field_label بیش از 5 مگابایت است.", 'error');
+            }
             continue;
         }
         
         // بررسی محتوای فایل (امنیت)
         $image_info = @getimagesize($file['tmp_name']);
         if ($image_info === false) {
-            wc_add_notice("فایل $field_label یک تصویر معتبر نیست.", 'error');
+            if (!$is_custom_field) {
+                wc_add_notice("فایل $field_label یک تصویر معتبر نیست.", 'error');
+            }
             continue;
         }
         
@@ -4269,7 +4419,9 @@ function sc_handle_secure_file_upload($user_id) {
         if ($movefile && !isset($movefile['error'])) {
             $uploaded_files[$field_name] = $movefile['url'];
         } else {
-            wc_add_notice("خطا در آپلود $field_label: " . (isset($movefile['error']) ? $movefile['error'] : 'خطای ناشناخته'), 'error');
+            if (!$is_custom_field) {
+                wc_add_notice("خطا در آپلود $field_label: " . (isset($movefile['error']) ? $movefile['error'] : 'خطای ناشناخته'), 'error');
+            }
         }
     }
     
@@ -4342,8 +4494,10 @@ function sc_ajax_submit_documents() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
 
-    if (empty($_POST['first_name']) || empty($_POST['last_name']) || empty($_POST['national_id'])) {
-        wp_send_json_error(['message' => 'لطفاً فیلدهای اجباری (نام، نام خانوادگی، کد ملی) را پر کنید.']);
+    $existing_for_validation = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE user_id = %d LIMIT 1", $current_user_id));
+    $required_errors = sc_player_info_validate_required_fields($_POST, $_FILES, $existing_for_validation);
+    if (!empty($required_errors)) {
+        wp_send_json_error(['message' => implode(' | ', $required_errors)]);
     }
 
     $data = [
@@ -4382,6 +4536,8 @@ function sc_ajax_submit_documents() {
     $data['health_verified'] = (isset($_POST['health_verified']) && $_POST['health_verified']) ? 1 : 0;
     $data['info_verified'] = (isset($_POST['info_verified']) && $_POST['info_verified']) ? 1 : 0;
     $data['identity_verified'] = 0;
+    $data['member_extra_fields'] = sc_player_info_extract_custom_values($_POST, $_FILES, $current_user_id, $existing_for_validation);
+    sc_player_info_apply_hidden_field_policy($data, $existing_for_validation);
     
 
     $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE user_id = %d LIMIT 1", $current_user_id));

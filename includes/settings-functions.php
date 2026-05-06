@@ -372,6 +372,144 @@ function sc_can_show_players_wallet() {
 function sc_is_player_verification_required() {
     return (int) sc_get_setting('player_verification_required', '0') === 1;
 }
+
+/**
+ * Player info: section labels used in settings and forms.
+ */
+function sc_get_player_info_sections() {
+    return [
+        'personal' => 'اطلاعات شخصی',
+        'contact' => 'اطلاعات تماس',
+        'documents' => 'مدارک و تصاویر',
+        'additional' => 'اطلاعات تکمیلی',
+    ];
+}
+
+/**
+ * Player info: builtin fields (non-custom).
+ */
+function sc_get_player_info_builtin_fields() {
+    return [
+        'first_name' => ['label' => 'نام', 'section' => 'personal', 'type' => 'text'],
+        'last_name' => ['label' => 'نام خانوادگی', 'section' => 'personal', 'type' => 'text'],
+        'father_name' => ['label' => 'نام پدر', 'section' => 'personal', 'type' => 'text'],
+        'national_id' => ['label' => 'کد ملی', 'section' => 'personal', 'type' => 'text', 'always_visible' => 1, 'always_required' => 1],
+        'birth_date_shamsi' => ['label' => 'تاریخ تولد (شمسی)', 'section' => 'personal', 'type' => 'text'],
+        'birth_date_gregorian' => ['label' => 'تاریخ تولد (میلادی)', 'section' => 'personal', 'type' => 'text'],
+        'insurance_expiry_date_shamsi' => ['label' => 'تاریخ انقضا بیمه (شمسی)', 'section' => 'personal', 'type' => 'text'],
+        'player_phone' => ['label' => 'شماره موبایل بازیکن', 'section' => 'contact', 'type' => 'text', 'always_visible' => 1, 'always_required' => 1],
+        'father_phone' => ['label' => 'شماره موبایل پدر', 'section' => 'contact', 'type' => 'text'],
+        'mother_phone' => ['label' => 'شماره موبایل مادر', 'section' => 'contact', 'type' => 'text'],
+        'landline_phone' => ['label' => 'تلفن ثابت', 'section' => 'contact', 'type' => 'text'],
+        'province' => ['label' => 'استان', 'section' => 'contact', 'type' => 'text'],
+        'city' => ['label' => 'شهر', 'section' => 'contact', 'type' => 'text'],
+        'gender' => ['label' => 'جنسیت', 'section' => 'contact', 'type' => 'text'],
+        'personal_photo' => ['label' => 'عکس پرسنلی', 'section' => 'documents', 'type' => 'image'],
+        'id_card_photo' => ['label' => 'عکس کارت ملی', 'section' => 'documents', 'type' => 'image'],
+        'sport_insurance_photo' => ['label' => 'عکس بیمه ورزشی', 'section' => 'documents', 'type' => 'image'],
+        'medical_condition' => ['label' => 'مشکلات پزشکی', 'section' => 'additional', 'type' => 'text'],
+        'sports_history' => ['label' => 'سوابق ورزشی', 'section' => 'additional', 'type' => 'text'],
+        'additional_info' => ['label' => 'توضیحات اضافی', 'section' => 'additional', 'type' => 'text'],
+        'health_verified' => ['label' => 'تایید سلامت', 'section' => 'additional', 'type' => 'checkbox'],
+        'info_verified' => ['label' => 'تایید صحت اطلاعات', 'section' => 'additional', 'type' => 'checkbox'],
+    ];
+}
+
+/**
+ * Player info: visibility/required rules for builtin fields.
+ */
+function sc_get_player_info_field_rules() {
+    $builtin = sc_get_player_info_builtin_fields();
+    $raw = sc_get_setting('player_info_field_rules', '');
+    $saved = json_decode((string) $raw, true);
+    if (!is_array($saved)) {
+        $saved = [];
+    }
+
+    $rules = [];
+    foreach ($builtin as $key => $meta) {
+        $visible = isset($saved[$key]['visible']) ? (int) $saved[$key]['visible'] : 1;
+        $required = isset($saved[$key]['required']) ? (int) $saved[$key]['required'] : 0;
+        if (!empty($meta['always_visible'])) {
+            $visible = 1;
+        }
+        if (!empty($meta['always_required'])) {
+            $required = 1;
+        }
+        $rules[$key] = [
+            'visible' => $visible ? 1 : 0,
+            'required' => $required ? 1 : 0,
+        ];
+    }
+
+    return $rules;
+}
+
+/**
+ * Validate and normalize custom player info fields.
+ */
+function sc_sanitize_player_info_custom_fields_input($raw_fields) {
+    $normalized = [];
+    if (!is_array($raw_fields)) {
+        return $normalized;
+    }
+
+    foreach ($raw_fields as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $label = isset($row['label']) ? sanitize_text_field(wp_unslash($row['label'])) : '';
+        $field_key = isset($row['key']) ? sanitize_key(wp_unslash($row['key'])) : '';
+        $type = isset($row['type']) ? sanitize_key(wp_unslash($row['type'])) : 'text';
+        $section = isset($row['section']) ? sanitize_key(wp_unslash($row['section'])) : 'additional';
+        $required = !empty($row['required']) ? 1 : 0;
+        $visible = isset($row['visible']) ? (int) !empty($row['visible']) : 0;
+        $options_raw = isset($row['options']) ? wp_unslash($row['options']) : '';
+
+        if ($label === '') {
+            continue;
+        }
+        if ($field_key === '') {
+            $field_key = sanitize_key('field_' . substr(md5($label . wp_rand()), 0, 10));
+        }
+        if (!in_array($type, ['text', 'image', 'multiselect'], true)) {
+            $type = 'text';
+        }
+        if (!in_array($section, ['personal', 'contact', 'documents', 'additional'], true)) {
+            $section = 'additional';
+        }
+
+        $options = [];
+        if ($type === 'multiselect') {
+            $parts = array_filter(array_map('trim', explode(',', (string) $options_raw)));
+            foreach ($parts as $part) {
+                $options[] = sanitize_text_field($part);
+            }
+            $options = array_values(array_unique($options));
+        }
+
+        $normalized[] = [
+            'key' => $field_key,
+            'label' => $label,
+            'type' => $type,
+            'section' => $section,
+            'required' => $required,
+            'visible' => $visible,
+            'options' => $options,
+        ];
+    }
+
+    return $normalized;
+}
+
+/**
+ * Get custom player info fields from settings.
+ */
+function sc_get_player_info_custom_fields() {
+    $raw = sc_get_setting('player_info_custom_fields', '');
+    $saved = json_decode((string) $raw, true);
+    return sc_sanitize_player_info_custom_fields_input($saved);
+}
 function debt_user($id){
      global $wpdb;
     // محاسبه بدهکاری (صورت حساب‌های pending و under_review)

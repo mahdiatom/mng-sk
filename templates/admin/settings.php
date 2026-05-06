@@ -258,6 +258,29 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     elseif ($current_tab === 'player_info') {
         $player_verification_required = isset($_POST['player_verification_required']) ? 1 : 0;
         sc_update_setting('player_verification_required', $player_verification_required, 'player_info');
+        $builtin_fields = function_exists('sc_get_player_info_builtin_fields') ? sc_get_player_info_builtin_fields() : [];
+        $incoming_rules = isset($_POST['player_field_rules']) && is_array($_POST['player_field_rules']) ? $_POST['player_field_rules'] : [];
+        $saved_rules = [];
+        foreach ($builtin_fields as $field_key => $meta) {
+            $visible = isset($incoming_rules[$field_key]['visible']) ? 1 : 0;
+            $required = isset($incoming_rules[$field_key]['required']) ? 1 : 0;
+            if (!empty($meta['always_visible'])) {
+                $visible = 1;
+            }
+            if (!empty($meta['always_required'])) {
+                $required = 1;
+            }
+            $saved_rules[$field_key] = [
+                'visible' => $visible,
+                'required' => $required,
+            ];
+        }
+        sc_update_setting('player_info_field_rules', wp_json_encode($saved_rules, JSON_UNESCAPED_UNICODE), 'player_info');
+
+        $custom_fields = function_exists('sc_sanitize_player_info_custom_fields_input') && isset($_POST['player_custom_fields'])
+            ? sc_sanitize_player_info_custom_fields_input($_POST['player_custom_fields'])
+            : [];
+        sc_update_setting('player_info_custom_fields', wp_json_encode($custom_fields, JSON_UNESCAPED_UNICODE), 'player_info');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب اطلاعات بازیکن ذخیره شد', null, ['tab' => 'player_info']);
         }
@@ -1881,9 +1904,24 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
         <?php endif; 
         if ($current_tab === 'player_info') :
             $player_verification_required = (int) sc_get_setting('player_verification_required', '0');
+            $player_sections = function_exists('sc_get_player_info_sections') ? sc_get_player_info_sections() : [];
+            $player_builtin_fields = function_exists('sc_get_player_info_builtin_fields') ? sc_get_player_info_builtin_fields() : [];
+            $player_field_rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
+            $player_custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
         ?>
+            <style>
+                .sc-player-info-settings-wrap{max-width:1100px}
+                .sc-player-info-card{background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:18px;margin:14px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+                .sc-player-info-card h2{margin:0 0 8px}
+                .sc-player-info-card h3{margin:16px 0 10px}
+                .sc-player-info-table{border-radius:8px;overflow:hidden}
+                .sc-player-custom-field-item{transition:all .2s ease}
+                .sc-player-custom-field-item:hover{box-shadow:0 2px 10px rgba(0,0,0,.06)}
+            </style>
+            <div class="sc-player-info-settings-wrap">
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                <div class="sc-player-info-card">
                 <table class="form-table">
                     <tr>
                         <th scope="row">اجبار احراز هویت بازیکن</th>
@@ -1896,10 +1934,161 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                         </td>
                     </tr>
                 </table>
+                </div>
+
+                <div class="sc-player-info-card">
+                <h2 style="margin-top: 24px;">مدیریت فیلدهای پیش‌فرض اطلاعات بازیکن</h2>
+                <p class="description">فقط «کد ملی» و «شماره موبایل بازیکن» همیشه نمایش داده می‌شوند و اجباری هستند.</p>
+                <?php foreach ($player_sections as $section_key => $section_label) : ?>
+                    <h3 style="margin-top: 18px;"><?php echo esc_html($section_label); ?></h3>
+                    <table class="widefat striped sc-player-info-table" style="max-width: 980px;">
+                        <thead>
+                            <tr>
+                                <th>فیلد</th>
+                                <th style="width: 160px;">نمایش/مخفی</th>
+                                <th style="width: 160px;">اجباری/اختیاری</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($player_builtin_fields as $field_key => $field_meta) : ?>
+                                <?php if (($field_meta['section'] ?? '') !== $section_key) { continue; } ?>
+                                <?php
+                                    $is_always_visible = !empty($field_meta['always_visible']);
+                                    $is_always_required = !empty($field_meta['always_required']);
+                                    $is_visible = isset($player_field_rules[$field_key]['visible']) ? (int) $player_field_rules[$field_key]['visible'] : 1;
+                                    $is_required = isset($player_field_rules[$field_key]['required']) ? (int) $player_field_rules[$field_key]['required'] : 0;
+                                    if ($is_always_visible) {
+                                        $is_visible = 1;
+                                    }
+                                    if ($is_always_required) {
+                                        $is_required = 1;
+                                    }
+                                ?>
+                                <tr>
+                                    <td>
+                                        <?php echo esc_html($field_meta['label']); ?>
+                                        <?php if ($is_always_visible || $is_always_required) : ?>
+                                            <small style="display:block;color:#666;">(ثابت)</small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <label>
+                                            <input type="checkbox"
+                                                   name="player_field_rules[<?php echo esc_attr($field_key); ?>][visible]"
+                                                   value="1"
+                                                   <?php checked($is_visible, 1); ?>
+                                                   <?php disabled($is_always_visible, true); ?>>
+                                            نمایش
+                                        </label>
+                                        <?php if ($is_always_visible) : ?>
+                                            <input type="hidden" name="player_field_rules[<?php echo esc_attr($field_key); ?>][visible]" value="1">
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <label>
+                                            <input type="checkbox"
+                                                   name="player_field_rules[<?php echo esc_attr($field_key); ?>][required]"
+                                                   value="1"
+                                                   <?php checked($is_required, 1); ?>
+                                                   <?php disabled($is_always_required, true); ?>>
+                                            اجباری
+                                        </label>
+                                        <?php if ($is_always_required) : ?>
+                                            <input type="hidden" name="player_field_rules[<?php echo esc_attr($field_key); ?>][required]" value="1">
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endforeach; ?>
+                </div>
+
+                <div class="sc-player-info-card">
+                <h2 style="margin-top: 24px;">فیلدهای سفارشی اطلاعات بازیکن</h2>
+                <p class="description">نوع‌های مجاز: متن، عکس و چندانتخابی</p>
+                <div id="sc-player-custom-fields-container">
+                    <?php foreach ($player_custom_fields as $idx => $custom_field) : ?>
+                        <div class="sc-player-custom-field-item" style="margin:0 0 12px;padding:12px;border:1px solid #dcdcde;border-radius:6px;background:#fff;">
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                                <input type="text" name="player_custom_fields[<?php echo (int) $idx; ?>][label]" value="<?php echo esc_attr($custom_field['label'] ?? ''); ?>" placeholder="عنوان فیلد" style="min-width:180px;">
+                                <input type="text" name="player_custom_fields[<?php echo (int) $idx; ?>][key]" value="<?php echo esc_attr($custom_field['key'] ?? ''); ?>" placeholder="کلید انگلیسی (اختیاری)" style="min-width:180px;" dir="ltr">
+                                <select name="player_custom_fields[<?php echo (int) $idx; ?>][section]">
+                                    <?php foreach ($player_sections as $sec_key => $sec_label) : ?>
+                                        <option value="<?php echo esc_attr($sec_key); ?>" <?php selected(($custom_field['section'] ?? 'additional'), $sec_key); ?>><?php echo esc_html($sec_label); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <select name="player_custom_fields[<?php echo (int) $idx; ?>][type]" class="sc-player-custom-type">
+                                    <option value="text" <?php selected(($custom_field['type'] ?? 'text'), 'text'); ?>>متن</option>
+                                    <option value="image" <?php selected(($custom_field['type'] ?? ''), 'image'); ?>>عکس</option>
+                                    <option value="multiselect" <?php selected(($custom_field['type'] ?? ''), 'multiselect'); ?>>چند انتخابی</option>
+                                </select>
+                                <input type="text" name="player_custom_fields[<?php echo (int) $idx; ?>][options]" value="<?php echo esc_attr(!empty($custom_field['options']) && is_array($custom_field['options']) ? implode(', ', $custom_field['options']) : ''); ?>" placeholder="گزینه‌ها (با , جدا شود)" class="sc-player-custom-options" style="<?php echo (($custom_field['type'] ?? '') === 'multiselect') ? '' : 'display:none;'; ?>min-width:220px;">
+                                <label><input type="checkbox" name="player_custom_fields[<?php echo (int) $idx; ?>][required]" value="1" <?php checked(!empty($custom_field['required'])); ?>> اجباری</label>
+                                <label><input type="checkbox" name="player_custom_fields[<?php echo (int) $idx; ?>][visible]" value="1" <?php checked(!isset($custom_field['visible']) || !empty($custom_field['visible'])); ?>> نمایش</label>
+                                <button type="button" class="button sc-player-custom-remove" style="color:#b32d2e;">حذف</button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <p>
+                    <button type="button" class="button" id="sc-add-player-custom-field-btn">افزودن فیلد سفارشی</button>
+                </p>
+                </div>
                 <p class="submit">
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات اطلاعات بازیکن">
                 </p>
             </form>
+            </div>
+
+            <script>
+            jQuery(function($) {
+                var sections = <?php echo wp_json_encode($player_sections); ?>;
+                var customIndex = <?php echo (int) count($player_custom_fields); ?>;
+
+                function sectionOptions() {
+                    var html = '';
+                    $.each(sections, function(key, label) {
+                        html += '<option value="' + key + '">' + label + '</option>';
+                    });
+                    return html;
+                }
+
+                $(document).on('change', '.sc-player-custom-type', function() {
+                    var $row = $(this).closest('.sc-player-custom-field-item');
+                    if ($(this).val() === 'multiselect') {
+                        $row.find('.sc-player-custom-options').show();
+                    } else {
+                        $row.find('.sc-player-custom-options').hide().val('');
+                    }
+                });
+
+                $(document).on('click', '#sc-add-player-custom-field-btn', function() {
+                    var idx = customIndex++;
+                    var html = '' +
+                        '<div class="sc-player-custom-field-item" style="margin:0 0 12px;padding:12px;border:1px solid #dcdcde;border-radius:6px;background:#fff;">' +
+                        '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">' +
+                        '<input type="text" name="player_custom_fields[' + idx + '][label]" placeholder="عنوان فیلد" style="min-width:180px;">' +
+                        '<input type="text" name="player_custom_fields[' + idx + '][key]" placeholder="کلید انگلیسی (اختیاری)" style="min-width:180px;" dir="ltr">' +
+                        '<select name="player_custom_fields[' + idx + '][section]">' + sectionOptions() + '</select>' +
+                        '<select name="player_custom_fields[' + idx + '][type]" class="sc-player-custom-type">' +
+                        '<option value="text">متن</option>' +
+                        '<option value="image">عکس</option>' +
+                        '<option value="multiselect">چند انتخابی</option>' +
+                        '</select>' +
+                        '<input type="text" name="player_custom_fields[' + idx + '][options]" placeholder="گزینه‌ها (با , جدا شود)" class="sc-player-custom-options" style="display:none;min-width:220px;">' +
+                        '<label><input type="checkbox" name="player_custom_fields[' + idx + '][required]" value="1"> اجباری</label>' +
+                        '<label><input type="checkbox" name="player_custom_fields[' + idx + '][visible]" value="1" checked> نمایش</label>' +
+                        '<button type="button" class="button sc-player-custom-remove" style="color:#b32d2e;">حذف</button>' +
+                        '</div></div>';
+                    $('#sc-player-custom-fields-container').append(html);
+                });
+
+                $(document).on('click', '.sc-player-custom-remove', function() {
+                    $(this).closest('.sc-player-custom-field-item').remove();
+                });
+            });
+            </script>
 
         <?php endif; 
         if ($current_tab === 'coach_salary') : 

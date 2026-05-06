@@ -175,6 +175,18 @@ $templates = sc_certificates_get_saved_templates();
                 </div>
                 <div id="sc-excluded-member-hidden-inputs"></div>
             </div>
+
+            <p class="submit">
+                <input type="hidden" id="sc-cert-preview-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_certificates_preview_members')); ?>">
+                <button type="button" class="button button-secondary" id="sc-cert-preview-btn">پیش نمایش کاربران فیلتر شده</button>
+            </p>
+        </div>
+
+        <div class="sc-users-export-card">
+            <h2>۳) پیش نمایش کاربران</h2>
+            <div id="sc-cert-preview-result" class="sc-bulk-preview-result">
+                <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش کاربران فیلتر شده» کلیک کنید.</p>
+            </div>
         </div>
 
         <p class="submit">

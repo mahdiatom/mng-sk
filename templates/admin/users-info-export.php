@@ -173,10 +173,22 @@ $field_labels = sc_users_export_get_field_labels();
                 </div>
                 <div id="sc-excluded-member-hidden-inputs"></div>
             </div>
+
+            <p class="submit">
+                <input type="hidden" id="sc-users-preview-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_users_export_preview_members')); ?>">
+                <button type="button" class="button button-secondary" id="sc-users-preview-btn">پیش نمایش کاربران فیلتر شده</button>
+            </p>
         </div>
 
         <div class="sc-users-export-card">
-            <h2>۳) فیلدهای خروجی</h2>
+            <h2>۳) پیش نمایش کاربران</h2>
+            <div id="sc-users-preview-result" class="sc-bulk-preview-result">
+                <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش کاربران فیلتر شده» کلیک کنید.</p>
+            </div>
+        </div>
+
+        <div class="sc-users-export-card">
+            <h2>۴) فیلدهای خروجی</h2>
             <div class="sc-fields-grid" id="sc-fields-grid">
                 <?php foreach ($field_labels as $key => $label) : ?>
                     <label class="sc-inline-check">
@@ -188,7 +200,7 @@ $field_labels = sc_users_export_get_field_labels();
         </div>
 
         <div class="sc-users-export-card">
-            <h2>۴) خروجی</h2>
+            <h2>۵) خروجی</h2>
             <div class="sc-row">
                 <label for="sc-export-format">فرمت خروجی</label>
                 <select name="export_format" id="sc-export-format">

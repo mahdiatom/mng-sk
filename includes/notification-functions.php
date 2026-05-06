@@ -982,6 +982,9 @@ function sc_ajax_notification_recipients_count() {
     if (isset($target_config['event_ids'])) {
         $target_config['event_ids'] = is_array($target_config['event_ids']) ? array_map('absint', $target_config['event_ids']) : array_map('absint', array_filter(explode(',', $target_config['event_ids'])));
     }
+    if (isset($target_config['exclude_recipient_ids']) && is_string($target_config['exclude_recipient_ids'])) {
+        $target_config['exclude_recipient_ids'] = array_filter(array_map('trim', explode(',', $target_config['exclude_recipient_ids'])));
+    }
     if ($target_type === 'phone') {
         $phones = isset($target_config['phone_numbers']) ? $target_config['phone_numbers'] : [];
         if (is_string($phones)) {
@@ -994,6 +997,99 @@ function sc_ajax_notification_recipients_count() {
     }
     $user_ids = sc_get_notification_recipients($target_type, $target_config);
     wp_send_json_success(['count' => count($user_ids)]);
+}
+
+add_action('wp_ajax_sc_notification_recipients_preview', 'sc_ajax_notification_recipients_preview');
+function sc_ajax_notification_recipients_preview() {
+    check_ajax_referer('sc_notification_recipients_preview', 'nonce');
+    if (!current_user_can('manage_options') && !current_user_can('sc_view_coach_salary')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز']);
+    }
+
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+    $target_type = isset($_POST['target_type']) ? sanitize_text_field($_POST['target_type']) : 'all';
+    $target_config = isset($_POST['target_config']) ? (array) $_POST['target_config'] : [];
+    if (isset($target_config['recipient_ids']) && is_string($target_config['recipient_ids'])) {
+        $target_config['recipient_ids'] = array_filter(array_map('trim', explode(',', $target_config['recipient_ids'])));
+    }
+    if (isset($target_config['course_ids']) && is_string($target_config['course_ids'])) {
+        $target_config['course_ids'] = array_map('absint', array_filter(explode(',', $target_config['course_ids'])));
+    }
+    if (isset($target_config['event_ids']) && is_string($target_config['event_ids'])) {
+        $target_config['event_ids'] = array_map('absint', array_filter(explode(',', $target_config['event_ids'])));
+    }
+    if (isset($target_config['exclude_recipient_ids']) && is_string($target_config['exclude_recipient_ids'])) {
+        $target_config['exclude_recipient_ids'] = array_filter(array_map('trim', explode(',', $target_config['exclude_recipient_ids'])));
+    }
+
+    $user_ids = sc_get_notification_recipients($target_type, $target_config);
+    $total = count($user_ids);
+
+    $items = [];
+    $max_rows = 200;
+    foreach (array_slice($user_ids, 0, $max_rows) as $user_id) {
+        $user_id = (int) $user_id;
+        if ($user_id <= 0) {
+            continue;
+        }
+        $member = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, first_name, last_name, national_id FROM $members_table WHERE user_id = %d LIMIT 1",
+            $user_id
+        ));
+        if ($member) {
+            $full_name = trim((string) $member->first_name . ' ' . (string) $member->last_name);
+            $items[] = [
+                'recipient_id' => 'member_' . (int) $member->id,
+                'name' => $full_name !== '' ? $full_name : ('بازیکن #' . (int) $member->id),
+                'national_id' => (string) ($member->national_id ?: '-'),
+                'type' => 'بازیکن',
+            ];
+            continue;
+        }
+        $coach = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, first_name, last_name, national_id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+            $user_id
+        ));
+        if ($coach) {
+            $full_name = trim((string) $coach->first_name . ' ' . (string) $coach->last_name);
+            $items[] = [
+                'recipient_id' => 'coach_' . (int) $coach->id,
+                'name' => $full_name !== '' ? $full_name : ('مربی #' . (int) $coach->id),
+                'national_id' => (string) ($coach->national_id ?: '-'),
+                'type' => 'مربی',
+            ];
+        }
+    }
+
+    ob_start();
+    if (empty($items)) {
+        echo '<p class="description">هیچ مخاطبی با این فیلترها پیدا نشد.</p>';
+    } else {
+        echo '<div class="sc-bulk-preview-meta">تعداد مخاطبین فیلتر شده: <strong>' . esc_html((string) $total) . '</strong></div>';
+        echo '<table class="wp-list-table widefat striped sc-bulk-preview-table">';
+        echo '<thead><tr><th style="width:64px;"><label><input type="checkbox" id="sc-notif-preview-select-all" checked> انتخاب</label></th><th>نام</th><th>کد ملی</th><th>نوع</th></tr></thead><tbody>';
+        foreach ($items as $item) {
+            echo '<tr>';
+            echo '<td><input type="checkbox" class="sc-notif-preview-member-check" data-recipient-id="' . esc_attr($item['recipient_id']) . '" checked></td>';
+            echo '<td>' . esc_html($item['name']) . '</td>';
+            echo '<td>' . esc_html($item['national_id']) . '</td>';
+            echo '<td>' . esc_html($item['type']) . '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table>';
+        if ($total > $max_rows) {
+            echo '<p class="description">فقط ' . esc_html((string) $max_rows) . ' مورد اول نمایش داده شد.</p>';
+        }
+    }
+    $html = ob_get_clean();
+
+    wp_send_json_success([
+        'total' => $total,
+        'html' => $html,
+    ]);
 }
 
 

@@ -327,6 +327,73 @@ function sc_certificates_render_html($certificate_row) {
 }
 
 add_action('admin_post_sc_issue_certificates', 'sc_issue_certificates_handler');
+add_action('wp_ajax_sc_certificates_preview_members', 'sc_certificates_preview_members_ajax');
+
+function sc_certificates_preview_members_ajax() {
+    check_ajax_referer('sc_certificates_preview_members', 'nonce');
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+    if (!function_exists('sc_users_export_get_members')) {
+        wp_send_json_error(['message' => 'توابع فیلتر کاربران در دسترس نیست.']);
+    }
+
+    $target_type = isset($_POST['target_type']) ? sanitize_text_field(wp_unslash($_POST['target_type'])) : 'all';
+    if (function_exists('sc_users_export_get_allowed_target_types')) {
+        $allowed_types = sc_users_export_get_allowed_target_types();
+        if (!in_array($target_type, $allowed_types, true)) {
+            $target_type = 'all';
+        }
+    }
+
+    $config = [
+        'member_ids' => isset($_POST['member_ids']) ? array_map('absint', (array) $_POST['member_ids']) : [],
+        'course_ids' => isset($_POST['course_ids']) ? array_map('absint', (array) $_POST['course_ids']) : [],
+        'event_ids' => isset($_POST['event_ids']) ? array_map('absint', (array) $_POST['event_ids']) : [],
+        'team_names' => isset($_POST['team_names']) ? array_map('sanitize_text_field', (array) $_POST['team_names']) : [],
+        'level_names' => isset($_POST['level_names']) ? array_map('sanitize_text_field', (array) $_POST['level_names']) : [],
+        'member_type' => isset($_POST['member_type']) ? sanitize_text_field(wp_unslash($_POST['member_type'])) : 'all',
+    ];
+
+    $members = sc_users_export_get_members($target_type, $config);
+    $total = count($members);
+    $preview_rows = array_slice($members, 0, 200);
+
+    ob_start();
+    if (empty($members)) {
+        echo '<p class="description">هیچ کاربری با این فیلترها پیدا نشد.</p>';
+    } else {
+        echo '<div class="sc-bulk-preview-meta">تعداد کاربران فیلتر شده: <strong>' . esc_html((string) $total) . '</strong></div>';
+        echo '<table class="wp-list-table widefat striped sc-bulk-preview-table">';
+        echo '<thead><tr><th style="width:64px;"><label><input type="checkbox" id="sc-cert-preview-select-all" checked> انتخاب</label></th><th>نام</th><th>کد ملی</th><th>نوع</th><th>تیم</th><th>سطح</th><th>وضعیت</th></tr></thead><tbody>';
+        foreach ($preview_rows as $member) {
+            $full_name = trim((string) $member->first_name . ' ' . (string) $member->last_name);
+            $row_label = $full_name !== '' ? $full_name : ('کاربر #' . (int) $member->id);
+            $type_label = ((string) ($member->member_type ?? '') === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
+            $status_label = !empty($member->is_active) ? 'فعال' : 'غیرفعال';
+            echo '<tr>';
+            echo '<td><input type="checkbox" class="sc-cert-preview-member-check" data-member-id="' . (int) $member->id . '" data-member-label="' . esc_attr($row_label) . '" checked></td>';
+            echo '<td>' . esc_html($row_label) . '</td>';
+            echo '<td>' . esc_html((string) ($member->national_id ?: '-')) . '</td>';
+            echo '<td>' . esc_html($type_label) . '</td>';
+            echo '<td>' . esc_html((string) ($member->team_player ?: '-')) . '</td>';
+            echo '<td>' . esc_html((string) ($member->skill_level ?: '-')) . '</td>';
+            echo '<td>' . esc_html($status_label) . '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table>';
+        if ($total > 200) {
+            echo '<p class="description">فقط 200 مورد اول نمایش داده شد.</p>';
+        }
+    }
+    $html = ob_get_clean();
+
+    wp_send_json_success([
+        'total' => $total,
+        'html' => $html,
+    ]);
+}
+
 function sc_issue_certificates_handler() {
     if (!current_user_can('manage_options')) {
         wp_die('دسترسی غیرمجاز.');

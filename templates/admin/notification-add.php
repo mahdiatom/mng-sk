@@ -230,6 +230,7 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
     <form method="post" id="notification-form" class="sc-notification-form">
         <?php wp_nonce_field('save_notification_nonce'); ?>
         <input type="hidden" name="edit_id" value="<?php echo $edit_id; ?>">
+        <input type="hidden" id="sc-notification-preview-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_notification_recipients_preview')); ?>">
         <table class="form-table sc-notification-form-table">
             <tr>
                 <th scope="row"><label for="title">عنوان <span class="required">*</span></label></th>
@@ -463,6 +464,17 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                     <input type="hidden" name="exclude_recipient_ids_str" id="exclude-recipient-ids-input" value="">
                 </td>
             </tr>
+            <tr id="row-target-preview" style="display:none;">
+                <th scope="row">پیش‌نمایش مخاطبین فیلترشده</th>
+                <td>
+                    <p style="margin-top:0;">
+                        <button type="button" class="button button-secondary" id="sc-notification-preview-btn">پیش نمایش مخاطبین</button>
+                    </p>
+                    <div id="sc-notification-preview-result" class="sc-bulk-preview-result">
+                        <p class="description">برای بررسی دقیق مخاطبین، پیش نمایش را اجرا کنید.</p>
+                    </div>
+                </td>
+            </tr>
             <?php if (!$is_coach) : ?>
             <tr id="row-target-debtors" class="target-row" style="display:none;">
                 <th scope="row">بدهکاران</th>
@@ -615,6 +627,7 @@ jQuery(document).ready(function($) {
     var smsCostPerMessage = <?php echo json_encode(floatval(sc_get_setting('sms_cost_per_message', '200'))); ?>;
     var ajaxUrl = '<?php echo esc_url(admin_url('admin-ajax.php')); ?>';
     var isCoach = <?php echo $is_coach ? 'true' : 'false'; ?>;
+    var notificationPreviewLoaded = false;
 
     function updateSmsCounter() {
         var content = $('#content').val() || '';
@@ -725,6 +738,94 @@ jQuery(document).ready(function($) {
             $('#sms-recipients-count').text('?');
             $('#sms-total-count').text('?');
             $('#sms-estimated-cost').text('?');
+        });
+    }
+
+    function buildNotificationPreviewPayload() {
+        var cfg = getTargetConfig();
+        if (cfg.exclude_recipient_ids) {
+            delete cfg.exclude_recipient_ids;
+        }
+        if (cfg.recipient_ids && Array.isArray(cfg.recipient_ids)) {
+            cfg.recipient_ids = cfg.recipient_ids.join(',');
+        }
+        if (cfg.course_ids && Array.isArray(cfg.course_ids)) {
+            cfg.course_ids = cfg.course_ids.join(',');
+        }
+        if (cfg.event_ids && Array.isArray(cfg.event_ids)) {
+            cfg.event_ids = cfg.event_ids.join(',');
+        }
+        return {
+            action: 'sc_notification_recipients_preview',
+            nonce: $('#sc-notification-preview-nonce').val() || '',
+            target_type: $('#target_type').val(),
+            target_config: cfg
+        };
+    }
+
+    function initNotificationPreviewSelectionBindings() {
+        var $checks = $('.sc-notif-preview-member-check');
+        if (!$checks.length) {
+            return;
+        }
+
+        $checks.each(function () {
+            var rid = String($(this).attr('data-recipient-id') || '');
+            $(this).prop('checked', rid !== '' && excludeRecipientIds.indexOf(rid) === -1);
+        });
+
+        var checkedCount = $('.sc-notif-preview-member-check:checked').length;
+        $('#sc-notif-preview-select-all').prop('checked', checkedCount === $checks.length);
+
+        $(document).off('change.scNotifPreviewMember').on('change.scNotifPreviewMember', '.sc-notif-preview-member-check', function () {
+            var rid = String($(this).attr('data-recipient-id') || '');
+            if (!rid) {
+                return;
+            }
+            if ($(this).is(':checked')) {
+                excludeRecipientIds = excludeRecipientIds.filter(function (x) { return x !== rid; });
+            } else if (excludeRecipientIds.indexOf(rid) === -1) {
+                excludeRecipientIds.push(rid);
+            }
+            renderExcludeRecipientList();
+
+            var allCount = $('.sc-notif-preview-member-check').length;
+            var selectedCount = $('.sc-notif-preview-member-check:checked').length;
+            $('#sc-notif-preview-select-all').prop('checked', allCount > 0 && selectedCount === allCount);
+        });
+
+        $(document).off('change.scNotifPreviewSelectAll').on('change.scNotifPreviewSelectAll', '#sc-notif-preview-select-all', function () {
+            var shouldCheck = $(this).is(':checked');
+            $('.sc-notif-preview-member-check').prop('checked', shouldCheck).trigger('change');
+        });
+    }
+
+    function initNotificationPreview() {
+        var $btn = $('#sc-notification-preview-btn');
+        var $result = $('#sc-notification-preview-result');
+        if (!$btn.length || !$result.length) {
+            return;
+        }
+
+        $btn.on('click', function () {
+            $btn.prop('disabled', true);
+            $result.html('<p class="description">در حال دریافت پیش نمایش...</p>');
+            $.post(ajaxUrl, buildNotificationPreviewPayload())
+                .done(function (res) {
+                    if (res && res.success && res.data) {
+                        $result.html(res.data.html || '');
+                        notificationPreviewLoaded = true;
+                        initNotificationPreviewSelectionBindings();
+                    } else {
+                        $result.html('<p class="description">خطا در دریافت پیش نمایش.</p>');
+                    }
+                })
+                .fail(function () {
+                    $result.html('<p class="description">خطا در ارتباط با سرور.</p>');
+                })
+                .always(function () {
+                    $btn.prop('disabled', false);
+                });
         });
     }
 
@@ -934,6 +1035,7 @@ jQuery(document).ready(function($) {
         $('#row-course-ids-all').toggle(cs === 'specific');
     }
     $('#row-target-exclude').toggle(t !== 'specific' && t !== 'phone');
+    $('#row-target-preview').toggle(t !== 'specific' && t !== 'phone');
 
     // hide ارسال sms وقتی target phone باشد
     if (t === 'phone' && $('#row-send-sms').length) {
@@ -947,7 +1049,11 @@ jQuery(document).ready(function($) {
 }
 
     $('#target_type, #course_scope').on('change', toggleTargetRows);
+    $('#target_type').on('change', function () {
+        notificationPreviewLoaded = false;
+    });
     toggleTargetRows();
+    initNotificationPreview();
     if (!isCoach && ($('#target_type').val() === 'phone' || ($('#send_sms').length && $('#send_sms').is(':checked')))) updateSmsSummary();
 
     $('#notification-form').on('submit', function(e) {
@@ -959,6 +1065,12 @@ jQuery(document).ready(function($) {
             if (phoneNumbers.length === 0) {
                 e.preventDefault();
                 alert('لطفاً حداقل یک شماره موبایل وارد کنید.');
+                return false;
+            }
+        }
+        if (targetType !== 'specific' && targetType !== 'phone' && $('#sc-notification-preview-btn').length && !notificationPreviewLoaded) {
+            if (!confirm('پیش نمایش مخاطبین اجرا نشده است. ادامه می‌دهید؟')) {
+                e.preventDefault();
                 return false;
             }
         }

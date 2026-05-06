@@ -31,6 +31,10 @@ $health_verified = 0;
 $is_active = 0;
 $skill_level = '';
 $team_player = '';
+$member_extra_fields = [];
+
+$player_builtin_rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
+$player_custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
 
 
 
@@ -103,6 +107,10 @@ if ($player) {
     $is_active = $player->is_active;
     $skill_level = $player->skill_level ?? '';
     $team_player = $player->team_player ?? '';
+    $member_extra_fields = !empty($player->member_extra_fields) ? json_decode((string) $player->member_extra_fields, true) : [];
+    if (!is_array($member_extra_fields)) {
+        $member_extra_fields = [];
+    }
     
        
 }
@@ -140,6 +148,57 @@ if (empty($player_phone) && $billing_phone) {
 
 ?>
 
+<?php
+if (!function_exists('sc_render_player_custom_fields_block')) {
+    function sc_render_player_custom_fields_block($fields, $section, $values = []) {
+        if (empty($fields) || !is_array($fields)) {
+            return;
+        }
+        foreach ($fields as $field) {
+            if (!is_array($field) || ($field['section'] ?? '') !== $section || empty($field['visible'])) {
+                continue;
+            }
+            $key = isset($field['key']) ? sanitize_key($field['key']) : '';
+            if ($key === '') {
+                continue;
+            }
+            $type = $field['type'] ?? 'text';
+            $label = $field['label'] ?? $key;
+            $is_required = !empty($field['required']);
+            $required_attr = $is_required ? ' required' : '';
+            $required_mark = $is_required ? ' <span class="required">*</span>' : '';
+            $current_val = $values[$key] ?? ($type === 'multiselect' ? [] : '');
+            echo '<p class="form-row">';
+            echo '<label for="sc_custom_' . esc_attr($key) . '">' . esc_html($label) . $required_mark . '</label>';
+            if ($type === 'image') {
+                $image_url = is_string($current_val) ? $current_val : '';
+                echo '<div class="sc-upload-field">';
+                echo '<input type="hidden" name="player_custom_fields_images[' . esc_attr($key) . ']" id="sc_custom_' . esc_attr($key) . '_url" value="' . esc_attr($image_url) . '">';
+                echo '<input type="file" name="player_custom_fields_files[' . esc_attr($key) . ']" id="sc_custom_' . esc_attr($key) . '" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"' . $required_attr . '>';
+                if ($image_url !== '') {
+                    echo '<div class="sc-image-preview" style="margin-top:10px;"><img src="' . esc_url($image_url) . '" alt="' . esc_attr($label) . '" style="max-width:200px;border:1px solid #ddd;border-radius:4px;">';
+                    echo '<button type="button" class="sc-btn-remove-image button-primary" data-target="#sc_custom_' . esc_attr($key) . '_url">حذف عکس</button></div>';
+                }
+                echo '</div>';
+            } elseif ($type === 'multiselect') {
+                $selected = is_array($current_val) ? $current_val : [];
+                $options = isset($field['options']) && is_array($field['options']) ? $field['options'] : [];
+                echo '<select id="sc_custom_' . esc_attr($key) . '" name="player_custom_fields_multi[' . esc_attr($key) . '][]" multiple size="4"' . $required_attr . '>';
+                foreach ($options as $option) {
+                    $option = (string) $option;
+                    echo '<option value="' . esc_attr($option) . '" ' . selected(in_array($option, $selected, true), true, false) . '>' . esc_html($option) . '</option>';
+                }
+                echo '</select>';
+            } else {
+                $text_value = is_string($current_val) ? $current_val : '';
+                echo '<input type="text" name="player_custom_fields[' . esc_attr($key) . ']" id="sc_custom_' . esc_attr($key) . '" value="' . esc_attr($text_value) . '"' . $required_attr . '>';
+            }
+            echo '</p>';
+        }
+    }
+}
+?>
+
 <div class="sc-submit-documents-form">
     <h2>اطلاعات بازیکن</h2>
     <p class="description">لطفاً اطلاعات و مدارک خود را با دقت وارد کنید. پس از بررسی توسط مدیر، حساب شما فعال خواهد شد.</p>
@@ -148,6 +207,7 @@ if (empty($player_phone) && $billing_phone) {
     
     <form id="sc-documents-form" method="POST" enctype="multipart/form-data" class="woocommerce-form">
         <?php wp_nonce_field('sc_submit_documents', 'sc_documents_nonce'); ?>
+        <input type="hidden" id="sc_player_builtin_rules_json" value="<?php echo esc_attr(wp_json_encode($player_builtin_rules)); ?>">
         <input type="hidden" name="personal_photo_url" id="personal_photo_url" value="<?php echo esc_attr($personal_photo); ?>">
         <input type="hidden" name="id_card_photo_url" id="id_card_photo_url" value="<?php echo esc_attr($id_card_photo); ?>">
         <input type="hidden" name="sport_insurance_photo_url" id="sport_insurance_photo_url" value="<?php echo esc_attr($sport_insurance_photo); ?>">
@@ -205,6 +265,7 @@ if (empty($player_phone) && $billing_phone) {
             
 
 
+            <?php sc_render_player_custom_fields_block($player_custom_fields, 'personal', $member_extra_fields); ?>
         </div>
         
         <div class="sc-form-section">
@@ -246,6 +307,7 @@ if (empty($player_phone) && $billing_phone) {
                     <option value="female" <?php selected($gender, 'female'); ?>>زن</option>
                 </select>
             </p>
+            <?php sc_render_player_custom_fields_block($player_custom_fields, 'contact', $member_extra_fields); ?>
         </div>
         
         <div class="sc-form-section">
@@ -286,6 +348,7 @@ if (empty($player_phone) && $billing_phone) {
 
     </div>
         </div>
+            <?php sc_render_player_custom_fields_block($player_custom_fields, 'documents', $member_extra_fields); ?>
         </div>
         
         <div class="sc-form-section">
@@ -369,6 +432,7 @@ if (empty($player_phone) && $billing_phone) {
                 </div>
             </div>
           
+            <?php sc_render_player_custom_fields_block($player_custom_fields, 'additional', $member_extra_fields); ?>
         </div>
         
         <p class="form-row">
@@ -399,6 +463,36 @@ document.addEventListener('DOMContentLoaded', function() {
             if(previewDiv) previewDiv.style.display = 'none';
             if(targetInput) targetInput.value = '';
         });
+    });
+});
+document.addEventListener('DOMContentLoaded', function() {
+    var rulesInput = document.getElementById('sc_player_builtin_rules_json');
+    if (!rulesInput || !rulesInput.value) {
+        return;
+    }
+    var rules = {};
+    try {
+        rules = JSON.parse(rulesInput.value);
+    } catch (e) {
+        rules = {};
+    }
+    Object.keys(rules).forEach(function(fieldKey) {
+        var input = document.querySelector('[name="' + fieldKey + '"]');
+        if (!input) {
+            return;
+        }
+        var rule = rules[fieldKey] || {};
+        var row = input.closest('.form-row') || input.closest('.sc-upload-field') || input.closest('p');
+        if (rule.visible === 0 || rule.visible === '0') {
+            if (row) {
+                row.style.display = 'none';
+            }
+            input.disabled = true;
+            input.required = false;
+            return;
+        }
+        input.disabled = false;
+        input.required = !!(rule.required == 1);
     });
 });
 </script>

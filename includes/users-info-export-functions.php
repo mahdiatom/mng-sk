@@ -123,7 +123,7 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
 }
 
 function sc_users_export_get_field_labels() {
-    return [
+    $labels = [
         'member_id' => 'شناسه بازیکن',
         'full_name' => 'نام و نام خانوادگی',
         'father_name' => 'نام پدر',
@@ -150,6 +150,16 @@ function sc_users_export_get_field_labels() {
         'id_card_photo' => 'عکس کارت ملی',
         'sport_insurance_photo' => 'عکس بیمه ورزشی',
     ];
+    if (function_exists('sc_get_player_info_custom_fields')) {
+        $custom_fields = sc_get_player_info_custom_fields();
+        foreach ($custom_fields as $field) {
+            if (empty($field['key']) || empty($field['visible'])) {
+                continue;
+            }
+            $labels['custom_' . $field['key']] = $field['label'] ?? $field['key'];
+        }
+    }
+    return $labels;
 }
 
 function sc_users_export_get_allowed_target_types() {
@@ -326,7 +336,20 @@ function sc_users_export_prepare_rows($members, $fields) {
                     $row[$field] = !empty($member->{$field}) ? 'بله' : 'خیر';
                     break;
                 default:
-                    $row[$field] = isset($member->{$field}) && $member->{$field} !== '' ? $member->{$field} : '-';
+                    if (strpos($field, 'custom_') === 0) {
+                        $custom_key = substr($field, 7);
+                        $extra = !empty($member->member_extra_fields) ? json_decode((string) $member->member_extra_fields, true) : [];
+                        if (!is_array($extra)) {
+                            $extra = [];
+                        }
+                        $val = $extra[$custom_key] ?? '';
+                        if (is_array($val)) {
+                            $val = implode('، ', array_map('strval', $val));
+                        }
+                        $row[$field] = $val !== '' ? $val : '-';
+                    } else {
+                        $row[$field] = isset($member->{$field}) && $member->{$field} !== '' ? $member->{$field} : '-';
+                    }
                     break;
             }
         }
@@ -435,6 +458,67 @@ function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = 
 }
 
 add_action('admin_post_sc_users_info_export', 'sc_users_info_export_handler');
+add_action('wp_ajax_sc_users_export_preview_members', 'sc_users_export_preview_members_ajax');
+
+function sc_users_export_preview_members_ajax() {
+    check_ajax_referer('sc_users_export_preview_members', 'nonce');
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+
+    $target_type = isset($_POST['target_type']) ? sanitize_text_field(wp_unslash($_POST['target_type'])) : 'all';
+    if (!in_array($target_type, sc_users_export_get_allowed_target_types(), true)) {
+        $target_type = 'all';
+    }
+
+    $config = [
+        'member_ids' => isset($_POST['member_ids']) ? array_map('absint', (array) $_POST['member_ids']) : [],
+        'course_ids' => isset($_POST['course_ids']) ? array_map('absint', (array) $_POST['course_ids']) : [],
+        'event_ids' => isset($_POST['event_ids']) ? array_map('absint', (array) $_POST['event_ids']) : [],
+        'team_names' => isset($_POST['team_names']) ? array_map('sanitize_text_field', (array) $_POST['team_names']) : [],
+        'level_names' => isset($_POST['level_names']) ? array_map('sanitize_text_field', (array) $_POST['level_names']) : [],
+        'member_type' => isset($_POST['member_type']) ? sanitize_text_field(wp_unslash($_POST['member_type'])) : 'all',
+    ];
+
+    $members = sc_users_export_get_members($target_type, $config);
+    $total = count($members);
+    $preview_rows = array_slice($members, 0, 200);
+
+    ob_start();
+    if (empty($members)) {
+        echo '<p class="description">هیچ کاربری با این فیلترها پیدا نشد.</p>';
+    } else {
+        echo '<div class="sc-bulk-preview-meta">تعداد کاربران فیلتر شده: <strong>' . esc_html((string) $total) . '</strong></div>';
+        echo '<table class="wp-list-table widefat striped sc-bulk-preview-table">';
+        echo '<thead><tr><th style="width:64px;"><label><input type="checkbox" id="sc-users-preview-select-all" checked> انتخاب</label></th><th>نام</th><th>کد ملی</th><th>نوع</th><th>تیم</th><th>سطح</th><th>وضعیت</th></tr></thead><tbody>';
+        foreach ($preview_rows as $member) {
+            $full_name = trim((string) $member->first_name . ' ' . (string) $member->last_name);
+            $row_label = $full_name !== '' ? $full_name : ('کاربر #' . (int) $member->id);
+            $type_label = ((string) ($member->member_type ?? '') === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
+            $status_label = !empty($member->is_active) ? 'فعال' : 'غیرفعال';
+            echo '<tr>';
+            echo '<td><input type="checkbox" class="sc-users-preview-member-check" data-member-id="' . (int) $member->id . '" data-member-label="' . esc_attr($row_label) . '" checked></td>';
+            echo '<td>' . esc_html($row_label) . '</td>';
+            echo '<td>' . esc_html((string) ($member->national_id ?: '-')) . '</td>';
+            echo '<td>' . esc_html($type_label) . '</td>';
+            echo '<td>' . esc_html((string) ($member->team_player ?: '-')) . '</td>';
+            echo '<td>' . esc_html((string) ($member->skill_level ?: '-')) . '</td>';
+            echo '<td>' . esc_html($status_label) . '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table>';
+        if ($total > 200) {
+            echo '<p class="description">فقط 200 مورد اول نمایش داده شد.</p>';
+        }
+    }
+    $html = ob_get_clean();
+
+    wp_send_json_success([
+        'total' => $total,
+        'html' => $html,
+    ]);
+}
+
 function sc_users_info_export_handler() {
     if (!current_user_can('manage_options')) {
         wp_die('دسترسی غیرمجاز.');

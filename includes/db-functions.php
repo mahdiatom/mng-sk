@@ -246,6 +246,7 @@ function sc_create_members_table(){
             `member_type` varchar(20) NOT NULL DEFAULT 'normal' COMMENT 'normal=بازیکن عادی, team=بازیکن تیم',
             `profile_completed` TINYINT(1) NOT NULL DEFAULT 0,
             `additional_info` text,
+            `member_extra_fields` longtext DEFAULT NULL,
             `created_at` datetime NOT NULL,
             `updated_at` datetime NOT NULL,
             PRIMARY KEY (`id`),
