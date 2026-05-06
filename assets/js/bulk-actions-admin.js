@@ -2,6 +2,7 @@
     'use strict';
 
     var selectedMemberIds = [];
+    var excludedMemberIds = [];
     var courseCoachesMap = {};
 
     function loadCourseCoachesMap() {
@@ -171,6 +172,58 @@
         return data;
     }
 
+    function syncExcludedMemberInputs() {
+        var $inputs = $('#sc-bulk-excluded-members-inputs');
+        if (!$inputs.length) {
+            return;
+        }
+        $inputs.empty();
+        excludedMemberIds.forEach(function (id) {
+            $inputs.append('<input type="hidden" name="excluded_member_ids[]" value="' + id + '">');
+        });
+    }
+
+    function initPreviewSelectionBindings() {
+        var $checks = $('.sc-bulk-preview-member-check');
+        if (!$checks.length) {
+            return;
+        }
+
+        $checks.each(function () {
+            var id = parseInt($(this).attr('data-member-id'), 10);
+            if (id && excludedMemberIds.indexOf(id) !== -1) {
+                $(this).prop('checked', false);
+            }
+        });
+
+        var checkedCount = $('.sc-bulk-preview-member-check:checked').length;
+        $('#sc-bulk-preview-select-all').prop('checked', checkedCount === $checks.length);
+
+        $(document).off('change.scBulkPreviewMember').on('change.scBulkPreviewMember', '.sc-bulk-preview-member-check', function () {
+            var id = parseInt($(this).attr('data-member-id'), 10);
+            if (!id) {
+                return;
+            }
+            if ($(this).is(':checked')) {
+                excludedMemberIds = excludedMemberIds.filter(function (x) { return x !== id; });
+            } else if (excludedMemberIds.indexOf(id) === -1) {
+                excludedMemberIds.push(id);
+            }
+            syncExcludedMemberInputs();
+
+            var allCount = $('.sc-bulk-preview-member-check').length;
+            var selectedCount = $('.sc-bulk-preview-member-check:checked').length;
+            $('#sc-bulk-preview-select-all').prop('checked', allCount > 0 && selectedCount === allCount);
+        });
+
+        $(document).off('change.scBulkPreviewSelectAll').on('change.scBulkPreviewSelectAll', '#sc-bulk-preview-select-all', function () {
+            var shouldCheck = $(this).is(':checked');
+            $('.sc-bulk-preview-member-check').prop('checked', shouldCheck).trigger('change');
+        });
+
+        syncExcludedMemberInputs();
+    }
+
     function validateBeforeSubmit() {
         var action = $('#sc-bulk-action-type').val();
         if (!action) {
@@ -217,6 +270,7 @@
         renderSelectedMembers();
         bindSearchableDropdown();
         toggleActionFields();
+        syncExcludedMemberInputs();
         $('#sc-target-type').on('change', toggleFilterBlocks);
         $('#sc-bulk-action-type').on('change', toggleActionFields);
         $('#sc-assign-course-id').on('change', refreshAssignCoachOptions);
@@ -233,6 +287,7 @@
             ).done(function (res) {
                 if (res && res.success && res.data) {
                     $result.html(res.data.html || '');
+                    initPreviewSelectionBindings();
                 } else {
                     $result.html('<p class="description">خطا در دریافت پیش نمایش.</p>');
                 }

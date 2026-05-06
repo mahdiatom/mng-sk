@@ -67,6 +67,7 @@ foreach ($course_coaches as $row) {
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="sc-bulk-actions-form" data-course-coaches="<?php echo esc_attr(wp_json_encode($course_coaches_map)); ?>">
         <?php wp_nonce_field('sc_bulk_actions_execute_action', 'sc_bulk_actions_execute_nonce'); ?>
         <input type="hidden" name="action" value="sc_bulk_actions_execute">
+        <div id="sc-bulk-excluded-members-inputs"></div>
 
         <div class="sc-users-export-card">
             <h2>۱) فیلتر کاربران</h2>

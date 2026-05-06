@@ -154,12 +154,13 @@ function sc_bulk_actions_preview_ajax() {
     } else {
         echo '<div class="sc-bulk-preview-meta">تعداد کاربران فیلتر شده: <strong>' . esc_html((string) $total) . '</strong></div>';
         echo '<table class="wp-list-table widefat striped sc-bulk-preview-table">';
-        echo '<thead><tr><th>نام</th><th>کد ملی</th><th>نوع</th><th>تیم</th><th>سطح</th><th>وضعیت</th></tr></thead><tbody>';
+        echo '<thead><tr><th style="width:64px;"><label><input type="checkbox" id="sc-bulk-preview-select-all" checked> انتخاب</label></th><th>نام</th><th>کد ملی</th><th>نوع</th><th>تیم</th><th>سطح</th><th>وضعیت</th></tr></thead><tbody>';
         foreach ($preview_rows as $member) {
             $full_name = trim((string) $member->first_name . ' ' . (string) $member->last_name);
             $type_label = ($member->member_type === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
             $status_label = !empty($member->is_active) ? 'فعال' : 'غیرفعال';
             echo '<tr>';
+            echo '<td><input type="checkbox" class="sc-bulk-preview-member-check" data-member-id="' . (int) $member->id . '" checked></td>';
             echo '<td>' . esc_html($full_name !== '' ? $full_name : ('کاربر #' . (int) $member->id)) . '</td>';
             echo '<td>' . esc_html((string) ($member->national_id ?: '-')) . '</td>';
             echo '<td>' . esc_html($type_label) . '</td>';
@@ -200,6 +201,14 @@ function sc_bulk_actions_execute_handler() {
     }
 
     $action_key = isset($_POST['bulk_action_type']) ? sanitize_text_field(wp_unslash($_POST['bulk_action_type'])) : '';
+    $excluded_member_ids = isset($_POST['excluded_member_ids']) ? array_filter(array_map('absint', (array) $_POST['excluded_member_ids'])) : array();
+    if (!empty($excluded_member_ids)) {
+        $member_ids = array_values(array_diff($member_ids, $excluded_member_ids));
+    }
+    if (empty($member_ids)) {
+        wp_safe_redirect(add_query_arg(array('page' => 'sc-bulk-actions', 'sc_bulk_notice' => 'empty'), admin_url('admin.php')));
+        exit;
+    }
     $affected = 0;
     $redirect_to = add_query_arg(array('page' => 'sc-bulk-actions'), admin_url('admin.php'));
 
