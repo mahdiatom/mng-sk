@@ -265,6 +265,51 @@ function sc_bulk_actions_execute_handler() {
                 $affected++;
             }
         }
+    } elseif ($action_key === 'assign_course_coach') {
+        $assign_course_id = isset($_POST['assign_course_id']) ? absint($_POST['assign_course_id']) : 0;
+        $assign_coach_id = isset($_POST['assign_coach_id']) ? absint($_POST['assign_coach_id']) : 0;
+
+        if ($assign_course_id > 0 && $assign_coach_id > 0) {
+            $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+            $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+            // اعتبارسنجی: مربی انتخابی باید در همان دوره فعال باشد
+            $is_valid_course_coach = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*)
+                 FROM $course_coaches_table cc
+                 INNER JOIN $coaches_table c ON c.id = cc.coach_id
+                 WHERE cc.course_id = %d AND cc.coach_id = %d AND c.is_active = 1",
+                $assign_course_id,
+                $assign_coach_id
+            ));
+
+            if ($is_valid_course_coach > 0) {
+                $member_ids_sql = implode(',', array_map('absint', $member_ids));
+                $rows = $wpdb->get_results($wpdb->prepare(
+                    "SELECT id
+                     FROM $member_courses_table
+                     WHERE member_id IN ($member_ids_sql)
+                       AND course_id = %d",
+                    $assign_course_id
+                ));
+
+                foreach ($rows as $row) {
+                    $res = $wpdb->update(
+                        $member_courses_table,
+                        array(
+                            'coach_id' => $assign_coach_id,
+                            'updated_at' => current_time('mysql'),
+                        ),
+                        array('id' => (int) $row->id),
+                        array('%d', '%s'),
+                        array('%d')
+                    );
+                    if ($res !== false) {
+                        $affected++;
+                    }
+                }
+            }
+        }
     } elseif ($action_key === 'delete_members') {
         foreach ($member_ids as $member_id) {
             sc_delete_wp_user_by_table_id($members_table, $member_id);

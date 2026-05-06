@@ -15,10 +15,35 @@ $level_table = $wpdb->prefix . 'sc_level_categories';
 
 $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table ORDER BY last_name, first_name");
 $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL ORDER BY title");
+$coaches_table = $wpdb->prefix . 'sc_coaches';
+$course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
 $events = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') ORDER BY name");
 $teams = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name");
 $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
 $course_flags = sc_bulk_actions_get_course_flag_options();
+
+$course_coaches = $wpdb->get_results(
+    "SELECT cc.course_id, cc.coach_id, c.first_name, c.last_name
+     FROM $course_coaches_table cc
+     INNER JOIN $coaches_table c ON c.id = cc.coach_id
+     WHERE c.is_active = 1
+     ORDER BY cc.course_id ASC, c.last_name ASC, c.first_name ASC"
+);
+$course_coaches_map = array();
+foreach ($course_coaches as $row) {
+    $cid = (int) $row->course_id;
+    if (!isset($course_coaches_map[$cid])) {
+        $course_coaches_map[$cid] = array();
+    }
+    $label = trim((string) $row->first_name . ' ' . (string) $row->last_name);
+    if ($label === '') {
+        $label = 'مربی #' . (int) $row->coach_id;
+    }
+    $course_coaches_map[$cid][] = array(
+        'id' => (int) $row->coach_id,
+        'label' => $label,
+    );
+}
 ?>
 
 <div class="wrap sc-users-export-wrap sc-bulk-actions-wrap">
@@ -39,7 +64,7 @@ $course_flags = sc_bulk_actions_get_course_flag_options();
         </div>
     <?php endif; ?>
 
-    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="sc-bulk-actions-form">
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="sc-bulk-actions-form" data-course-coaches="<?php echo esc_attr(wp_json_encode($course_coaches_map)); ?>">
         <?php wp_nonce_field('sc_bulk_actions_execute_action', 'sc_bulk_actions_execute_nonce'); ?>
         <input type="hidden" name="action" value="sc_bulk_actions_execute">
 
@@ -173,6 +198,7 @@ $course_flags = sc_bulk_actions_get_course_flag_options();
                     <option value="course_activate">فعال کردن دوره</option>
                     <option value="course_deactivate">غیرفعال کردن دوره</option>
                     <option value="course_set_flag">افزودن فلگ دوره</option>
+                    <option value="assign_course_coach">اختصاص بازیکن های انتخاب شده به مربی دوره</option>
                     <option value="delete_members">حذف بازیکن ها</option>
                 </select>
             </div>
@@ -233,6 +259,25 @@ $course_flags = sc_bulk_actions_get_course_flag_options();
                     </select>
                 </div>
                 <p class="description">فلگ انتخابی به فلگ های قبلی اضافه می شود و مقادیر قبلی حذف نمی شوند.</p>
+            </div>
+
+            <div id="sc-action-assign-course-coach" class="sc-action-extra">
+                <div class="sc-row">
+                    <label for="sc-assign-course-id">دوره</label>
+                    <select name="assign_course_id" id="sc-assign-course-id">
+                        <option value="">انتخاب دوره</option>
+                        <?php foreach ($courses as $course) : ?>
+                            <option value="<?php echo (int) $course->id; ?>"><?php echo esc_html($course->title); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="sc-row">
+                    <label for="sc-assign-coach-id">مربی دوره</label>
+                    <select name="assign_coach_id" id="sc-assign-coach-id">
+                        <option value="">ابتدا دوره را انتخاب کنید</option>
+                    </select>
+                </div>
+                <p class="description">فقط بازیکن‌هایی که در همین دوره ثبت‌نام دارند به مربی انتخاب‌شده منتسب می‌شوند.</p>
             </div>
         </div>
 

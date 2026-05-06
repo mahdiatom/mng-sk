@@ -2,6 +2,46 @@
     'use strict';
 
     var selectedMemberIds = [];
+    var courseCoachesMap = {};
+
+    function loadCourseCoachesMap() {
+        var raw = $('#sc-bulk-actions-form').attr('data-course-coaches');
+        if (!raw) {
+            courseCoachesMap = {};
+            return;
+        }
+        try {
+            courseCoachesMap = JSON.parse(raw) || {};
+        } catch (e) {
+            courseCoachesMap = {};
+        }
+    }
+
+    function refreshAssignCoachOptions() {
+        var $courseSelect = $('#sc-assign-course-id');
+        var $coachSelect = $('#sc-assign-coach-id');
+        if (!$courseSelect.length || !$coachSelect.length) {
+            return;
+        }
+
+        var courseId = $courseSelect.val();
+        var coaches = (courseId && courseCoachesMap[courseId]) ? courseCoachesMap[courseId] : [];
+        $coachSelect.empty();
+
+        if (!courseId) {
+            $coachSelect.append('<option value="">ابتدا دوره را انتخاب کنید</option>');
+            return;
+        }
+        if (!coaches.length) {
+            $coachSelect.append('<option value="">مربی فعالی برای این دوره یافت نشد</option>');
+            return;
+        }
+
+        $coachSelect.append('<option value="">انتخاب مربی</option>');
+        coaches.forEach(function (coach) {
+            $coachSelect.append('<option value="' + coach.id + '">' + coach.label + '</option>');
+        });
+    }
 
     function toggleFilterBlocks() {
         var targetType = $('#sc-target-type').val();
@@ -112,6 +152,9 @@
             $('#sc-action-change-level').show();
         } else if (action === 'change_member_type') {
             $('#sc-action-change-type').show();
+        } else if (action === 'assign_course_coach') {
+            $('#sc-action-assign-course-coach').show();
+            refreshAssignCoachOptions();
         } else if (action === 'course_activate' || action === 'course_deactivate') {
             $('#sc-action-course-common').show();
         } else if (action === 'course_set_flag') {
@@ -152,6 +195,16 @@
             alert('فلگ دوره را انتخاب کنید.');
             return false;
         }
+        if (action === 'assign_course_coach') {
+            if (!$('#sc-assign-course-id').val()) {
+                alert('برای اختصاص مربی، ابتدا دوره را انتخاب کنید.');
+                return false;
+            }
+            if (!$('#sc-assign-coach-id').val()) {
+                alert('لطفاً مربی دوره را انتخاب کنید.');
+                return false;
+            }
+        }
         if (action === 'delete_members') {
             return confirm('حذف گروهی انتخاب شده است. آیا مطمئن هستید؟ این عمل قابل بازگشت نیست.');
         }
@@ -159,12 +212,14 @@
     }
 
     $(document).ready(function () {
+        loadCourseCoachesMap();
         toggleFilterBlocks();
         renderSelectedMembers();
         bindSearchableDropdown();
         toggleActionFields();
         $('#sc-target-type').on('change', toggleFilterBlocks);
         $('#sc-bulk-action-type').on('change', toggleActionFields);
+        $('#sc-assign-course-id').on('change', refreshAssignCoachOptions);
 
         $('#sc-bulk-preview-btn').on('click', function () {
             var $btn = $(this);
