@@ -74,6 +74,7 @@ foreach ($course_coaches as $row) {
                 <label for="sc-target-type">نوع انتخاب</label>
                 <select name="target_type" id="sc-target-type">
                     <option value="all">همه کاربران</option>
+                    <option value="free_users">کاربران آزاد (بدون هیچ دوره تا امروز)</option>
                     <option value="specific">انتخاب کاربران خاص (جستجو)</option>
                     <option value="course">بر اساس دوره</option>
                     <option value="event">بر اساس رویداد</option>

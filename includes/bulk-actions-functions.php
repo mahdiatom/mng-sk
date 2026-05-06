@@ -33,7 +33,14 @@ function sc_bulk_actions_get_members($target_type, $config = array()) {
         $params[] = $config['member_type'];
     }
 
-    if ($target_type === 'specific') {
+    if ($target_type === 'free_users') {
+        // کاربرانی که تاکنون هیچ رکوردی در member_courses نداشته‌اند
+        $where[] = "NOT EXISTS (
+            SELECT 1
+            FROM $member_courses_table mc
+            WHERE mc.member_id = m.id
+        )";
+    } elseif ($target_type === 'specific') {
         $ids = isset($config['member_ids']) && is_array($config['member_ids']) ? array_filter(array_map('absint', $config['member_ids'])) : array();
         if (empty($ids)) {
             return array();
