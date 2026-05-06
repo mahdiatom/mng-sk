@@ -6,6 +6,19 @@
     margin-top: 14px;
 }
 
+.sc-private-notes-wrap .sc-ticket-attachment-zone .sc-ticket-file-input-hidden {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.sc-private-notes-wrap .sc-ticket-attachment-zone .sc-file-upload-area {
+    position: relative;
+    overflow: hidden;
+}
+
 .sc-private-note-detail-card,
 .sc-private-note-detail-card {
     background: #fff;

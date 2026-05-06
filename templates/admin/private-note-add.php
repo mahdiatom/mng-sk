@@ -20,9 +20,11 @@ $message = '';
 $message_type = '';
 
 if (isset($_POST['sc_save_private_note']) && check_admin_referer('sc_save_private_note_action', 'sc_save_private_note_nonce')) {
-    $title = isset($_POST['title']) ? sanitize_text_field(wp_unslash($_POST['title'])) : '';
     $content = isset($_POST['content']) ? wp_kses_post(wp_unslash($_POST['content'])) : '';
-    $target_type = isset($_POST['target_type']) ? sanitize_text_field(wp_unslash($_POST['target_type'])) : 'specific';
+    $thread_title = isset($_POST['thread_title']) ? sanitize_text_field(wp_unslash($_POST['thread_title'])) : '';
+    $target_type = isset($_POST['target_type']) ? sanitize_text_field(wp_unslash($_POST['target_type'])) : 'all';
+    $send_mode = isset($_POST['send_mode']) ? sanitize_text_field(wp_unslash($_POST['send_mode'])) : 'append_to_default_thread';
+    $selected_thread_id = isset($_POST['selected_thread_id']) ? absint($_POST['selected_thread_id']) : 0;
     $attachment_ids = !empty($_POST['private_note_attachment_ids']) ? sc_private_notes_validate_attachment_ids($_POST['private_note_attachment_ids'], 5) : [];
 
     $config = [
@@ -41,14 +43,17 @@ if (isset($_POST['sc_save_private_note']) && check_admin_referer('sc_save_privat
     $members = function_exists('sc_bulk_actions_get_members') ? sc_bulk_actions_get_members($target_type, $config) : [];
     $member_ids = array_values(array_unique(array_map('absint', wp_list_pluck((array) $members, 'id'))));
 
-    if (empty($title) || trim(wp_strip_all_tags($content)) === '') {
-        $message = 'عنوان و متن یادداشت الزامی است.';
+    if ($send_mode === 'create_new_thread' && $thread_title === '') {
+        $message = 'برای پرونده جدید، نام پرونده را وارد کنید.';
+        $message_type = 'error';
+    } elseif (trim(wp_strip_all_tags($content)) === '') {
+        $message = 'متن یادداشت الزامی است.';
         $message_type = 'error';
     } elseif (empty($member_ids)) {
         $message = 'هیچ کاربری با این فیلترها پیدا نشد.';
         $message_type = 'error';
     } else {
-        $created = sc_private_notes_create_for_members($member_ids, $title, $content, $attachment_ids);
+        $created = sc_private_notes_create_for_members($member_ids, $thread_title, $content, $attachment_ids, $send_mode, $selected_thread_id);
         if (is_wp_error($created)) {
             $message = $created->get_error_message();
             $message_type = 'error';
@@ -86,20 +91,16 @@ if ($is_coach && function_exists('sc_support_get_coach_id_by_user_id')) {
 $teams = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name");
 $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
 ?>
-<div class="wrap sc-private-notes-wrap">
+<div class="wrap sc-private-notes-wrap sc-users-export-wrap sc-bulk-actions-wrap sc-ticket-new-admin-wrap">
     <h1><?php echo esc_html($title_page); ?></h1>
     <a href="<?php echo esc_url($list_url); ?>" class="button">بازگشت به لیست</a>
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
     <?php endif; ?>
 
-    <form method="post" class="sc-private-note-form">
+    <form method="post" id="sc-private-note-form" class="sc-private-note-form">
         <?php wp_nonce_field('sc_save_private_note_action', 'sc_save_private_note_nonce'); ?>
         <table class="form-table">
-            <tr>
-                <th><label for="sc-private-note-title">عنوان</label></th>
-                <td><input type="text" id="sc-private-note-title" name="title" class="regular-text" required></td>
-            </tr>
             <tr>
                 <th><label for="sc-private-note-content">متن یادداشت</label></th>
                 <td><textarea id="sc-private-note-content" name="content" rows="6" class="large-text" required></textarea></td>
@@ -120,91 +121,137 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
                     </div>
                 </td>
             </tr>
-            <tr>
-                <th>نوع انتخاب کاربران</th>
-                <td>
-                    <select name="target_type" id="sc-private-target-type">
-                        <option value="specific">کاربران خاص</option>
-                        <option value="all">همه کاربران</option>
-                        <option value="course">بر اساس دوره</option>
-                        <?php if (!$is_coach) : ?>
-                            <option value="event">بر اساس رویداد</option>
-                        <?php endif; ?>
-                        <option value="team">بر اساس تیم</option>
-                        <option value="level">بر اساس سطح</option>
-                        <option value="team_level">بر اساس تیم + سطح</option>
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <th>فیلتر وضعیت/نوع بازیکن</th>
-                <td>
-                    <select name="member_status">
-                        <option value="all">همه وضعیت‌ها</option>
-                        <option value="active">فعال</option>
-                        <option value="inactive">غیرفعال</option>
-                    </select>
-                    <select name="member_type">
-                        <option value="all">همه نوع‌ها</option>
-                        <option value="normal">بازیکن عادی</option>
-                        <option value="team">بازیکن تیم</option>
-                    </select>
-                </td>
-            </tr>
-            <tr class="sc-target-row" id="sc-target-specific">
-                <th>کاربران</th>
-                <td>
-                    <select name="member_ids[]" multiple size="8" style="min-width:360px;">
-                        <?php foreach ((array) $members as $member) : ?>
-                            <option value="<?php echo (int) $member->id; ?>">
-                                <?php
-                                $full_name = trim((string) ($member->first_name ?? '') . ' ' . (string) ($member->last_name ?? ''));
-                                echo esc_html(($full_name !== '' ? $full_name : 'کاربر #' . (int) $member->id) . ' - ' . ($member->national_id ?: '-'));
-                                ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </td>
-            </tr>
-            <tr class="sc-target-row" id="sc-target-course" style="display:none;">
-                <th>دوره‌ها</th>
-                <td><select name="course_ids[]" multiple size="6" style="min-width:360px;"><?php foreach ((array) $courses as $c) : ?><option value="<?php echo (int) $c->id; ?>"><?php echo esc_html($c->title); ?></option><?php endforeach; ?></select></td>
-            </tr>
-            <?php if (!$is_coach) : ?>
-            <tr class="sc-target-row" id="sc-target-event" style="display:none;">
-                <th>رویدادها</th>
-                <td><select name="event_ids[]" multiple size="6" style="min-width:360px;"><?php foreach ((array) $events as $e) : ?><option value="<?php echo (int) $e->id; ?>"><?php echo esc_html($e->name); ?></option><?php endforeach; ?></select></td>
-            </tr>
-            <?php endif; ?>
-            <tr class="sc-target-row" id="sc-target-team" style="display:none;">
-                <th>تیم‌ها</th>
-                <td><select name="team_names[]" multiple size="6" style="min-width:360px;"><?php foreach ((array) $teams as $t) : ?><option value="<?php echo esc_attr($t->name); ?>"><?php echo esc_html($t->name); ?></option><?php endforeach; ?></select></td>
-            </tr>
-            <tr class="sc-target-row" id="sc-target-level" style="display:none;">
-                <th>سطح‌ها</th>
-                <td><select name="level_names[]" multiple size="6" style="min-width:360px;"><?php foreach ((array) $levels as $l) : ?><option value="<?php echo esc_attr($l->name); ?>"><?php echo esc_html($l->name); ?></option><?php endforeach; ?></select></td>
-            </tr>
-            <tr class="sc-target-row" id="sc-target-team_level" style="display:none;">
-                <th>تیم + سطح</th>
-                <td>
-                    <select name="team_names[]" multiple size="6" style="min-width:260px;"><?php foreach ((array) $teams as $t) : ?><option value="<?php echo esc_attr($t->name); ?>"><?php echo esc_html($t->name); ?></option><?php endforeach; ?></select>
-                    <select name="level_names[]" multiple size="6" style="min-width:260px;"><?php foreach ((array) $levels as $l) : ?><option value="<?php echo esc_attr($l->name); ?>"><?php echo esc_html($l->name); ?></option><?php endforeach; ?></select>
-                </td>
-            </tr>
         </table>
+        
+        <div class="sc-users-export-card">
+            <h2>فیلتر کاربران گیرنده یادداشت</h2>
+            <div class="sc-row">
+                <label for="sc-target-type">نوع انتخاب</label>
+                <select name="target_type" id="sc-target-type">
+                    <option value="all">همه کاربران</option>
+                    <option value="specific">انتخاب کاربران خاص (جستجو)</option>
+                    <option value="course">بر اساس دوره</option>
+                    <?php if (!$is_coach) : ?>
+                        <option value="event">بر اساس رویداد</option>
+                    <?php endif; ?>
+                    <option value="team">بر اساس تیم</option>
+                    <option value="level">بر اساس سطح</option>
+                    <option value="team_level">بر اساس تیم + سطح</option>
+                </select>
+            </div>
+            <div class="sc-row">
+                <label for="sc-member-status">وضعیت کاربر</label>
+                <select name="member_status" id="sc-member-status">
+                    <option value="all">همه</option>
+                    <option value="active">فقط فعال</option>
+                    <option value="inactive">فقط غیرفعال</option>
+                </select>
+            </div>
+            <div class="sc-row">
+                <label for="sc-member-type">دسته بندی بازیکن</label>
+                <select name="member_type" id="sc-member-type">
+                    <option value="all">همه</option>
+                    <option value="normal">بازیکن عادی</option>
+                    <option value="team">بازیکن تیم</option>
+                </select>
+            </div>
+
+            <div class="sc-filter-block" id="sc-filter-specific">
+                <label>انتخاب کاربران</label>
+                <div id="sc-selected-members" class="sc-selected-tags"></div>
+                <div id="sc-users-member-dropdown" class="sc-users-member-dropdown">
+                    <div class="sc-users-dropdown-toggle">
+                        <span class="sc-users-dropdown-placeholder">جستجو با نام یا کد ملی...</span>
+                        <span class="sc-users-dropdown-arrow">▼</span>
+                    </div>
+                    <div class="sc-users-dropdown-menu">
+                        <div class="sc-users-dropdown-search">
+                            <input type="text" class="sc-users-search-input" placeholder="جستجوی نام یا کد ملی...">
+                        </div>
+                        <div class="sc-users-dropdown-options" id="sc-member-options">
+                            <?php foreach ((array) $members as $member) :
+                                $full_name = trim((string) ($member->first_name ?? '') . ' ' . (string) ($member->last_name ?? ''));
+                                $label = ($full_name !== '' ? $full_name : 'کاربر #' . (int) $member->id) . ' - ' . ($member->national_id ?: (int) $member->id);
+                                $search = strtolower($full_name . ' ' . ($member->national_id ?: ''));
+                            ?>
+                                <div class="sc-users-dropdown-option"
+                                    data-id="<?php echo (int) $member->id; ?>"
+                                    data-label="<?php echo esc_attr($label); ?>"
+                                    data-search="<?php echo esc_attr($search); ?>">
+                                    <?php echo esc_html($label); ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+                <div id="sc-selected-members-count" class="sc-selected-count">0 کاربر انتخاب شده</div>
+                <div id="sc-member-hidden-inputs"></div>
+            </div>
+
+            <div class="sc-filter-block" id="sc-filter-course">
+                <label for="sc-course-ids">دوره ها</label>
+                <select name="course_ids[]" id="sc-course-ids" multiple size="7">
+                    <?php foreach ((array) $courses as $c) : ?>
+                        <option value="<?php echo (int) $c->id; ?>"><?php echo esc_html($c->title); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php if (!$is_coach) : ?>
+            <div class="sc-filter-block" id="sc-filter-event">
+                <label for="sc-event-ids">رویدادها</label>
+                <select name="event_ids[]" id="sc-event-ids" multiple size="7">
+                    <?php foreach ((array) $events as $e) : ?>
+                        <option value="<?php echo (int) $e->id; ?>"><?php echo esc_html($e->name); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php endif; ?>
+            <div class="sc-filter-block" id="sc-filter-team">
+                <label for="sc-team-names">تیم ها</label>
+                <select name="team_names[]" id="sc-team-names" multiple size="7">
+                    <?php foreach ((array) $teams as $t) : ?>
+                        <option value="<?php echo esc_attr($t->name); ?>"><?php echo esc_html($t->name); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="sc-filter-block" id="sc-filter-level">
+                <label for="sc-level-names">سطح ها</label>
+                <select name="level_names[]" id="sc-level-names" multiple size="7">
+                    <?php foreach ((array) $levels as $l) : ?>
+                        <option value="<?php echo esc_attr($l->name); ?>"><?php echo esc_html($l->name); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <p class="submit">
+                <button type="button" class="button button-secondary" id="sc-private-notes-preview-btn">پیش نمایش کاربران فیلتر شده</button>
+            </p>
+            <div id="sc-private-notes-preview-result" class="sc-bulk-preview-result">
+                <p class="description">پس از انتخاب فیلتر، پیش نمایش کاربران را دریافت کنید.</p>
+            </div>
+        </div>
+        <div class="sc-users-export-card">
+            <h2>نحوه ثبت</h2>
+            <div class="sc-row">
+                <label for="sc-send-mode">مدل ثبت یادداشت</label>
+                <select name="send_mode" id="sc-send-mode">
+                    <option value="append_to_default_thread">افزودن به پرونده پیش‌فرض (آخرین پرونده انتخاب‌شده)</option>
+                    <option value="append_to_selected_thread">افزودن به پرونده انتخابی کاربر</option>
+                    <option value="create_new_thread">شروع پرونده جدید برای هر کاربر</option>
+                </select>
+            </div>
+            <div class="sc-row" id="sc-row-thread-title" style="display:none;">
+                <label for="sc-thread-title">نام پرونده جدید</label>
+                <input type="text" id="sc-thread-title" name="thread_title" placeholder="مثلا: پیشرفت تیر ۱۴۰۵">
+            </div>
+            <div class="sc-row" id="sc-row-selected-thread" style="display:none;">
+                <label for="sc-selected-thread-id">پرونده مقصد</label>
+                <select id="sc-selected-thread-id" name="selected_thread_id">
+                    <option value="0">ابتدا یک کاربر خاص انتخاب کنید</option>
+                </select>
+            </div>
+        </div>
         <p class="submit">
             <button type="submit" name="sc_save_private_note" class="button button-primary">ثبت یادداشت خصوصی</button>
         </p>
     </form>
 </div>
-<script>
-jQuery(function($){
-    function toggleRows(){
-        var t = $('#sc-private-target-type').val();
-        $('.sc-target-row').hide();
-        $('#sc-target-' + t).show();
-    }
-    $('#sc-private-target-type').on('change', toggleRows);
-    toggleRows();
-});
-</script>

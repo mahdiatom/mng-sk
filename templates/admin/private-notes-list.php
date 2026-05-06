@@ -1,56 +1,27 @@
 <?php
 if (!defined('ABSPATH')) exit;
-if (!current_user_can('manage_options') && !current_user_can('sc_view_coach_salary')) {
-    wp_die('دسترسی غیرمجاز.');
-}
-
+if (!current_user_can('manage_options') && !current_user_can('sc_view_coach_salary')) wp_die('دسترسی غیرمجاز.');
 global $wpdb;
 $is_coach = !empty($GLOBALS['sc_private_notes_is_coach']);
 $list_page = $is_coach ? 'sc-coach-private-notes' : 'sc-private-notes';
 $add_page = $is_coach ? 'sc-coach-add-private-note' : 'sc-add-private-note';
-
 $members_table = $wpdb->prefix . 'sc_members';
-$members = [];
-if ($is_coach && function_exists('sc_support_get_coach_id_by_user_id') && function_exists('sc_support_get_members_for_coach')) {
-    $coach_id = (int) sc_support_get_coach_id_by_user_id(get_current_user_id());
-    $coach_members = $coach_id > 0 ? sc_support_get_members_for_coach($coach_id) : [];
-    foreach ((array) $coach_members as $cm) {
-        $members[] = (object) [
-            'id' => (int) $cm['member_id'],
-            'first_name' => '',
-            'last_name' => trim((string) ($cm['name'] ?? '')),
-            'national_id' => (string) ($cm['national_id'] ?? ''),
-        ];
-    }
-} else {
-    $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
-}
-
+$members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
 $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
 $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
 $page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
-
 $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '';
 $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '';
 $filter_date_from = $filter_date_from_shamsi !== '' ? sc_shamsi_to_gregorian_date($filter_date_from_shamsi) : '';
 $filter_date_to = $filter_date_to_shamsi !== '' ? sc_shamsi_to_gregorian_date($filter_date_to_shamsi) : '';
-
-$today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
-$display_date_from_shamsi = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi;
-$display_date_to_shamsi = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi;
-
-$result = sc_private_notes_query_admin([
-    'member_id' => $filter_member,
-    'date_from' => $filter_date_from,
-    'date_to' => $filter_date_to,
-    'search' => $search,
-    'per_page' => 20,
-    'page' => $page,
-]);
+$display_date_from_shamsi = $filter_date_from_shamsi;
+$display_date_to_shamsi = $filter_date_to_shamsi;
+$result = sc_private_notes_query_admin(['member_id' => $filter_member, 'date_from' => $filter_date_from, 'date_to' => $filter_date_to, 'search' => $search, 'per_page' => 20, 'page' => $page]);
 $rows = $result['rows'];
+$legacy_rows = $wpdb->get_results("SELECT n.*, TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS member_name FROM {$wpdb->prefix}sc_private_notes n LEFT JOIN {$wpdb->prefix}sc_members m ON m.id = n.member_id ORDER BY n.created_at DESC LIMIT 20");
 ?>
 <div class="wrap sc-private-notes-wrap">
-    <h1 class="wp-heading-inline">لیست یادداشت‌های خصوصی</h1>
+    <h1 class="wp-heading-inline">پرونده‌های یادداشت خصوصی</h1>
     <a href="<?php echo esc_url(admin_url('admin.php?page=' . $add_page)); ?>" class="page-title-action">افزودن یادداشت</a>
     <hr class="wp-header-end">
 
@@ -119,32 +90,21 @@ $rows = $result['rows'];
 
     <div class="back_attendance_list">
         <table class="wp-list-table widefat fixed striped">
-            <thead>
-                <tr>
-                    <th class="column-row">ردیف</th>
-                    <th>کاربر</th>
-                    <th>عنوان</th>
-                    <th>ثبت‌کننده</th>
-                    <th>تاریخ</th>
-                    <th>مشاهده</th>
-                </tr>
-            </thead>
+            <thead><tr><th class="column-row">ردیف</th><th>کاربر</th><th>نام پرونده</th><th>آخرین پیام</th><th>تعداد پیام</th><th>آخرین فعالیت</th><th>مشاهده</th></tr></thead>
             <tbody>
                 <?php if (empty($rows)) : ?>
-                    <tr><td colspan="6">موردی یافت نشد.</td></tr>
+                    <tr><td colspan="7">موردی یافت نشد.</td></tr>
                 <?php else : ?>
                     <?php $idx = (($result['page'] - 1) * $result['per_page']) + 1; ?>
                     <?php foreach ($rows as $row) : ?>
-                        <?php
-                        $author_label = ($row->author_type === 'coach') ? ('مربی: ' . ($row->coach_name ?: '-')) : 'مدیر';
-                        $view_url = add_query_arg(['page' => 'sc-private-notes-view', 'id' => (int) $row->id], admin_url('admin.php'));
-                        ?>
+                        <?php $view_url = add_query_arg(['page' => 'sc-private-notes-view', 'thread_id' => (int) $row->id], admin_url('admin.php')); ?>
                         <tr>
                             <td><?php echo (int) $idx++; ?></td>
                             <td><?php echo esc_html($row->member_name ?: ('کاربر #' . (int) $row->member_id)); ?></td>
-                            <td><?php echo esc_html($row->title); ?></td>
-                            <td><?php echo esc_html($author_label); ?></td>
-                            <td><?php echo esc_html(sc_date_shamsi($row->created_at, 'Y/m/d H:i')); ?></td>
+                            <td><?php echo esc_html(trim((string) $row->subject) !== '' ? (string) $row->subject : ('پرونده #' . (int) $row->id)); ?></td>
+                            <td><?php echo esc_html(wp_trim_words(wp_strip_all_tags((string) $row->last_message_excerpt), 12)); ?></td>
+                            <td><?php echo (int) $row->messages_count; ?></td>
+                            <td><?php echo esc_html(sc_date_shamsi($row->updated_at, 'Y/m/d H:i')); ?></td>
                             <td><a class="button button-small" href="<?php echo esc_url($view_url); ?>">جزئیات</a></td>
                         </tr>
                     <?php endforeach; ?>
@@ -175,4 +135,20 @@ $rows = $result['rows'];
             </div>
         </div>
     <?php endif; ?>
+
+    <h2 style="margin-top:24px;">یادداشت‌های قدیمی (Legacy)</h2>
+    <table class="wp-list-table widefat striped">
+        <thead><tr><th>کاربر</th><th>متن</th><th>تاریخ</th></tr></thead>
+        <tbody>
+            <?php if (empty($legacy_rows)) : ?>
+                <tr><td colspan="3">موردی وجود ندارد.</td></tr>
+            <?php else : foreach ($legacy_rows as $legacy) : ?>
+                <tr>
+                    <td><?php echo esc_html($legacy->member_name ?: ('کاربر #' . (int) $legacy->member_id)); ?></td>
+                    <td><?php echo esc_html(wp_trim_words(wp_strip_all_tags((string) $legacy->content), 16)); ?></td>
+                    <td><?php echo esc_html(sc_date_shamsi($legacy->created_at, 'Y/m/d H:i')); ?></td>
+                </tr>
+            <?php endforeach; endif; ?>
+        </tbody>
+    </table>
 </div>

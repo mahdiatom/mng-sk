@@ -171,6 +171,10 @@
         }
 
         $area.on('click', function(e) {
+            // Prevent double file dialog when native file input is clicked.
+            if (e.target === $fileInput[0] || $(e.target).closest('.sc-ticket-file-input-hidden').length) {
+                return;
+            }
             if (!$(e.target).closest('.sc-ticket-uploaded-remove').length) {
                 $fileInput[0].click();
             }

@@ -1449,9 +1449,16 @@ function sc_admin_enqueue_assets() {
         ));
     }
     if (in_array($current_page, array('sc-private-notes', 'sc-add-private-note', 'sc-coach-private-notes', 'sc-coach-add-private-note'), true)) {
+        wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+        wp_enqueue_style('sc-bulk-actions-admin-css', SC_ASSETS_URL . 'css/admin-bulk-actions.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
         wp_enqueue_style('sc-private-notes-css', SC_ASSETS_URL . 'css/private-notes.css', array('sc-admin-css'), time());
         wp_enqueue_script('sc-ticket-attachments', SC_ASSETS_URL . 'js/ticket-attachments.js', array('jquery'), time(), true);
         wp_localize_script('sc-ticket-attachments', 'scTicketAttach', array('ajaxurl' => admin_url('admin-ajax.php')));
+        wp_enqueue_script('sc-private-notes-admin-js', SC_ASSETS_URL . 'js/private-notes-admin.js', array('jquery', 'sc-admin-js'), time(), true);
+        wp_localize_script('sc-private-notes-admin-js', 'scPrivateNotesAdmin', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('sc_private_notes_preview'),
+        ));
     }
 }
 

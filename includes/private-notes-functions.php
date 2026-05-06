@@ -3,10 +3,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-function sc_private_notes_table() {
-    global $wpdb;
-    return $wpdb->prefix . 'sc_private_notes';
-}
+function sc_private_notes_table() { global $wpdb; return $wpdb->prefix . 'sc_private_notes'; }
+function sc_private_note_threads_table() { global $wpdb; return $wpdb->prefix . 'sc_private_note_threads'; }
+function sc_private_note_messages_table() { global $wpdb; return $wpdb->prefix . 'sc_private_note_messages'; }
 
 function sc_private_notes_get_member_user_id($member_id) {
     global $wpdb;
@@ -15,6 +14,26 @@ function sc_private_notes_get_member_user_id($member_id) {
         "SELECT user_id FROM $members_table WHERE id = %d LIMIT 1",
         absint($member_id)
     ));
+}
+
+function sc_private_notes_get_thread($thread_id) {
+    global $wpdb;
+    return $wpdb->get_row($wpdb->prepare("SELECT * FROM " . sc_private_note_threads_table() . " WHERE id = %d LIMIT 1", absint($thread_id)));
+}
+
+function sc_private_notes_set_last_selected_thread($member_id, $thread_id, $user_id = 0) {
+    $member_id = absint($member_id);
+    $thread_id = absint($thread_id);
+    if ($user_id <= 0) $user_id = get_current_user_id();
+    if ($member_id <= 0 || $thread_id <= 0 || $user_id <= 0) return;
+    update_user_meta($user_id, '_sc_private_notes_last_thread_' . $member_id, $thread_id);
+}
+
+function sc_private_notes_get_last_selected_thread($member_id, $user_id = 0) {
+    $member_id = absint($member_id);
+    if ($user_id <= 0) $user_id = get_current_user_id();
+    if ($member_id <= 0 || $user_id <= 0) return 0;
+    return absint(get_user_meta($user_id, '_sc_private_notes_last_thread_' . $member_id, true));
 }
 
 function sc_private_notes_get_member_ids_for_coach($coach_id) {
@@ -51,6 +70,15 @@ function sc_private_notes_can_access_member($member_id, $user_id = 0) {
     }
     $allowed_member_ids = sc_private_notes_get_member_ids_for_coach($coach_id);
     return in_array($member_id, $allowed_member_ids, true);
+}
+
+function sc_private_notes_can_view_thread($thread, $user_id = 0) {
+    if (!$thread) return false;
+    if ($user_id <= 0) $user_id = get_current_user_id();
+    if ($user_id <= 0) return false;
+    if (user_can($user_id, 'manage_options')) return true;
+    if ((int) $thread->user_id === (int) $user_id) return true;
+    return sc_private_notes_can_access_member((int) $thread->member_id, $user_id);
 }
 
 function sc_private_notes_allowed_mimes() {
@@ -156,56 +184,103 @@ function sc_ajax_upload_private_note_attachment() {
     wp_send_json_success(['id' => $attach_id, 'name' => basename($upload['file'])]);
 }
 
-function sc_private_notes_create_for_members($member_ids, $title, $content, $attachment_ids = []) {
+function sc_private_notes_create_thread_for_member($member_id, $subject = '') {
     global $wpdb;
-    $table = sc_private_notes_table();
-    $member_ids = array_values(array_unique(array_filter(array_map('absint', (array) $member_ids))));
-    $title = sanitize_text_field($title);
-    $content = wp_kses_post($content);
-    if (empty($member_ids) || $title === '' || trim($content) === '') {
-        return new WP_Error('invalid_data', 'عنوان، متن و کاربر الزامی است.');
-    }
-
+    $member_id = absint($member_id);
     $current_user_id = get_current_user_id();
-    $author_type = current_user_can('manage_options') ? 'admin' : 'coach';
-    $author_coach_id = 0;
-    if ($author_type === 'coach' && function_exists('sc_support_get_coach_id_by_user_id')) {
+    if ($member_id <= 0 || $current_user_id <= 0) return new WP_Error('invalid_data', 'کاربر نامعتبر است.');
+    if (!sc_private_notes_can_access_member($member_id, $current_user_id)) return new WP_Error('forbidden', 'دسترسی غیرمجاز.');
+    $target_user_id = sc_private_notes_get_member_user_id($member_id);
+    if ($target_user_id <= 0) return new WP_Error('invalid_user', 'کاربر وردپرس برای بازیکن یافت نشد.');
+    $author_coach_id = null;
+    if (!current_user_can('manage_options') && function_exists('sc_support_get_coach_id_by_user_id')) {
         $author_coach_id = (int) sc_support_get_coach_id_by_user_id($current_user_id);
-        if ($author_coach_id <= 0) {
-            return new WP_Error('forbidden', 'اطلاعات مربی یافت نشد.');
-        }
     }
-
-    $attachment_ids = sc_private_notes_validate_attachment_ids($attachment_ids, 5);
-    $attachment_json = !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null;
     $now = current_time('mysql');
-    $created = 0;
+    $ok = $wpdb->insert(sc_private_note_threads_table(), [
+        'member_id' => $member_id,
+        'user_id' => $target_user_id,
+        'created_by_user_id' => $current_user_id,
+        'created_by_coach_id' => $author_coach_id ?: null,
+        'subject' => sanitize_text_field($subject),
+        'is_open' => 1,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ], ['%d','%d','%d','%d','%s','%d','%s','%s']);
+    if ($ok === false) return new WP_Error('db_error', 'خطا در ایجاد پرونده.');
+    return (int) $wpdb->insert_id;
+}
 
+function sc_private_notes_get_or_create_default_thread($member_id) {
+    global $wpdb;
+    $member_id = absint($member_id);
+    $last_thread_id = sc_private_notes_get_last_selected_thread($member_id, get_current_user_id());
+    if ($last_thread_id > 0) {
+        $last_thread = sc_private_notes_get_thread($last_thread_id);
+        if ($last_thread && (int) $last_thread->member_id === $member_id) return (int) $last_thread_id;
+    }
+    $existing = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM " . sc_private_note_threads_table() . " WHERE member_id = %d ORDER BY id DESC LIMIT 1",
+        $member_id
+    ));
+    if ($existing) return (int) $existing;
+    return sc_private_notes_create_thread_for_member($member_id, '');
+}
+
+function sc_private_notes_append_message_to_thread($thread_id, $content, $attachment_ids = []) {
+    global $wpdb;
+    $thread = sc_private_notes_get_thread($thread_id);
+    if (!$thread) return new WP_Error('not_found', 'پرونده یافت نشد.');
+    if (!sc_private_notes_can_view_thread($thread, get_current_user_id()) || (int) $thread->user_id === (int) get_current_user_id()) {
+        return new WP_Error('forbidden', 'دسترسی غیرمجاز.');
+    }
+    $content = wp_kses_post($content);
+    if (trim(wp_strip_all_tags($content)) === '') return new WP_Error('empty_message', 'متن پیام الزامی است.');
+    $attachment_ids = sc_private_notes_validate_attachment_ids($attachment_ids, 5);
+    $author_type = current_user_can('manage_options') ? 'admin' : 'coach';
+    $author_coach_id = null;
+    if ($author_type === 'coach' && function_exists('sc_support_get_coach_id_by_user_id')) {
+        $author_coach_id = (int) sc_support_get_coach_id_by_user_id(get_current_user_id());
+    }
+    $now = current_time('mysql');
+    $ok = $wpdb->insert(sc_private_note_messages_table(), [
+        'thread_id' => (int) $thread->id,
+        'author_type' => $author_type,
+        'author_user_id' => get_current_user_id(),
+        'author_coach_id' => $author_coach_id ?: null,
+        'content' => $content,
+        'attachment_ids' => !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null,
+        'created_at' => $now,
+    ], ['%d','%s','%d','%d','%s','%s','%s']);
+    if ($ok === false) return new WP_Error('db_error', 'خطا در ثبت پیام.');
+    $wpdb->update(sc_private_note_threads_table(), ['updated_at' => $now], ['id' => (int) $thread->id], ['%s'], ['%d']);
+    return (int) $wpdb->insert_id;
+}
+
+function sc_private_notes_create_for_members($member_ids, $title, $content, $attachment_ids = [], $mode = 'append_to_default_thread', $selected_thread_id = 0) {
+    global $wpdb;
+    $member_ids = array_values(array_unique(array_filter(array_map('absint', (array) $member_ids))));
+    $content = wp_kses_post($content);
+    if (empty($member_ids) || trim($content) === '') {
+        return new WP_Error('invalid_data', 'متن و کاربر الزامی است.');
+    }
+    $created = 0;
     foreach ($member_ids as $member_id) {
-        if (!sc_private_notes_can_access_member($member_id, $current_user_id)) {
-            continue;
+        if ($mode === 'create_new_thread') {
+            $thread_id = sc_private_notes_create_thread_for_member($member_id, $title);
+        } elseif ($mode === 'append_to_selected_thread' && $selected_thread_id > 0) {
+            $candidate = sc_private_notes_get_thread($selected_thread_id);
+            $thread_id = ($candidate && (int) $candidate->member_id === (int) $member_id) ? (int) $selected_thread_id : sc_private_notes_get_or_create_default_thread($member_id);
+        } else {
+            $thread_id = sc_private_notes_get_or_create_default_thread($member_id);
         }
-        $target_user_id = sc_private_notes_get_member_user_id($member_id);
-        if ($target_user_id <= 0) {
-            continue;
-        }
-        $res = $wpdb->insert($table, [
-            'member_id' => $member_id,
-            'user_id' => $target_user_id,
-            'author_type' => $author_type,
-            'author_user_id' => $current_user_id,
-            'author_coach_id' => $author_coach_id ?: null,
-            'title' => $title,
-            'content' => $content,
-            'attachment_ids' => $attachment_json,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ], ['%d', '%d', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s']);
-        if ($res !== false) {
+        if (is_wp_error($thread_id) || !$thread_id) continue;
+        $msg_id = sc_private_notes_append_message_to_thread((int) $thread_id, $content, $attachment_ids);
+        if (!is_wp_error($msg_id)) {
+            sc_private_notes_set_last_selected_thread($member_id, (int) $thread_id, get_current_user_id());
             $created++;
         }
     }
-
     return $created;
 }
 
@@ -244,7 +319,7 @@ function sc_private_notes_can_view($note, $user_id = 0) {
 function sc_private_notes_attachment_download_url($attachment_id, $note_id) {
     return add_query_arg([
         'sc_private_note_attachment' => (int) $attachment_id,
-        'sc_private_note_id' => (int) $note_id,
+        'sc_private_note_ref_id' => (int) $note_id,
         'nonce' => wp_create_nonce('sc_private_note_attachment_' . (int) $attachment_id . '_' . (int) $note_id),
     ], home_url('/'));
 }
@@ -252,21 +327,30 @@ function sc_private_notes_attachment_download_url($attachment_id, $note_id) {
 add_action('template_redirect', 'sc_private_notes_attachment_download_handle');
 function sc_private_notes_attachment_download_handle() {
     $aid = isset($_GET['sc_private_note_attachment']) ? absint($_GET['sc_private_note_attachment']) : 0;
-    $note_id = isset($_GET['sc_private_note_id']) ? absint($_GET['sc_private_note_id']) : 0;
+    $ref_id = isset($_GET['sc_private_note_ref_id']) ? absint($_GET['sc_private_note_ref_id']) : 0;
     $nonce = isset($_GET['nonce']) ? sanitize_text_field(wp_unslash($_GET['nonce'])) : '';
-    if ($aid <= 0 || $note_id <= 0 || !wp_verify_nonce($nonce, 'sc_private_note_attachment_' . $aid . '_' . $note_id)) {
+    if ($aid <= 0 || $ref_id <= 0 || !wp_verify_nonce($nonce, 'sc_private_note_attachment_' . $aid . '_' . $ref_id)) {
         return;
-    }
-    $note = sc_private_notes_get($note_id);
-    if (!$note || !sc_private_notes_can_view($note, get_current_user_id())) {
-        status_header(403);
-        exit;
     }
     if ((int) get_post_meta($aid, '_sc_private_note_attachment', true) !== 1) {
         status_header(404);
         exit;
     }
-    $ids = !empty($note->attachment_ids) ? json_decode($note->attachment_ids, true) : [];
+    $msg = $GLOBALS['wpdb']->get_row($GLOBALS['wpdb']->prepare("SELECT * FROM " . sc_private_note_messages_table() . " WHERE id = %d", $ref_id));
+    $legacy_note = null;
+    if (!$msg) {
+        $legacy_note = sc_private_notes_get($ref_id);
+    }
+    if ($msg) {
+        $thread = sc_private_notes_get_thread((int) $msg->thread_id);
+        if (!$thread || !sc_private_notes_can_view_thread($thread, get_current_user_id())) { status_header(403); exit; }
+        $ids = !empty($msg->attachment_ids) ? json_decode($msg->attachment_ids, true) : [];
+    } elseif ($legacy_note && sc_private_notes_can_view($legacy_note, get_current_user_id())) {
+        $ids = !empty($legacy_note->attachment_ids) ? json_decode($legacy_note->attachment_ids, true) : [];
+    } else {
+        status_header(403);
+        exit;
+    }
     $ids = is_array($ids) ? array_map('absint', $ids) : [];
     if (!in_array($aid, $ids, true)) {
         status_header(404);
@@ -284,9 +368,22 @@ function sc_private_notes_attachment_download_handle() {
     exit;
 }
 
+function sc_private_notes_get_thread_messages($thread_id) {
+    global $wpdb;
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT m.*, TRIM(CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,''))) AS coach_name
+         FROM " . sc_private_note_messages_table() . " m
+         LEFT JOIN {$wpdb->prefix}sc_coaches c ON c.id = m.author_coach_id
+         WHERE m.thread_id = %d
+         ORDER BY m.created_at ASC, m.id ASC",
+        absint($thread_id)
+    ));
+}
+
 function sc_private_notes_query_admin($args = []) {
     global $wpdb;
-    $table = sc_private_notes_table();
+    $table = sc_private_note_threads_table();
+    $messages = sc_private_note_messages_table();
     $members_table = $wpdb->prefix . 'sc_members';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
     $where = ['1=1'];
@@ -315,16 +412,16 @@ function sc_private_notes_query_admin($args = []) {
         $values[] = absint($args['member_id']);
     }
     if (!empty($args['date_from'])) {
-        $where[] = 'DATE(n.created_at) >= %s';
+        $where[] = 'DATE(n.updated_at) >= %s';
         $values[] = sanitize_text_field($args['date_from']);
     }
     if (!empty($args['date_to'])) {
-        $where[] = 'DATE(n.created_at) <= %s';
+        $where[] = 'DATE(n.updated_at) <= %s';
         $values[] = sanitize_text_field($args['date_to']);
     }
     if (!empty($args['search'])) {
         $like = '%' . $wpdb->esc_like($args['search']) . '%';
-        $where[] = '(n.title LIKE %s OR n.content LIKE %s)';
+        $where[] = '(n.subject LIKE %s OR EXISTS(SELECT 1 FROM ' . $messages . ' m2 WHERE m2.thread_id = n.id AND m2.content LIKE %s))';
         $values[] = $like;
         $values[] = $like;
     }
@@ -340,12 +437,12 @@ function sc_private_notes_query_admin($args = []) {
     $sql = "SELECT n.*,
             TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS member_name,
             m.national_id,
-            TRIM(CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,''))) AS coach_name
+            (SELECT COUNT(*) FROM $messages mm WHERE mm.thread_id = n.id) AS messages_count,
+            (SELECT mm.content FROM $messages mm WHERE mm.thread_id = n.id ORDER BY mm.id DESC LIMIT 1) AS last_message_excerpt
             FROM $table n
             LEFT JOIN $members_table m ON m.id = n.member_id
-            LEFT JOIN $coaches_table c ON c.id = n.author_coach_id
             WHERE $where_sql
-            ORDER BY n.created_at DESC
+            ORDER BY n.updated_at DESC
             LIMIT %d OFFSET %d";
     $rows = $wpdb->get_results($wpdb->prepare($sql, array_merge($values, [$per_page, $offset])));
 
@@ -360,11 +457,11 @@ function sc_private_notes_query_admin($args = []) {
 
 function sc_private_notes_get_user_notes($user_id, $args = []) {
     global $wpdb;
-    $table = sc_private_notes_table();
+    $table = sc_private_note_threads_table();
     $limit = isset($args['limit']) ? max(1, absint($args['limit'])) : 20;
     $offset = isset($args['offset']) ? max(0, absint($args['offset'])) : 0;
     return $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM $table WHERE user_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d",
+        "SELECT * FROM $table WHERE user_id = %d ORDER BY updated_at DESC LIMIT %d OFFSET %d",
         absint($user_id),
         $limit,
         $offset
@@ -373,9 +470,82 @@ function sc_private_notes_get_user_notes($user_id, $args = []) {
 
 function sc_private_notes_count_user_notes($user_id) {
     global $wpdb;
-    $table = sc_private_notes_table();
+    $table = sc_private_note_threads_table();
     return (int) $wpdb->get_var($wpdb->prepare(
         "SELECT COUNT(*) FROM $table WHERE user_id = %d",
         absint($user_id)
     ));
+}
+
+function sc_private_notes_get_legacy_user_notes($user_id, $limit = 20, $offset = 0) {
+    global $wpdb;
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM " . sc_private_notes_table() . " WHERE user_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d",
+        absint($user_id),
+        absint($limit),
+        absint($offset)
+    ));
+}
+
+add_action('wp_ajax_sc_private_notes_preview_recipients', 'sc_private_notes_preview_recipients_ajax');
+function sc_private_notes_preview_recipients_ajax() {
+    check_ajax_referer('sc_private_notes_preview', 'nonce');
+    if (!current_user_can('manage_options') && !current_user_can('sc_view_coach_salary')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+    $target_type = isset($_POST['target_type']) ? sanitize_text_field(wp_unslash($_POST['target_type'])) : 'all';
+    $config = [
+        'member_ids' => isset($_POST['member_ids']) ? array_map('absint', (array) $_POST['member_ids']) : [],
+        'course_ids' => isset($_POST['course_ids']) ? array_map('absint', (array) $_POST['course_ids']) : [],
+        'event_ids' => isset($_POST['event_ids']) ? array_map('absint', (array) $_POST['event_ids']) : [],
+        'team_names' => isset($_POST['team_names']) ? array_map('sanitize_text_field', (array) $_POST['team_names']) : [],
+        'level_names' => isset($_POST['level_names']) ? array_map('sanitize_text_field', (array) $_POST['level_names']) : [],
+        'member_type' => isset($_POST['member_type']) ? sanitize_text_field(wp_unslash($_POST['member_type'])) : 'all',
+        'member_status' => isset($_POST['member_status']) ? sanitize_text_field(wp_unslash($_POST['member_status'])) : 'all',
+    ];
+    $members = function_exists('sc_bulk_actions_get_members') ? sc_bulk_actions_get_members($target_type, $config) : [];
+    if (!current_user_can('manage_options') && function_exists('sc_support_get_coach_id_by_user_id')) {
+        $allowed = sc_private_notes_get_member_ids_for_coach((int) sc_support_get_coach_id_by_user_id(get_current_user_id()));
+        $members = array_values(array_filter((array) $members, function($m) use ($allowed) { return in_array((int) $m->id, $allowed, true); }));
+    }
+    ob_start();
+    if (empty($members)) {
+        echo '<p class="description">هیچ کاربری با این فیلترها پیدا نشد.</p>';
+    } else {
+        echo '<div class="sc-bulk-preview-meta">تعداد کاربران فیلتر شده: <strong>' . esc_html((string) count($members)) . '</strong></div>';
+        echo '<table class="wp-list-table widefat striped sc-bulk-preview-table"><thead><tr><th>نام</th><th>کد ملی</th><th>نوع</th><th>تیم</th><th>سطح</th><th>وضعیت</th></tr></thead><tbody>';
+        foreach (array_slice($members, 0, 200) as $member) {
+            $full_name = trim((string) $member->first_name . ' ' . (string) $member->last_name);
+            echo '<tr><td>' . esc_html($full_name !== '' ? $full_name : ('کاربر #' . (int) $member->id)) . '</td><td>' . esc_html((string) ($member->national_id ?: '-')) . '</td><td>' . esc_html(($member->member_type === 'team') ? 'بازیکن تیم' : 'بازیکن عادی') . '</td><td>' . esc_html((string) ($member->team_player ?: '-')) . '</td><td>' . esc_html((string) ($member->skill_level ?: '-')) . '</td><td>' . esc_html(!empty($member->is_active) ? 'فعال' : 'غیرفعال') . '</td></tr>';
+        }
+        echo '</tbody></table>';
+    }
+    wp_send_json_success(['html' => ob_get_clean(), 'total' => count($members)]);
+}
+
+add_action('wp_ajax_sc_private_notes_member_threads', 'sc_private_notes_member_threads_ajax');
+function sc_private_notes_member_threads_ajax() {
+    check_ajax_referer('sc_private_notes_preview', 'nonce');
+    if (!current_user_can('manage_options') && !current_user_can('sc_view_coach_salary')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+    $member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
+    if ($member_id <= 0 || !sc_private_notes_can_access_member($member_id, get_current_user_id())) {
+        wp_send_json_error(['message' => 'کاربر نامعتبر است.']);
+    }
+    global $wpdb;
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT id, subject, updated_at FROM " . sc_private_note_threads_table() . " WHERE member_id = %d ORDER BY updated_at DESC",
+        $member_id
+    ));
+    $last = sc_private_notes_get_last_selected_thread($member_id, get_current_user_id());
+    $threads = [];
+    foreach ((array) $rows as $r) {
+        $threads[] = [
+            'id' => (int) $r->id,
+            'label' => trim((string) $r->subject) !== '' ? (string) $r->subject : ('پرونده #' . (int) $r->id),
+            'updated_at' => (string) $r->updated_at,
+        ];
+    }
+    wp_send_json_success(['threads' => $threads, 'last_thread_id' => $last]);
 }
