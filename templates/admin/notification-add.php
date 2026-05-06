@@ -245,10 +245,10 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                 <td>
                     <div class="sc-ticket-attachment-zone sc-notification-attachment-zone" data-input-name="notification_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_notification_upload_attachment')); ?>" data-action="sc_upload_notification_attachment" data-nonce-key="sc_notification_upload_nonce">
                         <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
-                            <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx" multiple>
+                            <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple>
                             <span class="sc-file-upload-icon">📎</span>
                             <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
-                            <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت: تصویر، PDF، ورد، اکسل. پیوست در پیامک ارسال نمی‌شود.</span>
+                            <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت: تصویر، PDF، ورد، اکسل، ZIP و RAR. پیوست در پیامک ارسال نمی‌شود.</span>
                         </div>
                         <div class="sc-ticket-upload-progress-wrap" style="display:none;">
                             <div class="sc-upload-progress sc-ticket-upload-progress">

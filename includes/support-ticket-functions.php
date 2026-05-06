@@ -27,6 +27,8 @@ function sc_support_allowed_mime_types() {
         'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'xls' => 'application/vnd.ms-excel',
         'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'zip' => 'application/zip',
+        'rar' => 'application/vnd.rar',
     ];
 }
 
@@ -630,7 +632,7 @@ function sc_support_handle_attachments($files_key = 'ticket_attachments') {
             'error' => $error[$i],
             'size' => isset($size[$i]) ? $size[$i] : 0,
         ];
-        $upload = wp_handle_upload($file, ['test_form' => false, 'mimes' => $allowed]);
+        $upload = wp_handle_upload($file, ['test_form' => false, 'test_type' => false, 'mimes' => $allowed]);
         if (isset($upload['error'])) {
             continue;
         }
@@ -749,7 +751,7 @@ function sc_ajax_upload_ticket_attachment() {
     require_once ABSPATH . 'wp-admin/includes/image.php';
     require_once ABSPATH . 'wp-admin/includes/file.php';
     require_once ABSPATH . 'wp-admin/includes/media.php';
-    $upload = wp_handle_upload($file, ['test_form' => false, 'mimes' => $allowed]);
+    $upload = wp_handle_upload($file, ['test_form' => false, 'test_type' => false, 'mimes' => $allowed]);
     if (isset($upload['error'])) {
         wp_send_json_error(['message' => $upload['error']]);
     }

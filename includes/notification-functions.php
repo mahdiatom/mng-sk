@@ -664,12 +664,12 @@ function sc_ajax_upload_notification_attachment() {
     }
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     if (!in_array($ext, $allowed_ext, true)) {
-        wp_send_json_error(['message' => 'فرمت فایل مجاز نیست. مجاز: تصویر، PDF، ورد، اکسل.']);
+        wp_send_json_error(['message' => 'فرمت فایل مجاز نیست. مجاز: تصویر، PDF، ورد، اکسل، ZIP و RAR.']);
     }
     require_once ABSPATH . 'wp-admin/includes/image.php';
     require_once ABSPATH . 'wp-admin/includes/file.php';
     require_once ABSPATH . 'wp-admin/includes/media.php';
-    $upload = wp_handle_upload($file, ['test_form' => false, 'mimes' => $allowed]);
+    $upload = wp_handle_upload($file, ['test_form' => false, 'test_type' => false, 'mimes' => $allowed]);
     if (isset($upload['error'])) {
         wp_send_json_error(['message' => $upload['error']]);
     }

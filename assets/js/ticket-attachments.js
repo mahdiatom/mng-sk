@@ -7,7 +7,7 @@
 
     var MAX_FILES = 5;
     var MAX_SIZE = 5 * 1024 * 1024; // 5MB
-    var ALLOWED_EXT = ['jpg', 'jpeg', 'jpe', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif', 'heic', 'heif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
+    var ALLOWED_EXT = ['jpg', 'jpeg', 'jpe', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif', 'heic', 'heif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
     var ACCEPT = '.' + ALLOWED_EXT.join(',.');
 
     function getExt(name) {
@@ -93,13 +93,14 @@
                 if (res.success && res.data && res.data.id) {
                     uploadedIds.push({ id: res.data.id, name: res.data.name || file.name });
                     addHiddenInput(res.data.id);
-                    $uploadedList.find('.uploading').remove();
+                    $uploadedList.find('.uploading').first().remove();
                     renderList();
                     $progressBar.css('width', '100%');
                     $progressText.text('آپلود شد');
                     $progressWrap.removeClass('sc-uploading').addClass('sc-upload-done');
                 } else {
                     var errMsg = (res.data && res.data.message) ? res.data.message : 'خطا در آپلود فایل.';
+                    $uploadedList.find('.uploading').first().remove();
                     showUploadError($progressText, errMsg, $progressWrap);
                 }
             })
@@ -112,6 +113,7 @@
                 } else if (xhr.status === 0) {
                     msg = 'اتصال برقرار نشد. اتصال اینترنت را بررسی کنید.';
                 }
+                $uploadedList.find('.uploading').first().remove();
                 showUploadError($progressText, msg, $progressWrap);
             })
             .always(function() {
