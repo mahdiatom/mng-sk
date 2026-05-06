@@ -831,6 +831,17 @@ function sc_create_certificates_table() {
         `signature_one_image` varchar(500) DEFAULT NULL,
         `signature_two_text` varchar(255) DEFAULT NULL,
         `signature_two_image` varchar(500) DEFAULT NULL,
+        `padding_top` int(11) NOT NULL DEFAULT 200,
+        `padding_right` int(11) NOT NULL DEFAULT 56,
+        `padding_bottom` int(11) NOT NULL DEFAULT 28,
+        `padding_left` int(11) NOT NULL DEFAULT 56,
+        `signature_bottom_offset` int(11) NOT NULL DEFAULT 80,
+        `background_opacity` decimal(3,2) NOT NULL DEFAULT 1.00,
+        `content_font_family` varchar(100) NOT NULL DEFAULT 'IRANYekanXFaNum',
+        `content_font_size` int(11) NOT NULL DEFAULT 17,
+        `content_line_height` decimal(4,2) NOT NULL DEFAULT 1.85,
+        `content_paragraph_spacing` decimal(4,2) NOT NULL DEFAULT 0.60,
+        `content_text_align` varchar(20) NOT NULL DEFAULT 'center',
         `created_by` bigint(20) unsigned DEFAULT NULL,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
@@ -1170,6 +1181,45 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$certificates_table` ADD COLUMN `orientation` varchar(20) NOT NULL DEFAULT 'portrait' AFTER `message_text`");
         }
         update_option('sc_certificates_orientation_column_added', '1');
+    }
+
+    // اضافه کردن ستون‌های پدینگ گواهینامه (برای نصب‌های قبلی)
+    if (get_option('sc_certificates_padding_columns_added', '0') !== '1') {
+        $certificates_table = $wpdb->prefix . 'sc_certificates';
+        $columns_to_add = [
+            'padding_top' => "ALTER TABLE `$certificates_table` ADD COLUMN `padding_top` int(11) NOT NULL DEFAULT 200 AFTER `signature_two_image`",
+            'padding_right' => "ALTER TABLE `$certificates_table` ADD COLUMN `padding_right` int(11) NOT NULL DEFAULT 56 AFTER `padding_top`",
+            'padding_bottom' => "ALTER TABLE `$certificates_table` ADD COLUMN `padding_bottom` int(11) NOT NULL DEFAULT 28 AFTER `padding_right`",
+            'padding_left' => "ALTER TABLE `$certificates_table` ADD COLUMN `padding_left` int(11) NOT NULL DEFAULT 56 AFTER `padding_bottom`",
+            'signature_bottom_offset' => "ALTER TABLE `$certificates_table` ADD COLUMN `signature_bottom_offset` int(11) NOT NULL DEFAULT 80 AFTER `padding_left`",
+        ];
+        foreach ($columns_to_add as $column_name => $query) {
+            $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$certificates_table` LIKE %s", $column_name));
+            if (empty($col_exists)) {
+                $wpdb->query($query);
+            }
+        }
+        update_option('sc_certificates_padding_columns_added', '1');
+    }
+
+    // اضافه کردن ستون‌های تنظیمات استایل محتوا/بک‌گراند (برای نصب‌های قبلی)
+    if (get_option('sc_certificates_style_columns_added', '0') !== '1') {
+        $certificates_table = $wpdb->prefix . 'sc_certificates';
+        $columns_to_add = [
+            'background_opacity' => "ALTER TABLE `$certificates_table` ADD COLUMN `background_opacity` decimal(3,2) NOT NULL DEFAULT 1.00 AFTER `signature_bottom_offset`",
+            'content_font_family' => "ALTER TABLE `$certificates_table` ADD COLUMN `content_font_family` varchar(100) NOT NULL DEFAULT 'IRANYekanXFaNum' AFTER `background_opacity`",
+            'content_font_size' => "ALTER TABLE `$certificates_table` ADD COLUMN `content_font_size` int(11) NOT NULL DEFAULT 17 AFTER `content_font_family`",
+            'content_line_height' => "ALTER TABLE `$certificates_table` ADD COLUMN `content_line_height` decimal(4,2) NOT NULL DEFAULT 1.85 AFTER `content_font_size`",
+            'content_paragraph_spacing' => "ALTER TABLE `$certificates_table` ADD COLUMN `content_paragraph_spacing` decimal(4,2) NOT NULL DEFAULT 0.60 AFTER `content_line_height`",
+            'content_text_align' => "ALTER TABLE `$certificates_table` ADD COLUMN `content_text_align` varchar(20) NOT NULL DEFAULT 'center' AFTER `content_paragraph_spacing`",
+        ];
+        foreach ($columns_to_add as $column_name => $query) {
+            $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$certificates_table` LIKE %s", $column_name));
+            if (empty($col_exists)) {
+                $wpdb->query($query);
+            }
+        }
+        update_option('sc_certificates_style_columns_added', '1');
     }
 
     // اضافه کردن ستون coach_id به جدول honors (یک بار برای نصب‌های قبلی)

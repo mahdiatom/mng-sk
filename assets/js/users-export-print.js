@@ -35,6 +35,9 @@
     document.body.setAttribute('data-page-size', pageSize);
     document.body.setAttribute('data-cards', String(cardsPerPage));
     document.body.setAttribute('data-columns', String(Math.max(1, Math.min(4, columnsCount))));
+    var chosenFont = resolveExportFontFamily(template && template.content_font_family);
+    document.body.style.setProperty('--sc-export-font-family', chosenFont);
+    document.body.style.fontFamily = chosenFont;
 
     var header = document.createElement('div');
     header.className = 'sc-print-header';
@@ -244,5 +247,18 @@
             }
         }
         return 0;
+    }
+
+    function resolveExportFontFamily(fontKey) {
+        var key = String(fontKey || 'IRANYekanXFaNum');
+        var map = {
+            IRANYekanXFaNum: '"IRANYekanXFaNum", Tahoma, Arial, sans-serif',
+            Vazir: '"Vazir", "IRANYekanXFaNum", Tahoma, Arial, sans-serif',
+            Shabnam: '"Shabnam", "IRANYekanXFaNum", Tahoma, Arial, sans-serif',
+            Morabba: '"Morabba", "IRANYekanXFaNum", Tahoma, Arial, sans-serif',
+            Tahoma: 'Tahoma, Arial, sans-serif',
+            Arial: 'Arial, Tahoma, sans-serif'
+        };
+        return map[key] || map.IRANYekanXFaNum;
     }
 })();

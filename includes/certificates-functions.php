@@ -32,6 +32,17 @@ function sc_certificates_get_default_templates() {
             'signature_one_image' => '',
             'signature_two_text' => '',
             'signature_two_image' => '',
+            'padding_top' => 200,
+            'padding_right' => 56,
+            'padding_bottom' => 28,
+            'padding_left' => 56,
+            'signature_bottom_offset' => 80,
+            'background_opacity' => 1,
+            'content_font_family' => 'IRANYekanXFaNum',
+            'content_font_size' => 17,
+            'content_line_height' => 1.85,
+            'content_paragraph_spacing' => 0.6,
+            'content_text_align' => 'center',
         ],
     ];
 }
@@ -58,18 +69,29 @@ function sc_certificates_normalize_template($template, $fallback_key = '') {
     }
     return [
         'key' => $key,
-        'title' => isset($template['title']) ? sanitize_text_field($template['title']) : 'قالب جدید',
-        'certificate_title' => isset($template['certificate_title']) ? sanitize_text_field($template['certificate_title']) : (isset($template['title']) ? sanitize_text_field($template['title']) : 'گواهینامه'),
-        'description' => isset($template['description']) ? sanitize_textarea_field($template['description']) : '',
+        'title' => isset($template['title']) ? sanitize_text_field(wp_unslash($template['title'])) : 'قالب جدید',
+        'certificate_title' => isset($template['certificate_title']) ? sanitize_text_field(wp_unslash($template['certificate_title'])) : (isset($template['title']) ? sanitize_text_field(wp_unslash($template['title'])) : 'گواهینامه'),
+        'description' => isset($template['description']) ? sanitize_textarea_field(wp_unslash($template['description'])) : '',
         'page_size' => (isset($template['page_size']) && in_array($template['page_size'], ['A4', 'A5'], true)) ? $template['page_size'] : 'A4',
         'orientation' => (isset($template['orientation']) && in_array($template['orientation'], ['portrait', 'landscape'], true)) ? $template['orientation'] : 'portrait',
         'cards_per_page' => 1,
-        'background_image' => isset($template['background_image']) ? esc_url_raw($template['background_image']) : '',
-        'message_text' => isset($template['message_text']) ? sanitize_textarea_field($template['message_text']) : '',
-        'signature_one_text' => isset($template['signature_one_text']) ? sanitize_textarea_field($template['signature_one_text']) : '',
-        'signature_one_image' => isset($template['signature_one_image']) ? esc_url_raw($template['signature_one_image']) : '',
-        'signature_two_text' => isset($template['signature_two_text']) ? sanitize_textarea_field($template['signature_two_text']) : '',
-        'signature_two_image' => isset($template['signature_two_image']) ? esc_url_raw($template['signature_two_image']) : '',
+        'background_image' => isset($template['background_image']) ? esc_url_raw(wp_unslash($template['background_image'])) : '',
+        'message_text' => isset($template['message_text']) ? wp_kses_post(wp_unslash($template['message_text'])) : '',
+        'signature_one_text' => isset($template['signature_one_text']) ? wp_kses_post(wp_unslash($template['signature_one_text'])) : '',
+        'signature_one_image' => isset($template['signature_one_image']) ? esc_url_raw(wp_unslash($template['signature_one_image'])) : '',
+        'signature_two_text' => isset($template['signature_two_text']) ? wp_kses_post(wp_unslash($template['signature_two_text'])) : '',
+        'signature_two_image' => isset($template['signature_two_image']) ? esc_url_raw(wp_unslash($template['signature_two_image'])) : '',
+        'padding_top' => isset($template['padding_top']) ? max(0, (int) wp_unslash($template['padding_top'])) : 200,
+        'padding_right' => isset($template['padding_right']) ? max(0, (int) wp_unslash($template['padding_right'])) : 56,
+        'padding_bottom' => isset($template['padding_bottom']) ? max(0, (int) wp_unslash($template['padding_bottom'])) : 28,
+        'padding_left' => isset($template['padding_left']) ? max(0, (int) wp_unslash($template['padding_left'])) : 56,
+        'signature_bottom_offset' => isset($template['signature_bottom_offset']) ? max(0, (int) wp_unslash($template['signature_bottom_offset'])) : 80,
+        'background_opacity' => isset($template['background_opacity']) ? max(0, min(1, (float) wp_unslash($template['background_opacity']))) : 1,
+        'content_font_family' => isset($template['content_font_family']) ? sanitize_text_field(wp_unslash($template['content_font_family'])) : 'IRANYekanXFaNum',
+        'content_font_size' => isset($template['content_font_size']) ? max(10, (int) wp_unslash($template['content_font_size'])) : 17,
+        'content_line_height' => isset($template['content_line_height']) ? max(1, min(3, (float) wp_unslash($template['content_line_height']))) : 1.85,
+        'content_paragraph_spacing' => isset($template['content_paragraph_spacing']) ? max(0, min(3, (float) wp_unslash($template['content_paragraph_spacing']))) : 0.6,
+        'content_text_align' => (isset($template['content_text_align']) && in_array(wp_unslash($template['content_text_align']), ['right', 'center', 'justify', 'left'], true)) ? wp_unslash($template['content_text_align']) : 'center',
     ];
 }
 
@@ -96,13 +118,28 @@ function sc_certificates_replace_vars($text, $variables) {
 
 function sc_certificates_render_html($certificate_row) {
     $background_image = !empty($certificate_row->background_image) ? esc_url($certificate_row->background_image) : '';
-    $message_text = nl2br(esc_html((string) $certificate_row->message_text));
-    $signature_one_text = nl2br(esc_html((string) $certificate_row->signature_one_text));
-    $signature_two_text = nl2br(esc_html((string) $certificate_row->signature_two_text));
+    $message_text = wp_kses_post((string) $certificate_row->message_text);
+    $signature_one_text = wp_kses_post((string) $certificate_row->signature_one_text);
+    $signature_two_text = wp_kses_post((string) $certificate_row->signature_two_text);
     $signature_one_image = !empty($certificate_row->signature_one_image) ? esc_url($certificate_row->signature_one_image) : '';
     $signature_two_image = !empty($certificate_row->signature_two_image) ? esc_url($certificate_row->signature_two_image) : '';
     $title = esc_html((string) $certificate_row->title);
     $orientation = (isset($certificate_row->orientation) && $certificate_row->orientation === 'landscape') ? 'landscape' : 'portrait';
+    $padding_top = isset($certificate_row->padding_top) ? max(0, (int) $certificate_row->padding_top) : 200;
+    $padding_right = isset($certificate_row->padding_right) ? max(0, (int) $certificate_row->padding_right) : 56;
+    $padding_bottom = isset($certificate_row->padding_bottom) ? max(0, (int) $certificate_row->padding_bottom) : 28;
+    $padding_left = isset($certificate_row->padding_left) ? max(0, (int) $certificate_row->padding_left) : 56;
+    $signature_bottom_offset = isset($certificate_row->signature_bottom_offset) ? max(0, (int) $certificate_row->signature_bottom_offset) : 80;
+    $background_opacity = isset($certificate_row->background_opacity) ? max(0, min(1, (float) $certificate_row->background_opacity)) : 1;
+    $content_font_family = !empty($certificate_row->content_font_family) ? sanitize_text_field((string) $certificate_row->content_font_family) : 'IRANYekanXFaNum';
+    $allowed_font_families = ['IRANYekanXFaNum', 'Vazir', 'Shabnam', 'Morabba', 'Tahoma', 'Arial'];
+    if (!in_array($content_font_family, $allowed_font_families, true)) {
+        $content_font_family = 'IRANYekanXFaNum';
+    }
+    $content_font_size = isset($certificate_row->content_font_size) ? max(10, (int) $certificate_row->content_font_size) : 17;
+    $content_line_height = isset($certificate_row->content_line_height) ? max(1, min(3, (float) $certificate_row->content_line_height)) : 1.85;
+    $content_paragraph_spacing = isset($certificate_row->content_paragraph_spacing) ? max(0, min(3, (float) $certificate_row->content_paragraph_spacing)) : 0.6;
+    $content_text_align = (isset($certificate_row->content_text_align) && in_array($certificate_row->content_text_align, ['right', 'center', 'justify', 'left'], true)) ? $certificate_row->content_text_align : 'center';
     $sheet_width = $orientation === 'landscape' ? '297mm' : '210mm';
     $sheet_height = $orientation === 'landscape' ? '210mm' : '297mm';
     $page_size = $orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait';
@@ -111,6 +148,11 @@ function sc_certificates_render_html($certificate_row) {
     $font_regular_woff = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff/IRANYekanXFaNum-Regular.woff' : '';
     $font_bold_woff2 = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff2/IRANYekanXFaNum-Bold.woff2' : '';
     $font_bold_woff = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff/IRANYekanXFaNum-Bold.woff' : '';
+    $vazir_regular_woff2 = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff2/Vazir.woff2' : '';
+    $vazir_regular_woff = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff/Vazir.woff' : '';
+    $shabnam_regular_woff2 = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff2/Shabnam.woff2' : '';
+    $shabnam_regular_woff = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff/Shabnam.woff' : '';
+    $morabba_regular_ttf = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/ttf/Morabba-Regular.ttf' : '';
 
     ob_start();
     ?>
@@ -135,31 +177,128 @@ function sc_certificates_render_html($certificate_row) {
                 src: url('<?php echo esc_url($font_bold_woff); ?>') format('woff'),
                      url('<?php echo esc_url($font_bold_woff2); ?>') format('woff2');
             }
+            @font-face {
+                font-family: Vazir;
+                font-style: normal;
+                font-weight: normal;
+                src: url('<?php echo esc_url($vazir_regular_woff); ?>') format('woff'),
+                     url('<?php echo esc_url($vazir_regular_woff2); ?>') format('woff2');
+            }
+            @font-face {
+                font-family: Shabnam;
+                font-style: normal;
+                font-weight: normal;
+                src: url('<?php echo esc_url($shabnam_regular_woff); ?>') format('woff'),
+                     url('<?php echo esc_url($shabnam_regular_woff2); ?>') format('woff2');
+            }
+            @font-face {
+                font-family: Morabba;
+                font-style: normal;
+                font-weight: normal;
+                src: url('<?php echo esc_url($morabba_regular_ttf); ?>') format('truetype');
+            }
             @page { size: <?php echo esc_html($page_size); ?>; margin: 0; }
-            body { font-family: IRANYekanXFaNum, Tahoma, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+            html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { font-family: IRANYekanXFaNum, Tahoma, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .sc-certificate-actions { max-width: <?php echo esc_html($sheet_width); ?>; margin: 0 auto 12px; display: flex; gap: 8px; justify-content: flex-start; }
-            .sc-certificate-actions button { border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-family: inherit; }
-            .sc-certificate-print-btn { background: #2271b1; color: #fff; }
-            .sc-certificate-pdf-btn { background: #008a20; color: #fff; }
-            .sc-certificate-sheet { width: <?php echo esc_html($sheet_width); ?>; min-height: <?php echo esc_html($sheet_height); ?>; margin: 0 auto; background: <?php echo $has_bg_image ? 'transparent' : '#fff'; ?>; position: relative; box-sizing: border-box; border: <?php echo $has_bg_image ? '0' : '1px solid #ddd'; ?>; }
-            .sc-certificate-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .35; }
-            .sc-certificate-content { position: relative; z-index: 2; padding: 40mm 18mm 30mm; }
-            .sc-certificate-title { text-align: center; margin: 0 0 25px; font-size: 28px; font-weight: 700; }
-            .sc-certificate-message { font-size: 20px; line-height: 2.2; text-align: center; min-height: 220px; }
-            .sc-certificate-signatures { display: flex; justify-content: space-between; gap: 20px; margin-top: 35mm; }
+            .sc-certificate-actions button { border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-family: inherit; background: #008a20; color: #fff; }
+            .sc-certificate-sheet {
+                width: <?php echo esc_html($sheet_width); ?>;
+                height: <?php echo esc_html($sheet_height); ?>;
+                min-height: <?php echo esc_html($sheet_height); ?>;
+                max-height: <?php echo esc_html($sheet_height); ?>;
+                margin: 0 auto;
+                background: <?php echo $has_bg_image ? 'transparent' : '#fff'; ?>;
+                position: relative;
+                box-sizing: border-box;
+                border: <?php echo $has_bg_image ? '0' : '1px solid #ddd'; ?>;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            .sc-certificate-bg {
+                position: absolute;
+                inset: 0;
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                opacity: <?php echo esc_html($background_opacity); ?>;
+                z-index: 1;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .sc-certificate-content {
+                position: relative;
+                z-index: 2;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                padding: <?php echo esc_html($padding_top); ?>px <?php echo esc_html($padding_right); ?>px <?php echo esc_html($padding_bottom); ?>px <?php echo esc_html($padding_left); ?>px;
+                box-sizing: border-box;
+                min-height: 0;
+            }
+            .sc-certificate-title { text-align: center; margin: 0 0 14px; font-size: 26px; font-weight: 700; flex-shrink: 0; }
+            .sc-certificate-message {
+                font-family: <?php echo esc_html($content_font_family); ?>, IRANYekanXFaNum, Tahoma, Arial, sans-serif;
+                font-size: <?php echo esc_html($content_font_size); ?>px;
+                line-height: <?php echo esc_html($content_line_height); ?>;
+                text-align: <?php echo esc_html($content_text_align); ?>;
+                flex: 1;
+                min-height: 0;
+                overflow: hidden;
+            }
+            .sc-certificate-message p { margin: 0 0 <?php echo esc_html($content_paragraph_spacing); ?>em; }
+            .sc-certificate-signatures {
+                display: flex;
+                justify-content: space-between;
+                gap: 16px;
+                margin-top: auto;
+                margin-bottom: <?php echo esc_html($signature_bottom_offset); ?>px;
+                flex-shrink: 0;
+                padding-top: 30px;
+            }
             .sc-signature-box { width: 45%; text-align: center; }
-            .sc-signature-image { max-height: 70px; max-width: 100%; object-fit: contain; display: inline-block; margin-bottom: 8px; }
-            .sc-signature-text { font-size: 14px; font-weight: 600; }
+            .sc-signature-image { max-height: 56px; max-width: 100%; object-fit: contain; display: inline-block; margin-bottom: 6px; }
+            .sc-signature-text {
+                font-size: 14px;
+                line-height: 1.8;
+                font-weight: normal;
+                text-align: inherit;
+            }
+            .sc-signature-text p,
+            .sc-signature-text ul,
+            .sc-signature-text ol,
+            .sc-signature-text h1,
+            .sc-signature-text h2,
+            .sc-signature-text h3,
+            .sc-signature-text h4,
+            .sc-signature-text h5,
+            .sc-signature-text h6 { margin: 0.25em 0; }
             @media print {
-                body { background: #fff; padding: 0; }
-                .sc-certificate-actions { display: none; }
-                .sc-certificate-sheet { border: 0; margin: 0; width: auto; min-height: 100vh; }
+                body { background: #fff; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                .sc-certificate-actions { display: none !important; }
+                .sc-certificate-sheet {
+                    margin: 0 !important;
+                    border: 0 !important;
+                    width: <?php echo esc_html($sheet_width); ?> !important;
+                    height: <?php echo esc_html($sheet_height); ?> !important;
+                    min-height: <?php echo esc_html($sheet_height); ?> !important;
+                    max-height: <?php echo esc_html($sheet_height); ?> !important;
+                    box-shadow: none !important;
+                    page-break-after: avoid;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                }
+                .sc-certificate-bg {
+                    opacity: 1 !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
             }
         </style>
     </head>
     <body>
         <div class="sc-certificate-actions">
-            <button type="button" class="sc-certificate-print-btn" onclick="window.print()">پرینت</button>
             <button type="button" class="sc-certificate-pdf-btn" onclick="window.print()">خروجی PDF</button>
         </div>
         <div class="sc-certificate-sheet">
@@ -223,7 +362,7 @@ function sc_issue_certificates_handler() {
     $sms_sent = 0;
     foreach ($members as $member) {
         $vars = sc_certificates_member_variables($member);
-        $message_text = sc_certificates_replace_vars($template['message_text'], $vars);
+        $message_text = wp_kses_post(sc_certificates_replace_vars($template['message_text'], $vars));
         $inserted = $wpdb->insert(
             $table,
             [
@@ -237,11 +376,22 @@ function sc_issue_certificates_handler() {
                 'signature_one_image' => $template['signature_one_image'],
                 'signature_two_text' => $template['signature_two_text'],
                 'signature_two_image' => $template['signature_two_image'],
+                'padding_top' => $template['padding_top'],
+                'padding_right' => $template['padding_right'],
+                'padding_bottom' => $template['padding_bottom'],
+                'padding_left' => $template['padding_left'],
+                'signature_bottom_offset' => $template['signature_bottom_offset'],
+                'background_opacity' => $template['background_opacity'],
+                'content_font_family' => $template['content_font_family'],
+                'content_font_size' => $template['content_font_size'],
+                'content_line_height' => $template['content_line_height'],
+                'content_paragraph_spacing' => $template['content_paragraph_spacing'],
+                'content_text_align' => $template['content_text_align'],
                 'created_by' => get_current_user_id(),
                 'created_at' => current_time('mysql'),
                 'updated_at' => current_time('mysql'),
             ],
-            ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s']
+            ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%f', '%s', '%d', '%f', '%f', '%s', '%d', '%s', '%s']
         );
         if (!$inserted) {
             continue;
@@ -314,20 +464,36 @@ function sc_download_certificate_handler() {
     }
     $certificate_id = isset($_GET['certificate_id']) ? absint($_GET['certificate_id']) : 0;
     $nonce = isset($_GET['nonce']) ? sanitize_text_field(wp_unslash($_GET['nonce'])) : '';
-    if (!$certificate_id || !wp_verify_nonce($nonce, 'sc_download_certificate_' . $certificate_id)) {
+    if (!$certificate_id) {
         wp_die('درخواست نامعتبر است.');
     }
 
     global $wpdb;
     $members_table = $wpdb->prefix . 'sc_members';
     $cert_table = $wpdb->prefix . 'sc_certificates';
-    $current_user_id = get_current_user_id();
-    $member_id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $members_table WHERE user_id = %d LIMIT 1", $current_user_id));
-    if ($member_id <= 0) {
-        wp_die('اطلاعات عضو یافت نشد.');
+
+    $admin_mode = isset($_GET['sc_cert_admin']) && (string) wp_unslash($_GET['sc_cert_admin']) === '1';
+    if ($admin_mode) {
+        if (!current_user_can('manage_options')) {
+            wp_die('دسترسی غیرمجاز.');
+        }
+        if (!wp_verify_nonce($nonce, 'sc_admin_download_certificate_' . $certificate_id)) {
+            wp_die('درخواست نامعتبر است.');
+        }
+        $certificate = $wpdb->get_row($wpdb->prepare("SELECT * FROM $cert_table WHERE id = %d", $certificate_id));
+    } else {
+        if (!wp_verify_nonce($nonce, 'sc_download_certificate_' . $certificate_id)) {
+            wp_die('درخواست نامعتبر است.');
+        }
+        $current_user_id = get_current_user_id();
+        $member_id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $members_table WHERE user_id = %d LIMIT 1", $current_user_id));
+        if ($member_id <= 0) {
+            wp_die('اطلاعات عضو یافت نشد.');
+        }
+
+        $certificate = $wpdb->get_row($wpdb->prepare("SELECT * FROM $cert_table WHERE id = %d AND member_id = %d", $certificate_id, $member_id));
     }
 
-    $certificate = $wpdb->get_row($wpdb->prepare("SELECT * FROM $cert_table WHERE id = %d AND member_id = %d", $certificate_id, $member_id));
     if (!$certificate) {
         wp_die('گواهینامه یافت نشد.');
     }

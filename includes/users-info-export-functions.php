@@ -31,6 +31,7 @@ function sc_users_export_get_default_templates() {
             'layout_columns_count' => 2,
             'image_only_mode' => 0,
             'card_footer_text' => '',
+            'content_font_family' => 'IRANYekanXFaNum',
         ],
     ];
 }
@@ -100,21 +101,24 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
 
     return [
         'key' => $key,
-        'title' => isset($template['title']) ? sanitize_text_field($template['title']) : 'قالب جدید',
-        'description' => isset($template['description']) ? sanitize_textarea_field($template['description']) : '',
+        'title' => isset($template['title']) ? sanitize_text_field(wp_unslash($template['title'])) : 'قالب جدید',
+        'description' => isset($template['description']) ? sanitize_textarea_field(wp_unslash($template['description'])) : '',
         'page_size' => (isset($template['page_size']) && in_array($template['page_size'], ['A4', 'A5'], true)) ? $template['page_size'] : 'A4',
         'cards_per_page' => isset($template['cards_per_page']) ? max(1, min(6, (int) $template['cards_per_page'])) : 2,
         'fields' => $fields,
         'layout' => [
             'columns' => $columns,
         ],
-        'background_color' => isset($template['background_color']) ? sanitize_text_field($template['background_color']) : '#ffffff',
-        'background_image' => isset($template['background_image']) ? esc_url_raw($template['background_image']) : '',
-        'background_opacity' => isset($template['background_opacity']) ? max(0, min(1, (float) $template['background_opacity'])) : 0.2,
+        'background_color' => isset($template['background_color']) ? sanitize_text_field(wp_unslash($template['background_color'])) : '#ffffff',
+        'background_image' => isset($template['background_image']) ? esc_url_raw(wp_unslash($template['background_image'])) : '',
+        'background_opacity' => isset($template['background_opacity']) ? max(0, min(1, (float) wp_unslash($template['background_opacity']))) : 0.2,
         'columns_count' => $columns_count,
         'layout_columns_count' => $layout_columns_count,
         'image_only_mode' => !empty($template['image_only_mode']) ? 1 : 0,
-        'card_footer_text' => isset($template['card_footer_text']) ? sanitize_textarea_field($template['card_footer_text']) : '',
+        'card_footer_text' => isset($template['card_footer_text']) ? sanitize_textarea_field(wp_unslash($template['card_footer_text'])) : '',
+        'content_font_family' => (isset($template['content_font_family']) && in_array(wp_unslash($template['content_font_family']), ['IRANYekanXFaNum', 'Vazir', 'Shabnam', 'Morabba', 'Tahoma', 'Arial'], true))
+            ? wp_unslash($template['content_font_family'])
+            : 'IRANYekanXFaNum',
     ];
 }
 

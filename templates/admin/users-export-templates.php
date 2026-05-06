@@ -132,6 +132,18 @@ if (isset($_POST['sc_save_export_templates'])) {
                                 <input type="number" name="templates[<?php echo esc_attr($template['key']); ?>][background_opacity]" min="0" max="1" step="0.05" value="<?php echo esc_attr($template['background_opacity'] ?? 0.2); ?>">
                             </div>
                             <div class="sc-row">
+                                <label>فونت خروجی</label>
+                                <?php $ff = (string) ($template['content_font_family'] ?? 'IRANYekanXFaNum'); ?>
+                                <select name="templates[<?php echo esc_attr($template['key']); ?>][content_font_family]">
+                                    <option value="IRANYekanXFaNum" <?php selected($ff, 'IRANYekanXFaNum'); ?>>IRANYekanXFaNum</option>
+                                    <option value="Vazir" <?php selected($ff, 'Vazir'); ?>>Vazir</option>
+                                    <option value="Shabnam" <?php selected($ff, 'Shabnam'); ?>>Shabnam</option>
+                                    <option value="Morabba" <?php selected($ff, 'Morabba'); ?>>Morabba</option>
+                                    <option value="Tahoma" <?php selected($ff, 'Tahoma'); ?>>Tahoma</option>
+                                    <option value="Arial" <?php selected($ff, 'Arial'); ?>>Arial</option>
+                                </select>
+                            </div>
+                            <div class="sc-row">
                                 <label class="sc-inline-check">
                                     <input type="checkbox" name="templates[<?php echo esc_attr($template['key']); ?>][image_only_mode]" value="1" <?php checked(!empty($template['image_only_mode'])); ?>>
                                     خروجی فقط عکس باشد (تمام عرض، زیر هم، بک‌گراند شفاف)

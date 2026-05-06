@@ -7,6 +7,29 @@
 }
 
 @font-face {
+    font-family: Vazir;
+    font-style: normal;
+    font-weight: normal;
+    src: url('../fonts/Woff/Vazir.woff') format('woff'),
+         url('../fonts/Woff2/Vazir.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: Shabnam;
+    font-style: normal;
+    font-weight: normal;
+    src: url('../fonts/Woff/Shabnam.woff') format('woff'),
+         url('../fonts/Woff2/Shabnam.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: Morabba;
+    font-style: normal;
+    font-weight: normal;
+    src: url('../fonts/ttf/Morabba-Regular.ttf') format('truetype');
+}
+
+@font-face {
     font-family: IRANYekanXFaNum;
     font-style: normal;
     font-weight: bold;
@@ -27,6 +50,11 @@ body.sc-users-export-print-page {
     color: #111;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+}
+
+body.sc-users-export-print-page,
+body.sc-users-export-print-page * {
+    font-family: var(--sc-export-font-family, "IRANYekanXFaNum", Tahoma, Arial, sans-serif);
 }
 
 .sc-print-header {

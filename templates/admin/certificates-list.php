@@ -54,7 +54,7 @@ if (isset($_POST['sc_update_certificate'])) {
             $cert_table,
             [
                 'title' => sanitize_text_field(wp_unslash($_POST['title'] ?? '')),
-                'message_text' => sanitize_textarea_field(wp_unslash($_POST['message_text'] ?? '')),
+                'message_text' => wp_kses_post(wp_unslash($_POST['message_text'] ?? '')),
                 'updated_at' => current_time('mysql'),
             ],
             ['id' => $certificate_id],
@@ -188,7 +188,17 @@ if ($edit_id > 0) {
                 </div>
                 <div class="sc-row">
                     <label>متن گواهینامه</label>
-                    <textarea name="message_text" rows="4"><?php echo esc_textarea($edit_row->message_text); ?></textarea>
+                    <?php
+                    wp_editor(
+                        (string) $edit_row->message_text,
+                        'sc_cert_admin_edit_message',
+                        [
+                            'textarea_name' => 'message_text',
+                            'textarea_rows' => 8,
+                            'media_buttons' => false,
+                        ]
+                    );
+                    ?>
                 </div>
                 <p>
                     <button type="submit" name="sc_update_certificate" class="button button-primary">ذخیره تغییرات</button>
@@ -289,6 +299,15 @@ if ($edit_id > 0) {
                                 'sc_delete_certificate_' . (int) $row->id
                             );
                             $edit_url = admin_url('admin.php?page=sc-certificates-list&action=edit&certificate_id=' . (int) $row->id);
+                            $view_url = add_query_arg(
+                                [
+                                    'action' => 'sc_download_certificate',
+                                    'certificate_id' => (int) $row->id,
+                                    'sc_cert_admin' => '1',
+                                    'nonce' => wp_create_nonce('sc_admin_download_certificate_' . (int) $row->id),
+                                ],
+                                admin_url('admin-post.php')
+                            );
                             ?>
                             <tr>
                                 <th scope="row" class="check-column"><input type="checkbox" name="certificate_ids[]" value="<?php echo (int) $row->id; ?>"></th>
@@ -296,6 +315,7 @@ if ($edit_id > 0) {
                                 <td>
                                     <?php echo esc_html($member_name); ?>
                                     <div class="row-actions">
+                                        <span class="view"><a href="<?php echo esc_url($view_url); ?>" target="_blank" rel="noopener noreferrer">مشاهده و دانلود</a> | </span>
                                         <span class="edit"><a href="<?php echo esc_url($edit_url); ?>">ویرایش</a> | </span>
                                         <span class="delete"><a href="<?php echo esc_url($delete_url); ?>" onclick="return confirm('این گواهینامه حذف شود؟');">حذف</a></span>
                                     </div>
@@ -354,7 +374,8 @@ if ($edit_id > 0) {
     font-weight: 600;
 }
 .sc-certificate-edit-form .sc-row input[type="text"],
-.sc-certificate-edit-form .sc-row textarea {
+.sc-certificate-edit-form .sc-row textarea,
+.sc-certificate-edit-form .sc-row .wp-editor-wrap {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
