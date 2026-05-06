@@ -57,6 +57,7 @@ $field_labels = sc_users_export_get_field_labels();
                 <label for="sc-target-type">نوع انتخاب</label>
                 <select name="target_type" id="sc-target-type">
                     <option value="all">همه کاربران فعال</option>
+                    <option value="free_users">کاربران آزاد (بدون هیچ دوره)</option>
                     <option value="specific">انتخاب کاربران خاص (جستجو)</option>
                     <option value="course">بر اساس دوره</option>
                     <option value="event">بر اساس رویداد</option>
@@ -140,6 +141,37 @@ $field_labels = sc_users_export_get_field_labels();
                         <option value="<?php echo esc_attr($level->name); ?>"><?php echo esc_html($level->name); ?></option>
                     <?php endforeach; ?>
                 </select>
+            </div>
+
+            <div class="sc-filter-block" id="sc-filter-exclude">
+                <label>استثنا از نتایج فیلتر (اختیاری)</label>
+                <div id="sc-excluded-members-count" class="sc-selected-count">0 کاربر از خروجی حذف شده</div>
+                <div id="sc-excluded-members" class="sc-selected-tags"></div>
+                <div class="sc-users-member-dropdown" id="sc-exclude-member-dropdown">
+                    <div class="sc-users-dropdown-toggle">
+                        <span class="sc-users-dropdown-placeholder">جستجو کاربر برای حذف از خروجی...</span>
+                        <span class="sc-users-dropdown-arrow">▼</span>
+                    </div>
+                    <div class="sc-users-dropdown-menu">
+                        <div class="sc-users-dropdown-search">
+                            <input type="text" class="sc-users-search-input" placeholder="جستجوی نام یا کد ملی...">
+                        </div>
+                        <div class="sc-users-dropdown-options" id="sc-exclude-member-options">
+                            <?php foreach ($members as $member) :
+                                $name = trim(($member->first_name ?: '') . ' ' . ($member->last_name ?: ''));
+                                $search = strtolower($name . ' ' . ($member->national_id ?: ''));
+                                ?>
+                                <div class="sc-users-dropdown-option"
+                                     data-id="<?php echo (int) $member->id; ?>"
+                                     data-label="<?php echo esc_attr($name . ' - ' . ($member->national_id ?: $member->id)); ?>"
+                                     data-search="<?php echo esc_attr($search); ?>">
+                                    <?php echo esc_html($name . ' - ' . ($member->national_id ?: $member->id)); ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+                <div id="sc-excluded-member-hidden-inputs"></div>
             </div>
         </div>
 

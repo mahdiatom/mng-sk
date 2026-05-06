@@ -92,6 +92,18 @@ function sc_get_notification_recipients($target_type, $target_config) {
                 if ($uid) $user_ids[] = (int)$uid;
             }
         }
+    } elseif ($target_type === 'free_users') {
+        $user_ids = $wpdb->get_col(
+            "SELECT DISTINCT m.user_id
+             FROM $members_table m
+             WHERE m.is_active = 1
+             AND m.user_id IS NOT NULL
+             AND NOT EXISTS (
+                 SELECT 1 FROM $member_courses_table mc
+                 WHERE mc.member_id = m.id
+             )"
+        );
+        $user_ids = array_map('intval', (array)$user_ids);
     } elseif ($target_type === 'course') {
         // course_ids: array of course ids, send to active enrolled members
         $course_ids = isset($target_config['course_ids']) ? array_map('absint', (array)$target_config['course_ids']) : [];
@@ -300,6 +312,29 @@ function sc_get_notification_recipients($target_type, $target_config) {
             }
         }
         $user_ids = array_map('intval', (array)$user_ids);
+    }
+
+    $exclude_recipient_ids = isset($target_config['exclude_recipient_ids']) ? (array)$target_config['exclude_recipient_ids'] : [];
+    if (!empty($exclude_recipient_ids)) {
+        $excluded_user_ids = [];
+        foreach ($exclude_recipient_ids as $rid) {
+            if (preg_match('/^member_(\d+)$/', $rid, $m)) {
+                $uid = $wpdb->get_var($wpdb->prepare(
+                    "SELECT user_id FROM $members_table WHERE id = %d AND user_id IS NOT NULL",
+                    (int)$m[1]
+                ));
+                if ($uid) $excluded_user_ids[] = (int)$uid;
+            } elseif (preg_match('/^coach_(\d+)$/', $rid, $m)) {
+                $uid = $wpdb->get_var($wpdb->prepare(
+                    "SELECT user_id FROM $coaches_table WHERE id = %d AND user_id IS NOT NULL",
+                    (int)$m[1]
+                ));
+                if ($uid) $excluded_user_ids[] = (int)$uid;
+            }
+        }
+        if (!empty($excluded_user_ids)) {
+            $user_ids = array_values(array_diff((array)$user_ids, array_unique($excluded_user_ids)));
+        }
     }
 
     return array_unique(array_filter($user_ids));

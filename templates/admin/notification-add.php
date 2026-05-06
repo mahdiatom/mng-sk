@@ -56,11 +56,17 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
     } elseif ($target_type === 'specific') {
         $rids = isset($_POST['recipient_ids_str']) ? sanitize_text_field($_POST['recipient_ids_str']) : '';
         $target_config['recipient_ids'] = $rids ? array_filter(array_map('trim', explode(',', $rids))) : [];
+    } elseif ($target_type === 'free_users') {
+        $target_config['user_type'] = 'player';
     }
      elseif ($target_type === 'team') {
     $target_config['team_names'] = isset($_POST['team_names']) && is_array($_POST['team_names'])
         ? array_map('sanitize_text_field', $_POST['team_names'])
         : [];
+    }
+    if ($target_type !== 'specific' && $target_type !== 'phone') {
+        $excluded = isset($_POST['exclude_recipient_ids_str']) ? sanitize_text_field($_POST['exclude_recipient_ids_str']) : '';
+        $target_config['exclude_recipient_ids'] = $excluded ? array_filter(array_map('trim', explode(',', $excluded))) : [];
     }
      elseif ($target_type === 'level') {
     $target_config['level_names'] = isset($_POST['level_names']) && is_array($_POST['level_names'])
@@ -288,6 +294,7 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                 <td>
                     <select name="target_type" id="target_type" class="sc-notification-select" style="min-width: 200px;">
                         <option value="all" <?php selected($initial_target_type, 'all'); ?>>همه</option>
+                        <option value="free_users" <?php selected($initial_target_type, 'free_users'); ?>>کاربران آزاد (بدون هیچ دوره)</option>
                         <option value="specific" <?php selected($initial_target_type, 'specific'); ?>>ارسال به مخاطبین خاص</option>
                         <option value="course" <?php selected($initial_target_type, 'course'); ?>>ارسال به مخاطبین دوره </option>
                         <?php if (!$is_coach) : ?>
@@ -410,6 +417,50 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                         <?php endforeach; ?>
                     </select>
                     <br><small>Ctrl+Click برای انتخاب چند دوره. ارسال به اعضای فعال دوره.</small>
+                </td>
+            </tr>
+            <tr id="row-target-free_users" class="target-row" style="display:none;">
+                <th scope="row">کاربران آزاد</th>
+                <td>
+                    <p class="description">ارسال به بازیکنانی که تا امروز هیچ رکوردی در دوره‌ها نداشته‌اند.</p>
+                </td>
+            </tr>
+            <tr id="row-target-exclude" style="display:none;">
+                <th scope="row">استثنا از فیلتر (اختیاری)</th>
+                <td>
+                    <div id="exclude-recipient-list" class="sc-notification-recipient-tags"></div>
+                    <div class="sc-searchable-dropdown sc-exclude-recipient-dropdown">
+                        <div class="sc-dropdown-toggle">
+                            <span class="sc-dropdown-placeholder">جستجو یا انتخاب مخاطب برای حذف از خروجی...</span>
+                            <span class="sc-dropdown-arrow">▼</span>
+                        </div>
+                        <div class="sc-dropdown-menu">
+                            <div class="sc-dropdown-search">
+                                <input type="text" class="sc-search-input" placeholder="جستجوی نام یا کد ملی...">
+                            </div>
+                            <div class="sc-dropdown-options">
+                                <div class="sc-dropdown-option-group">بازیکن‌ها</div>
+                                <?php foreach ($members as $m) :
+                                    $val = 'member_' . $m->id;
+                                    $label = $m->first_name . ' ' . $m->last_name . ' (بازیکن)';
+                                    $search = strtolower($m->first_name . ' ' . $m->last_name . ' ' . ($m->national_id ?: ''));
+                                ?>
+                                    <div class="sc-dropdown-option" data-value="<?php echo esc_attr($val); ?>" data-label="<?php echo esc_attr($label); ?>" data-search="<?php echo esc_attr($search); ?>"><?php echo esc_html($m->first_name . ' ' . $m->last_name . ' - ' . ($m->national_id ?: $m->id)); ?></div>
+                                <?php endforeach; ?>
+                                <?php if (!empty($coaches)) : ?>
+                                <div class="sc-dropdown-option-group">مربی‌ها</div>
+                                <?php foreach ($coaches as $c) :
+                                    $val = 'coach_' . $c->id;
+                                    $label = $c->first_name . ' ' . $c->last_name . ' (مربی)';
+                                    $search = strtolower($c->first_name . ' ' . $c->last_name . ' ' . ($c->national_id ?: ''));
+                                ?>
+                                    <div class="sc-dropdown-option" data-value="<?php echo esc_attr($val); ?>" data-label="<?php echo esc_attr($label); ?>" data-search="<?php echo esc_attr($search); ?>"><?php echo esc_html($c->first_name . ' ' . $c->last_name . ' - ' . ($c->national_id ?: $c->id)); ?></div>
+                                <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="exclude_recipient_ids_str" id="exclude-recipient-ids-input" value="">
                 </td>
             </tr>
             <?php if (!$is_coach) : ?>
@@ -589,6 +640,8 @@ jQuery(document).ready(function($) {
             if (config.course_scope === 'specific') {
                 config.course_ids = ($('select[name="course_ids[]"]').val() || []).map(Number);
             }
+        } else if (targetType === 'free_users') {
+            config.user_type = 'player';
         } else if (targetType === 'specific') {
             config.recipient_ids = recipientIds;
         } else if (targetType === 'course') {
@@ -612,6 +665,9 @@ jQuery(document).ready(function($) {
         } else if (targetType === 'team_level') {
             config.team_names = ($('#team-level-team-select').val() || []);
             config.level_names = ($('#team-level-level-select').val() || []);
+        }
+        if (targetType !== 'specific' && targetType !== 'phone') {
+            config.exclude_recipient_ids = excludeRecipientIds;
         }
         return config;
     }
@@ -692,6 +748,7 @@ jQuery(document).ready(function($) {
     });
 
     var recipientIds = <?php echo json_encode(isset($saved['recipient_ids']) && (!$notification || $notification->target_type !== 'event') ? (array)$saved['recipient_ids'] : []); ?>;
+    var excludeRecipientIds = <?php echo json_encode(isset($saved['exclude_recipient_ids']) ? (array)$saved['exclude_recipient_ids'] : []); ?>;
     var eventRecipientIds = <?php echo ($notification && isset($notification->target_type) && $notification->target_type === 'event' && !empty($saved['recipient_ids'])) ? json_encode((array)$saved['recipient_ids']) : '[]'; ?>;
     var phoneNumbers = <?php echo json_encode(isset($saved['phone_numbers']) ? (array)$saved['phone_numbers'] : []); ?>;
     var eventRecipientLabels = {};
@@ -738,6 +795,11 @@ jQuery(document).ready(function($) {
             renderRecipientList();
         }
     });
+    $(document).on('click', '.exclude-recipient-remove', function() {
+        var id = $(this).closest('.recipient-tag').data('id');
+        excludeRecipientIds = excludeRecipientIds.filter(function(x) { return x !== id; });
+        renderExcludeRecipientList();
+    });
     function renderEventRecipientList() {
         var html = '';
         eventRecipientIds.forEach(function(id) {
@@ -750,17 +812,39 @@ jQuery(document).ready(function($) {
             $(document).trigger('scRecipientListChanged');
         }
     }
+    function renderExcludeRecipientList() {
+        var html = '';
+        excludeRecipientIds.forEach(function(id) {
+            var lbl = recipientLabels[id] || id;
+            html += '<span class="recipient-tag" data-id="' + id + '">' + lbl + ' <button type="button" class="exclude-recipient-remove">&times;</button></span> ';
+        });
+        $('#exclude-recipient-list').html(html || '<em style="color:#999;">هیچ استثنایی ثبت نشده</em>');
+        $('#exclude-recipient-ids-input').val(excludeRecipientIds.join(','));
+        $(document).trigger('scRecipientListChanged');
+    }
     // دراپ‌داون جستجو: با کلیک روی گزینه به لیست مخاطبین اضافه شود (استفاده از capture تا قبل از stopPropagation در admin.js اجرا شود)
     document.addEventListener('click', function(e) {
         if (!e.target || !e.target.closest) return;
         var opt = e.target.closest('.sc-dropdown-option');
-        if (!opt || !opt.closest('.sc-notification-recipient-dropdown') || !jQuery(opt).length) return;
+        if (!opt || !jQuery(opt).length) return;
         e.preventDefault();
         e.stopPropagation();
         var $opt = jQuery(opt);
+        if (!$opt.closest('.sc-notification-recipient-dropdown').length && !$opt.closest('.sc-exclude-recipient-dropdown').length) return;
         var val = $opt.data('value');
         var lbl = $opt.data('label') || $opt.text().trim();
         var isEventDropdown = $opt.closest('.sc-event-recipient-dropdown').length;
+        var isExcludeDropdown = $opt.closest('.sc-exclude-recipient-dropdown').length;
+        if (isExcludeDropdown) {
+            if (val && excludeRecipientIds.indexOf(val) === -1) {
+                excludeRecipientIds.push(val);
+            }
+            renderExcludeRecipientList();
+            var $excludeMenu = $opt.closest('.sc-dropdown-menu');
+            $excludeMenu.slideUp(200);
+            $excludeMenu.find('.sc-search-input').val('').trigger('input');
+            return;
+        }
         if (isEventDropdown) {
             if (val && eventRecipientIds.indexOf(val) === -1) {
                 eventRecipientIds.push(val);
@@ -780,6 +864,7 @@ jQuery(document).ready(function($) {
     }, true);
     renderRecipientList();
     renderEventRecipientList();
+    renderExcludeRecipientList();
 
     function renderPhoneList() {
         var html = '';
@@ -829,6 +914,7 @@ jQuery(document).ready(function($) {
     $('#notification-form').on('submit', function() {
         $('#recipient-ids-input').val(recipientIds.join(','));
         $('#event-recipient-ids-input').val(eventRecipientIds.join(','));
+        $('#exclude-recipient-ids-input').val(excludeRecipientIds.join(','));
     });
 
  function toggleTargetRows() {
@@ -847,6 +933,7 @@ jQuery(document).ready(function($) {
         var cs = $('#course_scope').val();
         $('#row-course-ids-all').toggle(cs === 'specific');
     }
+    $('#row-target-exclude').toggle(t !== 'specific' && t !== 'phone');
 
     // hide ارسال sms وقتی target phone باشد
     if (t === 'phone' && $('#row-send-sms').length) {
@@ -866,6 +953,7 @@ jQuery(document).ready(function($) {
     $('#notification-form').on('submit', function(e) {
         $('#recipient-ids-input').val(recipientIds.join(','));
         $('#phone-numbers-input').val(phoneNumbers.join(','));
+        $('#exclude-recipient-ids-input').val(excludeRecipientIds.join(','));
         var targetType = $('#target_type').val();
         if (targetType === 'phone') {
             if (phoneNumbers.length === 0) {

@@ -172,6 +172,10 @@ function sc_users_export_get_members($target_type, $config = []) {
         $params[] = $config['member_type'];
     }
 
+    $excluded_ids = isset($config['excluded_member_ids']) && is_array($config['excluded_member_ids'])
+        ? array_filter(array_map('absint', $config['excluded_member_ids']))
+        : [];
+
     if ($target_type === 'free_users') {
         $where[] = "NOT EXISTS (
             SELECT 1
@@ -241,6 +245,12 @@ function sc_users_export_get_members($target_type, $config = []) {
         $params = array_merge($params, $team_names, $level_names);
     } else {
         // all: no extra where
+    }
+
+    if (!empty($excluded_ids)) {
+        $exclude_placeholders = implode(',', array_fill(0, count($excluded_ids), '%d'));
+        $where[] = "m.id NOT IN ($exclude_placeholders)";
+        $params = array_merge($params, $excluded_ids);
     }
 
     $where_sql = implode(' AND ', $where);
@@ -438,6 +448,7 @@ function sc_users_info_export_handler() {
 
     $config = [
         'member_ids' => isset($_POST['member_ids']) ? array_map('absint', (array) $_POST['member_ids']) : [],
+        'excluded_member_ids' => isset($_POST['excluded_member_ids']) ? array_map('absint', (array) $_POST['excluded_member_ids']) : [],
         'course_ids' => isset($_POST['course_ids']) ? array_map('absint', (array) $_POST['course_ids']) : [],
         'event_ids' => isset($_POST['event_ids']) ? array_map('absint', (array) $_POST['event_ids']) : [],
         'team_names' => isset($_POST['team_names']) ? array_map('sanitize_text_field', (array) $_POST['team_names']) : [],

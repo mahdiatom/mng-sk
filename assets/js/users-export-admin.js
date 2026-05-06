@@ -9,6 +9,7 @@ jQuery(function ($) {
     // --------------------------
     if ($form.length) {
         var selectedMemberIds = [];
+        var excludedMemberIds = [];
         var currentTemplate = null;
 
     function toggleFilterBlocks() {
@@ -48,6 +49,30 @@ jQuery(function ($) {
                 ' <button type="button" class="sc-remove-tag">&times;</button></span>'
             );
             $inputs.append('<input type="hidden" name="member_ids[]" value="' + item.id + '">');
+        });
+    }
+
+    function renderExcludedMembers() {
+        var $tags = $('#sc-excluded-members');
+        var $inputs = $('#sc-excluded-member-hidden-inputs');
+        var $count = $('#sc-excluded-members-count');
+        if (!$tags.length) {
+            return;
+        }
+        $tags.empty();
+        $inputs.empty();
+        $count.text(excludedMemberIds.length + ' کاربر از خروجی حذف شده');
+        if (!excludedMemberIds.length) {
+            $tags.html('<em>هیچ کاربری حذف نشده است.</em>');
+            return;
+        }
+        excludedMemberIds.forEach(function (item) {
+            $tags.append(
+                '<span class="sc-tag sc-tag-exclude" data-id="' + item.id + '">' +
+                item.label +
+                ' <button type="button" class="sc-remove-exclude-tag">&times;</button></span>'
+            );
+            $inputs.append('<input type="hidden" name="excluded_member_ids[]" value="' + item.id + '">');
         });
     }
 
@@ -99,6 +124,55 @@ jQuery(function ($) {
 
         $(document).on('click', function (e) {
             if (!$(e.target).closest('#sc-users-member-dropdown').length) {
+                $menu.slideUp(150);
+            }
+        });
+    }
+
+    function bindExcludeDropdown() {
+        var $dropdown = $('#sc-exclude-member-dropdown');
+        if (!$dropdown.length) {
+            return;
+        }
+        var $toggle = $dropdown.find('.sc-users-dropdown-toggle');
+        var $menu = $dropdown.find('.sc-users-dropdown-menu');
+        var $search = $dropdown.find('.sc-users-search-input');
+
+        $toggle.on('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $menu.slideToggle(150);
+            setTimeout(function () {
+                $search.trigger('focus');
+            }, 200);
+        });
+
+        $search.on('input', function () {
+            var term = ($(this).val() || '').toLowerCase().trim();
+            $('#sc-exclude-member-options .sc-users-dropdown-option').each(function () {
+                var text = ($(this).attr('data-search') || '').toLowerCase();
+                $(this).toggle(term === '' || text.indexOf(term) !== -1);
+            });
+        });
+
+        $(document).on('click', '#sc-exclude-member-options .sc-users-dropdown-option', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var id = parseInt($(this).attr('data-id'), 10);
+            var label = $(this).attr('data-label') || '';
+            var exists = excludedMemberIds.some(function (item) {
+                return item.id === id;
+            });
+            if (id && !exists) {
+                excludedMemberIds.push({ id: id, label: label });
+                renderExcludedMembers();
+            }
+            $search.val('');
+            $('#sc-exclude-member-options .sc-users-dropdown-option').show();
+        });
+
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('#sc-exclude-member-dropdown').length) {
                 $menu.slideUp(150);
             }
         });
@@ -260,6 +334,14 @@ jQuery(function ($) {
         renderSelectedMembers();
     });
 
+        $(document).on('click', '.sc-remove-exclude-tag', function () {
+        var id = parseInt($(this).closest('.sc-tag-exclude').attr('data-id'), 10);
+        excludedMemberIds = excludedMemberIds.filter(function (item) {
+            return item.id !== id;
+        });
+        renderExcludedMembers();
+    });
+
         $('#sc-template-key').on('change', function () {
         var selected = $(this).find(':selected');
         var raw = selected.attr('data-template');
@@ -286,8 +368,10 @@ jQuery(function ($) {
     });
 
         bindSearchableDropdown();
+        bindExcludeDropdown();
         toggleFilterBlocks();
         renderSelectedMembers();
+        renderExcludedMembers();
         updatePreview();
         enforceFormatRules();
     }
