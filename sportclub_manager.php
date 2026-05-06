@@ -48,6 +48,7 @@ require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions
 require_once SC_INCLUDES_DIR . 'users-info-export-functions.php'; // Users info export (PDF/Excel)
+require_once SC_INCLUDES_DIR . 'bulk-actions-functions.php'; // Bulk actions on filtered members
 require_once SC_INCLUDES_DIR . 'certificates-functions.php'; // Certificates templates and issue
 require_once SC_INCLUDES_DIR . 'expense-export.php'; // Expense export functions
 require_once SC_INCLUDES_DIR . 'debtors-export.php'; // Debtors export functions
@@ -1435,6 +1436,16 @@ function sc_admin_enqueue_assets() {
     if (in_array($current_page, array('sc-users-info-export', 'sc-users-export-templates', 'sc-certificates-issue', 'sc-certificates-templates', 'sc-certificates-list'), true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
         wp_enqueue_script('sc-users-export-admin-js', SC_ASSETS_URL . 'js/users-export-admin.js', array('jquery', 'sc-admin-js'), time(), true);
+    }
+    if ($current_page === 'sc-bulk-actions') {
+        wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+        wp_enqueue_style('sc-bulk-actions-admin-css', SC_ASSETS_URL . 'css/admin-bulk-actions.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
+        wp_enqueue_script('sc-bulk-actions-admin-js', SC_ASSETS_URL . 'js/bulk-actions-admin.js', array('jquery', 'sc-admin-js'), time(), true);
+        wp_localize_script('sc-bulk-actions-admin-js', 'scBulkActions', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('sc_bulk_actions_preview'),
+            'maxPreviewRows' => 200,
+        ));
     }
 }
 

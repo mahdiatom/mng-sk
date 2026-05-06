@@ -1,0 +1,35 @@
+.sc-bulk-actions-wrap .sc-users-export-card {
+    border-radius: 10px;
+}
+
+.sc-bulk-actions-wrap .sc-users-export-card h2 {
+    margin-bottom: 14px;
+}
+
+.sc-bulk-preview-result {
+    min-height: 80px;
+}
+
+.sc-bulk-preview-meta {
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.sc-bulk-preview-table th,
+.sc-bulk-preview-table td {
+    vertical-align: middle;
+}
+
+.sc-action-extra {
+    display: none;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fafcff;
+}
+
+#sc-bulk-preview-btn[disabled] {
+    opacity: 0.7;
+    cursor: not-allowed;
+}

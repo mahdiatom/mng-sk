@@ -85,6 +85,16 @@ function sc_register_admin_menu() {
     );
 
     add_menu_page(
+        'کار های دست جمعی',
+        'کار های دست جمعی',
+        'manage_options',
+        'sc-bulk-actions',
+        'sc_admin_bulk_actions_page',
+        'dashicons-update',
+        26.85
+    );
+
+    add_menu_page(
         'گواهینامه‌ها',
         'گواهینامه‌ها',
         'manage_options',
@@ -1311,6 +1321,11 @@ function sc_admin_users_info_export_page() {
 function sc_admin_users_export_templates_page() {
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'users-export-templates.php';
+}
+
+function sc_admin_bulk_actions_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'bulk-actions.php';
 }
 
 function sc_admin_certificates_issue_page() {
