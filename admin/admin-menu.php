@@ -103,6 +103,14 @@ function sc_register_admin_menu() {
     );
     add_submenu_page(
         'sc-certificates-issue',
+        'گواهینامه ها',
+        'گواهینامه ها',
+        'manage_options',
+        'sc-certificates-list',
+        'sc_admin_certificates_list_page'
+    );
+    add_submenu_page(
+        'sc-certificates-issue',
         'تعریف قالب گواهینامه',
         'تعریف قالب گواهینامه',
         'manage_options',
@@ -1313,6 +1321,11 @@ function sc_admin_certificates_issue_page() {
 function sc_admin_certificates_templates_page() {
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'certificates-templates.php';
+}
+
+function sc_admin_certificates_list_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'certificates-list.php';
 }
 
 function sc_admin_coach_my_notifications_page() {

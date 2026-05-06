@@ -825,6 +825,7 @@ function sc_create_certificates_table() {
         `template_key` varchar(100) DEFAULT NULL,
         `title` varchar(255) NOT NULL,
         `message_text` longtext DEFAULT NULL,
+        `orientation` varchar(20) NOT NULL DEFAULT 'portrait',
         `background_image` varchar(500) DEFAULT NULL,
         `signature_one_text` varchar(255) DEFAULT NULL,
         `signature_one_image` varchar(500) DEFAULT NULL,
@@ -1159,6 +1160,16 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$honors_table` ADD COLUMN `file_url` varchar(500) DEFAULT NULL AFTER `description`");
         }
         update_option('sc_honors_file_url_column_added', '1');
+    }
+
+    // اضافه کردن ستون orientation به جدول گواهینامه‌ها (برای نصب‌های قبلی)
+    if (get_option('sc_certificates_orientation_column_added', '0') !== '1') {
+        $certificates_table = $wpdb->prefix . 'sc_certificates';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$certificates_table` LIKE %s", 'orientation'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$certificates_table` ADD COLUMN `orientation` varchar(20) NOT NULL DEFAULT 'portrait' AFTER `message_text`");
+        }
+        update_option('sc_certificates_orientation_column_added', '1');
     }
 
     // اضافه کردن ستون coach_id به جدول honors (یک بار برای نصب‌های قبلی)

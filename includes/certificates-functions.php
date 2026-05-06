@@ -21,8 +21,10 @@ function sc_certificates_get_default_templates() {
         'default_certificate' => [
             'key' => 'default_certificate',
             'title' => 'گواهینامه پیش فرض',
+            'certificate_title' => 'گواهینامه پیش فرض',
             'description' => '',
             'page_size' => 'A4',
+            'orientation' => 'portrait',
             'cards_per_page' => 1,
             'background_image' => '',
             'message_text' => 'بازیکن عزیز %name%، یک گواهینامه برای شما صادر شد.',
@@ -57,14 +59,16 @@ function sc_certificates_normalize_template($template, $fallback_key = '') {
     return [
         'key' => $key,
         'title' => isset($template['title']) ? sanitize_text_field($template['title']) : 'قالب جدید',
+        'certificate_title' => isset($template['certificate_title']) ? sanitize_text_field($template['certificate_title']) : (isset($template['title']) ? sanitize_text_field($template['title']) : 'گواهینامه'),
         'description' => isset($template['description']) ? sanitize_textarea_field($template['description']) : '',
         'page_size' => (isset($template['page_size']) && in_array($template['page_size'], ['A4', 'A5'], true)) ? $template['page_size'] : 'A4',
+        'orientation' => (isset($template['orientation']) && in_array($template['orientation'], ['portrait', 'landscape'], true)) ? $template['orientation'] : 'portrait',
         'cards_per_page' => 1,
         'background_image' => isset($template['background_image']) ? esc_url_raw($template['background_image']) : '',
         'message_text' => isset($template['message_text']) ? sanitize_textarea_field($template['message_text']) : '',
-        'signature_one_text' => isset($template['signature_one_text']) ? sanitize_text_field($template['signature_one_text']) : '',
+        'signature_one_text' => isset($template['signature_one_text']) ? sanitize_textarea_field($template['signature_one_text']) : '',
         'signature_one_image' => isset($template['signature_one_image']) ? esc_url_raw($template['signature_one_image']) : '',
-        'signature_two_text' => isset($template['signature_two_text']) ? sanitize_text_field($template['signature_two_text']) : '',
+        'signature_two_text' => isset($template['signature_two_text']) ? sanitize_textarea_field($template['signature_two_text']) : '',
         'signature_two_image' => isset($template['signature_two_image']) ? esc_url_raw($template['signature_two_image']) : '',
     ];
 }
@@ -93,11 +97,20 @@ function sc_certificates_replace_vars($text, $variables) {
 function sc_certificates_render_html($certificate_row) {
     $background_image = !empty($certificate_row->background_image) ? esc_url($certificate_row->background_image) : '';
     $message_text = nl2br(esc_html((string) $certificate_row->message_text));
-    $signature_one_text = esc_html((string) $certificate_row->signature_one_text);
-    $signature_two_text = esc_html((string) $certificate_row->signature_two_text);
+    $signature_one_text = nl2br(esc_html((string) $certificate_row->signature_one_text));
+    $signature_two_text = nl2br(esc_html((string) $certificate_row->signature_two_text));
     $signature_one_image = !empty($certificate_row->signature_one_image) ? esc_url($certificate_row->signature_one_image) : '';
     $signature_two_image = !empty($certificate_row->signature_two_image) ? esc_url($certificate_row->signature_two_image) : '';
     $title = esc_html((string) $certificate_row->title);
+    $orientation = (isset($certificate_row->orientation) && $certificate_row->orientation === 'landscape') ? 'landscape' : 'portrait';
+    $sheet_width = $orientation === 'landscape' ? '297mm' : '210mm';
+    $sheet_height = $orientation === 'landscape' ? '210mm' : '297mm';
+    $page_size = $orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait';
+    $has_bg_image = !empty($background_image);
+    $font_regular_woff2 = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff2/IRANYekanXFaNum-Regular.woff2' : '';
+    $font_regular_woff = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff/IRANYekanXFaNum-Regular.woff' : '';
+    $font_bold_woff2 = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff2/IRANYekanXFaNum-Bold.woff2' : '';
+    $font_bold_woff = defined('SC_ASSETS_URL') ? SC_ASSETS_URL . 'fonts/Woff/IRANYekanXFaNum-Bold.woff' : '';
 
     ob_start();
     ?>
@@ -108,8 +121,27 @@ function sc_certificates_render_html($certificate_row) {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?php echo $title; ?></title>
         <style>
-            body { font-family: Tahoma, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
-            .sc-certificate-sheet { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; position: relative; box-sizing: border-box; border: 1px solid #ddd; }
+            @font-face {
+                font-family: IRANYekanXFaNum;
+                font-style: normal;
+                font-weight: normal;
+                src: url('<?php echo esc_url($font_regular_woff); ?>') format('woff'),
+                     url('<?php echo esc_url($font_regular_woff2); ?>') format('woff2');
+            }
+            @font-face {
+                font-family: IRANYekanXFaNum;
+                font-style: normal;
+                font-weight: bold;
+                src: url('<?php echo esc_url($font_bold_woff); ?>') format('woff'),
+                     url('<?php echo esc_url($font_bold_woff2); ?>') format('woff2');
+            }
+            @page { size: <?php echo esc_html($page_size); ?>; margin: 0; }
+            body { font-family: IRANYekanXFaNum, Tahoma, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+            .sc-certificate-actions { max-width: <?php echo esc_html($sheet_width); ?>; margin: 0 auto 12px; display: flex; gap: 8px; justify-content: flex-start; }
+            .sc-certificate-actions button { border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-family: inherit; }
+            .sc-certificate-print-btn { background: #2271b1; color: #fff; }
+            .sc-certificate-pdf-btn { background: #008a20; color: #fff; }
+            .sc-certificate-sheet { width: <?php echo esc_html($sheet_width); ?>; min-height: <?php echo esc_html($sheet_height); ?>; margin: 0 auto; background: <?php echo $has_bg_image ? 'transparent' : '#fff'; ?>; position: relative; box-sizing: border-box; border: <?php echo $has_bg_image ? '0' : '1px solid #ddd'; ?>; }
             .sc-certificate-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .35; }
             .sc-certificate-content { position: relative; z-index: 2; padding: 40mm 18mm 30mm; }
             .sc-certificate-title { text-align: center; margin: 0 0 25px; font-size: 28px; font-weight: 700; }
@@ -120,11 +152,16 @@ function sc_certificates_render_html($certificate_row) {
             .sc-signature-text { font-size: 14px; font-weight: 600; }
             @media print {
                 body { background: #fff; padding: 0; }
+                .sc-certificate-actions { display: none; }
                 .sc-certificate-sheet { border: 0; margin: 0; width: auto; min-height: 100vh; }
             }
         </style>
     </head>
     <body>
+        <div class="sc-certificate-actions">
+            <button type="button" class="sc-certificate-print-btn" onclick="window.print()">پرینت</button>
+            <button type="button" class="sc-certificate-pdf-btn" onclick="window.print()">خروجی PDF</button>
+        </div>
         <div class="sc-certificate-sheet">
             <?php if ($background_image) : ?>
                 <div class="sc-certificate-bg" style="background-image:url('<?php echo $background_image; ?>')"></div>
@@ -192,8 +229,9 @@ function sc_issue_certificates_handler() {
             [
                 'member_id' => (int) $member->id,
                 'template_key' => $template['key'],
-                'title' => $template['title'],
+                'title' => $template['certificate_title'],
                 'message_text' => $message_text,
+                'orientation' => $template['orientation'],
                 'background_image' => $template['background_image'],
                 'signature_one_text' => $template['signature_one_text'],
                 'signature_one_image' => $template['signature_one_image'],
@@ -203,7 +241,7 @@ function sc_issue_certificates_handler() {
                 'created_at' => current_time('mysql'),
                 'updated_at' => current_time('mysql'),
             ],
-            ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s']
+            ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s']
         );
         if (!$inserted) {
             continue;

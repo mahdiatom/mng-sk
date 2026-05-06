@@ -1432,7 +1432,7 @@ function sc_admin_enqueue_assets() {
         'nonce' => wp_create_nonce('sc_admin_nonce')
     ));
 
-    if (in_array($current_page, array('sc-users-info-export', 'sc-users-export-templates', 'sc-certificates-issue', 'sc-certificates-templates'), true)) {
+    if (in_array($current_page, array('sc-users-info-export', 'sc-users-export-templates', 'sc-certificates-issue', 'sc-certificates-templates', 'sc-certificates-list'), true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
         wp_enqueue_script('sc-users-export-admin-js', SC_ASSETS_URL . 'js/users-export-admin.js', array('jquery', 'sc-admin-js'), time(), true);
     }
