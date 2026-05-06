@@ -1614,6 +1614,21 @@ ease !important;
     gap: 10px;
 }
 
+/* فیلدهای سفارشی اطلاعات بازیکن: جلوگیری از بهم‌ریختگی لیبل/فیلد */
+.sc-custom-player-field-row {
+    clear: both;
+    width: 100%;
+}
+.sc-custom-player-field-row > label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+.sc-custom-player-field-row.sc-custom-type-multiselect select {
+    width: 100%;
+    min-height: 120px;
+}
+
 /* آپلود فوری عکس در فرم اطلاعات بازیکن */
 .sc-upload-field {
     position: relative;

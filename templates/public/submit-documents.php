@@ -168,7 +168,7 @@ if (!function_exists('sc_render_player_custom_fields_block')) {
             $required_attr = $is_required ? ' required' : '';
             $required_mark = $is_required ? ' <span class="required">*</span>' : '';
             $current_val = $values[$key] ?? ($type === 'multiselect' ? [] : '');
-            echo '<p class="form-row">';
+            echo '<p class="form-row sc-custom-player-field-row sc-custom-type-' . esc_attr($type) . '">';
             echo '<label for="sc_custom_' . esc_attr($key) . '">' . esc_html($label) . $required_mark . '</label>';
             if ($type === 'image') {
                 $image_url = is_string($current_val) ? $current_val : '';
