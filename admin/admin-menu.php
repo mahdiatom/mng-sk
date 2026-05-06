@@ -3180,6 +3180,8 @@ function sc_parse_member_course_flags_from_post($course_flags_raw, $course_ids) 
 function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $course_package_sessions = []) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_member_courses';
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
 
     $resolve_sessions = static function ($course_id, $course_package_sessions) {
         $course_id = absint($course_id);
@@ -3188,6 +3190,47 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
             return sc_member_course_session_fields_for_course($course_id, $pkg_sel > 0 ? $pkg_sel : null);
         }
         return ['enrollment_sessions' => null, 'total_sessions' => 0, 'remaining_sessions' => 0];
+    };
+
+    $resolve_member_course_coach_id = static function ($course_id, $existing_coach_id = 0) use ($wpdb, $course_coaches_table, $coaches_table) {
+        $course_id = absint($course_id);
+        $existing_coach_id = absint($existing_coach_id);
+
+        if (!$course_id) {
+            return 0;
+        }
+
+        // اگر coach_id قبلی هنوز روی همین دوره فعال است، همان حفظ شود.
+        if ($existing_coach_id > 0) {
+            $is_still_valid = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*)
+                 FROM $course_coaches_table cc
+                 INNER JOIN $coaches_table c ON c.id = cc.coach_id
+                 WHERE cc.course_id = %d AND cc.coach_id = %d AND c.is_active = 1",
+                $course_id,
+                $existing_coach_id
+            ));
+            if ($is_still_valid > 0) {
+                return $existing_coach_id;
+            }
+        }
+
+        // اگر دوره فقط یک مربی فعال دارد، به‌صورت خودکار همان مربی را ست کن.
+        $active_course_coaches = $wpdb->get_col($wpdb->prepare(
+            "SELECT cc.coach_id
+             FROM $course_coaches_table cc
+             INNER JOIN $coaches_table c ON c.id = cc.coach_id
+             WHERE cc.course_id = %d AND c.is_active = 1
+             ORDER BY cc.coach_id ASC",
+            $course_id
+        ));
+        $active_course_coaches = array_values(array_unique(array_map('absint', (array) $active_course_coaches)));
+
+        if (count($active_course_coaches) === 1) {
+            return (int) $active_course_coaches[0];
+        }
+
+        return 0;
     };
 
     // مهم: فلگ‌ها مستقل از تیک دوره هستند
@@ -3209,24 +3252,33 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                 ));
 
                 if ($existing) {
+                    $existing_coach_id = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT coach_id FROM $table_name WHERE id = %d LIMIT 1",
+                        $existing
+                    ));
+                    $resolved_coach_id = $resolve_member_course_coach_id($course_id, $existing_coach_id);
+
                     // فقط فلگ‌ها را به‌روزرسانی می‌کنیم (status را تغییر نمی‌دهیم)
                     $wpdb->update(
                         $table_name,
                         [
                             'course_status_flags' => $flags_string,
+                            'coach_id' => (int) $resolved_coach_id,
                             'updated_at' => current_time('mysql'),
                         ],
                         ['id' => $existing],
-                        ['%s', '%s'],
+                        ['%s', '%d', '%s'],
                         ['%d']
                     );
                 } else {
                     // اگر رکورد وجود ندارد و تیک دوره هم خورده، رکورد جدید ایجاد می‌کنیم
                     if (!empty($course_ids) && in_array($course_id, array_map('absint', $course_ids), true)) {
                         $sf = $resolve_sessions($course_id, $course_package_sessions);
+                        $resolved_coach_id = $resolve_member_course_coach_id($course_id, 0);
                         $insert_row = [
                             'member_id' => $member_id,
                             'course_id' => $course_id,
+                            'coach_id' => (int) $resolved_coach_id,
                             'enrollment_date' => current_time('Y-m-d'),
                             'status' => 'active',
                             'course_status_flags' => $flags_string,
@@ -3235,7 +3287,7 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                             'created_at' => current_time('mysql'),
                             'updated_at' => current_time('mysql'),
                         ];
-                        $fmt = ['%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'];
+                        $fmt = ['%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'];
                         if ($sf['enrollment_sessions'] === null) {
                             $insert_row['enrollment_sessions'] = null;
                             $fmt[] = '%s';
@@ -3296,15 +3348,21 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                 ));
 
                 if ($existing) {
+                    $existing_coach_id = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT coach_id FROM $table_name WHERE id = %d LIMIT 1",
+                        $existing
+                    ));
+                    $resolved_coach_id = $resolve_member_course_coach_id($course_id, $existing_coach_id);
                     $upd = [
                         'status' => 'active',
+                        'coach_id' => (int) $resolved_coach_id,
                         'course_status_flags' => $flags_string,
                         'enrollment_date' => current_time('Y-m-d'),
                         'total_sessions' => (int) $sf['total_sessions'],
                         'remaining_sessions' => (int) $sf['remaining_sessions'],
                         'updated_at' => current_time('mysql'),
                     ];
-                    $fmt = ['%s', '%s', '%s', '%d', '%d', '%s'];
+                    $fmt = ['%s', '%d', '%s', '%s', '%d', '%d', '%s'];
                     if ($sf['enrollment_sessions'] === null) {
                         $upd['enrollment_sessions'] = null;
                         $fmt[] = '%s';
@@ -3320,9 +3378,11 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                         ['%d']
                     );
                 } else {
+                    $resolved_coach_id = $resolve_member_course_coach_id($course_id, 0);
                     $insert_row = [
                         'member_id' => $member_id,
                         'course_id' => $course_id,
+                        'coach_id' => (int) $resolved_coach_id,
                         'enrollment_date' => current_time('Y-m-d'),
                         'status' => 'active',
                         'course_status_flags' => $flags_string,
@@ -3331,7 +3391,7 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                         'created_at' => current_time('mysql'),
                         'updated_at' => current_time('mysql'),
                     ];
-                    $fmt = ['%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'];
+                    $fmt = ['%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'];
                     if ($sf['enrollment_sessions'] === null) {
                         $insert_row['enrollment_sessions'] = null;
                         $fmt[] = '%s';

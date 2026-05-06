@@ -51,6 +51,17 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
             $saved_count = 0;
             $updated_count = 0;
             $wallet_failed = array(); // لیست کاربرانی که به دلیل کیف پول ثبت نشدند
+            $current_user_id = get_current_user_id();
+            $current_is_coach_user = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach');
+            $current_coach_id_for_assignment = 0;
+
+            if ($current_is_coach_user) {
+                $coaches_table = $wpdb->prefix . 'sc_coaches';
+                $current_coach_id_for_assignment = (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+                    $current_user_id
+                ));
+            }
 
             foreach ($attendances as $member_id => $status) {
                 $member_id = absint($member_id);
@@ -63,6 +74,22 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 }
                 if (!$member_id) {
                     continue;
+                }
+
+                // اگر ثبت‌کننده مربی باشد، بازیکن‌های بدون انتساب در همین دوره را به خودش منتسب کن
+                // تا محاسبه حقوق درصدی برای همان مربی صفر نشود.
+                if ($current_coach_id_for_assignment > 0) {
+                    $wpdb->query($wpdb->prepare(
+                        "UPDATE $member_courses_table
+                         SET coach_id = %d, updated_at = %s
+                         WHERE member_id = %d
+                           AND course_id = %d
+                           AND (coach_id IS NULL OR coach_id = 0)",
+                        $current_coach_id_for_assignment,
+                        current_time('mysql'),
+                        $member_id,
+                        $course_id
+                    ));
                 }
 
                 // بررسی وجود رکورد قبلی
@@ -103,7 +130,6 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     }
                 }
 
-                $current_user_id = get_current_user_id();
                 $data = array(
                     'member_id' => $member_id,
                     'course_id' => $course_id,
@@ -184,17 +210,11 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 }
             }
 
-            // محاسبه دستمزد مربی‌ها (درصدی) - شمارش تعداد شرکت‌کنندگان حاضر از رکوردهای ثبت شده
+            // محاسبه دستمزد مربی‌ها (درصدی) بر اساس بازیکن‌های اختصاص‌یافته به هر مربی
             $calc_couch_salary = sc_get_setting('calc_couch_salary');
-            $where_calc = ($calc_couch_salary) ? "AND status = 'present'" : '';
-            $present_count  =  $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM $attendances_table 
-                 WHERE course_id = %d AND attendance_date = %s $where_calc",
-                $course_id,
-                $attendance_date
-            ));
-            
-            if ($present_count > 0 && $price_per_session > 0) {
+            $present_only_for_salary = !empty($calc_couch_salary);
+
+            if ($price_per_session > 0) {
                 $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
                 $coaches_table = $wpdb->prefix . 'sc_coaches';
                 
@@ -208,12 +228,19 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 ));
                 
                 foreach ($coaches as $coach) {
-                    if (floatval($coach->salary_percentage) > 0) {
+                    if (floatval($coach->salary_percentage) > 0 && function_exists('sc_get_coach_attendance_count_for_salary')) {
+                        $coach_attendance_count = sc_get_coach_attendance_count_for_salary(
+                            $coach->coach_id,
+                            $course_id,
+                            $attendance_date,
+                            $present_only_for_salary
+                        );
+
                         sc_calculate_coach_percentage_salary(
                             $coach->coach_id,
                             $course_id,
                             $attendance_date,
-                            $present_count,
+                            $coach_attendance_count,
                             $price_per_session
                         );
                     }
@@ -252,6 +279,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
 // اگر کاربر مربی است، فقط دوره‌های مربی را نمایش بده
 $current_user_id = get_current_user_id();
 $current_user = wp_get_current_user();
+$current_coach_id = 0;
 
 if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
     // کاربر مربی است - فقط دوره‌های مربی را نمایش بده
@@ -266,6 +294,7 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
     
     if ($coach) {
         $coach_id = $coach->id;
+        $current_coach_id = $coach_id;
         // دریافت دوره‌های مربی که فعال هستند
         $courses = $wpdb->get_results($wpdb->prepare(
             "SELECT c.* 
@@ -321,25 +350,88 @@ $active_members = [];
 $existing_attendances = [];
 
 if ($selected_course_id) {
-    // دریافت کاربران فعال دوره
-    $active_members = $wpdb->get_results($wpdb->prepare(
-        "SELECT m.id, m.first_name, m.last_name, m.national_id
-         FROM $member_courses_table mc
-         INNER JOIN $members_table m ON mc.member_id = m.id
-         WHERE mc.course_id = %d
-         AND mc.status = 'active'
-         AND (
-             mc.course_status_flags IS NULL
-             OR mc.course_status_flags = ''
-             OR (
-                 mc.course_status_flags NOT LIKE '%%paused%%'
-                 AND mc.course_status_flags NOT LIKE '%%completed%%'
-                 AND mc.course_status_flags NOT LIKE '%%canceled%%'
+    // دریافت کاربران فعال دوره (برای مربی: فقط شاگردهای خودش)
+    if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+        // اگر دوره فقط یک مربی فعال داشته باشد، رکوردهای بدون coach_id هم برای همان مربی نمایش داده می‌شود
+        $single_active_coach_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
+             FROM $course_coaches_table cc
+             INNER JOIN $coaches_table c ON c.id = cc.coach_id
+             WHERE cc.course_id = %d AND c.is_active = 1",
+            $selected_course_id
+        ));
+
+        $coach_scope_where = "mc.coach_id = %d";
+        if ($single_active_coach_id > 0 && $single_active_coach_id === (int) $current_coach_id) {
+            $coach_scope_where = "(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)";
+        }
+
+        $active_members = $wpdb->get_results($wpdb->prepare(
+            "SELECT m.id, m.first_name, m.last_name, m.national_id
+             FROM $member_courses_table mc
+             INNER JOIN $members_table m ON mc.member_id = m.id
+             WHERE mc.course_id = %d
+             AND $coach_scope_where
+             AND mc.status = 'active'
+             AND (
+                 mc.course_status_flags IS NULL
+                 OR mc.course_status_flags = ''
+                 OR (
+                     mc.course_status_flags NOT LIKE '%%paused%%'
+                     AND mc.course_status_flags NOT LIKE '%%completed%%'
+                     AND mc.course_status_flags NOT LIKE '%%canceled%%'
+                 )
              )
-         )
-         ORDER BY m.last_name ASC, m.first_name ASC",
-        $selected_course_id
-    ));
+             ORDER BY m.last_name ASC, m.first_name ASC",
+            $selected_course_id,
+            $current_coach_id
+        ));
+
+        // Fallback: اگر به‌دلیل ناقص بودن انتساب coach_id لیست خالی شد،
+        // برای جلوگیری از توقف ثبت حضور، کاربران فعال دوره نمایش داده شوند.
+        if (empty($active_members)) {
+            $active_members = $wpdb->get_results($wpdb->prepare(
+                "SELECT m.id, m.first_name, m.last_name, m.national_id
+                 FROM $member_courses_table mc
+                 INNER JOIN $members_table m ON mc.member_id = m.id
+                 WHERE mc.course_id = %d
+                 AND mc.status = 'active'
+                 AND (
+                     mc.course_status_flags IS NULL
+                     OR mc.course_status_flags = ''
+                     OR (
+                         mc.course_status_flags NOT LIKE '%%paused%%'
+                         AND mc.course_status_flags NOT LIKE '%%completed%%'
+                         AND mc.course_status_flags NOT LIKE '%%canceled%%'
+                     )
+                 )
+                 ORDER BY m.last_name ASC, m.first_name ASC",
+                $selected_course_id
+            ));
+        }
+    } else {
+        $active_members = $wpdb->get_results($wpdb->prepare(
+            "SELECT m.id, m.first_name, m.last_name, m.national_id
+             FROM $member_courses_table mc
+             INNER JOIN $members_table m ON mc.member_id = m.id
+             WHERE mc.course_id = %d
+             AND mc.status = 'active'
+             AND (
+                 mc.course_status_flags IS NULL
+                 OR mc.course_status_flags = ''
+                 OR (
+                     mc.course_status_flags NOT LIKE '%%paused%%'
+                     AND mc.course_status_flags NOT LIKE '%%completed%%'
+                     AND mc.course_status_flags NOT LIKE '%%canceled%%'
+                 )
+             )
+             ORDER BY m.last_name ASC, m.first_name ASC",
+            $selected_course_id
+        ));
+    }
     
     // دریافت حضور و غیاب‌های ثبت شده برای این دوره و تاریخ
     if (!empty($active_members) && $selected_date) {

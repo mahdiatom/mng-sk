@@ -138,11 +138,73 @@ function sc_deduct_coach_wallet($coach_id, $amount, $description = '') {
 }
 
 /**
+ * Count attendance records belonging to a specific coach in a course/date.
+ * شمارش حضور/غیاب بازیکن‌های اختصاص‌یافته به یک مربی در یک دوره/تاریخ
+ */
+function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attendance_date, $present_only = true) {
+    $coach_id = absint($coach_id);
+    $course_id = absint($course_id);
+    $attendance_date = sanitize_text_field($attendance_date);
+
+    if (!$coach_id || !$course_id || $attendance_date === '') {
+        return 0;
+    }
+
+    global $wpdb;
+    $attendances_table = $wpdb->prefix . 'sc_attendances';
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+    $status_where = $present_only ? " AND a.status = 'present' " : '';
+    $coach_scope_where = "mc.coach_id = %d";
+    $prepare_args = [$course_id, $attendance_date, $coach_id];
+
+    // Fallback: اگر دوره فقط یک مربی فعال دارد، رکوردهای بدون coach_id هم متعلق به همان مربی حساب شود.
+    $single_active_coach_id = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
+         FROM $course_coaches_table cc
+         INNER JOIN $coaches_table c ON c.id = cc.coach_id
+         WHERE cc.course_id = %d AND c.is_active = 1",
+        $course_id
+    ));
+
+    if ($single_active_coach_id > 0 && $single_active_coach_id === $coach_id) {
+        $coach_scope_where = "(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)";
+    }
+
+    $count = $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*)
+         FROM $attendances_table a
+         INNER JOIN $member_courses_table mc
+             ON mc.member_id = a.member_id
+            AND mc.course_id = a.course_id
+         WHERE a.course_id = %d
+           AND a.attendance_date = %s
+           AND $coach_scope_where
+           AND mc.status = 'active'
+           AND (
+                mc.course_status_flags IS NULL
+                OR mc.course_status_flags = ''
+                OR (
+                    mc.course_status_flags NOT LIKE '%%paused%%'
+                    AND mc.course_status_flags NOT LIKE '%%completed%%'
+                    AND mc.course_status_flags NOT LIKE '%%canceled%%'
+                )
+           )
+           $status_where",
+        ...$prepare_args
+    ));
+
+    return (int) $count;
+}
+
+/**
  * Calculate and add percentage salary for coach
  * محاسبه و افزودن دستمزد درصدی مربی
  */
 function sc_calculate_coach_percentage_salary($coach_id, $course_id, $attendance_date, $attendance_count, $price_per_session) {
-    if (!$coach_id || !$course_id || !$attendance_date || $attendance_count <= 0 || $price_per_session <= 0) {
+    if (!$coach_id || !$course_id || !$attendance_date || $attendance_count < 0 || $price_per_session <= 0) {
         return ['success' => false, 'message' => 'پارامترهای نامعتبر'];
     }
     
@@ -256,6 +318,11 @@ function sc_calculate_coach_percentage_salary($coach_id, $course_id, $attendance
         ];
     }
     
+    // اگر رکوردی وجود ندارد و مبلغ صفر است، چیزی ایجاد نشود.
+    if ($salary_amount <= 0) {
+        return ['success' => true, 'message' => 'دستمزد قابل پرداختی وجود ندارد', 'salary_amount' => 0];
+    }
+
     // ایجاد رکورد جدید
     $courses_table = $wpdb->prefix . 'sc_courses';
     $course = $wpdb->get_var($wpdb->prepare("SELECT title FROM $courses_table WHERE id = %d", $course_id));

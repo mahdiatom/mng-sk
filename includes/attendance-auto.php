@@ -143,7 +143,7 @@ function sc_attendance_slot_overlaps_cancellation($course_id, $session_date, $sl
 }
 
 /**
- * بعد از ثبت حضور خودکار: دستمزد درصدی مربی (همان منطق attendance-add)
+ * بعد از ثبت حضور خودکار: دستمزد درصدی مربی بر اساس شاگردهای خودش
  *
  * @param int    $course_id
  * @param string $attendance_date Y-m-d
@@ -155,7 +155,6 @@ function sc_attendance_auto_refresh_coach_percentage_salary($course_id, $attenda
         return;
     }
     $courses_table = $wpdb->prefix . 'sc_courses';
-    $attendances_table = $wpdb->prefix . 'sc_attendances';
     $course_row = $wpdb->get_row($wpdb->prepare(
         "SELECT title, price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
         $course_id
@@ -168,15 +167,7 @@ function sc_attendance_auto_refresh_coach_percentage_salary($course_id, $attenda
         return;
     }
     $calc_couch_salary = sc_get_setting('calc_couch_salary');
-    $where_calc = ($calc_couch_salary) ? "AND status = 'present'" : '';
-    $present_count = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM $attendances_table WHERE course_id = %d AND attendance_date = %s $where_calc",
-        $course_id,
-        $attendance_date
-    ));
-    if ($present_count <= 0) {
-        return;
-    }
+    $present_only_for_salary = !empty($calc_couch_salary);
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
     $coaches = $wpdb->get_results($wpdb->prepare(
@@ -188,11 +179,20 @@ function sc_attendance_auto_refresh_coach_percentage_salary($course_id, $attenda
     ));
     foreach ($coaches as $coach) {
         if (floatval($coach->salary_percentage) > 0 && function_exists('sc_calculate_coach_percentage_salary')) {
+            $coach_attendance_count = function_exists('sc_get_coach_attendance_count_for_salary')
+                ? sc_get_coach_attendance_count_for_salary(
+                    $coach->coach_id,
+                    $course_id,
+                    $attendance_date,
+                    $present_only_for_salary
+                )
+                : 0;
+
             sc_calculate_coach_percentage_salary(
                 $coach->coach_id,
                 $course_id,
                 $attendance_date,
-                $present_count,
+                $coach_attendance_count,
                 $price_per_session
             );
         }

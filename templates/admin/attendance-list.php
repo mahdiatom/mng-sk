@@ -65,15 +65,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
         ));
         
         if ($course_row && floatval($course_row->price_per_session) > 0) {
-            // شمارش تعداد شرکت‌کنندگان حاضر بعد از حذف
-            $present_count_after = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM $attendances_table 
-                 WHERE course_id = %d AND attendance_date = %s AND status = 'present' AND id != %d",
-                $row->course_id,
-                $row->attendance_date,
-                $attendance_id
-            ));
-            
             // دریافت مربی‌های این دوره با دستمزد درصدی
             $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
             $coaches_table = $wpdb->prefix . 'sc_coaches';
@@ -88,7 +79,18 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
             
             // بروزرسانی دستمزد برای هر مربی
             foreach ($coaches as $coach) {
-                if (floatval($coach->salary_percentage) > 0) {
+                if (floatval($coach->salary_percentage) > 0 && function_exists('sc_get_coach_attendance_count_for_salary')) {
+                    // رکورد هنوز حذف نشده است؛ برای محاسبه «بعد از حذف» یک عدد کم می‌کنیم
+                    $present_count_after = sc_get_coach_attendance_count_for_salary(
+                        $coach->coach_id,
+                        $row->course_id,
+                        $row->attendance_date,
+                        true
+                    );
+                    if ($present_count_after > 0) {
+                        $present_count_after--;
+                    }
+
                     sc_calculate_coach_percentage_salary(
                         $coach->coach_id,
                         $row->course_id,

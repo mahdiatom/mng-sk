@@ -502,6 +502,58 @@ function sc_add_coach_id_column_to_member_courses() {
 }
 
 /**
+ * Backfill coach_id for member_courses when course has exactly one active coach.
+ * This runs once to prevent old attendance salary mismatches.
+ */
+add_action('admin_init', 'sc_backfill_member_courses_single_coach_assignment');
+function sc_backfill_member_courses_single_coach_assignment() {
+    if (get_option('sc_member_courses_coach_backfill_v1', '0') === '1') {
+        return;
+    }
+
+    global $wpdb;
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+    // Ensure table/column exists before running
+    $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $member_courses_table));
+    if ($table_exists !== $member_courses_table) {
+        return;
+    }
+    $coach_col_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM `$member_courses_table` LIKE %s",
+        'coach_id'
+    ));
+    if (empty($coach_col_exists)) {
+        return;
+    }
+
+    // Assign coach_id only when a course has exactly one active coach
+    $single_coach_courses = $wpdb->get_results(
+        "SELECT cc.course_id, MIN(cc.coach_id) AS coach_id
+         FROM `$course_coaches_table` cc
+         INNER JOIN `$coaches_table` c ON c.id = cc.coach_id
+         WHERE c.is_active = 1
+         GROUP BY cc.course_id
+         HAVING COUNT(DISTINCT cc.coach_id) = 1"
+    );
+
+    foreach ($single_coach_courses as $row) {
+        $wpdb->query($wpdb->prepare(
+            "UPDATE `$member_courses_table`
+             SET coach_id = %d
+             WHERE course_id = %d
+               AND (coach_id IS NULL OR coach_id = 0)",
+            (int) $row->coach_id,
+            (int) $row->course_id
+        ));
+    }
+
+    update_option('sc_member_courses_coach_backfill_v1', '1');
+}
+
+/**
  * ============================
  * Add price_per_session column to courses table if not exists
  * ============================
