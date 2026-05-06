@@ -66,6 +66,7 @@ require_once SC_INCLUDES_DIR . 'coach-salary-cron.php'; // Coach salary cron job
 require_once SC_INCLUDES_DIR . 'birthday-sms-cron.php'; // Birthday SMS daily cron
 require_once SC_INCLUDES_DIR . 'insurance-expiry-sms-cron.php'; // Insurance expiry SMS daily cron
 require_once SC_INCLUDES_DIR . 'support-ticket-functions.php'; // Support ticket CRUD, SMS, attachments
+require_once SC_INCLUDES_DIR . 'private-notes-functions.php'; // Private notes CRUD, attachments
 require_once SC_INCLUDES_DIR . 'activity-log-functions.php';   // Activity log (admin actions)
 require_once SC_INCLUDES_DIR . 'login-register-functions.php'; // ورود و عضویت با پیامک و رمز
 require_once SC_INCLUDES_DIR . 'redirect.php'; // ورود و عضویت با پیامک و رمز‌
@@ -1447,6 +1448,11 @@ function sc_admin_enqueue_assets() {
             'maxPreviewRows' => 200,
         ));
     }
+    if (in_array($current_page, array('sc-private-notes', 'sc-add-private-note', 'sc-coach-private-notes', 'sc-coach-add-private-note'), true)) {
+        wp_enqueue_style('sc-private-notes-css', SC_ASSETS_URL . 'css/private-notes.css', array('sc-admin-css'), time());
+        wp_enqueue_script('sc-ticket-attachments', SC_ASSETS_URL . 'js/ticket-attachments.js', array('jquery'), time(), true);
+        wp_localize_script('sc-ticket-attachments', 'scTicketAttach', array('ajaxurl' => admin_url('admin-ajax.php')));
+    }
 }
 
 /**
@@ -1473,6 +1479,9 @@ function sc_public_enqueue_assets() {
             'baseUrl' => wc_get_account_endpoint_url('sc-notifications'),
             'nonceMarkRead' => wp_create_nonce('sc_mark_notification_read'),
         ));
+    }
+    if (is_account_page() && get_query_var('sc-private-notes', false) !== false) {
+        wp_enqueue_style('sc-private-notes-css', SC_ASSETS_URL . 'css/private-notes.css', array('sc-public-css'), time());
     }
 }
 

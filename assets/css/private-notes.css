@@ -1,0 +1,101 @@
+.sc-private-notes-wrap .sc-private-note-form {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 14px;
+}
+
+.sc-private-note-detail-card,
+.sc-private-note-detail-card {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.sc-private-note-body,
+.sc-private-note-detail-body {
+    line-height: 2;
+    color: #1d2327;
+    margin-top: 12px;
+}
+
+.sc-private-note-attachments ul,
+.sc-private-note-detail-attachments ul {
+    margin: 10px 0 0;
+    padding: 0 18px 0 0;
+}
+
+.sc-private-notes-content .sc-private-notes-heading {
+    margin: 8px 0 16px;
+}
+
+.sc-private-notes-content .sc-private-notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.sc-private-notes-content .sc-private-note-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 1px 8px rgba(16, 24, 40, 0.05);
+}
+
+.sc-private-notes-content .sc-private-note-card-title {
+    margin: 0 0 8px;
+    font-size: 16px;
+}
+
+.sc-private-notes-content .sc-private-note-card-date {
+    color: #667085;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.sc-private-notes-content .sc-private-note-card-excerpt {
+    color: #344054;
+    line-height: 1.9;
+    min-height: 54px;
+    margin-bottom: 10px;
+}
+
+.sc-private-notes-content .sc-private-note-card-link {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #1570ef;
+    color: #fff !important;
+    text-decoration: none;
+}
+
+.sc-private-notes-content .sc-private-notes-empty {
+    padding: 18px;
+    background: #fff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+}
+
+.sc-private-notes-pagination {
+    display: flex;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.sc-private-notes-pagination a,
+.sc-private-notes-pagination .current {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #d0d5dd;
+    text-decoration: none;
+}
+
+.sc-private-notes-pagination .current {
+    background: #2271b1;
+    color: #fff;
+    border-color: #2271b1;
+}

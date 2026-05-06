@@ -914,6 +914,37 @@ function sc_create_support_ticket_messages_table() {
 }
 
 /**
+ * Create private notes table (یادداشت‌های خصوصی کاربران)
+ */
+function sc_create_private_notes_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_private_notes';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `user_id` bigint(20) unsigned NOT NULL,
+        `author_type` varchar(20) NOT NULL DEFAULT 'admin' COMMENT 'admin, coach',
+        `author_user_id` bigint(20) unsigned NOT NULL,
+        `author_coach_id` bigint(20) unsigned DEFAULT NULL,
+        `title` varchar(255) NOT NULL,
+        `content` longtext NOT NULL,
+        `attachment_ids` text DEFAULT NULL COMMENT 'JSON array of attachment post IDs',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_user_id` (`user_id`),
+        KEY `idx_author_coach_id` (`author_coach_id`),
+        KEY `idx_created_at` (`created_at`)
+    ) $charset_collate";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+/**
  * جدول لاگ ارسال پیامک (همهٔ ارسال‌ها از هر بخش)
  */
 function sc_create_sms_log_table() {
@@ -1076,6 +1107,7 @@ function sc_update_database() {
         sc_create_notification_reads_table();
         sc_create_support_tickets_table();
         sc_create_support_ticket_messages_table();
+        sc_create_private_notes_table();
         sc_create_sms_log_table();
         sc_create_sms_log_entries_table();
         sc_create_activity_log_table();
@@ -1304,6 +1336,14 @@ function sc_update_database() {
             sc_create_course_packages_table();
         }
         update_option('sc_course_packages_table_added', '1');
+    }
+
+    // جدول یادداشت‌های خصوصی کاربران (مهاجرت برای نصب‌های قبلی)
+    if (get_option('sc_private_notes_table_added', '0') !== '1') {
+        if (function_exists('sc_create_private_notes_table')) {
+            sc_create_private_notes_table();
+        }
+        update_option('sc_private_notes_table_added', '1');
     }
 
     // تعداد جلسات انتخاب‌شده هنگام ثبت‌نام (پکیج)

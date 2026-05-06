@@ -371,6 +371,32 @@ function sc_register_admin_menu() {
     );
     add_action('admin_menu', 'sc_coach_support_tickets_menu_badge', 999);
 
+    add_menu_page(
+        'یادداشت‌های خصوصی',
+        'یادداشت‌های خصوصی',
+        'sc_view_coach_salary',
+        'sc-coach-private-notes',
+        'sc_admin_coach_private_notes_list_page',
+        'dashicons-media-text',
+        28.86
+    );
+    add_submenu_page(
+        'sc-coach-private-notes',
+        'لیست یادداشت‌ها',
+        'لیست یادداشت‌ها',
+        'sc_view_coach_salary',
+        'sc-coach-private-notes',
+        'sc_admin_coach_private_notes_list_page'
+    );
+    add_submenu_page(
+        'sc-coach-private-notes',
+        'افزودن یادداشت',
+        'افزودن یادداشت',
+        'sc_view_coach_salary',
+        'sc-coach-add-private-note',
+        'sc_admin_coach_private_notes_add_page'
+    );
+
     } // پایان منوهای فقط مربی ($is_coach_only)
 
     /* ================= Courses ================= */
@@ -474,6 +500,41 @@ function sc_register_admin_menu() {
         'manage_options',
         'sc-event-registrations',
         'sc_admin_event_registrations_list_page'
+    );
+
+    /* ================= Private Notes ================= */
+    add_menu_page(
+        'یادداشت‌های خصوصی',
+        'یادداشت‌های خصوصی',
+        'manage_options',
+        'sc-private-notes',
+        'sc_admin_private_notes_list_page',
+        'dashicons-media-text',
+        29.4
+    );
+    add_submenu_page(
+        'sc-private-notes',
+        'لیست یادداشت‌ها',
+        'لیست یادداشت‌ها',
+        'manage_options',
+        'sc-private-notes',
+        'sc_admin_private_notes_list_page'
+    );
+    add_submenu_page(
+        'sc-private-notes',
+        'افزودن یادداشت',
+        'افزودن یادداشت',
+        'manage_options',
+        'sc-add-private-note',
+        'sc_admin_private_notes_add_page'
+    );
+    add_submenu_page(
+        null,
+        'جزئیات یادداشت خصوصی',
+        'جزئیات یادداشت خصوصی',
+        'read',
+        'sc-private-notes-view',
+        'sc_admin_private_notes_view_page'
     );
 
     /* ================= Support Tickets ================= */
@@ -1313,6 +1374,32 @@ function sc_admin_add_notification_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'notification-add.php';
 }
 
+function sc_admin_private_notes_list_page() {
+    sc_check_and_create_tables();
+    if (!current_user_can('manage_options')) {
+        wp_die('دسترسی غیرمجاز.');
+    }
+    $GLOBALS['sc_private_notes_is_coach'] = false;
+    include SC_TEMPLATES_ADMIN_DIR . 'private-notes-list.php';
+}
+
+function sc_admin_private_notes_add_page() {
+    sc_check_and_create_tables();
+    if (!current_user_can('manage_options')) {
+        wp_die('دسترسی غیرمجاز.');
+    }
+    $GLOBALS['sc_private_notes_is_coach'] = false;
+    include SC_TEMPLATES_ADMIN_DIR . 'private-note-add.php';
+}
+
+function sc_admin_private_notes_view_page() {
+    sc_check_and_create_tables();
+    if (!is_user_logged_in()) {
+        wp_die('دسترسی غیرمجاز.');
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'private-note-view.php';
+}
+
 function sc_admin_users_info_export_page() {
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'users-info-export.php';
@@ -1358,6 +1445,24 @@ function sc_admin_coach_add_notification_page() {
     sc_check_and_create_tables();
     $GLOBALS['sc_notification_is_coach'] = true;
     include SC_TEMPLATES_ADMIN_DIR . 'notification-add.php';
+}
+
+function sc_admin_coach_private_notes_list_page() {
+    sc_check_and_create_tables();
+    if (!current_user_can('sc_view_coach_salary')) {
+        wp_die('دسترسی غیرمجاز.');
+    }
+    $GLOBALS['sc_private_notes_is_coach'] = true;
+    include SC_TEMPLATES_ADMIN_DIR . 'private-notes-list.php';
+}
+
+function sc_admin_coach_private_notes_add_page() {
+    sc_check_and_create_tables();
+    if (!current_user_can('sc_view_coach_salary')) {
+        wp_die('دسترسی غیرمجاز.');
+    }
+    $GLOBALS['sc_private_notes_is_coach'] = true;
+    include SC_TEMPLATES_ADMIN_DIR . 'private-note-add.php';
 }
 
 function sc_coach_notifications_menu_badge() {

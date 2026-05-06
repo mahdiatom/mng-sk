@@ -507,6 +507,8 @@ function sc_add_my_account_menu_item($items) {
     }
     $unread_ticket = sc_count_user_tickets(get_current_user_id(), 'pending_reply');
     $items['sc-support-tickets'] = $unread_ticket > 0 ? sprintf('تیکت پشتیبانی  (%d)', $unread_ticket) : 'تیکت پشتیبانی ';
+    $notes_count = function_exists('sc_private_notes_count_user_notes') ? sc_private_notes_count_user_notes(get_current_user_id()) : 0;
+    $items['sc-private-notes'] = $notes_count > 0 ? sprintf('یادداشت های من (%d)', $notes_count) : 'یادداشت های من';
 
 
     $items['sc-faq'] = ' سوالات متداول ';
@@ -548,6 +550,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-my-certificates', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-notifications', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-support-tickets', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-private-notes', EP_ROOT | EP_PAGES);
 
 }
 
@@ -570,6 +573,7 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-wallet';
     $vars[] = 'sc-notifications';
     $vars[] = 'sc-support-tickets';
+    $vars[] = 'sc-private-notes';
     $vars[] = 'my-orders';
     return $vars;
 }
@@ -615,6 +619,7 @@ add_filter('woocommerce_endpoint_sc-invoices_title', 'sc_invoices_endpoint_title
 
 add_filter('woocommerce_endpoint_sc-notifications_title', function() { return 'اطلاعیه‌ها'; });
 add_filter('woocommerce_endpoint_sc-support-tickets_title', function() { return 'تیکت پشتیبانی'; });
+add_filter('woocommerce_endpoint_sc-private-notes_title', function() { return 'یادداشت های من'; });
 add_filter('woocommerce_endpoint_sc-my-certificates_title', function() { return 'گواهینامه‌ها'; });
 function sc_invoices_endpoint_title($title) {
     return 'صورت حساب‌ها';
@@ -2895,6 +2900,15 @@ function sc_my_account_support_tickets_content() {
     $player = sc_check_user_active_status();
     if (!$player) return;
     include SC_TEMPLATES_PUBLIC_DIR . 'support-tickets.php';
+}
+
+add_action('woocommerce_account_sc-private-notes_endpoint', 'sc_my_account_private_notes_content');
+function sc_my_account_private_notes_content() {
+    sc_check_and_create_tables();
+    if (!is_user_logged_in()) return;
+    $player = sc_check_user_active_status();
+    if (!$player) return;
+    include SC_TEMPLATES_PUBLIC_DIR . 'my-private-notes.php';
 }
 
 add_action('woocommerce_account_my-orders_endpoint', 'sc_my_account_my_orders_content');
