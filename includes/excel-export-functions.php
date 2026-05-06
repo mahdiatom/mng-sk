@@ -654,7 +654,13 @@ function sc_export_members_to_excel() {
     }
     
     if ($filter_course > 0) {
-        $where_conditions[] = "m.id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')";
+        $where_conditions[] = "m.id IN (
+            SELECT member_id
+            FROM $member_courses_table
+            WHERE course_id = %d
+              AND status = 'active'
+              AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')
+        )";
         $where_values[] = $filter_course;
     }
     
@@ -694,7 +700,10 @@ function sc_export_members_to_excel() {
             "SELECT c.title 
              FROM $courses_table c 
              INNER JOIN $member_courses_table mc ON c.id = mc.course_id 
-             WHERE mc.member_id = %d AND mc.status = 'active' AND c.deleted_at IS NULL 
+             WHERE mc.member_id = %d
+               AND mc.status = 'active'
+               AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+               AND c.deleted_at IS NULL 
              ORDER BY c.title ASC",
             $member->id
         ));
@@ -856,7 +865,13 @@ function sc_export_members_to_excel_coach() {
     }
     
     if ($filter_course > 0) {
-        $where_conditions[] = "m.id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')";
+        $where_conditions[] = "m.id IN (
+            SELECT member_id
+            FROM $member_courses_table
+            WHERE course_id = %d
+              AND status = 'active'
+              AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')
+        )";
         $where_values[] = $filter_course;
     }
     
@@ -900,7 +915,10 @@ function sc_export_members_to_excel_coach() {
             "SELECT c.title 
              FROM $courses_table c 
              INNER JOIN $member_courses_table mc ON c.id = mc.course_id 
-             WHERE mc.member_id = %d AND mc.status = 'active' AND c.deleted_at IS NULL 
+             WHERE mc.member_id = %d
+               AND mc.status = 'active'
+               AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+               AND c.deleted_at IS NULL 
              ORDER BY c.title ASC",
             $member->id
         ));

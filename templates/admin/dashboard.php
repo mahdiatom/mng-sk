@@ -23,7 +23,10 @@ $total_enrollments = $wpdb->get_var("SELECT COUNT(*) FROM $member_courses_table 
 $course_stats = $wpdb->get_results(
     "SELECT c.id, c.title, COUNT(mc.member_id) as enrolled_count, c.capacity
      FROM $courses_table c
-     LEFT JOIN $member_courses_table mc ON c.id = mc.course_id AND mc.status = 'active'
+     LEFT JOIN $member_courses_table mc
+        ON c.id = mc.course_id
+       AND mc.status = 'active'
+       AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
      WHERE c.deleted_at IS NULL AND c.is_active = 1
      GROUP BY c.id
      ORDER BY enrolled_count DESC

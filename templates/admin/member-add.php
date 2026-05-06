@@ -481,7 +481,11 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         $is_canceled = in_array('canceled', $current_flags);
                         
                         $enrolled = $wpdb->get_var($wpdb->prepare(
-                            "SELECT COUNT(*) FROM $member_courses_table WHERE course_id = %d AND status = 'active'",
+                            "SELECT COUNT(*)
+                             FROM $member_courses_table
+                             WHERE course_id = %d
+                               AND status = 'active'
+                               AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')",
                             $course->id
                         ));
                         $course_packages = function_exists('sc_get_course_packages') ? sc_get_course_packages($course->id) : [];

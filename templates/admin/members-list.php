@@ -509,7 +509,13 @@ public function column_full_name($item) {
             $course_id = absint($_GET['filter_course']);
             $member_courses_table = $wpdb->prefix . 'sc_member_courses';
             $where .= $wpdb->prepare(
-                " AND id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')",
+                " AND id IN (
+                    SELECT member_id
+                    FROM $member_courses_table
+                    WHERE course_id = %d
+                      AND status = 'active'
+                      AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')
+                )",
                 $course_id
             );
         }

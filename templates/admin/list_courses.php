@@ -16,6 +16,7 @@ class Courses_List_Table extends WP_List_Table {
             'capacity' => 'ظرفیت',
             'sessions_count' => 'تعداد جلسات',
             'enrolled' => 'ثبت‌نام شده',
+            'remaining_capacity' => 'ظرفیت باقی‌مانده',
             'start_date' => 'تاریخ شروع',
             'end_date' => 'تاریخ پایان',
             'is_active' => 'وضعیت'
@@ -61,10 +62,28 @@ class Courses_List_Table extends WP_List_Table {
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_member_courses';
         $count = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $table_name WHERE course_id = %d AND status = 'active'",
+            "SELECT COUNT(*)
+             FROM $table_name
+             WHERE course_id = %d
+               AND status = 'active'
+               AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')",
             $item['id']
         ));
         return $count ? $count : '0';
+    }
+
+    public function column_remaining_capacity($item) {
+        $capacity = isset($item['capacity']) ? (int) $item['capacity'] : 0;
+        if ($capacity <= 0) {
+            return 'نامحدود';
+        }
+
+        $enrolled = (int) $this->column_enrolled($item);
+        $remaining = $capacity - $enrolled;
+        if ($remaining < 0) {
+            $remaining = 0;
+        }
+        return (string) $remaining;
     }
 
     public function column_default($item, $column_name) {

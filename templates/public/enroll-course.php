@@ -165,7 +165,11 @@ if (function_exists('wc_get_price_thousand_separator')) {
                 $is_capacity_full = false;
                 if ($course->capacity) {
                     $enrolled_count = $wpdb->get_var($wpdb->prepare(
-                        "SELECT COUNT(*) FROM $member_courses_table WHERE course_id = %d AND status = 'active'",
+                        "SELECT COUNT(*)
+                         FROM $member_courses_table
+                         WHERE course_id = %d
+                           AND status = 'active'
+                           AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')",
                         $course->id
                     ));
                     $remaining = $course->capacity - $enrolled_count;

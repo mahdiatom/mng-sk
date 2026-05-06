@@ -51,6 +51,8 @@ function sc_bulk_actions_get_members($target_type, $config = array()) {
             SELECT DISTINCT mc.member_id
             FROM $member_courses_table mc
             WHERE mc.course_id IN ($placeholders)
+              AND mc.status = 'active'
+              AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
         )";
         $params = array_merge($params, $course_ids);
     } elseif ($target_type === 'event') {

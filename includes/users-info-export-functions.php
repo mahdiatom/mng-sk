@@ -190,7 +190,7 @@ function sc_users_export_get_members($target_type, $config = []) {
             SELECT DISTINCT mc.member_id
             FROM $member_courses_table mc
             WHERE mc.status = 'active'
-              AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '')
+              AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
               AND mc.course_id IN ($placeholders)
         )";
         $params = array_merge($params, $course_ids);
@@ -257,7 +257,7 @@ function sc_users_export_get_members($target_type, $config = []) {
              INNER JOIN $courses_table c ON c.id = mc.course_id
              WHERE mc.member_id = %d
                AND mc.status = 'active'
-               AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '')
+               AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
                AND c.deleted_at IS NULL
              ORDER BY c.title ASC",
             $member->id
