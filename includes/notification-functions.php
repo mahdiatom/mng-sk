@@ -74,7 +74,20 @@ function sc_get_notification_recipients($target_type, $target_config) {
 
         $user_ids = [];
 
-    if ($target_type === 'specific') {
+    if ($target_type === 'admin_users') {
+        $admin_roles = isset($target_config['roles']) && is_array($target_config['roles']) ? $target_config['roles'] : ['administrator', 'club_coach'];
+        $admin_roles = array_values(array_filter(array_map('sanitize_key', $admin_roles)));
+        if (empty($admin_roles)) {
+            $admin_roles = ['administrator'];
+        }
+        $admins = function_exists('get_users') ? get_users([
+            'role__in' => $admin_roles,
+            'fields' => 'ID',
+            'number' => 500,
+        ]) : [];
+        $user_ids = array_map('intval', (array) $admins);
+        $user_ids = array_values(array_filter(array_unique($user_ids)));
+    } elseif ($target_type === 'specific') {
         // recipient_ids: array of "member_123" or "coach_456"
         $recipient_ids = isset($target_config['recipient_ids']) ? (array)$target_config['recipient_ids'] : [];
         foreach ($recipient_ids as $rid) {

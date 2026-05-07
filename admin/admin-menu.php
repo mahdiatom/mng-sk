@@ -59,6 +59,16 @@ function sc_register_admin_menu() {
     }
 
     add_menu_page(
+        'هشدارهای کاربر',
+        'هشدارهای کاربر',
+        'manage_options',
+        'sc-user-alerts',
+        'sc_admin_user_alerts_page',
+        'dashicons-warning',
+        26.6
+    );
+
+    add_menu_page(
         'خروجی اطلاعات کاربران',
         'خروجی اطلاعات کاربران',
         'manage_options',
@@ -317,6 +327,47 @@ function sc_register_admin_menu() {
         'dashicons-welcome-learn-more',
         28.7
     );
+  
+    
+
+    if (current_user_can('sc_view_coach_salary')) {
+        add_submenu_page(
+            'sc-coach-my-courses',
+            'برنامه هفتگی من',
+            'برنامه هفتگی من',
+            'read',
+            'sc-coach-weekly-schedule',
+            'sc_render_coach_weekly_schedule_page'
+        );
+             add_menu_page(
+            'کلاس‌های خصوصی من',
+            'کلاس‌های خصوصی من',
+            'read',
+            'sc-coach-private-classes',
+            'sc_render_private_bookings_admin_page',
+            'dashicons-calendar-alt',
+            28.72
+        );
+        add_submenu_page(
+            'sc-coach-private-classes',
+            'لیست جلسات خصوصی',
+            'لیست جلسات خصوصی',
+            'read',
+            'sc-coach-private-classes',
+            'sc_render_private_bookings_admin_page'
+        );
+              add_submenu_page(
+            'sc-coach-my-courses',
+            'کلاس‌های خصوصی من',
+            'کلاس‌های خصوصی من',
+            'sc_view_coach_salary',
+            'sc-private-bookings-list',
+            'sc_render_private_bookings_admin_page'
+        );
+
+
+    }
+
     add_menu_page(
         'بازیکن‌های من',
         'بازیکن‌های من',
@@ -428,6 +479,17 @@ function sc_register_admin_menu() {
         'sc-add-course',
         'sc_admin_add_course_page'
     );
+
+    if (current_user_can('manage_options') || current_user_can('club_coach')) {
+        add_submenu_page(
+            'sc-courses',
+            'کلاس‌های خصوصی',
+            'کلاس‌های خصوصی',
+            'read',
+            'sc-private-bookings-list',
+            'sc_render_private_bookings_admin_page'
+        );
+    }
 
     /* ================= Coaches (فقط وقتی امکانات پرو فعال است) ================= */
 
@@ -1055,6 +1117,26 @@ if($pro_feature_shop){
         40
     );
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
    
 
     /* ================= Load Hooks (همه حفظ شده) ================= */
@@ -1292,6 +1374,21 @@ function sc_custom_orders() {
     include SC_TEMPLATES_ADMIN_DIR . 'orders-list.php';
 }
 
+
+// کلاس خصوصی
+
+function sc_render_coach_weekly_schedule_page() {
+    include SC_TEMPLATES_ADMIN_DIR . 'coach-weekly-schedule.php';
+}
+
+
+
+function sc_render_private_bookings_admin_page() {
+    include SC_TEMPLATES_ADMIN_DIR . 'private-bookings-list.php';
+}
+
+//پایان کلاس خصوصی مربی ها 
+
 /**
  * آماده‌سازی لیست سفارشات ادمین (فیلترها و صفحه‌بندی)
  */
@@ -1379,6 +1476,17 @@ function sc_admin_add_notification_page() {
     sc_check_and_create_tables();
     $GLOBALS['sc_notification_is_coach'] = false;
     include SC_TEMPLATES_ADMIN_DIR . 'notification-add.php';
+}
+
+function sc_admin_user_alerts_page() {
+    if (!current_user_can('manage_options')) {
+        wp_die('دسترسی غیرمجاز.');
+    }
+    if (function_exists('sc_render_user_alerts_page')) {
+        sc_render_user_alerts_page();
+        return;
+    }
+    echo '<div class="wrap"><div class="notice notice-error"><p>خطا: ماژول هشدارها بارگذاری نشد.</p></div></div>';
 }
 
 function sc_admin_private_notes_list_page() {

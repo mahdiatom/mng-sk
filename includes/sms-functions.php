@@ -611,6 +611,10 @@ function sc_get_sms_template($action, $type = 'user') {
             'user' => 'کاربر گرامی %user_name%، غیبت شما در جلسه %item_name% مورخ %date% ثبت شد.',
             'admin' => 'غیبت: %user_name% - %item_name% - تاریخ %date%'
         ],
+        'absence_alert' => [
+            'user' => 'کاربر گرامی %user_name%، تعداد غیبت شما در %item_name% به %absence_count% رسیده است (حد مجاز: %absence_limit%).',
+            'admin' => 'هشدار غیبت: %user_name% در %item_name% دارای %absence_count% غیبت است (حد مجاز: %absence_limit%).'
+        ],
         'birthday' => [
             'user' => 'کاربر گرامی %user_name%، تولدتان مبارک! باشگاه ورزشی ما این روز را به شما تبریک می‌گوید.'
         ],
@@ -1176,6 +1180,12 @@ function sc_initialize_sms_settings() {
         'sms_absence_admin_enabled' => '1',
         'sms_absence_admin_template' => 'غیبت: %user_name% - %item_name% - تاریخ %date%',
         'sms_absence_admin_pattern' => '',
+        'sms_absence_alert_user_enabled' => '0',
+        'sms_absence_alert_user_template' => 'کاربر گرامی %user_name%، تعداد غیبت شما در %item_name% به %absence_count% رسیده است (حد مجاز: %absence_limit%).',
+        'sms_absence_alert_user_pattern' => '',
+        'sms_absence_alert_admin_enabled' => '0',
+        'sms_absence_alert_admin_template' => 'هشدار غیبت: %user_name% در %item_name% دارای %absence_count% غیبت است (حد مجاز: %absence_limit%).',
+        'sms_absence_alert_admin_pattern' => '',
 
         // Reminder Settings
         //'sms_reminder_delay_minutes' => '4320', // 3 days in minutes
