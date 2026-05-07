@@ -306,6 +306,16 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات دستمزد مربی با موفقیت ذخیره شد.</p></div>';
     }
+    elseif ($current_tab === 'classes') {
+        $private_class_cancel_minutes_before = isset($_POST['private_class_cancel_minutes_before']) ? max(0, absint($_POST['private_class_cancel_minutes_before'])) : 1440;
+        $private_class_reschedule_minutes_before = isset($_POST['private_class_reschedule_minutes_before']) ? max(0, absint($_POST['private_class_reschedule_minutes_before'])) : 1440;
+        sc_update_setting('private_class_cancel_minutes_before', (string) $private_class_cancel_minutes_before, 'classes');
+        sc_update_setting('private_class_reschedule_minutes_before', (string) $private_class_reschedule_minutes_before, 'classes');
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کلاس‌ها ذخیره شد', null, ['tab' => 'classes']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات کلاس‌ها با موفقیت ذخیره شد.</p></div>';
+    }
     elseif ($current_tab === 'pro_features') {
     $pro_feature_notifications = isset($_POST['pro_feature_notifications']) ? 1 : 0;
     $pro_feature_coaches = isset($_POST['pro_feature_coaches']) ? 1 : 0;
@@ -576,6 +586,10 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=coach_salary'); ?>"
            class="nav-tab <?php echo $current_tab === 'coach_salary' ? 'nav-tab-active' : ''; ?>">
             دستمزد مربی
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=classes'); ?>"
+           class="nav-tab <?php echo $current_tab === 'classes' ? 'nav-tab-active' : ''; ?>">
+            کلاس‌ها
         </a>
              <?php } 
              
@@ -2209,6 +2223,34 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 </ul>
             </div>
         <?php endif; 
+        if ($current_tab === 'classes') :
+            $private_class_cancel_minutes_before = (int) sc_get_setting('private_class_cancel_minutes_before', '1440');
+            $private_class_reschedule_minutes_before = (int) sc_get_setting('private_class_reschedule_minutes_before', '1440');
+        ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                <h2>تنظیمات کلاس‌های خصوصی / نیمه‌خصوصی</h2>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="private_class_cancel_minutes_before">حداقل فاصله لغو تا شروع جلسه (دقیقه)</label></th>
+                        <td>
+                            <input type="number" name="private_class_cancel_minutes_before" id="private_class_cancel_minutes_before" value="<?php echo esc_attr($private_class_cancel_minutes_before); ?>" min="0" class="small-text">
+                            <p class="description">اگر مقدار ۰ باشد، بدون محدودیت زمانی لغو می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="private_class_reschedule_minutes_before">حداقل فاصله جابجایی تا شروع جلسه (دقیقه)</label></th>
+                        <td>
+                            <input type="number" name="private_class_reschedule_minutes_before" id="private_class_reschedule_minutes_before" value="<?php echo esc_attr($private_class_reschedule_minutes_before); ?>" min="0" class="small-text">
+                            <p class="description">این محدودیت برای جابجایی جلسه توسط کاربر/مربی اعمال می‌شود.</p>
+                        </td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات کلاس‌ها">
+                </p>
+            </form>
+        <?php endif;
         if ($current_tab === 'pro_features') : ?>
     <form method="POST" action="">
         <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>

@@ -116,6 +116,7 @@ function sc_create_courses_table(){
 $sql = "CREATE TABLE `$table_name` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `title` varchar(255) NOT NULL,
+        `course_type` varchar(20) NOT NULL DEFAULT 'group' COMMENT 'group|private',
         `description` text DEFAULT NULL,
         `price` decimal(10,2) NOT NULL DEFAULT 0.00,
         `price_per_session` decimal(10,2) NOT NULL DEFAULT 0.00,
@@ -273,6 +274,73 @@ function sc_is_member_team($member_id) {
         $member_id
     ));
     return ($type === 'team');
+}
+
+/**
+ * Create private course bookings table (header booking)
+ */
+function sc_create_private_course_bookings_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_private_course_bookings';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `coach_id` bigint(20) unsigned NOT NULL,
+        `member_course_id` bigint(20) unsigned DEFAULT NULL,
+        `invoice_id` bigint(20) unsigned DEFAULT NULL,
+        `package_sessions` int(11) unsigned NOT NULL DEFAULT 0,
+        `start_date` date NOT NULL,
+        `end_date` date NOT NULL,
+        `status` varchar(20) NOT NULL DEFAULT 'active' COMMENT 'active,paused,cancelled,completed',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_coach_id` (`coach_id`),
+        KEY `idx_status` (`status`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create private course booking sessions table (expanded sessions)
+ */
+function sc_create_private_booking_sessions_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_private_booking_sessions';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `booking_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `coach_id` bigint(20) unsigned NOT NULL,
+        `schedule_slot_id` bigint(20) unsigned NOT NULL,
+        `session_date` date NOT NULL,
+        `time_start` time NOT NULL,
+        `time_end` time NOT NULL,
+        `status` varchar(20) NOT NULL DEFAULT 'scheduled' COMMENT 'scheduled,cancelled,absent,excused,rescheduled,done',
+        `notes` text DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_coach_slot_datetime` (`coach_id`,`session_date`,`schedule_slot_id`),
+        KEY `idx_booking_id` (`booking_id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_status` (`status`),
+        KEY `idx_session_date` (`session_date`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
 }
 
 
@@ -453,6 +521,7 @@ function sc_create_coaches_table() {
         `coaching_level` varchar(100) DEFAULT NULL,
         `coaching_experience` int(11) DEFAULT NULL,
         `sports_history` text DEFAULT NULL,
+        `is_private_enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'اجازه پذیرش کلاس خصوصی',
         `settlement_type` varchar(20) DEFAULT 'fixed',
         `settlement_amount` decimal(10,2) DEFAULT 0.00,
         `is_active` tinyint(1) DEFAULT 1,
@@ -1176,6 +1245,8 @@ function sc_update_database() {
         sc_create_faq_table();
         sc_create_api_attendance_logs_table();
         sc_create_course_packages_table();
+        sc_create_private_course_bookings_table();
+        sc_create_private_booking_sessions_table();
         sc_create_discount_codes_tables();
         if (function_exists('sc_create_course_weekly_schedule_table')) {
             sc_create_course_weekly_schedule_table();
@@ -1395,6 +1466,56 @@ function sc_update_database() {
             sc_create_course_packages_table();
         }
         update_option('sc_course_packages_table_added', '1');
+    }
+
+    // جدول رزرو کلاس خصوصی
+    if (get_option('sc_private_course_bookings_table_added', '0') !== '1') {
+        if (function_exists('sc_create_private_course_bookings_table')) {
+            sc_create_private_course_bookings_table();
+        }
+        update_option('sc_private_course_bookings_table_added', '1');
+    }
+
+    // جدول جلسات رزرو خصوصی
+    if (get_option('sc_private_booking_sessions_table_added', '0') !== '1') {
+        if (function_exists('sc_create_private_booking_sessions_table')) {
+            sc_create_private_booking_sessions_table();
+        }
+        update_option('sc_private_booking_sessions_table_added', '1');
+    }
+
+    // ستون نوع دوره برای نصب‌های قدیمی
+    if (get_option('sc_courses_course_type_column_added', '0') !== '1') {
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$courses_table` LIKE %s", 'course_type'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$courses_table` ADD COLUMN `course_type` varchar(20) NOT NULL DEFAULT 'group' COMMENT 'group|private' AFTER `title`");
+            $wpdb->query("UPDATE `$courses_table` SET `course_type` = 'group' WHERE `course_type` IS NULL OR `course_type` = ''");
+        }
+        update_option('sc_courses_course_type_column_added', '1');
+    }
+
+    // امکان پذیرش کلاس خصوصی برای مربی
+    if (get_option('sc_coaches_is_private_enabled_column_added', '0') !== '1') {
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$coaches_table` LIKE %s", 'is_private_enabled'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$coaches_table` ADD COLUMN `is_private_enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'اجازه پذیرش کلاس خصوصی' AFTER `sports_history`");
+        }
+        update_option('sc_coaches_is_private_enabled_column_added', '1');
+    }
+
+    // حذف یکتایی اسلات مربی برای پشتیبانی نیمه‌خصوصی
+    if (get_option('sc_private_sessions_unique_slot_removed', '0') !== '1') {
+        $pbs = $wpdb->prefix . 'sc_private_booking_sessions';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $pbs)) === $pbs) {
+            $unique_idx = $wpdb->get_results("SHOW INDEX FROM `$pbs` WHERE Key_name = 'idx_coach_slot_datetime' AND Non_unique = 0");
+            if (!empty($unique_idx)) {
+                $wpdb->query("ALTER TABLE `$pbs` DROP INDEX `idx_coach_slot_datetime`");
+                $wpdb->query("ALTER TABLE `$pbs` ADD KEY `idx_coach_slot_datetime` (`coach_id`,`session_date`,`schedule_slot_id`)");
+            }
+        }
+        update_option('sc_private_sessions_unique_slot_removed', '1');
     }
 
     // جدول یادداشت‌های خصوصی کاربران (مهاجرت برای نصب‌های قبلی)

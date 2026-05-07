@@ -105,6 +105,15 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                 <th><label for="sports_history">سابقه ورزشی</label></th>
                 <td><textarea name="sports_history" id="sports_history" rows="4" class="large-text"><?php echo $coach ? esc_textarea($coach->sports_history) : ''; ?></textarea></td>
             </tr>
+            <tr>
+                <th><label for="is_private_enabled">کلاس خصوصی</label></th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="is_private_enabled" id="is_private_enabled" value="1" <?php checked($coach ? (int) $coach->is_private_enabled : 1, 1); ?>>
+                        این مربی مجاز به پذیرش کلاس خصوصی است
+                    </label>
+                </td>
+            </tr>
             
             <tr>
                 <th><label>نوع تسویه</label></th>

@@ -43,6 +43,7 @@ require_once SC_INCLUDES_DIR . 'persian-datepicker-helper.php'; // Persian datep
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
 require_once SC_INCLUDES_DIR . 'course-packages-functions.php'; // پکیج‌های قیمت دوره
 require_once SC_INCLUDES_DIR . 'course-schedule-functions.php'; // برنامه هفتگی کلاس دوره
+require_once SC_INCLUDES_DIR . 'private-classes-functions.php'; // کلاس‌های خصوصی/نیمه‌خصوصی
 require_once SC_INCLUDES_DIR . 'discount-codes-functions.php'; // کدهای تخفیف صورت‌حساب
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions

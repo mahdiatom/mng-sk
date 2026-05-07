@@ -807,6 +807,13 @@ function sc_register_admin_menu() {
         'manage_options',
         'admin.php?page=sc_setting&tab=coach_salary'
     );
+    add_submenu_page(
+        'sc_setting',
+        'کلاس‌ها',
+        'کلاس‌ها',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=classes'
+    );
   
 
 
@@ -2414,6 +2421,7 @@ function callback_add_course_sufix() {
         
         $data = [
             'title' => sanitize_text_field($_POST['title']),
+            'course_type' => (isset($_POST['course_type']) && in_array($_POST['course_type'], ['group', 'private'], true)) ? sanitize_text_field($_POST['course_type']) : 'group',
             'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
             'price' => $price_value,
             'price_per_session' => $price_per_session_value,
@@ -2485,6 +2493,7 @@ function callback_add_course_sufix() {
             // آماده‌سازی داده‌ها برای insert با ترتیب صحیح
             $insert_data = [
                 'title' => sanitize_text_field($_POST['title']),
+                'course_type' => (isset($_POST['course_type']) && in_array($_POST['course_type'], ['group', 'private'], true)) ? sanitize_text_field($_POST['course_type']) : 'group',
                 'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
                 'price' => $price_value,
                 'price_per_session' => $price_per_session_value,
@@ -4249,6 +4258,7 @@ function callback_add_coach_sufix() {
             'coaching_level' => !empty($_POST['coaching_level']) ? sanitize_text_field($_POST['coaching_level']) : NULL,
             'coaching_experience' => !empty($_POST['coaching_experience']) ? intval($_POST['coaching_experience']) : NULL,
             'sports_history' => !empty($_POST['sports_history']) ? sanitize_textarea_field($_POST['sports_history']) : NULL,
+            'is_private_enabled' => isset($_POST['is_private_enabled']) ? 1 : 0,
             'settlement_type' => !empty($_POST['settlement_type']) ? sanitize_text_field($_POST['settlement_type']) : 'fixed',
             'settlement_amount' => sc_sanitize_coach_settlement_amount(isset($_POST['coach_settlement_amount_save']) ? $_POST['coach_settlement_amount_save'] : ''),
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
@@ -4288,7 +4298,7 @@ function callback_add_coach_sufix() {
                 $coaches_table,
                 $data,
                 ['id' => $coach_id],
-                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%d'],
+                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%f', '%d', '%s'],
                 ['%d']
             );
             
@@ -4307,7 +4317,7 @@ function callback_add_coach_sufix() {
             // افزودن جدید
             $data['created_at'] = current_time('mysql');
             
-            $inserted = $wpdb->insert($coaches_table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%s']);
+            $inserted = $wpdb->insert($coaches_table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%f', '%d', '%s', '%s']);
             
             if ($inserted !== false) {
                 $new_coach_id = $wpdb->insert_id;

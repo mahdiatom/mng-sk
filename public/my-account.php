@@ -1009,7 +1009,7 @@ function sc_my_account_enroll_course_content() {
     $chapter = isset($chapter) ? $chapter : (isset($_GET['chapter']) ? sanitize_text_field($_GET['chapter']) : 'all');
 
     // ساخت شرط WHERE
-    $where_conditions = ["c.deleted_at IS NULL", "c.is_active = 1"];
+    $where_conditions = ["c.deleted_at IS NULL", "c.is_active = 1", "(c.course_type IS NULL OR c.course_type = '' OR c.course_type = 'group')"];
     $where_values = [];
     
     // بررسی دوره‌های ثبت‌نام شده کاربر (با flags) - شامل active و inactive (pending invoice)
@@ -1274,7 +1274,7 @@ function sc_handle_course_enrollment() {
     
     // بررسی وجود دوره
         $course = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $courses_table WHERE id = %d AND deleted_at IS NULL AND is_active = 1",
+        "SELECT * FROM $courses_table WHERE id = %d AND deleted_at IS NULL AND is_active = 1 AND (course_type IS NULL OR course_type = '' OR course_type = 'group')",
         $course_id
     ));
     
