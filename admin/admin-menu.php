@@ -59,16 +59,6 @@ function sc_register_admin_menu() {
     }
 
     add_menu_page(
-        'هشدارهای کاربر',
-        'هشدارهای کاربر',
-        'manage_options',
-        'sc-user-alerts',
-        'sc_admin_user_alerts_page',
-        'dashicons-warning',
-        26.6
-    );
-
-    add_menu_page(
         'خروجی اطلاعات کاربران',
         'خروجی اطلاعات کاربران',
         'manage_options',
@@ -327,47 +317,6 @@ function sc_register_admin_menu() {
         'dashicons-welcome-learn-more',
         28.7
     );
-  
-    
-
-    if (current_user_can('sc_view_coach_salary')) {
-        add_submenu_page(
-            'sc-coach-my-courses',
-            'برنامه هفتگی من',
-            'برنامه هفتگی من',
-            'read',
-            'sc-coach-weekly-schedule',
-            'sc_render_coach_weekly_schedule_page'
-        );
-             add_menu_page(
-            'کلاس‌های خصوصی من',
-            'کلاس‌های خصوصی من',
-            'read',
-            'sc-coach-private-classes',
-            'sc_render_private_bookings_admin_page',
-            'dashicons-calendar-alt',
-            28.72
-        );
-        add_submenu_page(
-            'sc-coach-private-classes',
-            'لیست جلسات خصوصی',
-            'لیست جلسات خصوصی',
-            'read',
-            'sc-coach-private-classes',
-            'sc_render_private_bookings_admin_page'
-        );
-              add_submenu_page(
-            'sc-coach-my-courses',
-            'کلاس‌های خصوصی من',
-            'کلاس‌های خصوصی من',
-            'sc_view_coach_salary',
-            'sc-private-bookings-list',
-            'sc_render_private_bookings_admin_page'
-        );
-
-
-    }
-
     add_menu_page(
         'بازیکن‌های من',
         'بازیکن‌های من',
@@ -479,17 +428,6 @@ function sc_register_admin_menu() {
         'sc-add-course',
         'sc_admin_add_course_page'
     );
-
-    if (current_user_can('manage_options') || current_user_can('club_coach')) {
-        add_submenu_page(
-            'sc-courses',
-            'کلاس‌های خصوصی',
-            'کلاس‌های خصوصی',
-            'read',
-            'sc-private-bookings-list',
-            'sc_render_private_bookings_admin_page'
-        );
-    }
 
     /* ================= Coaches (فقط وقتی امکانات پرو فعال است) ================= */
 
@@ -869,13 +807,6 @@ function sc_register_admin_menu() {
         'manage_options',
         'admin.php?page=sc_setting&tab=coach_salary'
     );
-    add_submenu_page(
-        'sc_setting',
-        'کلاس‌ها',
-        'کلاس‌ها',
-        'manage_options',
-        'admin.php?page=sc_setting&tab=classes'
-    );
   
 
 
@@ -1117,26 +1048,6 @@ if($pro_feature_shop){
         40
     );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
    
 
     /* ================= Load Hooks (همه حفظ شده) ================= */
@@ -1374,21 +1285,6 @@ function sc_custom_orders() {
     include SC_TEMPLATES_ADMIN_DIR . 'orders-list.php';
 }
 
-
-// کلاس خصوصی
-
-function sc_render_coach_weekly_schedule_page() {
-    include SC_TEMPLATES_ADMIN_DIR . 'coach-weekly-schedule.php';
-}
-
-
-
-function sc_render_private_bookings_admin_page() {
-    include SC_TEMPLATES_ADMIN_DIR . 'private-bookings-list.php';
-}
-
-//پایان کلاس خصوصی مربی ها 
-
 /**
  * آماده‌سازی لیست سفارشات ادمین (فیلترها و صفحه‌بندی)
  */
@@ -1476,17 +1372,6 @@ function sc_admin_add_notification_page() {
     sc_check_and_create_tables();
     $GLOBALS['sc_notification_is_coach'] = false;
     include SC_TEMPLATES_ADMIN_DIR . 'notification-add.php';
-}
-
-function sc_admin_user_alerts_page() {
-    if (!current_user_can('manage_options')) {
-        wp_die('دسترسی غیرمجاز.');
-    }
-    if (function_exists('sc_render_user_alerts_page')) {
-        sc_render_user_alerts_page();
-        return;
-    }
-    echo '<div class="wrap"><div class="notice notice-error"><p>خطا: ماژول هشدارها بارگذاری نشد.</p></div></div>';
 }
 
 function sc_admin_private_notes_list_page() {
@@ -2529,7 +2414,6 @@ function callback_add_course_sufix() {
         
         $data = [
             'title' => sanitize_text_field($_POST['title']),
-            'course_type' => (isset($_POST['course_type']) && in_array($_POST['course_type'], ['group', 'private'], true)) ? sanitize_text_field($_POST['course_type']) : 'group',
             'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
             'price' => $price_value,
             'price_per_session' => $price_per_session_value,
@@ -2601,7 +2485,6 @@ function callback_add_course_sufix() {
             // آماده‌سازی داده‌ها برای insert با ترتیب صحیح
             $insert_data = [
                 'title' => sanitize_text_field($_POST['title']),
-                'course_type' => (isset($_POST['course_type']) && in_array($_POST['course_type'], ['group', 'private'], true)) ? sanitize_text_field($_POST['course_type']) : 'group',
                 'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
                 'price' => $price_value,
                 'price_per_session' => $price_per_session_value,
@@ -2928,8 +2811,7 @@ function callback_add_member_sufix(){
                     }
                     if (function_exists('sc_course_has_packages') && sc_course_has_packages($cid_pkg)) {
                         $sel = isset($course_package_sessions[$cid_pkg]) ? absint($course_package_sessions[$cid_pkg]) : 0;
-                        // انتخاب پکیج اختیاری است؛ فقط اگر انتخاب شد باید معتبر باشد
-                        if ($sel > 0 && (!function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel))) {
+                        if (!$sel || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel)) {
                             wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=member_pkg_error&player_id=' . $player_id));
                             exit;
                         }
@@ -3125,8 +3007,7 @@ function callback_add_member_sufix(){
                     }
                     if (function_exists('sc_course_has_packages') && sc_course_has_packages($cid_pkg)) {
                         $sel = isset($course_package_sessions[$cid_pkg]) ? absint($course_package_sessions[$cid_pkg]) : 0;
-                        // انتخاب پکیج اختیاری است؛ فقط اگر انتخاب شد باید معتبر باشد
-                        if ($sel > 0 && (!function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel))) {
+                        if (!$sel || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel)) {
                             wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=member_pkg_error'));
                             exit;
                         }
@@ -3594,7 +3475,7 @@ function sc_sprot_notices(){
         }
         if($status == 'member_pkg_error'){
             $type='error';
-            $messege="پکیج انتخابی معتبر نیست.";
+            $messege="برای دوره‌های دارای پکیج، انتخاب پکیج (تعداد جلسه) الزامی است.";
         }
         if($status == 'course_updated'){
             $type='success';
@@ -4368,7 +4249,6 @@ function callback_add_coach_sufix() {
             'coaching_level' => !empty($_POST['coaching_level']) ? sanitize_text_field($_POST['coaching_level']) : NULL,
             'coaching_experience' => !empty($_POST['coaching_experience']) ? intval($_POST['coaching_experience']) : NULL,
             'sports_history' => !empty($_POST['sports_history']) ? sanitize_textarea_field($_POST['sports_history']) : NULL,
-            'is_private_enabled' => isset($_POST['is_private_enabled']) ? 1 : 0,
             'settlement_type' => !empty($_POST['settlement_type']) ? sanitize_text_field($_POST['settlement_type']) : 'fixed',
             'settlement_amount' => sc_sanitize_coach_settlement_amount(isset($_POST['coach_settlement_amount_save']) ? $_POST['coach_settlement_amount_save'] : ''),
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
@@ -4408,7 +4288,7 @@ function callback_add_coach_sufix() {
                 $coaches_table,
                 $data,
                 ['id' => $coach_id],
-                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%f', '%d', '%s'],
+                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%d'],
                 ['%d']
             );
             
@@ -4427,7 +4307,7 @@ function callback_add_coach_sufix() {
             // افزودن جدید
             $data['created_at'] = current_time('mysql');
             
-            $inserted = $wpdb->insert($coaches_table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%f', '%d', '%s', '%s']);
+            $inserted = $wpdb->insert($coaches_table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%s']);
             
             if ($inserted !== false) {
                 $new_coach_id = $wpdb->insert_id;

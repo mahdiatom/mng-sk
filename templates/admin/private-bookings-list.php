@@ -7,13 +7,15 @@ if (!current_user_can('manage_options') && !current_user_can('club_coach') && !c
 }
 
 global $wpdb;
+$current_admin_page = isset($sc_private_bookings_page_slug) ? (string) $sc_private_bookings_page_slug : 'sc-private-bookings-list';
+$force_coach_scope = !empty($sc_private_bookings_force_coach_scope);
 $sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
 $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
 $courses_table = $wpdb->prefix . 'sc_courses';
 $coaches_table = $wpdb->prefix . 'sc_coaches';
 $members_table = $wpdb->prefix . 'sc_members';
 
-$can_manage_all = current_user_can('manage_options') || current_user_can('club_coach');
+$can_manage_all = !$force_coach_scope && (current_user_can('manage_options') || current_user_can('club_coach'));
 $is_coach_only = !$can_manage_all && (current_user_can('sc_view_coach_salary') || current_user_can('coach'));
 $current_coach_id = $is_coach_only && function_exists('sc_current_user_coach_id') ? (int) sc_current_user_coach_id() : 0;
 if ($is_coach_only && $current_coach_id <= 0) {
@@ -170,7 +172,7 @@ $status_options = [
     <?php settings_errors('sc_private_sessions'); ?>
 
     <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1" style="margin-top:12px;">
-        <input type="hidden" name="page" value="sc-private-bookings-list">
+        <input type="hidden" name="page" value="<?php echo esc_attr($current_admin_page); ?>">
         <div class="sc-filter-grid">
             <div class="sc-filter-field">
                 <label class="sc-filter-label" for="filter_course">دوره</label>
@@ -220,7 +222,7 @@ $status_options = [
         </div>
         <p class="submit">
             <button type="submit" class="button button-primary">اعمال فیلتر</button>
-            <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=sc-private-bookings-list')); ?>">پاک کردن فیلترها</a>
+            <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=' . rawurlencode($current_admin_page))); ?>">پاک کردن فیلترها</a>
         </p>
     </form>
 
@@ -304,7 +306,7 @@ $status_options = [
                         'total' => $total_pages,
                         'current' => $current_page,
                         'add_args' => [
-                            'page' => 'sc-private-bookings-list',
+                            'page' => $current_admin_page,
                             'filter_course' => $filter_course,
                             'filter_coach' => $filter_coach,
                             'filter_member' => $filter_member,

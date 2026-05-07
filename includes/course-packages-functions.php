@@ -140,31 +140,25 @@ function sc_member_course_session_fields_for_course($course_id, $selected_packag
     $courses_table = $wpdb->prefix . 'sc_courses';
     $course = $wpdb->get_row($wpdb->prepare("SELECT * FROM $courses_table WHERE id = %d", $course_id));
 
-    $course_sessions_count = ($course && !empty($course->sessions_count)) ? (int) $course->sessions_count : 0;
-
     if (sc_course_has_packages($course_id)) {
         $sel = absint($selected_package_sessions);
         $pkg = $sel ? sc_get_course_package_by_sessions($course_id, $sel) : null;
-        if ($pkg) {
-            $n = (int) $pkg->sessions_count;
-            return [
-                'enrollment_sessions' => $n,
-                'total_sessions' => $n,
-                'remaining_sessions' => $n,
-            ];
+        if (!$pkg) {
+            return ['enrollment_sessions' => 0, 'total_sessions' => 0, 'remaining_sessions' => 0];
         }
-        // در صورت عدم انتخاب پکیج، از تنظیمات اصلی دوره استفاده می‌شود
+        $n = (int) $pkg->sessions_count;
         return [
-            'enrollment_sessions' => null,
-            'total_sessions' => $course_sessions_count,
-            'remaining_sessions' => $course_sessions_count,
+            'enrollment_sessions' => $n,
+            'total_sessions' => $n,
+            'remaining_sessions' => $n,
         ];
     }
 
+    $ts = ($course && !empty($course->sessions_count)) ? (int) $course->sessions_count : 0;
     return [
         'enrollment_sessions' => null,
-        'total_sessions' => $course_sessions_count,
-        'remaining_sessions' => $course_sessions_count,
+        'total_sessions' => $ts,
+        'remaining_sessions' => $ts,
     ];
 }
 

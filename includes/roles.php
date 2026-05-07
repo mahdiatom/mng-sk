@@ -792,9 +792,6 @@ if ( current_user_can('coach') ) {
             'sc-coach-wallet',
             'sc-coach-withdrawals',
             'sc-attendance-report',
-            'sc-coach-weekly-schedule',
-            'sc-coach-list-privet-class',
-            'sc-private-bookings-list'
            
         ];
 

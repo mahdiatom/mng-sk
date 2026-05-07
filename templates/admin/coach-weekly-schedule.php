@@ -38,6 +38,34 @@ $upcoming_private = $wpdb->get_results($wpdb->prepare(
     $coach_id,
     current_time('Y-m-d')
 ));
+
+$ws_days = [];
+foreach (range(1, 7) as $day_num) {
+    $ws_days[$day_num] = isset($weekday_labels[$day_num]) ? $weekday_labels[$day_num] : (string) $day_num;
+}
+$ws_cells = [];
+foreach (range(1, 7) as $day_num) {
+    $ws_cells[$day_num] = [];
+}
+foreach ($weekly_rows as $row) {
+    $weekday = (int) $row->weekday;
+    if ($weekday < 1 || $weekday > 7) {
+        continue;
+    }
+    $ws_cells[$weekday][] = [
+        'start' => substr((string) $row->time_start, 0, 5),
+        'end' => substr((string) $row->time_end, 0, 5),
+        'title' => (string) $row->course_title,
+        'type' => ((string) $row->course_type === 'private') ? 'خصوصی/نیمه‌خصوصی' : 'گروهی',
+    ];
+}
+$ws_has_any = false;
+foreach (range(1, 7) as $day_num) {
+    if (!empty($ws_cells[$day_num])) {
+        $ws_has_any = true;
+        break;
+    }
+}
 ?>
 <div class="wrap sc-coach-panel-wrap">
     <div class="sc-coach-panel-header">
@@ -45,31 +73,47 @@ $upcoming_private = $wpdb->get_results($wpdb->prepare(
         <p class="sc-coach-panel-desc">نمای کلی از برنامه دوره‌های عادی و خصوصی شما.</p>
     </div>
 
-    <h2>برنامه هفتگی دوره‌ها</h2>
-    <div class="sc-coach-panel-card">
-        <?php if (empty($weekly_rows)) : ?>
-            <p>برای شما برنامه هفتگی دوره‌ای ثبت نشده است.</p>
+    <div class="sc-weekly-schedule-card" style="margin-bottom: 28px; padding: 20px; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04);">
+        <h2 style="margin: 0 0 14px; font-size: 18px; font-weight: 700; color: #1a1a1a;">📅 برنامه هفتگی دوره‌ها</h2>
+        <?php if (!$ws_has_any) : ?>
+            <p style="margin:0;color:#666;font-size:14px;">برای شما برنامه هفتگی دوره‌ای ثبت نشده است.</p>
         <?php else : ?>
-            <table class="wp-list-table widefat striped">
-                <thead>
-                    <tr>
-                        <th>روز</th>
-                        <th>ساعت</th>
-                        <th>دوره</th>
-                        <th>نوع</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($weekly_rows as $row) : ?>
+            <div style="overflow-x:auto;">
+                <table class="sc-weekly-schedule-table" style="width:100%; min-width:740px; border-collapse:collapse; font-size:13px;">
+                    <thead>
                         <tr>
-                            <td><?php echo esc_html(isset($weekday_labels[(int) $row->weekday]) ? $weekday_labels[(int) $row->weekday] : '-'); ?></td>
-                            <td><?php echo esc_html(substr((string) $row->time_start, 0, 5) . ' تا ' . substr((string) $row->time_end, 0, 5)); ?></td>
-                            <td><?php echo esc_html($row->course_title); ?></td>
-                            <td><?php echo esc_html($row->course_type === 'private' ? 'خصوصی/نیمه‌خصوصی' : 'گروهی'); ?></td>
+                            <?php foreach ($ws_days as $lab) : ?>
+                                <th style="padding:10px 8px; background:#2271b1; color:#fff; text-align:center; border:1px solid #1e5a96; font-weight:600;">
+                                    <?php echo esc_html($lab); ?>
+                                </th>
+                            <?php endforeach; ?>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <?php foreach (range(1, 7) as $d) : ?>
+                                <td style="vertical-align:top; padding:10px 8px; border:1px solid #ddd; background:#fafafa; min-height:100px;">
+                                    <?php if (empty($ws_cells[$d])) : ?>
+                                        <span style="color:#bbb;">—</span>
+                                    <?php else : ?>
+                                        <?php foreach ($ws_cells[$d] as $slot) : ?>
+                                            <div style="margin-bottom:10px; padding:10px; background:#eef6ff; border-radius:8px; border-right:3px solid #2271b1;">
+                                                <div style="font-weight:700; color:#2271b1; margin-bottom:4px;">
+                                                    <?php echo esc_html($slot['start']); ?> – <?php echo esc_html($slot['end']); ?>
+                                                </div>
+                                                <div style="color:#333; line-height:1.4; margin-bottom:4px;"><?php echo esc_html($slot['title']); ?></div>
+                                                <span style="display:inline-block; font-size:11px; color:#0a4b78; background:#dbeeff; padding:2px 8px; border-radius:999px;">
+                                                    <?php echo esc_html($slot['type']); ?>
+                                                </span>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </td>
+                            <?php endforeach; ?>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         <?php endif; ?>
     </div>
 
