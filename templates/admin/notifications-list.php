@@ -131,6 +131,11 @@ if ($is_coach && $current_coach_id > 0) {
     $where[] = "n.created_by_type = 'coach' AND n.created_by_entity_id = %d";
     $where_values[] = $current_coach_id;
 }
+// مدیر: اطلاعیه‌های سیستمی در این لیست نمایش داده نشوند
+if (!$is_coach) {
+    $where[] = "n.notification_type <> %s";
+    $where_values[] = 'system';
+}
 
 // فیلتر ثبت‌کننده (فقط برای مدیر)
 if (!$is_coach && $filter_creator_type === 'admin') {

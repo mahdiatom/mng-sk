@@ -371,6 +371,10 @@ function sc_save_notification($data) {
     $title = isset($data['title']) ? sanitize_text_field($data['title']) : '';
     $content = isset($data['content']) ? sanitize_textarea_field($data['content']) : '';
     $target_type = isset($data['target_type']) ? sanitize_text_field($data['target_type']) : 'all';
+    $notification_type = isset($data['notification_type']) ? sanitize_key($data['notification_type']) : 'admin';
+    if (!in_array($notification_type, ['admin', 'system'], true)) {
+        $notification_type = 'admin';
+    }
     $target_config = isset($data['target_config']) ? $data['target_config'] : [];
     $coach_id = function_exists('sc_current_user_coach_id') ? sc_current_user_coach_id() : 0;
     $is_coach = $coach_id > 0;
@@ -401,7 +405,7 @@ function sc_save_notification($data) {
     $created_by_entity_id = $is_coach ? $coach_id : 0;
 
     if ($notification_id > 0) {
-        $old_row = $wpdb->get_row($wpdb->prepare("SELECT title, content, target_type, target_config, send_sms FROM $notifications_table WHERE id = %d", $notification_id), ARRAY_A);
+        $old_row = $wpdb->get_row($wpdb->prepare("SELECT title, content, target_type, target_config, notification_type, send_sms FROM $notifications_table WHERE id = %d", $notification_id), ARRAY_A);
         $attachment_json = !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null;
         $wpdb->update(
             $notifications_table,
@@ -410,6 +414,7 @@ function sc_save_notification($data) {
                 'content' => $content,
                 'target_type' => $target_type,
                 'target_config' => wp_json_encode($target_config),
+                'notification_type' => $notification_type,
                 'attachment_ids' => $attachment_json,
                 'send_sms' => $send_sms,
                 'created_by_type' => $created_by_type,
@@ -417,12 +422,12 @@ function sc_save_notification($data) {
                 'updated_at' => $now
             ],
             ['id' => $notification_id],
-            ['%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s'],
+            ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s'],
             ['%d']
         );
         $wpdb->delete($recipients_table, ['notification_id' => $notification_id], ['%d']);
         if (function_exists('sc_log_activity')) {
-            sc_log_activity('updated', 'notification', $notification_id, 'اطلاعیه «' . $title . '» ویرایش شد', $old_row, ['title' => $title, 'target_type' => $target_type, 'send_sms' => $send_sms]);
+            sc_log_activity('updated', 'notification', $notification_id, 'اطلاعیه «' . $title . '» ویرایش شد', $old_row, ['title' => $title, 'target_type' => $target_type, 'notification_type' => $notification_type, 'send_sms' => $send_sms]);
         }
     } else {
         $attachment_json = !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null;
@@ -433,6 +438,7 @@ function sc_save_notification($data) {
                 'content' => $content,
                 'target_type' => $target_type,
                 'target_config' => wp_json_encode($target_config),
+                'notification_type' => $notification_type,
                 'attachment_ids' => $attachment_json,
                 'send_sms' => $send_sms,
                 'created_by' => $created_by,
@@ -441,11 +447,11 @@ function sc_save_notification($data) {
                 'created_at' => $now,
                 'updated_at' => $now
             ],
-            ['%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s']
+            ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s']
         );
         $notification_id = $wpdb->insert_id;
         if (function_exists('sc_log_activity') && $notification_id) {
-            sc_log_activity('created', 'notification', $notification_id, 'اطلاعیه «' . $title . '» ایجاد شد', null, ['title' => $title, 'target_type' => $target_type, 'send_sms' => $send_sms]);
+            sc_log_activity('created', 'notification', $notification_id, 'اطلاعیه «' . $title . '» ایجاد شد', null, ['title' => $title, 'target_type' => $target_type, 'notification_type' => $notification_type, 'send_sms' => $send_sms]);
         }
     }
 
@@ -1146,7 +1152,7 @@ function sc_send_invoice_notification_real($invoice_id) {
         'target_config' => [
             'recipient_ids' => ['member_' . $invoice->member_id]
         ],
-        'notification_type' => 'admin', // نوع نوتیف
+        'notification_type' => 'system', // نوع نوتیف خودکار سیستمی
         'send_sms' => 0 // پیامک نمی‌فرستیم
     ]);
 }

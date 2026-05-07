@@ -1103,6 +1103,7 @@ function sc_send_identity_verified_notifications($member_id) {
             'target_config' => [
                 'recipient_ids' => ['member_' . (int) $member->id]
             ],
+            'notification_type' => 'system',
             'send_sms' => 0
         ]);
     }
