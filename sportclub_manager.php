@@ -59,6 +59,7 @@ require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settin
 require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
 require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions
 require_once SC_INCLUDES_DIR . 'notification-functions.php'; // Notification & SMS broadcast
+require_once SC_INCLUDES_DIR . 'alerts-functions.php'; // User alerts (admin)
 require_once SC_INCLUDES_DIR . 'roles.php'; // Roles functions
 require_once SC_INCLUDES_DIR . 'wallet-functions.php'; // Wallet functions
 require_once SC_INCLUDES_DIR . 'coach-wallet-functions.php'; // Coach wallet functions

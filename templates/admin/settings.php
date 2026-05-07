@@ -119,6 +119,12 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $sms_absence_admin_enabled = isset($_POST['sms_absence_admin_enabled']) ? 1 : 0;
         $sms_absence_admin_template = isset($_POST['sms_absence_admin_template']) ? wp_kses($_POST['sms_absence_admin_template'], array()) : '';
         $sms_absence_admin_pattern = isset($_POST['sms_absence_admin_pattern']) ? absint($_POST['sms_absence_admin_pattern']) : '';
+        $sms_absence_alert_user_enabled = isset($_POST['sms_absence_alert_user_enabled']) ? 1 : 0;
+        $sms_absence_alert_user_template = isset($_POST['sms_absence_alert_user_template']) ? wp_kses($_POST['sms_absence_alert_user_template'], array()) : '';
+        $sms_absence_alert_user_pattern = isset($_POST['sms_absence_alert_user_pattern']) ? absint($_POST['sms_absence_alert_user_pattern']) : '';
+        $sms_absence_alert_admin_enabled = isset($_POST['sms_absence_alert_admin_enabled']) ? 1 : 0;
+        $sms_absence_alert_admin_template = isset($_POST['sms_absence_alert_admin_template']) ? wp_kses($_POST['sms_absence_alert_admin_template'], array()) : '';
+        $sms_absence_alert_admin_pattern = isset($_POST['sms_absence_alert_admin_pattern']) ? absint($_POST['sms_absence_alert_admin_pattern']) : '';
 
         sc_update_setting('sms_absence_user_enabled', $sms_absence_user_enabled, 'sms');
         sc_update_setting('sms_absence_user_template', $sms_absence_user_template, 'sms');
@@ -126,6 +132,12 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_absence_admin_enabled', $sms_absence_admin_enabled, 'sms');
         sc_update_setting('sms_absence_admin_template', $sms_absence_admin_template, 'sms');
         sc_update_setting('sms_absence_admin_pattern', $sms_absence_admin_pattern, 'sms');
+        sc_update_setting('sms_absence_alert_user_enabled', $sms_absence_alert_user_enabled, 'sms');
+        sc_update_setting('sms_absence_alert_user_template', $sms_absence_alert_user_template, 'sms');
+        sc_update_setting('sms_absence_alert_user_pattern', $sms_absence_alert_user_pattern, 'sms');
+        sc_update_setting('sms_absence_alert_admin_enabled', $sms_absence_alert_admin_enabled, 'sms');
+        sc_update_setting('sms_absence_alert_admin_template', $sms_absence_alert_admin_template, 'sms');
+        sc_update_setting('sms_absence_alert_admin_pattern', $sms_absence_alert_admin_pattern, 'sms');
 
         // Birthday SMS Settings
         $sms_birthday_user_enabled = isset($_POST['sms_birthday_user_enabled']) ? 1 : 0;
@@ -241,6 +253,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $attendance_grace_before_minutes = isset($_POST['attendance_grace_before_minutes']) ? max(0, absint($_POST['attendance_grace_before_minutes'])) : 15;
         $attendance_grace_after_minutes = isset($_POST['attendance_grace_after_minutes']) ? max(0, absint($_POST['attendance_grace_after_minutes'])) : 30;
         $attendance_absent_after_end_minutes = isset($_POST['attendance_absent_after_end_minutes']) ? max(0, absint($_POST['attendance_absent_after_end_minutes'])) : 15;
+        $user_alert_absence_limit = isset($_POST['user_alert_absence_limit']) ? max(1, absint($_POST['user_alert_absence_limit'])) : 3;
         sc_update_setting('deduction_wallet_enabled' , $deduction_wallet_enabled , 'attendance');
         sc_update_setting('max_debt_for_attendance' , $max_debt_for_attendance , 'attendance');
         sc_update_setting('attendance_api_auto_enabled', $attendance_api_auto_enabled, 'attendance');
@@ -250,6 +263,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('attendance_grace_before_minutes', (string) $attendance_grace_before_minutes, 'attendance');
         sc_update_setting('attendance_grace_after_minutes', (string) $attendance_grace_after_minutes, 'attendance');
         sc_update_setting('attendance_absent_after_end_minutes', (string) $attendance_absent_after_end_minutes, 'attendance');
+        sc_update_setting('user_alert_absence_limit', (string) $user_alert_absence_limit, 'attendance');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب حضور و غیاب ذخیره شد', null, ['tab' => 'attendance']);
         }
@@ -443,8 +457,15 @@ $wallet_max_charge = floatval(sc_get_setting('wallet_max_charge', '0'));
 $wallet_max_negative_balance = floatval(sc_get_setting('wallet_max_negative_balance', '0'));
 $wallet_min_balance_alert = floatval(sc_get_setting('wallet_min_balance_alert', '50000'));
 $wallet_allow_partial_payment = (int)sc_get_setting('wallet_allow_partial_payment', '1');
+$user_alert_absence_limit = (int) sc_get_setting('user_alert_absence_limit', '3');
 $sms_absence_admin_template = sc_get_setting('sms_absence_admin_template', 'غیبت: %user_name% - دوره %course_name% - تاریخ %date%');
 $sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
+$sms_absence_alert_user_enabled = (int)sc_get_setting('sms_absence_alert_user_enabled', '0');
+$sms_absence_alert_user_template = sc_get_setting('sms_absence_alert_user_template', 'کاربر گرامی %user_name%، تعداد غیبت شما در %item_name% به %absence_count% رسیده است (حد مجاز: %absence_limit%).');
+$sms_absence_alert_user_pattern = sc_get_setting('sms_absence_alert_user_pattern', '');
+$sms_absence_alert_admin_enabled = (int)sc_get_setting('sms_absence_alert_admin_enabled', '0');
+$sms_absence_alert_admin_template = sc_get_setting('sms_absence_alert_admin_template', 'هشدار غیبت: %user_name% در %item_name% دارای %absence_count% غیبت است (حد مجاز: %absence_limit%).');
+$sms_absence_alert_admin_pattern = sc_get_setting('sms_absence_alert_admin_pattern', '');
 
 // Birthday SMS Settings
 $sms_birthday_user_enabled = (int)sc_get_setting('sms_birthday_user_enabled', '0');
@@ -1399,6 +1420,75 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                <h3>پیامک هشدار غیبت (عبور از حد مجاز)</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">پیامک هشدار به کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_absence_alert_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_absence_alert_user_enabled, 1); ?>>
+                                فعال کردن پیامک هشدار غیبت به کاربر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_absence_alert_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک هشدار به کاربر"><?php echo esc_textarea($sms_absence_alert_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% -
+                                نام دوره/آیتم = %item_name% -
+                                تعداد غیبت = %absence_count% -
+                                حد مجاز = %absence_limit% -
+                                تاریخ = %date%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_absence_alert_user_pattern"
+                                   value="<?php echo esc_attr($sms_absence_alert_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">پیامک هشدار به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_absence_alert_admin_enabled"
+                                       value="1"
+                                       <?php checked($sms_absence_alert_admin_enabled, 1); ?>>
+                                فعال کردن پیامک هشدار غیبت به مدیر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_absence_alert_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک هشدار به مدیر"><?php echo esc_textarea($sms_absence_alert_admin_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% -
+                                نام دوره/آیتم = %item_name% -
+                                تعداد غیبت = %absence_count% -
+                                حد مجاز = %absence_limit% -
+                                تاریخ = %date%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_absence_alert_admin_pattern"
+                                   value="<?php echo esc_attr($sms_absence_alert_admin_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                </table>
+
                 <!-- Birthday SMS Settings -->
                 <h3>پیامک تولد</h3>
                 <table class="form-table">
@@ -1814,6 +1904,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 $attendance_grace_before_minutes = (int) sc_get_setting('attendance_grace_before_minutes', '15');
                 $attendance_grace_after_minutes = (int) sc_get_setting('attendance_grace_after_minutes', '30');
                 $attendance_absent_after_end_minutes = (int) sc_get_setting('attendance_absent_after_end_minutes', '15');
+                $user_alert_absence_limit = (int) sc_get_setting('user_alert_absence_limit', '3');
                 ?>
 
                 <table class="form-table">
@@ -1867,6 +1958,13 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                         <td>
                             <input type="number" name="attendance_absent_after_end_minutes" value="<?php echo esc_attr($attendance_absent_after_end_minutes); ?>" min="0" max="240" class="small-text">
                             <p class="description">بعد از گذشت این مدت از <strong>پایان ساعت کلاس</strong>، برای اعضای فعال بدون رکورد حضور برای همان اسلات، غیبت ثبت می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">حد مجاز غیبت برای هشدار</th>
+                        <td>
+                            <input type="number" name="user_alert_absence_limit" value="<?php echo esc_attr($user_alert_absence_limit); ?>" min="1" max="365" class="small-text">
+                            <p class="description">اگر تعداد غیبت یک کاربر در هر دوره از این مقدار بیشتر شود، هشدار سیستمی برای مدیر و کاربر تولید می‌شود.</p>
                         </td>
                     </tr>
                     <tr>
