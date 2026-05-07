@@ -310,6 +310,7 @@ function sc_create_expenses_table() {
     $sql = "CREATE TABLE `$table_name` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `name` varchar(255) NOT NULL,
+        `chapter` varchar(255) DEFAULT NULL COMMENT 'شعبه',
         `category_id` bigint(20) unsigned DEFAULT NULL,
         `expense_date_shamsi` varchar(10) DEFAULT NULL,
         `expense_date_gregorian` date DEFAULT NULL,
@@ -318,6 +319,7 @@ function sc_create_expenses_table() {
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
+        KEY `idx_chapter` (`chapter`),
         KEY `idx_category_id` (`category_id`),
         KEY `idx_expense_date_gregorian` (`expense_date_gregorian`),
         KEY `idx_created_at` (`created_at`)
@@ -339,6 +341,7 @@ function sc_create_events_table() {
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `name` varchar(255) NOT NULL,
         `event_type` varchar(20) DEFAULT 'event',
+        `chapter` varchar(255) DEFAULT NULL COMMENT 'شعبه',
         `description` text DEFAULT NULL,
         `price` decimal(10,2) NOT NULL DEFAULT 0.00,
         `start_date_shamsi` varchar(10) DEFAULT NULL,
@@ -368,6 +371,7 @@ function sc_create_events_table() {
         PRIMARY KEY (`id`),
         KEY `idx_is_active` (`is_active`),
         KEY `idx_deleted_at` (`deleted_at`),
+        KEY `idx_chapter` (`chapter`),
         KEY `idx_start_date_gregorian` (`start_date_gregorian`),
         KEY `idx_end_date_gregorian` (`end_date_gregorian`)
     ) $charset_collate";
@@ -1232,6 +1236,28 @@ function sc_update_database() {
         $wt_table = $wpdb->prefix . 'sc_wallet_transactions';
         $wpdb->query("ALTER TABLE `$wt_table` MODIFY COLUMN `transaction_type` enum('charge','deduct','payment','refund','session_fee') NOT NULL COMMENT 'نوع تراکنش'");
         update_option('sc_wallet_session_fee_enum_added', '1');
+    }
+
+    // ستون chapter برای هزینه‌ها (شعبه)
+    if (get_option('sc_expenses_chapter_column_added', '0') !== '1') {
+        $expenses_table = $wpdb->prefix . 'sc_expenses';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$expenses_table` LIKE %s", 'chapter'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$expenses_table` ADD COLUMN `chapter` varchar(255) DEFAULT NULL COMMENT 'شعبه' AFTER `name`");
+            $wpdb->query("ALTER TABLE `$expenses_table` ADD KEY `idx_chapter` (`chapter`)");
+        }
+        update_option('sc_expenses_chapter_column_added', '1');
+    }
+
+    // ستون chapter برای رویدادها (شعبه)
+    if (get_option('sc_events_chapter_column_added', '0') !== '1') {
+        $events_table = $wpdb->prefix . 'sc_events';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$events_table` LIKE %s", 'chapter'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$events_table` ADD COLUMN `chapter` varchar(255) DEFAULT NULL COMMENT 'شعبه' AFTER `event_type`");
+            $wpdb->query("ALTER TABLE `$events_table` ADD KEY `idx_chapter` (`chapter`)");
+        }
+        update_option('sc_events_chapter_column_added', '1');
     }
 
     // اضافه کردن ستون member_type به جدول اعضا (یک بار برای نصب‌های قبلی)

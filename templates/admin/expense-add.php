@@ -8,9 +8,11 @@ sc_check_and_create_tables();
 
 global $wpdb;
 $expense_categories_table = $wpdb->prefix . 'sc_expense_categories';
+$chapter_categories_table = $wpdb->prefix . 'sc_chapter_categories';
 
 // دریافت لیست دسته‌بندی‌ها
 $categories = $wpdb->get_results("SELECT id, name FROM $expense_categories_table ORDER BY name ASC");
+$chapters = $wpdb->get_results("SELECT name FROM $chapter_categories_table ORDER BY name ASC");
 
 // دریافت اطلاعات هزینه در صورت ویرایشexpense_add
 $expense = null;
@@ -27,6 +29,7 @@ if ($expense_id > 0) {
 $expense_name = $expense ? $expense->name : (isset($_POST['expense_name']) ? sanitize_text_field($_POST['expense_name']) : '');
 $category_id = $expense ? $expense->category_id : (isset($_POST['category_id']) ? absint($_POST['category_id']) : 0);
 $amount = $expense ? floatval($expense->amount) : (isset($_POST['amount']) ? floatval($_POST['amount']) : 0);
+$chapter = $expense ? (string) $expense->chapter : (isset($_POST['chapter']) ? sanitize_text_field($_POST['chapter']) : '');
 $description = $expense ? $expense->description : (isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '');
 
 // تاریخ شمسی
@@ -82,6 +85,22 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                     </td>
                 </tr>
                 
+                <tr>
+                    <th scope="row">
+                        <label for="chapter">شعبه</label>
+                    </th>
+                    <td>
+                        <select name="chapter" id="chapter">
+                            <option value="">-- انتخاب شعبه --</option>
+                            <?php foreach ($chapters as $chapter_item) : ?>
+                                <option value="<?php echo esc_attr($chapter_item->name); ?>" <?php selected($chapter, $chapter_item->name); ?>>
+                                    <?php echo esc_html($chapter_item->name); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                </tr>
+
                 <tr>
                     <th scope="row">
                         <label for="category_id">دسته‌بندی</label>

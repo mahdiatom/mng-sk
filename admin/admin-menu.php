@@ -857,7 +857,7 @@ function sc_register_admin_menu() {
     add_menu_page(
         'گزارشات باشگاه',
         'گزارشات باشگاه',
-        'manage_options',
+        'sc_finance_reports_access',
         'sc-reports',
         'sc_report_data',
         'dashicons-chart-area',
@@ -877,7 +877,7 @@ function sc_register_admin_menu() {
         'sc-reports',
         'مالی و حسابداری',
         'مالی و حسابداری',
-        'manage_options',
+        'sc_finance_reports_access',
         'sc-reports-income-expenses',
         'sc_admin_reports_income_expenses_page'
     );
@@ -1167,7 +1167,7 @@ function sc_handle_excel_export() {
     }
     
     // بررسی دسترسی
-    if (!current_user_can('manage_options')) {
+    if (!current_user_can('manage_options') && !current_user_can('sc_finance_reports_access')) {
         wp_die('شما دسترسی لازم را ندارید.');
     }
     
@@ -1221,6 +1221,27 @@ function sc_handle_excel_export() {
             break;
         case 'coach_management_withdrawals':
             sc_export_coach_management_withdrawals_to_excel();
+            break;
+        case 'finance_course_income':
+            sc_export_finance_course_income_to_excel();
+            break;
+        case 'finance_event_income':
+            sc_export_finance_event_income_to_excel();
+            break;
+        case 'finance_coach_income':
+            sc_export_finance_coach_income_to_excel();
+            break;
+        case 'finance_club_share':
+            sc_export_finance_club_share_to_excel();
+            break;
+        case 'finance_receivables':
+            sc_export_finance_receivables_to_excel();
+            break;
+        case 'finance_cashflow':
+            sc_export_finance_cashflow_to_excel();
+            break;
+        case 'finance_ledger':
+            sc_export_finance_ledger_to_excel();
             break;
         default:
             wp_die('نوع export معتبر نیست.');
@@ -1829,6 +1850,27 @@ function sc_manage_attendance_or_admin_cap($allcaps, $caps, $args, $user) {
 }
 
 /**
+ * Capability for finance reports access
+ * admins, club managers and accountants can access financial reports.
+ */
+add_filter('user_has_cap', 'sc_finance_reports_access_cap', 10, 4);
+function sc_finance_reports_access_cap($allcaps, $caps, $args, $user) {
+    foreach ($caps as $cap) {
+        if ($cap === 'sc_finance_reports_access') {
+            if (
+                (!empty($allcaps['manage_options']) && $allcaps['manage_options']) ||
+                (!empty($allcaps['club_coach']) && $allcaps['club_coach']) ||
+                (!empty($allcaps['accountantt']) && $allcaps['accountantt'])
+            ) {
+                $allcaps['sc_finance_reports_access'] = true;
+            }
+            break;
+        }
+    }
+    return $allcaps;
+}
+
+/**
  * Invoices management page
  */
 function sc_admin_invoices_list_page() {
@@ -1938,7 +1980,7 @@ function sc_admin_reports_income_expenses_page() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
     
-    include SC_TEMPLATES_ADMIN_DIR . 'reports-income-expenses.php';
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-finance.php';
 }
 
 function sc_admin_reports_debtors_page() {
@@ -2033,6 +2075,7 @@ function callback_add_expense_sufix() {
         }
         
         $expense_name = sanitize_text_field($_POST['expense_name']);
+        $chapter = !empty($_POST['chapter']) ? sanitize_text_field($_POST['chapter']) : null;
         $category_id = !empty($_POST['category_id']) ? absint($_POST['category_id']) : NULL;
         
         // دریافت مبلغ (حذف کاماها در صورت وجود)
@@ -2076,6 +2119,7 @@ function callback_add_expense_sufix() {
         // ذخیره یا بروزرسانی هزینه
         $expense_data = [
             'name' => $expense_name,
+            'chapter' => $chapter,
             'category_id' => $category_id,
             'expense_date_shamsi' => $expense_date_shamsi,
             'expense_date_gregorian' => $expense_date_gregorian,
@@ -2090,7 +2134,7 @@ function callback_add_expense_sufix() {
                 $expenses_table,
                 $expense_data,
                 ['id' => $expense_id],
-                ['%s', '%d', '%s', '%s', '%f', '%s', '%s'],
+                ['%s', '%s', '%d', '%s', '%s', '%f', '%s', '%s'],
                 ['%d']
             );
             
@@ -2108,7 +2152,7 @@ function callback_add_expense_sufix() {
             $inserted = $wpdb->insert(
                 $expenses_table,
                 $expense_data,
-                ['%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s']
+                ['%s', '%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s']
             );
             
             if ($inserted !== false) {
@@ -3822,6 +3866,7 @@ function callback_add_event_sufix() {
         $data = [
             'name' => sanitize_text_field($_POST['name']),
             'event_type' => !empty($_POST['event_type']) ? sanitize_text_field($_POST['event_type']) : 'event',
+            'chapter' => !empty($_POST['chapter']) ? sanitize_text_field($_POST['chapter']) : null,
             'description' => !empty($description_content) ? $description_content : NULL,
             'price' => $price_value,
             'start_date_shamsi' => $start_date_shamsi,

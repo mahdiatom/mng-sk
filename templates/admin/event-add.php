@@ -56,10 +56,16 @@ if ($event && isset($_GET['event_id'])) {
     }
 }
 global $wpdb;
+$chapter_categories_table = $wpdb->prefix . 'sc_chapter_categories';
+$chapters = $wpdb->get_results("SELECT name FROM $chapter_categories_table ORDER BY name ASC");
 $team_table = $wpdb->prefix . 'sc_team_categories';
 $teams = $wpdb->get_results("SELECT * FROM $team_table ORDER BY id ASC");
 $level_table = $wpdb->prefix . 'sc_level_categories';
 $levels = $wpdb->get_results("SELECT * FROM $level_table ORDER BY id ASC");
+$chapter = '';
+if ($event && isset($_GET['event_id'])) {
+    $chapter = isset($event->chapter) ? (string) $event->chapter : '';
+}
 ?>
 <div class="wrap">
     <?php
@@ -114,6 +120,19 @@ $levels = $wpdb->get_results("SELECT * FROM $level_table ORDER BY id ASC");
                             <option value="competition" <?php selected($event_type, 'competition'); ?>>مسابقه</option>
                         </select>
                         <p class="description">نوع را انتخاب کنید: رویداد یا مسابقه</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="chapter">شعبه</label></th>
+                    <td>
+                        <select name="chapter" id="chapter" class="regular-text">
+                            <option value="">-- انتخاب شعبه --</option>
+                            <?php foreach ($chapters as $chapter_item) : ?>
+                                <option value="<?php echo esc_attr($chapter_item->name); ?>" <?php selected($chapter, $chapter_item->name); ?>>
+                                    <?php echo esc_html($chapter_item->name); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </td>
                 </tr>
 
