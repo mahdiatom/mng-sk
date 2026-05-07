@@ -2820,7 +2820,8 @@ function callback_add_member_sufix(){
                     }
                     if (function_exists('sc_course_has_packages') && sc_course_has_packages($cid_pkg)) {
                         $sel = isset($course_package_sessions[$cid_pkg]) ? absint($course_package_sessions[$cid_pkg]) : 0;
-                        if (!$sel || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel)) {
+                        // انتخاب پکیج اختیاری است؛ فقط اگر انتخاب شد باید معتبر باشد
+                        if ($sel > 0 && (!function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel))) {
                             wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=member_pkg_error&player_id=' . $player_id));
                             exit;
                         }
@@ -3016,7 +3017,8 @@ function callback_add_member_sufix(){
                     }
                     if (function_exists('sc_course_has_packages') && sc_course_has_packages($cid_pkg)) {
                         $sel = isset($course_package_sessions[$cid_pkg]) ? absint($course_package_sessions[$cid_pkg]) : 0;
-                        if (!$sel || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel)) {
+                        // انتخاب پکیج اختیاری است؛ فقط اگر انتخاب شد باید معتبر باشد
+                        if ($sel > 0 && (!function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel))) {
                             wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=member_pkg_error'));
                             exit;
                         }
@@ -3484,7 +3486,7 @@ function sc_sprot_notices(){
         }
         if($status == 'member_pkg_error'){
             $type='error';
-            $messege="برای دوره‌های دارای پکیج، انتخاب پکیج (تعداد جلسه) الزامی است.";
+            $messege="پکیج انتخابی معتبر نیست.";
         }
         if($status == 'course_updated'){
             $type='success';

@@ -14,6 +14,21 @@ function sc_get_private_class_booking_limits() {
     ];
 }
 
+function sc_private_session_status_label($status) {
+    $map = [
+        'scheduled' => 'برنامه‌ریزی‌شده',
+        'cancelled' => 'لغو شده',
+        'absent' => 'غایب',
+        'excused' => 'غیبت مجاز',
+        'rescheduled' => 'جابجا شده',
+        'done' => 'برگزار شده',
+        'active' => 'فعال',
+        'paused' => 'متوقف',
+        'completed' => 'تکمیل‌شده',
+    ];
+    return isset($map[$status]) ? $map[$status] : $status;
+}
+
 function sc_get_private_course_coaches($course_id) {
     global $wpdb;
     $course_id = absint($course_id);
@@ -185,7 +200,18 @@ function sc_handle_private_class_booking() {
     $course_id = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
     $coach_id = isset($_POST['coach_id']) ? absint($_POST['coach_id']) : 0;
     $schedule_ids = isset($_POST['schedule_slot_ids']) && is_array($_POST['schedule_slot_ids']) ? array_values(array_filter(array_map('absint', $_POST['schedule_slot_ids']))) : [];
-    $start_date = isset($_POST['start_date']) ? sanitize_text_field(wp_unslash($_POST['start_date'])) : current_time('Y-m-d');
+    $start_date = current_time('Y-m-d');
+    if (!empty($_POST['start_date_shamsi'])) {
+        $start_date_shamsi = sanitize_text_field(wp_unslash($_POST['start_date_shamsi']));
+        if (function_exists('sc_shamsi_to_gregorian_date')) {
+            $maybe_gregorian = sc_shamsi_to_gregorian_date($start_date_shamsi);
+            if (!empty($maybe_gregorian)) {
+                $start_date = $maybe_gregorian;
+            }
+        }
+    } elseif (!empty($_POST['start_date'])) {
+        $start_date = sanitize_text_field(wp_unslash($_POST['start_date']));
+    }
     $enrollment_sessions = isset($_POST['enrollment_sessions']) ? absint($_POST['enrollment_sessions']) : 0;
     if (!$course_id || !$coach_id || empty($schedule_ids) || $enrollment_sessions <= 0) {
         wc_add_notice('اطلاعات رزرو کامل نیست.', 'error');
@@ -394,6 +420,45 @@ function sc_private_update_session_status($session_id, $status, $restore_session
     return true;
 }
 
+function sc_private_sync_session_with_attendance($member_id, $course_id, $session_date, $attendance_status) {
+    global $wpdb;
+    $member_id = absint($member_id);
+    $course_id = absint($course_id);
+    $session_date = sanitize_text_field($session_date);
+    $attendance_status = sanitize_text_field($attendance_status);
+    if (!$member_id || !$course_id || $session_date === '') {
+        return false;
+    }
+    $status_map = [
+        'present' => 'done',
+        'absent' => 'absent',
+        'excused' => 'excused',
+    ];
+    if (!isset($status_map[$attendance_status])) {
+        return false;
+    }
+    $target_status = $status_map[$attendance_status];
+    $t = $wpdb->prefix . 'sc_private_booking_sessions';
+
+    $session_id = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT id
+         FROM {$t}
+         WHERE member_id = %d
+           AND course_id = %d
+           AND session_date = %s
+           AND status IN ('scheduled','rescheduled','absent','excused','done')
+         ORDER BY time_start ASC, id ASC
+         LIMIT 1",
+        $member_id,
+        $course_id,
+        $session_date
+    ));
+    if (!$session_id) {
+        return false;
+    }
+    return sc_private_update_session_status($session_id, $target_status, false);
+}
+
 function sc_private_session_start_ts($session_row) {
     if (!is_object($session_row) || empty($session_row->session_date) || empty($session_row->time_start)) {
         return 0;
@@ -429,7 +494,18 @@ function sc_handle_private_session_user_actions() {
     $limits = sc_get_private_class_booking_limits();
     $now_ts = current_time('timestamp');
     $session_ts = sc_private_session_start_ts($session);
+    $today_ymd = current_time('Y-m-d');
+    if ((string) $session->session_date < $today_ymd || ($session_ts > 0 && $session_ts <= $now_ts)) {
+        wc_add_notice('امکان لغو/تغییر وضعیت برای جلسه گذشته وجود ندارد.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
+        exit;
+    }
     if ($action_type === 'cancel') {
+        if ((string) $session->status !== 'scheduled') {
+            wc_add_notice('فقط جلسات برنامه‌ریزی‌شده قابل لغو هستند.', 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
+            exit;
+        }
         $min_before = (int) $limits['cancel_minutes_before'];
         if ($min_before > 0 && $session_ts > 0 && (($session_ts - $now_ts) < ($min_before * 60))) {
             wc_add_notice('مهلت لغو این جلسه گذشته است.', 'error');
@@ -439,8 +515,7 @@ function sc_handle_private_session_user_actions() {
         sc_private_update_session_status($session_id, 'cancelled', true);
         wc_add_notice('جلسه با موفقیت لغو شد و یک جلسه به پکیج بازگشت.', 'success');
     } elseif ($action_type === 'excuse_absence') {
-        sc_private_update_session_status($session_id, 'excused', true);
-        wc_add_notice('غیبت جلسه مجاز شد و یک جلسه به پکیج بازگشت.', 'success');
+        wc_add_notice('مجاز کردن غیبت فقط توسط مربی یا مدیر انجام می‌شود.', 'error');
     }
     wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
     exit;
@@ -459,19 +534,80 @@ add_action('admin_post_sc_private_cancel_session', function () {
 
 add_action('admin_menu', 'sc_register_coach_weekly_schedule_submenu', 50);
 function sc_register_coach_weekly_schedule_submenu() {
-    if (!current_user_can('sc_view_coach_salary') || current_user_can('manage_options')) {
+    if (current_user_can('manage_options')) {
         return;
     }
-    add_submenu_page(
-        'sc-coach-my-courses',
-        'برنامه هفتگی من',
-        'برنامه هفتگی من',
-        'sc_view_coach_salary',
-        'sc-coach-weekly-schedule',
-        'sc_render_coach_weekly_schedule_page'
-    );
+    if (!current_user_can('coach') && !current_user_can('sc_view_coach_salary')) {
+        return;
+    }
+    if (current_user_can('sc_view_coach_salary')) {
+        add_submenu_page(
+            'sc-coach-my-courses',
+            'برنامه هفتگی من',
+            'برنامه هفتگی من',
+            'read',
+            'sc-coach-weekly-schedule',
+            'sc_render_coach_weekly_schedule_page'
+        );
+    } else {
+        add_submenu_page(
+            'sc-coach-private-classes',
+            'برنامه هفتگی من',
+            'برنامه هفتگی من',
+            'read',
+            'sc-coach-weekly-schedule',
+            'sc_render_coach_weekly_schedule_page'
+        );
+    }
 }
 
 function sc_render_coach_weekly_schedule_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'coach-weekly-schedule.php';
+}
+
+add_action('admin_menu', 'sc_register_private_bookings_admin_page', 55);
+function sc_register_private_bookings_admin_page() {
+    if (current_user_can('manage_options') || current_user_can('club_coach')) {
+        add_submenu_page(
+            'sc-courses',
+            'کلاس‌های خصوصی',
+            'کلاس‌های خصوصی',
+            'read',
+            'sc-private-bookings-list',
+            'sc_render_private_bookings_admin_page'
+        );
+    }
+    if (!current_user_can('manage_options') && current_user_can('sc_view_coach_salary')) {
+        add_submenu_page(
+            'sc-coach-my-courses',
+            'کلاس‌های خصوصی من',
+            'کلاس‌های خصوصی من',
+            'sc_view_coach_salary',
+            'sc-private-bookings-list',
+            'sc_render_private_bookings_admin_page'
+        );
+    }
+    if (!current_user_can('manage_options') && !current_user_can('club_coach') && current_user_can('coach') && !current_user_can('sc_view_coach_salary')) {
+        add_menu_page(
+            'کلاس‌های خصوصی من',
+            'کلاس‌های خصوصی من',
+            'read',
+            'sc-coach-private-classes',
+            'sc_render_private_bookings_admin_page',
+            'dashicons-calendar-alt',
+            28.72
+        );
+        add_submenu_page(
+            'sc-coach-private-classes',
+            'لیست جلسات خصوصی',
+            'لیست جلسات خصوصی',
+            'read',
+            'sc-coach-private-classes',
+            'sc_render_private_bookings_admin_page'
+        );
+    }
+}
+
+function sc_render_private_bookings_admin_page() {
+    include SC_TEMPLATES_ADMIN_DIR . 'private-bookings-list.php';
 }

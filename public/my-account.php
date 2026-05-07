@@ -1297,14 +1297,17 @@ function sc_handle_course_enrollment() {
         : ('ثبت نام دوره: ' . $course->title);
 
     if ($has_pkg) {
-        if (!$enrollment_sessions_sel || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($course_id, $enrollment_sessions_sel)) {
-            wc_add_notice('لطفاً پکیج (تعداد جلسه) را انتخاب کنید.', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
-            exit;
+        // اگر پکیج انتخاب شد همان ملاک قیمت/جلسه است؛ در غیر این صورت fallback به قیمت/تعداد جلسه خود دوره
+        if ($enrollment_sessions_sel > 0) {
+            if (!function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($course_id, $enrollment_sessions_sel)) {
+                wc_add_notice('پکیج انتخابی معتبر نیست.', 'error');
+                wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+                exit;
+            }
+            $pkg = sc_get_course_package_by_sessions($course_id, $enrollment_sessions_sel);
+            $invoice_amount = floatval($pkg->price);
+            $fee_label = sc_course_enrollment_fee_label($course->title, (int) $pkg->sessions_count);
         }
-        $pkg = sc_get_course_package_by_sessions($course_id, $enrollment_sessions_sel);
-        $invoice_amount = floatval($pkg->price);
-        $fee_label = sc_course_enrollment_fee_label($course->title, (int) $pkg->sessions_count);
     } elseif ($invoice_amount <= 0) {
         wc_add_notice('قیمت این دوره ثبت نشده است. لطفاً با پشتیبانی تماس بگیرید.', 'error');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
@@ -1359,6 +1362,7 @@ function sc_handle_course_enrollment() {
             // رکورد موجود را به inactive تغییر می‌دهیم (بعد از پرداخت فعال می‌شود)
             $upd_inactive = [
                 'status' => 'inactive',
+                'course_status_flags' => '',
                 'enrollment_date' => null,
                 'updated_at' => current_time('mysql'),
             ];
@@ -1367,7 +1371,7 @@ function sc_handle_course_enrollment() {
             } else {
                 $upd_inactive['enrollment_sessions'] = null;
             }
-            $fmt_inactive = ['%s', '%s', '%s', '%s'];
+            $fmt_inactive = ['%s', '%s', '%s', '%s', '%s'];
             $updated = $wpdb->update(
                 $member_courses_table,
                 $upd_inactive,
@@ -1871,7 +1875,46 @@ function sc_handle_course_cancellation() {
     );
     
     if ($updated !== false) {
-        wc_add_notice('دوره با موفقیت لغو شد.', 'success');
+        $cancelled_private_sessions = 0;
+        $private_sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
+        $private_bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
+        $today = current_time('Y-m-d');
+        $now_mysql = current_time('mysql');
+
+        // با لغو دوره، جلسات خصوصی آینده همین کاربر/دوره نیز لغو می‌شوند.
+        $private_update = $wpdb->query($wpdb->prepare(
+            "UPDATE $private_sessions_table
+             SET status = 'cancelled', updated_at = %s
+             WHERE member_id = %d
+               AND course_id = %d
+               AND session_date >= %s
+               AND status IN ('scheduled','rescheduled')",
+            $now_mysql,
+            (int) $player->id,
+            (int) $member_course->course_id,
+            $today
+        ));
+        if ($private_update !== false) {
+            $cancelled_private_sessions = (int) $private_update;
+        }
+
+        // وضعیت رزروهای خصوصی فعال/متوقف مرتبط با این دوره و کاربر نیز لغو شود.
+        $wpdb->query($wpdb->prepare(
+            "UPDATE $private_bookings_table
+             SET status = 'cancelled', updated_at = %s
+             WHERE member_id = %d
+               AND course_id = %d
+               AND status IN ('active','paused')",
+            $now_mysql,
+            (int) $player->id,
+            (int) $member_course->course_id
+        ));
+
+        if ($cancelled_private_sessions > 0) {
+            wc_add_notice('دوره با موفقیت لغو شد و جلسات خصوصی آینده آن نیز لغو شدند.', 'success');
+        } else {
+            wc_add_notice('دوره با موفقیت لغو شد.', 'success');
+        }
     } else {
         error_log('SC Course Cancellation Error: ' . $wpdb->last_error);
         wc_add_notice('خطا در لغو دوره. لطفاً دوباره تلاش کنید.', 'error');

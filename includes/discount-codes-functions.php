@@ -429,14 +429,17 @@ function sc_ajax_preview_sc_discount_course() {
 
     $subtotal = floatval($course->price);
     if (function_exists('sc_course_has_packages') && sc_course_has_packages($course_id)) {
-        if (!$enrollment_sessions || !function_exists('sc_get_course_package_by_sessions')) {
-            wp_send_json_error(['message' => 'ابتدا پکیج را انتخاب کنید.']);
+        // انتخاب پکیج اختیاری است؛ اگر انتخاب شد باید معتبر باشد، وگرنه قیمت پایه دوره استفاده می‌شود
+        if ($enrollment_sessions > 0) {
+            if (!function_exists('sc_get_course_package_by_sessions')) {
+                wp_send_json_error(['message' => 'امکان بررسی پکیج در دسترس نیست.']);
+            }
+            $pkg = sc_get_course_package_by_sessions($course_id, $enrollment_sessions);
+            if (!$pkg) {
+                wp_send_json_error(['message' => 'پکیج نامعتبر است.']);
+            }
+            $subtotal = floatval($pkg->price);
         }
-        $pkg = sc_get_course_package_by_sessions($course_id, $enrollment_sessions);
-        if (!$pkg) {
-            wp_send_json_error(['message' => 'پکیج نامعتبر است.']);
-        }
-        $subtotal = floatval($pkg->price);
     }
 
     if (trim($code) === '') {

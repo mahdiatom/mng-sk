@@ -2,7 +2,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-if (!current_user_can('sc_view_coach_salary')) {
+if (!current_user_can('sc_view_coach_salary') && !current_user_can('coach')) {
     wp_die('دسترسی غیرمجاز.');
 }
 $coach_id = function_exists('sc_current_user_coach_id') ? sc_current_user_coach_id() : 0;
