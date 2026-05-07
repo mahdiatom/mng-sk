@@ -437,8 +437,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const hasPackages = courseItem && courseItem.getAttribute('data-has-packages') === '1';
         if (hasPackages) {
             const checkedPkg = form.querySelector('input[name="sc_pkg_course_' + courseId + '"]:checked');
+            if (!checkedPkg) {
+                e.preventDefault();
+                alert('برای این دوره باید یکی از پکیج‌ها را انتخاب کنید.');
+                return false;
+            }
             if (selectedSessionsInput) {
-                selectedSessionsInput.value = checkedPkg ? checkedPkg.value : '';
+                selectedSessionsInput.value = checkedPkg.value;
             }
         }
         return true;
@@ -460,7 +465,11 @@ document.addEventListener('DOMContentLoaded', function() {
             let sessions = 0;
             if (hasPackages) {
                 const checkedPkg = form.querySelector('input[name="sc_pkg_course_' + courseId + '"]:checked');
-                sessions = checkedPkg ? parseInt(checkedPkg.value || '0', 10) : 0;
+                if (!checkedPkg) {
+                    previewBox.innerHTML = '<span style="color:#d63638;">برای این دوره ابتدا پکیج را انتخاب کنید.</span>';
+                    return;
+                }
+                sessions = parseInt(checkedPkg.value || '0', 10);
             }
             const code = (discountInput.value || '').trim();
             previewBox.textContent = 'در حال بررسی...';

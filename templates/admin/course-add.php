@@ -14,7 +14,6 @@ $restriction_enabled = 0;
 $allowed_teams = [];
 $allowed_levels = [];
 $allowed_gender = 'both';
-$course_type = 'group';
 
 if ($course && isset($_GET['course_id'])) {
     $title = $course->title ?? '';
@@ -29,7 +28,6 @@ if ($course && isset($_GET['course_id'])) {
     $is_active = $course->is_active ?? 1;
     $restriction_enabled = isset($course->restriction_enabled) ? (int)$course->restriction_enabled : 0;
     $allowed_gender = !empty($course->allowed_gender) ? $course->allowed_gender : 'both';
-    $course_type = !empty($course->course_type) && in_array($course->course_type, ['group', 'private'], true) ? $course->course_type : 'group';
     $allowed_teams = !empty($course->allowed_teams) ? json_decode($course->allowed_teams, true) : [];
     $allowed_levels = !empty($course->allowed_levels) ? json_decode($course->allowed_levels, true) : [];
     if (!is_array($allowed_teams)) {
@@ -74,16 +72,6 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                 <tr>
                     <th scope="row"><label for="title">عنوان دوره <span style="color:red;">*</span></label></th>
                     <td><input name="title" type="text" id="title" value="<?php echo esc_attr($title ?? ''); ?>" class="regular-text" required></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="course_type">نوع دوره</label></th>
-                    <td>
-                        <select name="course_type" id="course_type" class="regular-text">
-                            <option value="group" <?php selected($course_type, 'group'); ?>>گروهی</option>
-                            <option value="private" <?php selected($course_type, 'private'); ?>>خصوصی / نیمه خصوصی</option>
-                        </select>
-                        <p class="description">دوره خصوصی در تب جداگانه کلاس خصوصی برای کاربر نمایش داده می‌شود.</p>
-                    </td>
                 </tr>
 
                 <tr>

@@ -119,12 +119,6 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $sms_absence_admin_enabled = isset($_POST['sms_absence_admin_enabled']) ? 1 : 0;
         $sms_absence_admin_template = isset($_POST['sms_absence_admin_template']) ? wp_kses($_POST['sms_absence_admin_template'], array()) : '';
         $sms_absence_admin_pattern = isset($_POST['sms_absence_admin_pattern']) ? absint($_POST['sms_absence_admin_pattern']) : '';
-        $sms_absence_alert_user_enabled = isset($_POST['sms_absence_alert_user_enabled']) ? 1 : 0;
-        $sms_absence_alert_user_template = isset($_POST['sms_absence_alert_user_template']) ? wp_kses($_POST['sms_absence_alert_user_template'], array()) : '';
-        $sms_absence_alert_user_pattern = isset($_POST['sms_absence_alert_user_pattern']) ? absint($_POST['sms_absence_alert_user_pattern']) : '';
-        $sms_absence_alert_admin_enabled = isset($_POST['sms_absence_alert_admin_enabled']) ? 1 : 0;
-        $sms_absence_alert_admin_template = isset($_POST['sms_absence_alert_admin_template']) ? wp_kses($_POST['sms_absence_alert_admin_template'], array()) : '';
-        $sms_absence_alert_admin_pattern = isset($_POST['sms_absence_alert_admin_pattern']) ? absint($_POST['sms_absence_alert_admin_pattern']) : '';
 
         sc_update_setting('sms_absence_user_enabled', $sms_absence_user_enabled, 'sms');
         sc_update_setting('sms_absence_user_template', $sms_absence_user_template, 'sms');
@@ -132,12 +126,6 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_absence_admin_enabled', $sms_absence_admin_enabled, 'sms');
         sc_update_setting('sms_absence_admin_template', $sms_absence_admin_template, 'sms');
         sc_update_setting('sms_absence_admin_pattern', $sms_absence_admin_pattern, 'sms');
-        sc_update_setting('sms_absence_alert_user_enabled', $sms_absence_alert_user_enabled, 'sms');
-        sc_update_setting('sms_absence_alert_user_template', $sms_absence_alert_user_template, 'sms');
-        sc_update_setting('sms_absence_alert_user_pattern', $sms_absence_alert_user_pattern, 'sms');
-        sc_update_setting('sms_absence_alert_admin_enabled', $sms_absence_alert_admin_enabled, 'sms');
-        sc_update_setting('sms_absence_alert_admin_template', $sms_absence_alert_admin_template, 'sms');
-        sc_update_setting('sms_absence_alert_admin_pattern', $sms_absence_alert_admin_pattern, 'sms');
 
         // Birthday SMS Settings
         $sms_birthday_user_enabled = isset($_POST['sms_birthday_user_enabled']) ? 1 : 0;
@@ -246,7 +234,6 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
    
         $raw_neg_debt = isset($_POST['max_debt_for_attendance']) && $_POST['max_debt_for_attendance'] !== '' ? str_replace(',', '', $_POST['max_debt_for_attendance']) : (isset($_POST['max_debt_for_attendance']) ? $_POST['max_debt_for_attendance'] : '');
         $max_debt_for_attendance = $raw_neg_debt !== '' ? floatval($raw_neg_debt) : 0;
-        $user_alert_absence_limit = isset($_POST['user_alert_absence_limit']) ? max(1, absint($_POST['user_alert_absence_limit'])) : 3;
         $attendance_api_auto_enabled = isset($_POST['attendance_api_auto_enabled']) ? 1 : 0;
         $attendance_api_base_url = isset($_POST['attendance_api_base_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_api_base_url']))) : '';
         $attendance_api_key = isset($_POST['attendance_api_key']) ? sanitize_text_field(wp_unslash($_POST['attendance_api_key'])) : '';
@@ -256,7 +243,6 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $attendance_absent_after_end_minutes = isset($_POST['attendance_absent_after_end_minutes']) ? max(0, absint($_POST['attendance_absent_after_end_minutes'])) : 15;
         sc_update_setting('deduction_wallet_enabled' , $deduction_wallet_enabled , 'attendance');
         sc_update_setting('max_debt_for_attendance' , $max_debt_for_attendance , 'attendance');
-        sc_update_setting('user_alert_absence_limit', (string) $user_alert_absence_limit, 'attendance');
         sc_update_setting('attendance_api_auto_enabled', $attendance_api_auto_enabled, 'attendance');
         sc_update_setting('attendance_api_base_url', $attendance_api_base_url, 'attendance');
         sc_update_setting('attendance_api_key', $attendance_api_key, 'attendance');
@@ -319,16 +305,6 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب دستمزد مربی ذخیره شد', null, ['tab' => 'coach_salary']);
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات دستمزد مربی با موفقیت ذخیره شد.</p></div>';
-    }
-    elseif ($current_tab === 'classes') {
-        $private_class_cancel_minutes_before = isset($_POST['private_class_cancel_minutes_before']) ? max(0, absint($_POST['private_class_cancel_minutes_before'])) : 1440;
-        $private_class_reschedule_minutes_before = isset($_POST['private_class_reschedule_minutes_before']) ? max(0, absint($_POST['private_class_reschedule_minutes_before'])) : 1440;
-        sc_update_setting('private_class_cancel_minutes_before', (string) $private_class_cancel_minutes_before, 'classes');
-        sc_update_setting('private_class_reschedule_minutes_before', (string) $private_class_reschedule_minutes_before, 'classes');
-        if (function_exists('sc_log_activity')) {
-            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کلاس‌ها ذخیره شد', null, ['tab' => 'classes']);
-        }
-        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات کلاس‌ها با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'pro_features') {
     $pro_feature_notifications = isset($_POST['pro_feature_notifications']) ? 1 : 0;
@@ -459,12 +435,6 @@ $sms_absence_user_enabled = (int)sc_get_setting('sms_absence_user_enabled', '1')
 $sms_absence_user_template = sc_get_setting('sms_absence_user_template', 'کاربر گرامی %user_name%، غیبت شما در جلسه دوره %course_name% مورخ %date% ثبت شد.');
 $sms_absence_user_pattern = sc_get_setting('sms_absence_user_pattern', '');
 $sms_absence_admin_enabled = (int)sc_get_setting('sms_absence_admin_enabled', '1');
-$sms_absence_alert_user_enabled = (int)sc_get_setting('sms_absence_alert_user_enabled', '0');
-$sms_absence_alert_user_template = sc_get_setting('sms_absence_alert_user_template', 'کاربر گرامی %user_name%، تعداد غیبت شما در %item_name% به %absence_count% رسیده است (حد مجاز: %absence_limit%).');
-$sms_absence_alert_user_pattern = sc_get_setting('sms_absence_alert_user_pattern', '');
-$sms_absence_alert_admin_enabled = (int)sc_get_setting('sms_absence_alert_admin_enabled', '0');
-$sms_absence_alert_admin_template = sc_get_setting('sms_absence_alert_admin_template', 'هشدار غیبت: %user_name% در %item_name% دارای %absence_count% غیبت است (حد مجاز: %absence_limit%).');
-$sms_absence_alert_admin_pattern = sc_get_setting('sms_absence_alert_admin_pattern', '');
 
 // Wallet Settings
 $wallet_enabled = (int)sc_get_setting('wallet_enabled', '0');
@@ -606,10 +576,6 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=coach_salary'); ?>"
            class="nav-tab <?php echo $current_tab === 'coach_salary' ? 'nav-tab-active' : ''; ?>">
             دستمزد مربی
-        </a>
-        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=classes'); ?>"
-           class="nav-tab <?php echo $current_tab === 'classes' ? 'nav-tab-active' : ''; ?>">
-            کلاس‌ها
         </a>
              <?php } 
              
@@ -1433,76 +1399,6 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
-                <h3>پیامک هشدار غیبت (عبور از حد مجاز)</h3>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">پیامک به کاربر</th>
-                        <td>
-                            <label>
-                                <input type="checkbox"
-                                       name="sms_absence_alert_user_enabled"
-                                       value="1"
-                                       <?php checked($sms_absence_alert_user_enabled, 1); ?>>
-                                فعال کردن پیامک هشدار عبور از حد مجاز غیبت
-                            </label>
-                            <br><br>
-                            <textarea name="sms_absence_alert_user_template"
-                                      rows="3"
-                                      class="large-text"
-                                      placeholder="متن پیامک هشدار غیبت"><?php echo esc_textarea($sms_absence_alert_user_template); ?></textarea>
-                            <p class="description">
-                                متغیرهای قابل استفاده:<br>
-                                نام کاربر = %user_name% -
-                                نام دوره = %course_name% -
-                                نام آیتم = %item_name% -
-                                تعداد غیبت = %absence_count% -
-                                حد مجاز = %absence_limit% -
-                                تاریخ آخرین غیبت = %date%
-                            </p>
-                            <br>
-                            <input type="number"
-                                   name="sms_absence_alert_user_pattern"
-                                   value="<?php echo esc_attr($sms_absence_alert_user_pattern); ?>"
-                                   class="small-text"
-                                   placeholder="کد پترن (اختیاری)">
-                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">پیامک به مدیر</th>
-                        <td>
-                            <label>
-                                <input type="checkbox"
-                                       name="sms_absence_alert_admin_enabled"
-                                       value="1"
-                                       <?php checked($sms_absence_alert_admin_enabled, 1); ?>>
-                                فعال کردن پیامک هشدار عبور از حد مجاز غیبت به مدیر
-                            </label>
-                            <br><br>
-                            <textarea name="sms_absence_alert_admin_template"
-                                      rows="3"
-                                      class="large-text"
-                                      placeholder="متن پیامک هشدار غیبت به مدیر"><?php echo esc_textarea($sms_absence_alert_admin_template); ?></textarea>
-                            <p class="description">
-                                متغیرهای قابل استفاده:<br>
-                                نام کاربر = %user_name% -
-                                نام دوره = %course_name% -
-                                نام آیتم = %item_name% -
-                                تعداد غیبت = %absence_count% -
-                                حد مجاز = %absence_limit% -
-                                تاریخ آخرین غیبت = %date%
-                            </p>
-                            <br>
-                            <input type="number"
-                                   name="sms_absence_alert_admin_pattern"
-                                   value="<?php echo esc_attr($sms_absence_alert_admin_pattern); ?>"
-                                   class="small-text"
-                                   placeholder="کد پترن (اختیاری)">
-                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
-                        </td>
-                    </tr>
-                </table>
-
                 <!-- Birthday SMS Settings -->
                 <h3>پیامک تولد</h3>
                 <table class="form-table">
@@ -1911,7 +1807,6 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce');
                 $deduction_wallet_enabled = sc_get_setting('deduction_wallet_enabled'); 
                 $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0'));
-                $user_alert_absence_limit = (int) sc_get_setting('user_alert_absence_limit', '3');
                 $attendance_api_auto_enabled = (int) sc_get_setting('attendance_api_auto_enabled', '1');
                 $attendance_api_base_url = (string) sc_get_setting('attendance_api_base_url', 'https://api.hozoran.ir');
                 $attendance_api_key = (string) sc_get_setting('attendance_api_key', '');
@@ -1997,17 +1892,6 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                                    placeholder="0">
                             <input type="hidden" name="max_debt_for_attendance_raw" id="max_debt_for_attendance_raw" value="<?php echo esc_attr($max_debt_for_attendance); ?>">
                             <p class="description">در صورتی که بدهی کل کاربر بیشتر از این مبلغ باشد امکان ثبت رکورد حضور و غیاب برای آن کاربر امکان پذیر نمی باشد.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">حد مجاز غیبت برای هشدار</th>
-                        <td>
-                            <input type="number"
-                                   name="user_alert_absence_limit"
-                                   value="<?php echo esc_attr(max(1, $user_alert_absence_limit)); ?>"
-                                   min="1"
-                                   class="small-text">
-                            <p class="description">اگر تعداد غیبت یک بازیکن در یک دوره از این عدد بیشتر شود، در منوی «هشدارهای کاربر» نمایش داده می‌شود.</p>
                         </td>
                     </tr>
                 </table>
@@ -2325,34 +2209,6 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 </ul>
             </div>
         <?php endif; 
-        if ($current_tab === 'classes') :
-            $private_class_cancel_minutes_before = (int) sc_get_setting('private_class_cancel_minutes_before', '1440');
-            $private_class_reschedule_minutes_before = (int) sc_get_setting('private_class_reschedule_minutes_before', '1440');
-        ?>
-            <form method="POST" action="">
-                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
-                <h2>تنظیمات کلاس‌های خصوصی / نیمه‌خصوصی</h2>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><label for="private_class_cancel_minutes_before">حداقل فاصله لغو تا شروع جلسه (دقیقه)</label></th>
-                        <td>
-                            <input type="number" name="private_class_cancel_minutes_before" id="private_class_cancel_minutes_before" value="<?php echo esc_attr($private_class_cancel_minutes_before); ?>" min="0" class="small-text">
-                            <p class="description">اگر مقدار ۰ باشد، بدون محدودیت زمانی لغو می‌شود.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="private_class_reschedule_minutes_before">حداقل فاصله جابجایی تا شروع جلسه (دقیقه)</label></th>
-                        <td>
-                            <input type="number" name="private_class_reschedule_minutes_before" id="private_class_reschedule_minutes_before" value="<?php echo esc_attr($private_class_reschedule_minutes_before); ?>" min="0" class="small-text">
-                            <p class="description">این محدودیت برای جابجایی جلسه توسط کاربر/مربی اعمال می‌شود.</p>
-                        </td>
-                    </tr>
-                </table>
-                <p class="submit">
-                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات کلاس‌ها">
-                </p>
-            </form>
-        <?php endif;
         if ($current_tab === 'pro_features') : ?>
     <form method="POST" action="">
         <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>

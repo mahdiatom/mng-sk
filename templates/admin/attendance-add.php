@@ -41,7 +41,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
         } else {
             $courses_table = $wpdb->prefix . 'sc_courses';
             $course_row = $wpdb->get_row($wpdb->prepare(
-                "SELECT title, price_per_session, course_type FROM $courses_table WHERE id = %d LIMIT 1",
+                "SELECT title, price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
                 $course_id
             ));
             $course_title = $course_row ? $course_row->title : '';
@@ -207,11 +207,6 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                             do_action('sc_attendance_absent', $wpdb->insert_id);
                         }
                     }
-                }
-
-                // اگر این دوره خصوصی باشد، وضعیت جلسه متناظر هم با حضور/غیاب سینک شود
-                if (function_exists('sc_is_private_course') && sc_is_private_course($course_row) && function_exists('sc_private_sync_session_with_attendance')) {
-                    sc_private_sync_session_with_attendance($member_id, $course_id, $attendance_date, $status);
                 }
             }
 
