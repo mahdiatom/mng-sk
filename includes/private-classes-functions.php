@@ -16,6 +16,7 @@ function sc_get_private_class_booking_limits() {
 
 function sc_private_session_status_label($status) {
     $map = [
+        'pending_payment' => 'در انتظار پرداخت',
         'scheduled' => 'برنامه‌ریزی‌شده',
         'cancelled' => 'لغو شده',
         'absent' => 'غایب',
@@ -121,6 +122,27 @@ function sc_private_slot_reserved_count($coach_id, $schedule_slot_id, $session_d
 function sc_private_can_reserve_slot($coach_id, $schedule_slot_id, $session_date, $capacity) {
     $capacity = max(1, (int) $capacity);
     return sc_private_slot_reserved_count($coach_id, $schedule_slot_id, $session_date) < $capacity;
+}
+
+function sc_private_pending_booking_option_key($booking_id) {
+    return 'sc_private_booking_pending_' . absint($booking_id);
+}
+
+function sc_private_store_pending_booking_payload($booking_id, array $payload) {
+    update_option(sc_private_pending_booking_option_key($booking_id), wp_json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), false);
+}
+
+function sc_private_get_pending_booking_payload($booking_id) {
+    $raw = get_option(sc_private_pending_booking_option_key($booking_id), '');
+    if (!is_string($raw) || $raw === '') {
+        return [];
+    }
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function sc_private_delete_pending_booking_payload($booking_id) {
+    delete_option(sc_private_pending_booking_option_key($booking_id));
 }
 
 add_filter('woocommerce_account_menu_items', 'sc_add_private_class_my_account_menu', 25, 1);
@@ -324,7 +346,6 @@ function sc_handle_private_class_booking() {
     }
 
     $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
-    $sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
     $end_date = end($sessions);
     $end_date = is_array($end_date) && isset($end_date['session_date']) ? $end_date['session_date'] : $start_date;
 
@@ -338,7 +359,7 @@ function sc_handle_private_class_booking() {
             'package_sessions' => $enrollment_sessions,
             'start_date' => $start_date,
             'end_date' => $end_date,
-            'status' => 'active',
+            'status' => 'pending_payment',
             'created_at' => $now,
             'updated_at' => $now,
         ],
@@ -350,26 +371,6 @@ function sc_handle_private_class_booking() {
         wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
         exit;
     }
-    foreach ($sessions as $session) {
-        $wpdb->insert(
-            $sessions_table,
-            [
-                'booking_id' => $booking_id,
-                'member_id' => $member_id,
-                'course_id' => $course_id,
-                'coach_id' => $coach_id,
-                'schedule_slot_id' => (int) $session['schedule_slot_id'],
-                'session_date' => (string) $session['session_date'],
-                'time_start' => (string) $session['time_start'],
-                'time_end' => (string) $session['time_end'],
-                'status' => 'scheduled',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            ['%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s']
-        );
-    }
-
     $fee_label = function_exists('sc_course_enrollment_fee_label')
         ? sc_course_enrollment_fee_label($course->title, $enrollment_sessions)
         : ('ثبت نام کلاس خصوصی: ' . $course->title);
@@ -380,6 +381,12 @@ function sc_handle_private_class_booking() {
         if (!empty($invoice_result['invoice_id'])) {
             $wpdb->update($bookings_table, ['invoice_id' => (int) $invoice_result['invoice_id'], 'updated_at' => $now], ['id' => $booking_id], ['%d', '%s'], ['%d']);
         }
+        sc_private_store_pending_booking_payload($booking_id, [
+            'member_id' => $member_id,
+            'course_id' => $course_id,
+            'coach_id' => $coach_id,
+            'sessions' => $sessions,
+        ]);
         wc_add_notice('رزرو کلاس خصوصی ثبت شد. برای فعال‌سازی، صورت‌حساب را پرداخت کنید.', 'success');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
         exit;
@@ -387,6 +394,96 @@ function sc_handle_private_class_booking() {
     wc_add_notice('رزرو ثبت شد اما ایجاد صورت‌حساب با خطا مواجه شد.', 'warning');
     wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
     exit;
+}
+
+add_action('sc_invoice_paid', 'sc_private_activate_sessions_after_payment', 20, 1);
+function sc_private_activate_sessions_after_payment($invoice_id) {
+    global $wpdb;
+    $invoice_id = absint($invoice_id);
+    if (!$invoice_id) {
+        return;
+    }
+
+    $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
+    $sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+
+    $bookings = $wpdb->get_results($wpdb->prepare(
+        "SELECT *
+         FROM {$bookings_table}
+         WHERE invoice_id = %d
+           AND status = %s",
+        $invoice_id,
+        'pending_payment'
+    ));
+    if (empty($bookings)) {
+        return;
+    }
+
+    $now = current_time('mysql');
+    foreach ($bookings as $booking) {
+        $booking_id = (int) $booking->id;
+        $payload = sc_private_get_pending_booking_payload($booking_id);
+        $sessions = isset($payload['sessions']) && is_array($payload['sessions']) ? $payload['sessions'] : [];
+        if (empty($sessions)) {
+            continue;
+        }
+
+        $course = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, capacity FROM {$courses_table} WHERE id = %d",
+            (int) $booking->course_id
+        ));
+        $capacity = ($course && !empty($course->capacity)) ? (int) $course->capacity : 1;
+
+        $can_activate = true;
+        foreach ($sessions as $session) {
+            $slot_id = isset($session['schedule_slot_id']) ? (int) $session['schedule_slot_id'] : 0;
+            $session_date = isset($session['session_date']) ? (string) $session['session_date'] : '';
+            if (!$slot_id || $session_date === '' || !sc_private_can_reserve_slot((int) $booking->coach_id, $slot_id, $session_date, $capacity)) {
+                $can_activate = false;
+                break;
+            }
+        }
+        if (!$can_activate) {
+            $wpdb->update(
+                $bookings_table,
+                ['status' => 'paused', 'updated_at' => $now],
+                ['id' => $booking_id],
+                ['%s', '%s'],
+                ['%d']
+            );
+            continue;
+        }
+
+        foreach ($sessions as $session) {
+            $wpdb->insert(
+                $sessions_table,
+                [
+                    'booking_id' => $booking_id,
+                    'member_id' => (int) $booking->member_id,
+                    'course_id' => (int) $booking->course_id,
+                    'coach_id' => (int) $booking->coach_id,
+                    'schedule_slot_id' => (int) $session['schedule_slot_id'],
+                    'session_date' => (string) $session['session_date'],
+                    'time_start' => (string) $session['time_start'],
+                    'time_end' => (string) $session['time_end'],
+                    'status' => 'scheduled',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                ['%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s']
+            );
+        }
+
+        $wpdb->update(
+            $bookings_table,
+            ['status' => 'active', 'updated_at' => $now],
+            ['id' => $booking_id],
+            ['%s', '%s'],
+            ['%d']
+        );
+        sc_private_delete_pending_booking_payload($booking_id);
+    }
 }
 
 function sc_private_update_session_status($session_id, $status, $restore_session = false) {
