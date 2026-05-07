@@ -27,7 +27,7 @@ $filter_coach = ($can_manage_all && isset($_GET['filter_coach'])) ? absint($_GET
 $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
 $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all';
 
-$cancellable_statuses = ['scheduled', 'rescheduled', 'absent', 'excused'];
+$cancellable_statuses = ['scheduled'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sc_private_admin_action'])) {
     check_admin_referer('sc_private_admin_sessions_actions');
     $action = sanitize_text_field(wp_unslash($_POST['sc_private_admin_action']));
@@ -54,6 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sc_private_admin_acti
             }
             $updated = sc_private_update_session_status((int) $row_for_cancel->id, 'cancelled', true);
             if ($updated) {
+                if (function_exists('sc_private_send_cancel_sms')) {
+                    sc_private_send_cancel_sms((int) $row_for_cancel->id, 'coach_admin');
+                }
                 $done++;
                 if (function_exists('sc_log_activity')) {
                     sc_log_activity(
@@ -167,6 +170,22 @@ $status_options = [
 ];
 ?>
 <div class="wrap">
+    <style>
+        .sc-private-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+        .sc-private-status-scheduled { background: #dbeafe; color: #1e40af; }
+        .sc-private-status-cancelled { background: #fee2e2; color: #991b1b; }
+        .sc-private-status-absent { background: #ffedd5; color: #9a3412; }
+        .sc-private-status-excused { background: #ede9fe; color: #5b21b6; }
+        .sc-private-status-rescheduled { background: #e0f2fe; color: #075985; }
+        .sc-private-status-done { background: #dcfce7; color: #166534; }
+    </style>
     <h1 class="wp-heading-inline"><?php echo $is_coach_only ? 'کلاس‌های خصوصی من' : 'مدیریت کلاس‌های خصوصی'; ?></h1>
     <hr class="wp-header-end">
     <?php settings_errors('sc_private_sessions'); ?>
@@ -245,8 +264,10 @@ $status_options = [
                         <th>مربی</th>
                         <th>بازیکن</th>
                         <th>وضعیت</th>
-                        <th>رزرو</th>
-                        <th>صورت‌حساب</th>
+                        <?php if (!$is_coach_only) : ?>
+                            <th>رزرو</th>
+                            <th>صورت‌حساب</th>
+                        <?php endif; ?>
                         <th>عملیات</th>
                     </tr>
                 </thead>
@@ -254,6 +275,8 @@ $status_options = [
                     <?php foreach ($rows as $row) : ?>
                         <?php
                         $status_label = function_exists('sc_private_session_status_label') ? sc_private_session_status_label($row->status) : $row->status;
+                        $status_key = strtolower((string) $row->status);
+                        $status_class = 'sc-private-status sc-private-status-' . preg_replace('/[^a-z_]/', '', $status_key);
                         $can_cancel_row = in_array((string) $row->status, $cancellable_statuses, true);
                         ?>
                         <tr>
@@ -266,10 +289,12 @@ $status_options = [
                             <td><?php echo esc_html(substr((string) $row->time_start, 0, 5) . ' تا ' . substr((string) $row->time_end, 0, 5)); ?></td>
                             <td><?php echo esc_html($row->course_title); ?></td>
                             <td><?php echo esc_html(trim($row->coach_first_name . ' ' . $row->coach_last_name)); ?></td>
-                            <td><?php echo esc_html(trim($row->first_name . ' ' . $row->last_name) . ' (#' . (int) $row->member_id . ')'); ?></td>
-                            <td><?php echo esc_html($status_label); ?></td>
-                            <td>#<?php echo esc_html((string) $row->booking_id); ?></td>
-                            <td><?php echo !empty($row->invoice_id) ? '#' . esc_html((string) $row->invoice_id) : '-'; ?></td>
+                            <td><?php echo esc_html(trim($row->first_name . ' ' . $row->last_name)); ?></td>
+                            <td><span class="<?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
+                            <?php if (!$is_coach_only) : ?>
+                                <td>#<?php echo esc_html((string) $row->booking_id); ?></td>
+                                <td><?php echo !empty($row->invoice_id) ? '#' . esc_html((string) $row->invoice_id) : '-'; ?></td>
+                            <?php endif; ?>
                             <td>
                                 <?php if ($can_cancel_row) : ?>
                                     <button type="submit" class="button-link-delete" name="session_id" value="<?php echo esc_attr((int) $row->id); ?>" onclick="this.form.sc_private_admin_action.value='cancel_single'; return confirm('این جلسه لغو شود؟');">لغو جلسه</button>

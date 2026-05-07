@@ -475,9 +475,18 @@ function sc_register_admin_menu() {
         'sc-add-course',
         'sc_admin_add_course_page'
     );
-       if (current_user_can('manage_options') || current_user_can('club_coach')) {
+    if (current_user_can('manage_options') || current_user_can('club_coach')) {
         add_submenu_page(
             'sc-courses',
+            'کلاس‌های خصوصی',
+            'کلاس‌های خصوصی',
+            'read',
+            'sc-private-bookings-list',
+            'sc_render_private_bookings_admin_page'
+        );
+        // fallback: اگر منوی دوره‌ها برای نقش جاری نمایش داده نشود، از تنظیمات هم قابل دسترسی باشد
+        add_submenu_page(
+            'sc-setting',
             'کلاس‌های خصوصی',
             'کلاس‌های خصوصی',
             'read',

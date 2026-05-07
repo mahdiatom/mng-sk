@@ -124,6 +124,71 @@ function sc_private_can_reserve_slot($coach_id, $schedule_slot_id, $session_date
     return sc_private_slot_reserved_count($coach_id, $schedule_slot_id, $session_date) < $capacity;
 }
 
+function sc_private_send_cancel_sms($session_id, $cancelled_by = 'user') {
+    if (!function_exists('sc_send_sms')) {
+        return;
+    }
+    global $wpdb;
+    $session_id = absint($session_id);
+    if (!$session_id) {
+        return;
+    }
+    $sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
+    $members_table = $wpdb->prefix . 'sc_members';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT ps.id, ps.member_id, ps.coach_id, ps.session_date, ps.time_start, ps.time_end,
+                m.first_name AS member_first_name, m.last_name AS member_last_name, m.player_phone,
+                co.first_name AS coach_first_name, co.last_name AS coach_last_name, co.mobile_phone,
+                c.title AS course_title
+         FROM {$sessions_table} ps
+         LEFT JOIN {$members_table} m ON m.id = ps.member_id
+         LEFT JOIN {$coaches_table} co ON co.id = ps.coach_id
+         LEFT JOIN {$courses_table} c ON c.id = ps.course_id
+         WHERE ps.id = %d
+         LIMIT 1",
+        $session_id
+    ));
+    if (!$row) {
+        return;
+    }
+
+    $member_name = trim((string) $row->member_first_name . ' ' . (string) $row->member_last_name);
+    $coach_name = trim((string) $row->coach_first_name . ' ' . (string) $row->coach_last_name);
+    $date_label = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only((string) $row->session_date) : (string) $row->session_date;
+    $time_label = substr((string) $row->time_start, 0, 5) . ' تا ' . substr((string) $row->time_end, 0, 5);
+
+    if ($cancelled_by === 'user') {
+        $enabled = (int) sc_get_setting('private_class_sms_user_cancel_to_coach_enabled', '0') === 1;
+        if ($enabled && !empty($row->mobile_phone)) {
+            $message = sprintf(
+                'مربی گرامی %s، بازیکن %s جلسه خصوصی دوره %s در تاریخ %s ساعت %s را لغو کرد.',
+                $coach_name !== '' ? $coach_name : 'گرامی',
+                $member_name !== '' ? $member_name : ('#' . (int) $row->member_id),
+                (string) $row->course_title,
+                $date_label,
+                $time_label
+            );
+            sc_send_sms((string) $row->mobile_phone, $message, false, null, [], 'private_cancel_to_coach');
+        }
+        return;
+    }
+
+    $enabled = (int) sc_get_setting('private_class_sms_coach_cancel_to_user_enabled', '0') === 1;
+    if ($enabled && !empty($row->player_phone)) {
+        $message = sprintf(
+            'بازیکن گرامی %s، جلسه خصوصی دوره %s در تاریخ %s ساعت %s توسط مربی/مدیر لغو شد.',
+            $member_name !== '' ? $member_name : 'گرامی',
+            (string) $row->course_title,
+            $date_label,
+            $time_label
+        );
+        sc_send_sms((string) $row->player_phone, $message, false, null, [], 'private_cancel_to_user');
+    }
+}
+
 function sc_private_pending_booking_option_key($booking_id) {
     return 'sc_private_booking_pending_' . absint($booking_id);
 }
@@ -501,6 +566,9 @@ function sc_private_update_session_status($session_id, $status, $restore_session
     if (!in_array($status, $allowed, true)) {
         return false;
     }
+    if ($status === 'cancelled' && (string) $row->status !== 'scheduled') {
+        return false;
+    }
     $updated = $wpdb->update(
         $t,
         ['status' => $status, 'updated_at' => current_time('mysql')],
@@ -537,23 +605,29 @@ function sc_private_sync_session_with_attendance($member_id, $course_id, $sessio
     $target_status = $status_map[$attendance_status];
     $t = $wpdb->prefix . 'sc_private_booking_sessions';
 
-    $session_id = (int) $wpdb->get_var($wpdb->prepare(
+    $session_ids = $wpdb->get_col($wpdb->prepare(
         "SELECT id
          FROM {$t}
          WHERE member_id = %d
            AND course_id = %d
            AND session_date = %s
            AND status IN ('scheduled','rescheduled','absent','excused','done')
-         ORDER BY time_start ASC, id ASC
-         LIMIT 1",
+         ORDER BY time_start ASC, id ASC",
         $member_id,
         $course_id,
         $session_date
     ));
-    if (!$session_id) {
+    if (empty($session_ids)) {
         return false;
     }
-    return sc_private_update_session_status($session_id, $target_status, false);
+    $updated_any = false;
+    foreach ($session_ids as $sid) {
+        $sid = (int) $sid;
+        if ($sid > 0 && sc_private_update_session_status($sid, $target_status, false)) {
+            $updated_any = true;
+        }
+    }
+    return $updated_any;
 }
 
 function sc_private_session_start_ts($session_row) {
@@ -610,6 +684,7 @@ function sc_handle_private_session_user_actions() {
             exit;
         }
         sc_private_update_session_status($session_id, 'cancelled', true);
+        sc_private_send_cancel_sms($session_id, 'user');
         wc_add_notice('جلسه با موفقیت لغو شد و یک جلسه به پکیج بازگشت.', 'success');
     } elseif ($action_type === 'excuse_absence') {
         wc_add_notice('مجاز کردن غیبت فقط توسط مربی یا مدیر انجام می‌شود.', 'error');
@@ -625,6 +700,7 @@ add_action('admin_post_sc_private_cancel_session', function () {
     check_admin_referer('sc_private_cancel_session');
     $session_id = isset($_POST['session_id']) ? absint($_POST['session_id']) : 0;
     sc_private_update_session_status($session_id, 'cancelled', true);
+    sc_private_send_cancel_sms($session_id, 'coach_admin');
     wp_safe_redirect(wp_get_referer() ?: admin_url());
     exit;
 });

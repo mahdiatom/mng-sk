@@ -325,8 +325,12 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     elseif ($current_tab === 'classes') {
         $private_class_cancel_minutes_before = isset($_POST['private_class_cancel_minutes_before']) ? max(0, absint($_POST['private_class_cancel_minutes_before'])) : 1440;
         $private_class_reschedule_minutes_before = isset($_POST['private_class_reschedule_minutes_before']) ? max(0, absint($_POST['private_class_reschedule_minutes_before'])) : 1440;
+        $private_class_sms_user_cancel_to_coach_enabled = isset($_POST['private_class_sms_user_cancel_to_coach_enabled']) ? 1 : 0;
+        $private_class_sms_coach_cancel_to_user_enabled = isset($_POST['private_class_sms_coach_cancel_to_user_enabled']) ? 1 : 0;
         sc_update_setting('private_class_cancel_minutes_before', (string) $private_class_cancel_minutes_before, 'classes');
         sc_update_setting('private_class_reschedule_minutes_before', (string) $private_class_reschedule_minutes_before, 'classes');
+        sc_update_setting('private_class_sms_user_cancel_to_coach_enabled', (string) $private_class_sms_user_cancel_to_coach_enabled, 'classes');
+        sc_update_setting('private_class_sms_coach_cancel_to_user_enabled', (string) $private_class_sms_coach_cancel_to_user_enabled, 'classes');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کلاس‌ها ذخیره شد', null, ['tab' => 'classes']);
         }
@@ -2443,6 +2447,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
         if ($current_tab === 'classes') :
             $private_class_cancel_minutes_before = (int) sc_get_setting('private_class_cancel_minutes_before', '1440');
             $private_class_reschedule_minutes_before = (int) sc_get_setting('private_class_reschedule_minutes_before', '1440');
+            $private_class_sms_user_cancel_to_coach_enabled = (int) sc_get_setting('private_class_sms_user_cancel_to_coach_enabled', '0');
+            $private_class_sms_coach_cancel_to_user_enabled = (int) sc_get_setting('private_class_sms_coach_cancel_to_user_enabled', '0');
         ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
@@ -2460,6 +2466,24 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                         <td>
                             <input type="number" name="private_class_reschedule_minutes_before" id="private_class_reschedule_minutes_before" value="<?php echo esc_attr($private_class_reschedule_minutes_before); ?>" min="0" class="small-text">
                             <p class="description">این محدودیت برای جابجایی جلسه توسط کاربر/مربی اعمال می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">ارسال پیامک در لغو توسط کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="private_class_sms_user_cancel_to_coach_enabled" value="1" <?php checked($private_class_sms_user_cancel_to_coach_enabled, 1); ?>>
+                                هنگام لغو جلسه توسط کاربر، پیامک برای مربی ارسال شود.
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">ارسال پیامک در لغو توسط مربی/مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="private_class_sms_coach_cancel_to_user_enabled" value="1" <?php checked($private_class_sms_coach_cancel_to_user_enabled, 1); ?>>
+                                هنگام لغو جلسه توسط مربی یا مدیر، پیامک برای بازیکن ارسال شود.
+                            </label>
                         </td>
                     </tr>
                 </table>
