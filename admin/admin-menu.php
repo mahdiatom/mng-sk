@@ -1229,10 +1229,9 @@ function sc_handle_excel_export() {
             sc_export_finance_event_income_to_excel();
             break;
         case 'finance_coach_income':
-            sc_export_finance_coach_income_to_excel();
-            break;
         case 'finance_club_share':
-            sc_export_finance_club_share_to_excel();
+        case 'finance_coach_share':
+            sc_export_finance_coach_share_to_excel();
             break;
         case 'finance_receivables':
             sc_export_finance_receivables_to_excel();

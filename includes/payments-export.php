@@ -347,62 +347,80 @@ function sc_export_finance_event_income_to_excel() {
 }
 
 /**
- * Export finance coach income tab.
+ * Export merged coach/share tab.
  */
-function sc_export_finance_coach_income_to_excel() {
+function sc_export_finance_coach_share_to_excel() {
     sc_check_phpspreadsheet();
     global $wpdb;
     [$from, $to] = sc_finance_export_date_range();
     $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
+    $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
 
     $wallet_table = $wpdb->prefix . 'sc_coach_wallet_transactions';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
     $courses_table = $wpdb->prefix . 'sc_courses';
-    $where = ["w.status = 'completed'", "w.transaction_type IN ('salary_percentage','salary_fixed')", "DATE(w.created_at) BETWEEN %s AND %s"];
-    $args = [$from, $to];
-    if ($filter_coach > 0) {
-        $where[] = "w.coach_id = %d";
-        $args[] = $filter_coach;
-    }
-    if ($filter_chapter !== '') {
-        $where[] = "co.chapter = %s";
-        $args[] = $filter_chapter;
-    }
-    $sql = "SELECT c.first_name, c.last_name, COUNT(w.id) AS tx_count, SUM(w.amount) AS coach_income
-            FROM $wallet_table w
-            INNER JOIN $coaches_table c ON c.id = w.coach_id
-            LEFT JOIN $courses_table co ON co.id = w.related_course_id
-            WHERE " . implode(' AND ', $where) . "
-            GROUP BY c.id, c.first_name, c.last_name
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $salary_where = ["w.status = 'completed'", "w.transaction_type IN ('salary_percentage','salary_fixed')", "DATE(w.created_at) BETWEEN %s AND %s"];
+    $salary_args = [$from, $to];
+    if ($filter_coach > 0) { $salary_where[] = "w.coach_id = %d"; $salary_args[] = $filter_coach; }
+    if ($filter_course > 0) { $salary_where[] = "w.related_course_id = %d"; $salary_args[] = $filter_course; }
+    if ($filter_chapter !== '') { $salary_where[] = "co.chapter = %s"; $salary_args[] = $filter_chapter; }
+
+    $income_where = ["i.status IN ('paid','completed','processing')", "i.payment_date IS NOT NULL", "DATE(i.payment_date) BETWEEN %s AND %s", "i.course_id > 0"];
+    $income_args = [$from, $to];
+    if ($filter_course > 0) { $income_where[] = "i.course_id = %d"; $income_args[] = $filter_course; }
+    if ($filter_chapter !== '') { $income_where[] = "c.chapter = %s"; $income_args[] = $filter_chapter; }
+
+    $sql = "SELECT coach_rows.first_name, coach_rows.last_name, SUM(coach_rows.coach_income) AS coach_income, SUM(COALESCE(course_income.course_income,0)) AS total_class_income
+            FROM (
+                SELECT w.coach_id, cc.first_name, cc.last_name, w.related_course_id, SUM(w.amount) AS coach_income
+                FROM $wallet_table w
+                INNER JOIN $coaches_table cc ON cc.id = w.coach_id
+                LEFT JOIN $courses_table co ON co.id = w.related_course_id
+                WHERE " . implode(' AND ', $salary_where) . "
+                GROUP BY w.coach_id, cc.first_name, cc.last_name, w.related_course_id
+            ) coach_rows
+            LEFT JOIN (
+                SELECT i.course_id, SUM(i.amount) AS course_income
+                FROM $invoices_table i
+                INNER JOIN $courses_table c ON c.id = i.course_id
+                WHERE " . implode(' AND ', $income_where) . "
+                GROUP BY i.course_id
+            ) course_income ON course_income.course_id = coach_rows.related_course_id
+            GROUP BY coach_rows.coach_id, coach_rows.first_name, coach_rows.last_name
             ORDER BY coach_income DESC";
-    $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
+    $rows = $wpdb->get_results($wpdb->prepare($sql, array_merge($salary_args, $income_args)));
 
     $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
-    $sheet->setTitle('درآمد مربیان');
+    $sheet->setTitle('مربی و مجموعه');
     $sheet->setRightToLeft(true);
-    $headers = ['ردیف', 'مربی', 'تعداد تراکنش', 'درآمد مربی (تومان)'];
+    $headers = ['ردیف', 'مربی', 'درآمد مربی (تومان)', 'سهم مجموعه (تومان)', 'درآمد کل کلاس (تومان)'];
     foreach ($headers as $i => $h) {
         $sheet->setCellValueByColumnAndRow($i + 1, 1, $h);
     }
-    $sheet->getStyle('A1:D1')->applyFromArray(sc_get_excel_header_style());
+    $sheet->getStyle('A1:E1')->applyFromArray(sc_get_excel_header_style());
     $r = 2;
     $i = 1;
     foreach ($rows as $row) {
         $sheet->setCellValueByColumnAndRow(1, $r, $i++);
         $sheet->setCellValueByColumnAndRow(2, $r, trim($row->first_name . ' ' . $row->last_name));
-        $sheet->setCellValueByColumnAndRow(3, $r, (int) $row->tx_count);
-        $sheet->setCellValueByColumnAndRow(4, $r, number_format((float) $row->coach_income, 0, '.', ','));
-        $sheet->getStyle("A{$r}:D{$r}")->applyFromArray(sc_get_excel_data_style());
+        $coach_income = (float) $row->coach_income;
+        $class_income = (float) $row->total_class_income;
+        $club_share = $class_income - $coach_income;
+        $sheet->setCellValueByColumnAndRow(3, $r, number_format($coach_income, 0, '.', ','));
+        $sheet->setCellValueByColumnAndRow(4, $r, number_format($club_share, 0, '.', ','));
+        $sheet->setCellValueByColumnAndRow(5, $r, number_format($class_income, 0, '.', ','));
+        $sheet->getStyle("A{$r}:E{$r}")->applyFromArray(sc_get_excel_data_style());
         $r++;
     }
-    sc_auto_size_columns($sheet, 4);
+    sc_auto_size_columns($sheet, 5);
     if (ob_get_level()) {
         ob_end_clean();
     }
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment;filename="finance_coach_income_' . date('Ymd_His') . '.xlsx"');
+    header('Content-Disposition: attachment;filename="finance_coach_share_' . date('Ymd_His') . '.xlsx"');
     header('Cache-Control: max-age=0');
     $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
     $writer->save('php://output');
@@ -410,68 +428,17 @@ function sc_export_finance_coach_income_to_excel() {
 }
 
 /**
- * Export finance club share tab.
+ * Backward-compatible wrapper.
+ */
+function sc_export_finance_coach_income_to_excel() {
+    sc_export_finance_coach_share_to_excel();
+}
+
+/**
+ * Backward-compatible wrapper.
  */
 function sc_export_finance_club_share_to_excel() {
-    sc_check_phpspreadsheet();
-    global $wpdb;
-    [$from, $to] = sc_finance_export_date_range();
-    $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
-    $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
-    $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
-
-    $invoices_table = $wpdb->prefix . 'sc_invoices';
-    $wallet_table = $wpdb->prefix . 'sc_coach_wallet_transactions';
-    $courses_table = $wpdb->prefix . 'sc_courses';
-    $where_income = ["i.status IN ('paid','completed','processing')", "i.payment_date IS NOT NULL", "DATE(i.payment_date) BETWEEN %s AND %s", "i.course_id > 0"];
-    $where_salary = ["w.status = 'completed'", "w.transaction_type IN ('salary_percentage','salary_fixed')", "DATE(w.created_at) BETWEEN %s AND %s"];
-    $args_income = [$from, $to];
-    $args_salary = [$from, $to];
-    if ($filter_course > 0) {
-        $where_income[] = "i.course_id = %d";
-        $args_income[] = $filter_course;
-        $where_salary[] = "w.related_course_id = %d";
-        $args_salary[] = $filter_course;
-    }
-    if ($filter_coach > 0) {
-        $where_salary[] = "w.coach_id = %d";
-        $args_salary[] = $filter_coach;
-    }
-    if ($filter_chapter !== '') {
-        $where_income[] = "c.chapter = %s";
-        $args_income[] = $filter_chapter;
-        $where_salary[] = "co.chapter = %s";
-        $args_salary[] = $filter_chapter;
-    }
-    $total_income = (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(i.amount),0) FROM $invoices_table i INNER JOIN $courses_table c ON c.id = i.course_id WHERE " . implode(' AND ', $where_income), $args_income));
-    $coach_income = (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(w.amount),0) FROM $wallet_table w LEFT JOIN $courses_table co ON co.id = w.related_course_id WHERE " . implode(' AND ', $where_salary), $args_salary));
-    $club_share = $total_income - $coach_income;
-
-    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-    $sheet = $spreadsheet->getActiveSheet();
-    $sheet->setTitle('سهم مجموعه');
-    $sheet->setRightToLeft(true);
-    $headers = ['شاخص', 'مبلغ (تومان)'];
-    $sheet->setCellValue('A1', $headers[0]);
-    $sheet->setCellValue('B1', $headers[1]);
-    $sheet->getStyle('A1:B1')->applyFromArray(sc_get_excel_header_style());
-    $sheet->setCellValue('A2', 'درآمد کل دوره‌ها');
-    $sheet->setCellValue('B2', number_format($total_income, 0, '.', ','));
-    $sheet->setCellValue('A3', 'درآمد مربیان');
-    $sheet->setCellValue('B3', number_format($coach_income, 0, '.', ','));
-    $sheet->setCellValue('A4', 'درآمد مجموعه');
-    $sheet->setCellValue('B4', number_format($club_share, 0, '.', ','));
-    $sheet->getStyle('A2:B4')->applyFromArray(sc_get_excel_data_style());
-    sc_auto_size_columns($sheet, 2);
-    if (ob_get_level()) {
-        ob_end_clean();
-    }
-    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment;filename="finance_club_share_' . date('Ymd_His') . '.xlsx"');
-    header('Cache-Control: max-age=0');
-    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-    $writer->save('php://output');
-    exit;
+    sc_export_finance_coach_share_to_excel();
 }
 
 /**
@@ -486,7 +453,8 @@ function sc_export_finance_receivables_to_excel() {
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $members_table = $wpdb->prefix . 'sc_members';
     $courses_table = $wpdb->prefix . 'sc_courses';
-    $where = ["i.status = 'pending'", "DATE(i.created_at) BETWEEN %s AND %s"];
+    $wallet_table = $wpdb->prefix . 'sc_wallet_transactions';
+    $where = ["i.status IN ('pending','under_review')", "DATE(i.created_at) BETWEEN %s AND %s"];
     $args = [$from, $to];
     if ($filter_course > 0) {
         $where[] = "i.course_id = %d";
@@ -496,36 +464,52 @@ function sc_export_finance_receivables_to_excel() {
         $where[] = "c.chapter = %s";
         $args[] = $filter_chapter;
     }
-    $sql = "SELECT i.created_at, i.amount, m.first_name, m.last_name, c.title AS course_title, c.chapter
+    $sql = "SELECT i.member_id, i.created_at, i.amount, m.first_name, m.last_name, c.title AS course_title, c.chapter, 'invoice' AS debt_type
             FROM $invoices_table i
             LEFT JOIN $members_table m ON m.id = i.member_id
             LEFT JOIN $courses_table c ON c.id = i.course_id
             WHERE " . implode(' AND ', $where) . "
             ORDER BY i.created_at DESC";
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
+    $wallet_rows = $wpdb->get_results("SELECT m.id AS member_id, MIN(w.created_at) AS created_at, ABS(MIN(w.balance_after)) AS amount, m.first_name, m.last_name
+        FROM $wallet_table w
+        INNER JOIN $members_table m ON m.id = w.member_id
+        GROUP BY m.id, m.first_name, m.last_name
+        HAVING MIN(w.balance_after) < 0");
+    if (!empty($wallet_rows)) {
+        foreach ($wallet_rows as $wallet_row) {
+            $wallet_row->course_title = 'بدهی کیف پول';
+            $wallet_row->chapter = '-';
+            $wallet_row->debt_type = 'wallet';
+            $rows[] = $wallet_row;
+        }
+    }
 
     $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('مطالبات');
     $sheet->setRightToLeft(true);
-    $headers = ['ردیف', 'تاریخ', 'بازیکن', 'دوره', 'شعبه', 'مبلغ مطالبه (تومان)'];
+    $headers = ['ردیف', 'تاریخ', 'بازیکن', 'نوع', 'دوره/شرح', 'شعبه', 'مبلغ مطالبه (تومان)'];
     foreach ($headers as $i => $h) {
         $sheet->setCellValueByColumnAndRow($i + 1, 1, $h);
     }
-    $sheet->getStyle('A1:F1')->applyFromArray(sc_get_excel_header_style());
+    $sheet->getStyle('A1:G1')->applyFromArray(sc_get_excel_header_style());
     $r = 2;
     $idx = 1;
     foreach ($rows as $row) {
         $sheet->setCellValueByColumnAndRow(1, $r, $idx++);
-        $sheet->setCellValueByColumnAndRow(2, $r, substr((string) $row->created_at, 0, 10));
+        $row_date = substr((string) $row->created_at, 0, 10);
+        $row_date = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($row_date) : $row_date;
+        $sheet->setCellValueByColumnAndRow(2, $r, $row_date);
         $sheet->setCellValueByColumnAndRow(3, $r, trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? '')));
-        $sheet->setCellValueByColumnAndRow(4, $r, $row->course_title ?: '-');
-        $sheet->setCellValueByColumnAndRow(5, $r, $row->chapter ?: '-');
-        $sheet->setCellValueByColumnAndRow(6, $r, number_format((float) $row->amount, 0, '.', ','));
-        $sheet->getStyle("A{$r}:F{$r}")->applyFromArray(sc_get_excel_data_style());
+        $sheet->setCellValueByColumnAndRow(4, $r, (($row->debt_type ?? 'invoice') === 'wallet') ? 'کیف پول' : 'فاکتور');
+        $sheet->setCellValueByColumnAndRow(5, $r, $row->course_title ?: '-');
+        $sheet->setCellValueByColumnAndRow(6, $r, $row->chapter ?: '-');
+        $sheet->setCellValueByColumnAndRow(7, $r, number_format((float) $row->amount, 0, '.', ','));
+        $sheet->getStyle("A{$r}:G{$r}")->applyFromArray(sc_get_excel_data_style());
         $r++;
     }
-    sc_auto_size_columns($sheet, 6);
+    sc_auto_size_columns($sheet, 7);
     if (ob_get_level()) {
         ob_end_clean();
     }
@@ -651,7 +635,8 @@ function sc_export_finance_ledger_to_excel() {
     $idx = 1;
     foreach ($rows as $row) {
         $sheet->setCellValueByColumnAndRow(1, $r, $idx++);
-        $sheet->setCellValueByColumnAndRow(2, $r, $row->tx_date);
+        $row_date = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($row->tx_date) : $row->tx_date;
+        $sheet->setCellValueByColumnAndRow(2, $r, $row_date);
         $sheet->setCellValueByColumnAndRow(3, $r, $row->tx_type === 'income' ? 'ورودی' : 'خروجی');
         $sheet->setCellValueByColumnAndRow(4, $r, $row->ref_title ?: '-');
         $sheet->setCellValueByColumnAndRow(5, $r, $row->person_name ?: '-');

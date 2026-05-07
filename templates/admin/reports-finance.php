@@ -11,7 +11,7 @@ sc_check_and_create_tables();
 global $wpdb;
 
 $tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'overview';
-$allowed_tabs = ['overview', 'course_income', 'event_income', 'coach_income', 'club_share', 'receivables', 'cashflow', 'ledger'];
+$allowed_tabs = ['overview', 'course_income', 'event_income', 'coach_share', 'receivables', 'cashflow', 'ledger'];
 if (!in_array($tab, $allowed_tabs, true)) {
     $tab = 'overview';
 }
@@ -64,6 +64,7 @@ $chapters = $wpdb->get_results("SELECT name FROM $chapter_categories_table ORDER
 $coaches = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY first_name ASC, last_name ASC");
 
 $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
+$finance_chart_config = null;
 ?>
 <div class="wrap sc_setting_section">
     <h1 class="wp-heading-inline">گزارشات باشگاه - مالی و حسابداری</h1>
@@ -73,8 +74,7 @@ $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
         <a href="<?php echo esc_url(add_query_arg('tab', 'overview', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'overview' ? 'nav-tab-active' : ''; ?>">نمای کلی</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'course_income', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'course_income' ? 'nav-tab-active' : ''; ?>">درآمد دوره‌ها</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'event_income', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'event_income' ? 'nav-tab-active' : ''; ?>">درآمد رویدادها</a>
-        <a href="<?php echo esc_url(add_query_arg('tab', 'coach_income', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'coach_income' ? 'nav-tab-active' : ''; ?>">درآمد مربیان</a>
-        <a href="<?php echo esc_url(add_query_arg('tab', 'club_share', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'club_share' ? 'nav-tab-active' : ''; ?>">سهم مجموعه</a>
+        <a href="<?php echo esc_url(add_query_arg('tab', 'coach_share', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'coach_share' ? 'nav-tab-active' : ''; ?>">درآمد مربی / سهم مجموعه</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'receivables', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'receivables' ? 'nav-tab-active' : ''; ?>">مطالبات</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'cashflow', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'cashflow' ? 'nav-tab-active' : ''; ?>">جریان نقدی</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'ledger', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'ledger' ? 'nav-tab-active' : ''; ?>">دفتر تراکنش‌ها</a>
@@ -98,7 +98,7 @@ $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
                             <input type="hidden" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
                         </div>
                     </div>
-                    <?php if (in_array($tab, ['course_income', 'club_share', 'receivables', 'cashflow', 'ledger'], true)) : ?>
+                    <?php if (in_array($tab, ['course_income', 'coach_share', 'receivables', 'cashflow', 'ledger'], true)) : ?>
                         <div class="sc-form-field">
                             <label for="filter_course">دوره</label>
                             <select name="filter_course" id="filter_course">
@@ -109,7 +109,7 @@ $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
                             </select>
                         </div>
                     <?php endif; ?>
-                    <?php if (in_array($tab, ['coach_income', 'club_share'], true)) : ?>
+                    <?php if ($tab === 'coach_share') : ?>
                         <div class="sc-form-field">
                             <label for="filter_coach">مربی</label>
                             <select name="filter_coach" id="filter_coach">
@@ -150,8 +150,7 @@ $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
                     $export_map = [
                         'course_income' => 'finance_course_income',
                         'event_income' => 'finance_event_income',
-                        'coach_income' => 'finance_coach_income',
-                        'club_share' => 'finance_club_share',
+                        'coach_share' => 'finance_coach_share',
                         'receivables' => 'finance_receivables',
                         'cashflow' => 'finance_cashflow',
                         'ledger' => 'finance_ledger',
@@ -221,81 +220,142 @@ $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
                     <?php endif; ?>
                     </tbody>
                 </table>
-            <?php elseif ($tab === 'coach_income') :
+            <?php elseif ($tab === 'coach_share') :
+                $invoices_table = $wpdb->prefix . 'sc_invoices';
                 $wallet_table = $wpdb->prefix . 'sc_coach_wallet_transactions';
-                $where = ["w.status = 'completed'", "w.transaction_type IN ('salary_percentage','salary_fixed')", "DATE(w.created_at) BETWEEN %s AND %s"];
-                $args = [$filter_date_from, $filter_date_to];
-                if ($filter_coach > 0) { $where[] = "w.coach_id = %d"; $args[] = $filter_coach; }
-                if ($filter_chapter !== '') { $where[] = "co.chapter = %s"; $args[] = $filter_chapter; }
-                $sql = "SELECT c.id, c.first_name, c.last_name, COUNT(w.id) AS tx_count, SUM(w.amount) AS coach_income
-                        FROM $wallet_table w
-                        INNER JOIN $coaches_table c ON c.id = w.coach_id
-                        LEFT JOIN $courses_table co ON co.id = w.related_course_id
-                        WHERE " . implode(' AND ', $where) . "
-                        GROUP BY c.id, c.first_name, c.last_name
+                $salary_where = ["w.status = 'completed'", "w.transaction_type IN ('salary_percentage','salary_fixed')", "DATE(w.created_at) BETWEEN %s AND %s"];
+                $salary_args = [$filter_date_from, $filter_date_to];
+                if ($filter_coach > 0) { $salary_where[] = "w.coach_id = %d"; $salary_args[] = $filter_coach; }
+                if ($filter_course > 0) { $salary_where[] = "w.related_course_id = %d"; $salary_args[] = $filter_course; }
+                if ($filter_chapter !== '') { $salary_where[] = "co.chapter = %s"; $salary_args[] = $filter_chapter; }
+
+                $income_where = ["i.status IN ('paid','completed','processing')", "i.payment_date IS NOT NULL", "DATE(i.payment_date) BETWEEN %s AND %s", "i.course_id > 0"];
+                $income_args = [$filter_date_from, $filter_date_to];
+                if ($filter_course > 0) { $income_where[] = "i.course_id = %d"; $income_args[] = $filter_course; }
+                if ($filter_chapter !== '') { $income_where[] = "c.chapter = %s"; $income_args[] = $filter_chapter; }
+
+                $sql = "SELECT coach_rows.coach_id, coach_rows.first_name, coach_rows.last_name,
+                               SUM(coach_rows.coach_income) AS coach_income,
+                               SUM(COALESCE(course_income.course_income, 0)) AS total_class_income
+                        FROM (
+                            SELECT w.coach_id, cc.first_name, cc.last_name, w.related_course_id, SUM(w.amount) AS coach_income
+                            FROM $wallet_table w
+                            INNER JOIN $coaches_table cc ON cc.id = w.coach_id
+                            LEFT JOIN $courses_table co ON co.id = w.related_course_id
+                            WHERE " . implode(' AND ', $salary_where) . "
+                            GROUP BY w.coach_id, cc.first_name, cc.last_name, w.related_course_id
+                        ) coach_rows
+                        LEFT JOIN (
+                            SELECT i.course_id, SUM(i.amount) AS course_income
+                            FROM $invoices_table i
+                            INNER JOIN $courses_table c ON c.id = i.course_id
+                            WHERE " . implode(' AND ', $income_where) . "
+                            GROUP BY i.course_id
+                        ) course_income ON course_income.course_id = coach_rows.related_course_id
+                        GROUP BY coach_rows.coach_id, coach_rows.first_name, coach_rows.last_name
                         ORDER BY coach_income DESC";
-                $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
+                $rows = $wpdb->get_results($wpdb->prepare($sql, array_merge($salary_args, $income_args)));
+                $labels = [];
+                $coach_series = [];
+                $club_series = [];
                 ?>
                 <table class="wp-list-table widefat fixed striped">
-                    <thead><tr><th>مربی</th><th>تعداد تراکنش دستمزد</th><th>درآمد مربی (تومان)</th></tr></thead>
+                    <thead><tr><th>مربی</th><th>درآمد مربی (تومان)</th><th>سهم مجموعه (تومان)</th><th>درآمد کل کلاس (تومان)</th></tr></thead>
                     <tbody>
-                    <?php if (!empty($rows)) : foreach ($rows as $r) : ?>
-                        <tr><td><?php echo esc_html(trim($r->first_name . ' ' . $r->last_name)); ?></td><td><?php echo (int) $r->tx_count; ?></td><td><?php echo esc_html(number_format((float) $r->coach_income, 0, '.', ',')); ?></td></tr>
+                    <?php if (!empty($rows)) : foreach ($rows as $r) :
+                        $coach_income = (float) $r->coach_income;
+                        $class_income = (float) $r->total_class_income;
+                        $club_share = $class_income - $coach_income;
+                        $labels[] = trim($r->first_name . ' ' . $r->last_name);
+                        $coach_series[] = $coach_income;
+                        $club_series[] = $club_share;
+                    ?>
+                        <tr>
+                            <td><?php echo esc_html(trim($r->first_name . ' ' . $r->last_name)); ?></td>
+                            <td><?php echo esc_html(number_format($coach_income, 0, '.', ',')); ?></td>
+                            <td><?php echo esc_html(number_format($club_share, 0, '.', ',')); ?></td>
+                            <td><?php echo esc_html(number_format($class_income, 0, '.', ',')); ?></td>
+                        </tr>
                     <?php endforeach; else : ?>
-                        <tr><td colspan="3">موردی یافت نشد.</td></tr>
+                        <tr><td colspan="4">موردی یافت نشد.</td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
-            <?php elseif ($tab === 'club_share') :
-                $invoices_table = $wpdb->prefix . 'sc_invoices';
-                $wallet_table = $wpdb->prefix . 'sc_coach_wallet_transactions';
-                $where_income = ["i.status IN ('paid','completed','processing')", "i.payment_date IS NOT NULL", "DATE(i.payment_date) BETWEEN %s AND %s", "i.course_id > 0"];
-                $where_salary = ["w.status = 'completed'", "w.transaction_type IN ('salary_percentage','salary_fixed')", "DATE(w.created_at) BETWEEN %s AND %s"];
-                $args_income = [$filter_date_from, $filter_date_to];
-                $args_salary = [$filter_date_from, $filter_date_to];
-                if ($filter_course > 0) { $where_income[] = "i.course_id = %d"; $args_income[] = $filter_course; $where_salary[] = "w.related_course_id = %d"; $args_salary[] = $filter_course; }
-                if ($filter_coach > 0) { $where_salary[] = "w.coach_id = %d"; $args_salary[] = $filter_coach; }
-                if ($filter_chapter !== '') { $where_income[] = "c.chapter = %s"; $args_income[] = $filter_chapter; $where_salary[] = "co.chapter = %s"; $args_salary[] = $filter_chapter; }
-                $total_income = (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(i.amount),0) FROM $invoices_table i INNER JOIN $courses_table c ON c.id = i.course_id WHERE " . implode(' AND ', $where_income), $args_income));
-                $coach_income = (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(w.amount),0) FROM $wallet_table w LEFT JOIN $courses_table co ON co.id = w.related_course_id WHERE " . implode(' AND ', $where_salary), $args_salary));
-                $club_share = $total_income - $coach_income;
+                <div style="max-width: 1100px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
+                <?php
+                $finance_chart_config = [
+                    'type' => 'bar',
+                    'labels' => $labels,
+                    'datasets' => [
+                        ['label' => 'درآمد مربی', 'data' => $coach_series, 'backgroundColor' => 'rgba(34, 113, 177, 0.7)'],
+                        ['label' => 'سهم مجموعه', 'data' => $club_series, 'backgroundColor' => 'rgba(0, 163, 42, 0.7)'],
+                    ],
+                ];
                 ?>
-                <div class="sc-dashboard-stats">
-                    <div class="sc-stat-box"><h3>درآمد کل دوره‌ها</h3><div><?php echo esc_html(number_format($total_income, 0, '.', ',')); ?></div></div>
-                    <div class="sc-stat-box"><h3>درآمد مربیان</h3><div><?php echo esc_html(number_format($coach_income, 0, '.', ',')); ?></div></div>
-                    <div class="sc-stat-box"><h3>درآمد مجموعه</h3><div><?php echo esc_html(number_format($club_share, 0, '.', ',')); ?></div></div>
-                </div>
             <?php elseif ($tab === 'receivables') :
                 $invoices_table = $wpdb->prefix . 'sc_invoices';
                 $members_table = $wpdb->prefix . 'sc_members';
-                $where = ["i.status = 'pending'", "DATE(i.created_at) BETWEEN %s AND %s"];
+                $wallet_table = $wpdb->prefix . 'sc_wallet_transactions';
+                $where = ["i.status IN ('pending','under_review')", "DATE(i.created_at) BETWEEN %s AND %s"];
                 $args = [$filter_date_from, $filter_date_to];
                 if ($filter_course > 0) { $where[] = "i.course_id = %d"; $args[] = $filter_course; }
                 if ($filter_chapter !== '') { $where[] = "c.chapter = %s"; $args[] = $filter_chapter; }
-                $sql = "SELECT i.id, i.amount, i.created_at, m.first_name, m.last_name, c.title AS course_title, c.chapter
+                $sql = "SELECT i.id, i.member_id, i.amount, i.created_at, m.first_name, m.last_name, c.title AS course_title, c.chapter, 'invoice' AS debt_type
                         FROM $invoices_table i
                         LEFT JOIN $members_table m ON m.id = i.member_id
                         LEFT JOIN $courses_table c ON c.id = i.course_id
                         WHERE " . implode(' AND ', $where) . "
                         ORDER BY i.created_at DESC";
-                $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
+                $invoice_rows = $wpdb->get_results($wpdb->prepare($sql, $args));
+                $wallet_rows = $wpdb->get_results("SELECT m.id AS member_id, m.first_name, m.last_name, MIN(w.created_at) AS created_at, ABS(MIN(w.balance_after)) AS amount
+                    FROM $wallet_table w
+                    INNER JOIN $members_table m ON m.id = w.member_id
+                    GROUP BY m.id, m.first_name, m.last_name
+                    HAVING MIN(w.balance_after) < 0");
+                $rows = $invoice_rows ?: [];
+                if (!empty($wallet_rows)) {
+                    foreach ($wallet_rows as $wallet_row) {
+                        $wallet_row->course_title = 'بدهی کیف پول';
+                        $wallet_row->chapter = '-';
+                        $wallet_row->debt_type = 'wallet';
+                        $rows[] = $wallet_row;
+                    }
+                }
+                $receivable_chart = ['فاکتور معوق' => 0, 'بدهی کیف پول' => 0];
                 ?>
                 <table class="wp-list-table widefat fixed striped">
-                    <thead><tr><th>تاریخ</th><th>بازیکن</th><th>دوره</th><th>شعبه</th><th>مبلغ مطالبه (تومان)</th></tr></thead>
+                    <thead><tr><th>تاریخ</th><th>بازیکن</th><th>نوع</th><th>دوره/شرح</th><th>شعبه</th><th>مبلغ مطالبه (تومان)</th><th>جزئیات</th></tr></thead>
                     <tbody>
                     <?php if (!empty($rows)) : foreach ($rows as $r) : ?>
+                        <?php
+                        $shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(substr((string) $r->created_at, 0, 10)) : substr((string) $r->created_at, 0, 10);
+                        $receivable_chart[$r->debt_type === 'wallet' ? 'بدهی کیف پول' : 'فاکتور معوق'] += (float) $r->amount;
+                        $details_url = admin_url('admin.php?page=sc-invoices&filter_member=' . absint($r->member_id));
+                        ?>
                         <tr>
-                            <td><?php echo esc_html(substr((string) $r->created_at, 0, 10)); ?></td>
+                            <td><?php echo esc_html($shamsi); ?></td>
                             <td><?php echo esc_html(trim(($r->first_name ?? '') . ' ' . ($r->last_name ?? ''))); ?></td>
+                            <td><?php echo esc_html($r->debt_type === 'wallet' ? 'کیف پول' : 'فاکتور'); ?></td>
                             <td><?php echo esc_html($r->course_title ?: '-'); ?></td>
                             <td><?php echo esc_html($r->chapter ?: '-'); ?></td>
                             <td><?php echo esc_html(number_format((float) $r->amount, 0, '.', ',')); ?></td>
+                            <td><a class="button button-small" href="<?php echo esc_url($details_url); ?>">مشاهده صورت‌حساب‌ها</a></td>
                         </tr>
                     <?php endforeach; else : ?>
-                        <tr><td colspan="5">موردی یافت نشد.</td></tr>
+                        <tr><td colspan="7">موردی یافت نشد.</td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
+                <div style="max-width: 700px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
+                <?php
+                $finance_chart_config = [
+                    'type' => 'doughnut',
+                    'labels' => array_keys($receivable_chart),
+                    'datasets' => [
+                        ['label' => 'مطالبات', 'data' => array_values($receivable_chart), 'backgroundColor' => ['rgba(240,160,0,0.8)', 'rgba(214,54,56,0.8)']],
+                    ],
+                ];
+                ?>
             <?php elseif ($tab === 'cashflow') :
                 $invoices_table = $wpdb->prefix . 'sc_invoices';
                 $expenses_table = $wpdb->prefix . 'sc_expenses';
@@ -314,6 +374,16 @@ $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
                     <div class="sc-stat-box"><h3>خروجی نقدی</h3><div><?php echo esc_html(number_format($cash_out, 0, '.', ',')); ?></div></div>
                     <div class="sc-stat-box"><h3>خالص جریان نقدی</h3><div><?php echo esc_html(number_format($net_cashflow, 0, '.', ',')); ?></div></div>
                 </div>
+                <div style="max-width: 900px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
+                <?php
+                $finance_chart_config = [
+                    'type' => 'bar',
+                    'labels' => ['ورودی', 'خروجی', 'خالص'],
+                    'datasets' => [
+                        ['label' => 'جریان نقدی', 'data' => [$cash_in, $cash_out, $net_cashflow], 'backgroundColor' => ['rgba(0,163,42,0.7)', 'rgba(214,54,56,0.7)', 'rgba(34,113,177,0.7)']],
+                    ],
+                ];
+                ?>
             <?php elseif ($tab === 'ledger') :
                 $invoices_table = $wpdb->prefix . 'sc_invoices';
                 $members_table = $wpdb->prefix . 'sc_members';
@@ -344,7 +414,7 @@ $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
                     <tbody>
                     <?php if (!empty($ledger_rows)) : foreach ($ledger_rows as $r) : ?>
                         <tr>
-                            <td><?php echo esc_html($r->tx_date); ?></td>
+                            <td><?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($r->tx_date) : $r->tx_date); ?></td>
                             <td><?php echo esc_html($r->tx_type === 'income' ? 'ورودی' : 'خروجی'); ?></td>
                             <td><?php echo esc_html($r->ref_title ?: '-'); ?></td>
                             <td><?php echo esc_html($r->person_name ?: '-'); ?></td>
@@ -356,7 +426,43 @@ $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
                     <?php endif; ?>
                     </tbody>
                 </table>
+                <?php
+                $income_sum = 0.0;
+                $expense_sum = 0.0;
+                foreach ($ledger_rows as $ledger_row) {
+                    if ($ledger_row->tx_type === 'income') {
+                        $income_sum += (float) $ledger_row->amount;
+                    } else {
+                        $expense_sum += (float) $ledger_row->amount;
+                    }
+                }
+                $finance_chart_config = [
+                    'type' => 'pie',
+                    'labels' => ['ورودی', 'خروجی'],
+                    'datasets' => [
+                        ['label' => 'دفتر تراکنش‌ها', 'data' => [$income_sum, $expense_sum], 'backgroundColor' => ['rgba(0,163,42,0.75)', 'rgba(214,54,56,0.75)']],
+                    ],
+                ];
+                ?>
+                <div style="max-width: 700px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
             <?php endif; ?>
         <?php endif; ?>
     </div>
 </div>
+<?php if ($tab !== 'overview' && !empty($finance_chart_config)) : ?>
+<script src="<?php echo esc_url(SC_ASSETS_URL . 'js/vendor/chart.min.js'); ?>"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var canvas = document.getElementById('financeChart');
+    if (!canvas || typeof Chart === 'undefined') {
+        return;
+    }
+    var cfg = <?php echo wp_json_encode($finance_chart_config); ?>;
+    cfg.options = cfg.options || {};
+    cfg.options.responsive = true;
+    cfg.options.plugins = cfg.options.plugins || {};
+    cfg.options.plugins.legend = cfg.options.plugins.legend || { position: 'top' };
+    new Chart(canvas, cfg);
+});
+</script>
+<?php endif; ?>
