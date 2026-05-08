@@ -163,29 +163,50 @@ function sc_private_send_cancel_sms($session_id, $cancelled_by = 'user') {
     if ($cancelled_by === 'user') {
         $enabled = (int) sc_get_setting('private_class_sms_user_cancel_to_coach_enabled', '0') === 1;
         if ($enabled && !empty($row->mobile_phone)) {
-            $message = sprintf(
-                'مربی گرامی %s، بازیکن %s جلسه خصوصی دوره %s در تاریخ %s ساعت %s را لغو کرد.',
-                $coach_name !== '' ? $coach_name : 'گرامی',
-                $member_name !== '' ? $member_name : ('#' . (int) $row->member_id),
-                (string) $row->course_title,
-                $date_label,
-                $time_label
-            );
-            sc_send_sms((string) $row->mobile_phone, $message, false, null, [], 'private_cancel_to_coach');
+            $variables = [
+                'user_name' => $member_name !== '' ? $member_name : ('#' . (int) $row->member_id),
+                'coach_name' => $coach_name !== '' ? $coach_name : 'گرامی',
+                'item_name' => (string) $row->course_title,
+                'date' => $date_label,
+                'time' => $time_label,
+            ];
+            $template = (string) sc_get_setting('private_class_sms_user_cancel_to_coach_template', 'مربی گرامی %coach_name%، بازیکن %user_name% جلسه خصوصی دوره %item_name% در تاریخ %date% ساعت %time% را لغو کرد.');
+            $message = function_exists('sc_replace_sms_variables') ? sc_replace_sms_variables($template, $variables) : $template;
+            $pattern_code = (int) sc_get_setting('private_class_sms_user_cancel_to_coach_pattern', '0');
+            sc_send_sms((string) $row->mobile_phone, $message, $pattern_code > 0, $pattern_code > 0 ? $pattern_code : null, $variables, 'private_cancel_to_coach');
+        }
+
+        $admin_enabled = (int) sc_get_setting('private_class_sms_user_cancel_to_admin_enabled', '0') === 1;
+        $admin_phone = (string) sc_get_setting('sms_admin_phone', '');
+        if ($admin_enabled && $admin_phone !== '') {
+            $variables = [
+                'user_name' => $member_name !== '' ? $member_name : ('#' . (int) $row->member_id),
+                'coach_name' => $coach_name !== '' ? $coach_name : 'مربی',
+                'item_name' => (string) $row->course_title,
+                'date' => $date_label,
+                'time' => $time_label,
+            ];
+            $template = (string) sc_get_setting('private_class_sms_user_cancel_to_admin_template', 'مدیر گرامی، بازیکن %user_name% جلسه خصوصی دوره %item_name% با مربی %coach_name% در تاریخ %date% ساعت %time% را لغو کرد.');
+            $message = function_exists('sc_replace_sms_variables') ? sc_replace_sms_variables($template, $variables) : $template;
+            $pattern_code = (int) sc_get_setting('private_class_sms_user_cancel_to_admin_pattern', '0');
+            sc_send_sms($admin_phone, $message, $pattern_code > 0, $pattern_code > 0 ? $pattern_code : null, $variables, 'private_cancel_to_admin');
         }
         return;
     }
 
     $enabled = (int) sc_get_setting('private_class_sms_coach_cancel_to_user_enabled', '0') === 1;
     if ($enabled && !empty($row->player_phone)) {
-        $message = sprintf(
-            'بازیکن گرامی %s، جلسه خصوصی دوره %s در تاریخ %s ساعت %s توسط مربی/مدیر لغو شد.',
-            $member_name !== '' ? $member_name : 'گرامی',
-            (string) $row->course_title,
-            $date_label,
-            $time_label
-        );
-        sc_send_sms((string) $row->player_phone, $message, false, null, [], 'private_cancel_to_user');
+        $variables = [
+            'user_name' => $member_name !== '' ? $member_name : 'گرامی',
+            'coach_name' => $coach_name !== '' ? $coach_name : 'مربی',
+            'item_name' => (string) $row->course_title,
+            'date' => $date_label,
+            'time' => $time_label,
+        ];
+        $template = (string) sc_get_setting('private_class_sms_coach_cancel_to_user_template', 'بازیکن گرامی %user_name%، جلسه خصوصی دوره %item_name% در تاریخ %date% ساعت %time% توسط مربی/مدیر لغو شد.');
+        $message = function_exists('sc_replace_sms_variables') ? sc_replace_sms_variables($template, $variables) : $template;
+        $pattern_code = (int) sc_get_setting('private_class_sms_coach_cancel_to_user_pattern', '0');
+        sc_send_sms((string) $row->player_phone, $message, $pattern_code > 0, $pattern_code > 0 ? $pattern_code : null, $variables, 'private_cancel_to_user');
     }
 }
 
