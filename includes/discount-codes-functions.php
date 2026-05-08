@@ -258,6 +258,12 @@ function sc_validate_sc_discount_code($raw_code, array $ctx) {
     }
 
     if ($context === 'event' && $event_id) {
+        if (!$event) {
+            $event = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}sc_events WHERE id = %d",
+                $event_id
+            ));
+        }
         $n_events = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->prefix}sc_discount_code_events WHERE discount_code_id = %d",
             $dc_id
@@ -278,7 +284,18 @@ function sc_validate_sc_discount_code($raw_code, array $ctx) {
             $dc_id
         ));
         if ($n_ch_ev > 0) {
-            return new WP_Error('sc_discount_event_chapter', 'این کد فقط برای دوره‌های شعبهٔ مشخص‌شده است؛ برای رویداد قابل استفاده نیست.');
+            $event_ch = $event && isset($event->chapter) ? trim((string) $event->chapter) : '';
+            if ($event_ch === '') {
+                return new WP_Error('sc_discount_event_chapter', 'این کد فقط برای شعبه‌های مشخص‌شده مجاز است.');
+            }
+            $ok_ch_ev = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}sc_discount_code_chapters WHERE discount_code_id = %d AND chapter_name = %s",
+                $dc_id,
+                $event_ch
+            ));
+            if (!$ok_ch_ev) {
+                return new WP_Error('sc_discount_event_chapter', 'این کد برای شعبهٔ این رویداد مجاز نیست.');
+            }
         }
     }
 
@@ -349,6 +366,25 @@ function sc_validate_sc_discount_code($raw_code, array $ctx) {
         ));
         if (!$ok_l) {
             return new WP_Error('sc_discount_level', 'این کد برای سطح شما مجاز نیست.');
+        }
+    }
+
+    $n_gender = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->prefix}sc_discount_code_genders WHERE discount_code_id = %d",
+        $dc_id
+    ));
+    if ($n_gender > 0) {
+        $member_gender = isset($member->gender) ? trim((string) $member->gender) : '';
+        if ($member_gender === '') {
+            return new WP_Error('sc_discount_gender', 'این کد فقط برای جنسیت‌های مشخص‌شده است.');
+        }
+        $ok_g = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}sc_discount_code_genders WHERE discount_code_id = %d AND gender = %s",
+            $dc_id,
+            $member_gender
+        ));
+        if (!$ok_g) {
+            return new WP_Error('sc_discount_gender', 'این کد برای جنسیت شما مجاز نیست.');
         }
     }
 
@@ -565,6 +601,7 @@ function sc_clear_discount_code_restrictions($discount_code_id) {
         'sc_discount_code_chapters',
         'sc_discount_code_teams',
         'sc_discount_code_levels',
+        'sc_discount_code_genders',
         'sc_discount_code_members_allow',
         'sc_discount_code_members_deny',
     ];
@@ -604,6 +641,27 @@ function sc_parse_member_ids_csv($str) {
         }
     }
     return array_values(array_unique($out));
+}
+
+/**
+ * @param string $str
+ * @return int[]
+ */
+function sc_parse_member_tokens_csv($str) {
+    $str = is_string($str) ? $str : '';
+    $out = [];
+    foreach (preg_split('/[,;\s]+/', $str, -1, PREG_SPLIT_NO_EMPTY) as $token) {
+        $token = trim($token);
+        if ($token === '') {
+            continue;
+        }
+        if (preg_match('/^member_(\d+)$/', $token, $m)) {
+            $out[] = absint($m[1]);
+            continue;
+        }
+        $out[] = absint($token);
+    }
+    return array_values(array_filter(array_unique($out)));
 }
 
 /**
@@ -648,17 +706,28 @@ function sc_save_discount_code_from_post() {
     $min_sub = floatval(str_replace([',', ' '], ['', ''], $min_raw));
 
     $starts_at = null;
-    if (!empty($_POST['starts_at'])) {
-        $ts = strtotime(sanitize_text_field(wp_unslash($_POST['starts_at'])));
-        if ($ts) {
-            $starts_at = date_i18n('Y-m-d H:i:s', $ts);
+    $starts_date_shamsi = isset($_POST['starts_at_date_shamsi']) ? sanitize_text_field(wp_unslash($_POST['starts_at_date_shamsi'])) : '';
+    $starts_time = isset($_POST['starts_at_time']) ? sanitize_text_field(wp_unslash($_POST['starts_at_time'])) : '';
+    if ($starts_date_shamsi !== '') {
+        $starts_gregorian = function_exists('sc_shamsi_to_gregorian_date') ? sc_shamsi_to_gregorian_date($starts_date_shamsi) : '';
+        if ($starts_gregorian) {
+            if (!preg_match('/^\d{2}:\d{2}$/', $starts_time)) {
+                $starts_time = '00:00';
+            }
+            $starts_at = $starts_gregorian . ' ' . $starts_time . ':00';
         }
     }
+
     $ends_at = null;
-    if (!empty($_POST['ends_at'])) {
-        $ts = strtotime(sanitize_text_field(wp_unslash($_POST['ends_at'])));
-        if ($ts) {
-            $ends_at = date_i18n('Y-m-d H:i:s', $ts);
+    $ends_date_shamsi = isset($_POST['ends_at_date_shamsi']) ? sanitize_text_field(wp_unslash($_POST['ends_at_date_shamsi'])) : '';
+    $ends_time = isset($_POST['ends_at_time']) ? sanitize_text_field(wp_unslash($_POST['ends_at_time'])) : '';
+    if ($ends_date_shamsi !== '') {
+        $ends_gregorian = function_exists('sc_shamsi_to_gregorian_date') ? sc_shamsi_to_gregorian_date($ends_date_shamsi) : '';
+        if ($ends_gregorian) {
+            if (!preg_match('/^\d{2}:\d{2}$/', $ends_time)) {
+                $ends_time = '23:59';
+            }
+            $ends_at = $ends_gregorian . ' ' . $ends_time . ':00';
         }
     }
 
@@ -767,7 +836,28 @@ function sc_save_discount_code_from_post() {
         }
     }
 
-    $allow_m = sc_parse_member_ids_csv(isset($_POST['members_allow']) ? wp_unslash($_POST['members_allow']) : '');
+    $genders = isset($_POST['gender_values']) && is_array($_POST['gender_values']) ? $_POST['gender_values'] : [];
+    foreach ($genders as $g) {
+        $g = sanitize_key($g);
+        if (!in_array($g, ['male', 'female'], true)) {
+            continue;
+        }
+        $wpdb->insert(
+            $wpdb->prefix . 'sc_discount_code_genders',
+            ['discount_code_id' => $dc_id, 'gender' => $g],
+            ['%d', '%s']
+        );
+    }
+
+    $allow_m = [];
+    if (isset($_POST['member_allow_ids']) && is_array($_POST['member_allow_ids'])) {
+        $allow_m = array_map('absint', $_POST['member_allow_ids']);
+        $allow_m = array_values(array_filter(array_unique($allow_m)));
+    } elseif (!empty($_POST['member_allow_ids_str'])) {
+        $allow_m = sc_parse_member_tokens_csv(sanitize_text_field(wp_unslash($_POST['member_allow_ids_str'])));
+    } else {
+        $allow_m = sc_parse_member_ids_csv(isset($_POST['members_allow']) ? wp_unslash($_POST['members_allow']) : '');
+    }
     foreach ($allow_m as $mid) {
         $wpdb->insert(
             $wpdb->prefix . 'sc_discount_code_members_allow',
@@ -776,7 +866,15 @@ function sc_save_discount_code_from_post() {
         );
     }
 
-    $deny_m = sc_parse_member_ids_csv(isset($_POST['members_deny']) ? wp_unslash($_POST['members_deny']) : '');
+    $deny_m = [];
+    if (isset($_POST['member_deny_ids']) && is_array($_POST['member_deny_ids'])) {
+        $deny_m = array_map('absint', $_POST['member_deny_ids']);
+        $deny_m = array_values(array_filter(array_unique($deny_m)));
+    } elseif (!empty($_POST['member_deny_ids_str'])) {
+        $deny_m = sc_parse_member_tokens_csv(sanitize_text_field(wp_unslash($_POST['member_deny_ids_str'])));
+    } else {
+        $deny_m = sc_parse_member_ids_csv(isset($_POST['members_deny']) ? wp_unslash($_POST['members_deny']) : '');
+    }
     foreach ($deny_m as $mid) {
         $wpdb->insert(
             $wpdb->prefix . 'sc_discount_code_members_deny',

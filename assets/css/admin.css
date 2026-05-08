@@ -91,6 +91,9 @@ select{
     margin-bottom: 10px;
     height: unset !important;
 }
+input.small-text {
+    width: 125px;
+}
 /* مخفی کردن تب های اضای در تنظیمات بخش صورت حساب ها - با js ظاهر میشه */
 .invoice-row {
         display: none;

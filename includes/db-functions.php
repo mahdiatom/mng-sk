@@ -1619,6 +1619,15 @@ function sc_create_discount_codes_tables() {
     ) ENGINE=InnoDB $charset_collate";
     dbDelta($sql);
 
+    $t = $wpdb->prefix . 'sc_discount_code_genders';
+    $sql = "CREATE TABLE `$t` (
+        `discount_code_id` bigint(20) unsigned NOT NULL,
+        `gender` varchar(32) NOT NULL,
+        PRIMARY KEY (`discount_code_id`,`gender`),
+        KEY `idx_gender` (`gender`)
+    ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+
     $t = $wpdb->prefix . 'sc_discount_code_members_allow';
     $sql = "CREATE TABLE `$t` (
         `discount_code_id` bigint(20) unsigned NOT NULL,
