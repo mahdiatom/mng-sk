@@ -339,7 +339,7 @@ $total_pages = ceil($total / $per_page);
                         <?php if ($can_edit_delete) : ?>
                             <a href="<?php echo esc_url(admin_url('admin.php?page=' . $add_page . '&edit=' . $n->id)); ?>">ویرایش</a>
                             |
-                            <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=' . $list_page . '&action=delete&id=' . $n->id), 'delete_notification_' . $n->id)); ?>" class="submitdelete" onclick="return confirm('آیا از حذف اطمینان دارید؟');">حذف</a>
+                            <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=' . $list_page . '&action=delete&id=' . $n->id), 'delete_notification_' . $n->id)); ?>" class="submitdelete" onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا از حذف اطمینان دارید؟' });">حذف</a>
                         <?php else : ?>
                             —
                         <?php endif; ?>

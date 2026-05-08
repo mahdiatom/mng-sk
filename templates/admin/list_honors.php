@@ -502,7 +502,7 @@ $total_pages = ceil($total_items / $per_page);
                                         </span>
                                     <?php endif; ?>
                                     <span class="delete">
-                                        <a href="<?php echo esc_url($delete_url); ?>" onclick="return confirm('آیا مطمئن هستید؟')">حذف</a>
+                                        <a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟' })">حذف</a>
                                     </span>
                                 </div>
                             </td>
@@ -591,6 +591,7 @@ jQuery(document).ready(function($) {
     $('#doaction').on('click', function(e) {
         const action = $('#bulk-action-selector').val();
         const checked = $('input[name="honor_ids[]"]:checked').length;
+        const form = $(this).closest('form');
         if (checked === 0) {
             e.preventDefault();
             alert('لطفاً حداقل یک افتخار را انتخاب کنید.');
@@ -598,20 +599,29 @@ jQuery(document).ready(function($) {
         }
 
         if (action === 'delete') {
-            if (!confirm('آیا از حذف ' + checked + ' افتخار انتخاب شده اطمینان دارید؟')) {
-                e.preventDefault();
-                return false;
-            }
+            e.preventDefault();
+            scConfirm({ type: 'danger', message: 'آیا از حذف ' + checked + ' افتخار انتخاب شده اطمینان دارید؟' }).then(function(ok){
+                if (ok) {
+                    form.submit();
+                }
+            });
+            return false;
         } else if (action === 'approve') {
-            if (!confirm('آیا از تایید ' + checked + ' افتخار انتخاب شده اطمینان دارید؟')) {
-                e.preventDefault();
-                return false;
-            }
+            e.preventDefault();
+            scConfirm({ type: 'warning', message: 'آیا از تایید ' + checked + ' افتخار انتخاب شده اطمینان دارید؟' }).then(function(ok){
+                if (ok) {
+                    form.submit();
+                }
+            });
+            return false;
         } else if (action === 'reject') {
-            if (!confirm('آیا از عدم تایید ' + checked + ' افتخار انتخاب شده اطمینان دارید؟')) {
-                e.preventDefault();
-                return false;
-            }
+            e.preventDefault();
+            scConfirm({ type: 'warning', message: 'آیا از عدم تایید ' + checked + ' افتخار انتخاب شده اطمینان دارید؟' }).then(function(ok){
+                if (ok) {
+                    form.submit();
+                }
+            });
+            return false;
         } else {
             e.preventDefault();
             alert('لطفاً یک عملیات دسته‌جمعی انتخاب کنید.');

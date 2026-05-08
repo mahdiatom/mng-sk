@@ -555,7 +555,7 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                         <?php endif; ?>
                     </select>
                     <input type="submit" name="sc_attendance_logs_bulk_submit" id="doaction" class="button action" value="اعمال"
-                           onclick="return confirm('عملیات روی ردیف‌های انتخاب‌شده اعمال شود؟');">
+                           onclick="return scConfirmInline(event, { type: 'warning', message: 'عملیات روی ردیف‌های انتخاب‌شده اعمال شود؟' });">
                 </div>
                 <br class="clear">
             </div>

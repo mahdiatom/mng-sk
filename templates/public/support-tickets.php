@@ -199,7 +199,7 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                 <input type="hidden" name="sc_ticket_action" value="close">
                 <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
                 <div class="sc-form-actions">
-                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-close button-primary" onclick="return confirm('آیا از بستن این تیکت اطمینان دارید؟');">بستن تیکت</button>
+                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-close button-primary" onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا از بستن این تیکت اطمینان دارید؟' });">بستن تیکت</button>
                 </div>
             </form>
         </div>

@@ -631,16 +631,18 @@ jQuery(function($){
     $(document).on('click', '.sc-remove-certificate-template', function(){
         const listItem = $(this).closest('.sc-template-list-item');
         const key = listItem.attr('data-template-key');
-        if (!confirm('این قالب حذف شود؟')) {
-            return;
-        }
-        removeCertificateEditors(key);
-        listItem.remove();
-        $(`.sc-template-item[data-template-key="${key}"]`).remove();
-        const first = $('.sc-template-list-item').first();
-        if (first.length) {
-            activateTemplate(first.attr('data-template-key'));
-        }
+        scConfirm({ type: 'danger', message: 'این قالب حذف شود؟' }).then(function(ok){
+            if (!ok) {
+                return;
+            }
+            removeCertificateEditors(key);
+            listItem.remove();
+            $(`.sc-template-item[data-template-key="${key}"]`).remove();
+            const first = $('.sc-template-list-item').first();
+            if (first.length) {
+                activateTemplate(first.attr('data-template-key'));
+            }
+        });
     });
 
     $(document).on('click', '.sc-edit-certificate-template', function(){

@@ -401,7 +401,7 @@ $total_pages = isset($total_pages) ? max(1, absint($total_pages)) : 1;
                                     );
                                     $action_buttons[] = '<a href="' . esc_url($cancel_url) . '" 
                                         class="woocommerce-button button sc-invoice-btn sc-invoice-btn-cancel"
-                                        onclick="return confirm(\'آیا مطمئن هستید می‌خواهید این صورت‌حساب را لغو کنید؟\')"
+                                        onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید می‌خواهید این صورت‌حساب را لغو کنید؟\' })"
                                         style="background:#dc3545;color:#fff;">
                                          لغو صورتحساب
                                     </a>';

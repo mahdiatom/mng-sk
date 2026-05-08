@@ -3352,6 +3352,10 @@ function sc_render_public_event_page() {
     if (is_admin() || !isset($_GET['sc_public_event'])) {
         return;
     }
+    // اجازه بده ابتدا هندلر ثبت‌نام عمومی POST را پردازش کند.
+    if (isset($_POST['sc_enroll_public_event'])) {
+        return;
+    }
 
     sc_check_and_create_tables();
     $event_id = absint($_GET['sc_public_event']);

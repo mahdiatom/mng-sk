@@ -237,7 +237,7 @@ $categories = $wpdb->get_results("SELECT * FROM $categories_table ORDER BY name 
                                         );
                                         ?>
                                         <a href="<?php echo esc_url($delete_url); ?>" 
-                                           onclick="return confirm('آیا مطمئن هستید؟')" 
+                                           onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟' })" 
                                            class="button button-small btn_delete_action_admin">حذف</a>
                                     </td>
                                 </tr>

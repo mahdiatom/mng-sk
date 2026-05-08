@@ -1014,9 +1014,12 @@ jQuery(document).ready(function($) {
 
     // حذف فیلد
     $(document).on('click', '.sc-remove-field-btn', function() {
-        if (confirm('آیا از حذف این فیلد اطمینان دارید؟')) {
-            $(this).closest('.sc-event-field-item').remove();
-        }
+        var $btn = $(this);
+        window.scConfirm({ type: 'danger', message: 'آیا از حذف این فیلد اطمینان دارید؟' }).then(function (ok) {
+            if (ok) {
+                $btn.closest('.sc-event-field-item').remove();
+            }
+        });
     });
 
     // نمایش/مخفی کردن فیلد گزینه‌ها برای نوع select
@@ -1093,10 +1096,10 @@ jQuery(document).ready(function($) {
         var registrationId = $(this).data('registration-id');
         var invoiceId = $(this).data('invoice-id');
         
-        if (!confirm('آیا از تایید پرداخت این ثبت‌نام اطمینان دارید؟')) {
+        window.scConfirm({ type: 'warning', message: 'آیا از تایید پرداخت این ثبت‌نام اطمینان دارید؟' }).then(function (ok) {
+        if (!ok) {
             return;
         }
-        
         $.ajax({
             url: typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php',
             type: 'POST',
@@ -1118,6 +1121,7 @@ jQuery(document).ready(function($) {
                 alert('خطا در ارتباط با سرور');
             }
         });
+        });
     });
     
     // تغییر وضعیت به لغو شده
@@ -1126,10 +1130,10 @@ jQuery(document).ready(function($) {
         var registrationId = $(this).data('registration-id');
         var invoiceId = $(this).data('invoice-id');
         
-        if (!confirm('آیا از لغو این ثبت‌نام اطمینان دارید؟')) {
+        window.scConfirm({ type: 'danger', message: 'آیا از لغو این ثبت‌نام اطمینان دارید؟' }).then(function (ok) {
+        if (!ok) {
             return;
         }
-        
         $.ajax({
             url: typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php',
             type: 'POST',
@@ -1151,6 +1155,7 @@ jQuery(document).ready(function($) {
                 alert('خطا در ارتباط با سرور');
             }
         });
+        });
     });
     
     // تغییر وضعیت به تایید پرداخت
@@ -1159,10 +1164,10 @@ jQuery(document).ready(function($) {
         var registrationId = $(this).data('registration-id');
         var invoiceId = $(this).data('invoice-id');
         
-        if (!confirm('آیا از تایید پرداخت این ثبت‌نام اطمینان دارید؟')) {
+        window.scConfirm({ type: 'warning', message: 'آیا از تایید پرداخت این ثبت‌نام اطمینان دارید؟' }).then(function (ok) {
+        if (!ok) {
             return;
         }
-        
         $.ajax({
             url: typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php',
             type: 'POST',
@@ -1184,6 +1189,7 @@ jQuery(document).ready(function($) {
                 alert('خطا در ارتباط با سرور');
         }
         });
+        });
     });
     
     // تغییر وضعیت به لغو شده
@@ -1192,10 +1198,10 @@ jQuery(document).ready(function($) {
         var registrationId = $(this).data('registration-id');
         var invoiceId = $(this).data('invoice-id');
         
-        if (!confirm('آیا از لغو این ثبت‌نام اطمینان دارید؟')) {
+        window.scConfirm({ type: 'danger', message: 'آیا از لغو این ثبت‌نام اطمینان دارید؟' }).then(function (ok) {
+        if (!ok) {
             return;
         }
-        
         $.ajax({
             url: typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php',
             type: 'POST',
@@ -1216,6 +1222,7 @@ jQuery(document).ready(function($) {
             error: function() {
                 alert('خطا در ارتباط با سرور');
             }
+        });
         });
     });
 });

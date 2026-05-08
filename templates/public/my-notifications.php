@@ -183,24 +183,24 @@ document.addEventListener('DOMContentLoaded', function() {
 jQuery(document).ready(function($){
 
     $('#sc-mark-all-as-read').on('click', function () {
-
-        if (!confirm('آیا تمام اطلاعیه‌های خوانده‌نشده خوانده شوند؟')) return;
-
-        $.post(
-            ajaxurl,
-            {
-                action: 'sc_mark_all_notifications_read',
-                security: '<?php echo wp_create_nonce("sc_mark_all_read_nonce"); ?>'
-            },
-            function(response){
-                if(response.success){
-                    alert(response.data);
-                    location.reload();
-                } else {
-                    alert('خطا: ' + response.data);
+        scConfirm({ type: 'warning', message: 'آیا تمام اطلاعیه‌های خوانده‌نشده خوانده شوند؟' }).then(function(ok){
+            if (!ok) return;
+            $.post(
+                ajaxurl,
+                {
+                    action: 'sc_mark_all_notifications_read',
+                    security: '<?php echo wp_create_nonce("sc_mark_all_read_nonce"); ?>'
+                },
+                function(response){
+                    if(response.success){
+                        alert(response.data);
+                        location.reload();
+                    } else {
+                        alert('خطا: ' + response.data);
+                    }
                 }
-            }
-        );
+            );
+        });
     });
 
 });

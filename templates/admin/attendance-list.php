@@ -1047,7 +1047,7 @@ $max_display = 10;
                                        class="button button-small">ویرایش</a>
                                     <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=sc-attendance-list&tab=individual&action=delete&attendance_id=' . $attendance->id), 'delete_attendance_' . $attendance->id); ?>" 
                                        class="button button-small button_delete_attendance" 
-                                       onclick="return confirm('آیا مطمئن هستید که می‌خواهید این حضور و غیاب را حذف کنید؟');"
+                                       onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید که می‌خواهید این حضور و غیاب را حذف کنید؟' });"
                                        >حذف</a>
 
                                 <?php
@@ -1062,7 +1062,7 @@ $max_display = 10;
                                         echo '<a href="' . esc_url($justify_url) . '" 
                                                 class="button button-small" 
                                                 style="color:#2271b1; border-color:#2271b1;" 
-                                                onclick="return confirm(\'آیا از مجاز کردن این غیبت و بازگرداندن جلسه مطمئن هستید؟\');">
+                                                onclick="return scConfirmInline(event, { type: 'warning', message: \'آیا از مجاز کردن این غیبت و بازگرداندن جلسه مطمئن هستید؟\' });">
                                                 مجاز کردن
                                             </a>';
                                     }

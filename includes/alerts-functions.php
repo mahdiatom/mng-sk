@@ -415,7 +415,7 @@ function sc_render_user_alerts_page() {
                                 <?php if (empty($item->is_read)) : ?>
                                     <a href="<?php echo esc_url($confirm_url); ?>">تایید</a> |
                                 <?php endif; ?>
-                                <a href="<?php echo esc_url($delete_url); ?>" onclick="return confirm('این هشدار حذف شود؟');">حذف</a>
+                                <a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'این هشدار حذف شود؟' });">حذف</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

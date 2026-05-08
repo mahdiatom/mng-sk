@@ -43,7 +43,7 @@ class Events_List_Table extends WP_List_Table {
             $restore_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=restore&event_id=' . $item['id']), 'restore_event_' . $item['id']);
             $delete_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=delete_permanent&event_id=' . $item['id']), 'delete_permanent_event_' . $item['id']);
             $actions['restore'] = '<a href="' . esc_url($restore_url) . '">بازیابی</a>';
-            $actions['delete'] = '<a href="' . esc_url($delete_url) . '" onclick="return confirm(\'آیا مطمئن هستید؟ این عمل قابل بازگشت نیست.\')">حذف دائمی</a>';
+            $actions['delete'] = '<a href="' . esc_url($delete_url) . '" onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید؟ این عمل قابل بازگشت نیست.\' })">حذف دائمی</a>';
         } else {
             $edit_url = admin_url('admin.php?page=sc-add-event&event_id=' . $item['id']);
             $trash_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=trash&event_id=' . $item['id']), 'trash_event_' . $item['id']);

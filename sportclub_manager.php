@@ -1486,6 +1486,7 @@ add_action('wp_enqueue_scripts', 'sc_public_enqueue_assets');
  */
 function sc_admin_enqueue_assets() {
     wp_enqueue_style('sc-admin-css', SC_ASSETS_URL . 'css/admin.css', array(),  time());
+    wp_enqueue_style('sc-confirm-css', SC_ASSETS_URL . 'css/sc-confirm.css', array(), time());
     $current_page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
     $is_ticket_new = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-support-ticket-new';
     $is_ticket_view = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-support-ticket-view';
@@ -1505,6 +1506,7 @@ function sc_admin_enqueue_assets() {
     
     // Enqueue admin.js with dependencies
     wp_enqueue_script('sc-admin-js', SC_ASSETS_URL . 'js/admin.js', array('jquery', 'media-upload', 'media-views'), time(), true);
+    wp_enqueue_script('sc-confirm-js', SC_ASSETS_URL . 'js/sc-confirm.js', array(), time(), true);
     
     // Localize script for AJAX
     wp_localize_script('sc-admin-js', 'scAdmin', array(
@@ -1555,9 +1557,11 @@ function sc_admin_enqueue_assets() {
  */
 function sc_public_enqueue_assets() {
     wp_enqueue_style('sc-public-css', SC_ASSETS_URL . 'css/public.css', array(),   time());
+    wp_enqueue_style('sc-confirm-css', SC_ASSETS_URL . 'css/sc-confirm.css', array(), time());
     wp_enqueue_style('my-custom-icons-css',SC_ASSETS_URL . 'css/all.css',array(),'1.0');
 
     wp_enqueue_script('sc-public-js', SC_ASSETS_URL . 'js/public.js', array('jquery'), '1.0', true);
+    wp_enqueue_script('sc-confirm-js', SC_ASSETS_URL . 'js/sc-confirm.js', array(), time(), true);
 
     wp_enqueue_script(
         'sc-header-search',

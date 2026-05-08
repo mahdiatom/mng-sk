@@ -947,7 +947,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     <p><strong>توجه:</strong> ساختار جداول (ستون‌ها) حفظ می‌شود و فقط داده‌ها حذف می‌شوند.</p>
                 </div>
 
-                <form method="POST" action="" id="sc-reset-factory-form" onsubmit="return confirm('آیا مطمئن هستید؟ این عملیات غیر قابل بازگشت است و تمام اطلاعات حذف خواهد شد!');">
+                <form method="POST" action="" id="sc-reset-factory-form" onsubmit="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟ این عملیات غیر قابل بازگشت است و تمام اطلاعات حذف خواهد شد!' });">
                     <?php wp_nonce_field('sc_reset_factory', 'sc_reset_factory_nonce'); ?>
 
                     <p>
@@ -963,7 +963,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                                class="button button-secondary"
                                value="بازگشت به کارخانه (حذف تمام اطلاعات)"
                                style="background-color: #dc3232; border-color: #dc3232; color: #fff;"
-                               onclick="return confirm('آیا واقعاً مطمئن هستید؟ این عملیات غیر قابل بازگشت است!');">
+                               onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا واقعاً مطمئن هستید؟ این عملیات غیر قابل بازگشت است!' });">
                     </p>
                 </form>
             </div>

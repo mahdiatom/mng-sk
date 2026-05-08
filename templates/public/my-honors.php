@@ -521,36 +521,37 @@ jQuery(document).ready(function($) {
     
     // حذف تکی افتخار
     $(document).on('click', '.delete-single-honor', function() {
-        if (!confirm('آیا از حذف این افتخار اطمینان دارید؟')) {
-            return;
-        }
-        
         const honorId = $(this).data('honor-id');
-        const form = $('<form>', {
-            method: 'POST',
-            action: ''
+        scConfirm({ type: 'danger', message: 'آیا از حذف این افتخار اطمینان دارید؟' }).then(function(ok){
+            if (!ok) {
+                return;
+            }
+            const form = $('<form>', {
+                method: 'POST',
+                action: ''
+            });
+            
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'delete_single_honor',
+                value: '1'
+            }));
+            
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'honor_id',
+                value: honorId
+            }));
+            
+            form.append($('<input>', {
+                type: 'hidden',
+                name: '_wpnonce',
+                value: '<?php echo wp_create_nonce("delete_single_honor_nonce"); ?>'
+            }));
+            
+            $('body').append(form);
+            form.submit();
         });
-        
-        form.append($('<input>', {
-            type: 'hidden',
-            name: 'delete_single_honor',
-            value: '1'
-        }));
-        
-        form.append($('<input>', {
-            type: 'hidden',
-            name: 'honor_id',
-            value: honorId
-        }));
-        
-        form.append($('<input>', {
-            type: 'hidden',
-            name: '_wpnonce',
-            value: '<?php echo wp_create_nonce("delete_single_honor_nonce"); ?>'
-        }));
-        
-        $('body').append(form);
-        form.submit();
     });
     
 });

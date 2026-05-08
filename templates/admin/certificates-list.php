@@ -286,7 +286,7 @@ if ($edit_id > 0) {
         <?php wp_nonce_field('sc_bulk_delete_certificates_nonce'); ?>
         <div class="tablenav top">
             <div class="alignleft actions bulkactions">
-                <button type="submit" name="sc_bulk_delete_certificates" class="button action" onclick="return confirm('گواهینامه‌های انتخاب‌شده حذف شوند؟');">حذف انتخاب‌شده‌ها</button>
+                <button type="submit" name="sc_bulk_delete_certificates" class="button action" onclick="return scConfirmInline(event, { type: 'warning', message: 'گواهینامه‌های انتخاب‌شده حذف شوند؟' });">حذف انتخاب‌شده‌ها</button>
             </div>
         </div>
 
@@ -345,7 +345,7 @@ if ($edit_id > 0) {
                                         <span class="view"><a href="<?php echo esc_url($view_url); ?>" target="_blank" rel="noopener noreferrer">مشاهده و دانلود</a> | </span>
                                         <span class="edit"><a href="<?php echo esc_url($physical_invoice_url); ?>">ایجاد صورتحساب نسخه فیزیکی</a> | </span>
                                         <span class="edit"><a href="<?php echo esc_url($edit_url); ?>">ویرایش</a> | </span>
-                                        <span class="delete"><a href="<?php echo esc_url($delete_url); ?>" onclick="return confirm('این گواهینامه حذف شود؟');">حذف</a></span>
+                                        <span class="delete"><a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'این گواهینامه حذف شود؟' });">حذف</a></span>
                                     </div>
                                 </td>
                                 <td><?php echo esc_html((string) $row->title); ?></td>

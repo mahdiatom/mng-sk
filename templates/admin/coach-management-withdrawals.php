@@ -515,12 +515,15 @@ jQuery(document).ready(function($) {
 
     // تایید تکی
     $(document).on('click', '.sc-approve-btn', function() {
-        if (!confirm('آیا از تایید این درخواست اطمینان دارید؟ وضعیت به «منتظر پرداخت» تغییر می‌کند.')) return;
-        var fid = document.createElement('form');
-        fid.method = 'POST';
-        fid.innerHTML = '<input type="hidden" name="approve_request" value="1"><input type="hidden" name="request_id" value="' + $(this).data('request-id') + '"><input type="hidden" name="_wpnonce" value="' + $(this).data('nonce') + '">';
-        document.body.appendChild(fid);
-        fid.submit();
+        var $btn = $(this);
+        scConfirm({ type: 'warning', message: 'آیا از تایید این درخواست اطمینان دارید؟ وضعیت به «منتظر پرداخت» تغییر می‌کند.' }).then(function(ok){
+            if (!ok) return;
+            var fid = document.createElement('form');
+            fid.method = 'POST';
+            fid.innerHTML = '<input type="hidden" name="approve_request" value="1"><input type="hidden" name="request_id" value="' + $btn.data('request-id') + '"><input type="hidden" name="_wpnonce" value="' + $btn.data('nonce') + '">';
+            document.body.appendChild(fid);
+            fid.submit();
+        });
     });
 
     // علامت پرداخت تکی - نمایش مودال اطلاعات پرداخت
@@ -562,7 +565,9 @@ jQuery(document).ready(function($) {
             $('#rejection_reason_bulk').val('');
         } else {
             var msg = action === 'approve' ? 'آیا از تایید ' + checked.length + ' درخواست اطمینان دارید؟' : 'آیا از علامت‌گذاری ' + checked.length + ' درخواست به عنوان پرداخت شده اطمینان دارید؟';
-            if (confirm(msg)) $('#bulk-withdrawals-form').submit();
+            scConfirm({ type: 'warning', message: msg }).then(function(ok){
+                if (ok) $('#bulk-withdrawals-form').submit();
+            });
         }
     });
 

@@ -146,7 +146,7 @@ $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_dat
                                         <?php wp_nonce_field('sc_private_session_action', 'sc_private_session_nonce'); ?>
                                         <input type="hidden" name="session_id" value="<?php echo esc_attr((int) $session->id); ?>">
                                         <input type="hidden" name="sc_private_session_action" value="cancel">
-                                        <button type="submit" class="button sc-private-cancel-btn" onclick="return confirm('از لغو این جلسه مطمئن هستید؟');">لغو جلسه</button>
+                                        <button type="submit" class="button sc-private-cancel-btn" onclick="return scConfirmInline(event, { type: 'warning', message: 'از لغو این جلسه مطمئن هستید؟' });">لغو جلسه</button>
                                     </form>
                                 <?php elseif ($is_past_session && $session->status === 'scheduled') : ?>
                                     <span class="sc-private-disabled-note">جلسه گذشته است</span>

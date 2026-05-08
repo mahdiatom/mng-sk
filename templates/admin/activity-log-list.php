@@ -251,7 +251,7 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
 <script>
 jQuery(function($) {
     $('#sc-activity-log-clear-form').on('submit', function() {
-        return confirm('آیا از حذف تمام لاگ‌های فعالیت اطمینان دارید؟\nاین عمل قابل بازگشت نیست.');
+        return scConfirmInline(event, { type: 'warning', message: 'آیا از حذف تمام لاگ‌های فعالیت اطمینان دارید؟\nاین عمل قابل بازگشت نیست.' });
     });
     function formatLogValue(v) {
         if (v == null || v === '') return '—';

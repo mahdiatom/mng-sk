@@ -71,7 +71,7 @@ if (function_exists('sc_sc_discount_tables_ready') && sc_sc_discount_tables_read
                         <td>
                             <a href="<?php echo esc_url($edit_url); ?>">ویرایش</a>
                             |
-                            <a href="<?php echo esc_url($del_url); ?>" onclick="return confirm('حذف این کد تخفیف؟');" style="color:#b32d2e;">حذف</a>
+                            <a href="<?php echo esc_url($del_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'حذف این کد تخفیف؟' });" style="color:#b32d2e;">حذف</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

@@ -599,7 +599,7 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                     <td>
                         <a href="#" class="sc-view-registration-details" data-registration-id="<?php echo esc_attr($registration_id); ?>" style="cursor: pointer; color: #2271b1; text-decoration: none;">مشاهده جزئیات | </a>
                         <a href="<?php echo admin_url('admin.php?page=sc-event-registrations&action=delete&registration_id=' . $registration_id . '&_wpnonce=' . wp_create_nonce('sc_delete_registration_' . $registration_id)); ?>" 
-                            onclick="return confirm('آیا مطمئن هستید که می‌خواهید این ثبت‌نام را حذف کنید؟');"
+                            onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید که می‌خواهید این ثبت‌نام را حذف کنید؟' });"
                             style="color: #d63638; text-decoration: none;">
                                 حذف
                             </a>                    

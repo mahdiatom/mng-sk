@@ -93,7 +93,7 @@ $verification_gate_locked = function_exists('sc_is_member_verification_gate_enab
                      
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-faq" class="sc-faq"> سوالات متداول </a></li>
                         <?php endif; ?>
-                        <li><a href="<?php echo wp_logout_url( wc_get_page_permalink( 'myaccount' ) ); ?>  " onclick="confirm('شما در حال خروج از حساب کاربری هستید از این کار اطمنیان دارید؟')" >خروج از حساب کاربری</a></li>    
+                        <li><a href="<?php echo wp_logout_url( wc_get_page_permalink( 'myaccount' ) ); ?>  " onclick=\"return scConfirmInline(event, { type: 'warning', message: 'شما در حال خروج از حساب کاربری هستید از این کار اطمنیان دارید؟' })\" >خروج از حساب کاربری</a></li>    
                     </ul>
                     
                 </li>

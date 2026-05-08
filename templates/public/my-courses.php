@@ -313,7 +313,7 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
                 <!-- دکمه عملیات -->
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
                     <?php if ($can_cancel) : ?>
-                        <form method="POST" action="" style="margin: 0;" onsubmit="return confirm('آیا مطمئن هستید که می‌خواهید این دوره را لغو کنید؟');">
+                        <form method="POST" action="" style="margin: 0;" onsubmit="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید که می‌خواهید این دوره را لغو کنید؟' });">
                             <?php wp_nonce_field('sc_cancel_course', 'sc_cancel_course_nonce'); ?>
                             <input type="hidden" name="cancel_course_id" value="<?php echo esc_attr($user_course->id); ?>">
                             <button type="submit" name="sc_cancel_course" style="

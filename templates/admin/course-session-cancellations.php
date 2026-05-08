@@ -198,7 +198,7 @@ if ($is_coach_only) {
                         <td><?php echo esc_html(substr((string) $r->time_start, 0, 5)); ?></td>
                         <td><?php echo esc_html(substr((string) $r->time_end, 0, 5)); ?></td>
                         <td><?php echo esc_html($r->reason ?? ''); ?></td>
-                        <td><a href="<?php echo esc_url($del_url); ?>" class="button-link-delete" onclick="return confirm('حذف شود؟');">حذف</a></td>
+                        <td><a href="<?php echo esc_url($del_url); ?>" class="button-link-delete" onclick="return scConfirmInline(event, { type: 'warning', message: 'حذف شود؟' });">حذف</a></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>

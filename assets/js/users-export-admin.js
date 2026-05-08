@@ -13,6 +13,7 @@ jQuery(function ($) {
         var currentTemplate = null;
         var certificatesPreviewLoaded = false;
         var usersPreviewLoaded = false;
+        var isSubmittingAfterConfirm = false;
 
     function getExcludedMemberIndexById(id) {
         return excludedMemberIds.findIndex(function (item) {
@@ -543,17 +544,37 @@ jQuery(function ($) {
         }
     });
 
-        $form.on('submit', function () {
+        $form.on('submit', function (e) {
+        if (isSubmittingAfterConfirm) {
+            isSubmittingAfterConfirm = false;
+            return true;
+        }
         var targetType = $('#sc-target-type').val();
         if (targetType === 'specific' && !selectedMemberIds.length) {
             alert('حداقل یک کاربر انتخاب کنید.');
             return false;
         }
         if ($('#sc-cert-preview-btn').length && !certificatesPreviewLoaded) {
-            return confirm('پیش نمایش کاربران هنوز اجرا نشده است. ادامه می‌دهید؟');
+            e.preventDefault();
+            window.scConfirm({ type: 'warning', message: 'پیش نمایش کاربران هنوز اجرا نشده است. ادامه می‌دهید؟' })
+                .then(function (ok) {
+                    if (ok) {
+                        isSubmittingAfterConfirm = true;
+                        $form.trigger('submit');
+                    }
+                });
+            return false;
         }
         if ($('#sc-users-preview-btn').length && !usersPreviewLoaded) {
-            return confirm('پیش نمایش کاربران هنوز اجرا نشده است. ادامه می‌دهید؟');
+            e.preventDefault();
+            window.scConfirm({ type: 'warning', message: 'پیش نمایش کاربران هنوز اجرا نشده است. ادامه می‌دهید؟' })
+                .then(function (ok) {
+                    if (ok) {
+                        isSubmittingAfterConfirm = true;
+                        $form.trigger('submit');
+                    }
+                });
+            return false;
         }
         return true;
     });
@@ -789,15 +810,17 @@ jQuery(function ($) {
             var $item = $(this).closest('.sc-template-list-item');
             var templateKey = $item.attr('data-template-key');
             var $card = $('.sc-template-item[data-template-key="' + templateKey + '"]');
-            if (!window.confirm('این قالب حذف شود؟')) {
-                return;
-            }
-            $item.remove();
-            $card.remove();
-            var $first = $('.sc-template-list-item').first();
-            if ($first.length) {
-                activateTemplate($first.attr('data-template-key'));
-            }
+            window.scConfirm({ type: 'danger', message: 'این قالب حذف شود؟' }).then(function (ok) {
+                if (!ok) {
+                    return;
+                }
+                $item.remove();
+                $card.remove();
+                var $first = $('.sc-template-list-item').first();
+                if ($first.length) {
+                    activateTemplate($first.attr('data-template-key'));
+                }
+            });
         });
 
         $(document).on('click', '.sc-select-bg-image', function (e) {

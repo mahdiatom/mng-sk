@@ -262,7 +262,7 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
                                         );
                                         ?>
                                         <a href="<?php echo esc_url($delete_url); ?>" 
-                                           onclick="return confirm('آیا مطمئن هستید؟')" 
+                                           onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟' })" 
                                            class="button button-small">حذف</a>
                                     </td>
                                 </tr>

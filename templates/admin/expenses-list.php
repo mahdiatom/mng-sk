@@ -375,7 +375,7 @@ if ($active_tab === 'categories') {
                                        class="button button-small">ویرایش</a>
                                     <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=sc-expenses&tab=list&action=delete&expense_id=' . $expense->id), 'delete_expense_' . $expense->id); ?>" 
                                        class="button button-small" 
-                                       onclick="return confirm('آیا مطمئن هستید که می‌خواهید این هزینه را حذف کنید؟');"
+                                       onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید که می‌خواهید این هزینه را حذف کنید؟' });"
                                        style="background-color: #d63638; color: #fff; border-color: #d63638;">حذف</a>
                                 </td>
                             </tr>
@@ -487,7 +487,7 @@ if ($active_tab === 'categories') {
                                            class="button button-small">ویرایش</a>
                                         <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=sc-expenses&tab=categories&action=delete_category&category_id=' . $category->id), 'delete_category_' . $category->id); ?>" 
                                            class="button button-small btn_delete_action_admin" 
-                                           onclick="return confirm('آیا مطمئن هستید؟');"
+                                           onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟' });"
                                           >حذف</a>
                                     </td>
                                 </tr>

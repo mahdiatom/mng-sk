@@ -239,7 +239,7 @@ if ($entries_table_exists && $total_entries > 0) {
         </div>
     </form>
 
-    <form method="post" action="" style="margin-bottom: 16px;" onsubmit="return confirm('تمام لاگ‌های گزارش ارسال پیامک و لاگ تفصیلی پاک می‌شوند. مطمئن هستید؟');">
+    <form method="post" action="" style="margin-bottom: 16px;" onsubmit="return scConfirmInline(event, { type: 'warning', message: 'تمام لاگ‌های گزارش ارسال پیامک و لاگ تفصیلی پاک می‌شوند. مطمئن هستید؟' });">
         <?php wp_nonce_field('sc_clear_sms_logs', '_wpnonce_clear_sms_logs'); ?>
         <input type="hidden" name="sc_clear_sms_logs" value="1">
         <button type="submit" class="button button-secondary">پاکسازی تمام لاگ‌های پیامک</button>

@@ -1069,20 +1069,26 @@ jQuery(document).ready(function($) {
             }
         }
         if (targetType !== 'specific' && targetType !== 'phone' && $('#sc-notification-preview-btn').length && !notificationPreviewLoaded) {
-            if (!confirm('پیش نمایش مخاطبین اجرا نشده است. ادامه می‌دهید؟')) {
-                e.preventDefault();
-                return false;
-            }
+            e.preventDefault();
+            scConfirm({ type: 'warning', message: 'پیش نمایش مخاطبین اجرا نشده است. ادامه می‌دهید؟' }).then(function(ok){
+                if (ok) {
+                    $('#notification-form').off('submit');
+                    $('#notification-form').trigger('submit');
+                }
+            });
+            return false;
         }
         if (!isCoach && (($('#send_sms').length && $('#send_sms').is(':checked')) || targetType === 'phone')) {
             e.preventDefault();
             var rc = $('#sms-recipients-count').text();
             var total = $('#sms-total-count').text();
-            if (confirm('شما در حال ارسال ' + total + ' پیامک به ' + rc + ' مخاطب هستید. آیا مطمئن هستید؟')) {
-                $(this).off('submit');
-                $(this).append('<input type="hidden" name="save_notification" value="1">');
-                this.submit();
-            }
+            scConfirm({ type: 'warning', message: 'شما در حال ارسال ' + total + ' پیامک به ' + rc + ' مخاطب هستید. آیا مطمئن هستید؟' }).then(function(ok){
+                if (ok) {
+                    $('#notification-form').off('submit');
+                    $('#notification-form').append('<input type="hidden" name="save_notification" value="1">');
+                    document.getElementById('notification-form').submit();
+                }
+            });
             return false;
         }
     });

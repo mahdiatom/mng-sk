@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
                 <input type="hidden" name="sc_ticket_action" value="close">
                 <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
                 <div class="sc-form-actions">
-                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-close" onclick="return confirm('آیا از بستن این تیکت اطمینان دارید؟');">بستن تیکت</button>
+                    <button type="submit" class="sc-ticket-btn sc-ticket-btn-close" onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا از بستن این تیکت اطمینان دارید؟' });">بستن تیکت</button>
                 </div>
             </form>
         </div>

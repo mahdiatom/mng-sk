@@ -258,9 +258,6 @@
                 return false;
             }
         }
-        if (action === 'delete_members') {
-            return confirm('حذف گروهی انتخاب شده است. آیا مطمئن هستید؟ این عمل قابل بازگشت نیست.');
-        }
         return true;
     }
 
@@ -301,6 +298,20 @@
         $('#sc-bulk-actions-form').on('submit', function (e) {
             if (!validateBeforeSubmit()) {
                 e.preventDefault();
+                return;
+            }
+
+            if ($('#sc-bulk-action-type').val() === 'delete_members') {
+                e.preventDefault();
+                var form = this;
+                window.scConfirm({
+                    type: 'danger',
+                    message: 'حذف گروهی انتخاب شده است. آیا مطمئن هستید؟ این عمل قابل بازگشت نیست.'
+                }).then(function (ok) {
+                    if (ok) {
+                        form.submit();
+                    }
+                });
             }
         });
     });
