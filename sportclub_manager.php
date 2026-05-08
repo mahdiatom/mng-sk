@@ -1525,6 +1525,16 @@ function sc_admin_enqueue_assets() {
             'maxPreviewRows' => 200,
         ));
     }
+    if ($current_page === 'sc-add-invoice') {
+        wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+        wp_enqueue_style('sc-bulk-actions-admin-css', SC_ASSETS_URL . 'css/admin-bulk-actions.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
+        wp_enqueue_script('sc-invoice-add-admin-js', SC_ASSETS_URL . 'js/invoice-add-admin.js', array('jquery', 'sc-admin-js'), time(), true);
+        wp_localize_script('sc-invoice-add-admin-js', 'scInvoiceAdd', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('sc_invoice_members_preview'),
+            'maxPreviewRows' => 200,
+        ));
+    }
     if (in_array($current_page, array('sc-private-notes', 'sc-add-private-note', 'sc-coach-private-notes', 'sc-coach-add-private-note'), true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
         wp_enqueue_style('sc-bulk-actions-admin-css', SC_ASSETS_URL . 'css/admin-bulk-actions.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());

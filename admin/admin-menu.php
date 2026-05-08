@@ -2299,13 +2299,32 @@ function callback_add_invoice_sufix() {
         $courses_table = $wpdb->prefix . 'sc_courses';
         $members_table = $wpdb->prefix . 'sc_members';
         
-        // اعتبارسنجی
-        if (empty($_POST['member_id'])) {
-            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_error'));
+        // جمع آوری کاربران براساس فیلتر (مشابه بخش کارهای دست جمعی)
+        $member_ids = array();
+        if (function_exists('sc_bulk_actions_collect_filter_config') && function_exists('sc_bulk_actions_get_members')) {
+            $payload = sc_bulk_actions_collect_filter_config($_POST);
+            if ($payload['config']['member_status'] === 'all') {
+                $payload['config']['member_status'] = 'active';
+            }
+            $members = sc_bulk_actions_get_members($payload['target_type'], $payload['config']);
+            $member_ids = array_values(array_unique(array_map('absint', wp_list_pluck($members, 'id'))));
+        }
+
+        // پشتیبانی از حالت قدیمی تک کاربر (در صورت ارسال member_id)
+        if (empty($member_ids) && !empty($_POST['member_id'])) {
+            $member_ids = array(absint($_POST['member_id']));
+        }
+
+        $excluded_member_ids = isset($_POST['excluded_member_ids']) ? array_filter(array_map('absint', (array) $_POST['excluded_member_ids'])) : array();
+        if (!empty($excluded_member_ids)) {
+            $member_ids = array_values(array_diff($member_ids, $excluded_member_ids));
+        }
+
+        if (empty($member_ids)) {
+            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_empty_selection'));
             exit;
         }
-        
-        $member_id = absint($_POST['member_id']);
+
         $course_id = !empty($_POST['course_id']) ? absint($_POST['course_id']) : NULL;
         $expense_name = !empty($_POST['expense_name']) ? sanitize_text_field($_POST['expense_name']) : NULL;
         $invoice_description = !empty($_POST['invoice_description']) ? sanitize_textarea_field($_POST['invoice_description']) : NULL;
@@ -2323,22 +2342,6 @@ function callback_add_invoice_sufix() {
             $amount_value = preg_replace('/[^0-9.]/', '', sanitize_text_field($_POST['amount']));
         }
         $manual_amount = !empty($amount_value) && is_numeric($amount_value) ? floatval($amount_value) : 0;
-        
-        // بررسی وجود کاربر
-        $member = $wpdb->get_row($wpdb->prepare(
-            "SELECT id FROM $members_table WHERE id = %d AND is_active = 1",
-            $member_id
-        ));
-
-        if (!$member) {
-            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_error'));
-            exit;
-        }
-        //برای اینکه بازیکن تیم صورت حساب دستی دریافت نکند.
-        // if (function_exists('sc_is_member_team') && sc_is_member_team($member_id)) {
-        //     wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_team_member'));
-        //     exit;
-        // }
         
         // محاسبه مبلغ کل
         $total_amount = $manual_amount;
@@ -2358,76 +2361,87 @@ function callback_add_invoice_sufix() {
             }
         }
         
-        // بررسی member_course_id در صورت وجود دوره
-        $member_course_id = NULL;
-        if ($course_id) {
-            $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-            $member_course = $wpdb->get_row($wpdb->prepare(
-                "SELECT id FROM $member_courses_table WHERE member_id = %d AND course_id = %d",
-                $member_id,
-                $course_id
-            ));
-            
-            if ($member_course) {
-                $member_course_id = $member_course->id;
-            }
-        }
         $disable_penalty = isset($_POST['disable_penalty']) ? 1 : 0;
 
-        // ذخیره صورت حساب
-        $invoice_data = [
-            'member_id' => $member_id,
-            'course_id' => $course_id ? $course_id : 0,
-            'member_course_id' => $member_course_id,
-            'woocommerce_order_id' => NULL,
-            'amount' => $total_amount,
-            'expense_name' => $expense_name,
-            'invoice_description' => $invoice_description,
-            'penalty_amount' => 0.00,
-            'penalty_applied' => 0,
-            'status' => 'pending',
-            'payment_date' => NULL,
-            'created_at' => current_time('mysql'),
-            'updated_at' => current_time('mysql')
-        ];
-        $invoice_data['disable_penalty'] = $disable_penalty;
-        
-        // آماده‌سازی format array برای insert (با invoice_description و disable_penalty)
-        $format_array = ['%d', '%d', '%d', '%d', '%f', '%s', '%s', '%f', '%d', '%s', '%s', '%s', '%s', '%d'];
-        
-        if (!$course_id) {
-            $invoice_data['course_id'] = 0;
-        }
-        if (!$member_course_id) {
-            $invoice_data['member_course_id'] = NULL;
-            $format_array[2] = '%s';
-        }
-        if (!$expense_name) {
-            $invoice_data['expense_name'] = NULL;
-            $format_array[5] = '%s';
-        }
-        if ($invoice_description === null) {
-            $format_array[6] = '%s'; // NULL برای invoice_description
-        }
-        
-        // ابتدا صورت حساب را ایجاد کن
-        $inserted = $wpdb->insert(
-            $invoices_table,
-            $invoice_data,
-            $format_array
-        );
-        
-        if ($inserted !== false) {
-            $invoice_id = $wpdb->insert_id;
+        $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+        $created_count = 0;
+        $first_invoice_id = 0;
 
-            // ارسال SMS صورت حساب
+        foreach ($member_ids as $member_id) {
+            // فقط کاربران فعال
+            $member = $wpdb->get_row($wpdb->prepare(
+                "SELECT id FROM $members_table WHERE id = %d AND is_active = 1",
+                $member_id
+            ));
+            if (!$member) {
+                continue;
+            }
+
+            // بررسی member_course_id در صورت وجود دوره
+            $member_course_id = NULL;
+            if ($course_id) {
+                $member_course = $wpdb->get_row($wpdb->prepare(
+                    "SELECT id FROM $member_courses_table WHERE member_id = %d AND course_id = %d",
+                    $member_id,
+                    $course_id
+                ));
+                if ($member_course) {
+                    $member_course_id = $member_course->id;
+                }
+            }
+
+            $invoice_data = [
+                'member_id' => $member_id,
+                'course_id' => $course_id ? $course_id : 0,
+                'member_course_id' => $member_course_id,
+                'woocommerce_order_id' => NULL,
+                'amount' => $total_amount,
+                'expense_name' => $expense_name,
+                'invoice_description' => $invoice_description,
+                'penalty_amount' => 0.00,
+                'penalty_applied' => 0,
+                'status' => 'pending',
+                'payment_date' => NULL,
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ];
+            $invoice_data['disable_penalty'] = $disable_penalty;
+
+            $format_array = ['%d', '%d', '%d', '%d', '%f', '%s', '%s', '%f', '%d', '%s', '%s', '%s', '%s', '%d'];
+            if (!$course_id) {
+                $invoice_data['course_id'] = 0;
+            }
+            if (!$member_course_id) {
+                $invoice_data['member_course_id'] = NULL;
+                $format_array[2] = '%s';
+            }
+            if (!$expense_name) {
+                $invoice_data['expense_name'] = NULL;
+                $format_array[5] = '%s';
+            }
+            if ($invoice_description === null) {
+                $format_array[6] = '%s';
+            }
+
+            $inserted = $wpdb->insert(
+                $invoices_table,
+                $invoice_data,
+                $format_array
+            );
+            if ($inserted === false) {
+                continue;
+            }
+
+            $invoice_id = (int) $wpdb->insert_id;
+            if ($first_invoice_id === 0) {
+                $first_invoice_id = $invoice_id;
+            }
+            $created_count++;
+
             do_action('sc_invoice_created', $invoice_id);
-            
-            // ایجاد WooCommerce order
+
             $order_result = sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $course_id, $total_amount, $expense_name);
-            
-            if ($order_result['success'] && !empty($order_result['order_id'])) {
-                // بروزرسانی صورت حساب با order_id
+            if (!empty($order_result['success']) && !empty($order_result['order_id'])) {
                 $wpdb->update(
                     $invoices_table,
                     ['woocommerce_order_id' => $order_result['order_id'], 'updated_at' => current_time('mysql')],
@@ -2436,13 +2450,25 @@ function callback_add_invoice_sufix() {
                     ['%d']
                 );
             }
-            
-            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_true&invoice_id=' . $invoice_id));
-            exit;
-        } else {
-            wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_error'));
+        }
+
+        if ($created_count > 0) {
+            $redirect_url = add_query_arg(
+                array(
+                    'page' => 'sc-add-invoice',
+                    'sc_status' => 'invoice_add_true',
+                    'created_count' => $created_count,
+                    'total' => count($member_ids),
+                    'invoice_id' => $first_invoice_id,
+                ),
+                admin_url('admin.php')
+            );
+            wp_redirect($redirect_url);
             exit;
         }
+
+        wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_error'));
+        exit;
     }
 }
 

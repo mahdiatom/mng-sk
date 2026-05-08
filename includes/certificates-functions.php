@@ -43,6 +43,8 @@ function sc_certificates_get_default_templates() {
             'content_line_height' => 1.85,
             'content_paragraph_spacing' => 0.6,
             'content_text_align' => 'center',
+            'tracking_code_prefix' => 'SC-',
+            'physical_copy_price' => 0,
         ],
     ];
 }
@@ -92,7 +94,28 @@ function sc_certificates_normalize_template($template, $fallback_key = '') {
         'content_line_height' => isset($template['content_line_height']) ? max(1, min(3, (float) wp_unslash($template['content_line_height']))) : 1.85,
         'content_paragraph_spacing' => isset($template['content_paragraph_spacing']) ? max(0, min(3, (float) wp_unslash($template['content_paragraph_spacing']))) : 0.6,
         'content_text_align' => (isset($template['content_text_align']) && in_array(wp_unslash($template['content_text_align']), ['right', 'center', 'justify', 'left'], true)) ? wp_unslash($template['content_text_align']) : 'center',
+        'tracking_code_prefix' => isset($template['tracking_code_prefix']) ? sanitize_text_field(wp_unslash($template['tracking_code_prefix'])) : 'SC-',
+        'physical_copy_price' => isset($template['physical_copy_price']) ? max(0, (float) wp_unslash($template['physical_copy_price'])) : 0,
     ];
+}
+
+function sc_generate_unique_certificate_tracking_code($prefix = '') {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_certificates';
+    $safe_prefix = sanitize_text_field((string) $prefix);
+    $safe_prefix = preg_replace('/\s+/', '', $safe_prefix);
+    $safe_prefix = substr($safe_prefix, 0, 20);
+
+    for ($attempt = 0; $attempt < 10; $attempt++) {
+        $random_part = strtoupper(wp_generate_password(8, false, false));
+        $tracking_code = $safe_prefix . $random_part;
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE tracking_code = %s LIMIT 1", $tracking_code));
+        if (empty($exists)) {
+            return $tracking_code;
+        }
+    }
+
+    return $safe_prefix . strtoupper(uniqid('', false));
 }
 
 function sc_certificates_member_variables($member) {
@@ -328,6 +351,8 @@ function sc_certificates_render_html($certificate_row) {
 
 add_action('admin_post_sc_issue_certificates', 'sc_issue_certificates_handler');
 add_action('wp_ajax_sc_certificates_preview_members', 'sc_certificates_preview_members_ajax');
+add_action('admin_post_sc_request_certificate_physical_invoice', 'sc_request_certificate_physical_invoice_handler');
+add_action('admin_post_sc_admin_create_certificate_physical_invoice', 'sc_admin_create_certificate_physical_invoice_handler');
 
 function sc_certificates_preview_members_ajax() {
     check_ajax_referer('sc_certificates_preview_members', 'nonce');
@@ -431,6 +456,7 @@ function sc_issue_certificates_handler() {
     foreach ($members as $member) {
         $vars = sc_certificates_member_variables($member);
         $message_text = wp_kses_post(sc_certificates_replace_vars($template['message_text'], $vars));
+        $tracking_code = sc_generate_unique_certificate_tracking_code($template['tracking_code_prefix'] ?? '');
         $inserted = $wpdb->insert(
             $table,
             [
@@ -455,11 +481,12 @@ function sc_issue_certificates_handler() {
                 'content_line_height' => $template['content_line_height'],
                 'content_paragraph_spacing' => $template['content_paragraph_spacing'],
                 'content_text_align' => $template['content_text_align'],
+                'tracking_code' => $tracking_code,
                 'created_by' => get_current_user_id(),
                 'created_at' => current_time('mysql'),
                 'updated_at' => current_time('mysql'),
             ],
-            ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%f', '%s', '%d', '%f', '%f', '%s', '%d', '%s', '%s']
+            ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%f', '%s', '%d', '%f', '%f', '%s', '%s', '%d', '%s', '%s']
         );
         if (!$inserted) {
             continue;
@@ -567,5 +594,169 @@ function sc_download_certificate_handler() {
     }
 
     echo sc_certificates_render_html($certificate);
+    exit;
+}
+
+function sc_create_physical_certificate_invoice($certificate, $member_id, $price) {
+    global $wpdb;
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+
+    $member_id = (int) $member_id;
+    $price = (float) $price;
+    if ($member_id <= 0 || $price <= 0 || empty($certificate) || empty($certificate->id)) {
+        return ['success' => false, 'code' => 'invalid'];
+    }
+
+    $tracking_code = !empty($certificate->tracking_code) ? (string) $certificate->tracking_code : ('ID-' . (int) $certificate->id);
+    $expense_name = 'نسخه فیزیکی گواهینامه';
+    $invoice_description = 'درخواست نسخه فیزیکی گواهینامه به کد رهگیری: ' . $tracking_code;
+
+    $existing_invoice_id = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM {$invoices_table}
+         WHERE member_id = %d AND invoice_description = %s
+         ORDER BY id DESC LIMIT 1",
+        $member_id,
+        $invoice_description
+    ));
+    if ($existing_invoice_id > 0) {
+        return ['success' => false, 'code' => 'exists', 'invoice_id' => $existing_invoice_id];
+    }
+
+    $invoice_data = [
+        'member_id' => $member_id,
+        'course_id' => 0,
+        'member_course_id' => null,
+        'woocommerce_order_id' => null,
+        'amount' => $price,
+        'expense_name' => $expense_name,
+        'invoice_description' => $invoice_description,
+        'penalty_amount' => 0,
+        'penalty_applied' => 0,
+        'disable_penalty' => 0,
+        'status' => 'pending',
+        'payment_date' => null,
+        'created_at' => current_time('mysql'),
+        'updated_at' => current_time('mysql'),
+    ];
+    $invoice_format = ['%d', '%d', '%s', '%s', '%f', '%s', '%s', '%f', '%d', '%d', '%s', '%s', '%s', '%s'];
+
+    $inserted = $wpdb->insert($invoices_table, $invoice_data, $invoice_format);
+    if ($inserted === false) {
+        return ['success' => false, 'code' => 'db_error'];
+    }
+
+    $invoice_id = (int) $wpdb->insert_id;
+    do_action('sc_invoice_created', $invoice_id);
+
+    if (function_exists('sc_create_woocommerce_order_for_invoice')) {
+        $order_result = sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, 0, $price, $expense_name);
+        if (!empty($order_result['success']) && !empty($order_result['order_id'])) {
+            $wpdb->update(
+                $invoices_table,
+                ['woocommerce_order_id' => (int) $order_result['order_id'], 'updated_at' => current_time('mysql')],
+                ['id' => $invoice_id],
+                ['%d', '%s'],
+                ['%d']
+            );
+        }
+    }
+
+    return ['success' => true, 'code' => 'created', 'invoice_id' => $invoice_id];
+}
+
+function sc_request_certificate_physical_invoice_handler() {
+    if (!is_user_logged_in()) {
+        wp_die('لطفا وارد شوید.');
+    }
+
+    $certificate_id = isset($_GET['certificate_id']) ? absint($_GET['certificate_id']) : 0;
+    if ($certificate_id <= 0 || !isset($_GET['_wpnonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'sc_request_certificate_physical_invoice_' . $certificate_id)) {
+        wp_die('درخواست نامعتبر است.');
+    }
+
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $cert_table = $wpdb->prefix . 'sc_certificates';
+    $current_user_id = get_current_user_id();
+    $member_id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$members_table} WHERE user_id = %d LIMIT 1", $current_user_id));
+    if ($member_id <= 0) {
+        wp_die('اطلاعات کاربر یافت نشد.');
+    }
+
+    $certificate = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$cert_table} WHERE id = %d AND member_id = %d", $certificate_id, $member_id));
+    if (!$certificate) {
+        wp_die('گواهینامه یافت نشد.');
+    }
+
+    $templates = sc_certificates_get_saved_templates();
+    $template_item = isset($templates[$certificate->template_key]) ? $templates[$certificate->template_key] : [];
+    $template = sc_certificates_normalize_template($template_item, (string) $certificate->template_key);
+    $price = (float) ($template['physical_copy_price'] ?? 0);
+    $account_invoices_url = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-invoices') : home_url('/');
+    if ($price <= 0) {
+        $redirect = add_query_arg('sc_phys_status', 'price_not_set', $account_invoices_url);
+        wp_safe_redirect($redirect);
+        exit;
+    }
+
+    $result = sc_create_physical_certificate_invoice($certificate, $member_id, $price);
+    if ($result['code'] === 'created') {
+        $redirect = add_query_arg(
+            [
+                'sc_phys_status' => $result['code'],
+                'sc_phys_cert' => (int) $certificate_id,
+            ],
+            $account_invoices_url
+        );
+    } else {
+        $account_certificates_url = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-my-certificates') : home_url('/');
+        $status_for_view = $result['code'];
+        if ($result['code'] === 'exists' && !empty($result['invoice_id'])) {
+            $invoices_table = $wpdb->prefix . 'sc_invoices';
+            $invoice_status = (string) $wpdb->get_var($wpdb->prepare("SELECT status FROM {$invoices_table} WHERE id = %d LIMIT 1", (int) $result['invoice_id']));
+            if (in_array($invoice_status, ['processing', 'completed', 'paid'], true)) {
+                $status_for_view = 'paid';
+            }
+        }
+        $redirect = add_query_arg(
+            [
+                'sc_phys_status' => $status_for_view,
+                'sc_phys_cert' => (int) $certificate_id,
+            ],
+            $account_certificates_url
+        );
+    }
+    wp_safe_redirect($redirect);
+    exit;
+}
+
+function sc_admin_create_certificate_physical_invoice_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_die('دسترسی غیرمجاز.');
+    }
+
+    $certificate_id = isset($_GET['certificate_id']) ? absint($_GET['certificate_id']) : 0;
+    if ($certificate_id <= 0 || !isset($_GET['_wpnonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'sc_admin_create_certificate_physical_invoice_' . $certificate_id)) {
+        wp_die('درخواست نامعتبر است.');
+    }
+
+    global $wpdb;
+    $cert_table = $wpdb->prefix . 'sc_certificates';
+    $certificate = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$cert_table} WHERE id = %d", $certificate_id));
+    if (!$certificate) {
+        wp_die('گواهینامه یافت نشد.');
+    }
+
+    $templates = sc_certificates_get_saved_templates();
+    $template_item = isset($templates[$certificate->template_key]) ? $templates[$certificate->template_key] : [];
+    $template = sc_certificates_normalize_template($template_item, (string) $certificate->template_key);
+    $price = (float) ($template['physical_copy_price'] ?? 0);
+    if ($price <= 0) {
+        wp_safe_redirect(add_query_arg(['page' => 'sc-certificates-list', 'sc_phys_status' => 'price_not_set'], admin_url('admin.php')));
+        exit;
+    }
+
+    $result = sc_create_physical_certificate_invoice($certificate, (int) $certificate->member_id, $price);
+    wp_safe_redirect(add_query_arg(['page' => 'sc-certificates-list', 'sc_phys_status' => $result['code']], admin_url('admin.php')));
     exit;
 }

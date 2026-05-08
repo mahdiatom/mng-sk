@@ -7,14 +7,20 @@ if (!defined('ABSPATH')) {
 global $wpdb;
 $members_table = $wpdb->prefix . 'sc_members';
 $courses_table = $wpdb->prefix . 'sc_courses';
+$events_table = $wpdb->prefix . 'sc_events';
+$team_table = $wpdb->prefix . 'sc_team_categories';
+$level_table = $wpdb->prefix . 'sc_level_categories';
 
 // دریافت لیست کاربران فعال
 $members = $wpdb->get_results(
     "SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC"
 );
+$courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL ORDER BY title");
+$events = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') ORDER BY name");
+$teams = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name");
+$levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
 
 // مقادیر پیش‌فرض
-$selected_member_id = isset($_GET['member_id']) ? absint($_GET['member_id']) : (isset($_POST['member_id']) ? absint($_POST['member_id']) : 0);
 $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
 ?>
 
@@ -23,82 +29,144 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
     <a href="<?php echo admin_url('admin.php?page=sc-invoices'); ?>" class="page-title-action">بازگشت به لیست صورت حساب‌ها</a>
     
     <hr class="wp-header-end">
+    <?php if (isset($_GET['sc_status']) && $_GET['sc_status'] === 'invoice_add_true') : ?>
+        <div class="notice notice-success is-dismissible">
+            <p>
+                صورت حساب با موفقیت ثبت شد.
+                (<?php echo esc_html((string) absint($_GET['created_count'] ?? 1)); ?> مورد از
+                <?php echo esc_html((string) absint($_GET['total'] ?? 1)); ?> کاربر انتخابی)
+            </p>
+        </div>
+    <?php elseif (isset($_GET['sc_status']) && $_GET['sc_status'] === 'invoice_add_empty_selection') : ?>
+        <div class="notice notice-warning is-dismissible">
+            <p>هیچ کاربری برای صدور صورت حساب انتخاب نشده است. ابتدا فیلتر و پیش نمایش را بررسی کنید.</p>
+        </div>
+    <?php elseif (isset($_GET['sc_status']) && $_GET['sc_status'] === 'invoice_add_error') : ?>
+        <div class="notice notice-error is-dismissible">
+            <p>خطا در ثبت صورت حساب. لطفاً دوباره تلاش کنید.</p>
+        </div>
+    <?php endif; ?>
     </div>
-   <div class="wrap create_invoice">
-    <form method="POST" action="" >
+   <div class="wrap create_invoice sc-bulk-actions-wrap">
+    <form method="POST" action="" id="sc-invoice-add-form">
         <?php wp_nonce_field('sc_add_invoice', 'sc_invoice_nonce'); ?>
- <div class="sc-form-flex">
-
-    <!-- فیلد: کاربر -->
-    <div class="sc-form-field sc-full">
-        <label for="member_id">کاربر <span style="color:red;">*</span></label>
-
-        <div class="sc-searchable-dropdown">
-            <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>" required>
-
-            <?php
-            $selected_member_text = '';
-            if ($selected_member_id > 0) {
-                foreach ($members as $member) {
-                    if ($member->id == $selected_member_id) {
-                        $selected_member_text = $member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id;
-                        break;
-                    }
-                }
-            }
-            ?>
-
-            <div class="sc-dropdown-toggle">
-                <span class="sc-dropdown-placeholder" style="color:#757575;display:<?php echo $selected_member_id > 0 ? 'none' : 'inline'; ?>;">-- انتخاب کاربر --</span>
-                <span class="sc-dropdown-selected" style="color:#2c3338;display:<?php echo $selected_member_id > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
-                <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#757575;">▼</span>
+        <div id="sc-invoice-excluded-members-inputs"></div>
+        <div class="sc-users-export-card">
+            <h2>۱) فیلتر کاربران</h2>
+            <div class="sc-row">
+                <label for="sc-invoice-target-type">نوع انتخاب</label>
+                <select name="target_type" id="sc-invoice-target-type">
+                    <option value="all">همه کاربران</option>
+                    <option value="free_users">کاربران آزاد (بدون هیچ دوره تا امروز)</option>
+                    <option value="specific">انتخاب کاربران خاص (جستجو)</option>
+                    <option value="course">بر اساس دوره</option>
+                    <option value="event">بر اساس رویداد</option>
+                    <option value="team">بر اساس تیم</option>
+                    <option value="level">بر اساس سطح</option>
+                    <option value="team_level">بر اساس تیم + سطح</option>
+                </select>
             </div>
 
-            <div class="sc-dropdown-menu">
-                <div class="sc-dropdown-search" >
-                    <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی..." style="width:100%;padding:8px;border:1px solid #8c8f94;border-radius:4px;font-size:14px;">
-                </div>
+            <div class="sc-row">
+                <label for="sc-invoice-member-status">وضعیت کاربر</label>
+                <select name="member_status" id="sc-invoice-member-status">
+                    <option value="all">همه</option>
+                    <option value="active" selected>فقط فعال</option>
+                    <option value="inactive">فقط غیرفعال</option>
+                </select>
+            </div>
 
-                <div class="sc-dropdown-options" style="max-height:250px;overflow-y:auto;">
-                    <?php
-                    $display_count = 0;
-                    $max_display = 10;
-                    $selected_index = -1;
+            <div class="sc-row">
+                <label for="sc-invoice-member-type">دسته بندی بازیکن</label>
+                <select name="member_type" id="sc-invoice-member-type">
+                    <option value="all">همه</option>
+                    <option value="normal">بازیکن عادی</option>
+                    <option value="team">بازیکن تیم</option>
+                </select>
+            </div>
 
-                    foreach ($members as $idx => $member) {
-                        if ($selected_member_id == $member->id) {
-                            $selected_index = $idx;
-                            break;
-                        }
-                    }
-
-                    foreach ($members as $idx => $member):
-                        $is_selected = ($selected_member_id == $member->id);
-                        $should_display = ($display_count < $max_display) || $is_selected;
-                        $display_class = $should_display ? 'sc-visible' : 'sc-hidden';
-                    ?>
-                        <div class="sc-dropdown-option <?php echo $display_class; ?>"
-                             data-value="<?php echo esc_attr($member->id); ?>"
-                             data-search="<?php echo esc_attr(strtolower($member->first_name.' '.$member->last_name.' '.$member->national_id)); ?>"
-                             style="<?php echo $is_selected ? 'background:#f0f6fc;' : ''; ?>"
-                             onclick="scSelectMember(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($member->first_name.' '.$member->last_name.' - '.$member->national_id); ?>')">
-
-                            <?php echo esc_html($member->first_name.' '.$member->last_name.' - '.$member->national_id); ?>
-                            
-                            <?php if ($is_selected): ?>
-                                <span style="float:left;color:#2271b1;font-weight:bold;">✓</span>
-                            <?php endif; ?>
+            <div class="sc-filter-block" id="sc-invoice-filter-specific">
+                <label>انتخاب کاربران</label>
+                <div id="sc-invoice-selected-members-count" class="sc-selected-count">0 کاربر انتخاب شده</div>
+                <div id="sc-invoice-selected-members" class="sc-selected-tags"></div>
+                <div class="sc-users-member-dropdown" id="sc-invoice-member-dropdown">
+                    <div class="sc-users-dropdown-toggle">
+                        <span class="sc-users-dropdown-placeholder">جستجو با نام یا کد ملی...</span>
+                        <span class="sc-users-dropdown-arrow">▼</span>
+                    </div>
+                    <div class="sc-users-dropdown-menu">
+                        <div class="sc-users-dropdown-search">
+                            <input type="text" class="sc-users-search-input" placeholder="جستجوی نام یا کد ملی...">
                         </div>
-                    <?php
-                        if ($should_display) $display_count++;
-                    endforeach;
-                    ?>
+                        <div class="sc-users-dropdown-options" id="sc-invoice-member-options">
+                            <?php foreach ($members as $member) :
+                                $name = trim(($member->first_name ?: '') . ' ' . ($member->last_name ?: ''));
+                                $search = strtolower($name . ' ' . ($member->national_id ?: ''));
+                            ?>
+                                <div class="sc-users-dropdown-option"
+                                     data-id="<?php echo (int) $member->id; ?>"
+                                     data-label="<?php echo esc_attr($name . ' - ' . ($member->national_id ?: $member->id)); ?>"
+                                     data-search="<?php echo esc_attr($search); ?>">
+                                    <?php echo esc_html($name . ' - ' . ($member->national_id ?: $member->id)); ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                 </div>
+                <div id="sc-invoice-member-hidden-inputs"></div>
+            </div>
+
+            <div class="sc-filter-block" id="sc-invoice-filter-course">
+                <label for="sc-invoice-course-ids">دوره ها</label>
+                <select name="course_ids[]" id="sc-invoice-course-ids" multiple size="7">
+                    <?php foreach ($courses as $course) : ?>
+                        <option value="<?php echo (int) $course->id; ?>"><?php echo esc_html($course->title); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="sc-filter-block" id="sc-invoice-filter-event">
+                <label for="sc-invoice-event-ids">رویدادها</label>
+                <select name="event_ids[]" id="sc-invoice-event-ids" multiple size="7">
+                    <?php foreach ($events as $event) : ?>
+                        <option value="<?php echo (int) $event->id; ?>"><?php echo esc_html($event->name); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="sc-filter-block" id="sc-invoice-filter-team">
+                <label for="sc-invoice-team-names">تیم ها</label>
+                <select name="team_names[]" id="sc-invoice-team-names" multiple size="7">
+                    <?php foreach ($teams as $team) : ?>
+                        <option value="<?php echo esc_attr($team->name); ?>"><?php echo esc_html($team->name); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="sc-filter-block" id="sc-invoice-filter-level">
+                <label for="sc-invoice-level-names">سطح ها</label>
+                <select name="level_names[]" id="sc-invoice-level-names" multiple size="7">
+                    <?php foreach ($levels as $level) : ?>
+                        <option value="<?php echo esc_attr($level->name); ?>"><?php echo esc_html($level->name); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <p class="submit">
+                <button type="button" class="button button-secondary" id="sc-invoice-preview-btn">پیش نمایش کاربران فیلتر شده</button>
+            </p>
+        </div>
+
+        <div class="sc-users-export-card">
+            <h2>۲) پیش نمایش کاربران</h2>
+            <div id="sc-invoice-preview-result" class="sc-bulk-preview-result">
+                <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش کاربران فیلتر شده» کلیک کنید.</p>
             </div>
         </div>
 
-        <p class="description">کاربر مورد نظر برای دریافت صورت حساب را انتخاب کنید. می‌توانید جستجو کنید.</p>
-    </div>
+        <div class="sc-users-export-card">
+            <h2>۳) اطلاعات صورت حساب</h2>
+            <div class="sc-form-flex">
 
 
 
@@ -164,13 +232,16 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
         </p>
     </div>
 
-</div>
-
-        
+            </div>
+        </div>
+        <div class="sc-users-export-card">
+            <h2>۴) ثبت گروهی</h2>
+            <p class="description">پس از پیش نمایش و کنترل تیک‌ها، برای کاربران انتخاب‌شده صورت حساب ثبت می‌شود.</p>
         <p class="submit">
             <input type="submit" name="submit_invoice" class="button button-primary" value="ثبت صورت حساب">
             <a href="<?php echo admin_url('admin.php?page=sc-invoices'); ?>" class="button">انصراف</a>
         </p>
+        </div>
     </form>
 </div>
 

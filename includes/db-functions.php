@@ -847,10 +847,12 @@ function sc_create_certificates_table() {
         `content_line_height` decimal(4,2) NOT NULL DEFAULT 1.85,
         `content_paragraph_spacing` decimal(4,2) NOT NULL DEFAULT 0.60,
         `content_text_align` varchar(20) NOT NULL DEFAULT 'center',
+        `tracking_code` varchar(80) DEFAULT NULL,
         `created_by` bigint(20) unsigned DEFAULT NULL,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_tracking_code` (`tracking_code`),
         KEY `idx_member_id` (`member_id`),
         KEY `idx_created_at` (`created_at`)
     ) $charset_collate";
@@ -1337,6 +1339,20 @@ function sc_update_database() {
             }
         }
         update_option('sc_certificates_style_columns_added', '1');
+    }
+
+    // اضافه کردن ستون کد رهگیری گواهینامه (برای نصب‌های قبلی)
+    if (get_option('sc_certificates_tracking_code_column_added', '0') !== '1') {
+        $certificates_table = $wpdb->prefix . 'sc_certificates';
+        $tracking_col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$certificates_table` LIKE %s", 'tracking_code'));
+        if (empty($tracking_col_exists)) {
+            $wpdb->query("ALTER TABLE `$certificates_table` ADD COLUMN `tracking_code` varchar(80) DEFAULT NULL AFTER `content_text_align`");
+        }
+        $tracking_idx_exists = $wpdb->get_results("SHOW INDEX FROM `$certificates_table` WHERE Key_name = 'idx_tracking_code'");
+        if (empty($tracking_idx_exists)) {
+            $wpdb->query("ALTER TABLE `$certificates_table` ADD UNIQUE KEY `idx_tracking_code` (`tracking_code`)");
+        }
+        update_option('sc_certificates_tracking_code_column_added', '1');
     }
 
     // اضافه کردن ستون coach_id به جدول honors (یک بار برای نصب‌های قبلی)

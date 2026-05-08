@@ -76,6 +76,14 @@ $first_template_key = !empty($templates) ? array_key_first($templates) : '';
                         <input type="text" name="templates[<?php echo esc_attr($template['key']); ?>][certificate_title]" value="<?php echo esc_attr($template['certificate_title'] ?? $template['title']); ?>">
                     </div>
                     <div class="sc-row">
+                        <label>پیشوند کد رهگیری</label>
+                        <input type="text" name="templates[<?php echo esc_attr($template['key']); ?>][tracking_code_prefix]" value="<?php echo esc_attr((string) ($template['tracking_code_prefix'] ?? 'SC-')); ?>" placeholder="مثال: SC-">
+                    </div>
+                    <div class="sc-row">
+                        <label>مبلغ درخواست نسخه فیزیکی (تومان)</label>
+                        <input type="number" min="0" step="1000" name="templates[<?php echo esc_attr($template['key']); ?>][physical_copy_price]" value="<?php echo esc_attr((string) ($template['physical_copy_price'] ?? 0)); ?>" placeholder="0">
+                    </div>
+                    <div class="sc-row">
                         <label>توضیحات</label>
                         <textarea name="templates[<?php echo esc_attr($template['key']); ?>][description]" rows="2"><?php echo esc_textarea($template['description']); ?></textarea>
                     </div>
@@ -383,6 +391,8 @@ jQuery(function($){
             <input type="hidden" name="templates[${key}][key]" value="${key}">
             <div class="sc-row"><label>نام قالب</label><input type="text" class="sc-certificate-title-input" name="templates[${key}][title]" value="قالب جدید"></div>
             <div class="sc-row"><label>عنوان گواهینامه</label><input type="text" name="templates[${key}][certificate_title]" value="گواهینامه"></div>
+            <div class="sc-row"><label>پیشوند کد رهگیری</label><input type="text" name="templates[${key}][tracking_code_prefix]" value="SC-" placeholder="مثال: SC-"></div>
+            <div class="sc-row"><label>مبلغ درخواست نسخه فیزیکی (تومان)</label><input type="number" min="0" step="1000" name="templates[${key}][physical_copy_price]" value="0" placeholder="0"></div>
             <div class="sc-row"><label>توضیحات</label><textarea name="templates[${key}][description]" rows="2"></textarea></div>
             <div class="sc-row"><label>حالت صفحه</label><select name="templates[${key}][orientation]"><option value="portrait">عمودی</option><option value="landscape">افقی</option></select></div>
             <div class="sc-row"><label>پدینگ محتوا (پیکسل)</label><div class="sc-padding-grid"><div class="sc-padding-item"><small>بالا</small><input type="number" min="0" name="templates[${key}][padding_top]" value="200"></div><div class="sc-padding-item"><small>راست</small><input type="number" min="0" name="templates[${key}][padding_right]" value="56"></div><div class="sc-padding-item"><small>پایین</small><input type="number" min="0" name="templates[${key}][padding_bottom]" value="28"></div><div class="sc-padding-item"><small>چپ</small><input type="number" min="0" name="templates[${key}][padding_left]" value="56"></div></div></div>

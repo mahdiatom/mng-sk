@@ -25,6 +25,19 @@ $total_pages = (int) ceil($total_items / $per_page);
         <h2>گواهینامه‌های من</h2>
         <p>در این بخش می‌توانید گواهینامه‌های صادرشده را مشاهده و دانلود کنید.</p>
     </div>
+    <?php
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $phys_status = isset($_GET['sc_phys_status']) ? sanitize_text_field(wp_unslash($_GET['sc_phys_status'])) : '';
+    if ($phys_status === 'exists') {
+        echo '<div class="woocommerce-error">برای این گواهینامه قبلا درخواست نسخه فیزیکی ثبت شده است. وارد بخش صورت حساب شوید و پرداخت تون تکمیل کنید.</div>';
+    } elseif ($phys_status === 'paid') {
+        echo '<div class="woocommerce-message">درخواست نسخه فیزیکی قبلا ثبت و پرداخت آن انجام شده است.</div>';
+    } elseif ($phys_status === 'price_not_set') {
+        echo '<div class="woocommerce-error">برای این قالب، مبلغ نسخه فیزیکی تنظیم نشده است.</div>';
+    } elseif (in_array($phys_status, ['invalid', 'db_error', 'error'], true)) {
+        echo '<div class="woocommerce-error">ایجاد درخواست نسخه فیزیکی با خطا مواجه شد.</div>';
+    }
+    ?>
 
     <?php if (!empty($items)) : ?>
         <div class="sc-my-certificates-stats">
@@ -53,9 +66,44 @@ $total_pages = (int) ceil($total_items / $per_page);
                 <div class="sc-my-certificate-row">
                     <div class="sc-my-certificate-row-main">
                         <div class="sc-my-certificate-row-title"><?php echo esc_html($item->title); ?></div>
-                        <div class="sc-my-certificate-row-meta">تاریخ صدور: <?php echo esc_html(sc_date_shamsi($item->created_at, 'Y/m/d')); ?></div>
+                        <div class="sc-my-certificate-row-meta">
+                            تاریخ صدور: <?php echo esc_html(sc_date_shamsi($item->created_at, 'Y/m/d')); ?>
+                            <span class="sc-my-certificate-tracking-code">| کد رهگیری: <?php echo esc_html((string) ($item->tracking_code ?: '-')); ?></span>
+                        </div>
                     </div>
                     <div class="sc-my-certificate-row-action">
+                        <?php
+                        $tracking_code = !empty($item->tracking_code) ? (string) $item->tracking_code : ('ID-' . (int) $item->id);
+                        $invoice_description = 'درخواست نسخه فیزیکی گواهینامه به کد رهگیری: ' . $tracking_code;
+                        $physical_invoice = $wpdb->get_row($wpdb->prepare(
+                            "SELECT id, status FROM {$invoices_table} WHERE member_id = %d AND invoice_description = %s ORDER BY id DESC LIMIT 1",
+                            (int) $member->id,
+                            $invoice_description
+                        ));
+                        $physical_invoice_id = !empty($physical_invoice->id) ? (int) $physical_invoice->id : 0;
+                        $physical_invoice_status = !empty($physical_invoice->status) ? (string) $physical_invoice->status : '';
+                        $is_paid_invoice = in_array($physical_invoice_status, ['processing', 'completed', 'paid'], true);
+                        $physical_url = wp_nonce_url(
+                            add_query_arg(
+                                [
+                                    'action' => 'sc_request_certificate_physical_invoice',
+                                    'certificate_id' => (int) $item->id,
+                                ],
+                                admin_url('admin-post.php')
+                            ),
+                            'sc_request_certificate_physical_invoice_' . (int) $item->id
+                        );
+                        $invoices_url = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-invoices') : '#';
+                        ?>
+                        <?php if ($physical_invoice_id > 0) : ?>
+                            <?php if ($is_paid_invoice) : ?>
+                                <span class="button sc-my-certificate-action sc-my-certificate-physical-btn is-paid">ثبت و پرداخت انجام شده</span>
+                            <?php else : ?>
+                                <a class="button sc-my-certificate-action sc-my-certificate-physical-btn is-requested" href="<?php echo esc_url($invoices_url); ?>">صورتحساب نسخه فیزیکی ثبت شده</a>
+                            <?php endif; ?>
+                        <?php else : ?>
+                            <a class="button sc-my-certificate-action sc-my-certificate-physical-btn" href="<?php echo esc_url($physical_url); ?>">درخواست نسخه فیزیکی</a>
+                        <?php endif; ?>
                         <a class="button sc-my-certificate-action" href="<?php echo esc_url($url); ?>" target="_blank">مشاهده و دانلود</a>
                     </div>
                 </div>
@@ -130,12 +178,31 @@ $total_pages = (int) ceil($total_items / $per_page);
     color: #666;
     font-size: 13px;
 }
+.sc-my-certificate-tracking-code {
+    display: inline-block;
+    margin-right: 8px;
+    font-weight: 600;
+}
 .sc-my-certificate-row-action .button.sc-my-certificate-action {
     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
     border: none;
     color: #fff;
-    border-radius: 8px;
-    padding: 6px 12px;
+    border-radius: 7px;
+    padding: 4px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    min-height: 30px;
+}
+.sc-my-certificate-row-action .button.sc-my-certificate-physical-btn {
+    background: linear-gradient(135deg, #0f766e 0%, #0b4f59 100%);
+}
+.sc-my-certificate-row-action .button.sc-my-certificate-physical-btn.is-requested {
+    background: #6b7280;
+}
+.sc-my-certificate-row-action .button.sc-my-certificate-physical-btn.is-paid {
+    background: #16a34a;
+    cursor: default;
+    pointer-events: none;
 }
 @media (max-width: 640px) {
     .sc-my-certificate-row {

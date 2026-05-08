@@ -45,6 +45,21 @@ if (isset($_GET['deleted']) && (int) $_GET['deleted'] === 1) {
     $notice_type = 'success';
 }
 
+$phys_status = isset($_GET['sc_phys_status']) ? sanitize_text_field(wp_unslash($_GET['sc_phys_status'])) : '';
+if ($phys_status === 'created') {
+    $notice = 'صورتحساب نسخه فیزیکی با موفقیت ایجاد شد.';
+    $notice_type = 'success';
+} elseif ($phys_status === 'exists') {
+    $notice = 'برای این گواهینامه قبلا صورتحساب نسخه فیزیکی ثبت شده است.';
+    $notice_type = 'error';
+} elseif ($phys_status === 'price_not_set') {
+    $notice = 'مبلغ نسخه فیزیکی برای قالب این گواهینامه تنظیم نشده است.';
+    $notice_type = 'error';
+} elseif (in_array($phys_status, ['invalid', 'db_error', 'error'], true)) {
+    $notice = 'ایجاد صورتحساب نسخه فیزیکی با خطا مواجه شد.';
+    $notice_type = 'error';
+}
+
 if (isset($_POST['sc_update_certificate'])) {
     $certificate_id = isset($_POST['certificate_id']) ? absint($_POST['certificate_id']) : 0;
     check_admin_referer('sc_update_certificate_' . $certificate_id);
@@ -121,7 +136,8 @@ if (!empty($filter_date_to)) {
 }
 if (!empty($search)) {
     $like = '%' . $wpdb->esc_like($search) . '%';
-    $where .= ' AND (c.title LIKE %s OR c.message_text LIKE %s OR m.first_name LIKE %s OR m.last_name LIKE %s)';
+    $where .= ' AND (c.title LIKE %s OR c.message_text LIKE %s OR c.tracking_code LIKE %s OR m.first_name LIKE %s OR m.last_name LIKE %s)';
+    $where_values[] = $like;
     $where_values[] = $like;
     $where_values[] = $like;
     $where_values[] = $like;
@@ -259,7 +275,7 @@ if ($edit_id > 0) {
                     <input type="hidden" name="filter_template" value="<?php echo esc_attr($filter_template); ?>">
                     <input type="hidden" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_date_from_shamsi); ?>">
                     <input type="hidden" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_date_to_shamsi); ?>">
-                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان/متن..." style="width:220px;">
+                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان/متن/کد رهگیری..." style="width:220px;">
                     <input type="submit" class="button" value="جستجو">
                 </form>
             </div>
@@ -282,6 +298,7 @@ if ($edit_id > 0) {
                         <th>شناسه</th>
                         <th>نام کاربر</th>
                         <th>عنوان</th>
+                        <th>کد رهگیری</th>
                         <th>قالب</th>
                         <th>تاریخ صدور</th>
                     </tr>
@@ -308,6 +325,16 @@ if ($edit_id > 0) {
                                 ],
                                 admin_url('admin-post.php')
                             );
+                            $physical_invoice_url = wp_nonce_url(
+                                add_query_arg(
+                                    [
+                                        'action' => 'sc_admin_create_certificate_physical_invoice',
+                                        'certificate_id' => (int) $row->id,
+                                    ],
+                                    admin_url('admin-post.php')
+                                ),
+                                'sc_admin_create_certificate_physical_invoice_' . (int) $row->id
+                            );
                             ?>
                             <tr>
                                 <th scope="row" class="check-column"><input type="checkbox" name="certificate_ids[]" value="<?php echo (int) $row->id; ?>"></th>
@@ -316,17 +343,19 @@ if ($edit_id > 0) {
                                     <?php echo esc_html($member_name); ?>
                                     <div class="row-actions">
                                         <span class="view"><a href="<?php echo esc_url($view_url); ?>" target="_blank" rel="noopener noreferrer">مشاهده و دانلود</a> | </span>
+                                        <span class="edit"><a href="<?php echo esc_url($physical_invoice_url); ?>">ایجاد صورتحساب نسخه فیزیکی</a> | </span>
                                         <span class="edit"><a href="<?php echo esc_url($edit_url); ?>">ویرایش</a> | </span>
                                         <span class="delete"><a href="<?php echo esc_url($delete_url); ?>" onclick="return confirm('این گواهینامه حذف شود؟');">حذف</a></span>
                                     </div>
                                 </td>
                                 <td><?php echo esc_html((string) $row->title); ?></td>
+                                <td><?php echo esc_html((string) ($row->tracking_code ?: '-')); ?></td>
                                 <td><?php echo esc_html($template_titles[$row->template_key] ?? $row->template_key); ?></td>
                                 <td><?php echo esc_html(function_exists('sc_date_shamsi') ? sc_date_shamsi($row->created_at, 'Y/m/d H:i') : $row->created_at); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else : ?>
-                        <tr><td colspan="6" style="text-align:center;padding:20px;">هیچ گواهینامه‌ای یافت نشد.</td></tr>
+                        <tr><td colspan="7" style="text-align:center;padding:20px;">هیچ گواهینامه‌ای یافت نشد.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

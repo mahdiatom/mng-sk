@@ -184,6 +184,57 @@ function sc_bulk_actions_preview_ajax() {
     );
 }
 
+add_action('wp_ajax_sc_invoice_members_preview', 'sc_invoice_members_preview_ajax');
+function sc_invoice_members_preview_ajax() {
+    check_ajax_referer('sc_invoice_members_preview', 'nonce');
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => 'دسترسی غیرمجاز.'));
+    }
+
+    $payload = sc_bulk_actions_collect_filter_config($_POST);
+    if ($payload['config']['member_status'] === 'all') {
+        $payload['config']['member_status'] = 'active';
+    }
+    $members = sc_bulk_actions_get_members($payload['target_type'], $payload['config']);
+    $total = count($members);
+    $preview_rows = array_slice($members, 0, 200);
+
+    ob_start();
+    if (empty($members)) {
+        echo '<p class="description">هیچ کاربری با این فیلترها پیدا نشد.</p>';
+    } else {
+        echo '<div class="sc-bulk-preview-meta">تعداد کاربران فیلتر شده: <strong>' . esc_html((string) $total) . '</strong></div>';
+        echo '<table class="wp-list-table widefat striped sc-bulk-preview-table">';
+        echo '<thead><tr><th style="width:64px;"><label><input type="checkbox" id="sc-invoice-preview-select-all" checked> انتخاب</label></th><th>نام</th><th>کد ملی</th><th>نوع</th><th>تیم</th><th>سطح</th><th>وضعیت</th></tr></thead><tbody>';
+        foreach ($preview_rows as $member) {
+            $full_name = trim((string) $member->first_name . ' ' . (string) $member->last_name);
+            $type_label = ($member->member_type === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
+            $status_label = !empty($member->is_active) ? 'فعال' : 'غیرفعال';
+            echo '<tr>';
+            echo '<td><input type="checkbox" class="sc-invoice-preview-member-check" data-member-id="' . (int) $member->id . '" checked></td>';
+            echo '<td>' . esc_html($full_name !== '' ? $full_name : ('کاربر #' . (int) $member->id)) . '</td>';
+            echo '<td>' . esc_html((string) ($member->national_id ?: '-')) . '</td>';
+            echo '<td>' . esc_html($type_label) . '</td>';
+            echo '<td>' . esc_html((string) ($member->team_player ?: '-')) . '</td>';
+            echo '<td>' . esc_html((string) ($member->skill_level ?: '-')) . '</td>';
+            echo '<td>' . esc_html($status_label) . '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table>';
+        if ($total > 200) {
+            echo '<p class="description">فقط 200 مورد اول نمایش داده شد.</p>';
+        }
+    }
+    $html = ob_get_clean();
+
+    wp_send_json_success(
+        array(
+            'total' => $total,
+            'html' => $html,
+        )
+    );
+}
+
 add_action('admin_post_sc_bulk_actions_execute', 'sc_bulk_actions_execute_handler');
 function sc_bulk_actions_execute_handler() {
     if (!current_user_can('manage_options')) {
