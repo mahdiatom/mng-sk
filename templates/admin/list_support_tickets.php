@@ -116,6 +116,7 @@ class Support_Tickets_List_Table extends WP_List_Table {
         $filter_department = isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all';
         
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+        $filter_user_id = isset($_GET['filter_user_id']) ? absint($_GET['filter_user_id']) : 0;
 
         $base = ['1=1'];
         $params = [];
@@ -123,6 +124,10 @@ class Support_Tickets_List_Table extends WP_List_Table {
      
             $base[] = 'department = %s';
             $params[] = $filter_department;
+        }
+        if ($filter_user_id > 0) {
+            $base[] = 'user_id = %d';
+            $params[] = $filter_user_id;
         }
         if ($search !== '') {
             $like = '%' . $wpdb->esc_like($search) . '%';
@@ -153,6 +158,7 @@ class Support_Tickets_List_Table extends WP_List_Table {
 
         $url = admin_url('admin.php?page=sc-support-tickets');
         if ($filter_department !== 'all') $url = add_query_arg('filter_department', $filter_department, $url);
+        if ($filter_user_id > 0) $url = add_query_arg('filter_user_id', $filter_user_id, $url);
         if ($search) $url = add_query_arg('s', $search, $url);
 
         $views = [];
@@ -170,6 +176,9 @@ class Support_Tickets_List_Table extends WP_List_Table {
         $filter_department = isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all';
         $url = admin_url('admin.php?page=sc-support-tickets');
         if (isset($_GET['filter_status'])) $url = add_query_arg('filter_status', $_GET['filter_status'], $url);
+        if (isset($_GET['filter_user_id']) && absint($_GET['filter_user_id']) > 0) {
+            $url = add_query_arg('filter_user_id', absint($_GET['filter_user_id']), $url);
+        }
         if (isset($_GET['s'])) $url = add_query_arg('s', $_GET['s'], $url);
         ?>
         <div class="alignleft actions section_filter">
@@ -210,6 +219,11 @@ class Support_Tickets_List_Table extends WP_List_Table {
         if ($filter_department !== 'all') {
             $where[] = 't.department = %s';
             $params[] = $filter_department;
+        }
+        $filter_user_id = isset($_GET['filter_user_id']) ? absint($_GET['filter_user_id']) : 0;
+        if ($filter_user_id > 0) {
+            $where[] = 't.user_id = %d';
+            $params[] = $filter_user_id;
         }
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
         if ($search !== '') {

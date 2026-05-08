@@ -286,5 +286,74 @@ $honors_player = $wpdb->get_results($wpdb->prepare(
             <p style="margin-top: 16px; color: #646970;">این بازیکن تا کنون هیچ افتخاری ارسال نکرده است.</p>
         <?php endif; ?>
 
+        <?php
+        $player_user_id = isset($player->user_id) ? absint($player->user_id) : 0;
+        $quick_links = [
+            [
+                'label' => 'تراکنش های کیف پول',
+                'desc'  => 'نمایش همه تراکنش های کیف پول این بازیکن',
+                'url'   => admin_url('admin.php?page=sc-wallet&filter_member=' . $player_id),
+                'icon'  => '💰',
+            ],
+            [
+                'label' => 'حضور و غیاب کاربر',
+                'desc'  => 'لیست حضور و غیاب های ثبت شده برای بازیکن',
+                'url'   => admin_url('admin.php?page=sc-attendance-list&tab=individual&filter_member=' . $player_id),
+                'icon'  => '📅',
+            ],
+            [
+                'label' => 'تراکنش های کاربر (صورت حساب ها)',
+                'desc'  => 'تمام صورت حساب های این بازیکن',
+                'url'   => admin_url('admin.php?page=sc-invoices&filter_member=' . $player_id),
+                'icon'  => '🧾',
+            ],
+            [
+                'label' => 'خرید اقلام از فروشگاه',
+                'desc'  => 'سفارش های ووکامرس بازیکن در فروشگاه',
+                'url'   => admin_url('admin.php?page=sc_orders&filter_member=' . $player_id),
+                'icon'  => '🛒',
+            ],
+            [
+                'label' => 'رویداد های ثبت نامی کاربر',
+                'desc'  => 'ثبت نام های رویداد/مسابقات برای این بازیکن',
+                'url'   => admin_url('admin.php?page=sc-event-registrations&filter_member=' . $player_id),
+                'icon'  => '🏆',
+            ],
+            [
+                'label' => 'یادداشت های خصوصی کاربر',
+                'desc'  => 'یادداشت های خصوصی ثبت شده برای بازیکن',
+                'url'   => admin_url('admin.php?page=sc-private-notes&filter_member=' . $player_id),
+                'icon'  => '📝',
+            ],
+            [
+                'label' => 'تیکت های کاربر',
+                'desc'  => 'همه تیکت های پشتیبانی همین کاربر',
+                'url'   => $player_user_id > 0
+                    ? admin_url('admin.php?page=sc-support-tickets&filter_user_id=' . $player_user_id)
+                    : admin_url('admin.php?page=sc-support-tickets'),
+                'icon'  => '🎫',
+            ],
+            [
+                'label' => 'بدهی کاربر',
+                'desc'  => 'صورت حساب های بدهکار (در انتظار پرداخت)',
+                'url'   => admin_url('admin.php?page=sc-invoices&filter_member=' . $player_id . '&filter_status=pending'),
+                'icon'  => '⚠️',
+            ],
+        ];
+        ?>
+        <div style="margin-top: 36px;">
+            <h2 style="margin: 0 0 14px;">لینک های کاربردی بازیکن</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); gap: 14px;">
+                <?php foreach ($quick_links as $quick_link) : ?>
+                    <a href="<?php echo esc_url($quick_link['url']); ?>" style="display: block; text-decoration: none; padding: 14px 16px; background: #fff; border: 1px solid #d9e1ea; border-radius: 10px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06); transition: all .2s ease;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                            <strong style="color: #1d2327; font-size: 14px;"><?php echo esc_html($quick_link['label']); ?></strong>
+                            <span style="font-size: 18px;"><?php echo esc_html($quick_link['icon']); ?></span>
+                        </div>
+                        <p style="margin: 8px 0 0; color: #4b5563; font-size: 12px; line-height: 1.7;"><?php echo esc_html($quick_link['desc']); ?></p>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
     </div>
 </div>

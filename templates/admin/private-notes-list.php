@@ -12,10 +12,20 @@ $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
 $page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
 $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '';
 $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '';
-$filter_date_from = $filter_date_from_shamsi !== '' ? sc_shamsi_to_gregorian_date($filter_date_from_shamsi) : '';
-$filter_date_to = $filter_date_to_shamsi !== '' ? sc_shamsi_to_gregorian_date($filter_date_to_shamsi) : '';
-$display_date_from_shamsi = $filter_date_from_shamsi;
-$display_date_to_shamsi = $filter_date_to_shamsi;
+$today_gregorian = current_time('Y-m-d');
+$ten_days_before_gregorian = gmdate('Y-m-d', strtotime('-10 days', strtotime($today_gregorian)));
+$default_from_display = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($ten_days_before_gregorian) : $ten_days_before_gregorian;
+$default_to_display = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($today_gregorian) : $today_gregorian;
+
+$display_date_from_shamsi = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $default_from_display;
+$display_date_to_shamsi = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $default_to_display;
+
+$filter_date_from = $filter_date_from_shamsi !== ''
+    ? sc_shamsi_to_gregorian_date($filter_date_from_shamsi)
+    : $ten_days_before_gregorian;
+$filter_date_to = $filter_date_to_shamsi !== ''
+    ? sc_shamsi_to_gregorian_date($filter_date_to_shamsi)
+    : $today_gregorian;
 $result = sc_private_notes_query_admin(['member_id' => $filter_member, 'date_from' => $filter_date_from, 'date_to' => $filter_date_to, 'search' => $search, 'per_page' => 20, 'page' => $page]);
 $rows = $result['rows'];
 $legacy_rows = $wpdb->get_results("SELECT n.*, TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS member_name FROM {$wpdb->prefix}sc_private_notes n LEFT JOIN {$wpdb->prefix}sc_members m ON m.id = n.member_id ORDER BY n.created_at DESC LIMIT 20");
