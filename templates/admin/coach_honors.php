@@ -17,6 +17,12 @@ $categories_table = $wpdb->prefix . 'sc_honor_categories';
 $coaches_table = $wpdb->prefix . 'sc_coaches';
 $members_table = $wpdb->prefix . 'sc_members';
 
+$honor_status_labels = [
+    'pending' => 'در انتظار بررسی',
+    'approved' => 'تایید شده',
+    'rejected' => 'عدم تایید',
+];
+
 // دریافت شناسه مربی لاگین شده
 $current_user_id = get_current_user_id();
 $coach = $wpdb->get_row($wpdb->prepare(
@@ -175,6 +181,7 @@ if (isset($_POST['save_honors']) && check_admin_referer('save_coach_honors_nonce
                 'category_id' => $honor_category,
                 'description' => $honor_description ?: null,
                 'file_url' => $file_url ?: null,
+                'status' => 'pending',
                 'created_at' => current_time('mysql'),
                 'updated_at' => current_time('mysql')
             ];
@@ -354,6 +361,7 @@ $total_pages = ceil($total_honors / $per_page);
                         <th>دسته</th>
                         <th>توضیحات</th>
                         <th>فایل</th>
+                        <th>وضعیت</th>
                         <th>تاریخ ثبت</th>
                         <th style="width: 80px;">عملیات</th>
                     </tr>
@@ -370,6 +378,12 @@ $total_pages = ceil($total_honors / $per_page);
                                 <?php else : ?>
                                     -
                                 <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php
+                                $status_key = isset($honor->status) ? $honor->status : 'pending';
+                                echo esc_html(isset($honor_status_labels[$status_key]) ? $honor_status_labels[$status_key] : $honor_status_labels['pending']);
+                                ?>
                             </td>
                             <td><?php echo esc_html(sc_date_shamsi($honor->created_at, 'Y/m/d')); ?></td>
                             <td>

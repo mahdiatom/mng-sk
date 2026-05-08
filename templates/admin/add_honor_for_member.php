@@ -101,10 +101,11 @@ if (isset($_POST['save_honor']) && check_admin_referer('save_honor_for_member_no
                         'category_id' => $honor_category,
                         'description' => $honor_description ?: null,
                         'file_url' => $file_url,
+                        'status' => 'approved',
                         'created_at' => current_time('mysql'),
                         'updated_at' => current_time('mysql')
                     ],
-                    ['%d', '%d', '%s', '%d', '%s', '%s', '%s', '%s']
+                    ['%d', '%d', '%s', '%d', '%s', '%s', '%s', '%s', '%s']
                 );
                 
                 if ($inserted) {

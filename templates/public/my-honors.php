@@ -8,6 +8,12 @@ global $wpdb;
 $honors_table = $wpdb->prefix . 'sc_honors';
 $categories_table = $wpdb->prefix . 'sc_honor_categories';
 
+$honor_status_labels = [
+    'pending' => 'در انتظار بررسی',
+    'approved' => 'تایید شده',
+    'rejected' => 'عدم تایید',
+];
+
 // پردازش حذف تکی افتخار
 if (isset($_POST['delete_single_honor']) && check_admin_referer('delete_single_honor_nonce')) {
     $honor_id = isset($_POST['honor_id']) ? absint($_POST['honor_id']) : 0;
@@ -157,10 +163,11 @@ if (isset($_POST['save_honors']) && check_admin_referer('save_honors_nonce')) {
                     'category_id' => $honor_category,
                     'description' => $honor_description ?: null,
                     'file_url' => $file_url,
+                    'status' => 'pending',
                     'created_at' => current_time('mysql'),
                     'updated_at' => current_time('mysql')
                 ],
-                ['%d', '%d', '%s', '%d', '%s', '%s', '%s', '%s']
+                ['%d', '%d', '%s', '%d', '%s', '%s', '%s', '%s', '%s']
             );
             
             if ($inserted) {
@@ -301,6 +308,7 @@ $total_pages = ceil($total_honors / $per_page);
                         <th>دسته</th>
                         <th>توضیحات</th>
                         <th>فایل</th>
+                        <th>وضعیت</th>
                         <th>تاریخ ثبت</th>
                         <th style="width: 100px;">عملیات</th>
                     </tr>
@@ -325,6 +333,12 @@ $total_pages = ceil($total_honors / $per_page);
                                 <?php else : ?>
                                     -
                                 <?php endif; ?>
+                            </td>
+                            <td data-title="وضعیت">
+                                <?php
+                                $status_key = isset($honor->status) ? $honor->status : 'pending';
+                                echo esc_html(isset($honor_status_labels[$status_key]) ? $honor_status_labels[$status_key] : $honor_status_labels['pending']);
+                                ?>
                             </td>
                             <td data-title="تاریخ ثبت">
                                 <?php echo esc_html(sc_date_shamsi($honor->created_at, 'Y/m/d')); ?>

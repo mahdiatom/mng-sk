@@ -11,7 +11,7 @@ sc_check_and_create_tables();
 global $wpdb;
 
 $tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'overview';
-$allowed_tabs = ['overview', 'course_income', 'event_income', 'coach_share', 'receivables', 'cashflow', 'ledger'];
+$allowed_tabs = ['overview', 'course_income', 'event_income', 'coach_share', 'store_income', 'receivables', 'cashflow', 'ledger'];
 if (!in_array($tab, $allowed_tabs, true)) {
     $tab = 'overview';
 }
@@ -24,6 +24,9 @@ $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) 
 $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
 $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field($_GET['filter_chapter']) : '';
 $filter_event_type = isset($_GET['filter_event_type']) ? sanitize_text_field($_GET['filter_event_type']) : '';
+$filter_store_tag = isset($_GET['filter_store_tag']) ? absint($_GET['filter_store_tag']) : 0;
+$filter_store_cat = isset($_GET['filter_store_cat']) ? absint($_GET['filter_store_cat']) : 0;
+$filter_ledger_type = isset($_GET['filter_ledger_type']) ? sanitize_text_field($_GET['filter_ledger_type']) : 'all';
 
 $filter_date_from = '';
 $filter_date_to = '';
@@ -62,6 +65,10 @@ if (empty($filter_date_from) || empty($filter_date_to)) {
 $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL ORDER BY title ASC");
 $chapters = $wpdb->get_results("SELECT name FROM $chapter_categories_table ORDER BY name ASC");
 $coaches = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY first_name ASC, last_name ASC");
+$store_tags = taxonomy_exists('product_tag') ? get_terms(['taxonomy' => 'product_tag', 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC']) : [];
+$store_categories = taxonomy_exists('product_cat') ? get_terms(['taxonomy' => 'product_cat', 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC']) : [];
+if (is_wp_error($store_tags)) { $store_tags = []; }
+if (is_wp_error($store_categories)) { $store_categories = []; }
 
 $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
 $finance_chart_config = null;
@@ -75,6 +82,7 @@ $finance_chart_config = null;
         <a href="<?php echo esc_url(add_query_arg('tab', 'course_income', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'course_income' ? 'nav-tab-active' : ''; ?>">درآمد دوره‌ها</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'event_income', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'event_income' ? 'nav-tab-active' : ''; ?>">درآمد رویدادها</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'coach_share', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'coach_share' ? 'nav-tab-active' : ''; ?>">درآمد مربی / سهم مجموعه</a>
+        <a href="<?php echo esc_url(add_query_arg('tab', 'store_income', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'store_income' ? 'nav-tab-active' : ''; ?>">درآمد فروشگاه</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'receivables', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'receivables' ? 'nav-tab-active' : ''; ?>">مطالبات</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'cashflow', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'cashflow' ? 'nav-tab-active' : ''; ?>">جریان نقدی</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'ledger', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'ledger' ? 'nav-tab-active' : ''; ?>">دفتر تراکنش‌ها</a>
@@ -122,17 +130,19 @@ $finance_chart_config = null;
                             </select>
                         </div>
                     <?php endif; ?>
-                    <div class="sc-form-field">
-                        <label for="filter_chapter">شعبه</label>
-                        <select name="filter_chapter" id="filter_chapter">
-                            <option value="">همه شعبه‌ها</option>
-                            <?php foreach ($chapters as $chapter_item) : ?>
-                                <option value="<?php echo esc_attr($chapter_item->name); ?>" <?php selected($filter_chapter, $chapter_item->name); ?>>
-                                    <?php echo esc_html($chapter_item->name); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+                    <?php if ($tab !== 'store_income') : ?>
+                        <div class="sc-form-field">
+                            <label for="filter_chapter">شعبه</label>
+                            <select name="filter_chapter" id="filter_chapter">
+                                <option value="">همه شعبه‌ها</option>
+                                <?php foreach ($chapters as $chapter_item) : ?>
+                                    <option value="<?php echo esc_attr($chapter_item->name); ?>" <?php selected($filter_chapter, $chapter_item->name); ?>>
+                                        <?php echo esc_html($chapter_item->name); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
                     <?php if ($tab === 'event_income') : ?>
                         <div class="sc-form-field">
                             <label for="filter_event_type">نوع</label>
@@ -140,6 +150,40 @@ $finance_chart_config = null;
                                 <option value="">همه</option>
                                 <option value="event" <?php selected($filter_event_type, 'event'); ?>>رویداد</option>
                                 <option value="competition" <?php selected($filter_event_type, 'competition'); ?>>مسابقه</option>
+                            </select>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($tab === 'store_income') : ?>
+                        <div class="sc-form-field">
+                            <label for="filter_store_tag">برچسب محصول</label>
+                            <select name="filter_store_tag" id="filter_store_tag">
+                                <option value="0">همه برچسب‌ها</option>
+                                <?php foreach ($store_tags as $store_tag) : ?>
+                                    <option value="<?php echo esc_attr((string) $store_tag->term_id); ?>" <?php selected($filter_store_tag, (int) $store_tag->term_id); ?>>
+                                        <?php echo esc_html($store_tag->name); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="sc-form-field">
+                            <label for="filter_store_cat">دسته محصول</label>
+                            <select name="filter_store_cat" id="filter_store_cat">
+                                <option value="0">همه دسته‌ها</option>
+                                <?php foreach ($store_categories as $store_cat) : ?>
+                                    <option value="<?php echo esc_attr((string) $store_cat->term_id); ?>" <?php selected($filter_store_cat, (int) $store_cat->term_id); ?>>
+                                        <?php echo esc_html($store_cat->name); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($tab === 'ledger') : ?>
+                        <div class="sc-form-field">
+                            <label for="filter_ledger_type">نوع تراکنش</label>
+                            <select name="filter_ledger_type" id="filter_ledger_type">
+                                <option value="all" <?php selected($filter_ledger_type, 'all'); ?>>همه</option>
+                                <option value="income" <?php selected($filter_ledger_type, 'income'); ?>>ورودی</option>
+                                <option value="expense" <?php selected($filter_ledger_type, 'expense'); ?>>خروجی</option>
                             </select>
                         </div>
                     <?php endif; ?>
@@ -151,12 +195,13 @@ $finance_chart_config = null;
                         'course_income' => 'finance_course_income',
                         'event_income' => 'finance_event_income',
                         'coach_share' => 'finance_coach_share',
+                        'store_income' => 'finance_store_income',
                         'receivables' => 'finance_receivables',
                         'cashflow' => 'finance_cashflow',
                         'ledger' => 'finance_ledger',
                     ];
                     $export_url = isset($export_map[$tab]) ? admin_url('admin.php?page=sc-reports-income-expenses&tab=' . $tab . '&sc_export=excel&export_type=' . $export_map[$tab]) : '';
-                    foreach (['filter_date_from','filter_date_to','filter_date_from_shamsi','filter_date_to_shamsi','filter_course','filter_coach','filter_chapter','filter_event_type'] as $param) {
+                    foreach (['filter_date_from','filter_date_to','filter_date_from_shamsi','filter_date_to_shamsi','filter_course','filter_coach','filter_chapter','filter_event_type','filter_store_tag','filter_store_cat','filter_ledger_type'] as $param) {
                         if (isset($_GET[$param]) && $_GET[$param] !== '') {
                             $export_url = add_query_arg($param, sanitize_text_field(wp_unslash($_GET[$param])), $export_url);
                         }
@@ -292,6 +337,104 @@ $finance_chart_config = null;
                     ],
                 ];
                 ?>
+            <?php elseif ($tab === 'store_income') :
+                $rows = [];
+                $total_store_income = 0.0;
+                $daily_income = [];
+                if (function_exists('wc_get_orders')) {
+                    $orders = wc_get_orders([
+                        'status' => ['processing', 'completed'],
+                        'limit' => -1,
+                        'type' => 'shop_order',
+                        'date_created' => $filter_date_from . '...' . $filter_date_to,
+                        'return' => 'objects',
+                    ]);
+                    foreach ($orders as $order) {
+                        $order_total = 0.0;
+                        foreach ($order->get_items() as $item) {
+                            $product = $item->get_product();
+                            if (!$product) {
+                                continue;
+                            }
+                            $product_id = (int) $product->get_id();
+                            $taxonomy_object_id = $product->is_type('variation') ? (int) $product->get_parent_id() : $product_id;
+                            if ($taxonomy_object_id <= 0) {
+                                $taxonomy_object_id = $product_id;
+                            }
+                            if ($filter_store_tag > 0 && !has_term($filter_store_tag, 'product_tag', $taxonomy_object_id)) {
+                                continue;
+                            }
+                            if ($filter_store_cat > 0 && !has_term($filter_store_cat, 'product_cat', $taxonomy_object_id)) {
+                                continue;
+                            }
+                            $order_total += (float) $item->get_total();
+                        }
+                        if ($order_total <= 0) {
+                            continue;
+                        }
+                        $order_date = $order->get_date_created() ? $order->get_date_created()->date('Y-m-d') : current_time('Y-m-d');
+                        $first_name = trim((string) $order->get_billing_first_name());
+                        $last_name = trim((string) $order->get_billing_last_name());
+                        $customer_name = trim($first_name . ' ' . $last_name);
+                        if ($customer_name === '') {
+                            $customer_name = trim((string) $order->get_formatted_billing_full_name());
+                        }
+                        if ($customer_name === '') {
+                            $customer_name = trim((string) $order->get_billing_phone());
+                        }
+                        if ($customer_name === '') {
+                            $customer_name = '#'. (string) $order->get_customer_id();
+                        }
+                        $item_names = [];
+                        foreach ($order->get_items() as $order_item_label) {
+                            $item_name = trim((string) $order_item_label->get_name());
+                            if ($item_name !== '') {
+                                $item_names[] = $item_name;
+                            }
+                        }
+                        $rows[] = (object) [
+                            'order_id' => $order->get_id(),
+                            'order_date' => $order_date,
+                            'customer_name' => $customer_name,
+                            'items_text' => implode(' | ', $item_names),
+                            'income_total' => $order_total,
+                        ];
+                    }
+                }
+                ?>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead><tr><th>شماره سفارش</th><th>تاریخ</th><th>سفارش‌دهنده</th><th>اقلام</th><th>درآمد (تومان)</th></tr></thead>
+                    <tbody>
+                    <?php if (!empty($rows)) : foreach ($rows as $r) :
+                        $total_store_income += (float) $r->income_total;
+                        $daily_income[$r->order_date] = ($daily_income[$r->order_date] ?? 0) + (float) $r->income_total;
+                    ?>
+                        <tr>
+                            <td>#<?php echo esc_html($r->order_id); ?></td>
+                            <td><?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($r->order_date) : $r->order_date); ?></td>
+                            <td><?php echo esc_html($r->customer_name); ?></td>
+                            <td><?php echo esc_html($r->items_text); ?></td>
+                            <td><?php echo esc_html(number_format((float) $r->income_total, 0, '.', ',')); ?></td>
+                        </tr>
+                    <?php endforeach; else : ?>
+                        <tr><td colspan="5">موردی یافت نشد.</td></tr>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+                <div class="sc-dashboard-stats" style="margin-top: 12px;">
+                    <div class="sc-stat-box"><h3>جمع درآمد فروشگاه</h3><div><?php echo esc_html(number_format($total_store_income, 0, '.', ',')); ?></div></div>
+                </div>
+                <div style="max-width: 900px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
+                <?php
+                ksort($daily_income);
+                $finance_chart_config = [
+                    'type' => 'line',
+                    'labels' => array_map(static function ($d) { return function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($d) : $d; }, array_keys($daily_income)),
+                    'datasets' => [
+                        ['label' => 'درآمد فروشگاه', 'data' => array_values($daily_income), 'borderColor' => 'rgba(34,113,177,1)', 'backgroundColor' => 'rgba(34,113,177,0.2)', 'fill' => true],
+                    ],
+                ];
+                ?>
             <?php elseif ($tab === 'receivables') :
                 $invoices_table = $wpdb->prefix . 'sc_invoices';
                 $members_table = $wpdb->prefix . 'sc_members';
@@ -404,6 +547,11 @@ $finance_chart_config = null;
                 $expense_rows = $wpdb->get_results($wpdb->prepare("SELECT DATE(e.expense_date_gregorian) AS tx_date, 'expense' AS tx_type, e.amount, '' AS person_name, e.name AS ref_title, e.chapter
                     FROM $expenses_table e
                     WHERE " . implode(' AND ', $where_out), $args_out));
+                if ($filter_ledger_type === 'income') {
+                    $expense_rows = [];
+                } elseif ($filter_ledger_type === 'expense') {
+                    $income_rows = [];
+                }
                 $ledger_rows = array_merge($income_rows ?: [], $expense_rows ?: []);
                 usort($ledger_rows, static function($a, $b) {
                     return strcmp((string) $b->tx_date, (string) $a->tx_date);
@@ -444,6 +592,11 @@ $finance_chart_config = null;
                     ],
                 ];
                 ?>
+                <div class="sc-dashboard-stats" style="margin-top: 12px;">
+                    <div class="sc-stat-box"><h3>جمع ورودی فیلترشده</h3><div><?php echo esc_html(number_format($income_sum, 0, '.', ',')); ?></div></div>
+                    <div class="sc-stat-box"><h3>جمع خروجی فیلترشده</h3><div><?php echo esc_html(number_format($expense_sum, 0, '.', ',')); ?></div></div>
+                    <div class="sc-stat-box"><h3>خالص فیلترشده</h3><div><?php echo esc_html(number_format($income_sum - $expense_sum, 0, '.', ',')); ?></div></div>
+                </div>
                 <div style="max-width: 700px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
             <?php endif; ?>
         <?php endif; ?>

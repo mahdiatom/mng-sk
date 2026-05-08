@@ -1318,6 +1318,9 @@ function sc_handle_excel_export() {
         case 'finance_receivables':
             sc_export_finance_receivables_to_excel();
             break;
+        case 'finance_store_income':
+            sc_export_finance_store_income_to_excel();
+            break;
         case 'finance_cashflow':
             sc_export_finance_cashflow_to_excel();
             break;

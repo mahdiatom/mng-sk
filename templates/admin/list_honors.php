@@ -20,20 +20,30 @@ $coaches_table = $wpdb->prefix . 'sc_coaches';
 $message = '';
 $message_type = '';
 
-// پردازش حذف دسته‌جمعی
-if (isset($_POST['bulk_delete']) && check_admin_referer('bulk_delete_honors')) {
+$honor_status_labels = [
+    'pending' => 'در انتظار بررسی',
+    'approved' => 'تایید شده',
+    'rejected' => 'عدم تایید',
+];
+
+// پردازش عملیات دسته‌جمعی
+if (isset($_POST['bulk_apply']) && check_admin_referer('bulk_delete_honors')) {
     $honor_ids = isset($_POST['honor_ids']) && is_array($_POST['honor_ids']) ? array_map('absint', $_POST['honor_ids']) : [];
+    $bulk_action = isset($_POST['bulk_action']) ? sanitize_key($_POST['bulk_action']) : '';
     
-    if (!empty($honor_ids)) {
+    if (empty($honor_ids)) {
+        $message = 'لطفاً حداقل یک افتخار را انتخاب کنید.';
+        $message_type = 'error';
+    } elseif ($bulk_action === 'delete') {
         $deleted_count = 0;
-        
+
         // دریافت اطلاعات افتخارات برای حذف فایل‌ها
         $placeholders = implode(',', array_fill(0, count($honor_ids), '%d'));
         $honors = $wpdb->get_results($wpdb->prepare(
             "SELECT id, file_url FROM $honors_table WHERE id IN ($placeholders)",
             ...$honor_ids
         ));
-        
+
         // حذف فایل‌ها
         foreach ($honors as $honor) {
             if (!empty($honor->file_url)) {
@@ -43,10 +53,10 @@ if (isset($_POST['bulk_delete']) && check_admin_referer('bulk_delete_honors')) {
                 }
             }
         }
-        
+
         // حذف رکوردها از دیتابیس
         foreach ($honor_ids as $honor_id) {
-            $row = $wpdb->get_row($wpdb->prepare("SELECT id, name, member_id FROM $honors_table WHERE id = %d", $honor_id), ARRAY_A);
+            $row = $wpdb->get_row($wpdb->prepare("SELECT id, name, member_id, coach_id, status FROM $honors_table WHERE id = %d", $honor_id), ARRAY_A);
             $result = $wpdb->delete($honors_table, ['id' => $honor_id], ['%d']);
             if ($result !== false && $result > 0) {
                 if (function_exists('sc_log_activity') && $row) {
@@ -55,21 +65,51 @@ if (isset($_POST['bulk_delete']) && check_admin_referer('bulk_delete_honors')) {
                 $deleted_count++;
             }
         }
-        
+
         wp_cache_flush();
-        
-        if ($deleted_count > 0) {
-            $message = $deleted_count . ' افتخار با موفقیت حذف شد.';
-            $message_type = 'success';
-        } else {
-            $message = 'خطا در حذف افتخارات.';
-            $message_type = 'error';
-        }
-        
         wp_safe_redirect(add_query_arg('deleted', $deleted_count, admin_url('admin.php?page=sc-honors')));
         exit;
+    } elseif (in_array($bulk_action, ['approve', 'reject'], true)) {
+        $new_status = ($bulk_action === 'approve') ? 'approved' : 'rejected';
+        $updated_count = 0;
+
+        foreach ($honor_ids as $honor_id) {
+            $row = $wpdb->get_row($wpdb->prepare("SELECT id, name, member_id, coach_id, status FROM $honors_table WHERE id = %d", $honor_id), ARRAY_A);
+            if (!$row) {
+                continue;
+            }
+
+            $result = $wpdb->update(
+                $honors_table,
+                ['status' => $new_status, 'updated_at' => current_time('mysql')],
+                ['id' => $honor_id],
+                ['%s', '%s'],
+                ['%d']
+            );
+
+            if ($result !== false) {
+                if (function_exists('sc_log_activity')) {
+                    sc_log_activity(
+                        'updated',
+                        'honor',
+                        $honor_id,
+                        'وضعیت افتخار «' . ($row['name'] ?? '') . '» به «' . $honor_status_labels[$new_status] . '» تغییر یافت',
+                        $row,
+                        ['status' => $new_status]
+                    );
+                }
+                $updated_count++;
+            }
+        }
+
+        wp_cache_flush();
+        wp_safe_redirect(add_query_arg([
+            'status_updated' => $updated_count,
+            'new_status' => $new_status,
+        ], admin_url('admin.php?page=sc-honors')));
+        exit;
     } else {
-        $message = 'لطفاً حداقل یک افتخار را انتخاب کنید.';
+        $message = 'لطفاً یک عملیات دسته‌جمعی معتبر انتخاب کنید.';
         $message_type = 'error';
     }
 }
@@ -106,10 +146,56 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['honor
     exit;
 }
 
+// پردازش تایید/عدم تایید تکی
+if (isset($_GET['action'], $_GET['honor_id']) && in_array($_GET['action'], ['approve', 'reject'], true)) {
+    check_admin_referer('change_honor_status_' . $_GET['honor_id']);
+    $honor_id = absint($_GET['honor_id']);
+    $new_status = ($_GET['action'] === 'approve') ? 'approved' : 'rejected';
+
+    $row = $wpdb->get_row($wpdb->prepare("SELECT id, name, member_id, coach_id, status FROM $honors_table WHERE id = %d", $honor_id), ARRAY_A);
+    if ($row) {
+        $wpdb->update(
+            $honors_table,
+            ['status' => $new_status, 'updated_at' => current_time('mysql')],
+            ['id' => $honor_id],
+            ['%s', '%s'],
+            ['%d']
+        );
+
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity(
+                'updated',
+                'honor',
+                $honor_id,
+                'وضعیت افتخار «' . ($row['name'] ?? '') . '» به «' . $honor_status_labels[$new_status] . '» تغییر یافت',
+                $row,
+                ['status' => $new_status]
+            );
+        }
+        wp_cache_flush();
+    }
+
+    wp_safe_redirect(add_query_arg([
+        'status_updated' => 1,
+        'new_status' => $new_status,
+    ], admin_url('admin.php?page=sc-honors')));
+    exit;
+}
+
 // نمایش پیام موفقیت پس از redirect
 if (isset($_GET['deleted'])) {
     $deleted_count = absint($_GET['deleted']);
     $message = sprintf(_n('%d افتخار با موفقیت حذف شد.', '%d افتخار با موفقیت حذف شدند.', $deleted_count), $deleted_count);
+    $message_type = 'success';
+}
+
+if (isset($_GET['status_updated'])) {
+    $updated_count = absint($_GET['status_updated']);
+    $new_status = isset($_GET['new_status']) ? sanitize_key($_GET['new_status']) : 'pending';
+    if (!isset($honor_status_labels[$new_status])) {
+        $new_status = 'pending';
+    }
+    $message = sprintf(_n('%d افتخار به وضعیت «%s» تغییر کرد.', '%d افتخار به وضعیت «%s» تغییر کردند.', $updated_count), $updated_count, $honor_status_labels[$new_status]);
     $message_type = 'success';
 }
 
@@ -325,9 +411,11 @@ $total_pages = ceil($total_items / $per_page);
             <div class="alignleft actions bulkactions">
                 <select name="bulk_action" id="bulk-action-selector">
                     <option value="">عملیات دسته‌جمعی...</option>
+                    <option value="approve">تایید</option>
+                    <option value="reject">عدم تایید</option>
                     <option value="delete">حذف</option>
                 </select>
-                <input type="submit" name="bulk_delete" id="doaction" class="button action" value="اجرا">
+                <input type="submit" name="bulk_apply" id="doaction" class="button action" value="اجرا">
             </div>
         </div>
             <div class="back_table_list">
@@ -342,6 +430,7 @@ $total_pages = ceil($total_items / $per_page);
                     <th class="manage-column">دسته</th>
                     <th class="manage-column">توضیحات</th>
                     <th class="manage-column">فایل</th>
+                    <th class="manage-column">وضعیت</th>
                     <th class="manage-column">تاریخ ثبت</th>
                 </tr>
             </thead>
@@ -384,6 +473,16 @@ $total_pages = ceil($total_items / $per_page);
                             admin_url('admin.php?page=sc-honors&action=delete&honor_id=' . $honor->id),
                             'delete_honor_' . $honor->id
                         );
+                        $approve_url = wp_nonce_url(
+                            admin_url('admin.php?page=sc-honors&action=approve&honor_id=' . $honor->id),
+                            'change_honor_status_' . $honor->id
+                        );
+                        $reject_url = wp_nonce_url(
+                            admin_url('admin.php?page=sc-honors&action=reject&honor_id=' . $honor->id),
+                            'change_honor_status_' . $honor->id
+                        );
+                        $status_key = isset($honor->status) ? $honor->status : 'pending';
+                        $status_label = isset($honor_status_labels[$status_key]) ? $honor_status_labels[$status_key] : $honor_status_labels['pending'];
                         ?>
                         <tr>
                             <th scope="row" class="check-column">
@@ -392,6 +491,16 @@ $total_pages = ceil($total_items / $per_page);
                             <td>
                                 <?php echo $member_name; ?>
                                 <div class="row-actions">
+                                    <?php if ($status_key !== 'approved') : ?>
+                                        <span class="edit">
+                                            <a href="<?php echo esc_url($approve_url); ?>">تایید</a> |
+                                        </span>
+                                    <?php endif; ?>
+                                    <?php if ($status_key !== 'rejected') : ?>
+                                        <span class="edit">
+                                            <a href="<?php echo esc_url($reject_url); ?>">عدم تایید</a> |
+                                        </span>
+                                    <?php endif; ?>
                                     <span class="delete">
                                         <a href="<?php echo esc_url($delete_url); ?>" onclick="return confirm('آیا مطمئن هستید؟')">حذف</a>
                                     </span>
@@ -416,12 +525,13 @@ $total_pages = ceil($total_items / $per_page);
                                     -
                                 <?php endif; ?>
                             </td>
+                            <td><?php echo esc_html($status_label); ?></td>
                             <td><?php echo esc_html(sc_date_shamsi($honor->created_at, 'Y/m/d H:i')); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else : ?>
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 20px;">
+                        <td colspan="8" style="text-align: center; padding: 20px;">
                             هنوز افتخاری ثبت نشده است.
                         </td>
                     </tr>
@@ -480,17 +590,32 @@ jQuery(document).ready(function($) {
     // اعتبارسنجی قبل از حذف دسته‌جمعی
     $('#doaction').on('click', function(e) {
         const action = $('#bulk-action-selector').val();
+        const checked = $('input[name="honor_ids[]"]:checked').length;
+        if (checked === 0) {
+            e.preventDefault();
+            alert('لطفاً حداقل یک افتخار را انتخاب کنید.');
+            return false;
+        }
+
         if (action === 'delete') {
-            const checked = $('input[name="honor_ids[]"]:checked').length;
-            if (checked === 0) {
-                e.preventDefault();
-                alert('لطفاً حداقل یک افتخار را انتخاب کنید.');
-                return false;
-            }
             if (!confirm('آیا از حذف ' + checked + ' افتخار انتخاب شده اطمینان دارید؟')) {
                 e.preventDefault();
                 return false;
             }
+        } else if (action === 'approve') {
+            if (!confirm('آیا از تایید ' + checked + ' افتخار انتخاب شده اطمینان دارید؟')) {
+                e.preventDefault();
+                return false;
+            }
+        } else if (action === 'reject') {
+            if (!confirm('آیا از عدم تایید ' + checked + ' افتخار انتخاب شده اطمینان دارید؟')) {
+                e.preventDefault();
+                return false;
+            }
+        } else {
+            e.preventDefault();
+            alert('لطفاً یک عملیات دسته‌جمعی انتخاب کنید.');
+            return false;
         }
     });
 });

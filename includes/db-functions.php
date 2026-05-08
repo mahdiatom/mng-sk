@@ -803,12 +803,14 @@ function sc_create_honors_table() {
         `category_id` bigint(20) unsigned NOT NULL,
         `description` text DEFAULT NULL,
         `file_url` varchar(500) DEFAULT NULL,
+        `status` varchar(20) NOT NULL DEFAULT 'pending' COMMENT 'pending=در انتظار بررسی, approved=تایید شده, rejected=عدم تایید',
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
         KEY `idx_member_id` (`member_id`),
         KEY `idx_coach_id` (`coach_id`),
         KEY `idx_category_id` (`category_id`),
+        KEY `idx_status` (`status`),
         KEY `idx_created_at` (`created_at`)
     ) $charset_collate";
 
@@ -1384,6 +1386,23 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$honors_table` MODIFY COLUMN `member_id` bigint(20) unsigned DEFAULT NULL");
         }
         update_option('sc_honors_member_id_nullable', '1');
+    }
+
+    // اضافه کردن ستون وضعیت به جدول honors (یک بار برای نصب‌های قبلی)
+    if (get_option('sc_honors_status_column_added', '0') !== '1') {
+        $honors_table = $wpdb->prefix . 'sc_honors';
+        $status_col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$honors_table` LIKE %s", 'status'));
+        if (empty($status_col_exists)) {
+            $wpdb->query("ALTER TABLE `$honors_table` ADD COLUMN `status` varchar(20) NOT NULL DEFAULT 'pending' COMMENT 'pending=در انتظار بررسی, approved=تایید شده, rejected=عدم تایید' AFTER `file_url`");
+        }
+
+        $status_idx_exists = $wpdb->get_results("SHOW INDEX FROM `$honors_table` WHERE Key_name = 'idx_status'");
+        if (empty($status_idx_exists)) {
+            $wpdb->query("ALTER TABLE `$honors_table` ADD KEY `idx_status` (`status`)");
+        }
+
+        $wpdb->query("UPDATE `$honors_table` SET `status` = 'pending' WHERE `status` IS NULL OR `status` = ''");
+        update_option('sc_honors_status_column_added', '1');
     }
 
     // ستون‌های ایجادکننده تیکت (user/coach/admin) برای ارسال تیکت توسط مربی و مدیر

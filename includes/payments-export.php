@@ -522,6 +522,110 @@ function sc_export_finance_receivables_to_excel() {
 }
 
 /**
+ * Export finance store income tab.
+ */
+function sc_export_finance_store_income_to_excel() {
+    sc_check_phpspreadsheet();
+    [$from, $to] = sc_finance_export_date_range();
+    $filter_store_tag = isset($_GET['filter_store_tag']) ? absint($_GET['filter_store_tag']) : 0;
+    $filter_store_cat = isset($_GET['filter_store_cat']) ? absint($_GET['filter_store_cat']) : 0;
+    $rows = [];
+    if (function_exists('wc_get_orders')) {
+        $orders = wc_get_orders([
+            'status' => ['processing', 'completed'],
+            'limit' => -1,
+            'type' => 'shop_order',
+            'date_created' => $from . '...' . $to,
+            'return' => 'objects',
+        ]);
+        foreach ($orders as $order) {
+            $order_total = 0.0;
+            foreach ($order->get_items() as $item) {
+                $product = $item->get_product();
+                if (!$product) {
+                    continue;
+                }
+                $product_id = (int) $product->get_id();
+                $taxonomy_object_id = $product->is_type('variation') ? (int) $product->get_parent_id() : $product_id;
+                if ($taxonomy_object_id <= 0) {
+                    $taxonomy_object_id = $product_id;
+                }
+                if ($filter_store_tag > 0 && !has_term($filter_store_tag, 'product_tag', $taxonomy_object_id)) {
+                    continue;
+                }
+                if ($filter_store_cat > 0 && !has_term($filter_store_cat, 'product_cat', $taxonomy_object_id)) {
+                    continue;
+                }
+                $order_total += (float) $item->get_total();
+            }
+            if ($order_total <= 0) {
+                continue;
+            }
+            $order_date = $order->get_date_created() ? $order->get_date_created()->date('Y-m-d') : current_time('Y-m-d');
+            $first_name = trim((string) $order->get_billing_first_name());
+            $last_name = trim((string) $order->get_billing_last_name());
+            $customer_name = trim($first_name . ' ' . $last_name);
+            if ($customer_name === '') {
+                $customer_name = trim((string) $order->get_formatted_billing_full_name());
+            }
+            if ($customer_name === '') {
+                $customer_name = trim((string) $order->get_billing_phone());
+            }
+            if ($customer_name === '') {
+                $customer_name = '#'. (string) $order->get_customer_id();
+            }
+            $item_names = [];
+            foreach ($order->get_items() as $order_item_label) {
+                $item_name = trim((string) $order_item_label->get_name());
+                if ($item_name !== '') {
+                    $item_names[] = $item_name;
+                }
+            }
+            $rows[] = (object) [
+                'order_id' => $order->get_id(),
+                'order_date' => $order_date,
+                'customer_name' => $customer_name,
+                'items_text' => implode(' | ', $item_names),
+                'income_total' => $order_total,
+            ];
+        }
+    }
+
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('درآمد فروشگاه');
+    $sheet->setRightToLeft(true);
+    $headers = ['ردیف', 'شماره سفارش', 'تاریخ', 'سفارش‌دهنده', 'اقلام', 'درآمد (تومان)'];
+    foreach ($headers as $i => $h) {
+        $sheet->setCellValueByColumnAndRow($i + 1, 1, $h);
+    }
+    $sheet->getStyle('A1:F1')->applyFromArray(sc_get_excel_header_style());
+    $r = 2;
+    $idx = 1;
+    foreach ($rows as $row) {
+        $sheet->setCellValueByColumnAndRow(1, $r, $idx++);
+        $sheet->setCellValueByColumnAndRow(2, $r, '#' . $row->order_id);
+        $date = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($row->order_date) : $row->order_date;
+        $sheet->setCellValueByColumnAndRow(3, $r, $date);
+        $sheet->setCellValueByColumnAndRow(4, $r, $row->customer_name);
+        $sheet->setCellValueByColumnAndRow(5, $r, $row->items_text);
+        $sheet->setCellValueByColumnAndRow(6, $r, number_format((float) $row->income_total, 0, '.', ','));
+        $sheet->getStyle("A{$r}:F{$r}")->applyFromArray(sc_get_excel_data_style());
+        $r++;
+    }
+    sc_auto_size_columns($sheet, 6);
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="finance_store_income_' . date('Ymd_His') . '.xlsx"');
+    header('Cache-Control: max-age=0');
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
+}
+
+/**
  * Export finance cashflow tab.
  */
 function sc_export_finance_cashflow_to_excel() {
@@ -586,6 +690,8 @@ function sc_export_finance_ledger_to_excel() {
     [$from, $to] = sc_finance_export_date_range();
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
+    $filter_ledger_type = isset($_GET['filter_ledger_type']) ? sanitize_text_field(wp_unslash($_GET['filter_ledger_type'])) : 'all';
+    $filter_ledger_type = isset($_GET['filter_ledger_type']) ? sanitize_text_field(wp_unslash($_GET['filter_ledger_type'])) : 'all';
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $members_table = $wpdb->prefix . 'sc_members';
     $courses_table = $wpdb->prefix . 'sc_courses';
@@ -616,6 +722,16 @@ function sc_export_finance_ledger_to_excel() {
     $expense_rows = $wpdb->get_results($wpdb->prepare("SELECT DATE(e.expense_date_gregorian) AS tx_date, 'expense' AS tx_type, e.amount, '' AS person_name, e.name AS ref_title, e.chapter
         FROM $expenses_table e
         WHERE " . implode(' AND ', $where_out), $args_out));
+    if ($filter_ledger_type === 'income') {
+        $expense_rows = [];
+    } elseif ($filter_ledger_type === 'expense') {
+        $income_rows = [];
+    }
+    if ($filter_ledger_type === 'income') {
+        $expense_rows = [];
+    } elseif ($filter_ledger_type === 'expense') {
+        $income_rows = [];
+    }
 
     $rows = array_merge($income_rows ?: [], $expense_rows ?: []);
     usort($rows, static function($a, $b) {
