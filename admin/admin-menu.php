@@ -957,6 +957,15 @@ function sc_register_admin_menu() {
 
     add_submenu_page(
         'sc-reports',
+        'عملکرد مربی',
+        'عملکرد مربی',
+        'sc_finance_reports_access',
+        'sc-reports-coach-performance',
+        'sc_admin_reports_coach_performance_page'
+    );
+
+    add_submenu_page(
+        'sc-reports',
         'بدهکاران',
         'بدهکاران',
         'manage_options',
@@ -2080,6 +2089,11 @@ function sc_admin_reports_income_expenses_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'reports-finance.php';
+}
+
+function sc_admin_reports_coach_performance_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-coach-performance.php';
 }
 
 function sc_admin_reports_debtors_page() {
