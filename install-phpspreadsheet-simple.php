@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 $plugin_dir = __DIR__;
-$vendor_dir = $plugin_dir . '/vendor';
+$vendor_dir = dirname($plugin_dir) . '/vendor';
 
 // بررسی اینکه آیا PhpSpreadsheet قبلاً نصب شده است
 if (file_exists($vendor_dir . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Spreadsheet.php')) {
@@ -63,6 +63,7 @@ if (!file_exists($composer_phar)) {
 // اجرای composer install
 echo "<p>در حال نصب وابستگی‌ها...</p>\n";
 chdir($plugin_dir);
+putenv('COMPOSER_VENDOR_DIR=' . dirname($plugin_dir) . '/vendor');
 exec("php composer.phar install 2>&1", $output, $return_var);
 
 if ($return_var === 0) {
@@ -72,7 +73,7 @@ if ($return_var === 0) {
     echo "<p style='color: red;'>✗ خطا در نصب:</p>\n";
     echo "<pre>" . implode("\n", $output) . "</pre>\n";
     echo "<p>لطفاً به صورت دستی دستور زیر را در خط فرمان اجرا کنید:</p>\n";
-    echo "<pre>cd \"" . $plugin_dir . "\"\nphp composer.phar install</pre>\n";
+    echo "<pre>cd \"" . $plugin_dir . "\"\nset COMPOSER_VENDOR_DIR=..\\vendor && php composer.phar install</pre>\n";
 }
 
 

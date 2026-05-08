@@ -15,21 +15,21 @@ if (!defined('ABSPATH')) {
 function sc_check_phpspreadsheet() {
     // بررسی اینکه آیا PhpSpreadsheet نصب شده است یا نه
     if (!class_exists('\PhpOffice\PhpSpreadsheet\Spreadsheet')) {
-        // تلاش برای بارگذاری از vendor directory
-        $vendor_path = SC_PLUGIN_DIR . 'vendor/autoload.php';
+        // تلاش برای بارگذاری از vendor directory در wp-content
+        $vendor_path = SC_VENDOR_DIR . 'autoload.php';
         if (file_exists($vendor_path)) {
             require_once $vendor_path;
         } else {
             // تلاش برای بارگذاری مستقیم
-            $spreadsheet_path = SC_PLUGIN_DIR . 'vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Spreadsheet.php';
+            $spreadsheet_path = SC_VENDOR_DIR . 'phpoffice/phpspreadsheet/src/PhpSpreadsheet/Spreadsheet.php';
             if (file_exists($spreadsheet_path)) {
                 // بارگذاری دستی کلاس‌های مورد نیاز
-                require_once SC_PLUGIN_DIR . 'vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Spreadsheet.php';
-                require_once SC_PLUGIN_DIR . 'vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Writer/Xlsx.php';
-                require_once SC_PLUGIN_DIR . 'vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Style/Fill.php';
-                require_once SC_PLUGIN_DIR . 'vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Style/Alignment.php';
-                require_once SC_PLUGIN_DIR . 'vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Style/Border.php';
-                require_once SC_PLUGIN_DIR . 'vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Cell/Coordinate.php';
+                require_once SC_VENDOR_DIR . 'phpoffice/phpspreadsheet/src/PhpSpreadsheet/Spreadsheet.php';
+                require_once SC_VENDOR_DIR . 'phpoffice/phpspreadsheet/src/PhpSpreadsheet/Writer/Xlsx.php';
+                require_once SC_VENDOR_DIR . 'phpoffice/phpspreadsheet/src/PhpSpreadsheet/Style/Fill.php';
+                require_once SC_VENDOR_DIR . 'phpoffice/phpspreadsheet/src/PhpSpreadsheet/Style/Alignment.php';
+                require_once SC_VENDOR_DIR . 'phpoffice/phpspreadsheet/src/PhpSpreadsheet/Style/Border.php';
+                require_once SC_VENDOR_DIR . 'phpoffice/phpspreadsheet/src/PhpSpreadsheet/Cell/Coordinate.php';
             } else {
                 // اگر نصب نشده، پیام خطا نمایش بده
                 $install_url = SC_PLUGIN_URL . 'install-phpspreadsheet-simple.php';

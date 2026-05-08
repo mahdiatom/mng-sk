@@ -8,7 +8,7 @@
 
 // تنظیم مسیر افزونه
 $plugin_dir = __DIR__;
-$vendor_dir = $plugin_dir . '/vendor';
+$vendor_dir = dirname($plugin_dir) . '/vendor';
 
 // بررسی اینکه آیا PhpSpreadsheet قبلاً نصب شده است
 if (file_exists($vendor_dir . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Spreadsheet.php')) {

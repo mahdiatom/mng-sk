@@ -32,6 +32,7 @@ define('SC_TEMPLATES_ADMIN_DIR', SC_TEMPLATES_DIR . 'admin/');  // Admin templat
 define('SC_TEMPLATES_PUBLIC_DIR', SC_TEMPLATES_DIR . 'public/');// Public templates
 define('SC_ASSETS_DIR', SC_PLUGIN_DIR . 'assets/');              // Assets folder (CSS, JS, images)
 define('SC_ASSETS_URL', SC_PLUGIN_URL . 'assets/');              // Assets URL
+define('SC_VENDOR_DIR', WP_CONTENT_DIR . '/vendor/');            // Shared vendor folder in wp-content
 
 /**
  * ============================

@@ -32,6 +32,8 @@ if (!file_exists($php_path)) {
     $php_path = 'php';
 }
 
+// اجبار مسیر vendor به wp-content/vendor
+putenv('COMPOSER_VENDOR_DIR=' . dirname($plugin_dir) . '/vendor');
 $command = '"' . $php_path . '" "' . $composer_phar . '" install 2>&1';
 exec($command, $output, $return_var);
 
@@ -46,8 +48,8 @@ if ($return_var === 0) {
     echo "<p style='color: green; font-weight: bold;'>✓ نصب با موفقیت انجام شد!</p>\n";
     echo "<p>اکنون می‌توانید از قابلیت خروجی Excel استفاده کنید.</p>\n";
     
-    // بررسی وجود فایل‌ها
-    $spreadsheet_file = $plugin_dir . '/vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Spreadsheet.php';
+    // بررسی وجود فایل‌ها در wp-content/vendor
+    $spreadsheet_file = dirname($plugin_dir) . '/vendor/phpoffice/phpspreadsheet/src/PhpSpreadsheet/Spreadsheet.php';
     if (file_exists($spreadsheet_file)) {
         echo "<p style='color: green;'>✓ فایل‌های PhpSpreadsheet با موفقیت نصب شدند.</p>\n";
     } else {
@@ -58,7 +60,7 @@ if ($return_var === 0) {
     echo "<p>لطفاً دستور زیر را در Command Prompt اجرا کنید:</p>\n";
     echo "<pre style='background: #f0f0f1; padding: 10px;'>";
     echo "cd \"" . $plugin_dir . "\"\n";
-    echo "C:\\xampp\\php\\php.exe composer.phar install\n";
+    echo "set COMPOSER_VENDOR_DIR=..\\vendor && C:\\xampp\\php\\php.exe composer.phar install\n";
     echo "</pre>\n";
 }
 
