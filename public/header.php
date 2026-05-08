@@ -23,6 +23,9 @@ $unread_ticket = sc_count_user_tickets(get_current_user_id(), 'pending_reply');
 $player_for_access = function_exists('sc_get_current_member_for_account_user') ? sc_get_current_member_for_account_user() : null;
 $verification_gate_locked = function_exists('sc_is_member_verification_gate_enabled_for_user') ? sc_is_member_verification_gate_enabled_for_user($player_for_access) : false;
 
+    $sc_hs_placeholder = esc_attr( sc_get_setting( 'sc_header_search_placeholder', 'جستجو در خدمات، صفحات و فروشگاه…' ) );
+    $sc_search_svg       = '<svg class="sc-header-search__icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
     ?>
     <header class="custom-header header_top" >
         
@@ -31,6 +34,18 @@ $verification_gate_locked = function_exists('sc_is_member_verification_gate_enab
         <img src="<?php echo sc_get_setting('sc_club_logo_url'); ?>" alt="">
     
     </div>
+
+    <div class="sc-header-search sc-header-search--desktop" role="search">
+        <div class="sc-header-search__box">
+            <?php echo $sc_search_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <input type="search" class="sc-header-search__input" placeholder="<?php echo $sc_hs_placeholder; ?>" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
+            <div class="sc-header-search__dropdown" hidden></div>
+        </div>
+    </div>
+
+    <button type="button" class="sc-header-search-toggle sc-header-search--mobile" aria-label="<?php esc_attr_e( 'جستجو', 'sportclub-manager' ); ?>">
+        <?php echo $sc_search_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+    </button>
   
     <div class="woo_panel_mini">
         <nav class="menu_custom_gym menu-header  menu_header_left" >
@@ -134,6 +149,20 @@ $verification_gate_locked = function_exists('sc_is_member_verification_gate_enab
 
             </div>
       </header>
+
+    <div id="sc-header-search-popup" class="sc-header-search-popup" aria-hidden="true">
+        <div class="sc-header-search-popup__backdrop" tabindex="-1"></div>
+        <div class="sc-header-search-popup__panel" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e( 'جستجو', 'sportclub-manager' ); ?>">
+            <button type="button" class="sc-header-search-popup__close" aria-label="<?php esc_attr_e( 'بستن', 'sportclub-manager' ); ?>">&times;</button>
+            <div class="sc-header-search sc-header-search--popup" role="search">
+                <div class="sc-header-search__box">
+                    <?php echo $sc_search_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    <input type="search" class="sc-header-search__input sc-header-search__input--popup" placeholder="<?php echo $sc_hs_placeholder; ?>" autocomplete="off" aria-autocomplete="list" />
+                    <div class="sc-header-search__dropdown" hidden></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- The Modal -->
 <div id="myModal" class="modal" style="visibility : hidden; display: none;">

@@ -176,6 +176,10 @@ $query = "SELECT r.*,
                  m.first_name, 
                  m.last_name, 
                  m.player_phone,
+                 r.registration_source,
+                 r.guest_first_name,
+                 r.guest_last_name,
+                 r.guest_phone,
                  i.status,
                  i.woocommerce_order_id,
                  i.id as invoice_id
@@ -555,8 +559,16 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                     }
                     
                     // نام کاربر
+                    $is_guest_registration = isset($registration['registration_source']) && $registration['registration_source'] === 'guest';
                     $member_name = trim(($registration['first_name'] ?: '') . ' ' . ($registration['last_name'] ?: ''));
+                    if ($is_guest_registration) {
+                        $guest_name = trim(($registration['guest_first_name'] ?: '') . ' ' . ($registration['guest_last_name'] ?: ''));
+                        if (!empty($guest_name)) {
+                            $member_name = $guest_name;
+                        }
+                    }
                     $member_name = $member_name ?: 'کاربر حذف شده';
+                    $display_phone = $is_guest_registration ? ($registration['guest_phone'] ?: $registration['player_phone']) : ($registration['player_phone'] ?: '-');
                     
                     // نام رویداد
                     $event_name = $registration['event_name'] ?: 'رویداد حذف شده';
@@ -571,8 +583,13 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                     <td><?php echo $row_number; ?></td>
                     <td><strong><?php echo esc_html($order_number); ?></strong></td>
                     <td><?php echo esc_html($event_name_display); ?></td>
-                    <td><?php echo esc_html($member_name); ?></td>
-                    <td><?php echo esc_html($registration['player_phone'] ?: '-'); ?></td>
+                    <td>
+                        <?php echo esc_html($member_name); ?>
+                        <?php if ($is_guest_registration) : ?>
+                            <span style="display:inline-block;margin-right:6px;padding:2px 8px;border-radius:12px;background:#fff1f0;color:#cf1322;font-size:11px;">مهمان</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo esc_html($display_phone); ?></td>
                     <td>
                         <span style="display: inline-block; padding: 4px 8px; border-radius: 3px; font-size: 12px; color: <?php echo esc_attr($status_info['color']); ?>; background: <?php echo esc_attr($status_info['bg']); ?>;">
                             <?php echo esc_html($status_info['label']); ?>

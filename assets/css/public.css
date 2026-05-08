@@ -273,6 +273,9 @@ font-size: 14px;
   margin-right: 20px !important;
     height: 50px !important;
 }
+.logo_custom_gym {
+    flex-shrink: 0;
+}
 /* .custom-header {
         display: flex;
     align-items: center;
@@ -291,6 +294,268 @@ font-size: 14px;
     justify-content: space-between;
     align-items: center;
     padding-top: 18px;
+    overflow: visible;
+}
+.custom-header.header_top {
+    z-index: 10040;
+}
+
+/* ---------- هدر: جستجوی AJAX ---------- */
+.sc-header-search__icon-svg {
+    flex-shrink: 0;
+    opacity: 0.85;
+}
+.sc-header-search {
+    flex: 1;
+    max-width: min(440px, 42vw);
+    margin: 0 12px;
+    min-width: 0;
+}
+.sc-header-search__box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+    padding: 6px 14px 6px 16px;
+}
+.custom-header.fixed .sc-header-search__box {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.12);
+}
+.sc-header-search__input {
+    flex: 1;
+    min-width: 0;
+    border: none !important;
+    background: transparent !important;
+    color: #fff !important;
+    font-size: 14px;
+    outline: none !important;
+    box-shadow: none !important;
+}
+.sc-header-search__input::placeholder {
+    color: rgba(255, 255, 255, 0.75);
+}
+.custom-header.fixed .sc-header-search__input {
+    color: #222 !important;
+}
+.custom-header.fixed .sc-header-search__input::placeholder {
+    color: rgba(0, 0, 0, 0.45);
+}
+.custom-header.fixed .sc-header-search__icon-svg {
+    color: #444;
+}
+.sc-header-search__box .sc-header-search__icon-svg {
+    color: rgba(255, 255, 255, 0.95);
+}
+.sc-header-search__dropdown {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 8px);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    max-height: min(70vh, 420px);
+    overflow-y: auto;
+    z-index: 10050;
+    text-align: right;
+    direction: rtl;
+}
+.sc-header-search__section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #666;
+    padding: 10px 14px 4px;
+    margin: 0;
+}
+.sc-header-search__item {
+    display: block;
+    padding: 10px 14px;
+    color: #1a1a1a !important;
+    text-decoration: none !important;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+}
+.sc-header-search__item:last-child {
+    border-bottom: none;
+}
+.sc-header-search__item:hover,
+.sc-header-search__item:focus {
+    background: #f5f0ff;
+}
+.sc-header-search__meta {
+    display: block;
+    font-size: 11px;
+    color: #888;
+    margin-top: 4px;
+}
+.sc-header-search__price {
+    font-size: 12px;
+    color: #6d34ff;
+    font-weight: 600;
+}
+.sc-header-search__empty {
+    padding: 16px 14px;
+    color: #666;
+    font-size: 14px;
+}
+.sc-header-search__loading {
+    padding: 14px;
+    font-size: 13px;
+    color: #666;
+}
+.sc-header-search__dropdown.sc-header-search__dropdown--expanded {
+    max-height: min(85vh, 560px);
+}
+.sc-header-search__dropdown.sc-header-search__dropdown--help {
+    border-radius: 14px;
+}
+.sc-header-search__panel--help {
+    padding-bottom: 6px;
+}
+.sc-header-search__empty-head {
+    padding: 14px 14px 12px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #eee;
+}
+.sc-header-search__empty-title {
+    font-weight: 700;
+    font-size: 15px;
+    color: #222;
+    margin: 0 0 6px;
+}
+.sc-header-search__empty-text {
+    font-size: 13px;
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+}
+.sc-header-search__block {
+    padding: 4px 0 8px;
+}
+.sc-header-search__link-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 0 10px 10px;
+}
+@media (min-width: 420px) {
+    .sc-header-search__link-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+.sc-header-search__item--linktile {
+    border: 1px solid #e8e8e8 !important;
+    border-radius: 10px !important;
+    margin-bottom: 0 !important;
+    background: #fafafa;
+    font-size: 13px !important;
+    line-height: 1.35;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.sc-header-search__item--linktile:hover,
+.sc-header-search__item--linktile:focus {
+    background: #f3edff !important;
+    border-color: #d4c4f5 !important;
+}
+.sc-header-search__item--linktile .sc-header-search__meta {
+    margin-top: 6px;
+}
+.sc-header-search-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-inline-start: 8px;
+    padding: 0;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    cursor: pointer;
+    color: #fff;
+}
+.custom-header.fixed .sc-header-search-toggle {
+    background: rgba(0, 0, 0, 0.06);
+    color: #333;
+}
+.sc-header-search-popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 12px;
+    box-sizing: border-box;
+}
+.sc-header-search-popup.is-open {
+    display: flex;
+}
+.sc-header-search-popup__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+.sc-header-search-popup__panel {
+    position: relative;
+    width: 100%;
+    max-width: 580px;
+    margin-top: max(12px, env(safe-area-inset-top));
+    background: #fff;
+    border-radius: 16px;
+    padding: 48px 16px 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+}
+.sc-header-search-popup__close {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: #f3f3f3;
+    border-radius: 10px;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    color: #333;
+}
+.sc-header-search--popup .sc-header-search__box {
+    background: #f5f5f7;
+    border: 1px solid #e0e0e0;
+}
+.sc-header-search--popup .sc-header-search__input {
+    color: #222 !important;
+}
+.sc-header-search--popup .sc-header-search__input::placeholder {
+    color: rgba(0, 0, 0, 0.45);
+}
+.sc-header-search--popup .sc-header-search__icon-svg {
+    color: #555;
+}
+@media (max-width: 991px) {
+    .sc-header-search--desktop {
+        display: none !important;
+    }
+    .sc-header-search-toggle.sc-header-search--mobile {
+        display: inline-flex;
+    }
+    .header_top .logo_custom_gym img {
+        height: 42px !important;
+    }
+}
+@media (min-width: 992px) {
+    .sc-header-search-toggle.sc-header-search--mobile {
+        display: none !important;
+    }
 }
 
 
@@ -378,6 +643,7 @@ a.icon_adv svg circle{
 }
 .woo_panel_mini{
     display: flex;
+    flex-shrink: 0;
 
     margin-left: 20px !important;
     font-weight: bold;

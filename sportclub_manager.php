@@ -46,6 +46,7 @@ require_once SC_INCLUDES_DIR . 'course-packages-functions.php'; // پکیج‌ه
 require_once SC_INCLUDES_DIR . 'course-schedule-functions.php'; // برنامه هفتگی کلاس دوره
 require_once SC_INCLUDES_DIR . 'discount-codes-functions.php'; // کدهای تخفیف صورت‌حساب
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
+require_once SC_INCLUDES_DIR . 'header-search-functions.php'; // جستجوی هدر (AJAX)
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions
 require_once SC_INCLUDES_DIR . 'users-info-export-functions.php'; // Users info export (PDF/Excel)
@@ -1557,6 +1558,36 @@ function sc_public_enqueue_assets() {
     wp_enqueue_style('my-custom-icons-css',SC_ASSETS_URL . 'css/all.css',array(),'1.0');
 
     wp_enqueue_script('sc-public-js', SC_ASSETS_URL . 'js/public.js', array('jquery'), '1.0', true);
+
+    wp_enqueue_script(
+        'sc-header-search',
+        SC_ASSETS_URL . 'js/header-search.js',
+        array( 'jquery' ),
+        file_exists( SC_PLUGIN_DIR . 'assets/js/header-search.js' )
+            ? (string) filemtime( SC_PLUGIN_DIR . 'assets/js/header-search.js' )
+            : '1.1',
+        true
+    );
+    wp_localize_script(
+        'sc-header-search',
+        'scHeaderSearch',
+        array(
+            'ajaxurl'    => admin_url( 'admin-ajax.php' ),
+            'nonce'      => wp_create_nonce( 'sc_header_search' ),
+            'quickLinks' => sc_header_search_quick_links_for_overlay(),
+            'i18n'       => array(
+                'suggestionsTitle'  => __( 'پیشنهادها', 'sportclub-manager' ),
+                'quickLinksTitle'   => __( 'صفحات کاربردی', 'sportclub-manager' ),
+                'clubServicesTitle' => __( 'دوره‌ها و رویدادها', 'sportclub-manager' ),
+                'pagesPostsTitle'   => __( 'صفحات، مطالب و خدمات', 'sportclub-manager' ),
+                'productsTitle'     => __( 'محصولات', 'sportclub-manager' ),
+                'noResults'         => __( 'نتیجه‌ای یافت نشد', 'sportclub-manager' ),
+                'noResultsHint'     => __( 'می‌توانید از پیشنهادها یا میانبرهای زیر استفاده کنید.', 'sportclub-manager' ),
+                'loading'           => __( 'در حال جستجو…', 'sportclub-manager' ),
+                'shortcutMeta'      => __( 'میانبر', 'sportclub-manager' ),
+            ),
+        )
+    );
 
     if (is_account_page() && get_query_var('sc-submit-documents') !== false) {
         wp_enqueue_script('sc-submit-documents-js', SC_ASSETS_URL . 'js/submit-documents.js', array('jquery'), time(), true);

@@ -19,6 +19,7 @@ $event_location_address = '';
 $event_location_lat = '';
 $event_location_lng = '';
 $is_active = 1;
+$is_public = 0;
 $restriction_enabled = 0;
 $allowed_teams = [];
 $allowed_levels = [];
@@ -44,6 +45,7 @@ if ($event && isset($_GET['event_id'])) {
     $event_location_lat = $event->event_location_lat ?? '';
     $event_location_lng = $event->event_location_lng ?? '';
     $is_active = $event->is_active ?? 1;
+    $is_public = isset($event->is_public) ? (int) $event->is_public : 0;
     $restriction_enabled = isset($event->restriction_enabled) ? (int)$event->restriction_enabled : 0;
     $allowed_gender = !empty($event->allowed_gender) ? $event->allowed_gender : 'both';
     $allowed_teams = !empty($event->allowed_teams) ? json_decode($event->allowed_teams, true) : [];
@@ -101,6 +103,13 @@ if ($event && isset($_GET['event_id'])) {
         <?php 
     }
     ?>
+    <?php if (isset($_GET['event_id']) && !empty($is_public)) : ?>
+        <?php $public_url = add_query_arg('sc_public_event', absint($_GET['event_id']), home_url('/')); ?>
+        <div style="margin: 12px 0 0; padding: 10px 12px; background: #eef8ff; border: 1px solid #b8dfff; border-radius: 6px;">
+            <strong>لینک ثبت‌نام عمومی:</strong>
+            <a href="<?php echo esc_url($public_url); ?>" target="_blank" rel="noopener"><?php echo esc_html($public_url); ?></a>
+        </div>
+    <?php endif; ?>
     </div>
 <div class="wrap">
     <form action="" method="POST" enctype="multipart/form-data">
@@ -158,6 +167,16 @@ if ($event && isset($_GET['event_id'])) {
                                 >
                             بله
                             </label>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">رویداد عمومی است؟</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="is_public" value="1" <?php checked($is_public, 1); ?>>
+                            بله، ثبت‌نام بدون ورود هم مجاز باشد
+                        </label>
+                        <p class="description">در صورت فعال بودن، یک لینک عمومی برای این رویداد ساخته می‌شود تا مهمان‌ها هم ثبت‌نام کنند.</p>
                     </td>
                 </tr>
                 <tr>

@@ -4031,6 +4031,7 @@ function callback_add_event_sufix() {
             'allowed_teams' => !empty($_POST['allowed_teams']) && is_array($_POST['allowed_teams']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_teams'])), JSON_UNESCAPED_UNICODE) : NULL,
             'allowed_levels' => !empty($_POST['allowed_levels']) && is_array($_POST['allowed_levels']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_levels'])), JSON_UNESCAPED_UNICODE) : NULL,
             'allowed_gender' => (isset($_POST['allowed_gender']) && in_array($_POST['allowed_gender'], ['male', 'female', 'both'], true)) ? sanitize_text_field($_POST['allowed_gender']) : 'both',
+            'is_public' => isset($_POST['is_public']) ? 1 : 0,
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'updated_at' => current_time('mysql'),
         ];
@@ -4051,7 +4052,7 @@ function callback_add_event_sufix() {
                             $format[] = '%s';
                         } elseif (in_array($key, ['price', 'event_location_lat', 'event_location_lng'], true)) {
                             $format[] = '%f';
-                        } elseif (in_array($key, ['has_age_limit', 'min_age', 'max_age', 'capacity', 'restriction_enabled', 'is_active'], true)) {
+                        } elseif (in_array($key, ['has_age_limit', 'min_age', 'max_age', 'capacity', 'restriction_enabled', 'is_public', 'is_active'], true)) {
                             $format[] = '%d';
                         } else {
                             $format[] = '%s';
@@ -4089,7 +4090,7 @@ function callback_add_event_sufix() {
                             $format[] = '%s';
                         } elseif (in_array($key, ['price', 'event_location_lat', 'event_location_lng'], true)) {
                             $format[] = '%f';
-                        } elseif (in_array($key, ['has_age_limit', 'min_age', 'max_age', 'capacity', 'restriction_enabled', 'is_active'], true)) {
+                        } elseif (in_array($key, ['has_age_limit', 'min_age', 'max_age', 'capacity', 'restriction_enabled', 'is_public', 'is_active'], true)) {
                             $format[] = '%d';
                         } else {
                             $format[] = '%s';
@@ -4195,6 +4196,15 @@ function sc_ajax_get_registration_details() {
     
     // ساخت HTML
     ob_start();
+    $is_guest_registration = isset($registration->registration_source) && $registration->registration_source === 'guest';
+    $registration_name = trim(($registration->first_name ?: '') . ' ' . ($registration->last_name ?: ''));
+    if ($is_guest_registration) {
+        $guest_full_name = trim(($registration->guest_first_name ?: '') . ' ' . ($registration->guest_last_name ?: ''));
+        if (!empty($guest_full_name)) {
+            $registration_name = $guest_full_name;
+        }
+    }
+    $registration_phone = $is_guest_registration ? ($registration->guest_phone ?: $registration->player_phone) : ($registration->player_phone ?: '-');
     ?>
     <h2 style="margin-top: 0;">اطلاعات ثبت‌نام</h2>
     <table class="widefat" style="margin-top: 15px;">
@@ -4204,11 +4214,16 @@ function sc_ajax_get_registration_details() {
         </tr>
         <tr>
             <th style="text-align: right;">نام کاربر:</th>
-            <td><?php echo esc_html(trim(($registration->first_name ?: '') . ' ' . ($registration->last_name ?: '')) ?: '-'); ?></td>
+            <td>
+                <?php echo esc_html($registration_name ?: '-'); ?>
+                <?php if ($is_guest_registration) : ?>
+                    <span style="display:inline-block;margin-right:6px;padding:2px 8px;border-radius:12px;background:#fff1f0;color:#cf1322;font-size:11px;">مهمان</span>
+                <?php endif; ?>
+            </td>
         </tr>
         <tr>
             <th style="text-align: right;">شماره تماس:</th>
-            <td><?php echo esc_html($registration->player_phone ?: '-'); ?></td>
+            <td><?php echo esc_html($registration_phone); ?></td>
         </tr>
         <tr>
             <th style="text-align: right;">تاریخ ثبت‌نام:</th>

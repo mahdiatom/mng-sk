@@ -387,7 +387,3 @@ jQuery(document).ready(function($) {
 });
 
 });
-
-
-
-

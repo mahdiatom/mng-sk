@@ -128,6 +128,7 @@ $sql = "CREATE TABLE `$table_name` (
         `allowed_teams` text DEFAULT NULL,
         `allowed_levels` text DEFAULT NULL,
         `allowed_gender` varchar(10) DEFAULT 'both',
+        `is_public` tinyint(1) DEFAULT 0 COMMENT '1=ثبت‌نام عمومی بدون نیاز به ورود',
         `is_active` tinyint(1) DEFAULT 1,
         `deleted_at` datetime DEFAULT NULL,
         `created_at` datetime NOT NULL,
@@ -424,6 +425,11 @@ function sc_create_event_registrations_table() {
         `invoice_id` bigint(20) unsigned DEFAULT NULL,
         `field_data` longtext DEFAULT NULL,
         `files` longtext DEFAULT NULL,
+        `registration_source` varchar(20) NOT NULL DEFAULT 'member' COMMENT 'member|guest',
+        `guest_first_name` varchar(100) DEFAULT NULL,
+        `guest_last_name` varchar(100) DEFAULT NULL,
+        `guest_phone` varchar(20) DEFAULT NULL,
+        `guest_national_id` varchar(20) DEFAULT NULL,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
@@ -1575,6 +1581,48 @@ function sc_update_database() {
             sc_create_course_session_cancellations_table();
         }
         update_option('sc_course_session_cancellations_table_created', '1');
+    }
+
+    // ستون عمومی بودن رویداد
+    if (get_option('sc_events_is_public_column_added', '0') !== '1') {
+        $events_table = $wpdb->prefix . 'sc_events';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$events_table` LIKE %s", 'is_public'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$events_table` ADD COLUMN `is_public` tinyint(1) DEFAULT 0 COMMENT '1=ثبت‌نام عمومی بدون نیاز به ورود' AFTER `allowed_gender`");
+        }
+        update_option('sc_events_is_public_column_added', '1');
+    }
+
+    // ستون‌های ثبت‌نام مهمان برای رویدادهای عمومی
+    if (get_option('sc_event_registrations_guest_columns_added', '0') !== '1') {
+        $registrations_table = $wpdb->prefix . 'sc_event_registrations';
+
+        $source_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$registrations_table` LIKE %s", 'registration_source'));
+        if (empty($source_exists)) {
+            $wpdb->query("ALTER TABLE `$registrations_table` ADD COLUMN `registration_source` varchar(20) NOT NULL DEFAULT 'member' COMMENT 'member|guest' AFTER `files`");
+        }
+
+        $guest_first_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$registrations_table` LIKE %s", 'guest_first_name'));
+        if (empty($guest_first_exists)) {
+            $wpdb->query("ALTER TABLE `$registrations_table` ADD COLUMN `guest_first_name` varchar(100) DEFAULT NULL AFTER `registration_source`");
+        }
+
+        $guest_last_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$registrations_table` LIKE %s", 'guest_last_name'));
+        if (empty($guest_last_exists)) {
+            $wpdb->query("ALTER TABLE `$registrations_table` ADD COLUMN `guest_last_name` varchar(100) DEFAULT NULL AFTER `guest_first_name`");
+        }
+
+        $guest_phone_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$registrations_table` LIKE %s", 'guest_phone'));
+        if (empty($guest_phone_exists)) {
+            $wpdb->query("ALTER TABLE `$registrations_table` ADD COLUMN `guest_phone` varchar(20) DEFAULT NULL AFTER `guest_last_name`");
+        }
+
+        $guest_national_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$registrations_table` LIKE %s", 'guest_national_id'));
+        if (empty($guest_national_exists)) {
+            $wpdb->query("ALTER TABLE `$registrations_table` ADD COLUMN `guest_national_id` varchar(20) DEFAULT NULL AFTER `guest_phone`");
+        }
+
+        update_option('sc_event_registrations_guest_columns_added', '1');
     }
 }
 

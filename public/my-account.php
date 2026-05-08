@@ -3269,6 +3269,275 @@ function sc_my_account_event_detail_content() {
 }
 
 /**
+ * Normalize phone for matching users/members.
+ */
+function sc_normalize_phone_for_match($phone) {
+    $phone = trim((string) $phone);
+    $digits = preg_replace('/\D+/', '', $phone);
+    if ($digits === '') {
+        return '';
+    }
+    if (strpos($digits, '98') === 0) {
+        $digits = '0' . substr($digits, 2);
+    }
+    if ($digits[0] !== '0') {
+        $digits = '0' . $digits;
+    }
+    return $digits;
+}
+
+/**
+ * Find or build member by national id for public event registration.
+ */
+function sc_resolve_member_by_national_id($raw_national_id, $raw_phone = '', $fallback_first_name = '', $fallback_last_name = '') {
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $national_id = preg_replace('/\D+/', '', (string) $raw_national_id);
+    if ($national_id === '') {
+        return null;
+    }
+
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $members_table WHERE national_id = %s LIMIT 1",
+        $national_id
+    ));
+    if ($member) {
+        $is_academy_member = !empty($member->user_id) && (int) $member->user_id > 0;
+        return [
+            'member' => $member,
+            'is_guest' => !$is_academy_member,
+            'is_academy_member' => $is_academy_member,
+        ];
+    }
+
+    // Create a guest member profile when no site member matches.
+    $first_name = sanitize_text_field($fallback_first_name ?: 'مهمان');
+    $last_name = sanitize_text_field($fallback_last_name ?: 'رویداد');
+    $normalized_phone = sc_normalize_phone_for_match($raw_phone);
+    $guest_national_id = $national_id;
+
+    $inserted = $wpdb->insert(
+        $members_table,
+        [
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'national_id' => $guest_national_id,
+            'player_phone' => $normalized_phone !== '' ? $normalized_phone : null,
+            'is_active' => 1,
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql'),
+        ],
+        ['%s', '%s', '%s', '%s', '%d', '%s', '%s']
+    );
+
+    if ($inserted === false) {
+        return null;
+    }
+
+    $guest_member = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $members_table WHERE id = %d LIMIT 1",
+        $wpdb->insert_id
+    ));
+    if (!$guest_member) {
+        return null;
+    }
+    return ['member' => $guest_member, 'is_guest' => true, 'is_academy_member' => false];
+}
+
+/**
+ * Render public event registration page by query string.
+ */
+add_action('template_redirect', 'sc_render_public_event_page', 1);
+function sc_render_public_event_page() {
+    if (is_admin() || !isset($_GET['sc_public_event'])) {
+        return;
+    }
+
+    sc_check_and_create_tables();
+    $event_id = absint($_GET['sc_public_event']);
+    if (!$event_id) {
+        wp_die('رویداد معتبر نیست.');
+    }
+
+    global $wpdb;
+    $events_table = $wpdb->prefix . 'sc_events';
+    $event = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $events_table WHERE id = %d AND deleted_at IS NULL AND is_active = 1 AND is_public = 1",
+        $event_id
+    ));
+    if (!$event) {
+        wp_die('این رویداد عمومی نیست یا در دسترس نمی‌باشد.');
+    }
+
+    $player = null;
+    if (is_user_logged_in()) {
+        $player = sc_check_user_active_status();
+    }
+
+    status_header(200);
+    nocache_headers();
+    include SC_TEMPLATES_PUBLIC_DIR . 'event-public-detail.php';
+    exit;
+}
+
+/**
+ * Handle public event enrollment form submission.
+ */
+add_action('template_redirect', 'sc_handle_public_event_enrollment', 2);
+function sc_handle_public_event_enrollment() {
+    if (!isset($_POST['sc_enroll_public_event'])) {
+        return;
+    }
+
+    if (!isset($_POST['sc_enroll_public_event_nonce']) || !wp_verify_nonce($_POST['sc_enroll_public_event_nonce'], 'sc_enroll_public_event')) {
+        wp_die('خطای امنیتی. لطفاً دوباره تلاش کنید.');
+    }
+
+    sc_check_and_create_tables();
+    global $wpdb;
+
+    $event_id = isset($_POST['event_id']) ? absint($_POST['event_id']) : 0;
+    if (!$event_id) {
+        wp_die('رویداد نامعتبر است.');
+    }
+
+    $events_table = $wpdb->prefix . 'sc_events';
+    $event = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $events_table WHERE id = %d AND deleted_at IS NULL AND is_active = 1 AND is_public = 1",
+        $event_id
+    ));
+    if (!$event) {
+        wp_die('این رویداد عمومی نیست یا غیرفعال شده است.');
+    }
+
+    $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+
+    $is_logged_in = is_user_logged_in();
+    $is_guest = false;
+    $guest_first_name = '';
+    $guest_last_name = '';
+    $guest_phone = '';
+    $guest_national_id = '';
+
+    if ($is_logged_in) {
+        $player = sc_check_user_active_status();
+        if (!$player) {
+            wp_die('حساب کاربری شما غیرفعال است.');
+        }
+        $member = $player;
+    } else {
+        $guest_first_name = isset($_POST['guest_first_name']) ? sanitize_text_field(wp_unslash($_POST['guest_first_name'])) : '';
+        $guest_last_name = isset($_POST['guest_last_name']) ? sanitize_text_field(wp_unslash($_POST['guest_last_name'])) : '';
+        $guest_phone = isset($_POST['guest_phone']) ? sanitize_text_field(wp_unslash($_POST['guest_phone'])) : '';
+        $guest_national_id = isset($_POST['guest_national_id']) ? sanitize_text_field(wp_unslash($_POST['guest_national_id'])) : '';
+
+        if ($guest_first_name === '' || $guest_last_name === '' || $guest_phone === '' || $guest_national_id === '') {
+            wp_die('نام، نام خانوادگی، شماره تماس و کد ملی الزامی است.');
+        }
+
+        $resolved_member = sc_resolve_member_by_national_id($guest_national_id, $guest_phone, $guest_first_name, $guest_last_name);
+        if (!$resolved_member || empty($resolved_member['member'])) {
+            wp_die('خطا در ثبت اطلاعات کاربر مهمان. لطفاً دوباره تلاش کنید.');
+        }
+
+        if (!empty($resolved_member['is_academy_member'])) {
+            $event_detail_url = '';
+            if (function_exists('wc_get_page_permalink') && function_exists('wc_get_endpoint_url')) {
+                $event_detail_url = wc_get_endpoint_url('sc-event-detail', $event_id, wc_get_page_permalink('myaccount'));
+            }
+            $redirect_url = add_query_arg(
+                [
+                    'sc_login_required' => 1,
+                    'redirect_to' => rawurlencode($event_detail_url),
+                ],
+                home_url('/')
+            );
+            wp_safe_redirect($redirect_url);
+            exit;
+        }
+
+        $member = $resolved_member['member'];
+        $is_guest = !empty($resolved_member['is_guest']);
+    }
+
+    $member_id = (int) $member->id;
+
+    $already_registered = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $event_registrations_table WHERE event_id = %d AND member_id = %d LIMIT 1",
+        $event_id,
+        $member_id
+    ));
+    if ($already_registered) {
+        wp_safe_redirect(add_query_arg([
+            'sc_public_event' => $event_id,
+            'public_status' => 'already_registered',
+        ], home_url('/')));
+        exit;
+    }
+
+    // Match capacity check for free and paid events.
+    if (!empty($event->capacity)) {
+        $paid_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $invoices_table WHERE event_id = %d AND status IN ('paid', 'completed', 'processing')",
+            $event_id
+        ));
+        $free_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $event_registrations_table WHERE event_id = %d AND invoice_id IS NULL",
+            $event_id
+        ));
+        if (($paid_count + $free_count) >= (int) $event->capacity) {
+            wp_safe_redirect(add_query_arg([
+                'sc_public_event' => $event_id,
+                'public_status' => 'capacity_full',
+            ], home_url('/')));
+            exit;
+        }
+    }
+
+    // Guest flow: always create pending invoice and send to gateway.
+    $invoice_result = sc_create_event_invoice($member_id, $event_id, $event->price);
+    if (!$invoice_result || empty($invoice_result['success'])) {
+        wp_die('خطا در ساخت صورت‌حساب. لطفاً دوباره تلاش کنید.');
+    }
+
+    $invoice_id = isset($invoice_result['invoice_id']) ? absint($invoice_result['invoice_id']) : 0;
+    $inserted = $wpdb->insert(
+        $event_registrations_table,
+        [
+            'event_id' => $event_id,
+            'member_id' => $member_id,
+            'invoice_id' => $invoice_id > 0 ? $invoice_id : null,
+            'field_data' => null,
+            'files' => null,
+            'registration_source' => ($is_logged_in || empty($is_guest)) ? 'member' : 'guest',
+            'guest_first_name' => $is_logged_in ? null : $guest_first_name,
+            'guest_last_name' => $is_logged_in ? null : $guest_last_name,
+            'guest_phone' => $is_logged_in ? null : sc_normalize_phone_for_match($guest_phone),
+            'guest_national_id' => $is_logged_in ? null : $guest_national_id,
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql'),
+        ],
+        ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
+    );
+    if ($inserted === false) {
+        wp_die('صورت‌حساب ایجاد شد اما ثبت‌نام ذخیره نشد. لطفاً با پشتیبانی تماس بگیرید.');
+    }
+
+    $payment_url = isset($invoice_result['payment_url']) ? trim((string) $invoice_result['payment_url']) : '';
+    if ($payment_url !== '') {
+        wp_safe_redirect($payment_url);
+        exit;
+    }
+
+    wp_safe_redirect(add_query_arg([
+        'sc_public_event' => $event_id,
+        'public_status' => 'success',
+    ], home_url('/')));
+    exit;
+}
+
+/**
  * Handle event enrollment form submission
  */
 add_action('template_redirect', 'sc_handle_event_enrollment');

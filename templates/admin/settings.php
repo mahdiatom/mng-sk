@@ -420,6 +420,47 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات درباره مجموعه شد.</p></div>';
     }
+    elseif ($current_tab === 'header_footer') {
+        $sc_header_search_placeholder = isset($_POST['sc_header_search_placeholder']) ? sanitize_text_field($_POST['sc_header_search_placeholder']) : '';
+        sc_update_setting('sc_header_search_placeholder', $sc_header_search_placeholder, 'header_footer');
+
+        $lines_raw = isset($_POST['sc_header_search_suggestions']) ? wp_unslash($_POST['sc_header_search_suggestions']) : '';
+        $lines = preg_split('/\r\n|\r|\n/', $lines_raw);
+        $items = array();
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            $parts = explode('|', $line, 2);
+            if (count($parts) < 2) {
+                continue;
+            }
+            $t = sanitize_text_field(trim($parts[0]));
+            $u = esc_url_raw(trim($parts[1]));
+            if ($t === '' || $u === '') {
+                continue;
+            }
+            $items[] = array('title' => $t, 'url' => $u);
+        }
+        sc_update_setting('sc_header_search_suggestions_json', wp_json_encode($items, JSON_UNESCAPED_UNICODE), 'header_footer');
+
+        $kw_in = isset($_POST['sc_search_keywords']) && is_array($_POST['sc_search_keywords']) ? wp_unslash($_POST['sc_search_keywords']) : array();
+        $kw_clean = array();
+        foreach ($kw_in as $key => $blob) {
+            $key = preg_replace('/[^A-Za-z0-9_]/', '', (string) $key);
+            if ($key === '') {
+                continue;
+            }
+            $kw_clean[$key] = sanitize_textarea_field($blob);
+        }
+        sc_update_setting('sc_header_search_keywords_json', wp_json_encode($kw_clean, JSON_UNESCAPED_UNICODE), 'header_footer');
+
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات هدر و فوتر ذخیره شد', null, ['tab' => 'header_footer']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات هدر و فوتر ذخیره شد.</p></div>';
+    }
 }
 
 // پردازش فرم بازگشت به کارخانه
@@ -574,6 +615,18 @@ $sc_phone_club      = sc_get_setting('sc_phone_club', '');
 $sc_token_club      = sc_get_setting('sc_token_club', '');
 $sc_botname_club      = sc_get_setting('sc_botname_club', '');
 
+$sc_header_search_placeholder = sc_get_setting('sc_header_search_placeholder', 'جستجو در خدمات، صفحات و فروشگاه…');
+$sc_header_search_suggestions_lines = '';
+$raw_header_suggestions = sc_get_setting('sc_header_search_suggestions_json', '');
+$decoded_header_suggestions = json_decode((string) $raw_header_suggestions, true);
+if (is_array($decoded_header_suggestions)) {
+    foreach ($decoded_header_suggestions as $row) {
+        if (!empty($row['title']) && !empty($row['url'])) {
+            $sc_header_search_suggestions_lines .= $row['title'] . '|' . $row['url'] . "\n";
+        }
+    }
+}
+
 // ذخیره سازی صورتحساب
 $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
 ?>
@@ -605,6 +658,10 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=about'); ?>"
            class="nav-tab <?php echo $current_tab === 'about' ? 'nav-tab-active' : ''; ?>">
             درباره  مجموعه
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=header_footer'); ?>"
+           class="nav-tab <?php echo $current_tab === 'header_footer' ? 'nav-tab-active' : ''; ?>">
+            هدر و فوتر
         </a>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=player_info'); ?>"
             class="nav-tab <?php echo $current_tab === 'player_info' ? 'nav-tab-active' : ''; ?>">
@@ -1069,6 +1126,131 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 </p>
             </form>
          
+        <?php elseif ($current_tab === 'header_footer') : ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                <h3>جستجوی هدر</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="sc_header_search_placeholder">متن راهنمای باکس جستجو</label></th>
+                        <td>
+                            <input type="text" name="sc_header_search_placeholder" id="sc_header_search_placeholder"
+                                   value="<?php echo esc_attr($sc_header_search_placeholder); ?>"
+                                   class="regular-text" placeholder="جستجو در خدمات، صفحات و فروشگاه…">
+                            <p class="description">در وسط هدر (دسکتاپ) و پنجره جستجو (موبایل) نمایش داده می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_header_search_suggestions">پیشنهادهای اولیه</label></th>
+                        <td>
+                            <textarea name="sc_header_search_suggestions" id="sc_header_search_suggestions" rows="12" class="large-text code" placeholder="عنوان لینک|https://..."><?php echo esc_textarea($sc_header_search_suggestions_lines); ?></textarea>
+                            <p class="description">هر خط یک پیشنهاد؛ فرمت: <code>عنوان نمایشی|آدرس کامل</code> (مثال: <code>ثبت‌نام دوره|<?php echo esc_html(home_url('/')); ?></code>). با فوکوس روی جستجو، قبل از تایپ این موارد نشان داده می‌شوند.</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <?php
+                $sc_saved_search_kw = function_exists('sc_header_search_get_saved_keywords_map') ? sc_header_search_get_saved_keywords_map() : array();
+                $sc_hs_registry = function_exists('sc_header_search_link_targets_map') ? sc_header_search_link_targets_map() : array();
+                $sc_hs_site_rows = array();
+                $sc_hs_account_rows = array();
+                foreach ($sc_hs_registry as $reg_key => $reg_info) {
+                    $g = isset($reg_info['group']) ? $reg_info['group'] : 'account';
+                    if ($g === 'site') {
+                        $sc_hs_site_rows[$reg_key] = $reg_info;
+                    } else {
+                        $sc_hs_account_rows[$reg_key] = $reg_info;
+                    }
+                }
+                ?>
+
+                <h3 style="margin-top:24px;">کلمات کلیدی جستجو — خدمات، فروشگاه و پنل کاربری</h3>
+                <p class="description">جستجوی هدر به‌صورت خودکار دوره‌های گروهی، رویدادها، برگه‌ها و نوشته‌های منتشرشده را بر اساس متنی که کاربر تایپ می‌کند پیدا می‌کند؛ اینجا فقط کلمات تکمیلی بگذارید تا سریع‌تر به مقاصد ثابت (فروشگاه، ثبت‌نام، تیکت، کیف پول و …) برسد — هر کلمه را با ویرگول یا خط جدید جدا کنید.</p>
+
+                <table class="widefat striped" style="margin-top:12px;">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width:32%;">بخش</th>
+                            <th scope="col">کلمات کلیدی</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($sc_hs_site_rows)) : ?>
+                            <tr><td colspan="2"><strong>سایت و فروشگاه عمومی</strong></td></tr>
+                            <?php foreach ($sc_hs_site_rows as $rk => $ri) :
+                                $kw_val = isset($sc_saved_search_kw[$rk]) ? $sc_saved_search_kw[$rk] : '';
+                                ?>
+                                <tr>
+                                    <td style="vertical-align:top;">
+                                        <strong><?php echo esc_html($ri['title']); ?></strong>
+                                        <p class="description" style="margin:6px 0 0;word-break:break-all;"><a href="<?php echo esc_url($ri['url']); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($ri['url']); ?></a></p>
+                                    </td>
+                                    <td>
+                                        <textarea name="sc_search_keywords[<?php echo esc_attr($rk); ?>]" rows="2" class="large-text" placeholder="مثال: خرید، محصول، فروشگاه"><?php echo esc_textarea($kw_val); ?></textarea>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+
+                        <?php if (!empty($sc_hs_account_rows)) : ?>
+                            <tr><td colspan="2"><strong>پنل کاربری و خدمات باشگاه</strong></td></tr>
+                            <?php foreach ($sc_hs_account_rows as $rk => $ri) :
+                                $kw_val = isset($sc_saved_search_kw[$rk]) ? $sc_saved_search_kw[$rk] : '';
+                                ?>
+                                <tr>
+                                    <td style="vertical-align:top;">
+                                        <strong><?php echo esc_html($ri['title']); ?></strong>
+                                        <p class="description" style="margin:6px 0 0;word-break:break-all;"><a href="<?php echo esc_url($ri['url']); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($ri['url']); ?></a></p>
+                                    </td>
+                                    <td>
+                                        <textarea name="sc_search_keywords[<?php echo esc_attr($rk); ?>]" rows="2" class="large-text" placeholder="کلمات مرتبط با این بخش"><?php echo esc_textarea($kw_val); ?></textarea>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+
+                        <?php
+                        $sc_pages_for_search_kw = get_posts(array(
+                            'post_type'      => 'page',
+                            'post_status'    => 'publish',
+                            'posts_per_page' => -1,
+                            'orderby'        => 'title',
+                            'order'          => 'ASC',
+                            'no_found_rows'  => true,
+                        ));
+                        ?>
+                        <?php if (!empty($sc_pages_for_search_kw)) : ?>
+                            <tr><td colspan="2"><strong>صفحات وردپرس</strong></td></tr>
+                            <?php foreach ($sc_pages_for_search_kw as $sc_pg) :
+                                $pk = 'page_' . (int) $sc_pg->ID;
+                                $kw_val = isset($sc_saved_search_kw[$pk]) ? $sc_saved_search_kw[$pk] : '';
+                                if ($kw_val === '' && isset($sc_saved_search_kw[(string) $sc_pg->ID])) {
+                                    $kw_val = $sc_saved_search_kw[(string) $sc_pg->ID];
+                                }
+                                ?>
+                                <tr>
+                                    <td style="vertical-align:top;">
+                                        <strong><?php echo esc_html(get_the_title($sc_pg)); ?></strong>
+                                        <p class="description" style="margin:6px 0 0;">
+                                            <a href="<?php echo esc_url(get_permalink($sc_pg)); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html(wp_trim_words(get_permalink($sc_pg), 14, '…')); ?></a>
+                                        </p>
+                                    </td>
+                                    <td>
+                                        <textarea name="sc_search_keywords[<?php echo esc_attr($pk); ?>]" rows="2" class="large-text" placeholder="کلمات مخصوص این صفحه"><?php echo esc_textarea($kw_val); ?></textarea>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <tr><td colspan="2"><?php esc_html_e('صفحهٔ منتشرشده‌ای در وردپرس نیست.', 'sportclub-manager'); ?></td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات هدر و فوتر">
+                </p>
+            </form>
+
         <?php elseif ($current_tab === 'sms') : ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
