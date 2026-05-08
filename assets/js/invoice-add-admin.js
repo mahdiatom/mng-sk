@@ -2,7 +2,9 @@
     'use strict';
 
     var selectedMemberIds = [];
+    var selectedMemberLabels = {};
     var excludedMemberIds = [];
+    var excludedMemberLabels = {};
 
     function toggleFilterBlocks() {
         var targetType = $('#sc-invoice-target-type').val();
@@ -25,81 +27,112 @@
     function renderSelectedMembers() {
         var $tags = $('#sc-invoice-selected-members');
         var $inputs = $('#sc-invoice-member-hidden-inputs');
-        var $count = $('#sc-invoice-selected-members-count');
         $tags.empty();
         $inputs.empty();
-        $count.text(selectedMemberIds.length + ' کاربر انتخاب شده');
 
         if (!selectedMemberIds.length) {
-            $tags.html('<em>هنوز کاربری انتخاب نشده است.</em>');
+            $tags.html('<em style="color:#999;">هنوز کسی انتخاب نشده</em>');
             return;
         }
 
-        selectedMemberIds.forEach(function (item) {
-            $tags.append('<span class="sc-tag" data-id="' + item.id + '">' + item.label + ' <button type="button" class="sc-remove-tag">&times;</button></span>');
-            $inputs.append('<input type="hidden" name="member_ids[]" value="' + item.id + '">');
+        selectedMemberIds.forEach(function (id) {
+            var label = selectedMemberLabels[id] || ('کاربر #' + id);
+            $tags.append('<span class="recipient-tag" data-id="' + id + '">' + label + ' <button type="button" class="recipient-remove">&times;</button></span> ');
+            $inputs.append('<input type="hidden" name="member_ids[]" value="' + id + '">');
         });
     }
 
     function addMember(id, label) {
-        var exists = selectedMemberIds.some(function (item) {
-            return item.id === id;
-        });
-        if (exists) {
+        if (selectedMemberIds.indexOf(id) !== -1) {
             return;
         }
-        selectedMemberIds.push({ id: id, label: label });
+        selectedMemberIds.push(id);
+        selectedMemberLabels[id] = label;
         renderSelectedMembers();
     }
 
-    function bindSearchableDropdown() {
-        var $dropdown = $('#sc-invoice-member-dropdown');
-        var $toggle = $dropdown.find('.sc-users-dropdown-toggle');
-        var $menu = $dropdown.find('.sc-users-dropdown-menu');
-        var $search = $dropdown.find('.sc-users-search-input');
+    function renderExcludedMembers() {
+        var $tags = $('#sc-invoice-exclude-members');
+        $tags.empty();
 
-        $toggle.on('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            $menu.slideToggle(150);
-            setTimeout(function () {
-                $search.trigger('focus');
-            }, 200);
+        if (!excludedMemberIds.length) {
+            $tags.html('<em style="color:#999;">هیچ استثنایی ثبت نشده</em>');
+            return;
+        }
+
+        excludedMemberIds.forEach(function (id) {
+            var label = excludedMemberLabels[id] || selectedMemberLabels[id] || ('کاربر #' + id);
+            $tags.append('<span class="recipient-tag" data-id="' + id + '">' + label + ' <button type="button" class="exclude-recipient-remove">&times;</button></span> ');
         });
+    }
 
-        $search.on('input', function () {
-            var term = ($(this).val() || '').toLowerCase().trim();
-            $('#sc-invoice-member-options .sc-users-dropdown-option').each(function () {
-                var text = ($(this).attr('data-search') || '').toLowerCase();
+    function bindSearchableDropdown() {
+        $(document).on('input', '#sc-invoice-member-dropdown .sc-search-input, #sc-invoice-exclude-dropdown .sc-search-input', function () {
+            var $input = $(this);
+            var term = ($input.val() || '').toLowerCase().trim();
+            var $root = $input.closest('.sc-searchable-dropdown');
+            $root.find('.sc-dropdown-option').each(function () {
+                var text = (String($(this).attr('data-search') || '')).toLowerCase();
                 $(this).toggle(term === '' || text.indexOf(term) !== -1);
             });
         });
 
-        $(document).on('click', '#sc-invoice-member-options .sc-users-dropdown-option', function (e) {
+        // از capture استفاده می‌کنیم چون admin.js در .sc-dropdown-menu جلوی bubble را می‌گیرد.
+        document.addEventListener('click', function (e) {
+            if (!e.target || !e.target.closest) {
+                return;
+            }
+            var opt = e.target.closest('.sc-dropdown-option');
+            if (!opt || !jQuery(opt).length) {
+                return;
+            }
+            var $opt = jQuery(opt);
+            var isMemberDropdown = $opt.closest('#sc-invoice-member-dropdown').length > 0;
+            var isExcludeDropdown = $opt.closest('#sc-invoice-exclude-dropdown').length > 0;
+            if (!isMemberDropdown && !isExcludeDropdown) {
+                return;
+            }
+
             e.preventDefault();
             e.stopPropagation();
-            var id = parseInt($(this).attr('data-id'), 10);
-            var label = $(this).attr('data-label') || '';
-            if (id) {
-                addMember(id, label);
-            }
-            $search.val('');
-            $('#sc-invoice-member-options .sc-users-dropdown-option').show();
-        });
 
-        $(document).on('click', '#sc-invoice-selected-members .sc-remove-tag', function () {
-            var $tag = $(this).closest('.sc-tag');
+            var id = parseInt($opt.attr('data-id'), 10);
+            var label = $opt.attr('data-label') || $opt.text().trim();
+            if (id > 0) {
+                if (isExcludeDropdown) {
+                    if (excludedMemberIds.indexOf(id) === -1) {
+                        excludedMemberIds.push(id);
+                        excludedMemberLabels[id] = label;
+                        syncExcludedMemberInputs();
+                        renderExcludedMembers();
+                    }
+                } else {
+                    addMember(id, label);
+                }
+            }
+
+            var $menu = $opt.closest('.sc-dropdown-menu');
+            $menu.slideUp(150);
+            $menu.find('.sc-search-input').val('').trigger('input');
+        }, true);
+
+        $(document).on('click', '#sc-invoice-selected-members .recipient-remove', function () {
+            var $tag = $(this).closest('.recipient-tag');
             var id = parseInt($tag.attr('data-id'), 10);
-            selectedMemberIds = selectedMemberIds.filter(function (item) {
-                return item.id !== id;
+            selectedMemberIds = selectedMemberIds.filter(function (x) {
+                return x !== id;
             });
             renderSelectedMembers();
         });
 
-        $(document).on('click', function (e) {
-            if (!$(e.target).closest('#sc-invoice-member-dropdown').length) {
-                $menu.slideUp(150);
-            }
+        $(document).on('click', '#sc-invoice-exclude-members .exclude-recipient-remove', function () {
+            var $tag = $(this).closest('.recipient-tag');
+            var id = parseInt($tag.attr('data-id'), 10);
+            excludedMemberIds = excludedMemberIds.filter(function (x) {
+                return x !== id;
+            });
+            syncExcludedMemberInputs();
+            renderExcludedMembers();
         });
     }
 
@@ -147,8 +180,13 @@
                 excludedMemberIds = excludedMemberIds.filter(function (x) { return x !== id; });
             } else if (excludedMemberIds.indexOf(id) === -1) {
                 excludedMemberIds.push(id);
+                if (!excludedMemberLabels[id]) {
+                    var rowText = $(this).closest('tr').find('td').eq(1).text().trim();
+                    excludedMemberLabels[id] = rowText || ('کاربر #' + id);
+                }
             }
             syncExcludedMemberInputs();
+            renderExcludedMembers();
 
             var allCount = $('.sc-invoice-preview-member-check').length;
             var selectedCount = $('.sc-invoice-preview-member-check:checked').length;
@@ -179,6 +217,7 @@
     $(document).ready(function () {
         toggleFilterBlocks();
         renderSelectedMembers();
+        renderExcludedMembers();
         bindSearchableDropdown();
         syncExcludedMemberInputs();
 

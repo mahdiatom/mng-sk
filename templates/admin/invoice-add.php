@@ -87,23 +87,23 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
 
             <div class="sc-filter-block" id="sc-invoice-filter-specific">
                 <label>انتخاب کاربران</label>
-                <div id="sc-invoice-selected-members-count" class="sc-selected-count">0 کاربر انتخاب شده</div>
-                <div id="sc-invoice-selected-members" class="sc-selected-tags"></div>
-                <div class="sc-users-member-dropdown" id="sc-invoice-member-dropdown">
-                    <div class="sc-users-dropdown-toggle">
-                        <span class="sc-users-dropdown-placeholder">جستجو با نام یا کد ملی...</span>
-                        <span class="sc-users-dropdown-arrow">▼</span>
+                <div id="sc-invoice-selected-members" class="sc-notification-recipient-tags"></div>
+                <div class="sc-searchable-dropdown sc-notification-recipient-dropdown" id="sc-invoice-member-dropdown">
+                    <div class="sc-dropdown-toggle">
+                        <span class="sc-dropdown-placeholder">جستجو یا انتخاب بازیکن برای افزودن...</span>
+                        <span class="sc-dropdown-arrow">▼</span>
                     </div>
-                    <div class="sc-users-dropdown-menu">
-                        <div class="sc-users-dropdown-search">
-                            <input type="text" class="sc-users-search-input" placeholder="جستجوی نام یا کد ملی...">
+                    <div class="sc-dropdown-menu">
+                        <div class="sc-dropdown-search">
+                            <input type="text" class="sc-search-input" placeholder="جستجوی نام یا کد ملی...">
                         </div>
-                        <div class="sc-users-dropdown-options" id="sc-invoice-member-options">
+                        <div class="sc-dropdown-options" id="sc-invoice-member-options">
+                            <div class="sc-dropdown-option-group">بازیکن‌ها</div>
                             <?php foreach ($members as $member) :
                                 $name = trim(($member->first_name ?: '') . ' ' . ($member->last_name ?: ''));
                                 $search = strtolower($name . ' ' . ($member->national_id ?: ''));
                             ?>
-                                <div class="sc-users-dropdown-option"
+                                <div class="sc-dropdown-option"
                                      data-id="<?php echo (int) $member->id; ?>"
                                      data-label="<?php echo esc_attr($name . ' - ' . ($member->national_id ?: $member->id)); ?>"
                                      data-search="<?php echo esc_attr($search); ?>">
@@ -114,6 +114,37 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                     </div>
                 </div>
                 <div id="sc-invoice-member-hidden-inputs"></div>
+            </div>
+
+            <div class="sc-filter-block">
+                <label>استثنا از فیلتر (اختیاری)</label>
+                <div id="sc-invoice-exclude-members" class="sc-notification-recipient-tags"></div>
+                <div class="sc-searchable-dropdown sc-exclude-recipient-dropdown" id="sc-invoice-exclude-dropdown">
+                    <div class="sc-dropdown-toggle">
+                        <span class="sc-dropdown-placeholder">جستجو یا انتخاب بازیکن برای حذف از خروجی...</span>
+                        <span class="sc-dropdown-arrow">▼</span>
+                    </div>
+                    <div class="sc-dropdown-menu">
+                        <div class="sc-dropdown-search">
+                            <input type="text" class="sc-search-input" placeholder="جستجوی نام یا کد ملی...">
+                        </div>
+                        <div class="sc-dropdown-options" id="sc-invoice-exclude-options">
+                            <div class="sc-dropdown-option-group">بازیکن‌ها</div>
+                            <?php foreach ($members as $member) :
+                                $name = trim(($member->first_name ?: '') . ' ' . ($member->last_name ?: ''));
+                                $search = strtolower($name . ' ' . ($member->national_id ?: ''));
+                            ?>
+                                <div class="sc-dropdown-option"
+                                     data-id="<?php echo (int) $member->id; ?>"
+                                     data-label="<?php echo esc_attr($name . ' - ' . ($member->national_id ?: $member->id)); ?>"
+                                     data-search="<?php echo esc_attr($search); ?>">
+                                    <?php echo esc_html($name . ' - ' . ($member->national_id ?: $member->id)); ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+                <p class="description">کاربرانی که اینجا انتخاب شوند، حتی اگر در فیلتر باشند برای آن‌ها صورت‌حساب ثبت نمی‌شود.</p>
             </div>
 
             <div class="sc-filter-block" id="sc-invoice-filter-course">
