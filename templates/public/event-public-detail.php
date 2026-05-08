@@ -62,6 +62,12 @@ $formatted_price = number_format((float) $event->price, $decimal_places, $decima
 if ((float) $event->price <= 0) {
     $formatted_price = 'رایگان';
 }
+
+$event_fields_table = $wpdb->prefix . 'sc_event_fields';
+$event_fields = $wpdb->get_results($wpdb->prepare(
+    "SELECT * FROM $event_fields_table WHERE event_id = %d ORDER BY field_order ASC, id ASC",
+    $event->id
+));
 get_header();
 ?>
 
@@ -194,7 +200,7 @@ get_header();
             <?php endif; ?>
 
             <?php if ($can_enroll) : ?>
-                <form method="post" action="" class="sc-enroll-event-form">
+                <form method="post" action="" class="sc-enroll-event-form" enctype="multipart/form-data">
                     <?php wp_nonce_field('sc_enroll_public_event', 'sc_enroll_public_event_nonce'); ?>
                     <input type="hidden" name="event_id" value="<?php echo esc_attr($event->id); ?>">
 
@@ -206,6 +212,48 @@ get_header();
                             <p><label>شماره تماس</label><input type="text" name="guest_phone" class="regular-text" style="width:100%;" placeholder="09xxxxxxxxx" required></p>
                             <p><label>کد ملی</label><input type="text" name="guest_national_id" class="regular-text" style="width:100%;" required></p>
                         </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($event_fields)) : ?>
+                    <div class="sc-event-custom-fields-section" style="margin-bottom: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <h3 style="margin-top: 0; margin-bottom: 10px; color: #1a1a1a; font-size: 20px; font-weight: 600;">اطلاعات تکمیلی ثبت‌نام</h3>
+                        <p class="description" style="margin-bottom: 20px; color: #666; font-size: 14px;">لطفاً اطلاعات زیر را تکمیل کنید:</p>
+                        
+                        <div class="sc-event-fields-form" style="margin-top: 20px;">
+                            <?php foreach ($event_fields as $field) : 
+                                $field_options = !empty($field->field_options) ? json_decode($field->field_options, true) : [];
+                                $field_id_attr = 'sc_event_field_public_' . $field->id;
+                                $field_name_attr = 'event_fields[' . $field->id . ']';
+                            ?>
+                            <div class="sc-event-field-row" style="margin-bottom: 25px;">
+                                <label for="<?php echo esc_attr($field_id_attr); ?>" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 14px;">
+                                    <?php echo esc_html($field->field_name); ?>
+                                    <?php if ($field->is_required) : ?>
+                                        <span style="color: #d63638; margin-right: 3px;">*</span>
+                                    <?php endif; ?>
+                                </label>
+                                
+                                <?php if ($field->field_type === 'text') : ?>
+                                    <input type="text" name="<?php echo esc_attr($field_name_attr); ?>" id="<?php echo esc_attr($field_id_attr); ?>" class="regular-text sc-event-field-input" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;" <?php echo $field->is_required ? 'required' : ''; ?>>
+                                <?php elseif ($field->field_type === 'number') : ?>
+                                    <input type="number" name="<?php echo esc_attr($field_name_attr); ?>" id="<?php echo esc_attr($field_id_attr); ?>" class="regular-text sc-event-field-input" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;" <?php echo $field->is_required ? 'required' : ''; ?>>
+                                <?php elseif ($field->field_type === 'date') : ?>
+                                    <input type="text" name="<?php echo esc_attr($field_name_attr); ?>" id="<?php echo esc_attr($field_id_attr); ?>" class="regular-text persian-date-input sc-event-field-input" placeholder="تاریخ (شمسی)" readonly style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: #fff; cursor: pointer;" <?php echo $field->is_required ? 'required' : ''; ?>>
+                                <?php elseif ($field->field_type === 'file') : ?>
+                                    <input type="file" name="<?php echo esc_attr($field_name_attr); ?>[]" id="<?php echo esc_attr($field_id_attr); ?>" class="regular-text sc-event-file-input sc-event-field-input" accept="image/*,.pdf" multiple data-max-files="10" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;" <?php echo $field->is_required ? 'required' : ''; ?>>
+                                    <p class="description" style="margin-top: 5px; font-size: 12px; color: #666;">حداکثر 10 فایل (فقط تصویر و PDF)، حداکثر حجم هر فایل: 1 مگابایت</p>
+                                <?php elseif ($field->field_type === 'select' && !empty($field_options['options'])) : ?>
+                                    <select name="<?php echo esc_attr($field_name_attr); ?>" id="<?php echo esc_attr($field_id_attr); ?>" class="regular-text sc-event-field-input" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;" <?php echo $field->is_required ? 'required' : ''; ?>>
+                                        <option value="">-- انتخاب کنید --</option>
+                                        <?php foreach ($field_options['options'] as $option) : ?>
+                                            <option value="<?php echo esc_attr(trim($option)); ?>"><?php echo esc_html(trim($option)); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php endif; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                     <?php endif; ?>
 
                     <button type="submit" name="sc_enroll_public_event" class="button button-primary sc-enroll-event-btn">

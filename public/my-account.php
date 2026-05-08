@@ -1789,7 +1789,13 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
  */
 add_action('template_redirect', 'sc_handle_course_cancellation');
 function sc_handle_course_cancellation() {
-    if (!is_user_logged_in() || !isset($_POST['sc_cancel_course'])) {
+    if (!is_user_logged_in() || ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+        return;
+    }
+
+    // برای سازگاری با submit سفارشی، به جای اتکا به نام دکمه،
+    // وجود nonce و شناسه رکورد دوره را معیار پردازش قرار می‌دهیم.
+    if (!isset($_POST['sc_cancel_course_nonce']) || !isset($_POST['cancel_course_id'])) {
         return;
     }
     
@@ -2063,7 +2069,7 @@ function sc_my_account_my_courses_content() {
 /**
  * Create WooCommerce order for an existing invoice (when created by admin)
  */
-function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $course_id, $amount, $expense_name = '') {
+function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $course_id, $amount, $expense_name = '', $guest_profile = null) {
     // بررسی فعال بودن WooCommerce
     if (!class_exists('WooCommerce')) {
         return ['success' => false, 'message' => 'WooCommerce فعال نیست.', 'order_id' => null];
@@ -2083,13 +2089,15 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
     }
     
     // دریافت اطلاعات کاربر
-    $member = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $members_table WHERE id = %d",
-        $member_id
-    ));
-    
-    if (!$member) {
-        return ['success' => false, 'message' => 'اطلاعات کاربر یافت نشد.', 'order_id' => null];
+    $member = null;
+    if ((int) $member_id > 0) {
+        $member = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $members_table WHERE id = %d",
+            $member_id
+        ));
+        if (!$member) {
+            return ['success' => false, 'message' => 'اطلاعات کاربر یافت نشد.', 'order_id' => null];
+        }
     }
     
     // پیدا کردن آخرین order ID برای اطمینان از توالی (قبل از ایجاد order)
@@ -2139,7 +2147,7 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
     $user_id = null;
     $user = null;
     
-    if (!empty($member->user_id)) {
+    if ($member && !empty($member->user_id)) {
         $user_id = $member->user_id;
         $user = get_userdata($user_id);
         
@@ -2184,11 +2192,18 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
             $billing_state = '';
         }
     } else {
-        // اگر user_id وجود نداشت، از اطلاعات member استفاده کن
-        $billing_first_name = $member->first_name ? $member->first_name : '';
-        $billing_last_name = $member->last_name ? $member->last_name : '';
-        $billing_email = '';
-        $billing_phone = $member->player_phone ? $member->player_phone : '';
+        // اگر user_id وجود نداشت، از اطلاعات member یا guest استفاده کن
+        if ($member) {
+            $billing_first_name = $member->first_name ? $member->first_name : '';
+            $billing_last_name = $member->last_name ? $member->last_name : '';
+            $billing_email = '';
+            $billing_phone = $member->player_phone ? $member->player_phone : '';
+        } else {
+            $billing_first_name = is_array($guest_profile) ? sanitize_text_field($guest_profile['first_name'] ?? '') : '';
+            $billing_last_name = is_array($guest_profile) ? sanitize_text_field($guest_profile['last_name'] ?? '') : '';
+            $billing_email = is_array($guest_profile) ? sanitize_email($guest_profile['email'] ?? '') : '';
+            $billing_phone = is_array($guest_profile) ? sanitize_text_field($guest_profile['phone'] ?? '') : '';
+        }
         $billing_address_1 = '';
         $billing_city = '';
         $billing_postcode = '';
@@ -2203,7 +2218,8 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
     
     // اگر email وجود نداشت، یک email موقت ایجاد کن
     if (empty($billing_email)) {
-        $billing_email = 'member_' . $member_id . '@sportclub.local';
+        $guest_suffix = (int) $invoice_id > 0 ? (int) $invoice_id : time();
+        $billing_email = 'guest_' . $guest_suffix . '@sportclub.local';
     }
     
     // تنظیم اطلاعات billing
@@ -2379,7 +2395,7 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
  * Create invoice and WooCommerce order for event enrollment
  */
 if (!function_exists('sc_create_event_invoice')) {
-function sc_create_event_invoice($member_id, $event_id, $amount, $discount_meta = null) {
+function sc_create_event_invoice($member_id, $event_id, $amount, $discount_meta = null, $guest_profile = null) {
     // بررسی فعال بودن WooCommerce
     if (!class_exists('WooCommerce')) {
         return ['success' => false, 'message' => 'WooCommerce فعال نیست.'];
@@ -2422,7 +2438,7 @@ function sc_create_event_invoice($member_id, $event_id, $amount, $discount_meta 
     
     // ایجاد صورت حساب
     $invoice_data = [
-        'member_id' => $member_id,
+        'member_id' => (int) $member_id,
         'event_id' => $event_id,
         'course_id' => 0, // برای رویداد، course_id باید 0 باشد نه NULL
         'member_course_id' => NULL,
@@ -2474,7 +2490,7 @@ function sc_create_event_invoice($member_id, $event_id, $amount, $discount_meta 
     do_action('sc_invoice_created', $invoice_id);
 
     // ایجاد سفارش WooCommerce (مبلغ ورودی = خالص پس از تخفیف برای هم‌خوانی با هزینه اضافی)
-    $order_result = sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, 0, $net_total, $event->name);
+    $order_result = sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, 0, $net_total, $event->name, $guest_profile);
     
     if ($order_result && isset($order_result['success']) && $order_result['success'] && !empty($order_result['order_id'])) {
         $order_id = $order_result['order_id'];
@@ -3287,7 +3303,7 @@ function sc_normalize_phone_for_match($phone) {
 }
 
 /**
- * Find or build member by national id for public event registration.
+ * Resolve member by national id for public event registration.
  */
 function sc_resolve_member_by_national_id($raw_national_id, $raw_phone = '', $fallback_first_name = '', $fallback_last_name = '') {
     global $wpdb;
@@ -3309,39 +3325,7 @@ function sc_resolve_member_by_national_id($raw_national_id, $raw_phone = '', $fa
             'is_academy_member' => $is_academy_member,
         ];
     }
-
-    // Create a guest member profile when no site member matches.
-    $first_name = sanitize_text_field($fallback_first_name ?: 'مهمان');
-    $last_name = sanitize_text_field($fallback_last_name ?: 'رویداد');
-    $normalized_phone = sc_normalize_phone_for_match($raw_phone);
-    $guest_national_id = $national_id;
-
-    $inserted = $wpdb->insert(
-        $members_table,
-        [
-            'first_name' => $first_name,
-            'last_name' => $last_name,
-            'national_id' => $guest_national_id,
-            'player_phone' => $normalized_phone !== '' ? $normalized_phone : null,
-            'is_active' => 1,
-            'created_at' => current_time('mysql'),
-            'updated_at' => current_time('mysql'),
-        ],
-        ['%s', '%s', '%s', '%s', '%d', '%s', '%s']
-    );
-
-    if ($inserted === false) {
-        return null;
-    }
-
-    $guest_member = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $members_table WHERE id = %d LIMIT 1",
-        $wpdb->insert_id
-    ));
-    if (!$guest_member) {
-        return null;
-    }
-    return ['member' => $guest_member, 'is_guest' => true, 'is_academy_member' => false];
+    return ['member' => null, 'is_guest' => true, 'is_academy_member' => false];
 }
 
 /**
@@ -3353,7 +3337,7 @@ function sc_render_public_event_page() {
         return;
     }
     // اجازه بده ابتدا هندلر ثبت‌نام عمومی POST را پردازش کند.
-    if (isset($_POST['sc_enroll_public_event'])) {
+    if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['sc_enroll_public_event_nonce'])) {
         return;
     }
 
@@ -3389,7 +3373,10 @@ function sc_render_public_event_page() {
  */
 add_action('template_redirect', 'sc_handle_public_event_enrollment', 2);
 function sc_handle_public_event_enrollment() {
-    if (!isset($_POST['sc_enroll_public_event'])) {
+    if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+        return;
+    }
+    if (!isset($_POST['sc_enroll_public_event_nonce'])) {
         return;
     }
 
@@ -3441,8 +3428,8 @@ function sc_handle_public_event_enrollment() {
         }
 
         $resolved_member = sc_resolve_member_by_national_id($guest_national_id, $guest_phone, $guest_first_name, $guest_last_name);
-        if (!$resolved_member || empty($resolved_member['member'])) {
-            wp_die('خطا در ثبت اطلاعات کاربر مهمان. لطفاً دوباره تلاش کنید.');
+        if (!$resolved_member) {
+            wp_die('خطا در بررسی اطلاعات کاربر. لطفاً دوباره تلاش کنید.');
         }
 
         if (!empty($resolved_member['is_academy_member'])) {
@@ -3461,17 +3448,25 @@ function sc_handle_public_event_enrollment() {
             exit;
         }
 
-        $member = $resolved_member['member'];
+        $member = !empty($resolved_member['member']) ? $resolved_member['member'] : null;
         $is_guest = !empty($resolved_member['is_guest']);
     }
 
-    $member_id = (int) $member->id;
+    $member_id = ($member && !empty($member->id)) ? (int) $member->id : 0;
 
-    $already_registered = $wpdb->get_var($wpdb->prepare(
-        "SELECT id FROM $event_registrations_table WHERE event_id = %d AND member_id = %d LIMIT 1",
-        $event_id,
-        $member_id
-    ));
+    if ($member_id > 0) {
+        $already_registered = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $event_registrations_table WHERE event_id = %d AND member_id = %d LIMIT 1",
+            $event_id,
+            $member_id
+        ));
+    } else {
+        $already_registered = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $event_registrations_table WHERE event_id = %d AND registration_source = 'guest' AND guest_national_id = %s LIMIT 1",
+            $event_id,
+            $guest_national_id
+        ));
+    }
     if ($already_registered) {
         wp_safe_redirect(add_query_arg([
             'sc_public_event' => $event_id,
@@ -3499,8 +3494,120 @@ function sc_handle_public_event_enrollment() {
         }
     }
 
+    // بررسی و اعتبارسنجی فیلدهای سفارشی رویداد
+    $event_fields_table = $wpdb->prefix . 'sc_event_fields';
+    $event_fields = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $event_fields_table WHERE event_id = %d ORDER BY field_order ASC, id ASC",
+        $event_id
+    ));
+    $field_data = [];
+    $uploaded_files = [];
+    $errors = [];
+
+    if (!empty($event_fields)) {
+        foreach ($event_fields as $field) {
+            $field_value = null;
+
+            if (in_array($field->field_type, ['text', 'number', 'date', 'select'], true)) {
+                if (isset($_POST['event_fields'][$field->id])) {
+                    $field_value = sanitize_text_field($_POST['event_fields'][$field->id]);
+                }
+                if ($field->is_required && empty($field_value)) {
+                    $errors[] = 'فیلد "' . $field->field_name . '" الزامی است.';
+                    continue;
+                }
+                $field_data[$field->id] = [
+                    'field_name' => $field->field_name,
+                    'field_type' => $field->field_type,
+                    'value' => $field_value,
+                ];
+            }
+
+            if ($field->field_type === 'file') {
+                if (isset($_FILES['event_fields']['name'][$field->id][0]) && !empty($_FILES['event_fields']['name'][$field->id][0])) {
+                    $file_count = count($_FILES['event_fields']['name'][$field->id]);
+                    if ($file_count > 10) {
+                        $errors[] = 'فیلد "' . $field->field_name . '": حداکثر 10 فایل مجاز است.';
+                        continue;
+                    }
+
+                    $field_files = [];
+                    for ($i = 0; $i < $file_count; $i++) {
+                        if ($_FILES['event_fields']['error'][$field->id][$i] !== UPLOAD_ERR_OK) {
+                            continue;
+                        }
+
+                        $file_name = $_FILES['event_fields']['name'][$field->id][$i];
+                        $file_tmp = $_FILES['event_fields']['tmp_name'][$field->id][$i];
+                        $file_size = $_FILES['event_fields']['size'][$field->id][$i];
+                        $file_type = $_FILES['event_fields']['type'][$field->id][$i];
+
+                        if ($file_size > 1048576) {
+                            $errors[] = 'فیلد "' . $field->field_name . '": فایل "' . $file_name . '" بیش از 1 مگابایت است.';
+                            continue;
+                        }
+
+                        $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+                        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                        $allowed_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+                        if (!in_array($file_type, $allowed_types, true) && !in_array($file_ext, $allowed_exts, true)) {
+                            $errors[] = 'فیلد "' . $field->field_name . '": فایل "' . $file_name . '" باید تصویر یا PDF باشد.';
+                            continue;
+                        }
+
+                        $upload_dir = wp_upload_dir();
+                        $sc_upload_dir = $upload_dir['basedir'] . '/sportclub-event-files';
+                        if (!file_exists($sc_upload_dir)) {
+                            wp_mkdir_p($sc_upload_dir);
+                        }
+                        $unique_filename = wp_unique_filename($sc_upload_dir, $file_name);
+                        $file_path = $sc_upload_dir . '/' . $unique_filename;
+                        if (move_uploaded_file($file_tmp, $file_path)) {
+                            $file_url = $upload_dir['baseurl'] . '/sportclub-event-files/' . $unique_filename;
+                            $field_files[] = [
+                                'name' => $file_name,
+                                'url' => $file_url,
+                                'path' => $file_path,
+                                'size' => $file_size,
+                                'type' => $file_type,
+                            ];
+                        }
+                    }
+
+                    if ($field->is_required && empty($field_files)) {
+                        $errors[] = 'فیلد "' . $field->field_name . '" الزامی است.';
+                        continue;
+                    }
+                    if (!empty($field_files)) {
+                        $field_data[$field->id] = [
+                            'field_name' => $field->field_name,
+                            'field_type' => $field->field_type,
+                            'value' => null,
+                        ];
+                        $uploaded_files[$field->id] = $field_files;
+                    }
+                } elseif ($field->is_required) {
+                    $errors[] = 'فیلد "' . $field->field_name . '" الزامی است.';
+                }
+            }
+        }
+    }
+
+    if (!empty($errors)) {
+        wp_die(esc_html(implode(' | ', $errors)));
+    }
+
     // Guest flow: always create pending invoice and send to gateway.
-    $invoice_result = sc_create_event_invoice($member_id, $event_id, $event->price);
+    $guest_profile = null;
+    if (!$is_logged_in && $member_id <= 0) {
+        $guest_profile = [
+            'first_name' => $guest_first_name,
+            'last_name' => $guest_last_name,
+            'phone' => sc_normalize_phone_for_match($guest_phone),
+            'email' => '',
+        ];
+    }
+    $invoice_result = sc_create_event_invoice($member_id, $event_id, $event->price, null, $guest_profile);
     if (!$invoice_result || empty($invoice_result['success'])) {
         wp_die('خطا در ساخت صورت‌حساب. لطفاً دوباره تلاش کنید.');
     }
@@ -3512,8 +3619,8 @@ function sc_handle_public_event_enrollment() {
             'event_id' => $event_id,
             'member_id' => $member_id,
             'invoice_id' => $invoice_id > 0 ? $invoice_id : null,
-            'field_data' => null,
-            'files' => null,
+            'field_data' => !empty($field_data) ? wp_json_encode($field_data, JSON_UNESCAPED_UNICODE) : null,
+            'files' => !empty($uploaded_files) ? wp_json_encode($uploaded_files, JSON_UNESCAPED_UNICODE) : null,
             'registration_source' => ($is_logged_in || empty($is_guest)) ? 'member' : 'guest',
             'guest_first_name' => $is_logged_in ? null : $guest_first_name,
             'guest_last_name' => $is_logged_in ? null : $guest_last_name,

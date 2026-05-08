@@ -1057,15 +1057,16 @@ $max_display = 10;
                                         'justify_attendance_' . $attendance->id
                                     );
 
-                                    // فقط برای وضعیت absent دکمه نمایش داده شود
-                                    if ($attendance->status === 'absent') {
-                                        echo '<a href="' . esc_url($justify_url) . '" 
-                                                class="button button-small" 
-                                                style="color:#2271b1; border-color:#2271b1;" 
-                                                onclick="return scConfirmInline(event, { type: 'warning', message: \'آیا از مجاز کردن این غیبت و بازگرداندن جلسه مطمئن هستید؟\' });">
-                                                مجاز کردن
-                                            </a>';
-                                    }
+                                   // فقط برای وضعیت absent دکمه نمایش داده شود
+                                        if ($attendance->status === 'absent') {
+                                            echo '<a href="' . esc_url($justify_url) . '" 
+                                                    class="button button-small" 
+                                                    style="color:#2271b1; border-color:#2271b1;" 
+                                                    onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا از مجاز کردن این غیبت و بازگرداندن جلسه مطمئن هستید؟\' });">
+                                                    مجاز کردن
+                                                </a>';
+                                        }
+
 
                                     
                                     ?>    

@@ -1538,7 +1538,7 @@ function sc_admin_enqueue_assets() {
             'maxPreviewRows' => 200,
         ));
     }
-    if (in_array($current_page, array('sc-private-notes', 'sc-add-private-note', 'sc-coach-private-notes', 'sc-coach-add-private-note'), true)) {
+    if (in_array($current_page, array('sc-private-notes', 'sc-add-private-note', 'sc-private-notes-view', 'sc-coach-private-notes', 'sc-coach-add-private-note'), true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
         wp_enqueue_style('sc-bulk-actions-admin-css', SC_ASSETS_URL . 'css/admin-bulk-actions.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
         wp_enqueue_style('sc-private-notes-css', SC_ASSETS_URL . 'css/private-notes.css', array('sc-admin-css'), time());
