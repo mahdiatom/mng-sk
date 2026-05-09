@@ -44,7 +44,7 @@ function sc_create_invoices_table(){
 
 $sql = "CREATE TABLE `$table_name` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-        `member_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned DEFAULT NULL,
         `course_id` bigint(20) unsigned NOT NULL,
         `event_id` bigint(20) unsigned DEFAULT NULL,
         `member_course_id` bigint(20) unsigned DEFAULT NULL,
@@ -436,7 +436,7 @@ function sc_create_event_registrations_table() {
         KEY `idx_event_id` (`event_id`),
         KEY `idx_member_id` (`member_id`),
         KEY `idx_invoice_id` (`invoice_id`),
-        UNIQUE KEY `idx_event_member` (`event_id`, `member_id`)
+        KEY `idx_event_member` (`event_id`, `member_id`)
     ) $charset_collate";
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -1623,6 +1623,45 @@ function sc_update_database() {
         }
 
         update_option('sc_event_registrations_guest_columns_added', '1');
+    }
+
+    // سازگاری ثبت‌نام مهمان: member_id باید nullable باشد و unique روی event/member برداشته شود
+    if (get_option('sc_event_registrations_guest_member_nullable', '0') !== '1') {
+        $registrations_table = $wpdb->prefix . 'sc_event_registrations';
+        $member_col = $wpdb->get_row($wpdb->prepare(
+            "SHOW COLUMNS FROM `$registrations_table` LIKE %s",
+            'member_id'
+        ));
+        if ($member_col && isset($member_col->Null) && strtoupper((string) $member_col->Null) !== 'YES') {
+            $wpdb->query("ALTER TABLE `$registrations_table` MODIFY COLUMN `member_id` bigint(20) unsigned DEFAULT NULL");
+        }
+
+        $idx_exists = $wpdb->get_results($wpdb->prepare(
+            "SHOW INDEX FROM `$registrations_table` WHERE Key_name = %s",
+            'idx_event_member'
+        ));
+        if (!empty($idx_exists)) {
+            $is_unique = isset($idx_exists[0]->Non_unique) ? (int) $idx_exists[0]->Non_unique === 0 : false;
+            if ($is_unique) {
+                $wpdb->query("ALTER TABLE `$registrations_table` DROP INDEX `idx_event_member`");
+                $wpdb->query("ALTER TABLE `$registrations_table` ADD INDEX `idx_event_member` (`event_id`, `member_id`)");
+            }
+        }
+
+        update_option('sc_event_registrations_guest_member_nullable', '1');
+    }
+
+    // سازگاری برای فاکتور مهمان: member_id در invoices باید nullable باشد
+    if (get_option('sc_invoices_member_id_nullable', '0') !== '1') {
+        $invoices_table = $wpdb->prefix . 'sc_invoices';
+        $member_col = $wpdb->get_row($wpdb->prepare(
+            "SHOW COLUMNS FROM `$invoices_table` LIKE %s",
+            'member_id'
+        ));
+        if ($member_col && isset($member_col->Null) && strtoupper((string) $member_col->Null) !== 'YES') {
+            $wpdb->query("ALTER TABLE `$invoices_table` MODIFY COLUMN `member_id` bigint(20) unsigned DEFAULT NULL");
+        }
+        update_option('sc_invoices_member_id_nullable', '1');
     }
 }
 

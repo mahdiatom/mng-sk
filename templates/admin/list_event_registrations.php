@@ -19,7 +19,6 @@ $filter_event = isset($_GET['filter_event']) ? absint($_GET['filter_event']) : 0
 $filter_event_type = isset($_GET['filter_event_type']) ? sanitize_text_field($_GET['filter_event_type']) : 'all';
 $filter_order = isset($_GET['filter_order']) ? sanitize_text_field($_GET['filter_order']) : '';
 $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
-$filter_user_type = isset($_GET['filter_user_type']) ? sanitize_text_field($_GET['filter_user_type']) : 'all';
 $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
 $filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
 $filter_date_from = '';
@@ -159,13 +158,6 @@ if (!empty($filter_order)) {
 if ($filter_status !== 'all') {
     $where_conditions[] = "i.status = %s";
     $where_values[] = $filter_status;
-}
-if ($filter_user_type === 'member') {
-    // رکوردهای قدیمی که registration_source ندارند را هم کاربر سایت در نظر بگیر
-    $where_conditions[] = "(r.registration_source = 'member' OR r.registration_source IS NULL OR r.registration_source = '')";
-} elseif ($filter_user_type === 'guest') {
-    $where_conditions[] = "r.registration_source = %s";
-    $where_values[] = 'guest';
 }
 // فیلتر تاریخ ثبت‌نام
 if (!empty($filter_date_from) && !empty($filter_date_to)) {
@@ -374,15 +366,6 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                 </select>
             </div>
 
-            <div class="sc-filter-field">
-                <label for="filter_user_type" class="sc-filter-label">نوع کاربر</label>
-                <select name="filter_user_type" id="filter_user_type" class="sc-filter-control">
-                    <option value="all" <?php selected($filter_user_type, 'all'); ?>>همه</option>
-                    <option value="member" <?php selected($filter_user_type, 'member'); ?>>کاربر سایت</option>
-                    <option value="guest" <?php selected($filter_user_type, 'guest'); ?>>مهمان</option>
-                </select>
-            </div>
-
             <!-- ستون ۵: بازه تاریخ ثبت‌نام -->
 <div class="sc-filter-field sc-filter-date">
     <label class="sc-filter-label">بازه تاریخ ثبت‌نام</label>
@@ -446,7 +429,6 @@ if (isset($_GET['debug']) && $_GET['debug'] == '1') {
                 $export_url = add_query_arg('filter_event', isset($_GET['filter_event']) ? $_GET['filter_event'] : 0, $export_url);
                 $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
                 $export_url = add_query_arg('filter_free', isset($_GET['filter_free']) ? $_GET['filter_free'] : 0, $export_url);
-                $export_url = add_query_arg('filter_user_type', isset($_GET['filter_user_type']) ? $_GET['filter_user_type'] : 'all', $export_url);
 
                 if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
                     $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);

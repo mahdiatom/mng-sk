@@ -91,6 +91,9 @@ public function column_order_number($item) {
     );
 
     $name = esc_html($item['first_name'] . ' ' . $item['last_name']);
+    if($name == NULL){
+        $name = 'کاربر میهمان';
+    }
 
     return sprintf(
         '<a href="%s" target="_blank"><strong>%s</strong></a>',
@@ -764,7 +767,7 @@ if ($filter_status === 'penalty') {
                     e.name as event_name,
                     e.price as event_price
                   FROM $invoices_table i
-                  INNER JOIN $members_table m ON i.member_id = m.id
+                  LEFT JOIN $members_table m ON i.member_id = m.id
                   LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
                   LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
                   WHERE $where_clause
