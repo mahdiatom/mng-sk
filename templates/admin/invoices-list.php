@@ -91,6 +91,7 @@ $members = $wpdb->get_results(
 <option value="0">همه دوره‌ها</option>
 <?php
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+$filter_user_type = isset($_GET['filter_user_type']) ? sanitize_text_field($_GET['filter_user_type']) : 'all';
 foreach ($courses as $course) :
 ?>
 <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
@@ -161,6 +162,16 @@ $max_display = 10;
 </div>
 </div>
 </div>
+</div>
+
+<!-- نوع کاربر -->
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_user_type">نوع کاربر</label>
+<select name="filter_user_type" id="filter_user_type" class="sc-filter-control">
+<option value="all" <?php selected($filter_user_type, 'all'); ?>>همه کاربران</option>
+<option value="member" <?php selected($filter_user_type, 'member'); ?>>کاربر سایت</option>
+<option value="guest" <?php selected($filter_user_type, 'guest'); ?>>کاربر مهمان</option>
+</select>
 </div>
 
 <!-- وضعیت -->
@@ -266,6 +277,7 @@ if (empty($filter_date_from) && empty($filter_date_to)) {
             $export_url = add_query_arg('filter_status', isset($_GET['filter_status']) ? $_GET['filter_status'] : 'all', $export_url);
             $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
             $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
+            $export_url = add_query_arg('filter_user_type', isset($_GET['filter_user_type']) ? $_GET['filter_user_type'] : 'all', $export_url);
             if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
                 $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
             }
@@ -291,7 +303,7 @@ echo '<div class="wrap">';
 echo '<form method="get">';
 echo '<input type="hidden" name="page" value="sc-invoices">';
 
-foreach (['filter_course','filter_member','filter_date_from','filter_date_to','filter_status'] as $f) {
+foreach (['filter_course','filter_member','filter_user_type','filter_date_from','filter_date_to','filter_status'] as $f) {
     if (isset($_GET[$f])) {
         echo '<input type="hidden" name="'.$f.'" value="'.esc_attr($_GET[$f]).'">';
     }

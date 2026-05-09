@@ -73,10 +73,26 @@ public function column_order_number($item) {
 
 
    public function column_member_name($item) {
+    $is_guest = (isset($item['registration_source']) && $item['registration_source'] === 'guest');
+    $member_name = trim(($item['first_name'] ?? '') . ' ' . ($item['last_name'] ?? ''));
+    if ($is_guest) {
+        $guest_name = trim(($item['guest_first_name'] ?? '') . ' ' . ($item['guest_last_name'] ?? ''));
+        if ($guest_name !== '') {
+            $member_name = $guest_name;
+        }
+    }
+    if ($member_name === '') {
+        $member_name = $is_guest ? 'کاربر مهمان' : 'کاربر حذف شده';
+    }
+
+    $name_html = esc_html($member_name);
+    if ($is_guest) {
+        $name_html .= ' <span style="display:inline-block;margin-right:6px;padding:2px 8px;border-radius:12px;background:#fff1f0;color:#cf1322;font-size:11px;">مهمان</span>';
+    }
 
     // اگر سفارش ووکامرس وجود ندارد
     if (empty($item['woocommerce_order_id'])) {
-        return esc_html($item['first_name'] . ' ' . $item['last_name']);
+        return $name_html;
     }
 
     $order_id = absint($item['woocommerce_order_id']);
@@ -90,15 +106,10 @@ public function column_order_number($item) {
         admin_url('admin.php')
     );
 
-    $name = esc_html($item['first_name'] . ' ' . $item['last_name']);
-    if($name == NULL){
-        $name = 'کاربر میهمان';
-    }
-
     return sprintf(
         '<a href="%s" target="_blank"><strong>%s</strong></a>',
         esc_url($url),
-        $name
+        $name_html
     );
 }
     protected function get_primary_column_name() {
@@ -224,7 +235,11 @@ public function column_order_number($item) {
     }
 
     public function column_phone($item) {
-        $phone = $item['player_phone'] ?? '-';
+        $is_guest = (isset($item['registration_source']) && $item['registration_source'] === 'guest');
+        $phone = $is_guest ? ($item['guest_phone'] ?? '') : ($item['player_phone'] ?? '');
+        if ($phone === '') {
+            $phone = $item['player_phone'] ?? '-';
+        }
         return esc_html($phone);
     }
 
@@ -479,6 +494,7 @@ public function column_order_number($item) {
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
         $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
         $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+        $filter_user_type = isset($_GET['filter_user_type']) ? sanitize_text_field($_GET['filter_user_type']) : 'all';
         // پردازش فیلترهای تاریخ (شمسی به میلادی)
         $filter_date_from = '';
         $filter_date_to = '';
@@ -507,6 +523,13 @@ public function column_order_number($item) {
         if ($filter_member > 0) {
             $where_conditions[] = "i.member_id = %d";
             $where_values[] = $filter_member;
+        }
+        if ($filter_user_type === 'member') {
+            $where_conditions[] = "(r.registration_source IS NULL OR r.registration_source <> %s)";
+            $where_values[] = 'guest';
+        } elseif ($filter_user_type === 'guest') {
+            $where_conditions[] = "r.registration_source = %s";
+            $where_values[] = 'guest';
         }
         
         if ($filter_date_from) {
@@ -538,7 +561,8 @@ public function column_order_number($item) {
         $where_clause = implode(' AND ', $where_conditions);
 
         $count_query = "SELECT COUNT(*) FROM $table_name i 
-                        INNER JOIN {$wpdb->prefix}sc_members m ON i.member_id = m.id 
+                        LEFT JOIN {$wpdb->prefix}sc_members m ON i.member_id = m.id
+                        LEFT JOIN {$wpdb->prefix}sc_event_registrations r ON i.id = r.invoice_id
                         WHERE $where_clause";
         
         if (!empty($where_values)) {
@@ -584,7 +608,8 @@ public function column_order_number($item) {
                 $count_where_clause = implode(' AND ', $count_where);
                 
                 $count_query_status = "SELECT COUNT(*) FROM $table_name i 
-                                       INNER JOIN {$wpdb->prefix}sc_members m ON i.member_id = m.id 
+                                       LEFT JOIN {$wpdb->prefix}sc_members m ON i.member_id = m.id
+                                       LEFT JOIN {$wpdb->prefix}sc_event_registrations r ON i.id = r.invoice_id
                                        WHERE $count_where_clause";
                 
                 if (!empty($count_where_values)) {
@@ -603,6 +628,9 @@ public function column_order_number($item) {
             }
             if ($filter_member) {
                 $url = add_query_arg('filter_member', $filter_member, $url);
+            }
+            if ($filter_user_type !== 'all') {
+                $url = add_query_arg('filter_user_type', $filter_user_type, $url);
             }
             if ($filter_date_from) {
                 $url = add_query_arg('filter_date_from', $filter_date_from, $url);
@@ -659,6 +687,7 @@ public function column_order_number($item) {
 
         $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
         $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+        $filter_user_type = isset($_GET['filter_user_type']) ? sanitize_text_field($_GET['filter_user_type']) : 'all';
         // پردازش فیلترهای تاریخ (شمسی به میلادی)
         $filter_date_from = '';
         $filter_date_to = '';
@@ -712,6 +741,13 @@ if ($filter_status === 'penalty') {
             $where_conditions[] = "i.member_id = %d";
             $where_values[] = $filter_member;
         }
+        if ($filter_user_type === 'member') {
+            $where_conditions[] = "(r.registration_source IS NULL OR r.registration_source <> %s)";
+            $where_values[] = 'guest';
+        } elseif ($filter_user_type === 'guest') {
+            $where_conditions[] = "r.registration_source = %s";
+            $where_values[] = 'guest';
+        }
 
         if ($filter_date_from) {
             $where_conditions[] = "DATE(i.created_at) >= %s";
@@ -728,14 +764,20 @@ if ($filter_status === 'penalty') {
             
             // اگر عدد است، جستجو بر اساس ID
             if (is_numeric($search)) {
-                $where_conditions[] = "(i.id = %d OR m.first_name LIKE %s OR m.last_name LIKE %s OR m.national_id LIKE %s)";
+                $where_conditions[] = "(i.id = %d OR m.first_name LIKE %s OR m.last_name LIKE %s OR m.national_id LIKE %s OR r.guest_first_name LIKE %s OR r.guest_last_name LIKE %s OR r.guest_national_id LIKE %s)";
                 $where_values[] = intval($search);
+                $where_values[] = $search_like;
+                $where_values[] = $search_like;
+                $where_values[] = $search_like;
                 $where_values[] = $search_like;
                 $where_values[] = $search_like;
                 $where_values[] = $search_like;
             } else {
                 // جستجو بر اساس نام، نام خانوادگی یا کد ملی
-                $where_conditions[] = "(m.first_name LIKE %s OR m.last_name LIKE %s OR m.national_id LIKE %s)";
+                $where_conditions[] = "(m.first_name LIKE %s OR m.last_name LIKE %s OR m.national_id LIKE %s OR r.guest_first_name LIKE %s OR r.guest_last_name LIKE %s OR r.guest_national_id LIKE %s)";
+                $where_values[] = $search_like;
+                $where_values[] = $search_like;
+                $where_values[] = $search_like;
                 $where_values[] = $search_like;
                 $where_values[] = $search_like;
                 $where_values[] = $search_like;
@@ -765,11 +807,17 @@ if ($filter_status === 'penalty') {
                     c.title as course_title,
                     c.price as course_price,
                     e.name as event_name,
-                    e.price as event_price
+                    e.price as event_price,
+                    r.registration_source,
+                    r.guest_first_name,
+                    r.guest_last_name,
+                    r.guest_phone,
+                    r.guest_national_id
                   FROM $invoices_table i
                   LEFT JOIN $members_table m ON i.member_id = m.id
                   LEFT JOIN $courses_table c ON i.course_id = c.id AND (c.deleted_at IS NULL OR c.deleted_at = '0000-00-00 00:00:00')
                   LEFT JOIN $events_table e ON i.event_id = e.id AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
+                  LEFT JOIN {$wpdb->prefix}sc_event_registrations r ON i.id = r.invoice_id
                   WHERE $where_clause
                   ORDER BY i.$orderby $order
                   LIMIT %d OFFSET %d";
