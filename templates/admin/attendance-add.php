@@ -76,9 +76,31 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     continue;
                 }
 
-                // اگر ثبت‌کننده مربی باشد، بازیکن‌های بدون انتساب در همین دوره را به خودش منتسب کن
-                // تا محاسبه حقوق درصدی برای همان مربی صفر نشود.
+                // مربی فقط بازیکن خودش یا بدون انتساب را می‌تواند ثبت کند؛ غیرمجاز را رد کن.
                 if ($current_coach_id_for_assignment > 0) {
+                    $can_touch = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(*) FROM $member_courses_table
+                         WHERE member_id = %d AND course_id = %d AND status = 'active'
+                           AND (coach_id = %d OR coach_id IS NULL OR coach_id = 0)
+                           AND (
+                             course_status_flags IS NULL OR course_status_flags = ''
+                             OR (
+                               course_status_flags NOT LIKE %s
+                               AND course_status_flags NOT LIKE %s
+                               AND course_status_flags NOT LIKE %s
+                             )
+                           )",
+                        $member_id,
+                        $course_id,
+                        $current_coach_id_for_assignment,
+                        '%paused%',
+                        '%completed%',
+                        '%canceled%'
+                    ));
+                    if (!$can_touch) {
+                        continue;
+                    }
+                    // بازیکن بدون مربی را با اولین ثبت حضور توسط این مربی به خودش منتسب کن.
                     $wpdb->query($wpdb->prepare(
                         "UPDATE $member_courses_table
                          SET coach_id = %d, updated_at = %s
@@ -215,41 +237,9 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 }
             }
 
-            // محاسبه دستمزد مربی‌ها (درصدی) بر اساس بازیکن‌های اختصاص‌یافته به هر مربی
-            $calc_couch_salary = sc_get_setting('calc_couch_salary');
-            $present_only_for_salary = !empty($calc_couch_salary);
-
-            if ($price_per_session > 0) {
-                $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-                $coaches_table = $wpdb->prefix . 'sc_coaches';
-                
-                // دریافت مربی‌های این دوره که نوع دستمزدشان درصدی است
-                $coaches = $wpdb->get_results($wpdb->prepare(
-                    "SELECT cc.coach_id, cc.salary_percentage, c.settlement_type 
-                     FROM $course_coaches_table cc
-                     INNER JOIN $coaches_table c ON cc.coach_id = c.id
-                     WHERE cc.course_id = %d AND c.settlement_type IN ('percentage', 'both') AND c.is_active = 1",
-                    $course_id
-                ));
-                
-                foreach ($coaches as $coach) {
-                    if (floatval($coach->salary_percentage) > 0 && function_exists('sc_get_coach_attendance_count_for_salary')) {
-                        $coach_attendance_count = sc_get_coach_attendance_count_for_salary(
-                            $coach->coach_id,
-                            $course_id,
-                            $attendance_date,
-                            $present_only_for_salary
-                        );
-
-                        sc_calculate_coach_percentage_salary(
-                            $coach->coach_id,
-                            $course_id,
-                            $attendance_date,
-                            $coach_attendance_count,
-                            $price_per_session
-                        );
-                    }
-                }
+            // دستمزد درصدی (و بخش درصدی ترکیبی): بلافاصله پس از ذخیره حضور بازمحاسبه و به کیف پول اعمال می‌شود.
+            if (($saved_count > 0 || $updated_count > 0) && function_exists('sc_refresh_coach_percentage_salary_for_course_date')) {
+                sc_refresh_coach_percentage_salary_for_course_date($course_id, $attendance_date);
             }
 
             if ($saved_count > 0 || $updated_count > 0) {
@@ -350,30 +340,14 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
         $selected_date = sc_shamsi_to_gregorian_date($selected_date_shamsi);
     }
 
-// دریافت کاربران فعال دوره انتخاب شده
+    // دریافت کاربران فعال دوره انتخاب شده
 $active_members = [];
 $existing_attendances = [];
 
 if ($selected_course_id) {
-    // دریافت کاربران فعال دوره (برای مربی: فقط شاگردهای خودش)
+    // دریافت کاربران فعال دوره (برای مربی: خودش + بازیکنان بدون انتساب؛ نه بازیکنان مربی دیگر)
     if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
-        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-        $coaches_table = $wpdb->prefix . 'sc_coaches';
-
-        // اگر دوره فقط یک مربی فعال داشته باشد، رکوردهای بدون coach_id هم برای همان مربی نمایش داده می‌شود
-        $single_active_coach_id = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
-             FROM $course_coaches_table cc
-             INNER JOIN $coaches_table c ON c.id = cc.coach_id
-             WHERE cc.course_id = %d AND c.is_active = 1",
-            $selected_course_id
-        ));
-
-        $coach_scope_where = "mc.coach_id = %d";
-        if ($single_active_coach_id > 0 && $single_active_coach_id === (int) $current_coach_id) {
-            $coach_scope_where = "(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)";
-        }
-
+        $coach_scope_where = '(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)';
         $active_members = $wpdb->get_results($wpdb->prepare(
             "SELECT m.id, m.first_name, m.last_name, m.national_id
              FROM $member_courses_table mc
@@ -394,29 +368,6 @@ if ($selected_course_id) {
             $selected_course_id,
             $current_coach_id
         ));
-
-        // Fallback: اگر به‌دلیل ناقص بودن انتساب coach_id لیست خالی شد،
-        // برای جلوگیری از توقف ثبت حضور، کاربران فعال دوره نمایش داده شوند.
-        if (empty($active_members)) {
-            $active_members = $wpdb->get_results($wpdb->prepare(
-                "SELECT m.id, m.first_name, m.last_name, m.national_id
-                 FROM $member_courses_table mc
-                 INNER JOIN $members_table m ON mc.member_id = m.id
-                 WHERE mc.course_id = %d
-                 AND mc.status = 'active'
-                 AND (
-                     mc.course_status_flags IS NULL
-                     OR mc.course_status_flags = ''
-                     OR (
-                         mc.course_status_flags NOT LIKE '%%paused%%'
-                         AND mc.course_status_flags NOT LIKE '%%completed%%'
-                         AND mc.course_status_flags NOT LIKE '%%canceled%%'
-                     )
-                 )
-                 ORDER BY m.last_name ASC, m.first_name ASC",
-                $selected_course_id
-            ));
-        }
     } else {
         $active_members = $wpdb->get_results($wpdb->prepare(
             "SELECT m.id, m.first_name, m.last_name, m.national_id

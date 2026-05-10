@@ -149,53 +149,12 @@ function sc_attendance_slot_overlaps_cancellation($course_id, $session_date, $sl
  * @param string $attendance_date Y-m-d
  */
 function sc_attendance_auto_refresh_coach_percentage_salary($course_id, $attendance_date) {
-    global $wpdb;
     $course_id = absint($course_id);
     if (!$course_id || $attendance_date === '') {
         return;
     }
-    $courses_table = $wpdb->prefix . 'sc_courses';
-    $course_row = $wpdb->get_row($wpdb->prepare(
-        "SELECT title, price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
-        $course_id
-    ));
-    if (!$course_row) {
-        return;
-    }
-    $price_per_session = floatval($course_row->price_per_session);
-    if ($price_per_session <= 0) {
-        return;
-    }
-    $calc_couch_salary = sc_get_setting('calc_couch_salary');
-    $present_only_for_salary = !empty($calc_couch_salary);
-    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-    $coaches_table = $wpdb->prefix . 'sc_coaches';
-    $coaches = $wpdb->get_results($wpdb->prepare(
-        "SELECT cc.coach_id, cc.salary_percentage, c.settlement_type
-         FROM $course_coaches_table cc
-         INNER JOIN $coaches_table c ON cc.coach_id = c.id
-         WHERE cc.course_id = %d AND c.settlement_type IN ('percentage', 'both') AND c.is_active = 1",
-        $course_id
-    ));
-    foreach ($coaches as $coach) {
-        if (floatval($coach->salary_percentage) > 0 && function_exists('sc_calculate_coach_percentage_salary')) {
-            $coach_attendance_count = function_exists('sc_get_coach_attendance_count_for_salary')
-                ? sc_get_coach_attendance_count_for_salary(
-                    $coach->coach_id,
-                    $course_id,
-                    $attendance_date,
-                    $present_only_for_salary
-                )
-                : 0;
-
-            sc_calculate_coach_percentage_salary(
-                $coach->coach_id,
-                $course_id,
-                $attendance_date,
-                $coach_attendance_count,
-                $price_per_session
-            );
-        }
+    if (function_exists('sc_refresh_coach_percentage_salary_for_course_date')) {
+        sc_refresh_coach_percentage_salary_for_course_date($course_id, $attendance_date);
     }
 }
 

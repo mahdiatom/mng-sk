@@ -194,7 +194,7 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
     }
 
     $count = $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*)
+        "SELECT COUNT(DISTINCT a.member_id)
          FROM $attendances_table a
          INNER JOIN $member_courses_table mc
              ON mc.member_id = a.member_id
@@ -217,6 +217,61 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
     ));
 
     return (int) $count;
+}
+
+/**
+ * بازمحاسبه دستمزد درصدی همه مربیان یک دوره برای یک تاریخ (پس از ثبت/ویرایش حضور).
+ *
+ * @param int    $course_id
+ * @param string $attendance_date Y-m-d
+ */
+function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attendance_date) {
+    $course_id = absint($course_id);
+    $attendance_date = sanitize_text_field((string) $attendance_date);
+    if (!$course_id || $attendance_date === '') {
+        return;
+    }
+
+    global $wpdb;
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $course_row = $wpdb->get_row($wpdb->prepare(
+        "SELECT price_per_session FROM $courses_table WHERE id = %d LIMIT 1",
+        $course_id
+    ));
+    $price_per_session = $course_row ? floatval($course_row->price_per_session) : 0;
+
+    $calc_couch_salary = function_exists('sc_get_setting') ? sc_get_setting('calc_couch_salary') : '';
+    $present_only_for_salary = !empty($calc_couch_salary);
+
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+    $coaches = $wpdb->get_results($wpdb->prepare(
+        "SELECT cc.coach_id, cc.salary_percentage, c.settlement_type
+         FROM $course_coaches_table cc
+         INNER JOIN $coaches_table c ON cc.coach_id = c.id
+         WHERE cc.course_id = %d AND c.settlement_type IN ('percentage', 'both') AND c.is_active = 1",
+        $course_id
+    ));
+
+    foreach ($coaches as $coach) {
+        if (floatval($coach->salary_percentage) <= 0 || !function_exists('sc_get_coach_attendance_count_for_salary')) {
+            continue;
+        }
+        $coach_attendance_count = sc_get_coach_attendance_count_for_salary(
+            (int) $coach->coach_id,
+            $course_id,
+            $attendance_date,
+            $present_only_for_salary
+        );
+        sc_calculate_coach_percentage_salary(
+            (int) $coach->coach_id,
+            $course_id,
+            $attendance_date,
+            $coach_attendance_count,
+            $price_per_session
+        );
+    }
 }
 
 /**
@@ -287,10 +342,8 @@ function sc_calculate_coach_percentage_salary($coach_id, $course_id, $attendance
             ['%d']
         );
         
-        // اگر تراکنش کیف پول وجود دارد و مبلغ تغییر کرده، تراکنش جدید با تفاوت ایجاد کن
-        if ($old_record->wallet_transaction_id && abs($difference) >= 0.01) {
-            $wallet_table = $wpdb->prefix . 'sc_coach_wallet_transactions';
-            
+        // مبلغ تغییر کرده: همیشه تفاوت را در کیف پول اعمال کن (حتی اگر wallet_transaction_id خالی باشد)
+        if (abs($difference) >= 0.01) {
             // ایجاد تراکنش جدید با مبلغ تفاوت
             $courses_table = $wpdb->prefix . 'sc_courses';
             $course = $wpdb->get_var($wpdb->prepare("SELECT title FROM $courses_table WHERE id = %d", $course_id));
