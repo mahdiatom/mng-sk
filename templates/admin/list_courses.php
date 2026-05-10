@@ -16,6 +16,7 @@ class Courses_List_Table extends WP_List_Table {
             'capacity' => 'ظرفیت',
             'sessions_count' => 'تعداد جلسات',
             'enrolled' => 'ثبت‌نام شده',
+            'active_players' => 'تعداد بازیکنان فعال',
             'remaining_capacity' => 'ظرفیت باقی‌مانده',
             'start_date' => 'تاریخ شروع',
             'end_date' => 'تاریخ پایان',
@@ -66,10 +67,36 @@ class Courses_List_Table extends WP_List_Table {
              FROM $table_name
              WHERE course_id = %d
                AND status = 'active'
-               AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')",
+               AND (
+                   course_status_flags IS NULL
+                   OR TRIM(course_status_flags) = ''
+               )",
             $item['id']
         ));
         return $count ? $count : '0';
+    }
+
+    public function column_active_players($item) {
+        global $wpdb;
+        $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+        $members_table = $wpdb->prefix . 'sc_members';
+
+        // دقیقاً مطابق کوئری «مشاهده کاربران» در همین صفحه
+        $users = $wpdb->get_results($wpdb->prepare(
+            "SELECT m.id
+             FROM $member_courses_table mc
+             INNER JOIN $members_table m ON mc.member_id = m.id
+             WHERE mc.course_id = %d
+               AND mc.status = 'active'
+               AND (
+                   mc.course_status_flags IS NULL
+                   OR TRIM(mc.course_status_flags) = ''
+               )
+             ORDER BY m.last_name ASC, m.first_name ASC",
+            $item['id']
+        ), ARRAY_A);
+
+        return is_array($users) ? (string) count($users) : '0';
     }
 
     public function column_remaining_capacity($item) {

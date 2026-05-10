@@ -382,6 +382,7 @@ function sc_attendance_auto_mark_absents() {
                  WHERE mc.course_id = %d AND mc.status = 'active'",
                 $slot->course_id
             ));
+            $has_new_absent_attendance = false;
 
             foreach ($members as $mid) {
                 $member_id = (int) $mid;
@@ -430,7 +431,14 @@ function sc_attendance_auto_mark_absents() {
                     $new_id = (int) $wpdb->insert_id;
                     sc_decrease_member_session($member_id, (int) $slot->course_id);
                     do_action('sc_attendance_absent', $new_id);
+                    $has_new_absent_attendance = true;
                 }
+            }
+            if ($has_new_absent_attendance && function_exists('sc_refresh_coach_percentage_salary_for_course_date')) {
+                // بازمحاسبه دستمزد بعد از ثبت غیبت‌های خودکار.
+                // وقتی calc_couch_salary=1 باشد فقط حاضرها شمرده می‌شوند و اثر نمی‌گذارد؛
+                // وقتی 0 باشد غیبت‌ها هم در محاسبه لحاظ می‌شوند.
+                sc_refresh_coach_percentage_salary_for_course_date((int) $slot->course_id, $session_date);
             }
         }
     }

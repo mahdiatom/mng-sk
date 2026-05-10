@@ -4188,7 +4188,7 @@ function get_course_active_users() {
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $members_table = $wpdb->prefix . 'sc_members';
     
-    // دریافت کاربران فعال دوره (status = 'active' و بدون flags)
+    // دریافت کاربران فعال دوره (status = 'active' و بدون هیچ flag)
     $users = $wpdb->get_results($wpdb->prepare(
         "SELECT m.id, m.first_name, m.last_name, m.national_id, m.player_phone, 
                 m.father_name, m.father_phone, m.created_at, mc.enrollment_date
@@ -4198,12 +4198,7 @@ function get_course_active_users() {
          AND mc.status = 'active'
          AND (
              mc.course_status_flags IS NULL
-             OR mc.course_status_flags = ''
-             OR (
-                 mc.course_status_flags NOT LIKE '%%paused%%'
-                 AND mc.course_status_flags NOT LIKE '%%completed%%'
-                 AND mc.course_status_flags NOT LIKE '%%canceled%%'
-             )
+             OR TRIM(mc.course_status_flags) = ''
          )
          ORDER BY m.last_name ASC, m.first_name ASC",
         $course_id
