@@ -510,6 +510,16 @@ $is_update_mode = !empty($existing_attendances);
                                 <td><?php echo esc_html($member->first_name . ' '. $member->last_name); ?></td>
                                 <td ><?php echo number_format($debt_user) ; ?>  تومان    <?php echo ($debt_user >= floatval(sc_get_setting('max_debt_for_attendance', '0'))) ? 'سقف موجودی - عدم ثبت رکورد کاربر' : ' '; ?></td>
                                 <td style="display: flex; margin-top: 7px; ">
+                                    <?php if (empty($existing_status)) : ?>
+                                    <button type="button"
+                                            class="button button-small sc-attendance-clear-btn"
+                                            data-attendance-name="attendance[<?php echo esc_attr($member->id); ?>]"
+                                            title="حذف انتخاب"
+                                            aria-label="حذف انتخاب"
+                                            style="margin-left: 12px; min-width: 30px; padding: 0 8px; line-height: 1.6;">
+                                        <span class="dashicons dashicons-no-alt" style="font-size: 16px; width: 16px; height: 16px; line-height: 1.6;"></span>
+                                    </button>
+                                    <?php endif; ?>
                                     <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
                                         <input type="radio" 
                                                name="attendance[<?php echo esc_attr($member->id); ?>]" 
@@ -569,4 +579,23 @@ $is_update_mode = !empty($existing_attendances);
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+document.addEventListener('click', function (event) {
+    const clearBtn = event.target.closest('.sc-attendance-clear-btn');
+    if (!clearBtn) {
+        return;
+    }
+
+    const attendanceName = clearBtn.getAttribute('data-attendance-name');
+    if (!attendanceName) {
+        return;
+    }
+
+    const radios = document.getElementsByName(attendanceName);
+    for (let i = 0; i < radios.length; i++) {
+        radios[i].checked = false;
+    }
+});
+</script>
 

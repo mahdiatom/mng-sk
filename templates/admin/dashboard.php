@@ -88,7 +88,7 @@ for ($i = 5; $i >= 0; $i--) {
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="<?php echo esc_url(SC_ASSETS_URL . 'js/vendor/chart.min.js'); ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // نمودار دوره‌ها
