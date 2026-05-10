@@ -14,6 +14,7 @@ global $wpdb;
 $table_name = $wpdb->prefix . 'sc_members';
 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
 $courses_table = $wpdb->prefix . 'sc_courses';
+$coaches_table_mv = $wpdb->prefix . 'sc_coaches';
 $honors_table = $wpdb->prefix . 'sc_honors';
 $honor_categories_table = $wpdb->prefix . 'sc_honor_categories';
 
@@ -26,9 +27,11 @@ if (!$player) {
 // دریافت دوره‌های بازیکن
 $player_courses = $wpdb->get_results($wpdb->prepare(
     "SELECT c.title, c.price, mc.status, mc.course_status_flags, mc.created_at AS enrolled_at, c.id,
-            mc.total_sessions, mc.remaining_sessions
+            mc.total_sessions, mc.remaining_sessions, mc.coach_id,
+            ch.first_name AS coach_first_name, ch.last_name AS coach_last_name
      FROM $member_courses_table mc
      INNER JOIN $courses_table c ON c.id = mc.course_id
+     LEFT JOIN $coaches_table_mv ch ON ch.id = mc.coach_id
      WHERE mc.member_id = %d AND mc.status = 'active'
      ORDER BY mc.created_at DESC",
     $player_id
@@ -206,6 +209,7 @@ $honors_player = $wpdb->get_results($wpdb->prepare(
                 <thead>
                     <tr>
                         <th style="width: 120px;">نام دوره</th>
+                        <th style="width: 140px;">مربی</th>
                         <th style="width: 120px;">قیمت</th>
                         <th style="width: 120px;">وضعیت</th>
                         <th style="width: 150px;">تاریخ ثبت‌نام</th>
@@ -226,6 +230,12 @@ $honors_player = $wpdb->get_results($wpdb->prepare(
                     ?>
                         <tr>
                             <td><strong><?php echo esc_html($pc->title); ?></strong></td>
+                            <td><?php
+                                $coach_name_mv = trim((string) ($pc->coach_first_name ?? '') . ' ' . (string) ($pc->coach_last_name ?? ''));
+                                echo $coach_name_mv !== ''
+                                    ? esc_html($coach_name_mv)
+                                    : '<span style="color:#646970;">—</span>';
+                            ?></td>
                             <td><?php echo $formatted_price; ?></td>
                             <td>
                                 <span class="sc_status_course_player" style="<?php echo $pc->status === 'active' ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'; ?>">
