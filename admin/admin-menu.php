@@ -1723,18 +1723,8 @@ function sc_admin_support_tickets_list_page() {
                         }
                     }
                 }
-                $redirect_args = [
-                    'page' => 'sc-support-tickets',
-                    'filter_status'     => isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all',
-                    'filter_department' => isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all',
-                    'filter_created_by' => isset($_GET['filter_created_by']) ? sanitize_text_field($_GET['filter_created_by']) : 'all',
-                    'filter_user_id'    => isset($_GET['filter_user_id']) ? absint($_GET['filter_user_id']) : 0,
-                ];
-                if (!empty($_GET['filter_date_from_shamsi'])) $redirect_args['filter_date_from_shamsi'] = sanitize_text_field($_GET['filter_date_from_shamsi']);
-                if (!empty($_GET['filter_date_to_shamsi']))   $redirect_args['filter_date_to_shamsi']   = sanitize_text_field($_GET['filter_date_to_shamsi']);
-                if (!empty($_GET['s']))                       $redirect_args['s']                       = sanitize_text_field($_GET['s']);
-
-                wp_redirect(add_query_arg($redirect_args, admin_url('admin.php')));
+                // بعد از عملیات گروهی، صفحه را بدون فیلتر رفرش کن تا URL تمیز بماند.
+                wp_redirect(add_query_arg(['page' => 'sc-support-tickets'], admin_url('admin.php')));
                 exit;
             }
         }
