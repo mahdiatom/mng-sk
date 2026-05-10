@@ -30,7 +30,13 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     $pro_create_invoice_player_team = isset($_POST['pro_create_invoice_player_team']) ? 1 : 0;
      sc_update_setting('pro_create_invoice_player_team' , $pro_create_invoice_player_team , 'invoice' );   
     $invoice_mode = isset($_POST['invoice_mode']) ? sanitize_text_field($_POST['invoice_mode']) : 'interval';
-       
+    $normalize_digits = static function ($value) {
+        $value = is_scalar($value) ? (string) $value : '';
+        if (function_exists('fa_to_en_digits')) {
+            $value = fa_to_en_digits($value);
+        }
+        return trim($value);
+    };
 
     sc_update_setting('invoice_mode', $invoice_mode, 'invoice');
 
@@ -42,10 +48,13 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
          sc_update_setting('sessions_count_threshold' , $sessions_count_threshold , 'invoice' ); 
     }
     else {
-        $day_val = isset($_POST['invoice_day_of_month']) && $_POST['invoice_day_of_month'] !== '' ? absint($_POST['invoice_day_of_month']) : 0;
+        $day_raw = isset($_POST['invoice_day_of_month']) ? $normalize_digits(wp_unslash($_POST['invoice_day_of_month'])) : '';
+        $hour_raw = isset($_POST['invoice_hour']) ? $normalize_digits(wp_unslash($_POST['invoice_hour'])) : '0';
+        $minute_raw = isset($_POST['invoice_minute']) ? $normalize_digits(wp_unslash($_POST['invoice_minute'])) : '0';
+        $day_val = $day_raw !== '' ? absint($day_raw) : 0;
         sc_update_setting('invoice_day_of_month', min(31, max(0, $day_val)), 'invoice');
-        sc_update_setting('invoice_hour', min(23, max(0, absint($_POST['invoice_hour'] ?? 0))), 'invoice');
-        sc_update_setting('invoice_minute', min(59, max(0, absint($_POST['invoice_minute'] ?? 0))), 'invoice');
+        sc_update_setting('invoice_hour', min(23, max(0, absint($hour_raw))), 'invoice');
+        sc_update_setting('invoice_minute', min(59, max(0, absint($minute_raw))), 'invoice');
     }
 
     if (function_exists('sc_log_activity')) {
@@ -848,8 +857,9 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     <tr class="invoice-row fixed-date-row-day">
                         <th>روز ماه (شمسی)</th>
                         <td>
-                            <input type="number"invoice_day_of_month
-                                name=""
+                            <input type="number"
+                                name="invoice_day_of_month"
+                                id="invoice_day_of_month"
                                 min="0"
                                 max="31"
                                 value="<?php echo $invoice_day_of_month > 0 ? esc_attr($invoice_day_of_month) : ''; ?>"

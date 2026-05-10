@@ -27,6 +27,7 @@ $filter_event_type = isset($_GET['filter_event_type']) ? sanitize_text_field($_G
 $filter_store_tag = isset($_GET['filter_store_tag']) ? absint($_GET['filter_store_tag']) : 0;
 $filter_store_cat = isset($_GET['filter_store_cat']) ? absint($_GET['filter_store_cat']) : 0;
 $filter_ledger_type = isset($_GET['filter_ledger_type']) ? sanitize_text_field($_GET['filter_ledger_type']) : 'all';
+$filter_cashflow_type = isset($_GET['filter_cashflow_type']) ? sanitize_text_field($_GET['filter_cashflow_type']) : 'all';
 
 $filter_date_from = '';
 $filter_date_to = '';
@@ -187,6 +188,17 @@ $finance_chart_config = null;
                             </select>
                         </div>
                     <?php endif; ?>
+                    <?php if ($tab === 'cashflow') : ?>
+                        <div class="sc-form-field">
+                            <label for="filter_cashflow_type">نوع</label>
+                            <select name="filter_cashflow_type" id="filter_cashflow_type">
+                                <option value="all" <?php selected($filter_cashflow_type, 'all'); ?>>همه</option>
+                                <option value="course" <?php selected($filter_cashflow_type, 'course'); ?>>دوره</option>
+                                <option value="event" <?php selected($filter_cashflow_type, 'event'); ?>>رویداد</option>
+                                <option value="store" <?php selected($filter_cashflow_type, 'store'); ?>>فروشگاه</option>
+                            </select>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <p class="submit">
                     <button type="submit" class="button button-primary">اعمال فیلتر</button>
@@ -201,7 +213,7 @@ $finance_chart_config = null;
                         'ledger' => 'finance_ledger',
                     ];
                     $export_url = isset($export_map[$tab]) ? admin_url('admin.php?page=sc-reports-income-expenses&tab=' . $tab . '&sc_export=excel&export_type=' . $export_map[$tab]) : '';
-                    foreach (['filter_date_from','filter_date_to','filter_date_from_shamsi','filter_date_to_shamsi','filter_course','filter_coach','filter_chapter','filter_event_type','filter_store_tag','filter_store_cat','filter_ledger_type'] as $param) {
+                    foreach (['filter_date_from','filter_date_to','filter_date_from_shamsi','filter_date_to_shamsi','filter_course','filter_coach','filter_chapter','filter_event_type','filter_store_tag','filter_store_cat','filter_ledger_type','filter_cashflow_type'] as $param) {
                         if (isset($_GET[$param]) && $_GET[$param] !== '') {
                             $export_url = add_query_arg($param, sanitize_text_field(wp_unslash($_GET[$param])), $export_url);
                         }
@@ -502,16 +514,54 @@ $finance_chart_config = null;
             <?php elseif ($tab === 'cashflow') :
                 $invoices_table = $wpdb->prefix . 'sc_invoices';
                 $expenses_table = $wpdb->prefix . 'sc_expenses';
-                $where_in = ["i.status IN ('paid','completed','processing')", "i.payment_date IS NOT NULL", "DATE(i.payment_date) BETWEEN %s AND %s"];
+                $events_table = $wpdb->prefix . 'sc_events';
+                $where_in = [
+                    "i.status IN ('paid','completed','processing')",
+                    'i.payment_date IS NOT NULL',
+                    'DATE(i.payment_date) BETWEEN %s AND %s',
+                    '(i.course_id > 0 OR (i.event_id IS NOT NULL AND i.event_id > 0))',
+                ];
                 $where_out = ["e.expense_date_gregorian IS NOT NULL", "DATE(e.expense_date_gregorian) BETWEEN %s AND %s"];
                 $args_in = [$filter_date_from, $filter_date_to];
                 $args_out = [$filter_date_from, $filter_date_to];
-                if ($filter_chapter !== '') { $where_in[] = "c.chapter = %s"; $args_in[] = $filter_chapter; $where_out[] = "e.chapter = %s"; $args_out[] = $filter_chapter; }
-                if ($filter_course > 0) { $where_in[] = "i.course_id = %d"; $args_in[] = $filter_course; }
-                $cash_in = (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(i.amount),0) FROM $invoices_table i LEFT JOIN $courses_table c ON c.id = i.course_id WHERE " . implode(' AND ', $where_in), $args_in));
+                if ($filter_chapter !== '') {
+                    $where_in[] = '((i.course_id > 0 AND c.chapter = %s) OR (i.event_id > 0 AND ev.chapter = %s))';
+                    $args_in[] = $filter_chapter;
+                    $args_in[] = $filter_chapter;
+                    $where_out[] = 'e.chapter = %s';
+                    $args_out[] = $filter_chapter;
+                }
+                if ($filter_course > 0) {
+                    $where_in[] = 'i.course_id = %d';
+                    $args_in[] = $filter_course;
+                }
+                if ($filter_cashflow_type === 'course') {
+                    $where_in[] = 'i.course_id > 0';
+                } elseif ($filter_cashflow_type === 'event') {
+                    $where_in[] = 'i.event_id IS NOT NULL AND i.event_id > 0';
+                }
+                $cash_in_academy_raw = (float) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(i.amount),0) FROM $invoices_table i
+                     LEFT JOIN $courses_table c ON c.id = i.course_id
+                     LEFT JOIN $events_table ev ON ev.id = i.event_id
+                     WHERE " . implode(' AND ', $where_in),
+                    $args_in
+                ));
+                $cash_in_store_raw = function_exists('sc_finance_sum_store_orders_items_total')
+                    ? sc_finance_sum_store_orders_items_total($filter_date_from, $filter_date_to, 0, 0)
+                    : 0.0;
+                $cash_in = $cash_in_store_raw;
+                if ($filter_cashflow_type === 'course' || $filter_cashflow_type === 'event') {
+                    $cash_in = $cash_in_academy_raw;
+                } elseif ($filter_cashflow_type === 'all') {
+                    $cash_in = $cash_in_academy_raw + $cash_in_store_raw;
+                }
                 $cash_out = (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(e.amount),0) FROM $expenses_table e WHERE " . implode(' AND ', $where_out), $args_out));
                 $net_cashflow = $cash_in - $cash_out;
                 ?>
+                <p class="description" style="max-width: 920px;">
+                    ورودی نقدی بر اساس نوع انتخابی (همه/دوره/رویداد/فروشگاه) محاسبه می‌شود؛ فیلتر دوره و شعبه فقط روی داده‌های آکادمی اثر دارد.
+                </p>
                 <div class="sc-dashboard-stats">
                     <div class="sc-stat-box"><h3>ورودی نقدی</h3><div><?php echo esc_html(number_format($cash_in, 0, '.', ',')); ?></div></div>
                     <div class="sc-stat-box"><h3>خروجی نقدی</h3><div><?php echo esc_html(number_format($cash_out, 0, '.', ',')); ?></div></div>
@@ -530,16 +580,60 @@ $finance_chart_config = null;
             <?php elseif ($tab === 'ledger') :
                 $invoices_table = $wpdb->prefix . 'sc_invoices';
                 $members_table = $wpdb->prefix . 'sc_members';
+                $events_table = $wpdb->prefix . 'sc_events';
                 $expenses_table = $wpdb->prefix . 'sc_expenses';
                 $where_in = ["i.status IN ('paid','completed','processing')", "i.payment_date IS NOT NULL", "DATE(i.payment_date) BETWEEN %s AND %s"];
                 $args_in = [$filter_date_from, $filter_date_to];
-                if ($filter_chapter !== '') { $where_in[] = "c.chapter = %s"; $args_in[] = $filter_chapter; }
+                if ($filter_chapter !== '') {
+                    $where_in[] = "((i.course_id > 0 AND c.chapter = %s) OR (i.event_id > 0 AND ev.chapter = %s))";
+                    $args_in[] = $filter_chapter;
+                    $args_in[] = $filter_chapter;
+                }
                 if ($filter_course > 0) { $where_in[] = "i.course_id = %d"; $args_in[] = $filter_course; }
-                $income_rows = $wpdb->get_results($wpdb->prepare("SELECT DATE(i.payment_date) AS tx_date, 'income' AS tx_type, i.amount, CONCAT(m.first_name, ' ', m.last_name) AS person_name, c.title AS ref_title, c.chapter
+                $income_rows = $wpdb->get_results($wpdb->prepare("SELECT DATE(i.payment_date) AS tx_date, 'income' AS tx_type, i.amount, CONCAT(m.first_name, ' ', m.last_name) AS person_name,
+                    CASE
+                        WHEN i.course_id > 0 THEN c.title
+                        WHEN i.event_id > 0 THEN ev.name
+                        ELSE '-'
+                    END AS ref_title,
+                    CASE
+                        WHEN i.course_id > 0 THEN c.chapter
+                        WHEN i.event_id > 0 THEN ev.chapter
+                        ELSE '-'
+                    END AS chapter
                     FROM $invoices_table i
                     LEFT JOIN $members_table m ON m.id = i.member_id
                     LEFT JOIN $courses_table c ON c.id = i.course_id
+                    LEFT JOIN $events_table ev ON ev.id = i.event_id
                     WHERE " . implode(' AND ', $where_in), $args_in));
+                $store_income_rows = [];
+                if (function_exists('wc_get_orders')) {
+                    $orders = wc_get_orders([
+                        'status' => ['processing', 'completed'],
+                        'limit' => -1,
+                        'type' => 'shop_order',
+                        'date_created' => $filter_date_from . '...' . $filter_date_to,
+                        'return' => 'objects',
+                    ]);
+                    foreach ($orders as $order) {
+                        $order_total = 0.0;
+                        foreach ($order->get_items() as $item) {
+                            $order_total += (float) $item->get_total();
+                        }
+                        if ($order_total <= 0) {
+                            continue;
+                        }
+                        $order_date = $order->get_date_created() ? $order->get_date_created()->date('Y-m-d') : current_time('Y-m-d');
+                        $store_income_rows[] = (object) [
+                            'tx_date' => $order_date,
+                            'tx_type' => 'income',
+                            'amount' => $order_total,
+                            'person_name' => trim((string) $order->get_billing_first_name() . ' ' . (string) $order->get_billing_last_name()),
+                            'ref_title' => 'سفارش فروشگاه #' . $order->get_id(),
+                            'chapter' => '-',
+                        ];
+                    }
+                }
 
                 $where_out = ["e.expense_date_gregorian IS NOT NULL", "DATE(e.expense_date_gregorian) BETWEEN %s AND %s"];
                 $args_out = [$filter_date_from, $filter_date_to];
@@ -551,8 +645,9 @@ $finance_chart_config = null;
                     $expense_rows = [];
                 } elseif ($filter_ledger_type === 'expense') {
                     $income_rows = [];
+                    $store_income_rows = [];
                 }
-                $ledger_rows = array_merge($income_rows ?: [], $expense_rows ?: []);
+                $ledger_rows = array_merge($income_rows ?: [], $store_income_rows ?: [], $expense_rows ?: []);
                 usort($ledger_rows, static function($a, $b) {
                     return strcmp((string) $b->tx_date, (string) $a->tx_date);
                 });

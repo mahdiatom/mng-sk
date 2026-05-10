@@ -56,40 +56,36 @@ if (empty($filter_date_from) || empty($filter_date_to)) {
     }
 }
 
-// محاسبه کل درآمد (صورت حساب‌های پرداخت شده)
-$income_where_conditions = ["status IN ('completed', 'paid')"];
-$income_where_values = [];
+// کل درآمد = آکادمی (دوره + رویداد، پرداخت‌شده / تأیید پرداخت) + فروشگاه (WC processing/completed)
+$academy_income_where = [
+    "status IN ('paid','completed','processing')",
+    'payment_date IS NOT NULL',
+    '(course_id > 0 OR (event_id IS NOT NULL AND event_id > 0))',
+];
+$academy_income_values = [];
 if ($filter_date_from) {
-    $income_where_conditions[] = "DATE(created_at) >= %s";
-    $income_where_values[] = $filter_date_from;
+    $academy_income_where[] = 'DATE(payment_date) >= %s';
+    $academy_income_values[] = $filter_date_from;
 }
 if ($filter_date_to) {
-    $income_where_conditions[] = "DATE(created_at) <= %s";
-    $income_where_values[] = $filter_date_to;
+    $academy_income_where[] = 'DATE(payment_date) <= %s';
+    $academy_income_values[] = $filter_date_to;
 }
+$academy_where_sql = implode(' AND ', $academy_income_where);
+$total_academy_income = $academy_income_values
+    ? (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(amount), 0) FROM $invoices_table WHERE $academy_where_sql", $academy_income_values))
+    : (float) $wpdb->get_var("SELECT COALESCE(SUM(amount), 0) FROM $invoices_table WHERE $academy_where_sql");
 
-$income_where_clause = implode(' AND ', $income_where_conditions);
-if (!empty($income_where_values)) {
-    $total_income_query = $wpdb->prepare(
-        "SELECT SUM(amount) as total FROM $invoices_table WHERE $income_where_clause",
-        $income_where_values
-    );
-} else {
-    $total_income_query = "SELECT SUM(amount) as total FROM $invoices_table WHERE $income_where_clause";
-}
-$total_income_result = $wpdb->get_var($total_income_query);
-$total_income = $total_income_result ? floatval($total_income_result) : 0;
+$store_agg = function_exists('sc_finance_aggregate_store_orders_items')
+    ? sc_finance_aggregate_store_orders_items($filter_date_from, $filter_date_to, 0, 0)
+    : ['total' => 0.0, 'order_count' => 0, 'by_day' => []];
+$total_store_income_period = (float) ($store_agg['total'] ?? 0);
+$total_income = $total_academy_income + $total_store_income_period;
 
-// محاسبه تعداد صورت حساب‌های پرداخت شده
-if (!empty($income_where_values)) {
-    $paid_invoices_count_query = $wpdb->prepare(
-        "SELECT COUNT(*) FROM $invoices_table WHERE $income_where_clause",
-        $income_where_values
-    );
-} else {
-    $paid_invoices_count_query = "SELECT COUNT(*) FROM $invoices_table WHERE $income_where_clause";
-}
-$paid_invoices_count = $wpdb->get_var($paid_invoices_count_query) ?: 0;
+$paid_academy_count = $academy_income_values
+    ? (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $invoices_table WHERE $academy_where_sql", $academy_income_values))
+    : (int) $wpdb->get_var("SELECT COUNT(*) FROM $invoices_table WHERE $academy_where_sql");
+$paid_invoices_count = $paid_academy_count + (int) ($store_agg['order_count'] ?? 0);
 
 // محاسبه کل هزینه‌ها
 $expenses_where_conditions = ["1=1"];
@@ -128,23 +124,31 @@ $prev_date_to->modify('-1 day');
 $prev_date_from = clone $prev_date_to;
 $prev_date_from->modify('-' . ($period_days - 1) . ' days');
 
-// درآمد دوره قبل
-$prev_income_where = "status IN ('completed', 'paid') AND DATE(created_at) >= %s AND DATE(created_at) <= %s";
-$prev_income_query = $wpdb->prepare(
-    "SELECT SUM(amount) as total FROM $invoices_table WHERE $prev_income_where",
-    $prev_date_from->format('Y-m-d'),
-    $prev_date_to->format('Y-m-d')
-);
-$prev_total_income = $wpdb->get_var($prev_income_query) ? floatval($wpdb->get_var($prev_income_query)) : 0;
+// درآمد دوره قبل (آکادمی + فروشگاه، همان منطق بازهٔ جاری)
+$prev_from_s = $prev_date_from->format('Y-m-d');
+$prev_to_s = $prev_date_to->format('Y-m-d');
+$prev_academy_income = (float) $wpdb->get_var($wpdb->prepare(
+    "SELECT COALESCE(SUM(amount), 0) FROM $invoices_table
+     WHERE status IN ('paid','completed','processing')
+     AND payment_date IS NOT NULL
+     AND (course_id > 0 OR (event_id IS NOT NULL AND event_id > 0))
+     AND DATE(payment_date) >= %s AND DATE(payment_date) <= %s",
+    $prev_from_s,
+    $prev_to_s
+));
+$prev_store_agg = function_exists('sc_finance_aggregate_store_orders_items')
+    ? sc_finance_aggregate_store_orders_items($prev_from_s, $prev_to_s, 0, 0)
+    : ['total' => 0.0];
+$prev_total_income = $prev_academy_income + (float) ($prev_store_agg['total'] ?? 0);
 
 // هزینه دوره قبل
-$prev_expenses_where = "expense_date_gregorian >= %s AND expense_date_gregorian <= %s";
 $prev_expenses_query = $wpdb->prepare(
-    "SELECT SUM(amount) as total FROM $expenses_table WHERE $prev_expenses_where",
-    $prev_date_from->format('Y-m-d'),
-    $prev_date_to->format('Y-m-d')
+    "SELECT SUM(amount) as total FROM $expenses_table WHERE expense_date_gregorian >= %s AND expense_date_gregorian <= %s",
+    $prev_from_s,
+    $prev_to_s
 );
-$prev_total_expenses = $wpdb->get_var($prev_expenses_query) ? floatval($wpdb->get_var($prev_expenses_query)) : 0;
+$prev_total_expenses_raw = $wpdb->get_var($prev_expenses_query);
+$prev_total_expenses = $prev_total_expenses_raw ? floatval($prev_total_expenses_raw) : 0;
 
 // سود دوره قبل
 $prev_profit = $prev_total_income - $prev_total_expenses;
@@ -202,17 +206,26 @@ foreach ($months as $month_start) {
     );
     $month_name = sc_date_shamsi($month_start_str, 'Y/m');
     
-    // درآمد ماه
+    // درآمد ماه (آکادمی بر اساس تاریخ پرداخت + فروشگاه بر اساس تاریخ سفارش)
     $month_income_query = $wpdb->prepare(
-        "SELECT SUM(amount) as total FROM $invoices_table 
-         WHERE status IN ('completed', 'paid') 
-         AND DATE(created_at) >= %s 
-         AND DATE(created_at) <= %s",
+        "SELECT COALESCE(SUM(amount), 0) FROM $invoices_table 
+         WHERE status IN ('paid','completed','processing')
+         AND payment_date IS NOT NULL
+         AND (course_id > 0 OR (event_id IS NOT NULL AND event_id > 0))
+         AND DATE(payment_date) >= %s 
+         AND DATE(payment_date) <= %s",
         $month_start_str,
         $month_end_str
     );
-    $month_income_result = $wpdb->get_var($month_income_query);
-    $month_income = $month_income_result ? floatval($month_income_result) : 0;
+    $month_academy_income = (float) $wpdb->get_var($month_income_query);
+    $month_store_income = 0.0;
+    $store_by_day = $store_agg['by_day'] ?? [];
+    foreach ($store_by_day as $day => $amt) {
+        if ($day >= $month_start_str && $day <= $month_end_str) {
+            $month_store_income += (float) $amt;
+        }
+    }
+    $month_income = $month_academy_income + $month_store_income;
     
     // هزینه ماه
     $month_expenses_query = $wpdb->prepare(
@@ -293,6 +306,12 @@ foreach ($months as $month_start) {
             <a href="<?php echo admin_url('admin.php?page=sc-reports-income-expenses'); ?>" class="button">بازنشانی</a>
         </p>
     </form>
+
+    <p class="description" style="max-width: 960px; margin-bottom: 16px;">
+        <strong>کل درآمد</strong> برابر مجموع درآمد <strong>آکادمی</strong> (صورت‌حساب‌های دوره و رویداد با وضعیت پرداخت‌شده یا تأیید پرداخت، بر اساس تاریخ پرداخت)
+        و <strong>فروشگاه</strong> (سفارش‌های پرداخت‌شده یا تأییدشده در ووکامرس، بر اساس تاریخ ثبت سفارش) در بازهٔ انتخابی است.
+        جعبهٔ آماری پایین، تعداد صورت‌حساب‌های آکادمی مطابق همین قواعد به‌اضافهٔ تعداد سفارش‌های فروشگاه را نشان می‌دهد.
+    </p>
     
     <!-- کارت‌های خلاصه -->
     <div class="sc-dashboard-stats">
@@ -345,7 +364,7 @@ foreach ($months as $month_start) {
         </div>
         
         <div class="sc-stat-box" >
-            <h3 >تعداد صورتحساب‌های پرداخت شده</h3>
+            <h3 >صورت‌حساب آکادمی + سفارش فروشگاه</h3>
             <div style="font-size: 24px; font-weight: bold; color: #2271b1;">
                 <?php echo $paid_invoices_count; ?>
             </div>
