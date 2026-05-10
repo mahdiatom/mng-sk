@@ -231,55 +231,78 @@ $total_pages = ceil($total / $per_page);
     <?php endif; ?>
 <div class="wrap">
     <div class="sc-notifications-filters-wrap" style="margin: 15px 0;">
-        <form method="get" action="" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <form method="get" action="">
             <input type="hidden" name="page" value="<?php echo esc_attr($list_page); ?>">
-            <input type="hidden" name="s" value="<?php echo esc_attr($search); ?>">
-            <?php if (!$is_coach) : ?>
-            <label>ثبت‌کننده:</label>
-            <select name="filter_creator" style="min-width: 120px;">
-                <option value="all" <?php selected($filter_creator_type, 'all'); ?>>همه</option>
-                <option value="admin" <?php selected($filter_creator_type, 'admin'); ?>>مدیر</option>
-                <option value="coach" <?php selected($filter_creator_type, 'coach'); ?>>مربی</option>
-            </select>
-            <?php endif; ?>
-            <label>نوع ارسال:</label>
-            <select name="filter_target" style="min-width: 120px;">
-                <option value="" <?php selected($filter_target_type, ''); ?>>همه</option>
-                <option value="all" <?php selected($filter_target_type, 'all'); ?>>همه اعضا</option>
-                <option value="specific" <?php selected($filter_target_type, 'specific'); ?>>اشخاص خاص</option>
-                <option value="course" <?php selected($filter_target_type, 'course'); ?>>دوره خاص</option>
-                <option value="team" <?php selected($filter_target_type, 'team'); ?>>تیم </option>
+
+            <!-- ==================== FILTER BAR (مشابه تیکت) ==================== -->
+            <div class="sc-filter-grid" style="margin-bottom:12px; width:100%;">
+
+                <!-- جستجو -->
+                <div class="sc-filter-field" style="min-width:260px; flex:1 1 260px;">
+                    <label class="sc-filter-label">جستجو</label>
+                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." class="sc-filter-control" style="width:100%;">
+                </div>
+
                 <?php if (!$is_coach) : ?>
-                <option value="debtors" <?php selected($filter_target_type, 'debtors'); ?>>بدهکاران</option>
-                <option value="event" <?php selected($filter_target_type, 'event'); ?>>رویداد</option>
-                <option value="wallet_negative" <?php selected($filter_target_type, 'wallet_negative'); ?>>موجودی منفی</option>
-                <option value="phone" <?php selected($filter_target_type, 'phone'); ?>>شماره خاص</option>
+                <!-- ثبت‌کننده -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_creator">ثبت‌کننده</label>
+                    <select name="filter_creator" id="filter_creator" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_creator_type, 'all'); ?>>همه</option>
+                        <option value="admin" <?php selected($filter_creator_type, 'admin'); ?>>مدیر</option>
+                        <option value="coach" <?php selected($filter_creator_type, 'coach'); ?>>مربی</option>
+                    </select>
+                </div>
                 <?php endif; ?>
-            </select>
-            <label>پیامک:</label>
-            <select name="filter_sms" style="min-width: 90px;">
-                <option value="all" <?php selected($filter_sms, 'all'); ?>>همه</option>
-                <option value="1" <?php selected($filter_sms, '1'); ?>>بله</option>
-                <option value="0" <?php selected($filter_sms, '0'); ?>>خیر</option>
-            </select>
-            <label>از تاریخ:</label>
-            <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="۱۴۰۳/۰۱/۰۱" style="width: 110px;" readonly>
-            <label>تا تاریخ:</label>
-            <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="۱۴۰۳/۱۲/۲۹" style="width: 110px;" readonly>
-            <input type="submit" class="button" value="اعمال فیلتر">
-        </form>
-        <form method="get" action="" id="search_btn_notif">
-            <input type="hidden" name="page" value="<?php echo esc_attr($list_page); ?>">
-            <input type="hidden" name="filter_creator" value="<?php echo esc_attr($filter_creator_type); ?>">
-            <input type="hidden" name="filter_target" value="<?php echo esc_attr($filter_target_type); ?>">
-            <input type="hidden" name="filter_sms" value="<?php echo esc_attr($filter_sms); ?>">
-            <input type="hidden" name="filter_date_from_shamsi" value="<?php echo esc_attr($display_date_from_shamsi); ?>">
-            <input type="hidden" name="filter_date_to_shamsi" value="<?php echo esc_attr($display_date_to_shamsi); ?>">
-            <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." style="width: 260px;">
-            <input type="submit" class="button" value="جستجو">
+
+                <!-- نوع ارسال -->
+                <div class="sc-filter-field" style="min-width:160px;">
+                    <label class="sc-filter-label" for="filter_target">نوع ارسال</label>
+                    <select name="filter_target" id="filter_target" class="sc-filter-control">
+                        <option value="" <?php selected($filter_target_type, ''); ?>>همه</option>
+                        <option value="all" <?php selected($filter_target_type, 'all'); ?>>همه اعضا</option>
+                        <option value="specific" <?php selected($filter_target_type, 'specific'); ?>>اشخاص خاص</option>
+                        <option value="course" <?php selected($filter_target_type, 'course'); ?>>دوره خاص</option>
+                        <option value="team" <?php selected($filter_target_type, 'team'); ?>>تیم</option>
+                        <?php if (!$is_coach) : ?>
+                        <option value="debtors" <?php selected($filter_target_type, 'debtors'); ?>>بدهکاران</option>
+                        <option value="event" <?php selected($filter_target_type, 'event'); ?>>رویداد</option>
+                        <option value="wallet_negative" <?php selected($filter_target_type, 'wallet_negative'); ?>>موجودی منفی</option>
+                        <option value="phone" <?php selected($filter_target_type, 'phone'); ?>>شماره خاص</option>
+                        <?php endif; ?>
+                    </select>
+                </div>
+
+                <!-- پیامک -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_sms">پیامک</label>
+                    <select name="filter_sms" id="filter_sms" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_sms, 'all'); ?>>همه</option>
+                        <option value="1" <?php selected($filter_sms, '1'); ?>>بله</option>
+                        <option value="0" <?php selected($filter_sms, '0'); ?>>خیر</option>
+                    </select>
+                </div>
+
+                <!-- بازه تاریخ (اندازه مناسب، سمت راست) -->
+                <div class="sc-filter-field" style="width: auto; min-width: 260px;">
+                    <label class="sc-filter-label">بازه تاریخ</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="از" readonly style="width:130px;">
+                        <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="تا" readonly style="width:130px;">
+                    </div>
+                </div>
+
+                <!-- دکمه فیلتر در سطر جدید، راست‌چین -->
+                <div style="width:100%; display:flex; justify-content:flex-end; margin-top:8px;">
+                    <input type="submit" class="button button-small" value="فیلتر" style="padding:4px 18px; height:32px; line-height:1;">
+                </div>
+
+            </div>
+            <!-- ==================== /FILTER BAR ==================== -->
+
         </form>
     </div>
-    </div>
+</div>
    <div class="wrap">
     <form method="post" id="sc-notifications-bulk-form">
         <?php wp_nonce_field('bulk_delete_notifications'); ?>

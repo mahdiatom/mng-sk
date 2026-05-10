@@ -17,6 +17,7 @@ class Support_Tickets_List_Table extends WP_List_Table {
 
     public function get_columns() {
         return [
+            'cb' => '<input type="checkbox" />',
             'subject' => 'موضوع',
              'id' => 'شناسه',
             'user' => 'ارسال‌کننده',
@@ -25,6 +26,17 @@ class Support_Tickets_List_Table extends WP_List_Table {
             'created_at' => 'تاریخ ایجاد',
             'updated_at' => 'آخرین به‌روزرسانی',
             'actions' => 'عملیات',
+        ];
+    }
+
+    public function column_cb($item) {
+        return sprintf('<input type="checkbox" name="ticket[]" value="%d" />', $item['id']);
+    }
+
+    public function get_bulk_actions() {
+        return [
+            'delete' => 'حذف',
+            'close'  => 'بستن تیکت',
         ];
     }
 
@@ -117,6 +129,7 @@ class Support_Tickets_List_Table extends WP_List_Table {
         
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
         $filter_user_id = isset($_GET['filter_user_id']) ? absint($_GET['filter_user_id']) : 0;
+        $filter_created_by = isset($_GET['filter_created_by']) ? sanitize_text_field($_GET['filter_created_by']) : 'all';
 
         $base = ['1=1'];
         $params = [];
@@ -129,6 +142,32 @@ class Support_Tickets_List_Table extends WP_List_Table {
             $base[] = 'user_id = %d';
             $params[] = $filter_user_id;
         }
+        if ($filter_created_by === 'user') {
+            $base[] = "created_by_type = 'user'";
+        } elseif ($filter_created_by === 'coach') {
+            $base[] = "created_by_type = 'coach'";
+        } elseif ($filter_created_by === 'admin') {
+            $base[] = "created_by_type = 'admin'";
+        }
+
+        // Date filters for views counts
+        $date_from_sh = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
+        $date_to_sh   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+        if ($date_from_sh && function_exists('sc_shamsi_to_gregorian_date')) {
+            $dfrom = sc_shamsi_to_gregorian_date($date_from_sh);
+            if ($dfrom) {
+                $base[] = 'DATE(created_at) >= %s';
+                $params[] = $dfrom;
+            }
+        }
+        if ($date_to_sh && function_exists('sc_shamsi_to_gregorian_date')) {
+            $dto = sc_shamsi_to_gregorian_date($date_to_sh);
+            if ($dto) {
+                $base[] = 'DATE(created_at) <= %s';
+                $params[] = $dto;
+            }
+        }
+
         if ($search !== '') {
             $like = '%' . $wpdb->esc_like($search) . '%';
             if (is_numeric($search)) {
@@ -159,7 +198,10 @@ class Support_Tickets_List_Table extends WP_List_Table {
         $url = admin_url('admin.php?page=sc-support-tickets');
         if ($filter_department !== 'all') $url = add_query_arg('filter_department', $filter_department, $url);
         if ($filter_user_id > 0) $url = add_query_arg('filter_user_id', $filter_user_id, $url);
+        if ($filter_created_by !== 'all') $url = add_query_arg('filter_created_by', $filter_created_by, $url);
         if ($search) $url = add_query_arg('s', $search, $url);
+        if (!empty($_GET['filter_date_from_shamsi'])) $url = add_query_arg('filter_date_from_shamsi', sanitize_text_field($_GET['filter_date_from_shamsi']), $url);
+        if (!empty($_GET['filter_date_to_shamsi'])) $url = add_query_arg('filter_date_to_shamsi', sanitize_text_field($_GET['filter_date_to_shamsi']), $url);
 
         $views = [];
         foreach (['all' => $count_all, 'pending_reply' => $count_pending, 'answered' => $count_answered, 'closed' => $count_closed] as $key => $count) {
@@ -171,26 +213,9 @@ class Support_Tickets_List_Table extends WP_List_Table {
         return $views;
     }
 
+    // Filters are now rendered directly in the page template (above bulk actions)
     public function extra_tablenav($which) {
-        if ($which !== 'top') return;
-        $filter_department = isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all';
-        $url = admin_url('admin.php?page=sc-support-tickets');
-        if (isset($_GET['filter_status'])) $url = add_query_arg('filter_status', $_GET['filter_status'], $url);
-        if (isset($_GET['filter_user_id']) && absint($_GET['filter_user_id']) > 0) {
-            $url = add_query_arg('filter_user_id', absint($_GET['filter_user_id']), $url);
-        }
-        if (isset($_GET['s'])) $url = add_query_arg('s', $_GET['s'], $url);
-        ?>
-        <div class="alignleft actions section_filter">
-            <label>بخش :</label>
-            <select name="filter_department" onchange="location.href=this.value">
-                <option value="<?php echo esc_url(add_query_arg('filter_department', 'all', $url)); ?>" <?php selected($filter_department, 'all'); ?>>همه</option>
-                <option value="<?php echo esc_url(add_query_arg('filter_department', 'manager', $url)); ?>" <?php selected($filter_department, 'manager'); ?>>مدیر باشگاه</option>
-                <option value="<?php echo esc_url(add_query_arg('filter_department', 'site_support', $url)); ?>" <?php selected($filter_department, 'site_support'); ?>>پشتیبانی سایت</option>
-                <option value="<?php echo esc_url(add_query_arg('filter_department', 'coach', $url)); ?>" <?php selected($filter_department, 'coach'); ?>>مربی</option>
-            </select>
-        </div>
-        <?php
+        // No longer used for top filters
     }
 
     public function prepare_items() {
@@ -225,6 +250,35 @@ class Support_Tickets_List_Table extends WP_List_Table {
             $where[] = 't.user_id = %d';
             $params[] = $filter_user_id;
         }
+
+        // Created by filter
+        $filter_created_by = isset($_GET['filter_created_by']) ? sanitize_text_field($_GET['filter_created_by']) : 'all';
+        if ($filter_created_by === 'user') {
+            $where[] = "t.created_by_type = 'user'";
+        } elseif ($filter_created_by === 'coach') {
+            $where[] = "t.created_by_type = 'coach'";
+        } elseif ($filter_created_by === 'admin') {
+            $where[] = "t.created_by_type = 'admin'";
+        }
+
+        // Date range filter (shamsi) — defaults to today are handled in extra_tablenav but still apply if present
+        $date_from_sh = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
+        $date_to_sh   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
+        if ($date_from_sh && function_exists('sc_shamsi_to_gregorian_date')) {
+            $dfrom = sc_shamsi_to_gregorian_date($date_from_sh);
+            if ($dfrom) {
+                $where[] = 'DATE(t.created_at) >= %s';
+                $params[] = $dfrom;
+            }
+        }
+        if ($date_to_sh && function_exists('sc_shamsi_to_gregorian_date')) {
+            $dto = sc_shamsi_to_gregorian_date($date_to_sh);
+            if ($dto) {
+                $where[] = 'DATE(t.created_at) <= %s';
+                $params[] = $dto;
+            }
+        }
+
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
         if ($search !== '') {
             $like = '%' . $wpdb->esc_like($search) . '%';

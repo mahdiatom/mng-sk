@@ -1696,6 +1696,50 @@ function sc_admin_support_tickets_menu_badge() {
 function sc_admin_support_tickets_list_page() {
     sc_check_and_create_tables();
     if (!current_user_can('manage_options')) wp_die('دسترسی غیرمجاز.');
+
+    // Handle bulk actions (delete / close)
+    $action = '';
+    if (!empty($_REQUEST['action']) && $_REQUEST['action'] !== '-1') {
+        $action = sanitize_text_field($_REQUEST['action']);
+    } elseif (!empty($_REQUEST['action2']) && $_REQUEST['action2'] !== '-1') {
+        $action = sanitize_text_field($_REQUEST['action2']);
+    }
+    if (in_array($action, ['delete', 'close'], true)) {
+        if (wp_verify_nonce($_REQUEST['_wpnonce'] ?? '', 'bulk-tickets')) {
+            $ids = isset($_REQUEST['ticket']) ? array_map('absint', (array) $_REQUEST['ticket']) : [];
+            if (!empty($ids)) {
+                global $wpdb;
+                $tickets_table = $wpdb->prefix . 'sc_support_tickets';
+                $messages_table = $wpdb->prefix . 'sc_support_ticket_messages';
+                foreach ($ids as $tid) {
+                    if ($action === 'delete') {
+                        $wpdb->delete($messages_table, ['ticket_id' => $tid], ['%d']);
+                        $wpdb->delete($tickets_table, ['id' => $tid], ['%d']);
+                    } elseif ($action === 'close') {
+                        if (function_exists('sc_support_close_ticket')) {
+                            sc_support_close_ticket($tid, get_current_user_id());
+                        } else {
+                            $wpdb->update($tickets_table, ['status' => 'closed', 'updated_at' => current_time('mysql')], ['id' => $tid], ['%s', '%s'], ['%d']);
+                        }
+                    }
+                }
+                $redirect_args = [
+                    'page' => 'sc-support-tickets',
+                    'filter_status'     => isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all',
+                    'filter_department' => isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all',
+                    'filter_created_by' => isset($_GET['filter_created_by']) ? sanitize_text_field($_GET['filter_created_by']) : 'all',
+                    'filter_user_id'    => isset($_GET['filter_user_id']) ? absint($_GET['filter_user_id']) : 0,
+                ];
+                if (!empty($_GET['filter_date_from_shamsi'])) $redirect_args['filter_date_from_shamsi'] = sanitize_text_field($_GET['filter_date_from_shamsi']);
+                if (!empty($_GET['filter_date_to_shamsi']))   $redirect_args['filter_date_to_shamsi']   = sanitize_text_field($_GET['filter_date_to_shamsi']);
+                if (!empty($_GET['s']))                       $redirect_args['s']                       = sanitize_text_field($_GET['s']);
+
+                wp_redirect(add_query_arg($redirect_args, admin_url('admin.php')));
+                exit;
+            }
+        }
+    }
+
     $list_table = isset($GLOBALS['support_tickets_list_table']) ? $GLOBALS['support_tickets_list_table'] : null;
     if (!$list_table) {
         require_once SC_TEMPLATES_ADMIN_DIR . 'list_support_tickets.php';
@@ -1712,15 +1756,138 @@ function sc_admin_support_tickets_list_page() {
         <div class="wrap sc-support-admin-wrap">
         <div class="sc-support-admin-list-card">
 
-        <form method="get">
+        <?php
+        // Prepare current filter values
+        $filter_status      = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+        $filter_department  = isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all';
+        $filter_created_by  = isset($_GET['filter_created_by']) ? sanitize_text_field($_GET['filter_created_by']) : 'all';
+        $filter_user_id     = isset($_GET['filter_user_id']) ? absint($_GET['filter_user_id']) : 0;
+        $search             = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+
+        $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+        $filter_date_from_sh = isset($_GET['filter_date_from_shamsi']) && $_GET['filter_date_from_shamsi'] !== '' ? sanitize_text_field($_GET['filter_date_from_shamsi']) : $today_shamsi;
+        $filter_date_to_sh   = isset($_GET['filter_date_to_shamsi']) && $_GET['filter_date_to_shamsi'] !== '' ? sanitize_text_field($_GET['filter_date_to_shamsi']) : $today_shamsi;
+
+        // Users with tickets for the dropdown
+        global $wpdb;
+        $t = $wpdb->prefix . 'sc_support_tickets';
+        $m = $wpdb->prefix . 'sc_members';
+        $users_with_tickets = $wpdb->get_results(
+            "SELECT DISTINCT t.user_id,
+                    TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS name,
+                    m.national_id
+             FROM $t t
+             LEFT JOIN $m m ON m.user_id = t.user_id
+             WHERE t.user_id > 0
+             ORDER BY name ASC"
+        );
+        $selected_user_text = 'همه کاربران';
+        if ($filter_user_id) {
+            foreach ($users_with_tickets as $u) {
+                if ((int)$u->user_id === $filter_user_id) {
+                    $selected_user_text = trim($u->name) ?: 'کاربر #' . $u->user_id;
+                    if (!empty($u->national_id)) $selected_user_text .= ' - ' . $u->national_id;
+                    break;
+                }
+            }
+        }
+        ?>
+
+        <form method="get" class="sc-support-filter-form">
             <input type="hidden" name="page" value="sc-support-tickets">
-            <?php if (isset($_GET['filter_status'])) : ?>
-            <input type="hidden" name="filter_status" value="<?php echo esc_attr($_GET['filter_status']); ?>">
-            <?php endif; ?>
-            <?php if (isset($_GET['filter_department'])) : ?>
-            <input type="hidden" name="filter_department" value="<?php echo esc_attr($_GET['filter_department']); ?>">
-            <?php endif; ?>
-            <?php // $list_table->search_box('جستجو (موضوع یا شناسه)', 'search_ticket'); ?>
+            <?php wp_nonce_field('bulk-tickets'); ?>
+
+            <!-- ==================== FILTER BAR ==================== -->
+            <div class="sc-filter-grid" style="margin-bottom:12px; width:100%;">
+
+                <!-- جستجو -->
+                <div class="sc-filter-field" style="min-width: 260px; flex: 1 1 260px;">
+                    <label class="sc-filter-label">جستجو</label>
+                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در موضوع یا شناسه..." class="sc-filter-control" style="width:100%;">
+                </div>
+
+                <!-- وضعیت -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_status">وضعیت</label>
+                    <select name="filter_status" id="filter_status" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
+                        <option value="pending_reply" <?php selected($filter_status, 'pending_reply'); ?>>در انتظار پاسخ</option>
+                        <option value="answered" <?php selected($filter_status, 'answered'); ?>>پاسخ داده شده</option>
+                        <option value="closed" <?php selected($filter_status, 'closed'); ?>>بسته شده</option>
+                    </select>
+                </div>
+
+                <!-- بخش -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_department">بخش</label>
+                    <select name="filter_department" id="filter_department" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_department, 'all'); ?>>همه</option>
+                        <option value="manager" <?php selected($filter_department, 'manager'); ?>>مدیر باشگاه</option>
+                        <option value="site_support" <?php selected($filter_department, 'site_support'); ?>>پشتیبانی سایت</option>
+                        <option value="coach" <?php selected($filter_department, 'coach'); ?>>مربی</option>
+                    </select>
+                </div>
+
+                <!-- ارسال‌کننده -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_created_by">ارسال‌کننده</label>
+                    <select name="filter_created_by" id="filter_created_by" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_created_by, 'all'); ?>>همه</option>
+                        <option value="user" <?php selected($filter_created_by, 'user'); ?>>کاربر (عضو)</option>
+                        <option value="coach" <?php selected($filter_created_by, 'coach'); ?>>مربی</option>
+                        <option value="admin" <?php selected($filter_created_by, 'admin'); ?>>مدیر</option>
+                    </select>
+                </div>
+
+                <!-- کاربر (جستجو مانند) -->
+                <div class="sc-filter-field" style="min-width:240px;">
+                    <label class="sc-filter-label">کاربر</label>
+                    <div class="sc-searchable-dropdown">
+                        <input type="hidden" name="filter_user_id" id="filter_user_id" value="<?php echo esc_attr($filter_user_id); ?>">
+                        <div class="sc-dropdown-toggle">
+                            <span class="sc-dropdown-placeholder" <?php if ($filter_user_id) echo 'style="display:none"'; ?>>همه کاربران</span>
+                            <span class="sc-dropdown-selected" <?php if (!$filter_user_id) echo 'style="display:none"'; ?>><?php echo esc_html($selected_user_text); ?></span>
+                            <span class="sc-dropdown-arrow">▼</span>
+                        </div>
+                        <div class="sc-dropdown-menu">
+                            <div class="sc-dropdown-search">
+                                <input type="text" class="sc-search-input" placeholder="جستجوی نام یا کد ملی...">
+                            </div>
+                            <div class="sc-dropdown-options">
+                                <div class="sc-dropdown-option sc-visible" data-value="0" data-search="همه کاربران"
+                                     onclick="scSelectMemberFilter(this,'0','همه کاربران')">همه کاربران</div>
+                                <?php foreach ($users_with_tickets as $u) :
+                                    $opt_text = trim($u->name) ?: 'کاربر #' . $u->user_id;
+                                    if (!empty($u->national_id)) $opt_text .= ' - ' . $u->national_id;
+                                    $search_str = strtolower(trim($u->name) . ' ' . ($u->national_id ?? ''));
+                                ?>
+                                <div class="sc-dropdown-option" data-value="<?php echo esc_attr($u->user_id); ?>" data-search="<?php echo esc_attr($search_str); ?>"
+                                     onclick="scSelectMemberFilter(this,'<?php echo esc_js($u->user_id); ?>','<?php echo esc_js($opt_text); ?>')">
+                                    <?php echo esc_html($opt_text); ?>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- بازه تاریخ (اندازه مناسب، سمت راست) -->
+                <div class="sc-filter-field" style="width: auto; min-width: 260px;">
+                    <label class="sc-filter-label">بازه تاریخ</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($filter_date_from_sh); ?>" placeholder="از" readonly style="width:130px;">
+                        <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($filter_date_to_sh); ?>" placeholder="تا" readonly style="width:130px;">
+                    </div>
+                </div>
+
+                <!-- دکمه فیلتر در سطر جدید، راست‌چین -->
+                <div style="width:100%; display:flex; justify-content:flex-end; margin-top:8px;">
+                    <input type="submit" class="button button-small" value="فیلتر" style="padding:4px 18px; height:32px; line-height:1;">
+                </div>
+
+            </div>
+            <!-- ==================== /FILTER BAR ==================== -->
+
             <?php $list_table->views(); ?>
             <?php $list_table->display(); ?>
         </form>

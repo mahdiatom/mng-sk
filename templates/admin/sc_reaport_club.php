@@ -166,6 +166,14 @@ $courses = $wpdb->get_var("SELECT COUNT(*) FROM $courses_table");
 $courses_active = $wpdb->get_var("SELECT COUNT(*) FROM $courses_table WHERE  is_active = '1' ");
 $courses_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $courses_table WHERE  is_active = '0' ");
 
+$courses_private = 0;
+$course_column_names = $wpdb->get_col("SHOW COLUMNS FROM `$courses_table`");
+if (is_array($course_column_names) && in_array('course_type', $course_column_names, true)) {
+    $courses_private = (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM $courses_table WHERE deleted_at IS NULL AND course_type = 'private'"
+    );
+}
+
 //============================================
 //بخش رویداد ها 
 $event_table = $wpdb->prefix . 'sc_events';
@@ -174,6 +182,41 @@ $events_active = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  is_act
 $events_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  is_active = '0' ");
 $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = '0' ");
 
+// حضور و غیاب — مجموع رکوردها بدون محدودیت زمانی
+$att_table             = $wpdb->prefix . 'sc_attendances';
+$att_present_count     = 0;
+$att_absent_count      = 0;
+$att_excused_count     = 0;
+if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $att_table)) === $att_table) {
+    $att_present_count  = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$att_table` WHERE status = 'present'");
+    $att_absent_count   = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$att_table` WHERE status = 'absent'");
+    $att_excused_count  = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$att_table` WHERE status = 'excused'");
+}
+
+// پیامک — از جدول لاگ گزارش ارسال (sc_sms_log)
+$sms_table                    = $wpdb->prefix . 'sc_sms_log';
+$sms_sent_accepted            = 0;
+$sms_delivered_count          = 0;
+$sms_failed_or_not_delivered  = 0;
+if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $sms_table)) === $sms_table) {
+    $sms_sent_accepted   = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$sms_table` WHERE success = 1");
+    $sms_delivered_count = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM `$sms_table` WHERE success = 1 AND delivery_state = %s",
+        'رسیده به گوشی'
+    ));
+    $delivery_failed_states = ['لیست سیاه', 'ناموفق', 'نرسیده به گوشی', 'نرسیده به مخابرات'];
+    $in_delivery_failed = "'" . implode("','", array_map('esc_sql', $delivery_failed_states)) . "'";
+    $sms_delivery_failed = (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM `$sms_table` WHERE success = 1 AND delivery_state IN ($in_delivery_failed)"
+    );
+    $sms_api_failed = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$sms_table` WHERE success = 0");
+    $sms_failed_or_not_delivered = $sms_api_failed + $sms_delivery_failed;
+}
+
+// صورت‌حساب‌های پرداخت‌نشده (هم‌معنی با فیلترهای «در انتظار پرداخت» و «در حال بررسی» در لیست صورت‌حساب)
+$unpaid_invoices_count = (int) $wpdb->get_var(
+    "SELECT COUNT(*) FROM $invoices_table WHERE status IN ('pending', 'under_review', 'on-hold')"
+);
 
 ?>
 
@@ -263,6 +306,12 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
                 <?php echo $count_debtor; ?>
             </div>
         </div>
+        <div class="sc-stat-box">
+            <h3>صورت‌حساب‌های پرداخت‌نشده</h3>
+            <div>
+                <?php echo (int) $unpaid_invoices_count; ?>
+            </div>
+        </div>
     </div>
 
     <div class="title_head_btn_report">
@@ -292,6 +341,13 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
                 <?php echo $courses_inactive; ?> 
             </div>
           
+        </div>
+
+        <div class="sc-stat-box">
+            <h3>دوره خصوصی</h3>
+            <div>
+                <?php echo (int) $courses_private; ?>
+            </div>
         </div>
         
         <div class="sc-stat-box">
@@ -342,6 +398,44 @@ $events_free = $wpdb->get_var("SELECT COUNT(*) FROM $event_table WHERE  price = 
         
     </div>
 
-<h3>حضور و غیاب ( به زودی....): </h3>
-<h3>پیامک های ارسال شده (به زودی ....) </h3>
+    <div class="title_head_btn_report">
+        <h3>حضور و غیاب</h3>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list_report')); ?>">لیست حضور و غیاب</a>
+    </div>
+    <div class="sc-dashboard-stats">
+        <div class="sc-stat-box">
+            <h3>تعداد حضور</h3>
+            <div><?php echo (int) $att_present_count; ?></div>
+        </div>
+        <div class="sc-stat-box">
+            <h3>تعداد غیبت</h3>
+            <div><?php echo (int) $att_absent_count; ?></div>
+        </div>
+        <div class="sc-stat-box">
+            <h3>غیبت‌های مجاز</h3>
+            <div><?php echo (int) $att_excused_count; ?></div>
+        </div>
+    </div>
+
+    <div class="title_head_btn_report">
+        <h3>پیامک‌های ارسال‌شده</h3>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-sms-log')); ?>">گزارش و لاگ ارسال پیامک</a>
+    </div>
+    <div class="sc-dashboard-stats">
+        <div class="sc-stat-box">
+            <h3>کل پیامک‌های ارسال‌شده</h3>
+            <div><?php echo (int) $sms_sent_accepted; ?></div>
+        </div>
+        <div class="sc-stat-box">
+            <h3>کل پیامک‌های تحویل‌داده‌شده</h3>
+            <div><?php echo (int) $sms_delivered_count; ?></div>
+        </div>
+        <div class="sc-stat-box">
+            <h3>پیامک‌های ناموفق و نرسیده</h3>
+            <div><?php echo (int) $sms_failed_or_not_delivered; ?></div>
+        </div>
+    </div>
+    <p class="description" style="margin-top:-8px;color:#646970;font-size:12px;">
+        آمار پیامک بر اساس جدول لاگ است؛ «تحویل» پس از بررسی وضعیت از سامانه در همان گزارش به‌روز می‌شود. ردیف‌های بدون بررسی تحویل در این عدد آخر لحاظ نمی‌شوند.
+    </p>
 </div>
