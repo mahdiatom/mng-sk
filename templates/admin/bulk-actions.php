@@ -253,6 +253,7 @@ foreach ($course_coaches as $row) {
                     <option value="course_deactivate">غیرفعال کردن دوره</option>
                     <option value="course_set_flag">افزودن فلگ دوره</option>
                     <option value="assign_course_coach">اختصاص بازیکن های انتخاب شده به مربی دوره</option>
+                    <option value="remaining_sessions_adjust">تغییر جلسات باقی مانده</option>
                     <option value="delete_members">حذف بازیکن ها</option>
                 </select>
             </div>
@@ -332,6 +333,22 @@ foreach ($course_coaches as $row) {
                     </select>
                 </div>
                 <p class="description">فقط بازیکن‌هایی که در همین دوره ثبت‌نام دارند به مربی انتخاب‌شده منتسب می‌شوند.</p>
+            </div>
+
+            <div id="sc-action-remaining-sessions" class="sc-action-extra">
+                <div class="sc-row">
+                    <label for="sc-remaining-sessions-mode">نحوهٔ تغییر جلسات باقی‌مانده</label>
+                    <select name="remaining_sessions_mode" id="sc-remaining-sessions-mode">
+                        <option value="set">تغییر به مقدار مشخص (همان مقدار ثبت می‌شود)</option>
+                        <option value="add">افزایش به مقدار مشخص (به عدد فعلی اضافه می‌شود)</option>
+                        <option value="subtract">کاهش به مقدار مشخص (از عدد فعلی کم می‌شود؛ حداقل صفر)</option>
+                    </select>
+                </div>
+                <div class="sc-row">
+                    <label for="sc-remaining-sessions-amount">مقدار (عدد صحیح از ۰ به بالا)</label>
+                    <input type="number" name="remaining_sessions_amount" id="sc-remaining-sessions-amount" class="small-text" min="0" step="1" inputmode="numeric" placeholder="مثلاً ۳">
+                </div>
+                <p class="description">ابتدا در بالا «دوره‌های هدف» را انتخاب کنید. برای هر بازیکن، فقط ردیف ثبت‌نام همان دوره‌ها به‌روز می‌شود؛ اگر در دوره‌ای ثبت‌نام نداشته باشد در گزارش ناموفق می‌آید.</p>
             </div>
         </div>
 

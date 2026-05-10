@@ -161,6 +161,9 @@
         } else if (action === 'course_set_flag') {
             $('#sc-action-course-common').show();
             $('#sc-action-course-flag').show();
+        } else if (action === 'remaining_sessions_adjust') {
+            $('#sc-action-course-common').show();
+            $('#sc-action-remaining-sessions').show();
         }
     }
 
@@ -239,10 +242,22 @@
             alert('سطح جدید را انتخاب کنید.');
             return false;
         }
-        if ((action === 'course_activate' || action === 'course_deactivate' || action === 'course_set_flag')
+        if ((action === 'course_activate' || action === 'course_deactivate' || action === 'course_set_flag' || action === 'remaining_sessions_adjust')
             && ($('#sc-action-course-ids').val() || []).length === 0) {
             alert('حداقل یک دوره برای عملیات دوره ای انتخاب کنید.');
             return false;
+        }
+        if (action === 'remaining_sessions_adjust') {
+            var mode = $('#sc-remaining-sessions-mode').val();
+            if (!mode || ['set', 'add', 'subtract'].indexOf(mode) === -1) {
+                alert('نحوهٔ تغییر جلسات را انتخاب کنید.');
+                return false;
+            }
+            var rawAmt = ($('#sc-remaining-sessions-amount').val() || '').toString().trim();
+            if (rawAmt === '' || !/^\d+$/.test(rawAmt)) {
+                alert('مقدار جلسات را به صورت عدد صحیح غیرمنفی (۰ یا بیشتر) وارد کنید.');
+                return false;
+            }
         }
         if (action === 'course_set_flag' && !$('#sc-action-course-flag-select').val()) {
             alert('فلگ دوره را انتخاب کنید.');

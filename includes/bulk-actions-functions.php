@@ -170,6 +170,7 @@ function sc_bulk_actions_action_title($action_key) {
         'course_activate'        => 'فعال کردن دوره',
         'course_deactivate'      => 'غیرفعال کردن دوره',
         'course_set_flag'        => 'افزودن فلگ به دوره',
+        'remaining_sessions_adjust' => 'تغییر جلسات باقی‌مانده',
     );
     return isset($map[$action_key]) ? $map[$action_key] : (string) $action_key;
 }
@@ -891,6 +892,119 @@ function sc_bulk_actions_execute_handler() {
         }
 
         sc_bulk_actions_finish_with_report($action_key, $success_lines, $fail_lines, $filtered_count, array('course_count' => count($course_ids)));
+    }
+
+    if ($action_key === 'remaining_sessions_adjust') {
+        $course_ids = isset($_POST['action_course_ids']) ? array_filter(array_map('absint', (array) $_POST['action_course_ids'])) : array();
+        if (empty($course_ids)) {
+            sc_bulk_actions_finish_with_report(
+                'remaining_sessions_adjust',
+                array(),
+                array(array('line' => 'هیچ دوره‌ای انتخاب نشده است.')),
+                $filtered_count
+            );
+        }
+
+        $mode = isset($_POST['remaining_sessions_mode']) ? sanitize_text_field(wp_unslash($_POST['remaining_sessions_mode'])) : '';
+        if (!in_array($mode, array('set', 'add', 'subtract'), true)) {
+            sc_bulk_actions_finish_with_report(
+                'remaining_sessions_adjust',
+                array(),
+                array(array('line' => 'نوع تغییر جلسات نامعتبر است.')),
+                $filtered_count
+            );
+        }
+
+        $amt_raw = isset($_POST['remaining_sessions_amount']) ? trim(wp_unslash((string) $_POST['remaining_sessions_amount'])) : '';
+        if ($amt_raw === '' || !preg_match('/^\d+$/', $amt_raw)) {
+            sc_bulk_actions_finish_with_report(
+                'remaining_sessions_adjust',
+                array(),
+                array(array('line' => 'مقدار باید عدد صحیح و بدون علامت منفی باشد.')),
+                $filtered_count
+            );
+        }
+        $amount = (int) $amt_raw;
+
+        $mode_labels = array(
+            'set'      => 'ثبت مقدار مشخص',
+            'add'      => 'افزایش',
+            'subtract' => 'کاهش',
+        );
+        $mode_fa = $mode_labels[$mode];
+
+        $course_titles = array();
+        foreach ($course_ids as $cid) {
+            $cid = absint($cid);
+            if (!$cid) {
+                continue;
+            }
+            $title = $wpdb->get_var($wpdb->prepare("SELECT title FROM {$courses_table} WHERE id = %d", $cid));
+            $course_titles[$cid] = $title ? $title : ('#' . $cid);
+        }
+
+        $success_lines = array();
+        $fail_lines = array();
+
+        foreach ($member_ids as $member_id) {
+            $label = sc_bulk_actions_member_label($member_id);
+            foreach ($course_ids as $course_id) {
+                $course_id = absint($course_id);
+                if (!$course_id) {
+                    continue;
+                }
+                $ctitle = isset($course_titles[$course_id]) ? $course_titles[$course_id] : ('#' . $course_id);
+                $row = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT id, remaining_sessions FROM {$member_courses_table} WHERE member_id = %d AND course_id = %d LIMIT 1",
+                        $member_id,
+                        $course_id
+                    )
+                );
+                if (!$row) {
+                    $fail_lines[] = $label . ' — «' . $ctitle . '» — ثبت‌نام برای این دوره وجود ندارد.';
+                    continue;
+                }
+
+                $old = (int) $row->remaining_sessions;
+                if ($mode === 'set') {
+                    $new = $amount;
+                } elseif ($mode === 'add') {
+                    $new = $old + $amount;
+                } else {
+                    $new = max(0, $old - $amount);
+                }
+
+                if ($new === $old) {
+                    $success_lines[] = $label . ' — «' . $ctitle . '» — جلسات باقی‌مانده بدون تغییر ماند (' . $old . ')؛ (' . $mode_fa . ').';
+                    continue;
+                }
+
+                $res = $wpdb->update(
+                    $member_courses_table,
+                    array(
+                        'remaining_sessions' => $new,
+                        'updated_at'         => current_time('mysql'),
+                    ),
+                    array('id' => (int) $row->id),
+                    array('%d', '%s'),
+                    array('%d')
+                );
+                if ($res === false) {
+                    $fail_lines[] = $label . ' — «' . $ctitle . '» — خطای پایگاه داده هنگام به‌روزرسانی جلسات.';
+                } else {
+                    $success_lines[] = $label . ' — «' . $ctitle . '» — جلسات باقی‌مانده از ' . $old . ' به ' . $new . ' تغییر کرد (' . $mode_fa . ').';
+                }
+            }
+        }
+
+        sc_bulk_actions_finish_with_report(
+            'remaining_sessions_adjust',
+            $success_lines,
+            $fail_lines,
+            $filtered_count,
+            array('course_count' => count($course_ids))
+        );
     }
 
     sc_bulk_actions_finish_with_report(
