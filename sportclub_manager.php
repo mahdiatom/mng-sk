@@ -48,6 +48,7 @@ require_once SC_INCLUDES_DIR . 'discount-codes-functions.php'; // کدهای ت�
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'header-search-functions.php'; // جستجوی هدر (AJAX)
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
+require_once SC_INCLUDES_DIR . 'invoices-bulk-background.php'; // پردازش پس‌زمینهٔ عملیات دسته‌جمعی صورت‌حساب‌ها
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions
 require_once SC_INCLUDES_DIR . 'users-info-export-functions.php'; // Users info export (PDF/Excel)
 require_once SC_INCLUDES_DIR . 'bulk-actions-functions.php'; // Bulk actions on filtered members

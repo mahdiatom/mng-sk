@@ -1,0 +1,192 @@
+/* =========================================================
+ * Invoices background bulk-action progress modal
+ * ========================================================= */
+
+.sc-ibb-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    direction: rtl;
+    font-family: inherit;
+}
+
+.sc-ibb-modal {
+    background: #fff;
+    width: min(720px, 92vw);
+    max-height: 88vh;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+.sc-ibb-header {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #2271b1, #135e96);
+    color: #fff;
+}
+
+.sc-ibb-title {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    color: #fff;
+    line-height: 1.4;
+}
+
+.sc-ibb-action-label {
+    font-size: 13px;
+    opacity: 0.92;
+}
+
+.sc-ibb-body {
+    padding: 18px 20px;
+    overflow-y: auto;
+}
+
+.sc-ibb-progress-wrap {
+    margin-bottom: 14px;
+}
+
+.sc-ibb-progress-bar {
+    width: 100%;
+    height: 16px;
+    background: #f1f5f9;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+.sc-ibb-progress-bar > span {
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+    transition: width 0.25s ease;
+    border-radius: 999px;
+}
+
+.sc-ibb-progress-text {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #475569;
+    text-align: center;
+    font-weight: 600;
+}
+
+.sc-ibb-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.sc-ibb-stat {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+}
+
+.sc-ibb-stat-label {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.sc-ibb-stat-value {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.sc-ibb-stat-success .sc-ibb-stat-value { color: #16a34a; }
+.sc-ibb-stat-error   .sc-ibb-stat-value { color: #dc2626; }
+.sc-ibb-stat-total   .sc-ibb-stat-value { color: #2271b1; }
+
+.sc-ibb-status {
+    text-align: center;
+    color: #475569;
+    font-size: 13px;
+    margin: 6px 0 12px;
+    min-height: 18px;
+}
+
+.sc-ibb-log-wrap {
+    background: #0f172a;
+    border-radius: 8px;
+    padding: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.sc-ibb-log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #e2e8f0;
+}
+
+.sc-ibb-log li {
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.sc-ibb-log li + li {
+    margin-top: 2px;
+}
+
+.sc-ibb-log-id {
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+}
+
+.sc-ibb-log-msg {
+    flex: 1;
+    word-break: break-word;
+}
+
+.sc-ibb-log-ok  { color: #86efac; }
+.sc-ibb-log-err { color: #fca5a5; }
+
+.sc-ibb-log-ok .sc-ibb-log-id  { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
+.sc-ibb-log-err .sc-ibb-log-id { background: rgba(239, 68, 68, 0.18); color: #f87171; }
+
+.sc-ibb-footer {
+    padding: 12px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.sc-ibb-footer .button {
+    min-width: 110px;
+}
+
+.sc-ibb-inline-notice {
+    margin: 12px 0 !important;
+}
+
+@media (max-width: 600px) {
+    .sc-ibb-modal { width: 96vw; }
+    .sc-ibb-body  { padding: 14px; }
+}
