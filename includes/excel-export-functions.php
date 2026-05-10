@@ -1916,8 +1916,9 @@ if (!empty($where_values)) {
     $row_number = 1;
 
     $settlement_type = [
-        'percentage'      => 'درصدی',
-   
+        'fixed'      => 'ثابت',
+        'percentage' => 'درصدی',
+        'both'       => 'ثابت + درصدی',
     ];
 
 

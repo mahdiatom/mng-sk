@@ -3595,6 +3595,163 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
         sc_maybe_create_initial_invoices_after_member_courses_save($member_id, $course_ids);
     }
 }
+
+/**
+ * فعال‌سازی یک دوره برای یک عضو (بدون غیرفعال کردن سایر دوره‌های همان عضو).
+ * همان منطق جلسات، مربی و صورت‌حساب اولیهٔ «ویرایش بازیکن»؛ اگر رکورد ثبت‌نام نباشد ایجاد می‌شود.
+ *
+ * @param int   $member_id
+ * @param int   $course_id
+ * @param array<int,int> $course_package_sessions شناسه دوره => تعداد جلسهٔ پکیج (اختیاری)
+ * @return true|\WP_Error
+ */
+function sc_member_course_activate_one($member_id, $course_id, $course_package_sessions = []) {
+    $member_id = absint($member_id);
+    $course_id = absint($course_id);
+    if ($member_id < 1 || $course_id < 1) {
+        return new WP_Error('sc_mc_bad_id', 'شناسه عضو یا دوره نامعتبر است.');
+    }
+
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $table_name = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+    $member = $wpdb->get_row($wpdb->prepare("SELECT id, first_name, last_name FROM {$members_table} WHERE id = %d LIMIT 1", $member_id));
+    if (!$member) {
+        return new WP_Error('sc_mc_no_member', 'بازیکن یافت نشد.');
+    }
+
+    $course = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$courses_table} WHERE id = %d AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') AND is_active = 1 LIMIT 1",
+        $course_id
+    ));
+    if (!$course) {
+        return new WP_Error('sc_mc_no_course', 'دوره یافت نشد، حذف شده یا غیرفعال است.');
+    }
+
+    $pkg_sel = isset($course_package_sessions[$course_id]) ? absint($course_package_sessions[$course_id]) : 0;
+    if ($pkg_sel === 0 && function_exists('sc_course_has_packages') && sc_course_has_packages($course_id)) {
+        $pkgs = function_exists('sc_get_course_packages') ? sc_get_course_packages($course_id) : [];
+        if (!empty($pkgs[0]->sessions_count)) {
+            $pkg_sel = (int) $pkgs[0]->sessions_count;
+        }
+    }
+
+    if (function_exists('sc_course_has_packages') && sc_course_has_packages($course_id)) {
+        if ($pkg_sel < 1 || (function_exists('sc_get_course_package_by_sessions') && !sc_get_course_package_by_sessions($course_id, $pkg_sel))) {
+            return new WP_Error('sc_mc_pkg', 'برای این دوره پکیج معتبر انتخاب نشده یا پکیج تعریف نشده است.');
+        }
+    }
+
+    $sf = function_exists('sc_member_course_session_fields_for_course')
+        ? sc_member_course_session_fields_for_course($course_id, $pkg_sel > 0 ? $pkg_sel : null)
+        : ['enrollment_sessions' => null, 'total_sessions' => 0, 'remaining_sessions' => 0];
+
+    $resolve_member_course_coach_id = static function ($cid, $existing_coach_id = 0) use ($wpdb, $course_coaches_table, $coaches_table) {
+        $cid = absint($cid);
+        $existing_coach_id = absint($existing_coach_id);
+        if (!$cid) {
+            return 0;
+        }
+        if ($existing_coach_id > 0) {
+            $is_still_valid = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*)
+                 FROM $course_coaches_table cc
+                 INNER JOIN $coaches_table c ON c.id = cc.coach_id
+                 WHERE cc.course_id = %d AND cc.coach_id = %d AND c.is_active = 1",
+                $cid,
+                $existing_coach_id
+            ));
+            if ($is_still_valid > 0) {
+                return $existing_coach_id;
+            }
+        }
+        $active_course_coaches = $wpdb->get_col($wpdb->prepare(
+            "SELECT cc.coach_id
+             FROM $course_coaches_table cc
+             INNER JOIN $coaches_table c ON c.id = cc.coach_id
+             WHERE cc.course_id = %d AND c.is_active = 1
+             ORDER BY cc.coach_id ASC",
+            $cid
+        ));
+        $active_course_coaches = array_values(array_unique(array_map('absint', (array) $active_course_coaches)));
+        if (count($active_course_coaches) === 1) {
+            return (int) $active_course_coaches[0];
+        }
+        return 0;
+    };
+
+    $flags_string = '';
+
+    $existing = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $table_name WHERE member_id = %d AND course_id = %d",
+        $member_id,
+        $course_id
+    ));
+
+    if ($existing) {
+        $existing_coach_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT coach_id FROM $table_name WHERE id = %d LIMIT 1",
+            $existing
+        ));
+        $resolved_coach_id = $resolve_member_course_coach_id($course_id, $existing_coach_id);
+        $upd = [
+            'status' => 'active',
+            'coach_id' => (int) $resolved_coach_id,
+            'course_status_flags' => $flags_string,
+            'enrollment_date' => current_time('Y-m-d'),
+            'total_sessions' => (int) $sf['total_sessions'],
+            'remaining_sessions' => (int) $sf['remaining_sessions'],
+            'updated_at' => current_time('mysql'),
+        ];
+        $fmt = ['%s', '%d', '%s', '%s', '%d', '%d', '%s'];
+        if ($sf['enrollment_sessions'] === null) {
+            $upd['enrollment_sessions'] = null;
+            $fmt[] = '%s';
+        } else {
+            $upd['enrollment_sessions'] = (int) $sf['enrollment_sessions'];
+            $fmt[] = '%d';
+        }
+        $res = $wpdb->update($table_name, $upd, ['id' => (int) $existing], $fmt, ['%d']);
+    } else {
+        $resolved_coach_id = $resolve_member_course_coach_id($course_id, 0);
+        $insert_row = [
+            'member_id' => $member_id,
+            'course_id' => $course_id,
+            'coach_id' => (int) $resolved_coach_id,
+            'enrollment_date' => current_time('Y-m-d'),
+            'status' => 'active',
+            'course_status_flags' => $flags_string,
+            'total_sessions' => (int) $sf['total_sessions'],
+            'remaining_sessions' => (int) $sf['remaining_sessions'],
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql'),
+        ];
+        $fmt = ['%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s'];
+        if ($sf['enrollment_sessions'] === null) {
+            $insert_row['enrollment_sessions'] = null;
+            $fmt[] = '%s';
+        } else {
+            $insert_row['enrollment_sessions'] = (int) $sf['enrollment_sessions'];
+            $fmt[] = '%d';
+        }
+        $res = $wpdb->insert($table_name, $insert_row, $fmt);
+    }
+
+    if ($res === false) {
+        return new WP_Error('sc_mc_db', 'خطا در ذخیرهٔ ثبت‌نام دوره: ' . ($wpdb->last_error ?: 'نامشخص'));
+    }
+
+    if (function_exists('sc_maybe_create_initial_invoices_after_member_courses_save')) {
+        sc_maybe_create_initial_invoices_after_member_courses_save($member_id, [$course_id]);
+    }
+
+    return true;
+}
+
 //callback display list member in 
 function procces_table_data(){
   // بررسی و ایجاد جداول در صورت عدم وجود
@@ -4451,7 +4608,11 @@ function callback_add_coach_sufix() {
             'coaching_level' => !empty($_POST['coaching_level']) ? sanitize_text_field($_POST['coaching_level']) : NULL,
             'coaching_experience' => !empty($_POST['coaching_experience']) ? intval($_POST['coaching_experience']) : NULL,
             'sports_history' => !empty($_POST['sports_history']) ? sanitize_textarea_field($_POST['sports_history']) : NULL,
-            'settlement_type' => !empty($_POST['settlement_type']) ? sanitize_text_field($_POST['settlement_type']) : 'fixed',
+            'settlement_type' => (function () {
+                $allowed = ['fixed', 'percentage', 'both'];
+                $raw = !empty($_POST['settlement_type']) ? sanitize_text_field(wp_unslash($_POST['settlement_type'])) : 'fixed';
+                return in_array($raw, $allowed, true) ? $raw : 'fixed';
+            })(),
             'settlement_amount' => sc_sanitize_coach_settlement_amount(isset($_POST['coach_settlement_amount_save']) ? $_POST['coach_settlement_amount_save'] : ''),
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'updated_at' => current_time('mysql')
@@ -4522,8 +4683,9 @@ function callback_add_coach_sufix() {
                     $wpdb->update($coaches_table, ['user_id' => $user_id], ['id' => $new_coach_id], ['%d'], ['%d']);
                 }
                 
-                // ذخیره دوره‌ها
-                sc_save_coach_courses($new_coach_id, isset($_POST['courses']) ? $_POST['courses'] : []);
+                // ذخیره دوره‌ها (شامل درصد هر دوره، مانند ویرایش)
+                $course_percentages_new = isset($_POST['course_percentage']) && is_array($_POST['course_percentage']) ? $_POST['course_percentage'] : [];
+                sc_save_coach_courses($new_coach_id, isset($_POST['courses']) ? $_POST['courses'] : [], $course_percentages_new);
                 
                 wp_redirect(admin_url('admin.php?page=sc-add-coach&sc_status=coach_add_true&coach_id=' . $new_coach_id));
                 exit;

@@ -50,7 +50,59 @@ foreach ($course_coaches as $row) {
     <h1>کار های دست جمعی</h1>
     <p class="description">کاربران را فیلتر کنید، پیش نمایش بگیرید و عملیات گروهی را با تایید نهایی اجرا کنید.</p>
 
-    <?php if (isset($_GET['sc_bulk_notice']) && $_GET['sc_bulk_notice'] === 'done') : ?>
+    <?php
+    $sc_bulk_report_data = null;
+    if (isset($_GET['sc_bulk_notice'], $_GET['sc_bulk_report']) && $_GET['sc_bulk_notice'] === 'report') {
+        $rk = sanitize_text_field(wp_unslash($_GET['sc_bulk_report']));
+        if ($rk !== '') {
+            $sc_bulk_report_data = get_transient($rk);
+            if ($sc_bulk_report_data !== false) {
+                delete_transient($rk);
+            } else {
+                $sc_bulk_report_data = null;
+            }
+        }
+    }
+    ?>
+    <?php if (isset($_GET['sc_bulk_notice']) && $_GET['sc_bulk_notice'] === 'report' && is_array($sc_bulk_report_data)) : ?>
+        <div class="notice notice-info is-dismissible sc-bulk-report-notice">
+            <p>
+                <strong>گزارش عملیات دسته‌جمعی</strong>
+                <?php if (!empty($sc_bulk_report_data['action_title'])) : ?>
+                    — <?php echo esc_html((string) $sc_bulk_report_data['action_title']); ?>
+                <?php endif; ?>
+            </p>
+            <p class="description">
+                موفق: <?php echo esc_html((string) (int) ($sc_bulk_report_data['ok_count'] ?? 0)); ?> —
+                ناموفق: <?php echo esc_html((string) (int) ($sc_bulk_report_data['fail_count'] ?? 0)); ?> —
+                کاربران در فیلتر: <?php echo esc_html((string) absint($_GET['total'] ?? 0)); ?>
+            </p>
+            <?php if (!empty($sc_bulk_report_data['successes'])) : ?>
+                <div class="sc-bulk-report-block sc-bulk-report-success">
+                    <strong>موفق:</strong>
+                    <ul class="sc-bulk-report-list">
+                        <?php foreach ($sc_bulk_report_data['successes'] as $item) :
+                            $line = is_array($item) && isset($item['line']) ? $item['line'] : (string) $item;
+                            ?>
+                            <li><?php echo esc_html($line); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($sc_bulk_report_data['failures'])) : ?>
+                <div class="sc-bulk-report-block sc-bulk-report-fail">
+                    <strong>ناموفق یا رد شده:</strong>
+                    <ul class="sc-bulk-report-list">
+                        <?php foreach ($sc_bulk_report_data['failures'] as $item) :
+                            $line = is_array($item) && isset($item['line']) ? $item['line'] : (string) $item;
+                            ?>
+                            <li><?php echo esc_html($line); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php elseif (isset($_GET['sc_bulk_notice']) && $_GET['sc_bulk_notice'] === 'done') : ?>
         <div class="notice notice-success is-dismissible">
             <p>
                 عملیات با موفقیت اجرا شد.

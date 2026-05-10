@@ -126,6 +126,10 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                         <input type="radio" name="settlement_type" value="percentage" id="settlement_type_percentage" <?php checked($coach ? $coach->settlement_type : '', 'percentage'); ?>>
                         درصدی
                     </label>
+                    <label style="margin-right: 20px;">
+                        <input type="radio" name="settlement_type" value="both" id="settlement_type_both" <?php checked($coach ? $coach->settlement_type : '', 'both'); ?>>
+                        ثابت و درصدی
+                    </label>
                 </td>
             </tr>
             
@@ -195,7 +199,7 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                             <p>هیچ دوره فعالی وجود ندارد.</p>
                         <?php endif; ?>
                     </div>
-                    <p class="description">برای مربی‌های با نوع تسویه «درصدی»، درصد دستمزد را برای هر دوره وارد کنید.</p>
+                    <p class="description">برای نوع تسویه «درصدی» یا «ثابت و درصدی»، دوره‌ها را انتخاب کنید و درصد دستمزد هر دوره را وارد کنید. برای «ثابت» فقط حقوق ماهانه اعمال می‌شود و ستون درصد پنهان است.</p>
                 </td>
             </tr>
             
@@ -274,20 +278,28 @@ jQuery(document).ready(function($) {
         var settlementType = $('input[name="settlement_type"]:checked').val();
         
         if (settlementType === 'fixed') {
-            // اگر ثابت انتخاب شد: نمایش فیلد مبلغ ثابت، نمایش لیست دوره‌ها، پنهان کردن فقط ستون درصد دستمزد
             $('#settlement_amount_row').show();
             $('#courses_row').show();
-
-            // پنهان کردن ستون درصد دستمزد و غیرفعال کردن فیلدها
             $('.course-percentage-col').hide();
             $('.course-percentage').prop('disabled', true);
+        } else if (settlementType === 'both') {
+            $('#settlement_amount_row').show();
+            $('#courses_row').show();
+            $('.course-percentage-col').show();
+            $('.course-checkbox').each(function() {
+                var courseId = $(this).data('course-id');
+                var $pct = $('#course_percentage_' + courseId);
+                if ($(this).is(':checked')) {
+                    $pct.prop('disabled', false);
+                } else {
+                    $pct.prop('disabled', true);
+                    $pct.val('0');
+                }
+            });
         } else {
-            // اگر درصدی انتخاب شد: پنهان کردن فیلد مبلغ ثابت، نمایش لیست دوره‌ها و ستون درصد دستمزد
             $('#settlement_amount_row').hide();
             $('#courses_row').show();
             $('.course-percentage-col').show();
-
-            // فعال کردن فیلدهای درصد برای دوره‌های انتخاب شده
             $('.course-checkbox:checked').each(function() {
                 var courseId = $(this).data('course-id');
                 $('#course_percentage_' + courseId).prop('disabled', false);

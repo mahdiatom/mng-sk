@@ -223,7 +223,11 @@ $courses = $wpdb->get_results(
                         <td>
                             <strong><?php echo esc_html($record->first_name . ' ' . $record->last_name); ?></strong><br>
                             <small style="color: #666;">
-                                <?php echo $record->settlement_type === 'fixed' ? 'ثابت' : 'درصدی'; ?>
+                                <?php
+                                echo $record->settlement_type === 'fixed'
+                                    ? 'ثابت'
+                                    : ($record->settlement_type === 'both' ? 'ثابت + درصدی' : 'درصدی');
+                                ?>
                             </small>
                         </td>
                         <td>

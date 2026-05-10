@@ -29,6 +29,18 @@ if ($edit_id) {
     }
 }
 
+$sc_bulk_sms_report_data = null;
+if (!$is_coach && !$edit_id && isset($_GET['sc_bulk_sms_report']) && current_user_can('manage_options')) {
+    $rk = sanitize_text_field(wp_unslash($_GET['sc_bulk_sms_report']));
+    if ($rk !== '') {
+        $sc_bulk_sms_report_data = get_transient($rk);
+        if ($sc_bulk_sms_report_data !== false) {
+            delete_transient($rk);
+        } else {
+            $sc_bulk_sms_report_data = null;
+        }
+    }
+}
 
 $message = '';
 $message_type = '';
@@ -224,6 +236,44 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
     <?php endif; ?>
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
+    <?php endif; ?>
+    <?php if (!$is_coach && is_array($sc_bulk_sms_report_data)) : ?>
+        <div class="notice notice-info is-dismissible sc-bulk-report-notice">
+            <p>
+                <strong>گزارش انتخاب از کارهای دسته‌جمعی</strong>
+                <?php if (!empty($sc_bulk_sms_report_data['action_title'])) : ?>
+                    — <?php echo esc_html((string) $sc_bulk_sms_report_data['action_title']); ?>
+                <?php endif; ?>
+            </p>
+            <p class="description">
+                موفق: <?php echo esc_html((string) (int) ($sc_bulk_sms_report_data['ok_count'] ?? 0)); ?> —
+                ناموفق: <?php echo esc_html((string) (int) ($sc_bulk_sms_report_data['fail_count'] ?? 0)); ?>
+            </p>
+            <?php if (!empty($sc_bulk_sms_report_data['successes'])) : ?>
+                <div class="sc-bulk-report-block sc-bulk-report-success">
+                    <strong>موفق:</strong>
+                    <ul class="sc-bulk-report-list">
+                        <?php foreach ($sc_bulk_sms_report_data['successes'] as $item) :
+                            $line = is_array($item) && isset($item['line']) ? $item['line'] : (string) $item;
+                            ?>
+                            <li><?php echo esc_html($line); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($sc_bulk_sms_report_data['failures'])) : ?>
+                <div class="sc-bulk-report-block sc-bulk-report-fail">
+                    <strong>ناموفق:</strong>
+                    <ul class="sc-bulk-report-list">
+                        <?php foreach ($sc_bulk_sms_report_data['failures'] as $item) :
+                            $line = is_array($item) && isset($item['line']) ? $item['line'] : (string) $item;
+                            ?>
+                            <li><?php echo esc_html($line); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+        </div>
     <?php endif; ?>
 
     <div class="sc-notification-form-card<?php echo $is_coach ? ' sc-coach-panel-card' : ''; ?>">

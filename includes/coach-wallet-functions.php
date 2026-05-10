@@ -9,6 +9,26 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * آیا نوع تسویه مربی شامل دستمزد درصدی (بر اساس جلسه/دوره) است.
+ *
+ * @param string|null $settlement_type
+ * @return bool
+ */
+function sc_coach_settlement_includes_percentage($settlement_type) {
+    return $settlement_type === 'percentage' || $settlement_type === 'both';
+}
+
+/**
+ * آیا نوع تسویه مربی شامل حقوق ثابت ماهانه است.
+ *
+ * @param string|null $settlement_type
+ * @return bool
+ */
+function sc_coach_settlement_includes_fixed($settlement_type) {
+    return $settlement_type === 'fixed' || $settlement_type === 'both';
+}
+
+/**
  * Get coach wallet balance
  * دریافت موجودی کیف پول مربی
  */
@@ -404,7 +424,7 @@ function sc_calculate_coach_fixed_salary($coach_id, $month_year_shamsi) {
         $coach_id
     ));
     
-    if (!$coach || $coach->settlement_type !== 'fixed' || floatval($coach->settlement_amount) <= 0) {
+    if (!$coach || !sc_coach_settlement_includes_fixed($coach->settlement_type) || floatval($coach->settlement_amount) <= 0) {
         return ['success' => false, 'message' => 'دستمزد ثابت تنظیم نشده است'];
     }
     

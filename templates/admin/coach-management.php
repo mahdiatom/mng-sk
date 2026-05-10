@@ -57,6 +57,8 @@ $coaches = $wpdb->get_results(
                             <td>
                                 <?php if ($coach->settlement_type === 'fixed'): ?>
                                     <span style="color: #00a32a;">ثابت</span>
+                                <?php elseif ($coach->settlement_type === 'both'): ?>
+                                    <span style="color: #826200;">ثابت + درصدی</span>
                                 <?php else: ?>
                                     <span style="color: #2271b1;">درصدی</span>
                                 <?php endif; ?>

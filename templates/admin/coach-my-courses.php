@@ -8,8 +8,14 @@ if ($coach_id <= 0) {
     wp_die('اطلاعات مربی یافت نشد.');
 }
 global $wpdb;
+$coaches_table_mc = $wpdb->prefix . 'sc_coaches';
 $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
 $courses_table = $wpdb->prefix . 'sc_courses';
+$coach_settlement_type_row = $wpdb->get_row($wpdb->prepare(
+    "SELECT settlement_type FROM $coaches_table_mc WHERE id = %d LIMIT 1",
+    $coach_id
+));
+$coach_settlement_type_g = $coach_settlement_type_row ? $coach_settlement_type_row->settlement_type : '';
 $courses = $wpdb->get_results($wpdb->prepare(
     "SELECT c.id, c.title, cc.salary_percentage , c.price, c.sessions_count, c.start_date, c.end_date, c.is_active
      FROM $courses_table c
@@ -51,7 +57,15 @@ $courses = $wpdb->get_results($wpdb->prepare(
                         <tr>
                             <td class="column-title"><strong><?php echo esc_html($c->title); ?></strong></td>
                             <td class="column-price"><?php echo $c->price ? number_format((float)$c->price, 0) : '-'; ?></td>
-                            <td class="column-salary_percentage"><?php echo $c->salary_percentage >0 ? 'درصدی' : 'ثابت '; ?></td>
+                            <td class="column-salary_percentage"><?php
+                                if ($coach_settlement_type_g === 'both') {
+                                    echo $c->salary_percentage > 0 ? 'ثابت + درصدی (جلسه)' : 'ثابت + درصدی';
+                                } elseif ($coach_settlement_type_g === 'percentage') {
+                                    echo $c->salary_percentage > 0 ? 'درصدی' : '-';
+                                } else {
+                                    echo 'ثابت';
+                                }
+                            ?></td>
                             <td class="column-salary_percentage"><?php echo $c->salary_percentage >0 ? number_format((float)$c->salary_percentage, 0) : '__'; ?></td>
                             <td class="column-status"><?php echo $c->is_active ? 'فعال' : 'غیرفعال'; ?></td>
                         </tr>

@@ -136,6 +136,156 @@ function sc_bulk_actions_collect_filter_config($request) {
     );
 }
 
+/**
+ * نام نمایشی بازیکن برای گزارش دسته‌جمعی.
+ */
+function sc_bulk_actions_member_label($member_id) {
+    global $wpdb;
+    $member_id = absint($member_id);
+    $t = $wpdb->prefix . 'sc_members';
+    $mem = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$t} WHERE id = %d LIMIT 1", $member_id));
+    if (!$mem) {
+        return 'شناسه نامعتبر #' . $member_id;
+    }
+    $n = trim(($mem->first_name ?: '') . ' ' . ($mem->last_name ?: ''));
+    return $n !== '' ? $n : ('کاربر #' . $member_id);
+}
+
+/**
+ * عنوان فارسی عملیات برای گزارش.
+ */
+function sc_bulk_actions_action_title($action_key) {
+    $map = array(
+        'activate_members'       => 'فعال کردن کاربر',
+        'deactivate_members'     => 'غیرفعال کردن کاربر',
+        'verify_identity'        => 'تأیید احراز هویت',
+        'send_sms_redirect'      => 'انتخاب برای ارسال پیامک',
+        'enable_auto_invoice'    => 'فعال کردن صورت‌حساب خودکار',
+        'disable_auto_invoice'   => 'غیرفعال کردن صورت‌حساب خودکار',
+        'change_team'            => 'تغییر تیم',
+        'change_level'           => 'تغییر سطح',
+        'change_member_type'     => 'تغییر نوع بازیکن',
+        'assign_course_coach'    => 'تخصیص مربی به ثبت‌نام دوره',
+        'delete_members'         => 'حذف بازیکن',
+        'course_activate'        => 'فعال کردن دوره',
+        'course_deactivate'      => 'غیرفعال کردن دوره',
+        'course_set_flag'        => 'افزودن فلگ به دوره',
+    );
+    return isset($map[$action_key]) ? $map[$action_key] : (string) $action_key;
+}
+
+/**
+ * @param array<int, array{line:string}|string> $lines
+ * @return array<int, array{line:string}>
+ */
+function sc_bulk_actions_normalize_report_lines(array $lines) {
+    $out = array();
+    foreach ($lines as $it) {
+        if (is_array($it) && isset($it['line'])) {
+            $out[] = array('line' => (string) $it['line']);
+        } else {
+            $out[] = array('line' => (string) $it);
+        }
+    }
+    return $out;
+}
+
+/**
+ * ذخیره گزارش و بازگشت به صفحه کارهای دسته‌جمعی.
+ */
+function sc_bulk_actions_finish_with_report($action_key, array $success_lines, array $fail_lines, $filtered_member_count, array $extra = array()) {
+    $succ = sc_bulk_actions_normalize_report_lines($success_lines);
+    $fail = sc_bulk_actions_normalize_report_lines($fail_lines);
+    $report_key = 'sc_bulk_rpt_' . get_current_user_id() . '_' . wp_generate_password(12, false, false);
+    set_transient(
+        $report_key,
+        array_merge(
+            array(
+                'action_key'   => $action_key,
+                'action_title' => sc_bulk_actions_action_title($action_key),
+                'successes'    => $succ,
+                'failures'     => $fail,
+                'ok_count'     => count($succ),
+                'fail_count'   => count($fail),
+                'member_count' => (int) $filtered_member_count,
+            ),
+            $extra
+        ),
+        600
+    );
+    if (function_exists('sc_log_activity')) {
+        sc_log_activity(
+            'updated',
+            'member_bulk',
+            0,
+            'کار دسته‌جمعی: ' . sc_bulk_actions_action_title($action_key) . ' — موفق: ' . count($succ) . '، ناموفق: ' . count($fail),
+            null,
+            array(
+                'action'   => $action_key,
+                'ok'       => count($succ),
+                'fail'     => count($fail),
+                'members'  => (int) $filtered_member_count,
+            )
+        );
+    }
+    wp_safe_redirect(
+        add_query_arg(
+            array(
+                'page'             => 'sc-bulk-actions',
+                'sc_bulk_notice'   => 'report',
+                'sc_bulk_report'   => $report_key,
+                'affected'         => count($succ),
+                'total'            => (int) $filtered_member_count,
+            ),
+            admin_url('admin.php')
+        )
+    );
+    exit;
+}
+
+/**
+ * گزارش انتخاب پیامک + هدایت به صفحه افزودن اطلاعیه.
+ */
+function sc_bulk_actions_finish_sms_redirect(array $success_lines, array $fail_lines, array $member_ids) {
+    $succ = sc_bulk_actions_normalize_report_lines($success_lines);
+    $fail = sc_bulk_actions_normalize_report_lines($fail_lines);
+    $report_key = 'sc_bulk_rpt_' . get_current_user_id() . '_' . wp_generate_password(12, false, false);
+    set_transient(
+        $report_key,
+        array(
+            'action_key'   => 'send_sms_redirect',
+            'action_title' => sc_bulk_actions_action_title('send_sms_redirect'),
+            'successes'    => $succ,
+            'failures'     => $fail,
+            'ok_count'     => count($succ),
+            'fail_count'   => count($fail),
+            'member_count' => count($member_ids),
+        ),
+        600
+    );
+    if (function_exists('sc_log_activity')) {
+        sc_log_activity(
+            'updated',
+            'member_bulk',
+            0,
+            'انتخاب برای ارسال پیامک — تعداد: ' . count($member_ids),
+            null,
+            array('action' => 'send_sms_redirect', 'count' => count($member_ids))
+        );
+    }
+    wp_safe_redirect(
+        add_query_arg(
+            array(
+                'page'               => 'sc-add-notification',
+                'member_ids'         => implode(',', array_map('absint', $member_ids)),
+                'sc_bulk_sms_report' => $report_key,
+            ),
+            admin_url('admin.php')
+        )
+    );
+    exit;
+}
+
 add_action('wp_ajax_sc_bulk_actions_preview', 'sc_bulk_actions_preview_ajax');
 function sc_bulk_actions_preview_ajax() {
     check_ajax_referer('sc_bulk_actions_preview', 'nonce');
@@ -260,147 +410,450 @@ function sc_bulk_actions_execute_handler() {
         wp_safe_redirect(add_query_arg(array('page' => 'sc-bulk-actions', 'sc_bulk_notice' => 'empty'), admin_url('admin.php')));
         exit;
     }
-    $affected = 0;
-    $redirect_to = add_query_arg(array('page' => 'sc-bulk-actions'), admin_url('admin.php'));
 
+    $filtered_count = count($member_ids);
     global $wpdb;
     $members_table = $wpdb->prefix . 'sc_members';
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+
+    if ($action_key === '') {
+        sc_bulk_actions_finish_with_report('', array(), array(array('line' => 'نوع عملیات انتخاب نشده است.')), $filtered_count);
+    }
 
     if ($action_key === 'send_sms_redirect') {
-        $redirect_to = add_query_arg('member_ids', implode(',', $member_ids), admin_url('admin.php?page=sc-add-notification'));
-        wp_safe_redirect($redirect_to);
-        exit;
+        $sms_succ = array();
+        foreach ($member_ids as $mid) {
+            $sms_succ[] = sc_bulk_actions_member_label($mid) . ' — برای ارسال اطلاعیه در لیست گیرندگان قرار گرفت.';
+        }
+        sc_bulk_actions_finish_sms_redirect($sms_succ, array(), $member_ids);
     }
 
     if ($action_key === 'activate_members') {
+        $success_lines = array();
+        $fail_lines = array();
         foreach ($member_ids as $member_id) {
-            $res = $wpdb->update($members_table, array('is_active' => 1, 'updated_at' => current_time('mysql')), array('id' => $member_id), array('%d', '%s'), array('%d'));
-            if ($res !== false) {
-                $affected++;
+            $label = sc_bulk_actions_member_label($member_id);
+            $cur = $wpdb->get_row($wpdb->prepare("SELECT id, is_active FROM {$members_table} WHERE id = %d LIMIT 1", $member_id));
+            if (!$cur) {
+                $fail_lines[] = $label . ' — در پایگاه داده یافت نشد.';
+                continue;
+            }
+            if ((int) $cur->is_active === 1) {
+                $success_lines[] = $label . ' — از قبل فعال بود (تغییری اعمال نشد).';
+                continue;
+            }
+            $res = $wpdb->update(
+                $members_table,
+                array('is_active' => 1, 'updated_at' => current_time('mysql')),
+                array('id' => $member_id),
+                array('%d', '%s'),
+                array('%d')
+            );
+            if ($res === false) {
+                $fail_lines[] = $label . ' — خطای پایگاه داده هنگام فعال کردن.';
+            } else {
+                $success_lines[] = $label . ' — کاربر فعال شد.';
             }
         }
-    } elseif ($action_key === 'deactivate_members') {
+        sc_bulk_actions_finish_with_report('activate_members', $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'deactivate_members') {
+        $success_lines = array();
+        $fail_lines = array();
         foreach ($member_ids as $member_id) {
-            $res = $wpdb->update($members_table, array('is_active' => 0, 'updated_at' => current_time('mysql')), array('id' => $member_id), array('%d', '%s'), array('%d'));
-            if ($res !== false) {
-                $affected++;
+            $label = sc_bulk_actions_member_label($member_id);
+            $cur = $wpdb->get_row($wpdb->prepare("SELECT id, is_active FROM {$members_table} WHERE id = %d LIMIT 1", $member_id));
+            if (!$cur) {
+                $fail_lines[] = $label . ' — در پایگاه داده یافت نشد.';
+                continue;
+            }
+            if ((int) $cur->is_active === 0) {
+                $success_lines[] = $label . ' — از قبل غیرفعال بود (تغییری اعمال نشد).';
+                continue;
+            }
+            $res = $wpdb->update(
+                $members_table,
+                array('is_active' => 0, 'updated_at' => current_time('mysql')),
+                array('id' => $member_id),
+                array('%d', '%s'),
+                array('%d')
+            );
+            if ($res === false) {
+                $fail_lines[] = $label . ' — خطای پایگاه داده هنگام غیرفعال کردن.';
+            } else {
+                $success_lines[] = $label . ' — کاربر غیرفعال شد.';
             }
         }
-    } elseif ($action_key === 'verify_identity') {
+        sc_bulk_actions_finish_with_report('deactivate_members', $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'verify_identity') {
+        $success_lines = array();
+        $fail_lines = array();
         foreach ($member_ids as $member_id) {
-            $res = $wpdb->update($members_table, array('identity_verified' => 1, 'updated_at' => current_time('mysql')), array('id' => $member_id), array('%d', '%s'), array('%d'));
-            if ($res !== false) {
-                $affected++;
+            $label = sc_bulk_actions_member_label($member_id);
+            $cur = $wpdb->get_row($wpdb->prepare("SELECT id, identity_verified FROM {$members_table} WHERE id = %d LIMIT 1", $member_id));
+            if (!$cur) {
+                $fail_lines[] = $label . ' — در پایگاه داده یافت نشد.';
+                continue;
+            }
+            if ((int) $cur->identity_verified === 1) {
+                $success_lines[] = $label . ' — احراز هویت از قبل تأیید شده بود.';
+                continue;
+            }
+            $res = $wpdb->update(
+                $members_table,
+                array('identity_verified' => 1, 'updated_at' => current_time('mysql')),
+                array('id' => $member_id),
+                array('%d', '%s'),
+                array('%d')
+            );
+            if ($res === false) {
+                $fail_lines[] = $label . ' — خطای پایگاه داده هنگام تأیید احراز هویت.';
+            } else {
+                $success_lines[] = $label . ' — احراز هویت تأیید شد.';
                 if (function_exists('sc_send_identity_verified_notifications')) {
                     sc_send_identity_verified_notifications($member_id);
                 }
             }
         }
-    } elseif ($action_key === 'enable_auto_invoice' || $action_key === 'disable_auto_invoice') {
+        sc_bulk_actions_finish_with_report('verify_identity', $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'enable_auto_invoice' || $action_key === 'disable_auto_invoice') {
         $value = ($action_key === 'enable_auto_invoice') ? 0 : 1;
+        $verb_en = ($action_key === 'enable_auto_invoice') ? 'فعال' : 'غیرفعال';
+        $success_lines = array();
+        $fail_lines = array();
         foreach ($member_ids as $member_id) {
-            $res = $wpdb->update($members_table, array('disable_auto_invoice' => $value, 'updated_at' => current_time('mysql')), array('id' => $member_id), array('%d', '%s'), array('%d'));
-            if ($res !== false) {
-                $affected++;
+            $label = sc_bulk_actions_member_label($member_id);
+            $cur = $wpdb->get_row($wpdb->prepare("SELECT id, disable_auto_invoice FROM {$members_table} WHERE id = %d LIMIT 1", $member_id));
+            if (!$cur) {
+                $fail_lines[] = $label . ' — در پایگاه داده یافت نشد.';
+                continue;
+            }
+            if ((int) $cur->disable_auto_invoice === (int) $value) {
+                $success_lines[] = $label . ' — صورت‌حساب خودکار از قبل «' . $verb_en . '» بود.';
+                continue;
+            }
+            $res = $wpdb->update(
+                $members_table,
+                array('disable_auto_invoice' => $value, 'updated_at' => current_time('mysql')),
+                array('id' => $member_id),
+                array('%d', '%s'),
+                array('%d')
+            );
+            if ($res === false) {
+                $fail_lines[] = $label . ' — خطای پایگاه داده.';
+            } else {
+                $success_lines[] = $label . ' — صورت‌حساب خودکار «' . $verb_en . '» شد.';
             }
         }
-    } elseif ($action_key === 'change_team') {
+        sc_bulk_actions_finish_with_report($action_key, $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'change_team') {
         $team_player = isset($_POST['action_team_player']) ? sanitize_text_field(wp_unslash($_POST['action_team_player'])) : '';
+        $success_lines = array();
+        $fail_lines = array();
         foreach ($member_ids as $member_id) {
-            $res = $wpdb->update($members_table, array('team_player' => $team_player, 'updated_at' => current_time('mysql')), array('id' => $member_id), array('%s', '%s'), array('%d'));
-            if ($res !== false) {
-                $affected++;
+            $label = sc_bulk_actions_member_label($member_id);
+            $cur = $wpdb->get_row($wpdb->prepare("SELECT id, team_player FROM {$members_table} WHERE id = %d LIMIT 1", $member_id));
+            if (!$cur) {
+                $fail_lines[] = $label . ' — در پایگاه داده یافت نشد.';
+                continue;
+            }
+            if ((string) $cur->team_player === (string) $team_player) {
+                $success_lines[] = $label . ' — تیم بدون تغییر ماند («' . ($team_player !== '' ? $team_player : '-') . '»).';
+                continue;
+            }
+            $res = $wpdb->update(
+                $members_table,
+                array('team_player' => $team_player, 'updated_at' => current_time('mysql')),
+                array('id' => $member_id),
+                array('%s', '%s'),
+                array('%d')
+            );
+            if ($res === false) {
+                $fail_lines[] = $label . ' — خطای پایگاه داده هنگام تغییر تیم.';
+            } else {
+                $success_lines[] = $label . ' — تیم به «' . ($team_player !== '' ? $team_player : '(خالی)') . '» تغییر کرد.';
             }
         }
-    } elseif ($action_key === 'change_level') {
+        sc_bulk_actions_finish_with_report('change_team', $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'change_level') {
         $skill_level = isset($_POST['action_skill_level']) ? sanitize_text_field(wp_unslash($_POST['action_skill_level'])) : '';
+        $success_lines = array();
+        $fail_lines = array();
         foreach ($member_ids as $member_id) {
-            $res = $wpdb->update($members_table, array('skill_level' => $skill_level, 'updated_at' => current_time('mysql')), array('id' => $member_id), array('%s', '%s'), array('%d'));
-            if ($res !== false) {
-                $affected++;
+            $label = sc_bulk_actions_member_label($member_id);
+            $cur = $wpdb->get_row($wpdb->prepare("SELECT id, skill_level FROM {$members_table} WHERE id = %d LIMIT 1", $member_id));
+            if (!$cur) {
+                $fail_lines[] = $label . ' — در پایگاه داده یافت نشد.';
+                continue;
+            }
+            if ((string) $cur->skill_level === (string) $skill_level) {
+                $success_lines[] = $label . ' — سطح بدون تغییر ماند («' . ($skill_level !== '' ? $skill_level : '-') . '»).';
+                continue;
+            }
+            $res = $wpdb->update(
+                $members_table,
+                array('skill_level' => $skill_level, 'updated_at' => current_time('mysql')),
+                array('id' => $member_id),
+                array('%s', '%s'),
+                array('%d')
+            );
+            if ($res === false) {
+                $fail_lines[] = $label . ' — خطای پایگاه داده هنگام تغییر سطح.';
+            } else {
+                $success_lines[] = $label . ' — سطح به «' . ($skill_level !== '' ? $skill_level : '(خالی)') . '» تغییر کرد.';
             }
         }
-    } elseif ($action_key === 'change_member_type') {
+        sc_bulk_actions_finish_with_report('change_level', $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'change_member_type') {
         $member_type = isset($_POST['action_member_type']) ? sanitize_text_field(wp_unslash($_POST['action_member_type'])) : 'normal';
         if (!in_array($member_type, array('normal', 'team'), true)) {
             $member_type = 'normal';
         }
+        $type_fa = ($member_type === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
+        $success_lines = array();
+        $fail_lines = array();
         foreach ($member_ids as $member_id) {
-            $res = $wpdb->update($members_table, array('member_type' => $member_type, 'updated_at' => current_time('mysql')), array('id' => $member_id), array('%s', '%s'), array('%d'));
-            if ($res !== false) {
-                $affected++;
+            $label = sc_bulk_actions_member_label($member_id);
+            $cur = $wpdb->get_row($wpdb->prepare("SELECT id, member_type FROM {$members_table} WHERE id = %d LIMIT 1", $member_id));
+            if (!$cur) {
+                $fail_lines[] = $label . ' — در پایگاه داده یافت نشد.';
+                continue;
+            }
+            if ((string) $cur->member_type === (string) $member_type) {
+                $success_lines[] = $label . ' — نوع بازیکن بدون تغییر ماند («' . $type_fa . '»).';
+                continue;
+            }
+            $res = $wpdb->update(
+                $members_table,
+                array('member_type' => $member_type, 'updated_at' => current_time('mysql')),
+                array('id' => $member_id),
+                array('%s', '%s'),
+                array('%d')
+            );
+            if ($res === false) {
+                $fail_lines[] = $label . ' — خطای پایگاه داده هنگام تغییر نوع بازیکن.';
+            } else {
+                $success_lines[] = $label . ' — نوع بازیکن به «' . $type_fa . '» تغییر کرد.';
             }
         }
-    } elseif ($action_key === 'assign_course_coach') {
+        sc_bulk_actions_finish_with_report('change_member_type', $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'assign_course_coach') {
         $assign_course_id = isset($_POST['assign_course_id']) ? absint($_POST['assign_course_id']) : 0;
         $assign_coach_id = isset($_POST['assign_coach_id']) ? absint($_POST['assign_coach_id']) : 0;
-
-        if ($assign_course_id > 0 && $assign_coach_id > 0) {
-            $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-            $coaches_table = $wpdb->prefix . 'sc_coaches';
-
-            // اعتبارسنجی: مربی انتخابی باید در همان دوره فعال باشد
-            $is_valid_course_coach = (int) $wpdb->get_var($wpdb->prepare(
+        if ($assign_course_id <= 0 || $assign_coach_id <= 0) {
+            sc_bulk_actions_finish_with_report(
+                'assign_course_coach',
+                array(),
+                array(array('line' => 'دوره یا مربی انتخاب نشده است.')),
+                $filtered_count
+            );
+        }
+        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+        $is_valid_course_coach = (int) $wpdb->get_var(
+            $wpdb->prepare(
                 "SELECT COUNT(*)
                  FROM $course_coaches_table cc
                  INNER JOIN $coaches_table c ON c.id = cc.coach_id
                  WHERE cc.course_id = %d AND cc.coach_id = %d AND c.is_active = 1",
                 $assign_course_id,
                 $assign_coach_id
-            ));
+            )
+        );
+        if ($is_valid_course_coach <= 0) {
+            sc_bulk_actions_finish_with_report(
+                'assign_course_coach',
+                array(),
+                array(array('line' => 'مربی انتخاب‌شده برای این دوره معتبر نیست یا غیرفعال است.')),
+                $filtered_count
+            );
+        }
+        $course_title = $wpdb->get_var($wpdb->prepare("SELECT title FROM {$courses_table} WHERE id = %d", $assign_course_id));
+        $course_title = $course_title ? (string) $course_title : ('#' . $assign_course_id);
+        $coach_row = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$coaches_table} WHERE id = %d LIMIT 1", $assign_coach_id));
+        $coach_label = $coach_row ? trim(($coach_row->first_name ?: '') . ' ' . ($coach_row->last_name ?: '')) : '';
+        if ($coach_label === '') {
+            $coach_label = 'مربی #' . $assign_coach_id;
+        }
 
-            if ($is_valid_course_coach > 0) {
-                $member_ids_sql = implode(',', array_map('absint', $member_ids));
-                $rows = $wpdb->get_results($wpdb->prepare(
-                    "SELECT id
-                     FROM $member_courses_table
-                     WHERE member_id IN ($member_ids_sql)
-                       AND course_id = %d",
+        $success_lines = array();
+        $fail_lines = array();
+        foreach ($member_ids as $member_id) {
+            $label = sc_bulk_actions_member_label($member_id);
+            $mc_id = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM {$member_courses_table} WHERE member_id = %d AND course_id = %d LIMIT 1",
+                    $member_id,
                     $assign_course_id
-                ));
+                )
+            );
+            if (!$mc_id) {
+                $fail_lines[] = $label . ' — ثبت‌نام برای دوره «' . $course_title . '» ندارد.';
+                continue;
+            }
+            $res = $wpdb->update(
+                $member_courses_table,
+                array(
+                    'coach_id'   => $assign_coach_id,
+                    'updated_at' => current_time('mysql'),
+                ),
+                array('id' => (int) $mc_id),
+                array('%d', '%s'),
+                array('%d')
+            );
+            if ($res === false) {
+                $fail_lines[] = $label . ' — خطای پایگاه داده هنگام تخصیص مربی.';
+            } else {
+                $success_lines[] = $label . ' — برای دوره «' . $course_title . '» به مربی «' . $coach_label . '» تخصیص داده شد.';
+            }
+        }
+        sc_bulk_actions_finish_with_report('assign_course_coach', $success_lines, $fail_lines, $filtered_count);
+    }
 
-                foreach ($rows as $row) {
-                    $res = $wpdb->update(
-                        $member_courses_table,
-                        array(
-                            'coach_id' => $assign_coach_id,
-                            'updated_at' => current_time('mysql'),
-                        ),
-                        array('id' => (int) $row->id),
-                        array('%d', '%s'),
-                        array('%d')
-                    );
-                    if ($res !== false) {
-                        $affected++;
-                    }
+    if ($action_key === 'delete_members') {
+        $success_lines = array();
+        $fail_lines = array();
+        foreach ($member_ids as $member_id) {
+            $label = sc_bulk_actions_member_label($member_id);
+            sc_delete_wp_user_by_table_id($members_table, $member_id);
+            $res = $wpdb->delete($members_table, array('id' => $member_id), array('%d'));
+            if ($res) {
+                $success_lines[] = $label . ' — حذف شد.';
+            } else {
+                $fail_lines[] = $label . ' — حذف انجام نشد (رکورد وجود نداشت یا خطای پایگاه داده).';
+            }
+        }
+        sc_bulk_actions_finish_with_report('delete_members', $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'course_activate') {
+        if (!function_exists('sc_member_course_activate_one')) {
+            sc_bulk_actions_finish_with_report(
+                'course_activate',
+                array(),
+                array(array('line' => 'تابع فعال‌سازی دوره در دسترس نیست.')),
+                $filtered_count
+            );
+        }
+        $course_ids = isset($_POST['action_course_ids']) ? array_filter(array_map('absint', (array) $_POST['action_course_ids'])) : array();
+        if (empty($course_ids)) {
+            sc_bulk_actions_finish_with_report(
+                'course_activate',
+                array(),
+                array(array('line' => 'هیچ دوره‌ای انتخاب نشده است.')),
+                $filtered_count
+            );
+        }
+        $course_titles = array();
+        foreach ($course_ids as $cid) {
+            $cid = absint($cid);
+            if (!$cid) {
+                continue;
+            }
+            $title = $wpdb->get_var($wpdb->prepare("SELECT title FROM {$courses_table} WHERE id = %d", $cid));
+            $course_titles[$cid] = $title ? $title : ('#' . $cid);
+        }
+        $report_success = array();
+        $report_fail = array();
+        foreach ($member_ids as $member_id) {
+            $mem_name = sc_bulk_actions_member_label($member_id);
+            foreach ($course_ids as $course_id) {
+                $course_id = absint($course_id);
+                if (!$course_id) {
+                    continue;
+                }
+                $ctitle = isset($course_titles[$course_id]) ? $course_titles[$course_id] : ('#' . $course_id);
+                $r = sc_member_course_activate_one($member_id, $course_id, array());
+                if (is_wp_error($r)) {
+                    $report_fail[] = $mem_name . ' — «' . $ctitle . '» — ' . $r->get_error_message();
+                } else {
+                    $report_success[] = $mem_name . ' — «' . $ctitle . '» — دوره فعال شد.';
                 }
             }
         }
-    } elseif ($action_key === 'delete_members') {
-        foreach ($member_ids as $member_id) {
-            sc_delete_wp_user_by_table_id($members_table, $member_id);
-            $res = $wpdb->delete($members_table, array('id' => $member_id), array('%d'));
-            if ($res !== false) {
-                $affected++;
-            }
-        }
-    } elseif (in_array($action_key, array('course_activate', 'course_deactivate', 'course_set_flag'), true)) {
+        sc_bulk_actions_finish_with_report(
+            'course_activate',
+            $report_success,
+            $report_fail,
+            $filtered_count,
+            array('course_count' => count($course_ids))
+        );
+    }
+
+    if (in_array($action_key, array('course_deactivate', 'course_set_flag'), true)) {
         $course_ids = isset($_POST['action_course_ids']) ? array_filter(array_map('absint', (array) $_POST['action_course_ids'])) : array();
-        if (!empty($course_ids)) {
-            $member_ids_sql = implode(',', array_map('absint', $member_ids));
-            $course_ids_sql = implode(',', array_map('absint', $course_ids));
-            $rows = $wpdb->get_results("SELECT id, course_status_flags FROM $member_courses_table WHERE member_id IN ($member_ids_sql) AND course_id IN ($course_ids_sql)");
-            foreach ($rows as $row) {
-                if ($action_key === 'course_activate') {
-                    $res = $wpdb->update(
-                        $member_courses_table,
-                        array('status' => 'active', 'course_status_flags' => '', 'updated_at' => current_time('mysql')),
-                        array('id' => (int) $row->id),
-                        array('%s', '%s', '%s'),
-                        array('%d')
-                    );
-                } elseif ($action_key === 'course_deactivate') {
+        if (empty($course_ids)) {
+            sc_bulk_actions_finish_with_report(
+                $action_key,
+                array(),
+                array(array('line' => 'هیچ دوره‌ای انتخاب نشده است.')),
+                $filtered_count
+            );
+        }
+
+        $flag_key = isset($_POST['action_course_flag']) ? sanitize_text_field(wp_unslash($_POST['action_course_flag'])) : '';
+        $available_flags = sc_bulk_actions_get_course_flag_options();
+        if ($action_key === 'course_set_flag' && !isset($available_flags[$flag_key])) {
+            sc_bulk_actions_finish_with_report(
+                $action_key,
+                array(),
+                array(array('line' => 'فلگ انتخاب‌شده معتبر نیست.')),
+                $filtered_count
+            );
+        }
+
+        $course_titles = array();
+        foreach ($course_ids as $cid) {
+            $cid = absint($cid);
+            if (!$cid) {
+                continue;
+            }
+            $title = $wpdb->get_var($wpdb->prepare("SELECT title FROM {$courses_table} WHERE id = %d", $cid));
+            $course_titles[$cid] = $title ? $title : ('#' . $cid);
+        }
+
+        $success_lines = array();
+        $fail_lines = array();
+
+        foreach ($member_ids as $member_id) {
+            $label = sc_bulk_actions_member_label($member_id);
+            foreach ($course_ids as $course_id) {
+                $course_id = absint($course_id);
+                if (!$course_id) {
+                    continue;
+                }
+                $ctitle = isset($course_titles[$course_id]) ? $course_titles[$course_id] : ('#' . $course_id);
+                $row = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT id, status, course_status_flags FROM {$member_courses_table} WHERE member_id = %d AND course_id = %d LIMIT 1",
+                        $member_id,
+                        $course_id
+                    )
+                );
+                if (!$row) {
+                    $fail_lines[] = $label . ' — «' . $ctitle . '» — ثبت‌نام برای این دوره وجود ندارد.';
+                    continue;
+                }
+
+                if ($action_key === 'course_deactivate') {
+                    if ((string) $row->status === 'inactive' && ($row->course_status_flags === '' || $row->course_status_flags === null)) {
+                        $success_lines[] = $label . ' — «' . $ctitle . '» — از قبل غیرفعال بود.';
+                        continue;
+                    }
                     $res = $wpdb->update(
                         $member_courses_table,
                         array('status' => 'inactive', 'course_status_flags' => '', 'updated_at' => current_time('mysql')),
@@ -408,16 +861,18 @@ function sc_bulk_actions_execute_handler() {
                         array('%s', '%s', '%s'),
                         array('%d')
                     );
+                    if ($res === false) {
+                        $fail_lines[] = $label . ' — «' . $ctitle . '» — خطای پایگاه داده هنگام غیرفعال کردن.';
+                    } else {
+                        $success_lines[] = $label . ' — «' . $ctitle . '» — دوره غیرفعال شد.';
+                    }
                 } else {
-                    $flag_key = isset($_POST['action_course_flag']) ? sanitize_text_field(wp_unslash($_POST['action_course_flag'])) : '';
-                    $available_flags = sc_bulk_actions_get_course_flag_options();
-                    if (!isset($available_flags[$flag_key])) {
+                    $current_flags = !empty($row->course_status_flags) ? array_filter(array_map('trim', explode(',', (string) $row->course_status_flags))) : array();
+                    if (in_array($flag_key, $current_flags, true)) {
+                        $success_lines[] = $label . ' — «' . $ctitle . '» — فلگ «' . $available_flags[$flag_key] . '» از قبل وجود داشت.';
                         continue;
                     }
-                    $current_flags = !empty($row->course_status_flags) ? array_filter(array_map('trim', explode(',', (string) $row->course_status_flags))) : array();
-                    if (!in_array($flag_key, $current_flags, true)) {
-                        $current_flags[] = $flag_key;
-                    }
+                    $current_flags[] = $flag_key;
                     $flags_string = implode(',', array_unique($current_flags));
                     $res = $wpdb->update(
                         $member_courses_table,
@@ -426,38 +881,22 @@ function sc_bulk_actions_execute_handler() {
                         array('%s', '%s', '%s'),
                         array('%d')
                     );
-                }
-                if ($res !== false) {
-                    $affected++;
+                    if ($res === false) {
+                        $fail_lines[] = $label . ' — «' . $ctitle . '» — خطای پایگاه داده هنگام افزودن فلگ.';
+                    } else {
+                        $success_lines[] = $label . ' — «' . $ctitle . '» — فلگ «' . $available_flags[$flag_key] . '» افزوده شد.';
+                    }
                 }
             }
         }
+
+        sc_bulk_actions_finish_with_report($action_key, $success_lines, $fail_lines, $filtered_count, array('course_count' => count($course_ids)));
     }
 
-    if (function_exists('sc_log_activity')) {
-        sc_log_activity(
-            'updated',
-            'member_bulk',
-            0,
-            'عملیات دسته جمعی اجرا شد: ' . $action_key . ' (' . $affected . ' مورد)',
-            null,
-            array(
-                'action' => $action_key,
-                'affected' => $affected,
-                'member_count' => count($member_ids),
-            )
-        );
-    }
-
-    $redirect_to = add_query_arg(
-        array(
-            'page' => 'sc-bulk-actions',
-            'sc_bulk_notice' => 'done',
-            'affected' => $affected,
-            'total' => count($member_ids),
-        ),
-        admin_url('admin.php')
+    sc_bulk_actions_finish_with_report(
+        $action_key,
+        array(),
+        array(array('line' => 'عملیات نامعتبر است یا پشتیبانی نمی‌شود.')),
+        $filtered_count
     );
-    wp_safe_redirect($redirect_to);
-    exit;
 }

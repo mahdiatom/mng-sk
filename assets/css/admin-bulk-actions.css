@@ -33,3 +33,24 @@
     opacity: 0.7;
     cursor: not-allowed;
 }
+
+.sc-bulk-report-notice .sc-bulk-report-block {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+}
+
+.sc-bulk-report-notice .sc-bulk-report-success {
+    background: #edfaef;
+    border: 1px solid #00a32a;
+}
+
+.sc-bulk-report-notice .sc-bulk-report-fail {
+    background: #fcf0f1;
+    border: 1px solid #d63638;
+}
+
+.sc-bulk-report-notice .sc-bulk-report-list {
+    margin: 8px 0 0 1.25em;
+    list-style: disc;
+}

@@ -174,7 +174,7 @@ function sc_attendance_auto_refresh_coach_percentage_salary($course_id, $attenda
         "SELECT cc.coach_id, cc.salary_percentage, c.settlement_type
          FROM $course_coaches_table cc
          INNER JOIN $coaches_table c ON cc.coach_id = c.id
-         WHERE cc.course_id = %d AND c.settlement_type = 'percentage' AND c.is_active = 1",
+         WHERE cc.course_id = %d AND c.settlement_type IN ('percentage', 'both') AND c.is_active = 1",
         $course_id
     ));
     foreach ($coaches as $coach) {

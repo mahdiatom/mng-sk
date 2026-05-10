@@ -52,7 +52,7 @@ function sc_calculate_coach_fixed_salaries_monthly() {
     // دریافت همه مربی‌های فعال با دستمزد ثابت
     $coaches = $wpdb->get_results(
         "SELECT id FROM $coaches_table 
-         WHERE settlement_type = 'fixed' AND is_active = 1 AND settlement_amount > 0"
+         WHERE settlement_type IN ('fixed', 'both') AND is_active = 1 AND settlement_amount > 0"
     );
     
     $success_count = 0;
