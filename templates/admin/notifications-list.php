@@ -238,7 +238,7 @@ $total_pages = ceil($total / $per_page);
             <div class="sc-filter-grid" style="margin-bottom:12px; width:100%;">
 
                 <!-- جستجو -->
-                <div class="sc-filter-field" style="min-width:260px; flex:1 1 260px;">
+                <div class="sc-filter-field">
                     <label class="sc-filter-label">جستجو</label>
                     <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." class="sc-filter-control" style="width:100%;">
                 </div>
@@ -284,20 +284,21 @@ $total_pages = ceil($total / $per_page);
                 </div>
 
                 <!-- بازه تاریخ (اندازه مناسب، سمت راست) -->
-                <div class="sc-filter-field" style="width: auto; min-width: 260px;">
+                <div class="sc-filter-field sc-filter-date">
                     <label class="sc-filter-label">بازه تاریخ</label>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="از" readonly style="width:130px;">
-                        <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="تا" readonly style="width:130px;">
+                    <div class="sc-date-range">
+                        <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="از" readonly >
+                        <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="تا" readonly >
                     </div>
                 </div>
 
-                <!-- دکمه فیلتر در سطر جدید، راست‌چین -->
-                <div style="width:100%; display:flex; justify-content:flex-end; margin-top:8px;">
-                    <input type="submit" class="button button-small" value="فیلتر" style="padding:4px 18px; height:32px; line-height:1;">
-                </div>
 
             </div>
+            
+                <!-- دکمه فیلتر در سطر جدید، راست‌چین -->
+                <div >
+                    <input  type="submit" class="button sc_btn_filter button-primary" value="اعمال فیلتر " >
+                </div>
             <!-- ==================== /FILTER BAR ==================== -->
 
         </form>

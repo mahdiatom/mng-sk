@@ -69,13 +69,17 @@ a{
 input {
     height: 40px;
 }
-input[type="checkbox"] {
+/* input[type="checkbox"] {
     height: 15px ;
-}
+} */
 /* a.button{
     height: 40px;
     padding-top: 6px !important;
 } */
+ button{
+    border: 1px solid #b6b6b6 !important;
+    border-radius: 10px !important;
+ }
 input , textarea {
         border: 1px solid #dfdfdf !important;
     padding: 5px !important;
@@ -135,6 +139,9 @@ input.small-text {
 .rtl #wpadminbar * {
     font-family: IRANYekanXFaNum !important;
 }
+.sc_btn_filter{
+    width: 100px;
+}
 body {font-family: Arial, Helvetica, sans-serif;}
 
 /* The Modal (background) */
@@ -157,6 +164,8 @@ th{
 #submit{
     width: 100px;
 }
+
+
 
 /* غیرفعال کردن حالت دیفالت  */
 @media screen and (max-width: 782px) {
@@ -622,20 +631,18 @@ p.sk-modal-content p {
 }
 
 /* === Date Range === */
-.sc-date-range {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
 
 .sc-date-separator {
     font-weight: 600;
 }
 input.persian-date-input{
     height:40px ;
+        width: 50% !important;
 }
 .sc-filter-form input.persian-date-input{
     height:40px ;
+
+
 }
 
 .sc-filter-help {
@@ -762,8 +769,11 @@ table.fixed {
     table-layout: unset !important;
 }
 .button-small{
-     width: 100%;
+     width: fit-content;
     text-align: center;
+        border-radius: 10px !important;
+   
+    border: navajowhite !important;
     
 }
 .button_delete_attendance{
@@ -780,6 +790,8 @@ table.fixed {
     margin-bottom: 4px !important;
     font-size: 10px !important;
     margin: 2px;
+    border-radius: 10px !important;
+    border: navajowhite !important;
 }
 tbody tr td{
     padding: 3px !important;
@@ -917,10 +929,11 @@ tbody tr td{
 /* date */
 .sc-date-range {
     display: flex;
-    align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-direction: row;
+    align-items: center;
 }
+
 
 .sc-date-input {
     width: 150px;

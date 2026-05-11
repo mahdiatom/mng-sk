@@ -263,7 +263,7 @@ if ($edit_id > 0) {
 
             <input type="text" name="filter_date_from_shamsi" class="persian-date-input" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="از تاریخ" readonly>
             <input type="text" name="filter_date_to_shamsi" class="persian-date-input" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="تا تاریخ" readonly>
-            <input type="submit" class="button" value="اعمال فیلتر">
+            <input type="submit" class="button button-primary" value="اعمال فیلتر">
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-list')); ?>" class="button">پاک کردن فیلترها</a>
         </form>
 

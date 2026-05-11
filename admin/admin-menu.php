@@ -1921,11 +1921,16 @@ function sc_admin_support_tickets_list_page() {
                 </div>
 
                 <!-- دکمه فیلتر در سطر جدید، راست‌چین -->
-                <div style="width:100%; display:flex; justify-content:flex-end; margin-top:8px;">
-                    <input type="submit" class="button button-small" value="فیلتر" style="padding:4px 18px; height:32px; line-height:1;">
-                </div>
+               
 
             </div>
+
+             <div style="margin-bottom: 30px;">
+                    <input type="submit" class="button button-primary" value=" اعمال فیلتر">
+                    <a href="<?php echo admin_url('admin.php?page=sc-support-tickets'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+
+                </div>
+                
             <!-- ==================== /FILTER BAR ==================== -->
 
             <?php $list_table->views(); ?>

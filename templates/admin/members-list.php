@@ -434,7 +434,7 @@ public function column_full_name($item) {
             echo '</select>';
             
             
-            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
+            echo '<input type="submit" name="filter_action" id="doaction" class="button action " value="فیلتر" style="margin-left: 5px;">';
             
             // دکمه خروجی Excel
             $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');

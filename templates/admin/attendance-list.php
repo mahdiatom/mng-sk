@@ -987,16 +987,14 @@ $max_display = 10;
         <input type="text"
                id="filter_date_from_shamsi"
                name="filter_date_from_shamsi"
-               class="sc-filter-control persian-date-input sc-no-default-date"
+               class="persian-date-input sc-no-default-date sc-filter-control"
                value="<?php echo esc_attr($display_date_from_shamsi_tab1); ?>"
                readonly>
-
-        <span class="sc-date-separator">تا</span>
 
         <input type="text"
                id="filter_date_to_shamsi"
                name="filter_date_to_shamsi"
-               class="sc-filter-control persian-date-input sc-no-default-date"
+               class="persian-date-input sc-no-default-date sc-filter-control"
                value="<?php echo esc_attr($display_date_to_shamsi_tab1); ?>"
                readonly>
 
@@ -1402,7 +1400,6 @@ if ($filter_member > 0) {
            value="<?php echo esc_attr($display_date_from_shamsi); ?>"
            readonly>
 
-    <span class="sc-date-separator">تا</span>
 
     <input type="text"
            name="filter_date_to_shamsi"
@@ -1419,7 +1416,7 @@ if ($filter_member > 0) {
 
 <p class="submit">
     <input type="submit" class="button button-primary" value="اعمال فیلتر">
-    <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=absents'); ?>" class="button">پاک کردن فیلترها</a>
+    <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=absents'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
 </p>
 
 </form>
@@ -1583,7 +1580,6 @@ if ($filter_member > 0) {
                                placeholder="از تاریخ (شمسی)" 
                                readonly>
                         <input type="hidden" name="filter_date_from" id="filter_date_from_2" value="<?php echo esc_attr($filter_date_from); ?>">
-                        <span>تا</span>
                         <input type="text" name="filter_date_to_shamsi_2" id="filter_date_to_shamsi_2" 
                                value="<?php echo esc_attr($filter_date_to_shamsi_2); ?>" 
                                class="regular-text persian-date-input sc-no-default-date" 
@@ -1597,7 +1593,7 @@ if ($filter_member > 0) {
             
             <p class="submit">
                 <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
-                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=grouped'); ?>" class="button">پاک کردن فیلترها</a>
+                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=grouped'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
             </p>
         </form>
         
@@ -1848,7 +1844,6 @@ if ($filter_member > 0) {
                                placeholder="از تاریخ (شمسی)" 
                                 readonly>
                         <input type="hidden" name="filter_date_from" id="filter_date_from_3" value="<?php echo esc_attr($filter_date_from); ?>">
-                        <span>تا</span>
                         <input type="text" name="filter_date_to_shamsi_3" id="filter_date_to_shamsi_3" 
                                value="<?php echo esc_attr($filter_date_to_shamsi_3); ?>" 
                                class="regular-text persian-date-input sc-no-default-date" 
@@ -1878,7 +1873,7 @@ if ($filter_member > 0) {
                 }
                 $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 ?>
-                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=overall'); ?>" class="button">پاک کردن فیلترها</a>
+                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=overall'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
 
                 <a href="<?php echo esc_url($export_url); ?>" class="button export_excel_btn button_export" >
                     📊 خروجی Excel
@@ -1896,7 +1891,7 @@ if ($filter_member > 0) {
                 <table class="wp-list-table widefat fixed striped list_all_attendance" style="min-width: 100%;">
                     <thead>
                         <tr>
-                            <th style="width: 20%; position: sticky; right: 0; background: #fff; z-index: 10; border-right: 2px solid #ddd;">نام و نام خانوادگی</th>
+                            <th style=" position: sticky; right: 0; background: #fff; z-index: 10; border-right: 2px solid #ddd;">نام و نام خانوادگی</th>
                             <?php foreach ($dates_list as $date) : ?>
                                 <th style="min-width: 100px; text-align: center;"><?php echo esc_html(sc_date_shamsi_date_only($date)); ?></th>
                             <?php endforeach; ?>

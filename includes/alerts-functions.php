@@ -363,7 +363,7 @@ function sc_render_user_alerts_page() {
         <a href="<?php echo esc_url($generate_url); ?>" class="page-title-action">بررسی و تولید هشدار</a>
         <hr class="wp-header-end">
     </div>
-    <div class="wrap">
+    <div class="wrap back_table_list ">
         <?php if ($message !== '') : ?>
             <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
@@ -374,16 +374,16 @@ function sc_render_user_alerts_page() {
                 (در هر دوره).
             </p>
         </div>
-        <table class="wp-list-table widefat fixed striped" style="margin-top: 16px;">
+        <table class="wp-list-table widefat fixed striped " style="margin-top: 16px;">
             <thead>
                 <tr>
                     <th style="width: 60px;">ردیف</th>
-                    <th style="width: 130px;">نوع هشدار</th>
-                    <th>عنوان</th>
-                    <th>متن</th>
+                    <th style="width: 100px;">نوع هشدار</th>
+                    <th style="width: 150px;" >عنوان</th>
+                    <th style="width: 250px;">متن</th>
                     <th style="width: 140px;">تاریخ</th>
                     <th style="width: 100px;">وضعیت</th>
-                    <th style="width: 170px;">اقدامات</th>
+                    <th style="width: 120px;">اقدامات</th>
                 </tr>
             </thead>
             <tbody>

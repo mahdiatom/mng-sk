@@ -138,6 +138,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    padding-top: 10px;
 }
 
 .sc-users-export-wrap .sc-template-preview {
