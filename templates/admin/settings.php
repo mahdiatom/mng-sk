@@ -360,12 +360,29 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات کلاس‌ها با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'pro_features') {
-    $pro_feature_notifications = isset($_POST['pro_feature_notifications']) ? 1 : 0;
-    $pro_feature_coaches = isset($_POST['pro_feature_coaches']) ? 1 : 0;
-    $pro_feature_players_wallet = isset($_POST['pro_feature_players_wallet']) ? 1 : 0;
-    $pro_feature_coaches_wallet_salary = isset($_POST['pro_feature_coaches_wallet_salary']) ? 1 : 0;
-    $pro_feature_sms = isset($_POST['pro_feature_sms']) ? 1 : 0;
-    $pro_feature_shop = isset($_POST['pro_feature_shop']) ? 1 : 0;
+    $pro_feature_notifications = isset($_POST['pro_feature_notifications']) ? (int) $_POST['pro_feature_notifications'] : 0;
+    $pro_feature_coaches = isset($_POST['pro_feature_coaches']) ? (int) $_POST['pro_feature_coaches'] : 0;
+    $pro_feature_players_wallet = isset($_POST['pro_feature_players_wallet']) ? (int) $_POST['pro_feature_players_wallet'] : 0;
+    $pro_feature_coaches_wallet_salary = isset($_POST['pro_feature_coaches_wallet_salary']) ? (int) $_POST['pro_feature_coaches_wallet_salary'] : 0;
+    $pro_feature_sms = isset($_POST['pro_feature_sms']) ? (int) $_POST['pro_feature_sms'] : 0;
+    $pro_feature_shop = isset($_POST['pro_feature_shop']) ? (int) $_POST['pro_feature_shop'] : 0;
+    $pro_feature_user_alerts = isset($_POST['pro_feature_user_alerts']) ? (int) $_POST['pro_feature_user_alerts'] : 0;
+    $pro_feature_users_export = isset($_POST['pro_feature_users_export']) ? (int) $_POST['pro_feature_users_export'] : 0;
+    $pro_feature_bulk_actions = isset($_POST['pro_feature_bulk_actions']) ? (int) $_POST['pro_feature_bulk_actions'] : 0;
+    $pro_feature_certificates = isset($_POST['pro_feature_certificates']) ? (int) $_POST['pro_feature_certificates'] : 0;
+    $pro_feature_attendance = isset($_POST['pro_feature_attendance']) ? (int) $_POST['pro_feature_attendance'] : 0;
+    $pro_feature_courses = isset($_POST['pro_feature_courses']) ? (int) $_POST['pro_feature_courses'] : 0;
+    $pro_feature_events = isset($_POST['pro_feature_events']) ? (int) $_POST['pro_feature_events'] : 0;
+    $pro_feature_private_notes = isset($_POST['pro_feature_private_notes']) ? (int) $_POST['pro_feature_private_notes'] : 0;
+    $pro_feature_support_tickets = isset($_POST['pro_feature_support_tickets']) ? (int) $_POST['pro_feature_support_tickets'] : 0;
+    $pro_feature_invoices = isset($_POST['pro_feature_invoices']) ? (int) $_POST['pro_feature_invoices'] : 0;
+    $pro_feature_honors = isset($_POST['pro_feature_honors']) ? (int) $_POST['pro_feature_honors'] : 0;
+    $pro_feature_reports = isset($_POST['pro_feature_reports']) ? (int) $_POST['pro_feature_reports'] : 0;
+    $pro_feature_team_level = isset($_POST['pro_feature_team_level']) ? (int) $_POST['pro_feature_team_level'] : 0;
+    $pro_feature_chapters = isset($_POST['pro_feature_chapters']) ? (int) $_POST['pro_feature_chapters'] : 0;
+    $pro_feature_faq = isset($_POST['pro_feature_faq']) ? (int) $_POST['pro_feature_faq'] : 0;
+    $pro_feature_nav_menus = isset($_POST['pro_feature_nav_menus']) ? (int) $_POST['pro_feature_nav_menus'] : 0;
+    $pro_feature_permalinks = isset($_POST['pro_feature_permalinks']) ? (int) $_POST['pro_feature_permalinks'] : 0;
 
     sc_update_setting('pro_feature_notifications', $pro_feature_notifications, 'pro_features');
     sc_update_setting('pro_feature_coaches', $pro_feature_coaches, 'pro_features');
@@ -373,6 +390,23 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     sc_update_setting('pro_feature_coaches_wallet_salary', $pro_feature_coaches_wallet_salary, 'pro_features');
     sc_update_setting('pro_feature_sms', $pro_feature_sms, 'pro_features');
     sc_update_setting('pro_feature_shop', $pro_feature_shop, 'pro_features');
+    sc_update_setting('pro_feature_user_alerts', $pro_feature_user_alerts, 'pro_features');
+    sc_update_setting('pro_feature_users_export', $pro_feature_users_export, 'pro_features');
+    sc_update_setting('pro_feature_bulk_actions', $pro_feature_bulk_actions, 'pro_features');
+    sc_update_setting('pro_feature_certificates', $pro_feature_certificates, 'pro_features');
+    sc_update_setting('pro_feature_attendance', $pro_feature_attendance, 'pro_features');
+    sc_update_setting('pro_feature_courses', $pro_feature_courses, 'pro_features');
+    sc_update_setting('pro_feature_events', $pro_feature_events, 'pro_features');
+    sc_update_setting('pro_feature_private_notes', $pro_feature_private_notes, 'pro_features');
+    sc_update_setting('pro_feature_support_tickets', $pro_feature_support_tickets, 'pro_features');
+    sc_update_setting('pro_feature_invoices', $pro_feature_invoices, 'pro_features');
+    sc_update_setting('pro_feature_honors', $pro_feature_honors, 'pro_features');
+    sc_update_setting('pro_feature_reports', $pro_feature_reports, 'pro_features');
+    sc_update_setting('pro_feature_team_level', $pro_feature_team_level, 'pro_features');
+    sc_update_setting('pro_feature_chapters', $pro_feature_chapters, 'pro_features');
+    sc_update_setting('pro_feature_faq', $pro_feature_faq, 'pro_features');
+    sc_update_setting('pro_feature_nav_menus', $pro_feature_nav_menus, 'pro_features');
+    sc_update_setting('pro_feature_permalinks', $pro_feature_permalinks, 'pro_features');
     if (function_exists('sc_log_activity')) {
         sc_log_activity('updated', 'settings', 0, 'تنظیمات تب امکانات پرو ذخیره شد', null, ['tab' => 'pro_features']);
     }
@@ -601,6 +635,23 @@ $pro_feature_players_wallet = (int) sc_get_setting('pro_feature_players_wallet',
 $pro_feature_coaches_wallet_salary = (int) sc_get_setting('pro_feature_coaches_wallet_salary', 0);
 $pro_feature_sms = (int) sc_get_setting('pro_feature_sms', 0);
 $pro_feature_shop = (int) sc_get_setting('pro_feature_shop', 0);
+$pro_feature_user_alerts = (int) sc_get_setting('pro_feature_user_alerts', 1);
+$pro_feature_users_export = (int) sc_get_setting('pro_feature_users_export', 1);
+$pro_feature_bulk_actions = (int) sc_get_setting('pro_feature_bulk_actions', 1);
+$pro_feature_certificates = (int) sc_get_setting('pro_feature_certificates', 1);
+$pro_feature_attendance = (int) sc_get_setting('pro_feature_attendance', 1);
+$pro_feature_courses = (int) sc_get_setting('pro_feature_courses', 1);
+$pro_feature_events = (int) sc_get_setting('pro_feature_events', 1);
+$pro_feature_private_notes = (int) sc_get_setting('pro_feature_private_notes', 1);
+$pro_feature_support_tickets = (int) sc_get_setting('pro_feature_support_tickets', 1);
+$pro_feature_invoices = (int) sc_get_setting('pro_feature_invoices', 1);
+$pro_feature_honors = (int) sc_get_setting('pro_feature_honors', 1);
+$pro_feature_reports = (int) sc_get_setting('pro_feature_reports', 1);
+$pro_feature_team_level = (int) sc_get_setting('pro_feature_team_level', 1);
+$pro_feature_chapters = (int) sc_get_setting('pro_feature_chapters', 1);
+$pro_feature_faq = (int) sc_get_setting('pro_feature_faq', 1);
+$pro_feature_nav_menus = (int) sc_get_setting('pro_feature_nav_menus', 1);
+$pro_feature_permalinks = (int) sc_get_setting('pro_feature_permalinks', 1);
 $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
 
 $activity_log_cleanup_day = max(1, min(28, (int) sc_get_setting('activity_log_cleanup_day', '1')));
@@ -2795,6 +2846,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <th scope="row">اطلاعیه‌ها</th>
                 <td>
                     <label class="switch">
+                        <input type="hidden" name="pro_feature_notifications" value="0">
                         <input type="checkbox" name="pro_feature_notifications" value="1" <?php checked($pro_feature_notifications, 1); ?>>
                         <span class="slider round"></span>
                     </label>
@@ -2804,6 +2856,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <th scope="row">مربیان</th>
                 <td>
                     <label class="switch">
+                        <input type="hidden" name="pro_feature_coaches" value="0">
                         <input type="checkbox" name="pro_feature_coaches" value="1" <?php checked($pro_feature_coaches, 1); ?>>
                         <span class="slider round"></span>
                     </label>
@@ -2813,6 +2866,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <th scope="row">کیف پول بازیکنان</th>
                 <td>
                     <label class="switch">
+                        <input type="hidden" name="pro_feature_players_wallet" value="0">
                         <input type="checkbox" name="pro_feature_players_wallet" value="1" <?php checked($pro_feature_players_wallet, 1); ?>>
                         <span class="slider round"></span>
                     </label>
@@ -2822,6 +2876,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <th scope="row">کیف پول مربیان و دستمزد</th>
                 <td>
                     <label class="switch">
+                        <input type="hidden" name="pro_feature_coaches_wallet_salary" value="0">
                         <input type="checkbox" name="pro_feature_coaches_wallet_salary" value="1" <?php checked($pro_feature_coaches_wallet_salary, 1); ?>>
                         <span class="slider round"></span>
                     </label>
@@ -2831,6 +2886,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <th scope="row">سامانه پیامکی</th>
                 <td>
                     <label class="switch">
+                        <input type="hidden" name="pro_feature_sms" value="0">
                         <input type="checkbox" name="pro_feature_sms" value="1" <?php checked($pro_feature_sms, 1); ?>>
                         <span class="slider round"></span>
                     </label>
@@ -2840,7 +2896,178 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <th scope="row">فروشگاه </th>
                 <td>
                     <label class="switch">
+                        <input type="hidden" name="pro_feature_shop" value="0">
                         <input type="checkbox" name="pro_feature_shop" value="1" <?php checked($pro_feature_shop, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">هشدارهای کاربر</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_user_alerts" value="0">
+                        <input type="checkbox" name="pro_feature_user_alerts" value="1" <?php checked($pro_feature_user_alerts, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">خروجی اطلاعات کاربران</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_users_export" value="0">
+                        <input type="checkbox" name="pro_feature_users_export" value="1" <?php checked($pro_feature_users_export, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">کارهای دست‌جمعی</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_bulk_actions" value="0">
+                        <input type="checkbox" name="pro_feature_bulk_actions" value="1" <?php checked($pro_feature_bulk_actions, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">گواهینامه‌ها</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_certificates" value="0">
+                        <input type="checkbox" name="pro_feature_certificates" value="1" <?php checked($pro_feature_certificates, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">حضور و غیاب</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_attendance" value="0">
+                        <input type="checkbox" name="pro_feature_attendance" value="1" <?php checked($pro_feature_attendance, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">دوره‌ها و کلاس‌های خصوصی</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_courses" value="0">
+                        <input type="checkbox" name="pro_feature_courses" value="1" <?php checked($pro_feature_courses, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">رویدادها</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_events" value="0">
+                        <input type="checkbox" name="pro_feature_events" value="1" <?php checked($pro_feature_events, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">یادداشت‌های خصوصی</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_private_notes" value="0">
+                        <input type="checkbox" name="pro_feature_private_notes" value="1" <?php checked($pro_feature_private_notes, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">تیکت پشتیبانی</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_support_tickets" value="0">
+                        <input type="checkbox" name="pro_feature_support_tickets" value="1" <?php checked($pro_feature_support_tickets, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">صورت‌حساب و مالی</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_invoices" value="0">
+                        <input type="checkbox" name="pro_feature_invoices" value="1" <?php checked($pro_feature_invoices, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">افتخارات</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_honors" value="0">
+                        <input type="checkbox" name="pro_feature_honors" value="1" <?php checked($pro_feature_honors, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">گزارشات باشگاه</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_reports" value="0">
+                        <input type="checkbox" name="pro_feature_reports" value="1" <?php checked($pro_feature_reports, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">تیم و سطح</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_team_level" value="0">
+                        <input type="checkbox" name="pro_feature_team_level" value="1" <?php checked($pro_feature_team_level, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">شعبه‌های باشگاه</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_chapters" value="0">
+                        <input type="checkbox" name="pro_feature_chapters" value="1" <?php checked($pro_feature_chapters, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">سوالات متداول</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_faq" value="0">
+                        <input type="checkbox" name="pro_feature_faq" value="1" <?php checked($pro_feature_faq, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">فهرست‌های منو</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_nav_menus" value="0">
+                        <input type="checkbox" name="pro_feature_nav_menus" value="1" <?php checked($pro_feature_nav_menus, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">پیوندهای یکتا</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_permalinks" value="0">
+                        <input type="checkbox" name="pro_feature_permalinks" value="1" <?php checked($pro_feature_permalinks, 1); ?>>
                         <span class="slider round"></span>
                     </label>
                 </td>

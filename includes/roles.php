@@ -1003,9 +1003,7 @@ function club_hide_wc_payment_menu_with_css() {
 add_action('admin_init', 'close_acsses_shop');
 function close_acsses_shop(){
 
-$pro_feature_shop = (int) sc_get_setting('pro_feature_shop', 0);
-
-if(!$pro_feature_shop && !current_user_can('administrator')){
+if ((!function_exists('sc_is_pro_feature_shop_enabled') || !sc_is_pro_feature_shop_enabled()) && !current_user_can('administrator')) {
     remove_menu_page('wc-admin');
     remove_menu_page('edit.php?post_type=product');
     remove_menu_page('edit.php?post_type=shop_coupon');

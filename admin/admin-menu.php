@@ -57,85 +57,93 @@ function sc_register_admin_menu() {
 
         
     }
+    if (function_exists('sc_is_pro_feature_user_alerts_enabled') && sc_is_pro_feature_user_alerts_enabled()) {
         add_menu_page(
-        'هشدارهای کاربر',
-        'هشدارهای کاربر',
-        'manage_options',
-        'sc-user-alerts',
-        'sc_admin_user_alerts_page',
-        'dashicons-warning',
-        26.6
-    );
+            'هشدارهای کاربر',
+            'هشدارهای کاربر',
+            'manage_options',
+            'sc-user-alerts',
+            'sc_admin_user_alerts_page',
+            'dashicons-warning',
+            26.6
+        );
+    }
 
-    add_menu_page(
-        'خروجی اطلاعات کاربران',
-        'خروجی اطلاعات کاربران',
-        'manage_options',
-        'sc-users-info-export',
-        'sc_admin_users_info_export_page',
-        'dashicons-media-spreadsheet',
-        26.8
-    );
-    add_submenu_page(
-        'sc-users-info-export',
-        'خروجی اطلاعات کاربران',
-        'خروجی اطلاعات کاربران',
-        'manage_options',
-        'sc-users-info-export',
-        'sc_admin_users_info_export_page'
-    );
-    add_submenu_page(
-        'sc-users-info-export',
-        'تعریف قالب خروجی',
-        'تعریف قالب خروجی',
-        'manage_options',
-        'sc-users-export-templates',
-        'sc_admin_users_export_templates_page'
-    );
+    if (function_exists('sc_is_pro_feature_users_export_enabled') && sc_is_pro_feature_users_export_enabled()) {
+        add_menu_page(
+            'خروجی اطلاعات کاربران',
+            'خروجی اطلاعات کاربران',
+            'manage_options',
+            'sc-users-info-export',
+            'sc_admin_users_info_export_page',
+            'dashicons-media-spreadsheet',
+            26.8
+        );
+        add_submenu_page(
+            'sc-users-info-export',
+            'خروجی اطلاعات کاربران',
+            'خروجی اطلاعات کاربران',
+            'manage_options',
+            'sc-users-info-export',
+            'sc_admin_users_info_export_page'
+        );
+        add_submenu_page(
+            'sc-users-info-export',
+            'تعریف قالب خروجی',
+            'تعریف قالب خروجی',
+            'manage_options',
+            'sc-users-export-templates',
+            'sc_admin_users_export_templates_page'
+        );
+    }
 
-    add_menu_page(
-        'کار های دست جمعی',
-        'کار های دست جمعی',
-        'manage_options',
-        'sc-bulk-actions',
-        'sc_admin_bulk_actions_page',
-        'dashicons-update',
-        26.85
-    );
+    if (function_exists('sc_is_pro_feature_bulk_actions_enabled') && sc_is_pro_feature_bulk_actions_enabled()) {
+        add_menu_page(
+            'کار های دست جمعی',
+            'کار های دست جمعی',
+            'manage_options',
+            'sc-bulk-actions',
+            'sc_admin_bulk_actions_page',
+            'dashicons-update',
+            26.85
+        );
+    }
 
-    add_menu_page(
-        'گواهینامه‌ها',
-        'گواهینامه‌ها',
-        'manage_options',
-        'sc-certificates-issue',
-        'sc_admin_certificates_issue_page',
-        'dashicons-awards',
-        26.9
-    );
-    add_submenu_page(
-        'sc-certificates-issue',
-        'صدور گواهینامه',
-        'صدور گواهینامه',
-        'manage_options',
-        'sc-certificates-issue',
-        'sc_admin_certificates_issue_page'
-    );
-    add_submenu_page(
-        'sc-certificates-issue',
-        'گواهینامه ها',
-        'گواهینامه ها',
-        'manage_options',
-        'sc-certificates-list',
-        'sc_admin_certificates_list_page'
-    );
-    add_submenu_page(
-        'sc-certificates-issue',
-        'تعریف قالب گواهینامه',
-        'تعریف قالب گواهینامه',
-        'manage_options',
-        'sc-certificates-templates',
-        'sc_admin_certificates_templates_page'
-    );
+    if (function_exists('sc_is_pro_feature_certificates_enabled') && sc_is_pro_feature_certificates_enabled()) {
+        add_menu_page(
+            'گواهینامه‌ها',
+            'گواهینامه‌ها',
+            'manage_options',
+            'sc-certificates-issue',
+            'sc_admin_certificates_issue_page',
+            'dashicons-awards',
+            26.9
+        );
+        add_submenu_page(
+            'sc-certificates-issue',
+            'صدور گواهینامه',
+            'صدور گواهینامه',
+            'manage_options',
+            'sc-certificates-issue',
+            'sc_admin_certificates_issue_page'
+        );
+        add_submenu_page(
+            'sc-certificates-issue',
+            'گواهینامه ها',
+            'گواهینامه ها',
+            'manage_options',
+            'sc-certificates-list',
+            'sc_admin_certificates_list_page'
+        );
+        add_submenu_page(
+            'sc-certificates-issue',
+            'تعریف قالب گواهینامه',
+            'تعریف قالب گواهینامه',
+            'manage_options',
+            'sc-certificates-templates',
+            'sc_admin_certificates_templates_page'
+        );
+    }
 
     /* ================= Members ================= */
 
@@ -180,46 +188,44 @@ function sc_register_admin_menu() {
     );
 
 
-      // Attendance - Add
-    add_menu_page(
+    if (function_exists('sc_is_pro_feature_attendance_enabled') && sc_is_pro_feature_attendance_enabled()) {
+        add_menu_page(
+            'ثبت حضور و غیاب',
+            'ثبت حضور و غیاب',
+            'sc_manage_attendance_or_admin', // capability سفارشی برای مربی و مدیر
+            'sc-attendance-add',
+            'sc_admin_attendance_add_page',
+            'dashicons-insert-after',
+            '28'
+        );
 
-        'ثبت حضور و غیاب',
-        'ثبت حضور و غیاب',
-        'sc_manage_attendance_or_admin', // capability سفارشی برای مربی و مدیر
-        'sc-attendance-add',
-        'sc_admin_attendance_add_page',
-        'dashicons-insert-after',
-        '28'
-    );
+        add_submenu_page(
+            'sc-attendance-add',
+            'لیست حضور و غیاب',
+            'لیست حضور و غیاب',
+            'sc_manage_attendance_or_admin', // capability سفارشی برای مربی و مدیر
+            'sc-attendance-list',
+            'sc_admin_attendance_list_page'
+        );
 
-    // Attendance - List
-    add_submenu_page(
-        'sc-attendance-add',
-        'لیست حضور و غیاب',
-        'لیست حضور و غیاب',
-        'sc_manage_attendance_or_admin', // capability سفارشی برای مربی و مدیر
-        'sc-attendance-list',
-        'sc_admin_attendance_list_page'
-    );
+        add_submenu_page(
+            'sc-attendance-add',
+            'گزارش حضور بازیکن',
+            'گزارش حضور بازیکن',
+            'sc_manage_attendance_or_admin',
+            'sc-attendance-report',
+            'sc_admin_attendance_report_page'
+        );
 
-    // Attendance - Player Report
-    add_submenu_page(
-        'sc-attendance-add',
-        'گزارش حضور بازیکن',
-        'گزارش حضور بازیکن',
-        'sc_manage_attendance_or_admin',
-        'sc-attendance-report',
-        'sc_admin_attendance_report_page'
-    );
-
-    add_submenu_page(
-        'sc-attendance-add',
-        'تعطیلی بازهٔ جلسه',
-        'تعطیلی بازهٔ جلسه',
-        'sc_manage_attendance_or_admin',
-        'sc-attendance-session-cancellations',
-        'sc_admin_attendance_session_cancellations_page'
-    );
+        add_submenu_page(
+            'sc-attendance-add',
+            'تعطیلی بازهٔ جلسه',
+            'تعطیلی بازهٔ جلسه',
+            'sc_manage_attendance_or_admin',
+            'sc-attendance-session-cancellations',
+            'sc_admin_attendance_session_cancellations_page'
+        );
+    }
 
     /* ================= منوهای فقط مربی (نه مدیر کل و نه مدیر باشگاه): دستمزد، افتخارات، اطلاعیه، دوره‌های من، بازیکن‌های من، اطلاعات من، تیکت ================= */
     $is_coach_only = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach');
@@ -265,17 +271,17 @@ function sc_register_admin_menu() {
         );
     }
 
-    /* ================= Coach Honors (for coaches) ================= */
-
-    add_menu_page(
-        'افتخارات من',
-        'افتخارات من',
-        'sc_view_coach_salary',
-        'sc-coach-honors',
-        'sc_admin_coach_honors_page',
-        'dashicons-awards',
-        28.6
-    );
+    if (function_exists('sc_is_pro_feature_honors_enabled') && sc_is_pro_feature_honors_enabled()) {
+        add_menu_page(
+            'افتخارات من',
+            'افتخارات من',
+            'sc_view_coach_salary',
+            'sc-coach-honors',
+            'sc_admin_coach_honors_page',
+            'dashicons-awards',
+            28.6
+        );
+    }
 
     /* ================= Coach Notifications (for coaches) - فقط وقتی امکانات پرو فعال است ================= */
     if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()) {
@@ -317,51 +323,51 @@ function sc_register_admin_menu() {
     }
 
     /* ================= Coach: دوره‌های من، بازیکن‌های من، اطلاعات من ================= */
-    add_menu_page(
-        'دوره‌های من',
-        'دوره‌های من',
-        'sc_view_coach_salary',
-        'sc-coach-my-courses',
-        'sc_admin_coach_my_courses_page',
-        'dashicons-welcome-learn-more',
-        28.7
-    );
-    if (current_user_can('sc_view_coach_salary')) {
-        add_submenu_page(
-            'sc-coach-my-courses',
-            'برنامه هفتگی من',
-            'برنامه هفتگی من',
-            'read',
-            'sc-coach-weekly-schedule',
-            'sc_render_coach_weekly_schedule_page'
-        );
-             add_menu_page(
-            'کلاس‌های خصوصی من',
-            'کلاس‌های خصوصی من',
-            'read',
-            'sc-coach-private-classes',
-            'sc_render_private_bookings_admin_page',
-            'dashicons-calendar-alt',
-            28.72
-        );
-        add_submenu_page(
-            'sc-coach-private-classes',
-            'لیست جلسات خصوصی',
-            'لیست جلسات خصوصی',
-            'read',
-            'sc-coach-private-classes',
-            'sc_render_private_bookings_admin_page'
-        );
-              add_submenu_page(
-            'sc-coach-my-courses',
-            'کلاس‌های خصوصی من',
-            'کلاس‌های خصوصی من',
+    if (function_exists('sc_is_pro_feature_courses_enabled') && sc_is_pro_feature_courses_enabled()) {
+        add_menu_page(
+            'دوره‌های من',
+            'دوره‌های من',
             'sc_view_coach_salary',
-            'sc-private-bookings-list',
-            'sc_render_private_bookings_admin_page'
+            'sc-coach-my-courses',
+            'sc_admin_coach_my_courses_page',
+            'dashicons-welcome-learn-more',
+            28.7
         );
-
-
+        if (current_user_can('sc_view_coach_salary')) {
+            add_submenu_page(
+                'sc-coach-my-courses',
+                'برنامه هفتگی من',
+                'برنامه هفتگی من',
+                'read',
+                'sc-coach-weekly-schedule',
+                'sc_render_coach_weekly_schedule_page'
+            );
+            add_menu_page(
+                'کلاس‌های خصوصی من',
+                'کلاس‌های خصوصی من',
+                'read',
+                'sc-coach-private-classes',
+                'sc_render_private_bookings_admin_page',
+                'dashicons-calendar-alt',
+                28.72
+            );
+            add_submenu_page(
+                'sc-coach-private-classes',
+                'لیست جلسات خصوصی',
+                'لیست جلسات خصوصی',
+                'read',
+                'sc-coach-private-classes',
+                'sc_render_private_bookings_admin_page'
+            );
+            add_submenu_page(
+                'sc-coach-my-courses',
+                'کلاس‌های خصوصی من',
+                'کلاس‌های خصوصی من',
+                'sc_view_coach_salary',
+                'sc-private-bookings-list',
+                'sc_render_private_bookings_admin_page'
+            );
+        }
     }
 
     add_menu_page(
@@ -391,108 +397,115 @@ function sc_register_admin_menu() {
         'sc_admin_coach_my_players_page'
     );
 
-    add_menu_page(
-        'تیکت پشتیبانی',
-        'تیکت پشتیبانی',
-        'sc_view_coach_salary',
-        'sc-coach-support-tickets',
-        'sc_admin_coach_support_tickets_list_page',
-        'dashicons-tickets-alt',
-        28.85
-    );
-    add_submenu_page(
-        null,
-        'مشاهده تیکت',
-        'مشاهده تیکت',
-        'sc_view_coach_salary',
-        'sc-coach-support-ticket-view',
-        'sc_admin_coach_support_ticket_view_page'
-    );
-    add_submenu_page(
-        null,
-        'ارسال تیکت جدید',
-        'ارسال تیکت جدید',
-        'sc_view_coach_salary',
-        'sc-coach-support-ticket-new',
-        'sc_admin_coach_support_ticket_new_page'
-    );
-    add_action('admin_menu', 'sc_coach_support_tickets_menu_badge', 999);
+    if (function_exists('sc_is_pro_feature_support_tickets_enabled') && sc_is_pro_feature_support_tickets_enabled()) {
+        add_menu_page(
+            'تیکت پشتیبانی',
+            'تیکت پشتیبانی',
+            'sc_view_coach_salary',
+            'sc-coach-support-tickets',
+            'sc_admin_coach_support_tickets_list_page',
+            'dashicons-tickets-alt',
+            28.85
+        );
+        add_submenu_page(
+            null,
+            'مشاهده تیکت',
+            'مشاهده تیکت',
+            'sc_view_coach_salary',
+            'sc-coach-support-ticket-view',
+            'sc_admin_coach_support_ticket_view_page'
+        );
+        add_submenu_page(
+            null,
+            'ارسال تیکت جدید',
+            'ارسال تیکت جدید',
+            'sc_view_coach_salary',
+            'sc-coach-support-ticket-new',
+            'sc_admin_coach_support_ticket_new_page'
+        );
+        add_action('admin_menu', 'sc_coach_support_tickets_menu_badge', 999);
+    }
 
-    add_menu_page(
-        'یادداشت‌های خصوصی',
-        'یادداشت‌های خصوصی',
-        'sc_view_coach_salary',
-        'sc-coach-private-notes',
-        'sc_admin_coach_private_notes_list_page',
-        'dashicons-media-text',
-        28.86
-    );
-    add_submenu_page(
-        'sc-coach-private-notes',
-        'لیست یادداشت‌ها',
-        'لیست یادداشت‌ها',
-        'sc_view_coach_salary',
-        'sc-coach-private-notes',
-        'sc_admin_coach_private_notes_list_page'
-    );
-    add_submenu_page(
-        'sc-coach-private-notes',
-        'افزودن یادداشت',
-        'افزودن یادداشت',
-        'sc_view_coach_salary',
-        'sc-coach-add-private-note',
-        'sc_admin_coach_private_notes_add_page'
-    );
+    if (function_exists('sc_is_pro_feature_private_notes_enabled') && sc_is_pro_feature_private_notes_enabled()) {
+        add_menu_page(
+            'یادداشت‌های خصوصی',
+            'یادداشت‌های خصوصی',
+            'sc_view_coach_salary',
+            'sc-coach-private-notes',
+            'sc_admin_coach_private_notes_list_page',
+            'dashicons-media-text',
+            28.86
+        );
+        add_submenu_page(
+            'sc-coach-private-notes',
+            'لیست یادداشت‌ها',
+            'لیست یادداشت‌ها',
+            'sc_view_coach_salary',
+            'sc-coach-private-notes',
+            'sc_admin_coach_private_notes_list_page'
+        );
+        add_submenu_page(
+            'sc-coach-private-notes',
+            'افزودن یادداشت',
+            'افزودن یادداشت',
+            'sc_view_coach_salary',
+            'sc-coach-add-private-note',
+            'sc_admin_coach_private_notes_add_page'
+        );
+    }
 
     } // پایان منوهای فقط مربی ($is_coach_only)
 
     /* ================= Courses ================= */
 
-    add_menu_page(
-        'دوره‌ها',
-        'دوره‌ها',
-        'manage_options',
-        'sc-courses',
-        'sc_admin_courses_list_page',
-        'dashicons-welcome-learn-more',
-        28
-    );
-
-    $list_courses_sufix = add_submenu_page(
-        'sc-courses',
-        'لیست دوره‌ها',
-        'لیست دوره‌ها',
-        'manage_options',
-        'sc-courses',
-        'sc_admin_courses_list_page'
-    );
-
-    $add_course_sufix = add_submenu_page(
-        'sc-courses',
-        'افزودن دوره',
-        'افزودن دوره',
-        'manage_options',
-        'sc-add-course',
-        'sc_admin_add_course_page'
-    );
-    if (current_user_can('manage_options') || current_user_can('club_coach')) {
-        add_submenu_page(
+    $list_courses_sufix = null;
+    $add_course_sufix = null;
+    if (function_exists('sc_is_pro_feature_courses_enabled') && sc_is_pro_feature_courses_enabled()) {
+        add_menu_page(
+            'دوره‌ها',
+            'دوره‌ها',
+            'manage_options',
             'sc-courses',
-            'کلاس‌های خصوصی',
-            'کلاس‌های خصوصی',
-            'read',
-            'sc-private-bookings-list',
-            'sc_render_private_bookings_admin_page'
+            'sc_admin_courses_list_page',
+            'dashicons-welcome-learn-more',
+            28
         );
-        // fallback: اگر منوی دوره‌ها برای نقش جاری نمایش داده نشود، از تنظیمات هم قابل دسترسی باشد
-        add_submenu_page(
-            'sc-setting',
-            'کلاس‌های خصوصی',
-            'کلاس‌های خصوصی',
-            'read',
-            'sc-private-bookings-list',
-            'sc_render_private_bookings_admin_page'
+
+        $list_courses_sufix = add_submenu_page(
+            'sc-courses',
+            'لیست دوره‌ها',
+            'لیست دوره‌ها',
+            'manage_options',
+            'sc-courses',
+            'sc_admin_courses_list_page'
         );
+
+        $add_course_sufix = add_submenu_page(
+            'sc-courses',
+            'افزودن دوره',
+            'افزودن دوره',
+            'manage_options',
+            'sc-add-course',
+            'sc_admin_add_course_page'
+        );
+        if (current_user_can('manage_options') || current_user_can('club_coach')) {
+            add_submenu_page(
+                'sc-courses',
+                'کلاس‌های خصوصی',
+                'کلاس‌های خصوصی',
+                'read',
+                'sc-private-bookings-list',
+                'sc_render_private_bookings_admin_page'
+            );
+            add_submenu_page(
+                'sc-setting',
+                'کلاس‌های خصوصی',
+                'کلاس‌های خصوصی',
+                'read',
+                'sc-private-bookings-list',
+                'sc_render_private_bookings_admin_page'
+            );
+        }
     }
 
 
@@ -531,182 +544,197 @@ function sc_register_admin_menu() {
 
     /* ================= Events ================= */
 
-    add_menu_page(
-        'رویدادها',
-        'رویدادها ',
-        'manage_options',
-        'sc-events',
-        'sc_admin_events_list_page',
-        'dashicons-calendar-alt',
-        29
-    );
+    $list_events_sufix = null;
+    $add_event_sufix = null;
+    $list_event_registrations_sufix = null;
+    if (function_exists('sc_is_pro_feature_events_enabled') && sc_is_pro_feature_events_enabled()) {
+        add_menu_page(
+            'رویدادها',
+            'رویدادها ',
+            'manage_options',
+            'sc-events',
+            'sc_admin_events_list_page',
+            'dashicons-calendar-alt',
+            29
+        );
 
-    $list_events_sufix = add_submenu_page(
-        'sc-events',
-        'لیست رویداد ',
-        'لیست رویداد ',
-        'manage_options',
-        'sc-events',
-        'sc_admin_events_list_page'
-    );
+        $list_events_sufix = add_submenu_page(
+            'sc-events',
+            'لیست رویداد ',
+            'لیست رویداد ',
+            'manage_options',
+            'sc-events',
+            'sc_admin_events_list_page'
+        );
 
+        $add_event_sufix = add_submenu_page(
+            'sc-events',
+            'ثبت رویداد ',
+            'ثبت رویداد ',
+            'manage_options',
+            'sc-add-event',
+            'sc_admin_add_event_page'
+        );
 
-    $add_event_sufix = add_submenu_page(
-        'sc-events',
-        'ثبت رویداد ',
-        'ثبت رویداد ',
-        'manage_options',
-        'sc-add-event',
-        'sc_admin_add_event_page'
-    );
-
-    $list_event_registrations_sufix = add_submenu_page(
-        'sc-events',
-        'ثبت‌نامی‌های رویداد',
-        'ثبت‌نامی‌های رویداد',
-        'manage_options',
-        'sc-event-registrations',
-        'sc_admin_event_registrations_list_page'
-    );
+        $list_event_registrations_sufix = add_submenu_page(
+            'sc-events',
+            'ثبت‌نامی‌های رویداد',
+            'ثبت‌نامی‌های رویداد',
+            'manage_options',
+            'sc-event-registrations',
+            'sc_admin_event_registrations_list_page'
+        );
+    }
 
     /* ================= Private Notes ================= */
-    add_menu_page(
-        'یادداشت‌های خصوصی',
-        'یادداشت‌های خصوصی',
-        'manage_options',
-        'sc-private-notes',
-        'sc_admin_private_notes_list_page',
-        'dashicons-media-text',
-        29.4
-    );
-    add_submenu_page(
-        'sc-private-notes',
-        'لیست یادداشت‌ها',
-        'لیست یادداشت‌ها',
-        'manage_options',
-        'sc-private-notes',
-        'sc_admin_private_notes_list_page'
-    );
-    add_submenu_page(
-        'sc-private-notes',
-        'افزودن یادداشت',
-        'افزودن یادداشت',
-        'manage_options',
-        'sc-add-private-note',
-        'sc_admin_private_notes_add_page'
-    );
-    add_submenu_page(
-        null,
-        'جزئیات یادداشت خصوصی',
-        'جزئیات یادداشت خصوصی',
-        'read',
-        'sc-private-notes-view',
-        'sc_admin_private_notes_view_page'
-    );
+    if (function_exists('sc_is_pro_feature_private_notes_enabled') && sc_is_pro_feature_private_notes_enabled()) {
+        add_menu_page(
+            'یادداشت‌های خصوصی',
+            'یادداشت‌های خصوصی',
+            'manage_options',
+            'sc-private-notes',
+            'sc_admin_private_notes_list_page',
+            'dashicons-media-text',
+            29.4
+        );
+        add_submenu_page(
+            'sc-private-notes',
+            'لیست یادداشت‌ها',
+            'لیست یادداشت‌ها',
+            'manage_options',
+            'sc-private-notes',
+            'sc_admin_private_notes_list_page'
+        );
+        add_submenu_page(
+            'sc-private-notes',
+            'افزودن یادداشت',
+            'افزودن یادداشت',
+            'manage_options',
+            'sc-add-private-note',
+            'sc_admin_private_notes_add_page'
+        );
+        add_submenu_page(
+            null,
+            'جزئیات یادداشت خصوصی',
+            'جزئیات یادداشت خصوصی',
+            'read',
+            'sc-private-notes-view',
+            'sc_admin_private_notes_view_page'
+        );
+    }
 
     /* ================= Support Tickets ================= */
-    add_menu_page(
-        'تیکت پشتیبانی',
-        'تیکت پشتیبانی',
-        'manage_options',
-        'sc-support-tickets',
-        'sc_admin_support_tickets_list_page',
-        'dashicons-tickets-alt',
-        29.5
-    );
-    $list_support_tickets_sufix = add_submenu_page(
-        'sc-support-tickets',
-        'لیست تیکت‌ها',
-        'لیست تیکت‌ها',
-        'manage_options',
-        'sc-support-tickets',
-        'sc_admin_support_tickets_list_page'
-    );
-    
-    add_action('load-' . $list_support_tickets_sufix, 'sc_support_tickets_screen_option');
-    add_submenu_page(
-        null,
-        'مشاهده تیکت',
-        'مشاهده تیکت',
-        'manage_options',
-        'sc-support-ticket-view',
-        'sc_admin_support_ticket_view_page'
-    );
-    add_submenu_page(
-        'sc-support-tickets',
-        'ارسال تیکت جدید',
-        'ارسال تیکت جدید',
-        'manage_options',
-        'sc-support-ticket-new',
-        'sc_admin_support_ticket_new_page'
-    );
-    add_action('admin_menu', 'sc_admin_support_tickets_menu_badge', 999);
+    $list_support_tickets_sufix = null;
+    if (function_exists('sc_is_pro_feature_support_tickets_enabled') && sc_is_pro_feature_support_tickets_enabled()) {
+        add_menu_page(
+            'تیکت پشتیبانی',
+            'تیکت پشتیبانی',
+            'manage_options',
+            'sc-support-tickets',
+            'sc_admin_support_tickets_list_page',
+            'dashicons-tickets-alt',
+            29.5
+        );
+        $list_support_tickets_sufix = add_submenu_page(
+            'sc-support-tickets',
+            'لیست تیکت‌ها',
+            'لیست تیکت‌ها',
+            'manage_options',
+            'sc-support-tickets',
+            'sc_admin_support_tickets_list_page'
+        );
+
+        add_action('load-' . $list_support_tickets_sufix, 'sc_support_tickets_screen_option');
+        add_submenu_page(
+            null,
+            'مشاهده تیکت',
+            'مشاهده تیکت',
+            'manage_options',
+            'sc-support-ticket-view',
+            'sc_admin_support_ticket_view_page'
+        );
+        add_submenu_page(
+            'sc-support-tickets',
+            'ارسال تیکت جدید',
+            'ارسال تیکت جدید',
+            'manage_options',
+            'sc-support-ticket-new',
+            'sc_admin_support_ticket_new_page'
+        );
+        add_action('admin_menu', 'sc_admin_support_tickets_menu_badge', 999);
+    }
 
     /* ================= Finance ================= */
 
-    add_menu_page(
-        'صورت حساب‌ها',
-        'صورت حساب‌ها',
-        'manage_options',
-        'sc-invoices',
-        'sc_admin_invoices_list_page',
-        'dashicons-money-alt',
-        30
-    );
+    $list_invoices_sufix = null;
+    $add_invoice_sufix = null;
+    $list_expenses_sufix = null;
+    $add_expense_sufix = null;
+    if (function_exists('sc_is_pro_feature_invoices_enabled') && sc_is_pro_feature_invoices_enabled()) {
+        add_menu_page(
+            'صورت حساب‌ها',
+            'صورت حساب‌ها',
+            'manage_options',
+            'sc-invoices',
+            'sc_admin_invoices_list_page',
+            'dashicons-money-alt',
+            30
+        );
 
-    $list_invoices_sufix = add_submenu_page(
-        'sc-invoices',
-        'لیست صورت حساب‌ها',
-        'لیست صورت حساب‌ها',
-        'manage_options',
-        'sc-invoices',
-        'sc_admin_invoices_list_page'
-    );
+        $list_invoices_sufix = add_submenu_page(
+            'sc-invoices',
+            'لیست صورت حساب‌ها',
+            'لیست صورت حساب‌ها',
+            'manage_options',
+            'sc-invoices',
+            'sc_admin_invoices_list_page'
+        );
 
-    $add_invoice_sufix = add_submenu_page(
-        'sc-invoices',
-        'ایجاد صورت حساب',
-        'ایجاد صورت حساب',
-        'manage_options',
-        'sc-add-invoice',
-        'sc_admin_add_invoice_page'
-    );
+        $add_invoice_sufix = add_submenu_page(
+            'sc-invoices',
+            'ایجاد صورت حساب',
+            'ایجاد صورت حساب',
+            'manage_options',
+            'sc-add-invoice',
+            'sc_admin_add_invoice_page'
+        );
 
-    $list_expenses_sufix = add_submenu_page(
-        'sc-invoices',
-        'لیست هزینه‌ها',
-        'لیست هزینه‌ها',
-        'manage_options',
-        'sc-expenses',
-        'sc_admin_expenses_list_page'
-    );
+        $list_expenses_sufix = add_submenu_page(
+            'sc-invoices',
+            'لیست هزینه‌ها',
+            'لیست هزینه‌ها',
+            'manage_options',
+            'sc-expenses',
+            'sc_admin_expenses_list_page'
+        );
 
-    $add_expense_sufix = add_submenu_page(
-        'sc-invoices',
-        'ثبت هزینه',
-        'ثبت هزینه',
-        'manage_options',
-        'sc-add-expense',
-        'sc_admin_add_expense_page'
-    );
+        $add_expense_sufix = add_submenu_page(
+            'sc-invoices',
+            'ثبت هزینه',
+            'ثبت هزینه',
+            'manage_options',
+            'sc-add-expense',
+            'sc_admin_add_expense_page'
+        );
 
-    add_submenu_page(
-        'sc-invoices',
-        'کدهای تخفیف',
-        'کدهای تخفیف',
-        'manage_options',
-        'sc-discount-codes',
-        'sc_admin_discount_codes_list_page'
-    );
+        add_submenu_page(
+            'sc-invoices',
+            'کدهای تخفیف',
+            'کدهای تخفیف',
+            'manage_options',
+            'sc-discount-codes',
+            'sc_admin_discount_codes_list_page'
+        );
 
-    add_submenu_page(
-        'sc-invoices',
-        'افزودن کد تخفیف',
-        'افزودن کد تخفیف',
-        'manage_options',
-        'sc-add-discount-code',
-        'sc_admin_discount_code_edit_page'
-    );
+        add_submenu_page(
+            'sc-invoices',
+            'افزودن کد تخفیف',
+            'افزودن کد تخفیف',
+            'manage_options',
+            'sc-add-discount-code',
+            'sc_admin_discount_code_edit_page'
+        );
+    }
 
     /* ================= Wallet - کیف پول بازیکنان (فقط وقتی امکانات پرو فعال است) ================= */
 
@@ -760,43 +788,46 @@ function sc_register_admin_menu() {
 
     /* ================= Honors ================= */
 
-    add_menu_page(
-        'افتخارات',
-        'افتخارات',
-        'manage_options',
-        'sc-honors',
-        'sc_admin_honors_list_page',
-        'dashicons-awards',
-        31
-    );
+    $list_honors_sufix = null;
+    if (function_exists('sc_is_pro_feature_honors_enabled') && sc_is_pro_feature_honors_enabled()) {
+        add_menu_page(
+            'افتخارات',
+            'افتخارات',
+            'manage_options',
+            'sc-honors',
+            'sc_admin_honors_list_page',
+            'dashicons-awards',
+            31
+        );
 
-    $list_honors_sufix = add_submenu_page(
-        'sc-honors',
-        'لیست افتخارات',
-        'لیست افتخارات',
-        'manage_options',
-        'sc-honors',
-        'sc_admin_honors_list_page'
-    );
-    add_action('load-' . $list_honors_sufix, 'sc_honors_screen_option');
+        $list_honors_sufix = add_submenu_page(
+            'sc-honors',
+            'لیست افتخارات',
+            'لیست افتخارات',
+            'manage_options',
+            'sc-honors',
+            'sc_admin_honors_list_page'
+        );
+        add_action('load-' . $list_honors_sufix, 'sc_honors_screen_option');
 
-    $honor_categories_sufix = add_submenu_page(
-        'sc-honors',
-        'دسته‌بندی افتخارات',
-        'دسته‌بندی افتخارات',
-        'manage_options',
-        'sc-honor-categories',
-        'sc_admin_honor_categories_page'
-    );
+        add_submenu_page(
+            'sc-honors',
+            'دسته‌بندی افتخارات',
+            'دسته‌بندی افتخارات',
+            'manage_options',
+            'sc-honor-categories',
+            'sc_admin_honor_categories_page'
+        );
 
-    $add_honor_for_member_sufix = add_submenu_page(
-        'sc-honors',
-        'افزودن افتخار برای بازیکن',
-        'افزودن افتخار برای بازیکن',
-        'manage_options',
-        'sc-add-honor-for-member',
-        'sc_admin_add_honor_for_member_page'
-    );
+        add_submenu_page(
+            'sc-honors',
+            'افزودن افتخار برای بازیکن',
+            'افزودن افتخار برای بازیکن',
+            'manage_options',
+            'sc-add-honor-for-member',
+            'sc_admin_add_honor_for_member_page'
+        );
+    }
 
     /* ================= Settings ================= */
 
@@ -925,237 +956,256 @@ function sc_register_admin_menu() {
     }
 
 
-    /* ================= Reports (NO CHANGE) ================= */
+    /* ================= Reports ================= */
 
-    add_menu_page(
-        'گزارشات باشگاه',
-        'گزارشات باشگاه',
-        'sc_finance_reports_access',
-        'sc-reports',
-        'sc_report_data',
-        'dashicons-chart-area',
-        31
-    );
+    if (function_exists('sc_is_pro_feature_reports_enabled') && sc_is_pro_feature_reports_enabled()) {
+        add_menu_page(
+            'گزارشات باشگاه',
+            'گزارشات باشگاه',
+            'sc_finance_reports_access',
+            'sc-reports',
+            'sc_report_data',
+            'dashicons-chart-area',
+            31
+        );
 
-    add_submenu_page(
-        'sc-reports',
-        'کاربران فعال',
-        'کاربران فعال',
-        'manage_options',
-        'sc-reports-active-users',
-        'sc_admin_reports_active_users_page'
-    );
+        add_submenu_page(
+            'sc-reports',
+            'کاربران فعال',
+            'کاربران فعال',
+            'manage_options',
+            'sc-reports-active-users',
+            'sc_admin_reports_active_users_page'
+        );
 
-    add_submenu_page(
-        'sc-reports',
-        'مالی و حسابداری',
-        'مالی و حسابداری',
-        'sc_finance_reports_access',
-        'sc-reports-income-expenses',
-        'sc_admin_reports_income_expenses_page'
-    );
+        add_submenu_page(
+            'sc-reports',
+            'مالی و حسابداری',
+            'مالی و حسابداری',
+            'sc_finance_reports_access',
+            'sc-reports-income-expenses',
+            'sc_admin_reports_income_expenses_page'
+        );
 
-    add_submenu_page(
-        'sc-reports',
-        'عملکرد مربی',
-        'عملکرد مربی',
-        'sc_finance_reports_access',
-        'sc-reports-coach-performance',
-        'sc_admin_reports_coach_performance_page'
-    );
+        if (function_exists('sc_is_pro_feature_coaches_enabled') && sc_is_pro_feature_coaches_enabled()) {
+            add_submenu_page(
+                'sc-reports',
+                'عملکرد مربی',
+                'عملکرد مربی',
+                'sc_finance_reports_access',
+                'sc-reports-coach-performance',
+                'sc_admin_reports_coach_performance_page'
+            );
+        }
 
-    add_submenu_page(
-        'sc-reports',
-        'بدهکاران',
-        'بدهکاران',
-        'manage_options',
-        'sc-reports-debtors',
-        'sc_admin_reports_debtors_page'
-    );
-    add_submenu_page(
-        'sc-reports',
-        'گزارشات ارسال پیامک',
-        'گزارشات ارسال پیامک',
-        'manage_options',
-        'sc-reports-sms-log',
-        'sc_admin_reports_sms_log_page'
-    );
-    add_action('load-sc-reports_page_sc-reports-sms-log', 'sc_sms_log_screen_options');
-    add_submenu_page(
-        'sc-reports',
-        'لاگ فعالیت',
-        'لاگ فعالیت',
-        'manage_options',
-        'sc-reports-activity-log',
-        'sc_admin_activity_log_page'
-    );
-    add_submenu_page(
-        'sc-reports',
-        'گزارش  حضور و غیاب',
-        ' حضور و غیاب',
-        'manage_options',
-        'sc-attendance-list_report',
-        'sc_admin_attendance_list_page'
-    );
-    add_submenu_page(
-        'sc-reports',
-        'لاگ تردد های دستگاه ',
-        'لاگ های تردد دستگاه حضور و غیاب',
-        'manage_options',
-        'sc-attendance-logs',
-        'sc_admin_attendance_logs'
-    );
-//پیوند های یکتا 
-    add_menu_page(
-        'پیوند های یکتا',
-        'پیوند های یکتا',
-        'manage_options',
-        'options-permalink.php',
-        '',
-        'dashicons-admin-links',
-        100
-    );
-    // add_submenu_page(
-    //     'sc-reports',
-    //     'پرداختی‌ها',
-    //     'پرداختی‌ها',
-    //     'manage_options',
-    //     'sc-reports-payments',
-    //     'sc_admin_reports_payments_page'
-    // );
+        add_submenu_page(
+            'sc-reports',
+            'بدهکاران',
+            'بدهکاران',
+            'manage_options',
+            'sc-reports-debtors',
+            'sc_admin_reports_debtors_page'
+        );
+
+        if (function_exists('sc_is_pro_feature_sms_enabled') && sc_is_pro_feature_sms_enabled()) {
+            add_submenu_page(
+                'sc-reports',
+                'گزارشات ارسال پیامک',
+                'گزارشات ارسال پیامک',
+                'manage_options',
+                'sc-reports-sms-log',
+                'sc_admin_reports_sms_log_page'
+            );
+            add_action('load-sc-reports_page_sc-reports-sms-log', 'sc_sms_log_screen_options');
+        }
+
+        add_submenu_page(
+            'sc-reports',
+            'لاگ فعالیت',
+            'لاگ فعالیت',
+            'manage_options',
+            'sc-reports-activity-log',
+            'sc_admin_activity_log_page'
+        );
+
+        if (function_exists('sc_is_pro_feature_attendance_enabled') && sc_is_pro_feature_attendance_enabled()) {
+            add_submenu_page(
+                'sc-reports',
+                'گزارش  حضور و غیاب',
+                ' حضور و غیاب',
+                'manage_options',
+                'sc-attendance-list_report',
+                'sc_admin_attendance_list_page'
+            );
+            add_submenu_page(
+                'sc-reports',
+                'لاگ تردد های دستگاه ',
+                'لاگ های تردد دستگاه حضور و غیاب',
+                'manage_options',
+                'sc-attendance-logs',
+                'sc_admin_attendance_logs'
+            );
+        }
+    }
+
+    if (function_exists('sc_is_pro_feature_permalinks_enabled') && sc_is_pro_feature_permalinks_enabled()) {
+        add_menu_page(
+            'پیوند های یکتا',
+            'پیوند های یکتا',
+            'manage_options',
+            'options-permalink.php',
+            '',
+            'dashicons-admin-links',
+            100
+        );
+    }
 
  /* ================= cate_team and level ================= */
 
-    add_menu_page(
-        ' دسته بندی تیم و سطج ',
-        'تیم و سطح ',
-        'manage_options',
-        'sc_team',
-        'sc_admin_team_categories_page',
-        'dashicons-universal-access',
-        10
-    );
+    if (function_exists('sc_is_pro_feature_team_level_enabled') && sc_is_pro_feature_team_level_enabled()) {
+        add_menu_page(
+            ' دسته بندی تیم و سطج ',
+            'تیم و سطح ',
+            'manage_options',
+            'sc_team',
+            'sc_admin_team_categories_page',
+            'dashicons-universal-access',
+            10
+        );
 
-add_submenu_page(
-        'sc_team',
-        'دسته تیم بندی',
-        'دسته تیم بندی',
-        'manage_options',
-        'sc_team',
-        'sc_admin_team_categories_page'
-    );
+        add_submenu_page(
+            'sc_team',
+            'دسته تیم بندی',
+            'دسته تیم بندی',
+            'manage_options',
+            'sc_team',
+            'sc_admin_team_categories_page'
+        );
 
-add_submenu_page(
-        'sc_team',
-        'دسته سطح بندی',
-        'دسته سطح بندی',
-        'manage_options',
-        'sc_level',
-        'sc_admin_level_categories_page'
-    );
-
+        add_submenu_page(
+            'sc_team',
+            'دسته سطح بندی',
+            'دسته سطح بندی',
+            'manage_options',
+            'sc_level',
+            'sc_admin_level_categories_page'
+        );
+    }
 
  /* ================= chapter ================= */
 
-    add_menu_page(
-        ' شعبه های باشگاه',
-        'شعبه های باشگاه',
-        'manage_options',
-        'sc_chapter',
-        'sc_admin_chapter_page',
-        'dashicons-location',
-        9
-    );
+    if (function_exists('sc_is_pro_feature_chapters_enabled') && sc_is_pro_feature_chapters_enabled()) {
+        add_menu_page(
+            ' شعبه های باشگاه',
+            'شعبه های باشگاه',
+            'manage_options',
+            'sc_chapter',
+            'sc_admin_chapter_page',
+            'dashicons-location',
+            9
+        );
+    }
+
  /* ================= faq ================= */
 
-    add_menu_page(
-        ' سوالات متداول ',
-        ' سوالات متداول ',
-        'manage_options',
-        'sc_faq',
-        'sc_admin_faq',
-        'dashicons-editor-help',
-        40
-    );
+    if (function_exists('sc_is_pro_feature_faq_enabled') && sc_is_pro_feature_faq_enabled()) {
+        add_menu_page(
+            ' سوالات متداول ',
+            ' سوالات متداول ',
+            'manage_options',
+            'sc_faq',
+            'sc_admin_faq',
+            'dashicons-editor-help',
+            40
+        );
+    }
 
-   
- /* ================= faq ================= */
-$pro_feature_shop = (int) sc_get_setting('pro_feature_shop', 0);
+    if (function_exists('sc_is_pro_feature_shop_enabled') && sc_is_pro_feature_shop_enabled()) {
+        add_menu_page(
+            ' فروشگاه',
+            ' فروشگاه',
+            'manage_woocommerce',
+            'sc_orders',
+            'sc_custom_orders',
+            'dashicons-cart',
+            40
+        );
+        add_submenu_page(
+            'sc_orders',
+            'لیست سفارشات',
+            'لیست سفارشات',
+            'manage_woocommerce',
+            'sc_orders',
+            'sc_custom_orders'
+        );
+        add_submenu_page(
+            'sc_orders',
+            ' کد تخفیف ',
+            ' لیست کد تخفیف ' ,
+            'manage_woocommerce',
+            'edit.php?post_type=shop_coupon',
+            ''
+        );
 
-if($pro_feature_shop){
-    add_menu_page(
-        ' فروشگاه',
-        ' فروشگاه',
-        'manage_woocommerce',
-        'sc_orders',
-        'sc_custom_orders',
-        'dashicons-cart',
-        40
-    );
-    add_submenu_page(
-        'sc_orders',
-        'لیست سفارشات',
-        'لیست سفارشات',
-        'manage_woocommerce',
-        'sc_orders',
-        'sc_custom_orders'
-    );
-    add_submenu_page(
-        'sc_orders',
-        ' کد تخفیف ',
-        ' لیست کد تخفیف ' ,
-        'manage_woocommerce',
-        'edit.php?post_type=shop_coupon',
-        ''
-    );
+        add_submenu_page(
+            'sc_orders',
+            'تجزیه و تحلیل',
+            'تجزیه و تحلیل',
+            'manage_woocommerce',
+            '/admin.php?page=wc-admin&path=%2Fanalytics%2Foverview',
+            ''
+        );
+    }
 
-    add_submenu_page(
-        'sc_orders',
-        'تجزیه و تحلیل',
-        'تجزیه و تحلیل',
-        'manage_woocommerce',
-        '/admin.php?page=wc-admin&path=%2Fanalytics%2Foverview',
-        ''
-    );
-
-}
-  
-    add_menu_page(
-        ' فهرست های منو',
-        ' فهرست های منو',
-        'manage_options',
-        'nav-menus.php',
-        '',
-        "dashicons-list-view",
-        40
-    );
-
-   
+    if (function_exists('sc_is_pro_feature_nav_menus_enabled') && sc_is_pro_feature_nav_menus_enabled()) {
+        add_menu_page(
+            ' فهرست های منو',
+            ' فهرست های منو',
+            'manage_options',
+            'nav-menus.php',
+            '',
+            "dashicons-list-view",
+            40
+        );
+    }
 
     /* ================= Load Hooks (همه حفظ شده) ================= */
 
     add_action('load-' . $add_member_sufix, 'callback_add_member_sufix');
     add_action('load-' . $list_member_sufix, 'procces_table_data');
 
-    // add_action('load-' . $list_attendance_sufix, 'sc_admin_attendance_list_page');
-    // add_action('load-' . $add_attendance_sufix, 'sc_admin_attendance_add_page');
+    if (!empty($add_course_sufix)) {
+        add_action('load-' . $add_course_sufix, 'callback_add_course_sufix');
+    }
+    if (!empty($list_courses_sufix)) {
+        add_action('load-' . $list_courses_sufix, 'procces_courses_table_data');
+    }
 
-    add_action('load-' . $add_course_sufix, 'callback_add_course_sufix');
-    add_action('load-' . $list_courses_sufix, 'procces_courses_table_data');
+    if (!empty($add_event_sufix)) {
+        add_action('load-' . $add_event_sufix, 'callback_add_event_sufix');
+    }
+    if (!empty($list_events_sufix)) {
+        add_action('load-' . $list_events_sufix, 'process_events_table_data');
+        add_action('load-' . $list_events_sufix, 'sc_events_screen_options');
+    }
 
-    add_action('load-' . $add_event_sufix, 'callback_add_event_sufix');
-    add_action('load-' . $list_events_sufix, 'process_events_table_data');
-
-    add_action('load-' . $add_invoice_sufix, 'callback_add_invoice_sufix');
-    add_action('load-' . $list_invoices_sufix, 'process_invoices_table_data');
-    add_action('load-toplevel_page_sc_orders', 'process_orders_table_data');
+    if (!empty($add_invoice_sufix)) {
+        add_action('load-' . $add_invoice_sufix, 'callback_add_invoice_sufix');
+    }
+    if (!empty($list_invoices_sufix)) {
+        add_action('load-' . $list_invoices_sufix, 'process_invoices_table_data');
+    }
+    if (function_exists('sc_is_pro_feature_shop_enabled') && sc_is_pro_feature_shop_enabled()) {
+        add_action('load-toplevel_page_sc_orders', 'process_orders_table_data');
+    }
 
     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled() && isset($wallet_list_sufix)) {
         add_action('load-' . $wallet_list_sufix, 'process_wallet_transactions_table_data');
     }
 
-    add_action('load-' . $add_expense_sufix, 'callback_add_expense_sufix');
-    add_action("load-$list_events_sufix", 'sc_events_screen_options');
+    if (!empty($add_expense_sufix)) {
+        add_action('load-' . $add_expense_sufix, 'callback_add_expense_sufix');
+    }
     if (function_exists('sc_is_pro_feature_coaches_enabled') && sc_is_pro_feature_coaches_enabled() && isset($add_coach_sufix, $list_coaches_sufix)) {
         add_action('load-' . $add_coach_sufix, 'callback_add_coach_sufix');
         add_action('load-' . $list_coaches_sufix, 'process_coaches_table_data');

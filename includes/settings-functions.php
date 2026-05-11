@@ -355,6 +355,84 @@ function sc_is_pro_feature_players_wallet_enabled() {
 }
 
 /**
+ * فروشگاه (منوی سفارشات ووکامرس)
+ */
+function sc_is_pro_feature_shop_enabled() {
+    return (int) sc_get_setting('pro_feature_shop', '0') === 1;
+}
+
+/**
+ * امکانات پرو — مخفی‌سازی منوی مدیریت (پیش‌فرض فعال برای سازگاری با نصب‌های قبلی)
+ */
+function sc_is_pro_feature_user_alerts_enabled() {
+    return (int) sc_get_setting('pro_feature_user_alerts', '1') === 1;
+}
+
+function sc_is_pro_feature_users_export_enabled() {
+    return (int) sc_get_setting('pro_feature_users_export', '1') === 1;
+}
+
+function sc_is_pro_feature_bulk_actions_enabled() {
+    return (int) sc_get_setting('pro_feature_bulk_actions', '1') === 1;
+}
+
+function sc_is_pro_feature_certificates_enabled() {
+    return (int) sc_get_setting('pro_feature_certificates', '1') === 1;
+}
+
+function sc_is_pro_feature_attendance_enabled() {
+    return (int) sc_get_setting('pro_feature_attendance', '1') === 1;
+}
+
+function sc_is_pro_feature_courses_enabled() {
+    return (int) sc_get_setting('pro_feature_courses', '1') === 1;
+}
+
+function sc_is_pro_feature_events_enabled() {
+    return (int) sc_get_setting('pro_feature_events', '1') === 1;
+}
+
+function sc_is_pro_feature_private_notes_enabled() {
+    return (int) sc_get_setting('pro_feature_private_notes', '1') === 1;
+}
+
+function sc_is_pro_feature_support_tickets_enabled() {
+    return (int) sc_get_setting('pro_feature_support_tickets', '1') === 1;
+}
+
+function sc_is_pro_feature_invoices_enabled() {
+    return (int) sc_get_setting('pro_feature_invoices', '1') === 1;
+}
+
+function sc_is_pro_feature_honors_enabled() {
+    return (int) sc_get_setting('pro_feature_honors', '1') === 1;
+}
+
+function sc_is_pro_feature_reports_enabled() {
+    return (int) sc_get_setting('pro_feature_reports', '1') === 1;
+}
+
+function sc_is_pro_feature_team_level_enabled() {
+    return (int) sc_get_setting('pro_feature_team_level', '1') === 1;
+}
+
+function sc_is_pro_feature_chapters_enabled() {
+    return (int) sc_get_setting('pro_feature_chapters', '1') === 1;
+}
+
+function sc_is_pro_feature_faq_enabled() {
+    return (int) sc_get_setting('pro_feature_faq', '1') === 1;
+}
+
+function sc_is_pro_feature_nav_menus_enabled() {
+    return (int) sc_get_setting('pro_feature_nav_menus', '1') === 1;
+}
+
+function sc_is_pro_feature_permalinks_enabled() {
+    return (int) sc_get_setting('pro_feature_permalinks', '1') === 1;
+}
+
+/**
  * Check if players wallet can be shown (pro feature + wallet setting)
  * بررسی امکان نمایش کیف پول بازیکنان (امکانات پرو + تنظیم کیف پول)
  * برای منوی کاربر و عملیات کیف پول استفاده شود
