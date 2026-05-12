@@ -53,15 +53,15 @@ if ($selected_member_id > 0) {
 }
 ?>
 
-<div class="wrap">
+<div class="wrap wrap_wallet_manage_list_uesr">
     <h1 class="wp-heading-inline">مدیریت شارژ کیف پول</h1>
     <a href="<?php echo admin_url('admin.php?page=sc-wallet-charge'); ?>" class="page-title-action">شارژ کیف پول</a>
-    <a href="<?php echo admin_url('admin.php?page=sc-wallet-deduct'); ?>" class="page-title-action">کاهش کیف پول</a>
+    <a href="<?php echo admin_url('admin.php?page=sc-wallet-deduct'); ?>" class="page-title-action ">کاهش کیف پول</a>
     <a href="<?php echo admin_url('admin.php?page=sc-wallet'); ?>" class="page-title-action">لیست تراکنش‌ها</a>
     <hr class="wp-header-end">
 </div>
-<div class="wrap">
-    <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; margin-top: 20px;">
+<div class="wrap"  >
+    <div >
         <!-- ستون سمت راست: لیست کاربران -->
         <div>
             <div class="postbox" style="margin-top: 0;">
@@ -157,9 +157,9 @@ if ($selected_member_id > 0) {
                         </table>
                         
                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
-                            <a href="<?php echo admin_url('admin.php?page=sc-wallet-charge&member_id=' . $selected_member_id); ?>" class="button button-primary">شارژ کیف پول</a>
-                            <a href="<?php echo admin_url('admin.php?page=sc-wallet-deduct&member_id=' . $selected_member_id); ?>" class="button">کاهش کیف پول</a>
-                            <a href="<?php echo admin_url('admin.php?page=sc-wallet&filter_member=' . $selected_member_id); ?>" class="button">مشاهده تمام تراکنش‌ها</a>
+                            <a href="<?php echo admin_url('admin.php?page=sc-wallet-charge&member_id=' . $selected_member_id); ?>" class="button button-primary sc_button" style="padding: 10px;">شارژ کیف پول</a>
+                            <a href="<?php echo admin_url('admin.php?page=sc-wallet-deduct&member_id=' . $selected_member_id); ?>" class="button sc_button" style="padding: 10px;">کاهش کیف پول</a>
+                            <a href="<?php echo admin_url('admin.php?page=sc-wallet&filter_member=' . $selected_member_id); ?>" class="button sc_button" style="padding: 10px;">مشاهده تمام تراکنش‌ها</a>
                         </div>
                     </div>
                 </div>

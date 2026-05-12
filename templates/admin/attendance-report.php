@@ -22,13 +22,13 @@ $today_shamsi = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '
 $nonce = wp_create_nonce('sc_attendance_report_player');
 ?>
 
-<div class="wrap">
+<div class="wrap" style="overflow: auto; ">
     <h1 class="wp-heading-inline">گزارش حضور بازیکن</h1>
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-add')); ?>" class="page-title-action">ثبت حضور و غیاب</a>
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list')); ?>" class="page-title-action">لیست حضور و غیاب</a>
     <hr class="wp-header-end ">
     </div>
-<div class="wrap">
+<div class="wrap" style="overflow: auto;">
     <div class="report_player_attendance">
         <!-- فیلترها -->
         <div>

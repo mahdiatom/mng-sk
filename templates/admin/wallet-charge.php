@@ -192,7 +192,7 @@ $members = $wpdb->get_results(
 
         <p class="submit">
             <input type="submit" name="sc_charge_wallet" class="button button-primary" value="شارژ کیف پول">
-            <a href="<?php echo admin_url('admin.php?page=sc-wallet'); ?>" class="button">بازگشت به لیست</a>
+            <a href="<?php echo admin_url('admin.php?page=sc-wallet'); ?>" class="sc_button">بازگشت به لیست</a>
         </p>
     </form>
 </div>

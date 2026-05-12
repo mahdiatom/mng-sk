@@ -221,7 +221,7 @@ if (!empty($_GET['member_ids']) && !$edit_id && current_user_can('manage_options
 }
 $initial_target_type = $notification ? (isset($notification->target_type) ? $notification->target_type : 'all') : (!empty($preselected_member_ids) ? 'specific' : 'all');
 ?>
-<div class="wrap sc-notification-add-wrap<?php echo $is_coach ? ' sc-coach-panel-wrap' : ''; ?>">
+<div class="wrap sc-notification-add-wrap sc-users-export-wrap sc-bulk-actions-wrap<?php echo $is_coach ? ' sc-coach-panel-wrap' : ''; ?>">
     <?php if ($is_coach) : ?>
         <div class="sc-coach-panel-header">
             <a href="<?php echo esc_url($list_url); ?>" class="sc-coach-panel-back">← بازگشت به لیست اطلاعیه‌ها</a>
@@ -337,8 +337,12 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                 
                 </td>
             </tr>
-
-
+            <?php if (!$is_coach) : ?>
+        </table>
+        <div class="sc-users-export-card sc-notification-bulk-filter-card">
+            <h2>۱) فیلتر مخاطبین</h2>
+            <table class="form-table sc-notification-form-table">
+            <?php endif; ?>
 
             <tr>
                 <th scope="row">نوع ارسال</th>
@@ -514,17 +518,6 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                     <input type="hidden" name="exclude_recipient_ids_str" id="exclude-recipient-ids-input" value="">
                 </td>
             </tr>
-            <tr id="row-target-preview" style="display:none;">
-                <th scope="row">پیش‌نمایش مخاطبین فیلترشده</th>
-                <td>
-                    <p style="margin-top:0;">
-                        <button type="button" class="button button-secondary" id="sc-notification-preview-btn">پیش نمایش مخاطبین</button>
-                    </p>
-                    <div id="sc-notification-preview-result" class="sc-bulk-preview-result">
-                        <p class="description">برای بررسی دقیق مخاطبین، پیش نمایش را اجرا کنید.</p>
-                    </div>
-                </td>
-            </tr>
             <?php if (!$is_coach) : ?>
             <tr id="row-target-debtors" class="target-row" style="display:none;">
                 <th scope="row">بدهکاران</th>
@@ -641,18 +634,44 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
 
                 </td>
             </tr>
-
-
+            </table>
+            <p id="sc-notification-preview-submit-wrap" class="submit" style="display:none; margin: 0; padding: 16px 0 0; border-top: 1px solid #f0f0f1;">
+                <button type="button" class="button button-secondary" id="sc-notification-preview-btn">پیش نمایش مخاطبین</button>
+            </p>
+        </div>
+        <div id="sc-notification-preview-bulk-cards" style="display:none;">
+        <div class="sc-users-export-card">
+            <h2>۲) پیش‌نمایش مخاطبین فیلترشده</h2>
+            <div id="sc-notification-preview-result" class="sc-bulk-preview-result back_table_list">
+                <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش مخاطبین» کلیک کنید.</p>
+            </div>
+        </div>
+        </div>
             <?php endif; ?>
-            <?php if (!$is_coach) : ?>
+        <?php if (!$is_coach) : ?>
+        <table class="form-table sc-notification-form-table">
             <tr id="row-send-sms">
                 <th scope="row">ارسال پیامک</th>
                 <td>
                     <label><input type="checkbox" name="send_sms" id="send_sms" value="1" <?php checked($notification ? $notification->send_sms : 0, 1); ?>> ارسال پیامک  ( sms ) به مخاطبین + جزئیات هزینه و تعداد ارسالی ها </label>
                 </td>
             </tr>
-            <?php endif; ?>
         </table>
+        <?php endif; ?>
+        <?php if ($is_coach) : ?>
+            <tr id="row-target-preview" style="display:none;">
+                <th scope="row">پیش‌نمایش مخاطبین فیلترشده</th>
+                <td>
+                    <p style="margin-top:0;">
+                        <button type="button" class="button button-secondary" id="sc-notification-preview-btn">پیش نمایش مخاطبین</button>
+                    </p>
+                    <div id="sc-notification-preview-result" class="sc-bulk-preview-result back_table_list">
+                        <p class="description">برای بررسی دقیق مخاطبین، پیش نمایش را اجرا کنید.</p>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        <?php endif; ?>
         <?php if (!$is_coach) : ?>
         <div id="sc-sms-summary" class="sc-sms-summary" style="display: none; margin: 20px 0; padding: 16px; background: #f0f6fc; border: 1px solid #c3c4c7; border-radius: 8px;">
             <strong>خلاصه ارسال پیامک:</strong>
@@ -1085,7 +1104,12 @@ jQuery(document).ready(function($) {
         $('#row-course-ids-all').toggle(cs === 'specific');
     }
     $('#row-target-exclude').toggle(t !== 'specific' && t !== 'phone');
-    $('#row-target-preview').toggle(t !== 'specific' && t !== 'phone');
+    var showPreview = t !== 'specific' && t !== 'phone';
+    if (isCoach) {
+        $('#row-target-preview').toggle(showPreview);
+    } else {
+        $('#sc-notification-preview-submit-wrap, #sc-notification-preview-bulk-cards').toggle(showPreview);
+    }
 
     // hide ارسال sms وقتی target phone باشد
     if (t === 'phone' && $('#row-send-sms').length) {

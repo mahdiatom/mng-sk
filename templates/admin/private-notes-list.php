@@ -34,6 +34,8 @@ $legacy_rows = $wpdb->get_results("SELECT n.*, TRIM(CONCAT(COALESCE(m.first_name
     <h1 class="wp-heading-inline">پرونده‌های یادداشت خصوصی</h1>
     <a href="<?php echo esc_url(admin_url('admin.php?page=' . $add_page)); ?>" class="page-title-action">افزودن یادداشت</a>
     <hr class="wp-header-end">
+</div>
+<div class="wrap sc-private-notes-wrap">
 
     <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
         <input type="hidden" name="page" value="<?php echo esc_attr($list_page); ?>">
@@ -83,18 +85,19 @@ $legacy_rows = $wpdb->get_results("SELECT n.*, TRIM(CONCAT(COALESCE(m.first_name
             <div class="sc-filter-field sc-filter-date">
                 <label class="sc-filter-label">بازه تاریخ</label>
                 <div class="sc-date-range">
-                    <input type="text" id="filter_date_from_shamsi" name="filter_date_from_shamsi" class="sc-filter-control persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_from_shamsi); ?>" readonly>
+                    <input style="width: 50%;" type="text" id="filter_date_from_shamsi" name="filter_date_from_shamsi" class="sc-filter-control persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_from_shamsi); ?>" readonly>
                     <span class="sc-date-separator">تا</span>
-                    <input type="text" id="filter_date_to_shamsi" name="filter_date_to_shamsi" class="sc-filter-control persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_to_shamsi); ?>" readonly>
+                    <input style="width: 50%;" type="text" id="filter_date_to_shamsi" name="filter_date_to_shamsi" class="sc-filter-control persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_to_shamsi); ?>" readonly>
                     <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
                     <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
                 </div>
             </div>
         </div>
+        <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." class="regular-text">
+
         <p class="submit">
-            <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." class="regular-text">
             <input type="submit" class="button button-primary" value="اعمال فیلتر">
-            <a href="<?php echo esc_url(admin_url('admin.php?page=' . $list_page)); ?>" class="button">پاک کردن فیلترها</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=' . $list_page)); ?>" class="sc_button" style="padding: 10px;">پاک کردن فیلترها</a>
         </p>
     </form>
 

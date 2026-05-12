@@ -41,8 +41,10 @@ if ($thread) {
 $back_page = current_user_can('manage_options') ? 'sc-private-notes' : 'sc-coach-private-notes';
 ?>
 <div class="wrap sc-private-notes-wrap">
-    <h1>پرونده یادداشت خصوصی</h1>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=' . $back_page)); ?>" class="button">بازگشت به لیست</a>
+    <h1 style="margin-bottom: 10px;">پرونده یادداشت خصوصی</h1>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=' . $back_page)); ?>" class="sc_button">بازگشت به لیست</a>
+    </div>
+    <div class="wrap sc-private-notes-wrap">
     <?php if ($message) : ?><div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div><?php endif; ?>
     <div class="sc-private-note-detail-card">
         <p><strong>کاربر:</strong> <?php echo esc_html($member_name); ?></p>

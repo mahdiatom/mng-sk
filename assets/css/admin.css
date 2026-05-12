@@ -76,6 +76,12 @@ input {
     height: 40px;
     padding-top: 6px !important;
 } */
+ a.sc_button{
+      border: 1px solid #b6b6b6 !important;
+    border-radius: 10px !important;
+    padding: 10px;
+    margin-top: 10px;
+ }
  .sc_button{
     border: 1px solid #b6b6b6 !important;
     border-radius: 10px !important;
@@ -2090,7 +2096,7 @@ padding: 10px 15px;
 }
 .sc-notification-form-table { margin: 0; width: 100%; max-width: 100%; }
 .sc-notification-form-table th { padding: 14px 16px 14px 0; width: 200px; font-weight: 600; color: #1d2327; vertical-align: top; }
-.sc-notification-form-table td { padding: 14px 0; }
+.sc-notification-form-table td { padding: 14px; }
 .sc-notification-input { width: 100%; max-width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #8c8f94; font-size: 14px; box-sizing: border-box; }
 .sc-notification-input:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: none; }
 .sc-notification-textarea { width: 100%; max-width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #8c8f94; font-size: 14px; line-height: 1.6; resize: vertical; box-sizing: border-box; }
@@ -2117,15 +2123,31 @@ padding: 10px 15px;
 .sc-notification-select:focus { border-color: #2271b1; outline: none; }
 .sc-notification-form-table .course-ids-row select { min-height: 140px; }
 .sc-notification-form-table #course-ids-course { min-height: 180px; }
-.sc-notification-form-card{
-    height: 1500px !important;
+
+/* فیلتر/پیش‌نمایش هم‌سبک کارهای دسته‌جمعی — کارت داخل فرم اطلاعیه */
+.sc-notification-add-wrap.sc-bulk-actions-wrap .sc-notification-form-card .sc-users-export-card {
+    margin-left: 0;
+    margin-right: 0;
 }
+
+@media screen and (max-width: 782px) {
+    .sc-notification-add-wrap.sc-bulk-actions-wrap .sc-bulk-preview-result.back_table_list {
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
 /* پایان ارسال نوتیف مدیر */
 .back_table_list{
     overflow: auto;
 }
 .section_right_manage_wallet{
     width: 20%;
+}
+#sc-invoice-add-form .sc-users-export-card{
+    gap: 15px;
+    display: flex;
+    flex-direction: column;
 }
 .section_left_manage_wallet{
     width: 90%;
@@ -2178,8 +2200,19 @@ input.large-text, textarea.large-text {
     display:flex;
     gap:20px;
     align-items:flex-start;
+    /* flex-direction: column; */
 }
+@media screen and (max-width:780px) {
 
+    .sc-form-row{
+
+    flex-direction: column;
+}
+    
+}
+.sc-bulk-preview-meta{
+    padding: 10px;
+}
 .sc-form-field{
     flex:1;
     display:flex;
@@ -2505,3 +2538,19 @@ display: flex;
 }
 
 /* گواهینامه  */
+/* یادداشت خصوصی */
+        .sc-private-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+        .sc-private-status-scheduled { background: #dbeafe; color: #1e40af; }
+        .sc-private-status-cancelled { background: #fee2e2; color: #991b1b; }
+        .sc-private-status-absent { background: #ffedd5; color: #9a3412; }
+        .sc-private-status-excused { background: #ede9fe; color: #5b21b6; }
+        .sc-private-status-rescheduled { background: #e0f2fe; color: #075985; }
+        .sc-private-status-done { background: #dcfce7; color: #166534; }
+/* یادداشت خصوصی */

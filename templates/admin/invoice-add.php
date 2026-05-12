@@ -55,7 +55,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
             <h2>۱) فیلتر کاربران</h2>
             <div class="sc-row">
                 <label for="sc-invoice-target-type">نوع انتخاب</label>
-                <select name="target_type" id="sc-invoice-target-type">
+                <select name="target_type" id="sc-invoice-target-type" style="width: 300px;">
                     <option value="all">همه کاربران</option>
                     <option value="free_users">کاربران آزاد (بدون هیچ دوره تا امروز)</option>
                     <option value="specific">انتخاب کاربران خاص (جستجو)</option>
@@ -68,8 +68,8 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
             </div>
 
             <div class="sc-row">
-                <label for="sc-invoice-member-status">وضعیت کاربر</label>
-                <select name="member_status" id="sc-invoice-member-status">
+                <label for="sc-invoice-member-status" >وضعیت کاربر</label>
+                <select name="member_status" id="sc-invoice-member-status" style="width: 300px;">
                     <option value="all">همه</option>
                     <option value="active" selected>فقط فعال</option>
                     <option value="inactive">فقط غیرفعال</option>
@@ -77,8 +77,8 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
             </div>
 
             <div class="sc-row">
-                <label for="sc-invoice-member-type">دسته بندی بازیکن</label>
-                <select name="member_type" id="sc-invoice-member-type">
+                <label for="sc-invoice-member-type" >دسته بندی بازیکن</label>
+                <select name="member_type" id="sc-invoice-member-type" >
                     <option value="all">همه</option>
                     <option value="normal">بازیکن عادی</option>
                     <option value="team">بازیکن تیم</option>
@@ -190,7 +190,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
 
         <div class="sc-users-export-card">
             <h2>۲) پیش نمایش کاربران</h2>
-            <div id="sc-invoice-preview-result" class="sc-bulk-preview-result">
+            <div id="sc-invoice-preview-result" class="sc-bulk-preview-result back_table_list">
                 <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش کاربران فیلتر شده» کلیک کنید.</p>
             </div>
         </div>
@@ -204,7 +204,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
     <!-- هزینه: نام + مبلغ -->
     <div class="sc-form-row">
 
-        <div class="sc-form-field">
+        <div class="sc-form-field" style="width: 100%;">
             <label for="expense_name">نام هزینه:</label>
             <input type="text"
                    name="expense_name"
@@ -215,7 +215,9 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                    required>
         </div>
 
-        <div class="sc-form-field">
+        <div class="sc-form-field" style="
+    width: 100%;
+">
             <label for="amount">مبلغ (تومان):</label>
 
             <input type="text"
@@ -270,7 +272,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
             <p class="description">پس از پیش نمایش و کنترل تیک‌ها، برای کاربران انتخاب‌شده صورت حساب ثبت می‌شود.</p>
         <p class="submit">
             <input type="submit" name="submit_invoice" class="button button-primary" value="ثبت صورت حساب">
-            <a href="<?php echo admin_url('admin.php?page=sc-invoices'); ?>" class="button">انصراف</a>
+            <a href="<?php echo admin_url('admin.php?page=sc-invoices'); ?>" class="sc_button">انصراف</a>
         </p>
         </div>
     </form>

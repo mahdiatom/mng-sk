@@ -92,11 +92,13 @@ $teams = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name");
 $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
 ?>
 <div class="wrap sc-private-notes-wrap sc-users-export-wrap sc-bulk-actions-wrap sc-ticket-new-admin-wrap">
-    <h1><?php echo esc_html($title_page); ?></h1>
-    <a href="<?php echo esc_url($list_url); ?>" class="button">بازگشت به لیست</a>
+    <h1 style="margin-bottom: 10px;"><?php echo esc_html($title_page); ?></h1>
+    <a href="<?php echo esc_url($list_url); ?>" class="sc_button">بازگشت به لیست</a>
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
     <?php endif; ?>
+</div>
+<div class="wrap sc-private-notes-wrap sc-users-export-wrap sc-bulk-actions-wrap sc-ticket-new-admin-wrap">
 
     <form method="post" id="sc-private-note-form" class="sc-private-note-form">
         <?php wp_nonce_field('sc_save_private_note_action', 'sc_save_private_note_nonce'); ?>

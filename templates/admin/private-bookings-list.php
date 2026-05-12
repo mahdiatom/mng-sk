@@ -171,20 +171,7 @@ $status_options = [
 ?>
 <div class="wrap">
     <style>
-        .sc-private-status {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            line-height: 1.4;
-        }
-        .sc-private-status-scheduled { background: #dbeafe; color: #1e40af; }
-        .sc-private-status-cancelled { background: #fee2e2; color: #991b1b; }
-        .sc-private-status-absent { background: #ffedd5; color: #9a3412; }
-        .sc-private-status-excused { background: #ede9fe; color: #5b21b6; }
-        .sc-private-status-rescheduled { background: #e0f2fe; color: #075985; }
-        .sc-private-status-done { background: #dcfce7; color: #166534; }
+
     </style>
     <h1 class="wp-heading-inline"><?php echo $is_coach_only ? 'کلاس‌های خصوصی من' : 'مدیریت کلاس‌های خصوصی'; ?></h1>
     <hr class="wp-header-end">
@@ -242,7 +229,7 @@ $status_options = [
         </div>
         <p class="submit">
             <button type="submit" class="button button-primary">اعمال فیلتر</button>
-            <a class="button delete_fillter" href="<?php echo esc_url(admin_url('admin.php?page=' . rawurlencode($current_admin_page))); ?>">پاک کردن فیلترها</a>
+            <a class="sc_button delete_fillter" href="<?php echo esc_url(admin_url('admin.php?page=' . rawurlencode($current_admin_page))); ?>">پاک کردن فیلترها</a>
         </p>
     </form>
 </div>
