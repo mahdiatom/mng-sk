@@ -224,14 +224,14 @@ if ($edit_id > 0) {
         </div>
     <?php endif; ?>
 
-    <div class="filter_search_honors">
-        <form method="get" action="" class="filter_honors_list">
+    <div class="filter_search_certificate">
+        <form method="get" action="" class="filter_certificate_list">
             <input type="hidden" name="page" value="sc-certificates-list">
             <input type="hidden" name="s" value="<?php echo esc_attr($search); ?>">
-            <label for="filter_user" style="margin-left: 5px; width: 100px;">نام کاربر:</label>
+           <div class="filter_user-template"> 
             <div class="sc-searchable-dropdown">
                 <input type="hidden" name="filter_user" id="filter_user" value="<?php echo esc_attr($filter_user); ?>">
-                <div class="sc-dropdown-toggle" style="width: 100%;">
+                <div class="sc-dropdown-toggle">
                     <span class="sc-dropdown-placeholder" <?php if (!empty($filter_user) && $filter_user !== '0') echo 'style="display:none"'; ?>>همه کاربران</span>
                     <span class="sc-dropdown-selected" <?php if (empty($filter_user) || $filter_user === '0') echo 'style="display:none"'; ?>>کاربر انتخاب شده</span>
                     <span class="sc-dropdown-arrow">▼</span>
@@ -260,16 +260,15 @@ if ($edit_id > 0) {
                     <option value="<?php echo esc_attr($t_key); ?>" <?php selected($filter_template, $t_key); ?>><?php echo esc_html($t_title); ?></option>
                 <?php endforeach; ?>
             </select>
-
-            <input type="text" name="filter_date_from_shamsi" class="persian-date-input" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="از تاریخ" readonly>
-            <input type="text" name="filter_date_to_shamsi" class="persian-date-input" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="تا تاریخ" readonly>
+            </div>
+            <div class="filter_date_certificate">
+                <input type="text" name="filter_date_from_shamsi" class="persian-date-input" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="از تاریخ" readonly>
+                <input type="text" name="filter_date_to_shamsi" class="persian-date-input" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="تا تاریخ" readonly>
+            </div>
             <input type="submit" class="button button-primary" value="اعمال فیلتر">
-            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-list')); ?>" class="button">پاک کردن فیلترها</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-list')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
         </form>
-
-        <div class="tablenav top" style="margin-bottom: 0;">
-            <div class="alignleft actions">
-                <form method="get" action="">
+    <form method="get" action="" style="margin-top: 10px;">
                     <input type="hidden" name="page" value="sc-certificates-list">
                     <input type="hidden" name="filter_user" value="<?php echo esc_attr($filter_user); ?>">
                     <input type="hidden" name="filter_template" value="<?php echo esc_attr($filter_template); ?>">
@@ -278,11 +277,14 @@ if ($edit_id > 0) {
                     <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان/متن/کد رهگیری..." style="width:220px;">
                     <input type="submit" class="button" value="جستجو">
                 </form>
+        <div class="tablenav top" style="margin-bottom: 0;">
+            <div class="alignleft actions">
+                
             </div>
         </div>
     </div>
 
-    <form method="post">
+    <form method="post" class="list_certificate">
         <?php wp_nonce_field('sc_bulk_delete_certificates_nonce'); ?>
         <div class="tablenav top">
             <div class="alignleft actions bulkactions">
@@ -294,13 +296,13 @@ if ($edit_id > 0) {
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
-                        <td class="manage-column column-cb check-column"><input type="checkbox" id="cb-select-all"></td>
-                        <th>شناسه</th>
-                        <th>نام کاربر</th>
-                        <th>عنوان</th>
-                        <th>کد رهگیری</th>
-                        <th>قالب</th>
-                        <th>تاریخ صدور</th>
+                        <td style="width: 10px;" class="manage-column column-cb check-column"><input type="checkbox" id="cb-select-all"></td>
+                        <th style="width: 20px;">شناسه</th>
+                        <th style="width: 140px;">نام کاربر</th>
+                        <th style="width: 40px;">عنوان</th>
+                        <th style="width: 100px;">کد رهگیری</th>
+                        <th style="width: 80px;">قالب</th>
+                        <th style="width: 80px;">تاریخ صدور</th>
                     </tr>
                 </thead>
                 <tbody>

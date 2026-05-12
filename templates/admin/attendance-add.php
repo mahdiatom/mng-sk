@@ -509,14 +509,14 @@ $is_update_mode = !empty($existing_attendances);
                                 <td><?php echo $index + 1; ?></td>
                                 <td><?php echo esc_html($member->first_name . ' '. $member->last_name); ?></td>
                                 <td ><?php echo number_format($debt_user) ; ?>  تومان    <?php echo ($debt_user >= floatval(sc_get_setting('max_debt_for_attendance', '0'))) ? 'سقف موجودی - عدم ثبت رکورد کاربر' : ' '; ?></td>
-                                <td style="display: flex; margin-top: 7px; ">
+                                <td style="display: flex; margin-top: 7px; position: relative; ">
                                     <?php if (empty($existing_status)) : ?>
                                     <button type="button"
                                             class="button button-small sc-attendance-clear-btn"
                                             data-attendance-name="attendance[<?php echo esc_attr($member->id); ?>]"
                                             title="حذف انتخاب"
                                             aria-label="حذف انتخاب"
-                                            style="margin-left: 12px; min-width: 30px; padding: 0 8px; line-height: 1.6;">
+                                            >
                                         <span class="dashicons dashicons-no-alt" style="font-size: 16px; width: 16px; height: 16px; line-height: 1.6;"></span>
                                     </button>
                                     <?php endif; ?>
@@ -543,7 +543,7 @@ $is_update_mode = !empty($existing_attendances);
                                                <?php } ?>
                                                <span style="color: #d63638; font-weight: bold;">غایب</span>
                                     </label>
-                                    <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
+                                    <!-- <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
                                         <input type="radio" 
                                                name="attendance[<?php echo esc_attr($member->id); ?>]" 
                                                value="excused"
@@ -559,7 +559,7 @@ $is_update_mode = !empty($existing_attendances);
 
                                                 <?php
                                                } ?>
-                                    </label>
+                                    </label> -->
                                 </td>
                             </tr>
                         <?php endforeach; ?>

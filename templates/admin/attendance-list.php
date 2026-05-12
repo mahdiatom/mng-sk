@@ -1137,7 +1137,7 @@ $max_display = 10;
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-                
+                 </div>
                 <!-- Pagination -->
                 <?php if ($total_pages > 1) : ?>
                     <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
@@ -1163,7 +1163,7 @@ $max_display = 10;
                         </div>
                     </div>
                 <?php endif; ?>
-            </div>
+           
         <?php endif; ?>
 
 
@@ -1579,7 +1579,7 @@ if ($filter_member > 0) {
                                class="regular-text persian-date-input sc-no-default-date" 
                                placeholder="از تاریخ (شمسی)" 
                                readonly>
-                        <input type="hidden" name="filter_date_from" id="filter_date_from_2" value="<?php echo esc_attr($filter_date_from); ?>">
+                        <input type="hidden" name="filter_date_from" id="filter_date_from_2" value="<?php  echo esc_attr($filter_date_from); ?>">
                         <input type="text" name="filter_date_to_shamsi_2" id="filter_date_to_shamsi_2" 
                                value="<?php echo esc_attr($filter_date_to_shamsi_2); ?>" 
                                class="regular-text persian-date-input sc-no-default-date" 
@@ -1668,7 +1668,7 @@ if ($filter_member > 0) {
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-                
+                  </div> 
                 <!-- Pagination -->
                 <?php if ($total_pages > 1) : ?>
                     <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
@@ -1700,7 +1700,7 @@ if ($filter_member > 0) {
                         </div>
                     </div>
                 <?php endif; ?>
-            </div>
+         
         <?php endif; ?>
     <?php elseif ($active_tab === 'overall') : ?>
         <!-- تب 3: لیست کلی حضور و غیاب -->

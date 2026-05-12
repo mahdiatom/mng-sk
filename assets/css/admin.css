@@ -136,7 +136,7 @@ input.small-text {
         input:checked + .slider:before { transform: translateX(26px); }
 
         /* قسمت پاپ آپ برای اطلاعات کاربر به صورت ایجکس */
-.rtl #wpadminbar * {
+#wp-admin-bar-sc-sms-credit span{
     font-family: IRANYekanXFaNum !important;
 }
 .sc_btn_filter{
@@ -749,6 +749,15 @@ tr td.column-full_name:hover{
     border-color: #d63638 !important;
 }
 
+.button-small{
+     width: fit-content;
+    text-align: center;
+        border-radius: 10px !important;
+   
+    border: 1px solid rgba(191, 191, 191, 0.565) !important;
+    
+}
+
 @media screen and (max-width: 600px){
       
     .wp-list-table tr th {
@@ -768,14 +777,7 @@ tr td.column-full_name:hover{
 table.fixed {
     table-layout: unset !important;
 }
-.button-small{
-     width: fit-content;
-    text-align: center;
-        border-radius: 10px !important;
-   
-    border: navajowhite !important;
-    
-}
+
 .button_delete_attendance{
     background-color: #d63638 !important;
     color: #fff !important;
@@ -1031,7 +1033,33 @@ tbody tr td{
     display: none !important;
 }
 
-
+.sc-attendance-clear-btn{
+    margin-left: 12px;
+    min-width: 30px;
+    padding: 0 8px;
+    position: absolute;
+       right: -44px;
+    top: -5px;
+    background: transparent;
+    margin-right: 10px;
+    border: 1px solid #bababa !important;
+    padding: 3px !important;
+    width: 10px;
+    height: 28px;
+}
+@media screen and (max-width:780px) {
+    .sc-attendance-clear-btn{
+    right: -44px;
+    top: 14px;
+    background: transparent;
+    margin-right: 10px;
+    border: 1px solid #bababa !important;
+    padding: 3px !important;
+    width: 10px;
+    height: 28px;
+    }
+    
+}
 /* مخفی کردن همه فیلدها */
 #your-profile .form-table tr {
     display: none !important;
@@ -2354,3 +2382,45 @@ display: flex;
 }
 
 /* لاگ حضور و غیاب پایان  */
+
+
+/* گواهینامه  */
+
+.filter_user-template{
+    display: flex;
+}
+.filter_certificate_list{
+        display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+.filter_certificate_list .sc-searchable-dropdown{
+    width: 250px;
+    margin-left: 10px
+}
+.filter_date_certificate{
+    display: flex;
+    flex-direction: row;
+}
+.list_certificate{
+        display: flex;
+    flex-direction: column;
+}
+@media screen and (max-width:780px) {
+    .filter_certificate_list{
+      display: flex;
+    flex-direction: column;
+    gap: 10px;
+    }
+
+    .filter_user-template{
+            display: flex;
+    flex-direction: column;
+    gap: 10px;
+    }
+    .filter_certificate_list .sc-searchable-dropdown{
+        width: 100%;
+    }
+}
+
+/* گواهینامه  */

@@ -49,6 +49,12 @@ $coach_can_course = static function ($cid) use ($wpdb, $course_coaches_table, $i
     return $n > 0;
 };
 
+$today_shamsi_display = function_exists('sc_date_shamsi_date_only')
+    ? sc_date_shamsi_date_only(current_time('Y-m-d'))
+    : '';
+
+
+
 if (isset($_GET['action'], $_GET['id']) && $_GET['action'] === 'delete' && isset($_GET['_wpnonce'])) {
     $del_id = absint($_GET['id']);
     if ($del_id && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'sc_del_session_cancel_' . $del_id)) {
@@ -129,10 +135,11 @@ if ($is_coach_only) {
 ?>
 <div class="wrap">
     <h1>تعطیلی بازهٔ جلسه (حضور خودکار)</h1>
-    <p class="description">تاریخ <strong>میلادی</strong> در دیتابیس ذخیره می‌شود؛ تاریخ را شمسی وارد کنید. اگر زمان تَگ دستگاه داخل این بازهٔ همان روز و همان دوره باشد، حضور خودکار ثبت نمی‌شود و برای اسلاتی که با این بازه هم‌پوشانی دارد غیبت خودکار هم زده نمی‌شود.</p>
-
-    <h2 style="margin-top:24px;">افزودن</h2>
-    <form method="post" style="max-width:640px;background:#fff;padding:16px;border:1px solid #ccd0d4;">
+    <p class="description"> با ثبت تاریخ و زمان دستگاه در تایم مشخص شده کار نمیکند ( مناسب برای زمان هایی که جلسه کلاس لغو شده و میخواهید برای بازیکنان غیبت خودکار لحاظ نشود .) </p>
+</div>
+<div class="wrap">
+    <h2 style="margin-top:24px;">افزودن رکورد جدید </h2>
+    <form method="post">
         <?php wp_nonce_field('sc_session_cancel_nonce', 'sc_session_cancel_nonce'); ?>
         <table class="form-table">
             <tr>
@@ -149,27 +156,36 @@ if ($is_coach_only) {
             <tr>
                 <th><label for="session_date_shamsi">تاریخ جلسه (شمسی)</label></th>
                 <td>
-                    <input type="text" name="session_date_shamsi" id="session_date_shamsi" class="persian-date-input" placeholder="1403/09/15" required style="width:140px;" readonly>
+                    <input type="text" 
+                        name="session_date_shamsi" 
+                        id="session_date_shamsi" 
+                        class="persian-date-input"
+                        value="<?php echo esc_attr($today_shamsi_display); ?>" 
+                        placeholder="1403/09/15" 
+                        required 
+                        style="width:300px !important;" 
+                        readonly>
                 </td>
             </tr>
             <tr>
                 <th><label for="time_start">از ساعت</label></th>
-                <td><input type="time" name="time_start" id="time_start" required></td>
+                <td><input style="width:300px !important;" type="time" name="time_start" id="time_start" required></td>
             </tr>
             <tr>
                 <th><label for="time_end">تا ساعت</label></th>
-                <td><input type="time" name="time_end" id="time_end" required></td>
+                <td><input style="width:300px !important;" type="time" name="time_end" id="time_end" required></td>
             </tr>
             <tr>
-                <th><label for="reason">دلیل (اختیاری)</label></th>
-                <td><input type="text" name="reason" id="reason" class="regular-text" maxlength="255"></td>
+                <th><label  for="reason">دلیل (اختیاری)</label></th>
+                <td><input style="width:300px !important;" type="text" name="reason" id="reason" class="regular-text" maxlength="255"></td>
             </tr>
         </table>
         <p><input type="submit" name="sc_save_session_cancel" class="button button-primary" value="ذخیره"></p>
     </form>
-
-    <h2 style="margin-top:32px;">آخرین رکوردها</h2>
-    <table class="wp-list-table widefat striped">
+</div>
+<div class="wrap">
+    <div class="back_table_list">
+    <table class="wp-list-table widefat striped ">
         <thead>
             <tr>
                 <th>دوره</th>
@@ -204,4 +220,5 @@ if ($is_coach_only) {
             <?php endif; ?>
         </tbody>
     </table>
+    </div>
 </div>

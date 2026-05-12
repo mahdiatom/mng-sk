@@ -182,7 +182,7 @@ $field_labels = sc_users_export_get_field_labels();
 
         <div class="sc-users-export-card">
             <h2>۳) پیش نمایش کاربران</h2>
-            <div id="sc-users-preview-result" class="sc-bulk-preview-result">
+            <div id="sc-users-preview-result" class="sc-bulk-preview-result back_table_list">
                 <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش کاربران فیلتر شده» کلیک کنید.</p>
             </div>
         </div>

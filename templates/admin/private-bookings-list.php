@@ -189,7 +189,8 @@ $status_options = [
     <h1 class="wp-heading-inline"><?php echo $is_coach_only ? 'کلاس‌های خصوصی من' : 'مدیریت کلاس‌های خصوصی'; ?></h1>
     <hr class="wp-header-end">
     <?php settings_errors('sc_private_sessions'); ?>
-
+</div>
+<div class="wrap">
     <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1" style="margin-top:12px;">
         <input type="hidden" name="page" value="<?php echo esc_attr($current_admin_page); ?>">
         <div class="sc-filter-grid">
@@ -241,10 +242,11 @@ $status_options = [
         </div>
         <p class="submit">
             <button type="submit" class="button button-primary">اعمال فیلتر</button>
-            <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=' . rawurlencode($current_admin_page))); ?>">پاک کردن فیلترها</a>
+            <a class="button delete_fillter" href="<?php echo esc_url(admin_url('admin.php?page=' . rawurlencode($current_admin_page))); ?>">پاک کردن فیلترها</a>
         </p>
     </form>
-
+</div>
+<div class="wrap">
     <?php if (empty($rows)) : ?>
         <div class="notice notice-info"><p>رکوردی یافت نشد.</p></div>
     <?php else : ?>
@@ -254,7 +256,8 @@ $status_options = [
             <div style="margin: 12px 0;">
                 <button type="submit" class="button button-secondary" onclick="return scConfirmInline(event, { type: 'warning', message: 'جلسات انتخابی لغو شوند؟' });">لغو دسته‌جمعی جلسات انتخاب‌شده</button>
             </div>
-            <table class="wp-list-table widefat striped" style="margin-top:12px;">
+        <div class="back_table_list" >
+            <table class="wp-list-table widefat striped " style="margin-top:12px;">
                 <thead>
                     <tr>
                         <th style="width:36px;"><input type="checkbox" id="sc-private-check-all"></th>
@@ -306,6 +309,7 @@ $status_options = [
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
         </form>
         <script>
             (function () {

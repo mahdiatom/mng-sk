@@ -41,7 +41,8 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
 
 <div class="wrap">
     <h1><?php echo $coach_id ? 'ویرایش مربی' : 'افزودن مربی'; ?></h1>
-    
+    </div>
+    <div class="wrap">
     <form method="post" action="" id="coach-form">
         <?php wp_nonce_field('sc_add_coach', 'sc_coach_nonce'); ?>
         <input type="hidden" name="coach_id" value="<?php echo $coach_id; ?>">
@@ -70,7 +71,7 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
             <tr>
                 <th><label for="gender">جنسیت</label></th>
                 <td>
-                    <select name="gender" id="gender">
+                    <select name="gender" id="gender" style="width: 350px;">
                         <option value="">انتخاب کنید</option>
                         <option value="male" <?php selected($coach ? $coach->gender : '', 'male'); ?>>مرد</option>
                         <option value="female" <?php selected($coach ? $coach->gender : '', 'female'); ?>>زن</option>
@@ -84,9 +85,9 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
             </tr>
             
             <tr>
-                <th><label for="coaching_level">سطح مربیگری</label></th>
+                <th><label for="coaching_level" >سطح مربیگری</label></th>
                 <td>
-                    <select name="coaching_level" id="coaching_level">
+                    <select name="coaching_level" id="coaching_level "   style="width: 350px;">
                         <option value="">انتخاب کنید</option>
                         <option value="مبتدی" <?php selected($coach ? $coach->coaching_level : '', 'مبتدی'); ?>>مبتدی</option>
                         <option value="متوسط" <?php selected($coach ? $coach->coaching_level : '', 'متوسط'); ?>>متوسط</option>
@@ -97,8 +98,8 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
             </tr>
             
             <tr>
-                <th><label for="coaching_experience">سابقه مربیگری (سال)</label></th>
-                <td><input type="number" name="coaching_experience" id="coaching_experience" value="<?php echo $coach ? esc_attr($coach->coaching_experience) : ''; ?>" min="0" class="small-text"></td>
+                <th><label for="coaching_experience" >سابقه مربیگری (سال)</label></th>
+                <td><input type="number" name="coaching_experience" id="coaching_experience" value="<?php echo $coach ? esc_attr($coach->coaching_experience) : ''; ?>" min="0" class="small-text"  style="width: 350px;"></td>
             </tr>
             
             <tr>
@@ -156,16 +157,16 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                         <?php if (!empty($all_courses)): ?>
                             <table style="width: 100%; border-collapse: collapse;">
                                 <thead>
-                                    <tr style="border-bottom: 2px solid #ddd;">
-                                        <th style="text-align: center; padding: 4px; width: 60px;">انتخاب</th>
-                                        <th style="text-align: right; padding: 8px;">نام دوره</th>
-                                        <th class="course-percentage-col" style="text-align: right; padding: 8px;">درصد دستمزد</th>
+                                    <tr style="border-bottom: 2px solid #ddd; display: flex;">
+                                        <th style="text-align: center; padding: 4px; width: 30%;">انتخاب</th>
+                                        <th style="text-align: right; padding: 8px; width: 30%;">نام دوره</th>
+                                        <th class="course-percentage-col" style="text-align: right; padding: 8px; width: 30%;">درصد دستمزد</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($all_courses as $course): ?>
-                                        <tr style="border-bottom: 1px solid #eee;">
-                                            <td style="padding: 4px; text-align: center; width: 60px;">
+                                        <tr style="border-bottom: 1px solid #eee;  display: flex;">
+                                            <td style="padding: 4px; text-align: center; width: 30%;">
                                                 <input type="checkbox" 
                                                        name="courses[]" 
                                                        value="<?php echo $course->id; ?>" 
@@ -173,12 +174,12 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                                                        data-course-id="<?php echo $course->id; ?>"
                                                        <?php checked(in_array($course->id, $coach_courses)); ?>>
                                             </td>
-                                            <td style="padding: 8px;">
+                                            <td style="padding: 8px; width: 30%;">
                                                 <label for="course_<?php echo $course->id; ?>" style="cursor: pointer;">
                                                     <?php echo esc_html($course->title); ?>
                                                 </label>
                                             </td>
-                                            <td class="course-percentage-col" style="padding: 8px;">
+                                            <td class="course-percentage-col" style="padding: 8px; width: 30%;">
                                                 <input type="number" 
                                                        name="course_percentage[<?php echo $course->id; ?>]" 
                                                        id="course_percentage_<?php echo $course->id; ?>"
@@ -245,7 +246,6 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
         
         <p class="submit">
             <input type="submit" name="submit_coach" class="button button-primary" value="<?php echo $coach_id ? 'به‌روزرسانی' : 'ذخیره'; ?>">
-            <a href="<?php echo admin_url('admin.php?page=sc-coaches'); ?>" class="button">انصراف</a>
         </p>
     </form>
 </div>
