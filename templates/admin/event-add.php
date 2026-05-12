@@ -105,7 +105,7 @@ if ($event && isset($_GET['event_id'])) {
     ?>
     <?php if (isset($_GET['event_id']) && !empty($is_public)) : ?>
         <?php $public_url = add_query_arg('sc_public_event', absint($_GET['event_id']), home_url('/')); ?>
-        <div style="margin: 12px 0 0; padding: 10px 12px; background: #eef8ff; border: 1px solid #b8dfff; border-radius: 6px;">
+        <div class="event_public_url">
             <strong>لینک ثبت‌نام عمومی:</strong>
             <a href="<?php echo esc_url($public_url); ?>" target="_blank" rel="noopener"><?php echo esc_html($public_url); ?></a>
         </div>
@@ -284,7 +284,7 @@ if ($event && isset($_GET['event_id'])) {
                     <th scope="row"><label for="image">عکس رویداد</label></th>
                     <td>
                         <input type="url" id="image_url" name="image" value="<?php echo esc_attr($image); ?>" class="regular-text" placeholder="آدرس عکس">
-                        <button type="button" class="button" id="upload_image_button">انتخاب عکس</button>
+                        <button type="button" class="button sc_button" id="upload_image_button">انتخاب عکس</button>
                         <?php if (!empty($image)) : ?>
                             <div class="img_photo_prev">
                                 <img src="<?php echo esc_url($image); ?>" alt="عکس رویداد">
@@ -507,7 +507,7 @@ if ($event && isset($_GET['event_id'])) {
                 ?>
             </div>
             
-            <button type="button" id="sc-add-event-field-btn" class="button button-secondary" >
+            <button type="button" id="sc-add-event-field-btn" class="sc_button button-secondary " >
                 <span >+</span>
                 افزودن فیلد جدید
             </button>

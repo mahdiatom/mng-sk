@@ -76,7 +76,7 @@ input {
     height: 40px;
     padding-top: 6px !important;
 } */
- button{
+ .sc_button{
     border: 1px solid #b6b6b6 !important;
     border-radius: 10px !important;
  }
@@ -637,7 +637,7 @@ p.sk-modal-content p {
 }
 input.persian-date-input{
     height:40px ;
-        width: 50% !important;
+   
 }
 .sc-filter-form input.persian-date-input{
     height:40px ;
@@ -722,6 +722,15 @@ input.persian-date-input{
     padding: 20px;
     border: 1px solid #ddd;
     border-radius: 4px;
+}
+
+@media screen and (max-width: 782px) {
+    .wp-list-table .column-primary .toggle-row {
+        display: block;
+        height: 20px;
+        padding-top: 10px;
+        margin-top: 6px;
+    }
 }
 /* .widefat td, .widefat th {
     padding-left: 10px;
@@ -1320,6 +1329,57 @@ select#course_id{
 .sc-event-field-item_1{
     display: flex; gap: 15px; align-items: flex-start;
 }
+.item_field_event_add{
+  display: flex; gap: 15px; align-items: flex-start;
+}
+
+.filter_events_list {
+    gap: 12px;
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 12px !important;
+}
+.event_public_url{
+    margin: 12px 0 0; padding: 10px 12px; 
+    background: #eef8ff; 
+    border: 1px solid #b8dfff;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.toplevel_page_sc-events .tablenav .bulkactions{
+    width: 100%;
+}
+.toplevel_page_sc-events .tablenav{
+
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 10px;
+    position: relative;
+
+
+} 
+.toplevel_page_sc-events .tablenav-pages{
+position: absolute;
+left: 0;
+}
+@media screen and (max-width: 782px) {
+    .item_field_event_add{
+    display: flex;
+    flex-direction: column
+}
+.item_field_event_add input{
+    width: 100%;
+}
+.toplevel_page_sc-events p.search-box input[name="s"]
+ {
+width: 78% !important;
+
+ }
+
+}
 .label_add_field_event{
 display: block; margin-bottom: 5px; font-weight: bold;
 }
@@ -1415,6 +1475,9 @@ display: block; margin-bottom: 5px; font-weight: bold;
     cursor:pointer;
     background:#fafafa;
     transition:all .2s ease;
+}
+.bulkactions{
+    margin-bottom: 10px;
 }
 
 .sc-file-upload-area:hover{
@@ -2066,6 +2129,7 @@ padding: 10px 15px;
     font-size: 20px;
 
 }
+
 .choose_coach , .list_records_wallet , .charge_wallet {
     border-radius: 10px !important;
     box-shadow: 3px 0 0 #0c02c9 !important;
@@ -2122,6 +2186,12 @@ input.large-text, textarea.large-text {
 
 .sc-full{
     width:100%;
+}
+@media screen and (max-width:412px) {
+   .table_add_coach td , .table_add_coach select{
+        width: 99% !important;
+
+    }
 }
 
 /* .sc-searchable-dropdown,

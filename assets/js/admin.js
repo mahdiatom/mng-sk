@@ -978,7 +978,7 @@ jQuery(document).ready(function($) {
     $(document).on('click', '#sc-add-event-field-btn', function() {
         scEventFieldCounter++;
         var fieldHtml = '<div class="sc-event-field-item" data-field-temp-id="' + scEventFieldCounter + '" style="margin-bottom: 15px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">' +
-            '<div style="display: flex; gap: 15px; align-items: flex-start;">' +
+            '<div class="item_field_event_add" >' +
             '<div style="flex: 1;">' +
             '<label style="display: block; margin-bottom: 5px; font-weight: bold;">نام فیلد:</label>' +
             '<input type="text" name="event_fields[new_' + scEventFieldCounter + '][field_name]" class="regular-text sc-field-name" placeholder="مثال: نام تیم" required>' +

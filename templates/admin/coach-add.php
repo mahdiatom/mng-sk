@@ -47,7 +47,7 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
         <?php wp_nonce_field('sc_add_coach', 'sc_coach_nonce'); ?>
         <input type="hidden" name="coach_id" value="<?php echo $coach_id; ?>">
         
-        <table class="form-table">
+        <table class="form-table table_add_coach">
             <tr>
                 <th><label for="first_name">نام <span class="required">*</span></label></th>
                 <td><input type="text" name="first_name" id="first_name" value="<?php echo $coach ? esc_attr($coach->first_name) : ''; ?>" required class="regular-text"></td>

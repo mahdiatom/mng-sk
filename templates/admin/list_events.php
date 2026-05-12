@@ -118,10 +118,10 @@ public function extra_tablenav($which) {
             : $today_shamsi_display;
 
         ?>
-        <div class="alignleft actions">
+        <div class="filter_honors_list">
             <!-- وضعیت -->
             <label for="filter-event-status" class="screen-reader-text">فیلتر بر اساس وضعیت</label>
-            <select name="event_status" id="filter-event-status">
+            <select name="event_status" id="filter-honors-status">
                 <option value="all" <?php selected($selected_status, 'all'); ?>>همه وضعیت‌ها</option>
                 <option value="active" <?php selected($selected_status, 'active'); ?>>فعال</option>
                 <option value="inactive" <?php selected($selected_status, 'inactive'); ?>>غیرفعال</option>
@@ -144,14 +144,14 @@ public function extra_tablenav($which) {
 
             <!-- تاریخ برگزاری -->
             <label class="screen-reader-text">بازه تاریخ برگزاری</label>
-            <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="از" style=" width: 15%;">
-            <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="تا" style=" width: 15%;">
+            <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="از">
+            <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="تا" >
 
             <!-- hidden inputs میلادی -->
             <input type="hidden" name="filter_date_from" id="filter_date_from">
             <input type="hidden" name="filter_date_to" id="filter_date_to">
 
-            <?php submit_button('فیلتر', 'secondary', 'filter_action', false); ?>
+            <?php submit_button('فیلتر', 'primary', 'filter_action', true ); ?>
         </div>
 
         <?php
@@ -443,7 +443,6 @@ public function extra_tablenav($which) {
     <div class="event_header_list">
         <h1 class="wp-heading-inline">لیست رویداد / مسابقه</h1>
         <a href="<?php echo admin_url('admin.php?page=sc-add-event'); ?>" class="page-title-action">افزودن رویداد جدید</a>
-        <p class="descriotion">فیلتر تاریخ بر اساس تاریخ برگزاری می باشد.</p>
     </div>
      </div>
     <?php
