@@ -107,7 +107,11 @@ if ($event && isset($_GET['event_id'])) {
         <?php $public_url = add_query_arg('sc_public_event', absint($_GET['event_id']), home_url('/')); ?>
         <div class="event_public_url">
             <strong>لینک ثبت‌نام عمومی:</strong>
-            <a href="<?php echo esc_url($public_url); ?>" target="_blank" rel="noopener"><?php echo esc_html($public_url); ?></a>
+            <div class="event_public_url_row">
+                <a href="<?php echo esc_url($public_url); ?>" target="_blank" rel="noopener" class="event_public_link"><?php echo esc_html($public_url); ?></a>
+                <button type="button" class="button sc-copy-link-btn sc_button" data-url="<?php echo esc_attr($public_url); ?>">کپی لینک</button>
+                <a href="<?php echo esc_url($public_url); ?>" target="_blank" rel="noopener" class="button button-primary">مشاهده صفحه رویداد</a>
+            </div>
         </div>
     <?php endif; ?>
     </div>
@@ -530,5 +534,51 @@ jQuery(document).ready(function($){
             $('#event-restrictions-box').slideUp(150);
         }
     });
+
+    // Copy public event link
+    $(document).on('click', '.sc-copy-link-btn', function(e) {
+        e.preventDefault();
+        var url = $(this).data('url');
+        if (!url) return;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function() {
+                if (typeof window.scConfirm === 'function') {
+                    window.scConfirm({
+                        type: 'success',
+                        title: 'کپی شد',
+                        message: 'لینک در کلیپ‌بورد کپی شد.',
+                        confirmText: 'باشه',
+                        cancelText: ''
+                    });
+                } else {
+                    alert('لینک کپی شد!');
+                }
+            }).catch(function() {
+                // fallback
+                fallbackCopy(url);
+            });
+        } else {
+            fallbackCopy(url);
+        }
+    });
+
+    function fallbackCopy(text) {
+        var input = document.createElement('input');
+        input.value = text;
+        document.body.appendChild(input);
+        input.select();
+        try {
+            document.execCommand('copy');
+            if (typeof window.scConfirm === 'function') {
+                window.scConfirm({ type: 'success', title: 'کپی شد', message: 'لینک در کلیپ‌بورد کپی شد.', confirmText: 'باشه', cancelText: '' });
+            } else {
+                alert('لینک کپی شد!');
+            }
+        } catch (err) {
+            alert('کپی ناموفق بود. لینک: ' + text);
+        }
+        document.body.removeChild(input);
+    }
 });
 </script>
