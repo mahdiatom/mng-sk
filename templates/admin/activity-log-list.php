@@ -165,7 +165,7 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
 
     <form method="post" action="" id="sc-activity-log-clear-form" style="margin: 0 0 16px 0;">
         <?php wp_nonce_field('sc_activity_log_clear_all', 'sc_activity_log_clear_nonce'); ?>
-        <button type="submit" name="sc_activity_log_clear_all" value="1" class="button button-link-delete">پاکسازی تمام لاگ‌ها</button>
+        <button type="submit" name="sc_activity_log_clear_all" value="1" class="sc_button button-link-delete">پاکسازی تمام لاگ‌ها</button>
     </form>
 
     <p style="color: #646970; margin-bottom: 12px;">تعداد: <strong><?php echo number_format_i18n($total_items); ?></strong> مورد</p>

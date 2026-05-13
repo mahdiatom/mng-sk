@@ -41,14 +41,21 @@
 	src: url('../fonts/Woff/IRANYekanXFaNum-Regular.woff') format('woff'),   
 	url('../fonts/Woff2/IRANYekanXFaNum-Regular.woff2') format('woff2');	
 }
-.button-primary{
+.button-primary ,  .title_manage_wallet{
     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
+    height: 40px;
 
 }
-
+ .title_manage_wallet{
+        background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none;
+    color: #fff !important;
+    border-radius: 10px !important;
+    height: 20px;
+ }
  p,a,div,button,section,select,option,input{
     font-family: IRANYekanXFaNum !important;
     
@@ -86,6 +93,7 @@ input {
  .sc_button{
     border: 1px solid #b6b6b6 !important;
     border-radius: 10px !important;
+    height: 40px;
  }
 input , textarea {
         border: 1px solid #dfdfdf !important;
@@ -663,6 +671,12 @@ p.sk-modal-content p {
 }
 
 .sc-filter-field > select.sc-filter-control {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.sc-filter-field > input.sc-filter-control {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -2394,46 +2408,48 @@ width: fit-content;
     flex-direction: column;
     gap: 23px;
 }
-    .filter_honors_list{
+/* Legacy: wrapper فیلتر در صفحات دیگر (مثلاً list_events) */
+.filter_honors_list {
     border-bottom: 1px solid #dfdfdf;
     padding-bottom: 10px;
     margin-bottom: 15px;
 }
-.filter_honors_list .sc-filter-grid{
+.honors-filter-form {
+    border-bottom: 1px solid #dfdfdf;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+.honors-filter-form .sc-filter-grid {
     width: 100%;
 }
-.filter_honors_list .sc-filter-field{
-    width: calc(33.333% - 14px);
-}
-.filter_honors_list .sc-searchable-dropdown{
+.honors-filter-form .sc-searchable-dropdown {
     width: 100%;
     margin-left: 0;
 }
-.filter_honors_list .submit{
+.honors-filter-form .submit {
     margin: 0;
     padding-top: 0;
 }
 
-@media screen and (max-width:780px) {
-    .filter_honors_list{
+@media screen and (max-width: 780px) {
+    .honors-filter-form {
         width: 100%;
     }
-    .filter_honors_list .sc-filter-field{
+    .honors-filter-form .sc-filter-field {
         width: 100%;
     }
-    /* تاریخ (اگر اضافه شود) تمام عرض نشود و دو ستونه بماند */
-    .filter_honors_list .sc-filter-field.sc-filter-date{
+    .honors-filter-form .sc-filter-field.sc-filter-date {
         width: 100%;
     }
-    .filter_honors_list .sc-filter-date .sc-date-range{
+    .honors-filter-form .sc-filter-date .sc-date-range {
         display: flex;
         gap: 10px;
     }
-    .filter_honors_list .sc-filter-date .sc-date-range input{
+    .honors-filter-form .sc-filter-date .sc-date-range input {
         flex: 1;
         min-width: 0;
     }
-    .filter_honors_list .sc-dropdown-toggle{
+    .honors-filter-form .sc-dropdown-toggle {
         width: 100% !important;
         height: 43px;
     }
@@ -2588,44 +2604,96 @@ width: fit-content;
 
 /* گواهینامه  */
 
-.filter_user-template{
+.filter_search_certificate {
     display: flex;
-}
-.filter_certificate_list{
-        display: flex;
-    flex-direction: row;
-    gap: 10px;
-}
-.filter_certificate_list .sc-searchable-dropdown{
-    width: 250px;
-    margin-left: 10px
-}
-.filter_date_certificate{
-    display: flex;
-    flex-direction: row;
-}
-.list_certificate{
-        display: flex;
     flex-direction: column;
 }
-@media screen and (max-width:780px) {
-    .filter_certificate_list{
-      display: flex;
+.certificates-filter-form {
+    border-bottom: 1px solid #dfdfdf;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+.certificates-filter-form .sc-filter-grid {
+    width: 100%;
+}
+.certificates-filter-form .sc-searchable-dropdown {
+    width: 100%;
+    margin-left: 0;
+}
+.certificates-filter-form .submit {
+    margin: 0;
+    padding-top: 0;
+}
+.list_certificate {
+    display: flex;
     flex-direction: column;
-    gap: 10px;
-    }
+}
 
-    .filter_user-template{
-            display: flex;
-    flex-direction: column;
-    gap: 10px;
-    }
-    .filter_certificate_list .sc-searchable-dropdown{
+@media screen and (max-width: 780px) {
+    .certificates-filter-form {
         width: 100%;
+    }
+    .certificates-filter-form .sc-filter-field {
+        width: 100%;
+    }
+    .certificates-filter-form .sc-filter-field.sc-filter-date {
+        width: 100%;
+    }
+    .certificates-filter-form .sc-filter-date .sc-date-range {
+        display: flex;
+        gap: 10px;
+    }
+    .certificates-filter-form .sc-filter-date .sc-date-range input {
+        flex: 1;
+        min-width: 0;
+    }
+    .certificates-filter-form .sc-dropdown-toggle {
+        width: 100% !important;
+        height: 43px;
     }
 }
 
 /* گواهینامه  */
+
+/* هشدارهای کاربر */
+.filter_search_user_alerts {
+    display: flex;
+    flex-direction: column;
+}
+.user-alerts-filter-form {
+    border-bottom: 1px solid #dfdfdf;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+.user-alerts-filter-form .sc-filter-grid {
+    width: 100%;
+}
+.user-alerts-filter-form .submit {
+    margin: 0;
+    padding-top: 0;
+}
+
+@media screen and (max-width: 780px) {
+    .user-alerts-filter-form {
+        width: 100%;
+    }
+    .user-alerts-filter-form .sc-filter-field {
+        width: 100%;
+    }
+    .user-alerts-filter-form .sc-filter-field.sc-filter-date {
+        width: 100%;
+    }
+    .user-alerts-filter-form .sc-filter-date .sc-date-range {
+        display: flex;
+        gap: 10px;
+    }
+    .user-alerts-filter-form .sc-filter-date .sc-date-range input {
+        flex: 1;
+        min-width: 0;
+    }
+}
+/* هشدارهای کاربر پایان */
+
 /* یادداشت خصوصی */
         .sc-private-status {
             display: inline-block;

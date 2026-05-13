@@ -15,20 +15,86 @@ $members_table = $wpdb->prefix . 'sc_members';
 $notice = '';
 $notice_type = 'success';
 
-if (isset($_POST['sc_bulk_delete_certificates'])) {
-    check_admin_referer('sc_bulk_delete_certificates_nonce');
+if (isset($_POST['certificate_ids'], $_POST['bulk_action']) && check_admin_referer('sc_bulk_certificates_nonce')) {
     $ids = isset($_POST['certificate_ids']) ? array_map('absint', (array) $_POST['certificate_ids']) : [];
     $ids = array_values(array_filter($ids));
+    $bulk_action = isset($_POST['bulk_action']) ? sanitize_key(wp_unslash($_POST['bulk_action'])) : '';
 
     if (empty($ids)) {
         $notice = 'حداقل یک گواهینامه را انتخاب کنید.';
         $notice_type = 'error';
-    } else {
-        $in = implode(',', $ids);
-        $deleted = $wpdb->query("DELETE FROM {$cert_table} WHERE id IN ({$in})");
+    } elseif ($bulk_action === 'delete') {
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $deleted = $wpdb->query($wpdb->prepare("DELETE FROM {$cert_table} WHERE id IN ({$placeholders})", $ids));
         $deleted_count = is_numeric($deleted) ? (int) $deleted : 0;
         $notice = sprintf('%d گواهینامه حذف شد.', $deleted_count);
         $notice_type = 'success';
+    } elseif ($bulk_action === 'physical_invoice' && function_exists('sc_create_physical_certificate_invoice')) {
+        $templates_all = sc_certificates_get_saved_templates();
+        $created = 0;
+        $already_exists = 0;
+        $price_not_set = 0;
+        $invalid = 0;
+        $failed = 0;
+
+        foreach ($ids as $cid) {
+            $certificate = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$cert_table} WHERE id = %d", $cid));
+            if (!$certificate || (int) $certificate->member_id <= 0) {
+                $invalid++;
+                continue;
+            }
+            $template_item = isset($templates_all[$certificate->template_key]) ? $templates_all[$certificate->template_key] : [];
+            $template = function_exists('sc_certificates_normalize_template')
+                ? sc_certificates_normalize_template($template_item, (string) $certificate->template_key)
+                : $template_item;
+            $price = (float) ($template['physical_copy_price'] ?? 0);
+            if ($price <= 0) {
+                $price_not_set++;
+                continue;
+            }
+            $result = sc_create_physical_certificate_invoice($certificate, (int) $certificate->member_id, $price);
+            $code = isset($result['code']) ? (string) $result['code'] : '';
+            if ($code === 'created') {
+                $created++;
+            } elseif ($code === 'exists') {
+                $already_exists++;
+            } elseif ($code === 'invalid') {
+                $invalid++;
+            } else {
+                $failed++;
+            }
+        }
+
+        $parts = [];
+        if ($created > 0) {
+            $parts[] = sprintf('%d صورتحساب جدید ایجاد شد', $created);
+        }
+        if ($already_exists > 0) {
+            $parts[] = sprintf('%d مورد قبلاً صورتحساب داشتند', $already_exists);
+        }
+        if ($price_not_set > 0) {
+            $parts[] = sprintf('%d مورد بدون مبلغ نسخه فیزیکی در قالب', $price_not_set);
+        }
+        if ($invalid > 0) {
+            $parts[] = sprintf('%d مورد نامعتبر یا بدون عضو', $invalid);
+        }
+        if ($failed > 0) {
+            $parts[] = sprintf('%d مورد با خطا', $failed);
+        }
+        $notice = !empty($parts) ? implode('؛ ', $parts) : 'عملیاتی انجام نشد.';
+        if ($created > 0 && $failed === 0) {
+            $notice_type = ($already_exists > 0 || $price_not_set > 0 || $invalid > 0) ? 'warning' : 'success';
+        } elseif ($created === 0 && $failed === 0 && ($already_exists > 0 || $price_not_set > 0 || $invalid > 0)) {
+            $notice_type = 'warning';
+        } else {
+            $notice_type = 'error';
+        }
+    } elseif ($bulk_action === '') {
+        $notice = 'لطفاً یک عملیات دسته‌جمعی انتخاب کنید.';
+        $notice_type = 'error';
+    } elseif ($bulk_action !== '') {
+        $notice = 'عملیات دسته‌جمعی نامعتبر است.';
+        $notice_type = 'error';
     }
 }
 
@@ -225,70 +291,119 @@ if ($edit_id > 0) {
     <?php endif; ?>
 
     <div class="filter_search_certificate">
-        <form method="get" action="" class="filter_certificate_list">
+        <!-- فیلترها (همان ساختار حضور و غیاب / لیست افتخارات) -->
+        <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1 certificates-filter-form">
             <input type="hidden" name="page" value="sc-certificates-list">
-            <input type="hidden" name="s" value="<?php echo esc_attr($search); ?>">
-           <div class="filter_user-template"> 
-            <div class="sc-searchable-dropdown">
-                <input type="hidden" name="filter_user" id="filter_user" value="<?php echo esc_attr($filter_user); ?>">
-                <div class="sc-dropdown-toggle">
-                    <span class="sc-dropdown-placeholder" <?php if (!empty($filter_user) && $filter_user !== '0') echo 'style="display:none"'; ?>>همه کاربران</span>
-                    <span class="sc-dropdown-selected" <?php if (empty($filter_user) || $filter_user === '0') echo 'style="display:none"'; ?>>کاربر انتخاب شده</span>
-                    <span class="sc-dropdown-arrow">▼</span>
-                </div>
-                <div class="sc-dropdown-menu">
-                    <div class="sc-dropdown-search">
-                        <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
-                    </div>
-                    <div class="sc-dropdown-options">
-                        <div class="sc-dropdown-option sc-visible" data-value="0" data-search="همه کاربران" onclick="scSelectMemberFilter(this,'0','همه کاربران')">همه کاربران</div>
-                        <?php foreach ($members_for_filter as $member_option) : ?>
-                            <div class="sc-dropdown-option sc-visible"
-                                 data-value="m_<?php echo esc_attr($member_option->id); ?>"
-                                 data-search="<?php echo esc_attr(strtolower($member_option->first_name . ' ' . $member_option->last_name . ' ' . $member_option->national_id)); ?>"
-                                 onclick="scSelectMemberFilter(this,'<?php echo esc_js('m_' . $member_option->id); ?>','<?php echo esc_js($member_option->first_name . ' ' . $member_option->last_name . ' - ' . $member_option->national_id); ?>')">
-                                <?php echo esc_html($member_option->first_name . ' ' . $member_option->last_name . ' - ' . $member_option->national_id); ?>
+
+            <div class="sc-filter-grid">
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label">کاربر</label>
+                    <div class="sc-searchable-dropdown">
+                        <input type="hidden" name="filter_user" id="filter_user" value="<?php echo esc_attr($filter_user); ?>">
+                        <?php
+                        $selected_user_text = 'همه کاربران';
+                        if (!empty($filter_user) && preg_match('/^m_(\d+)$/', $filter_user, $um)) {
+                            $mid = absint($um[1]);
+                            foreach ($members_for_filter as $mem) {
+                                if ((int) $mem->id === $mid) {
+                                    $selected_user_text = $mem->first_name . ' ' . $mem->last_name . ' - ' . ($mem->national_id ?: $mem->id);
+                                    break;
+                                }
+                            }
+                        }
+                        ?>
+                        <div class="sc-dropdown-toggle">
+                            <span class="sc-dropdown-placeholder" <?php if (!empty($filter_user) && $filter_user !== '0') echo 'style="display:none"'; ?>>همه کاربران</span>
+                            <span class="sc-dropdown-selected" <?php if (empty($filter_user) || $filter_user === '0') echo 'style="display:none"'; ?>><?php echo esc_html($selected_user_text); ?></span>
+                            <span class="sc-dropdown-arrow">▼</span>
+                        </div>
+                        <div class="sc-dropdown-menu">
+                            <div class="sc-dropdown-search">
+                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
                             </div>
+                            <div class="sc-dropdown-options">
+                                <div class="sc-dropdown-option sc-visible"
+                                     data-value="0"
+                                     data-search="همه کاربران"
+                                     onclick="scSelectMemberFilter(this,'0','همه کاربران')">
+                                    همه کاربران
+                                </div>
+                                <?php
+                                $display_count = 0;
+                                $max_display = 15;
+                                foreach ($members_for_filter as $member_option) :
+                                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                    $display_count++;
+                                    $val = 'm_' . $member_option->id;
+                                    $label = $member_option->first_name . ' ' . $member_option->last_name . ' - ' . ($member_option->national_id ?: $member_option->id);
+                                    $search_txt = strtolower($member_option->first_name . ' ' . $member_option->last_name . ' ' . ($member_option->national_id ?: ''));
+                                ?>
+                                    <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
+                                         data-value="<?php echo esc_attr($val); ?>"
+                                         data-search="<?php echo esc_attr($search_txt); ?>"
+                                         onclick="scSelectMemberFilter(this,'<?php echo esc_js($val); ?>','<?php echo esc_js($label); ?>')">
+                                        <?php echo esc_html($label); ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_template">قالب گواهینامه</label>
+                    <select name="filter_template" id="filter_template" class="sc-filter-control">
+                        <option value="">همه قالب‌ها</option>
+                        <?php foreach ($template_titles as $t_key => $t_title) : ?>
+                            <option value="<?php echo esc_attr($t_key); ?>" <?php selected($filter_template, $t_key); ?>><?php echo esc_html($t_title); ?></option>
                         <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="search_id">جستجو</label>
+                    <input type="search" id="search_id" name="s" class="sc-filter-control" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان/متن/کد رهگیری...">
+                </div>
+
+                <div class="sc-filter-field sc-filter-date">
+                    <label class="sc-filter-label">بازه تاریخ صدور (شمسی)</label>
+                    <div class="sc-date-range">
+                        <input type="text"
+                               name="filter_date_from_shamsi"
+                               id="certificates_filter_date_from_shamsi"
+                               value="<?php echo esc_attr($display_date_from_shamsi); ?>"
+                               class="persian-date-input sc-filter-control sc-no-default-date"
+                               placeholder="از تاریخ"
+                               readonly>
+                        <input type="text"
+                               name="filter_date_to_shamsi"
+                               id="certificates_filter_date_to_shamsi"
+                               value="<?php echo esc_attr($display_date_to_shamsi); ?>"
+                               class="persian-date-input sc-filter-control sc-no-default-date"
+                               placeholder="تا تاریخ"
+                               readonly>
                     </div>
                 </div>
             </div>
 
-            <select name="filter_template" style="margin-left:5px;">
-                <option value="">همه قالب‌ها</option>
-                <?php foreach ($template_titles as $t_key => $t_title) : ?>
-                    <option value="<?php echo esc_attr($t_key); ?>" <?php selected($filter_template, $t_key); ?>><?php echo esc_html($t_title); ?></option>
-                <?php endforeach; ?>
-            </select>
-            </div>
-            <div class="filter_date_certificate">
-                <input type="text" name="filter_date_from_shamsi" class="persian-date-input" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="از تاریخ" readonly>
-                <input type="text" name="filter_date_to_shamsi" class="persian-date-input" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="تا تاریخ" readonly>
-            </div>
-            <input type="submit" class="button button-primary" value="اعمال فیلتر">
-            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-list')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            <p class="submit">
+                <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-list')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            </p>
         </form>
-    <form method="get" action="" style="margin-top: 10px;">
-                    <input type="hidden" name="page" value="sc-certificates-list">
-                    <input type="hidden" name="filter_user" value="<?php echo esc_attr($filter_user); ?>">
-                    <input type="hidden" name="filter_template" value="<?php echo esc_attr($filter_template); ?>">
-                    <input type="hidden" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_date_from_shamsi); ?>">
-                    <input type="hidden" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_date_to_shamsi); ?>">
-                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان/متن/کد رهگیری..." style="width:220px;">
-                    <input type="submit" class="button" value="جستجو">
-                </form>
-        <div class="tablenav top" style="margin-bottom: 0;">
-            <div class="alignleft actions">
-                
-            </div>
-        </div>
     </div>
 
-    <form method="post" class="list_certificate">
-        <?php wp_nonce_field('sc_bulk_delete_certificates_nonce'); ?>
+    <form method="post" id="certificates-list-form" class="list_certificate">
+        <?php wp_nonce_field('sc_bulk_certificates_nonce'); ?>
         <div class="tablenav top">
             <div class="alignleft actions bulkactions">
-                <button type="submit" name="sc_bulk_delete_certificates" class="button action" onclick="return scConfirmInline(event, { type: 'warning', message: 'گواهینامه‌های انتخاب‌شده حذف شوند؟' });">حذف انتخاب‌شده‌ها</button>
+                <label for="bulk-action-selector" class="screen-reader-text">عملیات دسته‌جمعی</label>
+                <select name="bulk_action" id="bulk-action-selector">
+                    <option value="">عملیات دسته‌جمعی...</option>
+                    <option value="physical_invoice">ایجاد صورتحساب نسخه فیزیکی</option>
+                    <option value="delete">حذف</option>
+                </select>
+                <input type="submit" name="bulk_apply" id="doaction" class="button action" value="اجرا">
             </div>
         </div>
 
@@ -415,8 +530,56 @@ if ($edit_id > 0) {
 
 <script>
 jQuery(function($){
+    var $form = $('#certificates-list-form');
     $('#cb-select-all').on('change', function(){
         $('input[name="certificate_ids[]"]').prop('checked', this.checked);
+    });
+    $('input[name="certificate_ids[]"]').on('change', function(){
+        var total = $('input[name="certificate_ids[]"]').length;
+        var checked = $('input[name="certificate_ids[]"]:checked').length;
+        $('#cb-select-all').prop('checked', total > 0 && total === checked);
+    });
+
+    $('#doaction').on('click', function(e){
+        var action = $('#bulk-action-selector').val();
+        var checked = $('input[name="certificate_ids[]"]:checked').length;
+        if (checked === 0) {
+            e.preventDefault();
+            alert('لطفاً حداقل یک گواهینامه را انتخاب کنید.');
+            return false;
+        }
+        if (!action) {
+            e.preventDefault();
+            alert('لطفاً یک عملیات دسته‌جمعی انتخاب کنید.');
+            return false;
+        }
+        if (action === 'delete') {
+            e.preventDefault();
+            if (typeof scConfirm === 'function') {
+                scConfirm({ type: 'danger', message: 'آیا از حذف ' + checked + ' گواهینامه انتخاب‌شده اطمینان دارید؟' }).then(function(ok){
+                    if (ok) {
+                        $form.submit();
+                    }
+                });
+            } else if (confirm('آیا از حذف گواهینامه‌های انتخاب‌شده اطمینان دارید؟')) {
+                $form.submit();
+            }
+            return false;
+        }
+        if (action === 'physical_invoice') {
+            e.preventDefault();
+            var msg = 'برای ' + checked + ' گواهینامه انتخاب‌شده، در صورت امکان صورتحساب نسخه فیزیکی ایجاد شود؟ (موارد بدون مبلغ قالب یا دارای صورتحساب قبلی رد می‌شوند.)';
+            if (typeof scConfirm === 'function') {
+                scConfirm({ type: 'warning', message: msg }).then(function(ok){
+                    if (ok) {
+                        $form.submit();
+                    }
+                });
+            } else if (confirm(msg)) {
+                $form.submit();
+            }
+            return false;
+        }
     });
 });
 </script>

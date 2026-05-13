@@ -202,14 +202,16 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
     <?php endif; ?>
     </div>
 <div class="wrap">    
-    <!-- فیلترها -->
-    <div class="sc-filter-wrapper" style="background: #f9f9f9; padding: 15px; margin: 20px 0; border-radius: 8px;">
-        <form method="GET" action="" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
-            <input type="hidden" name="page" value="sc-coach-management-withdrawals">
+    <!-- فیلترها (ساختار یکسان با حضور و غیاب / لیست بازیکنان) -->
+    <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+        <input type="hidden" name="page" value="sc-coach-management-withdrawals">
 
-            <div style="min-width: 180px;">
-                <label for="filter_status">وضعیت:</label><br>
-                <select name="filter_status" id="filter_status" style="width: 100%;">
+        <div class="sc-filter-grid">
+
+            <!-- وضعیت -->
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="filter_status">وضعیت</label>
+                <select name="filter_status" id="filter_status" class="sc-filter-control">
                     <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
                     <option value="pending" <?php selected($filter_status, 'pending'); ?>>در انتظار تایید</option>
                     <option value="approved" <?php selected($filter_status, 'approved'); ?>>تایید شده (منتظر پرداخت)</option>
@@ -218,73 +220,68 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
                 </select>
             </div>
 
-            <div style="min-width: 220px;">
-                <label for="filter_coach">مربی:</label><br>
-                <select name="filter_coach" id="filter_coach" style="width: 100%;">
+            <!-- مربی -->
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="filter_coach">مربی</label>
+                <select name="filter_coach" id="filter_coach" class="sc-filter-control">
                     <option value="0">همه مربیان</option>
                     <?php foreach ($coaches_for_filter as $c): ?>
-                        <option value="<?php echo (int) $c->id; ?>" <?php selected($filter_coach, $c->id); ?>>
+                        <option value="<?php echo esc_attr($c->id); ?>" <?php selected($filter_coach, $c->id); ?>>
                             <?php echo esc_html($c->first_name . ' ' . $c->last_name); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
 
-            <div style="min-width: 180px;">
-                <label for="filter_date_from_shamsi">از تاریخ:</label><br>
-                <input type="text"
-                       name="filter_date_from_shamsi"
-                       id="filter_date_from_shamsi"
-                       value="<?php echo esc_attr($display_date_from_shamsi_w); ?>"
-                       class="regular-text persian-date-input sc-no-default-date"
-                       placeholder="از تاریخ (شمسی)"
-                       readonly
-                       style="width: 100%;">
-                <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+            <!-- بازه تاریخ (در انتها) -->
+            <div class="sc-filter-field sc-filter-date">
+                <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
+                <div class="sc-date-range">
+                    <input type="text"
+                           name="filter_date_from_shamsi"
+                           id="filter_date_from_shamsi"
+                           value="<?php echo esc_attr($display_date_from_shamsi_w); ?>"
+                           class="persian-date-input sc-filter-control sc-no-default-date"
+                           placeholder="از تاریخ" readonly>
+                    <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                    <input type="text"
+                           name="filter_date_to_shamsi"
+                           id="filter_date_to_shamsi"
+                           value="<?php echo esc_attr($display_date_to_shamsi_w); ?>"
+                           class="persian-date-input sc-filter-control sc-no-default-date"
+                           placeholder="تا تاریخ" readonly>
+                    <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                </div>
             </div>
 
-            <div style="min-width: 180px;">
-                <label for="filter_date_to_shamsi">تا تاریخ:</label><br>
-                <input type="text"
-                       name="filter_date_to_shamsi"
-                       id="filter_date_to_shamsi"
-                       value="<?php echo esc_attr($display_date_to_shamsi_w); ?>"
-                       class="regular-text persian-date-input sc-no-default-date"
-                       placeholder="تا تاریخ (شمسی)"
-                       readonly
-                       style="width: 100%;">
-                <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-            </div>
+        </div>
 
-            <div style="min-width: 140px;">
-                <button type="submit" class="button button-primary" id="btn-filter-coach-management-withdrawals">اعمال فیلتر</button>
-                <a href="<?php echo admin_url('admin.php?page=sc-coach-management-withdrawals'); ?>" class="button delete_fillter">پاک کردن</a>
-                        <?php
+        <p class="submit">
+            <button type="submit" class="button button-primary">اعمال فیلتر</button>
+            <a href="<?php echo admin_url('admin.php?page=sc-coach-management-withdrawals'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            <?php
             // ساخت URL برای export Excel با حفظ فیلترها
             $export_url = admin_url('admin.php?page=sc-coach-management-withdrawals&sc_export=excel&export_type=coach_management_withdrawals');
-            $export_url = add_query_arg('filter_status', isset($_GET['filter_status']) ? $_GET['filter_status'] : 'all', $export_url);
-            $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
-            $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
-            if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
-                $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
+            if ($filter_status !== 'all') {
+                $export_url = add_query_arg('filter_status', $filter_status, $export_url);
             }
-            if (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
-                $export_url = add_query_arg('filter_date_to', $_GET['filter_date_to'], $export_url);
+            if ($filter_coach > 0) {
+                $export_url = add_query_arg('filter_coach', $filter_coach, $export_url);
             }
-            if (isset($_GET['s']) && !empty($_GET['s'])) {
-                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            if (!empty($filter_date_from_shamsi)) {
+                $export_url = add_query_arg('filter_date_from_shamsi', $filter_date_from_shamsi, $export_url);
+            }
+            if (!empty($filter_date_to_shamsi)) {
+                $export_url = add_query_arg('filter_date_to_shamsi', $filter_date_to_shamsi, $export_url);
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             ?>
-            <a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
-                📊 خروجی Excel
-            </a>
-            </div>
-        </form>
-    </div>
+            <a href="<?php echo esc_url($export_url); ?>" class="button button_export">📊 خروجی Excel</a>
+        </p>
+    </form>
+</div>
 
-    </div>
-    <div class="wrap">
+<div class="wrap">
     <!-- اکشن دسته‌جمعی و جدول -->
     <form method="POST" action="" id="bulk-withdrawals-form">
         <?php wp_nonce_field('bulk_withdrawals', '_wpnonce_bulk'); ?>
@@ -439,7 +436,7 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
         </table>
         <p class="submit" style="margin-top: 15px;">
             <input type="submit" name="reject_request" class="button button-primary" value="رد درخواست" style="margin-left: 8px;">
-            <button type="button" class="button reject-modal-close">انصراف</button>
+            <button type="button" class="sc_button reject-modal-close">انصراف</button>
         </p>
     </form>
     <!-- بخش رد دسته‌جمعی -->
@@ -454,7 +451,7 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
         </table>
         <p class="submit" style="margin-top: 15px;">
             <button type="button" class="button button-primary" id="bulk-reject-submit" style="margin-left: 8px;">اعمال رد</button>
-            <button type="button" class="button reject-modal-close">انصراف</button>
+            <button type="button" class="sc_button reject-modal-close">انصراف</button>
         </p>
     </div>
 </div>
@@ -478,7 +475,7 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
         </table>
         <p class="submit" style="margin-top: 15px;">
             <input type="submit" name="mark_paid" class="button button-primary" value="ثبت به عنوان پرداخت شده" style="margin-left: 8px;">
-            <button type="button" class="button mark-paid-modal-close">انصراف</button>
+            <button type="button" class="sc_button mark-paid-modal-close">انصراف</button>
         </p>
     </form>
 </div>

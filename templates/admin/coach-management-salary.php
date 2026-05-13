@@ -101,86 +101,91 @@ $courses = $wpdb->get_results(
     <hr class="wp-header-end">
 </div>
     <div class="wrap">
-    <!-- فیلترها -->
-    <div class="sc-filter-wrapper" style="background: #f9f9f9; padding: 20px; margin: 20px 0; border-radius: 8px;">
-        <form method="GET" action="">
-            <input type="hidden" name="page" value="sc-coach-management-salary">
-            
-            <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
-                <div>
-                    <label>مربی:</label><br>
-                    <select name="filter_coach" style="width: 200px;">
-                        <option value="0">همه مربیان</option>
-                        <?php foreach ($coaches as $coach): ?>
-                            <option value="<?php echo $coach->id; ?>" <?php selected($filter_coach, $coach->id); ?>>
-                                <?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+    <!-- فیلترها (ساختار یکسان با حضور و غیاب / لیست بازیکنان) -->
+    <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+        <input type="hidden" name="page" value="sc-coach-management-salary">
+
+        <div class="sc-filter-grid">
+
+            <!-- مربی -->
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="filter_coach">مربی</label>
+                <select name="filter_coach" id="filter_coach" class="sc-filter-control">
+                    <option value="0">همه مربیان</option>
+                    <?php foreach ($coaches as $coach): ?>
+                        <option value="<?php echo esc_attr($coach->id); ?>" <?php selected($filter_coach, $coach->id); ?>>
+                            <?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- دوره -->
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="filter_course">دوره</label>
+                <select name="filter_course" id="filter_course" class="sc-filter-control">
+                    <option value="0">همه دوره‌ها</option>
+                    <?php foreach ($courses as $course): ?>
+                        <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
+                            <?php echo esc_html($course->title); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- نوع دستمزد -->
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="filter_type">نوع دستمزد</label>
+                <select name="filter_type" id="filter_type" class="sc-filter-control">
+                    <option value="all" <?php selected($filter_type, 'all'); ?>>همه</option>
+                    <option value="percentage" <?php selected($filter_type, 'percentage'); ?>>درصدی</option>
+                    <option value="fixed" <?php selected($filter_type, 'fixed'); ?>>ثابت</option>
+                </select>
+            </div>
+
+            <!-- بازه تاریخ (در انتها) -->
+            <div class="sc-filter-field sc-filter-date">
+                <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
+                <div class="sc-date-range">
+                    <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi_salary"
+                           value="<?php echo esc_attr($display_date_from_sal); ?>"
+                           class="persian-date-input sc-filter-control sc-no-default-date"
+                           placeholder="از تاریخ" readonly>
+                    <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi_salary"
+                           value="<?php echo esc_attr($display_date_to_sal); ?>"
+                           class="persian-date-input sc-filter-control sc-no-default-date"
+                           placeholder="تا تاریخ" readonly>
                 </div>
-                
-                <div>
-                    <label>دوره:</label><br>
-                    <select name="filter_course" style="width: 200px;">
-                        <option value="0">همه دوره‌ها</option>
-                        <?php foreach ($courses as $course): ?>
-                            <option value="<?php echo $course->id; ?>" <?php selected($filter_course, $course->id); ?>>
-                                <?php echo esc_html($course->title); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <div>
-                    <label>نوع دستمزد:</label><br>
-                    <select name="filter_type" style="width: 150px;">
-                        <option value="all" <?php selected($filter_type, 'all'); ?>>همه</option>
-                        <option value="percentage" <?php selected($filter_type, 'percentage'); ?>>درصدی</option>
-                        <option value="fixed" <?php selected($filter_type, 'fixed'); ?>>ثابت</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label>از تاریخ (شمسی):</label><br>
-                    <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi_salary" 
-                           value="<?php echo esc_attr($display_date_from_sal); ?>" 
-                           class="persian-date-input sc-filter-control sc-no-default-date" style="width: 150px;" readonly>
-                </div>
-                
-                <div>
-                    <label>تا تاریخ (شمسی):</label><br>
-                    <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi_salary" 
-                           value="<?php echo esc_attr($display_date_to_sal); ?>" 
-                           class="persian-date-input sc-filter-control sc-no-default-date" style="width: 150px;" readonly>
-                </div>
-                
-                <div>
-                    <input type="submit" class="button button-primary" value="فیلتر">
-                    <a href="<?php echo admin_url('admin.php?page=sc-coach-management-salary'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-                     <?php
+            </div>
+
+        </div>
+
+        <p class="submit">
+            <input type="submit" class="button button-primary" value="اعمال فیلتر">
+            <a href="<?php echo admin_url('admin.php?page=sc-coach-management-salary'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            <?php
             // ساخت URL برای export Excel با حفظ فیلترها
             $export_url = admin_url('admin.php?page=sc-coach-management-salary&sc_export=excel&export_type=coach_management_salary');
-            $export_url = add_query_arg('filter_status', isset($_GET['filter_status']) ? $_GET['filter_status'] : 'all', $export_url);
-            $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
-            $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
-            if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
-                $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
+            if ($filter_coach > 0) {
+                $export_url = add_query_arg('filter_coach', $filter_coach, $export_url);
             }
-            if (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
-                $export_url = add_query_arg('filter_date_to', $_GET['filter_date_to'], $export_url);
+            if ($filter_course > 0) {
+                $export_url = add_query_arg('filter_course', $filter_course, $export_url);
             }
-            if (isset($_GET['s']) && !empty($_GET['s'])) {
-                $export_url = add_query_arg('s', $_GET['s'], $export_url);
+            if ($filter_type !== 'all') {
+                $export_url = add_query_arg('filter_type', $filter_type, $export_url);
+            }
+            if (!empty($filter_date_from_shamsi)) {
+                $export_url = add_query_arg('filter_date_from_shamsi', $filter_date_from_shamsi, $export_url);
+            }
+            if (!empty($filter_date_to_shamsi)) {
+                $export_url = add_query_arg('filter_date_to_shamsi', $filter_date_to_shamsi, $export_url);
             }
             $export_url = wp_nonce_url($export_url, 'sc_export_excel');
             ?>
-            <a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
-                📊 خروجی Excel
-            </a>
-                </div>
-            </div>
-        </form>
-    </div>
+            <a href="<?php echo esc_url($export_url); ?>" class="button button_export">📊 خروجی Excel</a>
+        </p>
+    </form>
     
     <!-- خلاصه -->
     <div style="background: #fff; padding: 15px; margin: 20px 0; border-left: 4px solid #2271b1;">
@@ -188,7 +193,7 @@ $courses = $wpdb->get_results(
         <span style="margin-right: 30px;"></span>
         <strong>تعداد رکورد:</strong> <?php echo $total_items > 0 ? sprintf('%d تا %d از %d', $offset + 1, min($offset + count($salary_records), $total_items), $total_items) : '۰'; ?>
     </div>
-    
+    <div class="back_table_list">
     <!-- جدول دستمزد -->
     <table class="wp-list-table widefat fixed striped">
         <thead>
@@ -262,7 +267,7 @@ $courses = $wpdb->get_results(
             </tr>
         </tfoot>
     </table>
-
+      </div>                          
     <?php if ($total_pages > 1) : ?>
         <div class="tablenav bottom sc_paginate" style="margin-top: 15px;">
             <div class="tablenav-pages">

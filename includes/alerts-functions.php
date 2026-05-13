@@ -291,22 +291,97 @@ function sc_generate_system_alert_notifications($force = false) {
     return $created_count;
 }
 
-function sc_get_admin_system_alert_notifications($user_id) {
+function sc_get_admin_system_alert_notifications($user_id, $args = []) {
     global $wpdb;
     $notifications_table = $wpdb->prefix . 'sc_notifications';
     $recipients_table = $wpdb->prefix . 'sc_notification_recipients';
     $reads_table = $wpdb->prefix . 'sc_notification_reads';
+
+    $defaults = [
+        'search' => '',
+        'kind' => 'all',
+        'status' => 'all',
+        'date_from' => '',
+        'date_to' => '',
+        'per_page' => 0,
+        'offset' => 0,
+        'count_only' => false,
+    ];
+    $args = array_merge($defaults, (array) $args);
+
+    $where = [
+        'nr.user_id = %d',
+        'n.notification_type = %s',
+        'n.target_type = %s',
+    ];
+    $params = [(int) $user_id, 'system', 'admin_users'];
+
+    if (!empty($args['search'])) {
+        $like = '%' . $wpdb->esc_like((string) $args['search']) . '%';
+        $where[] = '(n.title LIKE %s OR n.content LIKE %s)';
+        $params[] = $like;
+        $params[] = $like;
+    }
+
+    if (!empty($args['kind']) && $args['kind'] !== 'all') {
+        $kind = (string) $args['kind'];
+        if ($kind === 'other') {
+            $where[] = '(n.target_config NOT LIKE %s AND n.target_config NOT LIKE %s)';
+            $params[] = '%"alert_kind":"absence_limit"%';
+            $params[] = '%"alert_kind":"debt_over_2"%';
+        } else {
+            $where[] = 'n.target_config LIKE %s';
+            $params[] = '%"alert_kind":"' . $wpdb->esc_like($kind) . '"%';
+        }
+    }
+
+    if (!empty($args['date_from'])) {
+        $where[] = 'DATE(n.created_at) >= %s';
+        $params[] = (string) $args['date_from'];
+    }
+    if (!empty($args['date_to'])) {
+        $where[] = 'DATE(n.created_at) <= %s';
+        $params[] = (string) $args['date_to'];
+    }
+
+    if (!empty($args['status']) && $args['status'] !== 'all') {
+        if ($args['status'] === 'read') {
+            $where[] = 'r.read_at IS NOT NULL';
+        } elseif ($args['status'] === 'unread') {
+            $where[] = 'r.read_at IS NULL';
+        }
+    }
+
+    $where_sql = implode(' AND ', $where);
+
+    if (!empty($args['count_only'])) {
+        $sql = "SELECT COUNT(*)
+                FROM $recipients_table nr
+                INNER JOIN $notifications_table n ON n.id = nr.notification_id
+                LEFT JOIN $reads_table r ON r.notification_id = n.id AND r.user_id = %d
+                WHERE $where_sql";
+        $count_params = array_merge([(int) $user_id], $params);
+        return (int) $wpdb->get_var($wpdb->prepare($sql, $count_params));
+    }
+
     $sql = "SELECT n.id, n.title, n.content, n.created_at, n.target_config,
                 CASE WHEN r.read_at IS NULL THEN 0 ELSE 1 END AS is_read,
                 r.read_at
             FROM $recipients_table nr
             INNER JOIN $notifications_table n ON n.id = nr.notification_id
             LEFT JOIN $reads_table r ON r.notification_id = n.id AND r.user_id = %d
-            WHERE nr.user_id = %d
-              AND n.notification_type = %s
-              AND n.target_type = %s
+            WHERE $where_sql
             ORDER BY is_read ASC, n.created_at DESC";
-    return $wpdb->get_results($wpdb->prepare($sql, $user_id, $user_id, 'system', 'admin_users'));
+
+    $query_params = array_merge([(int) $user_id], $params);
+
+    if (!empty($args['per_page']) && (int) $args['per_page'] > 0) {
+        $sql .= ' LIMIT %d OFFSET %d';
+        $query_params[] = (int) $args['per_page'];
+        $query_params[] = max(0, (int) $args['offset']);
+    }
+
+    return $wpdb->get_results($wpdb->prepare($sql, $query_params));
 }
 
 function sc_delete_system_alert_notification($notification_id) {
@@ -349,7 +424,44 @@ function sc_render_user_alerts_page() {
         $message = 'هشدار حذف شد.';
     }
 
-    $items = sc_get_admin_system_alert_notifications($current_user_id);
+    $filter_search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+    $filter_kind = isset($_GET['filter_kind']) ? sanitize_key(wp_unslash($_GET['filter_kind'])) : 'all';
+    if (!in_array($filter_kind, ['all', 'absence_limit', 'debt_over_2', 'other'], true)) {
+        $filter_kind = 'all';
+    }
+    $filter_status = isset($_GET['filter_status']) ? sanitize_key(wp_unslash($_GET['filter_status'])) : 'all';
+    if (!in_array($filter_status, ['all', 'read', 'unread'], true)) {
+        $filter_status = 'all';
+    }
+
+    $filter_date_from = '';
+    $filter_date_to = '';
+    $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '';
+    $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '';
+    if ($filter_date_from_shamsi !== '' && function_exists('sc_shamsi_to_gregorian_date')) {
+        $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+    }
+    if ($filter_date_to_shamsi !== '' && function_exists('sc_shamsi_to_gregorian_date')) {
+        $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+    }
+
+    $per_page = 20;
+    $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+    $offset = ($current_page - 1) * $per_page;
+
+    $query_args = [
+        'search' => $filter_search,
+        'kind' => $filter_kind,
+        'status' => $filter_status,
+        'date_from' => $filter_date_from,
+        'date_to' => $filter_date_to,
+        'per_page' => $per_page,
+        'offset' => $offset,
+    ];
+
+    $total_items = (int) sc_get_admin_system_alert_notifications($current_user_id, array_merge($query_args, ['count_only' => true]));
+    $total_pages = $per_page > 0 ? (int) ceil($total_items / $per_page) : 1;
+    $items = sc_get_admin_system_alert_notifications($current_user_id, $query_args);
     $absence_limit = sc_get_user_alert_absence_limit();
     ?>
     <div class="wrap">
@@ -363,7 +475,7 @@ function sc_render_user_alerts_page() {
         <a href="<?php echo esc_url($generate_url); ?>" class="page-title-action">بررسی و تولید هشدار</a>
         <hr class="wp-header-end">
     </div>
-    <div class="wrap back_table_list ">
+    <div class="wrap">
         <?php if ($message !== '') : ?>
             <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
@@ -374,54 +486,150 @@ function sc_render_user_alerts_page() {
                 (در هر دوره).
             </p>
         </div>
-        <table class="wp-list-table widefat fixed striped " style="margin-top: 16px;">
-            <thead>
-                <tr>
-                    <th style="width: 60px;">ردیف</th>
-                    <th style="width: 100px;">نوع هشدار</th>
-                    <th style="width: 150px;" >عنوان</th>
-                    <th style="width: 250px;">متن</th>
-                    <th style="width: 140px;">تاریخ</th>
-                    <th style="width: 100px;">وضعیت</th>
-                    <th style="width: 120px;">اقدامات</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($items)) : ?>
-                    <tr><td colspan="7">هنوز هشدار سیستمی ثبت نشده است.</td></tr>
-                <?php else : ?>
-                    <?php foreach ($items as $index => $item) : ?>
-                        <?php
-                        $cfg = !empty($item->target_config) ? json_decode($item->target_config, true) : [];
-                        $kind = is_array($cfg) && !empty($cfg['alert_kind']) ? (string) $cfg['alert_kind'] : '';
-                        $kind_label = $kind === 'absence_limit' ? 'غیبت بیش از حد' : ($kind === 'debt_over_2' ? 'بیش از ۲ بدهی' : 'سیستمی');
-                        $confirm_url = wp_nonce_url(
-                            add_query_arg(['page' => 'sc-user-alerts', 'sc_alert_action' => 'confirm', 'notification_id' => (int) $item->id], admin_url('admin.php')),
-                            'sc_confirm_alert_' . (int) $item->id
-                        );
-                        $delete_url = wp_nonce_url(
-                            add_query_arg(['page' => 'sc-user-alerts', 'sc_alert_action' => 'delete', 'notification_id' => (int) $item->id], admin_url('admin.php')),
-                            'sc_delete_alert_' . (int) $item->id
-                        );
-                        ?>
-                        <tr>
-                            <td><?php echo esc_html((string) ($index + 1)); ?></td>
-                            <td><?php echo esc_html($kind_label); ?></td>
-                            <td><strong><?php echo esc_html((string) $item->title); ?></strong></td>
-                            <td><?php echo esc_html((string) $item->content); ?></td>
-                            <td><?php echo function_exists('sc_date_shamsi') ? esc_html(sc_date_shamsi($item->created_at, 'Y/m/d H:i')) : esc_html((string) $item->created_at); ?></td>
-                            <td><?php echo !empty($item->is_read) ? 'تایید شده' : 'نیازمند تایید'; ?></td>
-                            <td>
-                                <?php if (empty($item->is_read)) : ?>
-                                    <a href="<?php echo esc_url($confirm_url); ?>">تایید</a> |
-                                <?php endif; ?>
-                                <a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'این هشدار حذف شود؟' });">حذف</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
+
+        <div class="filter_search_user_alerts">
+            <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1 user-alerts-filter-form">
+                <input type="hidden" name="page" value="sc-user-alerts">
+
+                <div class="sc-filter-grid">
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label" for="filter_kind">نوع هشدار</label>
+                        <select name="filter_kind" id="filter_kind" class="sc-filter-control">
+                            <option value="all" <?php selected($filter_kind, 'all'); ?>>همه</option>
+                            <option value="absence_limit" <?php selected($filter_kind, 'absence_limit'); ?>>غیبت بیش از حد</option>
+                            <option value="debt_over_2" <?php selected($filter_kind, 'debt_over_2'); ?>>بیش از ۲ بدهی</option>
+                            <option value="other" <?php selected($filter_kind, 'other'); ?>>سایر سیستمی</option>
+                        </select>
+                    </div>
+
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label" for="filter_status">وضعیت</label>
+                        <select name="filter_status" id="filter_status" class="sc-filter-control">
+                            <option value="all" <?php selected($filter_status, 'all'); ?>>همه وضعیت‌ها</option>
+                            <option value="unread" <?php selected($filter_status, 'unread'); ?>>نیازمند تایید</option>
+                            <option value="read" <?php selected($filter_status, 'read'); ?>>تایید شده</option>
+                        </select>
+                    </div>
+
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label" for="user_alerts_search">جستجو</label>
+                        <input type="search" id="user_alerts_search" name="s" class="sc-filter-control" value="<?php echo esc_attr($filter_search); ?>" placeholder="جستجو در عنوان و متن...">
+                    </div>
+
+                    <div class="sc-filter-field sc-filter-date">
+                        <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
+                        <div class="sc-date-range">
+                            <input type="text"
+                                   name="filter_date_from_shamsi"
+                                   id="user_alerts_filter_date_from_shamsi"
+                                   value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                                   class="persian-date-input sc-filter-control sc-no-default-date"
+                                   placeholder="از تاریخ"
+                                   readonly>
+                            <input type="text"
+                                   name="filter_date_to_shamsi"
+                                   id="user_alerts_filter_date_to_shamsi"
+                                   value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                                   class="persian-date-input sc-filter-control sc-no-default-date"
+                                   placeholder="تا تاریخ"
+                                   readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="submit">
+                    <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-user-alerts')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                </p>
+            </form>
+        </div>
+
+        <div class="back_table_list">
+            <table class="wp-list-table widefat fixed striped" style="margin-top: 16px;">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">ردیف</th>
+                        <th style="width: 100px;">نوع هشدار</th>
+                        <th style="width: 150px;">عنوان</th>
+                        <th style="width: 250px;">متن</th>
+                        <th style="width: 140px;">تاریخ</th>
+                        <th style="width: 100px;">وضعیت</th>
+                        <th style="width: 120px;">اقدامات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($items)) : ?>
+                        <tr><td colspan="7" style="text-align:center; padding:20px;">هیچ هشداری با این فیلترها یافت نشد.</td></tr>
+                    <?php else : ?>
+                        <?php $row_number = $offset; ?>
+                        <?php foreach ($items as $item) : ?>
+                            <?php
+                            $row_number++;
+                            $cfg = !empty($item->target_config) ? json_decode($item->target_config, true) : [];
+                            $kind = is_array($cfg) && !empty($cfg['alert_kind']) ? (string) $cfg['alert_kind'] : '';
+                            $kind_label = $kind === 'absence_limit' ? 'غیبت بیش از حد' : ($kind === 'debt_over_2' ? 'بیش از ۲ بدهی' : 'سیستمی');
+                            $confirm_url = wp_nonce_url(
+                                add_query_arg(['page' => 'sc-user-alerts', 'sc_alert_action' => 'confirm', 'notification_id' => (int) $item->id], admin_url('admin.php')),
+                                'sc_confirm_alert_' . (int) $item->id
+                            );
+                            $delete_url = wp_nonce_url(
+                                add_query_arg(['page' => 'sc-user-alerts', 'sc_alert_action' => 'delete', 'notification_id' => (int) $item->id], admin_url('admin.php')),
+                                'sc_delete_alert_' . (int) $item->id
+                            );
+                            ?>
+                            <tr>
+                                <td><?php echo esc_html((string) $row_number); ?></td>
+                                <td><?php echo esc_html($kind_label); ?></td>
+                                <td><strong><?php echo esc_html((string) $item->title); ?></strong></td>
+                                <td><?php echo esc_html((string) $item->content); ?></td>
+                                <td><?php echo function_exists('sc_date_shamsi') ? esc_html(sc_date_shamsi($item->created_at, 'Y/m/d H:i')) : esc_html((string) $item->created_at); ?></td>
+                                <td><?php echo !empty($item->is_read) ? 'تایید شده' : 'نیازمند تایید'; ?></td>
+                                <td>
+                                    <?php if (empty($item->is_read)) : ?>
+                                        <a href="<?php echo esc_url($confirm_url); ?>">تایید</a> |
+                                    <?php endif; ?>
+                                    <a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'این هشدار حذف شود؟' });">حذف</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <?php if ($total_pages > 1) : ?>
+            <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
+                <div class="tablenav-pages">
+                    <?php
+                    $pagination_args = ['page' => 'sc-user-alerts'];
+                    if ($filter_kind !== 'all') {
+                        $pagination_args['filter_kind'] = $filter_kind;
+                    }
+                    if ($filter_status !== 'all') {
+                        $pagination_args['filter_status'] = $filter_status;
+                    }
+                    if ($filter_search !== '') {
+                        $pagination_args['s'] = $filter_search;
+                    }
+                    if ($filter_date_from_shamsi !== '') {
+                        $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
+                    }
+                    if ($filter_date_to_shamsi !== '') {
+                        $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
+                    }
+                    echo paginate_links([
+                        'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
+                        'format' => '',
+                        'prev_text' => '< قبلی ',
+                        'next_text' => ' بعدی >',
+                        'total' => $total_pages,
+                        'current' => $current_page,
+                        'add_args' => $pagination_args,
+                    ]);
+                    ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
     <?php
 }

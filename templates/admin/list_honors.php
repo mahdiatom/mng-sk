@@ -205,6 +205,22 @@ $filter_category = ($filter_category_raw === 'all' || $filter_category_raw === '
 $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
 $filter_user = isset($_GET['filter_user']) ? sanitize_text_field($_GET['filter_user']) : '';
 $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+$filter_date_from = '';
+$filter_date_to = '';
+$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '';
+$filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '';
+if ($filter_date_from_shamsi !== '' && function_exists('sc_shamsi_to_gregorian_date')) {
+    $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+}
+if ($filter_date_to_shamsi !== '' && function_exists('sc_shamsi_to_gregorian_date')) {
+    $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+}
+if ($filter_date_from === '' && !empty($_GET['filter_date_from'])) {
+    $filter_date_from = sanitize_text_field(wp_unslash($_GET['filter_date_from']));
+}
+if ($filter_date_to === '' && !empty($_GET['filter_date_to'])) {
+    $filter_date_to = sanitize_text_field(wp_unslash($_GET['filter_date_to']));
+}
 $filter_status = isset($_GET['filter_status']) ? sanitize_key($_GET['filter_status']) : 'all';
 if (!in_array($filter_status, ['all', 'pending', 'approved', 'rejected'], true)) {
     $filter_status = 'all';
@@ -256,6 +272,19 @@ if (!empty($search)) {
     $search_like = '%' . $wpdb->esc_like($search) . '%';
     $where_values[] = $search_like;
     $where_values[] = $search_like;
+}
+
+// بازه تاریخ (ثبت رکورد)
+if ($filter_date_from !== '' && $filter_date_to !== '') {
+    $where .= ' AND DATE(created_at) >= %s AND DATE(created_at) <= %s';
+    $where_values[] = $filter_date_from;
+    $where_values[] = $filter_date_to;
+} elseif ($filter_date_from !== '') {
+    $where .= ' AND DATE(created_at) >= %s';
+    $where_values[] = $filter_date_from;
+} elseif ($filter_date_to !== '') {
+    $where .= ' AND DATE(created_at) <= %s';
+    $where_values[] = $filter_date_to;
 }
 
 // شمارش کل رکوردها
@@ -323,8 +352,8 @@ $total_pages = ceil($total_items / $per_page);
         </div>
     <?php endif; ?>
 <div class="filter_search_honors">
-    <!-- فیلترها -->
-    <form method="get" action="" class="filter_honors_list form_fillter_attendance form_fillter_attendance_tab1">
+    <!-- فیلترها (همان ساختار حضور و غیاب / لیست بازیکنان) -->
+    <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1 honors-filter-form">
         <input type="hidden" name="page" value="sc-honors">
 
         <div class="sc-filter-grid">
@@ -418,6 +447,28 @@ $total_pages = ceil($total_items / $per_page);
             <div class="sc-filter-field">
                 <label class="sc-filter-label" for="search_id">جستجو</label>
                 <input type="search" id="search_id" name="s" class="sc-filter-control" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و توضیحات...">
+            </div>
+
+            <div class="sc-filter-field sc-filter-date">
+                <label class="sc-filter-label">بازه تاریخ ثبت (شمسی)</label>
+                <div class="sc-date-range">
+                    <input type="text"
+                           name="filter_date_from_shamsi"
+                           id="honors_filter_date_from_shamsi"
+                           value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                           class="persian-date-input sc-filter-control sc-no-default-date"
+                           placeholder="از تاریخ"
+                           readonly>
+                    <input type="hidden" name="filter_date_from" id="honors_filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                    <input type="text"
+                           name="filter_date_to_shamsi"
+                           id="honors_filter_date_to_shamsi"
+                           value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                           class="persian-date-input sc-filter-control sc-no-default-date"
+                           placeholder="تا تاریخ"
+                           readonly>
+                    <input type="hidden" name="filter_date_to" id="honors_filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                </div>
             </div>
         </div>
 
@@ -587,6 +638,18 @@ $total_pages = ceil($total_items / $per_page);
                     }
                     if (!empty($search)) {
                         $pagination_args['s'] = $search;
+                    }
+                    if ($filter_date_from_shamsi !== '') {
+                        $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
+                    }
+                    if ($filter_date_to_shamsi !== '') {
+                        $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
+                    }
+                    if ($filter_date_from !== '') {
+                        $pagination_args['filter_date_from'] = $filter_date_from;
+                    }
+                    if ($filter_date_to !== '') {
+                        $pagination_args['filter_date_to'] = $filter_date_to;
                     }
                     $page_links = paginate_links([
                         'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),

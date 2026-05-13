@@ -162,51 +162,35 @@ if ($entries_table_exists && $total_entries > 0) {
     <h1 class="wp-heading-inline">گزارشات باشگاه – گزارشات ارسال پیامک</h1>
     <hr class="wp-header-end">
 
-    <form method="get" action="" style="margin-bottom: 20px;">
+    <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
         <input type="hidden" name="page" value="sc-reports-sms-log">
-        <div class="input_from_shamsi_date_smslog">
-            <div>
-                <label for="date_from_shamsi" style="display: block; margin-bottom: 4px; font-size: 12px;">از تاریخ</label>
-                <input type="text"
-                       name="date_from_shamsi"
-                       id="date_from_shamsi"
-                       value="<?php echo esc_attr($display_date_from); ?>"
-                       class="regular-text persian-date-input sc-no-default-date"
-                       placeholder="انتخاب تاریخ (شمسی)"
-                       readonly
-                       >
-            </div>
-            <div>
-                <label for="date_to_shamsi" style="display: block; margin-bottom: 4px; font-size: 12px;">تا تاریخ</label>
-                <input type="text"
-                       name="date_to_shamsi"
-                       id="date_to_shamsi"
-                       value="<?php echo esc_attr($display_date_to); ?>"
-                       class="regular-text persian-date-input sc-no-default-date"
-                       placeholder="انتخاب تاریخ (شمسی)"
-                       readonly
-                       >
-            </div>
-            <div class="section_filter_sms_log">
-                <label for="context">بخش</label>
-                <select name="context" id="context">
+
+        <div class="sc-filter-grid">
+
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="context">بخش</label>
+                <select name="context" id="context" class="sc-filter-control">
                     <option value="">همه</option>
-                    <?php foreach ($context_labels as $ctx => $label) : if ($ctx === '') continue; ?>
+                    <?php foreach ($context_labels as $ctx => $label) : if ($ctx === '') {
+                        continue;
+                    } ?>
                         <option value="<?php echo esc_attr($ctx); ?>" <?php selected($filter_context, $ctx); ?>><?php echo esc_html($label); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="state_filter_sms_log">
-                <label for="status" style="display: block; margin-bottom: 4px; font-size: 12px;">وضعیت</label>
-                <select name="status" id="status" style="width: 100%;">
+
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="status">وضعیت ارسال</label>
+                <select name="status" id="status" class="sc-filter-control">
                     <option value="" <?php selected($filter_status, ''); ?>>همه</option>
                     <option value="1" <?php selected($filter_status, '1'); ?>>موفق</option>
                     <option value="0" <?php selected($filter_status, '0'); ?>>ناموفق</option>
                 </select>
             </div>
-            <div>
-                <label for="log_level" style="display: block; margin-bottom: 4px; font-size: 12px;">سطح لاگ تفصیلی</label>
-                <select name="log_level" id="log_level">
+
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="log_level">سطح لاگ تفصیلی</label>
+                <select name="log_level" id="log_level" class="sc-filter-control">
                     <option value="" <?php selected($filter_log_level, ''); ?>>همه</option>
                     <option value="DEBUG" <?php selected($filter_log_level, 'DEBUG'); ?>>DEBUG</option>
                     <option value="INFO" <?php selected($filter_log_level, 'INFO'); ?>>INFO</option>
@@ -214,35 +198,60 @@ if ($entries_table_exists && $total_entries > 0) {
                     <option value="ERROR" <?php selected($filter_log_level, 'ERROR'); ?>>ERROR</option>
                 </select>
             </div>
-            <div>
-                <label for="detail_search" style="display: block; margin-bottom: 4px; font-size: 12px;">جستجو در لاگ تفصیلی</label>
-                <input type="text"
+
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="detail_search">جستجو در لاگ تفصیلی</label>
+                <input type="search"
                        name="detail_search"
                        id="detail_search"
                        value="<?php echo esc_attr($filter_detail_search); ?>"
-                       class="regular-text"
-                       placeholder="پیام یا Data..."
-                       style="width: 160px;">
+                       class="sc-filter-control"
+                       placeholder="پیام یا Data...">
             </div>
-            <div>
-                <label for="per_page" style="display: block; margin-bottom: 4px; font-size: 12px;">تعداد در هر صفحه</label>
-                <select name="per_page" id="per_page" style="width: 70px;">
+
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="per_page">تعداد در هر صفحه</label>
+                <select name="per_page" id="per_page" class="sc-filter-control">
                     <?php foreach ([10, 25, 50, 100, 200] as $n) : ?>
                         <option value="<?php echo (int) $n; ?>" <?php selected($per_page, $n); ?>><?php echo (int) $n; ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div>
-                <button type="submit" class="button button-primary">اعمال فیلتر</button>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-sms-log')); ?>" class="button">پاک کردن فیلتر</a>
+
+            <div class="sc-filter-field sc-filter-date">
+                <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
+                <div class="sc-date-range">
+                    <input type="text"
+                           name="date_from_shamsi"
+                           id="date_from_shamsi"
+                           value="<?php echo esc_attr($display_date_from); ?>"
+                           class="persian-date-input sc-filter-control sc-no-default-date"
+                           placeholder="از تاریخ"
+                           readonly>
+                    <input type="hidden" name="date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                    <input type="text"
+                           name="date_to_shamsi"
+                           id="date_to_shamsi"
+                           value="<?php echo esc_attr($display_date_to); ?>"
+                           class="persian-date-input sc-filter-control sc-no-default-date"
+                           placeholder="تا تاریخ"
+                           readonly>
+                    <input type="hidden" name="date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                </div>
             </div>
+
         </div>
+
+        <p class="submit">
+            <button type="submit" class="button button-primary">اعمال فیلتر</button>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-sms-log')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+        </p>
     </form>
 
     <form method="post" action="" style="margin-bottom: 16px;" onsubmit="return scConfirmInline(event, { type: 'warning', message: 'تمام لاگ‌های گزارش ارسال پیامک و لاگ تفصیلی پاک می‌شوند. مطمئن هستید؟' });">
         <?php wp_nonce_field('sc_clear_sms_logs', '_wpnonce_clear_sms_logs'); ?>
         <input type="hidden" name="sc_clear_sms_logs" value="1">
-        <button type="submit" class="button button-secondary">پاکسازی تمام لاگ‌های پیامک</button>
+        <button type="submit" class="sc_button button-secondary">پاکسازی تمام لاگ‌های پیامک</button>
     </form>
 
     <p style="color: #646970; margin-bottom: 12px;">تعداد کل: <strong><?php echo number_format($total_items); ?></strong> رکورد</p>
@@ -445,9 +454,8 @@ if ($entries_table_exists && $total_entries > 0) {
                 </div>
         <?php if ($total_pages_ent > 1) : ?>
             <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
-                <div class="tablenav-pages" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <span class="displaying-num"><?php echo number_format($total_entries); ?> مورد</span>
-                    <span class="pagination-links">
+                <div class="tablenav-pages">
+                    <p class="pagination-links">
                         <?php
                         $pagination_args_ent = ['page' => 'sc-reports-sms-log', 'per_page' => $per_page];
                         if (!empty($filter_date_from_shamsi)) $pagination_args_ent['date_from_shamsi'] = $filter_date_from_shamsi;
@@ -466,7 +474,7 @@ if ($entries_table_exists && $total_entries > 0) {
                             'add_args' => array_diff_key($pagination_args_ent, ['page' => 1]),
                         ]);
                         ?>
-                    </span>
+                    </p>
                 </div>
             </div>
         <?php endif; ?>

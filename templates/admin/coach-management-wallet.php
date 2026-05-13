@@ -102,14 +102,14 @@ if ($coach) {
     <div class="wrap">
     <!-- انتخاب مربی -->
     <div class="card choose_coach" style="margin: 20px 0; max-width: 100%;">
-        <h2>انتخاب مربی</h2>
+        <h2 class="title_manage_wallet">انتخاب مربی</h2>
         <form method="GET" action="">
             <input type="hidden" name="page" value="sc-coach-management-wallet">
             <table class="form-table">
                 <tr>
                     <th><label for="coach_id">مربی</label></th>
                     <td>
-                        <select name="coach_id" id="coach_id" style="width: 300px;" onchange="this.form.submit();">
+                        <select name="coach_id" id="coach_id"  onchange="this.form.submit();">
                             <option value="0">-- انتخاب مربی --</option>
                             <?php foreach ($coaches as $c): ?>
                                 <option value="<?php echo $c->id; ?>" <?php selected($coach_id, $c->id); ?>>
@@ -138,7 +138,7 @@ if ($coach) {
         
         <!-- فرم شارژ/برداشت -->
         <div class="card charge_wallet" style="margin: 20px 0; max-width: 100%;">
-            <h2>شارژ / برداشت دستی</h2>
+            <h2 class="title_manage_wallet">شارژ / برداشت دستی</h2>
             <form method="POST" action="" style="max-width: 800px;">
                 <?php wp_nonce_field('coach_wallet_action_nonce'); ?>
                 <input type="hidden" name="coach_id" value="<?php echo $coach_id; ?>">
@@ -185,14 +185,14 @@ if ($coach) {
                 </table>
                 
                 <p class="submit">
-                    <input type="submit" name="submit_action" class="button button-primary" value="اجرا">
+                    <input type="submit" name="submit_action" class="sc_button button-primary" value="اجرا" style="width: 100px;"">
                 </p>
             </form>
         </div>
         
         <!-- تراکنش‌ها -->
         <div class="card list_records_wallet " style="margin: 20px 0; max-width: 100%;">
-            <h2>تراکنش‌های کیف پول</h2>
+            <h2 class="title_manage_wallet">تراکنش‌های کیف پول</h2>
             <?php if (empty($transactions)): ?>
                 <p>هیچ تراکنشی ثبت نشده است.</p>
             <?php else: ?>

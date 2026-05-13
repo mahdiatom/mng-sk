@@ -16,12 +16,11 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
         <div class="section_box">
 
             <div id="question" class="question">
-                
-            <span> سوال <?php echo $i+1; ?> : <?php echo $faq->question; ?></span>  
+                <span>سوال <?php echo $i+1; ?>:</span>
+                <div class="question-content"><?php echo wp_kses_post($faq->question); ?></div>
             </div>
             <div class="answer">
-            <span> <?php echo $faq->answer; ?> </span>  
-
+                <div class="answer-content"><?php echo wp_kses_post($faq->answer); ?></div>
             </div>
         </div>
         <?php

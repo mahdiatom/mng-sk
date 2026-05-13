@@ -10,11 +10,11 @@ global $title ,$player_list_table;
             <div class="wrap">
             <h1 class="wp-heading-inline">لیست بازیکن ها</h1>
             <a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action">افزودن بازیکن</a>
+        
+            <p>برای مشاهده اکشن‌ها روی نام کاربر بروید (حذف، مشاهده، ویرایش).</p>
+       
         </div>
 
-        <div class="notice_custom_list_member">
-            <p>برای مشاهده اکشن‌ها روی نام کاربر بروید (حذف، مشاهده، ویرایش).</p>
-        </div>
 
         <?php
         // بارگذاری داده‌ها برای فیلتر searchable

@@ -17,8 +17,8 @@ $editing_faq = null;
 
 
 if (isset($_POST['add_faq']) && check_admin_referer('add_faq_faq')) {
-    $question = isset($_POST['question']) ? sanitize_text_field($_POST['question']) : '';
-    $answer = isset($_POST['answer']) ? sanitize_text_field($_POST['answer']) : '';
+    $question = isset($_POST['question']) ? wp_kses_post($_POST['question']) : '';
+    $answer = isset($_POST['answer']) ? wp_kses_post($_POST['answer']) : '';
     
     if (empty($question)) {
         $message = 'لطفاً نام پرسش / پاسخ  را وارد کنید.';
@@ -57,44 +57,32 @@ if (isset($_POST['add_faq']) && check_admin_referer('add_faq_faq')) {
 }
 
 // پردازش ویرایش پرسش / پاسخ 
-$editing_faq = null;
-if (isset($_POST['edit_faq']) && check_admin_referer('edit_faq_faq')) {
+if (isset($_POST['edit_faq']) && check_admin_referer('edit_faq')) {
     $faq_id = isset($_POST['faq_id']) ? absint($_POST['faq_id']) : 0;
-    $question = isset($_POST['question']) ? sanitize_text_field($_POST['question']) : '';
+    $question = isset($_POST['question']) ? wp_kses_post($_POST['question']) : '';
+    $answer = isset($_POST['answer']) ? wp_kses_post($_POST['answer']) : '';
     
     if ($faq_id && !empty($question)) {
-        // بررسی تکراری نبودن (به جز خود این پرسش / پاسخ )
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $faq_table WHERE name = %s AND id != %d",
-            $question,
-            $faq_id
-        ));
+        $updated = $wpdb->update(
+            $faq_table,
+            [
+                'question' => $question,
+                'answer' => $answer
+            ],
+            ['id' => $faq_id],
+            ['%s', '%s'],
+            ['%d']
+        );
         
-        if ($existing) {
-            $message = 'پرسش / پاسخ ‌ای با این نام قبلاً وجود دارد.';
-            $message_type = 'error';
+        if ($updated !== false) {
+            wp_safe_redirect(add_query_arg('updated', '1', admin_url('admin.php?page=sc_faq')));
+            exit;
         } else {
-            $updated = $wpdb->update(
-                $faq_table,
-                [
-                    'name' => $question,
-                    'updated_at' => current_time('mysql')
-                ],
-                ['id' => $faq_id],
-                ['%s', '%s'],
-                ['%d']
-            );
-            
-            if ($updated !== false) {
-                wp_safe_redirect(add_query_arg('updated', '1', admin_url('admin.php?page=sc_faq')));
-                exit;
-            } else {
-                $message = 'خطا در ویرایش پرسش / پاسخ .';
-                $message_type = 'error';
-            }
+            $message = 'خطا در ویرایش پرسش / پاسخ .';
+            $message_type = 'error';
         }
     } else {
-        $message = 'لطفاً نام پرسش / پاسخ  را وارد کنید.';
+        $message = 'لطفاً پرسش را وارد کنید.';
         $message_type = 'error';
     }
 }
@@ -157,10 +145,11 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
             <p><?php echo esc_html($message); ?></p>
         </div>
     <?php endif; ?>
-    
+    </div>
+   <div class="wrap">
     <div class="sections_cat_faq">
         <!-- فرم افزودن یا ویرایش پرسش / پاسخ  -->
-        <div class="postbox edit_cat_faq">
+        <div class=" edit_cat_faq">
             <div class="postbox-header">
                 <h2 class=""><?php echo $editing_faq ? 'ویرایش پرسش / پاسخ ' : 'افزودن پرسش / پاسخ  جدید'; ?></h2>
             </div>
@@ -168,7 +157,7 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
                 <?php if ($editing_faq) : ?>
                     <form method="post">
                         <?php wp_nonce_field('edit_faq'); ?>
-                        <!-- <input type="hidden" name="faq_id" value="<?php echo esc_attr($editing_faq->id); ?>"> -->
+                        <input type="hidden" name="faq_id" value="<?php echo esc_attr($editing_faq->id); ?>">
                         <table class="form-table">
                             <tr>
                                 <th scope="row">
@@ -176,7 +165,7 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
                                     <label for="question">پرسش <span style="color: red;">*</span></label>
                                 </th>
                                 <td>
-                                    <?php wp_editor($editing_faq->question , 'question', ['textarea_rows' => 4 , 'media_buttons' => false]) ?>
+                                    <?php wp_editor($editing_faq->question , 'question', ['textarea_rows' => 6 , 'media_buttons' => true]) ?>
                                     <!-- <input type="text" id="question" name="question" class="regular-text" value="<?php //echo esc_attr($editing_faq->question); ?>" required> -->
                                     <p class="description"> پرسش را ویرایش کنید</p>
                                 </td>
@@ -186,7 +175,7 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
                                     <label for="answer"> پاسخ  <span style="color: red;">*</span></label>
                                 </th>
                                 <td>
-                                    <?php wp_editor($editing_faq->answer , 'answer', ['textarea_rows' => 4 , 'media_buttons' => false]) ?>
+                                    <?php wp_editor($editing_faq->answer , 'answer', ['textarea_rows' => 8 , 'media_buttons' => true]) ?>
                                     <!-- <input type="text" id="answer" name="answer" class="regular-text" value="<?php //echo esc_attr($editing_faq->answer); ?>" required> -->
                                     <p class="description"> پاسخ  را ویرایش کنید</p>
                                 </td>
@@ -206,7 +195,7 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
                                     <label for="question"> پرسش   <span style="color: red;">*</span></label>
                                 </th>
                                 <td>
-                                    <?php wp_editor('' , 'question' , ['textarea_rows' => 4 , 'media_buttons' => false]) ?>
+                                    <?php wp_editor('' , 'question' , ['textarea_rows' => 6 , 'media_buttons' => true]) ?>
                                     <!-- <input type="text" id="question" name="question" class="regular-text" required> -->
                                     <p class="description"> پرسش خود را را وارد کنید</p>
                                 </td>
@@ -216,7 +205,7 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
                                     <label for="answer"> پاسخ  <span style="color: red;">*</span></label>
                                 </th>
                                 <td>
-                                    <?php wp_editor('' , 'answer', ['textarea_rows' => 4 , 'media_buttons' => false]) ?>
+                                    <?php wp_editor('' , 'answer', ['textarea_rows' => 8 , 'media_buttons' => true]) ?>
                                     <!-- <input type="text" id="answer" name="answer" class="regular-text" required> -->
                                     <p class="description"> پاسخ خود را را وارد کنید</p>
                                 </td>
@@ -229,9 +218,11 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
                 <?php endif; ?>
             </div>
         </div>
-        
+      </div>
+      </div>
+      <div class="wrap">  
         <!-- لیست پرسش / پاسخ ‌ها -->
-        <div class="postbox list_cat_faqs">
+        <div class=" list_cat_faqs">
             <div class="postbox-header">
                 <h2 class="">لیست پرسش / پاسخ ‌ها</h2>
             </div>
@@ -250,8 +241,8 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
                             <?php foreach ($faqs as $index => $faq) : ?>
                                 <tr>
                                     <td><?php echo $index + 1; ?></td>
-                                    <td><strong><?php echo esc_html($faq->question); ?></strong></td>
-                                    <td><strong><?php echo esc_html($faq->answer); ?></strong></td>
+                                    <td><?php echo wp_kses_post($faq->question); ?></td>
+                                    <td><?php echo wp_kses_post($faq->answer); ?></td>
                                     <td>
                                         <a href="<?php echo esc_url(admin_url('admin.php?page=sc_faq&action=edit&faq_id=' . $faq->id)); ?>" 
                                            class="button button-small">ویرایش</a>
