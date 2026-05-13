@@ -142,12 +142,35 @@
                 if (!submitControl && document.activeElement && form.contains(document.activeElement)) {
                     submitControl = document.activeElement;
                 }
-                if (submitControl && submitControl.name && typeof submitControl.value !== 'undefined' && !form[submitControl.name]) {
-                    var hidden = document.createElement('input');
-                    hidden.type = 'hidden';
-                    hidden.name = submitControl.name;
-                    hidden.value = submitControl.value;
-                    form.appendChild(hidden);
+
+                // Remove any hidden inputs injected by a previous invocation so
+                // repeated clicks don't accumulate stale values in the form.
+                var staleHiddens = form.querySelectorAll('input[type="hidden"][data-sc-confirm-injected="1"]');
+                for (var s = 0; s < staleHiddens.length; s++) {
+                    if (staleHiddens[s].parentNode) {
+                        staleHiddens[s].parentNode.removeChild(staleHiddens[s]);
+                    }
+                }
+
+                if (submitControl && submitControl.name && typeof submitControl.value !== 'undefined') {
+                    // Programmatic form.submit() does NOT carry the clicked button's
+                    // name/value pair, so we must inject it as a hidden input. This is
+                    // especially important when several buttons in the same form share
+                    // a name (e.g. one "cancel" button per row): the lookup
+                    // form[submitControl.name] would return a RadioNodeList of those
+                    // buttons, which the previous logic mistook for an existing input.
+                    var tagName = submitControl.tagName;
+                    var inputType = (submitControl.type || '').toLowerCase();
+                    var isButtonLike = tagName === 'BUTTON'
+                        || (tagName === 'INPUT' && (inputType === 'submit' || inputType === 'button' || inputType === 'image'));
+                    if (isButtonLike) {
+                        var hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = submitControl.name;
+                        hidden.value = submitControl.value;
+                        hidden.setAttribute('data-sc-confirm-injected', '1');
+                        form.appendChild(hidden);
+                    }
                 }
                 if (typeof HTMLFormElement !== 'undefined' && HTMLFormElement.prototype.submit) {
                     HTMLFormElement.prototype.submit.call(form);

@@ -14,6 +14,7 @@ $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
 $courses_table = $wpdb->prefix . 'sc_courses';
 $slots_table = $wpdb->prefix . 'sc_course_weekly_schedule';
 $private_sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
+$members_table = $wpdb->prefix . 'sc_members';
 $weekday_labels = function_exists('sc_course_weekday_labels_ir') ? sc_course_weekday_labels_ir() : [];
 
 $weekly_rows = $wpdb->get_results($wpdb->prepare(
@@ -28,9 +29,12 @@ $weekly_rows = $wpdb->get_results($wpdb->prepare(
 ));
 
 $upcoming_private = $wpdb->get_results($wpdb->prepare(
-    "SELECT ps.id, ps.course_id, ps.member_id, ps.session_date, ps.time_start, ps.time_end, ps.status, c.title AS course_title
+    "SELECT ps.id, ps.course_id, ps.member_id, ps.session_date, ps.time_start, ps.time_end, ps.status,
+            c.title AS course_title,
+            m.first_name AS member_first_name, m.last_name AS member_last_name
      FROM {$private_sessions_table} ps
      INNER JOIN {$courses_table} c ON c.id = ps.course_id
+     LEFT JOIN {$members_table} m ON m.id = ps.member_id
      WHERE ps.coach_id = %d
        AND ps.session_date >= %s
      ORDER BY ps.session_date ASC, ps.time_start ASC
@@ -134,12 +138,21 @@ foreach (range(1, 7) as $day_num) {
                 </thead>
                 <tbody>
                     <?php foreach ($upcoming_private as $row) : ?>
+                        <?php
+                        $member_name = trim((string) ($row->member_first_name ?? '') . ' ' . (string) ($row->member_last_name ?? ''));
+                        if ($member_name === '') {
+                            $member_name = '#' . (int) $row->member_id;
+                        }
+                        $status_label = function_exists('sc_private_session_status_label') ? sc_private_session_status_label($row->status) : $row->status;
+                        $status_key = strtolower((string) $row->status);
+                        $status_class = 'sc-private-status sc-private-status-' . preg_replace('/[^a-z_]/', '', $status_key);
+                        ?>
                         <tr>
                             <td><?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($row->session_date) : $row->session_date); ?></td>
                             <td><?php echo esc_html(substr((string) $row->time_start, 0, 5) . ' تا ' . substr((string) $row->time_end, 0, 5)); ?></td>
                             <td><?php echo esc_html($row->course_title); ?></td>
-                            <td>#<?php echo esc_html((string) $row->member_id); ?></td>
-                            <td><?php echo esc_html($row->status); ?></td>
+                            <td><?php echo esc_html($member_name); ?></td>
+                            <td><span class="<?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
