@@ -236,7 +236,7 @@ if ($filter_course > 0 && $log_has_matched_cols) {
     // -----------------------------
     //  دریافت رکوردها
     // -----------------------------
-    $log_extra_select = ', l.employee_code, m.id AS member_wp_user_id';
+    $log_extra_select = ', l.employee_code, m.id AS member_wp_user_id, l.created_at';
     if ($log_has_matched_cols) {
         $log_extra_select .= ', l.matched_to_attendance, l.matched_attendance_id, att.course_id AS matched_course_id, co.title AS matched_course_title';
     }
@@ -401,128 +401,101 @@ if ($filter_course > 0 && $log_has_matched_cols) {
 </div>
 
 <div class="filter_search_logs">
- <div class="wrap wrap_filter">
-    <!-- فیلترها -->
-    <form method="get" action="" class="filter_attendance_log_list">
-        <input type="hidden" name="page" value="sc-attendance-logs">
-        <input type="hidden" name="s" value="<?php echo esc_attr($search); ?>">
-<div class="col-1-attendance">
-        <!-- فیلتر کاربر -->
-        <label for="filter_user" style="margin-left: 5px; width: 100px;">نام کاربر:</label>
-        <div class="sc-searchable-dropdown">
-            <input type="hidden" name="filter_user" id="filter_user" value="<?php echo esc_attr($filter_user); ?>">
+    <div class="wrap wrap_filter">
+        <!-- فیلترها (ساختار استاندارد) -->
+        <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+            <input type="hidden" name="page" value="sc-attendance-logs">
 
-            <div class="sc-dropdown-toggle" style="width: 100%;">
-                <span class="sc-dropdown-placeholder" <?php if (!empty($filter_user) && $filter_user !== '0') echo 'style="display:none"'; ?>>همه کاربران</span>
-                <span class="sc-dropdown-selected" <?php if (empty($filter_user) || $filter_user === '0') echo 'style="display:none"'; ?>>
-                    نام کاربر....
-                </span>
-                <span class="sc-dropdown-arrow">▼</span>
-            </div>
+            <div class="sc-filter-grid">
 
-            <div class="sc-dropdown-menu">
-                <div class="sc-dropdown-search">
-                    <input type="text" class="sc-search-input" placeholder="جستجوی نام یا کد بازیکن...">
-                </div>
-
-                <div class="sc-dropdown-options">
-                    <div class="sc-dropdown-option sc-visible"
-                         data-value="0"
-                         data-search="همه کاربران"
-                         onclick="scSelectMemberFilter(this,'0','همه کاربران')">
-                        همه کاربران
-                    </div>
-
-                    <?php
-                    $display_count = 0;
-                    $max_display = 15;
-                    foreach ($members_for_filter as $mem) :
-                        $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
-                        $display_count++;
-                        $val = 'm_' . $mem->id;
-                        $label = $mem->first_name . ' ' . $mem->last_name ;
-                        $search_txt = strtolower($mem->first_name . ' ' . $mem->last_name );
-                    ?>
-                        <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
-                             data-value="<?php echo esc_attr($val); ?>"
-                             data-search="<?php echo esc_attr($search_txt); ?>"
-                             onclick="scSelectMemberFilter(this,'<?php echo esc_js($val); ?>','<?php echo esc_js($label); ?>')">
-                            <?php echo esc_html($label); ?>
+                <!-- کاربر (searchable) -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_user">نام کاربر</label>
+                    <div class="sc-searchable-dropdown">
+                        <input type="hidden" name="filter_user" id="filter_user" value="<?php echo esc_attr($filter_user); ?>">
+                        <div class="sc-dropdown-toggle">
+                            <span class="sc-dropdown-placeholder" <?php if (!empty($filter_user) && $filter_user !== '0') echo 'style="display:none"'; ?>>همه کاربران</span>
+                            <span class="sc-dropdown-selected" <?php if (empty($filter_user) || $filter_user === '0') echo 'style="display:none"'; ?>>
+                                <?php echo !empty($filter_user) ? 'انتخاب شده' : 'همه کاربران'; ?>
+                            </span>
+                            <span class="sc-dropdown-arrow">▼</span>
                         </div>
-                    <?php endforeach; ?>
+                        <div class="sc-dropdown-menu">
+                            <div class="sc-dropdown-search">
+                                <input type="text" class="sc-search-input" placeholder="جستجوی نام یا کد بازیکن...">
+                            </div>
+                            <div class="sc-dropdown-options">
+                                <div class="sc-dropdown-option sc-visible" data-value="0" data-search="همه کاربران" onclick="scSelectMemberFilter(this,'0','همه کاربران')">همه کاربران</div>
+                                <?php
+                                $display_count = 0;
+                                $max_display = 15;
+                                foreach ($members_for_filter as $mem) :
+                                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                    $display_count++;
+                                    $val = 'm_' . $mem->id;
+                                    $label = $mem->first_name . ' ' . $mem->last_name;
+                                    $search_txt = strtolower($mem->first_name . ' ' . $mem->last_name);
+                                ?>
+                                    <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>" data-value="<?php echo esc_attr($val); ?>" data-search="<?php echo esc_attr($search_txt); ?>" onclick="scSelectMemberFilter(this,'<?php echo esc_js($val); ?>','<?php echo esc_js($label); ?>')">
+                                        <?php echo esc_html($label); ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <?php if ($show_course_filter && $log_has_matched_cols) : ?>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_course">دوره</label>
+                    <select name="filter_course" id="filter_course" class="sc-filter-control">
+                        <option value="0" <?php selected($filter_course, 0); ?>>همه دوره‌ها</option>
+                        <?php foreach ($courses_for_filter as $crs) : ?>
+                            <option value="<?php echo esc_attr((string) $crs->id); ?>" <?php selected($filter_course, (int) $crs->id); ?>>
+                                <?php echo esc_html($crs->title); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
+
+                <!-- بازه تاریخ -->
+                <div class="sc-filter-field sc-filter-date">
+                    <label class="sc-filter-label">بازه تاریخ</label>
+                    <div class="sc-date-range">
+                        <input type="text" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>" class="persian-date-input sc-filter-control sc-no-default-date" placeholder="از تاریخ" readonly>
+                        <input type="text" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>" class="persian-date-input sc-filter-control sc-no-default-date" placeholder="تا تاریخ" readonly>
+                    </div>
+                </div>
+
+                <!-- بازه زمان -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label">بازه زمان</label>
+                    <div class="sc-date-range">
+                        <input type="time" name="filter_time_from" value="<?php echo esc_attr($filter_time_from); ?>" class="sc-filter-control">
+                        <input type="time" name="filter_time_to" value="<?php echo esc_attr($filter_time_to); ?>" class="sc-filter-control">
+                    </div>
+                </div>
+
+                <!-- تعداد در صفحه + جستجو -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="count_item_page">تعداد در صفحه</label>
+                    <input type="text" name="count_item_page" value="<?php echo esc_attr(trim((string) $count_item_page)); ?>" class="sc-filter-control" style="width: 80px;">
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="search_id">جستجو</label>
+                    <input type="search" id="search_id" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجوی نام بازیکن..." class="sc-filter-control">
+                </div>
+
             </div>
-        </div>
-        <?php if ($show_course_filter && $log_has_matched_cols) : ?>
-        <br>
-        <label for="filter_course" style="margin-left: 5px; width: 100px;">دوره:</label>
-        <select name="filter_course" id="filter_course" style="min-width:220px;max-width:100%;">
-            <option value="0" <?php selected($filter_course, 0); ?>>همه دوره‌ها</option>
-            <?php foreach ($courses_for_filter as $crs) : ?>
-                <option value="<?php echo esc_attr((string) $crs->id); ?>" <?php selected($filter_course, (int) $crs->id); ?>>
-                    <?php echo esc_html($crs->title); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <?php elseif ($show_course_filter && !$log_has_matched_cols) : ?>
-        <p class="description" style="margin-top:8px;">فیلتر دوره پس از به‌روزرسانی دیتابیس (ستون‌های تطبیق لاگ) فعال می‌شود.</p>
-        <?php endif; ?>
-        <br>
-            <!-- فیلتر تاریخ: از -->
-            <label style="margin-left:10px;width:60px;">از تاریخ:</label>
-            <input type="text"
-                name="filter_date_from"
-                value="<?php echo esc_attr($filter_date_from); ?>"
-                class="persian-date-input"
-                placeholder="1403/01/01"
-                readonly
-                style="width:140px;">
 
-            <!-- فیلتر تاریخ: تا -->
-            <label style="margin-left:10px;width:60px;">تا تاریخ:</label>
-            <input type="text"
-                name="filter_date_to"
-                value="<?php echo esc_attr($filter_date_to); ?>"
-                class="persian-date-input"
-                placeholder="1403/12/29"
-                readonly
-                style="width:140px;">
-</div>
-
-<div class="col-2-attendance">
-
-        <!-- فیلتر زمان -->
-            <label style="margin-left:10px;">از زمان:</label>
-            <input type="time" class="filter_time" name="filter_time_from" value="<?php echo esc_attr($filter_time_from); ?>">
-
-            <label style="margin-left:10px;">تا زمان:</label>
-            <input type="time" class="filter_time" name="filter_time_to" value="<?php echo esc_attr($filter_time_to); ?>">
-             <label >تعداد نمایش رکورد ها در صفحه </label>
-            <input type="text" style="width:60px" name="count_item_page" value="<?php echo esc_attr(trim((string) $count_item_page)); ?>" >
-        <input type="submit" class="button" value="اعمال فیلتر" style="margin-left: 10px;">
-    </form>
-</div>
-    <!-- جستجو بالای جدول -->
-    <div class="tablenav top" style="margin-bottom: 0;">
-        <div class="search_log actions">
-            <form method="get" action="">
-                <input type="hidden" name="page" value="sc-attendance-logs">
-                <input type="hidden" name="filter_user" value="<?php echo esc_attr($filter_user); ?>">
-                <input type="hidden" name="filter_course" value="<?php echo esc_attr((string) $filter_course); ?>">
-                <input type="hidden" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                <input type="hidden" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                <input type="hidden" name="filter_time_from" value="<?php echo esc_attr($filter_time_from); ?>">
-                <input type="hidden" name="filter_time_to" value="<?php echo esc_attr($filter_time_to); ?>">
-                <input type="hidden" name="count_item_page" value="<?php echo esc_attr((string) $count_item_page); ?>">
-                <label class="screen-reader-text" for="search_id">جستجو:</label>
-                <input type="search" id="search_id" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجوی نام بازیکن..." style="width: 220px;">
-                <input type="submit" id="search-submit" class="button" value="جستجو">
-            </form>
-        </div>
+            <p class="submit">
+                <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                <a href="<?php echo admin_url('admin.php?page=sc-attendance-logs'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            </p>
+        </form>
     </div>
-
-</div>
-
 </div>
  <div class="wrap ">
         <?php
@@ -550,12 +523,8 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                         <?php if ($bulk_delete_on) : ?>
                         <option value="delete">حذف رکوردهای لاگ</option>
                         <?php endif; ?>
-                        <?php if ($bulk_clear_on) : ?>
-                        <option value="clear_match">لغو تطبیق با حضور</option>
-                        <?php endif; ?>
                     </select>
-                    <input type="submit" name="sc_attendance_logs_bulk_submit" id="doaction" class="button action" value="اعمال"
-                           onclick="return scConfirmInline(event, { type: 'warning', message: 'عملیات روی ردیف‌های انتخاب‌شده اعمال شود؟' });">
+                    <input type="submit" name="sc_attendance_logs_bulk_submit" id="doaction" class="button action" value="اعمال">
                 </div>
                 <br class="clear">
             </div>
@@ -573,6 +542,7 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                     <th>نام کاربر</th>
                     <th>تاریخ</th>
                     <th>زمان</th>
+                    <th>تاریخ ثبت</th>
                     <?php if ($show_col_employee) : ?>
                     <th><code>employee_code</code></th>
                     <?php endif; ?>
@@ -609,6 +579,7 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                             <td><?php echo esc_html($log->first_name . ' ' . $log->last_name); ?></td>
                             <td><?php echo esc_html($date); ?></td>
                             <td><?php echo esc_html($time); ?></td>
+                            <td><?php echo !empty($log->created_at) ? esc_html(sc_date_shamsi_date_only($log->created_at) . ' ' . date('H:i', strtotime($log->created_at))) : '—'; ?></td>
                             <?php if ($show_col_employee) : ?>
                             <td><?php echo esc_html((string) ($log->employee_code ?? '')); ?></td>
                             <?php endif; ?>
@@ -631,7 +602,7 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                             ?></td>
                             <?php endif; ?>
                             <?php if ($log_has_matched_cols) : ?>
-                            <td><?php echo !empty($log->matched_to_attendance) ? 'بله' . (!empty($log->matched_attendance_id) ? ' (#' . (int) $log->matched_attendance_id . ')' : '') : '—'; ?></td>
+                            <td><?php echo !empty($log->matched_to_attendance) ? 'بله' : '—'; ?></td>
                             <?php endif; ?>
                         </tr>
 

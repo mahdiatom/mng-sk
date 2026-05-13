@@ -197,8 +197,8 @@ $all_courses_for_filter = $wpdb->get_results(
                 </div>
                 
                 <div>
-                    <input type="submit" class="button button-primary" value="فیلتر">
-                    <a href="<?php echo admin_url('admin.php?page=sc-coach-salary'); ?>" class="button">پاک کردن فیلترها</a>
+                    <input type="submit" class="button button-primary" value=" اعمال فیلتر">
+                    <a href="<?php echo admin_url('admin.php?page=sc-coach-salary'); ?>" class="sc_button">پاک کردن فیلترها</a>
                 </div>
             </div>
         </form>

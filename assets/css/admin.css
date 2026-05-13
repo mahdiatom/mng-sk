@@ -2563,7 +2563,7 @@ width: fit-content;
     gap: 23px;
 }
 .filter_search_logs .sc-searchable-dropdown{
-    width: 30%;
+    width: 100%;
         margin-left: 10px;
 }
 
