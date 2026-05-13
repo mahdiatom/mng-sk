@@ -1706,46 +1706,24 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <h3>پیامک هشدار غیبت (عبور از حد مجاز)</h3>
                 <table class="form-table">
                     <tr>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
+
                         <th scope="row">پیامک هشدار به کاربر</th>
-=======
-                        <th scope="row">پیامک به کاربر</th>
->>>>>>> parent of 3e72976 (a)
-=======
-                        <th scope="row">پیامک به کاربر</th>
->>>>>>> parent of 3e72976 (a)
-=======
-                        <th scope="row">پیامک به کاربر</th>
->>>>>>> parent of 3e72976 (a)
+
                         <td>
                             <label>
                                 <input type="checkbox"
                                        name="sms_absence_alert_user_enabled"
                                        value="1"
                                        <?php checked($sms_absence_alert_user_enabled, 1); ?>>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-                                فعال کردن پیامک هشدار غیبت به کاربر
-=======
-                                فعال کردن پیامک هشدار عبور از حد مجاز غیبت
->>>>>>> parent of 3e72976 (a)
-=======
-                                فعال کردن پیامک هشدار عبور از حد مجاز غیبت
->>>>>>> parent of 3e72976 (a)
-=======
-                                فعال کردن پیامک هشدار عبور از حد مجاز غیبت
->>>>>>> parent of 3e72976 (a)
+                    فعال کردن پیامک هشدار غیبت به کاربر
+
+
                             </label>
                             <br><br>
                             <textarea name="sms_absence_alert_user_template"
                                       rows="3"
                                       class="large-text"
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
+
                                       placeholder="متن پیامک هشدار به کاربر"><?php echo esc_textarea($sms_absence_alert_user_template); ?></textarea>
                             <p class="description">
                                 متغیرهای قابل استفاده:<br>
@@ -1754,11 +1732,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                                 تعداد غیبت = %absence_count% -
                                 حد مجاز = %absence_limit% -
                                 تاریخ = %date%
-=======
-=======
->>>>>>> parent of 3e72976 (a)
-=======
->>>>>>> parent of 3e72976 (a)
+
                                       placeholder="متن پیامک هشدار غیبت"><?php echo esc_textarea($sms_absence_alert_user_template); ?></textarea>
                             <p class="description">
                                 متغیرهای قابل استفاده:<br>
@@ -1768,13 +1742,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                                 تعداد غیبت = %absence_count% -
                                 حد مجاز = %absence_limit% -
                                 تاریخ آخرین غیبت = %date%
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> parent of 3e72976 (a)
-=======
->>>>>>> parent of 3e72976 (a)
-=======
->>>>>>> parent of 3e72976 (a)
+
                             </p>
                             <br>
                             <input type="number"
@@ -1785,51 +1753,26 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                             <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
                         </td>
                     </tr>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 
                     <tr>
                         <th scope="row">پیامک هشدار به مدیر</th>
-=======
-                    <tr>
-                        <th scope="row">پیامک به مدیر</th>
->>>>>>> parent of 3e72976 (a)
-=======
-                    <tr>
-                        <th scope="row">پیامک به مدیر</th>
->>>>>>> parent of 3e72976 (a)
-=======
-                    <tr>
-                        <th scope="row">پیامک به مدیر</th>
->>>>>>> parent of 3e72976 (a)
                         <td>
                             <label>
                                 <input type="checkbox"
                                        name="sms_absence_alert_admin_enabled"
                                        value="1"
                                        <?php checked($sms_absence_alert_admin_enabled, 1); ?>>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
+
                                 فعال کردن پیامک هشدار غیبت به مدیر
-=======
-                                فعال کردن پیامک هشدار عبور از حد مجاز غیبت به مدیر
->>>>>>> parent of 3e72976 (a)
-=======
-                                فعال کردن پیامک هشدار عبور از حد مجاز غیبت به مدیر
->>>>>>> parent of 3e72976 (a)
-=======
-                                فعال کردن پیامک هشدار عبور از حد مجاز غیبت به مدیر
->>>>>>> parent of 3e72976 (a)
+
+
                             </label>
                             <br><br>
                             <textarea name="sms_absence_alert_admin_template"
                                       rows="3"
                                       class="large-text"
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
+
                                       placeholder="متن پیامک هشدار به مدیر"><?php echo esc_textarea($sms_absence_alert_admin_template); ?></textarea>
                             <p class="description">
                                 متغیرهای قابل استفاده:<br>
@@ -1838,11 +1781,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                                 تعداد غیبت = %absence_count% -
                                 حد مجاز = %absence_limit% -
                                 تاریخ = %date%
-=======
-=======
->>>>>>> parent of 3e72976 (a)
-=======
->>>>>>> parent of 3e72976 (a)
+
                                       placeholder="متن پیامک هشدار غیبت به مدیر"><?php echo esc_textarea($sms_absence_alert_admin_template); ?></textarea>
                             <p class="description">
                                 متغیرهای قابل استفاده:<br>
@@ -1852,13 +1791,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                                 تعداد غیبت = %absence_count% -
                                 حد مجاز = %absence_limit% -
                                 تاریخ آخرین غیبت = %date%
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> parent of 3e72976 (a)
-=======
->>>>>>> parent of 3e72976 (a)
-=======
->>>>>>> parent of 3e72976 (a)
+
+
                             </p>
                             <br>
                             <input type="number"
