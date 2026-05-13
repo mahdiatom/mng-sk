@@ -2612,3 +2612,24 @@ width: fit-content;
         padding: 10px 5px;
 }
 /* تخفیف  ها  */
+
+
+/* جستجو شخصی سازی در تنظیمات */
+@media screen and (max-width:780px) {
+    .sc_table_search_custom tbody tr{
+    display: flex;
+    flex-direction: column;
+}
+    .sc_table_search_custom thead tr{
+        display: none;
+}
+.sc_table_search_custom textarea{
+    height: 150px !important;
+}
+}
+/* جستجو شخصی سازی در تنظیمات */
+
+#sc-add-player-custom-field-btn{
+       padding: 10px;
+    background: #3858e914;
+}

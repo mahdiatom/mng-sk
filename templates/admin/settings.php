@@ -222,6 +222,27 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_ticket_new_recipient_template', $sms_ticket_new_recipient_template, 'sms');
         sc_update_setting('sms_ticket_reply_enabled', $sms_ticket_reply_enabled, 'sms');
         sc_update_setting('sms_ticket_reply_template', $sms_ticket_reply_template, 'sms');
+
+        // Private classes cancellation SMS settings (stored in classes group)
+        $private_class_sms_user_cancel_to_coach_enabled = isset($_POST['private_class_sms_user_cancel_to_coach_enabled']) ? 1 : 0;
+        $private_class_sms_user_cancel_to_admin_enabled = isset($_POST['private_class_sms_user_cancel_to_admin_enabled']) ? 1 : 0;
+        $private_class_sms_coach_cancel_to_user_enabled = isset($_POST['private_class_sms_coach_cancel_to_user_enabled']) ? 1 : 0;
+        $private_class_sms_user_cancel_to_coach_template = isset($_POST['private_class_sms_user_cancel_to_coach_template']) ? wp_kses($_POST['private_class_sms_user_cancel_to_coach_template'], array()) : '';
+        $private_class_sms_user_cancel_to_coach_pattern = isset($_POST['private_class_sms_user_cancel_to_coach_pattern']) ? absint($_POST['private_class_sms_user_cancel_to_coach_pattern']) : 0;
+        $private_class_sms_user_cancel_to_admin_template = isset($_POST['private_class_sms_user_cancel_to_admin_template']) ? wp_kses($_POST['private_class_sms_user_cancel_to_admin_template'], array()) : '';
+        $private_class_sms_user_cancel_to_admin_pattern = isset($_POST['private_class_sms_user_cancel_to_admin_pattern']) ? absint($_POST['private_class_sms_user_cancel_to_admin_pattern']) : 0;
+        $private_class_sms_coach_cancel_to_user_template = isset($_POST['private_class_sms_coach_cancel_to_user_template']) ? wp_kses($_POST['private_class_sms_coach_cancel_to_user_template'], array()) : '';
+        $private_class_sms_coach_cancel_to_user_pattern = isset($_POST['private_class_sms_coach_cancel_to_user_pattern']) ? absint($_POST['private_class_sms_coach_cancel_to_user_pattern']) : 0;
+
+        sc_update_setting('private_class_sms_user_cancel_to_coach_enabled', (string) $private_class_sms_user_cancel_to_coach_enabled, 'classes');
+        sc_update_setting('private_class_sms_user_cancel_to_admin_enabled', (string) $private_class_sms_user_cancel_to_admin_enabled, 'classes');
+        sc_update_setting('private_class_sms_coach_cancel_to_user_enabled', (string) $private_class_sms_coach_cancel_to_user_enabled, 'classes');
+        sc_update_setting('private_class_sms_user_cancel_to_coach_template', $private_class_sms_user_cancel_to_coach_template, 'classes');
+        sc_update_setting('private_class_sms_user_cancel_to_coach_pattern', (string) $private_class_sms_user_cancel_to_coach_pattern, 'classes');
+        sc_update_setting('private_class_sms_user_cancel_to_admin_template', $private_class_sms_user_cancel_to_admin_template, 'classes');
+        sc_update_setting('private_class_sms_user_cancel_to_admin_pattern', (string) $private_class_sms_user_cancel_to_admin_pattern, 'classes');
+        sc_update_setting('private_class_sms_coach_cancel_to_user_template', $private_class_sms_coach_cancel_to_user_template, 'classes');
+        sc_update_setting('private_class_sms_coach_cancel_to_user_pattern', (string) $private_class_sms_coach_cancel_to_user_pattern, 'classes');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب پیامک ذخیره شد', null, ['tab' => 'sms']);
         }
@@ -334,26 +355,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     elseif ($current_tab === 'classes') {
         $private_class_cancel_minutes_before = isset($_POST['private_class_cancel_minutes_before']) ? max(0, absint($_POST['private_class_cancel_minutes_before'])) : 1440;
         $private_class_reschedule_minutes_before = isset($_POST['private_class_reschedule_minutes_before']) ? max(0, absint($_POST['private_class_reschedule_minutes_before'])) : 1440;
-        $private_class_sms_user_cancel_to_coach_enabled = isset($_POST['private_class_sms_user_cancel_to_coach_enabled']) ? 1 : 0;
-        $private_class_sms_user_cancel_to_admin_enabled = isset($_POST['private_class_sms_user_cancel_to_admin_enabled']) ? 1 : 0;
-        $private_class_sms_coach_cancel_to_user_enabled = isset($_POST['private_class_sms_coach_cancel_to_user_enabled']) ? 1 : 0;
-        $private_class_sms_user_cancel_to_coach_template = isset($_POST['private_class_sms_user_cancel_to_coach_template']) ? wp_kses($_POST['private_class_sms_user_cancel_to_coach_template'], array()) : '';
-        $private_class_sms_user_cancel_to_coach_pattern = isset($_POST['private_class_sms_user_cancel_to_coach_pattern']) ? absint($_POST['private_class_sms_user_cancel_to_coach_pattern']) : 0;
-        $private_class_sms_user_cancel_to_admin_template = isset($_POST['private_class_sms_user_cancel_to_admin_template']) ? wp_kses($_POST['private_class_sms_user_cancel_to_admin_template'], array()) : '';
-        $private_class_sms_user_cancel_to_admin_pattern = isset($_POST['private_class_sms_user_cancel_to_admin_pattern']) ? absint($_POST['private_class_sms_user_cancel_to_admin_pattern']) : 0;
-        $private_class_sms_coach_cancel_to_user_template = isset($_POST['private_class_sms_coach_cancel_to_user_template']) ? wp_kses($_POST['private_class_sms_coach_cancel_to_user_template'], array()) : '';
-        $private_class_sms_coach_cancel_to_user_pattern = isset($_POST['private_class_sms_coach_cancel_to_user_pattern']) ? absint($_POST['private_class_sms_coach_cancel_to_user_pattern']) : 0;
         sc_update_setting('private_class_cancel_minutes_before', (string) $private_class_cancel_minutes_before, 'classes');
         sc_update_setting('private_class_reschedule_minutes_before', (string) $private_class_reschedule_minutes_before, 'classes');
-        sc_update_setting('private_class_sms_user_cancel_to_coach_enabled', (string) $private_class_sms_user_cancel_to_coach_enabled, 'classes');
-        sc_update_setting('private_class_sms_user_cancel_to_admin_enabled', (string) $private_class_sms_user_cancel_to_admin_enabled, 'classes');
-        sc_update_setting('private_class_sms_coach_cancel_to_user_enabled', (string) $private_class_sms_coach_cancel_to_user_enabled, 'classes');
-        sc_update_setting('private_class_sms_user_cancel_to_coach_template', $private_class_sms_user_cancel_to_coach_template, 'classes');
-        sc_update_setting('private_class_sms_user_cancel_to_coach_pattern', (string) $private_class_sms_user_cancel_to_coach_pattern, 'classes');
-        sc_update_setting('private_class_sms_user_cancel_to_admin_template', $private_class_sms_user_cancel_to_admin_template, 'classes');
-        sc_update_setting('private_class_sms_user_cancel_to_admin_pattern', (string) $private_class_sms_user_cancel_to_admin_pattern, 'classes');
-        sc_update_setting('private_class_sms_coach_cancel_to_user_template', $private_class_sms_coach_cancel_to_user_template, 'classes');
-        sc_update_setting('private_class_sms_coach_cancel_to_user_pattern', (string) $private_class_sms_coach_cancel_to_user_pattern, 'classes');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کلاس‌ها ذخیره شد', null, ['tab' => 'classes']);
         }
@@ -627,6 +630,17 @@ $sms_ticket_new_recipient_enabled = (int)sc_get_setting('sms_ticket_new_recipien
 $sms_ticket_new_recipient_template = sc_get_setting('sms_ticket_new_recipient_template', 'تیکت پشتیبانی جدید #{ticket_id} با موضوع: {subject}');
 $sms_ticket_reply_enabled = (int)sc_get_setting('sms_ticket_reply_enabled', '0');
 $sms_ticket_reply_template = sc_get_setting('sms_ticket_reply_template', 'پاسخ جدید به تیکت #{ticket_id}. لطفا پنل خود را بررسی کنید.');
+
+// Private classes cancellation SMS (stored in classes settings)
+$private_class_sms_user_cancel_to_coach_enabled = (int) sc_get_setting('private_class_sms_user_cancel_to_coach_enabled', '0');
+$private_class_sms_user_cancel_to_admin_enabled = (int) sc_get_setting('private_class_sms_user_cancel_to_admin_enabled', '0');
+$private_class_sms_coach_cancel_to_user_enabled = (int) sc_get_setting('private_class_sms_coach_cancel_to_user_enabled', '0');
+$private_class_sms_user_cancel_to_coach_template = sc_get_setting('private_class_sms_user_cancel_to_coach_template', 'مربی گرامی %coach_name%، بازیکن %user_name% جلسه خصوصی دوره %item_name% در تاریخ %date% ساعت %time% را لغو کرد.');
+$private_class_sms_user_cancel_to_coach_pattern = (int) sc_get_setting('private_class_sms_user_cancel_to_coach_pattern', '0');
+$private_class_sms_user_cancel_to_admin_template = sc_get_setting('private_class_sms_user_cancel_to_admin_template', 'مدیر گرامی، بازیکن %user_name% جلسه خصوصی دوره %item_name% با مربی %coach_name% در تاریخ %date% ساعت %time% را لغو کرد.');
+$private_class_sms_user_cancel_to_admin_pattern = (int) sc_get_setting('private_class_sms_user_cancel_to_admin_pattern', '0');
+$private_class_sms_coach_cancel_to_user_template = sc_get_setting('private_class_sms_coach_cancel_to_user_template', 'بازیکن گرامی %user_name%، جلسه خصوصی دوره %item_name% در تاریخ %date% ساعت %time% توسط مربی/مدیر لغو شد.');
+$private_class_sms_coach_cancel_to_user_pattern = (int) sc_get_setting('private_class_sms_coach_cancel_to_user_pattern', '0');
 
 // تنظیمات افزونه پرو
 $pro_feature_notifications = (int) sc_get_setting('pro_feature_notifications', 0);
@@ -1228,7 +1242,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <h3 style="margin-top:24px;">کلمات کلیدی جستجو — خدمات، فروشگاه و پنل کاربری</h3>
                 <p class="description">جستجوی هدر به‌صورت خودکار دوره‌های گروهی، رویدادها، برگه‌ها و نوشته‌های منتشرشده را بر اساس متنی که کاربر تایپ می‌کند پیدا می‌کند؛ اینجا فقط کلمات تکمیلی بگذارید تا سریع‌تر به مقاصد ثابت (فروشگاه، ثبت‌نام، تیکت، کیف پول و …) برسد — هر کلمه را با ویرگول یا خط جدید جدا کنید.</p>
 
-                <table class="widefat striped" style="margin-top:12px;">
+                <table class="widefat striped sc_table_search_custom" style="margin-top:12px;">
                     <thead>
                         <tr>
                             <th scope="col" style="width:32%;">بخش</th>
@@ -1413,6 +1427,71 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                <style>
+                    .sc-sms-section-selector {
+                        margin: 16px 0 20px;
+                        padding: 14px 16px;
+                        border: 1px solid #dcdcde;
+                        border-radius: 8px;
+                        background: #fff;
+                    }
+
+                    .sc-sms-section-selector strong {
+                        display: block;
+                        margin-bottom: 10px;
+                    }
+
+                    .sc-sms-checkbox-list {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 10px 18px;
+                    }
+
+                    .sc-sms-checkbox-list label {
+                        min-width: 210px;
+                    }
+
+                    .sc-sms-message-section {
+                        display: none;
+                        margin: 0 0 18px;
+                        padding: 16px 18px;
+                        border: 1px solid #dcdcde;
+                        border-radius: 10px;
+                        background: #fff;
+                    }
+
+                    .sc-sms-message-section h3 {
+                        margin-top: 0;
+                        margin-bottom: 12px;
+                        padding-bottom: 8px;
+                        border-bottom: 1px solid #f0f0f1;
+                    }
+
+                    .sc-sms-message-section .form-table {
+                        margin-top: 0;
+                    }
+                </style>
+
+                <div class="sc-sms-section-selector">
+                    <strong>نمایش بخش‌های تنظیمات پیامک</strong>
+                    <div class="sc-sms-checkbox-list">
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="invoice"> پیامک صورت حساب</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="enrollment"> پیامک ثبت نام</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="reminder"> پیامک یادآوری پرداخت</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="absence"> پیامک غیبت</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="absence-alert"> پیامک هشدار غیبت</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="birthday"> پیامک تولد</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="insurance"> پیامک انقضای بیمه</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="identity"> پیامک تایید احراز هویت</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="certificate"> پیامک صدور گواهینامه</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="wallet"> پیامک کیف پول</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="private-class-cancel"> پیامک لغو جلسات خصوصی</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="ticket"> پیامک تیکت پشتیبانی</label>
+                    </div>
+                    <p class="description" style="margin: 10px 0 0;">برای نمایش تنظیمات هر بخش، تیک همان بخش را بزنید.</p>
+                </div>
+
+                <div class="sc-sms-message-section" data-section="invoice">
                 <!-- Invoice SMS Settings -->
                 <h3>پیامک صورت حساب</h3>
                 <table class="form-table">
@@ -1487,6 +1566,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="enrollment">
                 <!-- Enrollment SMS Settings -->
                 <h3>پیامک ثبت نام</h3>
                 <table class="form-table  ">
@@ -1559,6 +1640,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="reminder">
                 <!-- Reminder SMS Settings -->
                 <h3>پیامک یادآوری پرداخت</h3>
                 <table class="form-table  ">
@@ -1633,6 +1716,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="absence">
                 <!-- Absence SMS Settings -->
                 <h3>پیامک غیبت</h3>
                 <table class="form-table  ">
@@ -1703,6 +1788,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="absence-alert">
                 <h3>پیامک هشدار غیبت (عبور از حد مجاز)</h3>
                 <table class="form-table">
                     <tr>
@@ -1805,6 +1892,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="birthday">
                 <!-- Birthday SMS Settings -->
                 <h3>پیامک تولد</h3>
                 <table class="form-table">
@@ -1839,6 +1928,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="insurance">
                 <!-- Insurance expiry SMS Settings -->
                 <h3>پیامک انقضای بیمه</h3>
                 <table class="form-table">
@@ -1873,6 +1964,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="identity">
                 <h3>پیامک تایید احراز هویت</h3>
                 <table class="form-table">
                     <tr>
@@ -1904,6 +1997,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="certificate">
                 <h3>پیامک صدور گواهینامه</h3>
                 <table class="form-table">
                     <tr>
@@ -1935,6 +2030,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="wallet">
                 <!-- Wallet SMS Settings -->
                 <h3>پیامک کیف پول</h3>
                 <table class="form-table">
@@ -2067,6 +2164,93 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="private-class-cancel">
+                <h3>پیامک لغو جلسات خصوصی</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">لغو توسط کاربر → پیامک به مربی</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="private_class_sms_user_cancel_to_coach_enabled"
+                                       value="1"
+                                       <?php checked($private_class_sms_user_cancel_to_coach_enabled, 1); ?>>
+                                فعال کردن ارسال پیامک به مربی
+                            </label>
+                            <br><br>
+                            <textarea name="private_class_sms_user_cancel_to_coach_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($private_class_sms_user_cancel_to_coach_template); ?></textarea>
+                            <br><br>
+                            <input type="number"
+                                   name="private_class_sms_user_cancel_to_coach_pattern"
+                                   value="<?php echo esc_attr($private_class_sms_user_cancel_to_coach_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">لغو توسط کاربر → پیامک به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="private_class_sms_user_cancel_to_admin_enabled"
+                                       value="1"
+                                       <?php checked($private_class_sms_user_cancel_to_admin_enabled, 1); ?>>
+                                فعال کردن ارسال هشدار پیامکی به مدیر
+                            </label>
+                            <br><br>
+                            <textarea name="private_class_sms_user_cancel_to_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($private_class_sms_user_cancel_to_admin_template); ?></textarea>
+                            <br><br>
+                            <input type="number"
+                                   name="private_class_sms_user_cancel_to_admin_pattern"
+                                   value="<?php echo esc_attr($private_class_sms_user_cancel_to_admin_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">شماره مقصد از فیلد «شماره مدیر» در تب پیامک خوانده می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">لغو توسط مربی/مدیر → پیامک به بازیکن</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="private_class_sms_coach_cancel_to_user_enabled"
+                                       value="1"
+                                       <?php checked($private_class_sms_coach_cancel_to_user_enabled, 1); ?>>
+                                فعال کردن ارسال پیامک به بازیکن
+                            </label>
+                            <br><br>
+                            <textarea name="private_class_sms_coach_cancel_to_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($private_class_sms_coach_cancel_to_user_template); ?></textarea>
+                            <br><br>
+                            <input type="number"
+                                   name="private_class_sms_coach_cancel_to_user_pattern"
+                                   value="<?php echo esc_attr($private_class_sms_coach_cancel_to_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                </table>
+                <p class="description" style="margin-top: 8px;">
+                    متغیرهای قابل استفاده:
+                    <code>%user_name%</code> -
+                    <code>%coach_name%</code> -
+                    <code>%item_name%</code> -
+                    <code>%date%</code> -
+                    <code>%time%</code>
+                </p>
+                </div>
+                <div class="sc-sms-message-section" data-section="ticket">
                 <!-- Support ticket SMS -->
                 <h3>پیامک تیکت پشتیبانی</h3>
                 <table class="form-table">
@@ -2107,6 +2291,27 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                         </td>
                     </tr>
                 </table>
+
+                </div>
+                <script>
+                    (function () {
+                        var toggles = document.querySelectorAll('.sc-sms-section-toggle');
+
+                        function updateSection(target, show) {
+                            var section = document.querySelector('.sc-sms-message-section[data-section="' + target + '"]');
+                            if (section) {
+                                section.style.display = show ? 'block' : 'none';
+                            }
+                        }
+
+                        toggles.forEach(function (toggle) {
+                            updateSection(toggle.getAttribute('data-target'), toggle.checked);
+                            toggle.addEventListener('change', function () {
+                                updateSection(this.getAttribute('data-target'), this.checked);
+                            });
+                        });
+                    })();
+                </script>
 
                 <p class="submit">
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات پیامک">
@@ -2336,7 +2541,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
             $player_custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
         ?>
             <style>
-                .sc-player-info-settings-wrap{max-width:1100px}
+                /* .sc-player-info-settings-wrap{max-width:1100px} */
                 .sc-player-info-card{background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:18px;margin:14px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
                 .sc-player-info-card h2{margin:0 0 8px}
                 .sc-player-info-card h3{margin:16px 0 10px}
@@ -2367,7 +2572,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <p class="description">فقط «کد ملی» و «شماره موبایل بازیکن» همیشه نمایش داده می‌شوند و اجباری هستند.</p>
                 <?php foreach ($player_sections as $section_key => $section_label) : ?>
                     <h3 style="margin-top: 18px;"><?php echo esc_html($section_label); ?></h3>
-                    <table class="widefat striped sc-player-info-table" style="max-width: 980px;">
+                    <table class="widefat striped sc-player-info-table" >
                         <thead>
                             <tr>
                                 <th>فیلد</th>
@@ -2458,7 +2663,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     <?php endforeach; ?>
                 </div>
                 <p>
-                    <button type="button" class="button" id="sc-add-player-custom-field-btn">افزودن فیلد سفارشی</button>
+                    <button type="button" class="sc_button" id="sc-add-player-custom-field-btn">افزودن فیلد سفارشی</button>
                 </p>
                 </div>
                 <p class="submit">
@@ -2638,15 +2843,6 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
         if ($current_tab === 'classes') :
             $private_class_cancel_minutes_before = (int) sc_get_setting('private_class_cancel_minutes_before', '1440');
             $private_class_reschedule_minutes_before = (int) sc_get_setting('private_class_reschedule_minutes_before', '1440');
-            $private_class_sms_user_cancel_to_coach_enabled = (int) sc_get_setting('private_class_sms_user_cancel_to_coach_enabled', '0');
-            $private_class_sms_user_cancel_to_admin_enabled = (int) sc_get_setting('private_class_sms_user_cancel_to_admin_enabled', '0');
-            $private_class_sms_coach_cancel_to_user_enabled = (int) sc_get_setting('private_class_sms_coach_cancel_to_user_enabled', '0');
-            $private_class_sms_user_cancel_to_coach_template = sc_get_setting('private_class_sms_user_cancel_to_coach_template', 'مربی گرامی %coach_name%، بازیکن %user_name% جلسه خصوصی دوره %item_name% در تاریخ %date% ساعت %time% را لغو کرد.');
-            $private_class_sms_user_cancel_to_coach_pattern = (int) sc_get_setting('private_class_sms_user_cancel_to_coach_pattern', '0');
-            $private_class_sms_user_cancel_to_admin_template = sc_get_setting('private_class_sms_user_cancel_to_admin_template', 'مدیر گرامی، بازیکن %user_name% جلسه خصوصی دوره %item_name% با مربی %coach_name% در تاریخ %date% ساعت %time% را لغو کرد.');
-            $private_class_sms_user_cancel_to_admin_pattern = (int) sc_get_setting('private_class_sms_user_cancel_to_admin_pattern', '0');
-            $private_class_sms_coach_cancel_to_user_template = sc_get_setting('private_class_sms_coach_cancel_to_user_template', 'بازیکن گرامی %user_name%، جلسه خصوصی دوره %item_name% در تاریخ %date% ساعت %time% توسط مربی/مدیر لغو شد.');
-            $private_class_sms_coach_cancel_to_user_pattern = (int) sc_get_setting('private_class_sms_coach_cancel_to_user_pattern', '0');
         ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
@@ -2655,14 +2851,6 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     .sc-classes-settings-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:14px}
                     .sc-classes-settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
                     .sc-classes-settings-item label{display:block;font-weight:600;margin-bottom:6px}
-                    .sc-classes-sms-block{border:1px solid #e5e7eb;border-radius:10px;padding:12px;background:#fafafa;margin-bottom:12px}
-                    .sc-classes-sms-toggle{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:8px}
-                    .sc-classes-sms-fields{display:none;padding-top:8px}
-                    .sc-classes-sms-fields.is-open{display:block}
-                    .sc-classes-sms-fields textarea{width:100%;max-width:760px;min-height:84px}
-                    .sc-classes-sms-pattern{max-width:180px}
-                    .sc-classes-sms-help{color:#6b7280;font-size:12px;margin-top:6px}
-                    .sc-classes-sms-vars code{background:#eef2ff;padding:2px 6px;border-radius:6px}
                 </style>
                 <div class="sc-classes-settings-card">
                     <div class="sc-classes-settings-grid">
@@ -2679,93 +2867,6 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </div>
                 </div>
 
-                <div class="sc-classes-settings-card">
-                    <h3 style="margin-top:0;">پیامک لغو جلسات خصوصی</h3>
-                    <div class="sc-classes-sms-block">
-                        <label class="sc-classes-sms-toggle">
-                            <input type="checkbox" id="private_class_sms_user_cancel_to_coach_enabled" name="private_class_sms_user_cancel_to_coach_enabled" value="1" <?php checked($private_class_sms_user_cancel_to_coach_enabled, 1); ?>>
-                            <span>لغو توسط کاربر → ارسال پیامک برای مربی</span>
-                        </label>
-                        <div class="sc-classes-sms-fields<?php echo $private_class_sms_user_cancel_to_coach_enabled ? ' is-open' : ''; ?>" data-toggle-target="private_class_sms_user_cancel_to_coach_enabled">
-                            <p>
-                                <label for="private_class_sms_user_cancel_to_coach_template"><strong>متن پیام</strong></label>
-                                <textarea name="private_class_sms_user_cancel_to_coach_template" id="private_class_sms_user_cancel_to_coach_template"><?php echo esc_textarea($private_class_sms_user_cancel_to_coach_template); ?></textarea>
-                            </p>
-                            <p>
-                                <label for="private_class_sms_user_cancel_to_coach_pattern"><strong>کد پترن (اختیاری)</strong></label>
-                                <input type="number" name="private_class_sms_user_cancel_to_coach_pattern" id="private_class_sms_user_cancel_to_coach_pattern" value="<?php echo esc_attr($private_class_sms_user_cancel_to_coach_pattern); ?>" class="small-text sc-classes-sms-pattern" min="0">
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="sc-classes-sms-block">
-                        <label class="sc-classes-sms-toggle">
-                            <input type="checkbox" id="private_class_sms_user_cancel_to_admin_enabled" name="private_class_sms_user_cancel_to_admin_enabled" value="1" <?php checked($private_class_sms_user_cancel_to_admin_enabled, 1); ?>>
-                            <span>لغو توسط کاربر → ارسال هشدار پیامکی برای مدیر</span>
-                        </label>
-                        <div class="sc-classes-sms-fields<?php echo $private_class_sms_user_cancel_to_admin_enabled ? ' is-open' : ''; ?>" data-toggle-target="private_class_sms_user_cancel_to_admin_enabled">
-                            <p>
-                                <label for="private_class_sms_user_cancel_to_admin_template"><strong>متن پیام</strong></label>
-                                <textarea name="private_class_sms_user_cancel_to_admin_template" id="private_class_sms_user_cancel_to_admin_template"><?php echo esc_textarea($private_class_sms_user_cancel_to_admin_template); ?></textarea>
-                            </p>
-                            <p>
-                                <label for="private_class_sms_user_cancel_to_admin_pattern"><strong>کد پترن (اختیاری)</strong></label>
-                                <input type="number" name="private_class_sms_user_cancel_to_admin_pattern" id="private_class_sms_user_cancel_to_admin_pattern" value="<?php echo esc_attr($private_class_sms_user_cancel_to_admin_pattern); ?>" class="small-text sc-classes-sms-pattern" min="0">
-                            </p>
-                            <p class="description">شماره مقصد از فیلد «شماره مدیر» در تب پیامک خوانده می‌شود.</p>
-                        </div>
-                    </div>
-
-                    <div class="sc-classes-sms-block">
-                        <label class="sc-classes-sms-toggle">
-                            <input type="checkbox" id="private_class_sms_coach_cancel_to_user_enabled" name="private_class_sms_coach_cancel_to_user_enabled" value="1" <?php checked($private_class_sms_coach_cancel_to_user_enabled, 1); ?>>
-                            <span>لغو توسط مربی/مدیر → ارسال پیامک برای بازیکن</span>
-                        </label>
-                        <div class="sc-classes-sms-fields<?php echo $private_class_sms_coach_cancel_to_user_enabled ? ' is-open' : ''; ?>" data-toggle-target="private_class_sms_coach_cancel_to_user_enabled">
-                            <p>
-                                <label for="private_class_sms_coach_cancel_to_user_template"><strong>متن پیام</strong></label>
-                                <textarea name="private_class_sms_coach_cancel_to_user_template" id="private_class_sms_coach_cancel_to_user_template"><?php echo esc_textarea($private_class_sms_coach_cancel_to_user_template); ?></textarea>
-                            </p>
-                            <p>
-                                <label for="private_class_sms_coach_cancel_to_user_pattern"><strong>کد پترن (اختیاری)</strong></label>
-                                <input type="number" name="private_class_sms_coach_cancel_to_user_pattern" id="private_class_sms_coach_cancel_to_user_pattern" value="<?php echo esc_attr($private_class_sms_coach_cancel_to_user_pattern); ?>" class="small-text sc-classes-sms-pattern" min="0">
-                            </p>
-                        </div>
-                    </div>
-                    <p class="sc-classes-sms-help sc-classes-sms-vars">
-                        متغیرهای قابل استفاده:
-                        <code>%user_name%</code>
-                        <code>%coach_name%</code>
-                        <code>%item_name%</code>
-                        <code>%date%</code>
-                        <code>%time%</code>
-                    </p>
-                </div>
-                <script>
-                    (function () {
-                        var map = [
-                            'private_class_sms_user_cancel_to_coach_enabled',
-                            'private_class_sms_user_cancel_to_admin_enabled',
-                            'private_class_sms_coach_cancel_to_user_enabled'
-                        ];
-                        function syncToggle(id) {
-                            var checkbox = document.getElementById(id);
-                            var block = document.querySelector('.sc-classes-sms-fields[data-toggle-target="' + id + '"]');
-                            if (!checkbox || !block) return;
-                            if (checkbox.checked) {
-                                block.classList.add('is-open');
-                            } else {
-                                block.classList.remove('is-open');
-                            }
-                        }
-                        map.forEach(function (id) {
-                            var checkbox = document.getElementById(id);
-                            if (!checkbox) return;
-                            checkbox.addEventListener('change', function () { syncToggle(id); });
-                            syncToggle(id);
-                        });
-                    })();
-                </script>
                 <p class="submit">
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات کلاس‌ها">
                 </p>
@@ -2775,7 +2876,61 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
     <form method="POST" action="">
         <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
 
-        <table class="form-table">
+        <style>
+            .sc-pro-features-grid {
+                width: 100%;
+                border-collapse: separate;
+            }
+
+            .sc-pro-features-grid tbody {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(220px, 1fr));
+                gap: 12px;
+            }
+
+            .sc-pro-features-grid tr {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                margin: 0;
+                padding: 12px 14px;
+                border: 1px solid #dcdcde;
+                border-radius: 8px;
+                background: #fff;
+            }
+
+            .sc-pro-features-grid th,
+            .sc-pro-features-grid td {
+                display: block;
+                margin: 0;
+                padding: 0;
+            }
+
+            .sc-pro-features-grid th {
+                font-weight: 600;
+                text-align: right;
+                flex: 1;
+            }
+
+            .sc-pro-features-grid td {
+                flex-shrink: 0;
+            }
+
+            @media (max-width: 1200px) {
+                .sc-pro-features-grid tbody {
+                    grid-template-columns: repeat(2, minmax(220px, 1fr));
+                }
+            }
+
+            @media (max-width: 782px) {
+                .sc-pro-features-grid tbody {
+                    grid-template-columns: minmax(200px, 1fr);
+                }
+            }
+        </style>
+
+        <table class="form-table sc-pro-features-grid">
             <tr>
                 <th scope="row">اطلاعیه‌ها</th>
                 <td>
