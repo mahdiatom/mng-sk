@@ -2324,29 +2324,35 @@ width: fit-content;
     gap: 23px;
 }
     .filter_honors_list{
-display: flex;
-    gap: 10px;
-    align-items: center;
     border-bottom: 1px solid #dfdfdf;
     padding-bottom: 10px;
     margin-bottom: 15px;
 }
-.filter_search_honors .sc-searchable-dropdown{
-    width: 30%;
-        margin-left: 10px;
+.filter_honors_list .sc-filter-grid{
+    width: 100%;
+}
+.filter_honors_list .sc-filter-field{
+    width: calc(33.333% - 14px);
+}
+.filter_honors_list .sc-searchable-dropdown{
+    width: 100%;
+    margin-left: 0;
+}
+.filter_honors_list .submit{
+    margin: 0;
+    padding-top: 0;
 }
 
 @media screen and (max-width:780px) {
     .filter_honors_list{
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
     width: 100%;
-            align-items: stretch;
+}
+.filter_honors_list .sc-filter-field{
+    width: 100%;
 }
 .filter_honors_list .sc-dropdown-toggle{
-    width: 97% !important;
-        height: 43px;
+    width: 100% !important;
+    height: 43px;
 }
 }
 

@@ -205,6 +205,10 @@ $filter_category = ($filter_category_raw === 'all' || $filter_category_raw === '
 $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
 $filter_user = isset($_GET['filter_user']) ? sanitize_text_field($_GET['filter_user']) : '';
 $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+$filter_status = isset($_GET['filter_status']) ? sanitize_key($_GET['filter_status']) : 'all';
+if (!in_array($filter_status, ['all', 'pending', 'approved', 'rejected'], true)) {
+    $filter_status = 'all';
+}
 
 // Pagination (از screen option یا پیش‌فرض ۱۰)
 $screen_per_page = get_user_meta(get_current_user_id(), 'honors_per_page', true);
@@ -227,6 +231,12 @@ if ($filter_type === 'member') {
     $where .= " AND member_id IS NOT NULL AND member_id != 0";
 } elseif ($filter_type === 'coach') {
     $where .= " AND coach_id IS NOT NULL AND coach_id != 0";
+}
+
+// فیلتر وضعیت
+if ($filter_status !== 'all') {
+    $where .= " AND status = %s";
+    $where_values[] = $filter_status;
 }
 
 // فیلتر نام کاربر (بازیکن یا مربی)
@@ -312,93 +322,109 @@ $total_pages = ceil($total_items / $per_page);
     <?php endif; ?>
 <div class="filter_search_honors">
     <!-- فیلترها -->
-    <form method="get" action="" class="filter_honors_list">
+    <form method="get" action="" class="filter_honors_list form_fillter_attendance form_fillter_attendance_tab1">
         <input type="hidden" name="page" value="sc-honors">
-        <input type="hidden" name="s" value="<?php echo esc_attr($search); ?>">
-        <label for="filter_user" style="margin-left: 5px; width: 100px;">نام کاربر:</label>
-        <div class="sc-searchable-dropdown">
-            <input type="hidden" name="filter_user" id="filter_user" value="<?php echo esc_attr($filter_user); ?>">
-            <div class="sc-dropdown-toggle" style="width: 100%;">
-                <span class="sc-dropdown-placeholder" <?php if (!empty($filter_user) && $filter_user !== '0') echo 'style="display:none"'; ?>>همه کاربران</span>
-                <span class="sc-dropdown-selected" <?php if (empty($filter_user) || $filter_user === '0') echo 'style="display:none"'; ?>><?php echo esc_html($filter_user_text); ?></span>
-                <span class="sc-dropdown-arrow">▼</span>
-            </div>
-            <div class="sc-dropdown-menu" >
-                <div class="sc-dropdown-search">
-                    <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
-                </div>
-                <div class="sc-dropdown-options">
-                    <div class="sc-dropdown-option sc-visible"
-                         data-value="0"
-                         data-search="همه کاربران"
-                         onclick="scSelectMemberFilter(this,'0','همه کاربران')">
-                        همه کاربران
-                    </div>
-                    <?php
-                    $display_count = 0;
-                    $max_display = 15;
-                    foreach ($members_for_filter as $mem) :
-                        $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
-                        $display_count++;
-                        $val = 'm_' . $mem->id;
-                        $label = $mem->first_name . ' ' . $mem->last_name . ' - ' . ($mem->national_id ?: $mem->id) . ' (بازیکن)';
-                        $search_txt = strtolower($mem->first_name . ' ' . $mem->last_name . ' ' . ($mem->national_id ?: ''));
-                    ?>
-                        <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
-                             data-value="<?php echo esc_attr($val); ?>"
-                             data-search="<?php echo esc_attr($search_txt); ?>"
-                             onclick="scSelectMemberFilter(this,'<?php echo esc_js($val); ?>','<?php echo esc_js($label); ?>')">
-                            <?php echo esc_html($label); ?>
-                        </div>
-                    <?php endforeach;
-                    foreach ($coaches_for_filter as $coach) :
-                        $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
-                        $display_count++;
-                        $val = 'c_' . $coach->id;
-                        $label = $coach->first_name . ' ' . $coach->last_name . ' (مربی)';
-                        $search_txt = strtolower($coach->first_name . ' ' . $coach->last_name);
-                    ?>
-                        <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
-                             data-value="<?php echo esc_attr($val); ?>"
-                             data-search="<?php echo esc_attr($search_txt); ?>"
-                             onclick="scSelectMemberFilter(this,'<?php echo esc_js($val); ?>','<?php echo esc_js($label); ?>')">
-                            <?php echo esc_html($label); ?>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-        <select name="filter_type" id="filter_type" style="margin-left: 5px;">
-            <option value="all" <?php selected($filter_type, 'all'); ?>>همه (بازیکن و مربی)</option>
-            <option value="member" <?php selected($filter_type, 'member'); ?>>فقط بازیکنان</option>
-            <option value="coach" <?php selected($filter_type, 'coach'); ?>>فقط مربیان</option>
-        </select>
-        <select name="filter_category" id="filter_category" style="margin-left: 5px;">
-            <option value="all" <?php selected($filter_category, 'all'); ?>>همه دسته‌ها</option>
-            <?php foreach ($categories as $category) : ?>
-                <option value="<?php echo esc_attr($category->id); ?>" <?php selected($filter_category, $category->id); ?>>
-                    <?php echo esc_html($category->name); ?>
-                </option>
-            <?php endforeach; ?>
-            </select>
-        <input type="submit" class="button" value="اعمال فیلتر">
-    </form>
 
-    <!-- جستجو بالای جدول، سمت چپ -->
-    <div class="tablenav top" style="margin-bottom: 0;">
-        <div class="alignleft actions">
-            <form method="get" action="">
-                <input type="hidden" name="page" value="sc-honors">
-                <input type="hidden" name="filter_category" value="<?php echo $filter_category === 'all' ? 'all' : esc_attr($filter_category); ?>">
-                <input type="hidden" name="filter_type" value="<?php echo esc_attr($filter_type); ?>">
-                <input type="hidden" name="filter_user" value="<?php echo esc_attr($filter_user); ?>">
-                <label class="screen-reader-text" for="search_id">جستجو:</label>
-                <input type="search" id="search_id" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و توضیحات..." style="width: 220px;">
-                <input type="submit" id="search-submit" class="button" value="جستجو">
-            </form>
-        </div>
-    </div>
+        <div class="sc-filter-grid">
+            <div class="sc-filter-field">
+                <label class="sc-filter-label">کاربر</label>
+                <div class="sc-searchable-dropdown">
+                    <input type="hidden" name="filter_user" id="filter_user" value="<?php echo esc_attr($filter_user); ?>">
+                    <div class="sc-dropdown-toggle">
+                        <span class="sc-dropdown-placeholder" <?php if (!empty($filter_user) && $filter_user !== '0') echo 'style="display:none"'; ?>>همه کاربران</span>
+                        <span class="sc-dropdown-selected" <?php if (empty($filter_user) || $filter_user === '0') echo 'style="display:none"'; ?>><?php echo esc_html($filter_user_text); ?></span>
+                        <span class="sc-dropdown-arrow">▼</span>
+                    </div>
+                    <div class="sc-dropdown-menu" >
+                        <div class="sc-dropdown-search">
+                            <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
+                        </div>
+                        <div class="sc-dropdown-options">
+                            <div class="sc-dropdown-option sc-visible"
+                                 data-value="0"
+                                 data-search="همه کاربران"
+                                 onclick="scSelectMemberFilter(this,'0','همه کاربران')">
+                                همه کاربران
+                            </div>
+                            <?php
+                            $display_count = 0;
+                            $max_display = 15;
+                            foreach ($members_for_filter as $mem) :
+                                $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                $display_count++;
+                                $val = 'm_' . $mem->id;
+                                $label = $mem->first_name . ' ' . $mem->last_name . ' - ' . ($mem->national_id ?: $mem->id) . ' (بازیکن)';
+                                $search_txt = strtolower($mem->first_name . ' ' . $mem->last_name . ' ' . ($mem->national_id ?: ''));
+                            ?>
+                                <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
+                                     data-value="<?php echo esc_attr($val); ?>"
+                                     data-search="<?php echo esc_attr($search_txt); ?>"
+                                     onclick="scSelectMemberFilter(this,'<?php echo esc_js($val); ?>','<?php echo esc_js($label); ?>')">
+                                    <?php echo esc_html($label); ?>
+                                </div>
+                            <?php endforeach;
+                            foreach ($coaches_for_filter as $coach) :
+                                $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                $display_count++;
+                                $val = 'c_' . $coach->id;
+                                $label = $coach->first_name . ' ' . $coach->last_name . ' (مربی)';
+                                $search_txt = strtolower($coach->first_name . ' ' . $coach->last_name);
+                            ?>
+                                <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
+                                     data-value="<?php echo esc_attr($val); ?>"
+                                     data-search="<?php echo esc_attr($search_txt); ?>"
+                                     onclick="scSelectMemberFilter(this,'<?php echo esc_js($val); ?>','<?php echo esc_js($label); ?>')">
+                                    <?php echo esc_html($label); ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="filter_type">نوع کاربر</label>
+                <select name="filter_type" id="filter_type" class="sc-filter-control">
+                    <option value="all" <?php selected($filter_type, 'all'); ?>>همه (بازیکن و مربی)</option>
+                    <option value="member" <?php selected($filter_type, 'member'); ?>>فقط بازیکنان</option>
+                    <option value="coach" <?php selected($filter_type, 'coach'); ?>>فقط مربیان</option>
+                </select>
+            </div>
+
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="filter_category">دسته افتخار</label>
+                <select name="filter_category" id="filter_category" class="sc-filter-control">
+                    <option value="all" <?php selected($filter_category, 'all'); ?>>همه دسته‌ها</option>
+                    <?php foreach ($categories as $category) : ?>
+                        <option value="<?php echo esc_attr($category->id); ?>" <?php selected($filter_category, $category->id); ?>>
+                            <?php echo esc_html($category->name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="filter_status">وضعیت</label>
+                <select name="filter_status" id="filter_status" class="sc-filter-control">
+                    <option value="all" <?php selected($filter_status, 'all'); ?>>همه وضعیت‌ها</option>
+                    <option value="pending" <?php selected($filter_status, 'pending'); ?>>در انتظار بررسی</option>
+                    <option value="approved" <?php selected($filter_status, 'approved'); ?>>تایید شده</option>
+                    <option value="rejected" <?php selected($filter_status, 'rejected'); ?>>عدم تایید</option>
+                </select>
+            </div>
+
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="search_id">جستجو</label>
+                <input type="search" id="search_id" name="s" class="sc-filter-control" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و توضیحات...">
+            </div>
+        </div>
+
+        <p class="submit">
+            <input type="submit" class="button button-primary" value="اعمال فیلتر">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honors')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+        </p>
+    </form>
+</div>
 
 
              </div>
@@ -550,6 +576,9 @@ $total_pages = ceil($total_items / $per_page);
                     }
                     if ($filter_type !== 'all') {
                         $pagination_args['filter_type'] = $filter_type;
+                    }
+                    if ($filter_status !== 'all') {
+                        $pagination_args['filter_status'] = $filter_status;
                     }
                     if (!empty($filter_user) && $filter_user !== '0') {
                         $pagination_args['filter_user'] = $filter_user;
