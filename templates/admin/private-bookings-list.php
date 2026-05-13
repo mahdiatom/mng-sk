@@ -287,7 +287,7 @@ $status_options = [
                             <?php endif; ?>
                             <td>
                                 <?php if ($can_cancel_row) : ?>
-                                    <button type="submit" class="button-link-delete" name="session_id" value="<?php echo esc_attr((int) $row->id); ?>" onclick="this.form.sc_private_admin_action.value='cancel_single'; return scConfirmInline(event, { type: 'warning', message: 'این جلسه لغو شود؟' });">لغو جلسه</button>
+                                    <button type="submit" class="button-link-delete sc_button" name="session_id" value="<?php echo esc_attr((int) $row->id); ?>" onclick="this.form.sc_private_admin_action.value='cancel_single'; return scConfirmInline(event, { type: 'warning', message: 'این جلسه لغو شود؟' });">لغو جلسه</button>
                                 <?php else : ?>
                                     <span style="color:#888;">-</span>
                                 <?php endif; ?>

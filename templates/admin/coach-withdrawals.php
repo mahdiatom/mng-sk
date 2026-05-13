@@ -137,14 +137,16 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button button-primary">کیف پول</a>
         </div>
     </div>
-    
+  
     <?php if ($withdrawal_message): ?>
         <div class="notice notice-<?php echo $withdrawal_message_type; ?> is-dismissible">
             <p><?php echo esc_html($withdrawal_message); ?></p>
         </div>
     <?php endif; ?>
     
-    <!-- نمایش موجودی (زیر تایتل) -->
+     </div>
+     <div class="wrap sc-coach-panel-wrap">
+     <!-- نمایش موجودی (زیر تایتل) -->
     <div class="sc-coach-wallet-balance-box info_balance_wallet_coach" style="padding: 20px; margin: 20px 0;">
         <div class="">
         <h3 >💰 موجودی کیف پول</h3>
@@ -168,7 +170,7 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
     
     <!-- فرم درخواست برداشت -->
     <div class="card" style="margin: 20px 0; max-width: 100%;">
-        <h2>درخواست برداشت</h2>
+   
         <form method="POST" action="" style="max-width: 800px;">
             <?php wp_nonce_field('coach_withdrawal_nonce'); ?>
             
@@ -203,68 +205,72 @@ $withdrawal_requests = $wpdb->get_results($wpdb->prepare(
             </p>
         </form>
     </div>
-    
+    </div>
+    <div class="wrap sc-coach-panel-wrap">
+         <h2>درخواست برداشت</h2>
     <!-- درخواست‌های برداشت -->
     <div class="card" style="margin: 20px 0; max-width: 100%;">
         <h2>درخواست‌های برداشت</h2>
 
         <!-- فیلترهای لیست درخواست‌های برداشت -->
-        <div class="sc-filter-wrapper" style="background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 8px;">
-            <form method="GET" action="" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
-                <input type="hidden" name="page" value="sc-coach-withdrawals">
+        <?php
+        if (empty($withdraw_filter_date_from_shamsi) && !empty($withdraw_filter_date_from)) {
+            $withdraw_filter_date_from_shamsi = sc_date_shamsi_date_only($withdraw_filter_date_from);
+        }
+        if (empty($withdraw_filter_date_to_shamsi) && !empty($withdraw_filter_date_to)) {
+            $withdraw_filter_date_to_shamsi = sc_date_shamsi_date_only($withdraw_filter_date_to);
+        }
+        ?>
+        <div class="filter_search_logs">
+            <div class="wrap wrap_filter">
+                <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+                    <input type="hidden" name="page" value="sc-coach-withdrawals">
 
-                <div style="min-width: 180px;">
-                    <label for="withdraw_filter_status">وضعیت:</label><br>
-                    <select name="withdraw_filter_status" id="withdraw_filter_status" style="width: 100%;">
-                        <option value="all" <?php selected($withdraw_filter_status, 'all'); ?>>همه</option>
-                        <option value="pending" <?php selected($withdraw_filter_status, 'pending'); ?>>در انتظار تایید</option>
-                        <option value="approved" <?php selected($withdraw_filter_status, 'approved'); ?>>تایید شده (منتظر پرداخت)</option>
-                        <option value="rejected" <?php selected($withdraw_filter_status, 'rejected'); ?>>رد شده</option>
-                        <option value="paid" <?php selected($withdraw_filter_status, 'paid'); ?>>تایید و پرداخت شده</option>
-                    </select>
-                </div>
+                    <div class="sc-filter-grid">
 
-                <div style="min-width: 180px;">
-                    <label for="withdraw_filter_date_from_shamsi">از تاریخ:</label><br>
-                    <?php
-                    if (empty($withdraw_filter_date_from_shamsi) && !empty($withdraw_filter_date_from)) {
-                        $withdraw_filter_date_from_shamsi = sc_date_shamsi_date_only($withdraw_filter_date_from);
-                    }
-                    ?>
-                    <input type="text"
-                           name="withdraw_filter_date_from_shamsi"
-                           id="withdraw_filter_date_from_shamsi"
-                           value="<?php echo esc_attr($withdraw_filter_date_from_shamsi); ?>"
-                           class="regular-text persian-date-input"
-                           placeholder="از تاریخ (شمسی)"
-                           readonly
-                           style="width: 100%;">
-                    <input type="hidden" name="withdraw_filter_date_from" id="withdraw_filter_date_from" value="<?php echo esc_attr($withdraw_filter_date_from); ?>">
-                </div>
+                        <!-- بازه تاریخ -->
+                        <div class="sc-filter-field sc-filter-date">
+                            <label class="sc-filter-label">بازه تاریخ</label>
+                            <div class="sc-date-range">
+                                <input type="text"
+                                       name="withdraw_filter_date_from_shamsi"
+                                       id="withdraw_filter_date_from_shamsi"
+                                       value="<?php echo esc_attr($withdraw_filter_date_from_shamsi); ?>"
+                                       class="persian-date-input sc-filter-control sc-no-default-date"
+                                       placeholder="از تاریخ"
+                                       readonly>
+                                <input type="text"
+                                       name="withdraw_filter_date_to_shamsi"
+                                       id="withdraw_filter_date_to_shamsi"
+                                       value="<?php echo esc_attr($withdraw_filter_date_to_shamsi); ?>"
+                                       class="persian-date-input sc-filter-control sc-no-default-date"
+                                       placeholder="تا تاریخ"
+                                       readonly>
+                            </div>
+                            <input type="hidden" name="withdraw_filter_date_from" id="withdraw_filter_date_from" value="<?php echo esc_attr($withdraw_filter_date_from); ?>">
+                            <input type="hidden" name="withdraw_filter_date_to" id="withdraw_filter_date_to" value="<?php echo esc_attr($withdraw_filter_date_to); ?>">
+                        </div>
 
-                <div style="min-width: 180px;">
-                    <label for="withdraw_filter_date_to_shamsi">تا تاریخ:</label><br>
-                    <?php
-                    if (empty($withdraw_filter_date_to_shamsi) && !empty($withdraw_filter_date_to)) {
-                        $withdraw_filter_date_to_shamsi = sc_date_shamsi_date_only($withdraw_filter_date_to);
-                    }
-                    ?>
-                    <input type="text"
-                           name="withdraw_filter_date_to_shamsi"
-                           id="withdraw_filter_date_to_shamsi"
-                           value="<?php echo esc_attr($withdraw_filter_date_to_shamsi); ?>"
-                           class="regular-text persian-date-input"
-                           placeholder="تا تاریخ (شمسی)"
-                           readonly
-                           style="width: 100%;">
-                    <input type="hidden" name="withdraw_filter_date_to" id="withdraw_filter_date_to" value="<?php echo esc_attr($withdraw_filter_date_to); ?>">
-                </div>
+                        <!-- وضعیت -->
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="withdraw_filter_status">وضعیت</label>
+                            <select name="withdraw_filter_status" id="withdraw_filter_status" class="sc-filter-control">
+                                <option value="all" <?php selected($withdraw_filter_status, 'all'); ?>>همه</option>
+                                <option value="pending" <?php selected($withdraw_filter_status, 'pending'); ?>>در انتظار تایید</option>
+                                <option value="approved" <?php selected($withdraw_filter_status, 'approved'); ?>>تایید شده (منتظر پرداخت)</option>
+                                <option value="rejected" <?php selected($withdraw_filter_status, 'rejected'); ?>>رد شده</option>
+                                <option value="paid" <?php selected($withdraw_filter_status, 'paid'); ?>>تایید و پرداخت شده</option>
+                            </select>
+                        </div>
 
-                <div style="min-width: 140px;">
-                    <button type="submit" class="button button-primary">اعمال فیلتر</button>
-                    <a href="<?php echo admin_url('admin.php?page=sc-coach-withdrawals'); ?>" class="button">پاک کردن</a>
-                </div>
-            </form>
+                    </div>
+
+                    <p class="submit">
+                        <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-withdrawals')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                    </p>
+                </form>
+            </div>
         </div>
         
         <?php if (empty($withdrawal_requests)): ?>

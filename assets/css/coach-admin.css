@@ -29,9 +29,6 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--sc-panel-border, #e2e8f0);
 }
 .sc-coach-panel-header_honors{
   display: flex;
@@ -392,4 +389,9 @@
 }
 .toplevel_page_sc-coach-salary .column-course{
   width: 160px !important;
+}
+
+
+.sum_coach_salary{
+  background: #644cff2c; padding: 30px; margin: 20px 0; border-left: 4px solid #2271b1;
 }

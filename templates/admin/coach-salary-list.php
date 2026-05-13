@@ -140,77 +140,88 @@ $all_courses_for_filter = $wpdb->get_results(
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button button-primary">مدیریت کیف پول</a>
         </div>
     </div>
+        </div>
+    <div class="wrap sc-coach-panel-wrap">
     <!-- نمایش موجودی کیف پول (زیر تایتل) -->
     <div class="sc-coach-wallet-balance-box info_balance_wallet_coach" style="padding: 15px; margin: 20px 0;">
         <h3 style="margin: 0; font-size: 1rem;">💰 موجودی کیف پول: <strong><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong></h3>
     </div>
-    
+
     <!-- فیلترها -->
-    <div class="sc-filter-wrapper" style="background: #f9f9f9; padding: 20px; margin: 20px 0; border-radius: 8px;">
-        <form method="GET" action="">
-            <input type="hidden" name="page" value="sc-coach-salary">
-            
-            <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
-                <div>
-                    <label>از تاریخ (شمسی):</label><br>
-                    <input type="text" 
-                           name="filter_date_from_shamsi" 
-                           id="filter_date_from_shamsi" 
-                           value="<?php echo esc_attr($display_date_from_shamsi_salary); ?>" 
-                           class="regular-text persian-date-input sc-no-default-date" 
-                           style="width: 150px;"
-                           readonly>
-                    <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                </div>
+    <div class="filter_search_logs">
+        <div class="wrap wrap_filter">
+            <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+                <input type="hidden" name="page" value="sc-coach-salary">
+
+                <div class="sc-filter-grid">
+
                 
-                <div>
-                    <label>تا تاریخ (شمسی):</label><br>
-                    <input type="text" 
-                           name="filter_date_to_shamsi" 
-                           id="filter_date_to_shamsi" 
-                           value="<?php echo esc_attr($display_date_to_shamsi_salary); ?>" 
-                           class="regular-text persian-date-input sc-no-default-date" 
-                           style="width: 150px;"
-                           readonly>
-                    <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+
+                    <!-- دوره -->
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label" for="filter_course">دوره</label>
+                        <select name="filter_course" id="filter_course" class="sc-filter-control">
+                            <option value="0">همه دوره‌ها</option>
+                            <?php foreach ($all_courses_for_filter as $course): ?>
+                                <option value="<?php echo (int) $course->id; ?>" <?php selected($filter_course, (int) $course->id); ?>>
+                                    <?php echo esc_html($course->title); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <!-- نوع دستمزد -->
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label" for="filter_type">نوع دستمزد</label>
+                        <select name="filter_type" id="filter_type" class="sc-filter-control">
+                            <option value="all" <?php selected($filter_type, 'all'); ?>>همه</option>
+                            <option value="percentage" <?php selected($filter_type, 'percentage'); ?>>درصدی</option>
+                            <option value="fixed" <?php selected($filter_type, 'fixed'); ?>>ثابت</option>
+                        </select>
+                    </div>
+
+
+                        <!-- بازه تاریخ -->
+                    <div class="sc-filter-field sc-filter-date">
+                        <label class="sc-filter-label">بازه تاریخ</label>
+                        <div class="sc-date-range">
+                            <input type="text"
+                                   name="filter_date_from_shamsi"
+                                   id="filter_date_from_shamsi"
+                                   value="<?php echo esc_attr($display_date_from_shamsi_salary); ?>"
+                                   class="persian-date-input sc-filter-control sc-no-default-date"
+                                   placeholder="از تاریخ"
+                                   readonly>
+                            <input type="text"
+                                   name="filter_date_to_shamsi"
+                                   id="filter_date_to_shamsi"
+                                   value="<?php echo esc_attr($display_date_to_shamsi_salary); ?>"
+                                   class="persian-date-input sc-filter-control sc-no-default-date"
+                                   placeholder="تا تاریخ"
+                                   readonly>
+                        </div>
+                        <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                        <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                    </div>
+
                 </div>
-                
-                <div>
-                    <label>دوره:</label><br>
-                    <select name="filter_course" style="width: 200px;">
-                        <option value="0">همه دوره‌ها</option>
-                        <?php foreach ($all_courses_for_filter as $course): ?>
-                            <option value="<?php echo $course->id; ?>" <?php selected($filter_course, $course->id); ?>>
-                                <?php echo esc_html($course->title); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <div>
-                    <label>نوع دستمزد:</label><br>
-                    <select name="filter_type" style="width: 150px;">
-                        <option value="all" <?php selected($filter_type, 'all'); ?>>همه</option>
-                        <option value="percentage" <?php selected($filter_type, 'percentage'); ?>>درصدی</option>
-                        <option value="fixed" <?php selected($filter_type, 'fixed'); ?>>ثابت</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <input type="submit" class="button button-primary" value=" اعمال فیلتر">
-                    <a href="<?php echo admin_url('admin.php?page=sc-coach-salary'); ?>" class="sc_button">پاک کردن فیلترها</a>
-                </div>
-            </div>
-        </form>
+
+                <p class="submit">
+                    <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-salary')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                </p>
+            </form>
+        </div>
     </div>
     
     <!-- خلاصه -->
-    <div style="background: #fff; padding: 15px; margin: 20px 0; border-left: 4px solid #2271b1;">
+    <div class="sum_coach_salary">
         <strong>مجموع دستمزد:</strong> <?php echo number_format($total_salary, 0, '.', ','); ?> تومان
         <span style="margin-right: 30px;"></span>
         <strong>تعداد رکورد:</strong> <?php echo $total_items > 0 ? sprintf('%d تا %d از %d', $offset + 1, min($offset + count($salary_records), $total_items), $total_items) : '۰'; ?>
     </div>
-    
+ </div>
+ <div class="wrap sc-coach-panel-wrap">   
     <!-- جدول دستمزد -->
     <div class="sc-coach-salary-table-wrapper">
     <table class="wp-list-table widefat fixed striped sc-coach-salary-table">
@@ -222,7 +233,7 @@ $all_courses_for_filter = $wpdb->get_results(
                 <th class="column-date">تاریخ</th>
                 <th class="column-course">دوره</th>
                 <th class="column-type">نوع</th>
-                <th class="column-attendance">تعداد شرکت‌کنندگان</th>
+                <th class="column-attendance">تعداد افراد</th>
                 <th class="column-price">قیمت هر جلسه</th>
                 <th class="column-revenue">کل درآمد</th>
                 <th class="column-percent">درصد دستمزد</th>

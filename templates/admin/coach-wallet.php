@@ -180,12 +180,13 @@ $withdrawal_message_type = '';
         <div class="sc-coach-panel-title-row">
             <h1 class="sc-coach-panel-title">کیف پول</h1>
             <div class="sc-coach-panel-actions">
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-withdrawals')); ?>" class="button">💸 درخواست برداشت</a>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-salary')); ?>" class="button">📊 لیست دستمزد</a>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-withdrawals')); ?>" class="sc_button">💸 درخواست برداشت</a>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-salary')); ?>" class="sc_button">📊 لیست دستمزد</a>
             </div>
         </div>
     </div>
-    
+    </div>
+    <div class="wrap sc-coach-panel-wrap">
     <?php if ($withdrawal_message): ?>
         <div class="notice notice-<?php echo $withdrawal_message_type; ?> is-dismissible">
             <p><?php echo esc_html($withdrawal_message); ?></p>
@@ -259,72 +260,85 @@ $withdrawal_message_type = '';
             </div>
         </div>
     </div>
-    
+    </div>
+     <div class="wrap sc-coach-panel-wrap">
+
+        <!-- فیلترها -->
+        <div class="filter_search_logs">
+            <div class="wrap wrap_filter">
+                <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+                    <input type="hidden" name="page" value="sc-coach-wallet">
+
+                    <div class="sc-filter-grid">
+
+                     
+
+                        <!-- نوع تراکنش -->
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_type">نوع تراکنش</label>
+                            <select name="filter_type" id="filter_type" class="sc-filter-control">
+                                <option value="all" <?php selected($filter_type, 'all'); ?>>همه انواع</option>
+                                <option value="salary_percentage" <?php selected($filter_type, 'salary_percentage'); ?>>دستمزد درصدی</option>
+                                <option value="salary_fixed" <?php selected($filter_type, 'salary_fixed'); ?>>دستمزد ثابت</option>
+                                <option value="charge" <?php selected($filter_type, 'charge'); ?>>شارژ</option>
+                                <option value="deduct" <?php selected($filter_type, 'deduct'); ?>>کسر</option>
+                                <option value="withdrawal" <?php selected($filter_type, 'withdrawal'); ?>>برداشت</option>
+                            </select>
+                        </div>
+
+                        <!-- جستجو -->
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_search">جستجو</label>
+                            <input type="search"
+                                   name="filter_search"
+                                   id="filter_search"
+                                   value="<?php echo esc_attr($filter_search); ?>"
+                                   class="sc-filter-control"
+                                   placeholder="جستجو در توضیحات...">
+                        </div>
+
+
+                           <!-- بازه تاریخ -->
+                        <div class="sc-filter-field sc-filter-date">
+                            <label class="sc-filter-label">بازه تاریخ</label>
+                            <div class="sc-date-range">
+                                <input type="text"
+                                       name="filter_date_from_shamsi"
+                                       id="filter_date_from_shamsi"
+                                       value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                                       class="persian-date-input sc-filter-control sc-no-default-date"
+                                       placeholder="از تاریخ"
+                                       readonly>
+                                <input type="text"
+                                       name="filter_date_to_shamsi"
+                                       id="filter_date_to_shamsi"
+                                       value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                                       class="persian-date-input sc-filter-control sc-no-default-date"
+                                       placeholder="تا تاریخ"
+                                       readonly>
+                            </div>
+                            <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                            <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                        </div>
+
+                    </div>
+
+                    <p class="submit">
+                        <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+        </div>
+        
+        <div class="wrap sc-coach-panel-wrap">
+       
     <!-- تراکنش‌های کیف پول -->
     <div class="card" style="margin: 20px 0; max-width: 100%;">
         <h2>تراکنش‌های کیف پول</h2>
-        
-        <!-- فیلترها -->
-        <div class="sc-filter-wrapper" style="background: #f9f9f9; padding: 15px; margin: 20px 0; border-radius: 8px;">
-            <form method="GET" action="" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
-                <input type="hidden" name="page" value="sc-coach-wallet">
-
-                <div style="min-width: 180px;">
-                    <label for="filter_date_from_shamsi">از تاریخ:</label><br>
-                    <input type="text"
-                           name="filter_date_from_shamsi"
-                           id="filter_date_from_shamsi"
-                           value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
-                           class="regular-text persian-date-input"
-                           placeholder="از تاریخ (شمسی)"
-                           readonly
-                           style="width: 100%;">
-                    <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                </div>
-
-                <div style="min-width: 180px;">
-                    <label for="filter_date_to_shamsi">تا تاریخ:</label><br>
-                    <input type="text"
-                           name="filter_date_to_shamsi"
-                           id="filter_date_to_shamsi"
-                           value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
-                           class="regular-text persian-date-input"
-                           placeholder="تا تاریخ (شمسی)"
-                           readonly
-                           style="width: 100%;">
-                    <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                </div>
-
-                <div style="min-width: 180px;">
-                    <label for="filter_type">نوع تراکنش:</label><br>
-                    <select name="filter_type" id="filter_type" style="width: 100%;">
-                        <option value="all" <?php selected($filter_type, 'all'); ?>>همه انواع</option>
-                        <option value="salary_percentage" <?php selected($filter_type, 'salary_percentage'); ?>>دستمزد درصدی</option>
-                        <option value="salary_fixed" <?php selected($filter_type, 'salary_fixed'); ?>>دستمزد ثابت</option>
-                        <option value="charge" <?php selected($filter_type, 'charge'); ?>>شارژ</option>
-                        <option value="deduct" <?php selected($filter_type, 'deduct'); ?>>کسر</option>
-                        <option value="withdrawal" <?php selected($filter_type, 'withdrawal'); ?>>برداشت</option>
-                    </select>
-                </div>
-
-                <div style="min-width: 200px;">
-                    <label for="filter_search">جستجو:</label><br>
-                    <input type="text"
-                           name="filter_search"
-                           id="filter_search"
-                           value="<?php echo esc_attr($filter_search); ?>"
-                           class="regular-text"
-                           placeholder="جستجو در توضیحات یا مبلغ..."
-                           style="width: 100%;">
-                </div>
-
-                <div style="min-width: 140px;">
-                    <button type="submit" class="button button-primary">اعمال فیلتر</button>
-                    <a href="<?php echo admin_url('admin.php?page=sc-coach-wallet'); ?>" class="button">پاک کردن</a>
-                </div>
-            </form>
         </div>
-        
+       
         <?php if (empty($transactions)): ?>
             <p>هیچ تراکنشی ثبت نشده است.</p>
         <?php else: ?>
