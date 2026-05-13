@@ -24,7 +24,7 @@
 /* === هدر صفحات === */
 .sc-coach-panel-header {
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 12px;

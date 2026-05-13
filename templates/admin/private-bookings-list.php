@@ -7,19 +7,46 @@ if (!current_user_can('manage_options') && !current_user_can('club_coach') && !c
 }
 
 global $wpdb;
-$current_admin_page = isset($sc_private_bookings_page_slug) ? (string) $sc_private_bookings_page_slug : 'sc-private-bookings-list';
-$force_coach_scope = !empty($sc_private_bookings_force_coach_scope);
+$sc_request_page_slug = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+$sc_coach_panel_pages = ['sc-coach-private-classes'];
+$current_admin_page = isset($sc_private_bookings_page_slug)
+    ? (string) $sc_private_bookings_page_slug
+    : ($sc_request_page_slug !== '' ? $sc_request_page_slug : 'sc-private-bookings-list');
+// Any request that comes through the coach-panel menu must be treated as coach
+// scope, regardless of whether the current user also has manage_options /
+// club_coach capabilities. This keeps the coach panel personal (no coach
+// filter, only their own courses) even for admins who happen to be coaches.
+$force_coach_scope = !empty($sc_private_bookings_force_coach_scope)
+    || in_array($current_admin_page, $sc_coach_panel_pages, true)
+    || in_array($sc_request_page_slug, $sc_coach_panel_pages, true);
 $sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
 $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
 $courses_table = $wpdb->prefix . 'sc_courses';
 $coaches_table = $wpdb->prefix . 'sc_coaches';
 $members_table = $wpdb->prefix . 'sc_members';
 
-$can_manage_all = !$force_coach_scope && (current_user_can('manage_options') || current_user_can('club_coach'));
-$is_coach_only = !$can_manage_all && (current_user_can('sc_view_coach_salary') || current_user_can('coach'));
-$current_coach_id = $is_coach_only && function_exists('sc_current_user_coach_id') ? (int) sc_current_user_coach_id() : 0;
+// In this plugin the `coach` role is created by cloning the full capability
+// list of `club_coach` (which itself is cloned from `administrator`). That
+// means a user holding ONLY the coach role still returns true for
+// current_user_can('manage_options'). To keep the coach panel personal we
+// must explicitly demote the coach role before evaluating "manage all".
+// The `coach` cap is set ONLY on the coach role, so it's the reliable signal.
+$sc_is_coach_role = current_user_can('coach');
+$can_manage_all = !$force_coach_scope
+    && !$sc_is_coach_role
+    && (current_user_can('manage_options') || current_user_can('club_coach'));
+$sc_resolved_coach_id = function_exists('sc_current_user_coach_id') ? (int) sc_current_user_coach_id() : 0;
+$is_coach_only = !$can_manage_all && (
+    $sc_is_coach_role
+    || current_user_can('sc_view_coach_salary')
+    || ($force_coach_scope && $sc_resolved_coach_id > 0)
+);
+$current_coach_id = $is_coach_only ? $sc_resolved_coach_id : 0;
 if ($is_coach_only && $current_coach_id <= 0) {
     wp_die('مربی جاری قابل تشخیص نیست.');
+}
+if ($force_coach_scope && !$is_coach_only) {
+    wp_die('این صفحه فقط برای مربیان در دسترس است.');
 }
 
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
@@ -153,11 +180,35 @@ $list_values[] = $per_page;
 $list_values[] = $offset;
 $rows = $wpdb->get_results($wpdb->prepare($list_sql, $list_values));
 
-$courses = $wpdb->get_results("SELECT id, title FROM {$courses_table} WHERE deleted_at IS NULL AND course_type = 'private' ORDER BY title ASC");
+if ($is_coach_only) {
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $courses = $wpdb->get_results($wpdb->prepare(
+        "SELECT DISTINCT c.id, c.title
+         FROM {$courses_table} c
+         INNER JOIN {$course_coaches_table} cc ON cc.course_id = c.id
+         WHERE c.deleted_at IS NULL
+           AND c.course_type = 'private'
+           AND cc.coach_id = %d
+         ORDER BY c.title ASC",
+        $current_coach_id
+    ));
+} else {
+    $courses = $wpdb->get_results("SELECT id, title FROM {$courses_table} WHERE deleted_at IS NULL AND course_type = 'private' ORDER BY title ASC");
+}
 $coaches = $can_manage_all
     ? $wpdb->get_results("SELECT id, first_name, last_name FROM {$coaches_table} WHERE is_active = 1 ORDER BY first_name ASC, last_name ASC")
     : [];
-$members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM {$members_table} WHERE is_active = 1 ORDER BY first_name ASC, last_name ASC LIMIT 500");
+$members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM {$members_table} WHERE is_active = 1 ORDER BY first_name ASC, last_name ASC");
+
+$selected_member_text = 'همه بازیکنان';
+if ($filter_member > 0) {
+    foreach ($members as $member_row) {
+        if ((int) $member_row->id === $filter_member) {
+            $selected_member_text = trim($member_row->first_name . ' ' . $member_row->last_name) . ' - ' . $member_row->national_id;
+            break;
+        }
+    }
+}
 
 $status_options = [
     'all' => 'همه وضعیت‌ها',
@@ -202,13 +253,46 @@ $status_options = [
                 </div>
             <?php endif; ?>
             <div class="sc-filter-field">
-                <label class="sc-filter-label" for="filter_member">بازیکن</label>
-                <select class="sc-filter-control" id="filter_member" name="filter_member">
-                    <option value="0">همه بازیکنان</option>
-                    <?php foreach ($members as $member) : ?>
-                        <option value="<?php echo esc_attr((int) $member->id); ?>" <?php selected($filter_member, (int) $member->id); ?>><?php echo esc_html(trim($member->first_name . ' ' . $member->last_name) . ' - ' . $member->national_id); ?></option>
-                    <?php endforeach; ?>
-                </select>
+                <label class="sc-filter-label">بازیکن</label>
+                <div class="sc-searchable-dropdown">
+                    <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
+                    <div class="sc-dropdown-toggle">
+                        <span class="sc-dropdown-placeholder" <?php if ($filter_member) echo 'style="display:none"'; ?>>همه بازیکنان</span>
+                        <span class="sc-dropdown-selected" <?php if (!$filter_member) echo 'style="display:none"'; ?>>
+                            <?php echo esc_html($selected_member_text); ?>
+                        </span>
+                        <span class="sc-dropdown-arrow">▼</span>
+                    </div>
+                    <div class="sc-dropdown-menu">
+                        <div class="sc-dropdown-search">
+                            <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
+                        </div>
+                        <div class="sc-dropdown-options">
+                            <?php
+                            $member_display_count = 0;
+                            $member_max_display = 10;
+                            ?>
+                            <div class="sc-dropdown-option sc-visible"
+                                 data-value="0"
+                                 data-search="همه بازیکنان"
+                                 onclick="scSelectMemberFilter(this,'0','همه بازیکنان')">
+                                همه بازیکنان
+                            </div>
+                            <?php foreach ($members as $member) :
+                                $member_full_label = trim($member->first_name . ' ' . $member->last_name) . ' - ' . $member->national_id;
+                                $member_display_class = ($member_display_count < $member_max_display) ? 'sc-visible' : 'sc-hidden';
+                                $member_display_count++;
+                            ?>
+                                <div class="sc-dropdown-option <?php echo esc_attr($member_display_class); ?>"
+                                     data-value="<?php echo esc_attr((int) $member->id); ?>"
+                                     data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
+                                     onclick="scSelectMemberFilter(this,'<?php echo esc_js((int) $member->id); ?>','<?php echo esc_js($member_full_label); ?>')">
+                                    <?php echo esc_html($member_full_label); ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="sc-filter-field">
                 <label class="sc-filter-label" for="filter_status">وضعیت</label>
