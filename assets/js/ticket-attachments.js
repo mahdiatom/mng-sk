@@ -5,10 +5,9 @@
 (function($) {
     'use strict';
 
-    var MAX_FILES = 5;
-    var MAX_SIZE = 5 * 1024 * 1024; // 5MB
-    var ALLOWED_EXT = ['jpg', 'jpeg', 'jpe', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif', 'heic', 'heif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
-    var ACCEPT = '.' + ALLOWED_EXT.join(',.');
+    var DEFAULT_MAX_FILES = 5;
+    var DEFAULT_MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    var DEFAULT_ALLOWED_EXT = ['jpg', 'jpeg', 'jpe', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif', 'heic', 'heif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
 
     function getExt(name) {
         var i = name.lastIndexOf('.');
@@ -25,6 +24,23 @@
     }
 
     function initZone($zone) {
+        var maxFiles = parseInt($zone.data('max-files'), 10);
+        if (!maxFiles || maxFiles < 1) {
+            maxFiles = DEFAULT_MAX_FILES;
+        }
+
+        var maxSizeMb = parseFloat($zone.data('max-size-mb'));
+        var maxSize = (!isNaN(maxSizeMb) && maxSizeMb > 0) ? Math.round(maxSizeMb * 1024 * 1024) : DEFAULT_MAX_SIZE;
+
+        var allowedExtRaw = ($zone.data('allowed-ext') || '').toString().trim();
+        var allowedExt = allowedExtRaw
+            ? allowedExtRaw.split(',').map(function(ext) { return ext.trim().toLowerCase().replace(/^\./, ''); }).filter(Boolean)
+            : DEFAULT_ALLOWED_EXT.slice();
+
+        function isAllowedExt(ext) {
+            return allowedExt.indexOf(ext) !== -1;
+        }
+
         var inputName = $zone.data('input-name') || 'reply_attachment_ids';
         var nonce = $zone.data('nonce') || '';
         var action = $zone.data('action') || 'sc_upload_ticket_attachment';
@@ -125,7 +141,7 @@
 
         function processQueue() {
             if (uploading || queue.length === 0) return;
-            if (uploadedIds.length >= MAX_FILES) {
+            if (uploadedIds.length >= maxFiles) {
                 queue = [];
                 $progressWrap.hide();
                 return;
@@ -141,15 +157,15 @@
         function addFiles(files) {
             var added = 0;
             var errors = [];
-            for (var i = 0; i < files.length && (uploadedIds.length + queue.length + added) < MAX_FILES; i++) {
+            for (var i = 0; i < files.length && (uploadedIds.length + queue.length + added) < maxFiles; i++) {
                 var file = files[i];
                 var ext = getExt(file.name);
                 if (!ext || !isAllowedExt(ext)) {
                     errors.push('فرمت «' + (ext || 'بدون پسوند') + '» مجاز نیست: ' + file.name);
                     continue;
                 }
-                if (file.size > MAX_SIZE) {
-                    errors.push('حجم بیش از ۵ مگابایت: ' + file.name);
+                if (file.size > maxSize) {
+                    errors.push('حجم بیش از ' + (maxSizeMb > 0 ? maxSizeMb : 5) + ' مگابایت: ' + file.name);
                     continue;
                 }
                 queue.push(file);
@@ -161,8 +177,8 @@
                         .text('در حال بارگذاری  ' + file.name)
                 );
             }
-            if (uploadedIds.length + queue.length + added >= MAX_FILES && files.length > added) {
-                errors.push('حداکثر ' + MAX_FILES + ' فایل مجاز است.');
+            if (uploadedIds.length + queue.length + added >= maxFiles && files.length > added) {
+                errors.push('حداکثر ' + maxFiles + ' فایل مجاز است.');
             }
             if (errors.length > 0 && window.alert) {
                 alert(errors.join('\n'));

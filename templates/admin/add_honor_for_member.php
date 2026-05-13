@@ -46,48 +46,15 @@ if (isset($_POST['save_honor']) && check_admin_referer('save_honor_for_member_no
             $message = 'دسته انتخاب شده معتبر نیست.';
             $message_type = 'error';
         } else {
-            // پردازش آپلود فایل
+            // پردازش فایل انتخابی با آپلودر مشترک (هم‌ساختار تیکت)
             $file_url = null;
-            
-            if (isset($_FILES['honor_file']) && $_FILES['honor_file']['error'] === UPLOAD_ERR_OK) {
-                $file = $_FILES['honor_file'];
-                
-                // اعتبارسنجی نوع فایل
-                $allowed_mimes = [
-                    'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp',
-                    'application/pdf',
-                    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                ];
-                
-                $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
-                
-                $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                $file_mime = $file['type'];
-                
-                // بررسی نوع فایل
-                if (!in_array($file_mime, $allowed_mimes) && !in_array($file_ext, $allowed_extensions)) {
-                    $message = 'نوع فایل معتبر نیست. فقط تصاویر، PDF، Word و Excel مجاز است.';
-                    $message_type = 'error';
-                } elseif ($file['size'] > 1 * 1024 * 1024) {
-                    $message = 'حجم فایل بیش از 1 مگابایت است.';
-                    $message_type = 'error';
-                } else {
-                    // آپلود فایل
-                    $upload_dir = wp_upload_dir();
-                    $sc_upload_dir = $upload_dir['basedir'] . '/sportclub-honors';
-                    if (!file_exists($sc_upload_dir)) {
-                        wp_mkdir_p($sc_upload_dir);
-                    }
-                    
-                    $member = $wpdb->get_row($wpdb->prepare("SELECT id FROM $members_table WHERE id = %d", $member_id));
-                    $unique_filename = wp_unique_filename($sc_upload_dir, sanitize_file_name($member_id . '_' . time() . '_' . $file['name']));
-                    $file_path = $sc_upload_dir . '/' . $unique_filename;
-                    
-                    if (move_uploaded_file($file['tmp_name'], $file_path)) {
-                        $file_url = $upload_dir['baseurl'] . '/sportclub-honors/' . $unique_filename;
-                    }
-                }
+            $uploaded_attachment_ids = [];
+            if (!empty($_POST['honor_attachment_ids']) && function_exists('sc_honor_validate_attachment_ids')) {
+                $raw_attachment_ids = is_array($_POST['honor_attachment_ids']) ? $_POST['honor_attachment_ids'] : explode(',', (string) $_POST['honor_attachment_ids']);
+                $uploaded_attachment_ids = sc_honor_validate_attachment_ids($raw_attachment_ids, 1);
+            }
+            if (!empty($uploaded_attachment_ids)) {
+                $file_url = wp_get_attachment_url((int) $uploaded_attachment_ids[0]);
             }
             
             if ($message_type !== 'error') {
@@ -222,16 +189,32 @@ $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FRO
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row"><label for="honor_file">فایل</label></th>
+                        <th scope="row"><label>فایل</label></th>
                         <td>
-                            <div class="sc-file-upload-wrapper-admin">
-                                <input type="file" name="honor_file" id="honor_file" class="sc-honor-file-input-admin" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
-                                <button type="button" class="button sc-file-upload-btn-admin">
-                                    <span class="btn-text-admin">📎 انتخاب فایل</span>
-                                
+                            <div class="sc-ticket-attachment-zone sc-honor-attachment-zone"
+                                 data-input-name="honor_attachment_ids"
+                                 data-nonce="<?php echo esc_attr(wp_create_nonce('sc_honor_upload_attachment')); ?>"
+                                 data-action="sc_upload_honor_attachment"
+                                 data-nonce-key="sc_honor_upload_nonce"
+                                 data-max-files="1"
+                                 data-max-size-mb="1"
+                                 data-allowed-ext="jpg,jpeg,jpe,png,gif,webp,bmp,pdf,doc,docx,xls,xlsx">
+                                <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
+                                    <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.jpe,.png,.gif,.webp,.bmp,.pdf,.doc,.docx,.xls,.xlsx">
+                                    <span class="sc-file-upload-icon">📎</span>
+                                    <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
+                                    <span class="sc-file-upload-hint">حداکثر ۱ فایل، حداکثر ۱ مگابایت. فرمت‌های مجاز: تصویر، PDF، ورد، اکسل</span>
+                                </div>
+                                <div class="sc-ticket-upload-progress-wrap" style="display:none;">
+                                    <div class="sc-upload-progress sc-ticket-upload-progress">
+                                        <div class="sc-upload-bar"></div>
+                                        <span class="sc-upload-text"></span>
+                                    </div>
+                                </div>
+                                <div class="sc-ticket-uploaded-list"></div>
+                                <div class="sc-ticket-attachment-ids-hidden"></div>
                             </div>
                             <p class="description">حداکثر ۱ مگابایت. فرمت‌های مجاز: تصاویر، PDF، Word، Excel</p>
-                                    </button>
                         </td>
                     </tr>
                 </tbody>
@@ -255,34 +238,5 @@ jQuery(document).ready(function($) {
         }
     };
 
-    // کلیک روی دکمه فایل
-    $('.sc-file-upload-btn-admin').on('click', function() {
-        $('#honor_file').click();
-    });
-    
-    // تغییر فایل انتخاب شده - بررسی اندازه و نمایش مشخص بودن انتخاب (مثل بقیه جاها)
-    $('#honor_file').on('change', function() {
-        const file = this.files[0];
-        const btnText = $('.sc-file-upload-btn-admin .btn-text-admin');
-        
-        if (file) {
-            const maxSize = 1 * 1024 * 1024; // 1MB
-            if (file.size > maxSize) {
-                alert('حجم فایل بیش از 1 مگابایت است. لطفاً فایل کوچکتری انتخاب کنید.');
-                $(this).val('');
-                btnText.text('📎 انتخاب فایل');
-                return;
-            }
-            btnText.text('✓ فایل انتخاب شد: ' + file.name);
-        } else {
-            btnText.text('📎 انتخاب فایل');
-        }
-    });
-    
-    $('.sc-file-upload-btn-admin').on('mouseenter', function() {
-        $(this).css({'transform': 'translateY(-2px)', 'box-shadow': '0 4px 8px rgba(34,113,177,0.3)'});
-    }).on('mouseleave', function() {
-        $(this).css({'transform': 'translateY(0)', 'box-shadow': '0 2px 4px rgba(34,113,177,0.2)'});
-    });
 });
 </script>

@@ -309,9 +309,11 @@ $total_pages = ceil($total_items / $per_page);
 
 ?>
 <div class="wrap">
-    <h1 class="wp-heading-inline">لیست افتخارات</h1>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honor-categories')); ?>" class="page-title-action">دسته‌بندی افتخارات</a>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-honor-for-member')); ?>" class="page-title-action">افزودن افتخار برای بازیکن</a>
+    <h1 class="wp-heading-inline">لیست افتخارات</h1> 
+
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honor-categories')); ?>" class="page-title-action">دسته‌بندی افتخارات</a>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-honor-for-member')); ?>" class="page-title-action" style="margin-top:10px;">افزودن افتخار برای بازیکن</a>
+
     <hr class="wp-header-end">
  </div>
     <div class="wrap">
@@ -451,7 +453,7 @@ $total_pages = ceil($total_items / $per_page);
                     <td class="manage-column column-cb check-column">
                         <input type="checkbox" id="cb-select-all">
                     </td>
-                    <th class="manage-column">نام بازیکن/مربی</th>
+                    <th  class="manage-column">نام بازیکن/مربی</th>
                     <th class="manage-column">عنوان افتخار</th>
                     <th class="manage-column">دسته</th>
                     <th class="manage-column">توضیحات</th>

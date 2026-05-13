@@ -71,6 +71,7 @@ require_once SC_INCLUDES_DIR . 'birthday-sms-cron.php'; // Birthday SMS daily cr
 require_once SC_INCLUDES_DIR . 'insurance-expiry-sms-cron.php'; // Insurance expiry SMS daily cron
 require_once SC_INCLUDES_DIR . 'support-ticket-functions.php'; // Support ticket CRUD, SMS, attachments
 require_once SC_INCLUDES_DIR . 'private-notes-functions.php'; // Private notes CRUD, attachments
+require_once SC_INCLUDES_DIR . 'honor-attachments-functions.php'; // Honor attachments (AJAX upload)
 require_once SC_INCLUDES_DIR . 'private-classes-functions.php'; // Private classes (My Account booking + admin/coach management)
 require_once SC_INCLUDES_DIR . 'activity-log-functions.php';   // Activity log (admin actions)
 require_once SC_INCLUDES_DIR . 'login-register-functions.php'; // ورود و عضویت با پیامک و رمز
@@ -1493,11 +1494,12 @@ function sc_admin_enqueue_assets() {
     $is_ticket_view = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-support-ticket-view';
     $is_coach_ticket_new = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-coach-support-ticket-new';
     $is_coach_ticket_view = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-coach-support-ticket-view';
+    $is_add_honor_for_member = is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc-add-honor-for-member';
     if (current_user_can('sc_view_coach_salary') || $is_ticket_new) {
         wp_enqueue_style('sc-coach-admin-css', SC_ASSETS_URL . 'css/coach-admin.css', array('sc-admin-css'), time());
     }
     $is_notification_add = is_admin() && isset($_GET['page']) && in_array($_GET['page'], array('sc-add-notification', 'sc-coach-add-notification'), true);
-    if ($is_ticket_new || $is_ticket_view || $is_coach_ticket_new || $is_coach_ticket_view || $is_notification_add) {
+    if ($is_ticket_new || $is_ticket_view || $is_coach_ticket_new || $is_coach_ticket_view || $is_notification_add || $is_add_honor_for_member) {
         wp_enqueue_script('sc-ticket-attachments', SC_ASSETS_URL . 'js/ticket-attachments.js', array('jquery'), time(), true);
         wp_localize_script('sc-ticket-attachments', 'scTicketAttach', array('ajaxurl' => admin_url('admin-ajax.php')));
     }
