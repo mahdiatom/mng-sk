@@ -31,6 +31,7 @@ if (function_exists('sc_sc_discount_tables_ready') && sc_sc_discount_tables_read
     <?php if (empty($codes)) : ?>
         <p>هنوز کدی ثبت نشده است.</p>
     <?php else : ?>
+        <div class="back_table_list">
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -77,5 +78,6 @@ if (function_exists('sc_sc_discount_tables_ready') && sc_sc_discount_tables_read
                 <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
     <?php endif; ?>
 </div>

@@ -152,7 +152,7 @@ if (!$row) {
         <div class="notice notice-error"><p>کد تخفیف یافت نشد.</p></div>
     <?php else : ?>
 
-    <form method="post" action="">
+    <form method="post" action="" class="sc_discount_form">
         <?php wp_nonce_field('sc_save_discount_code'); ?>
         <input type="hidden" name="discount_id" value="<?php echo esc_attr((string) $discount_id); ?>">
         <input type="hidden" name="sc_save_discount_code" value="1">
@@ -243,20 +243,20 @@ if (!$row) {
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">اعمال روی</th>
+                    <th scope="row">بر روی کدام بخش اعمال شود ؟</th>
                     <td>
-                        <label class="sc-switch-label"><span class="switch"><input type="checkbox" name="allow_course" value="1" <?php checked(!$row || (int) $row->allow_course === 1); ?>><span class="slider round"></span></span><span>ثبت‌نام دوره</span></label><br>
-                        <label class="sc-switch-label"><span class="switch"><input type="checkbox" name="allow_event" value="1" <?php checked(!$row || (int) $row->allow_event === 1); ?>><span class="slider round"></span></span><span>ثبت‌نام رویداد</span></label>
+                        <label class="sc-switch-label"><span class="switch"><input type="checkbox" name="allow_course" value="1" <?php checked(!$row || (int) $row->allow_course === 1); ?>><span class="slider round"></span></span><span> دوره</span></label><br><br>
+                        <label class="sc-switch-label"><span class="switch"><input type="checkbox" name="allow_event" value="1" <?php checked(!$row || (int) $row->allow_event === 1); ?>><span class="slider round"></span></span><span> رویداد</span></label>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="is_active">فعال</label></th>
-                    <td><label class="sc-switch-label"><span class="switch"><input type="checkbox" name="is_active" id="is_active" value="1" <?php checked(!$row || (int) $row->is_active === 1); ?>><span class="slider round"></span></span><span>بله</span></label></td>
+                    <td><label class="sc-switch-label"><span class="switch"><input type="checkbox" name="is_active" id="is_active" value="1" <?php checked(!$row || (int) $row->is_active === 1); ?>><span class="slider round"></span></span></label></td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="course_ids">محدودیت دوره‌ها</label></th>
                     <td>
-                        <select name="course_ids[]" id="course_ids" multiple size="8" style="min-width:320px;width:100%;max-width:520px;">
+                        <select name="course_ids[]" id="course_ids" multiple size="8">
                             <?php foreach ($courses_all as $c) : ?>
                                 <option value="<?php echo esc_attr((string) $c->id); ?>" <?php echo in_array((int) $c->id, array_map('intval', $sel_courses), true) ? 'selected' : ''; ?>>
                                     <?php echo esc_html($c->title); ?>
@@ -269,7 +269,7 @@ if (!$row) {
                 <tr>
                     <th scope="row"><label for="event_ids">محدودیت رویدادها</label></th>
                     <td>
-                        <select name="event_ids[]" id="event_ids" multiple size="8" style="min-width:320px;width:100%;max-width:520px;">
+                        <select name="event_ids[]" id="event_ids" multiple size="8" >
                             <?php foreach ($events_all as $e) : ?>
                                 <option value="<?php echo esc_attr((string) $e->id); ?>" <?php echo in_array((int) $e->id, array_map('intval', $sel_events), true) ? 'selected' : ''; ?>>
                                     <?php echo esc_html($e->name); ?>

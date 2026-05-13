@@ -174,7 +174,7 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
         
         <p class="submit">
             <input type="submit" name="submit_expense" class="button button-primary" value="<?php echo $expense_id > 0 ? 'بروزرسانی هزینه' : 'ثبت هزینه'; ?>">
-            <a href="<?php echo admin_url('admin.php?page=sc-expenses'); ?>" class="button">انصراف</a>
+            <a href="<?php echo admin_url('admin.php?page=sc-expenses'); ?>" class="sc_button">انصراف</a>
         </p>
     </form>
 </div>
