@@ -113,46 +113,54 @@ $distinct_actions = $wpdb->get_col("SELECT DISTINCT action FROM `$table` ORDER B
         <div class="notice notice-success is-dismissible"><p>تمام لاگ‌های فعالیت با موفقیت حذف شدند.</p></div>
     <?php endif; ?>
 
-    <form method="get" action="" style="margin: 20px 0;">
+    <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
         <input type="hidden" name="page" value="sc-reports-activity-log">
-        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
-            <div>
-                <label for="date_from_shamsi" style="display: block; margin-bottom: 4px; font-size: 12px;">از تاریخ</label>
-                <input type="text" name="date_from_shamsi" id="date_from_shamsi"
-                       value="<?php echo esc_attr($display_date_from); ?>"
-                       class="regular-text persian-date-input sc-no-default-date"
-                       placeholder="انتخاب تاریخ (شمسی)" readonly style="width: 140px;">
-            </div>
-            <div>
-                <label for="date_to_shamsi" style="display: block; margin-bottom: 4px; font-size: 12px;">تا تاریخ</label>
-                <input type="text" name="date_to_shamsi" id="date_to_shamsi"
-                       value="<?php echo esc_attr($display_date_to); ?>"
-                       class="regular-text persian-date-input sc-no-default-date"
-                       placeholder="انتخاب تاریخ (شمسی)" readonly style="width: 140px;">
-            </div>
-            <div>
-                <label for="entity_type" style="display: block; margin-bottom: 4px; font-size: 12px;">نوع موجودیت</label>
-                <select name="entity_type" id="entity_type" style="width: 140px;">
+
+        <div class="sc-filter-grid">
+
+            <!-- نوع موجودیت -->
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="entity_type">نوع موجودیت</label>
+                <select name="entity_type" id="entity_type" class="sc-filter-control">
                     <option value="">همه</option>
                     <?php foreach ($distinct_entities as $e) : ?>
                         <option value="<?php echo esc_attr($e); ?>" <?php selected($filter_entity_type, $e); ?>><?php echo esc_html($entity_type_labels[$e] ?? $e); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div>
-                <label for="action_type" style="display: block; margin-bottom: 4px; font-size: 12px;">نوع عملیات</label>
-                <select name="action_type" id="action_type" style="width: 120px;">
+
+            <!-- نوع عملیات -->
+            <div class="sc-filter-field">
+                <label class="sc-filter-label" for="action_type">نوع عملیات</label>
+                <select name="action_type" id="action_type" class="sc-filter-control">
                     <option value="">همه</option>
                     <?php foreach ($distinct_actions as $a) : ?>
                         <option value="<?php echo esc_attr($a); ?>" <?php selected($filter_action, $a); ?>><?php echo esc_html($action_labels[$a] ?? $a); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div>
-                <button type="submit" class="button button-primary">اعمال فیلتر</button>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-activity-log')); ?>" class="button">پاک کردن</a>
+
+            <!-- بازه تاریخ (در انتها) -->
+            <div class="sc-filter-field sc-filter-date">
+                <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
+                <div class="sc-date-range">
+                    <input type="text" name="date_from_shamsi" id="date_from_shamsi"
+                           value="<?php echo esc_attr($display_date_from); ?>"
+                           class="persian-date-input sc-filter-control sc-no-default-date"
+                           placeholder="از تاریخ" readonly>
+                    <input type="text" name="date_to_shamsi" id="date_to_shamsi"
+                           value="<?php echo esc_attr($display_date_to); ?>"
+                           class="persian-date-input sc-filter-control sc-no-default-date"
+                           placeholder="تا تاریخ" readonly>
+                </div>
             </div>
+
         </div>
+
+        <p class="submit">
+            <button type="submit" class="button button-primary">اعمال فیلتر</button>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-activity-log')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+        </p>
     </form>
 
     <form method="post" action="" id="sc-activity-log-clear-form" style="margin: 0 0 16px 0;">

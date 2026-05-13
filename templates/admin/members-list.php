@@ -387,80 +387,10 @@ public function column_full_name($item) {
     }
     
     public function extra_tablenav($which) {
+        // فیلترهای قدیمی حذف شدند. فرم فیلتر جدید در list_players.php قرار دارد.
         if ($which == 'top') {
-            global $wpdb;
-            $courses_table = $wpdb->prefix . 'sc_courses';
-            $courses = $wpdb->get_results(
-                "SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
-            );
-            
-            $selected_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
-            $selected_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
-            $selected_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
-            $selected_member_type = isset($_GET['filter_member_type']) ? sanitize_text_field($_GET['filter_member_type']) : 'all';
-            
-            echo '<div class="alignleft actions">';
-            
-            // فیلتر دوره
-            if ($courses) {
-                echo '<select name="filter_course" id="filter_course" style="margin-left: 5px;">';
-                echo '<option value="0">همه دوره‌ها</option>';
-                foreach ($courses as $course) {
-                    $selected = ($selected_course == $course->id) ? 'selected' : '';
-                    echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
-                }
-                echo '</select>';
-            }
-            
-            // فیلتر وضعیت (active/inactive)
-            echo '<select name="filter_status" id="filter_status" style="margin-left: 5px;">';
-            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
-            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
-            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
-            echo '</select>';
-            
-            // فیلتر تکمیل پروفایل
-            echo '<select name="filter_profile" id="filter_profile" style="margin-left: 5px;">';
-            echo '<option value="all"' . ($selected_profile == 'all' ? ' selected' : '') . '>همه پروفایل‌ها</option>';
-            echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
-            echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
-            echo '</select>';
-
-            // فیلتر نوع بازیکن
-            echo '<select name="filter_member_type" id="filter_member_type" style="margin-left: 5px;">';
-            echo '<option value="all"' . ($selected_member_type == 'all' ? ' selected' : '') . '>همه انواع</option>';
-            echo '<option value="normal"' . ($selected_member_type == 'normal' ? ' selected' : '') . '>بازیکن عادی</option>';
-            echo '<option value="team"' . ($selected_member_type == 'team' ? ' selected' : '') . '>بازیکن تیم</option>';
-            echo '</select>';
-            
-            
-            echo '<input type="submit" name="filter_action" id="doaction" class="button action " value="فیلتر" style="margin-left: 5px;">';
-            
-            // دکمه خروجی Excel
-            $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
-            if (isset($_GET['player_status']) && $_GET['player_status'] !== 'all') {
-                $export_url = add_query_arg('player_status', $_GET['player_status'], $export_url);
-            }
-            if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
-                $export_url = add_query_arg('filter_course', $_GET['filter_course'], $export_url);
-            }
-            if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
-                $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
-            }
-            if (isset($_GET['s']) && !empty($_GET['s'])) {
-                $export_url = add_query_arg('s', $_GET['s'], $export_url);
-            }
-            if (isset($_GET['filter_profile']) && $_GET['filter_profile'] !== 'all') {
-                $export_url = add_query_arg('filter_profile', $_GET['filter_profile'], $export_url);
-            }
-            if (isset($_GET['filter_member_type']) && $_GET['filter_member_type'] !== 'all') {
-                $export_url = add_query_arg('filter_member_type', $_GET['filter_member_type'], $export_url);
-            }
-            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
-            echo '<a href="' . esc_url($export_url) . '" class="button button_export" >📊 خروجی Excel</a>';
- 
-
-                echo '</div>';
+            // فقط دکمه اکسل را نگه می‌داریم اگر لازم باشد (اختیاری)
+            // در حال حاضر فرم فیلتر کامل در template قرار دارد.
         }
     }
 
@@ -529,6 +459,11 @@ public function column_full_name($item) {
                     $member_type
                 );
             }
+        }
+
+        // فیلتر بازیکن خاص (از searchable dropdown)
+        if (isset($_GET['filter_player']) && absint($_GET['filter_player']) > 0) {
+            $where .= $wpdb->prepare(" AND id = %d", absint($_GET['filter_player']));
         }
 
         if (isset($_GET['s']) && !empty($_GET['s'])) {

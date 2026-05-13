@@ -171,159 +171,137 @@ $members = array_slice($filtered_members, $offset, $per_page);
     </div>
     <div class="wrap">
     <!-- فیلترها -->
-    <form method="GET" action="" class="form_filter_general">
+    <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
         <input type="hidden" name="page" value="sc-reports-active-users">
         
-        <table class="form-table sc_form-table">
-            <tr>
-                <th scope="row">
-                    <label for="filter_member">کاربر</label>
-                </th>
-                <td>
-                    <div class="sc-searchable-dropdown">
-                        <?php 
-                        $selected_member_text = 'همه کاربران';
-                        if ($filter_member > 0) {
-                            foreach ($all_members as $m) {
-                                if ($m->id == $filter_member) {
-                                    $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
-                                    break;
-                                }
-                            }
-                        }
-                        ?>
-                        <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
-                        <div class="sc-dropdown-toggle" >
-                            <span class="sc-dropdown-placeholder" style="color: #757575; display: <?php echo $filter_member > 0 ? 'none' : 'inline'; ?>;">همه کاربران</span>
-                            <span class="sc-dropdown-selected" style="color: #2c3338; display: <?php echo $filter_member > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_member_text); ?></span>
-                            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #757575;">▼</span>
-                        </div>
-                        <div class="sc-dropdown-menu" >
-                            <div class="sc-dropdown-search" >
-                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
-                            </div>
-                            <div class="sc-dropdown-options" >
-                                <div class="sc-dropdown-option sc-visible" 
-                                     data-value="0"
-                                     data-search="همه کاربران"
-                                      <?php echo $filter_member == 0 ? 'background: #f0f6fc;' : ''; ?>"
-                                     onclick="scSelectMemberFilter(this, '0', 'همه کاربران')">
-                                    همه کاربران
-                                    <?php if ($filter_member == 0) : ?>
-                                        <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
-                                    <?php endif; ?>
-                                </div>
-                                <?php 
-                                $display_count = 0;
-                                $max_display = 10;
-                                foreach ($all_members as $member_option) : 
-                                    $is_selected = ($filter_member == $member_option->id);
-                                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
-                                ?>
-                                    <div class="sc-dropdown-option <?php echo $display_class; ?>" 
-                                         data-value="<?php echo esc_attr($member_option->id); ?>"
-                                         data-search="<?php echo esc_attr(strtolower($member_option->first_name . ' ' . $member_option->last_name . ' ' . $member_option->national_id)); ?>"
-                                         style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; <?php echo $is_selected ? 'background: #f0f6fc;' : ''; ?>"
-                                         onclick="scSelectMemberFilter(this, '<?php echo esc_js($member_option->id); ?>', '<?php echo esc_js($member_option->first_name . ' ' . $member_option->last_name . ' - ' . $member_option->national_id); ?>')">
-                                        <?php echo esc_html($member_option->first_name . ' ' . $member_option->last_name . ' - ' . $member_option->national_id); ?>
-                                        <?php if ($is_selected) : ?>
-                                            <span style="float: left; color: #2271b1; font-weight: bold;">✓</span>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php 
-                                    if ($is_selected) {
-                                        $display_count++;
-                                    } elseif ($display_count < $max_display) {
-                                        $display_count++;
-                                    }
-                                endforeach; 
-                                ?>
-                            </div>
-                        </div>
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row">
-                    <label for="filter_course">دوره</label>
-                </th>
-                <td>
-                    <select name="filter_course" id="filter_course">
-                        <option value="0">همه دوره‌ها</option>
-                        <?php foreach ($courses as $course) : ?>
-                            <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
-                                <?php echo esc_html($course->title); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row">
-                    <label for="filter_debt_status">وضعیت بدهی</label>
-                </th>
-                <td>
-                    <select name="filter_debt_status" id="filter_debt_status">
-                        <option value="all" <?php selected($filter_debt_status, 'all'); ?>>همه</option>
-                        <option value="has_debt" <?php selected($filter_debt_status, 'has_debt'); ?>>دارد</option>
-                        <option value="no_debt" <?php selected($filter_debt_status, 'no_debt'); ?>>ندارد</option>
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row">
-                    <label for="filter_insurance_status">بیمه</label>
-                </th>
-                <td>
-                    <select name="filter_insurance_status" id="filter_insurance_status" >
-                        <option value="all" <?php selected($filter_insurance_status, 'all'); ?>>همه</option>
-                        <option value="active" <?php selected($filter_insurance_status, 'active'); ?>>فعال</option>
-                        <option value="expired" <?php selected($filter_insurance_status, 'expired'); ?>>منقضی</option>
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row">
-                    <label for="filter_profile_status">وضعیت پروفایل</label>
-                </th>
-                <td>
-                    <select name="filter_profile_status" id="filter_profile_status" >
-                        <option value="all" <?php selected($filter_profile_status, 'all'); ?>>همه</option>
-                        <option value="completed" <?php selected($filter_profile_status, 'completed'); ?>>تکمیل</option>
-                        <option value="incomplete" <?php selected($filter_profile_status, 'incomplete'); ?>>ناقص</option>
-                    </select>
-                </td>
-            </tr>
-        </table>
-        
-        <p class="submit">
-            <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
-            <?php
-            // ساخت URL برای export Excel
-            $export_url = admin_url('admin.php?page=sc-reports-active-users&sc_export=excel&export_type=active_users');
-            if ($filter_member > 0) {
-                $export_url = add_query_arg('filter_member', $filter_member, $export_url);
-            }
-            if ($filter_course > 0) {
-                $export_url = add_query_arg('filter_course', $filter_course, $export_url);
-            }
-            if (isset($_GET['filter_debt_status']) && $_GET['filter_debt_status'] !== 'all') {
-                $export_url = add_query_arg('filter_debt_status', $_GET['filter_debt_status'], $export_url);
-            }
-            if (isset($_GET['filter_insurance_status']) && $_GET['filter_insurance_status'] !== 'all') {
-                $export_url = add_query_arg('filter_insurance_status', $_GET['filter_insurance_status'], $export_url);
-            }
-            if (isset($_GET['filter_profile_status']) && $_GET['filter_profile_status'] !== 'all') {
-                $export_url = add_query_arg('filter_profile_status', $_GET['filter_profile_status'], $export_url);
-            }
-            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
-            ?>
-            <a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
-                📊 خروجی Excel
-            </a>
-            <a href="<?php echo admin_url('admin.php?page=sc-reports-active-users'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-        </p>
-    </form>
+<div class="sc-filter-grid">
+
+<!-- کاربر -->
+<div class="sc-filter-field">
+<label class="sc-filter-label">کاربر</label>
+<div class="sc-searchable-dropdown">
+<?php 
+$selected_member_text = 'همه کاربران';
+if ($filter_member > 0) {
+    foreach ($all_members as $m) {
+        if ($m->id == $filter_member) {
+            $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
+            break;
+        }
+    }
+}
+?>
+<input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
+<div class="sc-dropdown-toggle">
+<span class="sc-dropdown-placeholder" <?php if ($filter_member) echo 'style="display:none"'; ?>>همه کاربران</span>
+<span class="sc-dropdown-selected" <?php if (!$filter_member) echo 'style="display:none"'; ?>>
+<?php echo esc_html($selected_member_text); ?>
+</span>
+<span class="sc-dropdown-arrow">▼</span>
+</div>
+<div class="sc-dropdown-menu">
+<div class="sc-dropdown-search">
+<input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
+</div>
+<div class="sc-dropdown-options">
+<div class="sc-dropdown-option sc-visible"
+     data-value="0"
+     data-search="همه کاربران"
+     onclick="scSelectMemberFilter(this,'0','همه کاربران')">
+همه کاربران
+</div>
+<?php 
+$display_count = 0;
+$max_display = 10;
+foreach ($all_members as $member) :
+    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+    $display_count++;
+?>
+<div class="sc-dropdown-option <?php echo $display_class; ?>"
+     data-value="<?php echo esc_attr($member->id); ?>"
+     data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
+     onclick="scSelectMemberFilter(this,'<?php echo esc_js($member->id); ?>','<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
+<?php echo esc_html($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>
+</div>
+<?php endforeach; ?>
+</div>
+</div>
+</div>
+</div>
+
+<!-- دوره -->
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_course">دوره</label>
+<select name="filter_course" id="filter_course" class="sc-filter-control">
+<option value="0">همه دوره‌ها</option>
+<?php foreach ($courses as $course) : ?>
+<option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
+<?php echo esc_html($course->title); ?>
+</option>
+<?php endforeach; ?>
+</select>
+</div>
+
+<!-- وضعیت بدهی -->
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_debt_status">وضعیت بدهی</label>
+<select name="filter_debt_status" id="filter_debt_status" class="sc-filter-control">
+<option value="all" <?php selected($filter_debt_status, 'all'); ?>>همه</option>
+<option value="has_debt" <?php selected($filter_debt_status, 'has_debt'); ?>>دارد</option>
+<option value="no_debt" <?php selected($filter_debt_status, 'no_debt'); ?>>ندارد</option>
+</select>
+</div>
+
+<!-- بیمه -->
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_insurance_status">بیمه</label>
+<select name="filter_insurance_status" id="filter_insurance_status" class="sc-filter-control">
+<option value="all" <?php selected($filter_insurance_status, 'all'); ?>>همه</option>
+<option value="active" <?php selected($filter_insurance_status, 'active'); ?>>فعال</option>
+<option value="expired" <?php selected($filter_insurance_status, 'expired'); ?>>منقضی</option>
+</select>
+</div>
+
+<!-- وضعیت پروفایل -->
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_profile_status">وضعیت پروفایل</label>
+<select name="filter_profile_status" id="filter_profile_status" class="sc-filter-control">
+<option value="all" <?php selected($filter_profile_status, 'all'); ?>>همه</option>
+<option value="completed" <?php selected($filter_profile_status, 'completed'); ?>>تکمیل</option>
+<option value="incomplete" <?php selected($filter_profile_status, 'incomplete'); ?>>ناقص</option>
+</select>
+</div>
+
+</div>
+
+<p class="submit">
+<input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
+<?php
+// ساخت URL برای export Excel
+$export_url = admin_url('admin.php?page=sc-reports-active-users&sc_export=excel&export_type=active_users');
+if ($filter_member > 0) {
+    $export_url = add_query_arg('filter_member', $filter_member, $export_url);
+}
+if ($filter_course > 0) {
+    $export_url = add_query_arg('filter_course', $filter_course, $export_url);
+}
+if (isset($_GET['filter_debt_status']) && $_GET['filter_debt_status'] !== 'all') {
+    $export_url = add_query_arg('filter_debt_status', $_GET['filter_debt_status'], $export_url);
+}
+if (isset($_GET['filter_insurance_status']) && $_GET['filter_insurance_status'] !== 'all') {
+    $export_url = add_query_arg('filter_insurance_status', $_GET['filter_insurance_status'], $export_url);
+}
+if (isset($_GET['filter_profile_status']) && $_GET['filter_profile_status'] !== 'all') {
+    $export_url = add_query_arg('filter_profile_status', $_GET['filter_profile_status'], $export_url);
+}
+$export_url = wp_nonce_url($export_url, 'sc_export_excel');
+?>
+<a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
+📊 خروجی Excel
+</a>
+<a href="<?php echo admin_url('admin.php?page=sc-reports-active-users'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+</p>
+</form>
     
     <!-- لیست کاربران -->
     <?php if (empty($members)) : ?>

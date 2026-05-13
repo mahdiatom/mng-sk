@@ -575,6 +575,18 @@ p.sk-modal-content p {
     border: 1px solid #ccd0d4;
     box-shadow: 0 1px 1px rgba(0,0,0,.04);
 }
+@media screen and (max-width:780px) {
+    .tab-content {
+ 
+    padding: 5px;
+   
+   
+}
+.wrap{
+    padding: 10px;
+}
+    
+}
 /* منوادمین بخش پیامک  */
 #wp-admin-bar-sc-sms-credit span{
     color: #000 !important;
@@ -608,9 +620,24 @@ p.sk-modal-content p {
     flex-direction: column;
 }
 
+.sc-filter-grid > .sc-filter-field:only-child {
+    width: 100%;
+}
+
 @media (max-width: 768px) {
     .sc-filter-field {
         width: 100%;
+    }
+    .sc-filter-field.sc-filter-date {
+        width: 100%;
+    }
+    .sc-filter-date .sc-date-range {
+        display: flex;
+        gap: 10px;
+    }
+    .sc-filter-date .sc-date-range input {
+        flex: 1;
+        min-width: 0;
     }
 }
 
@@ -633,6 +660,12 @@ p.sk-modal-content p {
     border-color: #2271b1;
     outline: none;
     box-shadow: 0 0 0 1px #2271b1;
+}
+
+.sc-filter-field > select.sc-filter-control {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* === Date Range === */
@@ -2383,15 +2416,27 @@ width: fit-content;
 
 @media screen and (max-width:780px) {
     .filter_honors_list{
-    width: 100%;
-}
-.filter_honors_list .sc-filter-field{
-    width: 100%;
-}
-.filter_honors_list .sc-dropdown-toggle{
-    width: 100% !important;
-    height: 43px;
-}
+        width: 100%;
+    }
+    .filter_honors_list .sc-filter-field{
+        width: 100%;
+    }
+    /* تاریخ (اگر اضافه شود) تمام عرض نشود و دو ستونه بماند */
+    .filter_honors_list .sc-filter-field.sc-filter-date{
+        width: 100%;
+    }
+    .filter_honors_list .sc-filter-date .sc-date-range{
+        display: flex;
+        gap: 10px;
+    }
+    .filter_honors_list .sc-filter-date .sc-date-range input{
+        flex: 1;
+        min-width: 0;
+    }
+    .filter_honors_list .sc-dropdown-toggle{
+        width: 100% !important;
+        height: 43px;
+    }
 }
 
 .sc-honor-add-card{

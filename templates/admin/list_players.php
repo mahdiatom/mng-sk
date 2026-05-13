@@ -9,23 +9,158 @@ global $title ,$player_list_table;
             ?>
             <div class="wrap">
             <h1 class="wp-heading-inline">لیست بازیکن ها</h1>
-            
-            
             <a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action">افزودن بازیکن</a>
-           
         </div>
+
         <div class="notice_custom_list_member">
-            <p>برای  مشاهده اکشن ها روی نام کاربر بروید سپس با توجه به نیاز خود اکشن خود را انتخاب کنید (اکشن های موجود : حذف کاربر - مشاهده اطلاعات کاربر - ویرایش کاربر)</p>    
+            <p>برای مشاهده اکشن‌ها روی نام کاربر بروید (حذف، مشاهده، ویرایش).</p>
+        </div>
+
+        <?php
+        // بارگذاری داده‌ها برای فیلتر searchable
+        global $wpdb;
+        $members_table = $wpdb->prefix . 'sc_members';
+        $courses_table = $wpdb->prefix . 'sc_courses';
+
+        $all_players = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+        $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC");
+
+        $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+        $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
+        $filter_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
+        $filter_member_type = isset($_GET['filter_member_type']) ? sanitize_text_field($_GET['filter_member_type']) : 'all';
+        ?>
+
+        <!-- فرم فیلتر جدید -->
+        <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+            <input type="hidden" name="page" value="sc-members">
+
+            <div class="sc-filter-grid">
+
+                <!-- جستجوی کاربر (searchable) -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label">جستجوی بازیکن</label>
+                    <div class="sc-searchable-dropdown">
+                        <?php
+                        $selected_player_text = 'همه بازیکنان';
+                        $filter_player = isset($_GET['filter_player']) ? absint($_GET['filter_player']) : 0;
+                        if ($filter_player > 0) {
+                            foreach ($all_players as $p) {
+                                if ($p->id == $filter_player) {
+                                    $selected_player_text = $p->first_name . ' ' . $p->last_name . ' - ' . $p->national_id;
+                                    break;
+                                }
+                            }
+                        }
+                        ?>
+                        <input type="hidden" name="filter_player" id="filter_player" value="<?php echo esc_attr($filter_player); ?>">
+                        <div class="sc-dropdown-toggle">
+                            <span class="sc-dropdown-placeholder" <?php if ($filter_player) echo 'style="display:none"'; ?>>همه بازیکنان</span>
+                            <span class="sc-dropdown-selected" <?php if (!$filter_player) echo 'style="display:none"'; ?>><?php echo esc_html($selected_player_text); ?></span>
+                            <span class="sc-dropdown-arrow">▼</span>
+                        </div>
+                        <div class="sc-dropdown-menu">
+                            <div class="sc-dropdown-search">
+                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
+                            </div>
+                            <div class="sc-dropdown-options">
+                                <div class="sc-dropdown-option sc-visible" data-value="0" data-search="همه بازیکنان" onclick="scSelectMemberFilter(this,'0','همه بازیکنان')">همه بازیکنان</div>
+                                <?php
+                                $display_count = 0;
+                                $max_display = 15;
+                                foreach ($all_players as $player) :
+                                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                    $display_count++;
+                                ?>
+                                    <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
+                                         data-value="<?php echo esc_attr($player->id); ?>"
+                                         data-search="<?php echo esc_attr(strtolower($player->first_name . ' ' . $player->last_name . ' ' . $player->national_id)); ?>"
+                                         onclick="scSelectMemberFilter(this,'<?php echo esc_js($player->id); ?>','<?php echo esc_js($player->first_name . ' ' . $player->last_name . ' - ' . $player->national_id); ?>')">
+                                        <?php echo esc_html($player->first_name . ' ' . $player->last_name . ' - ' . $player->national_id); ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- دوره -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_course">دوره</label>
+                    <select name="filter_course" id="filter_course" class="sc-filter-control">
+                        <option value="0">همه دوره‌ها</option>
+                        <?php foreach ($courses as $course) : ?>
+                            <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
+                                <?php echo esc_html($course->title); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- وضعیت -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_status">وضعیت</label>
+                    <select name="filter_status" id="filter_status" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_status, 'all'); ?>>همه وضعیت‌ها</option>
+                        <option value="active" <?php selected($filter_status, 'active'); ?>>فعال</option>
+                        <option value="inactive" <?php selected($filter_status, 'inactive'); ?>>غیرفعال</option>
+                    </select>
+                </div>
+
+                <!-- تکمیل پروفایل -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_profile">تکمیل پروفایل</label>
+                    <select name="filter_profile" id="filter_profile" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_profile, 'all'); ?>>همه</option>
+                        <option value="completed" <?php selected($filter_profile, 'completed'); ?>>تکمیل شده</option>
+                        <option value="incomplete" <?php selected($filter_profile, 'incomplete'); ?>>ناقص</option>
+                    </select>
+                </div>
+
+                <!-- نوع بازیکن -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_member_type">نوع بازیکن</label>
+                    <select name="filter_member_type" id="filter_member_type" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_member_type, 'all'); ?>>همه انواع</option>
+                        <option value="normal" <?php selected($filter_member_type, 'normal'); ?>>عادی</option>
+                        <option value="team" <?php selected($filter_member_type, 'team'); ?>>تیم</option>
+                    </select>
+                </div>
+
             </div>
-            <?php
-            echo '<div class="wrap">';
-                echo '<form  Method="get" >';
-                    echo '<input type="hidden" name="page" value="sc-members">';
-                    $player_list_table->search_box('جستجو بازیکن' , 'search_player');
-                    $player_list_table->views();
-                    $player_list_table->display();
-                echo '</form>';
-            echo '</div>';
+
+            <p class="submit">
+                <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
+                <a href="<?php echo admin_url('admin.php?page=sc-members'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                <?php
+                $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
+                if ($filter_player > 0) $export_url = add_query_arg('filter_player', $filter_player, $export_url);
+                if ($filter_course > 0) $export_url = add_query_arg('filter_course', $filter_course, $export_url);
+                if ($filter_status !== 'all') $export_url = add_query_arg('filter_status', $filter_status, $export_url);
+                if ($filter_profile !== 'all') $export_url = add_query_arg('filter_profile', $filter_profile, $export_url);
+                if ($filter_member_type !== 'all') $export_url = add_query_arg('filter_member_type', $filter_member_type, $export_url);
+                $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+                ?>
+                <a href="<?php echo esc_url($export_url); ?>" class="button button_export">📊 خروجی Excel</a>
+            </p>
+        </form>
+
+        <?php
+        echo '<div class="wrap">';
+            echo '<form method="get">';
+                echo '<input type="hidden" name="page" value="sc-members">';
+                // حذف search_box قدیمی چون حالا داخل فیلتر داریم
+                $player_list_table->views();
+                $player_list_table->display();
+            echo '</form>';
+        echo '</div>';
+        ?>
+
+        <!-- اسکریپت برای searchable dropdown (اگر قبلاً لود نشده) -->
+        <script>
+        // تابع scSelectMemberFilter باید از قبل در admin.js یا مشابه لود شده باشد
+        // در صورت نیاز می‌توانید آن را اینجا هم تعریف کنید.
+        </script>
 
 
 

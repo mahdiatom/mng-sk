@@ -93,24 +93,15 @@ $finance_chart_config = null;
         <?php if ($tab === 'overview') : ?>
             <?php include SC_TEMPLATES_ADMIN_DIR . 'reports-income-expenses.php'; ?>
         <?php else : ?>
-            <form method="GET" action="" class="form_filter_general">
+            <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
                 <input type="hidden" name="page" value="sc-reports-income-expenses">
                 <input type="hidden" name="tab" value="<?php echo esc_attr($tab); ?>">
-                <div class="sc-form-flex">
-                    <div class="sc-form-field sc-full">
-                        <label>بازه تاریخ (شمسی)</label>
-                        <div class="sc-form-row">
-                            <input type="text" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" class="regular-text persian-date-input" readonly>
-                            <input type="hidden" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                            <span>تا</span>
-                            <input type="text" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" class="regular-text persian-date-input" readonly>
-                            <input type="hidden" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                        </div>
-                    </div>
+
+                <div class="sc-filter-grid">
                     <?php if (in_array($tab, ['course_income', 'coach_share', 'receivables', 'cashflow', 'ledger'], true)) : ?>
-                        <div class="sc-form-field">
-                            <label for="filter_course">دوره</label>
-                            <select name="filter_course" id="filter_course">
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_course">دوره</label>
+                            <select name="filter_course" id="filter_course" class="sc-filter-control">
                                 <option value="0">همه دوره‌ها</option>
                                 <?php foreach ($courses as $course) : ?>
                                     <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>><?php echo esc_html($course->title); ?></option>
@@ -119,9 +110,9 @@ $finance_chart_config = null;
                         </div>
                     <?php endif; ?>
                     <?php if ($tab === 'coach_share') : ?>
-                        <div class="sc-form-field">
-                            <label for="filter_coach">مربی</label>
-                            <select name="filter_coach" id="filter_coach">
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_coach">مربی</label>
+                            <select name="filter_coach" id="filter_coach" class="sc-filter-control">
                                 <option value="0">همه مربیان</option>
                                 <?php foreach ($coaches as $coach) : ?>
                                     <option value="<?php echo esc_attr($coach->id); ?>" <?php selected($filter_coach, $coach->id); ?>>
@@ -132,9 +123,9 @@ $finance_chart_config = null;
                         </div>
                     <?php endif; ?>
                     <?php if ($tab !== 'store_income') : ?>
-                        <div class="sc-form-field">
-                            <label for="filter_chapter">شعبه</label>
-                            <select name="filter_chapter" id="filter_chapter">
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_chapter">شعبه</label>
+                            <select name="filter_chapter" id="filter_chapter" class="sc-filter-control">
                                 <option value="">همه شعبه‌ها</option>
                                 <?php foreach ($chapters as $chapter_item) : ?>
                                     <option value="<?php echo esc_attr($chapter_item->name); ?>" <?php selected($filter_chapter, $chapter_item->name); ?>>
@@ -145,9 +136,9 @@ $finance_chart_config = null;
                         </div>
                     <?php endif; ?>
                     <?php if ($tab === 'event_income') : ?>
-                        <div class="sc-form-field">
-                            <label for="filter_event_type">نوع</label>
-                            <select name="filter_event_type" id="filter_event_type">
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_event_type">نوع</label>
+                            <select name="filter_event_type" id="filter_event_type" class="sc-filter-control">
                                 <option value="">همه</option>
                                 <option value="event" <?php selected($filter_event_type, 'event'); ?>>رویداد</option>
                                 <option value="competition" <?php selected($filter_event_type, 'competition'); ?>>مسابقه</option>
@@ -155,9 +146,9 @@ $finance_chart_config = null;
                         </div>
                     <?php endif; ?>
                     <?php if ($tab === 'store_income') : ?>
-                        <div class="sc-form-field">
-                            <label for="filter_store_tag">برچسب محصول</label>
-                            <select name="filter_store_tag" id="filter_store_tag">
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_store_tag">برچسب محصول</label>
+                            <select name="filter_store_tag" id="filter_store_tag" class="sc-filter-control">
                                 <option value="0">همه برچسب‌ها</option>
                                 <?php foreach ($store_tags as $store_tag) : ?>
                                     <option value="<?php echo esc_attr((string) $store_tag->term_id); ?>" <?php selected($filter_store_tag, (int) $store_tag->term_id); ?>>
@@ -166,9 +157,9 @@ $finance_chart_config = null;
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="sc-form-field">
-                            <label for="filter_store_cat">دسته محصول</label>
-                            <select name="filter_store_cat" id="filter_store_cat">
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_store_cat">دسته محصول</label>
+                            <select name="filter_store_cat" id="filter_store_cat" class="sc-filter-control">
                                 <option value="0">همه دسته‌ها</option>
                                 <?php foreach ($store_categories as $store_cat) : ?>
                                     <option value="<?php echo esc_attr((string) $store_cat->term_id); ?>" <?php selected($filter_store_cat, (int) $store_cat->term_id); ?>>
@@ -179,9 +170,9 @@ $finance_chart_config = null;
                         </div>
                     <?php endif; ?>
                     <?php if ($tab === 'ledger') : ?>
-                        <div class="sc-form-field">
-                            <label for="filter_ledger_type">نوع تراکنش</label>
-                            <select name="filter_ledger_type" id="filter_ledger_type">
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_ledger_type">نوع تراکنش</label>
+                            <select name="filter_ledger_type" id="filter_ledger_type" class="sc-filter-control">
                                 <option value="all" <?php selected($filter_ledger_type, 'all'); ?>>همه</option>
                                 <option value="income" <?php selected($filter_ledger_type, 'income'); ?>>ورودی</option>
                                 <option value="expense" <?php selected($filter_ledger_type, 'expense'); ?>>خروجی</option>
@@ -189,9 +180,9 @@ $finance_chart_config = null;
                         </div>
                     <?php endif; ?>
                     <?php if ($tab === 'cashflow') : ?>
-                        <div class="sc-form-field">
-                            <label for="filter_cashflow_type">نوع</label>
-                            <select name="filter_cashflow_type" id="filter_cashflow_type">
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_cashflow_type">نوع</label>
+                            <select name="filter_cashflow_type" id="filter_cashflow_type" class="sc-filter-control">
                                 <option value="all" <?php selected($filter_cashflow_type, 'all'); ?>>همه</option>
                                 <option value="course" <?php selected($filter_cashflow_type, 'course'); ?>>دوره</option>
                                 <option value="event" <?php selected($filter_cashflow_type, 'event'); ?>>رویداد</option>
@@ -199,9 +190,31 @@ $finance_chart_config = null;
                             </select>
                         </div>
                     <?php endif; ?>
+
+                    <div class="sc-filter-field sc-filter-date">
+                        <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
+                        <div class="sc-date-range">
+                            <input type="text"
+                                   name="filter_date_from_shamsi"
+                                   id="filter_date_from_shamsi"
+                                   value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                                   class="persian-date-input sc-filter-control"
+                                   readonly>
+                            <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                            <input type="text"
+                                   name="filter_date_to_shamsi"
+                                   id="filter_date_to_shamsi"
+                                   value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                                   class="persian-date-input sc-filter-control"
+                                   readonly>
+                            <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                        </div>
+                    </div>
                 </div>
+
                 <p class="submit">
                     <button type="submit" class="button button-primary">اعمال فیلتر</button>
+                    <a href="<?php echo esc_url(add_query_arg('tab', $tab, admin_url('admin.php?page=sc-reports-income-expenses'))); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
                     <?php
                     $export_map = [
                         'course_income' => 'finance_course_income',
@@ -223,7 +236,7 @@ $finance_chart_config = null;
                     }
                     ?>
                     <?php if ($export_url !== '') : ?>
-                        <a class="button" href="<?php echo esc_url($export_url); ?>">خروجی اکسل</a>
+                        <a class="button button_export" href="<?php echo esc_url($export_url); ?>">خروجی اکسل</a>
                     <?php endif; ?>
                 </p>
             </form>
