@@ -122,6 +122,51 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
     ];
 }
 
+/**
+ * وضعیت بیمه به‌صورت متن ساده (هم‌تراز با ستون «بیمه» در لیست بازیکنان).
+ *
+ * @param object $member ردیف sc_members
+ */
+function sc_users_export_plain_insurance_status($member) {
+    $insurance_expiry_date = isset($member->insurance_expiry_date_shamsi) ? trim((string) $member->insurance_expiry_date_shamsi) : '';
+    if ($insurance_expiry_date === '') {
+        return '-';
+    }
+    $today = new DateTime(current_time('mysql'));
+    if (!function_exists('gregorian_to_jalali')) {
+        return '-';
+    }
+    $today_jalali = gregorian_to_jalali((int) $today->format('Y'), (int) $today->format('m'), (int) $today->format('d'));
+    $today_shamsi = $today_jalali[0] . '/'
+        . str_pad((string) $today_jalali[1], 2, '0', STR_PAD_LEFT) . '/'
+        . str_pad((string) $today_jalali[2], 2, '0', STR_PAD_LEFT);
+
+    $expiry_parts = explode('/', $insurance_expiry_date);
+    $today_parts = explode('/', $today_shamsi);
+    if (count($expiry_parts) !== 3 || count($today_parts) !== 3) {
+        return '-';
+    }
+    $expiry_year = (int) $expiry_parts[0];
+    $expiry_month = (int) $expiry_parts[1];
+    $expiry_day = (int) $expiry_parts[2];
+    $today_year = (int) $today_parts[0];
+    $today_month = (int) $today_parts[1];
+    $today_day = (int) $today_parts[2];
+
+    $is_expired = false;
+    if ($expiry_year < $today_year) {
+        $is_expired = true;
+    } elseif ($expiry_year === $today_year) {
+        if ($expiry_month < $today_month) {
+            $is_expired = true;
+        } elseif ($expiry_month === $today_month && $expiry_day < $today_day) {
+            $is_expired = true;
+        }
+    }
+
+    return $is_expired ? 'منقضی' : 'فعال';
+}
+
 function sc_users_export_get_field_labels() {
     $labels = [
         'member_id' => 'شناسه بازیکن',
@@ -140,6 +185,11 @@ function sc_users_export_get_field_labels() {
         'skill_level' => 'سطح بازیکن',
         'member_type' => 'نوع بازیکن',
         'team_player' => 'تیم بازیکن',
+        'team_level' => 'تیم و سطح',
+        'profile_completed' => 'تکمیل پروفایل',
+        'identity_verified' => 'احراز هویت',
+        'is_active' => 'وضعیت',
+        'insurance_status' => 'بیمه',
         'active_events' => 'رویدادهای ثبت نام شده',
         'insurance_expiry_date_shamsi' => 'تاریخ بیمه',
         'active_courses' => 'دوره‌های فعال',
@@ -330,9 +380,33 @@ function sc_users_export_prepare_rows($members, $fields) {
                         $row[$field] = 'بازیکن عادی';
                     }
                     break;
+                case 'team_level':
+                    $team = !empty($member->team_player) ? trim((string) $member->team_player) : '';
+                    $level = !empty($member->skill_level) ? trim((string) $member->skill_level) : '';
+                    if ($team === '' && $level === '') {
+                        $row[$field] = '-';
+                    } elseif ($team !== '' && $level !== '') {
+                        $row[$field] = $team . ' — سطح: ' . $level;
+                    } elseif ($team !== '') {
+                        $row[$field] = $team;
+                    } else {
+                        $row[$field] = 'سطح: ' . $level;
+                    }
+                    break;
+                case 'insurance_status':
+                    $row[$field] = sc_users_export_plain_insurance_status($member);
+                    break;
+                case 'identity_verified':
+                    $row[$field] = !empty($member->identity_verified) ? 'تأیید شده' : 'در انتظار بررسی';
+                    break;
+                case 'is_active':
+                    $row[$field] = !empty($member->is_active) ? 'فعال' : 'غیرفعال';
+                    break;
+                case 'profile_completed':
+                    $row[$field] = !empty($member->profile_completed) ? 'تکمیل شده' : 'ناقص';
+                    break;
                 case 'health_verified':
                 case 'info_verified':
-                case 'profile_completed':
                     $row[$field] = !empty($member->{$field}) ? 'بله' : 'خیر';
                     break;
                 default:

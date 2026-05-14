@@ -44,8 +44,8 @@ if (function_exists('wc_get_price_thousand_separator')) {
             <input type="hidden" name="paged" value="1">
             
             <div style="flex: 1; min-width: 200px;">
-                <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
-                <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <label for="filter_status" class="lable_filter_enroll_course">وضعیت:</label>
+                <select name="filter_status" id="filter_status" class="selector_enroll">
                     <option value="latest" <?php selected($filter_status, 'latest'); ?>>آخرین دوره‌ها</option>
                     <option value="active" <?php selected($filter_status, 'active'); ?>>دوره‌های ثبت نام شده</option>
                     <option value="paused" <?php selected($filter_status, 'paused'); ?>>دوره‌های متوقف شده</option>
@@ -56,9 +56,9 @@ if (function_exists('wc_get_price_thousand_separator')) {
                 </select>
             </div>
             <div style="flex: 1; min-width: 200px;">
-                <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">شعبه:</label>
+                <label for="filter_status" class="lable_filter_enroll_course ">شعبه :</label>
                 
-                <select name="chapter" id="chapter" class="regular-text">
+                <select name="chapter" id="chapter" class="regular-text selector_enroll">
                           <option value="all" <?php selected($chapter, 'all'); ?>>همه شعبه ها</option>
                           <?php 
                           foreach($chapters as $ch){ ?>

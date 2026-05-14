@@ -79,7 +79,18 @@ h2{
      stroke: rgb(63, 63, 63) !important;      /* این کار می‌کنه: رنگ خطوط رو عوض می‌کنه */
     stroke-width: 1 !important;
 }
+ a.sc_button{
+      border: 1px solid #b6b6b6 !important;
+    border-radius: 10px !important;
+    padding: 10px;
+    margin-top: 10px;
+ }
 
+ .sc_button{
+    border: 1px solid #b6b6b6 !important;
+    border-radius: 10px !important;
+    height: 40px;
+ }
 /* فوتر */
 .custom-footer{
     display: flex;
@@ -272,6 +283,7 @@ font-size: 14px;
 .logo_custom_gym img{
   margin-right: 20px !important;
     height: 50px !important;
+    border-radius: 10px;
 }
 .logo_custom_gym {
     flex-shrink: 0;
@@ -307,7 +319,7 @@ font-size: 14px;
 }
 .sc-header-search {
     flex: 1;
-    max-width: min(440px, 42vw);
+    max-width: min(600px, 42vw);
     margin: 0 12px;
     min-width: 0;
 }
@@ -508,7 +520,7 @@ font-size: 14px;
     width: 100%;
     max-width: 580px;
     margin-top: max(12px, env(safe-area-inset-top));
-    background: #fff;
+   
     border-radius: 16px;
     padding: 48px 16px 16px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
@@ -516,15 +528,16 @@ font-size: 14px;
 }
 .sc-header-search-popup__close {
     position: absolute;
-    top: 10px;
+    top: 0px;
     left: 12px;
     width: 40px;
     height: 40px;
-    border: none;
-    background: #f3f3f3;
-    border-radius: 10px;
+    border: none !important;
+    background: #f3f3f3 !important;
+    border-radius: 10px !important;
     font-size: 26px;
     line-height: 1;
+    border-radius: 100%;
     cursor: pointer;
     color: #333;
 }
@@ -550,13 +563,26 @@ font-size: 14px;
     }
     .header_top .logo_custom_gym img {
         height: 42px !important;
+                border-radius: 10px;
     }
+    .sc-header-search {
+  
+    max-width: unset ;
+
+}
 }
 @media (min-width: 992px) {
     .sc-header-search-toggle.sc-header-search--mobile {
         display: none !important;
     }
 }
+.sc-header-search-toggle{
+    order: 2 !important;
+    border: none !important;
+    background: transparent !important;
+    
+}
+
 
 
 span.arrow-b svg{
@@ -565,7 +591,7 @@ span.arrow-b svg{
     margin-right: 2px;
 }
 a.icon_adv{
-    margin: 0px 18px 0px 36px;
+    margin: 0px 10px 0px 10px;
     position: relative;
 
 }
@@ -1343,6 +1369,31 @@ body:not([class*=elementor-page-]) .site-main {
     gap: 16px;
     margin-top: 10px;
     justify-content: space-around;
+}
+.sc_attendamce_select{
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 12px;
+}
+@media screen and (min-width:980px) {
+    .field_attednce_date{
+    display: flex;
+    align-items: center;
+    width: 300px;
+    margin-right: 10px;
+}
+.field_attednce_date span{
+    width: fit-content;
+    margin: 0 20px;
+}
+.field_attednce_date .range_date{
+    width: 250px;
+    padding-right: 100px;
+}
+.field_filter_attendace{
+    display: flex;
+}
+    
 }
 .sc-card-purple {
     background: #fce4f5;
@@ -6755,13 +6806,21 @@ display: block;
 }
     
 }
+.lable_filter_enroll_course{
+    display: block; margin-bottom: 5px; font-weight: 600;
+}
+.selector_enroll{
+        border: 1px solid #ddd;
+        
+}
+
 
 .modal-menu_mobile{
         width: 90%;
     background: #3e009fd4;;
     position: absolute;
     margin: 20px;
-    top: 50px;
+    top: 80px;
     border-radius: 10px;
       border: 2px solid #0c02c9;
       z-index: 9999;
@@ -6939,6 +6998,7 @@ display: block;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
+    height: 40px;
 }
 
 .wc-block-cart-items__row , .wp-block-woocommerce-cart-items-block{
@@ -7049,7 +7109,45 @@ text-align: right;
     padding: 6px;
     border-radius: 10px;
     border: 1px solid #e4e4e4;
+    
     box-shadow: 1px 2px 1px #e4e4e4;
 }
 
 
+/* privet class */
+.sc-private-wrap{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px}
+.sc-private-grid{display:grid;gap:12px}
+.sc-private-field label{display:block;font-weight:600;margin-bottom:6px}
+.sc-private-field select,.sc-private-field input[type="text"]{width:100%;}
+.sc-private-slots{    display: grid;
+    gap: 15px;
+    padding: 30px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fafafa;}
+.sc-private-slots label{display:block}
+.sc-private-card{margin-top:28px;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
+.sc-private-status{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.sc-private-status-scheduled{background:#dbeafe;color:#1e40af}
+.sc-private-status-cancelled{background:#fee2e2;color:#991b1b}
+.sc-private-status-absent{background:#ffedd5;color:#9a3412}
+.sc-private-status-excused{background:#ede9fe;color:#5b21b6}
+.sc-private-status-rescheduled{background:#e0f2fe;color:#075985}
+.sc-private-status-done{background:#dcfce7;color:#166534}
+.sc-private-disabled-note{color:#9ca3af;font-size:12px}
+.sc-private-cancel-btn{background:#ef4444 !important;border-color:#ef4444 !important;color:#fff !important;border-radius:8px !important;padding:4px 10px !important}
+.sc-private-cancel-btn:hover{background:#dc2626 !important;border-color:#dc2626 !important}
+.sc-private-wrap select , #sc_private_start_date_shamsi{
+border-radius: 10px;
+    border: 1px solid #ddd;
+    padding: 12px;
+}
+@media screen and (max-width:780px) {
+    .td_session_privet{
+    padding-bottom: 20px !important;
+}
+.td_name_course_privet{
+    padding-top: 20px !important;
+}
+}
+/* privet class */

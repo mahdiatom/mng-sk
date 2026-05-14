@@ -38,25 +38,7 @@ if ($member_id > 0) {
 }
 $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
 ?>
-<style>
-.sc-private-wrap{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px}
-.sc-private-grid{display:grid;gap:12px}
-.sc-private-field label{display:block;font-weight:600;margin-bottom:6px}
-.sc-private-field select,.sc-private-field input[type="text"]{width:100%;max-width:460px}
-.sc-private-slots{display:grid;gap:8px;padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa}
-.sc-private-slots label{display:block}
-.sc-private-card{margin-top:28px;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
-.sc-private-status{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
-.sc-private-status-scheduled{background:#dbeafe;color:#1e40af}
-.sc-private-status-cancelled{background:#fee2e2;color:#991b1b}
-.sc-private-status-absent{background:#ffedd5;color:#9a3412}
-.sc-private-status-excused{background:#ede9fe;color:#5b21b6}
-.sc-private-status-rescheduled{background:#e0f2fe;color:#075985}
-.sc-private-status-done{background:#dcfce7;color:#166534}
-.sc-private-disabled-note{color:#9ca3af;font-size:12px}
-.sc-private-cancel-btn{background:#ef4444 !important;border-color:#ef4444 !important;color:#fff !important;border-radius:8px !important;padding:4px 10px !important}
-.sc-private-cancel-btn:hover{background:#dc2626 !important;border-color:#dc2626 !important}
-</style>
+
 <div class="sc-enroll-course-page sc-private-wrap">
     <h2>رزرو کلاس خصوصی</h2>
     <?php if (empty($courses)) : ?>
@@ -127,16 +109,16 @@ $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_dat
                 <tbody>
                     <?php foreach ($my_sessions as $session) : ?>
                         <tr>
-                            <td><?php echo esc_html($session->course_title); ?></td>
-                            <td><?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($session->session_date) : $session->session_date); ?></td>
-                            <td><?php echo esc_html(substr((string) $session->time_start, 0, 5) . ' تا ' . substr((string) $session->time_end, 0, 5)); ?></td>
+                            <td data-title="نام دوره" class="td_name_course_privet"><?php echo esc_html($session->course_title); ?></td>
+                            <td data-title="تاریخ"><?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($session->session_date) : $session->session_date); ?></td>
+                            <td data-title="ساعت" ><?php echo esc_html(substr((string) $session->time_start, 0, 5) . ' تا ' . substr((string) $session->time_end, 0, 5)); ?></td>
                             <?php
                             $status_key = (string) $session->status;
                             $status_class = 'sc-private-status sc-private-status-' . preg_replace('/[^a-z_]/', '', $status_key);
                             $status_label = function_exists('sc_private_session_status_label') ? sc_private_session_status_label($status_key) : $status_key;
                             ?>
-                            <td><span class="<?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
-                            <td>
+                            <td data-title="وضعیت"><span class="<?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
+                            <td data-title="عملیات" class="td_session_privet">
                                 <?php
                                 $session_start_ts = strtotime((string) $session->session_date . ' ' . substr((string) $session->time_start, 0, 8));
                                 $is_past_session = ((string) $session->session_date < current_time('Y-m-d')) || ($session_start_ts > 0 && $session_start_ts <= current_time('timestamp'));

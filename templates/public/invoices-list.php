@@ -26,6 +26,7 @@ $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_s
 $invoices = isset($invoices) ? $invoices : [];
 $current_page = isset($current_page) ? max(1, absint($current_page)) : 1;
 $total_pages = isset($total_pages) ? max(1, absint($total_pages)) : 1;
+$get_certificate =isset( $_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
 ?>
 
 <div class="sc-invoices-page">
@@ -33,7 +34,15 @@ $total_pages = isset($total_pages) ? max(1, absint($total_pages)) : 1;
         <span style="font-size: 32px;">💳</span>
         صورت حساب‌ها
     </h2>
-    
+    <?php 
+    if($get_certificate){
+        ?>
+           <div class="woocommerce-message" role="alert" tabindex="-1">
+		صورت حساب درخواست فیزیکی گواهینامه شما صادر شد لطفا نسبت به پرداخت آن اقدام فرمایید.	</div>
+        <?php
+    }
+
+        ?>
     <!-- فیلتر وضعیت -->
     <div class="sc-invoices-filters" style="margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
         <form method="GET" action="<?php echo esc_url(wc_get_account_endpoint_url('sc-invoices')); ?>" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">

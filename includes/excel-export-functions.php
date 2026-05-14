@@ -129,6 +129,35 @@ function sc_get_excel_alternate_row_style() {
 }
 
 /**
+ * متن ستون «تیم و سطح» برای خروجی اکسل (هم‌خوان با لیست بازیکنان).
+ *
+ * @param object $member ردیف عضو از sc_members
+ */
+function sc_excel_export_member_team_level_label($member) {
+    $team = isset($member->team_player) ? trim((string) $member->team_player) : '';
+    $level = isset($member->skill_level) ? trim((string) $member->skill_level) : '';
+    if ($team === '' && $level === '') {
+        return '-';
+    }
+    if ($team !== '' && $level !== '') {
+        return $team . ' — سطح: ' . $level;
+    }
+    if ($team !== '') {
+        return $team;
+    }
+    return 'سطح: ' . $level;
+}
+
+/**
+ * متن ستون «احراز هویت» برای خروجی اکسل.
+ *
+ * @param object $member
+ */
+function sc_excel_export_member_identity_label($member) {
+    return !empty($member->identity_verified) ? 'تأیید شده' : 'در انتظار بررسی';
+}
+
+/**
  * تنظیم عرض ستون‌ها به صورت خودکار
  */
 function sc_auto_size_columns($sheet, $columnCount) {
@@ -637,6 +666,10 @@ function sc_export_members_to_excel() {
     $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
     $filter_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
     $filter_member_type = isset($_GET['filter_member_type']) ? sanitize_text_field($_GET['filter_member_type']) : 'all';
+    $filter_team = isset($_GET['filter_team']) ? sanitize_text_field(wp_unslash($_GET['filter_team'])) : '';
+    $filter_skill_level = isset($_GET['filter_skill_level']) ? sanitize_text_field(wp_unslash($_GET['filter_skill_level'])) : '';
+    $filter_identity = isset($_GET['filter_identity']) ? sanitize_text_field($_GET['filter_identity']) : 'all';
+    $filter_insurance = isset($_GET['filter_insurance']) ? sanitize_text_field($_GET['filter_insurance']) : 'all';
 
     // ساخت WHERE clause
     $where_conditions = ['1=1'];
@@ -662,6 +695,45 @@ function sc_export_members_to_excel() {
               AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')
         )";
         $where_values[] = $filter_course;
+    }
+
+    if ($filter_team !== '' && $filter_team !== 'all') {
+        $where_conditions[] = 'm.team_player = %s';
+        $where_values[] = $filter_team;
+    }
+
+    if ($filter_skill_level !== '' && $filter_skill_level !== 'all') {
+        $where_conditions[] = 'm.skill_level = %s';
+        $where_values[] = $filter_skill_level;
+    }
+
+    if ($filter_identity === 'verified') {
+        $where_conditions[] = 'm.identity_verified = 1';
+    } elseif ($filter_identity === 'pending') {
+        $where_conditions[] = '(m.identity_verified = 0 OR m.identity_verified IS NULL)';
+    }
+
+    if ($filter_insurance !== 'all') {
+        $today_shamsi_str = '';
+        if (function_exists('sc_date_shamsi_date_only')) {
+            $today_shamsi_str = sc_date_shamsi_date_only(current_time('Y-m-d'));
+        }
+        if (!$today_shamsi_str && function_exists('gregorian_to_jalali')) {
+            $today_dt = new DateTime(current_time('Y-m-d'));
+            $today_jalali = gregorian_to_jalali((int) $today_dt->format('Y'), (int) $today_dt->format('m'), (int) $today_dt->format('d'));
+            $today_shamsi_str = $today_jalali[0] . '/'
+                . str_pad((string) $today_jalali[1], 2, '0', STR_PAD_LEFT) . '/'
+                . str_pad((string) $today_jalali[2], 2, '0', STR_PAD_LEFT);
+        }
+        if ($filter_insurance === 'none') {
+            $where_conditions[] = "(m.insurance_expiry_date_shamsi IS NULL OR m.insurance_expiry_date_shamsi = '')";
+        } elseif ($filter_insurance === 'active' && $today_shamsi_str !== '') {
+            $where_conditions[] = "m.insurance_expiry_date_shamsi IS NOT NULL AND m.insurance_expiry_date_shamsi <> '' AND m.insurance_expiry_date_shamsi >= %s";
+            $where_values[] = $today_shamsi_str;
+        } elseif ($filter_insurance === 'expired' && $today_shamsi_str !== '') {
+            $where_conditions[] = "m.insurance_expiry_date_shamsi IS NOT NULL AND m.insurance_expiry_date_shamsi <> '' AND m.insurance_expiry_date_shamsi < %s";
+            $where_values[] = $today_shamsi_str;
+        }
     }
     
     if ($search) {
@@ -728,20 +800,24 @@ function sc_export_members_to_excel() {
         'شماره تماس',
         'تاریخ تولد',
         'نوع',
+        'تیم و سطح',
         'وضعیت',
         'تکمیل پروفایل',
+        'وضعیت احراز',
         'دوره‌ها'
     ];
-    
+    $header_col_count = count($headers);
+    $header_last_col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($header_col_count);
+
     $col = 1;
     foreach ($headers as $header) {
         $sheet->setCellValueByColumnAndRow($col, 1, $header);
         $col++;
     }
-    
+
     // اعمال استایل به header
     $headerStyle = sc_get_excel_header_style();
-    $sheet->getStyle('A1:K1')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:' . $header_last_col . '1')->applyFromArray($headerStyle);
     
     // داده‌ها
     $row = 2;
@@ -776,6 +852,9 @@ function sc_export_members_to_excel() {
         $member_type_label = ($member_type_val === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
         $sheet->setCellValueByColumnAndRow($col++, $row, $member_type_label);
         
+        // تیم و سطح
+        $sheet->setCellValueByColumnAndRow($col++, $row, sc_excel_export_member_team_level_label($member));
+        
         // وضعیت
         $status_label = $member->is_active ? 'فعال' : 'غیرفعال';
         $sheet->setCellValueByColumnAndRow($col++, $row, $status_label);
@@ -784,6 +863,9 @@ function sc_export_members_to_excel() {
         $is_completed = sc_check_profile_completed($member->id);
         $profile_status = $is_completed ? 'تکمیل شده' : 'ناقص';
         $sheet->setCellValueByColumnAndRow($col++, $row, $profile_status);
+        
+        // وضعیت احراز
+        $sheet->setCellValueByColumnAndRow($col++, $row, sc_excel_export_member_identity_label($member));
         
         // دوره‌ها
         $course_names = [];
@@ -797,18 +879,19 @@ function sc_export_members_to_excel() {
         
         // اعمال استایل به ردیف
         $dataStyle = sc_get_excel_data_style();
+        $row_range = 'A' . $row . ':' . $header_last_col . $row;
         if ($row % 2 == 0) {
             $alternateStyle = sc_get_excel_alternate_row_style();
-            $sheet->getStyle("A$row:K$row")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+            $sheet->getStyle($row_range)->applyFromArray(array_merge($dataStyle, $alternateStyle));
         } else {
-            $sheet->getStyle("A$row:K$row")->applyFromArray($dataStyle);
+            $sheet->getStyle($row_range)->applyFromArray($dataStyle);
         }
         
         $row++;
     }
     
     // تنظیم عرض ستون‌ها
-    sc_auto_size_columns($sheet, 11);
+    sc_auto_size_columns($sheet, $header_col_count);
     
     // ایجاد نام فایل
     $filters = [
@@ -943,20 +1026,24 @@ function sc_export_members_to_excel_coach() {
         'شماره تماس',
         'تاریخ تولد',
         'نوع',
+        'تیم و سطح',
         'وضعیت',
         'تکمیل پروفایل',
+        'وضعیت احراز',
         'دوره‌ها'
     ];
-    
+    $header_col_count = count($headers);
+    $header_last_col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($header_col_count);
+
     $col = 1;
     foreach ($headers as $header) {
         $sheet->setCellValueByColumnAndRow($col, 1, $header);
         $col++;
     }
-    
+
     // اعمال استایل به header
     $headerStyle = sc_get_excel_header_style();
-    $sheet->getStyle('A1:K1')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:' . $header_last_col . '1')->applyFromArray($headerStyle);
     
     // داده‌ها
     $row = 2;
@@ -990,16 +1077,22 @@ function sc_export_members_to_excel_coach() {
         $member_type_val = isset($member->member_type) ? $member->member_type : 'normal';
         $member_type_label = ($member_type_val === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
         $sheet->setCellValueByColumnAndRow($col++, $row, $member_type_label);
-        
+
+        // تیم و سطح
+        $sheet->setCellValueByColumnAndRow($col++, $row, sc_excel_export_member_team_level_label($member));
+
         // وضعیت
         $status_label = $member->is_active ? 'فعال' : 'غیرفعال';
         $sheet->setCellValueByColumnAndRow($col++, $row, $status_label);
-        
+
         // تکمیل پروفایل
         $is_completed = sc_check_profile_completed($member->id);
         $profile_status = $is_completed ? 'تکمیل شده' : 'ناقص';
         $sheet->setCellValueByColumnAndRow($col++, $row, $profile_status);
-        
+
+        // وضعیت احراز
+        $sheet->setCellValueByColumnAndRow($col++, $row, sc_excel_export_member_identity_label($member));
+
         // دوره‌ها
         $course_names = [];
         if (!empty($member->courses)) {
@@ -1009,21 +1102,22 @@ function sc_export_members_to_excel_coach() {
         }
         $courses_text = !empty($course_names) ? implode('، ', $course_names) : '-';
         $sheet->setCellValueByColumnAndRow($col++, $row, $courses_text);
-        
+
         // اعمال استایل به ردیف
         $dataStyle = sc_get_excel_data_style();
+        $row_range = 'A' . $row . ':' . $header_last_col . $row;
         if ($row % 2 == 0) {
             $alternateStyle = sc_get_excel_alternate_row_style();
-            $sheet->getStyle("A$row:K$row")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+            $sheet->getStyle($row_range)->applyFromArray(array_merge($dataStyle, $alternateStyle));
         } else {
-            $sheet->getStyle("A$row:K$row")->applyFromArray($dataStyle);
+            $sheet->getStyle($row_range)->applyFromArray($dataStyle);
         }
-        
+
         $row++;
     }
-    
+
     // تنظیم عرض ستون‌ها
-    sc_auto_size_columns($sheet, 11);
+    sc_auto_size_columns($sheet, $header_col_count);
     
     // ایجاد نام فایل
     $filters = [

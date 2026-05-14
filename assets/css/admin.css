@@ -2214,7 +2214,93 @@ padding: 10px 15px;
     margin-right: 0;
 }
 
+/* فرم افزودن اطلاعیه (مدیر و sc-coach-add-notification): جدول و کارت‌ها روی موبایل/touch */
 @media screen and (max-width: 782px) {
+    .sc-notification-add-wrap {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .sc-notification-add-wrap .sc-notification-form-card {
+        padding: 16px 12px;
+        margin-top: 12px;
+        min-width: 0;
+        max-width: 100%;
+    }
+    .sc-notification-add-wrap table.sc-notification-form-table {
+        display: block;
+        width: 100%;
+    }
+    .sc-notification-add-wrap.sc-users-export-wrap .sc-users-export-card {
+        padding: 12px;
+        margin: 12px 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .sc-notification-add-wrap .sc-users-export-card h2 {
+        font-size: 1.1em;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+    .sc-notification-add-wrap .sc-notification-form-table th,
+    .sc-notification-add-wrap .sc-notification-form-table td {
+        display: block;
+        width: 100% !important;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .sc-notification-add-wrap .sc-notification-form-table th {
+        padding: 0 0 6px 0;
+    }
+    .sc-notification-add-wrap .sc-notification-form-table td {
+        padding: 0 0 16px 0;
+    }
+    .sc-notification-add-wrap .sc-notification-form-table tr {
+        display: block;
+        margin-bottom: 4px;
+    }
+    .sc-notification-add-wrap .sc-notification-form-table tbody {
+        display: block;
+        width: 100%;
+    }
+    .sc-notification-add-wrap .sc-notification-select,
+    .sc-notification-add-wrap select.sc-notification-select {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0 !important;
+    }
+    .sc-notification-add-wrap .sc-notification-form-table select[multiple] {
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100%;
+    }
+    .sc-notification-add-wrap .sc-phone-add-row {
+        flex-wrap: wrap;
+    }
+    .sc-notification-add-wrap .sc-phone-add-row .regular-text {
+        max-width: 100% !important;
+        width: 100%;
+    }
+    .sc-notification-add-wrap #sc-notification-preview-submit-wrap {
+        padding-right: 0;
+        padding-left: 0;
+    }
+    .sc-notification-add-wrap #sc-notification-preview-submit-wrap .button {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+        justify-content: center;
+    }
+    .sc-notification-add-wrap #notification-form > p.submit {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    .sc-notification-add-wrap #notification-form > p.submit .button {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+    }
     .sc-notification-add-wrap.sc-bulk-actions-wrap .sc-bulk-preview-result.back_table_list {
         max-width: 100%;
         -webkit-overflow-scrolling: touch;
@@ -2822,4 +2908,9 @@ width: fit-content;
 #sc-add-player-custom-field-btn{
        padding: 10px;
     background: #3858e914;
+}
+
+.wrap_attendace_user{
+    width: 50%;
+    
 }

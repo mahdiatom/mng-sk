@@ -29,23 +29,23 @@ $verification_gate_locked = function_exists('sc_is_member_verification_gate_enab
     ?>
     <header class="custom-header header_top" >
         
+            
+        <div class="logo_custom_gym">
+            <img src="<?php echo sc_get_setting('sc_club_logo_url'); ?>" alt="">
         
-    <div class="logo_custom_gym">
-        <img src="<?php echo sc_get_setting('sc_club_logo_url'); ?>" alt="">
-    
-    </div>
-
-    <div class="sc-header-search sc-header-search--desktop" role="search">
-        <div class="sc-header-search__box">
-            <?php echo $sc_search_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-            <input type="search" class="sc-header-search__input" placeholder="<?php echo $sc_hs_placeholder; ?>" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
-            <div class="sc-header-search__dropdown" hidden></div>
         </div>
-    </div>
 
-    <button type="button" class="sc-header-search-toggle sc-header-search--mobile" aria-label="<?php esc_attr_e( 'جستجو', 'sportclub-manager' ); ?>">
-        <?php echo $sc_search_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-    </button>
+        <div class="sc-header-search sc-header-search--desktop" role="search">
+            <div class="sc-header-search__box">
+                <?php echo $sc_search_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <input type="search" class="sc-header-search__input" placeholder="<?php echo $sc_hs_placeholder; ?>" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
+                <div class="sc-header-search__dropdown" hidden></div>
+            </div>
+        </div>
+
+        <button type="button" class="sc-header-search-toggle sc-header-search--mobile" aria-label="<?php esc_attr_e( 'جستجو', 'sportclub-manager' ); ?>">
+            <?php echo $sc_search_svg;  ?>
+        </button>
   
     <div class="woo_panel_mini">
         <nav class="menu_custom_gym menu-header  menu_header_left" >

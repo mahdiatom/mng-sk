@@ -20,7 +20,7 @@ $total_items = sc_count_member_certificates((int) $member->id);
 $total_pages = (int) ceil($total_items / $per_page);
 ?>
 
-<div class="woocommerce-MyAccount-content">
+<div class="main_certificate">
     <div class="sc-my-certificates-header">
         <h2>گواهینامه‌های من</h2>
         <p>در این بخش می‌توانید گواهینامه‌های صادرشده را مشاهده و دانلود کنید.</p>
@@ -45,9 +45,7 @@ $total_pages = (int) ceil($total_items / $per_page);
                 <span>تعداد کل</span>
                 <strong><?php echo (int) $total_items; ?></strong>
             </div>
-            <div class="sc-my-certificates-stat-item">
-                <span>صفحه فعلی</span>
-                <strong><?php echo (int) $current_page; ?> از <?php echo max(1, (int) $total_pages); ?></strong>
+            <div class="sc-my-certificates-stat-item2">
             </div>
         </div>
 
@@ -98,7 +96,8 @@ $total_pages = (int) ceil($total_items / $per_page);
                         <?php if ($physical_invoice_id > 0) : ?>
                             <?php if ($is_paid_invoice) : ?>
                                 <span class="button sc-my-certificate-action sc-my-certificate-physical-btn is-paid">ثبت و پرداخت انجام شده</span>
-                            <?php else : ?>
+                            <?php else : 
+                                ?>
                                 <a class="button sc-my-certificate-action sc-my-certificate-physical-btn is-requested" href="<?php echo esc_url($invoices_url); ?>">صورتحساب نسخه فیزیکی ثبت شده</a>
                             <?php endif; ?>
                         <?php else : ?>

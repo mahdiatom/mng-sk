@@ -486,7 +486,7 @@ function sc_add_my_account_menu_item($items) {
     unset($items['customer-logout']); 
     $items['sc-submit-documents'] = 'اطلاعات بازیکن' ;
     $items['sc-enroll-course'] = 'ثبت نام در دوره';
-    $items['sc-my-courses'] = 'دوره‌های من';
+    $items['sc-my-courses'] = 'دوره‌های من +  برنامه هفتگی';
     $items['sc-my-attendances'] = 'حضور و غیاب های من ';
     $items['sc-events'] = 'رویدادها / مسابقات';
     $items['sc-my-events'] = ' رویداد های من ';

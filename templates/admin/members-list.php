@@ -461,6 +461,61 @@ public function column_full_name($item) {
             }
         }
 
+        // فیلتر تیم (نام تیم در فیلد team_player)
+        if (isset($_GET['filter_team']) && $_GET['filter_team'] !== '' && $_GET['filter_team'] !== 'all') {
+            $team_val = sanitize_text_field(wp_unslash($_GET['filter_team']));
+            if ($team_val !== '') {
+                $where .= $wpdb->prepare(' AND team_player = %s', $team_val);
+            }
+        }
+
+        // فیلتر سطح (skill_level)
+        if (isset($_GET['filter_skill_level']) && $_GET['filter_skill_level'] !== '' && $_GET['filter_skill_level'] !== 'all') {
+            $level_val = sanitize_text_field(wp_unslash($_GET['filter_skill_level']));
+            if ($level_val !== '') {
+                $where .= $wpdb->prepare(' AND skill_level = %s', $level_val);
+            }
+        }
+
+        // فیلتر وضعیت احراز هویت
+        if (isset($_GET['filter_identity']) && $_GET['filter_identity'] !== 'all') {
+            $identity = sanitize_text_field($_GET['filter_identity']);
+            if ($identity === 'verified') {
+                $where .= ' AND identity_verified = 1';
+            } elseif ($identity === 'pending') {
+                $where .= ' AND (identity_verified = 0 OR identity_verified IS NULL)';
+            }
+        }
+
+        // فیلتر وضعیت بیمه (تاریخ انقضای شمسی)
+        if (isset($_GET['filter_insurance']) && $_GET['filter_insurance'] !== 'all') {
+            $insurance_filter = sanitize_text_field($_GET['filter_insurance']);
+            $today_shamsi_str = '';
+            if (function_exists('sc_date_shamsi_date_only')) {
+                $today_shamsi_str = sc_date_shamsi_date_only(current_time('Y-m-d'));
+            }
+            if (!$today_shamsi_str && function_exists('gregorian_to_jalali')) {
+                $today_dt = new DateTime(current_time('Y-m-d'));
+                $today_jalali = gregorian_to_jalali((int) $today_dt->format('Y'), (int) $today_dt->format('m'), (int) $today_dt->format('d'));
+                $today_shamsi_str = $today_jalali[0] . '/'
+                    . str_pad((string) $today_jalali[1], 2, '0', STR_PAD_LEFT) . '/'
+                    . str_pad((string) $today_jalali[2], 2, '0', STR_PAD_LEFT);
+            }
+            if ($insurance_filter === 'none') {
+                $where .= " AND (insurance_expiry_date_shamsi IS NULL OR insurance_expiry_date_shamsi = '')";
+            } elseif ($insurance_filter === 'active' && $today_shamsi_str !== '') {
+                $where .= $wpdb->prepare(
+                    " AND insurance_expiry_date_shamsi IS NOT NULL AND insurance_expiry_date_shamsi <> '' AND insurance_expiry_date_shamsi >= %s",
+                    $today_shamsi_str
+                );
+            } elseif ($insurance_filter === 'expired' && $today_shamsi_str !== '') {
+                $where .= $wpdb->prepare(
+                    " AND insurance_expiry_date_shamsi IS NOT NULL AND insurance_expiry_date_shamsi <> '' AND insurance_expiry_date_shamsi < %s",
+                    $today_shamsi_str
+                );
+            }
+        }
+
         // فیلتر بازیکن خاص (از searchable dropdown)
         if (isset($_GET['filter_player']) && absint($_GET['filter_player']) > 0) {
             $where .= $wpdb->prepare(" AND id = %d", absint($_GET['filter_player']));

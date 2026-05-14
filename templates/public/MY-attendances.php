@@ -116,8 +116,11 @@ $where_clause = implode(' AND ', $where_conditions);
 $query = "
     SELECT 
         a.attendance_date,
-        a.status
+        a.status ,
+        c.title
     FROM $attendances_table a
+    INNER JOIN $courses_table c
+    ON a.course_id = c.id
     WHERE $where_clause
     ORDER BY a.attendance_date ASC
 ";
@@ -135,6 +138,7 @@ $attendance_map = [];
 foreach ($attendances as $row) {
     $attendance_map[$row->attendance_date] = $row->status;
     $dates_list[] = $row->attendance_date;
+    $course_title[$row->attendance_date] =  $row->title;
 }
 
 $dates_list = array_unique($dates_list);
@@ -164,7 +168,7 @@ $courses = $wpdb->get_results(
 
 ?>
 
-<div class="wrap">
+<div class="wrap wrap_attendace_user">
 
     <h2>گزارش حضور و غیاب من</h2>
 
@@ -172,9 +176,10 @@ $courses = $wpdb->get_results(
     <form method="GET" style="margin:20px 0; background:#fff; padding:15px; border:1px solid #ddd; border-radius:6px;">
         
         <!-- دوره -->
+         <div class="field_filter_attendace">
         <p>
             <label>دوره:</label><br>
-            <select name="filter_course">
+            <select name="filter_course" class="sc_attendamce_select">
                 <option value="0">همه دوره‌ها</option>
                 <?php foreach ($courses as $course) : ?>
                     <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
@@ -185,11 +190,12 @@ $courses = $wpdb->get_results(
         </p>
 
         <!-- تاریخ -->
-        <p>
-            <label>بازه تاریخ:</label><br>
+         <span class="range_date">بازه تاریخ:
+        <p class="field_attednce_date">
+            
             <input type="text"
                    name="filter_date_from_shamsi"
-                   class="persian-date-input"
+                   class="persian-date-input sc_attendamce_select"
                    placeholder="از تاریخ"
                    value="<?php echo esc_attr($_GET['filter_date_from_shamsi'] ?? ''); ?>"
                    readonly>
@@ -198,18 +204,18 @@ $courses = $wpdb->get_results(
 
             <input type="text"
                    name="filter_date_to_shamsi"
-                   class="persian-date-input"
+                   class="persian-date-input sc_attendamce_select"
                    placeholder="تا تاریخ"
                    value="<?php echo esc_attr($_GET['filter_date_to_shamsi'] ?? ''); ?>"
                    readonly>
         </p>
-
-        <p>
+</span><br>
+        </div>
             <button type="submit" class="button button-primary">اعمال فیلتر</button>
-            <a href="<?php echo esc_url(remove_query_arg(['filter_course','filter_date_from_shamsi','filter_date_to_shamsi'])); ?>" class="button">
+            <a href="<?php echo esc_url(remove_query_arg(['filter_course','filter_date_from_shamsi','filter_date_to_shamsi'])); ?>" class="sc_button">
                 پاک کردن
             </a>
-        </p>
+        
     </form>
 
     <!-- جدول -->
@@ -219,7 +225,9 @@ $courses = $wpdb->get_results(
             <p>هیچ اطلاعاتی برای نمایش وجود ندارد.</p>
         </div>
 
-    <?php else : ?>
+    <?php else :
+        
+        ?>
 
         <div style="overflow-x:auto; background:#fff; padding:15px; border:1px solid #ddd; border-radius:6px;">
  
@@ -227,10 +235,12 @@ $courses = $wpdb->get_results(
     <thead>
         <tr>
             <th style="text-align:center; width:50%">تاریخ</th>
+            <th style="text-align:center; width:50%">دوره</th>
             <th style="text-align:center; width:50%">وضعیت</th>
         </tr>
     </thead>
     <tbody>
+
         <?php foreach ($dates_list as $date) : ?>
             <tr>
                 <!-- تاریخ -->
@@ -238,7 +248,13 @@ $courses = $wpdb->get_results(
                     <?php echo esc_html(sc_date_shamsi_date_only($date)); ?>
                 </td>
 
-                <!-- وضعیت -->
+                <!-- دوره  -->
+                 <td style="text-align:center; font-size:12px;">
+                    <?php 
+                  echo ( isset($course_title[$date]) ) ?  $course_title[$date] : '-';
+                    
+                    ?>
+                 </td>
                 <td style="text-align:center; font-size:20px;">
                     <?php
                     if (isset($attendance_map[$date])) {

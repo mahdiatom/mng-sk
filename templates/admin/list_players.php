@@ -25,10 +25,21 @@ global $title ,$player_list_table;
         $all_players = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
         $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC");
 
+        $team_options = $wpdb->get_col(
+            "SELECT DISTINCT team_player FROM $members_table WHERE team_player IS NOT NULL AND TRIM(team_player) <> '' ORDER BY team_player ASC"
+        );
+        $level_options = $wpdb->get_col(
+            "SELECT DISTINCT skill_level FROM $members_table WHERE skill_level IS NOT NULL AND TRIM(skill_level) <> '' ORDER BY skill_level ASC"
+        );
+
         $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
         $filter_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
         $filter_member_type = isset($_GET['filter_member_type']) ? sanitize_text_field($_GET['filter_member_type']) : 'all';
+        $filter_team = isset($_GET['filter_team']) ? sanitize_text_field(wp_unslash($_GET['filter_team'])) : '';
+        $filter_skill_level = isset($_GET['filter_skill_level']) ? sanitize_text_field(wp_unslash($_GET['filter_skill_level'])) : '';
+        $filter_identity = isset($_GET['filter_identity']) ? sanitize_text_field($_GET['filter_identity']) : 'all';
+        $filter_insurance = isset($_GET['filter_insurance']) ? sanitize_text_field($_GET['filter_insurance']) : 'all';
         ?>
 
         <!-- فرم فیلتر جدید -->
@@ -127,6 +138,53 @@ global $title ,$player_list_table;
                     </select>
                 </div>
 
+                <!-- تیم -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_team">تیم</label>
+                    <select name="filter_team" id="filter_team" class="sc-filter-control">
+                        <option value="">همه تیم‌ها</option>
+                        <?php foreach ($team_options as $team_name) : ?>
+                            <option value="<?php echo esc_attr($team_name); ?>" <?php selected($filter_team, $team_name); ?>>
+                                <?php echo esc_html($team_name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- سطح -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_skill_level">سطح</label>
+                    <select name="filter_skill_level" id="filter_skill_level" class="sc-filter-control">
+                        <option value="">همه سطح‌ها</option>
+                        <?php foreach ($level_options as $lvl) : ?>
+                            <option value="<?php echo esc_attr($lvl); ?>" <?php selected($filter_skill_level, $lvl); ?>>
+                                <?php echo esc_html($lvl); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- وضعیت احراز هویت -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_identity">وضعیت احراز</label>
+                    <select name="filter_identity" id="filter_identity" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_identity, 'all'); ?>>همه</option>
+                        <option value="verified" <?php selected($filter_identity, 'verified'); ?>>تأیید شده</option>
+                        <option value="pending" <?php selected($filter_identity, 'pending'); ?>>در انتظار بررسی</option>
+                    </select>
+                </div>
+
+                <!-- وضعیت بیمه -->
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_insurance">وضعیت بیمه</label>
+                    <select name="filter_insurance" id="filter_insurance" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_insurance, 'all'); ?>>همه</option>
+                        <option value="active" <?php selected($filter_insurance, 'active'); ?>>بیمه فعال</option>
+                        <option value="expired" <?php selected($filter_insurance, 'expired'); ?>>بیمه منقضی</option>
+                        <option value="none" <?php selected($filter_insurance, 'none'); ?>>بدون بیمه</option>
+                    </select>
+                </div>
+
             </div>
 
             <p class="submit">
@@ -139,6 +197,18 @@ global $title ,$player_list_table;
                 if ($filter_status !== 'all') $export_url = add_query_arg('filter_status', $filter_status, $export_url);
                 if ($filter_profile !== 'all') $export_url = add_query_arg('filter_profile', $filter_profile, $export_url);
                 if ($filter_member_type !== 'all') $export_url = add_query_arg('filter_member_type', $filter_member_type, $export_url);
+                if ($filter_team !== '') {
+                    $export_url = add_query_arg('filter_team', $filter_team, $export_url);
+                }
+                if ($filter_skill_level !== '') {
+                    $export_url = add_query_arg('filter_skill_level', $filter_skill_level, $export_url);
+                }
+                if ($filter_identity !== 'all') {
+                    $export_url = add_query_arg('filter_identity', $filter_identity, $export_url);
+                }
+                if ($filter_insurance !== 'all') {
+                    $export_url = add_query_arg('filter_insurance', $filter_insurance, $export_url);
+                }
                 $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 ?>
                 <a href="<?php echo esc_url($export_url); ?>" class="button button_export">📊 خروجی Excel</a>
@@ -149,6 +219,37 @@ global $title ,$player_list_table;
         echo '<div class="wrap">';
             echo '<form method="get">';
                 echo '<input type="hidden" name="page" value="sc-members">';
+                $sc_members_preserve = [
+                    'filter_course'      => $filter_course,
+                    'filter_status'      => $filter_status,
+                    'filter_profile'     => $filter_profile,
+                    'filter_member_type' => $filter_member_type,
+                    'filter_team'        => $filter_team,
+                    'filter_skill_level' => $filter_skill_level,
+                    'filter_identity'    => $filter_identity,
+                    'filter_insurance'   => $filter_insurance,
+                ];
+                foreach ($sc_members_preserve as $fk => $fv) {
+                    if ($fk === 'filter_course' && (int) $fv <= 0) {
+                        continue;
+                    }
+                    if (in_array($fk, ['filter_status', 'filter_profile', 'filter_member_type', 'filter_identity', 'filter_insurance'], true) && ($fv === 'all' || $fv === '')) {
+                        continue;
+                    }
+                    if (($fk === 'filter_team' || $fk === 'filter_skill_level') && $fv === '') {
+                        continue;
+                    }
+                    echo '<input type="hidden" name="' . esc_attr($fk) . '" value="' . esc_attr((string) $fv) . '" />';
+                }
+                if (!empty($_GET['filter_player'])) {
+                    echo '<input type="hidden" name="filter_player" value="' . esc_attr((string) absint($_GET['filter_player'])) . '" />';
+                }
+                if (!empty($_GET['player_status']) && $_GET['player_status'] !== 'all') {
+                    echo '<input type="hidden" name="player_status" value="' . esc_attr(sanitize_text_field(wp_unslash($_GET['player_status']))) . '" />';
+                }
+                if (!empty($_GET['s'])) {
+                    echo '<input type="hidden" name="s" value="' . esc_attr(sanitize_text_field(wp_unslash($_GET['s']))) . '" />';
+                }
                 // حذف search_box قدیمی چون حالا داخل فیلتر داریم
                 $player_list_table->views();
                 $player_list_table->display();

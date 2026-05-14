@@ -117,9 +117,8 @@ $order_items = $order->get_items();
     <!-- هدر تشکر -->
     <div class="sc-thankyou-header">
         <div class="sc-thankyou-icon">
-            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="80" style="width: 80px;" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="40" cy="40" r="40" fill="#6D34FF" opacity="0.1"/>
-                <path d="M40 20L45 30L55 32L48 40L50 50L40 45L30 50L32 40L25 32L35 30L40 20Z" fill="#6D34FF"/>
                 <path d="M30 40L35 45L50 30" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </div>
