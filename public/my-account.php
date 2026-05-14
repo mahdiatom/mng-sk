@@ -1004,9 +1004,10 @@ function sc_my_account_enroll_course_content() {
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     
     // دریافت فیلتر وضعیت - پیش‌فرض: آخرین دوره‌ها (دوره‌های فعال که کاربر می‌تواند ثبت نام کند)
-    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest';
+    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'latest';
+    $course_search = isset($_GET['course_search']) ? sanitize_text_field(wp_unslash($_GET['course_search'])) : '';
     
-    $chapter = isset($chapter) ? $chapter : (isset($_GET['chapter']) ? sanitize_text_field($_GET['chapter']) : 'all');
+    $chapter = isset($chapter) ? $chapter : (isset($_GET['chapter']) ? sanitize_text_field(wp_unslash($_GET['chapter'])) : 'all');
 
     // ساخت شرط WHERE
     $where_conditions = ["c.deleted_at IS NULL", "c.is_active = 1", "(c.course_type IS NULL OR c.course_type = '' OR c.course_type = 'group')"];
@@ -1178,6 +1179,12 @@ function sc_my_account_enroll_course_content() {
         //$where_values = $chapter;
     }
 
+    if ($course_search !== '') {
+        $like = '%' . $wpdb->esc_like($course_search) . '%';
+        $where_conditions[] = '(c.title LIKE %s OR c.description LIKE %s)';
+        $where_values[] = $like;
+        $where_values[] = $like;
+    }
 
 
 
@@ -1191,11 +1198,16 @@ function sc_my_account_enroll_course_content() {
         $total_courses = $wpdb->get_var($count_query);
     }
     
+    $total_courses = (int) $total_courses;
+    
     // صفحه‌بندی
     $per_page = 10;
-    $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
+    $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+    $total_pages = max(1, (int) ceil($total_courses / $per_page));
+    if ($current_page > $total_pages) {
+        $current_page = $total_pages;
+    }
     $offset = ($current_page - 1) * $per_page;
-    $total_pages = ceil($total_courses / $per_page);
     
     // دریافت دوره‌های کاربر با صفحه‌بندی
     // ترتیب: بر اساس تاریخ ایجاد (جدیدترین اول)
@@ -1959,7 +1971,8 @@ function sc_my_account_my_courses_content() {
     $courses_table = $wpdb->prefix . 'sc_courses';
     
     // دریافت فیلتر وضعیت - پیش‌فرض: فقط دوره‌های فعال و بدون flag
-    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'active';
+    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'active';
+    $course_search = isset($_GET['course_search']) ? sanitize_text_field(wp_unslash($_GET['course_search'])) : '';
     /** @var stdClass|null $player */
     // ساخت شرط WHERE
     $where_conditions = ["mc.member_id = %d"];
@@ -1986,7 +1999,14 @@ function sc_my_account_my_courses_content() {
         $where_values[] = '%completed%';
     }
     // اگر 'all' باشد، همه دوره‌هایی که کاربر در آن‌ها ثبت‌نام کرده نمایش داده می‌شوند
-    
+
+    if ($course_search !== '') {
+        $like = '%' . $wpdb->esc_like($course_search) . '%';
+        $where_conditions[] = '(c.title LIKE %s OR c.description LIKE %s)';
+        $where_values[] = $like;
+        $where_values[] = $like;
+    }
+
     $where_clause = implode(' AND ', $where_conditions);
     
     // محاسبه تعداد کل
@@ -1994,13 +2014,16 @@ function sc_my_account_my_courses_content() {
                     FROM $member_courses_table mc
                     INNER JOIN $courses_table c ON mc.course_id = c.id
                     WHERE $where_clause";
-    $total_courses = $wpdb->get_var($wpdb->prepare($count_query, $where_values));
+    $total_courses = (int) $wpdb->get_var($wpdb->prepare($count_query, $where_values));
     
     // صفحه‌بندی
     $per_page = 10;
-    $current_page = isset($_GET['pag']) ? absint($_GET['pag']) : 1;
+    $current_page = isset($_GET['pag']) ? max(1, absint($_GET['pag'])) : 1;
+    $total_pages = max(1, (int) ceil($total_courses / $per_page));
+    if ($current_page > $total_pages) {
+        $current_page = $total_pages;
+    }
     $offset = ($current_page - 1) * $per_page;
-    $total_pages = ceil($total_courses / $per_page);
     
     // دریافت دوره‌های کاربر با صفحه‌بندی
     // ترتیب: اول دوره‌های فعال و بدون flag، سپس بقیه

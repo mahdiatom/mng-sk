@@ -5,10 +5,11 @@ if (!defined('ABSPATH')) {
 }
 
 // دریافت متغیرهای فیلتر و صفحه‌بندی (اگر از my-account.php فراخوانی شده باشد)
-$filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all');
+$filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all');
 $current_page = isset($current_page) ? $current_page : (isset($_GET['pag']) ? absint($_GET['pag']) : 1);
 $total_pages = isset($total_pages) ? $total_pages : 1;
 $total_courses = isset($total_courses) ? $total_courses : 0;
+$course_search = isset($course_search) ? $course_search : (isset($_GET['course_search']) ? sanitize_text_field(wp_unslash($_GET['course_search'])) : '');
 ?>
 
 <div class="sc-my-courses-page">
@@ -87,6 +88,11 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
                     <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
                 </select>
             </div>
+
+            <div style="flex: 1; min-width: 220px;">
+                <label for="course_search" style="display: block; margin-bottom: 5px; font-weight: 600;">جستجو:</label>
+                <input type="search" name="course_search" id="course_search" value="<?php echo esc_attr($course_search); ?>" placeholder="نام یا توضیح دوره..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+            </div>
             
             <div>
                 <button type="submit" class="button button-primary" style="padding: 8px 20px; height: auto;">اعمال فیلتر</button>
@@ -98,6 +104,8 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
         <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
             <?php if ($filter_status !== 'all') : ?>
                 دوره‌ای با این وضعیت یافت نشد.
+            <?php elseif ($course_search !== '') : ?>
+                دوره‌ای با این جستجو یافت نشد.
             <?php else : ?>
                 شما هنوز در هیچ دوره‌ای ثبت‌نام نکرده‌اید.
             <?php endif; ?>
@@ -355,9 +363,14 @@ $total_courses = isset($total_courses) ? $total_courses : 0;
                 <div class="tablenav bottom sc_paginate" style="margin: 20px 10px 50px 0px;">
                     <div class="tablenav-pages">
                         <?php
+                        $pagination_add = ['filter_status' => $filter_status];
+                        if ($course_search !== '') {
+                            $pagination_add['course_search'] = $course_search;
+                        }
                         $page_links = paginate_links([
                             'base' => add_query_arg(['pag' => '%#%']),
                             'format' => '',
+                            'add_args' => $pagination_add,
                             'prev_text' => '< قبلی ',
                             'next_text' => ' بعدی >' ,
                             'total' => $total_pages,

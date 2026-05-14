@@ -6,11 +6,12 @@ if (!defined('ABSPATH')) {
 
 
 // دریافت متغیرهای فیلتر و صفحه‌بندی (اگر از my-account.php فراخوانی شده باشد)
-$filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest');
-$chapter = isset($chapter) ? $chapter : (isset($_GET['chapter']) ? sanitize_text_field($_GET['chapter']) : 'all');
+$filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'latest');
+$chapter = isset($chapter) ? $chapter : (isset($_GET['chapter']) ? sanitize_text_field(wp_unslash($_GET['chapter'])) : 'all');
 $current_page = isset($current_page) ? $current_page : (isset($_GET['paged']) ? absint($_GET['paged']) : 1);
 $total_pages = isset($total_pages) ? $total_pages : 1;
 $total_courses = isset($total_courses) ? $total_courses : 0;
+$course_search = isset($course_search) ? $course_search : (isset($_GET['course_search']) ? sanitize_text_field(wp_unslash($_GET['course_search'])) : '');
 
 
 // استفاده از تنظیمات WooCommerce برای فرمت قیمت
@@ -67,6 +68,11 @@ if (function_exists('wc_get_price_thousand_separator')) {
                         </select>
 
             </div>
+
+            <div style="flex: 1; min-width: 220px;">
+                <label for="course_search" class="lable_filter_enroll_course">جستجو:</label>
+                <input type="search" name="course_search" id="course_search" class="regular-text selector_enroll"  value="<?php echo esc_attr($course_search); ?>" placeholder="نام یا توضیح دوره...">
+            </div>
             
             <div>
                 <button type="submit" class="button button-primary" style="padding: 8px 20px; height: auto;">اعمال فیلتر</button>
@@ -80,6 +86,8 @@ if (function_exists('wc_get_price_thousand_separator')) {
                 در حال حاضر دوره‌ای برای ثبت نام موجود نیست.
             <?php elseif ($filter_status === 'all') : ?>
                 در حال حاضر دوره‌ای موجود نیست.
+            <?php elseif (!empty($course_search)) : ?>
+                دوره‌ای با این جستجو یافت نشد.
             <?php else : ?>
                 دوره‌ای با این وضعیت یافت نشد.
             <?php endif; ?>
@@ -311,7 +319,13 @@ if (function_exists('wc_get_price_thousand_separator')) {
                 if ($filter_status !== 'latest') {
                     $pagination_args['filter_status'] = $filter_status;
                 }
-                
+                if ($chapter !== 'all') {
+                    $pagination_args['chapter'] = $chapter;
+                }
+                if ($course_search !== '') {
+                    $pagination_args['course_search'] = $course_search;
+                }
+
                 $page_links = paginate_links([
                     'base' => add_query_arg($pagination_args),
                     'format' => '',
@@ -336,11 +350,11 @@ if (function_exists('wc_get_price_thousand_separator')) {
             </div>
         <?php endif; ?>
 
-        <div class="sc-enroll-discount-row" style="margin-top: 24px; padding: 16px; background: #f6f7f7; border: 1px solid #ddd; border-radius: 8px; max-width: 560px;">
+        <div class="sc-enroll-discount-row">
             <label for="sc_invoice_discount_code" style="display: block; font-weight: 600; margin-bottom: 8px;">کد تخفیف (اختیاری)</label>
             <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
                 <input type="text" name="sc_invoice_discount_code" id="sc_invoice_discount_code" class="regular-text" autocomplete="off" placeholder="مثال: SUMMER1404" style="flex: 1; min-width: 200px; padding: 8px 12px;">
-                <button type="button" class="button" id="sc-preview-discount-course"><?php esc_html_e('بررسی کد', 'sportclub-manager'); ?></button>
+                <button type="button" class="sc_button button button-primary" id="sc-preview-discount-course"><?php esc_html_e('بررسی کد', 'sportclub-manager'); ?></button>
             </div>
             <p class="description" style="margin: 8px 0 0; color: #646970; font-size: 13px;">پس از انتخاب دوره (و در صورت وجود، پکیج)، می‌توانید کد را بررسی کنید تا مبلغ نهایی نمایش داده شود.</p>
             <div id="sc-discount-preview-course" style="margin-top: 12px; font-size: 14px; line-height: 1.6;"></div>

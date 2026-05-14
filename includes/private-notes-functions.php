@@ -368,16 +368,36 @@ function sc_private_notes_attachment_download_handle() {
     exit;
 }
 
-function sc_private_notes_get_thread_messages($thread_id) {
+function sc_private_notes_get_thread_messages($thread_id, $args = []) {
     global $wpdb;
-    return $wpdb->get_results($wpdb->prepare(
-        "SELECT m.*, TRIM(CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,''))) AS coach_name
-         FROM " . sc_private_note_messages_table() . " m
-         LEFT JOIN {$wpdb->prefix}sc_coaches c ON c.id = m.author_coach_id
-         WHERE m.thread_id = %d
-         ORDER BY m.created_at ASC, m.id ASC",
-        absint($thread_id)
-    ));
+    $thread_id = absint($thread_id);
+    if ($thread_id <= 0) {
+        return [];
+    }
+    $messages = sc_private_note_messages_table();
+    $coaches = $wpdb->prefix . 'sc_coaches';
+    $where = ['m.thread_id = %d'];
+    $values = [$thread_id];
+    if (!empty($args['date_from'])) {
+        $where[] = 'DATE(m.created_at) >= %s';
+        $values[] = sanitize_text_field((string) $args['date_from']);
+    }
+    if (!empty($args['date_to'])) {
+        $where[] = 'DATE(m.created_at) <= %s';
+        $values[] = sanitize_text_field((string) $args['date_to']);
+    }
+    if (!empty($args['search'])) {
+        $like = '%' . $wpdb->esc_like((string) $args['search']) . '%';
+        $where[] = 'm.content LIKE %s';
+        $values[] = $like;
+    }
+    $where_sql = implode(' AND ', $where);
+    $sql = "SELECT m.*, TRIM(CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,''))) AS coach_name
+         FROM $messages m
+         LEFT JOIN $coaches c ON c.id = m.author_coach_id
+         WHERE $where_sql
+         ORDER BY m.created_at ASC, m.id ASC";
+    return $wpdb->get_results($wpdb->prepare($sql, $values));
 }
 
 function sc_private_notes_query_admin($args = []) {
@@ -456,25 +476,67 @@ function sc_private_notes_query_admin($args = []) {
 }
 
 function sc_private_notes_get_user_notes($user_id, $args = []) {
-    global $wpdb;
-    $table = sc_private_note_threads_table();
-    $limit = isset($args['limit']) ? max(1, absint($args['limit'])) : 20;
-    $offset = isset($args['offset']) ? max(0, absint($args['offset'])) : 0;
-    return $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM $table WHERE user_id = %d ORDER BY updated_at DESC LIMIT %d OFFSET %d",
-        absint($user_id),
-        $limit,
-        $offset
-    ));
+    $q = is_array($args) ? $args : [];
+    if (isset($q['limit']) && !isset($q['per_page'])) {
+        $q['per_page'] = max(1, absint($q['limit']));
+    }
+    if (isset($q['offset']) && isset($q['per_page']) && !isset($q['page'])) {
+        $off = max(0, absint($q['offset']));
+        $pp = max(1, absint($q['per_page']));
+        $q['page'] = (int) floor($off / $pp) + 1;
+    }
+    $res = sc_private_notes_query_user_threads($user_id, $q);
+    return isset($res['rows']) ? $res['rows'] : [];
 }
 
-function sc_private_notes_count_user_notes($user_id) {
+function sc_private_notes_count_user_notes($user_id, $search = '') {
+    $res = sc_private_notes_query_user_threads($user_id, [
+        'search' => $search,
+        'per_page' => 1,
+        'page' => 1,
+    ]);
+    return isset($res['total']) ? (int) $res['total'] : 0;
+}
+
+/**
+ * لیست پرونده‌های یادداشت خصوصی یک کاربر وردپرس (حساب کاربری) با جستجو و صفحه‌بندی.
+ *
+ * @param int   $user_id
+ * @param array $args search, per_page, page
+ * @return array{rows: array, total: int, per_page: int, page: int, total_pages: int}
+ */
+function sc_private_notes_query_user_threads($user_id, $args = []) {
     global $wpdb;
     $table = sc_private_note_threads_table();
-    return (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM $table WHERE user_id = %d",
-        absint($user_id)
-    ));
+    $messages = sc_private_note_messages_table();
+    $user_id = absint($user_id);
+    $where = ['n.user_id = %d'];
+    $values = [$user_id];
+    $search = isset($args['search']) ? sanitize_text_field((string) $args['search']) : '';
+    if ($search !== '') {
+        $like = '%' . $wpdb->esc_like($search) . '%';
+        $where[] = '(n.subject LIKE %s OR EXISTS (SELECT 1 FROM ' . $messages . ' mm WHERE mm.thread_id = n.id AND mm.content LIKE %s))';
+        $values[] = $like;
+        $values[] = $like;
+    }
+    $where_sql = implode(' AND ', $where);
+    $count_sql = "SELECT COUNT(*) FROM $table n WHERE $where_sql";
+    $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $values));
+
+    $per_page = !empty($args['per_page']) ? max(1, absint($args['per_page'])) : 20;
+    $page = !empty($args['page']) ? max(1, absint($args['page'])) : 1;
+    $offset = ($page - 1) * $per_page;
+
+    $sql = "SELECT n.* FROM $table n WHERE $where_sql ORDER BY n.updated_at DESC LIMIT %d OFFSET %d";
+    $rows = $wpdb->get_results($wpdb->prepare($sql, array_merge($values, [$per_page, $offset])));
+
+    return [
+        'rows' => is_array($rows) ? $rows : [],
+        'total' => $total,
+        'per_page' => $per_page,
+        'page' => $page,
+        'total_pages' => (int) max(1, ceil($total / $per_page)),
+    ];
 }
 
 function sc_private_notes_get_legacy_user_notes($user_id, $limit = 20, $offset = 0) {
@@ -513,12 +575,27 @@ function sc_private_notes_preview_recipients_ajax() {
         echo '<p class="description">هیچ کاربری با این فیلترها پیدا نشد.</p>';
     } else {
         echo '<div class="sc-bulk-preview-meta">تعداد کاربران فیلتر شده: <strong>' . esc_html((string) count($members)) . '</strong></div>';
-        echo '<table class="wp-list-table widefat striped sc-bulk-preview-table"><thead><tr><th>نام</th><th>کد ملی</th><th>نوع</th><th>تیم</th><th>سطح</th><th>وضعیت</th></tr></thead><tbody>';
+        echo '<table class="wp-list-table widefat striped sc-bulk-preview-table">';
+        echo '<thead><tr><th style="width:64px;"><label><input type="checkbox" id="sc-private-notes-preview-select-all" checked> انتخاب</label></th><th>نام</th><th>کد ملی</th><th>نوع</th><th>تیم</th><th>سطح</th><th>وضعیت</th></tr></thead><tbody>';
         foreach (array_slice($members, 0, 200) as $member) {
             $full_name = trim((string) $member->first_name . ' ' . (string) $member->last_name);
-            echo '<tr><td>' . esc_html($full_name !== '' ? $full_name : ('کاربر #' . (int) $member->id)) . '</td><td>' . esc_html((string) ($member->national_id ?: '-')) . '</td><td>' . esc_html(($member->member_type === 'team') ? 'بازیکن تیم' : 'بازیکن عادی') . '</td><td>' . esc_html((string) ($member->team_player ?: '-')) . '</td><td>' . esc_html((string) ($member->skill_level ?: '-')) . '</td><td>' . esc_html(!empty($member->is_active) ? 'فعال' : 'غیرفعال') . '</td></tr>';
+            $row_label = $full_name !== '' ? $full_name : ('کاربر #' . (int) $member->id);
+            $type_label = ($member->member_type === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
+            $status_label = !empty($member->is_active) ? 'فعال' : 'غیرفعال';
+            echo '<tr>';
+            echo '<td><input type="checkbox" class="sc-private-notes-preview-member-check" data-member-id="' . (int) $member->id . '" data-member-label="' . esc_attr($row_label) . '" checked></td>';
+            echo '<td>' . esc_html($row_label) . '</td>';
+            echo '<td>' . esc_html((string) ($member->national_id ?: '-')) . '</td>';
+            echo '<td>' . esc_html($type_label) . '</td>';
+            echo '<td>' . esc_html((string) ($member->team_player ?: '-')) . '</td>';
+            echo '<td>' . esc_html((string) ($member->skill_level ?: '-')) . '</td>';
+            echo '<td>' . esc_html($status_label) . '</td>';
+            echo '</tr>';
         }
         echo '</tbody></table>';
+        if (count($members) > 200) {
+            echo '<p class="description">فقط 200 مورد اول نمایش داده شد.</p>';
+        }
     }
     wp_send_json_success(['html' => ob_get_clean(), 'total' => count($members)]);
 }

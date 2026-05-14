@@ -42,6 +42,10 @@ if (isset($_POST['sc_save_private_note']) && check_admin_referer('sc_save_privat
 
     $members = function_exists('sc_bulk_actions_get_members') ? sc_bulk_actions_get_members($target_type, $config) : [];
     $member_ids = array_values(array_unique(array_map('absint', wp_list_pluck((array) $members, 'id'))));
+    $excluded_member_ids = isset($_POST['excluded_member_ids']) ? array_filter(array_map('absint', (array) $_POST['excluded_member_ids'])) : [];
+    if (!empty($excluded_member_ids)) {
+        $member_ids = array_values(array_diff($member_ids, $excluded_member_ids));
+    }
 
     if ($send_mode === 'create_new_thread' && $thread_title === '') {
         $message = 'برای پرونده جدید، نام پرونده را وارد کنید.';
@@ -230,6 +234,7 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
             <div id="sc-private-notes-preview-result" class="sc-bulk-preview-result">
                 <p class="description">پس از انتخاب فیلتر، پیش نمایش کاربران را دریافت کنید.</p>
             </div>
+            <div id="sc-private-notes-excluded-members-inputs"></div>
         </div>
         <div class="sc-users-export-card">
             <h2>نحوه ثبت</h2>

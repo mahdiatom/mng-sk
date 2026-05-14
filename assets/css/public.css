@@ -1395,6 +1395,37 @@ body:not([class*=elementor-page-]) .site-main {
 }
     
 }
+
+/* یادداشت‌های خصوصی (حساب کاربری) — همان چارچوب «حضور و غیاب من» */
+.wrap_attendace_user.sc-private-notes-user {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.wrap_attendace_user.sc-private-notes-user > .sc_button {
+    display: inline-block;
+    margin: 10px 0 0;
+}
+.wrap_attendace_user.sc-private-notes-user .sc-private-notes-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+.wrap_attendace_user.sc-private-notes-user .sc-private-notes-pagination a,
+.wrap_attendace_user.sc-private-notes-user .sc-private-notes-pagination .current {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    text-decoration: none;
+    color: #333;
+}
+.wrap_attendace_user.sc-private-notes-user .sc-private-notes-pagination .current {
+    background: #2271b1;
+    color: #fff;
+    border-color: #2271b1;
+}
+
 .sc-card-purple {
     background: #fce4f5;
     border-color: #f900c1;
@@ -2519,7 +2550,9 @@ ease !important;
     background: #d4edda;
     color: #155724;
 }
-
+.sc-enroll-discount-row{
+    margin-top: 24px; padding: 16px; background: #f6f7f7; border: 1px solid #ddd; border-radius: 8px; 
+}
 .sc-event-status-badge.pending {
     background: #fff3cd;
     color: #856404;
@@ -4553,6 +4586,9 @@ ul.woocommerce-error a{
 }
 
 /* enroll course */
+#course_search{
+        border: 1px solid #ddd;
+}
 
 .sc-course-accordion-item:hover .sc-course-accordion-header:not(:has(+ input:disabled)) {
     background-color: #f0f0f0 !important;
@@ -7141,6 +7177,12 @@ text-align: right;
     background-color: #6d34ff;
     color: white;
     padding: 10px;
+}
+.sc-private-note-back-link{
+    margin-bottom: 10px;
+}
+.sc-private-note-detail-meta{
+    margin-top: 20px;
 }
 .table_privet_note thead tr th , .table_privet_note tbody tr td {
     padding: 20px !important;
