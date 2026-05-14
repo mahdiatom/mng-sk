@@ -172,89 +172,29 @@ public function column_full_name($item) {
             echo 'هنوز بازیکنی در دوره‌های شما ثبت‌نام نکرده است.';
         }
     }
-     public function extra_tablenav($which) {
-        $coach_id = function_exists('sc_current_user_coach_id') ? sc_current_user_coach_id() : 0;    
-        if ($which == 'top') {
-            global $wpdb;
-            $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-            $courses_table = $wpdb->prefix . 'sc_courses';
-            
-            $courses = $wpdb->get_results($wpdb->prepare(
-    "SELECT c.id, c.title, c.description, c.price, c.price_per_session, c.capacity, c.sessions_count, c.start_date, c.end_date, c.is_active
-     FROM $courses_table c
-     INNER JOIN $course_coaches_table cc ON cc.course_id = c.id AND cc.coach_id = %d
-     WHERE c.deleted_at IS NULL
-     ORDER BY c.title",
-    $coach_id
-));
-    //                "SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"        
-            $selected_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
-            $selected_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
-            $selected_profile = isset($_GET['filter_profile']) ? sanitize_text_field($_GET['filter_profile']) : 'all';
-            $selected_member_type = isset($_GET['filter_member_type']) ? sanitize_text_field($_GET['filter_member_type']) : 'all';
-            
-            echo '<div class="alignleft actions">';
-            
-            // فیلتر دوره
-            if ($courses) {
-                echo '<select name="filter_course" id="filter_course" style="margin-left: 5px;">';
-                echo '<option value="0">همه دوره‌ها</option>';
-                foreach ($courses as $course) {
-                    $selected = ($selected_course == $course->id) ? 'selected' : '';
-                    echo '<option value="' . esc_attr($course->id) . '" ' . $selected . '>' . esc_html($course->title) . '</option>';
-                }
-                echo '</select>';
-            }
-            
-            // فیلتر وضعیت (active/inactive)
-            echo '<select name="filter_status" id="filter_status" style="margin-left: 5px;">';
-            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
-            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
-            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
-            echo '</select>';
-            
-            // فیلتر تکمیل پروفایل
-            echo '<select name="filter_profile" id="filter_profile" style="margin-left: 5px;">';
-            echo '<option value="all"' . ($selected_profile == 'all' ? ' selected' : '') . '>همه پروفایل‌ها</option>';
-            echo '<option value="completed"' . ($selected_profile == 'completed' ? ' selected' : '') . '>تکمیل شده</option>';
-            echo '<option value="incomplete"' . ($selected_profile == 'incomplete' ? ' selected' : '') . '>ناقص</option>';
-            echo '</select>';
+    public function extra_tablenav($which) {
+        // فیلترها از این متد حذف شده‌اند و در قالب coach-my-players.php به‌صورت
+        // یک گرید رسپانسیو با ساختار .sc-filter-grid (مشابه صفحه حضور و غیاب) نمایش داده می‌شوند.
+    }
 
-            // فیلتر نوع بازیکن
-            echo '<select name="filter_member_type" id="filter_member_type" style="margin-left: 5px;">';
-            echo '<option value="all"' . ($selected_member_type == 'all' ? ' selected' : '') . '>همه انواع</option>';
-            echo '<option value="normal"' . ($selected_member_type == 'normal' ? ' selected' : '') . '>بازیکن عادی</option>';
-            echo '<option value="team"' . ($selected_member_type == 'team' ? ' selected' : '') . '>بازیکن تیم</option>';
-            echo '</select>';
-            
-            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
-            
-            // دکمه خروجی Excel
-            $export_url = admin_url('admin.php?page=sc-coach-my-players&sc_export=excel&export_type=members_coach');
-            if (isset($_GET['player_status']) && $_GET['player_status'] !== 'all') {
-                $export_url = add_query_arg('player_status', $_GET['player_status'], $export_url);
-            }
-            if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
-                $export_url = add_query_arg('filter_course', $_GET['filter_course'], $export_url);
-            }
-            if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
-                $export_url = add_query_arg('filter_status', $_GET['filter_status'], $export_url);
-            }
-            if (isset($_GET['s']) && !empty($_GET['s'])) {
-                $export_url = add_query_arg('s', $_GET['s'], $export_url);
-            }
-            if (isset($_GET['filter_profile']) && $_GET['filter_profile'] !== 'all') {
-                $export_url = add_query_arg('filter_profile', $_GET['filter_profile'], $export_url);
-            }
-            if (isset($_GET['filter_member_type']) && $_GET['filter_member_type'] !== 'all') {
-                $export_url = add_query_arg('filter_member_type', $_GET['filter_member_type'], $export_url);
-            }
-            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
-            echo '<a href="' . esc_url($export_url) . '" class="button button_export button_export button_export" >📊 خروجی Excel</a>';
- 
-
-                echo '</div>';
+    /**
+     * دریافت لیست دوره‌های مربی برای استفاده در فیلتر قالب
+     */
+    public function get_coach_courses() {
+        global $wpdb;
+        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        if ($this->coach_id <= 0) {
+            return [];
         }
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT c.id, c.title
+             FROM $courses_table c
+             INNER JOIN $course_coaches_table cc ON cc.course_id = c.id AND cc.coach_id = %d
+             WHERE c.deleted_at IS NULL
+             ORDER BY c.title",
+            $this->coach_id
+        ));
     }
     public function prepare_items() {
         global $wpdb;
@@ -332,6 +272,36 @@ public function column_full_name($item) {
                 $where .= $wpdb->prepare(
                     " AND (COALESCE(member_type, 'normal') = %s)",
                     $member_type
+                );
+            }
+        }
+
+        // فیلتر وضعیت بیمه
+        if (isset($_GET['filter_insurance']) && $_GET['filter_insurance'] !== 'all') {
+            $insurance_filter = sanitize_text_field($_GET['filter_insurance']);
+            // تاریخ امروز به شمسی برای مقایسه
+            $today_shamsi_str = '';
+            if (function_exists('sc_date_shamsi_date_only')) {
+                $today_shamsi_str = sc_date_shamsi_date_only(current_time('Y-m-d'));
+            }
+            if (!$today_shamsi_str && function_exists('gregorian_to_jalali')) {
+                $today_dt = new DateTime(current_time('Y-m-d'));
+                $today_jalali = gregorian_to_jalali((int)$today_dt->format('Y'), (int)$today_dt->format('m'), (int)$today_dt->format('d'));
+                $today_shamsi_str = $today_jalali[0] . '/'
+                    . str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/'
+                    . str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+            }
+            if ($insurance_filter === 'none') {
+                $where .= " AND (m.insurance_expiry_date_shamsi IS NULL OR m.insurance_expiry_date_shamsi = '')";
+            } elseif ($insurance_filter === 'active' && $today_shamsi_str !== '') {
+                $where .= $wpdb->prepare(
+                    " AND m.insurance_expiry_date_shamsi IS NOT NULL AND m.insurance_expiry_date_shamsi <> '' AND m.insurance_expiry_date_shamsi >= %s",
+                    $today_shamsi_str
+                );
+            } elseif ($insurance_filter === 'expired' && $today_shamsi_str !== '') {
+                $where .= $wpdb->prepare(
+                    " AND m.insurance_expiry_date_shamsi IS NOT NULL AND m.insurance_expiry_date_shamsi <> '' AND m.insurance_expiry_date_shamsi < %s",
+                    $today_shamsi_str
                 );
             }
         }

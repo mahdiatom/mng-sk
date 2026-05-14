@@ -2810,6 +2810,10 @@ function callback_add_course_sufix() {
             $end_date = sanitize_text_field($_POST['end_date']);
         }
         
+        $course_type_value = (isset($_POST['course_type']) && in_array($_POST['course_type'], ['group', 'private'], true))
+            ? sanitize_text_field($_POST['course_type'])
+            : 'group';
+
         $data = [
             'title' => sanitize_text_field($_POST['title']),
             'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
@@ -2823,6 +2827,7 @@ function callback_add_course_sufix() {
             'allowed_teams' => !empty($_POST['allowed_teams']) && is_array($_POST['allowed_teams']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_teams'])), JSON_UNESCAPED_UNICODE) : NULL,
             'allowed_levels' => !empty($_POST['allowed_levels']) && is_array($_POST['allowed_levels']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_levels'])), JSON_UNESCAPED_UNICODE) : NULL,
             'allowed_gender' => (isset($_POST['allowed_gender']) && in_array($_POST['allowed_gender'], ['male', 'female', 'both'], true)) ? sanitize_text_field($_POST['allowed_gender']) : 'both',
+            'course_type' => $course_type_value,
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'updated_at' => current_time('mysql'),
             'chapter' =>  !empty($_POST['chapter']) ? sanitize_text_field($_POST['chapter']) : NULL,
@@ -2894,6 +2899,7 @@ function callback_add_course_sufix() {
                 'allowed_teams' => !empty($_POST['allowed_teams']) && is_array($_POST['allowed_teams']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_teams'])), JSON_UNESCAPED_UNICODE) : NULL,
                 'allowed_levels' => !empty($_POST['allowed_levels']) && is_array($_POST['allowed_levels']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_levels'])), JSON_UNESCAPED_UNICODE) : NULL,
                 'allowed_gender' => (isset($_POST['allowed_gender']) && in_array($_POST['allowed_gender'], ['male', 'female', 'both'], true)) ? sanitize_text_field($_POST['allowed_gender']) : 'both',
+                'course_type' => $course_type_value,
                 'chapter' => sanitize_text_field($_POST['chapter']),
                 'is_active' => isset($_POST['is_active']) ? 1 : 0,
                 'created_at' => current_time('mysql'),

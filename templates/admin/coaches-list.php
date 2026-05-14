@@ -51,7 +51,6 @@ class Coaches_List_Table extends WP_List_Table {
         $actions = [
             'edit' => '<a href="' . $edit_url . '">ویرایش</a>',
             'delete' => '<a href="' . $delete_url . '" onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید؟\' });">حذف</a>',
-            'view' => '<a href="#" class="view-coach" data-id="' . $item->id . '">مشاهده</a>'
         ];
         
         return sprintf(

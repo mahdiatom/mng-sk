@@ -2225,6 +2225,83 @@ padding: 10px 15px;
 .back_table_list{
     overflow: auto;
 }
+
+/* رسپانسیو کردن جدول پیش‌نمایش مخاطبین در فرم افزودن اطلاعیه (مدیر و مربی) */
+.sc-notification-add-wrap .sc-bulk-preview-result {
+    display: block;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+/* جلوگیری از گسترش سلول جدول form-table بر اساس محتوای پیش‌نمایش (نقش مربی) */
+.sc-notification-add-wrap #row-target-preview,
+.sc-notification-add-wrap #row-target-preview > td,
+.sc-notification-add-wrap #row-target-preview > th {
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+.sc-notification-add-wrap .sc-bulk-preview-table {
+    width: 100%;
+    table-layout: auto;
+    border-collapse: collapse;
+}
+.sc-notification-add-wrap .sc-bulk-preview-table th,
+.sc-notification-add-wrap .sc-bulk-preview-table td {
+    padding: 10px 8px;
+    vertical-align: middle;
+    text-align: right;
+    white-space: normal;
+    word-break: break-word;
+}
+.sc-notification-add-wrap .sc-bulk-preview-table thead th {
+    font-weight: 600;
+}
+
+/* min-width فقط برای صفحات به‌اندازه کافی بزرگ تا روی موبایل صفحه اسکرول افقی نگیرد */
+@media screen and (min-width: 600px) {
+    .sc-notification-add-wrap .sc-bulk-preview-table {
+        min-width: 480px;
+    }
+}
+
+@media screen and (max-width: 782px) {
+    /* جلوگیری از رفتار رسپانسیو پیش‌فرض وردپرس روی wp-list-table که ستون‌ها را مخفی می‌کند یا حالت کارت می‌دهد */
+    .sc-notification-add-wrap .sc-bulk-preview-table,
+    .sc-notification-add-wrap .sc-bulk-preview-table thead,
+    .sc-notification-add-wrap .sc-bulk-preview-table tbody,
+    .sc-notification-add-wrap .sc-bulk-preview-table tr,
+    .sc-notification-add-wrap .sc-bulk-preview-table th,
+    .sc-notification-add-wrap .sc-bulk-preview-table td {
+        box-sizing: border-box;
+    }
+    .sc-notification-add-wrap .sc-bulk-preview-table { display: table; }
+    .sc-notification-add-wrap .sc-bulk-preview-table thead { display: table-header-group; }
+    .sc-notification-add-wrap .sc-bulk-preview-table tbody { display: table-row-group; }
+    .sc-notification-add-wrap .sc-bulk-preview-table tr { display: table-row; }
+    .sc-notification-add-wrap .sc-bulk-preview-table th,
+    .sc-notification-add-wrap .sc-bulk-preview-table td {
+        display: table-cell;
+        padding: 8px 6px;
+        font-size: 13px;
+    }
+    .sc-notification-add-wrap .sc-bulk-preview-table thead th { display: table-cell; }
+    .sc-notification-add-wrap .sc-bulk-preview-table .check-column,
+    .sc-notification-add-wrap .sc-bulk-preview-table th:first-child,
+    .sc-notification-add-wrap .sc-bulk-preview-table td:first-child {
+        width: 56px;
+        min-width: 56px;
+    }
+    .sc-notification-add-wrap .sc-bulk-preview-meta {
+        font-size: 13px;
+        padding: 8px 0;
+    }
+}
 .section_right_manage_wallet{
     width: 20%;
 }

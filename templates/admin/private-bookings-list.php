@@ -173,7 +173,7 @@ $list_sql = "SELECT ps.*, b.invoice_id, c.title AS course_title, m.first_name, m
              INNER JOIN {$members_table} m ON m.id = ps.member_id
              INNER JOIN {$coaches_table} co ON co.id = ps.coach_id
              WHERE {$where_clause}
-             ORDER BY ps.session_date DESC, ps.time_start DESC
+             ORDER BY ps.session_date ASC, ps.time_start ASC
              LIMIT %d OFFSET %d";
 $list_values = $values;
 $list_values[] = $per_page;

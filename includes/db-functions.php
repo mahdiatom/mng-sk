@@ -128,6 +128,7 @@ $sql = "CREATE TABLE `$table_name` (
         `allowed_teams` text DEFAULT NULL,
         `allowed_levels` text DEFAULT NULL,
         `allowed_gender` varchar(10) DEFAULT 'both',
+        `course_type` varchar(20) NOT NULL DEFAULT 'group' COMMENT 'group=گروهی, private=خصوصی/نیمه‌خصوصی',
         `is_public` tinyint(1) DEFAULT 0 COMMENT '1=ثبت‌نام عمومی بدون نیاز به ورود',
         `is_active` tinyint(1) DEFAULT 1,
         `deleted_at` datetime DEFAULT NULL,
@@ -1649,6 +1650,20 @@ function sc_update_database() {
         }
 
         update_option('sc_event_registrations_guest_member_nullable', '1');
+    }
+
+    // ستون course_type برای جدول دوره‌ها (گروهی / خصوصی)
+    if (get_option('sc_courses_course_type_column_added', '0') !== '1') {
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $courses_table)) === $courses_table) {
+            $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$courses_table` LIKE %s", 'course_type'));
+            if (empty($col_exists)) {
+                $wpdb->query("ALTER TABLE `$courses_table` ADD COLUMN `course_type` varchar(20) NOT NULL DEFAULT 'group' COMMENT 'group=گروهی, private=خصوصی/نیمه‌خصوصی' AFTER `allowed_gender`");
+                $wpdb->query("ALTER TABLE `$courses_table` ADD KEY `idx_course_type` (`course_type`)");
+            }
+            $wpdb->query("UPDATE `$courses_table` SET `course_type` = 'group' WHERE `course_type` IS NULL OR `course_type` = ''");
+        }
+        update_option('sc_courses_course_type_column_added', '1');
     }
 
     // سازگاری برای فاکتور مهمان: member_id در invoices باید nullable باشد

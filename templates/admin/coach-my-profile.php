@@ -22,7 +22,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
         <div class="sc-coach-panel-title-row">
             <h1 class="sc-coach-panel-title">اطلاعات من</h1>
             <?php if (!$is_edit) : ?>
-                <a href="<?php echo esc_url(add_query_arg('edit', '1', $base_url)); ?>" class="button button-primary">ویرایش اطلاعات من</a>
+                <a href="<?php echo esc_url(add_query_arg('edit', '1', $base_url)); ?>" class="sc_button button-primary">ویرایش اطلاعات من</a>
             <?php endif; ?>
         </div>
         <p class="sc-coach-panel-desc"><?php echo $is_edit ? 'فیلدهای زیر را ویرایش کرده و ذخیره کنید. نوع تسویه، دوره‌ها و وضعیت فقط توسط مدیر قابل تغییر است.' : 'اطلاعات پروفایل شما. برای ویرایش روی دکمه بالا کلیک کنید.'; ?></p>
@@ -37,7 +37,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
         <div class="sc-coach-panel-card" style="padding: 24px; margin-top: 0;">
         <form method="post" action="">
             <?php wp_nonce_field('sc_coach_profile_edit', 'sc_coach_profile_nonce'); ?>
-            <table class="form-table">
+            <table class="form-table table_list_info_coach_">
                 <tr>
                     <th><label for="first_name">نام <span class="required">*</span></label></th>
                     <td><input type="text" name="first_name" id="first_name" value="<?php echo esc_attr($coach->first_name); ?>" required class="regular-text"></td>
@@ -104,7 +104,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
         </div>
     <?php else : ?>
         <div class="sc-coach-panel-card sc-coach-profile-card" style="padding: 24px;">
-            <table class="form-table">
+            <table class="form-table table_list_info_coach">
                 <tr>
                     <th>نام</th>
                     <td><?php echo esc_html($coach->first_name); ?></td>
@@ -123,7 +123,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 </tr>
                 <tr>
                     <th>جنسیت</th>
-                    <td><?php echo esc_html($coach->gender ?: '-'); ?></td>
+                    <td><?php echo esc_html($coach->gender === 'male' ? 'مرد': 'زن'); ?></td>
                 </tr>
                 <tr>
                     <th>تخصص</th>
