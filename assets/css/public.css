@@ -7137,6 +7137,14 @@ text-align: right;
 .sc-private-disabled-note{color:#9ca3af;font-size:12px}
 .sc-private-cancel-btn{background:#ef4444 !important;border-color:#ef4444 !important;color:#fff !important;border-radius:8px !important;padding:4px 10px !important}
 .sc-private-cancel-btn:hover{background:#dc2626 !important;border-color:#dc2626 !important}
+.table_privet_note thead tr{
+    background-color: #6d34ff;
+    color: white;
+    padding: 10px;
+}
+.table_privet_note thead tr th , .table_privet_note tbody tr td {
+    padding: 20px !important;
+}
 .sc-private-wrap select , #sc_private_start_date_shamsi{
 border-radius: 10px;
     border: 1px solid #ddd;
@@ -7151,3 +7159,99 @@ border-radius: 10px;
 }
 }
 /* privet class */
+
+
+/* گواهینامه  */
+.sc-my-certificates-header p {
+    margin-top: 0;
+    color: #666;
+}
+.sc-my-certificates-stats {
+    display: flex;
+    gap: 12px;
+    margin: 12px 0 18px;
+    flex-wrap: wrap;
+}
+.sc-my-certificates-stat-item {
+    background: #f6f7f7;
+    border: 1px solid #e3e5e7;
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 140px;
+}
+.sc-my-certificates-stat-item span {
+    display: block;
+    color: #666;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+.sc-my-certificates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.sc-my-certificate-row {
+    border: 1px solid #e3e5e7;
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.sc-my-certificate-row-title {
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+.sc-my-certificate-row-meta {
+    color: #666;
+    font-size: 13px;
+}
+.sc-my-certificate-tracking-code {
+    display: inline-block;
+    margin-right: 8px;
+    font-weight: 600;
+}
+.sc-my-certificate-row-action .button.sc-my-certificate-action {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    border: none;
+    color: #fff;
+    border-radius: 7px;
+    padding: 4px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    min-height: 30px;
+        height: 40px;
+    padding-top: 13px;
+        display: inline-block;
+}
+.sc-my-certificate-row-action .button.sc-my-certificate-physical-btn {
+    background: linear-gradient(135deg, #0f766e 0%, #0b4f59 100%);
+         height: 40px;
+    padding-top: 13px;
+}
+.sc-my-certificate-row-action .button.sc-my-certificate-physical-btn.is-requested {
+    background: #6b7280;
+         height: 40px;
+    padding-top: 13px;
+}
+.sc-my-certificate-row-action .button.sc-my-certificate-physical-btn.is-paid {
+    background: #16a34a;
+    cursor: default;
+    pointer-events: none;
+         height: 40px !important;
+    padding-top: 13px !important;
+}
+@media (max-width: 640px) {
+    .sc-my-certificate-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .sc-my-certificate-row-action .button.sc-my-certificate-action {
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
+    }
+}
+/* گواهینامه  */

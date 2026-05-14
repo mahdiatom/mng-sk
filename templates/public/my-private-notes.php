@@ -14,7 +14,7 @@ if ($view_note_id > 0) {
             return;
         }
         ?>
-        <div class="woocommerce-MyAccount-content sc-private-notes-content">
+        <div class="">
             <div class="sc-private-note-detail-card">
                 <a href="<?php echo esc_url($base_url); ?>" class="sc-private-note-back-link">← بازگشت به لیست</a>
                 <p class="sc-private-note-detail-meta"><?php echo esc_html(sc_date_shamsi($legacy->created_at, 'Y/m/d - H:i')); ?></p>
@@ -25,7 +25,7 @@ if ($view_note_id > 0) {
     } else {
         $messages = sc_private_notes_get_thread_messages((int) $thread->id);
         ?>
-        <div class="woocommerce-MyAccount-content sc-private-notes-content">
+        <div class="">
             <div class="sc-private-note-detail-card">
                 <a href="<?php echo esc_url($base_url); ?>" class="sc-private-note-back-link">← بازگشت به لیست</a>
                 <?php foreach ((array) $messages as $msg) : ?>
@@ -55,19 +55,19 @@ $notes = sc_private_notes_get_user_notes($current_user_id, [
 ]);
 $total_pages = max(1, (int) ceil($total / $per_page));
 ?>
-<div class="woocommerce-MyAccount-content sc-private-notes-content">
+<div class="">
     <h2 class="sc-private-notes-heading">پرونده‌های یادداشت من</h2>
     <?php if (empty($notes)) : ?>
         <div class="sc-private-notes-empty">هنوز یادداشتی برای شما ثبت نشده است.</div>
     <?php else : ?>
-        <table class="shop_table shop_table_responsive my_account_orders">
+        <table class="shop_table shop_table_responsive my_account_orders table_privet_note ">
             <thead><tr><th>پرونده</th><th>آخرین بروزرسانی</th><th>عملیات</th></tr></thead>
             <tbody>
             <?php foreach ($notes as $note) : ?>
                 <tr>
                     <td><?php echo esc_html(trim((string) $note->subject) !== '' ? (string) $note->subject : ('پرونده #' . (int) $note->id)); ?></td>
                     <td><?php echo esc_html(sc_date_shamsi($note->updated_at, 'Y/m/d H:i')); ?></td>
-                    <td><a class="button" href="<?php echo esc_url(add_query_arg('view_note', (int) $note->id, $base_url)); ?>">مشاهده گفتگو</a></td>
+                    <td><a class="sc_button" href="<?php echo esc_url(add_query_arg('view_note', (int) $note->id, $base_url)); ?>">مشاهده گفتگو</a></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

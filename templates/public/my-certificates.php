@@ -18,6 +18,7 @@ $offset = ($current_page - 1) * $per_page;
 $items = sc_get_member_certificates((int) $member->id, $per_page, $offset);
 $total_items = sc_count_member_certificates((int) $member->id);
 $total_pages = (int) ceil($total_items / $per_page);
+$cert_templates_saved = function_exists('sc_certificates_get_saved_templates') ? sc_certificates_get_saved_templates() : [];
 ?>
 
 <div class="main_certificate">
@@ -92,16 +93,24 @@ $total_pages = (int) ceil($total_items / $per_page);
                             'sc_request_certificate_physical_invoice_' . (int) $item->id
                         );
                         $invoices_url = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-invoices') : '#';
+                        $template_key = isset($item->template_key) ? (string) $item->template_key : '';
+                        $template_row = isset($cert_templates_saved[$template_key]) ? $cert_templates_saved[$template_key] : [];
+                        $template_norm = function_exists('sc_certificates_normalize_template')
+                            ? sc_certificates_normalize_template($template_row, $template_key)
+                            : ['physical_copy_price' => 0];
+                        $physical_copy_price = (float) ($template_norm['physical_copy_price'] ?? 0);
+                        $show_physical_actions = ($physical_copy_price > 0 || $physical_invoice_id > 0);
                         ?>
-                        <?php if ($physical_invoice_id > 0) : ?>
-                            <?php if ($is_paid_invoice) : ?>
-                                <span class="button sc-my-certificate-action sc-my-certificate-physical-btn is-paid">ثبت و پرداخت انجام شده</span>
-                            <?php else : 
-                                ?>
-                                <a class="button sc-my-certificate-action sc-my-certificate-physical-btn is-requested" href="<?php echo esc_url($invoices_url); ?>">صورتحساب نسخه فیزیکی ثبت شده</a>
+                        <?php if ($show_physical_actions) : ?>
+                            <?php if ($physical_invoice_id > 0) : ?>
+                                <?php if ($is_paid_invoice) : ?>
+                                    <span class="button sc-my-certificate-action sc-my-certificate-physical-btn is-paid">ثبت و پرداخت انجام شده</span>
+                                <?php else : ?>
+                                    <a class="button sc-my-certificate-action sc-my-certificate-physical-btn is-requested" href="<?php echo site_url('my-account/sc-invoices'); ?>">صورتحساب نسخه فیزیکی ثبت شده - در انتظار پرداخت</a>
+                                <?php endif; ?>
+                            <?php else : ?>
+                                <a class="button sc-my-certificate-action sc-my-certificate-physical-btn" href="<?php echo esc_url($physical_url); ?>">درخواست نسخه فیزیکی</a>
                             <?php endif; ?>
-                        <?php else : ?>
-                            <a class="button sc-my-certificate-action sc-my-certificate-physical-btn" href="<?php echo esc_url($physical_url); ?>">درخواست نسخه فیزیکی</a>
                         <?php endif; ?>
                         <a class="button sc-my-certificate-action" href="<?php echo esc_url($url); ?>" target="_blank">مشاهده و دانلود</a>
                     </div>
@@ -130,88 +139,3 @@ $total_pages = (int) ceil($total_items / $per_page);
     <?php endif; ?>
 </div>
 
-<style>
-.sc-my-certificates-header p {
-    margin-top: 0;
-    color: #666;
-}
-.sc-my-certificates-stats {
-    display: flex;
-    gap: 12px;
-    margin: 12px 0 18px;
-    flex-wrap: wrap;
-}
-.sc-my-certificates-stat-item {
-    background: #f6f7f7;
-    border: 1px solid #e3e5e7;
-    border-radius: 10px;
-    padding: 10px 14px;
-    min-width: 140px;
-}
-.sc-my-certificates-stat-item span {
-    display: block;
-    color: #666;
-    font-size: 12px;
-    margin-bottom: 4px;
-}
-.sc-my-certificates-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-.sc-my-certificate-row {
-    border: 1px solid #e3e5e7;
-    border-radius: 12px;
-    padding: 12px 14px;
-    background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-.sc-my-certificate-row-title {
-    font-weight: 700;
-    margin-bottom: 5px;
-}
-.sc-my-certificate-row-meta {
-    color: #666;
-    font-size: 13px;
-}
-.sc-my-certificate-tracking-code {
-    display: inline-block;
-    margin-right: 8px;
-    font-weight: 600;
-}
-.sc-my-certificate-row-action .button.sc-my-certificate-action {
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
-    border: none;
-    color: #fff;
-    border-radius: 7px;
-    padding: 4px 10px;
-    font-size: 12px;
-    line-height: 1.5;
-    min-height: 30px;
-}
-.sc-my-certificate-row-action .button.sc-my-certificate-physical-btn {
-    background: linear-gradient(135deg, #0f766e 0%, #0b4f59 100%);
-}
-.sc-my-certificate-row-action .button.sc-my-certificate-physical-btn.is-requested {
-    background: #6b7280;
-}
-.sc-my-certificate-row-action .button.sc-my-certificate-physical-btn.is-paid {
-    background: #16a34a;
-    cursor: default;
-    pointer-events: none;
-}
-@media (max-width: 640px) {
-    .sc-my-certificate-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .sc-my-certificate-row-action .button.sc-my-certificate-action {
-        width: 100%;
-        text-align: center;
-        box-sizing: border-box;
-    }
-}
-</style>

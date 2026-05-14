@@ -331,7 +331,7 @@ $get_certificate =isset( $_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
                                 padding: 8px 14px;
                                 border-radius: 6px;
                                 font-weight: 600;
-                                font-size: 13px;
+                                font-size: 10px;
                                 background-color: <?php echo esc_attr($status_bg); ?>;
                                 color: <?php echo esc_attr($status_color); ?>;
                             ">
