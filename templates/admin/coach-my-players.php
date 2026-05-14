@@ -140,9 +140,7 @@ $export_url = wp_nonce_url($export_url, 'sc_export_excel');
         </p>
 
         <div class="sc-coach-panel-card sc-coach-players-table-card" style="margin-top: 0;">
-            <div class="sc-coach-players-table-scroll">
-                <?php $coach_players_list_table->display(); ?>
-            </div>
+            <?php $coach_players_list_table->display(); ?>
         </div>
     </form>
 </div>

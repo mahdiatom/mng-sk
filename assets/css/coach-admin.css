@@ -61,25 +61,25 @@
   box-shadow: var(--sc-panel-shadow, 0 1px 3px rgba(0,0,0,.06));
   margin-top: 20px;
 }
-.sc-coach-panel-card .wp-list-table {
+.sc-coach-panel-card:not(.sc-coach-players-table-card) .wp-list-table {
   margin: 0;
   border: none;
   border-radius: 0;
 }
-.sc-coach-panel-card .wp-list-table thead th {
+.sc-coach-panel-card:not(.sc-coach-players-table-card) .wp-list-table thead th {
   background: var(--sc-panel-bg, #f8fafc);
   border-bottom: 1px solid var(--sc-panel-border, #e2e8f0);
   padding: 12px 16px;
   font-weight: 600;
   color: var(--sc-panel-text, #1e293b);
 }
-.sc-coach-panel-card .wp-list-table tbody td {
+.sc-coach-panel-card:not(.sc-coach-players-table-card) .wp-list-table tbody td {
   padding: 14px 16px;
   border-bottom: 1px solid var(--sc-panel-border, #e2e8f0);
   vertical-align: middle;
 }
-.sc-coach-panel-card .wp-list-table tbody tr:last-child td { border-bottom: none; }
-.sc-coach-panel-card .wp-list-table tbody tr:hover { background: var(--sc-panel-bg, #f8fafc); }
+.sc-coach-panel-card:not(.sc-coach-players-table-card) .wp-list-table tbody tr:last-child td { border-bottom: none; }
+.sc-coach-panel-card:not(.sc-coach-players-table-card) .wp-list-table tbody tr:hover { background: var(--sc-panel-bg, #f8fafc); }
 
 /* === دکمه بازگشت و لینک‌های اکشن === */
 .sc-coach-panel-back {
@@ -168,12 +168,6 @@
   gap: 12px;
   width: 100%;
 }
-.sc-coach-players-wrap{
-      padding: 5px !important;
-}
-.sc-coach-players-table-card{
-  padding: 14px;
-}
 .sc-coach-panel-title-row .sc-coach-panel-title { margin: 0; }
 .sc-coach-panel-title-row .sc-coach-panel-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .sc-coach-honors-wrap .sc-coach-panel-card,
@@ -188,11 +182,10 @@
 .sc-coach-players-wrap .sc-coach-players-search { flex-shrink: 0; }
 .sc-coach-players-wrap .sc-coach-players-search .search-box { margin: 0; float: none; }
 .sc-coach-players-wrap .sc-coach-panel-card { width: 100%; max-width: none; }
-.sc-coach-players-wrap .sc-coach-panel-card .wp-list-table { width: 100% !important; table-layout: auto; }
 
-/* === لیست جدول وردپرس در بازیکن‌های من === */
-.sc-coach-panel-wrap .wp-list-table.widefat { border-radius: var(--sc-panel-radius, 12px); overflow: hidden; border: 1px solid var(--sc-panel-border, #e2e8f0); box-shadow: var(--sc-panel-shadow); }
-.sc-coach-panel-wrap .tablenav { margin-top: 16px; }
+/* === لیست جدول وردپرس در پنل مربی (به‌جز «بازیکن‌های من» که همان استایل هسته ادمین می‌ماند) === */
+.sc-coach-panel-wrap:not(.sc-coach-players-wrap) .wp-list-table.widefat { border-radius: var(--sc-panel-radius, 12px); overflow: hidden; border: 1px solid var(--sc-panel-border, #e2e8f0); box-shadow: var(--sc-panel-shadow); }
+.sc-coach-panel-wrap:not(.sc-coach-players-wrap) .tablenav { margin-top: 16px; }
 .sc-coach-panel-wrap .search-box input[type="search"] { border-radius: 8px; border-color: var(--sc-panel-border); }
 .sc-coach-panel-wrap .search-box input[type="search"]:focus { border-color: var(--sc-panel-primary); }
 
@@ -304,8 +297,13 @@
           padding-top: 10px
 }
 }
-.wp-list-table tr th , .wp-list-table tr td{
+.wrap.sc-coach-panel-wrap .wp-list-table tr th,
+.wrap.sc-coach-panel-wrap .wp-list-table tr td {
   text-align: center;
+}
+.wrap.sc-coach-panel-wrap.sc-coach-players-wrap .wp-list-table tr th,
+.wrap.sc-coach-panel-wrap.sc-coach-players-wrap .wp-list-table tr td {
+  text-align: inherit;
 }
 
 /* کیف پول */
@@ -397,16 +395,15 @@
 }
 
 /* ==========================================================================
-   صفحه «بازیکن‌های من» (نقش مربی) - فیلترهای رسپانسیو و جدول
+   صفحه «بازیکن‌های من» — فیلترهای رسپانسیو؛ جدول و tablenav = پیش‌فرض ادمین وردپرس
    ========================================================================== */
 
-/* کل صفحه: بدون اسکرول افقی؛ اسکرول فقط داخل باکس جدول */
 .sc-coach-players-wrap.sc-coach-panel-wrap {
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  overflow-x: clip;
 }
+
 .sc-coach-players-wrap .sc-coach-players-filter-form {
   max-width: 100%;
   min-width: 0;
@@ -419,7 +416,6 @@
   margin-bottom: 18px;
 }
 
-/* گرید فیلترها: ۳ ستون در دسکتاپ */
 .sc-coach-players-wrap .sc-coach-players-filter-form .sc-filter-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -459,96 +455,21 @@
   border-radius: 8px;
 }
 
-/* کارت جدول: بدون overflow روی خود کارت تا محتوای پهن باعث اسکرول کل صفحه نشود */
+/* کارت جدول بدون قاب پنل؛ widefat و list-tables ادمین بدون override */
 .sc-coach-players-wrap .sc-coach-players-table-card.sc-coach-panel-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin-top: 0;
+  padding: 0;
   overflow: visible;
   max-width: 100%;
-  min-width: 0;
-  padding: 8px;
 }
 
-/* اسکرول افقی فقط این لایه (tablenav + جدول) */
-.sc-coach-players-wrap .sc-coach-players-table-scroll {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: visible;
-  -webkit-overflow-scrolling: touch;
-  box-sizing: border-box;
+.sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table {
+  margin: 0;
 }
 
-/* widefat در این صفحه نباید overflow:hidden از قانون عمومی پنل را داشته باشد */
-.sc-coach-players-wrap .sc-coach-players-table-scroll .wp-list-table.widefat {
-  overflow: visible;
-  border-radius: 0;
-}
-
-.sc-coach-players-wrap .sc-coach-players-table-scroll .wp-list-table {
-  width: 100%;
-  min-width: 680px;
-  table-layout: auto;
-  border-collapse: collapse;
-}
-
-.sc-coach-players-wrap .sc-coach-players-table-scroll .column-full_name {
-  width: auto;
-  min-width: 140px;
-  max-width: 220px;
-  text-align: right;
-  word-break: break-word;
-}
-
-.sc-coach-players-wrap .sc-coach-players-table-scroll .wp-list-table tbody td,
-.sc-coach-players-wrap .sc-coach-players-table-scroll .wp-list-table thead th {
-  white-space: normal;
-  vertical-align: middle;
-}
-
-/* tablenav داخل همان ناحیه اسکرول — عرض با جدول هم‌تراز */
-.sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav {
-  box-sizing: border-box;
-  clear: both;
-  overflow: visible;
-  min-width: 680px;
-}
-
-.sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav::after {
-  content: "";
-  display: table;
-  clear: both;
-}
-
-.sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav.top,
-.sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav.bottom {
-  display: block;
-  min-width: 680px;
-}
-
-.sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav .alignleft,
-.sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav .alignright {
-  float: none;
-  display: block;
-  width: 100%;
-  margin: 0 0 8px 0;
-}
-
-.sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav .tablenav-pages {
-  float: none;
-  width: 100%;
-  margin: 8px 0 0;
-  text-align: center;
-}
-
-.sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav .pagination-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px;
-}
-
-/* رسپانسیو: تبلت ۲ ستون، موبایل ۱ ستون */
 @media (max-width: 992px) {
   .sc-coach-players-wrap .sc-coach-players-filter-form .sc-filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -573,7 +494,6 @@
   }
 }
 
-/* رسپانسیو هدر و جدول */
 @media (max-width: 782px) {
   .sc-coach-players-wrap.wrap.sc-coach-panel-wrap {
     padding: 12px 8px 30px;
@@ -584,78 +504,5 @@
   }
   .sc-coach-players-wrap .sc-coach-panel-title {
     font-size: 1.25rem;
-  }
-  /* جلوگیری از حالت کارتی رسپانسیو پیش‌فرض وردپرس روی wp-list-table
-     که ستون‌ها را زیر هم می‌کند یا مخفی می‌نماید */
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table,
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table thead,
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table tbody,
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table tr,
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table th,
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table td {
-    box-sizing: border-box;
-  }
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table { display: table !important; }
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table thead { display: table-header-group !important; }
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table tbody { display: table-row-group !important; }
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table tr { display: table-row !important; }
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table thead th,
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table th,
-  .sc-coach-players-wrap .sc-coach-players-table-card .wp-list-table td {
-    display: table-cell !important;
-    padding: 10px 8px;
-    font-size: 13px;
-  }
-  /* tablenav (paging + actions) ستونی */
-  .sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav {
-    height: auto;
-  }
-  .sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav .tablenav-pages {
-    float: none;
-    width: 100%;
-    margin-top: 10px;
-  }
-}
-
-/* موبایل خیلی باریک (بعد از 782px تا padding و جدول درست اعمال شوند) */
-@media screen and (max-width: 400px) {
-  .sc-coach-players-wrap.sc-coach-panel-wrap {
-    padding: 8px 4px 24px;
-    overflow-x: hidden;
-  }
-
-  .sc-coach-players-wrap .sc-coach-players-filter-form {
-    padding: 10px 8px;
-  }
-
-  .sc-coach-players-wrap .sc-coach-players-table-card.sc-coach-panel-card {
-    padding: 4px;
-  }
-
-  .sc-coach-players-wrap .sc-coach-players-table-scroll .wp-list-table {
-    min-width: 600px;
-  }
-
-  .sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav,
-  .sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav.top,
-  .sc-coach-players-wrap .sc-coach-players-table-scroll .tablenav.bottom {
-    min-width: 600px;
-  }
-
-  .sc-coach-players-wrap .sc-coach-players-table-scroll .wp-list-table thead th,
-  .sc-coach-players-wrap .sc-coach-players-table-scroll .wp-list-table th,
-  .sc-coach-players-wrap .sc-coach-players-table-scroll .wp-list-table td {
-    padding: 8px 5px !important;
-    font-size: 12px;
-  }
-
-  .sc-coach-players-wrap .sc-coach-players-table-scroll .column-full_name {
-    min-width: 120px;
-    max-width: 180px;
-  }
-
-  /* اگر هنوز شِل ادمین اسکرول افقی می‌گیرد */
-  body.toplevel_page_sc-coach-my-players #wpbody-content {
-    overflow-x: hidden;
   }
 }

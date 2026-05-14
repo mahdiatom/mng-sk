@@ -218,7 +218,7 @@ $total_pages = ceil($total / $per_page);
             <p class="sc-coach-panel-desc">اطلاعیه‌های ارسال‌شده توسط شما. می‌توانید ویرایش یا حذف کنید.</p>
         </div>
         </div>
-        <div class="wrap">
+        
     <?php else : ?>
         <h1 class="wp-heading-inline">لیست اطلاعیه‌ها</h1>
         <a href="<?php echo esc_url($add_url); ?>" class="page-title-action">افزودن اطلاعیه جدید</a>
@@ -229,6 +229,7 @@ $total_pages = ceil($total / $per_page);
         <div class="wrap">
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
     <?php endif; ?>
+
 <div class="wrap">
     <div class="sc-notifications-filters-wrap" style="margin: 15px 0;">
         <form method="get" action="">
