@@ -23,6 +23,18 @@ if (function_exists('wc_get_price_thousand_separator')) {
 <?php
 // دریافت متغیر فیلتر (اگر از my-account.php فراخوانی شده باشد)
 $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all');
+$invoice_search = isset($invoice_search) ? $invoice_search : (isset($_GET['invoice_search']) ? sanitize_text_field(wp_unslash($_GET['invoice_search'])) : '');
+$filter_date_from_shamsi = isset($filter_date_from_shamsi) ? $filter_date_from_shamsi : (isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '');
+$filter_date_to_shamsi = isset($filter_date_to_shamsi) ? $filter_date_to_shamsi : (isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '');
+// تاریخ پیش‌فرض نمایشی روی امروز (شمسی) — فقط برای placeholder/مقدار نمایشی، اعمال نمی‌شود
+$sc_inv_today_shamsi = '';
+if (function_exists('sc_date_shamsi_date_only')) {
+    $sc_inv_today_shamsi = sc_date_shamsi_date_only(current_time('Y-m-d'));
+} elseif (function_exists('sc_get_today_shamsi')) {
+    $sc_inv_today_shamsi = sc_get_today_shamsi();
+}
+$display_date_from_shamsi = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $sc_inv_today_shamsi;
+$display_date_to_shamsi = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $sc_inv_today_shamsi;
 $invoices = isset($invoices) ? $invoices : [];
 $current_page = isset($current_page) ? max(1, absint($current_page)) : 1;
 $total_pages = isset($total_pages) ? max(1, absint($total_pages)) : 1;
@@ -61,17 +73,36 @@ $get_certificate =isset( $_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
                     <option value="failed" <?php selected($filter_status, 'failed'); ?>>ناموفق</option>
                 </select>
             </div>
-            
-            <div>
+
+            <div style="flex: 1; min-width: 220px;">
+                <label for="invoice_search" style="display: block; margin-bottom: 5px; font-weight: 600;">جستجو:</label>
+                <input type="search" name="invoice_search" id="invoice_search" value="<?php echo esc_attr($invoice_search); ?>" placeholder="نام، شماره سفارش یا توضیحات..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+            </div>
+
+            <div style="flex: 2; min-width: 280px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">بازه تاریخ:</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-inv-date-input" data-today-shamsi="<?php echo esc_attr($sc_inv_today_shamsi); ?>" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="<?php echo esc_attr($display_date_from_shamsi); ?>" readonly autocomplete="off" style="flex:1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                    <span style="color:#666;">تا</span>
+                    <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-inv-date-input" data-today-shamsi="<?php echo esc_attr($sc_inv_today_shamsi); ?>" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="<?php echo esc_attr($display_date_to_shamsi); ?>" readonly autocomplete="off" style="flex:1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                </div>
+            </div>
+
+            <div style="display:flex; gap:8px;">
                 <button type="submit" class="button button-primary" style="padding: 8px 20px; height: auto;">اعمال فیلتر</button>
+                <?php if ($filter_status !== 'all' || $invoice_search !== '' || $filter_date_from_shamsi !== '' || $filter_date_to_shamsi !== '') : ?>
+                    <a href="<?php echo esc_url(wc_get_account_endpoint_url('sc-invoices')); ?>" class="button" style="padding: 8px 20px; height: auto;">پاک کردن</a>
+                <?php endif; ?>
             </div>
         </form>
-        
+
     </div>
     
     <?php if (empty($invoices)) : ?>
         <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
-            <?php if ($filter_status !== 'all') : ?>
+            <?php if ($invoice_search !== '' || $filter_date_from_shamsi !== '' || $filter_date_to_shamsi !== '') : ?>
+                موردی با این جستجو/بازه تاریخ یافت نشد.
+            <?php elseif ($filter_status !== 'all') : ?>
                 صورت حسابی با این وضعیت یافت نشد.
             <?php else : ?>
                 شما هنوز صورت حسابی ندارید.
@@ -442,6 +473,15 @@ $get_certificate =isset( $_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
                         if ($filter_status !== '' && $filter_status !== 'all') {
                             $sc_inv_pag_base = add_query_arg('filter_status', $filter_status, $sc_inv_pag_base);
                         }
+                        if ($invoice_search !== '') {
+                            $sc_inv_pag_base = add_query_arg('invoice_search', $invoice_search, $sc_inv_pag_base);
+                        }
+                        if ($filter_date_from_shamsi !== '') {
+                            $sc_inv_pag_base = add_query_arg('filter_date_from_shamsi', $filter_date_from_shamsi, $sc_inv_pag_base);
+                        }
+                        if ($filter_date_to_shamsi !== '') {
+                            $sc_inv_pag_base = add_query_arg('filter_date_to_shamsi', $filter_date_to_shamsi, $sc_inv_pag_base);
+                        }
                         $sc_inv_pag_base = remove_query_arg('pag', $sc_inv_pag_base);
                         $sc_inv_pag_join = (strpos($sc_inv_pag_base, '?') !== false) ? '&' : '?';
                         $sc_inv_pagination_base = esc_url($sc_inv_pag_base) . $sc_inv_pag_join . 'pag=%#%';
@@ -472,6 +512,18 @@ document.addEventListener('DOMContentLoaded', function() {
             clearInterval(interval); // توقف بررسی بعد از اسکرول
         }
     }, 100);
+
+    // پر کردن خودکار فیلدهای بازه تاریخ صورت‌حساب با تاریخ امروز هنگام اولین کلیک (وقتی خالی هستند)
+    document.querySelectorAll('.sc-inv-date-input').forEach(function (input) {
+        input.addEventListener('mousedown', function () {
+            if (!input.value) {
+                var today = input.getAttribute('data-today-shamsi') || '';
+                if (today) {
+                    input.value = today;
+                }
+            }
+        }, true);
+    });
 });
 </script>
 

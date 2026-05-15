@@ -102,7 +102,9 @@ h2{
 }
 
 @media screen and (max-width: 780px) {
-
+.persian-calendar-popup{
+    left: 50px !important;
+}
 
 .custom-footer{
     
@@ -2552,6 +2554,9 @@ ease !important;
 }
 .sc-enroll-discount-row{
     margin-top: 24px; padding: 16px; background: #f6f7f7; border: 1px solid #ddd; border-radius: 8px; 
+}
+.sc-enroll-discount-row #sc_invoice_discount_code{
+    border: 1px solid #ddd;
 }
 .sc-event-status-badge.pending {
     background: #fff3cd;

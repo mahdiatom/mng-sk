@@ -2876,17 +2876,58 @@ function sc_my_account_invoices_content() {
     
     // دریافت فیلتر وضعیت
     $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all';
+    $invoice_search = isset($_GET['invoice_search']) ? sanitize_text_field(wp_unslash($_GET['invoice_search'])) : '';
+    $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '';
+    $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '';
+    $filter_date_from = '';
+    $filter_date_to = '';
+    if ($filter_date_from_shamsi !== '' && function_exists('sc_shamsi_to_gregorian_date')) {
+        $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
+    }
+    if ($filter_date_to_shamsi !== '' && function_exists('sc_shamsi_to_gregorian_date')) {
+        $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
+    }
     /** @var stdClass|null $player */
     // ساخت شرط WHERE
     $where_conditions = ["i.member_id = %d"];
     $where_values = [$player->id];
-    
+
     // فیلتر بر اساس وضعیت
     if ($filter_status !== 'all') {
         $where_conditions[] = "i.status = %s";
         $where_values[] = $filter_status;
     }
-    
+
+    // فیلتر بازه تاریخ ایجاد صورت‌حساب (در صورت تعیین در URL)
+    if ($filter_date_from !== '') {
+        $where_conditions[] = "DATE(i.created_at) >= %s";
+        $where_values[] = $filter_date_from;
+    }
+    if ($filter_date_to !== '') {
+        $where_conditions[] = "DATE(i.created_at) <= %s";
+        $where_values[] = $filter_date_to;
+    }
+
+    // جستجو روی نام دوره/رویداد/هزینه، شماره سفارش و توضیحات
+    if ($invoice_search !== '') {
+        $like = '%' . $wpdb->esc_like($invoice_search) . '%';
+        $search_clauses = [
+            'c.title LIKE %s',
+            'e.name LIKE %s',
+            'i.expense_name LIKE %s',
+            'i.invoice_description LIKE %s',
+            'CAST(i.id AS CHAR) LIKE %s',
+            'CAST(i.woocommerce_order_id AS CHAR) LIKE %s',
+        ];
+        $where_conditions[] = '(' . implode(' OR ', $search_clauses) . ')';
+        $where_values[] = $like;
+        $where_values[] = $like;
+        $where_values[] = $like;
+        $where_values[] = $like;
+        $where_values[] = $like;
+        $where_values[] = $like;
+    }
+
     $where_clause = implode(' AND ', $where_conditions);
 
     $from_sql = "FROM {$invoices_table} i
