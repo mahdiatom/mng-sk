@@ -195,26 +195,39 @@ $invoices_url = wc_get_account_endpoint_url('sc-invoices');
 
 /* ====================================================================
  * 5) غیبت‌های ۳ ماه اخیر در دوره‌های فعال (بدون فلگ)
+ *    شامل هر دو نوع: 'absent' (غیبت) و 'excused' (غیبت مجاز)
  * ================================================================= */
 $absences_from_date = gmdate('Y-m-d', strtotime('-3 months', current_time('timestamp')));
 $my_absences = $wpdb->get_results($wpdb->prepare(
     "SELECT a.attendance_date, a.status, c.id AS course_id, c.title AS course_title
      FROM $attendances_table a
-     INNER JOIN $member_courses_table mc
+     LEFT JOIN $member_courses_table mc
             ON mc.member_id = a.member_id AND mc.course_id = a.course_id
      INNER JOIN $courses_table c ON c.id = a.course_id
      WHERE a.member_id = %d
-       AND a.status = 'absent'
+       AND a.status IN ('absent', 'excused')
        AND a.attendance_date >= %s
-       AND mc.status = 'active'
-       AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '' OR mc.course_status_flags = ' ')
+       AND (mc.id IS NULL OR (
+            mc.status = 'active'
+            AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '' OR mc.course_status_flags = ' ')
+       ))
        AND c.deleted_at IS NULL
-       AND c.is_active = 1
      ORDER BY a.attendance_date DESC",
     $member_id,
     $absences_from_date
 ));
 $absences_url = wc_get_account_endpoint_url('sc-my-attendances');
+
+// شمارش جداگانه دو نوع غیبت برای نمایش در badge
+$absent_count_total  = 0;
+$excused_count_total = 0;
+foreach ($my_absences as $_ab) {
+    if ($_ab->status === 'excused') {
+        $excused_count_total++;
+    } else {
+        $absent_count_total++;
+    }
+}
 
 /* ====================================================================
  * 6) جلسات باقی‌مانده دوره‌های فعال (بدون فلگ)
@@ -470,8 +483,11 @@ $invoice_status_label = function ($status) {
                 <span class="sc-dashboard-card-title">
                     <span class="sc-dashboard-card-icon">📅</span>
                     غیبت‌های من (۳ ماه اخیر)
-                    <?php if (!empty($my_absences)) : ?>
-                        <span class="sc-dashboard-badge sc-dashboard-badge-red"><?php echo esc_html(number_format_i18n(count($my_absences))); ?></span>
+                    <?php if ($absent_count_total > 0) : ?>
+                        <span class="sc-dashboard-badge sc-dashboard-badge-red" title="غیبت غیرمجاز"><?php echo esc_html(number_format_i18n($absent_count_total)); ?></span>
+                    <?php endif; ?>
+                    <?php if ($excused_count_total > 0) : ?>
+                        <span class="sc-dashboard-badge sc-dashboard-badge-orange" title="غیبت مجاز"><?php echo esc_html(number_format_i18n($excused_count_total)); ?></span>
                     <?php endif; ?>
                 </span>
                 <span class="sc-dashboard-card-toggle" aria-hidden="true"></span>
@@ -487,18 +503,24 @@ $invoice_status_label = function ($status) {
                     </div>
                 <?php else : ?>
                     <ul class="sc-dashboard-list">
-                        <?php foreach ($my_absences as $abs) : ?>
+                        <?php foreach ($my_absences as $abs) :
+                            $is_excused = ($abs->status === 'excused');
+                            $abs_label  = $is_excused ? 'غیبت مجاز' : 'غیبت';
+                            $abs_class  = $is_excused ? 'sc-status-warning' : 'sc-status-danger';
+                            ?>
                             <li class="sc-dashboard-list-item">
                                 <div class="sc-dashboard-list-link" style="cursor:default;">
                                     <div class="sc-dashboard-list-main">
                                         <div class="sc-dashboard-list-title">
-                                            <?php echo esc_html($abs->course_title); ?>
+                                            <?php echo esc_html($abs->course_title ?: '—'); ?>
                                         </div>
                                         <div class="sc-dashboard-list-meta">
                                             <?php echo esc_html(sc_date_shamsi_date_only($abs->attendance_date)); ?>
                                         </div>
                                     </div>
-                                    <span class="sc-dashboard-status-badge sc-status-danger">غایب</span>
+                                    <span class="sc-dashboard-status-badge <?php echo esc_attr($abs_class); ?>">
+                                        <?php echo esc_html($abs_label); ?>
+                                    </span>
                                 </div>
                             </li>
                         <?php endforeach; ?>
