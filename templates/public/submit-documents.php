@@ -202,6 +202,7 @@ if (!function_exists('sc_render_player_custom_fields_block')) {
 <div class="sc-submit-documents-form">
     <h2>اطلاعات بازیکن</h2>
     <p class="description">لطفاً اطلاعات و مدارک خود را با دقت وارد کنید. پس از بررسی توسط مدیر، حساب شما فعال خواهد شد.</p>
+    <p class="description">با هر با تغییر اطلاعات وضعیت احراز هویت شما در انتظار بررسی  می شود و ممکن است به قسمت های دیگر دسترسی نداشته باشید. </p>
     
     <?php wc_print_notices(); ?>
     

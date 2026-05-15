@@ -73,8 +73,9 @@ $verification_gate_locked = function_exists('sc_is_member_verification_gate_enab
                         <?php if (!$verification_gate_locked) : ?>
                         <li><a href="<?php echo home_url('my-account/'); ?>edit-account#account_display_name" class="edit-account"> تغییر رمز ورود </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>bot-connect" class="bot-connect">اتصال به ربات </a></li>
-                        <li><a href="<?php echo home_url('my-account/'); ?>sc-enroll-course" class="sc-enroll-course"> دوره ها  </a></li>
-                        <li><a href="<?php echo home_url('my-account/'); ?>sc-my-courses" class="sc-my-courses"> دوره های من  </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-enroll-course" class="sc-enroll-course"> ثبت نام دوره  </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-private-classes" class="sc-private-classes"> کلاس خصوصی </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-my-courses" class="sc-my-courses">  دوره های من + برنامه هفتگی </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-my-attendances" class="sc-my-attendances"> حضور و غیاب های من </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-events" class="sc-events"> رویداد / مسابقات</a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-my-events" class="sc-my-events"> رویداد های من  </a></li>
@@ -82,6 +83,8 @@ $verification_gate_locked = function_exists('sc_is_member_verification_gate_enab
                         <?php endif; ?>
                         <?php if (!$verification_gate_locked) : ?>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-my-honors" class="sc-my-honors">افتخارات من </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-my-certificates" class="sc-my-certificates">گواهینامه های من </a></li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-private-notes" class="sc-private-notes">یادداشت های من </a></li>
                         <?php if(sc_get_setting('pro_feature_notifications')){ ?>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-notifications" class="sc-notifications"> اطلاعیه ها <?php  if($unread > 0) { echo '<span class="count_unread_notif_mini">' . $unread .'</span>' ;} ?> </a></li>
                         <?php }

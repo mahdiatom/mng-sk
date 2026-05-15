@@ -1583,7 +1583,7 @@ a.details_info_user_pannel:hover {
 
 
 .sc-insurance-expiry-message{
-    background-color: #ede9fe; border: 1px solid #6D34FF; border-radius: 8px; padding: 15px; margin-bottom: 20px; color: #020202;
+    background-color: #ede9fe; border-radius: 10px; padding: 15px; margin-bottom: 20px; color: #020202;
 }
 #insurance_expiry_date_shamsi{
     margin-bottom: 15px;
@@ -1891,9 +1891,7 @@ ease !important;
     
     margin: 0 auto;
     padding: 5px;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
 .sc-submit-documents-form h2 {
@@ -3252,7 +3250,7 @@ table td, table th{
     padding: 5px !important;
     background: #f9f9f9;
     border-radius: 12px;
-    margin-top: 20px;
+    
     
 }
 .woocommerce-table--order-details th {
