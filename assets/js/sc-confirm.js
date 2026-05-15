@@ -49,6 +49,7 @@
         var message = options.message || 'آیا مطمئن هستید؟';
         var confirmText = options.confirmText || 'تایید';
         var cancelText = options.cancelText || 'لغو';
+        var hideCancel = Boolean(options.hideCancel);
 
         var wrapper = document.createElement('div');
         wrapper.className = 'sc-confirm-overlay';
@@ -66,8 +67,16 @@
 
         wrapper.querySelector('.sc-confirm-title').textContent = title;
         wrapper.querySelector('.sc-confirm-message').textContent = message;
-        wrapper.querySelector('.sc-confirm-cancel').textContent = cancelText;
+        var cancelBtn = wrapper.querySelector('.sc-confirm-cancel');
+        var actionsRow = wrapper.querySelector('.sc-confirm-actions');
+        cancelBtn.textContent = cancelText;
         wrapper.querySelector('.sc-confirm-approve').textContent = confirmText;
+        if (hideCancel) {
+            cancelBtn.style.display = 'none';
+            if (actionsRow) {
+                actionsRow.classList.add('is-single');
+            }
+        }
 
         wrapper.addEventListener('click', function (event) {
             var target = event.target;

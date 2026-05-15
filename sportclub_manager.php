@@ -1574,8 +1574,25 @@ function sc_public_enqueue_assets() {
     wp_enqueue_style('sc-confirm-css', SC_ASSETS_URL . 'css/sc-confirm.css', array(), time());
     wp_enqueue_style('my-custom-icons-css',SC_ASSETS_URL . 'css/all.css',array(),'1.0');
 
-    wp_enqueue_script('sc-public-js', SC_ASSETS_URL . 'js/public.js', array('jquery'), '1.0', true);
     wp_enqueue_script('sc-confirm-js', SC_ASSETS_URL . 'js/sc-confirm.js', array(), time(), true);
+    wp_enqueue_script('sc-public-js', SC_ASSETS_URL . 'js/public.js', array('jquery', 'sc-confirm-js'), '1.0', true);
+
+    $sc_req_uri = isset($_SERVER['REQUEST_URI']) ? rawurldecode((string) wp_unslash($_SERVER['REQUEST_URI'])) : '';
+    $sc_is_public_event_view = !is_admin()
+        && (
+            (isset($_GET['sc_public_event']) && (string) $_GET['sc_public_event'] !== '')
+            || ($sc_req_uri !== '' && strpos($sc_req_uri, 'sc_public_event=') !== false)
+        );
+    if ($sc_is_public_event_view) {
+        $copy_js = SC_PLUGIN_DIR . 'assets/js/public-event-copy.js';
+        wp_enqueue_script(
+            'sc-public-event-copy',
+            SC_ASSETS_URL . 'js/public-event-copy.js',
+            array('sc-confirm-js'),
+            file_exists($copy_js) ? (string) filemtime($copy_js) : '1.0',
+            true
+        );
+    }
 
     wp_enqueue_script(
         'sc-header-search',

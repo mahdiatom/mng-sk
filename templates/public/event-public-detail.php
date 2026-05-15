@@ -73,14 +73,13 @@ get_header();
 
 <div class="sc-event-detail-page">
     <div class="sc-event-detail-header">
-        <a href="<?php echo esc_url(home_url('/')); ?>" class="sc-back-link">بازگشت به صفحه اصلی</a>
         <h2><?php echo esc_html($event->name); ?></h2>
     </div>
 
     <div class="sc-event-detail-content">
         <?php if (!empty($event->image)) : ?>
-            <div class="sc-event-detail-image">
-                <img src="<?php echo esc_url($event->image); ?>" alt="<?php echo esc_attr($event->name); ?>">
+            <div class="sc-event-detail-image sc-event-detail-image--public-natural">
+                <img src="<?php echo esc_url($event->image); ?>" alt="<?php echo esc_attr($event->name); ?>" loading="lazy" decoding="async">
             </div>
         <?php endif; ?>
 
@@ -205,19 +204,43 @@ get_header();
                     <input type="hidden" name="event_id" value="<?php echo esc_attr($event->id); ?>">
 
                     <?php if (!is_user_logged_in()) : ?>
-                        <div class="sc-event-custom-fields-section" style="margin-bottom: 20px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px;">
-                            <h3 style="margin-top:0;">اطلاعات تکمیلی ثبت‌نام</h3>
-                            <p><label>نام</label><input type="text" name="guest_first_name" class="regular-text" style="width:100%;" required></p>
-                            <p><label>نام خانوادگی</label><input type="text" name="guest_last_name" class="regular-text" style="width:100%;" required></p>
-                            <p><label>شماره تماس</label><input type="text" name="guest_phone" class="regular-text" style="width:100%;" placeholder="09xxxxxxxxx" required></p>
-                            <p><label>کد ملی</label><input type="text" name="guest_national_id" class="regular-text" style="width:100%;" required></p>
+                        <div class="sc-event-public-guest-box sc-event-custom-fields-section">
+                            <h3>اطلاعات ضروری ثبت‌نام مهمان</h3>
+                            <p class="sc-event-public-guest-intro">برای ثبت‌نام بدون ورود به حساب کاربری، اطلاعات زیر را دقیق وارد کنید. این اطلاعات برای پیگیری ثبت‌نام و تماس با شما استفاده می‌شود.</p>
+                            <ul class="sc-event-public-guest-requirements">
+                                <li><strong>نام</strong> و <strong>نام خانوادگی</strong> مطابق شناسنامه.</li>
+                                <li><strong>شماره موبایل</strong> یازده رقم، با صفر ابتدایی (مثال: ۰۹۱۲۳۴۵۶۷۸۹).</li>
+                                <li><strong>کد ملی</strong> ده رقم بدون خط تیره یا فاصله.</li>
+                                <li>در صورت تعریف <strong>فیلدهای اختصاصی این رویداد</strong> در پایین فرم، تکمیل آن‌ها (به‌ویژه موارد ستاره‌دار) الزامی است.</li>
+                                <li>برای فایل‌های ضمیمه، فقط تصویر یا PDF با حجم مجاز هر فایل رعایت شود.</li>
+                            </ul>
+                            <div class="col-1_event_field cols">
+                            <div class="sc-event-guest-field">
+                                <label for="sc_guest_first_name">نام</label>
+                                <input id="sc_guest_first_name" type="text" name="guest_first_name" class="regular-text"  required autocomplete="given-name">
+                            </div>
+                            <div class="sc-event-guest-field" style="margin-top:12px;">
+                                <label for="sc_guest_last_name">نام خانوادگی</label>
+                                <input id="sc_guest_last_name" type="text" name="guest_last_name" class="regular-text"  required autocomplete="family-name">
+                            </div>
+                            </div>
+                            <div class="col-1_event_field cols">
+                            <div class="sc-event-guest-field" style="margin-top:12px;">
+                                <label for="sc_guest_phone">شماره موبایل</label>
+                                <input id="sc_guest_phone" type="tel" name="guest_phone" class="regular-text"  placeholder="09123456789" inputmode="numeric" pattern="0[0-9]{10}" maxlength="11" minlength="11" title="۱۱ رقم موبایل با صفر ابتدایی" required autocomplete="tel">
+                            </div>
+                            <div class="sc-event-guest-field" style="margin-top:12px;">
+                                <label for="sc_guest_national_id">کد ملی</label>
+                                <input id="sc_guest_national_id" type="text" name="guest_national_id" class="regular-text"  inputmode="numeric" pattern="[0-9]{10}" maxlength="10" minlength="10" title="ده رقم کد ملی" required autocomplete="off">
+                            </div>
+                            </div>
                         </div>
                     <?php endif; ?>
 
                     <?php if (!empty($event_fields)) : ?>
                     <div class="sc-event-custom-fields-section" style="margin-bottom: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                        <h3 style="margin-top: 0; margin-bottom: 10px; color: #1a1a1a; font-size: 20px; font-weight: 600;">اطلاعات تکمیلی ثبت‌نام</h3>
-                        <p class="description" style="margin-bottom: 20px; color: #666; font-size: 14px;">لطفاً اطلاعات زیر را تکمیل کنید:</p>
+                        <h3 style="margin-top: 0; margin-bottom: 10px; color: #1a1a1a; font-size: 20px; font-weight: 600;">فیلدهای اختصاصی این رویداد</h3>
+                        <p class="description" style="margin-bottom: 20px; color: #666; font-size: 14px;">در صورت نیاز برگزارکننده، موارد زیر را تکمیل کنید:</p>
                         
                         <div class="sc-event-fields-form" style="margin-top: 20px;">
                             <?php foreach ($event_fields as $field) : 
@@ -268,9 +291,19 @@ get_header();
                 </div>
             <?php endif; ?>
 
-            <div class="sc-event-detail-section" style="margin-top:16px;">
-                <p><strong>لینک ثبت‌نام عمومی:</strong></p>
-                <a href="<?php echo esc_url($public_link); ?>"><?php echo esc_html($public_link); ?></a>
+            <div class="sc-event-detail-section sc-event-public-link-guide" >
+                <h3>لینک عمومی و ثبت‌نام برای غیرعضو</h3>
+                <p class="sc-event-public-link-intro">این آدرس را می‌توانید برای افرادی که عضو سایت نیستند ارسال کنید تا از همین صفحه ثبت‌نام کنند. اگر خودتان عضو هستید، ترجیحاً از دکمهٔ ورود به حساب در بالای فرم استفاده کنید.</p>
+                <ul>
+                    <li>مهمان باید نام، نام خانوادگی، موبایل ۱۱ رقمی و کد ملی ۱۰ رقمی را وارد کند.</li>
+                </ul>
+                <p class="sc-event-public-link-intro" style="margin-top:14px;margin-bottom:8px;"><strong>لینک ثبت‌نام عمومی:</strong></p>
+                <div class="sc-event-public-link-box">
+                    <div class="event_public_url_row">
+                        <a href="<?php echo esc_url($public_link); ?>" target="_blank" rel="noopener" class=" event_public_link"><?php echo esc_html($public_link); ?></a>
+                        <button type="button" class="button sc-copy-link-btn sc-copy-public-event-link sc_button button-primary" data-url="<?php echo esc_attr($public_link); ?>">کپی لینک</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

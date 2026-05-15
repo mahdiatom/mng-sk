@@ -3273,16 +3273,28 @@ function sc_my_account_events_content() {
     $today_gregorian = date('Y-m-d');
     
     // دریافت فیلترها
-    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest';
-    $filter_event_type = isset($_GET['filter_event_type']) ? sanitize_text_field($_GET['filter_event_type']) : 'all';
-    
+    $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'latest';
+    $filter_event_type = isset($_GET['filter_event_type']) ? sanitize_text_field(wp_unslash($_GET['filter_event_type'])) : 'all';
+    $event_s = isset($_GET['event_s']) ? sanitize_text_field(wp_unslash($_GET['event_s'])) : '';
+    $event_s = trim($event_s);
+
     // ساخت WHERE clause
     $where_conditions = [
         "deleted_at IS NULL",
         "is_active = 1"
     ];
     $where_values = [];
-    
+
+    // جستجو در نام، توضیحات، محل و آدرس
+    if ($event_s !== '') {
+        $like = '%' . $wpdb->esc_like($event_s) . '%';
+        $where_conditions[] = '(name LIKE %s OR description LIKE %s OR event_location LIKE %s OR event_location_address LIKE %s)';
+        $where_values[] = $like;
+        $where_values[] = $like;
+        $where_values[] = $like;
+        $where_values[] = $like;
+    }
+
     // فیلتر نوع (رویداد/مسابقه)
     if ($filter_event_type !== 'all') {
         $where_conditions[] = "event_type = %s";

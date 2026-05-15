@@ -28,8 +28,21 @@ if (function_exists('wc_get_price_thousand_separator')) {
 $today_shamsi = sc_get_today_shamsi();
 
 // دریافت فیلترها
-$filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'latest');
-$filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_GET['filter_event_type']) ? sanitize_text_field($_GET['filter_event_type']) : 'all');
+$filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'latest');
+$filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_GET['filter_event_type']) ? sanitize_text_field(wp_unslash($_GET['filter_event_type'])) : 'all');
+$event_s = isset($event_s) ? $event_s : (isset($_GET['event_s']) ? sanitize_text_field(wp_unslash($_GET['event_s'])) : '');
+$event_s = trim((string) $event_s);
+
+$sc_events_list_url = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-events') : home_url('/my-account/sc-events/');
+$sc_events_paginate_q = [
+    'filter_status'     => $filter_status,
+    'filter_event_type' => $filter_event_type,
+];
+if ($event_s !== '') {
+    $sc_events_paginate_q['event_s'] = $event_s;
+}
+$sc_events_paginate_base = add_query_arg($sc_events_paginate_q, $sc_events_list_url);
+$sc_events_paginate_sep = (strpos($sc_events_paginate_base, '?') !== false) ? '&' : '?';
 ?>
 
 <div class="sc-events-page">
@@ -40,10 +53,15 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
     
     <!-- فیلترها -->
     <div class="sc-events-filters" style="margin: 20px 0; padding: 20px; background: #f9f9f9; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-        <form method="GET" action="" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-            <input type="hidden" name="page" value="<?php echo isset($_GET['page']) ? esc_attr($_GET['page']) : ''; ?>">
-            
-            <div style="flex: 1; min-width: 200px;">
+        <form method="GET" action="<?php echo esc_url($sc_events_list_url); ?>" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+            <div style="flex: 1.2; min-width: 200px;">
+                <label for="event_s" style="display: block; margin-bottom: 5px; font-weight: 600;">جستجو:</label>
+                <input type="search" name="event_s" id="event_s" value="<?php echo esc_attr($event_s); ?>"
+                       placeholder="نام رویداد، توضیحات، محل یا آدرس…"
+                       style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+            </div>
+
+            <div style="flex: 1; min-width: 160px;">
                 <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
                 <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                     <option value="latest" <?php selected($filter_status, 'latest'); ?>>آخرین</option>
@@ -53,7 +71,7 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                 </select>
             </div>
             
-            <div style="flex: 1; min-width: 200px;">
+            <div style="flex: 1; min-width: 160px;">
                 <label for="filter_event_type" style="display: block; margin-bottom: 5px; font-weight: 600;">نوع:</label>
                 <select name="filter_event_type" id="filter_event_type" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                     <option value="all" <?php selected($filter_event_type, 'all'); ?>>همه</option>
@@ -62,8 +80,14 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                 </select>
             </div>
             
-            <div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                 <button type="submit" class="button button-primary" style="padding: 8px 20px; height: auto;">اعمال فیلتر</button>
+                <?php
+                $clear_url = $sc_events_list_url;
+                if ($event_s !== '' || $filter_status !== 'latest' || $filter_event_type !== 'all') :
+                ?>
+                    <a class="button" href="<?php echo esc_url($clear_url); ?>" style="height: auto; padding: 8px 16px;">پاک کردن فیلترها</a>
+                <?php endif; ?>
             </div>
         </form>
           
@@ -71,7 +95,11 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
     
     <?php if (empty($events)) : ?>
         <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
-            در حال حاضر رویدادی برای ثبت نام موجود نیست.
+            <?php if ($event_s !== '') : ?>
+                نتیجه‌ای برای «<?php echo esc_html($event_s); ?>» با فیلترهای انتخاب‌شده یافت نشد.
+            <?php else : ?>
+                در حال حاضر رویدادی برای ثبت نام موجود نیست.
+            <?php endif; ?>
         </div>
     <?php else : ?>
         <!-- Pagination -->
@@ -80,12 +108,12 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                     <div class="tablenav-pages">
                         <?php
                         $page_links = paginate_links([
-                            'base' => add_query_arg(['pag' => '%#%']),
-                            'format' => '',
+                            'base'      => esc_url_raw($sc_events_paginate_base) . '%_%',
+                            'format'    => $sc_events_paginate_sep . 'pag=%#%',
                             'prev_text' => '< قبلی ',
                             'next_text' => ' بعدی >' ,
-                            'total' => $total_pages,
-                            'current' => $current_page
+                            'total'     => $total_pages,
+                            'current'   => $current_page,
                         ]);
                         echo $page_links;
                         ?>
@@ -374,12 +402,12 @@ $filter_event_type = isset($filter_event_type) ? $filter_event_type : (isset($_G
                     <div class="tablenav-pages">
                         <?php
                         $page_links = paginate_links([
-                            'base' => add_query_arg(['pag' => '%#%']),
-                            'format' => '',
+                            'base'      => esc_url_raw($sc_events_paginate_base) . '%_%',
+                            'format'    => $sc_events_paginate_sep . 'pag=%#%',
                             'prev_text' => '< قبلی ',
                             'next_text' => ' بعدی >' ,
-                            'total' => $total_pages,
-                            'current' => $current_page
+                            'total'     => $total_pages,
+                            'current'   => $current_page,
                         ]);
                         echo $page_links;
                         ?>

@@ -81,6 +81,10 @@
     justify-content: flex-start;
 }
 
+.sc-confirm-actions.is-single {
+    justify-content: center;
+}
+
 .sc-confirm-actions .button {
     min-width: 110px;
     height: 38px;

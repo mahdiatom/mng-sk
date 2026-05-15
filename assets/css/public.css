@@ -543,6 +543,7 @@ font-size: 14px;
     cursor: pointer;
     color: #333;
 }
+
 .sc-header-search--popup .sc-header-search__box {
     background: #f5f5f7;
     border: 1px solid #e0e0e0;
@@ -2688,6 +2689,127 @@ ease !important;
     object-fit: cover;
 }
 
+/* صفحهٔ عمومی رویداد: تصویر با ابعاد واقعی و بدون برش/تارشدگی */
+.sc-event-detail-image.sc-event-detail-image--public-natural {
+    max-height: none;
+    overflow: visible;
+    text-align: center;
+    background: #f1f5f9;
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+.sc-event-detail-image.sc-event-detail-image--public-natural img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: none;
+    object-fit: contain;
+    vertical-align: middle;
+    image-rendering: auto;
+    -ms-interpolation-mode: bicubic;
+}
+
+.sc-event-public-guest-box {
+    margin-bottom: 20px;
+    padding: 20px 22px;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    border-right: 4px solid #2271b1;
+}
+
+.sc-event-public-guest-box h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    color: #0f172a;
+}
+
+.sc-event-public-guest-box .sc-event-public-guest-intro {
+    margin: 0 0 12px;
+    color: #475569;
+    font-size: 0.9rem;
+    line-height: 1.75;
+}
+
+.sc-event-public-guest-box ul.sc-event-public-guest-requirements {
+    margin: 0;
+    padding: 0 1.1rem 0 0;
+    color: #334155;
+    font-size: 0.875rem;
+    line-height: 1.85;
+}
+
+.sc-event-public-guest-box ul.sc-event-public-guest-requirements li {
+    margin-bottom: 6px;
+}
+
+.sc-event-public-guest-box .sc-event-guest-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.sc-event-public-link-guide {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-top: 20px;
+}
+
+.sc-event-public-link-guide h3 {
+    margin-top: 0;
+    color: #92400e;
+    font-size: 1.05rem;
+}
+
+.sc-event-public-link-guide .sc-event-public-link-intro {
+    margin: 0 0 12px;
+    color: #78350f;
+    line-height: 1.75;
+    font-size: 0.9rem;
+}
+
+.sc-event-public-link-guide ul {
+    margin: 0;
+    padding: 0 1.1rem 0 0;
+    color: #78350f;
+    line-height: 1.8;
+    font-size: 0.875rem;
+}
+
+.sc-event-public-link-box {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: #f8fafc;
+    border: 1px dashed #94a3b8;
+    border-radius: 10px;
+    word-break: break-word;
+}
+
+.sc-event-public-link-box a {
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* همان چیدمان صفحهٔ ویرایش رویداد مدیر: لینک + دکمهٔ کپی */
+.sc-event-public-link-box .event_public_url_row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.sc-event-public-link-box .event_public_url_row .event_public_link {
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-all;
+    font-family: monospace;
+}
+
 .sc-event-detail-section {
     margin-bottom: 30px;
     padding-bottom: 20px;
@@ -2703,6 +2825,10 @@ ease !important;
     font-size: 20px;
     color: #2271b1;
     font-weight: 600;
+}
+
+.sc-event-detail-section.sc-event-public-link-guide h3 {
+    color: #92400e;
 }
 
 .sc-event-detail-section p {
@@ -8274,3 +8400,28 @@ border-radius: 10px;
     background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404; width: 100%;
 }
 /* سفارشات من  */
+
+
+.sc-event-public-link-guide{
+    margin:16px 0;border-bottom:none;padding-bottom:10px;
+}
+.sc-event-guest-field input{
+    border: 1px solid #ddd !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+   
+    box-sizing:border-box;
+    
+}
+.sc-event-guest-field {
+    width: 50% !important;
+    margin: 10px;
+}
+.sc-confirm-close{
+    border: none !important;
+    color: #000 !important;
+    font-size: 16px !important;
+}
+.sc-event-public-guest-box .cols{
+    display: flex;
+}
