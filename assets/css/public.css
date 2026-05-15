@@ -7334,3 +7334,451 @@ border-radius: 10px;
 }
 /* یادداشت خصوصی */
 
+/* ============================================================
+   پیشخوان بازیکن (Player Dashboard)
+============================================================ */
+.sc-player-dashboard {
+    font-family: IRANYekanXFaNum, sans-serif;
+    padding: 4px 0 30px;
+    color: #1f2937;
+}
+
+.sc-dashboard-page-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 26px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 6px;
+}
+
+.sc-dashboard-page-icon {
+    font-size: 30px;
+}
+
+.sc-dashboard-page-subtitle {
+    margin: 0 0 22px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.sc-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+@media screen and (max-width: 900px) {
+    .sc-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---------- کارت آکاردئونی ---------- */
+.sc-dashboard-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: box-shadow .2s ease, border-color .2s ease;
+}
+
+.sc-dashboard-card[open] {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+}
+
+.sc-dashboard-card-header {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    background: linear-gradient(180deg, #fafbff 0%, #f4f6fb 100%);
+    border-bottom: 1px solid #eef0f5;
+    user-select: none;
+}
+
+.sc-dashboard-card-header::-webkit-details-marker {
+    display: none;
+}
+
+.sc-dashboard-card[open] > .sc-dashboard-card-header {
+    background: linear-gradient(180deg, #f3efff 0%, #ece6ff 100%);
+    border-bottom-color: #ddd2ff;
+}
+
+.sc-dashboard-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.sc-dashboard-card-icon {
+    font-size: 20px;
+}
+
+.sc-dashboard-card-toggle {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    position: relative;
+    flex: 0 0 auto;
+    transition: transform .25s ease, background .2s ease, border-color .2s ease;
+}
+
+.sc-dashboard-card-toggle::before,
+.sc-dashboard-card-toggle::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 2px;
+    background: #4a1fb8;
+    border-radius: 2px;
+    transform: translate(-50%, -50%);
+    transition: opacity .2s ease;
+}
+
+.sc-dashboard-card-toggle::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.sc-dashboard-card[open] > .sc-dashboard-card-header .sc-dashboard-card-toggle {
+    background: #6d34ff;
+    border-color: #6d34ff;
+}
+
+.sc-dashboard-card[open] > .sc-dashboard-card-header .sc-dashboard-card-toggle::before,
+.sc-dashboard-card[open] > .sc-dashboard-card-header .sc-dashboard-card-toggle::after {
+    background: #fff;
+}
+
+.sc-dashboard-card[open] > .sc-dashboard-card-header .sc-dashboard-card-toggle::after {
+    opacity: 0;
+}
+
+.sc-dashboard-card-body {
+    padding: 16px 18px 18px;
+}
+
+/* ---------- Badge داخل عنوان کارت ---------- */
+.sc-dashboard-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 999px;
+    color: #fff;
+    background: #6b7280;
+    margin-right: 4px;
+}
+
+.sc-dashboard-badge-red    { background: #dc2626; }
+.sc-dashboard-badge-orange { background: #f59e0b; }
+.sc-dashboard-badge-blue   { background: #2563eb; }
+
+/* ---------- نوار ابزار بالای محتوا ---------- */
+.sc-dashboard-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.sc-dashboard-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a1fb8;
+    background: #ede9fe;
+    border: 1px solid #d8ccff;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background .2s ease, color .2s ease;
+}
+
+.sc-dashboard-link-btn:hover {
+    background: #6d34ff;
+    color: #fff;
+    border-color: #6d34ff;
+}
+
+/* ---------- وضعیت خالی ---------- */
+.sc-dashboard-empty {
+    background: #f9fafb;
+    border: 1px dashed #d1d5db;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.sc-dashboard-empty-success {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #047857;
+}
+
+/* ---------- لیست عمومی ---------- */
+.sc-dashboard-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sc-dashboard-list-item {
+    border: 1px solid #eef0f5;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    background: #fff;
+    transition: border-color .2s ease, transform .15s ease;
+}
+
+.sc-dashboard-list-item:hover {
+    border-color: #d8ccff;
+}
+
+.sc-dashboard-list-item:last-child {
+    margin-bottom: 0;
+}
+
+.sc-dashboard-list-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.sc-dashboard-list-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.sc-dashboard-list-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sc-dashboard-list-meta {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.sc-dashboard-meta-sep {
+    margin: 0 6px;
+    color: #d1d5db;
+}
+
+/* ---------- Badge وضعیت ---------- */
+.sc-dashboard-status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    background: #e5e7eb;
+    color: #374151;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+.sc-dashboard-status-badge.sc-ticket-status-pending_reply,
+.sc-dashboard-status-badge.sc-invoice-status-pending,
+.sc-dashboard-status-badge.sc-status-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.sc-dashboard-status-badge.sc-ticket-status-answered,
+.sc-dashboard-status-badge.sc-invoice-status-paid,
+.sc-dashboard-status-badge.sc-invoice-status-completed,
+.sc-dashboard-status-badge.sc-invoice-status-processing,
+.sc-dashboard-status-badge.sc-status-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.sc-dashboard-status-badge.sc-ticket-status-closed,
+.sc-dashboard-status-badge.sc-status-neutral {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.sc-dashboard-status-badge.sc-invoice-status-under_review {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.sc-dashboard-status-badge.sc-status-danger,
+.sc-dashboard-status-badge.sc-invoice-status-cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* ---------- اطلاعیه خوانده‌نشده ---------- */
+.sc-dashboard-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #dc2626;
+    border-radius: 50%;
+    margin-left: 4px;
+}
+
+.sc-dashboard-list-item.is-unread {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+/* ---------- لیست کارهای ناتمام ---------- */
+.sc-dashboard-tasks-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sc-dashboard-task-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #eef0f5;
+    border-right-width: 4px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background: #fff;
+}
+
+.sc-dashboard-task-row:last-child {
+    margin-bottom: 0;
+}
+
+.sc-task-red    { border-right-color: #dc2626; background: #fef2f2; }
+.sc-task-blue   { border-right-color: #2563eb; background: #eff6ff; }
+.sc-task-orange { border-right-color: #f59e0b; background: #fffbeb; }
+.sc-task-purple { border-right-color: #6d34ff; background: #f5f0ff; }
+.sc-task-yellow { border-right-color: #ca8a04; background: #fefce8; }
+.sc-task-green  { border-right-color: #16a34a; background: #f0fdf4; }
+
+.sc-task-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.sc-task-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 4px;
+}
+
+.sc-task-icon {
+    font-size: 18px;
+}
+
+.sc-task-desc {
+    font-size: 12.5px;
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.sc-task-action {
+    flex: 0 0 auto;
+}
+
+.sc-dashboard-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(109, 52, 255, 0.25);
+    transition: transform .15s ease, box-shadow .2s ease;
+    white-space: nowrap;
+}
+
+.sc-dashboard-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(109, 52, 255, 0.35);
+    color: #fff;
+}
+
+/* ---------- نوار پیشرفت جلسات ---------- */
+.sc-dashboard-progress {
+    width: 100%;
+    height: 8px;
+    background: #f3f4f6;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.sc-dashboard-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #6d34ff 0%, #00a6ff 100%);
+    border-radius: 999px;
+    transition: width .3s ease;
+}
+
+.sc-dashboard-sessions-list .sc-dashboard-list-item {
+    padding: 10px 12px;
+}
+
+/* ---------- ریسپانسیو موبایل ---------- */
+@media screen and (max-width: 600px) {
+    .sc-dashboard-task-row,
+    .sc-dashboard-list-link {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .sc-task-action,
+    .sc-dashboard-status-badge {
+        width: 100%;
+    }
+    .sc-dashboard-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .sc-dashboard-status-badge {
+        text-align: center;
+    }
+}
+

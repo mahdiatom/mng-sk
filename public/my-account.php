@@ -484,6 +484,7 @@ function sc_add_my_account_menu_item($items) {
     // Insert before logout
     $logout = $items['customer-logout'];
     unset($items['customer-logout']); 
+    $items['sc-dashboard'] = 'پیشخوان';
     $items['sc-submit-documents'] = 'اطلاعات بازیکن' ;
     $items['sc-enroll-course'] = 'ثبت نام در دوره';
     $items['sc-my-courses'] = 'دوره‌های من +  برنامه هفتگی';
@@ -533,7 +534,14 @@ function sc_add_my_account_menu_item($items) {
  */
 add_action('init', 'sc_add_my_account_endpoint');
 function sc_add_my_account_endpoint() {
+    add_rewrite_endpoint('sc-dashboard', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-submit-documents', EP_ROOT | EP_PAGES);
+
+    // یک‌بار flush خودکار برای endpoint جدید پیشخوان (پس از به‌روزرسانی افزونه)
+    if (get_option('sc_dashboard_endpoint_flushed') !== 'yes') {
+        flush_rewrite_rules();
+        update_option('sc_dashboard_endpoint_flushed', 'yes');
+    }
     add_rewrite_endpoint('sc-enroll-course', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-courses', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-attendances', EP_ROOT | EP_PAGES);
@@ -559,6 +567,7 @@ function sc_add_my_account_endpoint() {
  */
 add_filter('query_vars', 'sc_add_my_account_query_vars', 0);
 function sc_add_my_account_query_vars($vars) {
+    $vars[] = 'sc-dashboard';
     $vars[] = 'sc-submit-documents';
     $vars[] = 'sc-my-honors';
     $vars[] = 'sc-my-certificates';
@@ -581,6 +590,10 @@ function sc_add_my_account_query_vars($vars) {
 /**
  * Set endpoint title
  */
+add_filter('woocommerce_endpoint_sc-dashboard_title', function() {
+    return 'پیشخوان';
+});
+
 add_filter('woocommerce_endpoint_sc-submit-documents_title', 'sc_my_account_endpoint_title');
 function sc_my_account_endpoint_title($title) {
     return 'اطلاعات بازیکن';
@@ -959,6 +972,21 @@ function sc_my_account_faq_content(){
  
     include SC_TEMPLATES_PUBLIC_DIR . 'faq.php';
 }
+/**
+ * Display content for player dashboard tab (پیشخوان)
+ */
+add_action('woocommerce_account_sc-dashboard_endpoint', 'sc_my_account_dashboard_content');
+function sc_my_account_dashboard_content() {
+    sc_check_and_create_tables();
+
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return;
+    }
+
+    include SC_TEMPLATES_PUBLIC_DIR . 'dashboard-player.php';
+}
+
 /**
  * Display content for custom tab
  */
