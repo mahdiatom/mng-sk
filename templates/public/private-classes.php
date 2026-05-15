@@ -262,3 +262,16 @@ $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_dat
     });
     </script>
 <?php endif; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // بررسی هر 100ms تا المان حاضر شود
+    const interval = setInterval(function() {
+        const el = document.querySelector('.sc-private-wrap h2'); // المان هدف
+        if (el) {
+            // اسکرول نرم و مرکز صفحه
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval); // توقف بررسی بعد از اسکرول
+        }
+    }, 100);
+});
+</script>

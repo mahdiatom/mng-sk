@@ -65,6 +65,7 @@ $verification_gate_locked = function_exists('sc_is_member_verification_gate_enab
                             </div>
                             
                         </li>
+                        <li><a href="<?php echo home_url('my-account/'); ?>sc-dashboard" class="sc-dashboard">  پیشخوان من  </a></li>
                         <li><a href="<?php echo home_url('my-account/'); ?>sc-submit-documents" class="sc-submit-documents"> اطلاعات بازیکن  </a></li>
                         <?php if(sc_get_setting('pro_feature_shop')){ ?>
                         <li><a href="<?php echo home_url('/'); ?>shop" class="shop"> فروشگاه  </a></li>

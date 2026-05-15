@@ -443,6 +443,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $sc_login_bg_image        = isset($_POST['sc_login_bg_image']) ? esc_url_raw($_POST['sc_login_bg_image']) : '';
         $sc_login_btn_bg         = isset($_POST['sc_login_btn_bg']) ? sanitize_hex_color($_POST['sc_login_btn_bg']) : '#e60012';
         $sc_login_btn_color      = isset($_POST['sc_login_btn_color']) ? sanitize_hex_color($_POST['sc_login_btn_color']) : '#ffffff';
+        $sc_login_page_id        = isset($_POST['sc_login_page_id']) ? absint($_POST['sc_login_page_id']) : 0;
         sc_update_setting('sc_login_redirect_path', $sc_login_redirect_path, 'login_register');
         sc_update_setting('sc_login_otp_pattern', $sc_login_otp_pattern, 'login_register');
         sc_update_setting('sc_login_logo_url', $sc_login_logo_url, 'login_register');
@@ -450,6 +451,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sc_login_bg_image', $sc_login_bg_image, 'login_register');
         sc_update_setting('sc_login_btn_bg', $sc_login_btn_bg, 'login_register');
         sc_update_setting('sc_login_btn_color', $sc_login_btn_color, 'login_register');
+        sc_update_setting('sc_login_page_id', $sc_login_page_id, 'login_register');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب ورود و عضویت ذخیره شد', null, ['tab' => 'login_register']);
         }
@@ -690,6 +692,7 @@ $sc_login_bg_color      = sc_get_setting('sc_login_bg_color', '#ffffff');
 $sc_login_bg_image      = sc_get_setting('sc_login_bg_image', '');
 $sc_login_btn_bg        = sc_get_setting('sc_login_btn_bg', '#e60012');
 $sc_login_btn_color     = sc_get_setting('sc_login_btn_color', '#ffffff');
+$sc_login_page_id       = (int) sc_get_setting('sc_login_page_id', 0);
 // تنطیمات حضور و غیاب 
 
 $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
@@ -1066,6 +1069,31 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                                    value="<?php echo esc_attr($sc_login_redirect_path); ?>"
                                    class="regular-text" placeholder="my-account/sc-submit-documents/">
                             <p class="description">مسیر نسبی بعد از آدرس سایت (مثال: my-account/sc-submit-documents/)</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_login_page_id">صفحه ورود سفارشی</label></th>
+                        <td>
+                            <?php
+                            wp_dropdown_pages(array(
+                                'name'              => 'sc_login_page_id',
+                                'id'                => 'sc_login_page_id',
+                                'selected'          => $sc_login_page_id,
+                                'show_option_none'  => '— انتخاب کنید (غیرفعال) —',
+                                'option_none_value' => 0,
+                            ));
+                            ?>
+                            <p class="description">
+                                صفحه‌ای که حاوی شورتکد <code>[sc_login_register_form]</code> است را انتخاب کنید. در صورت انتخاب، کاربران لاگین‌نکرده هنگام باز کردن <code>/my-account/</code> به جای فرم پیش‌فرض ووکامرس به این صفحه هدایت می‌شوند.
+                            </p>
+                            <?php if ($sc_login_page_id) :
+                                $sc_login_page_url = get_permalink($sc_login_page_id);
+                                if ($sc_login_page_url) : ?>
+                                    <p class="description">
+                                        پیش‌نمایش لینک: <a href="<?php echo esc_url($sc_login_page_url); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($sc_login_page_url); ?></a>
+                                    </p>
+                                <?php endif;
+                            endif; ?>
                         </td>
                     </tr>
                     <tr>

@@ -138,4 +138,16 @@ $cert_templates_saved = function_exists('sc_certificates_get_saved_templates') ?
         <div class="woocommerce-info">هنوز گواهینامه‌ای برای شما ثبت نشده است.</div>
     <?php endif; ?>
 </div>
-
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // بررسی هر 100ms تا المان حاضر شود
+    const interval = setInterval(function() {
+        const el = document.querySelector('.sc-my-certificates-header h2'); // المان هدف
+        if (el) {
+            // اسکرول نرم و مرکز صفحه
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval); // توقف بررسی بعد از اسکرول
+        }
+    }, 100);
+});
+</script>

@@ -60,7 +60,7 @@ $total_pages = isset($total_pages) ? max(1, absint($total_pages)) : 1;
     </div>
     
     <?php if (empty($orders)) : ?>
-        <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404; width: 140px;">
+        <div class="sc-message sc-message-info" >
             <?php if ($filter_status !== 'all') : ?>
                 سفارشی با این وضعیت یافت نشد.
             <?php else : ?>
