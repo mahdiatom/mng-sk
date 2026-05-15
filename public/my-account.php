@@ -917,46 +917,69 @@ function sc_my_account_my_events_content(){
 	$wp_user_table = $wpdb->prefix . 'users';
 	$member_table = $wpdb->prefix . 'sc_members';
 
-$results = $wpdb->get_results(
-    "SELECT m.id
-     FROM {$wp_user_table} wp
-     INNER JOIN {$member_table} m
-     ON wp.ID = m.user_id
-     WHERE wp.ID = {$user_id_wp}" , ARRAY_A
-);
+    $results = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT m.id FROM {$wp_user_table} wp INNER JOIN {$member_table} m ON wp.ID = m.user_id WHERE wp.ID = %d LIMIT 1",
+            $user_id_wp
+        ),
+        ARRAY_A
+    );
 
-$user_id =  $results[0]['id'];
+    if (empty($results)) {
+        $user_events = [];
+        $count_events = 0;
+        $current_page = 1;
+        $total_pages = 1;
+        $total_events = 0;
+        $my_events_no_member = true;
+        include SC_TEMPLATES_PUBLIC_DIR . 'my-events.php';
+        return;
+    }
 
+    $user_id = (int) $results[0]['id'];
 
-
-    $count_events = $wpdb->get_var(
-    $wpdb->prepare(
-        "SELECT COUNT(*) FROM {$member_event_register_table} WHERE member_id = %d",
-        $user_id
-    )
-); 
+    $count_events = (int) $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$member_event_register_table} WHERE member_id = %d",
+            $user_id
+        )
+    );
 
     $per_page = 10;
     $limit = $per_page;
-    $current_page = isset($_GET['pag']) ? absint($_GET['pag']) : 1;
+    $current_page = isset($_GET['pag']) ? max(1, absint($_GET['pag'])) : 1;
     $offset = ($current_page - 1) * $per_page;
-	$total_pages = ceil($count_events / $per_page);
+    $total_pages = max(1, (int) ceil($count_events / $per_page));
+    if ($current_page > $total_pages) {
+        $current_page = $total_pages;
+        $offset = ($current_page - 1) * $per_page;
+    }
 
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
 
     $query = $wpdb->prepare(
-    "SELECT r.id, r.event_id, e.event_time, e.name, e.holding_date_shamsi
-     FROM {$member_event_register_table} r
-     INNER JOIN {$event_table} e ON r.event_id = e.id
-     WHERE r.member_id = %d
-     LIMIT %d OFFSET %d",
-    $user_id,
-    $limit,
-    $offset
-);
+        "SELECT r.id AS registration_id, r.created_at AS registered_at, r.invoice_id, r.event_id,
+                e.name, e.event_type, e.chapter, e.event_time, e.holding_date_shamsi, e.holding_date_gregorian,
+                e.event_location, e.event_location_address, e.capacity, e.description,
+                e.start_date_shamsi, e.end_date_shamsi, e.is_active, e.deleted_at,
+                i.status AS invoice_status,
+                (SELECT COUNT(*) FROM {$invoices_table} inv
+                 WHERE inv.event_id = e.id AND inv.status IN ('paid', 'completed', 'processing')) AS enrolled_count
+         FROM {$member_event_register_table} r
+         INNER JOIN {$event_table} e ON r.event_id = e.id
+         LEFT JOIN {$invoices_table} i ON r.invoice_id = i.id
+         WHERE r.member_id = %d
+         ORDER BY (e.holding_date_gregorian IS NULL), e.holding_date_gregorian DESC, e.id DESC
+         LIMIT %d OFFSET %d",
+        $user_id,
+        $limit,
+        $offset
+    );
 
-$user_events = $wpdb->get_results($query, ARRAY_A);
-    
-    
+    $user_events = $wpdb->get_results($query, ARRAY_A);
+
+    $total_events = $count_events;
+
     include SC_TEMPLATES_PUBLIC_DIR . 'my-events.php';
 }
 // display register event user

@@ -16,7 +16,7 @@ if ($view_note_id > 0) {
         $legacy = sc_private_notes_get($view_note_id);
         if (!$legacy || (int) $legacy->user_id !== (int) $current_user_id) {
             ?>
-            <div class="woocommerce-MyAccount-content sc-private-notes-content sc-private-notes-user">
+            <div class=" sc-private-notes-content sc-private-notes-user">
                 <div class="sc-pn-empty">
                     <span class="sc-pn-empty-icon" aria-hidden="true"></span>
                     <p class="sc-pn-empty-text">یادداشت موردنظر یافت نشد یا دسترسی به آن ندارید.</p>
@@ -27,7 +27,7 @@ if ($view_note_id > 0) {
             return;
         }
         ?>
-        <div class="woocommerce-MyAccount-content sc-private-notes-content sc-private-notes-user">
+        <div class=" sc-private-notes-content sc-private-notes-user">
             <a href="<?php echo esc_url($base_url); ?>" class="sc-pn-back-link">← بازگشت به لیست یادداشت‌ها</a>
 
             <div class="sc-pn-detail-card">
@@ -82,7 +82,7 @@ if ($view_note_id > 0) {
     $thread_updated_at  = isset($thread->updated_at) && $thread->updated_at ? sc_date_shamsi($thread->updated_at, 'Y/m/d - H:i') : '';
     $messages_count     = is_array($messages) ? count($messages) : 0;
     ?>
-    <div class="woocommerce-MyAccount-content sc-private-notes-content sc-private-notes-user">
+    <div class=" sc-private-notes-content sc-private-notes-user">
         <a href="<?php echo esc_url($base_url); ?>" class="sc-pn-back-link">← بازگشت به لیست یادداشت‌ها</a>
 
         <div class="sc-pn-detail-card sc-pn-thread-head-card">
@@ -227,7 +227,7 @@ if ($page > $total_pages) {
 $notes       = $list_result['rows'];
 $total_count = isset($list_result['total']) ? (int) $list_result['total'] : count((array) $notes);
 ?>
-<div class="woocommerce-MyAccount-content sc-private-notes-content sc-private-notes-user">
+<div class=" sc-private-notes-content sc-private-notes-user">
     <div class="sc-pn-page-header">
         <div class="sc-pn-page-titles">
             <h2 class="sc-pn-page-title">یادداشت‌های من</h2>
