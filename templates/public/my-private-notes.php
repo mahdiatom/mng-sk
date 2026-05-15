@@ -128,14 +128,14 @@ $notes = $list_result['rows'];
 <div class="wrap wrap_attendace_user sc-private-notes-user">
     <h2>پرونده‌های یادداشت من</h2>
 
-    <form method="get" action="<?php echo esc_url($base_url); ?>" style="<?php echo esc_attr($pn_filter_form_style); ?>">
+    <form method="get" action="<?php echo esc_url($base_url); ?>" class="form_list_filter_note">
         <div class="field_filter_attendace">
             <p>
                 <label for="sc-pn-note-s">جستجو در نام پرونده یا متن پیام‌ها:</label><br>
-                <input type="search" name="note_s" id="sc-pn-note-s" class="sc_attendamce_select" style="width:100%;max-width:100%;box-sizing:border-box;" value="<?php echo esc_attr($note_s); ?>" placeholder="کلمه یا عبارت...">
+                <input type="search" name="note_s" id="sc-pn-note-s" class="sc_privet_note_select" style="width:100%;max-width:100%;box-sizing:border-box;" value="<?php echo esc_attr($note_s); ?>" placeholder="کلمه یا عبارت...">
             </p>
         </div>
-        <button type="submit" class="button button-primary">جستجو</button>
+        <button type="submit" class="sc_button button-primary">جستجو</button>
         <?php if ($note_s !== '') : ?>
             <a href="<?php echo esc_url(remove_query_arg(['note_s', 'note_page'], $base_url)); ?>" class="sc_button">پاک کردن</a>
         <?php endif; ?>

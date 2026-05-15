@@ -12,6 +12,7 @@ $current_page = isset($current_page) ? $current_page : (isset($_GET['paged']) ? 
 $total_pages = isset($total_pages) ? $total_pages : 1;
 $total_courses = isset($total_courses) ? $total_courses : 0;
 $course_search = isset($course_search) ? $course_search : (isset($_GET['course_search']) ? sanitize_text_field(wp_unslash($_GET['course_search'])) : '');
+$capacity_waitlist_pending = isset($capacity_waitlist_pending) ? (array) $capacity_waitlist_pending : [];
 
 
 // استفاده از تنظیمات WooCommerce برای فرمت قیمت
@@ -34,6 +35,7 @@ if (function_exists('wc_get_price_decimal_separator')) {
 if (function_exists('wc_get_price_thousand_separator')) {
     $thousand_separator = wc_get_price_thousand_separator();
 }
+$sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
 ?>
 
 <div class="sc-enroll-course-page">
@@ -225,6 +227,8 @@ if (function_exists('wc_get_price_thousand_separator')) {
                     $tooltip_message = 'زمان ثبت نام این دوره تمام شده است.';
                     $course_status = 'date_expired';
                 }
+
+                $waitlist_subscribed = in_array((int) $course->id, array_map('intval', $capacity_waitlist_pending), true);
             ?>
                 <div class="sc-course-accordion-item" id="course_item_<?php echo esc_attr($course->id); ?>" data-course-id="<?php echo esc_attr($course->id); ?>" data-has-packages="<?php echo $has_course_packages ? '1' : '0'; ?>">
     <div class="sc_radio_detailes_courses">  
@@ -273,7 +277,19 @@ if (function_exists('wc_get_price_thousand_separator')) {
             </div>
         </label>
     </div>
-    
+
+    <?php if ($is_capacity_full && !$is_enrolled && !$is_date_expired && !empty($course->capacity)) : ?>
+        <div class="sc-course-capacity-waitlist-outer" style="margin:0 0 10px;padding:12px 16px;background:#f0f6fc;border:1px solid #c3d9e8;border-radius:6px;">
+            <button type="button"
+                    class="sc_button sc-course-waitlist-btn"
+                    data-course-id="<?php echo esc_attr((string) (int) $course->id); ?>"
+                    <?php disabled($waitlist_subscribed); ?>>
+                <?php echo $waitlist_subscribed ? esc_html('درخواست شما ثبت شده است') : esc_html('اطلاع‌رسانی در صورت خالی شدن ظرفیت'); ?>
+            </button>
+            <span class="sc-course-waitlist-msg" style="margin-right:12px;font-size:14px;" aria-live="polite"></span>
+        </div>
+    <?php endif; ?>
+
     <div class="sc-course-accordion-content">
         <?php if ($course->description) : ?>
             <p><?php echo nl2br(esc_html($course->description)); ?></p>
@@ -381,13 +397,59 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
 
     const form = document.querySelector('.sc-enroll-course-form-packages');
+    const ajaxUrl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
+    const waitlistNonce = '<?php echo esc_js($sc_waitlist_ajax_nonce); ?>';
+
+    document.querySelectorAll('.sc-course-waitlist-btn').forEach(function (btn) {
+        if (btn.disabled) {
+            return;
+        }
+        btn.addEventListener('click', function () {
+            const cid = parseInt(btn.getAttribute('data-course-id') || '0', 10);
+            const wrap = btn.closest('.sc-course-capacity-waitlist-outer');
+            const msg = wrap ? wrap.querySelector('.sc-course-waitlist-msg') : null;
+            if (!cid) {
+                return;
+            }
+            btn.disabled = true;
+            if (msg) {
+                msg.textContent = 'در حال ثبت...';
+            }
+            const p = new URLSearchParams();
+            p.append('action', 'sc_course_capacity_waitlist_subscribe');
+            p.append('nonce', waitlistNonce);
+            p.append('course_id', String(cid));
+            fetch(ajaxUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: p.toString()
+            }).then(function (r) { return r.json(); }).then(function (json) {
+                if (json && json.success) {
+                    if (msg) {
+                        msg.textContent = (json.data && json.data.message) ? json.data.message : 'ثبت شد.';
+                    }
+                    btn.textContent = 'درخواست شما ثبت شده است';
+                } else {
+                    btn.disabled = false;
+                    if (msg) {
+                        msg.textContent = (json && json.data && json.data.message) ? json.data.message : 'خطا';
+                    }
+                }
+            }).catch(function () {
+                btn.disabled = false;
+                if (msg) {
+                    msg.textContent = 'خطا در ارتباط با سرور';
+                }
+            });
+        });
+    });
+
     if (!form) {
         return;
     }
     const selectedSessionsInput = document.getElementById('sc-enrollment-sessions-field');
     const nonce = '<?php echo esc_js(wp_create_nonce('sc_enroll_package')); ?>';
     const discountNonce = '<?php echo esc_js(wp_create_nonce('sc_discount_preview')); ?>';
-    const ajaxUrl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
     let selectedCourseId = 0;
 
     document.querySelectorAll('.sc-course-radio').forEach(function (radio) {

@@ -1236,6 +1236,9 @@ function sc_my_account_enroll_course_content() {
     // $total_courses = $total_courses;
     
     // همیشه template را include کن تا فیلتر نمایش داده شود
+    $capacity_waitlist_pending = function_exists('sc_get_member_pending_waitlist_course_ids')
+        ? sc_get_member_pending_waitlist_course_ids((int) $player->id)
+        : [];
     include SC_TEMPLATES_PUBLIC_DIR . 'enroll-course.php';
 }
 
@@ -1326,14 +1329,19 @@ function sc_handle_course_enrollment() {
         exit;
     }
 
-    // بررسی ظرفیت دوره (فقط دوره‌های active را در نظر می‌گیریم)
+    // بررسی ظرفیت دوره — همان منطق نمایش لیست ثبت‌نام (فعال + بدون فلگ وضعیت)
     if ($course->capacity) {
-        $enrolled_count = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $member_courses_table WHERE course_id = %d AND status = 'active'",
-            $course_id
-        ));
-        
-        if ($enrolled_count >= $course->capacity) {
+        $enrolled_count = function_exists('sc_count_course_capacity_slots_used')
+            ? sc_count_course_capacity_slots_used($course_id)
+            : (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM $member_courses_table
+                 WHERE course_id = %d
+                   AND status = 'active'
+                   AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')",
+                $course_id
+            ));
+
+        if ($enrolled_count >= (int) $course->capacity) {
             wc_add_notice('ظرفیت این دوره تکمیل شده است.', 'error');
             wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
             exit;
@@ -1932,6 +1940,9 @@ function sc_handle_course_cancellation() {
             wc_add_notice('دوره با موفقیت لغو شد و جلسات خصوصی آینده آن نیز لغو شدند.', 'success');
         } else {
             wc_add_notice('دوره با موفقیت لغو شد.', 'success');
+        }
+        if (function_exists('sc_maybe_notify_course_capacity_waitlist')) {
+            sc_maybe_notify_course_capacity_waitlist((int) $member_course->course_id);
         }
     } else {
         error_log('SC Course Cancellation Error: ' . $wpdb->last_error);

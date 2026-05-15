@@ -1645,6 +1645,7 @@ a.details_info_user_pannel:hover {
     border-radius: 10px;
 
 }
+.
 @media screen and (max-width:780px) {
     .woocommerce-MyAccount-navigation{
         display: none;
@@ -1920,7 +1921,14 @@ ease !important;
     border-radius: 8px;
     border-right: 4px solid #2271b1;
 }
-
+.sc-submit-documents-form select , .sc-submit-documents-form  input{
+    height: 45px;
+}
+.sc-submit-documents-form  #gender{
+        padding: 11px;
+    border: 1px solid #ddd;
+    height: 45px;
+}
 .sc-form-section {
     background: #ffffff;
     border: none;
@@ -2796,6 +2804,13 @@ ease !important;
     box-shadow: 0 0 0 1px #d63638 !important;
 }
 /* ثبت نام دوره  */
+.sc-course-capacity-waitlist-outer{
+    margin:0 0 10px;
+    padding:12px 16px;
+    background:#f0f6fc;
+    border:1px solid #c3d9e8;
+    border-radius:6px;
+}
 .sc-enroll-course-filters button , 
 .sc-my-courses-filters button ,
  .sc-events-filters button,
@@ -3019,6 +3034,7 @@ ease !important;
  .sc-user-info-panel {
         direction: rtl;
     }
+
     
     .sc-info-card {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -7302,3 +7318,21 @@ border-radius: 10px;
     }
 }
 /* گواهینامه  */
+
+
+/* یادداشت خصوصی */
+.form_list_filter_note{
+    margin:20px 0;
+    background:#fff;
+    padding:15px;
+    border:1px solid #ddd;
+    border-radius:6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.form_list_filter_note .sc_button{
+    margin-top: 10px;
+}
+/* یادداشت خصوصی */
+

@@ -1,6 +1,6 @@
 <?php 
 if (!defined('SC_PLUGIN_VERSION')) {
-    define('SC_PLUGIN_VERSION', '1.37.0'); // همان نسخه افزونه هدر
+    define('SC_PLUGIN_VERSION', '1.38.0'); // همان نسخه افزونه هدر
 }
 
 if (!defined('ABSPATH')) {
@@ -1195,6 +1195,9 @@ function sc_update_database() {
         if (function_exists('sc_create_course_weekly_schedule_table')) {
             sc_create_course_weekly_schedule_table();
         }
+        if (function_exists('sc_create_course_capacity_waitlist_table')) {
+            sc_create_course_capacity_waitlist_table();
+        }
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';
@@ -1821,6 +1824,28 @@ function sc_create_course_weekly_schedule_table() {
         KEY `idx_course_weekday` (`course_id`,`weekday`),
         KEY `idx_course_time` (`course_id`,`time_start`,`time_end`)
     ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+}
+
+/**
+ * درخواست اطلاع‌رسانی هنگام خالی شدن ظرفیت دوره
+ */
+function sc_create_course_capacity_waitlist_table() {
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $t = $wpdb->prefix . 'sc_course_capacity_waitlist';
+    $sql = "CREATE TABLE `$t` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `created_at` datetime NOT NULL,
+        `notified_at` datetime DEFAULT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uniq_course_member` (`course_id`,`member_id`),
+        KEY `idx_course_pending` (`course_id`,`notified_at`)
+    ) $charset_collate";
     dbDelta($sql);
 }
 

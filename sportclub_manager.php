@@ -62,6 +62,7 @@ require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settin
 require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
 require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions
 require_once SC_INCLUDES_DIR . 'notification-functions.php'; // Notification & SMS broadcast
+require_once SC_INCLUDES_DIR . 'course-capacity-waitlist-functions.php'; // اطلاع‌رسانی خالی شدن ظرفیت دوره
 require_once SC_INCLUDES_DIR . 'alerts-functions.php'; // User alerts (admin)
 require_once SC_INCLUDES_DIR . 'roles.php'; // Roles functions
 require_once SC_INCLUDES_DIR . 'wallet-functions.php'; // Wallet functions
@@ -818,6 +819,7 @@ function sc_check_and_create_tables() {
     $course_packages_table = $wpdb->prefix . 'sc_course_packages';
     $discount_codes_table = $wpdb->prefix . 'sc_discount_codes';
     $course_weekly_schedule_table = $wpdb->prefix . 'sc_course_weekly_schedule';
+    $course_capacity_waitlist_table = $wpdb->prefix . 'sc_course_capacity_waitlist';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -847,6 +849,7 @@ function sc_check_and_create_tables() {
     $course_packages_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_packages_table)) == $course_packages_table;
     $discount_codes_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $discount_codes_table)) == $discount_codes_table;
     $course_weekly_schedule_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_weekly_schedule_table)) == $course_weekly_schedule_table;
+    $course_capacity_waitlist_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_capacity_waitlist_table)) == $course_capacity_waitlist_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -930,6 +933,9 @@ function sc_check_and_create_tables() {
     if (!$course_weekly_schedule_exists && function_exists('sc_create_course_weekly_schedule_table')) {
         sc_create_course_weekly_schedule_table();
     }
+    if (!$course_capacity_waitlist_exists && function_exists('sc_create_course_capacity_waitlist_table')) {
+        sc_create_course_capacity_waitlist_table();
+    }
     
     // اجرای به‌روزرسانی‌های دیتابیس
     if (function_exists('sc_update_database')) {
@@ -962,6 +968,7 @@ function sc_reset_factory_data() {
     $delete_order = [
         'sc_attendances',      // وابسته به members و courses
         'sc_member_courses',   // وابسته به members و courses
+        'sc_course_capacity_waitlist',
         'sc_course_session_cancellations',
         'sc_course_weekly_schedule', // برنامه هفتگی کلاس (وابسته به دوره)
         'sc_invoices',         // وابسته به members و courses

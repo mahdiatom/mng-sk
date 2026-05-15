@@ -626,6 +626,9 @@ function sc_get_sms_template($action, $type = 'user') {
         ],
         'certificate' => [
             'user' => 'کاربر گرامی %user_name%، یک گواهینامه برای شما صادر شد. لطفا به پنل خود مراجعه کنید.'
+        ],
+        'course_capacity_waitlist' => [
+            'user' => 'کاربر گرامی %user_name%، ظرفیت ثبت‌نام دوره «%item_name%» باز شد. ثبت‌نام: %enroll_url%'
         ]
     ];
 
@@ -1195,6 +1198,9 @@ function sc_initialize_sms_settings() {
         'sms_certificate_user_enabled' => '1',
         'sms_certificate_user_template' => 'کاربر گرامی %user_name%، یک گواهینامه برای شما صادر شد. لطفا به پنل خود مراجعه کنید.',
         'sms_certificate_user_pattern' => '',
+        'sms_course_capacity_waitlist_user_enabled' => '0',
+        'sms_course_capacity_waitlist_user_template' => 'کاربر گرامی %user_name%، ظرفیت ثبت‌نام دوره «%item_name%» باز شد. ثبت‌نام: %enroll_url%',
+        'sms_course_capacity_waitlist_user_pattern' => '',
     ];
 
     foreach ($defaults as $key => $value) {

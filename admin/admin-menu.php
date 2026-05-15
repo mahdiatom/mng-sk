@@ -2866,6 +2866,9 @@ function callback_add_course_sufix() {
                 if (function_exists('sc_save_course_weekly_schedule_from_post')) {
                     sc_save_course_weekly_schedule_from_post($course_id);
                 }
+                if (function_exists('sc_maybe_notify_course_capacity_waitlist')) {
+                    sc_maybe_notify_course_capacity_waitlist($course_id);
+                }
                 if (function_exists('sc_log_activity') && $old_course) {
                     sc_log_activity('updated', 'course', $course_id, 'دوره «' . $data['title'] . '» ویرایش شد', $old_course, ['title' => $data['title'], 'price' => $data['price'], 'is_active' => $data['is_active']]);
                 }
@@ -3587,6 +3590,14 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
 
+    $pre_counting_courses = [];
+    if ($member_id) {
+        $pre_counting_courses = $wpdb->get_col($wpdb->prepare(
+            "SELECT course_id FROM $table_name WHERE member_id = %d AND status = 'active' AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')",
+            $member_id
+        ));
+    }
+
     $resolve_sessions = static function ($course_id, $course_package_sessions) {
         $course_id = absint($course_id);
         $pkg_sel = isset($course_package_sessions[$course_id]) ? absint($course_package_sessions[$course_id]) : 0;
@@ -3811,6 +3822,27 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
 
     if (!empty($course_ids) && is_array($course_ids) && function_exists('sc_maybe_create_initial_invoices_after_member_courses_save')) {
         sc_maybe_create_initial_invoices_after_member_courses_save($member_id, $course_ids);
+    }
+
+    $post_counting_courses = [];
+    if ($member_id) {
+        $post_counting_courses = $wpdb->get_col($wpdb->prepare(
+            "SELECT course_id FROM $table_name WHERE member_id = %d AND status = 'active' AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')",
+            $member_id
+        ));
+    }
+    $touch_course_ids = array_unique(array_merge(
+        array_map('absint', (array) $pre_counting_courses),
+        array_map('absint', (array) $post_counting_courses),
+        array_map('absint', (array) $course_ids),
+        array_map('absint', array_keys((array) $course_flags))
+    ));
+    if (function_exists('sc_maybe_notify_course_capacity_waitlist')) {
+        foreach ($touch_course_ids as $cid) {
+            if ($cid > 0) {
+                sc_maybe_notify_course_capacity_waitlist($cid);
+            }
+        }
     }
 }
 

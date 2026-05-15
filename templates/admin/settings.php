@@ -106,6 +106,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_enrollment_admin_template', $sms_enrollment_admin_template, 'sms');
         sc_update_setting('sms_enrollment_admin_pattern', $sms_enrollment_admin_pattern, 'sms');
 
+        // Course capacity waitlist (notify when spot opens)
+        $sms_course_capacity_waitlist_user_enabled = isset($_POST['sms_course_capacity_waitlist_user_enabled']) ? 1 : 0;
+        $sms_course_capacity_waitlist_user_template = isset($_POST['sms_course_capacity_waitlist_user_template']) ? wp_kses($_POST['sms_course_capacity_waitlist_user_template'], array()) : '';
+        $sms_course_capacity_waitlist_user_pattern = isset($_POST['sms_course_capacity_waitlist_user_pattern']) ? absint($_POST['sms_course_capacity_waitlist_user_pattern']) : '';
+        sc_update_setting('sms_course_capacity_waitlist_user_enabled', $sms_course_capacity_waitlist_user_enabled, 'sms');
+        sc_update_setting('sms_course_capacity_waitlist_user_template', $sms_course_capacity_waitlist_user_template, 'sms');
+        sc_update_setting('sms_course_capacity_waitlist_user_pattern', $sms_course_capacity_waitlist_user_pattern, 'sms');
+
         // Reminder SMS Settings
         $sms_reminder_user_enabled = isset($_POST['sms_reminder_user_enabled']) ? 1 : 0;
         $sms_reminder_user_template = isset($_POST['sms_reminder_user_template']) ? wp_kses($_POST['sms_reminder_user_template'], array()) : '';
@@ -552,6 +560,10 @@ $sms_enrollment_user_pattern = sc_get_setting('sms_enrollment_user_pattern', '')
 $sms_enrollment_admin_enabled = (int)sc_get_setting('sms_enrollment_admin_enabled', '1');
 $sms_enrollment_admin_template = sc_get_setting('sms_enrollment_admin_template', '');
 $sms_enrollment_admin_pattern = sc_get_setting('sms_enrollment_admin_pattern', '');
+
+$sms_course_capacity_waitlist_user_enabled = (int) sc_get_setting('sms_course_capacity_waitlist_user_enabled', '0');
+$sms_course_capacity_waitlist_user_template = sc_get_setting('sms_course_capacity_waitlist_user_template', '');
+$sms_course_capacity_waitlist_user_pattern = sc_get_setting('sms_course_capacity_waitlist_user_pattern', '');
 
 // Reminder SMS Settings
 $sms_reminder_user_enabled = (int)sc_get_setting('sms_reminder_user_enabled', '1');
@@ -1477,6 +1489,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     <div class="sc-sms-checkbox-list">
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="invoice"> پیامک صورت حساب</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="enrollment"> پیامک ثبت نام</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="course-capacity-waitlist"> پیامک خالی شدن ظرفیت دوره</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="reminder"> پیامک یادآوری پرداخت</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="absence"> پیامک غیبت</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="absence-alert"> پیامک هشدار غیبت</label>
@@ -1633,6 +1646,41 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                             <input type="number"
                                    name="sms_enrollment_admin_pattern"
                                    value="<?php echo esc_attr($sms_enrollment_admin_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                </table>
+
+                </div>
+                <div class="sc-sms-message-section" data-section="course-capacity-waitlist">
+                <h3>پیامک خالی شدن ظرفیت دوره</h3>
+                <p class="description">هنگامی که کاربر روی «اطلاع‌رسانی در صورت خالی شدن ظرفیت» بزند و بعداً ظرفیت دوره باز شود، این متن به او ارسال می‌شود (در کنار اعلان داخل پنل).</p>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">پیامک به کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_course_capacity_waitlist_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_course_capacity_waitlist_user_enabled, 1); ?>>
+                                فعال کردن پیامک اطلاع‌رسانی ظرفیت
+                            </label>
+                            <br><br>
+                            <textarea name="sms_course_capacity_waitlist_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_course_capacity_waitlist_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% — نام دوره = %course_name% یا %item_name% — لینک ثبت‌نام = %enroll_url%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_course_capacity_waitlist_user_pattern"
+                                   value="<?php echo esc_attr($sms_course_capacity_waitlist_user_pattern); ?>"
                                    class="small-text"
                                    placeholder="کد پترن (اختیاری)">
                             <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>

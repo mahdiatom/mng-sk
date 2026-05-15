@@ -234,8 +234,17 @@ if (!function_exists('sc_render_player_custom_fields_block')) {
                 <label for="national_id">کد ملی <span class="required">*</span></label>
                 <input type="text" name="national_id" id="national_id" value="<?php echo esc_attr($national_id); ?>" maxlength="10" required>
             </p>
+
+              <p class="form-row form-row-first">
+                <label for="gender">جنسیت</label>
+                <select name="gender" id="gender">
+                    <option value="">انتخاب کنید</option>
+                    <option value="male" <?php selected($gender, 'male'); ?>>مرد</option>
+                    <option value="female" <?php selected($gender, 'female'); ?>>زن</option>
+                </select>
+            </p>
             
-            <p class="form-row form-row-first">
+            <p class="form-row form-row-last">
                 <label for="birth_date_shamsi">تاریخ تولد (شمسی)</label>
                 <input type="text" name="birth_date_shamsi" id="birth_date_shamsi" value="<?php echo esc_attr($birth_date_shamsi); ?>" class="persian-date-input" placeholder="مثلاً 1400/02/15" readonly>
             </p>
@@ -246,20 +255,22 @@ if (!function_exists('sc_render_player_custom_fields_block')) {
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
                 </tr> -->
-            <p class="form-row form-row-last">
+            <p class="form-row form-row-first">
                 <label for="birth_date_gregorian">تاریخ تولد (میلادی)</label>
-                <span style="font-size: 12px;">تاریخ تولد میلادی شما به صورت اتوماتیک توسط سیستم از تاریخ تولد شمسی شما تبدیل می شود  </span><br>
                 <input type="text" name="birth_date_gregorian_display" id="birth_date_gregorian" value="<?php echo esc_attr($birth_date_gregorian); ?>" class="gregorian-date-input" placeholder="مثلاً 2021/05/05" readonly>
                 <input type="hidden" name="birth_date_gregorian" id="birth_date_gregorian_hidden" value="<?php echo esc_attr($birth_date_gregorian); ?>">
+                <span style="font-size: 12px;">تاریخ تولد میلادی شما به صورت اتوماتیک توسط سیستم از تاریخ تولد شمسی  تبدیل می شود - در صورت مغایرت  میتوانید تاریخ تولد میلادی خود را ویرایش کنید. </span><br>
+
             </p>
             
-            <p class="form-row form-row-first">
-                <label for="insurance_expiry_date_shamsi">تاریخ انقضا بیمه (شمسی)</label>
+            <p class="form-row form-row-last">
+                <label for="insurance_expiry_date_shamsi">تاریخ انقضا بیمه </label>
                 <input type="text" name="insurance_expiry_date_shamsi" id="insurance_expiry_date_shamsi" value="<?php echo esc_attr($insurance_expiry_date_shamsi); ?>" class="persian-date-input" placeholder="مثلاً 1403/12/29" readonly>
                 <strong><a href="https://athlete.ifsm.ir/Login" target="_blank" class="insurance_link">جهت تمدید بیمه روی لینک کلیک کنید : athlete.ifsm.ir/Login</a></strong>
                 
     
             </p>
+          
             
 
             
@@ -299,14 +310,7 @@ if (!function_exists('sc_render_player_custom_fields_block')) {
                 <label for="city">شهر</label>
                 <input type="text" name="city" id="city" value="<?php echo esc_attr($city); ?>">
             </p>
-            <p class="form-row form-row-first">
-                <label for="gender">جنسیت</label>
-                <select name="gender" id="gender">
-                    <option value="">انتخاب کنید</option>
-                    <option value="male" <?php selected($gender, 'male'); ?>>مرد</option>
-                    <option value="female" <?php selected($gender, 'female'); ?>>زن</option>
-                </select>
-            </p>
+            
             <?php sc_render_player_custom_fields_block($player_custom_fields, 'contact', $member_extra_fields); ?>
         </div>
         
