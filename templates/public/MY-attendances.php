@@ -57,27 +57,38 @@ if (!empty($_GET['filter_date_to_shamsi'])) {
     );
 }
 
-// اگر هیچ تاریخی انتخاب نشده → امروز
+// اگر هیچ تاریخی انتخاب نشده → یک سال قبل تا امروز
 if (!$filter_date_from && !$filter_date_to) {
 
     $today_gregorian = current_time('Y-m-d');
+    $one_year_ago_gregorian = gmdate('Y-m-d', strtotime('-1 year', strtotime($today_gregorian)));
 
     $today = new DateTime($today_gregorian);
-    $jalali = gregorian_to_jalali(
+    $jalali_today = gregorian_to_jalali(
         (int)$today->format('Y'),
         (int)$today->format('m'),
         (int)$today->format('d')
     );
-
     $today_shamsi =
-        $jalali[0] . '/' .
-        str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
-        str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
+        $jalali_today[0] . '/' .
+        str_pad($jalali_today[1], 2, '0', STR_PAD_LEFT) . '/' .
+        str_pad($jalali_today[2], 2, '0', STR_PAD_LEFT);
 
-    $filter_date_from = $today_gregorian;
+    $one_year_ago = new DateTime($one_year_ago_gregorian);
+    $jalali_one_year_ago = gregorian_to_jalali(
+        (int)$one_year_ago->format('Y'),
+        (int)$one_year_ago->format('m'),
+        (int)$one_year_ago->format('d')
+    );
+    $one_year_ago_shamsi =
+        $jalali_one_year_ago[0] . '/' .
+        str_pad($jalali_one_year_ago[1], 2, '0', STR_PAD_LEFT) . '/' .
+        str_pad($jalali_one_year_ago[2], 2, '0', STR_PAD_LEFT);
+
+    $filter_date_from = $one_year_ago_gregorian;
     $filter_date_to   = $today_gregorian;
 
-    $_GET['filter_date_from_shamsi'] = $today_shamsi;
+    $_GET['filter_date_from_shamsi'] = $one_year_ago_shamsi;
     $_GET['filter_date_to_shamsi']   = $today_shamsi;
 }
 
@@ -261,7 +272,8 @@ $courses = $wpdb->get_results(
                         echo $attendance_map[$date] === 'present'
                             ? '<span style="color:#00a32a;">✓</span>'
                             : '<span style="color:#d63638;">✗</span>';
-                    } else {
+                                echo ($attendance_map[$date] === 'excused') ? '<span style="color:#000; font-size:14px;">مجاز</span>' :  '';
+                        } else {
                         echo '<span style="color:#999;">-</span>';
                     }
                     ?>

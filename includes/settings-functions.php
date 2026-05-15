@@ -481,7 +481,7 @@ function sc_get_player_info_builtin_fields() {
         'landline_phone' => ['label' => 'تلفن ثابت', 'section' => 'contact', 'type' => 'text'],
         'province' => ['label' => 'استان', 'section' => 'contact', 'type' => 'text'],
         'city' => ['label' => 'شهر', 'section' => 'contact', 'type' => 'text'],
-        'gender' => ['label' => 'جنسیت', 'section' => 'contact', 'type' => 'text'],
+        'gender' => ['label' => 'جنسیت', 'section' => 'personal', 'type' => 'text'],
         'personal_photo' => ['label' => 'عکس پرسنلی', 'section' => 'documents', 'type' => 'image'],
         'id_card_photo' => ['label' => 'عکس کارت ملی', 'section' => 'documents', 'type' => 'image'],
         'sport_insurance_photo' => ['label' => 'عکس بیمه ورزشی', 'section' => 'documents', 'type' => 'image'],

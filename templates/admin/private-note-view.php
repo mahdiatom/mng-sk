@@ -43,14 +43,16 @@ $msg_s = isset($_GET['msg_s']) ? sanitize_text_field(wp_unslash($_GET['msg_s']))
 $msg_date_from_shamsi = isset($_GET['msg_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['msg_date_from_shamsi'])) : '';
 $msg_date_to_shamsi = isset($_GET['msg_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['msg_date_to_shamsi'])) : '';
 $today_gregorian = current_time('Y-m-d');
+$one_year_ago_gregorian = gmdate('Y-m-d', strtotime('-1 year', strtotime($today_gregorian)));
 $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($today_gregorian) : $today_gregorian;
+$one_year_ago_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($one_year_ago_gregorian) : $one_year_ago_gregorian;
 if ($msg_date_from_shamsi === '' && $msg_date_to_shamsi === '') {
-    $msg_date_from_shamsi = $today_shamsi;
+    $msg_date_from_shamsi = $one_year_ago_shamsi;
     $msg_date_to_shamsi = $today_shamsi;
 } elseif ($msg_date_from_shamsi === '') {
-    $msg_date_from_shamsi = $msg_date_to_shamsi !== '' ? $msg_date_to_shamsi : $today_shamsi;
+    $msg_date_from_shamsi = $msg_date_to_shamsi;
 } elseif ($msg_date_to_shamsi === '') {
-    $msg_date_to_shamsi = $msg_date_from_shamsi !== '' ? $msg_date_from_shamsi : $today_shamsi;
+    $msg_date_to_shamsi = $msg_date_from_shamsi;
 }
 $msg_filter = [];
 if ($msg_s !== '') {
