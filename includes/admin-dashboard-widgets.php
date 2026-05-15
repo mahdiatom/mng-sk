@@ -172,7 +172,7 @@ function sc_dw_render_unverified_members() {
 
     echo '<div class="sc-dw-card sc-dw-card-red">';
     echo '<div class="sc-dw-card-head">';
-    echo '<span class="sc-dw-badge sc-dw-badge-red">' . esc_html(number_format_i18n($total)) . '</span>';
+    echo '<span class="sc-dw-badge sc-dw-badge-red">' . esc_html(number_format_i18n($total)) . ' کاربر احراز نشده </span>';
     echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
     echo '</div>';
 
@@ -226,7 +226,7 @@ function sc_dw_render_open_tickets() {
 
     echo '<div class="sc-dw-card sc-dw-card-orange">';
     echo '<div class="sc-dw-card-head">';
-    echo '<span class="sc-dw-badge sc-dw-badge-orange">' . esc_html(number_format_i18n($total)) . '</span>';
+    echo '<span class="sc-dw-badge sc-dw-badge-orange">' . esc_html(number_format_i18n($total)) . ' تیکت در انتظار پاسخ</span>';
     echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه تیکت‌ها</a>';
     echo '</div>';
 
@@ -301,7 +301,7 @@ function sc_dw_render_wc_processing_orders() {
 
     echo '<div class="sc-dw-card sc-dw-card-blue">';
     echo '<div class="sc-dw-card-head">';
-    echo '<span class="sc-dw-badge sc-dw-badge-blue">' . esc_html(number_format_i18n($total)) . '</span>';
+    echo '<span class="sc-dw-badge sc-dw-badge-blue">' . esc_html(number_format_i18n($total)) . ' سفارش برای ارسال</span>';
     echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
     echo '</div>';
 
@@ -377,7 +377,7 @@ function sc_dw_render_pending_honors() {
 
     echo '<div class="sc-dw-card sc-dw-card-purple">';
     echo '<div class="sc-dw-card-head">';
-    echo '<span class="sc-dw-badge sc-dw-badge-purple">' . esc_html(number_format_i18n($total)) . '</span>';
+    echo '<span class="sc-dw-badge sc-dw-badge-purple">' . esc_html(number_format_i18n($total)) . ' افتخار در انتظار تایید </span>';
     echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
     echo '</div>';
 
@@ -402,7 +402,7 @@ function sc_dw_render_pending_honors() {
             echo '<div class="sc-dw-list-title">' . esc_html($row->name) . '</div>';
             echo '<div class="sc-dw-list-meta">' . esc_html($owner) . ' <span class="sc-dw-sep">|</span> 📅 ' . esc_html($created) . '</div>';
             echo '</div>';
-            echo '<span class="sc-dw-status sc-dw-status-warning">در انتظار</span>';
+            echo '<span class="sc-dw-status sc-dw-status-warning">در انتظار تایید</span>';
             echo '</a>';
             echo '</li>';
         }
@@ -451,7 +451,7 @@ function sc_dw_render_expired_insurance() {
 
     echo '<div class="sc-dw-card sc-dw-card-red">';
     echo '<div class="sc-dw-card-head">';
-    echo '<span class="sc-dw-badge sc-dw-badge-red">' . esc_html(number_format_i18n($total)) . '</span>';
+    echo '<span class="sc-dw-badge sc-dw-badge-red">' . esc_html(number_format_i18n($total)) . ' کاربر بدون بیمه !</span>';
     echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
     echo '</div>';
 
@@ -533,9 +533,9 @@ function sc_dw_render_absence_alerts() {
     echo '<div class="sc-dw-card-head">';
     echo '<span class="sc-dw-badge-group">';
     if ($total_unread > 0) {
-        echo '<span class="sc-dw-badge sc-dw-badge-red" title="تایید نشده">' . esc_html(number_format_i18n($total_unread)) . ' تایید نشده</span>';
+        echo '<span class="sc-dw-badge sc-dw-badge-red" title="تایید نشده">' . esc_html(number_format_i18n($total_unread)) . ' هشدار تایید نشده </span>';
     }
-    echo '<span class="sc-dw-badge sc-dw-badge-neutral">' . esc_html(number_format_i18n($total_all)) . ' کل</span>';
+    echo '<span class="sc-dw-badge sc-dw-badge-neutral">' . esc_html(number_format_i18n($total_all)) . ' عدد هشدار </span>';
     echo '</span>';
     echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
     echo '</div>';
@@ -557,7 +557,7 @@ function sc_dw_render_absence_alerts() {
             echo '<li class="' . esc_attr($item_class) . '">';
             echo '<a class="sc-dw-list-link" href="' . esc_url($list_url) . '">';
             echo '<div class="sc-dw-list-main">';
-            echo '<div class="sc-dw-list-title">';
+            echo '<div class="sc-dw-list-alert">';
             if ($is_unread) {
                 echo '<span class="sc-dw-dot" aria-hidden="true"></span> ';
             }
@@ -614,7 +614,7 @@ function sc_dw_render_coach_withdrawals() {
     echo '<div class="sc-dw-card-head">';
     echo '<span class="sc-dw-badge-group">';
     if ($count_pending > 0) {
-        echo '<span class="sc-dw-badge sc-dw-badge-orange" title="در انتظار بررسی">' . esc_html(number_format_i18n($count_pending)) . ' در انتظار</span>';
+        echo '<span class="sc-dw-badge sc-dw-badge-orange" title="در انتظار بررسی">' . esc_html(number_format_i18n($count_pending)) . 'مورد در انتظار تایید</span>';
     }
     if ($count_approved > 0) {
         echo '<span class="sc-dw-badge sc-dw-badge-blue" title="در انتظار پرداخت">' . esc_html(number_format_i18n($count_approved)) . ' پرداخت نشده</span>';

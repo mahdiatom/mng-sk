@@ -262,10 +262,21 @@ function sc_generate_system_alert_notifications($force = false) {
             ? sc_date_shamsi_date_only($item->last_absence_date)
             : (string) $item->last_absence_date;
         $alert_key = 'absence_' . (int) $item->member_id . '_' . (int) $item->course_id;
-        $title = 'هشدار غیبت بیش از حد مجاز';
-        $content = 'بازیکن ' . $member_name . ' در دوره «' . $course_title . '» دارای '
-            . (int) $item->absent_count . ' غیبت است  ' 
-            . ($last_date !== '' ? ' آخرین غیبت: ' . $last_date : '');
+        $absent_n = (int) $item->absent_count;
+        $title = sprintf(
+            'هشدار غیبت برای %s - تعداد غیبت %d - دوره %s',
+            $member_name !== '' ? $member_name : 'کاربر',
+            $absent_n,
+            $course_title
+        );
+        $content = sprintf(
+            'کاربر %s در دوره %s بیش از حد مجاز تعیین شده غیبت داشته است.',
+            $member_name !== '' ? $member_name : 'نامشخص',
+            $course_title
+        );
+        if ($last_date !== '') {
+            $content .= ' آخرین غیبت: ' . $last_date;
+        }
         $created = sc_create_system_alert_notification($alert_key, 'absence_limit', $title, $content, [
             'member_id' => (int) $item->member_id,
             'course_id' => (int) $item->course_id,
@@ -419,7 +430,25 @@ function sc_render_user_alerts_page() {
     $action = isset($_GET['sc_alert_action']) ? sanitize_key($_GET['sc_alert_action']) : '';
     $notification_id = isset($_GET['notification_id']) ? absint($_GET['notification_id']) : 0;
 
-    if ($action === 'generate' && isset($_GET['_wpnonce']) && wp_verify_nonce($_GET['_wpnonce'], 'sc_generate_system_alerts')) {
+    if (
+        isset($_POST['sc_user_alerts_bulk_action'], $_POST['_wpnonce'])
+        && sanitize_key(wp_unslash($_POST['sc_user_alerts_bulk_action'])) === 'confirm'
+        && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['_wpnonce'])), 'sc_bulk_confirm_user_alerts')
+    ) {
+        $raw_ids = isset($_POST['sc_alert_notification_ids']) ? wp_unslash($_POST['sc_alert_notification_ids']) : [];
+        $raw_ids = is_array($raw_ids) ? $raw_ids : [];
+        $confirmed = 0;
+        foreach ($raw_ids as $nid) {
+            $nid = absint($nid);
+            if ($nid > 0 && sc_mark_notification_read($nid, $current_user_id)) {
+                $confirmed++;
+            }
+        }
+        $message = $confirmed > 0
+            ? sprintf('%d هشدار تایید شد.', $confirmed)
+            : 'هیچ هشداری برای تایید انتخاب نشده بود یا تایید انجام نشد.';
+        $message_type = $confirmed > 0 ? 'success' : 'warning';
+    } elseif ($action === 'generate' && isset($_GET['_wpnonce']) && wp_verify_nonce($_GET['_wpnonce'], 'sc_generate_system_alerts')) {
         $created = sc_generate_system_alert_notifications(true);
         $message = $created > 0
             ? sprintf('%d هشدار جدید ثبت شد.', $created)
@@ -432,20 +461,20 @@ function sc_render_user_alerts_page() {
         $message = 'هشدار حذف شد.';
     }
 
-    $filter_search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
-    $filter_kind = isset($_GET['filter_kind']) ? sanitize_key(wp_unslash($_GET['filter_kind'])) : 'all';
+    $filter_search = isset($_REQUEST['s']) ? sanitize_text_field(wp_unslash($_REQUEST['s'])) : '';
+    $filter_kind = isset($_REQUEST['filter_kind']) ? sanitize_key(wp_unslash($_REQUEST['filter_kind'])) : 'all';
     if (!in_array($filter_kind, ['all', 'absence_limit', 'debt_over_2', 'other'], true)) {
         $filter_kind = 'all';
     }
-    $filter_status = isset($_GET['filter_status']) ? sanitize_key(wp_unslash($_GET['filter_status'])) : 'all';
+    $filter_status = isset($_REQUEST['filter_status']) ? sanitize_key(wp_unslash($_REQUEST['filter_status'])) : 'all';
     if (!in_array($filter_status, ['all', 'read', 'unread'], true)) {
         $filter_status = 'all';
     }
 
     $filter_date_from = '';
     $filter_date_to = '';
-    $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '';
-    $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '';
+    $filter_date_from_shamsi = isset($_REQUEST['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_REQUEST['filter_date_from_shamsi'])) : '';
+    $filter_date_to_shamsi = isset($_REQUEST['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_REQUEST['filter_date_to_shamsi'])) : '';
     if ($filter_date_from_shamsi !== '' && function_exists('sc_shamsi_to_gregorian_date')) {
         $filter_date_from = sc_shamsi_to_gregorian_date($filter_date_from_shamsi);
     }
@@ -453,22 +482,35 @@ function sc_render_user_alerts_page() {
         $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
     }
 
-    $per_page = 20;
-    $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
-    $offset = ($current_page - 1) * $per_page;
+    $per_page_allowed = [10, 20, 50, 100, 200];
+    $per_page = isset($_REQUEST['per_page']) ? absint($_REQUEST['per_page']) : 20;
+    if (!in_array($per_page, $per_page_allowed, true)) {
+        $per_page = 20;
+    }
 
-    $query_args = [
+    $current_page = isset($_REQUEST['paged']) ? max(1, absint($_REQUEST['paged'])) : 1;
+
+    $query_args_base = [
         'search' => $filter_search,
         'kind' => $filter_kind,
         'status' => $filter_status,
         'date_from' => $filter_date_from,
         'date_to' => $filter_date_to,
-        'per_page' => $per_page,
-        'offset' => $offset,
     ];
 
-    $total_items = (int) sc_get_admin_system_alert_notifications($current_user_id, array_merge($query_args, ['count_only' => true]));
-    $total_pages = $per_page > 0 ? (int) ceil($total_items / $per_page) : 1;
+    $total_items = (int) sc_get_admin_system_alert_notifications(
+        $current_user_id,
+        array_merge($query_args_base, ['count_only' => true])
+    );
+    $total_pages = $per_page > 0 ? max(1, (int) ceil($total_items / $per_page)) : 1;
+    $current_page = min($current_page, $total_pages);
+    $offset = ($current_page - 1) * $per_page;
+
+    $query_args = array_merge($query_args_base, [
+        'per_page' => $per_page,
+        'offset' => $offset,
+    ]);
+
     $items = sc_get_admin_system_alert_notifications($current_user_id, $query_args);
     $absence_limit = sc_get_user_alert_absence_limit();
     ?>
@@ -514,7 +556,7 @@ function sc_render_user_alerts_page() {
                         <label class="sc-filter-label" for="filter_status">وضعیت</label>
                         <select name="filter_status" id="filter_status" class="sc-filter-control">
                             <option value="all" <?php selected($filter_status, 'all'); ?>>همه وضعیت‌ها</option>
-                            <option value="unread" <?php selected($filter_status, 'unread'); ?>>نیازمند تایید</option>
+                            <option value="unread" <?php selected($filter_status, 'unread'); ?>>در انتظار تایید</option>
                             <option value="read" <?php selected($filter_status, 'read'); ?>>تایید شده</option>
                         </select>
                     </div>
@@ -522,6 +564,15 @@ function sc_render_user_alerts_page() {
                     <div class="sc-filter-field">
                         <label class="sc-filter-label" for="user_alerts_search">جستجو</label>
                         <input type="search" id="user_alerts_search" name="s" class="sc-filter-control" value="<?php echo esc_attr($filter_search); ?>" placeholder="جستجو در عنوان و متن...">
+                    </div>
+
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label" for="user_alerts_per_page">تعداد در صفحه</label>
+                        <select name="per_page" id="user_alerts_per_page" class="sc-filter-control">
+                            <?php foreach ($per_page_allowed as $pp) : ?>
+                                <option value="<?php echo esc_attr((string) $pp); ?>" <?php selected($per_page, $pp); ?>><?php echo esc_html((string) $pp); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <div class="sc-filter-field sc-filter-date">
@@ -552,22 +603,103 @@ function sc_render_user_alerts_page() {
             </form>
         </div>
 
-        <div class="back_table_list">
-            <table class="wp-list-table widefat fixed striped" style="margin-top: 16px;">
+        <style>
+            .sc-alert-status { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; line-height: 1.4; }
+            .sc-alert-status--pending { background: #fff8e5; color: #946200; border: 1px solid #f0b429; }
+            .sc-alert-status--approved { background: #e8f8ef; color: #1e6f43; border: 1px solid #2ecc71; }
+            .sc-user-alerts-bulk { margin: 12px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+            .sc-user-alerts-bulk select { min-width: 200px; }
+            /* جلوگیری از overflow:auto سراسری .back_table_list که اسکرول افقی می‌سازد */
+            .back_table_list.sc-user-alerts-back-list {
+                overflow: visible;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            /* جدول در عرض محتوای پیشخوان بماند؛ بدون اسکرول افقی اضافه در دسکتاپ */
+            .sc-user-alerts-table-wrap {
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            .sc-user-alerts-table-wrap .sc-user-alerts-table {
+                table-layout: auto;
+                width: 100%;
+                max-width: 100%;
+                margin-top: 0;
+            }
+            .sc-user-alerts-table-wrap .sc-user-alerts-table th,
+            .sc-user-alerts-table-wrap .sc-user-alerts-table td {
+                word-wrap: break-word;
+                overflow-wrap: anywhere;
+                vertical-align: top;
+            }
+            .sc-user-alerts-table-wrap .sc-user-alerts-table .column-cb,
+            .sc-user-alerts-table-wrap .sc-user-alerts-table .check-column { width: 2.2em; white-space: nowrap; }
+            .sc-user-alerts-table-wrap .sc-user-alerts-table .sc-col-num { width: 3em; }
+            .sc-user-alerts-table-wrap .sc-user-alerts-table .sc-col-kind { width: 7.5em; }
+            .sc-user-alerts-table-wrap .sc-user-alerts-table .sc-col-date { width: 9.5em; white-space: nowrap; }
+            .sc-user-alerts-table-wrap .sc-user-alerts-table .sc-col-status { width: 8.5em; }
+            .sc-user-alerts-table-wrap .sc-user-alerts-table .sc-col-actions { width: 4.5em; white-space: nowrap; }
+        </style>
+
+        <div class="back_table_list sc-user-alerts-back-list">
+            <?php
+            // WordPress admin.php فقط $_GET['page'] را برای بارگذاری زیرمنو می‌خواند؛
+            // POST به admin.php بدون ?page=... باعث صفحهٔ خالی می‌شود.
+            $sc_user_alerts_bulk_action_url = admin_url('admin.php?page=sc-user-alerts');
+            ?>
+            <form method="post" action="<?php echo esc_url($sc_user_alerts_bulk_action_url); ?>" id="sc-user-alerts-bulk-form" class="sc-user-alerts-list-form">
+                <?php wp_nonce_field('sc_bulk_confirm_user_alerts'); ?>
+                <?php if ($filter_kind !== 'all') : ?>
+                    <input type="hidden" name="filter_kind" value="<?php echo esc_attr($filter_kind); ?>">
+                <?php endif; ?>
+                <?php if ($filter_status !== 'all') : ?>
+                    <input type="hidden" name="filter_status" value="<?php echo esc_attr($filter_status); ?>">
+                <?php endif; ?>
+                <?php if ($filter_search !== '') : ?>
+                    <input type="hidden" name="s" value="<?php echo esc_attr($filter_search); ?>">
+                <?php endif; ?>
+                <?php if ($filter_date_from_shamsi !== '') : ?>
+                    <input type="hidden" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_date_from_shamsi); ?>">
+                <?php endif; ?>
+                <?php if ($filter_date_to_shamsi !== '') : ?>
+                    <input type="hidden" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_date_to_shamsi); ?>">
+                <?php endif; ?>
+                <?php if ($current_page > 1) : ?>
+                    <input type="hidden" name="paged" value="<?php echo esc_attr((string) $current_page); ?>">
+                <?php endif; ?>
+                <?php if ($per_page !== 20) : ?>
+                    <input type="hidden" name="per_page" value="<?php echo esc_attr((string) $per_page); ?>">
+                <?php endif; ?>
+
+                <div class="tablenav top sc-user-alerts-bulk">
+                    <label for="sc_user_alerts_bulk_action" class="screen-reader-text">عملیات دسته‌جمعی</label>
+                    <select name="sc_user_alerts_bulk_action" id="sc_user_alerts_bulk_action">
+                        <option value=""><?php echo esc_html('عملیات دسته‌جمعی'); ?></option>
+                        <option value="confirm"><?php echo esc_html('تایید انتخاب‌شده‌ها'); ?></option>
+                    </select>
+                    <button type="submit" class="button action"><?php echo esc_html('اعمال'); ?></button>
+                </div>
+
+            <div class="sc-user-alerts-table-wrap">
+            <table class="wp-list-table widefat striped sc-user-alerts-table">
                 <thead>
                     <tr>
-                        <th style="width: 60px;">ردیف</th>
-                        <th style="width: 100px;">نوع هشدار</th>
-                        <th style="width: 150px;">عنوان</th>
-                        <th style="width: 250px;">متن</th>
-                        <th style="width: 140px;">تاریخ</th>
-                        <th style="width: 100px;">وضعیت</th>
-                        <th style="width: 120px;">اقدامات</th>
+                        <td class="manage-column column-cb check-column">
+                            <input type="checkbox" id="sc-select-all-alerts" aria-label="<?php echo esc_attr('انتخاب همه در این صفحه'); ?>" title="<?php echo esc_attr('انتخاب همه'); ?>">
+                        </td>
+                        <th scope="col" class="sc-col-num">ردیف</th>
+                        <th scope="col" class="sc-col-kind">نوع هشدار</th>
+                        <th scope="col" class="sc-col-title">عنوان</th>
+                        <th scope="col" class="sc-col-content">متن</th>
+                        <th scope="col" class="sc-col-date">تاریخ</th>
+                        <th scope="col" class="sc-col-status">وضعیت</th>
+                        <th scope="col" class="sc-col-actions">اقدامات</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($items)) : ?>
-                        <tr><td colspan="7" style="text-align:center; padding:20px;">هیچ هشداری با این فیلترها یافت نشد.</td></tr>
+                        <tr><td colspan="8" style="text-align:center; padding:20px;">هیچ هشداری با این فیلترها یافت نشد.</td></tr>
                     <?php else : ?>
                         <?php $row_number = $offset; ?>
                         <?php foreach ($items as $item) : ?>
@@ -580,29 +712,63 @@ function sc_render_user_alerts_page() {
                                 add_query_arg(['page' => 'sc-user-alerts', 'sc_alert_action' => 'confirm', 'notification_id' => (int) $item->id], admin_url('admin.php')),
                                 'sc_confirm_alert_' . (int) $item->id
                             );
-                            $delete_url = wp_nonce_url(
-                                add_query_arg(['page' => 'sc-user-alerts', 'sc_alert_action' => 'delete', 'notification_id' => (int) $item->id], admin_url('admin.php')),
-                                'sc_delete_alert_' . (int) $item->id
-                            );
                             ?>
                             <tr>
-                                <td><?php echo esc_html((string) $row_number); ?></td>
-                                <td><?php echo esc_html($kind_label); ?></td>
-                                <td><strong><?php echo esc_html((string) $item->title); ?></strong></td>
-                                <td><?php echo esc_html((string) $item->content); ?></td>
-                                <td><?php echo function_exists('sc_date_shamsi') ? esc_html(sc_date_shamsi($item->created_at, 'Y/m/d H:i')) : esc_html((string) $item->created_at); ?></td>
-                                <td><?php echo !empty($item->is_read) ? 'تایید شده' : 'نیازمند تایید'; ?></td>
-                                <td>
+                                <th scope="row" class="check-column">
                                     <?php if (empty($item->is_read)) : ?>
-                                        <a href="<?php echo esc_url($confirm_url); ?>">تایید</a> 
+                                        <input type="checkbox" class="sc-alert-row-cb" name="sc_alert_notification_ids[]" value="<?php echo (int) $item->id; ?>">
                                     <?php endif; ?>
-                                    <!-- <a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'این هشدار حذف شود؟' });">حذف</a> -->
+                                </th>
+                                <td class="sc-col-num"><?php echo esc_html((string) $row_number); ?></td>
+                                <td class="sc-col-kind"><?php echo esc_html($kind_label); ?></td>
+                                <td class="sc-col-title"><strong><?php echo esc_html((string) $item->title); ?></strong></td>
+                                <td class="sc-col-content"><?php echo esc_html((string) $item->content); ?></td>
+                                <td class="sc-col-date"><?php echo function_exists('sc_date_shamsi') ? esc_html(sc_date_shamsi($item->created_at, 'Y/m/d H:i')) : esc_html((string) $item->created_at); ?></td>
+                                <td class="sc-col-status">
+                                    <?php if (!empty($item->is_read)) : ?>
+                                        <span class="sc-alert-status sc-alert-status--approved"><?php echo esc_html('تایید شده'); ?></span>
+                                    <?php else : ?>
+                                        <span class="sc-alert-status sc-alert-status--pending"><?php echo esc_html('در انتظار تایید'); ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="sc-col-actions">
+                                    <?php if (empty($item->is_read)) : ?>
+                                        <a href="<?php echo esc_url($confirm_url); ?>"><?php echo esc_html('تایید'); ?></a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
             </table>
+            </div>
+            </form>
+            <script>
+            (function () {
+                var master = document.getElementById('sc-select-all-alerts');
+                var form = document.getElementById('sc-user-alerts-bulk-form');
+                if (master) {
+                    master.addEventListener('change', function () {
+                        document.querySelectorAll('#sc-user-alerts-bulk-form .sc-alert-row-cb').forEach(function (cb) {
+                            cb.checked = master.checked;
+                        });
+                    });
+                }
+                if (form) {
+                    form.addEventListener('submit', function (e) {
+                        var sel = document.getElementById('sc_user_alerts_bulk_action');
+                        if (!sel || sel.value !== 'confirm') {
+                            return;
+                        }
+                        var any = document.querySelector('#sc-user-alerts-bulk-form .sc-alert-row-cb:checked');
+                        if (!any) {
+                            e.preventDefault();
+                            window.alert('<?php echo esc_js('حداقل یک هشدار «در انتظار تایید» را انتخاب کنید.'); ?>');
+                        }
+                    });
+                }
+            })();
+            </script>
         </div>
 
         <?php if ($total_pages > 1) : ?>
@@ -624,6 +790,9 @@ function sc_render_user_alerts_page() {
                     }
                     if ($filter_date_to_shamsi !== '') {
                         $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
+                    }
+                    if ($per_page !== 20) {
+                        $pagination_args['per_page'] = $per_page;
                     }
                     echo paginate_links([
                         'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
