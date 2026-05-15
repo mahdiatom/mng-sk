@@ -80,6 +80,7 @@ require_once SC_INCLUDES_DIR . 'redirect.php'; // ورود و عضویت با پ
 require_once SC_INCLUDES_DIR . 'cleanup.php'; // حدف درخواست های خارجی  برای عملکرد بهتر‌
 require_once SC_INCLUDES_DIR . 'attendance_logs.php'; // ارتباط با api حضور غیاب برای لاگ دستگاه
 require_once SC_INCLUDES_DIR . 'attendance-auto.php'; // تطبیق لاگ دستگاه با حضور و غیاب (کرون)
+require_once SC_INCLUDES_DIR . 'admin-dashboard-widgets.php'; // ابزارک‌های پیشخوان وردپرس برای مدیران
 
 
 include(SC_ADMIN_DIR . 'admin-menu.php');

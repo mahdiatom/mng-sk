@@ -4016,8 +4016,16 @@ function sc_sprot_notices(){
         $type='';
         $messege='';
         if(isset($_GET['sc_status'])){
-        $status=sanitize_text_field($_GET['sc_status'] ?? '');
-        $status2=sanitize_text_field($_GET['sc_status2'] ?? '');
+        $raw_status = wp_unslash($_GET['sc_status']);
+        if (is_array($raw_status)) {
+            $raw_status = reset($raw_status);
+        }
+        $status = sanitize_text_field(is_scalar($raw_status) ? (string) $raw_status : '');
+        $raw_status2 = isset($_GET['sc_status2']) ? wp_unslash($_GET['sc_status2']) : '';
+        if (is_array($raw_status2)) {
+            $raw_status2 = reset($raw_status2);
+        }
+        $status2 = sanitize_text_field(is_scalar($raw_status2) ? (string) $raw_status2 : '');
         if($status == 'add_true'){
             $type='success';
             $messege="بازیکن با موفقیت اضافه شد";
@@ -4121,7 +4129,11 @@ function sc_sprot_notices(){
         // }
         if($status == 'pay_card_to_card'){
             $type='success';
-            $updated = isset($_GET['updated']) ? absint($_GET['updated']) : 0;
+            $raw_upd = isset($_GET['updated']) ? wp_unslash($_GET['updated']) : 0;
+            if (is_array($raw_upd)) {
+                $raw_upd = reset($raw_upd);
+            }
+            $updated = absint(is_scalar($raw_upd) ? $raw_upd : 0);
             $messege = $updated > 0
                 ? sprintf('روش پرداخت «کارت به کارت» برای %d صورت حساب ثبت شد.', $updated)
                 : 'روش پرداخت به‌روزرسانی شد.';

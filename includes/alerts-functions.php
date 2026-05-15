@@ -193,10 +193,18 @@ function sc_create_member_absence_alert_notification_and_sms($item, $absence_lim
         ? sc_date_shamsi_date_only($item->last_absence_date)
         : (string) $item->last_absence_date;
 
-    $title = 'هشدار غیبت در دوره';
-    $content = $member_name . " عزیز، تعداد غیبت شما در دوره «{$course_title}» به "
-        . (int) $item->absent_count . ' رسیده است (حد مجاز: ' . (int) $absence_limit . ').'
-        . ($last_date !== '' ? " آخرین غیبت: {$last_date}" : '');
+    $title = sprintf(
+        'هشدار غیبت برای %s - تعداد غیبت %d - دوره %s',
+        $member_name,
+        (int) $item->absent_count,
+        $course_title
+    );
+    $content = sprintf(
+        'کاربر %s در دوره %s بیش از حد مجاز تعیین شده غیبت داشته است.',
+        $member_name,
+        $course_title
+    )
+        . ($last_date !== '' ? ' آخرین غیبت: ' . $last_date : '');
 
     $result = sc_save_notification([
         'title' => $title,
@@ -256,7 +264,7 @@ function sc_generate_system_alert_notifications($force = false) {
         $alert_key = 'absence_' . (int) $item->member_id . '_' . (int) $item->course_id;
         $title = 'هشدار غیبت بیش از حد مجاز';
         $content = 'بازیکن ' . $member_name . ' در دوره «' . $course_title . '» دارای '
-            . (int) $item->absent_count . ' غیبت است (حد مجاز: ' . $absence_limit . ').'
+            . (int) $item->absent_count . ' غیبت است  ' 
             . ($last_date !== '' ? ' آخرین غیبت: ' . $last_date : '');
         $created = sc_create_system_alert_notification($alert_key, 'absence_limit', $title, $content, [
             'member_id' => (int) $item->member_id,
@@ -277,7 +285,7 @@ function sc_generate_system_alert_notifications($force = false) {
         $alert_key = 'debt_' . (int) $item->member_id;
         $title = 'هشدار بدهی بیش از ۲ مورد';
         $content = 'بازیکن ' . $member_name . ' دارای ' . (int) $item->debt_count
-            . ' بدهی فعال است. مجموع بدهی: ' . number_format((float) $item->debt_amount, 0, '.', ',') . ' تومان.';
+            . ' بدهی  است. مجموع بدهی: ' . number_format((float) $item->debt_amount, 0, '.', ',') . ' تومان.';
         $created = sc_create_system_alert_notification($alert_key, 'debt_over_2', $title, $content, [
             'member_id' => (int) $item->member_id,
             'debt_count' => (int) $item->debt_count,
@@ -586,9 +594,9 @@ function sc_render_user_alerts_page() {
                                 <td><?php echo !empty($item->is_read) ? 'تایید شده' : 'نیازمند تایید'; ?></td>
                                 <td>
                                     <?php if (empty($item->is_read)) : ?>
-                                        <a href="<?php echo esc_url($confirm_url); ?>">تایید</a> |
+                                        <a href="<?php echo esc_url($confirm_url); ?>">تایید</a> 
                                     <?php endif; ?>
-                                    <a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'این هشدار حذف شود؟' });">حذف</a>
+                                    <!-- <a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'این هشدار حذف شود؟' });">حذف</a> -->
                                 </td>
                             </tr>
                         <?php endforeach; ?>

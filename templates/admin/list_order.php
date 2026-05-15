@@ -8,11 +8,68 @@ if (!class_exists('WP_List_Table')) {
     require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
 }
 
+if (!function_exists('sc_admin_sc_orders_status_list_ui')) {
+    /**
+     * برچسب و رنگ وضعیت — فقط برای UI لیست sc_orders و ابزارک پیشخوان هم‌منطق با همین لیست.
+     *
+     * @param string $status
+     * @return array{label:string,color:string,bg:string}
+     */
+    function sc_admin_sc_orders_status_list_ui($status) {
+        static $map = [
+            'wc-pending' => ['label' => 'در انتظار پرداخت', 'color' => '#f0a000', 'bg' => '#fff8e1'],
+            'wc-under_review' => ['label' => 'پرداخت شده', 'color' => '#2271b1', 'bg' => '#e5f5fa'],
+            'wc-on-hold' => ['label' => 'پرداخت شده', 'color' => '#2271b1', 'bg' => '#e5f5fa'],
+            'wc-processing' => ['label' => 'پرداخت شده منتظر ارسال', 'color' => '#00a32a', 'bg' => '#d4edda'],
+            'wc-completed' => ['label' => 'ارسال و تایید', 'color' => '#00a32a', 'bg' => '#d4edda'],
+            'wc-cancelled' => ['label' => 'لغو شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
+            'wc-refunded' => ['label' => 'بازگشت شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
+            'wc-failed' => ['label' => 'ناموفق', 'color' => '#d63638', 'bg' => '#ffeaea'],
+            'trash' => ['label' => 'پاک شده - زباله دان', 'color' => '#d63638', 'bg' => '#ffeaea'],
+            'wc-checkout-draft' => ['label' => 'در انتظار پرداخت', 'color' => '#d63638', 'bg' => '#ffeaea'],
+        ];
+
+        return isset($map[$status]) ? $map[$status] : ['label' => (string) $status, 'color' => '#666', 'bg' => '#f5f5f5'];
+    }
+}
+
+if (!function_exists('sc_admin_sc_orders_get_request_scalar_string')) {
+    /**
+     * یک مقدار رشته‌ای از $_GET (اگر آرایه بود، اولین عنصر) — جلوگیری از Array to string در sanitize.
+     */
+    function sc_admin_sc_orders_get_request_scalar_string($key, $default = '') {
+        if (!isset($_GET[$key])) {
+            return $default;
+        }
+        $v = wp_unslash($_GET[$key]);
+        if (is_array($v)) {
+            $v = reset($v);
+        }
+        if (!is_scalar($v) || $v === null) {
+            return $default;
+        }
+
+        return (string) $v;
+    }
+}
+
+if (!function_exists('sc_admin_sc_orders_get_request_scalar_int')) {
+    function sc_admin_sc_orders_get_request_scalar_int($key, $default = 0) {
+        $s = sc_admin_sc_orders_get_request_scalar_string($key, '');
+        if ($s === '' || !is_numeric($s)) {
+            return $default;
+        }
+
+        return (int) $s;
+    }
+}
+
 class orders_List_Table extends WP_List_Table {
 
     public function __construct() {
         parent::__construct([
-            'singular' => 'order',
+            /* متمایز از پارامتر مرتب‌سازی ?order=ASC تا با name="order[]" قدیمی تداخل نگیرد */
+            'singular' => 'sc_bulk_wc_order',
             'plural' => 'orders',
             'ajax' => false,
         ]);
@@ -64,33 +121,20 @@ class orders_List_Table extends WP_List_Table {
     }
     public function column_status($item) {
         $status = $item->status;
-                
-        // برچسب‌های وضعیت WooCommerce
-                $status_labels = [
-                    'wc-pending' => ['label' => 'در انتظار پرداخت', 'color' => '#f0a000', 'bg' => '#fff8e1'],
-                    'wc-under_review' => ['label' => 'در حال بررسی', 'color' => '#2271b1', 'bg' => '#e5f5fa'],
-                    'wc-on-hold' => ['label' => 'در حال بررسی', 'color' => '#2271b1', 'bg' => '#e5f5fa'],
-                    'wc-processing' => ['label' => 'پرداخت شده', 'color' => '#00a32a', 'bg' => '#d4edda'],
-                    'wc-completed' => ['label' => 'تایید پرداخت', 'color' => '#00a32a', 'bg' => '#d4edda'],
-                    'wc-cancelled' => ['label' => 'لغو شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
-                    'wc-refunded' => ['label' => 'بازگشت شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
-                    'wc-failed' => ['label' => 'ناموفق', 'color' => '#d63638', 'bg' => '#ffeaea'],
-                    'trash' => ['label' => 'پاک شده - زباله دان', 'color' => '#d63638', 'bg' => '#ffeaea'],
-                    'wc-checkout-draft' => ['label' => 'در انتظار پرداحت', 'color' => '#d63638', 'bg' => '#ffeaea'],
-                ];
-                
-                $status_info = isset($status_labels[$status]) ? $status_labels[$status] : ['label' => $status, 'color' => '#666', 'bg' => '#f5f5f5'];
-                
-                return sprintf(
-                    '<span style="padding: 5px 10px; border-radius: 4px; font-weight: bold; background-color: %s; color: %s;">%s</span>',
-                    esc_attr($status_info['bg']),
-                    esc_attr($status_info['color']),
-                    esc_html($status_info['label'])
-                );
-                }
-                public function column_cb($item) {
-                return '<input type="checkbox" value="' . esc_attr($item->id_order) . '" name="order[]" />';
-            }
+        $status_info = sc_admin_sc_orders_status_list_ui($status);
+
+        return sprintf(
+            '<span style="padding: 5px 10px; border-radius: 4px; font-weight: bold; background-color: %s; color: %s;">%s</span>',
+            esc_attr($status_info['bg']),
+            esc_attr($status_info['color']),
+            esc_html($status_info['label'])
+        );
+    }
+    public function column_cb($item) {
+        $field = isset($this->_args['singular']) ? (string) $this->_args['singular'] : 'sc_bulk_wc_order';
+
+        return '<input type="checkbox" value="' . esc_attr($item->id_order) . '" name="' . esc_attr($field) . '[]" />';
+    }
         public function column_items($item) {
                 return $item->products_with_quantity;
         }
@@ -194,12 +238,11 @@ class orders_List_Table extends WP_List_Table {
      public function get_bulk_actions() {
         return [
             'mark_pending' => 'تغییر وضعیت به: در انتظار پرداخت',
-            'mark_processing' => 'تغییر وضعیت به: پرداخت شده',
-            'mark_on-hold' => 'تغییر وضعیت به: در حال بررسی',
-            'mark_completed' => 'تغییر وضعیت به: تایید پرداخت',
+            'mark_processing' => 'تغییر وضعیت به: پرداخت شده منتظر ارسال',
+            'mark_on-hold' => 'تغییر وضعیت به: پرداخت شده (نگه‌داری)',
+            'mark_completed' => 'تغییر وضعیت به: ارسال و تایید',
             'mark_cancelled' => 'تغییر وضعیت به: لغو شده',
             'mark_failed' => 'تغییر وضعیت به: ناموفق',
-            'mark_card_to_card' => 'پرداخت کارت به کارت',
             'delete' => 'حذف'
             
 
@@ -212,8 +255,9 @@ class orders_List_Table extends WP_List_Table {
             return;
         }
 
-        // دریافت ID های انتخاب شده
-        $invoice_ids = isset($_POST['order']) ? $_POST['order'] : [];
+        // دریافت ID های انتخاب شده (GET یا POST؛ نام فیلد با singular جدول یکی است تا با ?order= مرتب‌سازی تداخل نکند)
+        $bulk_field = isset($this->_args['singular']) ? (string) $this->_args['singular'] : 'sc_bulk_wc_order';
+        $invoice_ids = isset($_REQUEST[$bulk_field]) ? (array) wp_unslash($_REQUEST[$bulk_field]) : [];
         $invoice_ids = array_map('absint', $invoice_ids);
         if (empty($invoice_ids)) {
             return;
@@ -342,10 +386,26 @@ class orders_List_Table extends WP_List_Table {
         // ریدایرکت با پیام موفقیت
         wp_redirect(admin_url('admin.php?page=sc_orders&sc_status=bulk_status_updated'));
         exit;
-    }    
-    public function prepare_items() {
+    }
+
+    /**
+     * FROM/WHERE/extra SELECT مشترک با صفحه sc_orders — برای prepare_items و ابزارک پیشخوان.
+     *
+     * @param array $params filter_member, filter_product_cat, filter_status, filter_date_from, filter_date_to, search
+     * @return array{from_sql:string,where_values:array,extra_select:string}
+     */
+    public static function build_sc_orders_list_sql_parts(array $params) {
         global $wpdb;
-        $this->process_bulk_action();
+
+        $defaults = [
+            'filter_member' => 0,
+            'filter_product_cat' => 0,
+            'filter_status' => 'all',
+            'filter_date_from' => '',
+            'filter_date_to' => '',
+            'search' => '',
+        ];
+        $p = wp_parse_args($params, $defaults);
 
         $members_table = $wpdb->prefix . 'sc_members';
         $orders_table = $wpdb->prefix . 'wc_orders';
@@ -353,28 +413,12 @@ class orders_List_Table extends WP_List_Table {
         $woocommerce_order_items_table = $wpdb->prefix . 'woocommerce_order_items';
         $woocommerce_order_itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
 
-        $per_page = $this->get_items_per_page('list_orders_per_page', 20);
-        $current_page = $this->get_pagenum();
-        $offset = ($current_page - 1) * $per_page;
-
-        $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
-        $filter_product_cat = isset($_GET['filter_product_cat']) ? absint($_GET['filter_product_cat']) : 0;
-        $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all';
-
-        $filter_date_from = '';
-        $filter_date_to = '';
-        if (!empty($_GET['filter_date_from_shamsi']) && function_exists('sc_shamsi_to_gregorian_date')) {
-            $filter_date_from = sc_shamsi_to_gregorian_date(sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])));
-        } elseif (!empty($_GET['filter_date_from'])) {
-            $filter_date_from = sanitize_text_field(wp_unslash($_GET['filter_date_from']));
-        }
-        if (!empty($_GET['filter_date_to_shamsi']) && function_exists('sc_shamsi_to_gregorian_date')) {
-            $filter_date_to = sc_shamsi_to_gregorian_date(sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])));
-        } elseif (!empty($_GET['filter_date_to'])) {
-            $filter_date_to = sanitize_text_field(wp_unslash($_GET['filter_date_to']));
-        }
-
-        $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+        $filter_member = (int) $p['filter_member'];
+        $filter_product_cat = (int) $p['filter_product_cat'];
+        $filter_status = (string) $p['filter_status'];
+        $filter_date_from = (string) $p['filter_date_from'];
+        $filter_date_to = (string) $p['filter_date_to'];
+        $search = (string) $p['search'];
 
         $where_conditions = [
             'woi.order_item_type = %s',
@@ -470,20 +514,6 @@ class orders_List_Table extends WP_List_Table {
             WHERE {$where_sql}
         ";
 
-        $count_sql = "SELECT COUNT(DISTINCT wo.id) {$from_sql}";
-        $total_items = (int) $wpdb->get_var($wpdb->prepare($count_sql, $where_values));
-
-        $orderby_raw = isset($_GET['orderby']) ? sanitize_text_field(wp_unslash($_GET['orderby'])) : 'date_order';
-        $order_dir = isset($_GET['order']) && strtoupper(sanitize_text_field(wp_unslash($_GET['order']))) === 'ASC' ? 'ASC' : 'DESC';
-        $orderby_sql = 'wo.date_created_gmt';
-        if ($orderby_raw === 'total_amount') {
-            $orderby_sql = 'wo.total_amount';
-        } elseif ($orderby_raw === 'status') {
-            $orderby_sql = 'wo.status';
-        } elseif ($orderby_raw === 'date_order') {
-            $orderby_sql = 'wo.date_created_gmt';
-        }
-
         $posts_table = $wpdb->posts;
         $extra_select = ",
             (SELECT GROUP_CONCAT(DISTINCT t_pc.name ORDER BY t_pc.name SEPARATOR '، ')
@@ -508,6 +538,160 @@ class orders_List_Table extends WP_List_Table {
             $extra_select .= ",
             NULL AS billing_address,
             NULL AS shipping_address";
+        }
+
+        return [
+            'from_sql' => $from_sql,
+            'where_values' => $where_values,
+            'extra_select' => $extra_select,
+        ];
+    }
+
+    /**
+     * @param array $args filter_* + search، limit، offset، orderby (date_order|total_amount|status)، order (ASC|DESC)
+     * @return array{items: array<int, object>, total: int, sum_total: float}
+     */
+    public static function query_sc_orders_list_snapshot(array $args) {
+        global $wpdb;
+
+        $defaults = [
+            'filter_member' => 0,
+            'filter_product_cat' => 0,
+            'filter_status' => 'processing',
+            'filter_date_from' => '',
+            'filter_date_to' => '',
+            'search' => '',
+            'limit' => 5,
+            'offset' => 0,
+            'orderby' => 'date_order',
+            'order' => 'DESC',
+        ];
+        $a = wp_parse_args($args, $defaults);
+
+        $filter_params = [
+            'filter_member' => (int) $a['filter_member'],
+            'filter_product_cat' => (int) $a['filter_product_cat'],
+            'filter_status' => (string) $a['filter_status'],
+            'filter_date_from' => (string) $a['filter_date_from'],
+            'filter_date_to' => (string) $a['filter_date_to'],
+            'search' => (string) $a['search'],
+        ];
+
+        $parts = self::build_sc_orders_list_sql_parts($filter_params);
+        $from_sql = $parts['from_sql'];
+        $where_values = $parts['where_values'];
+        $extra_select = $parts['extra_select'];
+
+        $count_sql = "SELECT COUNT(DISTINCT wo.id) {$from_sql}";
+        $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $where_values));
+
+        $sum_sql = "SELECT COALESCE(SUM(sub.mx), 0) FROM (
+            SELECT MAX(wo.total_amount) AS mx
+            {$from_sql}
+            GROUP BY wo.id
+        ) sub";
+        $sum_total = (float) $wpdb->get_var($wpdb->prepare($sum_sql, $where_values));
+
+        $orderby_raw = sanitize_text_field((string) $a['orderby']);
+        $order_dir = strtoupper(sanitize_text_field((string) $a['order'])) === 'ASC' ? 'ASC' : 'DESC';
+        $orderby_sql = 'wo.date_created_gmt';
+        if ($orderby_raw === 'total_amount') {
+            $orderby_sql = 'wo.total_amount';
+        } elseif ($orderby_raw === 'status') {
+            $orderby_sql = 'wo.status';
+        }
+
+        $limit = max(0, (int) $a['limit']);
+        $offset = max(0, (int) $a['offset']);
+
+        $data_sql = "SELECT
+            wo.id AS id_order,
+            sm.first_name,
+            sm.last_name,
+            sm.player_phone,
+            wo.status,
+            wo.payment_method_title,
+            GROUP_CONCAT(
+                CONCAT(woi.order_item_name, ' (', woi_qty.meta_value, ')')
+                ORDER BY woi.order_item_id
+                SEPARATOR '<br>'
+            ) AS products_with_quantity,
+            wo.total_amount,
+            wo.date_created_gmt
+            {$extra_select}
+            {$from_sql}
+            GROUP BY wo.id, sm.first_name, sm.last_name, sm.player_phone, wo.status, wo.total_amount, wo.payment_method_title, wo.date_created_gmt
+            ORDER BY {$orderby_sql} {$order_dir}
+            LIMIT %d OFFSET %d";
+
+        $data_values = array_merge($where_values, [$limit, $offset]);
+        $items = $wpdb->get_results($wpdb->prepare($data_sql, $data_values));
+        if (!is_array($items)) {
+            $items = [];
+        }
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'sum_total' => $sum_total,
+        ];
+    }
+
+    public function prepare_items() {
+        global $wpdb;
+        $this->process_bulk_action();
+
+        $per_page = $this->get_items_per_page('list_orders_per_page', 20);
+        $current_page = $this->get_pagenum();
+        $offset = ($current_page - 1) * $per_page;
+
+        $filter_member = sc_admin_sc_orders_get_request_scalar_int('filter_member', 0);
+        $filter_product_cat = sc_admin_sc_orders_get_request_scalar_int('filter_product_cat', 0);
+        $filter_status = sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('filter_status', 'all'));
+
+        $filter_date_from = '';
+        $filter_date_to = '';
+        if (sc_admin_sc_orders_get_request_scalar_string('filter_date_from_shamsi', '') !== '' && function_exists('sc_shamsi_to_gregorian_date')) {
+            $filter_date_from = sc_shamsi_to_gregorian_date(sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('filter_date_from_shamsi', '')));
+        } elseif (sc_admin_sc_orders_get_request_scalar_string('filter_date_from', '') !== '') {
+            $filter_date_from = sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('filter_date_from', ''));
+        }
+        if (sc_admin_sc_orders_get_request_scalar_string('filter_date_to_shamsi', '') !== '' && function_exists('sc_shamsi_to_gregorian_date')) {
+            $filter_date_to = sc_shamsi_to_gregorian_date(sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('filter_date_to_shamsi', '')));
+        } elseif (sc_admin_sc_orders_get_request_scalar_string('filter_date_to', '') !== '') {
+            $filter_date_to = sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('filter_date_to', ''));
+        }
+
+        $search = sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('s', ''));
+
+        $parts = self::build_sc_orders_list_sql_parts([
+            'filter_member' => $filter_member,
+            'filter_product_cat' => $filter_product_cat,
+            'filter_status' => $filter_status,
+            'filter_date_from' => $filter_date_from,
+            'filter_date_to' => $filter_date_to,
+            'search' => $search,
+        ]);
+        $from_sql = $parts['from_sql'];
+        $where_values = $parts['where_values'];
+        $extra_select = $parts['extra_select'];
+
+        $count_sql = "SELECT COUNT(DISTINCT wo.id) {$from_sql}";
+        $total_items = (int) $wpdb->get_var($wpdb->prepare($count_sql, $where_values));
+
+        $orderby_raw = sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('orderby', 'date_order'));
+        $order_raw = isset($_GET['order']) ? wp_unslash($_GET['order']) : 'DESC';
+        $order_dir = 'DESC';
+        if (is_string($order_raw) && strtoupper(sanitize_text_field($order_raw)) === 'ASC') {
+            $order_dir = 'ASC';
+        }
+        $orderby_sql = 'wo.date_created_gmt';
+        if ($orderby_raw === 'total_amount') {
+            $orderby_sql = 'wo.total_amount';
+        } elseif ($orderby_raw === 'status') {
+            $orderby_sql = 'wo.status';
+        } elseif ($orderby_raw === 'date_order') {
+            $orderby_sql = 'wo.date_created_gmt';
         }
 
         $data_sql = "SELECT
@@ -541,7 +725,20 @@ class orders_List_Table extends WP_List_Table {
 
         $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
     }
-        
+}
 
+if (!function_exists('sc_admin_sc_orders_query_list_snapshot')) {
+    /**
+     * همان کوئری لیست sc_orders (اعضا + سفارش + آیتم خطی + _qty) — برای ابزارک پیشخوان و غیره.
+     *
+     * @param array $args filter_status پیش‌فرض processing؛ limit، offset، orderby، order
+     * @return array{items: array<int, object>, total: int, sum_total: float}
+     */
+    function sc_admin_sc_orders_query_list_snapshot(array $args = []) {
+        if (!class_exists('orders_List_Table')) {
+            return ['items' => [], 'total' => 0, 'sum_total' => 0.0];
+        }
 
+        return orders_List_Table::query_sc_orders_list_snapshot($args);
+    }
 }

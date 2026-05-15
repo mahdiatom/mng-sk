@@ -55,7 +55,9 @@ $members = $wpdb->get_results(
 <select name="filter_product_cat" id="filter_product_cat" class="sc-filter-control">
 <option value="0">همه دسته‌ها</option>
 <?php
-$filter_product_cat = isset($_GET['filter_product_cat']) ? absint($_GET['filter_product_cat']) : 0;
+$filter_product_cat = function_exists('sc_admin_sc_orders_get_request_scalar_int')
+    ? sc_admin_sc_orders_get_request_scalar_int('filter_product_cat', 0)
+    : (isset($_GET['filter_product_cat']) ? absint($_GET['filter_product_cat']) : 0);
 foreach ($product_cat_terms as $term) :
     if (!is_object($term) || empty($term->term_id)) {
         continue;
@@ -78,7 +80,9 @@ foreach ($product_cat_terms as $term) :
 
 <div class="sc-searchable-dropdown">
 <?php
-$filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+$filter_member = function_exists('sc_admin_sc_orders_get_request_scalar_int')
+    ? sc_admin_sc_orders_get_request_scalar_int('filter_member', 0)
+    : (isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0);
 $selected_member_text = 'همه کاربران';
 
 if ($filter_member) {
@@ -143,13 +147,15 @@ $max_display = 10;
 <label class="sc-filter-label" for="filter_status">وضعیت پرداخت</label>
 <select name="filter_status" id="filter_status" class="sc-filter-control">
 <?php
-$filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all';
+$filter_status = function_exists('sc_admin_sc_orders_get_request_scalar_string')
+    ? sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('filter_status', 'all'))
+    : (isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all');
 $status_options = [
     'all' => 'همه وضعیت‌ها',
     'pending' => 'در انتظار پرداخت',
-    'processing' => 'پرداخت شده',
-    'on-hold' => 'در حال بررسی',
-    'completed' => 'تایید پرداخت',
+    'processing' => 'پرداخت شده منتظر ارسال',
+    'on-hold' => 'پرداخت شده',
+    'completed' => 'ارسال و تایید',
     'cancelled' => 'لغو شده',
     'failed' => 'ناموفق',
     'refunded' => 'بازگشت شده',
@@ -168,10 +174,17 @@ foreach ($status_options as $value => $label) :
     <label class="sc-filter-label">بازه تاریخ</label>
 
     <?php
-    $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from'])) : '';
-    $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to'])) : '';
-    $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '';
-    $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '';
+    if (function_exists('sc_admin_sc_orders_get_request_scalar_string')) {
+        $filter_date_from = sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('filter_date_from', ''));
+        $filter_date_to = sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('filter_date_to', ''));
+        $filter_date_from_shamsi = sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('filter_date_from_shamsi', ''));
+        $filter_date_to_shamsi = sanitize_text_field(sc_admin_sc_orders_get_request_scalar_string('filter_date_to_shamsi', ''));
+    } else {
+        $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from'])) : '';
+        $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to'])) : '';
+        $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '';
+        $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '';
+    }
 
     if ($filter_date_from === '' && $filter_date_to === '' && $filter_date_from_shamsi === '' && $filter_date_to_shamsi === '') {
         $today = new DateTime(current_time('Y-m-d'));
@@ -239,9 +252,21 @@ echo '<form method="get">';
 echo '<input type="hidden" name="page" value="sc_orders">';
 
 foreach (['filter_product_cat', 'filter_member', 'filter_date_from', 'filter_date_to', 'filter_status', 's'] as $f) {
-    if (isset($_GET[$f]) && $_GET[$f] !== '') {
-        echo '<input type="hidden" name="' . esc_attr($f) . '" value="' . esc_attr(wp_unslash($_GET[$f])) . '">';
+    if (!isset($_GET[$f]) || $_GET[$f] === '') {
+        continue;
     }
+    $v = wp_unslash($_GET[$f]);
+    if (is_array($v)) {
+        $v = reset($v);
+    }
+    if ($v === '' || $v === null || !is_scalar($v)) {
+        continue;
+    }
+    $strv = (string) $v;
+    if ($strv === '') {
+        continue;
+    }
+    echo '<input type="hidden" name="' . esc_attr($f) . '" value="' . esc_attr($strv) . '">';
 }
 
 $orders_list_table->search_box('جستجو', 'search_order');
