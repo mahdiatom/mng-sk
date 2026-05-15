@@ -527,7 +527,13 @@ function sc_private_notes_query_user_threads($user_id, $args = []) {
     $page = !empty($args['page']) ? max(1, absint($args['page'])) : 1;
     $offset = ($page - 1) * $per_page;
 
-    $sql = "SELECT n.* FROM $table n WHERE $where_sql ORDER BY n.updated_at DESC LIMIT %d OFFSET %d";
+    $sql = "SELECT n.*,
+            (SELECT COUNT(*) FROM $messages mm WHERE mm.thread_id = n.id) AS messages_count,
+            (SELECT mm.content FROM $messages mm WHERE mm.thread_id = n.id ORDER BY mm.id DESC LIMIT 1) AS last_message
+            FROM $table n
+            WHERE $where_sql
+            ORDER BY n.updated_at DESC
+            LIMIT %d OFFSET %d";
     $rows = $wpdb->get_results($wpdb->prepare($sql, array_merge($values, [$per_page, $offset])));
 
     return [
