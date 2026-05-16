@@ -191,12 +191,14 @@ $field_labels = sc_users_export_get_field_labels();
             <h2>۴) فیلدهای خروجی</h2>
             <div class="sc-fields-grid" id="sc-fields-grid">
                 <?php foreach ($field_labels as $key => $label) : ?>
-                    <label class="sc-inline-check">
+                    <label class="sc-inline-check sc-base-field-check">
                         <input type="checkbox" name="fields[]" value="<?php echo esc_attr($key); ?>" <?php checked($key === 'full_name'); ?>>
                         <?php echo esc_html($label); ?>
                     </label>
                 <?php endforeach; ?>
             </div>
+            <div id="sc-event-fields-grid" class="sc-fields-grid sc-event-fields-grid"></div>
+            <input type="hidden" id="sc-event-fields-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_users_export_get_event_fields')); ?>">
         </div>
 
         <div class="sc-users-export-card">

@@ -54,8 +54,80 @@ function sc_users_export_save_templates($templates) {
     update_option('sc_users_export_templates', $templates, false);
 }
 
-function sc_users_export_normalize_template($template, $fallback_key = '') {
+function sc_users_export_event_field_key($field_id) {
+    return 'event_field_' . absint($field_id);
+}
+
+/**
+ * @param int[] $event_ids
+ * @return array<string, string>
+ */
+function sc_users_export_get_event_field_labels($event_ids = []) {
+    global $wpdb;
+    $event_ids = array_values(array_filter(array_map('absint', (array) $event_ids)));
+    if (empty($event_ids)) {
+        return [];
+    }
+    $event_fields_table = $wpdb->prefix . 'sc_event_fields';
+    $placeholders = implode(',', array_fill(0, count($event_ids), '%d'));
+    $fields = $wpdb->get_results($wpdb->prepare(
+        "SELECT id, field_name, event_id FROM $event_fields_table WHERE event_id IN ($placeholders) ORDER BY field_order ASC, id ASC",
+        $event_ids
+    ));
+    $labels = [];
+    foreach ((array) $fields as $field) {
+        $labels[sc_users_export_event_field_key($field->id)] = $field->field_name;
+    }
+    return $labels;
+}
+
+/**
+ * @param int[] $event_ids
+ * @return array<string, string>
+ */
+function sc_users_export_merge_field_labels($event_ids = []) {
     $labels = sc_users_export_get_field_labels();
+    if (!empty($event_ids)) {
+        $labels['registration_type'] = 'نوع ثبت‌نام';
+        $labels = array_merge($labels, sc_users_export_get_event_field_labels($event_ids));
+    }
+    return $labels;
+}
+
+/**
+ * @param array<string, mixed> $entry
+ */
+function sc_users_export_format_event_field_value($entry) {
+    if (!is_array($entry)) {
+        return '-';
+    }
+    $field_type = isset($entry['field_type']) ? (string) $entry['field_type'] : '';
+    if ($field_type === 'file') {
+        $files = [];
+        if (isset($entry['files']) && is_array($entry['files'])) {
+            foreach ($entry['files'] as $file) {
+                if (is_array($file) && !empty($file['url'])) {
+                    $files[] = (string) $file['url'];
+                } elseif (is_array($file) && !empty($file['name'])) {
+                    $files[] = (string) $file['name'];
+                }
+            }
+        }
+        return !empty($files) ? implode('، ', $files) : '-';
+    }
+    $value = $entry['value'] ?? '';
+    if (is_array($value)) {
+        $value = implode('، ', array_map('strval', $value));
+    }
+    $value = trim((string) $value);
+    return $value !== '' ? $value : '-';
+}
+
+function sc_users_export_normalize_template($template, $fallback_key = '') {
+    $event_id = isset($template['event_id']) ? absint($template['event_id']) : 0;
+    $is_event_template = !empty($template['is_event_template']) && $event_id > 0;
+    $event_ids = $is_event_template ? [$event_id] : [];
+    $labels = sc_users_export_merge_field_labels($event_ids);
     $allowed_fields = array_keys($labels);
     $key = isset($template['key']) ? sanitize_key($template['key']) : sanitize_key($fallback_key);
     if ($key === '') {
@@ -103,6 +175,8 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
         'key' => $key,
         'title' => isset($template['title']) ? sanitize_text_field(wp_unslash($template['title'])) : 'قالب جدید',
         'description' => isset($template['description']) ? sanitize_textarea_field(wp_unslash($template['description'])) : '',
+        'is_event_template' => $is_event_template ? 1 : 0,
+        'event_id' => $is_event_template ? $event_id : 0,
         'page_size' => (isset($template['page_size']) && in_array($template['page_size'], ['A4', 'A5'], true)) ? $template['page_size'] : 'A4',
         'cards_per_page' => isset($template['cards_per_page']) ? max(1, min(6, (int) $template['cards_per_page'])) : 2,
         'fields' => $fields,
@@ -214,6 +288,203 @@ function sc_users_export_get_field_labels() {
 
 function sc_users_export_get_allowed_target_types() {
     return ['all', 'free_users', 'specific', 'course', 'event', 'team', 'level', 'team_level'];
+}
+
+/**
+ * رکوردهای خروجی: برای رویداد شامل مهمان‌ها؛ در سایر حالت‌ها همان اعضا.
+ *
+ * @return object[]
+ */
+function sc_users_export_get_subjects($target_type, $config = []) {
+    if ($target_type === 'event') {
+        return sc_users_export_get_event_registrants($config);
+    }
+    return sc_users_export_get_members($target_type, $config);
+}
+
+/**
+ * @param array $config
+ * @return object[]
+ */
+function sc_users_export_get_event_registrants($config = []) {
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+    $events_table = $wpdb->prefix . 'sc_events';
+
+    $event_ids = isset($config['event_ids']) && is_array($config['event_ids']) ? array_filter(array_map('absint', $config['event_ids'])) : [];
+    if (empty($event_ids)) {
+        return [];
+    }
+
+    $member_type_filter = isset($config['member_type']) ? sanitize_text_field($config['member_type']) : 'all';
+    $excluded_ids = isset($config['excluded_member_ids']) && is_array($config['excluded_member_ids'])
+        ? array_filter(array_map('absint', $config['excluded_member_ids']))
+        : [];
+
+    $placeholders = implode(',', array_fill(0, count($event_ids), '%d'));
+    $query = "
+        SELECT r.id AS registration_id,
+               r.event_id,
+               r.member_id,
+               r.invoice_id,
+               r.field_data,
+               r.files,
+               r.registration_source,
+               r.guest_first_name,
+               r.guest_last_name,
+               r.guest_phone,
+               r.guest_national_id,
+               r.created_at AS registration_created_at,
+               m.*
+        FROM $event_registrations_table r
+        LEFT JOIN $members_table m ON m.id = r.member_id
+        WHERE r.event_id IN ($placeholders)
+        ORDER BY r.created_at ASC, r.id ASC
+    ";
+    $registrations = $wpdb->get_results($wpdb->prepare($query, $event_ids));
+    if (empty($registrations)) {
+        return [];
+    }
+
+    $subjects = [];
+    foreach ($registrations as $registration) {
+        $is_guest = isset($registration->registration_source) && $registration->registration_source === 'guest';
+        if (!$is_guest && empty($registration->member_id)) {
+            $is_guest = !empty($registration->guest_national_id) || !empty($registration->guest_phone);
+        }
+
+        if (!$is_guest) {
+            if (empty($registration->member_id)) {
+                continue;
+            }
+            if (!empty($registration->is_active) && (int) $registration->is_active !== 1) {
+                // inactive member — still export if registered
+            }
+            if ($member_type_filter === 'normal' && isset($registration->member_type) && $registration->member_type === 'team') {
+                continue;
+            }
+            if ($member_type_filter === 'team' && (!isset($registration->member_type) || $registration->member_type !== 'team')) {
+                continue;
+            }
+            if (!empty($excluded_ids) && in_array((int) $registration->member_id, $excluded_ids, true)) {
+                continue;
+            }
+        } elseif ($member_type_filter !== 'all') {
+            continue;
+        }
+
+        $subject = sc_users_export_build_subject_from_registration($registration, $is_guest);
+        if (!$subject) {
+            continue;
+        }
+
+        if (!empty($subject->is_guest_export)) {
+            $subject->active_courses = '-';
+        } else {
+            $courses = $wpdb->get_col($wpdb->prepare(
+                "SELECT c.title
+                 FROM $member_courses_table mc
+                 INNER JOIN $courses_table c ON c.id = mc.course_id
+                 WHERE mc.member_id = %d
+                   AND mc.status = 'active'
+                   AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+                   AND c.deleted_at IS NULL
+                 ORDER BY c.title ASC",
+                (int) $subject->id
+            ));
+            $subject->active_courses = !empty($courses) ? implode('، ', $courses) : '-';
+        }
+
+        if (!$is_guest && (int) $subject->id > 0) {
+            $events = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT e.name
+                 FROM $event_registrations_table er
+                 INNER JOIN $events_table e ON e.id = er.event_id
+                 WHERE er.member_id = %d
+                   AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
+                 ORDER BY e.name ASC",
+                (int) $subject->id
+            ));
+            $subject->active_events = !empty($events) ? implode('، ', $events) : '-';
+        } else {
+            $event_name = $wpdb->get_var($wpdb->prepare(
+                "SELECT name FROM $events_table WHERE id = %d",
+                (int) $registration->event_id
+            ));
+            $subject->active_events = $event_name ? (string) $event_name : '-';
+        }
+
+        $subjects[] = $subject;
+    }
+
+    return $subjects;
+}
+
+/**
+ * @param object $registration
+ */
+function sc_users_export_build_subject_from_registration($registration, $is_guest = false) {
+    $field_data_raw = isset($registration->field_data) ? (string) $registration->field_data : '';
+    $parsed_field_data = [];
+    if ($field_data_raw !== '') {
+        $decoded = json_decode($field_data_raw, true);
+        if (is_array($decoded)) {
+            $parsed_field_data = $decoded;
+        }
+    }
+
+    $files_raw = isset($registration->files) ? (string) $registration->files : '';
+    if ($files_raw !== '') {
+        $decoded_files = json_decode($files_raw, true);
+        if (is_array($decoded_files)) {
+            foreach ($decoded_files as $field_id => $file_list) {
+                $field_id = (string) $field_id;
+                if (!isset($parsed_field_data[$field_id]) || !is_array($parsed_field_data[$field_id])) {
+                    continue;
+                }
+                $parsed_field_data[$field_id]['files'] = $file_list;
+            }
+        }
+    }
+
+    if ($is_guest) {
+        $subject = (object) [
+            'id' => 0,
+            'registration_id' => (int) ($registration->registration_id ?? 0),
+            'event_id' => (int) $registration->event_id,
+            'is_guest_export' => 1,
+            'first_name' => (string) ($registration->guest_first_name ?? ''),
+            'last_name' => (string) ($registration->guest_last_name ?? ''),
+            'national_id' => (string) ($registration->guest_national_id ?? ''),
+            'player_phone' => (string) ($registration->guest_phone ?? ''),
+            'member_type' => '',
+            'team_player' => '',
+            'skill_level' => '',
+            'is_active' => 1,
+            'profile_completed' => 0,
+            'identity_verified' => 0,
+            'health_verified' => 0,
+            'info_verified' => 0,
+            'member_extra_fields' => null,
+            '_event_field_data' => $parsed_field_data,
+        ];
+        return $subject;
+    }
+
+    if (empty($registration->member_id)) {
+        return null;
+    }
+
+    $subject = clone $registration;
+    $subject->id = (int) $registration->member_id;
+    $subject->registration_id = (int) ($registration->registration_id ?? 0);
+    $subject->event_id = (int) $registration->event_id;
+    $subject->is_guest_export = 0;
+    $subject->_event_field_data = $parsed_field_data;
+    return $subject;
 }
 
 function sc_users_export_get_members($target_type, $config = []) {
@@ -360,9 +631,25 @@ function sc_users_export_prepare_rows($members, $fields) {
     foreach ($members as $member) {
         $row = [];
         foreach ($fields as $field) {
+            if (strpos($field, 'event_field_') === 0) {
+                $field_id = absint(substr($field, strlen('event_field_')));
+                $event_data = isset($member->_event_field_data) && is_array($member->_event_field_data) ? $member->_event_field_data : [];
+                $entry = null;
+                if (isset($event_data[$field_id])) {
+                    $entry = $event_data[$field_id];
+                } elseif (isset($event_data[(string) $field_id])) {
+                    $entry = $event_data[(string) $field_id];
+                }
+                $row[$field] = sc_users_export_format_event_field_value($entry);
+                continue;
+            }
+
             switch ($field) {
                 case 'member_id':
-                    $row[$field] = (int) $member->id;
+                    $row[$field] = !empty($member->is_guest_export) ? '-' : (int) $member->id;
+                    break;
+                case 'registration_type':
+                    $row[$field] = !empty($member->is_guest_export) ? 'مهمان' : 'عضو باشگاه';
                     break;
                 case 'full_name':
                     $row[$field] = trim(($member->first_name ?: '') . ' ' . ($member->last_name ?: ''));
@@ -436,13 +723,24 @@ function sc_users_export_filename() {
     return 'INFO_USERS_' . date_i18n('Ymd_His');
 }
 
-function sc_users_export_to_excel($rows, $fields) {
+/**
+ * پاک‌سازی بافر خروجی قبل از ارسال فایل دانلود (جلوگیری از آلوده شدن Excel/PDF با Warning).
+ */
+function sc_users_export_discard_output_buffers() {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+}
+
+function sc_users_export_to_excel($rows, $fields, $labels = null) {
     if (!function_exists('sc_check_phpspreadsheet')) {
         wp_die('کتابخانه Excel در دسترس نیست.');
     }
     sc_check_phpspreadsheet();
 
-    $labels = sc_users_export_get_field_labels();
+    if (!is_array($labels)) {
+        $labels = sc_users_export_get_field_labels();
+    }
     $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('خروجی کاربران');
@@ -483,9 +781,7 @@ function sc_users_export_to_excel($rows, $fields) {
         sc_auto_size_columns($sheet, count($fields) + 1);
     }
 
-    if (ob_get_level()) {
-        ob_end_clean();
-    }
+    sc_users_export_discard_output_buffers();
 
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment;filename="' . sc_users_export_filename() . '.xlsx"');
@@ -495,8 +791,11 @@ function sc_users_export_to_excel($rows, $fields) {
     exit;
 }
 
-function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = '', $template = null) {
-    $labels = sc_users_export_get_field_labels();
+function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = '', $template = null, $labels = null) {
+    sc_users_export_discard_output_buffers();
+    if (!is_array($labels)) {
+        $labels = sc_users_export_get_field_labels();
+    }
     $page_size = isset($layout['page_size']) && in_array($layout['page_size'], ['A4', 'A5'], true) ? $layout['page_size'] : 'A4';
     $cards_per_page = isset($layout['cards_per_page']) ? max(1, min(6, (int) $layout['cards_per_page'])) : 2;
     $export_title = $title !== '' ? $title : 'خروجی اطلاعات کاربران';
@@ -533,6 +832,38 @@ function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = 
 
 add_action('admin_post_sc_users_info_export', 'sc_users_info_export_handler');
 add_action('wp_ajax_sc_users_export_preview_members', 'sc_users_export_preview_members_ajax');
+add_action('wp_ajax_sc_users_export_get_event_fields', 'sc_users_export_get_event_fields_ajax');
+
+function sc_users_export_get_event_fields_ajax() {
+    check_ajax_referer('sc_users_export_get_event_fields', 'nonce');
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+
+    $event_ids = isset($_POST['event_ids']) ? array_filter(array_map('absint', (array) $_POST['event_ids'])) : [];
+    $event_labels = sc_users_export_get_event_field_labels($event_ids);
+    $html = '';
+    if (!empty($event_ids)) {
+        $html .= '<div class="sc-event-fields-section"><h3 class="sc-event-fields-heading">فیلدهای اختصاصی رویداد</h3>';
+        $html .= '<label class="sc-inline-check sc-event-field-check">';
+        $html .= '<input type="checkbox" name="fields[]" value="registration_type"> نوع ثبت‌نام';
+        $html .= '</label>';
+        foreach ($event_labels as $key => $label) {
+            $html .= '<label class="sc-inline-check sc-event-field-check">';
+            $html .= '<input type="checkbox" name="fields[]" value="' . esc_attr($key) . '"> ';
+            $html .= esc_html($label);
+            $html .= '</label>';
+        }
+        $html .= '</div>';
+    }
+
+    $labels_response = array_merge(['registration_type' => 'نوع ثبت‌نام'], $event_labels);
+
+    wp_send_json_success([
+        'html' => $html,
+        'labels' => $labels_response,
+    ]);
+}
 
 function sc_users_export_preview_members_ajax() {
     check_ajax_referer('sc_users_export_preview_members', 'nonce');
@@ -554,30 +885,48 @@ function sc_users_export_preview_members_ajax() {
         'member_type' => isset($_POST['member_type']) ? sanitize_text_field(wp_unslash($_POST['member_type'])) : 'all',
     ];
 
-    $members = sc_users_export_get_members($target_type, $config);
-    $total = count($members);
-    $preview_rows = array_slice($members, 0, 200);
+    $subjects = sc_users_export_get_subjects($target_type, $config);
+    $total = count($subjects);
+    $preview_rows = array_slice($subjects, 0, 200);
+    $is_event = ($target_type === 'event');
 
     ob_start();
-    if (empty($members)) {
+    if (empty($subjects)) {
         echo '<p class="description">هیچ کاربری با این فیلترها پیدا نشد.</p>';
     } else {
-        echo '<div class="sc-bulk-preview-meta">تعداد کاربران فیلتر شده: <strong>' . esc_html((string) $total) . '</strong></div>';
+        $count_label = $is_event ? 'تعداد ثبت‌نام‌ها' : 'تعداد کاربران فیلتر شده';
+        echo '<div class="sc-bulk-preview-meta">' . esc_html($count_label) . ': <strong>' . esc_html((string) $total) . '</strong></div>';
         echo '<table class="wp-list-table widefat striped sc-bulk-preview-table">';
-        echo '<thead><tr><th style="width:64px;"><label><input type="checkbox" id="sc-users-preview-select-all" checked> انتخاب</label></th><th>نام</th><th>کد ملی</th><th>نوع</th><th>تیم</th><th>سطح</th><th>وضعیت</th></tr></thead><tbody>';
+        if ($is_event) {
+            echo '<thead><tr><th style="width:64px;"><label><input type="checkbox" id="sc-users-preview-select-all" checked> انتخاب</label></th><th>نام</th><th>کد ملی</th><th>شماره همراه</th><th>نوع</th></tr></thead><tbody>';
+        } else {
+            echo '<thead><tr><th style="width:64px;"><label><input type="checkbox" id="sc-users-preview-select-all" checked> انتخاب</label></th><th>نام</th><th>کد ملی</th><th>نوع</th><th>تیم</th><th>سطح</th><th>وضعیت</th></tr></thead><tbody>';
+        }
         foreach ($preview_rows as $member) {
             $full_name = trim((string) $member->first_name . ' ' . (string) $member->last_name);
-            $row_label = $full_name !== '' ? $full_name : ('کاربر #' . (int) $member->id);
-            $type_label = ((string) ($member->member_type ?? '') === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
-            $status_label = !empty($member->is_active) ? 'فعال' : 'غیرفعال';
+            $is_guest = !empty($member->is_guest_export);
+            if ($is_guest) {
+                $row_label = $full_name !== '' ? $full_name : ('مهمان #' . (int) ($member->registration_id ?? 0));
+                $type_label = 'مهمان';
+            } else {
+                $row_label = $full_name !== '' ? $full_name : ('کاربر #' . (int) $member->id);
+                $type_label = ((string) ($member->member_type ?? '') === 'team') ? 'بازیکن تیم' : 'بازیکن عادی';
+            }
+            $member_id_attr = $is_guest ? 0 : (int) $member->id;
             echo '<tr>';
-            echo '<td><input type="checkbox" class="sc-users-preview-member-check" data-member-id="' . (int) $member->id . '" data-member-label="' . esc_attr($row_label) . '" checked></td>';
+            echo '<td><input type="checkbox" class="sc-users-preview-member-check" data-member-id="' . esc_attr((string) $member_id_attr) . '" data-is-guest="' . ($is_guest ? '1' : '0') . '" data-member-label="' . esc_attr($row_label) . '" checked></td>';
             echo '<td>' . esc_html($row_label) . '</td>';
             echo '<td>' . esc_html((string) ($member->national_id ?: '-')) . '</td>';
-            echo '<td>' . esc_html($type_label) . '</td>';
-            echo '<td>' . esc_html((string) ($member->team_player ?: '-')) . '</td>';
-            echo '<td>' . esc_html((string) ($member->skill_level ?: '-')) . '</td>';
-            echo '<td>' . esc_html($status_label) . '</td>';
+            if ($is_event) {
+                echo '<td>' . esc_html((string) ($member->player_phone ?: '-')) . '</td>';
+                echo '<td>' . esc_html($type_label) . '</td>';
+            } else {
+                $status_label = !empty($member->is_active) ? 'فعال' : 'غیرفعال';
+                echo '<td>' . esc_html($type_label) . '</td>';
+                echo '<td>' . esc_html((string) ($member->team_player ?: '-')) . '</td>';
+                echo '<td>' . esc_html((string) ($member->skill_level ?: '-')) . '</td>';
+                echo '<td>' . esc_html($status_label) . '</td>';
+            }
             echo '</tr>';
         }
         echo '</tbody></table>';
@@ -598,6 +947,7 @@ function sc_users_info_export_handler() {
         wp_die('دسترسی غیرمجاز.');
     }
     check_admin_referer('sc_users_info_export_action', 'sc_users_info_export_nonce');
+    ob_start();
 
     $target_type = isset($_POST['target_type']) ? sanitize_text_field(wp_unslash($_POST['target_type'])) : 'all';
     if (!in_array($target_type, sc_users_export_get_allowed_target_types(), true)) {
@@ -614,30 +964,37 @@ function sc_users_info_export_handler() {
         'member_type' => isset($_POST['member_type']) ? sanitize_text_field(wp_unslash($_POST['member_type'])) : 'all',
     ];
 
-    $selected_fields = isset($_POST['fields']) ? array_map('sanitize_text_field', (array) $_POST['fields']) : [];
-    $field_labels = sc_users_export_get_field_labels();
-    $fields = array_values(array_intersect($selected_fields, array_keys($field_labels)));
-    if (empty($fields)) {
-        wp_die('حداقل یک فیلد برای خروجی انتخاب کنید.');
-    }
-
+    $event_ids_for_labels = ($target_type === 'event') ? $config['event_ids'] : [];
     $template_key = isset($_POST['template_key']) ? sanitize_text_field(wp_unslash($_POST['template_key'])) : '';
     $templates = sc_users_export_get_saved_templates();
     $template = ($template_key && isset($templates[$template_key])) ? $templates[$template_key] : null;
     if ($template) {
         $template = sc_users_export_normalize_template($template, $template_key);
+        if (!empty($template['is_event_template']) && !empty($template['event_id'])) {
+            $target_type = 'event';
+            $config['event_ids'] = [(int) $template['event_id']];
+            $event_ids_for_labels = [(int) $template['event_id']];
+        }
+    }
+
+    $field_labels = sc_users_export_merge_field_labels($event_ids_for_labels);
+    $selected_fields = isset($_POST['fields']) ? array_map('sanitize_text_field', (array) $_POST['fields']) : [];
+    $fields = array_values(array_intersect($selected_fields, array_keys($field_labels)));
+    if (empty($fields)) {
+        wp_die('حداقل یک فیلد برای خروجی انتخاب کنید.');
     }
 
     if ($template && !empty($template['fields']) && empty($_POST['override_template_fields'])) {
         $fields = array_values(array_intersect((array) $template['fields'], array_keys($field_labels)));
     }
 
-    $members = sc_users_export_get_members($target_type, $config);
-    if (empty($members)) {
+    $subjects = sc_users_export_get_subjects($target_type, $config);
+    if (empty($subjects)) {
         wp_die('هیچ کاربری با این فیلترها پیدا نشد.');
     }
 
-    $rows = sc_users_export_prepare_rows($members, $fields);
+    $rows = sc_users_export_prepare_rows($subjects, $fields);
+    sc_users_export_discard_output_buffers();
     $format = isset($_POST['export_format']) ? sanitize_text_field(wp_unslash($_POST['export_format'])) : 'pdf';
     $layout = [
         'page_size' => isset($_POST['page_size']) ? sanitize_text_field(wp_unslash($_POST['page_size'])) : ($template['page_size'] ?? 'A4'),
@@ -650,10 +1007,10 @@ function sc_users_info_export_handler() {
     }
 
     if ($format === 'excel') {
-        sc_users_export_to_excel($rows, $fields);
+        sc_users_export_to_excel($rows, $fields, $field_labels);
         return;
     }
 
     $title = $template && !empty($template['title']) ? $template['title'] : 'خروجی اطلاعات کاربران';
-    sc_users_export_render_pdf_page($rows, $fields, $layout, $title, $template);
+    sc_users_export_render_pdf_page($rows, $fields, $layout, $title, $template, $field_labels);
 }

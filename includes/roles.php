@@ -1,5 +1,20 @@
 <?php
 if ( ! defined('ABSPATH') ) exit;
+
+/**
+ * حذف امن منوی ادمین — در admin-post.php آرایه $menu ساخته نمی‌شود.
+ *
+ * @param string $menu_slug
+ * @return array|false
+ */
+function sc_safe_remove_menu_page($menu_slug) {
+    global $menu;
+    if (!is_array($menu)) {
+        return false;
+    }
+    return remove_menu_page($menu_slug);
+}
+
 /**
  * ===============================
  * ایجاد نقش مدیر باشگاه (DEV MODE)
@@ -177,6 +192,9 @@ function club_recreate_shop_manager_role() {
             global $menu;
         
       //  print_r($menu);
+            if (!is_array($menu)) {
+                return;
+            }
             foreach ($menu as $key => $item) {
                 
                 if (isset($item[2])) {
@@ -189,15 +207,15 @@ function club_recreate_shop_manager_role() {
                          $item[2] !== 'index.php'
                 
                     ) {
-                        remove_menu_page($item[2]);
+                        sc_safe_remove_menu_page($item[2]);
                     }
                 }
             }
         
        
-             remove_menu_page('woocommerce');
-             remove_menu_page('woocommerce-marketing');
-             remove_menu_page('profile.php');
+             sc_safe_remove_menu_page('woocommerce');
+             sc_safe_remove_menu_page('woocommerce-marketing');
+             sc_safe_remove_menu_page('profile.php');
             $allowed_pages = [
                 
                 'wc-orders',
@@ -344,25 +362,25 @@ function club_add_woocommerce_capabilities_to_club_coach() {
 // حذف دسترسی های اضافی مدیر باشگاه  
    
             // حذف منوهای وردپرس
-            remove_menu_page('plugins.php');
-            remove_menu_page('themes.php');
-            //remove_menu_page('edit.php');
-            //remove_menu_page('edit.php?post_type=page');
-            remove_menu_page('edit-comments.php');
-            remove_menu_page('options-general.php');
-            remove_menu_page('tools.php');
+            sc_safe_remove_menu_page('plugins.php');
+            sc_safe_remove_menu_page('themes.php');
+            //sc_safe_remove_menu_page('edit.php');
+            //sc_safe_remove_menu_page('edit.php?post_type=page');
+            sc_safe_remove_menu_page('edit-comments.php');
+            sc_safe_remove_menu_page('options-general.php');
+            sc_safe_remove_menu_page('tools.php');
             
             // حذف منوهای المنتور
-            remove_menu_page('elementor');
-            remove_menu_page('edit.php?post_type=elementor_library');
-            remove_menu_page('hello-elementor');
+            sc_safe_remove_menu_page('elementor');
+            sc_safe_remove_menu_page('edit.php?post_type=elementor_library');
+            sc_safe_remove_menu_page('hello-elementor');
     
             // حذف منوهای ووکامرس
-           remove_menu_page('woocommerce');
-        //   remove_menu_page('wc-admin');
-        //   remove_menu_page('edit.php?post_type=product');
-        //   remove_menu_page('edit.php?post_type=shop_coupon');
-        //   remove_menu_page('wc-settings');
+           sc_safe_remove_menu_page('woocommerce');
+        //   sc_safe_remove_menu_page('wc-admin');
+        //   sc_safe_remove_menu_page('edit.php?post_type=product');
+        //   sc_safe_remove_menu_page('edit.php?post_type=shop_coupon');
+        //   sc_safe_remove_menu_page('wc-settings');
 }
 }
 
@@ -487,6 +505,9 @@ function club_add_woocommerce_capabilities_to_club_coach() {
             global $menu;
         
         //print_r($menu);
+            if (!is_array($menu)) {
+                return;
+            }
             foreach ($menu as $key => $item) {
                 
                 if (isset($item[2])) {
@@ -505,42 +526,42 @@ function club_add_woocommerce_capabilities_to_club_coach() {
 
                 
                     ) {
-                        remove_menu_page($item[2]);
+                        sc_safe_remove_menu_page($item[2]);
                     }
                 }
             }
 
             
             // حذف منوهای وردپرس
-            remove_menu_page('plugins.php');
-            remove_menu_page('themes.php');
-            remove_menu_page('edit.php');
-            remove_menu_page('edit.php?post_type=page');
-            remove_menu_page('edit-comments.php');
-            remove_menu_page('options-general.php');
-            remove_menu_page('tools.php');
+            sc_safe_remove_menu_page('plugins.php');
+            sc_safe_remove_menu_page('themes.php');
+            sc_safe_remove_menu_page('edit.php');
+            sc_safe_remove_menu_page('edit.php?post_type=page');
+            sc_safe_remove_menu_page('edit-comments.php');
+            sc_safe_remove_menu_page('options-general.php');
+            sc_safe_remove_menu_page('tools.php');
             
             // حذف منوهای المنتور
-            remove_menu_page('elementor');
-            remove_menu_page('edit.php?post_type=elementor_library');
-            remove_menu_page('hello-elementor');
+            sc_safe_remove_menu_page('elementor');
+            sc_safe_remove_menu_page('edit.php?post_type=elementor_library');
+            sc_safe_remove_menu_page('hello-elementor');
     
             // حذف منوهای ووکامرس
-          remove_menu_page('woocommerce');
-        //  remove_menu_page('wc-admin');
-        //   remove_menu_page('edit.php?post_type=product');
-          remove_menu_page('edit.php?post_type=shop_coupon');
-        //  remove_menu_page('wc-settings');
+          sc_safe_remove_menu_page('woocommerce');
+        //  sc_safe_remove_menu_page('wc-admin');
+        //   sc_safe_remove_menu_page('edit.php?post_type=product');
+          sc_safe_remove_menu_page('edit.php?post_type=shop_coupon');
+        //  sc_safe_remove_menu_page('wc-settings');
             
             // حذف منوهای افزونه
-            remove_menu_page('sc-dashboard');
-        // remove_menu_page('sc-members');
-            remove_menu_page('sc-courses');
-            remove_menu_page('sc-coaches');
-            remove_menu_page('sc-events');
-        // remove_menu_page('sc-invoices');
-        // remove_menu_page('sc-reports');
-            remove_menu_page('sc_setting');
+            sc_safe_remove_menu_page('sc-dashboard');
+        // sc_safe_remove_menu_page('sc-members');
+            sc_safe_remove_menu_page('sc-courses');
+            sc_safe_remove_menu_page('sc-coaches');
+            sc_safe_remove_menu_page('sc-events');
+        // sc_safe_remove_menu_page('sc-invoices');
+        // sc_safe_remove_menu_page('sc-reports');
+            sc_safe_remove_menu_page('sc_setting');
             
             return;
     
@@ -705,6 +726,9 @@ function club_hide_menus_for_coach() {
         global $menu;
         
         // حذف تمام منوهای اصلی به جز حضور و غیاب، دستمزد/کیف پول (در صورت فعال بودن امکانات پرو) و افتخارات
+        if (!is_array($menu)) {
+            return;
+        }
         $keep_salary = function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled();
         foreach ($menu as $key => $item) {
             if (isset($item[2])) {
@@ -720,41 +744,41 @@ function club_hide_menus_for_coach() {
                     $item[2] !== 'sc-coach-my-profile' &&
                     $item[2] !== 'sc-coach-support-tickets'
                 ) {
-                    remove_menu_page($item[2]);
+                    sc_safe_remove_menu_page($item[2]);
                 }
             }
         }
         
         // حذف منوهای وردپرس
-        remove_menu_page('plugins.php');
-        remove_menu_page('themes.php');
-        remove_menu_page('edit.php');
-        remove_menu_page('edit.php?post_type=page');
-        remove_menu_page('edit-comments.php');
-        remove_menu_page('options-general.php');
-        remove_menu_page('tools.php');
+        sc_safe_remove_menu_page('plugins.php');
+        sc_safe_remove_menu_page('themes.php');
+        sc_safe_remove_menu_page('edit.php');
+        sc_safe_remove_menu_page('edit.php?post_type=page');
+        sc_safe_remove_menu_page('edit-comments.php');
+        sc_safe_remove_menu_page('options-general.php');
+        sc_safe_remove_menu_page('tools.php');
         
         // حذف منوهای المنتور
-        remove_menu_page('elementor');
-        remove_menu_page('edit.php?post_type=elementor_library');
-        remove_menu_page('hello-elementor');
+        sc_safe_remove_menu_page('elementor');
+        sc_safe_remove_menu_page('edit.php?post_type=elementor_library');
+        sc_safe_remove_menu_page('hello-elementor');
         
         // حذف منوهای ووکامرس
-        remove_menu_page('woocommerce');
-        remove_menu_page('wc-admin');
-        remove_menu_page('edit.php?post_type=product');
-        remove_menu_page('edit.php?post_type=shop_coupon');
-        remove_menu_page('wc-settings');
+        sc_safe_remove_menu_page('woocommerce');
+        sc_safe_remove_menu_page('wc-admin');
+        sc_safe_remove_menu_page('edit.php?post_type=product');
+        sc_safe_remove_menu_page('edit.php?post_type=shop_coupon');
+        sc_safe_remove_menu_page('wc-settings');
         
         // حذف منوهای افزونه
-        remove_menu_page('sc-dashboard');
-        remove_menu_page('sc-members');
-        remove_menu_page('sc-courses');
-        remove_menu_page('sc-coaches');
-        remove_menu_page('sc-events');
-        remove_menu_page('sc-invoices');
-        remove_menu_page('sc-reports');
-        remove_menu_page('sc_setting');
+        sc_safe_remove_menu_page('sc-dashboard');
+        sc_safe_remove_menu_page('sc-members');
+        sc_safe_remove_menu_page('sc-courses');
+        sc_safe_remove_menu_page('sc-coaches');
+        sc_safe_remove_menu_page('sc-events');
+        sc_safe_remove_menu_page('sc-invoices');
+        sc_safe_remove_menu_page('sc-reports');
+        sc_safe_remove_menu_page('sc_setting');
         
         return;
     }
@@ -1004,10 +1028,10 @@ add_action('admin_init', 'close_acsses_shop');
 function close_acsses_shop(){
 
 if ((!function_exists('sc_is_pro_feature_shop_enabled') || !sc_is_pro_feature_shop_enabled()) && !current_user_can('administrator')) {
-    remove_menu_page('wc-admin');
-    remove_menu_page('edit.php?post_type=product');
-    remove_menu_page('edit.php?post_type=shop_coupon');
-    remove_menu_page('wc-settings');
+    sc_safe_remove_menu_page('wc-admin');
+    sc_safe_remove_menu_page('edit.php?post_type=product');
+    sc_safe_remove_menu_page('edit.php?post_type=shop_coupon');
+    sc_safe_remove_menu_page('wc-settings');
 
 
 }

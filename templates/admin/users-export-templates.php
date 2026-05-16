@@ -10,6 +10,10 @@ $field_labels = sc_users_export_get_field_labels();
 $templates = sc_users_export_get_saved_templates();
 $notice = '';
 
+global $wpdb;
+$events_table = $wpdb->prefix . 'sc_events';
+$export_events = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') AND is_active = 1 ORDER BY name");
+
 if (isset($_POST['sc_save_export_templates'])) {
     check_admin_referer('sc_save_export_templates_nonce');
     $posted_templates = isset($_POST['templates']) && is_array($_POST['templates']) ? $_POST['templates'] : [];
@@ -40,6 +44,12 @@ if (isset($_POST['sc_save_export_templates'])) {
     <form method="post" id="sc-export-templates-form">
         <?php wp_nonce_field('sc_save_export_templates_nonce'); ?>
         <div id="sc-template-field-labels" data-fields="<?php echo esc_attr(wp_json_encode($field_labels)); ?>"></div>
+        <input type="hidden" id="sc-template-event-fields-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_users_export_get_event_fields')); ?>">
+        <script type="application/json" id="sc-export-events-data"><?php
+        echo wp_json_encode(array_map(static function ($ev) {
+            return ['id' => (int) $ev->id, 'name' => (string) $ev->name];
+        }, $export_events), JSON_UNESCAPED_UNICODE);
+        ?></script>
         <?php $first_template_key = !empty($templates) ? array_key_first($templates) : ''; ?>
         <div class="sc-template-manager-grid">
             <div class="sc-users-export-card sc-templates-list-card">
@@ -74,7 +84,16 @@ if (isset($_POST['sc_save_export_templates'])) {
                             ];
                         }
                         ?>
-                        <div class="sc-template-item<?php echo $template['key'] === $first_template_key ? ' is-active' : ''; ?>" data-template-key="<?php echo esc_attr($template['key']); ?>">
+                        <?php
+                        $tpl_event_labels_attr = [];
+                        if (!empty($template['event_id']) && (int) $template['event_id'] > 0) {
+                            $tpl_event_labels_attr = array_merge(
+                                ['registration_type' => 'نوع ثبت‌نام'],
+                                sc_users_export_get_event_field_labels([(int) $template['event_id']])
+                            );
+                        }
+                        ?>
+                        <div class="sc-template-item<?php echo $template['key'] === $first_template_key ? ' is-active' : ''; ?>" data-template-key="<?php echo esc_attr($template['key']); ?>"<?php echo !empty($tpl_event_labels_attr) ? ' data-event-field-labels="' . esc_attr(wp_json_encode($tpl_event_labels_attr, JSON_UNESCAPED_UNICODE)) . '"' : ''; ?>>
                             <h2><?php echo esc_html($template['title']); ?> <small>(<?php echo esc_html($template['key']); ?>)</small></h2>
                             <input type="hidden" name="templates[<?php echo esc_attr($template['key']); ?>][key]" value="<?php echo esc_attr($template['key']); ?>">
                             <div class="sc-row">
@@ -84,6 +103,30 @@ if (isset($_POST['sc_save_export_templates'])) {
                             <div class="sc-row">
                                 <label>توضیحات</label>
                                 <textarea name="templates[<?php echo esc_attr($template['key']); ?>][description]" rows="3"><?php echo esc_textarea($template['description']); ?></textarea>
+                            </div>
+                            <?php
+                            $tpl_is_event = !empty($template['is_event_template']);
+                            $tpl_event_id = isset($template['event_id']) ? (int) $template['event_id'] : 0;
+                            ?>
+                            <div class="sc-row">
+                                <label class="sc-inline-check">
+                                    <input type="checkbox" class="sc-is-event-template" name="templates[<?php echo esc_attr($template['key']); ?>][is_event_template]" value="1" <?php checked($tpl_is_event); ?>>
+                                    قالب مخصوص رویداد
+                                </label>
+                            </div>
+                            <div class="sc-row sc-template-event-select-row" style="<?php echo $tpl_is_event ? '' : 'display:none;'; ?>">
+                                <label for="sc-template-event-<?php echo esc_attr($template['key']); ?>">رویداد</label>
+                                <select
+                                    id="sc-template-event-<?php echo esc_attr($template['key']); ?>"
+                                    class="sc-template-event-id sc-template-event-select"
+                                    name="templates[<?php echo esc_attr($template['key']); ?>][event_id]"
+                                    size="7"
+                                >
+                                    <option value="">انتخاب رویداد</option>
+                                    <?php foreach ($export_events as $ev) : ?>
+                                        <option value="<?php echo (int) $ev->id; ?>" <?php selected($tpl_event_id, (int) $ev->id); ?>><?php echo esc_html($ev->name); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <div class="sc-row">
                                 <label>اندازه صفحه</label>
@@ -153,13 +196,42 @@ if (isset($_POST['sc_save_export_templates'])) {
                                 <label>متن اضافی زیر کارت</label>
                                 <textarea name="templates[<?php echo esc_attr($template['key']); ?>][card_footer_text]" rows="3" placeholder="متن دلخواه برای نمایش پایین هر کارت"><?php echo esc_textarea($template['card_footer_text'] ?? ''); ?></textarea>
                             </div>
-                            <div class="sc-fields-grid">
+                            <?php
+                            $template_field_labels = $field_labels;
+                            if ($tpl_event_id > 0) {
+                                $template_field_labels['registration_type'] = 'نوع ثبت‌نام';
+                                $template_field_labels = array_merge($template_field_labels, sc_users_export_get_event_field_labels([$tpl_event_id]));
+                            }
+                            $tpl_selected_fields = (array) ($template['fields'] ?? []);
+                            ?>
+                            <div class="sc-fields-grid sc-template-base-fields">
                                 <?php foreach ($field_labels as $field_key => $field_label) : ?>
                                     <label class="sc-inline-check">
-                                        <input type="checkbox" name="templates[<?php echo esc_attr($template['key']); ?>][fields][]" value="<?php echo esc_attr($field_key); ?>" <?php checked(in_array($field_key, (array) ($template['fields'] ?? []), true)); ?>>
+                                        <input type="checkbox" name="templates[<?php echo esc_attr($template['key']); ?>][fields][]" value="<?php echo esc_attr($field_key); ?>" <?php checked(in_array($field_key, $tpl_selected_fields, true)); ?>>
                                         <?php echo esc_html($field_label); ?>
                                     </label>
                                 <?php endforeach; ?>
+                            </div>
+                            <?php
+                            $event_only_labels = ['registration_type' => 'نوع ثبت‌نام'];
+                            if ($tpl_event_id > 0) {
+                                $event_only_labels = array_merge($event_only_labels, sc_users_export_get_event_field_labels([$tpl_event_id]));
+                            }
+                            ?>
+                            <div class="sc-fields-grid sc-template-event-fields-grid" style="<?php echo $tpl_event_id > 0 ? '' : 'display:none;'; ?>" data-event-field-labels="<?php echo esc_attr(wp_json_encode($event_only_labels, JSON_UNESCAPED_UNICODE)); ?>">
+                                <?php if ($tpl_event_id > 0) : ?>
+                                    <h4 class="sc-event-fields-heading">فیلدهای اختصاصی رویداد</h4>
+                                    <label class="sc-inline-check">
+                                        <input type="checkbox" name="templates[<?php echo esc_attr($template['key']); ?>][fields][]" value="registration_type" <?php checked(in_array('registration_type', $tpl_selected_fields, true)); ?>>
+                                        نوع ثبت‌نام
+                                    </label>
+                                    <?php foreach (sc_users_export_get_event_field_labels([$tpl_event_id]) as $field_key => $field_label) : ?>
+                                        <label class="sc-inline-check sc-event-field-check">
+                                            <input type="checkbox" name="templates[<?php echo esc_attr($template['key']); ?>][fields][]" value="<?php echo esc_attr($field_key); ?>" <?php checked(in_array($field_key, $tpl_selected_fields, true)); ?>>
+                                            <?php echo esc_html($field_label); ?>
+                                        </label>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
                             <div class="sc-template-layout-builder" data-template="<?php echo esc_attr($template['key']); ?>">
                                 <h3>چیدمان گرافیکی فیلدها</h3>
@@ -173,11 +245,11 @@ if (isset($_POST['sc_save_export_templates'])) {
                                             <h4>ستون <?php echo (int) $i; ?></h4>
                                             <div class="sc-layout-dropzone" data-column="<?php echo esc_attr($col_key); ?>">
                                                 <?php foreach ($col_fields as $field_key) :
-                                                    if (!isset($field_labels[$field_key])) {
+                                                    if (!isset($template_field_labels[$field_key])) {
                                                         continue;
                                                     }
                                                     ?>
-                                                    <div class="sc-layout-chip" draggable="true" data-field="<?php echo esc_attr($field_key); ?>"><?php echo esc_html($field_labels[$field_key]); ?></div>
+                                                    <div class="sc-layout-chip" draggable="true" data-field="<?php echo esc_attr($field_key); ?>"><?php echo esc_html($template_field_labels[$field_key]); ?></div>
                                                     <input type="hidden" name="templates[<?php echo esc_attr($template['key']); ?>][layout][columns][<?php echo esc_attr($col_key); ?>][]" value="<?php echo esc_attr($field_key); ?>">
                                                 <?php endforeach; ?>
                                             </div>

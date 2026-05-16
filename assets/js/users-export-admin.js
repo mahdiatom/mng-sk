@@ -199,8 +199,12 @@ jQuery(function ($) {
 
         $(document).off('change.scUsersPreviewMember').on('change.scUsersPreviewMember', '.sc-users-preview-member-check', function () {
             var id = parseInt($(this).attr('data-member-id'), 10);
+            var isGuest = $(this).attr('data-is-guest') === '1';
             var label = $(this).attr('data-member-label') || ('کاربر #' + id);
-            if (!id) {
+            if (!id && !isGuest) {
+                return;
+            }
+            if (isGuest) {
                 return;
             }
             if ($(this).is(':checked')) {
@@ -479,16 +483,61 @@ jQuery(function ($) {
         }
     }
 
+    function loadEventFieldsForExport(eventIds, selectedFields) {
+        var $grid = $('#sc-event-fields-grid');
+        if (!$grid.length) {
+            return;
+        }
+        if (!eventIds || !eventIds.length) {
+            $grid.empty();
+            return;
+        }
+        $.post((typeof ajaxurl !== 'undefined' ? ajaxurl : ''), {
+            action: 'sc_users_export_get_event_fields',
+            nonce: $('#sc-event-fields-nonce').val() || '',
+            event_ids: eventIds
+        }).done(function (res) {
+            if (!res || !res.success) {
+                return;
+            }
+            $grid.html(res.data.html || '');
+            if (Array.isArray(selectedFields)) {
+                selectedFields.forEach(function (fieldKey) {
+                    $grid.find('input[name="fields[]"][value="' + fieldKey + '"]').prop('checked', true);
+                });
+            }
+            enforceFormatRules();
+            updatePreview();
+        });
+    }
+
+    function getSelectedEventIds() {
+        var ids = [];
+        $('#sc-event-ids option:selected').each(function () {
+            var val = parseInt($(this).val(), 10);
+            if (val) {
+                ids.push(val);
+            }
+        });
+        return ids;
+    }
+
     function applyTemplateToForm(template) {
         currentTemplate = template || null;
         if (!template) {
             updatePreview();
             return;
         }
+        if (template.is_event_template && template.event_id) {
+            $('#sc-target-type').val('event');
+            toggleFilterBlocks();
+            $('#sc-event-ids').val([String(template.event_id)]);
+            loadEventFieldsForExport([parseInt(template.event_id, 10)], template.fields || []);
+        }
         if (!$('#sc-override-template-fields').is(':checked') && Array.isArray(template.fields)) {
             $('input[name="fields[]"]').prop('checked', false);
             template.fields.forEach(function (fieldKey) {
-                $('input[name="fields[]"][value="' + fieldKey + '"]').prop('checked', true);
+                $('#sc-fields-grid input[name="fields[]"][value="' + fieldKey + '"], #sc-event-fields-grid input[name="fields[]"][value="' + fieldKey + '"]').prop('checked', true);
             });
         }
         if (template.page_size) {
@@ -501,7 +550,19 @@ jQuery(function ($) {
         enforceFormatRules();
     }
 
-        $('#sc-target-type').on('change', toggleFilterBlocks);
+        $('#sc-target-type').on('change', function () {
+            toggleFilterBlocks();
+            if ($('#sc-target-type').val() === 'event') {
+                loadEventFieldsForExport(getSelectedEventIds(), null);
+            } else {
+                $('#sc-event-fields-grid').empty();
+            }
+        });
+        $('#sc-event-ids').on('change', function () {
+            if ($('#sc-target-type').val() === 'event') {
+                loadEventFieldsForExport(getSelectedEventIds(), null);
+            }
+        });
         $('#sc-target-type, #sc-member-type, #sc-course-ids, #sc-event-ids, #sc-team-names, #sc-level-names').on('change', function () {
             usersPreviewLoaded = false;
             certificatesPreviewLoaded = false;
@@ -596,10 +657,75 @@ jQuery(function ($) {
     if ($templatesContainer.length) {
         var fieldLabelsRaw = $('#sc-template-field-labels').attr('data-fields') || '{}';
         var fieldLabels = {};
+        var exportEvents = [];
         try {
             fieldLabels = JSON.parse(fieldLabelsRaw);
         } catch (e) {
             fieldLabels = {};
+        }
+        try {
+            exportEvents = JSON.parse($('#sc-export-events-data').text() || '[]');
+        } catch (e) {
+            exportEvents = [];
+        }
+
+        function getTemplateFieldLabels($templateItem) {
+            var labels = $.extend({}, fieldLabels);
+            var eventLabelsRaw = $templateItem.attr('data-event-field-labels');
+            if (eventLabelsRaw) {
+                try {
+                    $.extend(labels, JSON.parse(eventLabelsRaw));
+                } catch (err) {
+                    // ignore
+                }
+            }
+            return labels;
+        }
+
+        function isEventSpecificField(fieldKey) {
+            return fieldKey === 'registration_type' || (fieldKey && fieldKey.indexOf('event_field_') === 0);
+        }
+
+        function clearEventLayoutChips($templateItem) {
+            $templateItem.find('.sc-layout-chip').each(function () {
+                var fieldKey = $(this).attr('data-field');
+                if (!isEventSpecificField(fieldKey)) {
+                    return;
+                }
+                $(this).next('input[type="hidden"]').remove();
+                $(this).remove();
+            });
+            syncDropzoneInputs($templateItem);
+        }
+
+        function getSelectedTemplateFields($templateItem) {
+            var selected = [];
+            $templateItem.find('.sc-template-base-fields input[type="checkbox"]:checked, .sc-template-event-fields-grid input[type="checkbox"]:checked').each(function () {
+                selected.push($(this).val());
+            });
+            return selected;
+        }
+
+        function buildTemplateEventFieldsHtml(templateKey, eventLabels, selectedFields) {
+            var html = '<h4 class="sc-event-fields-heading">فیلدهای اختصاصی رویداد</h4>';
+            var labels = $.extend({ registration_type: 'نوع ثبت‌نام' }, eventLabels || {});
+            Object.keys(labels).forEach(function (fieldKey) {
+                var checked = selectedFields.indexOf(fieldKey) !== -1 ? ' checked' : '';
+                html += '<label class="sc-inline-check sc-event-field-check">';
+                html += '<input type="checkbox" name="templates[' + templateKey + '][fields][]" value="' + fieldKey + '"' + checked + '> ';
+                html += labels[fieldKey];
+                html += '</label>';
+            });
+            return html;
+        }
+
+        function buildEventSelectHtml(selectedId) {
+            var html = '<option value="">انتخاب رویداد</option>';
+            exportEvents.forEach(function (ev) {
+                var selected = parseInt(selectedId, 10) === parseInt(ev.id, 10) ? ' selected' : '';
+                html += '<option value="' + ev.id + '"' + selected + '>' + ev.name + '</option>';
+            });
+            return html;
         }
 
         function syncDropzoneInputs($templateItem) {
@@ -620,10 +746,11 @@ jQuery(function ($) {
         }
 
         function ensureChipInFirstColumn($templateItem, fieldKey) {
+            var labels = getTemplateFieldLabels($templateItem);
             var $first = $templateItem.find('.sc-layout-dropzone').first();
             var exists = $templateItem.find('.sc-layout-chip[data-field="' + fieldKey + '"]').length > 0;
             if (!exists) {
-                $first.append('<div class="sc-layout-chip" draggable="true" data-field="' + fieldKey + '">' + (fieldLabels[fieldKey] || fieldKey) + '</div>');
+                $first.append('<div class="sc-layout-chip" draggable="true" data-field="' + fieldKey + '">' + (labels[fieldKey] || fieldKey) + '</div>');
             }
             syncDropzoneInputs($templateItem);
         }
@@ -697,6 +824,7 @@ jQuery(function ($) {
         }
 
         function rebalanceLayoutColumns($templateItem, columnsCount) {
+            var labels = getTemplateFieldLabels($templateItem);
             var chips = [];
             $templateItem.find('.sc-layout-chip').each(function () {
                 chips.push($(this).attr('data-field'));
@@ -707,7 +835,7 @@ jQuery(function ($) {
             chips.forEach(function (fieldKey, idx) {
                 var target = (idx % columnsCount) + 1;
                 $columnsWrap.find('.sc-layout-dropzone[data-column="column_' + target + '"]')
-                    .append('<div class="sc-layout-chip" draggable="true" data-field="' + fieldKey + '">' + (fieldLabels[fieldKey] || fieldKey) + '</div>');
+                    .append('<div class="sc-layout-chip" draggable="true" data-field="' + fieldKey + '">' + (labels[fieldKey] || fieldKey) + '</div>');
             });
             syncDropzoneInputs($templateItem);
         }
@@ -762,6 +890,8 @@ jQuery(function ($) {
                 '  <input type="hidden" name="templates[' + templateKey + '][key]" value="' + templateKey + '">' +
                 '  <div class="sc-row"><label>عنوان قالب</label><input type="text" class="sc-template-title-input" name="templates[' + templateKey + '][title]" value="قالب جدید"></div>' +
                 '  <div class="sc-row"><label>توضیحات</label><textarea name="templates[' + templateKey + '][description]" rows="3"></textarea></div>' +
+                '  <div class="sc-row"><label class="sc-inline-check"><input type="checkbox" class="sc-is-event-template" name="templates[' + templateKey + '][is_event_template]" value="1"> قالب مخصوص رویداد</label></div>' +
+                '  <div class="sc-row sc-template-event-select-row" style="display:none;"><label>رویداد</label><select class="sc-template-event-id sc-template-event-select" name="templates[' + templateKey + '][event_id]" size="7">' + buildEventSelectHtml('') + '</select></div>' +
                 '  <div class="sc-row"><label>اندازه صفحه</label><select name="templates[' + templateKey + '][page_size]"><option value="A4">A4</option><option value="A5">A5</option></select></div>' +
                 '  <div class="sc-row"><label>تعداد کارت در صفحه</label><select name="templates[' + templateKey + '][cards_per_page]"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div>' +
                 '  <div class="sc-row"><label>تعداد ستون خروجی</label><select name="templates[' + templateKey + '][columns_count]"><option value="1">1 ستونه</option><option value="2" selected>2 ستونه</option><option value="3">3 ستونه</option><option value="4">4 ستونه</option></select></div>' +
@@ -772,7 +902,8 @@ jQuery(function ($) {
                 '  <div class="sc-row"><label>فونت خروجی</label><select name="templates[' + templateKey + '][content_font_family]"><option value="IRANYekanXFaNum" selected>IRANYekanXFaNum</option><option value="Vazir">Vazir</option><option value="Shabnam">Shabnam</option><option value="Morabba">Morabba</option><option value="Tahoma">Tahoma</option><option value="Arial">Arial</option></select></div>' +
                 '  <div class="sc-row"><label class="sc-inline-check"><input type="checkbox" name="templates[' + templateKey + '][image_only_mode]" value="1"> خروجی فقط عکس باشد (تمام عرض، زیر هم، بک‌گراند شفاف)</label></div>' +
                 '  <div class="sc-row"><label>متن اضافی زیر کارت</label><textarea name="templates[' + templateKey + '][card_footer_text]" rows="3" placeholder="متن دلخواه برای نمایش پایین هر کارت"></textarea></div>' +
-                '  <div class="sc-fields-grid">' + fieldsHtml + '</div>' +
+                '  <div class="sc-fields-grid sc-template-base-fields">' + fieldsHtml + '</div>' +
+                '  <div class="sc-fields-grid sc-template-event-fields-grid" style="display:none;"></div>' +
                 '  <div class="sc-template-layout-builder" data-template="' + templateKey + '">' +
                 '    <h3>چیدمان گرافیکی فیلدها</h3>' +
                 '    <p class="description">فیلدها را با Drag & Drop بین ستون‌ها جابه‌جا کنید.</p>' +
@@ -843,6 +974,89 @@ jQuery(function ($) {
                 }
             });
             frame.open();
+        });
+
+        function loadTemplateEventFields($templateItem, eventId, keepSelected) {
+            var $grid = $templateItem.find('.sc-template-event-fields-grid');
+            var templateKey = $templateItem.attr('data-template-key');
+            if (!eventId) {
+                $templateItem.attr('data-event-field-labels', '{}');
+                $grid.hide().empty();
+                clearEventLayoutChips($templateItem);
+                return;
+            }
+            var selectedBefore = keepSelected ? getSelectedTemplateFields($templateItem) : [];
+            clearEventLayoutChips($templateItem);
+            $.post((typeof ajaxurl !== 'undefined' ? ajaxurl : ''), {
+                action: 'sc_users_export_get_event_fields',
+                nonce: $('#sc-template-event-fields-nonce').val() || '',
+                event_ids: [eventId]
+            }).done(function (res) {
+                if (!res || !res.success) {
+                    return;
+                }
+                var eventLabels = res.data.labels || {};
+                $templateItem.attr('data-event-field-labels', JSON.stringify(eventLabels));
+                $grid.html(buildTemplateEventFieldsHtml(templateKey, eventLabels, selectedBefore)).show();
+                selectedBefore.forEach(function (fieldKey) {
+                    if (isEventSpecificField(fieldKey) && eventLabels[fieldKey]) {
+                        ensureChipInFirstColumn($templateItem, fieldKey);
+                    }
+                });
+                $templateItem.find('.sc-layout-chip').each(function () {
+                    var fieldKey = $(this).attr('data-field');
+                    var labels = getTemplateFieldLabels($templateItem);
+                    if (isEventSpecificField(fieldKey) && !labels[fieldKey]) {
+                        $(this).next('input[type="hidden"]').remove();
+                        $(this).remove();
+                    } else if (isEventSpecificField(fieldKey)) {
+                        $(this).text(labels[fieldKey] || fieldKey);
+                    }
+                });
+                syncDropzoneInputs($templateItem);
+            });
+        }
+
+        $templatesContainer.on('change', '.sc-is-event-template', function () {
+            var $templateItem = $(this).closest('.sc-template-item');
+            var checked = $(this).is(':checked');
+            $templateItem.find('.sc-template-event-select-row').toggle(checked);
+            if (!checked) {
+                $templateItem.find('.sc-template-event-id').val('');
+                $templateItem.attr('data-event-field-labels', '{}');
+                $templateItem.find('.sc-template-event-fields-grid').hide().empty();
+                clearEventLayoutChips($templateItem);
+            } else {
+                var eventId = parseInt($templateItem.find('.sc-template-event-id').val(), 10);
+                if (eventId) {
+                    loadTemplateEventFields($templateItem, eventId, true);
+                }
+            }
+        });
+
+        $templatesContainer.on('change', '.sc-template-event-id', function () {
+            var $templateItem = $(this).closest('.sc-template-item');
+            if (!$templateItem.find('.sc-is-event-template').is(':checked')) {
+                return;
+            }
+            var eventId = parseInt($(this).val(), 10);
+            loadTemplateEventFields($templateItem, eventId || 0, true);
+        });
+
+        $templatesContainer.find('.sc-template-item').each(function () {
+            var $item = $(this);
+            var $eventGrid = $item.find('.sc-template-event-fields-grid');
+            var gridLabels = $eventGrid.attr('data-event-field-labels');
+            if (gridLabels) {
+                $item.attr('data-event-field-labels', gridLabels);
+            }
+            if ($item.find('.sc-is-event-template').is(':checked')) {
+                $item.find('.sc-template-event-select-row').show();
+                var eventId = parseInt($item.find('.sc-template-event-id').val(), 10);
+                if (eventId && !$item.find('.sc-template-event-fields-grid .sc-event-field-check').length) {
+                    loadTemplateEventFields($item, eventId, true);
+                }
+            }
         });
     }
 });
