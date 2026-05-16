@@ -486,7 +486,8 @@ $total_pages = ceil($total_items / $per_page);
     <!-- فرم حذف دسته‌جمعی و جدول -->
     <form method="post" id="honors-form">
         <?php wp_nonce_field('bulk_delete_honors'); ?>
-        
+        <input type="hidden" name="bulk_apply" value="1"><?php // JS form.submit() sends no submit-button name ?>
+
         <div class="tablenav top">
             <div class="alignleft actions bulkactions">
                 <select name="bulk_action" id="bulk-action-selector">
@@ -495,7 +496,7 @@ $total_pages = ceil($total_items / $per_page);
                     <option value="reject">عدم تایید</option>
                     <option value="delete">حذف</option>
                 </select>
-                <input type="submit" name="bulk_apply" id="doaction" class="button action" value="اجرا">
+                <input type="submit" id="doaction" class="button action" value="اجرا">
             </div>
         </div>
             <div class="back_table_list">
