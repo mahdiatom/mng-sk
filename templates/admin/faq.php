@@ -183,7 +183,7 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
                         </table>
                         <p class="submit">
                             <input type="submit" name="edit_faq" class="button button-primary" value="ذخیره تغییرات">
-                            <a href="<?php echo esc_url(admin_url('admin.php?page=sc_faq')); ?>" class="button">انصراف</a>
+                            <a href="<?php echo esc_url(admin_url('admin.php?page=sc_faq')); ?>" class="sc_button">انصراف</a>
                         </p>
                     </form>
                 <?php else : ?>
@@ -254,7 +254,7 @@ $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
                                         ?>
                                         <a href="<?php echo esc_url($delete_url); ?>" 
                                            onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟' })" 
-                                           class="button button-small">حذف</a>
+                                           class="button button-small btn_delete_action_admin">حذف</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

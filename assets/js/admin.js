@@ -500,12 +500,12 @@ window.scInitCoursePackagesUI = function () {
     function makeRow() {
         return $(
             '<tr class="sc-course-package-row">' +
-                '<td><input type="number" min="1" class="regular-text sc-pkg-sessions-input" name="pkg_sessions[]" style="max-width:150px;"></td>' +
-                '<td>' +
-                    '<input type="text" class="regular-text sc-pkg-price-input" name="pkg_price[]" style="max-width:220px;" dir="ltr" inputmode="numeric">' +
+                '<td data-label="تعداد جلسه"><input type="number" min="1" class="regular-text sc-pkg-sessions-input sc-course-pkg-field" name="pkg_sessions[]"></td>' +
+                '<td data-label="قیمت (تومان)">' +
+                    '<input type="text" class="regular-text sc-pkg-price-input sc-course-pkg-field" name="pkg_price[]" dir="ltr" inputmode="numeric">' +
                     '<input type="hidden" class="sc-pkg-price-raw" name="pkg_price_raw[]" value="0">' +
                 '</td>' +
-                '<td><button type="button" class="button sc-remove-package-row">حذف</button></td>' +
+                '<td data-label=""><button type="button" class="button sc-remove-package-row">حذف</button></td>' +
             '</tr>'
         );
     }

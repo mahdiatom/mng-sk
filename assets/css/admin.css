@@ -73,6 +73,9 @@ a{
     padding: 20px;
     border-radius: 10px;
 }
+.woocommerce-embed-page .wrap {
+        margin: 20px !important;
+}
 input {
     height: 40px;
 }
@@ -1088,6 +1091,10 @@ tbody tr td{
 .sc_form-table{
     display: flex;
     
+}
+
+.sc-course-add-form tbody th{
+width: 100px;
 }
 
 
@@ -2980,4 +2987,346 @@ width: fit-content;
 .wrap_attendace_user{
     width: 50%;
     
+}
+
+/* افزودن / ویرایش دوره — دسکتاپ پیش‌فرض وردپرس، تبلت و موبایل جدا */
+.sc-course-add-wrap {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.sc-course-add-wrap .sc-course-price-field {
+    margin-bottom: 12px;
+}
+
+.sc-course-add-wrap .sc-course-price-field:last-child {
+    margin-bottom: 0;
+}
+
+/* جدول اصلی فرم: بدون table-layout:fixed تا ستون عنوان/فیلد مثل قبل بماند */
+.sc-course-add-wrap table.form-table.sc_form-table {
+    display: table !important;
+    width: 100%;
+    max-width: 100%;
+    table-layout: auto;
+}
+
+.sc-course-add-wrap .form-table.sc_form-table > tbody > tr > th,
+.sc-course-add-wrap .form-table.sc_form-table > tbody > tr > td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
+    vertical-align: top;
+}
+
+.sc-course-add-wrap .sc-table-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 8px;
+    box-sizing: border-box;
+}
+
+/* جدول پکیج — دسکتاپ/تبلت */
+.sc-course-add-wrap .sc-course-packages-table {
+    width: 100%;
+
+    table-layout: auto;
+    border-collapse: collapse;
+}
+
+.sc-course-package-row td{
+    padding: 10px 20px;
+}
+
+.sc-course-add-wrap .sc-course-packages-table .sc-pkg-col-sessions {
+    width: 22%;
+    padding-right: 10px;
+}
+
+.sc-course-add-wrap .sc-course-packages-table .sc-pkg-col-price {
+    width: 48%;
+}
+
+.sc-course-add-wrap .sc-course-packages-table .sc-pkg-col-actions {
+    width: 30%;
+    white-space: nowrap;
+}
+
+.sc-course-add-wrap .sc-course-packages-table input.sc-course-pkg-field {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.sc-course-add-wrap #course_type{
+    width: 100% !important;
+}
+
+@media screen and (min-width: 783px) {
+    .sc-course-add-wrap .sc-course-packages-table input.sc-course-pkg-field {
+        width: auto;
+        min-width: 7rem;
+    }
+
+    .sc-course-add-wrap .sc-table-scroll--schedule {
+        overflow-x: visible;
+    }
+}
+
+
+
+/* عرض سلکت فرم اصلی: فقط دسکتاپ عریض (تبلت در بلوک زیر ۱۰۰٪ می‌شود) */
+@media screen and (min-width: 961px) {
+    .sc-course-add-wrap .form-table.sc_form-table td select.regular-text {
+        width: auto !important;
+        max-width: 100% !important;
+        min-width: 12em;
+    }
+}
+
+/* جدول برنامه هفتگی — دسکتاپ */
+.sc-course-add-wrap .sc-course-schedule-table {
+    width: 100%;
+    max-width: 920px;
+    table-layout: auto;
+    border-collapse: collapse;
+}
+
+.sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-days {
+    min-width: 320px;
+    padding-right: 10px;
+}
+
+.sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-time {
+    width: 7.5rem;
+    white-space: nowrap;
+}
+
+.sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-actions {
+    width: 5rem;
+    white-space: nowrap;
+}
+
+.sc-course-add-wrap .sc-csched-wd-cell {
+    line-height: 1.6;
+    padding-right: 10px;
+}
+
+.sc-course-add-wrap .sc-csched-wd-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    align-items: center;
+}
+
+.sc-course-add-wrap .sc-csched-wd-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.sc-course-add-wrap .sc-csched-time-input {
+    box-sizing: border-box;
+}
+
+/* تبلت: فیلدهای تک‌ستونهٔ فرم اصلی تمام‌عرض سلول؛ جداول توکار بدون فشرده‌شدن اجباری */
+@media screen and (max-width: 960px) and (min-width: 783px) {
+    .sc-course-add-wrap .form-table.sc_form-table td .sc-input-full-width,
+    .sc-course-add-wrap .form-table.sc_form-table td input.sc-input-full-width,
+    .sc-course-add-wrap .form-table.sc_form-table td textarea.large-text,
+    .sc-course-add-wrap .form-table.sc_form-table td select.regular-text {
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr > td > input.regular-text:not([type="checkbox"]):not([type="radio"]),
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr > td > input[type="number"] {
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr > td .sc-course-price-field input {
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .sc-course-add-wrap .sc-course-packages-table input.sc-course-pkg-field {
+        width: 100%;
+    }
+
+    .sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-days {
+        min-width: 260px;
+    }
+}
+
+@media screen and (max-width: 782px) {
+    .sc-course-add-wrap .form-table.sc_form-table td .sc-input-full-width,
+    .sc-course-add-wrap .form-table.sc_form-table td input.sc-input-full-width,
+    .sc-course-add-wrap .form-table.sc_form-table td textarea.large-text,
+    .sc-course-add-wrap .form-table.sc_form-table td select.regular-text {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr > td > input.regular-text:not([type="checkbox"]):not([type="radio"]),
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr > td > input[type="number"],
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr > td > textarea,
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr > td .sc-course-price-field input {
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr {
+        display: block;
+        width: 100%;
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #dcdcde;
+    }
+
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr > th,
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr > td {
+        display: block;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding: 8px 0;
+    }
+
+    .sc-course-add-wrap .form-table.sc_form-table > tbody > tr > th {
+        font-weight: 600;
+        padding-bottom: 2px;
+    }
+
+    .sc-course-add-wrap .sc-course-packages-table thead {
+        display: none;
+    }
+
+    .sc-course-add-wrap .sc-course-packages-table tbody tr.sc-course-package-row {
+        display: block;
+        margin-bottom: 14px;
+        padding: 12px;
+        border: 1px solid #c3c4c7;
+        border-radius: 6px;
+        background: #f6f7f7;
+    }
+
+    .sc-course-add-wrap .sc-course-packages-table tbody tr.sc-course-package-row td {
+        display: block;
+        width: 100% !important;
+        padding: 8px 0;
+        border: none;
+        box-sizing: border-box;
+    }
+
+    .sc-course-add-wrap .sc-course-packages-table tbody tr.sc-course-package-row td:before {
+        content: attr(data-label);
+        display: block;
+        font-weight: 600;
+        font-size: 12px;
+        color: #50575e;
+        margin-bottom: 4px;
+    }
+
+    .sc-course-add-wrap .sc-course-packages-table tbody tr.sc-course-package-row td[data-label=""]:before {
+        display: none;
+    }
+
+    .sc-course-add-wrap .sc-course-packages-table input.sc-course-pkg-field {
+        width: 100%;
+    }
+
+    /* برنامه هفتگی: هر ردیف = کارت؛ بدون اسکرول افقی */
+    .sc-course-add-wrap .sc-table-scroll--schedule {
+        overflow-x: visible;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .sc-course-add-wrap .sc-course-schedule-table {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .sc-course-add-wrap .sc-course-schedule-table thead {
+        display: none;
+    }
+
+    .sc-course-add-wrap .sc-course-schedule-table tbody tr.sc-csched-row {
+        display: block;
+        margin-bottom: 16px;
+        padding: 12px 12px 8px;
+        border: 1px solid #c3c4c7;
+        border-radius: 8px;
+        background: #f6f7f7;
+    }
+
+    .sc-course-add-wrap .sc-course-schedule-table tbody tr.sc-csched-row td {
+        display: block;
+        width: 100% !important;
+        padding: 8px 0;
+        border: none;
+        box-sizing: border-box;
+    }
+
+    .sc-course-add-wrap .sc-course-schedule-table tbody tr.sc-csched-row td:before {
+        content: attr(data-label);
+        display: block;
+        font-weight: 600;
+        font-size: 12px;
+        color: #50575e;
+        margin-bottom: 6px;
+    }
+
+    .sc-course-add-wrap .sc-course-schedule-table tbody tr.sc-csched-row td[data-label=""]:before {
+        display: none;
+    }
+
+    .sc-course-add-wrap .sc-csched-wd-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 10px;
+    }
+
+    .sc-course-add-wrap .sc-csched-wd-label {
+        white-space: normal;
+        margin: 0;
+    }
+
+    .sc-course-add-wrap .sc-csched-time-input {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .sc-course-add-wrap .sc-course-schedule-table .sc-csched-actions-cell .button {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        padding-right:10px ;
+    }
+}
+
+.sc-player-custom-field-item{
+    margin:0 0 12px;padding:12px;border:1px solid #dcdcde;border-radius:6px;background:#fff;
+}
+
+.sc-player-custom-field-item .session_portocol{
+        display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
 }

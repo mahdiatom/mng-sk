@@ -2716,8 +2716,8 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <p class="description">نوع‌های مجاز: متن، عکس و چندانتخابی</p>
                 <div id="sc-player-custom-fields-container">
                     <?php foreach ($player_custom_fields as $idx => $custom_field) : ?>
-                        <div class="sc-player-custom-field-item" style="margin:0 0 12px;padding:12px;border:1px solid #dcdcde;border-radius:6px;background:#fff;">
-                            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                        <div class="sc-player-custom-field-item" >
+                            <div class="session_portocol">
                                 <input type="text" name="player_custom_fields[<?php echo (int) $idx; ?>][label]" value="<?php echo esc_attr($custom_field['label'] ?? ''); ?>" placeholder="عنوان فیلد" style="min-width:180px;">
                                 <input type="text" name="player_custom_fields[<?php echo (int) $idx; ?>][key]" value="<?php echo esc_attr($custom_field['key'] ?? ''); ?>" placeholder="کلید انگلیسی (اختیاری)" style="min-width:180px;" dir="ltr">
                                 <select name="player_custom_fields[<?php echo (int) $idx; ?>][section]">

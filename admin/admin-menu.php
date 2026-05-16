@@ -881,6 +881,20 @@ function sc_register_admin_menu() {
         'manage_options',
         'admin.php?page=sc_setting&tab=about'
     );
+    add_submenu_page(
+        'sc_setting',
+        'هدر و فوتر',
+        'هدر و فوتر',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=header_footer'
+    );
+    add_submenu_page(
+        'sc_setting',
+        'اطلاعات بازیکن',
+        'اطلاعات بازیکن',
+        'manage_options',
+        'admin.php?page=sc_setting&tab=player_info'
+    );
 
     add_submenu_page(
         'sc_setting',

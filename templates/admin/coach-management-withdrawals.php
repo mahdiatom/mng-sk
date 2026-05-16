@@ -362,18 +362,18 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
                                 <button type="button" class="button button-primary button-small sc-approve-btn"
                                         data-request-id="<?php echo $request->id; ?>"
                                         data-nonce="<?php echo esc_attr(wp_create_nonce('approve_withdrawal_' . $request->id)); ?>"
-                                        style="margin-left: 10px;">تایید</button>
+                                        style="margin-left: 10px; width:50px;">تایید</button>
                                 
                                 <button type="button" class="button button-small reject-btn"
                                         data-request-id="<?php echo $request->id; ?>"
-                                        style="margin-right: 10px;">رد</button>
+                                        style="width:50px;">رد</button>
                                         </div>
                             <?php elseif ($request->status === 'approved'): ?>
                                 <!-- برای تایید شده: فقط امکان پرداخت -->
                                 <button type="button" class="button button-small sc-mark-paid-btn"
                                         data-request-id="<?php echo $request->id; ?>"
                                         data-nonce="<?php echo esc_attr(wp_create_nonce('mark_paid_withdrawal_' . $request->id)); ?>"
-                                        style="margin-right: 10px;">پرداخت شده</button>
+                                        style="margin-right: 10px; width:100px;">پرداخت شده</button>
                             <?php else: ?>
                                 <!-- سایر وضعیت‌ها: بدون عملیات تکی -->
                                 <span style="color: #999;">-</span>
@@ -417,7 +417,7 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
 <!-- پس‌زمینه مودال -->
 <div id="reject-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100049;"></div>
 <!-- مودال رد درخواست (تکی و دسته‌جمعی) -->
-<div id="reject-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px 24px; border-radius: 10px; z-index: 100050; box-shadow: 0 12px 30px rgba(0,0,0,0.25); min-width: 420px; max-width: 520px;">
+<div id="reject-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px 24px; border-radius: 10px; z-index: 100050; box-shadow: 0 12px 30px rgba(0,0,0,0.25); min-width: 300px; max-width: 520px;">
     <h3 id="reject-modal-title" style="margin-top: 0; margin-bottom: 10px; font-size: 18px;">رد درخواست برداشت</h3>
     <p style="margin-top: 0; margin-bottom: 15px; font-size: 13px; color: #555;">
         لطفاً دلیل رد این درخواست را به‌صورت واضح وارد کنید تا در سوابق و برای مربی قابل مشاهده باشد.
@@ -457,7 +457,7 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
 </div>
 
 <!-- مودال ثبت اطلاعات پرداخت -->
-<div id="mark-paid-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px 24px; border-radius: 10px; z-index: 100051; box-shadow: 0 12px 30px rgba(0,0,0,0.25); min-width: 420px; max-width: 520px;">
+<div id="mark-paid-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px 24px; border-radius: 10px; z-index: 100051; box-shadow: 0 12px 30px rgba(0,0,0,0.25); min-width: 300px; max-width: 520px;">
     <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 18px;">ثبت اطلاعات پرداخت</h3>
     <p style="margin-top: 0; margin-bottom: 15px; font-size: 13px; color: #555;">
         این درخواست به عنوان پرداخت شده علامت‌گذاری می‌شود. لطفاً اطلاعات پرداخت (مثل شماره پیگیری، روش پرداخت یا توضیحات تکمیلی) را وارد کنید.

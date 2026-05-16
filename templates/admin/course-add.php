@@ -67,8 +67,8 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
     }
     ?>
     </div>
-<div class="wrap"> 
-    <form action="" method="POST">
+<div class="wrap sc-course-add-wrap">
+    <form action="" method="POST" class="sc-course-add-form" >
         <table class="form-table sc_form-table">
             <tbody>
                 <tr>
@@ -117,26 +117,24 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                         $price_display = is_numeric($price_display) ? floatval($price_display) : 0;
                         $price_per_session_display = is_numeric($price_per_session) ? floatval($price_per_session) : 0;
                         ?>
-                        <div style="margin-bottom: 10px;">
+                        <div class="sc-course-price-field">
                             <input type="text" 
                                    name="price" 
                                    id="price" 
                                    value="<?php echo $price_display > 0 ? number_format($price_display, 0, '.', ',') : ''; ?>" 
-                                   class="regular-text" 
+                                   class="regular-text sc-input-full-width" 
                                    placeholder="قیمت کل دوره"
-                                   style="width: 300px;"
                                    dir="ltr"
                                    inputmode="numeric">
                             <p class="description" style="margin-top: 5px;">مبلغ کل دوره به تومان</p>
                         </div>
-                        <div>
+                        <div class="sc-course-price-field">
                             <input type="text" 
                                    name="price_per_session" 
                                    id="price_per_session" 
                                    value="<?php echo $price_per_session_display > 0 ? number_format($price_per_session_display, 0, '.', ',') : ''; ?>" 
-                                   class="regular-text" 
+                                   class="regular-text sc-input-full-width" 
                                    placeholder="قیمت هر جلسه"
-                                   style="width: 300px;"
                                    dir="ltr"
                                    inputmode="numeric">
                             <p class="description" style="margin-top: 5px;">مبلغ هر جلسه به تومان (اختیاری)</p>
@@ -170,26 +168,27 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                             <p class="description" style="margin-bottom:10px;">
                                 حالت حرفه‌ای: برای هر تعداد جلسه یک قیمت تعیین کن. در صورت داشتن حداقل یک پکیج، قیمت و تعداد جلسه حالت ساده در ثبت‌نام نادیده گرفته می‌شود.
                             </p>
-                            <table class="widefat striped" style="max-width:760px;">
+                            <div class="sc-table-scroll sc-table-scroll--packages">
+                            <table class="widefat striped sc-course-packages-table">
                                 <thead>
                                     <tr>
-                                        <th style="width:180px;">تعداد جلسه</th>
-                                        <th style="width:260px;">قیمت (تومان)</th>
-                                        <th style="width:120px;">حذف</th>
+                                        <th class="sc-pkg-col-sessions">تعداد جلسه</th>
+                                        <th class="sc-pkg-col-price">قیمت (تومان)</th>
+                                        <th class="sc-pkg-col-actions">حذف</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sc-course-packages-body">
                                 <?php if (!empty($course_packages)) : ?>
                                     <?php foreach ($course_packages as $pkg) : ?>
                                         <tr class="sc-course-package-row">
-                                            <td>
-                                                <input type="number" min="1" class="regular-text sc-pkg-sessions-input" name="pkg_sessions[]" value="<?php echo esc_attr((int) $pkg->sessions_count); ?>" style="max-width:150px;">
+                                            <td data-label="تعداد جلسه">
+                                                <input type="number" min="1" class="regular-text sc-pkg-sessions-input sc-course-pkg-field" name="pkg_sessions[]" value="<?php echo esc_attr((int) $pkg->sessions_count); ?>">
                                             </td>
-                                            <td>
-                                                <input type="text" class="regular-text sc-pkg-price-input" name="pkg_price[]" value="<?php echo esc_attr(number_format((float) $pkg->price, 0, '.', ',')); ?>" style="max-width:220px;" dir="ltr" inputmode="numeric">
+                                            <td data-label="قیمت (تومان)">
+                                                <input type="text" class="regular-text sc-pkg-price-input sc-course-pkg-field" name="pkg_price[]" value="<?php echo esc_attr(number_format((float) $pkg->price, 0, '.', ',')); ?>" dir="ltr" inputmode="numeric">
                                                 <input type="hidden" class="sc-pkg-price-raw" name="pkg_price_raw[]" value="<?php echo esc_attr((float) $pkg->price); ?>">
                                             </td>
-                                            <td>
+                                            <td data-label="">
                                                 <button type="button" class="button sc-remove-package-row">حذف</button>
                                             </td>
                                         </tr>
@@ -197,6 +196,7 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                                 <?php endif; ?>
                                 </tbody>
                             </table>
+                            </div>
                             <p style="margin-top:10px;">
                                 <button type="button" class="button button-secondary" id="sc-add-course-package-row">+ افزودن ردیف پکیج</button>
                             </p>
@@ -260,12 +260,11 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                         <p class="description">برای انتخاب تاریخ، روی فیلد بالا کلیک کنید </p>
                     </td>
                 </tr>
-                <th>
-                    <td class="description">توجه: در صورتی که تاریخ دوره گذشته باشد امکان ثبت نام برای کاربر وجود ندارد در ثبت تاریخ دقت کنید.</td>
+                <tr>
+                    <td colspan="2" class="description sc-course-date-notice">توجه: در صورتی که تاریخ دوره گذشته باشد امکان ثبت نام برای کاربر وجود ندارد در ثبت تاریخ دقت کنید.</td>
+                </tr>
 
-                    </th> 
-                    
-                    <tr>
+                <tr>
                 <th scope="row"><label for="chapter">شعبه</label></th>
                     <td>
 
@@ -293,13 +292,14 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                             $course_schedule_blocks = [['wd' => [], 'start' => '08:00:00', 'end' => '10:00:00']];
                         }
                         ?>
-                        <table class="widefat striped" style="max-width:920px;">
+                        <div class="sc-table-scroll sc-table-scroll--schedule">
+                        <table class="widefat striped sc-course-schedule-table">
                             <thead>
                                 <tr>
-                                    <th style="min-width:420px;">روزهای هفته</th>
-                                    <th style="width:110px;">شروع</th>
-                                    <th style="width:110px;">پایان</th>
-                                    <th style="width:90px;"></th>
+                                    <th class="sc-csched-col-days">روزهای هفته</th>
+                                    <th class="sc-csched-col-time">شروع</th>
+                                    <th class="sc-csched-col-time">پایان</th>
+                                    <th class="sc-csched-col-actions"></th>
                                 </tr>
                             </thead>
                             <tbody id="sc-csched-tbody">
@@ -309,21 +309,24 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                                     $en = isset($block['end']) ? substr((string) $block['end'], 0, 5) : '';
                                     ?>
                                 <tr class="sc-csched-row">
-                                    <td style="line-height:2;">
+                                    <td class="sc-csched-wd-cell" data-label="روزهای هفته">
+                                        <div class="sc-csched-wd-grid">
                                         <?php foreach ($wd_labels as $num => $lab) : ?>
-                                            <label style="margin-left:10px;white-space:nowrap;">
+                                            <label class="sc-csched-wd-label">
                                                 <input type="checkbox" name="csched_row[<?php echo (int) $bi; ?>][wd][]" value="<?php echo esc_attr((string) $num); ?>" <?php checked(in_array((int) $num, $sel, true)); ?>>
                                                 <?php echo esc_html($lab); ?>
                                             </label>
                                         <?php endforeach; ?>
+                                        </div>
                                     </td>
-                                    <td><input type="time" class="regular-text" name="csched_row[<?php echo (int) $bi; ?>][start]" value="<?php echo esc_attr($st); ?>"></td>
-                                    <td><input type="time" class="regular-text" name="csched_row[<?php echo (int) $bi; ?>][end]" value="<?php echo esc_attr($en); ?>"></td>
-                                    <td><button type="button" class="button sc-csched-remove-row">حذف</button></td>
+                                    <td data-label="شروع"><input type="time" class="regular-text sc-csched-time-input" name="csched_row[<?php echo (int) $bi; ?>][start]" value="<?php echo esc_attr($st); ?>"></td>
+                                    <td data-label="پایان"><input type="time" class="regular-text sc-csched-time-input" name="csched_row[<?php echo (int) $bi; ?>][end]" value="<?php echo esc_attr($en); ?>"></td>
+                                    <td class="sc-csched-actions-cell" data-label=""><button type="button" class="sc_button sc-csched-remove-row" style="margin-right: 10px; ">حذف</button></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                        </div>
                         <p style="margin-top:10px;">
                             <button type="button" class="button" id="sc-csched-add">+ افزودن ردیف زمان</button>
                         </p>
@@ -346,14 +349,14 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                             </select>
                             <p style="margin-top:10px;"><strong>تیم‌های مجاز</strong></p>
                             <?php if (!empty($teams)) : foreach ($teams as $team) : ?>
-                                <label style="display:inline-block;margin-left:12px;">
+                                <label style="display:inline-block;margin-left:12px; margin-top: 10px;">
                                     <input type="checkbox" name="allowed_teams[]" value="<?php echo esc_attr($team->name); ?>" <?php checked(in_array($team->name, $allowed_teams, true)); ?>>
                                     <?php echo esc_html($team->name); ?>
                                 </label>
                             <?php endforeach; endif; ?>
                             <p style="margin-top:10px;"><strong>سطح‌های مجاز</strong></p>
                             <?php if (!empty($levels)) : foreach ($levels as $level) : ?>
-                                <label style="display:inline-block;margin-left:12px;">
+                                <label style="display:inline-block;margin-left:12px; margin-top: 10px;">
                                     <input type="checkbox" name="allowed_levels[]" value="<?php echo esc_attr($level->name); ?>" <?php checked(in_array($level->name, $allowed_levels, true)); ?>>
                                     <?php echo esc_html($level->name); ?>
                                 </label>

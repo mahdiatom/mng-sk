@@ -26,8 +26,9 @@ $coaches = $wpdb->get_results(
     <div class="wrap">
 
     
-    <div class="card" style="margin: 20px 0; max-width: 100%;">
+        <div class="card" style="margin: 20px 0; max-width: 100%;">
         <h2>لیست مربیان</h2>
+        <div class="back_table_list">
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -81,5 +82,6 @@ $coaches = $wpdb->get_results(
                 <?php endif; ?>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
