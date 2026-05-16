@@ -292,7 +292,7 @@ if ($edit_id > 0) {
 
     <div class="filter_search_certificate">
         <!-- فیلترها (همان ساختار حضور و غیاب / لیست افتخارات) -->
-        <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1 certificates-filter-form">
+        <form method="get" action="" class="">
             <input type="hidden" name="page" value="sc-certificates-list">
 
             <div class="sc-filter-grid">
@@ -392,7 +392,8 @@ if ($edit_id > 0) {
             </p>
         </form>
     </div>
-
+</div>
+<div class="wrap">
     <form method="post" id="certificates-list-form" class="list_certificate">
         <?php wp_nonce_field('sc_bulk_certificates_nonce'); ?>
         <div class="tablenav top">
@@ -406,7 +407,7 @@ if ($edit_id > 0) {
                 <input type="submit" name="bulk_apply" id="doaction" class="button action" value="اجرا">
             </div>
         </div>
-
+        
         <div class="back_table_list">
             <table class="wp-list-table widefat fixed striped">
                 <thead>

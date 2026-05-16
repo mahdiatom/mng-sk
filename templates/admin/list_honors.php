@@ -27,6 +27,7 @@ $honor_status_labels = [
 ];
 
 // پردازش عملیات دسته‌جمعی
+
 if (isset($_POST['bulk_apply']) && check_admin_referer('bulk_delete_honors')) {
     $honor_ids = isset($_POST['honor_ids']) && is_array($_POST['honor_ids']) ? array_map('absint', $_POST['honor_ids']) : [];
     $bulk_action = isset($_POST['bulk_action']) ? sanitize_key($_POST['bulk_action']) : '';

@@ -872,6 +872,22 @@ tbody tr td{
     margin-left: 20px;
     
 }
+.form_fillter_list_player{
+    background: white;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px 0;
+        display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-left: 20px;
+    
+}
+@media screen and (max-width:780px) {
+    .form_fillter_list_player{
+         margin-left: 10px;
+    }
+}
 .sc-form-flex {
     display: flex;
     flex-direction: column;
@@ -927,6 +943,46 @@ tbody tr td{
 .form_fillter_attendance_tab1 .sc-filter-date .persian-date-input{
     height: 40px;
 }
+
+.filter_event_list{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    align-items:end;
+}
+
+.filter_event_list select,
+.filter_event_list input{
+    width:100%;
+}
+
+.filter-date .date-range{
+    display:flex;
+    gap:8px;
+}
+
+.filter-date .date-range input{
+    width:50%;
+}
+
+.filter-submit{
+    grid-column:span 2;
+}
+.filter_event_list #filter_action{
+    width: 100px;
+}
+
+/* ریسپانسیو */
+@media (max-width:768px){
+    .filter_event_list{
+        grid-template-columns:1fr;
+    }
+
+    .filter-submit{
+        grid-column:span 1;
+    }
+}
+
 .event_registrs .sc-dropdown-toggle{
       height: 42px !important;
 }
@@ -1113,8 +1169,8 @@ tbody tr td{
 @media screen and (max-width:780px) {
     .sc-attendance-clear-btn{
     right: -44px;
-    top: 14px;
-    background: transparent;
+    top: 5px;
+    background: transparent !important;
     margin-right: 10px;
     border: 1px solid #bababa !important;
     padding: 3px !important;
@@ -2731,7 +2787,12 @@ width: fit-content;
     width: 100%;
         margin-left: 10px;
 }
-
+.status_attendace_td{
+        display: flex;
+    margin-top: 7px;
+    position: relative;
+    margin-right: 103px;
+}
 @media screen and (max-width:780px) {
     
 .col-1-attendance ,.col-2-attendance  {
@@ -2739,6 +2800,10 @@ width: fit-content;
     flex-direction: column;
   gap: 5px;
   align-items: stretch;
+}
+.status_attendace_td{
+
+    margin-right: 103px;
 }
 .col-2-attendance{
     gap: 20px;

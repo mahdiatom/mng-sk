@@ -3,8 +3,8 @@ if ( ! defined('ABSPATH') ) exit;
 if(!isset($_GET['coach_id'])){
 ?>
     <h1>افزودن مربی جدید</h1>
-    <p>لطفا برای افزودن مربی  جدید به بخش کاربران-> افزودن کاربر بروید و نقش کاربر را روی مربی قرار دهید</p>
-    <a class="button" href="<?php echo admin_url('user-new.php'); ?>">بخش کاربران</a>
+    <p>لطفا برای افزودن مربی  جدید به بخش کاربران-> افزودن کاربر بروید و نقش کاربر را روی مربی قرار دهید.</p>
+    <a class="sc_button" href="<?php echo admin_url('user-new.php'); ?>">بخش کاربران</a>
 <?php
     exit;
 }

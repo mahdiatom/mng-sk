@@ -4,7 +4,7 @@ if(!isset($_GET['player_id'])){
 ?>
     <h1>افزودن بازیکن جدید</h1>
     <p>لطفا برای افزودن بازیکن جدید به بخش کاربران بروید</p>
-    <a class="button" href="<?php echo admin_url('user-new.php'); ?>">بخش کاربران</a>
+    <a class="sc_button" href="<?php echo admin_url('user-new.php'); ?>">بخش کاربران</a>
 <?php
     exit;
 }

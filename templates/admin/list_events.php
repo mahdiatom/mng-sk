@@ -118,41 +118,60 @@ public function extra_tablenav($which) {
             : $today_shamsi_display;
 
         ?>
-        <div class="filter_honors_list">
-            <!-- وضعیت -->
-            <label for="filter-event-status" class="screen-reader-text">فیلتر بر اساس وضعیت</label>
-            <select name="event_status" id="filter-honors-status">
-                <option value="all" <?php selected($selected_status, 'all'); ?>>همه وضعیت‌ها</option>
-                <option value="active" <?php selected($selected_status, 'active'); ?>>فعال</option>
-                <option value="inactive" <?php selected($selected_status, 'inactive'); ?>>غیرفعال</option>
-            </select>
+        <div class="filter_event_list">
 
-            <!-- نوع رویداد -->
-            <label for="filter-event-type" class="screen-reader-text">فیلتر نوع</label>
-            <select name="event_type" id="filter-event-type">
-                <option value="all" <?php selected($selected_type, 'all'); ?>>همه نوع ها</option>
-                <option value="event" <?php selected($selected_type, 'event'); ?>>رویداد</option>
-                <option value="competition" <?php selected($selected_type, 'competition'); ?>>مسابقه</option>
-            </select>
+    <div class="filter-field">
+        <label for="filter-event-status" class="screen-reader-text">فیلتر بر اساس وضعیت</label>
+        <select name="event_status" id="filter-event-status">
+            <option value="all" <?php selected($selected_status, 'all'); ?>>همه وضعیت‌ها</option>
+            <option value="active" <?php selected($selected_status, 'active'); ?>>فعال</option>
+            <option value="inactive" <?php selected($selected_status, 'inactive'); ?>>غیرفعال</option>
+        </select>
+    </div>
 
-            <!-- رایگان یا همه -->
-            <label for="filter-event-fee" class="screen-reader-text">فیلتر قیمت</label>
-            <select name="event_fee" id="filter-event-fee">
-                <option value="all" <?php selected($selected_fee, 'all'); ?>>همه قیمت ها</option>
-                <option value="free" <?php selected($selected_fee, 'free'); ?>>رایگان</option>
-            </select>
+    <div class="filter-field">
+        <label for="filter-event-type" class="screen-reader-text">فیلتر نوع</label>
+        <select name="event_type" id="filter-event-type">
+            <option value="all" <?php selected($selected_type, 'all'); ?>>همه نوع ها</option>
+            <option value="event" <?php selected($selected_type, 'event'); ?>>رویداد</option>
+            <option value="competition" <?php selected($selected_type, 'competition'); ?>>مسابقه</option>
+        </select>
+    </div>
 
-            <!-- تاریخ برگزاری -->
-            <label class="screen-reader-text">بازه تاریخ برگزاری</label>
-            <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="از">
-            <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" class="persian-date-input sc-no-default-date" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="تا" >
+    <div class="filter-field">
+        <label for="filter-event-fee" class="screen-reader-text">فیلتر قیمت</label>
+        <select name="event_fee" id="filter-event-fee">
+            <option value="all" <?php selected($selected_fee, 'all'); ?>>همه قیمت ها</option>
+            <option value="free" <?php selected($selected_fee, 'free'); ?>>رایگان</option>
+        </select>
+    </div>
 
-            <!-- hidden inputs میلادی -->
-            <input type="hidden" name="filter_date_from" id="filter_date_from">
-            <input type="hidden" name="filter_date_to" id="filter_date_to">
+    <div class="filter-field filter-date">
+        <label class="screen-reader-text">بازه تاریخ برگزاری</label>
 
-            <?php submit_button('فیلتر', 'primary', 'filter_action', true ); ?>
+        <div class="date-range">
+            <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi"
+                   class="persian-date-input sc-no-default-date"
+                   value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="از">
+
+            <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi"
+                   class="persian-date-input sc-no-default-date"
+                   value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="تا">
         </div>
+
+        <input type="hidden" name="filter_date_from" id="filter_date_from">
+        <input type="hidden" name="filter_date_to" id="filter_date_to">
+    </div>
+
+    <div class="filter-field filter-submit">
+        <?php submit_button('اعمال فیلتر ', 'primary', 'filter_action', false ); ?>
+        <a href="<?php echo admin_url('admin.php?page=sc-events') ?> " class="button delete_fillter" > 
+                    🧹 پاک کردن فیلترها
+                </a> 
+    </div>
+
+</div>
+
 
         <?php
     }

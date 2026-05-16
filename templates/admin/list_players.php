@@ -9,7 +9,7 @@ global $title ,$player_list_table;
             ?>
             <div class="wrap">
             <h1 class="wp-heading-inline">لیست بازیکن ها</h1>
-            <a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action">افزودن بازیکن</a>
+            <a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action sc_button">افزودن بازیکن</a>
         
             <p>برای مشاهده اکشن‌ها روی نام کاربر بروید (حذف، مشاهده، ویرایش).</p>
        
@@ -43,7 +43,7 @@ global $title ,$player_list_table;
         ?>
 
         <!-- فرم فیلتر جدید -->
-        <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+        <form method="get" action="" class="form_fillter_list_player" >
             <input type="hidden" name="page" value="sc-members">
 
             <div class="sc-filter-grid">
@@ -266,7 +266,6 @@ global $title ,$player_list_table;
 
 
 
-?>
 
 <!-- The Modal -->
 <div id="myModal" class="modal">

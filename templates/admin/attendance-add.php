@@ -476,7 +476,7 @@ $is_update_mode = !empty($existing_attendances);
             <input type="hidden" name="attendance_date" id="attendance_date_hidden_form" value="<?php echo esc_attr($selected_date); ?>">
             <input type="hidden" name="attendance_date_shamsi" id="attendance_date_shamsi_form" value="<?php echo esc_attr($selected_date_shamsi); ?>">
             
-            <div class="back_attendance_list">
+         
                 <h2 style="margin-top: 0;">
                     لیست حضور و غیاب - 
                     
@@ -485,12 +485,15 @@ $is_update_mode = !empty($existing_attendances);
                     <span class="name_course_attendance">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>
                     
                 </h2>
+
                 <?php if ($is_update_mode): ?>
                         <span>شما در حال بروزرسانی یک حضور و غیاب هستید.</span>
                     <?php else: ?>
                         <span>
 شما در حال ثبت یک حضور غیاب جدید هستید.                        </span>
                     <?php endif; ?>
+
+             <div class="back_attendance_list">
                 <table class="wp-list-table widefat fixed striped" style="margin-top: 20px;">
                     <thead>
                         <tr>
@@ -509,7 +512,7 @@ $is_update_mode = !empty($existing_attendances);
                                 <td><?php echo $index + 1; ?></td>
                                 <td><?php echo esc_html($member->first_name . ' '. $member->last_name); ?></td>
                                 <td ><?php echo number_format($debt_user) ; ?>  تومان    <?php echo ($debt_user >= floatval(sc_get_setting('max_debt_for_attendance', '0'))) ? 'سقف موجودی - عدم ثبت رکورد کاربر' : ' '; ?></td>
-                                <td style="display: flex; margin-top: 7px; position: relative; ">
+                                <td class="status_attendace_td">
                                     <?php if (empty($existing_status)) : ?>
                                     <button type="button"
                                             class="button button-small sc-attendance-clear-btn"
@@ -565,13 +568,13 @@ $is_update_mode = !empty($existing_attendances);
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-                
+                    </div>
                 <p class="submit" style="margin-top: 20px;">
                     <button type="submit" name="sc_save_attendance" class="button button-primary button-large">
                         ذخیره حضور و غیاب
                     </button>
                 </p>
-            </div>
+        
         </form>
     <?php elseif ($selected_course_id && empty($active_members)) : ?>
         <div class="notice notice-info" style="margin-top: 20px;">
