@@ -281,7 +281,7 @@ function sc_add_penalty_columns() {
     ));
     
     if (empty($penalty_amount_exists)) {
-        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `penalty_amount` decimal(10,2) NOT NULL DEFAULT 0.00 AFTER `amount`");
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `penalty_amount` decimal(15,2) NOT NULL DEFAULT 0.00 AFTER `amount`");
     }
     
     // بررسی وجود ستون penalty_applied
@@ -593,7 +593,7 @@ function sc_add_price_per_session_column_to_courses() {
     ));
     
     if (empty($column_exists)) {
-        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `price_per_session` decimal(10,2) NOT NULL DEFAULT 0.00 AFTER `price`");
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `price_per_session` decimal(15,2) NOT NULL DEFAULT 0.00 AFTER `price`");
     }
 }
 

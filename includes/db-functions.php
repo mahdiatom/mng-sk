@@ -49,11 +49,11 @@ $sql = "CREATE TABLE `$table_name` (
         `event_id` bigint(20) unsigned DEFAULT NULL,
         `member_course_id` bigint(20) unsigned DEFAULT NULL,
         `woocommerce_order_id` bigint(20) unsigned DEFAULT NULL,
-        `amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
         `expense_name` varchar(255) DEFAULT NULL,
         `type` varchar(255) DEFAULT NULL,
         `invoice_description` text DEFAULT NULL COMMENT 'توضیحات صورت حساب (ایجاد دستی)',
-        `penalty_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `penalty_amount` decimal(15,2) NOT NULL DEFAULT 0.00,
         `penalty_applied` tinyint(1) DEFAULT 0,
         `disable_penalty` tinyint(1) NOT NULL DEFAULT 0,
         `status` varchar(20) DEFAULT 'pending',
@@ -117,8 +117,8 @@ $sql = "CREATE TABLE `$table_name` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `title` varchar(255) NOT NULL,
         `description` text DEFAULT NULL,
-        `price` decimal(10,2) NOT NULL DEFAULT 0.00,
-        `price_per_session` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `price` decimal(15,2) NOT NULL DEFAULT 0.00,
+        `price_per_session` decimal(15,2) NOT NULL DEFAULT 0.00,
         `capacity` int(11) DEFAULT NULL,
         `sessions_count` int(11) DEFAULT NULL,
         `start_date` date DEFAULT NULL,
@@ -316,7 +316,7 @@ function sc_create_expenses_table() {
         `category_id` bigint(20) unsigned DEFAULT NULL,
         `expense_date_shamsi` varchar(10) DEFAULT NULL,
         `expense_date_gregorian` date DEFAULT NULL,
-        `amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
         `description` text DEFAULT NULL,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
@@ -345,7 +345,7 @@ function sc_create_events_table() {
         `event_type` varchar(20) DEFAULT 'event',
         `chapter` varchar(255) DEFAULT NULL COMMENT 'شعبه',
         `description` text DEFAULT NULL,
-        `price` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `price` decimal(15,2) NOT NULL DEFAULT 0.00,
         `start_date_shamsi` varchar(10) DEFAULT NULL,
         `start_date_gregorian` date DEFAULT NULL,
         `end_date_shamsi` varchar(10) DEFAULT NULL,
@@ -465,7 +465,7 @@ function sc_create_coaches_table() {
         `coaching_experience` int(11) DEFAULT NULL,
         `sports_history` text DEFAULT NULL,
         `settlement_type` varchar(20) DEFAULT 'fixed',
-        `settlement_amount` decimal(10,2) DEFAULT 0.00,
+        `settlement_amount` decimal(15,2) DEFAULT 0.00,
         `is_active` tinyint(1) DEFAULT 1,
         `is_private_enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'مجاز به پذیرش کلاس خصوصی',
         `created_at` datetime NOT NULL,
@@ -518,9 +518,9 @@ function sc_create_wallet_transactions_table() {
         `user_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه کاربر WordPress',
         `member_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه بازیکن در sc_members',
         `transaction_type` enum('charge','deduct','payment','refund','session_fee') NOT NULL COMMENT 'نوع تراکنش: charge=شارژ, deduct=کاهش دستی, payment=پرداخت, refund=بازگشت, session_fee=کسر جلسه حضور',
-        `amount` decimal(10,2) NOT NULL COMMENT 'مبلغ تراکنش (همیشه مثبت)',
-        `balance_before` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از تراکنش',
-        `balance_after` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی بعد از تراکنش',
+        `amount` decimal(15,2) NOT NULL COMMENT 'مبلغ تراکنش (همیشه مثبت)',
+        `balance_before` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از تراکنش',
+        `balance_after` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی بعد از تراکنش',
         `description` text DEFAULT NULL COMMENT 'توضیحات تراکنش',
         `related_invoice_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه صورت حساب مرتبط (اگر مربوط به پرداخت باشد)',
         `related_order_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه سفارش WooCommerce مرتبط',
@@ -553,9 +553,9 @@ function sc_create_coach_wallet_transactions_table() {
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `coach_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه مربی در sc_coaches',
         `transaction_type` enum('salary_percentage','salary_fixed','charge','deduct','withdrawal') NOT NULL COMMENT 'نوع تراکنش: salary_percentage=دستمزد درصدی, salary_fixed=دستمزد ثابت, charge=شارژ, deduct=کاهش دستی, withdrawal=برداشت',
-        `amount` decimal(10,2) NOT NULL COMMENT 'مبلغ تراکنش (همیشه مثبت)',
-        `balance_before` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از تراکنش',
-        `balance_after` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی بعد از تراکنش',
+        `amount` decimal(15,2) NOT NULL COMMENT 'مبلغ تراکنش (همیشه مثبت)',
+        `balance_before` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از تراکنش',
+        `balance_after` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی بعد از تراکنش',
         `description` text DEFAULT NULL COMMENT 'توضیحات تراکنش',
         `related_course_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه دوره مرتبط (برای دستمزد درصدی)',
         `related_attendance_date` date DEFAULT NULL COMMENT 'تاریخ حضور مرتبط (برای دستمزد درصدی)',
@@ -591,10 +591,10 @@ function sc_create_coach_salary_records_table() {
         `course_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه دوره',
         `attendance_date` date NOT NULL COMMENT 'تاریخ حضور',
         `attendance_count` int(11) NOT NULL DEFAULT 0 COMMENT 'تعداد شرکت کنندگان',
-        `price_per_session` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'قیمت هر جلسه',
-        `total_revenue` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'کل درآمد (تعداد × قیمت)',
+        `price_per_session` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'قیمت هر جلسه',
+        `total_revenue` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'کل درآمد (تعداد × قیمت)',
         `salary_percentage` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT 'درصد دستمزد',
-        `salary_amount` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ دستمزد',
+        `salary_amount` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ دستمزد',
         `salary_type` enum('percentage','fixed') NOT NULL DEFAULT 'percentage' COMMENT 'نوع دستمزد',
         `wallet_transaction_id` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه تراکنش کیف پول',
         `created_at` datetime NOT NULL,
@@ -622,8 +622,8 @@ function sc_create_coach_withdrawal_requests_table() {
     $sql = "CREATE TABLE `$table_name` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `coach_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه مربی',
-        `amount` decimal(10,2) NOT NULL COMMENT 'مبلغ درخواست',
-        `balance_before` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از درخواست',
+        `amount` decimal(15,2) NOT NULL COMMENT 'مبلغ درخواست',
+        `balance_before` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از درخواست',
         `status` enum('pending','approved','rejected','paid') NOT NULL DEFAULT 'pending' COMMENT 'وضعیت: pending=در انتظار تایید, approved=تایید شده, rejected=رد شده, paid=پرداخت شده',
         `rejection_reason` text DEFAULT NULL COMMENT 'دلیل رد (در صورت رد)',
         `approved_by` bigint(20) unsigned DEFAULT NULL COMMENT 'شناسه کاربری که تایید کرده',
@@ -1132,7 +1132,7 @@ function sc_create_course_packages_table() {
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `course_id` bigint(20) unsigned NOT NULL,
         `sessions_count` int(11) unsigned NOT NULL,
-        `price` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `price` decimal(15,2) NOT NULL DEFAULT 0.00,
         `sort_order` int(11) unsigned NOT NULL DEFAULT 0,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
@@ -1530,11 +1530,11 @@ function sc_update_database() {
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $inv_tbl)) === $inv_tbl) {
             $c1 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$inv_tbl` LIKE %s", 'subtotal_amount'));
             if (empty($c1)) {
-                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `subtotal_amount` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ قبل از تخفیف' AFTER `amount`");
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `subtotal_amount` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ قبل از تخفیف' AFTER `amount`");
             }
             $c2 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$inv_tbl` LIKE %s", 'discount_amount'));
             if (empty($c2)) {
-                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `discount_amount` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ تخفیف' AFTER `subtotal_amount`");
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `discount_amount` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ تخفیف' AFTER `subtotal_amount`");
             }
             $c3 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$inv_tbl` LIKE %s", 'discount_code_id'));
             if (empty($c3)) {
@@ -1692,6 +1692,98 @@ function sc_update_database() {
         }
         update_option('sc_invoices_member_id_nullable', '1');
     }
+
+    /*
+     * decimal(10,2) حداکثر ~99,999,999.99 است — برای قیمت دوره/پکیج/صورت‌حساب‌های بزرگ‌تر به decimal(15,2) ارتقا می‌دهیم.
+     */
+    if (get_option('sc_money_columns_decimal_15_2', '0') !== '1') {
+        $p = $wpdb->prefix;
+
+        $sc_table_exists = static function ($short) use ($wpdb) {
+            $t = $wpdb->prefix . $short;
+            return ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $t)) === $t);
+        };
+
+        $sc_col_exists = static function ($table, $col) use ($wpdb) {
+            $rows = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$table` LIKE %s", $col));
+
+            return !empty($rows);
+        };
+
+        $mods = [];
+        if ($sc_table_exists('sc_courses')) {
+            $t = $p . 'sc_courses';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `price` decimal(15,2) NOT NULL DEFAULT 0.00";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `price_per_session` decimal(15,2) NOT NULL DEFAULT 0.00";
+        }
+        if ($sc_table_exists('sc_course_packages')) {
+            $t = $p . 'sc_course_packages';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `price` decimal(15,2) NOT NULL DEFAULT 0.00";
+        }
+        if ($sc_table_exists('sc_events')) {
+            $t = $p . 'sc_events';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `price` decimal(15,2) NOT NULL DEFAULT 0.00";
+        }
+        if ($sc_table_exists('sc_invoices')) {
+            $t = $p . 'sc_invoices';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `amount` decimal(15,2) NOT NULL DEFAULT 0.00";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `penalty_amount` decimal(15,2) NOT NULL DEFAULT 0.00";
+            if ($sc_col_exists($t, 'subtotal_amount')) {
+                $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `subtotal_amount` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ قبل از تخفیف'";
+            }
+            if ($sc_col_exists($t, 'discount_amount')) {
+                $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `discount_amount` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ تخفیف'";
+            }
+        }
+        if ($sc_table_exists('sc_expenses')) {
+            $t = $p . 'sc_expenses';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `amount` decimal(15,2) NOT NULL DEFAULT 0.00";
+        }
+        if ($sc_table_exists('sc_coaches')) {
+            $t = $p . 'sc_coaches';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `settlement_amount` decimal(15,2) DEFAULT 0.00";
+        }
+        if ($sc_table_exists('sc_wallet_transactions')) {
+            $t = $p . 'sc_wallet_transactions';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `amount` decimal(15,2) NOT NULL COMMENT 'مبلغ تراکنش (همیشه مثبت)'";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `balance_before` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از تراکنش'";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `balance_after` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی بعد از تراکنش'";
+        }
+        if ($sc_table_exists('sc_coach_wallet_transactions')) {
+            $t = $p . 'sc_coach_wallet_transactions';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `amount` decimal(15,2) NOT NULL COMMENT 'مبلغ تراکنش (همیشه مثبت)'";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `balance_before` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از تراکنش'";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `balance_after` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی بعد از تراکنش'";
+        }
+        if ($sc_table_exists('sc_coach_salary_records')) {
+            $t = $p . 'sc_coach_salary_records';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `price_per_session` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'قیمت هر جلسه'";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `total_revenue` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'کل درآمد (تعداد × قیمت)'";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `salary_amount` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'مبلغ دستمزد'";
+        }
+        if ($sc_table_exists('sc_coach_withdrawal_requests')) {
+            $t = $p . 'sc_coach_withdrawal_requests';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `amount` decimal(15,2) NOT NULL COMMENT 'مبلغ درخواست'";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `balance_before` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'موجودی قبل از درخواست'";
+        }
+        if ($sc_table_exists('sc_discount_codes')) {
+            $t = $p . 'sc_discount_codes';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `discount_value` decimal(15,2) NOT NULL DEFAULT 0.00";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `max_discount_amount` decimal(15,2) DEFAULT NULL";
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `min_subtotal` decimal(15,2) NOT NULL DEFAULT 0.00";
+        }
+        if ($sc_table_exists('sc_discount_code_usages')) {
+            $t = $p . 'sc_discount_code_usages';
+            $mods[] = "ALTER TABLE `$t` MODIFY COLUMN `amount_saved` decimal(15,2) NOT NULL DEFAULT 0.00";
+        }
+
+        foreach ($mods as $sql) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- DDL ثابت بدون ورودی کاربر
+            $wpdb->query($sql);
+        }
+
+        update_option('sc_money_columns_decimal_15_2', '1');
+    }
 }
 
 /**
@@ -1708,9 +1800,9 @@ function sc_create_discount_codes_tables() {
         `code` varchar(64) NOT NULL,
         `description` text DEFAULT NULL,
         `discount_type` varchar(20) NOT NULL DEFAULT 'percent',
-        `discount_value` decimal(10,2) NOT NULL DEFAULT 0.00,
-        `max_discount_amount` decimal(10,2) DEFAULT NULL,
-        `min_subtotal` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `discount_value` decimal(15,2) NOT NULL DEFAULT 0.00,
+        `max_discount_amount` decimal(15,2) DEFAULT NULL,
+        `min_subtotal` decimal(15,2) NOT NULL DEFAULT 0.00,
         `starts_at` datetime DEFAULT NULL,
         `ends_at` datetime DEFAULT NULL,
         `usage_limit_total` int(11) unsigned DEFAULT NULL,
@@ -1803,7 +1895,7 @@ function sc_create_discount_codes_tables() {
         `discount_code_id` bigint(20) unsigned NOT NULL,
         `invoice_id` bigint(20) unsigned NOT NULL,
         `member_id` bigint(20) unsigned NOT NULL,
-        `amount_saved` decimal(10,2) NOT NULL DEFAULT 0.00,
+        `amount_saved` decimal(15,2) NOT NULL DEFAULT 0.00,
         `created_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
         UNIQUE KEY `idx_invoice_once` (`invoice_id`),
