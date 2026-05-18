@@ -22,7 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
                 if (empty($att) && function_exists('sc_support_handle_attachments')) {
                     $att = sc_support_handle_attachments('reply_attachments');
                 }
-                sc_support_add_message($tid, 'admin', $current_user_id, $msg, $att);
+                $sender_type = function_exists('sc_support_staff_sender_type_for_user') ? sc_support_staff_sender_type_for_user($current_user_id) : 'admin';
+                sc_support_add_message($tid, $sender_type, $current_user_id, $msg, $att);
             }
             wp_safe_redirect(admin_url('admin.php?page=sc-support-ticket-view&id=' . $tid));
             exit;
@@ -50,6 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
             if ($created_by === 'coach' && !empty($ticket->created_by_coach_id)) {
                 $coach_row = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$wpdb->prefix}sc_coaches WHERE id = %d", $ticket->created_by_coach_id));
                 echo '<span class="sc-ticket-meta-text">ارسال توسط مربی: ' . ($coach_row ? esc_html(trim($coach_row->first_name . ' ' . $coach_row->last_name)) : '') . '</span>';
+            } elseif ($created_by === 'accountant' && !empty($ticket->created_by_user_id)) {
+                $acc = get_userdata((int) $ticket->created_by_user_id);
+                echo '<span class="sc-ticket-meta-text">ارسال توسط حسابدار: ' . ($acc ? esc_html($acc->display_name) : '') . '</span>';
             } elseif ($created_by === 'admin') {
                 echo '<span class="sc-ticket-meta-text">ارسال توسط مدیر</span>';
             } else {
@@ -61,6 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
             } elseif ($ticket->department === 'coach' && !empty($ticket->coach_id)) {
                 $coach_row = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$wpdb->prefix}sc_coaches WHERE id = %d", $ticket->coach_id));
                 echo '<span class="sc-ticket-meta-text">گیرنده: مربی ' . ($coach_row ? esc_html(trim($coach_row->first_name . ' ' . $coach_row->last_name)) : '') . '</span>';
+            } elseif ($ticket->department === 'accountant' && !empty($ticket->coach_id)) {
+                $acc = get_userdata((int) $ticket->coach_id);
+                echo '<span class="sc-ticket-meta-text">گیرنده: حسابدار ' . ($acc ? esc_html($acc->display_name) : '#' . (int) $ticket->coach_id) . '</span>';
             } else {
                 echo '<span class="sc-ticket-meta-text">گیرنده: مدیر باشگاه</span>';
             }
@@ -72,8 +79,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
             <?php
             $messages = sc_support_get_messages($ticket->id);
             foreach ($messages as $msg) :
-                $is_staff = ($msg->sender_type === 'admin' || $msg->sender_type === 'coach');
-                $label = ($msg->sender_type === 'user') ? 'کاربر' : (($msg->sender_type === 'admin') ? 'مدیر' : 'مربی');
+                $is_staff = in_array($msg->sender_type, ['admin', 'coach', 'accountant'], true);
+                if ($msg->sender_type === 'user') {
+                    $label = 'کاربر';
+                } elseif ($msg->sender_type === 'accountant') {
+                    $label = 'حسابدار';
+                } elseif ($msg->sender_type === 'admin') {
+                    $label = 'مدیر';
+                } else {
+                    $label = 'مربی';
+                }
             ?>
             <div class="sc-ticket-msg <?php echo $is_staff ? 'sc-ticket-msg-staff' : 'sc-ticket-msg-user'; ?>">
                 <div class="sc-ticket-msg-header">

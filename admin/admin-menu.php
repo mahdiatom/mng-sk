@@ -629,7 +629,7 @@ function sc_register_admin_menu() {
         add_menu_page(
             'تیکت پشتیبانی',
             'تیکت پشتیبانی',
-            'manage_options',
+            'sc_club_support_tickets',
             'sc-support-tickets',
             'sc_admin_support_tickets_list_page',
             'dashicons-tickets-alt',
@@ -639,7 +639,7 @@ function sc_register_admin_menu() {
             'sc-support-tickets',
             'لیست تیکت‌ها',
             'لیست تیکت‌ها',
-            'manage_options',
+            'sc_club_support_tickets',
             'sc-support-tickets',
             'sc_admin_support_tickets_list_page'
         );
@@ -649,7 +649,7 @@ function sc_register_admin_menu() {
             null,
             'مشاهده تیکت',
             'مشاهده تیکت',
-            'manage_options',
+            'sc_club_support_tickets',
             'sc-support-ticket-view',
             'sc_admin_support_ticket_view_page'
         );
@@ -657,7 +657,7 @@ function sc_register_admin_menu() {
             'sc-support-tickets',
             'ارسال تیکت جدید',
             'ارسال تیکت جدید',
-            'manage_options',
+            'sc_club_support_tickets',
             'sc-support-ticket-new',
             'sc_admin_support_ticket_new_page'
         );
@@ -1745,8 +1745,12 @@ function sc_support_tickets_screen_option() {
 }
 
 function sc_admin_support_tickets_menu_badge() {
-    if (!current_user_can('manage_options') || !isset($GLOBALS['menu'])) return;
-    $pending = function_exists('sc_support_count_pending_reply_for_admin') ? sc_support_count_pending_reply_for_admin() : 0;
+    if (!current_user_can('sc_club_support_tickets') || !isset($GLOBALS['menu'])) return;
+    if (function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only()) {
+        $pending = function_exists('sc_support_count_pending_assigned_accountant_tickets') ? sc_support_count_pending_assigned_accountant_tickets(get_current_user_id()) : 0;
+    } else {
+        $pending = function_exists('sc_support_count_pending_reply_for_admin') ? sc_support_count_pending_reply_for_admin() : 0;
+    }
     if ($pending <= 0) return;
     $badge = ' <span class="awaiting-mod"><span class="pending-count">' . (int) $pending . '</span></span>';
     foreach ($GLOBALS['menu'] as $key => $item) {
@@ -1759,7 +1763,7 @@ function sc_admin_support_tickets_menu_badge() {
 
 function sc_admin_support_tickets_list_page() {
     sc_check_and_create_tables();
-    if (!current_user_can('manage_options')) wp_die('دسترسی غیرمجاز.');
+    if (!current_user_can('sc_club_support_tickets')) wp_die('دسترسی غیرمجاز.');
 
     // Handle bulk actions (delete / close)
     $action = '';
@@ -1776,6 +1780,10 @@ function sc_admin_support_tickets_list_page() {
                 $tickets_table = $wpdb->prefix . 'sc_support_tickets';
                 $messages_table = $wpdb->prefix . 'sc_support_ticket_messages';
                 foreach ($ids as $tid) {
+                    $tk = function_exists('sc_support_get_ticket') ? sc_support_get_ticket($tid) : null;
+                    if (!$tk || !function_exists('sc_support_can_view_ticket') || !sc_support_can_view_ticket($tk, get_current_user_id())) {
+                        continue;
+                    }
                     if ($action === 'delete') {
                         $wpdb->delete($messages_table, ['ticket_id' => $tid], ['%d']);
                         $wpdb->delete($tickets_table, ['id' => $tid], ['%d']);
@@ -1813,10 +1821,11 @@ function sc_admin_support_tickets_list_page() {
         <?php
         // Prepare current filter values
         $filter_status      = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
-        $filter_department  = isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all';
         $filter_created_by  = isset($_GET['filter_created_by']) ? sanitize_text_field($_GET['filter_created_by']) : 'all';
         $filter_user_id     = isset($_GET['filter_user_id']) ? absint($_GET['filter_user_id']) : 0;
         $search             = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+        $scope_accountant   = function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only();
+        $filter_department  = $scope_accountant ? 'accountant' : (isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all');
 
         $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
         $filter_date_from_sh = isset($_GET['filter_date_from_shamsi']) && $_GET['filter_date_from_shamsi'] !== '' ? sanitize_text_field($_GET['filter_date_from_shamsi']) : $today_shamsi;
@@ -1826,15 +1835,33 @@ function sc_admin_support_tickets_list_page() {
         global $wpdb;
         $t = $wpdb->prefix . 'sc_support_tickets';
         $m = $wpdb->prefix . 'sc_members';
-        $users_with_tickets = $wpdb->get_results(
-            "SELECT DISTINCT t.user_id,
-                    TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS name,
-                    m.national_id
-             FROM $t t
-             LEFT JOIN $m m ON m.user_id = t.user_id
-             WHERE t.user_id > 0
-             ORDER BY name ASC"
-        );
+        if ($scope_accountant) {
+            $acc_uid = get_current_user_id();
+            $users_with_tickets = $wpdb->get_results($wpdb->prepare(
+                "SELECT DISTINCT t.user_id,
+                        TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS name,
+                        m.national_id
+                 FROM $t t
+                 LEFT JOIN $m m ON m.user_id = t.user_id
+                 WHERE t.user_id > 0 AND (
+                    (t.department = 'accountant' AND t.coach_id = %d)
+                    OR (t.created_by_type = 'accountant' AND t.created_by_user_id = %d)
+                 )
+                 ORDER BY name ASC",
+                $acc_uid,
+                $acc_uid
+            ));
+        } else {
+            $users_with_tickets = $wpdb->get_results(
+                "SELECT DISTINCT t.user_id,
+                        TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS name,
+                        m.national_id
+                 FROM $t t
+                 LEFT JOIN $m m ON m.user_id = t.user_id
+                 WHERE t.user_id > 0
+                 ORDER BY name ASC"
+            );
+        }
         $selected_user_text = 'همه کاربران';
         if ($filter_user_id) {
             foreach ($users_with_tickets as $u) {
@@ -1871,6 +1898,7 @@ function sc_admin_support_tickets_list_page() {
                     </select>
                 </div>
 
+                <?php if (!$scope_accountant) : ?>
                 <!-- بخش -->
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_department">بخش</label>
@@ -1879,8 +1907,10 @@ function sc_admin_support_tickets_list_page() {
                         <option value="manager" <?php selected($filter_department, 'manager'); ?>>مدیر باشگاه</option>
                         <option value="site_support" <?php selected($filter_department, 'site_support'); ?>>پشتیبانی سایت</option>
                         <option value="coach" <?php selected($filter_department, 'coach'); ?>>مربی</option>
+                        <option value="accountant" <?php selected($filter_department, 'accountant'); ?>>حسابدار</option>
                     </select>
                 </div>
+                <?php endif; ?>
 
                 <!-- ارسال‌کننده -->
                 <div class="sc-filter-field">
@@ -1957,13 +1987,13 @@ function sc_admin_support_tickets_list_page() {
 
 function sc_admin_support_ticket_new_page() {
     sc_check_and_create_tables();
-    if (!current_user_can('manage_options')) wp_die('دسترسی غیرمجاز.');
+    if (!current_user_can('sc_club_support_tickets')) wp_die('دسترسی غیرمجاز.');
     include SC_TEMPLATES_ADMIN_DIR . 'admin-support-ticket-new.php';
 }
 
 function sc_admin_support_ticket_view_page() {
     sc_check_and_create_tables();
-    if (!current_user_can('manage_options')) wp_die('دسترسی غیرمجاز.');
+    if (!current_user_can('sc_club_support_tickets')) wp_die('دسترسی غیرمجاز.');
     $ticket_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
     if ($ticket_id <= 0) wp_die('تیکت نامعتبر.');
     $ticket = sc_support_get_ticket($ticket_id);

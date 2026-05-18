@@ -18,7 +18,7 @@ function sc_admin_dashboard_widgets_user_can() {
     if (!is_user_logged_in()) {
         return false;
     }
-    $allowed_roles = ['administrator', 'club_coach', 'accountantt'];
+    $allowed_roles = ['administrator', 'club_coach'];
     $user          = wp_get_current_user();
     if (!$user || empty($user->roles)) {
         return false;
@@ -208,19 +208,42 @@ function sc_dw_render_open_tickets() {
     $tickets_table = $wpdb->prefix . 'sc_support_tickets';
     $users_table   = $wpdb->users;
 
-    $rows = $wpdb->get_results(
-        "SELECT t.id, t.subject, t.status, t.department, t.updated_at, t.user_id,
-                u.display_name
-         FROM $tickets_table t
-         LEFT JOIN $users_table u ON u.ID = t.user_id
-         WHERE t.status = 'pending_reply'
-         ORDER BY t.updated_at DESC
-         LIMIT 5"
-    );
+    $scope = function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only();
+    $uid   = get_current_user_id();
 
-    $total = function_exists('sc_support_count_pending_reply_for_admin')
-        ? (int) sc_support_count_pending_reply_for_admin()
-        : (int) $wpdb->get_var("SELECT COUNT(*) FROM $tickets_table WHERE status = 'pending_reply'");
+    if ($scope) {
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT t.id, t.subject, t.status, t.department, t.updated_at, t.user_id,
+                    u.display_name
+             FROM $tickets_table t
+             LEFT JOIN $users_table u ON u.ID = t.user_id
+             WHERE t.status = 'pending_reply' AND (
+                (t.department = 'accountant' AND t.coach_id = %d)
+                OR (t.created_by_type = 'accountant' AND t.created_by_user_id = %d)
+             )
+             ORDER BY t.updated_at DESC
+             LIMIT 5",
+            $uid,
+            $uid
+        ));
+        $total = function_exists('sc_support_count_pending_assigned_accountant_tickets')
+            ? (int) sc_support_count_pending_assigned_accountant_tickets($uid)
+            : 0;
+    } else {
+        $rows = $wpdb->get_results(
+            "SELECT t.id, t.subject, t.status, t.department, t.updated_at, t.user_id,
+                    u.display_name
+             FROM $tickets_table t
+             LEFT JOIN $users_table u ON u.ID = t.user_id
+             WHERE t.status = 'pending_reply'
+             ORDER BY t.updated_at DESC
+             LIMIT 5"
+        );
+
+        $total = function_exists('sc_support_count_pending_reply_for_admin')
+            ? (int) sc_support_count_pending_reply_for_admin()
+            : (int) $wpdb->get_var("SELECT COUNT(*) FROM $tickets_table WHERE status = 'pending_reply'");
+    }
 
     $list_url = sc_dw_admin_url(['page' => 'sc-support-tickets', 'filter_status' => 'pending_reply']);
 
@@ -235,7 +258,7 @@ function sc_dw_render_open_tickets() {
     } else {
         echo '<ul class="sc-dw-list">';
         foreach ($rows as $row) {
-            $view_url = sc_dw_admin_url(['page' => 'sc-support-ticket-view', 'ticket_id' => (int) $row->id]);
+            $view_url = sc_dw_admin_url(['page' => 'sc-support-ticket-view', 'id' => (int) $row->id]);
             $user     = $row->display_name ?: 'کاربر #' . (int) $row->user_id;
             $updated  = function_exists('sc_date_shamsi') ? sc_date_shamsi($row->updated_at, 'Y/m/d - H:i') : $row->updated_at;
             echo '<li class="sc-dw-list-item">';

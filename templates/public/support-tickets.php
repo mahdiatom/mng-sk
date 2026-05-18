@@ -22,10 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
         if ($action === 'create') {
             $subject = sanitize_text_field($_POST['ticket_subject'] ?? '');
             $department = sanitize_text_field($_POST['ticket_department'] ?? 'manager');
-            if (!in_array($department, ['manager', 'coach', 'site_support'], true)) {
+            if (!in_array($department, ['manager', 'coach', 'site_support', 'accountant'], true)) {
                 $department = 'manager';
             }
-            $coach_id = ($department === 'coach') ? absint($_POST['ticket_coach_id'] ?? 0) : 0;
+            $coach_id = 0;
+            if ($department === 'coach') {
+                $coach_id = absint($_POST['ticket_coach_id'] ?? 0);
+            } elseif ($department === 'accountant') {
+                $coach_id = absint($_POST['ticket_accountant_user_id'] ?? 0);
+            }
             $message = wp_kses_post($_POST['ticket_message'] ?? '');
             $attachments = [];
             if (!empty($_POST['ticket_attachment_ids']) && function_exists('sc_support_validate_attachment_ids')) {
@@ -89,6 +94,7 @@ if ($view_ticket_id > 0) {
 
 $base_url = wc_get_account_endpoint_url('sc-support-tickets');
 $coaches = sc_support_get_coaches_for_member($member_id);
+$accountants = function_exists('sc_support_get_accountant_users') ? sc_support_get_accountant_users() : [];
 ?>
 <div class="woocommerce-MyAccount-content sc-support-tickets-content">
 <?php if ($view_ticket_id > 0 && isset($ticket)) : ?>
@@ -253,11 +259,26 @@ $coaches = sc_support_get_coaches_for_member($member_id);
                     <select name="ticket_department" id="ticket_department">
                         <option value="manager">مدیر باشگاه</option>
                         <option value="site_support">پشتیبانی سایت</option>
+                        <?php if (!empty($accountants)) : ?>
+                        <option value="accountant">حسابدار باشگاه</option>
+                        <?php endif; ?>
                         <?php if (!empty($coaches)) : ?>
                         <option value="coach">مربی باشگاه</option>
                         <?php endif; ?>
                     </select>
                 </p>
+
+                <?php if (!empty($accountants)) : ?>
+                <p class="sc-ticket-field sc-ticket-accountant-row" id="ticket_accountant_wrap" style="display:none;">
+                    <label for="ticket_accountant_user_id">حسابدار <span class="required">*</span></label>
+                    <select name="ticket_accountant_user_id" id="ticket_accountant_user_id">
+                        <option value="0">انتخاب کنید</option>
+                        <?php foreach ($accountants as $acc) : ?>
+                        <option value="<?php echo (int) $acc['user_id']; ?>"><?php echo esc_html($acc['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </p>
+                <?php endif; ?>
 
                 <?php if (!empty($coaches)) : ?>
                 <p class="sc-ticket-field sc-ticket-coach-row" id="ticket_coach_wrap" style="display:none;">
@@ -421,18 +442,28 @@ $coaches = sc_support_get_coaches_for_member($member_id);
             $('#sc-support-list-view').show();
         });
 
-        <?php if (!empty($coaches)) : ?>
+        <?php if (!empty($coaches) || !empty($accountants)) : ?>
         var dept = document.getElementById('ticket_department');
-        var wrap = document.getElementById('ticket_coach_wrap');
-        var sel = document.getElementById('ticket_coach_id');
-        if (dept && wrap && sel) {
-            function toggleCoach() {
-                var isCoach = dept.value === 'coach';
-                wrap.style.display = isCoach ? 'block' : 'none';
-                sel.required = isCoach;
+        var wrapCoach = document.getElementById('ticket_coach_wrap');
+        var wrapAcc = document.getElementById('ticket_accountant_wrap');
+        var selCoach = document.getElementById('ticket_coach_id');
+        var selAcc = document.getElementById('ticket_accountant_user_id');
+        if (dept) {
+            function toggleDeptFields() {
+                var v = dept.value;
+                if (wrapCoach && selCoach) {
+                    var showCoach = v === 'coach';
+                    wrapCoach.style.display = showCoach ? 'block' : 'none';
+                    selCoach.required = showCoach;
+                }
+                if (wrapAcc && selAcc) {
+                    var showAcc = v === 'accountant';
+                    wrapAcc.style.display = showAcc ? 'block' : 'none';
+                    selAcc.required = showAcc;
+                }
             }
-            $(dept).on('change', toggleCoach);
-            toggleCoach();
+            jQuery(dept).on('change', toggleDeptFields);
+            toggleDeptFields();
         }
         <?php endif; ?>
 

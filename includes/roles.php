@@ -519,6 +519,7 @@ function club_add_woocommerce_capabilities_to_club_coach() {
                         $item[2] !== 'sc-reports' && 
                         $item[2] !== 'sc-coach-management' && 
                         $item[2] !== 'sc-ticket'&&
+                        $item[2] !== 'sc-support-tickets' &&
                         $item[2] !== 'woocommerce'&&
                         $item[2] !== 'woocommerce-marketing' &&
                         $item[2] !== 'sc_orders' &&
@@ -599,8 +600,12 @@ function club_add_woocommerce_capabilities_to_club_coach() {
                 'sc_orders',
                 'wc-admin',
                 'post-new.php',
-                'shop_coupon'
-
+                'shop_coupon',
+                'sc-support-tickets',
+                'sc-support-ticket-view',
+                'sc-support-ticket-new',
+                'sc-discount-codes',
+                'sc-add-discount-code'
                 
                 
             ];
@@ -948,7 +953,7 @@ add_action('wp_dashboard_setup', 'club_remove_all_dashboard_widgets', 999);
 
 function club_remove_all_dashboard_widgets() {
 
-    if ( ! (current_user_can('club_coach') || current_user_can('coach') || current_user_can('shop_manager') )|| current_user_can('administrator') ) {
+    if ( ! (current_user_can('club_coach') || current_user_can('coach') || current_user_can('shop_manager') || current_user_can('accountantt')  )|| current_user_can('administrator')  ) {
         return;
     }
 

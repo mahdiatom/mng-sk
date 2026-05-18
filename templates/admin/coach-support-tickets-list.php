@@ -47,6 +47,9 @@ $list_url = admin_url('admin.php?page=sc-coach-support-tickets');
                                 $other_name = $u ? $u->display_name : 'کاربر #' . $t->user_id;
                             }
                             $other_name = 'به: ' . $other_name;
+                        } elseif ($t->department === 'accountant' && !empty($t->coach_id)) {
+                            $acc = get_userdata((int) $t->coach_id);
+                            $other_name = 'به: حسابدار' . ($acc ? (' (' . esc_html($acc->display_name) . ')') : '');
                         } else {
                             $other_name = 'به: مدیر باشگاه';
                         }

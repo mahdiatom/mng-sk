@@ -7,6 +7,133 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/** Capability for باشگاه admin ticket screens (administrator, club_coach, accountant). */
+if (!defined('SC_CAP_CLUB_SUPPORT_TICKETS')) {
+    define('SC_CAP_CLUB_SUPPORT_TICKETS', 'sc_club_support_tickets');
+}
+
+/**
+ * Grant ticket admin capability to club staff roles (idempotent).
+ */
+function sc_support_register_club_ticket_admin_cap() {
+    $cap = SC_CAP_CLUB_SUPPORT_TICKETS;
+    foreach (['administrator', 'club_coach', 'accountantt'] as $role_name) {
+        $role = get_role($role_name);
+        if ($role && !$role->has_cap($cap)) {
+            $role->add_cap($cap);
+        }
+    }
+}
+add_action('admin_init', 'sc_support_register_club_ticket_admin_cap', 5);
+
+/** True if WordPress user is نقش حسابدار باشگاه. */
+function sc_support_user_is_accountant($user_id) {
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) {
+        return false;
+    }
+    $u = get_userdata($user_id);
+    if (!$u || empty($u->roles)) {
+        return false;
+    }
+    return in_array('accountantt', (array) $u->roles, true);
+}
+
+/**
+ * Users with role accountantt for ticket recipient dropdowns.
+ * @return array<int, array{user_id:int, name:string}>
+ */
+function sc_support_get_accountant_users() {
+    $users = get_users([
+        'role' => 'accountantt',
+        'orderby' => 'display_name',
+        'order' => 'ASC',
+        'fields' => ['ID', 'display_name'],
+    ]);
+    if (!is_array($users)) {
+        return [];
+    }
+    $out = [];
+    foreach ($users as $u) {
+        if (is_object($u) && !empty($u->ID)) {
+            $out[] = [
+                'user_id' => (int) $u->ID,
+                'name' => $u->display_name !== '' ? $u->display_name : ('کاربر #' . (int) $u->ID),
+            ];
+        }
+    }
+    return $out;
+}
+
+/**
+ * حسابداری که فقط تیکت‌های بخش «حسابدار» اختصاص‌یافته به خودش را می‌بیند.
+ * بر اساس نقش accountantt (نه capabilityهای کپی‌شده از مدیر باشگاه).
+ *
+ * @param int $user_id شناسه کاربر وردپرس؛ ۰ = کاربر جاری.
+ */
+function sc_support_is_accountant_ticket_scope_only($user_id = 0) {
+    $user_id = (int) ($user_id ?: get_current_user_id());
+    if ($user_id <= 0 || !sc_support_user_is_accountant($user_id)) {
+        return false;
+    }
+    $u = get_userdata($user_id);
+    if (!$u || empty($u->roles)) {
+        return false;
+    }
+    // مدیر کل همچنان به همه تیکت‌ها دسترسی دارد.
+    if (in_array('administrator', (array) $u->roles, true)) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * شرط SQL لیست/شمارش تیکت برای حسابدار محدود.
+ *
+ * @param array  $where  آرایه شرط‌های WHERE.
+ * @param array  $params پارامترهای prepare.
+ * @param string $alias  پیشوند جدول (مثلاً t. یا خالی).
+ */
+function sc_support_apply_accountant_ticket_list_scope(array &$where, array &$params, $alias = 't') {
+    if (!sc_support_is_accountant_ticket_scope_only()) {
+        return;
+    }
+    $uid = get_current_user_id();
+    $prefix = $alias !== '' ? rtrim($alias, '.') . '.' : '';
+    $where[] = "( ({$prefix}department = %s AND {$prefix}coach_id = %d) OR ({$prefix}created_by_type = %s AND {$prefix}created_by_user_id = %d) )";
+    $params[] = 'accountant';
+    $params[] = $uid;
+    $params[] = 'accountant';
+    $params[] = $uid;
+}
+
+/** نوع فرستنده پیام برای کارکنان باشگاه (مدیر / حسابدار) در پاسخ تیکت. */
+function sc_support_staff_sender_type_for_user($user_id = 0) {
+    $user_id = (int) ($user_id ?: get_current_user_id());
+    if (function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only($user_id)) {
+        return 'accountant';
+    }
+    return 'admin';
+}
+
+/** شمار تیکت‌های در انتظار پاسخ که گیرندهٔ آن‌ها این حسابدار است. */
+function sc_support_count_pending_assigned_accountant_tickets($user_id) {
+    global $wpdb;
+    $uid = (int) $user_id;
+    if ($uid <= 0) {
+        return 0;
+    }
+    $t = $wpdb->prefix . 'sc_support_tickets';
+    return (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM $t WHERE status = 'pending_reply' AND (
+            (department = 'accountant' AND coach_id = %d)
+            OR (created_by_type = 'accountant' AND created_by_user_id = %d)
+        )",
+        $uid,
+        $uid
+    ));
+}
+
 /** Allowed MIME types for ticket attachments (all image formats, PDF, Word, Excel) */
 function sc_support_allowed_mime_types() {
     return [
@@ -137,7 +264,17 @@ function sc_support_can_view_ticket($ticket, $user_id) {
     if ((int) $ticket->user_id === (int) $user_id) {
         return true;
     }
-    if (current_user_can('manage_options')) {
+    if (function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only($user_id)) {
+        if ($ticket->department === 'accountant' && !empty($ticket->coach_id) && (int) $ticket->coach_id === (int) $user_id) {
+            return true;
+        }
+        $created_by = isset($ticket->created_by_type) ? $ticket->created_by_type : '';
+        if ($created_by === 'accountant' && (int) $ticket->created_by_user_id === (int) $user_id) {
+            return true;
+        }
+        return false;
+    }
+    if (user_can($user_id, 'manage_options') || user_can($user_id, 'club_coach')) {
         return true;
     }
     $coach_id = sc_support_get_coach_id_by_user_id($user_id);
@@ -223,8 +360,8 @@ function sc_support_count_tickets_for_user($user_id, $status = '') {
 function sc_support_get_tickets_for_coach($coach_id, $args = []) {
     global $wpdb;
     $t = $wpdb->prefix . 'sc_support_tickets';
-    $where = "(department = 'coach' AND coach_id = %d) OR (created_by_coach_id = %d)";
-    $params = [$coach_id, $coach_id];
+    $where = "((department = 'coach' AND coach_id = %d) OR (created_by_coach_id = %d) OR (department = 'accountant' AND created_by_coach_id = %d))";
+    $params = [$coach_id, $coach_id, $coach_id];
     if (!empty($args['status'])) {
         $where .= " AND status = %s";
         $params[] = $args['status'];
@@ -283,6 +420,12 @@ function sc_support_create_ticket($user_id, $department, $coach_id, $subject, $f
     if ($department === 'coach' && empty($coach_id)) {
         return new WP_Error('invalid_data', 'برای ارسال به مربی، باید مربی را انتخاب کنید.');
     }
+    if ($department === 'accountant') {
+        $acc_uid = absint($coach_id);
+        if ($acc_uid <= 0 || !sc_support_user_is_accountant($acc_uid)) {
+            return new WP_Error('invalid_data', 'برای ارسال به حسابدار، باید یک حسابدار معتبر انتخاب کنید.');
+        }
+    }
 
     $tickets_table = $wpdb->prefix . 'sc_support_tickets';
     $messages_table = $wpdb->prefix . 'sc_support_ticket_messages';
@@ -292,8 +435,11 @@ function sc_support_create_ticket($user_id, $department, $coach_id, $subject, $f
         $dept_value = 'coach';
     } elseif ($department === 'site_support') {
         $dept_value = 'site_support';
+    } elseif ($department === 'accountant') {
+        $dept_value = 'accountant';
     }
-    $coach_id = ($department === 'coach') ? absint($coach_id) : null;
+    // برای accountant مقدار coach_id در DB = user_id وردپرس حسابدار (مسیریابی گیرنده)
+    $coach_id = ($department === 'coach' || $department === 'accountant') ? absint($coach_id) : null;
     $attachment_json = !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null;
 
     $wpdb->insert($tickets_table, [
@@ -336,9 +482,9 @@ function sc_support_create_ticket($user_id, $department, $coach_id, $subject, $f
 }
 
 /**
- * Create ticket by coach: به کاربر (عضو) یا مدیر باشگاه.
- * $recipient_type: 'member' | 'manager'
- * $recipient_id: member_id when recipient_type=member, 0 when manager
+ * Create ticket by coach: به کاربر (عضو)، مدیر باشگاه یا حسابدار.
+ * $recipient_type: 'member' | 'manager' | 'accountant'
+ * $recipient_id: member_id، یا ۰ برای مدیر، یا user_id وردپرس برای حسابدار
  * Returns ticket id or WP_Error.
  */
 function sc_support_create_ticket_by_coach($coach_id, $recipient_type, $recipient_id, $subject, $first_message, $attachment_ids = []) {
@@ -348,7 +494,7 @@ function sc_support_create_ticket_by_coach($coach_id, $recipient_type, $recipien
     if (empty($subject) || empty($first_message)) {
         return new WP_Error('invalid_data', 'موضوع و متن پیام الزامی است.');
     }
-    if (!in_array($recipient_type, ['member', 'manager'], true)) {
+    if (!in_array($recipient_type, ['member', 'manager', 'accountant'], true)) {
         return new WP_Error('invalid_data', 'نوع گیرنده نامعتبر است.');
     }
     $user_id = 0;
@@ -365,6 +511,13 @@ function sc_support_create_ticket_by_coach($coach_id, $recipient_type, $recipien
         }
         $department = 'coach';
         $coach_id_val = absint($coach_id);
+    } elseif ($recipient_type === 'accountant') {
+        $acc_uid = absint($recipient_id);
+        if ($acc_uid <= 0 || !sc_support_user_is_accountant($acc_uid)) {
+            return new WP_Error('invalid_data', 'حسابدار انتخاب‌شده معتبر نیست.');
+        }
+        $department = 'accountant';
+        $coach_id_val = $acc_uid;
     }
 
     $tickets_table = $wpdb->prefix . 'sc_support_tickets';
@@ -412,25 +565,30 @@ function sc_support_create_ticket_by_coach($coach_id, $recipient_type, $recipien
 }
 
 /**
- * Create ticket by admin: به کاربر (عضو) یا مربی.
- * $recipient_type: 'member' | 'coach'
- * $recipient_id: member_id or coach_id
+ * Create ticket by admin: به کاربر (عضو)، مربی یا حسابدار.
+ * $recipient_type: 'member' | 'coach' | 'accountant'
+ * $recipient_id: member_id، coach_id، یا user_id وردپرس حسابدار
  * Returns ticket id or WP_Error.
  */
-function sc_support_create_ticket_by_admin($admin_user_id, $recipient_type, $recipient_id, $subject, $first_message, $attachment_ids = []) {
+function sc_support_create_ticket_by_admin($admin_user_id, $recipient_type, $recipient_id, $subject, $first_message, $attachment_ids = [], $created_by_type = 'admin') {
     global $wpdb;
     $subject = sanitize_text_field($subject);
     $first_message = wp_kses_post($first_message);
     if (empty($subject) || empty($first_message)) {
         return new WP_Error('invalid_data', 'موضوع و متن پیام الزامی است.');
     }
-    if (!in_array($recipient_type, ['member', 'coach'], true)) {
+    if (!in_array($recipient_type, ['member', 'coach', 'accountant', 'manager'], true)) {
         return new WP_Error('invalid_data', 'نوع گیرنده نامعتبر است.');
+    }
+    if (!in_array($created_by_type, ['admin', 'accountant'], true)) {
+        $created_by_type = 'admin';
     }
     $user_id = 0;
     $department = 'manager';
     $coach_id_val = null;
-    if ($recipient_type === 'member') {
+    if ($recipient_type === 'manager') {
+        // گیرنده: مدیر باشگاه — user_id و coach_id صفر می‌مانند.
+    } elseif ($recipient_type === 'member') {
         $member_id = absint($recipient_id);
         if ($member_id <= 0) {
             return new WP_Error('invalid_data', 'باید یک کاربر را انتخاب کنید.');
@@ -439,12 +597,19 @@ function sc_support_create_ticket_by_admin($admin_user_id, $recipient_type, $rec
         if ($user_id <= 0) {
             return new WP_Error('invalid_data', 'کاربر انتخاب‌شده معتبر نیست.');
         }
-    } else {
+    } elseif ($recipient_type === 'coach') {
         $coach_id_val = absint($recipient_id);
         if ($coach_id_val <= 0) {
             return new WP_Error('invalid_data', 'باید یک مربی را انتخاب کنید.');
         }
         $department = 'coach';
+    } else {
+        $acc_uid = absint($recipient_id);
+        if ($acc_uid <= 0 || !sc_support_user_is_accountant($acc_uid)) {
+            return new WP_Error('invalid_data', 'باید یک حسابدار را انتخاب کنید.');
+        }
+        $department = 'accountant';
+        $coach_id_val = $acc_uid;
     }
 
     $tickets_table = $wpdb->prefix . 'sc_support_tickets';
@@ -458,7 +623,7 @@ function sc_support_create_ticket_by_admin($admin_user_id, $recipient_type, $rec
         'coach_id' => $coach_id_val,
         'subject' => $subject,
         'status' => 'pending_reply',
-        'created_by_type' => 'admin',
+        'created_by_type' => $created_by_type,
         'created_by_user_id' => $admin_user_id,
         'created_by_coach_id' => null,
         'created_at' => $now,
@@ -470,9 +635,10 @@ function sc_support_create_ticket_by_admin($admin_user_id, $recipient_type, $rec
     }
     $ticket_id = (int) $wpdb->insert_id;
 
+    $sender_type = ($created_by_type === 'accountant') ? 'accountant' : 'admin';
     $wpdb->insert($messages_table, [
         'ticket_id' => $ticket_id,
-        'sender_type' => 'admin',
+        'sender_type' => $sender_type,
         'sender_id' => $admin_user_id,
         'message' => $first_message,
         'attachment_ids' => $attachment_json,
@@ -815,6 +981,9 @@ function sc_support_send_sms_on_new_ticket($ticket) {
         $c = $wpdb->prefix . 'sc_coaches';
         $mobile = $wpdb->get_var($wpdb->prepare("SELECT mobile_phone FROM $c WHERE id = %d", $ticket->coach_id));
     }
+    if (!$mobile && $ticket->department === 'accountant' && !empty($ticket->coach_id)) {
+        $mobile = get_user_meta((int) $ticket->coach_id, 'billing_phone', true);
+    }
     if ($mobile && function_exists('sc_send_sms')) {
         sc_send_sms($mobile, $template, false, null, [], 'ticket_new');
     }
@@ -843,6 +1012,8 @@ function sc_support_send_sms_on_new_message($ticket, $sender_type, $sender_id) {
     if ($sender_type === 'user') {
         if ($ticket->department === 'manager' || $ticket->department === 'site_support') {
             $mobile = sc_get_setting('sms_admin_phone', '');
+        } elseif ($ticket->department === 'accountant' && !empty($ticket->coach_id)) {
+            $mobile = get_user_meta((int) $ticket->coach_id, 'billing_phone', true);
         } else {
             global $wpdb;
             $c = $wpdb->prefix . 'sc_coaches';
@@ -873,6 +1044,9 @@ function sc_support_send_sms_on_new_message($ticket, $sender_type, $sender_id) {
             global $wpdb;
             $c = $wpdb->prefix . 'sc_coaches';
             $mobile = $wpdb->get_var($wpdb->prepare("SELECT mobile_phone FROM $c WHERE id = %d", $ticket->coach_id));
+        }
+        if (empty($mobile) && $ticket->department === 'accountant' && !empty($ticket->coach_id)) {
+            $mobile = get_user_meta((int) $ticket->coach_id, 'billing_phone', true);
         }
     }
     if ($mobile && function_exists('sc_send_sms')) {
@@ -905,6 +1079,13 @@ function sc_support_department_label($department, $coach_id = null) {
     }
     if ($department === 'site_support') {
         return 'پشتیبانی سایت';
+    }
+    if ($department === 'accountant') {
+        if ($coach_id) {
+            $u = get_userdata((int) $coach_id);
+            return $u ? ('حسابدار: ' . $u->display_name) : 'حسابدار باشگاه';
+        }
+        return 'حسابدار باشگاه';
     }
     if ($department === 'coach' && $coach_id) {
         global $wpdb;

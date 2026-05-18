@@ -14,11 +14,14 @@ $coaches = $wpdb->get_results(
     "SELECT id AS coach_id, first_name, last_name, national_id, TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) AS name FROM $coaches_table WHERE is_active = 1 ORDER BY name",
     ARRAY_A
 );
+$accountants = function_exists('sc_support_get_accountant_users') ? sc_support_get_accountant_users() : [];
 
 $selected_member_id = isset($_POST['recipient_member_id']) ? absint($_POST['recipient_member_id']) : 0;
 $selected_coach_id = isset($_POST['recipient_coach_id']) ? absint($_POST['recipient_coach_id']) : 0;
+$selected_accountant_id = isset($_POST['recipient_accountant_id']) ? absint($_POST['recipient_accountant_id']) : 0;
 $selected_member_text = '';
 $selected_coach_text = '';
+$selected_accountant_text = '';
 foreach ((array) $members as $m) {
     if ((int) $m['member_id'] === $selected_member_id) {
         $selected_member_text = $m['name'] . (isset($m['national_id']) && $m['national_id'] ? ' - ' . $m['national_id'] : '');
@@ -31,16 +34,30 @@ foreach ((array) $coaches as $c) {
         break;
     }
 }
+foreach ((array) $accountants as $a) {
+    if ((int) $a['user_id'] === $selected_accountant_id) {
+        $selected_accountant_text = $a['name'];
+        break;
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) && ($_POST['sc_ticket_action'] ?? '') === 'create') {
     if (!wp_verify_nonce($_POST['sc_ticket_nonce'] ?? '', 'sc_ticket_action')) {
         $error_message = 'خطای امنیتی.';
     } else {
         $recipient_type = sanitize_text_field($_POST['recipient_type'] ?? 'member');
-        if (!in_array($recipient_type, ['member', 'coach'], true)) {
+        if (!in_array($recipient_type, ['member', 'coach', 'accountant', 'manager'], true)) {
             $recipient_type = 'member';
         }
-        $recipient_id = ($recipient_type === 'member') ? absint($_POST['recipient_member_id'] ?? 0) : absint($_POST['recipient_coach_id'] ?? 0);
+        if ($recipient_type === 'member') {
+            $recipient_id = absint($_POST['recipient_member_id'] ?? 0);
+        } elseif ($recipient_type === 'coach') {
+            $recipient_id = absint($_POST['recipient_coach_id'] ?? 0);
+        } elseif ($recipient_type === 'accountant') {
+            $recipient_id = absint($_POST['recipient_accountant_id'] ?? 0);
+        } else {
+            $recipient_id = 0;
+        }
         $subject = sanitize_text_field($_POST['ticket_subject'] ?? '');
         $message = wp_kses_post($_POST['ticket_message'] ?? '');
         $attachments = [];
@@ -53,10 +70,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
         }
         if (empty($subject) || empty($message)) {
             $error_message = 'موضوع و متن پیام الزامی است.';
-        } elseif ($recipient_id <= 0) {
-            $error_message = $recipient_type === 'member' ? 'لطفاً یک کاربر را انتخاب کنید.' : 'لطفاً یک مربی را انتخاب کنید.';
+        } elseif ($recipient_id <= 0 && $recipient_type !== 'manager') {
+            if ($recipient_type === 'member') {
+                $error_message = 'لطفاً یک کاربر را انتخاب کنید.';
+            } elseif ($recipient_type === 'coach') {
+                $error_message = 'لطفاً یک مربی را انتخاب کنید.';
+            } else {
+                $error_message = 'لطفاً یک حسابدار را انتخاب کنید.';
+            }
         } else {
-            $result = sc_support_create_ticket_by_admin(get_current_user_id(), $recipient_type, $recipient_id, $subject, $message, $attachments);
+            $created_by = (function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only())
+                ? 'accountant'
+                : 'admin';
+            $result = sc_support_create_ticket_by_admin(get_current_user_id(), $recipient_type, $recipient_id, $subject, $message, $attachments, $created_by);
             if (is_wp_error($result)) {
                 $error_message = $result->get_error_message();
             } else {
@@ -71,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
     <div class="sc-coach-panel-header">
         <a href="<?php echo esc_url($list_url); ?>" class="sc-coach-panel-back"> بازگشت به لیست تیکت‌ها</a>
         <h1 class="sc-coach-panel-title">ارسال تیکت جدید</h1>
-        <p class="sc-coach-panel-desc">تیکت را به کاربر (عضو) یا به یکی از مربیان ارسال کنید.</p>
+        <p class="sc-coach-panel-desc">تیکت را به کاربر (عضو)، مربی، مدیر باشگاه یا حسابدار ارسال کنید.</p>
     </div>
     </div>
     <div class="wrap sc-coach-panel-wrap sc-ticket-new-admin-wrap">
@@ -90,6 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
                         <select name="recipient_type" id="recipient_type" class="regular-text">
                             <option value="member">کاربر (عضو)</option>
                             <option value="coach">مربی</option>
+                            <option value="manager">مدیر باشگاه</option>
+                            <option value="accountant">حسابدار</option>
                         </select>
                     </td>
                 </tr>
@@ -171,6 +199,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']) 
                         <p class="description">با تایپ جستجو کنید یا از لیست انتخاب کنید.</p>
                     </td>
                 </tr>
+                <tr class="recipient-accountant-row" style="display:none;">
+                    <th scope="row"><label>حسابدار</label></th>
+                    <td>
+                        <?php if (empty($accountants)) : ?>
+                            <p class="description">هیچ کاربری با نقش حسابدار در سایت ثبت نشده است.</p>
+                            <input type="hidden" name="recipient_accountant_id" value="0">
+                        <?php else : ?>
+                        <div class="sc-searchable-dropdown sc-ticket-accountant-dropdown">
+                            <input type="hidden" name="recipient_accountant_id" id="recipient_accountant_id" value="<?php echo esc_attr($selected_accountant_id); ?>">
+                            <div class="sc-dropdown-toggle">
+                                <span class="sc-dropdown-placeholder" style="display: <?php echo $selected_accountant_id > 0 ? 'none' : 'inline'; ?>;">جستجو یا انتخاب حسابدار...</span>
+                                <span class="sc-dropdown-selected" style="display: <?php echo $selected_accountant_id > 0 ? 'inline' : 'none'; ?>;"><?php echo esc_html($selected_accountant_text); ?></span>
+                                <span class="sc-dropdown-arrow">▼</span>
+                            </div>
+                            <div class="sc-dropdown-menu">
+                                <div class="sc-dropdown-search">
+                                    <input type="text" class="sc-search-input" placeholder="جستجوی نام...">
+                                </div>
+                                <div class="sc-dropdown-options" style="max-height: 250px; overflow-y: auto;">
+                                    <?php
+                                    $opt_index = 0;
+                                    $max_visible = 10;
+                                    foreach ($accountants as $a) :
+                                        $aid = (int) $a['user_id'];
+                                        $label = $a['name'];
+                                        $search = strtolower($label);
+                                        $vis = ($opt_index < $max_visible) ? 'sc-visible' : 'sc-hidden';
+                                        $opt_index++;
+                                        $is_selected = ($selected_accountant_id === $aid);
+                                    ?>
+                                        <div class="sc-dropdown-option <?php echo $vis; ?>" data-value="<?php echo esc_attr($aid); ?>" data-search="<?php echo esc_attr($search); ?>"
+                                             onclick="scSelectMember(this, '<?php echo esc_js((string) $aid); ?>', '<?php echo esc_js($label); ?>')"
+                                             style="<?php echo $is_selected ? 'background: #f0f6fc;' : ''; ?>">
+                                            <?php if ($is_selected) : ?><span class="sc-option-check" style="float: left; color: #2271b1; font-weight: bold;">✓</span><?php endif; ?>
+                                            <?php echo esc_html($label); ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="description">با تایپ جستجو کنید یا از لیست انتخاب کنید.</p>
+                        <?php endif; ?>
+                    </td>
+                </tr>
                 <tr>
                     <th scope="row"><label for="ticket_subject">موضوع <span style="color:#d63638;">*</span></label></th>
                     <td>
@@ -224,8 +296,21 @@ jQuery(function($) {
         var v = this.value;
         $('.recipient-member-row').toggle(v === 'member');
         $('.recipient-coach-row').toggle(v === 'coach');
-        if (v === 'member') { resetDropdown($('.recipient-coach-row')); }
-        else { resetDropdown($('.recipient-member-row')); }
+        $('.recipient-accountant-row').toggle(v === 'accountant');
+        if (v === 'member') {
+            resetDropdown($('.recipient-coach-row'));
+            resetDropdown($('.recipient-accountant-row'));
+        } else if (v === 'coach') {
+            resetDropdown($('.recipient-member-row'));
+            resetDropdown($('.recipient-accountant-row'));
+        } else if (v === 'accountant') {
+            resetDropdown($('.recipient-member-row'));
+            resetDropdown($('.recipient-coach-row'));
+        } else {
+            resetDropdown($('.recipient-member-row'));
+            resetDropdown($('.recipient-coach-row'));
+            resetDropdown($('.recipient-accountant-row'));
+        }
     }).trigger('change');
 });
 </script>

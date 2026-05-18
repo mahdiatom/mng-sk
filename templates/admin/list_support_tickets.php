@@ -34,6 +34,11 @@ class Support_Tickets_List_Table extends WP_List_Table {
     }
 
     public function get_bulk_actions() {
+        if (function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only()) {
+            return [
+                'close' => 'بستن تیکت',
+            ];
+        }
         return [
             'delete' => 'حذف',
             'close'  => 'بستن تیکت',
@@ -71,12 +76,22 @@ class Support_Tickets_List_Table extends WP_List_Table {
                 $out = esc_html($name);
             }
             if ($created_by !== 'user') {
-                $out .= ' <span class="description">(' . ($created_by === 'coach' ? 'ارسال توسط مربی' : 'ارسال توسط مدیر') . ')</span>';
+                if ($created_by === 'coach') {
+                    $out .= ' <span class="description">(ارسال توسط مربی)</span>';
+                } elseif ($created_by === 'accountant') {
+                    $out .= ' <span class="description">(ارسال توسط حسابدار)</span>';
+                } else {
+                    $out .= ' <span class="description">(ارسال توسط مدیر)</span>';
+                }
             }
             return $out;
         }
         if ($uid) {
             return 'کاربر #' . $uid;
+        }
+        if (isset($item['department']) && $item['department'] === 'accountant' && (int) $item['coach_id'] > 0) {
+            $u = get_userdata((int) $item['coach_id']);
+            return $u ? (esc_html($u->display_name) . ' <span class="description">(حسابدار)</span>') : 'حسابدار باشگاه';
         }
         if ((int) $item['coach_id'] > 0 && $coach_name !== '') {
             return esc_html($coach_name) . ' <span class="description">(مربی)</span>';
@@ -133,8 +148,10 @@ class Support_Tickets_List_Table extends WP_List_Table {
 
         $base = ['1=1'];
         $params = [];
-        if ($filter_department !== 'all') {
-     
+        $scope_accountant = function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only();
+        if ($scope_accountant && function_exists('sc_support_apply_accountant_ticket_list_scope')) {
+            sc_support_apply_accountant_ticket_list_scope($base, $params, '');
+        } elseif ($filter_department !== 'all') {
             $base[] = 'department = %s';
             $params[] = $filter_department;
         }
@@ -235,15 +252,22 @@ class Support_Tickets_List_Table extends WP_List_Table {
         $where = ['1=1'];
         $params = [];
 
+        $scope_accountant = function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only();
+        if ($scope_accountant && function_exists('sc_support_apply_accountant_ticket_list_scope')) {
+            sc_support_apply_accountant_ticket_list_scope($where, $params, 't');
+        }
+
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
         if ($filter_status !== 'all') {
             $where[] = 't.status = %s';
             $params[] = $filter_status;
         }
-        $filter_department = isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all';
-        if ($filter_department !== 'all') {
-            $where[] = 't.department = %s';
-            $params[] = $filter_department;
+        if (!$scope_accountant) {
+            $filter_department = isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all';
+            if ($filter_department !== 'all') {
+                $where[] = 't.department = %s';
+                $params[] = $filter_department;
+            }
         }
         $filter_user_id = isset($_GET['filter_user_id']) ? absint($_GET['filter_user_id']) : 0;
         if ($filter_user_id > 0) {

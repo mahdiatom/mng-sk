@@ -52,6 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
                 if ((int) $ticket->user_id > 0) {
                     $member = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$wpdb->prefix}sc_members WHERE user_id = %d", $ticket->user_id));
                     echo $member ? esc_html(trim($member->first_name . ' ' . $member->last_name)) : 'کاربر #' . $ticket->user_id;
+                } elseif ($ticket->department === 'accountant' && !empty($ticket->coach_id)) {
+                    $acc = get_userdata((int) $ticket->coach_id);
+                    echo $acc ? esc_html($acc->display_name) . ' (حسابدار)' : 'حسابدار باشگاه';
                 } else {
                     echo 'مدیر باشگاه';
                 }
