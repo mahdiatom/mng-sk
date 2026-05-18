@@ -1322,6 +1322,7 @@ function sc_auto_create_coach_on_user_register($user_id) {
         'national_id'          => $temp_national_id,
         'mobile_phone'         => !empty($mobile_phone) ? sanitize_text_field($mobile_phone) : NULL,
         'is_active'            => 1, // به صورت پیش‌فرض فعال
+        'is_private_enabled'   => 1,
         'created_at'           => current_time('mysql'),
         'updated_at'           => current_time('mysql'),
     ];
@@ -1331,7 +1332,7 @@ function sc_auto_create_coach_on_user_register($user_id) {
     foreach ($data as $key => $value) {
         if ($value === NULL) {
             $format[] = '%s'; // NULL
-        } elseif (in_array($key, ['is_active', 'user_id'])) {
+        } elseif (in_array($key, ['is_active', 'is_private_enabled', 'user_id'], true)) {
             $format[] = '%d'; // integer
         } else {
             $format[] = '%s'; // string

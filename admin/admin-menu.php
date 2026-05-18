@@ -4886,6 +4886,7 @@ function callback_add_coach_sufix() {
             })(),
             'settlement_amount' => sc_sanitize_coach_settlement_amount(isset($_POST['coach_settlement_amount_save']) ? $_POST['coach_settlement_amount_save'] : ''),
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
+            'is_private_enabled' => isset($_POST['is_private_enabled']) ? 1 : 0,
             'updated_at' => current_time('mysql')
         ];
         
@@ -4922,7 +4923,7 @@ function callback_add_coach_sufix() {
                 $coaches_table,
                 $data,
                 ['id' => $coach_id],
-                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%d'],
+                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%d', '%s'],
                 ['%d']
             );
             
@@ -4941,7 +4942,7 @@ function callback_add_coach_sufix() {
             // افزودن جدید
             $data['created_at'] = current_time('mysql');
             
-            $inserted = $wpdb->insert($coaches_table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%s']);
+            $inserted = $wpdb->insert($coaches_table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%d', '%s', '%s']);
             
             if ($inserted !== false) {
                 $new_coach_id = $wpdb->insert_id;

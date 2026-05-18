@@ -467,6 +467,7 @@ function sc_create_coaches_table() {
         `settlement_type` varchar(20) DEFAULT 'fixed',
         `settlement_amount` decimal(10,2) DEFAULT 0.00,
         `is_active` tinyint(1) DEFAULT 1,
+        `is_private_enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'مجاز به پذیرش کلاس خصوصی',
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
@@ -1292,6 +1293,16 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$course_coaches_table` ADD COLUMN `salary_percentage` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT 'درصد دستمزد مربی برای این دوره' AFTER `coach_id`");
         }
         update_option('sc_coach_salary_percentage_column_added', '1');
+    }
+
+    // ستون is_private_enabled برای مربیان (کلاس خصوصی)
+    if (get_option('sc_coaches_is_private_enabled_column_added', '0') !== '1') {
+        $coaches_table_priv = $wpdb->prefix . 'sc_coaches';
+        $col_priv = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$coaches_table_priv` LIKE %s", 'is_private_enabled'));
+        if (empty($col_priv)) {
+            $wpdb->query("ALTER TABLE `$coaches_table_priv` ADD COLUMN `is_private_enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'مجاز به پذیرش کلاس خصوصی' AFTER `is_active`");
+        }
+        update_option('sc_coaches_is_private_enabled_column_added', '1');
     }
 
     // اضافه کردن ستون file_url به جدول honors (یک بار برای نصب‌های قبلی)
