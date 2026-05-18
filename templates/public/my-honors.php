@@ -378,7 +378,7 @@ $total_pages = ceil($total_honors / $per_page);
             <?php endif; ?>
         </div>
     <?php else : ?>
-        <div class="woocommerce-message woocommerce-message--info woocommerce-info" id="list_honors" style="margin-top: 20px;">
+        <div class="woocommerce-message woocommerce-message--info woocommerce-info" id="sc-honors-empty-notice" style="margin-top: 20px;">
             هنوز افتخاری ثبت نشده است.
         </div>
     <?php endif; ?>
@@ -389,7 +389,9 @@ jQuery(document).ready(function($) {
     let rowIndex = 1;
     
     // افزودن ردیف جدید
-    $('#add-honor-row').on('click', function() {
+    $('#add-honor-row').on('click', function(e) {
+        e.preventDefault();
+        var scrollY = window.scrollY || window.pageYOffset || 0;
         const newRow = `
             <div class="honor-row">
                 <div>
@@ -441,7 +443,11 @@ jQuery(document).ready(function($) {
         
         $('#honors-container').append(newRow);
         rowIndex++;
-        
+
+        requestAnimationFrame(function () {
+            window.scrollTo(0, scrollY);
+        });
+
         // نمایش دکمه حذف برای همه ردیف‌ها
         $('.remove-row').show();
     });

@@ -248,42 +248,71 @@ jQuery(document).ready(function($) {
 
 jQuery(document).ready(function($) {
     // نمایش/مخفی کردن جزئیات دوره با کلیک روی header
+    function scPreserveScrollY(fn) {
+        var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+        fn();
+        requestAnimationFrame(function () {
+            window.scrollTo(0, y);
+        });
+        setTimeout(function () {
+            window.scrollTo(0, y);
+        }, 0);
+        setTimeout(function () {
+            window.scrollTo(0, y);
+        }, 220);
+    }
+
+    function scFocusCourseRadioNoScroll(radioEl) {
+        if (!radioEl || typeof radioEl.focus !== 'function') {
+            return;
+        }
+        try {
+            radioEl.focus({ preventScroll: true });
+        } catch (err) {
+            radioEl.focus();
+        }
+    }
+
     $('.sc-course-accordion-header').on('click', function(e) {
         var $radio = $(this).prev('input');
+        if (!$radio.length || !$radio.is('input[name="course_id"]')) {
+            return;
+        }
         if ($radio.is(':disabled')) {
             return;
         }
-        
+
         var $item = $(this).closest('.sc-course-accordion-item');
         var $content = $item.find('.sc-course-accordion-content');
-        
-        // انتخاب radio button
-        $radio.prop('checked', true);
-        
-        // بستن سایر آکاردئون‌ها
-        $('.sc-course-accordion-item').not($item).find('.sc-course-accordion-content').slideUp();
-        $('.sc-course-accordion-item').not($item).find('input[type="radio"]').prop('checked', false);
-        
-        // باز/بسته کردن آکاردئون فعلی
-        if ($content.is(':visible')) {
-            $content.slideUp();
-        } else {
-            $content.slideDown();
-        }
+
+        scPreserveScrollY(function () {
+            $('.sc-course-accordion-item').not($item).find('input[name="course_id"]').prop('checked', false);
+            $radio.prop('checked', true);
+
+            $('.sc-course-accordion-item').not($item).find('.sc-course-accordion-content').stop(true, true).slideUp(200);
+            $content.stop(true, true).slideDown(200);
+        });
+
+        scFocusCourseRadioNoScroll($radio[0]);
     });
-    
-    // تغییر آیکون هنگام باز/بسته شدن
-    $('.sc-course-accordion-item input[type="radio"]').on('change', function() {
+
+    $('.sc-course-accordion-item input[name="course_id"]').on('change', function() {
         var $item = $(this).closest('.sc-course-accordion-item');
         var $icon = $item.find('.sc-accordion-icon');
         var $content = $item.find('.sc-course-accordion-content');
-        
+
         if ($(this).is(':checked')) {
-            $icon.css('transform', 'rotate(180deg)');
-            $content.slideDown();
+            var radioEl = this;
+            scPreserveScrollY(function () {
+                $('.sc-course-accordion-item').not($item).find('input[name="course_id"]').prop('checked', false);
+                $icon.css('transform', 'rotate(180deg)');
+                $('.sc-course-accordion-item').not($item).find('.sc-course-accordion-content').stop(true, true).slideUp(200);
+                $content.stop(true, true).slideDown(200);
+            });
+            scFocusCourseRadioNoScroll(radioEl);
         } else {
             $icon.css('transform', 'rotate(0deg)');
-            $content.slideUp();
+            $content.stop(true, true).slideUp(200);
         }
     });
 });

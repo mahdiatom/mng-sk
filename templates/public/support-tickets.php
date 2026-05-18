@@ -470,17 +470,32 @@ $accountants = function_exists('sc_support_get_accountant_users') ? sc_support_g
         setTabActive();
         loadTickets();
     })(jQuery);
-        document.addEventListener('DOMContentLoaded', function() {
-            // بررسی هر 100ms تا المان حاضر شود
-            const interval = setInterval(function() {
-                const el = document.querySelector('.sc-support-heading-row h2'); // المان هدف
-                if (el) {
-                    // اسکرول نرم و مرکز صفحه
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    clearInterval(interval); // توقف بررسی بعد از اسکرول
-                }
-            }, 100);
-        });
     </script>
 <?php endif; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var tries = 0;
+    var maxTries = 50;
+    var interval = setInterval(function () {
+        tries++;
+        var qs = new URLSearchParams(window.location.search);
+        var viewTicket = qs.get('view_ticket');
+        var el = null;
+        if (viewTicket && /^\d+$/.test(String(viewTicket))) {
+            el = document.querySelector('.sc-support-tickets-content .sc-ticket-detail-title')
+                || document.querySelector('.sc-support-tickets-content .sc-ticket-detail-card');
+        }
+        if (!el) {
+            el = document.querySelector('.sc-support-tickets-content .sc-support-heading-row h2')
+                || document.querySelector('.sc-support-tickets-content .sc-ticket-form-title');
+        }
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clearInterval(interval);
+        } else if (tries >= maxTries) {
+            clearInterval(interval);
+        }
+    }, 100);
+});
+</script>
 </div>

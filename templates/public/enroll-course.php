@@ -386,15 +386,26 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // بررسی هر 100ms تا المان حاضر شود
-    const interval = setInterval(function() {
-        const el = document.querySelector('.sc-enroll-course-page h2'); // المان هدف
-        if (el) {
-            // اسکرول نرم و مرکز صفحه
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            clearInterval(interval); // توقف بررسی بعد از اسکرول
-        }
-    }, 100);
+    // اسکرول به عنوان فقط وقتی کاربر هنوز نزدیک بالای صفحه است؛
+    // در غیر این صورت با تأخیر، scrollIntoView با اولین تعامل (مثلاً انتخاب دوره) هم‌زمان می‌شود و «پرش به بالا» ایجاد می‌کند.
+    (function scEnrollScrollTitleIfNeeded() {
+        var tries = 0;
+        var maxTries = 40;
+        var interval = setInterval(function () {
+            tries++;
+            var page = document.querySelector('.sc-enroll-course-page');
+            var el = page ? page.querySelector('h2') : null;
+            if (el) {
+                var y = window.scrollY || document.documentElement.scrollTop || 0;
+                if (y < 120) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                clearInterval(interval);
+            } else if (tries >= maxTries) {
+                clearInterval(interval);
+            }
+        }, 100);
+    })();
 
     const form = document.querySelector('.sc-enroll-course-form-packages');
     const ajaxUrl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
