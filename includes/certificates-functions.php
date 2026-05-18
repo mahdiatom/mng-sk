@@ -313,7 +313,7 @@ function sc_certificates_render_html($certificate_row) {
                     break-inside: avoid;
                 }
                 .sc-certificate-bg {
-                    opacity: 1 !important;
+                    opacity: <?php echo esc_html($background_opacity); ?> !important;
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
