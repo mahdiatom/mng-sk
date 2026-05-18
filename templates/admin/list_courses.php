@@ -6,11 +6,34 @@ if (!class_exists('WP_List_Table')) {
 
 class Courses_List_Table extends WP_List_Table {
 
+    /** @var array<int, array<int, object>> */
+    protected $packages_by_course = [];
+
+    /**
+     * اعداد لاتین → فارسی (برای نمایش جلسات و قیمت در لیست)
+     */
+    protected function sc_list_digits_to_persian($str) {
+        return strtr((string) $str, [
+            '0' => '۰', '1' => '۱', '2' => '۲', '3' => '۳', '4' => '۴',
+            '5' => '۵', '6' => '۶', '7' => '۷', '8' => '۸', '9' => '۹',
+        ]);
+    }
+
+    /**
+     * مبلغ با دو رقم اعشار، جداکننده هزارگان نقطه، ارقام فارسی (مثل ۲.۵۰۰.۰۰)
+     */
+    protected function sc_list_format_price_toman_persian($amount) {
+        $en = number_format((float) $amount, 2, '.', '.');
+        return $this->sc_list_digits_to_persian($en);
+    }
+
     public function get_columns() {
         return [
            // 'row' => 'ردیف',
             'cb' => '<input type="checkbox" />',
             'title' => 'عنوان دوره',
+            'chapter' => 'شعبه',
+            'course_type' => 'نوع کلاس',
             'id' => 'شناسه',
             'price' => 'قیمت',
             'capacity' => 'ظرفیت',
@@ -110,25 +133,67 @@ class Courses_List_Table extends WP_List_Table {
         if ($remaining < 0) {
             $remaining = 0;
         }
-        return (string) $remaining;
+        return $this->sc_list_digits_to_persian((string) $remaining);
+    }
+
+    public function column_chapter($item) {
+        $ch = isset($item['chapter']) ? trim((string) $item['chapter']) : '';
+        return $ch !== '' ? esc_html($ch) : '—';
+    }
+
+    public function column_course_type($item) {
+        $t = isset($item['course_type']) ? (string) $item['course_type'] : 'group';
+        if ($t === 'private') {
+            return 'خصوصی';
+        }
+        return 'گروهی';
+    }
+
+    public function column_price($item) {
+        $cid = isset($item['id']) ? (int) $item['id'] : 0;
+        if ($cid && !empty($this->packages_by_course[$cid])) {
+            $prices = [];
+            foreach ($this->packages_by_course[$cid] as $p) {
+                $prices[] = floatval($p->price);
+            }
+            if (!empty($prices)) {
+                $min = min($prices);
+                $max = max($prices);
+                return 'از ' . $this->sc_list_format_price_toman_persian($min) . ' تومان تا ' . $this->sc_list_format_price_toman_persian($max) . ' تومان';
+            }
+        }
+        if (function_exists('wc_price')) {
+            return wc_price($item['price']);
+        }
+        return number_format((float) $item['price'], 0, '.', ',') . ' تومان';
+    }
+
+    public function column_sessions_count($item) {
+        $cid = isset($item['id']) ? (int) $item['id'] : 0;
+        if ($cid && !empty($this->packages_by_course[$cid])) {
+            $sessions = [];
+            foreach ($this->packages_by_course[$cid] as $p) {
+                $sessions[] = (int) $p->sessions_count;
+            }
+            $sessions = array_values(array_unique(array_filter($sessions)));
+            sort($sessions, SORT_NUMERIC);
+            if (!empty($sessions)) {
+                $parts = array_map(function ($n) {
+                    return $this->sc_list_digits_to_persian((string) $n);
+                }, $sessions);
+                return implode(' - ', $parts);
+            }
+        }
+        $n = isset($item['sessions_count']) ? (int) $item['sessions_count'] : 0;
+        return $n > 0 ? $this->sc_list_digits_to_persian((string) $n) : '—';
     }
 
     public function column_default($item, $column_name) {
         switch ($column_name) {
             case 'id':
                 return $item['id'];
-            case 'price':
-                // استفاده از فرمت WooCommerce اگر فعال باشد، در غیر این صورت فرمت فارسی
-                if (function_exists('wc_price')) {
-                    return wc_price($item['price']);
-                } else {
-                    // فرمت فارسی: سه رقم سه رقم با جداکننده کاما
-                    return number_format($item['price'], 0, '.', ',') . ' تومان';
-                }
             case 'capacity':
-                return $item['capacity'] ? $item['capacity'] : 'نامحدود';
-            case 'sessions_count':
-                return $item['sessions_count'] ? $item['sessions_count'] : '-';
+                return $item['capacity'] ? $this->sc_list_digits_to_persian((string) (int) $item['capacity']) : 'نامحدود';
             case 'start_date':
                 if (empty($item['start_date'])) {
                     return '-';
@@ -153,12 +218,27 @@ class Courses_List_Table extends WP_List_Table {
     }
 
     public function no_items() {
-        if (isset($_GET['s'])) {
-            echo "دوره‌ای با این مشخصات یافت نشد!";
-        } elseif (isset($_GET['course_status']) && $_GET['course_status'] == 'trash') {
-            echo "هیچ دوره‌ای در زباله‌دان نیست.";
+        $narrow = false;
+        if (!empty($_GET['filter_chapter'])) {
+            $narrow = true;
+        }
+        if (!empty($_GET['filter_course_type']) && sanitize_text_field(wp_unslash($_GET['filter_course_type'])) !== 'all') {
+            $narrow = true;
+        }
+        if (!empty($_GET['filter_capacity_status']) && sanitize_text_field(wp_unslash($_GET['filter_capacity_status'])) !== 'all') {
+            $narrow = true;
+        }
+
+        if (isset($_GET['s']) && $_GET['s'] !== '') {
+            echo 'دوره‌ای با این مشخصات یافت نشد!';
+        } elseif ($narrow) {
+            echo 'دوره‌ای با این فیلترها یافت نشد.';
+        } elseif (isset($_GET['course_status']) && $_GET['course_status'] === 'trash') {
+            echo 'هیچ دوره‌ای در زباله‌دان نیست.';
+        } elseif (isset($_GET['course_status']) && ($_GET['course_status'] === 'active' || $_GET['course_status'] === 'inactive')) {
+            echo 'دوره‌ای در این وضعیت یافت نشد.';
         } else {
-            echo "هنوز دوره‌ای ثبت نکرده‌اید. از بخش افزودن دوره اولین دوره خود را اضافه کنید.";
+            echo 'هنوز دوره‌ای ثبت نکرده‌اید. از بخش افزودن دوره اولین دوره خود را اضافه کنید.';
         }
     }
 
@@ -308,10 +388,15 @@ class Courses_List_Table extends WP_List_Table {
 
     protected function view_create($key, $label, $url, $count = 0, $is_current = false) {
         $class_view = $is_current ? 'current' : '';
-        if (isset($_GET['s'])) {
-            $url .= "&s=" . sanitize_text_field($_GET['s']);
+        if (isset($_GET['s']) && $_GET['s'] !== '') {
+            $url .= '&s=' . rawurlencode(sanitize_text_field(wp_unslash($_GET['s'])));
         }
-        $view = sprintf("<a href='%s' class='%s'>%s</a>", $url, $class_view, $label);
+        foreach (['filter_chapter', 'filter_course_type', 'filter_capacity_status'] as $fk) {
+            if (!empty($_GET[$fk]) && (string) $_GET[$fk] !== 'all') {
+                $url .= '&' . rawurlencode($fk) . '=' . rawurlencode(sanitize_text_field(wp_unslash($_GET[$fk])));
+            }
+        }
+        $view = sprintf("<a href='%s' class='%s'>%s</a>", esc_url($url), $class_view, $label);
         
             $view .= sprintf("<span class='count'>(%d)</span>", $count);
         
@@ -381,79 +466,93 @@ class Courses_List_Table extends WP_List_Table {
 
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_courses';
+        $member_courses = $wpdb->prefix . 'sc_member_courses';
+
+        $this->packages_by_course = [];
 
         $per_page = 10;
         $page = $this->get_pagenum();
         $offset = ($page - 1) * $per_page;
 
-        $orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
-        $order = isset($_GET['order']) ? sanitize_text_field($_GET['order']) : 'DESC';
-        $order_clause = "ORDER BY $orderby $order";
+        $orderby = isset($_GET['orderby']) ? sanitize_text_field(wp_unslash($_GET['orderby'])) : 'created_at';
+        $allowed_orderby = ['created_at', 'title', 'price', 'start_date', 'is_active', 'id', 'chapter', 'course_type'];
+        if (!in_array($orderby, $allowed_orderby, true)) {
+            $orderby = 'created_at';
+        }
+        $order = isset($_GET['order']) ? strtoupper(sanitize_text_field(wp_unslash($_GET['order']))) : 'DESC';
+        $order = $order === 'ASC' ? 'ASC' : 'DESC';
+        $order_clause = 'ORDER BY c.' . $orderby . ' ' . $order;
 
-        $where = "1=1";
-        $course_status = isset($_GET['course_status']) ? sanitize_text_field($_GET['course_status']) : 'all';
+        $where = '1=1';
+        $course_status = isset($_GET['course_status']) ? sanitize_text_field(wp_unslash($_GET['course_status'])) : 'all';
 
-        // فیلتر زباله‌دان
-        if ($course_status == 'trash') {
-            $where .= " AND deleted_at IS NOT NULL";
+        if ($course_status === 'trash') {
+            $where .= ' AND c.deleted_at IS NOT NULL';
         } else {
-            $where .= " AND deleted_at IS NULL";
-            
-            // فیلتر فعال/غیرفعال
-            if ($course_status == 'active') {
-                $where .= " AND is_active = 1";
-            } elseif ($course_status == 'inactive') {
-                $where .= " AND is_active = 0";
+            $where .= ' AND c.deleted_at IS NULL';
+
+            if ($course_status === 'active') {
+                $where .= ' AND c.is_active = 1';
+            } elseif ($course_status === 'inactive') {
+                $where .= ' AND c.is_active = 0';
             }
         }
 
-        // جستجو
-        if (isset($_GET['s']) && !empty($_GET['s'])) {
-            $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';
-            $where .= $wpdb->prepare(" AND (title LIKE %s OR description LIKE %s)", $search, $search);
+        if (isset($_GET['s']) && $_GET['s'] !== '') {
+            $search = '%' . $wpdb->esc_like(sanitize_text_field(wp_unslash($_GET['s']))) . '%';
+            $where .= $wpdb->prepare(' AND (c.title LIKE %s OR c.description LIKE %s)', $search, $search);
         }
 
+        $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
+        if ($filter_chapter !== '') {
+            $where .= $wpdb->prepare(' AND c.chapter = %s', $filter_chapter);
+        }
+
+        $filter_course_type = isset($_GET['filter_course_type']) ? sanitize_text_field(wp_unslash($_GET['filter_course_type'])) : 'all';
+        if ($filter_course_type === 'group' || $filter_course_type === 'private') {
+            $where .= $wpdb->prepare(' AND c.course_type = %s', $filter_course_type);
+        }
+
+        $filter_capacity_status = isset($_GET['filter_capacity_status']) ? sanitize_text_field(wp_unslash($_GET['filter_capacity_status'])) : 'all';
+        if ($filter_capacity_status === 'full') {
+            $where .= " AND c.capacity > 0 AND (
+                SELECT COUNT(*) FROM `$member_courses` mc
+                WHERE mc.course_id = c.id AND mc.status = 'active'
+                AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+            ) >= c.capacity";
+        } elseif ($filter_capacity_status === 'available') {
+            $where .= " AND (c.capacity IS NULL OR c.capacity <= 0 OR (
+                SELECT COUNT(*) FROM `$member_courses` mc
+                WHERE mc.course_id = c.id AND mc.status = 'active'
+                AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+            ) < c.capacity)";
+        }
+
+        $sql = "SELECT SQL_CALC_FOUND_ROWS c.* FROM `$table_name` c WHERE $where $order_clause LIMIT %d OFFSET %d";
         $results = $wpdb->get_results(
-            "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            $wpdb->prepare($sql, $per_page, $offset),
             ARRAY_A
         );
 
         $this->set_pagination_args([
-            'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
-            'per_page' => $per_page
+            'total_items' => (int) $wpdb->get_var('SELECT FOUND_ROWS()'),
+            'per_page' => $per_page,
         ]);
 
+        if (is_array($results)) {
+            foreach ($results as $row) {
+                $cid = isset($row['id']) ? (int) $row['id'] : 0;
+                if ($cid && function_exists('sc_course_has_packages') && sc_course_has_packages($cid)) {
+                    $this->packages_by_course[$cid] = sc_get_course_packages($cid);
+                }
+            }
+        }
+
         $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];
-        $this->items = $results;
+        $this->items = is_array($results) ? $results : [];
     }
 
-     public function extra_tablenav($which) {
-        if ($which == 'top') {
-            global $wpdb;
-            $courses_table = $wpdb->prefix . 'sc_courses';
-            $courses = $wpdb->get_results(
-                "SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
-            );
-            
-            $selected_status = isset($_GET['course_status']) ? sanitize_text_field($_GET['course_status']) : 'all';
-            
-            echo '<div class="alignleft actions">';
-            
-           
-            // فیلتر وضعیت (active/inactive)
-            echo '<select name="course_status" id="course_status" style="margin-left: 5px;">';
-            echo '<option value="all"' . ($selected_status == 'all' ? ' selected' : '') . '>همه وضعیت‌ها</option>';
-            echo '<option value="active"' . ($selected_status == 'active' ? ' selected' : '') . '>فعال</option>';
-            echo '<option value="inactive"' . ($selected_status == 'inactive' ? ' selected' : '') . '>غیرفعال</option>';
-            echo '</select>';
-         
-            
-            echo '<input type="submit" name="filter_action" id="doaction" class="button action" value="فیلتر" style="margin-left: 5px;">';
-            
-          
-
-                echo '</div>';
-        }
+    public function extra_tablenav($which) {
     }
 }
 

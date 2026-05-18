@@ -2,7 +2,16 @@
 
 if ( ! defined('ABSPATH') ) exit;
 //این فایل برای نمایش پاپ اپ است در صفحه لیست دوره ها
-global $courses_list_table;
+global $courses_list_table, $wpdb;
+
+$chapter_table = $wpdb->prefix . 'sc_chapter_categories';
+$chapters_filter = $wpdb->get_results("SELECT `name` FROM `$chapter_table` ORDER BY id ASC");
+
+$filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
+$filter_course_type = isset($_GET['filter_course_type']) ? sanitize_text_field(wp_unslash($_GET['filter_course_type'])) : 'all';
+$filter_capacity_status = isset($_GET['filter_capacity_status']) ? sanitize_text_field(wp_unslash($_GET['filter_capacity_status'])) : 'all';
+$course_status = isset($_GET['course_status']) ? sanitize_text_field(wp_unslash($_GET['course_status'])) : 'all';
+$search_s = isset($_GET['s']) ? wp_unslash((string) $_GET['s']) : '';
 ?>
 <div class="wrap">
     <h1 class="wp-heading-inline">لیست دوره‌ها</h1>
@@ -10,12 +19,73 @@ global $courses_list_table;
 </div>
 <?php
 echo '<div class="wrap">';
-    echo '<form Method="get">';
-        echo '<input type="hidden" name="page" value="sc-courses">';
-        $courses_list_table->search_box('جستجو دوره', 'search_course');
-        $courses_list_table->views();
-        $courses_list_table->display();
-    echo '</form>';
+echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" class="form_fillter_attendance form_fillter_attendance_tab1">';
+echo '<input type="hidden" name="page" value="sc-courses">';
+if (!empty($_GET['orderby'])) {
+    echo '<input type="hidden" name="orderby" value="' . esc_attr(sanitize_text_field(wp_unslash($_GET['orderby']))) . '">';
+}
+if (!empty($_GET['order'])) {
+    $ord = strtoupper(sanitize_text_field(wp_unslash($_GET['order']))) === 'ASC' ? 'ASC' : 'DESC';
+    echo '<input type="hidden" name="order" value="' . esc_attr($ord) . '">';
+}
+
+echo '<div class="sc-filter-grid">';
+
+echo '<div class="sc-filter-field">';
+echo '<label class="sc-filter-label" for="filter_chapter">شعبه</label>';
+echo '<select name="filter_chapter" id="filter_chapter" class="sc-filter-control">';
+echo '<option value="">همه شعبه‌ها</option>';
+if (!empty($chapters_filter)) {
+    foreach ($chapters_filter as $ch) {
+        $nm = isset($ch->name) ? (string) $ch->name : '';
+        if ($nm === '') {
+            continue;
+        }
+        echo '<option value="' . esc_attr($nm) . '"' . selected($filter_chapter, $nm, false) . '>' . esc_html($nm) . '</option>';
+    }
+}
+echo '</select></div>';
+
+echo '<div class="sc-filter-field">';
+echo '<label class="sc-filter-label" for="sc_courses_list_search">جستجو</label>';
+echo '<input type="search" id="sc_courses_list_search" name="s" value="' . esc_attr($search_s) . '" class="sc-filter-control" placeholder="عنوان یا توضیحات دوره…">';
+echo '</div>';
+
+echo '<div class="sc-filter-field">';
+echo '<label class="sc-filter-label" for="filter_course_type">نوع کلاس</label>';
+echo '<select name="filter_course_type" id="filter_course_type" class="sc-filter-control">';
+echo '<option value="all"' . selected($filter_course_type, 'all', false) . '>همه</option>';
+echo '<option value="group"' . selected($filter_course_type, 'group', false) . '>گروهی</option>';
+echo '<option value="private"' . selected($filter_course_type, 'private', false) . '>خصوصی</option>';
+echo '</select></div>';
+
+echo '<div class="sc-filter-field">';
+echo '<label class="sc-filter-label" for="course_status">وضعیت کلاس</label>';
+echo '<select name="course_status" id="course_status" class="sc-filter-control">';
+echo '<option value="all"' . selected($course_status, 'all', false) . '>همه</option>';
+echo '<option value="active"' . selected($course_status, 'active', false) . '>فعال</option>';
+echo '<option value="inactive"' . selected($course_status, 'inactive', false) . '>غیرفعال</option>';
+echo '<option value="trash"' . selected($course_status, 'trash', false) . '>زباله‌دان</option>';
+echo '</select></div>';
+
+echo '<div class="sc-filter-field">';
+echo '<label class="sc-filter-label" for="filter_capacity_status">وضعیت ظرفیت</label>';
+echo '<select name="filter_capacity_status" id="filter_capacity_status" class="sc-filter-control">';
+echo '<option value="all"' . selected($filter_capacity_status, 'all', false) . '>همه</option>';
+echo '<option value="available"' . selected($filter_capacity_status, 'available', false) . '>دارای ظرفیت</option>';
+echo '<option value="full"' . selected($filter_capacity_status, 'full', false) . '>ظرفیت کامل</option>';
+echo '</select></div>';
+
+echo '</div>';
+
+echo '<p class="submit">';
+echo '<input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">';
+echo ' <a href="' . esc_url(admin_url('admin.php?page=sc-courses')) . '" class="button delete_fillter">پاک کردن فیلترها</a>';
+echo '</p>';
+
+$courses_list_table->views();
+$courses_list_table->display();
+echo '</form>';
 echo '</div>';
 ?>
 
