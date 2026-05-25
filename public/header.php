@@ -15,7 +15,7 @@ $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_not
 
 $count_product_card = get_cart_item_count()['count'];
 $sum_price_card = get_cart_item_count()['sum'];
-
+$color_org = sc_get_setting('sc_org_bg_color', '#6D34FF');
 
 
 
@@ -186,9 +186,71 @@ $verification_gate_locked = function_exists('sc_is_member_verification_gate_enab
 
 </div>
 </div>
+<style>
+.custom-header ,
+ .woocommerce-MyAccount-navigation
+  , .custom-footer , .button ,.button-primary , .sc-dashboard-btn , a.details_info_user_pannel ,
+  .wp-block-woocommerce-checkout-order-summary-block
+  ,.wc-block-components-checkout-place-order-button , .wc-block-components-address-card__edit,
+  .woocommerce .woocommerce-cart-form button ,.woocommerce .calculated_shipping,
+  .woocommerce .wc-empty-cart-message .woocommerce-info,
+  .woocommerce .return-to-shop .wc-backward,
+  .woocommerce .woocommerce-form-coupon-toggle .woocommerce-info,
+.products .product .button,
+.woocommerce-message,
+.form-submit #submit,
+.woocommerce-tabs ul .active,
+.single_add_to_cart_button,
+.wc-block-grid__product-add-to-cart a,
+.sc-dashboard-progress-bar,
+.sc-my-certificate-row-action .button.sc-my-certificate-action,
+.table_privet_note thead tr,
+.woocommerce-info a,
+#button_filter_custom,
+.honor-row .remove-row,
+button[name="save_honors"],
+.sc_paginate .tablenav-pages .current,
+#order_review .shop_table,
+.woocommerce-order-received .button.alt:hover,
+.woocommerce-thankyou-order-received .button.alt:hover,
+.woocommerce-order-received .button-primary,
+.woocommerce-thankyou-order-received .button-primary,
+.woocommerce-order-received .woocommerce-thankyou-order-received,
+.woocommerce-thankyou-order-received .woocommerce-thankyou-order-received,
+.sc-thankyou-page .woocommerce-table--order-details thead ,
+.sc-thankyou-btn-secondary:hover,
+.sc-thankyou-btn-primary,
+.button_filter_custom,
+.woocommerce-table--order-details thead,
+.sc-invoice-btn-pay,
+.sc-invoices-table thead,
+.sc-enroll-event-btn,
+.sc-enroll-course-filters button , 
+.sc-my-courses-filters button ,
+ .sc-events-filters button,
+ .sc-invoices-filters button,
+ .sc-event-action-btn,
+ .form-row button , .sc-event-success-page a,
+ .sc-bg-purple ,
+  .sc-my-events-content .sc-mev-btn-primary ,
+  .wc-block-components-button,
+  .sc-private-notes-user .sc-pn-btn-primary,
+  .sc-ticket-btn-primary,
+  .sc-support-tabs .active,
+  .sc-notification-btn-primary,
+  .sc-notif-tabs .active
+
+ 
+ {
+ 
+    background-color: <?php echo $color_org;  ?> !important;
+    
+}
+</style>
 
     <?php
 }
+
 
 
 

@@ -5,12 +5,15 @@ if ( ! defined('ABSPATH') ) exit;
 add_action('wp_footer', 'custom_footer_output');
 function custom_footer_output() {
 
+
+
     ?>
     
     <footer class="custom-footer" >
         <p>&copy; <?php echo date('Y'); ?> تمامی حقوق برای سیستم هوشمند باشگاه اتم کلاب محفوظ است.</p>
         <p>طراحی شده توسط اتم کلاب</p>
     </footer>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const header = document.querySelector('.custom-header');

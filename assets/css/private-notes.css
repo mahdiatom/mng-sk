@@ -321,7 +321,6 @@
 }
 
 .sc-private-notes-user .sc-pn-btn-primary {
-    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
     color: #fff !important;
     box-shadow: 0 2px 8px rgba(34, 113, 177, 0.25);
 }

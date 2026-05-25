@@ -95,10 +95,10 @@ h2{
 .custom-footer{
     display: flex;
     justify-content: space-around;
-   background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;    color: white;
     padding-top: 10px;
     font-weight: bold;
-    margin-top: 50px;
+    margin-top: -15px;
+    width: 100%;
 }
 
 @media screen and (max-width: 780px) {
@@ -269,7 +269,6 @@ font-size: 14px;
 
 
 
-
 .menu_custom_gym ul.menu{
     display: flex;
     gap: 31px;
@@ -299,7 +298,7 @@ font-size: 14px;
 } */
 .custom-header {
     position: relative;
-        background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+        /* background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important; */
    
     transition: all 0.3s ease;
     
@@ -668,7 +667,6 @@ a.icon_adv svg circle{
     width: 100%;
     z-index: 9999;
     padding: 10px 20px;
-    background-color: #fff !important;
 }
 .woo_panel_mini{
     display: flex;
@@ -757,7 +755,6 @@ border-bottom: 2px solid rgba(91, 106, 160, 0.387);
     
 }
 .wp-block-woocommerce-checkout-order-summary-block{
-        background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -783,7 +780,6 @@ border-bottom: 2px solid rgba(91, 106, 160, 0.387);
 
 }
 .wc-block-components-checkout-place-order-button , .wc-block-components-address-card__edit{
-        background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -825,7 +821,6 @@ border-bottom: 2px solid rgba(91, 106, 160, 0.387);
         margin: 15px 0;
 }
 .woocommerce .woocommerce-cart-form button {
-         background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -838,7 +833,6 @@ border-bottom: 2px solid rgba(91, 106, 160, 0.387);
     margin-left: 14px;
 }
 .woocommerce .calculated_shipping {
-            background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -865,7 +859,6 @@ color: white !important;
     color: white !important;
 }
 .woocommerce .wc-empty-cart-message .woocommerce-info{
-            background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -873,7 +866,6 @@ color: white !important;
     width: 100% !important;
 }
 .woocommerce .return-to-shop .wc-backward {
-             background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -923,7 +915,6 @@ color: white !important;
 }
 
 .woocommerce .woocommerce-form-coupon-toggle .woocommerce-info{
-        background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -1000,7 +991,6 @@ width: 100% !important;
     width: 60% !important;
 }
 .wc-block-grid__product-add-to-cart a{
-       background: linear-gradient(90deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -1056,7 +1046,6 @@ width: 100% !important;
     width: 100px !important;
 }
 .single_add_to_cart_button{
-         background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none !important;
     color: #fff !important;
     border-radius: 10px !important;
@@ -1069,7 +1058,6 @@ a.add_to_cart_button{
 
 
 .woocommerce-tabs ul .active{
-             background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     color: white !important;
 }
 .woocommerce-tabs .wc-tab{
@@ -1089,7 +1077,6 @@ a.add_to_cart_button{
 }
 
 .form-submit #submit{
-             background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none !important;
     color: #fff !important;
     border-radius: 10px !important;
@@ -1121,7 +1108,6 @@ textarea#comment{
     color: #000 !important;
 }
 .woocommerce-message{
-          background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none !important;
     color: #fff !important;
     border-radius: 10px !important;
@@ -1143,7 +1129,6 @@ textarea#comment{
 }
 
 .products .product .button{
-              background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none !important;
     color: #fff !important;
     border-radius: 10px !important;
@@ -1206,7 +1191,6 @@ textarea#comment{
       }
 
 .woocommerce-Button{
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none !important;
     color: #fff !important;
     border-radius: 10px !important;
@@ -1538,7 +1522,6 @@ a.details_info_user_pannel {
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    background: linear-gradient(135deg, #6d34ff 0%, #a855f7 100%);
     color: #fff !important;
     border-radius: 10px;
     font-size: 13px;
@@ -1556,9 +1539,7 @@ a.details_info_user_pannel:hover {
 }
 
 /* details  card */
-.sc-bg-purple{
-    background-color: #6d34ff;
-}
+
 
 .sc-bg-pink{
     background-color: #f900c1;
@@ -1639,7 +1620,6 @@ a.details_info_user_pannel:hover {
 }
 .woocommerce-MyAccount-navigation{
     width: 20% !important;
-    background: #6D34FF ;
     margin-left: 10px;
     color: white;
     padding: 10px;
@@ -1874,7 +1854,7 @@ margin-right: 5% !important;
     color: #000 !important;
 }
 .form-row button , .sc-event-success-page a{
-    background: #6D34FF !important;
+ 
     color: #fff !important;
     border: none !important;
     padding: 15px 40px !important;
@@ -2533,7 +2513,6 @@ ease !important;
     width: 100%;
     text-align: center;
     padding: 14px 20px;
-       background-color: #6D34FF !important;
      color: white !important;
     border: none;
     border-radius: 8px;
@@ -2939,7 +2918,6 @@ ease !important;
 .sc-my-courses-filters button ,
  .sc-events-filters button,
  .sc-invoices-filters button {
-    background: #6D34FF !important;
     color: #fff !important;
     border: none !important;
     padding: 10px 15px !important;
@@ -2986,7 +2964,6 @@ ease !important;
 }
 
 .sc-enroll-event-btn {
-       background-color: #6D34FF !important;
      color: white !important;
     border: none;
     padding: 15px 40px;
@@ -3214,7 +3191,7 @@ text-align: center !important;
     width: 35%;
 }
 .sc-invoices-table thead {
-    background: #6D34FF;
+
     padding: 10px;
 }
 .sc-invoices-table th span{
@@ -3246,7 +3223,6 @@ table td, table th{
 .sc-invoice-btn-pay{
     display: inline-block !important;
     padding: 10px 18px !important;
-    background: #6D34FF !important;
     color: #fff !important;
     text-decoration: none !important;
     border-radius: 6px !important;
@@ -3415,9 +3391,7 @@ padding: 15px !important;
     margin-top: 20px;
 }
 
-.woocommerce-table--order-details thead {
-    background: #6D34FF;
-}
+
 .woocommerce-table--order-details .woocommerce-table__product-name,
 .woocommerce-table--order-details .woocommerce-table__product-table{
     color: white !important;
@@ -3632,13 +3606,11 @@ width: 150px;
 }
 
 .woocommerce-MyAccount-content .button-primary {
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
 }
 .button_filter_custom {
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -3908,7 +3880,6 @@ width: 150px;
 }
 
 .sc-thankyou-btn-primary {
-    background: linear-gradient(135deg, #6D34FF 0%, #5a2ae6 100%);
     color: #fff;
     border: none;
 }
@@ -3927,7 +3898,7 @@ width: 150px;
 }
 
 .sc-thankyou-btn-secondary:hover {
-    background: #6D34FF;
+
     color: #fff;
     transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(109, 52, 255, 0.3);
@@ -3977,9 +3948,7 @@ width: 150px;
     margin-top: 20px;
 }
 
-.sc-thankyou-page .woocommerce-table--order-details thead {
-    background: #6D34FF;
-}
+
 
 .sc-thankyou-page .woocommerce-table--order-details th {
     padding: 15px 12px;
@@ -4322,7 +4291,6 @@ width: 150px;
 .woocommerce-thankyou-order-received .woocommerce-thankyou-order-received {
     text-align: center;
     padding: 40px 20px;
-    background: linear-gradient(135deg, #6D34FF 0%, #5a2ae6 100%);
     border-radius: 16px;
     color: #fff;
     margin-bottom: 30px;
@@ -4500,7 +4468,6 @@ ul.woocommerce-error a{
 
 .woocommerce-order-received .button-primary,
 .woocommerce-thankyou-order-received .button-primary {
-    background: linear-gradient(135deg, #6D34FF 0%, #5a2ae6 100%);
     border: none;
     color: #fff;
 }
@@ -4522,7 +4489,6 @@ ul.woocommerce-error a{
 
 .woocommerce-order-received .button.alt:hover,
 .woocommerce-thankyou-order-received .button.alt:hover {
-    background: #6D34FF;
     color: #fff;
     transform: translateY(-2px);
 }
@@ -4830,7 +4796,6 @@ ul.woocommerce-error a{
     border: none;
 }
 #order_review .shop_table {
-    background: #6d34ff;
     padding: 10px;
     color: white;
 }
@@ -4929,7 +4894,6 @@ ul.woocommerce-error a{
 
 /* current page */
 .sc_paginate .tablenav-pages .current {
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
     color: #fff;
     border: 1px solid #6d34ff;
     font-weight: 600;
@@ -5395,7 +5359,6 @@ html[dir="rtl"] .sc-my-events-content .sc-mev-btn-ico .sc-mev-svg--arrow {
 }
 
 .sc-my-events-content .sc-mev-btn-primary {
-    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
     color: #fff !important;
     box-shadow: 0 2px 8px rgba(34, 113, 177, 0.25);
 }
@@ -5688,7 +5651,6 @@ color: white;
 }
 
 .sc-notification-btn-primary {
-    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
     color: #fff !important;
 }
 
@@ -6000,7 +5962,6 @@ color: white;
 }
 
 .sc-ticket-btn-primary {
-    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
     color: #fff !important;
 }
 
@@ -6714,7 +6675,6 @@ button[name="save_honors"] {
     padding: 14px 36px;
     font-size: 15px;
     font-weight: 700;
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -6761,7 +6721,6 @@ button[name="save_honors"]:focus {
     padding: 10px 20px;
     font-size: 13px;
     font-weight: 600;
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     color: #fff !important;
     border: none;
     border-radius: 8px;
@@ -7647,7 +7606,6 @@ display: block;
 /* فیلتر محصولات  */
 .orderby{display: none;}
 #button_filter_custom{  
-     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -7662,7 +7620,6 @@ display: block;
 
 }
 .button-primary {
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -7735,7 +7692,6 @@ text-align: right;
     display: none !important;
 }
 .woocommerce-info a{
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     border: none;
     color: #fff !important;
     border-radius: 10px !important;
@@ -7806,7 +7762,6 @@ text-align: right;
 .sc-private-cancel-btn{background:#ef4444 !important;border-color:#ef4444 !important;color:#fff !important;border-radius:8px !important;padding:4px 10px !important}
 .sc-private-cancel-btn:hover{background:#dc2626 !important;border-color:#dc2626 !important}
 .table_privet_note thead tr{
-    background-color: #6d34ff;
     color: white;
     padding: 10px;
 }
@@ -7888,7 +7843,6 @@ border-radius: 10px;
     font-weight: 600;
 }
 .sc-my-certificate-row-action .button.sc-my-certificate-action {
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
     border: none;
     color: #fff;
     border-radius: 7px;
@@ -8340,7 +8294,6 @@ border-radius: 10px;
     font-size: 13px;
     font-weight: 700;
     color: #fff;
-    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
     border: none;
     border-radius: 8px;
     text-decoration: none;
@@ -8366,7 +8319,6 @@ border-radius: 10px;
 
 .sc-dashboard-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #6d34ff 0%, #00a6ff 100%);
     border-radius: 999px;
     transition: width .3s ease;
 }
