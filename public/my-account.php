@@ -208,6 +208,13 @@ function add_html_before_account_nav() {
     // وضعیت پروفایل
     $profile_completed = sc_check_profile_completed($player->id);
     $profile_status = $profile_completed ? 'تکمیل شده' : 'ناقص';
+
+
+    $identity_verified  = 0;
+    if (!empty($player->identity_verified )) {
+        $identity_verified = (int) $player->identity_verified;
+    } 
+    
     $profile_status_class = $profile_completed ? 'completed' : 'incomplete';
     
   
@@ -221,6 +228,7 @@ function add_html_before_account_nav() {
                   
                 </div>
                 <h3 class="sc-user-name"><?php echo esc_html($full_name); ?></h3>
+                <p class="identity_verified"> <?php echo $identity_verified === 1 ? 'تایید احراز هویت' : 'احراز نشده'; ?></p>
             </div>
 
             <div class="sc-user-stats">

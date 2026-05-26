@@ -7,7 +7,7 @@ $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_not
  $members_table = $wpdb->prefix . 'sc_members';
  $user_id = get_current_user_id();
  $results = $wpdb->get_results(
-    "SELECT CONCAT( first_name , ' ' , last_name) AS name , personal_photo AS photo , user_id , player_phone
+    "SELECT CONCAT( first_name , ' ' , last_name) AS name , personal_photo AS photo , user_id , player_phone , identity_verified 
      FROM $members_table
      WHERE user_id = $user_id " , ARRAY_A
 );
@@ -245,6 +245,13 @@ button[name="save_honors"],
  
     background-color: <?php echo $color_org;  ?> !important;
     
+}
+.sc-section-title{
+    border-bottom:3px solid <?php echo $color_org;  ?> !important;
+}
+.sc-user-avatar{
+        border:3px solid <?php echo $color_org;  ?> !important;
+
 }
 </style>
 
