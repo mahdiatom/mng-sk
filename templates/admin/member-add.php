@@ -108,6 +108,14 @@ if ($player && !empty($_GET['player_id'])) {
         }
 
     }
+$player_field_rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
+$player_custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
+$member_extra_fields = ($player && !empty($player->member_extra_fields))
+    ? json_decode((string) $player->member_extra_fields, true)
+    : [];
+if (!is_array($member_extra_fields)) {
+    $member_extra_fields = [];
+}
 $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status']) : '';
 ?>
 <div class="wrap">
@@ -128,22 +136,28 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
             <tbody>
 
                 
+                <?php if (sc_player_info_is_field_visible('first_name', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="first_name">نام</label></th>
-                    <td><input name="first_name" type="text" id="first_name" value="<?php echo $first_name; ?> " class="regular-text" required></td>
+                    <td><input name="first_name" type="text" id="first_name" value="<?php echo $first_name; ?> " class="regular-text"<?php echo sc_player_info_field_required_attr('first_name', $player_field_rules); ?>></td>
                 </tr>
+                <?php endif; ?>
 
                
+                <?php if (sc_player_info_is_field_visible('last_name', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="last_name">نام خانوادگی</label></th>
-                    <td><input name="last_name" type="text" id="last_name" value="<?php echo $last_name; ?>" class="regular-text" required></td>
+                    <td><input name="last_name" type="text" id="last_name" value="<?php echo $last_name; ?>" class="regular-text"<?php echo sc_player_info_field_required_attr('last_name', $player_field_rules); ?>></td>
                 </tr>
+                <?php endif; ?>
 
                
+                <?php if (sc_player_info_is_field_visible('father_name', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="father_name">نام پدر</label></th>
-                    <td><input name="father_name" type="text" id="father_name" value="<?php echo $father_name; ?>" class="regular-text"></td>
+                    <td><input name="father_name" type="text" id="father_name" value="<?php echo $father_name; ?>" class="regular-text"<?php echo sc_player_info_field_required_attr('father_name', $player_field_rules); ?>></td>
                 </tr>
+                <?php endif; ?>
 
                
                 <tr>
@@ -179,77 +193,98 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     </td>
                 </tr>
            
+                <?php if (sc_player_info_is_field_visible('player_phone', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="player_phone">شماره موبایل بازیکن</label></th>
-                    <td><input name="player_phone" type="text" id="player_phone" value="<?php echo $player_phone; ?>" class="regular-text">
+                    <td><input name="player_phone" type="text" id="player_phone" value="<?php echo $player_phone; ?>" class="regular-text"<?php echo sc_player_info_field_required_attr('player_phone', $player_field_rules); ?>>
                     <p class="description">فقط برای شماره بازیکن پیامک ارسال خواهد شد.</p>
           
                 </td>
                            </tr>
+                <?php endif; ?>
 
               
+                <?php if (sc_player_info_is_field_visible('father_phone', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="father_phone">شماره موبایل پدر</label></th>
-                    <td><input name="father_phone" type="text" id="father_phone" value="<?php echo $father_phone; ?>" class="regular-text"></td>
+                    <td><input name="father_phone" type="text" id="father_phone" value="<?php echo $father_phone; ?>" class="regular-text"<?php echo sc_player_info_field_required_attr('father_phone', $player_field_rules); ?>></td>
                 </tr>
+                <?php endif; ?>
 
              
+                <?php if (sc_player_info_is_field_visible('mother_phone', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="mother_phone">شماره موبایل مادر</label></th>
-                    <td><input name="mother_phone" type="text" id="mother_phone" value="<?php echo $mother_phone; ?>" class="regular-text"></td>
+                    <td><input name="mother_phone" type="text" id="mother_phone" value="<?php echo $mother_phone; ?>" class="regular-text"<?php echo sc_player_info_field_required_attr('mother_phone', $player_field_rules); ?>></td>
                 </tr>
+                <?php endif; ?>
 
              
+                <?php if (sc_player_info_is_field_visible('landline_phone', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="landline_phone">تلفن ثابت</label></th>
-                    <td><input name="landline_phone" type="text" id="landline_phone" value="<?php echo $landline_phone; ?>" class="regular-text"></td>
+                    <td><input name="landline_phone" type="text" id="landline_phone" value="<?php echo $landline_phone; ?>" class="regular-text"<?php echo sc_player_info_field_required_attr('landline_phone', $player_field_rules); ?>></td>
                 </tr>
+                <?php endif; ?>
+                <?php if (sc_player_info_is_field_visible('province', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="province">استان</label></th>
-                    <td><input name="province" type="text" id="province" value="<?php echo esc_attr($province); ?>" class="regular-text"></td>
+                    <td><input name="province" type="text" id="province" value="<?php echo esc_attr($province); ?>" class="regular-text"<?php echo sc_player_info_field_required_attr('province', $player_field_rules); ?>></td>
                 </tr>
+                <?php endif; ?>
+                <?php if (sc_player_info_is_field_visible('city', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="city">شهر</label></th>
-                    <td><input name="city" type="text" id="city" value="<?php echo esc_attr($city); ?>" class="regular-text"></td>
+                    <td><input name="city" type="text" id="city" value="<?php echo esc_attr($city); ?>" class="regular-text"<?php echo sc_player_info_field_required_attr('city', $player_field_rules); ?>></td>
                 </tr>
+                <?php endif; ?>
+                <?php sc_render_admin_player_custom_fields_rows($player_custom_fields, 'contact', $member_extra_fields); ?>
+                <?php if (sc_player_info_is_field_visible('gender', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="gender">جنسیت</label></th>
                     <td>
-                        <select name="gender" id="gender" class="regular-text">
+                        <select name="gender" id="gender" class="regular-text"<?php echo sc_player_info_field_required_attr('gender', $player_field_rules); ?>>
                             <option value="">انتخاب کنید</option>
                             <option value="male" <?php selected($gender, 'male'); ?>>مرد</option>
                             <option value="female" <?php selected($gender, 'female'); ?>>زن</option>
                         </select>
                     </td>
                 </tr>
+                <?php endif; ?>
 
               
+                <?php if (sc_player_info_is_field_visible('birth_date_shamsi', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="birth_date_shamsi">تاریخ تولد (شمسی)</label></th>
                     <td>
-                        <input name="birth_date_shamsi" type="text" id="birth_date_shamsi" value="<?php echo esc_attr($birth_date_shamsi); ?>" class="regular-text persian-date-input" placeholder="مثلاً 1400/02/15" readonly>
+                        <input name="birth_date_shamsi" type="text" id="birth_date_shamsi" value="<?php echo esc_attr($birth_date_shamsi); ?>" class="regular-text persian-date-input" placeholder="مثلاً 1400/02/15" readonly<?php echo sc_player_info_field_required_attr('birth_date_shamsi', $player_field_rules); ?>>
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
                 </tr>
+                <?php endif; ?>
                 
 
                
+                <?php if (sc_player_info_is_field_visible('birth_date_gregorian', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="birth_date_gregorian">تاریخ تولد (میلادی)</label></th>
-                    <td><input name="birth_date_gregorian" type="date" id="birth_date_gregorian" value="<?php echo $birth_date_gregorian; ?>">
+                    <td><input name="birth_date_gregorian" type="date" id="birth_date_gregorian" value="<?php echo $birth_date_gregorian; ?>"<?php echo sc_player_info_field_required_attr('birth_date_gregorian', $player_field_rules); ?>>
                     <p class="description">تاریخ میلادی به صورت خودکار از تاریخ شمسی تبدیل خواهد شد ( بعد از ذخیره اطلاعات کاربر )</p>
 
                 </td>
                 </tr>
+                <?php endif; ?>
+                <?php sc_render_admin_player_custom_fields_rows($player_custom_fields, 'personal', $member_extra_fields); ?>
 
               
+                <?php if (sc_player_info_is_field_visible('personal_photo', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="personal_photo">عکس پرسنلی</label></th>
                     <td>
                         <?php
                             
                             ?>
-                            <input type="text" name="personal_photo" id="personal_photo_txt" class="regular-text" value="<?php echo $personal_photo; ?>" placeholder="آدرس تصویر یا آپلود کنید">
+                            <input type="text" name="personal_photo" id="personal_photo_txt" class="regular-text" value="<?php echo $personal_photo; ?>" placeholder="آدرس تصویر یا آپلود کنید"<?php echo sc_player_info_field_required_attr('personal_photo', $player_field_rules); ?>>
                             <button type="button" class="button-secondary sc-upload-btn" id="btn_personal_photo">انتخاب تصویر</button>
 
                             <?php if (!empty($personal_photo)) : ?>
@@ -261,12 +296,14 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             
                     </td>
                 </tr>
+                <?php endif; ?>
 
                
+                <?php if (sc_player_info_is_field_visible('id_card_photo', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="id_card_photo">عکس کارت ملی</label></th>
                     <td>
-                            <input type="text" name="id_card_photo" id="id_card_photo_txt" value="<?php  echo esc_attr($id_card_photo);?>" class="regular-text" placeholder="آدرس تصویر یا آپلود کنید" />
+                            <input type="text" name="id_card_photo" id="id_card_photo_txt" value="<?php  echo esc_attr($id_card_photo);?>" class="regular-text" placeholder="آدرس تصویر یا آپلود کنید"<?php echo sc_player_info_field_required_attr('id_card_photo', $player_field_rules); ?> />
                             <input type="button" class="button-secondary sc-upload-btn" id="btn_id_card_photo" value="انتخاب تصویر">
                             <?php if (!empty($id_card_photo)) : ?>
                                 <div class="img_photo_prev">
@@ -275,12 +312,14 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             <?php endif; ?>
                     </td>
                 </tr>
+                <?php endif; ?>
 
               
+                <?php if (sc_player_info_is_field_visible('sport_insurance_photo', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="sport_insurance_photo">عکس بیمه ورزشی</label></th>
                     <td>
-                        <input type="text" name="sport_insurance_photo" id="sport_insurance_photo_txt" value="<?php  echo esc_attr($sport_insurance_photo);?>" class="regular-text" placeholder="آدرس تصویر یا آپلود کنید" />
+                        <input type="text" name="sport_insurance_photo" id="sport_insurance_photo_txt" value="<?php  echo esc_attr($sport_insurance_photo);?>" class="regular-text" placeholder="آدرس تصویر یا آپلود کنید"<?php echo sc_player_info_field_required_attr('sport_insurance_photo', $player_field_rules); ?> />
                             <input type="button" class="button-secondary sc-upload-btn" id="btn_sport_insurance_photo" value="انتخاب تصویر">
                             <?php if (!empty($sport_insurance_photo)) : ?>
                                 <div class="img_photo_prev" >
@@ -289,39 +328,51 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             <?php endif; ?>
                     </td>
                 </tr>
+                <?php endif; ?>
+                <?php sc_render_admin_player_custom_fields_rows($player_custom_fields, 'documents', $member_extra_fields); ?>
 
               
+                <?php if (sc_player_info_is_field_visible('insurance_expiry_date_shamsi', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="insurance_expiry_date_shamsi">تاریخ انقضا بیمه (شمسی)</label></th>
                     <td>
-                        <input name="insurance_expiry_date_shamsi" type="text" id="insurance_expiry_date_shamsi" value="<?php echo esc_attr($insurance_expiry_date_shamsi); ?>" class="regular-text persian-date-input" placeholder="مثلاً 1403/12/29" readonly>
+                        <input name="insurance_expiry_date_shamsi" type="text" id="insurance_expiry_date_shamsi" value="<?php echo esc_attr($insurance_expiry_date_shamsi); ?>" class="regular-text persian-date-input" placeholder="مثلاً 1403/12/29" readonly<?php echo sc_player_info_field_required_attr('insurance_expiry_date_shamsi', $player_field_rules); ?>>
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
                 </tr>
+                <?php endif; ?>
 
              
+                <?php if (sc_player_info_is_field_visible('medical_condition', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="medical_condition">مشکلات پزشکی</label></th>
-                    <td><textarea name="medical_condition" id="medical_condition" rows="4" class="large-text"><?php echo $medical_condition; ?></textarea></td>
+                    <td><textarea name="medical_condition" id="medical_condition" rows="4" class="large-text"<?php echo sc_player_info_field_required_attr('medical_condition', $player_field_rules); ?>><?php echo $medical_condition; ?></textarea></td>
                 </tr>
+                <?php endif; ?>
 
                
+                <?php if (sc_player_info_is_field_visible('sports_history', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="sports_history">سوابق ورزشی</label></th>
-                    <td><textarea name="sports_history" id="sports_history" rows="4" class="large-text"><?php echo $sports_history; ?></textarea></td>
+                    <td><textarea name="sports_history" id="sports_history" rows="4" class="large-text"<?php echo sc_player_info_field_required_attr('sports_history', $player_field_rules); ?>><?php echo $sports_history; ?></textarea></td>
                 </tr>
+                <?php endif; ?>
 
                
+                <?php if (sc_player_info_is_field_visible('health_verified', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row">وضعیت سلامت تأیید شده</th>
                     <td><label><input name="health_verified" type="checkbox" <?php checked($health_verified, 1); ?> value="1" > بله</label></td>
                 </tr>
+                <?php endif; ?>
 
               
+                <?php if (sc_player_info_is_field_visible('info_verified', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row">اطلاعات تأیید شده</th>
                     <td><label><input name="info_verified" type="checkbox" <?php checked($info_verified, 1); ?> value="1"> بله</label></td>
                 </tr>
+                <?php endif; ?>
                 <tr>
                     <th scope="row">احراز هویت تایید شده</th>
                     <td><label><input name="identity_verified" type="checkbox" <?php checked($identity_verified, 1); ?> value="1"> بله</label></td>
@@ -403,10 +454,13 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         <p class="description">برای انتخاب سطح از بخش تیم و سطح ->دسته بندی سطح، سطح های باشگاه خودرا اضافه کنید</p>
                     </td>
                 </tr>
+                <?php if (sc_player_info_is_field_visible('additional_info', $player_field_rules)) : ?>
                 <tr>
                     <th scope="row"><label for="additional_info">توضیحات اضافی</label></th>
-                    <td><textarea name="additional_info" id="additional_info" rows="3" class="large-text"><?php echo $additional_info; ?></textarea></td>
+                    <td><textarea name="additional_info" id="additional_info" rows="3" class="large-text"<?php echo sc_player_info_field_required_attr('additional_info', $player_field_rules); ?>><?php echo $additional_info; ?></textarea></td>
                 </tr>
+                <?php endif; ?>
+                <?php sc_render_admin_player_custom_fields_rows($player_custom_fields, 'additional', $member_extra_fields); ?>
 
               
 

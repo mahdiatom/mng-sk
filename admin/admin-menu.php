@@ -3012,6 +3012,25 @@ function callback_add_member_sufix(){
            
        global $wpdb;
        $table_name = $wpdb->prefix . 'sc_members';
+       $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
+       $existing_for_validation = $player_id
+           ? $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d LIMIT 1", $player_id))
+           : null;
+
+       if ($existing_for_validation && function_exists('sc_get_player_info_field_rules') && function_exists('sc_get_player_info_builtin_fields')) {
+           $merge_rules = sc_get_player_info_field_rules();
+           $merge_builtin = sc_get_player_info_builtin_fields();
+           foreach ($merge_builtin as $field_key => $meta) {
+               if (!sc_player_info_is_field_visible($field_key, $merge_rules) && property_exists($existing_for_validation, $field_key)) {
+                   $existing_val = $existing_for_validation->{$field_key};
+                   if (in_array($field_key, ['health_verified', 'info_verified'], true)) {
+                       $_POST[$field_key] = (int) $existing_val === 1 ? '1' : '';
+                   } else {
+                       $_POST[$field_key] = $existing_val !== null ? (string) $existing_val : '';
+                   }
+               }
+           }
+       }
        
        // Validation - بررسی فیلدهای اجباری
        $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
@@ -3020,9 +3039,17 @@ function callback_add_member_sufix(){
        $remaining_sessions = isset($_POST['remaining_sessions']) ? $_POST['remaining_sessions'] : '';
        $player_id_corse_sessions = isset($_POST['player_id']) ? $_POST['player_id'] : '';
 
+       if (function_exists('sc_player_info_validate_required_fields')) {
+           $required_errors = sc_player_info_validate_required_fields($_POST, $_FILES, $existing_for_validation);
+           if (!empty($required_errors)) {
+               set_transient('sc_member_save_errors_' . get_current_user_id(), $required_errors, 60);
+               wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=validation_error&player_id=' . $player_id));
+               exit;
+           }
+       }
        
        if (empty($first_name) || empty($last_name) || empty($national_id)) {
-           wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_error'));
+           wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_error&player_id=' . $player_id));
            exit;
        }
        
@@ -3080,9 +3107,17 @@ function callback_add_member_sufix(){
        $data['additional_info'] = isset($_POST['additional_info']) && !empty(trim($_POST['additional_info'])) ? sanitize_textarea_field($_POST['additional_info']) : NULL;
        $data['skill_level'] = isset($_POST['skill_level']) && !empty(trim($_POST['skill_level'])) ? sanitize_text_field($_POST['skill_level']) : NULL;
        $data['team_player'] = isset($_POST['team_player']) && !empty(trim($_POST['team_player'])) ? sanitize_text_field($_POST['team_player']) : NULL;
-                    
-        $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
 
+       $member_user_id_for_custom = ($existing_for_validation && !empty($existing_for_validation->user_id))
+           ? (int) $existing_for_validation->user_id
+           : get_current_user_id();
+       if (function_exists('sc_player_info_extract_custom_values')) {
+           $data['member_extra_fields'] = sc_player_info_extract_custom_values($_POST, $_FILES, $member_user_id_for_custom, $existing_for_validation);
+       }
+       if (function_exists('sc_player_info_apply_hidden_field_policy')) {
+           sc_player_info_apply_hidden_field_policy($data, $existing_for_validation);
+       }
+                    
         // بروزرسانی
         if ($player_id) {
             // آماده‌سازی format برای update
@@ -4079,6 +4114,16 @@ function sc_sprot_notices(){
             $type='error';
             $messege=" اخطار:  بازیکن اضافه نشد لطفا فیلد های ورودی رو بررسی کنید و دوباره تلاش کنید.";
 
+        }
+        if($status == 'validation_error'){
+            $type='error';
+            $validation_errors = get_transient('sc_member_save_errors_' . get_current_user_id());
+            if (is_array($validation_errors) && !empty($validation_errors)) {
+                delete_transient('sc_member_save_errors_' . get_current_user_id());
+                $messege = implode('<br>', array_map('esc_html', $validation_errors));
+            } else {
+                $messege = 'لطفاً فیلدهای اجباری را تکمیل کنید.';
+            }
         }
         if($status == 'updated'){
             $type='success';

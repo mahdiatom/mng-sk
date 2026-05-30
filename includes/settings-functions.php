@@ -588,6 +588,151 @@ function sc_get_player_info_custom_fields() {
     $saved = json_decode((string) $raw, true);
     return sc_sanitize_player_info_custom_fields_input($saved);
 }
+
+/**
+ * Whether a builtin player info field should be shown in forms/views.
+ */
+function sc_player_info_is_field_visible($field_key, $rules = null) {
+    $rules = $rules ?? sc_get_player_info_field_rules();
+    return empty($rules[$field_key]) || !empty($rules[$field_key]['visible']);
+}
+
+/**
+ * HTML required attribute for player info fields.
+ */
+function sc_player_info_field_required_attr($field_key, $rules = null) {
+    $rules = $rules ?? sc_get_player_info_field_rules();
+    return !empty($rules[$field_key]['required']) ? ' required' : '';
+}
+
+/**
+ * Render custom player info fields as admin form-table rows.
+ */
+function sc_render_admin_player_custom_fields_rows($custom_fields, $section, $values = []) {
+    if (empty($custom_fields) || !is_array($custom_fields)) {
+        return;
+    }
+    if (!is_array($values)) {
+        $values = [];
+    }
+    foreach ($custom_fields as $field) {
+        if (!is_array($field) || ($field['section'] ?? '') !== $section || empty($field['visible'])) {
+            continue;
+        }
+        $key = isset($field['key']) ? sanitize_key($field['key']) : '';
+        if ($key === '') {
+            continue;
+        }
+        $type = $field['type'] ?? 'text';
+        $label = $field['label'] ?? $key;
+        $is_required = !empty($field['required']);
+        $required_attr = $is_required ? ' required' : '';
+        $required_mark = $is_required ? ' <span style="color:#d63638;">*</span>' : '';
+        $current_val = $values[$key] ?? ($type === 'multiselect' ? [] : '');
+        echo '<tr class="sc-admin-custom-player-field sc-custom-type-' . esc_attr($type) . '">';
+        echo '<th scope="row"><label for="sc_admin_custom_' . esc_attr($key) . '">' . esc_html($label) . $required_mark . '</label></th>';
+        echo '<td>';
+        if ($type === 'image') {
+            $image_url = is_string($current_val) ? $current_val : '';
+            echo '<input type="text" name="player_custom_fields_images[' . esc_attr($key) . ']" id="sc_admin_custom_' . esc_attr($key) . '_txt" class="regular-text" value="' . esc_attr($image_url) . '" placeholder="آدرس تصویر یا آپلود کنید"' . $required_attr . '>';
+            echo ' <button type="button" class="button-secondary sc-player-custom-upload-btn" data-target="#sc_admin_custom_' . esc_attr($key) . '_txt">انتخاب تصویر</button>';
+            if ($image_url !== '') {
+                echo '<div class="img_photo_prev sc-image-preview"><img src="' . esc_url($image_url) . '" alt="' . esc_attr($label) . '"></div>';
+            }
+        } elseif ($type === 'multiselect') {
+            $selected = is_array($current_val) ? $current_val : [];
+            $options = isset($field['options']) && is_array($field['options']) ? $field['options'] : [];
+            echo '<select id="sc_admin_custom_' . esc_attr($key) . '" name="player_custom_fields_multi[' . esc_attr($key) . '][]" multiple size="4" class="regular-text"' . $required_attr . '>';
+            foreach ($options as $option) {
+                $option = (string) $option;
+                echo '<option value="' . esc_attr($option) . '" ' . selected(in_array($option, $selected, true), true, false) . '>' . esc_html($option) . '</option>';
+            }
+            echo '</select>';
+        } else {
+            $text_value = is_string($current_val) ? $current_val : '';
+            echo '<input type="text" name="player_custom_fields[' . esc_attr($key) . ']" id="sc_admin_custom_' . esc_attr($key) . '" value="' . esc_attr($text_value) . '" class="regular-text"' . $required_attr . '>';
+        }
+        echo '</td></tr>';
+    }
+}
+
+/**
+ * Render custom player info fields as admin view table rows.
+ */
+function sc_render_admin_player_custom_fields_view_rows($custom_fields, $section, $values = [], $exclude_types = []) {
+    if (empty($custom_fields) || !is_array($custom_fields)) {
+        return;
+    }
+    if (!is_array($values)) {
+        $values = [];
+    }
+    if (!is_array($exclude_types)) {
+        $exclude_types = [];
+    }
+    foreach ($custom_fields as $field) {
+        if (!is_array($field) || ($field['section'] ?? '') !== $section || empty($field['visible'])) {
+            continue;
+        }
+        $key = isset($field['key']) ? sanitize_key($field['key']) : '';
+        if ($key === '') {
+            continue;
+        }
+        $type = $field['type'] ?? 'text';
+        if (in_array($type, $exclude_types, true)) {
+            continue;
+        }
+        $label = $field['label'] ?? $key;
+        $current_val = $values[$key] ?? ($type === 'multiselect' ? [] : '');
+        echo '<tr><th>' . esc_html($label) . '</th><td>';
+        if ($type === 'image') {
+            $image_url = is_string($current_val) ? trim($current_val) : '';
+            if ($image_url !== '') {
+                echo '<a href="' . esc_url($image_url) . '" target="_blank"><img src="' . esc_url($image_url) . '" alt="' . esc_attr($label) . '" style="max-width:200px;height:auto;border:1px solid #ddd;border-radius:4px;"></a>';
+            } else {
+                echo '-';
+            }
+        } elseif ($type === 'multiselect') {
+            $selected = is_array($current_val) ? array_filter(array_map('strval', $current_val)) : [];
+            echo $selected ? esc_html(implode('، ', $selected)) : '-';
+        } else {
+            $text_value = is_string($current_val) ? trim($current_val) : '';
+            echo $text_value !== '' ? esc_html($text_value) : '-';
+        }
+        echo '</td></tr>';
+    }
+}
+
+/**
+ * Display value for a builtin player info field in admin view.
+ */
+function sc_player_info_format_builtin_view_value($player, $field_key) {
+    $value = isset($player->{$field_key}) ? $player->{$field_key} : null;
+    if ($field_key === 'gender') {
+        if ($value === 'male') {
+            return 'مرد';
+        }
+        if ($value === 'female') {
+            return 'زن';
+        }
+        return '-';
+    }
+    if (in_array($field_key, ['health_verified', 'info_verified'], true)) {
+        return (int) $value === 1
+            ? '<span style="color:#059669;">✓ بله</span>'
+            : '<span style="color:#dc2626;">✗ خیر</span>';
+    }
+    if (is_string($value)) {
+        $value = trim($value);
+    }
+    if ($value === null || $value === '') {
+        return '-';
+    }
+    if (in_array($field_key, ['medical_condition', 'sports_history', 'additional_info'], true)) {
+        return nl2br(esc_html((string) $value));
+    }
+    return esc_html((string) $value);
+}
+
 function debt_user($id){
      global $wpdb;
     // محاسبه بدهکاری (صورت حساب‌های pending و under_review)

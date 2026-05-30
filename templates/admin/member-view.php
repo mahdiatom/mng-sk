@@ -46,6 +46,17 @@ $honors_player = $wpdb->get_results($wpdb->prepare(
     $player_id
 ) ,ARRAY_A);
 
+$player_field_rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
+$player_custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
+$player_builtin_fields = function_exists('sc_get_player_info_builtin_fields') ? sc_get_player_info_builtin_fields() : [];
+$member_extra_fields = !empty($player->member_extra_fields) ? json_decode((string) $player->member_extra_fields, true) : [];
+if (!is_array($member_extra_fields)) {
+    $member_extra_fields = [];
+}
+$player_image_fields = ['personal_photo', 'id_card_photo', 'sport_insurance_photo'];
+$player_textarea_fields = ['medical_condition', 'sports_history', 'additional_info'];
+$player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fields, ['health_verified', 'info_verified']);
+
 ?>
 <div class="wrap">
     <h1 class="wp-heading-inline">مشاهده اطلاعات بازیکن</h1>
@@ -59,50 +70,21 @@ $honors_player = $wpdb->get_results($wpdb->prepare(
                 
         <table class="form-table" style="margin-top: 0;">
             <tbody>
-                <tr>
-                    <th style="width: 200px;">نام</th>
-                    <td><strong><?php echo esc_html($player->first_name); ?></strong></td>
-                </tr>
-                <tr>
-                    <th>نام خانوادگی</th>
-                    <td><strong><?php echo esc_html($player->last_name); ?></strong></td>
-                </tr>
-                <tr>
-                    <th>نام پدر</th>
-                    <td><?php echo esc_html($player->father_name ?: '-'); ?></td>
-                </tr>
-                <tr>
-                    <th>کد ملی</th>
-                    <td><?php echo esc_html($player->national_id); ?></td>
-                </tr>
-                <tr>
-                    <th>تلفن بازیکن</th>
-                    <td><?php echo esc_html($player->player_phone ?: '-'); ?></td>
-                </tr>
-                <tr>
-                    <th>تلفن پدر</th>
-                    <td><?php echo esc_html($player->father_phone ?: '-'); ?></td>
-                </tr>
-                <tr>
-                    <th>تلفن مادر</th>
-                    <td><?php echo esc_html($player->mother_phone ?: '-'); ?></td>
-                </tr>
-                <tr>
-                    <th>تلفن ثابت</th>
-                    <td><?php echo esc_html($player->landline_phone ?: '-'); ?></td>
-                </tr>
-                <tr>
-                    <th>تاریخ تولد (شمسی)</th>
-                    <td><?php echo esc_html($player->birth_date_shamsi ?: '-'); ?></td>
-                </tr>
-                <tr>
-                    <th>تاریخ تولد (میلادی)</th>
-                    <td><?php echo esc_html($player->birth_date_gregorian ?: '-'); ?></td>
-                </tr>
-                <tr>
-                    <th>تاریخ انقضای بیمه (شمسی)</th>
-                    <td><?php echo esc_html($player->insurance_expiry_date_shamsi ?: '-'); ?></td>
-                </tr>
+                <?php foreach ($player_builtin_fields as $field_key => $field_meta) : ?>
+                    <?php
+                    if (in_array($field_key, $player_view_skip_fields, true) || !sc_player_info_is_field_visible($field_key, $player_field_rules)) {
+                        continue;
+                    }
+                    $field_label = $field_meta['label'] ?? $field_key;
+                    ?>
+                    <tr>
+                        <th<?php echo $field_key === 'first_name' ? ' style="width: 200px;"' : ''; ?>><?php echo esc_html($field_label); ?></th>
+                        <td><?php echo $field_key === 'first_name' || $field_key === 'last_name' ? '<strong>' . sc_player_info_format_builtin_view_value($player, $field_key) . '</strong>' : sc_player_info_format_builtin_view_value($player, $field_key); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                <?php sc_render_admin_player_custom_fields_view_rows($player_custom_fields, 'personal', $member_extra_fields); ?>
+                <?php sc_render_admin_player_custom_fields_view_rows($player_custom_fields, 'contact', $member_extra_fields); ?>
+                <?php sc_render_admin_player_custom_fields_view_rows($player_custom_fields, 'documents', $member_extra_fields, ['image']); ?>
                 <tr>
                     <th>وضعیت</th>
                     <td>
@@ -119,14 +101,18 @@ $honors_player = $wpdb->get_results($wpdb->prepare(
                         </span>
                     </td>
                 </tr>
+                <?php if (sc_player_info_is_field_visible('info_verified', $player_field_rules)) : ?>
                 <tr>
                     <th>اطلاعات تأیید شده</th>
-                    <td><?php echo $player->info_verified ? '<span style="color: #059669;">✓ بله</span>' : '<span style="color: #dc2626;">✗ خیر</span>'; ?></td>
+                    <td><?php echo sc_player_info_format_builtin_view_value($player, 'info_verified'); ?></td>
                 </tr>
+                <?php endif; ?>
+                <?php if (sc_player_info_is_field_visible('health_verified', $player_field_rules)) : ?>
                 <tr>
                     <th>سلامت تأیید شده</th>
-                    <td><?php echo $player->health_verified ? '<span style="color: #059669;">✓ بله</span>' : '<span style="color: #dc2626;">✗ خیر</span>'; ?></td>
+                    <td><?php echo sc_player_info_format_builtin_view_value($player, 'health_verified'); ?></td>
                 </tr>
+                <?php endif; ?>
                 <tr>
                     <th>غیرفعال کردن صورت حساب خودکار</th>
                     <td><?php echo $player->disable_auto_invoice ? '<span style="color: #dc2626;">✓ بله</span>' : '<span style="color: #059669;">✗ خیر</span>'; ?></td>
@@ -147,58 +133,81 @@ $honors_player = $wpdb->get_results($wpdb->prepare(
             </tbody>
         </table>
 
-        <?php if ($player->personal_photo || $player->id_card_photo || $player->sport_insurance_photo) : ?>
+        <?php
+        $visible_photo_fields = [];
+        foreach ($player_image_fields as $image_field_key) {
+            if (sc_player_info_is_field_visible($image_field_key, $player_field_rules) && !empty($player->{$image_field_key})) {
+                $visible_photo_fields[$image_field_key] = $player_builtin_fields[$image_field_key]['label'] ?? $image_field_key;
+            }
+        }
+        $visible_custom_doc_fields = array_filter($player_custom_fields, function ($field) {
+            return is_array($field) && ($field['section'] ?? '') === 'documents' && !empty($field['visible']) && ($field['type'] ?? '') === 'image';
+        });
+        $has_custom_doc_images = false;
+        foreach ($visible_custom_doc_fields as $doc_field) {
+            $doc_key = $doc_field['key'] ?? '';
+            if ($doc_key !== '' && !empty($member_extra_fields[$doc_key])) {
+                $has_custom_doc_images = true;
+                break;
+            }
+        }
+        ?>
+        <?php if (!empty($visible_photo_fields) || $has_custom_doc_images) : ?>
             <h2 style="margin-top: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">تصاویر</h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 16px;">
-                <?php if ($player->personal_photo) : ?>
+                <?php foreach ($visible_photo_fields as $image_field_key => $image_label) : ?>
                     <div>
-                        <strong style="display: block; margin-bottom: 8px;">عکس شخصی:</strong>
-                        <a href="<?php echo esc_url($player->personal_photo); ?>" target="_blank">
-                            <img src="<?php echo esc_url($player->personal_photo); ?>" alt="عکس شخصی" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
+                        <strong style="display: block; margin-bottom: 8px;"><?php echo esc_html($image_label); ?>:</strong>
+                        <a href="<?php echo esc_url($player->{$image_field_key}); ?>" target="_blank">
+                            <img src="<?php echo esc_url($player->{$image_field_key}); ?>" alt="<?php echo esc_attr($image_label); ?>" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
                         </a>
                     </div>
-                <?php endif; ?>
-                <?php if ($player->id_card_photo) : ?>
+                <?php endforeach; ?>
+                <?php foreach ($visible_custom_doc_fields as $doc_field) :
+                    $doc_key = $doc_field['key'] ?? '';
+                    $doc_url = ($doc_key !== '' && !empty($member_extra_fields[$doc_key])) ? $member_extra_fields[$doc_key] : '';
+                    if ($doc_url === '') {
+                        continue;
+                    }
+                    ?>
                     <div>
-                        <strong style="display: block; margin-bottom: 8px;">عکس کارت ملی:</strong>
-                        <a href="<?php echo esc_url($player->id_card_photo); ?>" target="_blank">
-                            <img src="<?php echo esc_url($player->id_card_photo); ?>" alt="عکس کارت ملی" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
+                        <strong style="display: block; margin-bottom: 8px;"><?php echo esc_html($doc_field['label'] ?? $doc_key); ?>:</strong>
+                        <a href="<?php echo esc_url($doc_url); ?>" target="_blank">
+                            <img src="<?php echo esc_url($doc_url); ?>" alt="<?php echo esc_attr($doc_field['label'] ?? $doc_key); ?>" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
                         </a>
                     </div>
-                <?php endif; ?>
-                <?php if ($player->sport_insurance_photo) : ?>
-                    <div>
-                        <strong style="display: block; margin-bottom: 8px;">عکس بیمه ورزشی:</strong>
-                        <a href="<?php echo esc_url($player->sport_insurance_photo); ?>" target="_blank">
-                            <img src="<?php echo esc_url($player->sport_insurance_photo); ?>" alt="عکس بیمه ورزشی" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
-                        </a>
-                    </div>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
-        <?php if ($player->medical_condition || $player->sports_history || $player->additional_info) : ?>
+        <?php
+        $has_visible_text_fields = false;
+        foreach ($player_textarea_fields as $textarea_key) {
+            if (sc_player_info_is_field_visible($textarea_key, $player_field_rules)) {
+                $has_visible_text_fields = true;
+                break;
+            }
+        }
+        $has_visible_additional_custom = false;
+        foreach ($player_custom_fields as $custom_field) {
+            if (is_array($custom_field) && ($custom_field['section'] ?? '') === 'additional' && !empty($custom_field['visible'])) {
+                $has_visible_additional_custom = true;
+                break;
+            }
+        }
+        ?>
+        <?php if ($has_visible_text_fields || $has_visible_additional_custom) : ?>
             <h2 style="margin-top: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">توضیحات</h2>
             <table class="form-table" style="margin-top: 0;">
                 <tbody>
-                    <?php if ($player->medical_condition) : ?>
+                    <?php foreach ($player_textarea_fields as $textarea_key) : ?>
+                        <?php if (!sc_player_info_is_field_visible($textarea_key, $player_field_rules)) { continue; } ?>
                         <tr>
-                            <th style="width: 200px;">وضعیت پزشکی</th>
-                            <td><?php echo nl2br(esc_html($player->medical_condition)); ?></td>
+                            <th style="width: 200px;"><?php echo esc_html($player_builtin_fields[$textarea_key]['label'] ?? $textarea_key); ?></th>
+                            <td><?php echo sc_player_info_format_builtin_view_value($player, $textarea_key); ?></td>
                         </tr>
-                    <?php endif; ?>
-                    <?php if ($player->sports_history) : ?>
-                        <tr>
-                            <th>سوابق ورزشی</th>
-                            <td><?php echo nl2br(esc_html($player->sports_history)); ?></td>
-                        </tr>
-                    <?php endif; ?>
-                    <?php if ($player->additional_info) : ?>
-                        <tr>
-                            <th>توضیحات اضافی</th>
-                            <td><?php echo nl2br(esc_html($player->additional_info)); ?></td>
-                        </tr>
-                    <?php endif; ?>
+                    <?php endforeach; ?>
+                    <?php sc_render_admin_player_custom_fields_view_rows($player_custom_fields, 'additional', $member_extra_fields); ?>
                 </tbody>
             </table>
         <?php endif; ?>

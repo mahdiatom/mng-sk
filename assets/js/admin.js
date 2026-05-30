@@ -941,6 +941,30 @@ jQuery(document).ready(function($) {
             
         imageUploader.open();
     });
+
+    $(document).on('click', '.sc-player-custom-upload-btn', function(e) {
+        e.preventDefault();
+        var inputField = $($(this).data('target'));
+        if (!inputField.length || typeof wp === 'undefined' || !wp.media) {
+            return;
+        }
+        var imageUploader = wp.media({
+            title: 'انتخاب تصویر',
+            button: { text: 'استفاده از این عکس' },
+            multiple: false
+        });
+        imageUploader.on('select', function() {
+            var attachment = imageUploader.state().get('selection').first().toJSON();
+            inputField.val(attachment.url);
+            var previewContainer = inputField.closest('td').find('.sc-image-preview');
+            if (previewContainer.length === 0) {
+                inputField.after('<div class="img_photo_prev sc-image-preview"><img src="' + attachment.url + '" alt=""></div>');
+            } else {
+                previewContainer.find('img').attr('src', attachment.url);
+            }
+        });
+        imageUploader.open();
+    });
 });
 
 // ============================================

@@ -4517,7 +4517,7 @@ function sc_player_info_validate_required_fields($post, $files, $existing_member
         $label = isset($builtin[$field_key]['label']) ? $builtin[$field_key]['label'] : $field_key;
         if (in_array($field_key, ['personal_photo', 'id_card_photo', 'sport_insurance_photo'], true)) {
             $url_field = $field_key . '_url';
-            $has_url = !empty($post[$url_field]);
+            $has_url = !empty($post[$url_field]) || !empty($post[$field_key]);
             $has_existing = $existing_member && !empty($existing_member->{$field_key});
             $has_new_file = isset($files[$field_key]) && isset($files[$field_key]['error']) && (int) $files[$field_key]['error'] === UPLOAD_ERR_OK;
             if (!$has_url && !$has_existing && !$has_new_file) {
