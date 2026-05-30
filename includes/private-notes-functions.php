@@ -44,7 +44,25 @@ function sc_private_notes_get_member_ids_for_coach($coach_id) {
     if (!is_array($members)) {
         return [];
     }
-    return array_values(array_unique(array_map('absint', wp_list_pluck($members, 'member_id'))));
+    return array_values(array_unique(array_filter(array_map('absint', wp_list_pluck($members, 'member_id')))));
+}
+
+/**
+ * Restrict member IDs to those a coach is allowed to contact.
+ */
+function sc_private_notes_filter_member_ids_for_coach($member_ids, $coach_id = 0) {
+    $member_ids = array_values(array_unique(array_filter(array_map('absint', (array) $member_ids))));
+    if ($coach_id <= 0 && function_exists('sc_support_get_coach_id_by_user_id')) {
+        $coach_id = (int) sc_support_get_coach_id_by_user_id(get_current_user_id());
+    }
+    if ($coach_id <= 0) {
+        return [];
+    }
+    $allowed = sc_private_notes_get_member_ids_for_coach($coach_id);
+    if (empty($allowed)) {
+        return [];
+    }
+    return array_values(array_intersect($member_ids, $allowed));
 }
 
 function sc_private_notes_can_access_member($member_id, $user_id = 0) {
@@ -571,10 +589,33 @@ function sc_private_notes_preview_recipients_ajax() {
         'member_type' => isset($_POST['member_type']) ? sanitize_text_field(wp_unslash($_POST['member_type'])) : 'all',
         'member_status' => isset($_POST['member_status']) ? sanitize_text_field(wp_unslash($_POST['member_status'])) : 'all',
     ];
-    $members = function_exists('sc_bulk_actions_get_members') ? sc_bulk_actions_get_members($target_type, $config) : [];
     if (!current_user_can('manage_options') && function_exists('sc_support_get_coach_id_by_user_id')) {
-        $allowed = sc_private_notes_get_member_ids_for_coach((int) sc_support_get_coach_id_by_user_id(get_current_user_id()));
-        $members = array_values(array_filter((array) $members, function($m) use ($allowed) { return in_array((int) $m->id, $allowed, true); }));
+        $coach_id = (int) sc_support_get_coach_id_by_user_id(get_current_user_id());
+        if ($target_type === 'all') {
+            $allowed = sc_private_notes_get_member_ids_for_coach($coach_id);
+            if (empty($allowed)) {
+                $members = [];
+            } else {
+                global $wpdb;
+                $members_table = $wpdb->prefix . 'sc_members';
+                $placeholders = implode(',', array_fill(0, count($allowed), '%d'));
+                $members = $wpdb->get_results($wpdb->prepare(
+                    "SELECT id, first_name, last_name, national_id, member_type, team_player, skill_level, is_active
+                     FROM $members_table WHERE id IN ($placeholders)
+                     ORDER BY last_name ASC, first_name ASC",
+                    ...$allowed
+                ));
+            }
+        } else {
+            $members = function_exists('sc_bulk_actions_get_members') ? sc_bulk_actions_get_members($target_type, $config) : [];
+            $member_ids = array_values(array_unique(array_map('absint', wp_list_pluck((array) $members, 'id'))));
+            $member_ids = sc_private_notes_filter_member_ids_for_coach($member_ids, $coach_id);
+            $members = array_values(array_filter((array) $members, function ($m) use ($member_ids) {
+                return in_array((int) $m->id, $member_ids, true);
+            }));
+        }
+    } else {
+        $members = function_exists('sc_bulk_actions_get_members') ? sc_bulk_actions_get_members($target_type, $config) : [];
     }
     ob_start();
     if (empty($members)) {

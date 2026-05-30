@@ -37,11 +37,22 @@ if (isset($_POST['sc_save_private_note']) && check_admin_referer('sc_save_privat
         'member_status' => isset($_POST['member_status']) ? sanitize_text_field(wp_unslash($_POST['member_status'])) : 'all',
     ];
     if ($is_coach) {
-        $target_type = in_array($target_type, ['specific', 'course', 'team', 'level', 'team_level'], true) ? $target_type : 'specific';
+        $target_type = in_array($target_type, ['all', 'specific', 'course', 'team', 'level', 'team_level'], true) ? $target_type : 'specific';
     }
 
-    $members = function_exists('sc_bulk_actions_get_members') ? sc_bulk_actions_get_members($target_type, $config) : [];
-    $member_ids = array_values(array_unique(array_map('absint', wp_list_pluck((array) $members, 'id'))));
+    if ($is_coach && function_exists('sc_support_get_coach_id_by_user_id')) {
+        $coach_id = (int) sc_support_get_coach_id_by_user_id(get_current_user_id());
+        if ($target_type === 'all') {
+            $member_ids = sc_private_notes_get_member_ids_for_coach($coach_id);
+        } else {
+            $members = function_exists('sc_bulk_actions_get_members') ? sc_bulk_actions_get_members($target_type, $config) : [];
+            $member_ids = array_values(array_unique(array_map('absint', wp_list_pluck((array) $members, 'id'))));
+            $member_ids = sc_private_notes_filter_member_ids_for_coach($member_ids, $coach_id);
+        }
+    } else {
+        $members = function_exists('sc_bulk_actions_get_members') ? sc_bulk_actions_get_members($target_type, $config) : [];
+        $member_ids = array_values(array_unique(array_map('absint', wp_list_pluck((array) $members, 'id'))));
+    }
     $excluded_member_ids = isset($_POST['excluded_member_ids']) ? array_filter(array_map('absint', (array) $_POST['excluded_member_ids'])) : [];
     if (!empty($excluded_member_ids)) {
         $member_ids = array_values(array_diff($member_ids, $excluded_member_ids));
@@ -70,22 +81,22 @@ if (isset($_POST['sc_save_private_note']) && check_admin_referer('sc_save_privat
 
 if ($is_coach && function_exists('sc_support_get_coach_id_by_user_id')) {
     $coach_id = (int) sc_support_get_coach_id_by_user_id(get_current_user_id());
-    $coach_members = $coach_id > 0 && function_exists('sc_support_get_members_for_coach') ? sc_support_get_members_for_coach($coach_id) : [];
-    $members = [];
-    foreach ((array) $coach_members as $cm) {
-        $members[] = (object) [
-            'id' => (int) $cm['member_id'],
-            'first_name' => '',
-            'last_name' => trim((string) ($cm['name'] ?? '')),
-            'national_id' => (string) ($cm['national_id'] ?? ''),
-        ];
+    $allowed_member_ids = $coach_id > 0 ? sc_private_notes_get_member_ids_for_coach($coach_id) : [];
+    if (!empty($allowed_member_ids)) {
+        $placeholders = implode(',', array_fill(0, count($allowed_member_ids), '%d'));
+        $members = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, first_name, last_name, national_id FROM $members_table WHERE id IN ($placeholders) ORDER BY last_name, first_name",
+            ...$allowed_member_ids
+        ));
+    } else {
+        $members = [];
     }
-    $courses = $wpdb->get_results($wpdb->prepare(
+    $courses = $coach_id > 0 ? $wpdb->get_results($wpdb->prepare(
         "SELECT c.id, c.title FROM {$wpdb->prefix}sc_courses c
          INNER JOIN {$wpdb->prefix}sc_course_coaches cc ON cc.course_id = c.id
          WHERE cc.coach_id = %d AND c.deleted_at IS NULL AND c.is_active = 1 ORDER BY c.title",
         $coach_id
-    ));
+    )) : [];
     $events = [];
 } else {
     $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name, first_name");
@@ -131,11 +142,18 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
         
         <div class="sc-users-export-card">
             <h2>فیلتر کاربران گیرنده یادداشت</h2>
+            <?php if ($is_coach) : ?>
+                <p class="description">فقط بازیکنان دوره‌های شما و بازیکنانی که در ثبت‌نام دوره به شما تخصیص داده شده‌اند در این لیست نمایش داده می‌شوند.</p>
+            <?php endif; ?>
             <div class="sc-row">
                 <label for="sc-target-type">نوع انتخاب</label>
                 <select name="target_type" id="sc-target-type">
-                    <option value="all">همه کاربران</option>
-                    <option value="specific">انتخاب کاربران خاص (جستجو)</option>
+                    <?php if ($is_coach) : ?>
+                        <option value="all">همه بازیکنان من</option>
+                    <?php else : ?>
+                        <option value="all">همه کاربران</option>
+                    <?php endif; ?>
+                    <option value="specific"<?php echo $is_coach ? ' selected' : ''; ?>>انتخاب کاربران خاص (جستجو)</option>
                     <option value="course">بر اساس دوره</option>
                     <?php if (!$is_coach) : ?>
                         <option value="event">بر اساس رویداد</option>

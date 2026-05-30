@@ -205,6 +205,11 @@ function sc_support_get_user_id_by_member_id($member_id) {
  */
 function sc_support_get_members_for_coach($coach_id) {
     global $wpdb;
+    $coach_id = absint($coach_id);
+    if ($coach_id <= 0) {
+        return [];
+    }
+
     $mc = $wpdb->prefix . 'sc_member_courses';
     $cc = $wpdb->prefix . 'sc_course_coaches';
     $m = $wpdb->prefix . 'sc_members';
@@ -215,12 +220,19 @@ function sc_support_get_members_for_coach($coach_id) {
                 TRIM(CONCAT(COALESCE(mem.first_name,''), ' ', COALESCE(mem.last_name,''))) AS name,
                 mem.user_id,
                 mem.national_id
-         FROM $mc mc
-         INNER JOIN $cc cc ON cc.course_id = mc.course_id AND cc.coach_id = %d
-         INNER JOIN $m mem ON mem.id = mc.member_id
-         INNER JOIN $courses cr ON cr.id = mc.course_id AND cr.deleted_at IS NULL AND cr.is_active = 1
-         WHERE mc.status = 'active'
+         FROM $m mem
+         INNER JOIN $mc mc ON mc.member_id = mem.id AND mc.status = 'active'
+         WHERE (
+            mc.coach_id = %d
+            OR EXISTS (
+                SELECT 1
+                FROM $cc cc
+                INNER JOIN $courses cr ON cr.id = cc.course_id AND cr.deleted_at IS NULL AND cr.is_active = 1
+                WHERE cc.course_id = mc.course_id AND cc.coach_id = %d
+            )
+         )
          ORDER BY name",
+        $coach_id,
         $coach_id
     ), ARRAY_A);
 

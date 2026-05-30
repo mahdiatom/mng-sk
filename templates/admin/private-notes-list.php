@@ -6,7 +6,21 @@ $is_coach = !empty($GLOBALS['sc_private_notes_is_coach']);
 $list_page = $is_coach ? 'sc-coach-private-notes' : 'sc-private-notes';
 $add_page = $is_coach ? 'sc-coach-add-private-note' : 'sc-add-private-note';
 $members_table = $wpdb->prefix . 'sc_members';
-$members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+if ($is_coach && function_exists('sc_support_get_coach_id_by_user_id')) {
+    $coach_id = (int) sc_support_get_coach_id_by_user_id(get_current_user_id());
+    $allowed_member_ids = $coach_id > 0 ? sc_private_notes_get_member_ids_for_coach($coach_id) : [];
+    if (!empty($allowed_member_ids)) {
+        $placeholders = implode(',', array_fill(0, count($allowed_member_ids), '%d'));
+        $members = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, first_name, last_name, national_id FROM $members_table WHERE id IN ($placeholders) ORDER BY last_name ASC, first_name ASC",
+            ...$allowed_member_ids
+        ));
+    } else {
+        $members = [];
+    }
+} else {
+    $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+}
 $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
 $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
 $page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
@@ -28,7 +42,10 @@ $filter_date_to = $filter_date_to_shamsi !== ''
     : $today_gregorian;
 $result = sc_private_notes_query_admin(['member_id' => $filter_member, 'date_from' => $filter_date_from, 'date_to' => $filter_date_to, 'search' => $search, 'per_page' => 20, 'page' => $page]);
 $rows = $result['rows'];
-$legacy_rows = $wpdb->get_results("SELECT n.*, TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS member_name FROM {$wpdb->prefix}sc_private_notes n LEFT JOIN {$wpdb->prefix}sc_members m ON m.id = n.member_id ORDER BY n.created_at DESC LIMIT 20");
+$legacy_rows = [];
+if (!$is_coach) {
+    $legacy_rows = $wpdb->get_results("SELECT n.*, TRIM(CONCAT(COALESCE(m.first_name,''), ' ', COALESCE(m.last_name,''))) AS member_name FROM {$wpdb->prefix}sc_private_notes n LEFT JOIN {$wpdb->prefix}sc_members m ON m.id = n.member_id ORDER BY n.created_at DESC LIMIT 20");
+}
 ?>
 <div class="wrap sc-private-notes-wrap">
     <h1 class="wp-heading-inline">پرونده‌های یادداشت خصوصی</h1>
@@ -149,6 +166,7 @@ $legacy_rows = $wpdb->get_results("SELECT n.*, TRIM(CONCAT(COALESCE(m.first_name
         </div>
     <?php endif; ?>
 
+    <?php if (!$is_coach) : ?>
     <h2 style="margin-top:24px;">یادداشت‌های قدیمی (Legacy)</h2>
     <table class="wp-list-table widefat striped">
         <thead><tr><th>کاربر</th><th>متن</th><th>تاریخ</th></tr></thead>
@@ -164,4 +182,5 @@ $legacy_rows = $wpdb->get_results("SELECT n.*, TRIM(CONCAT(COALESCE(m.first_name
             <?php endforeach; endif; ?>
         </tbody>
     </table>
+    <?php endif; ?>
 </div>

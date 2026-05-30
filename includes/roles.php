@@ -747,7 +747,9 @@ function club_hide_menus_for_coach() {
                     $item[2] !== 'sc-coach-my-courses' &&
                     $item[2] !== 'sc-coach-my-players' &&
                     $item[2] !== 'sc-coach-my-profile' &&
-                    $item[2] !== 'sc-coach-support-tickets'
+                    $item[2] !== 'sc-coach-support-tickets' &&
+                    $item[2] !== 'sc-coach-private-notes' &&
+                    $item[2] !== 'sc-coach-private-classes'
                 ) {
                     sc_safe_remove_menu_page($item[2]);
                 }
@@ -817,13 +819,17 @@ if ( current_user_can('coach') ) {
             'sc-coach-support-tickets',
             'sc-coach-support-ticket-view',
             'sc-coach-support-ticket-new',
+            'sc-coach-private-notes',
+            'sc-coach-add-private-note',
+            'sc-private-notes-view',
             'sc-coach-salary',
             'sc-coach-wallet',
             'sc-coach-withdrawals',
             'sc-attendance-report',
             'sc-coach-weekly-schedule',
             'sc-coach-list-privet-class',
-            'sc-private-bookings-list'
+            'sc-private-bookings-list',
+            'sc-coach-private-classes',
            
         ];
 
