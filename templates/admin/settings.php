@@ -459,6 +459,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     }
     elseif ($current_tab === 'about') {
 
+        $sc_org_bg_color =   isset($_POST['sc_org_bg_color']) ? sanitize_hex_color($_POST['sc_org_bg_color']) : '#6D34FF';
+        $sc_txt_bg_color =   isset($_POST['sc_txt_bg_color']) ? sanitize_hex_color($_POST['sc_txt_bg_color']) : '#6D34FF';
+
         $sc_name_club   = isset($_POST['sc_name_club']) ? sanitize_text_field($_POST['sc_name_club']) : 'باشگاه اتم';
         $sc_club_logo_url        = isset($_POST['sc_club_logo_url']) ? esc_url_raw($_POST['sc_club_logo_url']) : '';
         $sc_phone_club        = isset($_POST['sc_phone_club']) ? sanitize_text_field($_POST['sc_phone_club']) : '';
@@ -470,6 +473,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sc_phone_club', $sc_phone_club, 'abaut_club');
         sc_update_setting('sc_token_club', $sc_token_club, 'bot');
         sc_update_setting('sc_botname_club', $sc_botname_club, 'bot');
+        sc_update_setting('sc_org_bg_color', $sc_org_bg_color, 'abaut_club');
+        sc_update_setting('sc_txt_bg_color', $sc_txt_bg_color, 'abaut_club');
 
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب درباره مجموعه ذخیره شد', null, ['tab' => 'about']);
@@ -477,12 +482,12 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات درباره مجموعه شد.</p></div>';
     }
     elseif ($current_tab === 'header_footer') {
-        $sc_org_bg_color =   isset($_POST['sc_org_bg_color']) ? sanitize_hex_color($_POST['sc_org_bg_color']) : '#6D34FF';
+    
 
 
         $sc_header_search_placeholder = isset($_POST['sc_header_search_placeholder']) ? sanitize_text_field($_POST['sc_header_search_placeholder']) : '';
         sc_update_setting('sc_header_search_placeholder', $sc_header_search_placeholder, 'header_footer');
-        sc_update_setting('sc_org_bg_color', $sc_org_bg_color, 'header_footer');
+
 
 
         $lines_raw = isset($_POST['sc_header_search_suggestions']) ? wp_unslash($_POST['sc_header_search_suggestions']) : '';
@@ -711,6 +716,7 @@ $sc_botname_club      = sc_get_setting('sc_botname_club', '');
 
 $sc_header_search_placeholder = sc_get_setting('sc_header_search_placeholder', 'جستجو در خدمات، صفحات و فروشگاه…');
 $sc_org_bg_color = sc_get_setting('sc_org_bg_color', '#6D34FF');
+$sc_txt_bg_color = sc_get_setting('sc_txt_bg_color', '#6D34FF');
 
 $sc_header_search_suggestions_lines = '';
 $raw_header_suggestions = sc_get_setting('sc_header_search_suggestions_json', '');
@@ -1184,9 +1190,11 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
             
             ?>
             <form method="POST" action="">
+
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
                     <h3>اطلاعات مجموعه </h3>
                 <table class="form-table">
+
                     <tr>
                         <th scope="row"><label for="sc_name_club">نام مجموعه </label></th>
                         <td>
@@ -1212,6 +1220,27 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                                 </div>
                             </div>
                             <p class="description">نمایش در هدر و فوتر</p>
+                        </td>
+                    </tr>
+
+                             <tr>
+                        <th scope="row"><label for="sc_org_bg_color">رنگ سازمانی</label></th>
+                        <td>
+                            <input type="color" name="sc_org_bg_color" id="sc_org_bg_color"
+                                   value="<?php echo esc_attr($sc_org_bg_color); ?>"
+                                   style="vertical-align:middle;width:40px;height:32px;padding:2px;cursor:pointer;">
+                            <span class="sc-org-bg-color-hex" id="sc_org_bg_color_hex"><?php echo esc_html($sc_org_bg_color); ?></span>
+                            <p class="description">این رنگ در بخش های فوتر- هدر و منو به کار می رود .</p>
+                        </td>
+                    </tr>
+                      <tr>
+                        <th scope="row"><label for="sc_txt_bg_color">رنگ متن </label></th>
+                        <td>
+                            <input type="color" name="sc_txt_bg_color" id="sc_txt_bg_color"
+                                   value="<?php echo esc_attr($sc_txt_bg_color); ?>"
+                                   style="vertical-align:middle;width:40px;height:32px;padding:2px;cursor:pointer;">
+                            <span class="sc-txt-bg-color-hex" id="sc_txt_bg_color_hex"><?php echo esc_html($sc_txt_bg_color); ?></span>
+                            <p class="description">این رنگ در بخش های فوتر- هدر و منو به کار می رود .</p>
                         </td>
                     </tr>
                     <tr>
@@ -1253,16 +1282,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
                 <h3>جستجوی هدر</h3>
                 <table class="form-table">
-                      <tr>
-                        <th scope="row"><label for="sc_org_bg_color">رنگ سازمانی</label></th>
-                        <td>
-                            <input type="color" name="sc_org_bg_color" id="sc_org_bg_color"
-                                   value="<?php echo esc_attr($sc_org_bg_color); ?>"
-                                   style="vertical-align:middle;width:40px;height:32px;padding:2px;cursor:pointer;">
-                            <span class="sc-org-bg-color-hex" id="sc_org_bg_color_hex"><?php echo esc_html($sc_org_bg_color); ?></span>
-                            <p class="description">این رنگ در بخش های فوتر- هدر و منو به کار می رود .</p>
-                        </td>
-                    </tr>
+             
                     <tr>
                         <th scope="row"><label for="sc_header_search_placeholder">متن راهنمای باکس جستجو</label></th>
                         <td>
@@ -3313,6 +3333,10 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     $('#' + id).text($(this).val());
                 });
                 $('#sc_org_bg_color, #sc_org_btn_bg, #sc_org_btn_color').on('input change', function() {
+                    var id = $(this).attr('id') + '_hex';
+                    $('#' + id).text($(this).val());
+                });
+                $('#sc_txt_bg_color, #sc_org_btn_bg, #sc_org_btn_color').on('input change', function() {
                     var id = $(this).attr('id') + '_hex';
                     $('#' + id).text($(this).val());
                 });

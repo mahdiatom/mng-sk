@@ -23,7 +23,7 @@ function sc_register_admin_menu() {
         'sc-dashboard',
         'sc_admin_dashboard_page',
         'dashicons-universal-access-alt',
-        26
+        9
     );
 
     /* ================= Notifications & SMS (فقط وقتی امکانات پرو فعال است) ================= */
@@ -35,7 +35,7 @@ function sc_register_admin_menu() {
             'sc-notifications',
             'sc_admin_notifications_list_page',
             'dashicons-email-alt',
-            26.5
+            20
         );
         add_submenu_page(
             'sc-notifications',
@@ -65,7 +65,7 @@ function sc_register_admin_menu() {
             'sc-user-alerts',
             'sc_admin_user_alerts_page',
             'dashicons-warning',
-            26.6
+            23
         );
     }
 
@@ -77,7 +77,7 @@ function sc_register_admin_menu() {
             'sc-users-info-export',
             'sc_admin_users_info_export_page',
             'dashicons-media-spreadsheet',
-            26.8
+            27
         );
         add_submenu_page(
             'sc-users-info-export',
@@ -105,7 +105,7 @@ function sc_register_admin_menu() {
             'sc-bulk-actions',
             'sc_admin_bulk_actions_page',
             'dashicons-update',
-            26.85
+            28
         );
     }
 
@@ -117,7 +117,7 @@ function sc_register_admin_menu() {
             'sc-certificates-issue',
             'sc_admin_certificates_issue_page',
             'dashicons-awards',
-            26.9
+            19
         );
         add_submenu_page(
             'sc-certificates-issue',
@@ -154,7 +154,7 @@ function sc_register_admin_menu() {
         'sc-members',
         'sc_admin_members_list_page',
         'dashicons-groups',
-        27
+        15
     );
 
 
@@ -196,7 +196,7 @@ function sc_register_admin_menu() {
             'sc-attendance-add',
             'sc_admin_attendance_add_page',
             'dashicons-insert-after',
-            '28'
+            '18'
         );
 
         add_submenu_page(
@@ -279,7 +279,7 @@ function sc_register_admin_menu() {
             'sc-coach-honors',
             'sc_admin_coach_honors_page',
             'dashicons-awards',
-            28.6
+            18
         );
     }
 
@@ -292,7 +292,7 @@ function sc_register_admin_menu() {
             'sc-coach-notifications',
             'sc_admin_coach_my_notifications_page',
             'dashicons-email-alt',
-            28.65
+            16
         );
         add_submenu_page(
             'sc-coach-notifications',
@@ -331,7 +331,7 @@ function sc_register_admin_menu() {
             'sc-coach-my-courses',
             'sc_admin_coach_my_courses_page',
             'dashicons-welcome-learn-more',
-            28.7
+            13
         );
         if (current_user_can('sc_view_coach_salary')) {
             add_submenu_page(
@@ -349,7 +349,7 @@ function sc_register_admin_menu() {
                 'sc-coach-private-classes',
                 'sc_render_private_bookings_admin_page',
                 'dashicons-calendar-alt',
-                28.72
+                17
             );
             add_submenu_page(
                 'sc-coach-private-classes',
@@ -377,7 +377,7 @@ function sc_register_admin_menu() {
         'sc-coach-my-players',
         'sc_admin_coach_my_players_page',
         'dashicons-groups',
-        28.75
+        14
     );
     add_menu_page(
         'اطلاعات من',
@@ -468,7 +468,7 @@ function sc_register_admin_menu() {
             'sc-courses',
             'sc_admin_courses_list_page',
             'dashicons-welcome-learn-more',
-            28
+            12
         );
 
         $list_courses_sufix = add_submenu_page(
@@ -519,7 +519,7 @@ function sc_register_admin_menu() {
             'sc-coaches',
             'sc_admin_coaches_list_page',
             'dashicons-groups',
-            28
+            16
         );
 
         $list_coaches_sufix = add_submenu_page(
@@ -555,7 +555,7 @@ function sc_register_admin_menu() {
             'sc-events',
             'sc_admin_events_list_page',
             'dashicons-calendar-alt',
-            29
+            13
         );
 
         $list_events_sufix = add_submenu_page(
@@ -595,7 +595,7 @@ function sc_register_admin_menu() {
             'sc-private-notes',
             'sc_admin_private_notes_list_page',
             'dashicons-media-text',
-            29.4
+            22
         );
         add_submenu_page(
             'sc-private-notes',
@@ -633,7 +633,7 @@ function sc_register_admin_menu() {
             'sc-support-tickets',
             'sc_admin_support_tickets_list_page',
             'dashicons-tickets-alt',
-            29.5
+            21
         );
         $list_support_tickets_sufix = add_submenu_page(
             'sc-support-tickets',
@@ -746,7 +746,7 @@ function sc_register_admin_menu() {
             'sc-wallet',
             'sc_admin_wallet_list_page',
             'dashicons-database-view',
-            29
+            25
         );
 
         $wallet_list_sufix = add_submenu_page(
@@ -797,7 +797,7 @@ function sc_register_admin_menu() {
             'sc-honors',
             'sc_admin_honors_list_page',
             'dashicons-awards',
-            31
+            14
         );
 
         $list_honors_sufix = add_submenu_page(
@@ -838,7 +838,7 @@ function sc_register_admin_menu() {
         'sc_setting',
         'sc_setting_callback',
         'dashicons-admin-generic',
-        50
+        59
         
     );
 
@@ -938,7 +938,7 @@ function sc_register_admin_menu() {
             'sc-coach-management',
             'sc_admin_coach_management_page',
             'dashicons-groups',
-            32.5
+            17
         );
         
         add_submenu_page(
@@ -980,7 +980,7 @@ function sc_register_admin_menu() {
             'sc-reports',
             'sc_report_data',
             'dashicons-chart-area',
-            31
+            26
         );
 
         add_submenu_page(
@@ -1070,7 +1070,7 @@ function sc_register_admin_menu() {
             'options-permalink.php',
             '',
             'dashicons-admin-links',
-            100
+            60
         );
     }
 
@@ -1084,7 +1084,7 @@ function sc_register_admin_menu() {
             'sc_team',
             'sc_admin_team_categories_page',
             'dashicons-universal-access',
-            10
+            11
         );
 
         add_submenu_page(
@@ -1116,7 +1116,7 @@ function sc_register_admin_menu() {
             'sc_chapter',
             'sc_admin_chapter_page',
             'dashicons-location',
-            9
+            10
         );
     }
 
@@ -1130,7 +1130,7 @@ function sc_register_admin_menu() {
             'sc_faq',
             'sc_admin_faq',
             'dashicons-editor-help',
-            40
+            30
         );
     }
 
@@ -1142,7 +1142,7 @@ function sc_register_admin_menu() {
             'sc_orders',
             'sc_custom_orders',
             'dashicons-cart',
-            40
+            35
         );
         add_submenu_page(
             'sc_orders',
@@ -1179,7 +1179,7 @@ function sc_register_admin_menu() {
             'nav-menus.php',
             '',
             "dashicons-list-view",
-            40
+            31
         );
     }
 

@@ -16,6 +16,7 @@ $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_not
 $count_product_card = get_cart_item_count()['count'];
 $sum_price_card = get_cart_item_count()['sum'];
 $color_org = sc_get_setting('sc_org_bg_color', '#6D34FF');
+$color_org_txt = sc_get_setting('sc_txt_bg_color', '#6D34FF');
 
 
 
@@ -238,18 +239,33 @@ button[name="save_honors"],
   .sc-ticket-btn-primary,
   .sc-support-tabs .active,
   .sc-notification-btn-primary,
-  .sc-notif-tabs .active
-
+  .sc-notif-tabs .active,
+  .woocommerce-tabs .wc-tab ,
+  .custom-footer a ,
+  .sc-notifications-pagination span
  
  {
  
     background-color: <?php echo $color_org;  ?> !important;
+     color:<?php echo $color_org_txt;  ?>!important;
+   
     
 }
+.menu-header ul li a ,
+ .menus .header_phone ,
+a.details_info_user_pannel,
+.woocommerce-MyAccount-navigation ul li a,
+.megamenu-box span
+
+{
+     color:<?php echo $color_org_txt;  ?>!important;
+    
+}
+
 .sc-section-title{
     border-bottom:3px solid <?php echo $color_org;  ?> !important;
 }
-.sc-user-avatar{
+.sc-user-avatar, .sc-user-avatar_megamenu{
         border:3px solid <?php echo $color_org;  ?> !important;
 
 }

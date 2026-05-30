@@ -10,8 +10,8 @@ function custom_footer_output() {
     ?>
     
     <footer class="custom-footer" >
-        <p>&copy; <?php echo date('Y'); ?> تمامی حقوق برای سیستم هوشمند باشگاه اتم کلاب محفوظ است.</p>
-        <p>طراحی شده توسط اتم کلاب</p>
+       <p> <a href="https://atomclubapp.ir" target="_blank" rel="nofollow"> <?php echo date('Y'); ?> تمامی حقوق برای سیستم هوشمند باشگاه اتم کلاب محفوظ است.</a> </p>
+       <p> <a href="https://atomclubapp.ir" target="_blank" rel="nofollow">طراحی شده توسط اتم کلاب</a> </p>
     </footer>
 
 <script>

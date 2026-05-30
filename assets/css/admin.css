@@ -79,6 +79,11 @@ a{
 input {
     height: 40px;
 }
+
+select#new_role option[value="coach"] {
+    display: none;
+}
+
 /* input[type="checkbox"] {
     height: 15px ;
 } */
@@ -152,6 +157,7 @@ input.small-text {
         }
         input:checked + .slider { background-color: #2271b1; }
         input:checked + .slider:before { transform: translateX(26px); }
+
 
         /* قسمت پاپ آپ برای اطلاعات کاربر به صورت ایجکس */
 #wp-admin-bar-sc-sms-credit span{

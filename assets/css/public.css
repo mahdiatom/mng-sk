@@ -101,6 +101,7 @@ h2{
     width: 100%;
 }
 
+
 @media screen and (max-width: 780px) {
 .persian-calendar-popup{
     left: 50px !important;
@@ -124,7 +125,7 @@ h2{
 }
 .menus .header_phone{
    margin: 0;
-    color: white;
+
     font-weight: bold;
     position: relative;
 }
@@ -1061,7 +1062,6 @@ a.add_to_cart_button{
     color: white !important;
 }
 .woocommerce-tabs .wc-tab{
-    background-color:#e5dcfc ;
     padding: 25px !important;
     border-radius: 10px !important;
 }
@@ -1171,6 +1171,11 @@ textarea#comment{
 }
 }
 
+
+
+
+
+
 /* پایان صفحه محصول */
 
 
@@ -1218,9 +1223,9 @@ a{
 font-family: IRANYekanXFaNum !important ;
 color: #000 !important;
 }
-/* #content{
-    margin: 30px  0 !important;
-} */
+.woocommerce-account #content{
+    padding: 50px  30px !important;
+}
 .wp-block-woocommerce-checkout-actions-block .e19lxcc00 {
 display: none;
 }
@@ -1290,6 +1295,20 @@ img.emoji {
 */
 
 
+.woocommerce-MyAccount-navigation ul {
+display: flex;
+flex-direction: column;
+}
+.woocommerce-MyAccount-navigation-link--downloads{
+    order: 20;
+}
+.woocommerce-MyAccount-navigation-link--edit-account{
+order: 21;
+}
+.woocommerce-MyAccount-navigation-link--bot-connect{
+order: 22;
+}
+
 .woocommerce-MyAccount-navigation li{
     font-size: 14px;
 }
@@ -1353,7 +1372,7 @@ body:not([class*=elementor-page-]) .site-main {
     max-width: 100%;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid #6d34ff;
+    
     margin: 4px 0px;
     box-shadow: 0 2px 10px rgba(109,52,255,0.25);
 }
@@ -1528,7 +1547,7 @@ a.details_info_user_pannel {
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    color: #fff !important;
+=
     border-radius: 10px;
     font-size: 13px;
     font-weight: 600;
@@ -1632,7 +1651,7 @@ a.details_info_user_pannel:hover {
     border-radius: 10px;
 
 }
-.
+
 @media screen and (max-width:780px) {
     .woocommerce-MyAccount-navigation{
         display: none;
@@ -1645,7 +1664,6 @@ a.details_info_user_pannel:hover {
 
 }
 .woocommerce-MyAccount-navigation ul li a{
-    color: #fff !important;
 
 }
 .woocommerce-dashboard .woocommerce{
@@ -3613,7 +3631,7 @@ width: 150px;
 
 .woocommerce-MyAccount-content .button-primary {
     border: none;
-    color: #fff !important;
+
     border-radius: 10px !important;
 }
 .button_filter_custom {
@@ -5748,7 +5766,6 @@ color: white;
 }
 .sc-notifications-pagination span{
     padding: 4px 13px !important;
-    background-color: #0c02c9 !important;
     color: white !important;
     border-radius: 5px;
 
@@ -7377,7 +7394,7 @@ display: block;
 }
 .menu-header ul li a {
     text-decoration: none;
-   color: white;
+
     font-weight: bold;
     padding: 14px 0;
 }
@@ -7529,7 +7546,7 @@ display: block;
     right: 5px !important;
 }
 .megamenu-box span{
-    color: white;
+
         padding-right: 28px;
     font-size: 12px;
 }
