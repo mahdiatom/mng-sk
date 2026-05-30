@@ -378,24 +378,14 @@ $get_certificate =isset( $_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
                                 
                                 // دکمه پرداخت برای pending
                                 if ($payment_url && $invoice->status === 'pending') {
-                                    // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
                                     $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
-                                    $wallet_balance = 0;
                                     $can_pay_from_wallet = false;
-                                    
+
                                     if ($wallet_enabled) {
-                                        $wallet_balance = sc_get_wallet_balance($player->id);
                                         $total_amount = (float)$invoice->amount + (float)($invoice->penalty_amount ?? 0);
-                                        
-                                        // بررسی امکان پرداخت از کیف پول
-                                        if ($wallet_balance >= $total_amount) {
-                                            $can_pay_from_wallet = true;
-                                        } elseif (sc_is_wallet_partial_payment_allowed() && $wallet_balance > 0) {
-                                            $can_pay_from_wallet = true; // پرداخت جزئی
-                                        }
+                                        $can_pay_from_wallet = sc_can_pay_amount_from_wallet($player->id, $total_amount);
                                     }
-                                    
-                                    // دکمه پرداخت از کیف پول
+
                                     if ($can_pay_from_wallet && !($invoice->expense_name === 'شارژ کیف پول')) {
                                         $wallet_pay_url = wp_nonce_url(
                                             add_query_arg([
@@ -405,7 +395,7 @@ $get_certificate =isset( $_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
                                             'pay_from_wallet_' . $invoice->id
                                         );
                                         
-                                        $wallet_text = $wallet_balance >= $total_amount ? 'پرداخت از کیف پول' : 'پرداخت از کیف پول + بقیه اش از درگاه';
+                                        $wallet_text = sc_get_wallet_payment_button_label($player->id, $total_amount);
                                         $action_buttons[] = '<a href="' . esc_url($wallet_pay_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-wallet" style="background: #28a745; color: white;"
                                         >💰 ' . esc_html($wallet_text) . '</a>';
                                     }

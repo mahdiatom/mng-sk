@@ -2634,7 +2634,7 @@ function sc_create_event_invoice($member_id, $event_id, $amount, $discount_meta 
  */
 add_action('template_redirect', 'sc_handle_wallet_payment');
 function sc_handle_wallet_payment() {
-    if (!is_account_page() || !isset($_GET['pay_from_wallet']) || !isset($_GET['invoice_id'])) {
+    if (!isset($_GET['pay_from_wallet']) || !isset($_GET['invoice_id'])) {
         return;
     }
     
@@ -2644,61 +2644,41 @@ function sc_handle_wallet_payment() {
     }
     
     // بررسی nonce
-    if (!isset($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'pay_from_wallet_' . $invoice_id)) {
+    if (!isset($_GET['_wpnonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'pay_from_wallet_' . $invoice_id)) {
         wc_add_notice('خطا در تأیید درخواست. لطفاً دوباره تلاش کنید.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        wp_safe_redirect(sc_wallet_payment_redirect_url('sc-invoices'));
         exit;
     }
     
     // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
     if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
         wc_add_notice('سیستم کیف پول فعال نیست.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        wp_safe_redirect(sc_wallet_payment_redirect_url('sc-invoices'));
         exit;
     }
     
     // بررسی وضعیت کاربر
     $player = sc_check_user_active_status();
     if (!$player) {
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
+        wp_safe_redirect(sc_wallet_payment_redirect_url('sc-invoices'));
+        exit;
+    }
+
+    if (!function_exists('sc_get_wallet_payable_invoice_for_member')
+        || !sc_get_wallet_payable_invoice_for_member($invoice_id, $player->id)) {
+        wc_add_notice('صورت حساب یافت نشد یا قابل پرداخت نیست.', 'error');
+        wp_safe_redirect(sc_wallet_payment_redirect_url('sc-invoices'));
         exit;
     }
     
+    $redirect_endpoint = 'sc-invoices';
+    if (isset($_GET['redirect_to']) && sanitize_text_field(wp_unslash($_GET['redirect_to'])) === 'my-orders') {
+        $redirect_endpoint = 'my-orders';
+    }
+
     // پرداخت از کیف پول
     $result = sc_pay_invoice_from_wallet($invoice_id);
-    
-    if ($result['success']) {
-        if (isset($result['remaining_amount']) && $result['remaining_amount'] > 0) {
-            // پرداخت جزئی انجام شد - هدایت به صفحه پرداخت برای مابقی
-            global $wpdb;
-            $invoices_table = $wpdb->prefix . 'sc_invoices';
-            $invoice = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $invoices_table WHERE id = %d",
-                $invoice_id
-            ));
-            
-            if ($invoice && !empty($invoice->woocommerce_order_id)) {
-                $order = wc_get_order($invoice->woocommerce_order_id);
-                if ($order) {
-                    // بروزرسانی مبلغ سفارش
-                    $order->calculate_totals();
-                    $order->save();
-                    
-                    wc_add_notice('مبلغ ' . number_format($result['paid_amount'], 0, '.', ',') . ' تومان از کیف پول پرداخت شد. مابقی مبلغ: ' . number_format($result['remaining_amount'], 0, '.', ',') . ' تومان', 'success');
-                    wp_safe_redirect($order->get_checkout_payment_url());
-                    exit;
-                }
-            }
-        } else {
-            // پرداخت کامل انجام شد
-            wc_add_notice('صورت حساب با موفقیت از کیف پول پرداخت شد.', 'success');
-        }
-    } else {
-        wc_add_notice($result['message'], 'error');
-    }
-    
-    wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
-    exit;
+    sc_process_wallet_payment_result($result, $invoice_id, $redirect_endpoint);
 }
 
 /**

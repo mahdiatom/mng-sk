@@ -328,39 +328,30 @@ $total_pages = isset($total_pages) ? max(1, absint($total_pages)) : 1;
                                 
                                 // دکمه پرداخت برای pending
                                 if ($payment_url && ($order->status === 'wc-pending' ||$order->status === 'wc-checkout-draft' )) {
-                                    // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
-                                    $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
+                                    $member_id_wallet = isset($player) && !empty($player->id) ? (int) $player->id : 0;
+                                    $wallet_enabled = $member_id_wallet > 0
+                                        && function_exists('sc_can_show_players_wallet')
+                                        && sc_can_show_players_wallet();
                                     $wallet_balance = 0;
                                     $can_pay_from_wallet = false;
-                                    
+
                                     if ($wallet_enabled) {
-                                        $wallet_balance = sc_get_wallet_balance($order->user_id);
-                                        
-                                        
-                                        // بررسی امکان پرداخت از کیف پول
-                                        if ($wallet_balance >= $total_amount) {
-                                            $can_pay_from_wallet = true;
-                                        } elseif (sc_is_wallet_partial_payment_allowed() && $wallet_balance > 0) {
-                                            $can_pay_from_wallet = true; // پرداخت جزئی
-                                        }
+                                        $wallet_balance = sc_get_wallet_balance($member_id_wallet);
+                                        $can_pay_from_wallet = sc_can_pay_amount_from_wallet($member_id_wallet, $total_amount);
                                     }
-                                    
-                                    // دکمه پرداخت از کیف پول (نیاز به صورت‌حساب مرتبط با همین سفارش ووکامرس)
-                                    if ($can_pay_from_wallet) {
-                                        global $wpdb;
-                                        $invoice_id_wallet = (int) $wpdb->get_var($wpdb->prepare(
-                                            "SELECT id FROM {$wpdb->prefix}sc_invoices WHERE woocommerce_order_id = %d LIMIT 1",
-                                            $order->id_order
-                                        ));
+
+                                    if ($can_pay_from_wallet && function_exists('sc_ensure_shop_invoice_for_order')) {
+                                        $invoice_id_wallet = sc_ensure_shop_invoice_for_order($order->id_order, $member_id_wallet);
                                         if ($invoice_id_wallet > 0) {
                                             $wallet_pay_url = wp_nonce_url(
                                                 add_query_arg([
                                                     'pay_from_wallet' => '1',
                                                     'invoice_id' => $invoice_id_wallet,
+                                                    'redirect_to' => 'my-orders',
                                                 ], wc_get_account_endpoint_url('my-orders')),
                                                 'pay_from_wallet_' . $invoice_id_wallet
                                             );
-                                            $wallet_text = $wallet_balance >= $total_amount ? 'پرداخت از کیف پول' : 'پرداخت از کیف پول + بقیه اش از درگاه';
+                                            $wallet_text = sc_get_wallet_payment_button_label($member_id_wallet, $total_amount);
                                             $action_buttons[] = '<a href="' . esc_url($wallet_pay_url) . '" class="woocommerce-button button view sc-order-btn sc-order-btn-wallet" style="background: #28a745; color: white;"
                                         >💰 ' . esc_html($wallet_text) . '</a>';
                                         }

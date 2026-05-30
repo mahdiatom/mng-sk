@@ -242,7 +242,8 @@ button[name="save_honors"],
   .sc-notif-tabs .active,
   .woocommerce-tabs .wc-tab ,
   .custom-footer a ,
-  .sc-notifications-pagination span
+  .sc-notifications-pagination span,
+  .sc-thankyou-header
  
  {
  

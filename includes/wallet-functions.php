@@ -102,6 +102,39 @@ function sc_is_wallet_partial_payment_allowed() {
 }
 
 /**
+ * Check if a member can pay an amount from wallet (full or partial).
+ */
+function sc_can_pay_amount_from_wallet($member_id, $amount) {
+    if (!function_exists('sc_can_show_players_wallet') || !sc_can_show_players_wallet()) {
+        return false;
+    }
+
+    $amount = floatval($amount);
+    if ($amount <= 0) {
+        return false;
+    }
+
+    $wallet_balance = sc_get_wallet_balance($member_id);
+    if ($wallet_balance >= $amount) {
+        return true;
+    }
+
+    return sc_is_wallet_partial_payment_allowed() && $wallet_balance > 0;
+}
+
+/**
+ * Wallet payment button label based on balance vs amount.
+ */
+function sc_get_wallet_payment_button_label($member_id, $amount) {
+    $wallet_balance = sc_get_wallet_balance($member_id);
+    $amount = floatval($amount);
+
+    return $wallet_balance >= $amount
+        ? 'پرداخت از کیف پول'
+        : 'پرداخت از کیف پول + بقیه اش از درگاه';
+}
+
+/**
  * Add wallet transaction
  * افزودن تراکنش کیف پول
  */
@@ -408,6 +441,13 @@ function sc_pay_invoice_from_wallet($invoice_id, $amount = null) {
         return [
             'success' => false,
             'message' => 'این صورت حساب قابل پرداخت نیست.'
+        ];
+    }
+
+    if (!empty($invoice->expense_name) && $invoice->expense_name === 'شارژ کیف پول') {
+        return [
+            'success' => false,
+            'message' => 'شارژ کیف پول فقط از درگاه پرداخت امکان‌پذیر است.'
         ];
     }
     

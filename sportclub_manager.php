@@ -59,6 +59,7 @@ require_once SC_INCLUDES_DIR . 'active-users-export.php'; // Active users export
 require_once SC_INCLUDES_DIR . 'payments-export.php'; // Payments export functions
 require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export functions
 require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settings
+require_once SC_INCLUDES_DIR . 'woocommerce-shop-wallet.php'; // Shop cart/checkout wallet payment
 require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
 require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions
 require_once SC_INCLUDES_DIR . 'notification-functions.php'; // Notification & SMS broadcast

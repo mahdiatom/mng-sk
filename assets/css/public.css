@@ -3700,7 +3700,6 @@ width: 150px;
 .sc-thankyou-header {
     text-align: center;
     padding: 50px 30px;
-    background: linear-gradient(360deg, #4f3988 23%, #5a2ae6 63%);
     border-radius: 20px;
     color: #fff;
     margin-bottom: 40px;
@@ -7191,6 +7190,60 @@ button[name="save_honors"]:focus {
 }
     }
 /* wallet */
+.sc-shop-wallet-pay-wrap {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e5e5;
+    text-align: center;
+}
+
+.sc-shop-wallet-pay-wrap--cart {
+    margin-bottom: 12px;
+}
+
+.sc-shop-wallet-pay-btn {
+    display: inline-block !important;
+    width: 100%;
+    background: #28a745 !important;
+    color: #fff !important;
+    border-color: #28a745 !important;
+    font-weight: 600;
+}
+
+.sc-shop-wallet-pay-btn:hover {
+    background: #218838 !important;
+    color: #fff !important;
+    border-color: #1e7e34 !important;
+}
+
+.sc-shop-wallet-pay-note {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #666;
+}
+
+.woocommerce-checkout .sc-shop-wallet-pay-wrap {
+    margin-bottom: 20px;
+    background: #f8fff9;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.wp-block-woocommerce-checkout-payment-block .sc-shop-wallet-pay-wrap,
+.wp-block-woocommerce-checkout-actions-block .sc-shop-wallet-pay-wrap,
+.wp-block-woocommerce-proceed-to-checkout-block .sc-shop-wallet-pay-wrap {
+    margin: 16px 0;
+}
+
+.wp-block-woocommerce-checkout-payment-block .sc-shop-wallet-pay-btn,
+.wp-block-woocommerce-checkout-actions-block .sc-shop-wallet-pay-btn,
+.wp-block-woocommerce-proceed-to-checkout-block .sc-shop-wallet-pay-btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+}
+
 #period_report_content{
     overflow: auto;
 }
