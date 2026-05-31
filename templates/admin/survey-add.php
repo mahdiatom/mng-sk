@@ -146,7 +146,7 @@ $questions_json = wp_json_encode(array_map(function ($q) {
             </div>
             <div class="sc-row sc-survey-status-row">
                 <label>وضعیت</label>
-                <label class="sc-inline-check"><input type="checkbox" name="is_active" value="1" <?php checked($survey->is_active ?? 0, 1); ?>> فعال</label>
+                <label class="sc-inline-check"><input type="checkbox" name="is_active" value="1" <?php checked(isset($survey->is_active) ? (int)$survey->is_active : 1, 1); ?>> فعال</label>
                 <label class="sc-inline-check"><input type="checkbox" name="is_public" value="1" <?php checked($survey->is_public ?? 0, 1); ?>> لینک عمومی (بدون نیاز به ورود)</label>
             </div>
             <div class="sc-row sc-survey-date-row">
@@ -204,12 +204,12 @@ $questions_json = wp_json_encode(array_map(function ($q) {
             <div id="sc-survey-questions-builder"></div>
         </div>
 
-        <div class="sc-users-export-card sc-survey-submit-card">
+       
             <p class="submit">
-                <button type="submit" class="button button-primary button-hero">ذخیره نظرسنجی</button>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-surveys')); ?>" class="button">بازگشت به لیست</a>
+                <button type="submit" class="button button-primary ">ذخیره نظرسنجی</button>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-surveys')); ?>" class="sc_button">بازگشت به لیست</a>
             </p>
-        </div>
+    
     </form>
 </div>
 <script>

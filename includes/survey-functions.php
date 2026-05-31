@@ -417,25 +417,39 @@ function sc_survey_user_in_audience($survey, $user_id) {
     $is_player = $member_id > 0;
     $is_coach = $coach_id > 0;
 
-    if ($is_coach && $include_coaches && !$is_player) {
-        return $target_type === 'all';
+    // Role gating: respect the include checkboxes
+    if ($is_player && !$include_players) {
+        return false;
     }
-    if (!$is_player || !$include_players) {
+    if ($is_coach && !$include_coaches) {
+        return false;
+    }
+    if (!$is_player && !$is_coach) {
         return false;
     }
 
-    if (function_exists('sc_bulk_actions_get_members')) {
-        $bulk_type = $target_type === 'all' ? 'all' : $target_type;
-        $members = sc_bulk_actions_get_members($bulk_type, $target_config);
-        $ids = array_map(function ($m) {
-            return (int) $m->id;
-        }, (array) $members);
-        if (!in_array($member_id, $ids, true)) {
+    // For target_type filters, only players support the member-based bulk filters
+    if ($target_type !== 'all') {
+        if ($is_player && function_exists('sc_bulk_actions_get_members')) {
+            $members = sc_bulk_actions_get_members($target_type, $target_config);
+            $ids = array_map(function ($m) {
+                return (int) $m->id;
+            }, (array) $members);
+            if (!in_array($member_id, $ids, true)) {
+                return false;
+            }
+        } else {
+            // Coaches or non-player: complex target_types not supported yet
             return false;
         }
     }
 
-    return sc_survey_member_passes_restrictions($member_id, $restriction);
+    if ($is_player) {
+        return sc_survey_member_passes_restrictions($member_id, $restriction);
+    }
+
+    // Coach with 'all' (or passed specific if we extend later)
+    return true;
 }
 
 function sc_survey_parse_response_filters($request) {

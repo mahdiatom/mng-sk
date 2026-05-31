@@ -187,20 +187,31 @@
     }
 
     function toggleAudienceBlocks() {
+        var includePlayers = $('#include_players').is(':checked') || $('input[name="include_players"]').is(':checked');
         var targetType = $('#sc-survey-target-type').val();
-        $('#sc-survey-filter-specific, #sc-survey-filter-course, #sc-survey-filter-event, #sc-survey-filter-team, #sc-survey-filter-level').hide();
-        if (targetType === 'specific') {
-            $('#sc-survey-filter-specific').show();
-        } else if (targetType === 'course') {
-            $('#sc-survey-filter-course').show();
-        } else if (targetType === 'event') {
-            $('#sc-survey-filter-event').show();
-        } else if (targetType === 'team') {
-            $('#sc-survey-filter-team').show();
-        } else if (targetType === 'level') {
-            $('#sc-survey-filter-level').show();
-        } else if (targetType === 'team_level') {
-            $('#sc-survey-filter-team, #sc-survey-filter-level').show();
+
+        // Player-only rows and filter blocks
+        var playerOnlySelectors = '#sc-survey-player-target-row, #sc-survey-player-status-row, #sc-survey-player-type-row, #sc-survey-filter-specific, #sc-survey-filter-course, #sc-survey-filter-event, #sc-survey-filter-team, #sc-survey-filter-level';
+        $(playerOnlySelectors).hide();
+
+        if (includePlayers) {
+            // Show target type, status, and category rows
+            $('#sc-survey-player-target-row, #sc-survey-player-status-row, #sc-survey-player-type-row').show();
+
+            // Show filter blocks based on target type
+            if (targetType === 'specific') {
+                $('#sc-survey-filter-specific').show();
+            } else if (targetType === 'course') {
+                $('#sc-survey-filter-course').show();
+            } else if (targetType === 'event') {
+                $('#sc-survey-filter-event').show();
+            } else if (targetType === 'team') {
+                $('#sc-survey-filter-team').show();
+            } else if (targetType === 'level') {
+                $('#sc-survey-filter-level').show();
+            } else if (targetType === 'team_level') {
+                $('#sc-survey-filter-team, #sc-survey-filter-level').show();
+            }
         }
     }
 
@@ -343,7 +354,7 @@
         render(true);
     }
 
-    $('#sc-survey-target-type').on('change', toggleAudienceBlocks);
+    $('#sc-survey-target-type, #include_players, #include_coaches').on('change', toggleAudienceBlocks);
     $('#trigger_type').on('change', toggleTriggerBlocks);
     $('#sc-survey-restriction-enabled').on('change', toggleRestrictionBox);
 

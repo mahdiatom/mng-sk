@@ -19,11 +19,11 @@ $selected_level_names = (array) ($target_config['level_names'] ?? []);
     <p class="description">برای کدام دسته از مخاطبین میخواهید این نظرسنجی را انجام دهید؟</p>
 
     <div class="sc-row sc-survey-include-row"> 
-        <label class="sc-inline-check"><input type="checkbox" name="include_players" value="1" <?php checked($audience['include_players'] ?? 1, 1); ?>> بازیکنان</label>
-        <label class="sc-inline-check"><input type="checkbox" name="include_coaches" value="1" <?php checked($audience['include_coaches'] ?? 1, 1); ?>> مربیان</label>
+        <label class="sc-inline-check"><input type="checkbox" name="include_players" id="include_players" value="1" <?php checked($audience['include_players'] ?? 1, 1); ?>> بازیکنان</label>
+        <label class="sc-inline-check"><input type="checkbox" name="include_coaches" id="include_coaches" value="1" <?php checked($audience['include_coaches'] ?? 1, 1); ?>> مربیان</label>
     </div>
 
-    <div class="sc-row">
+    <div class="sc-row sc-survey-player-only" id="sc-survey-player-target-row">
         <label for="sc-survey-target-type">نوع انتخاب</label>
         <select name="target_type" id="sc-survey-target-type">
             <option value="all" <?php selected($target_type, 'all'); ?>>همه کاربران</option>
@@ -37,7 +37,7 @@ $selected_level_names = (array) ($target_config['level_names'] ?? []);
         </select>
     </div>
 
-    <div class="sc-row">
+    <div class="sc-row sc-survey-player-only" id="sc-survey-player-status-row">
         <label for="sc-survey-member-status">وضعیت کاربر</label>
         <select name="member_status" id="sc-survey-member-status">
             <option value="all" <?php selected($target_config['member_status'] ?? 'all', 'all'); ?>>همه</option>
@@ -46,7 +46,7 @@ $selected_level_names = (array) ($target_config['level_names'] ?? []);
         </select>
     </div>
 
-    <div class="sc-row">
+    <div class="sc-row sc-survey-player-only" id="sc-survey-player-type-row">
         <label for="sc-survey-member-type">دسته‌بندی بازیکن</label>
         <select name="member_type" id="sc-survey-member-type">
             <option value="all" <?php selected($target_config['member_type'] ?? 'all', 'all'); ?>>همه</option>
