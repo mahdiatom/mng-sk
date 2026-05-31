@@ -64,10 +64,33 @@ $questions_for_js = array_map(function ($q) {
                 </div>
             </div>
 
+            <?php
+            $is_guest = !is_user_logged_in();
+            $show_guest_fields = $is_guest && !empty($survey->is_public);
+            ?>
+
             <form id="sc-survey-wizard-form" method="post" enctype="multipart/form-data">
                 <?php wp_nonce_field('sc_submit_survey_' . (int) $survey->id, 'sc_survey_submit_nonce'); ?>
                 <input type="hidden" name="survey_id" value="<?php echo esc_attr($survey->id); ?>">
                 <input type="hidden" name="sc_submit_survey" value="1">
+
+                <?php if ($show_guest_fields) : ?>
+                <div class="sc-survey-guest-info">
+                    <h4>اطلاعات شما (اختیاری)</h4>
+                    <div class="sc-survey-guest-grid">
+                        <div class="sc-survey-guest-field">
+                            <label>نام و نام خانوادگی</label>
+                            <input type="text" name="guest_name" placeholder="مثال: علی رضایی">
+                        </div>
+                        <div class="sc-survey-guest-field">
+                            <label>شماره تماس</label>
+                            <input type="tel" name="guest_phone" placeholder="مثال: 09123456789">
+                        </div>
+                    </div>
+                    <p class="sc-survey-guest-note">این اطلاعات فقط برای ثبت پاسخ شما استفاده می‌شود و الزامی نیست.</p>
+                </div>
+                <?php endif; ?>
+
                 <div id="sc-survey-step-container"></div>
                 <div class="sc-survey-nav sc-dashboard-toolbar">
                     <button type="button" class="sc-dashboard-btn sc-survey-btn-secondary" id="sc-survey-prev" disabled>قبلی</button>

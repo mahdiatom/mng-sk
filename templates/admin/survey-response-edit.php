@@ -148,7 +148,7 @@ $completed_txt = function_exists('sc_date_shamsi') && !empty($response->complete
 
         <p class="submit">
             <button type="submit" class="button button-primary">ذخیره تغییرات</button>
-            <a href="<?php echo esc_url($back_url); ?>" class="button">انصراف</a>
+            <a href="<?php echo esc_url($back_url); ?>" class="sc_button">انصراف</a>
         </p>
     </form>
 </div>

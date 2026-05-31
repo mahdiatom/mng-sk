@@ -655,6 +655,50 @@ function sc_survey_is_available($survey, $user_id = 0, $member_id = 0) {
     return (int) $survey->is_public && $user_id;
 }
 
+/**
+ * Snapshot for admin dashboard widget: active surveys + completed response counts.
+ *
+ * @param int $limit Max items to return in list.
+ * @return array{items: array, total: int, total_responses: int}
+ */
+function sc_survey_get_active_surveys_dashboard_snapshot($limit = 5) {
+    global $wpdb;
+
+    $limit = max(1, absint($limit));
+    $surveys_table = $wpdb->prefix . 'sc_surveys';
+    $responses_table = $wpdb->prefix . 'sc_survey_responses';
+
+    $surveys = $wpdb->get_results("SELECT * FROM $surveys_table WHERE is_active = 1 ORDER BY id DESC");
+    $active = [];
+    $total_responses = 0;
+
+    foreach ((array) $surveys as $survey) {
+        if (!sc_survey_within_schedule($survey)) {
+            continue;
+        }
+        if (!sc_survey_activation_date_reached($survey)) {
+            continue;
+        }
+
+        $response_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $responses_table WHERE survey_id = %d AND status = 'completed'",
+            (int) $survey->id
+        ));
+        $total_responses += $response_count;
+
+        $active[] = [
+            'survey' => $survey,
+            'response_count' => $response_count,
+        ];
+    }
+
+    return [
+        'items' => array_slice($active, 0, $limit),
+        'total' => count($active),
+        'total_responses' => $total_responses,
+    ];
+}
+
 function sc_survey_get_user_response($survey_id, $user_id = 0, $member_id = 0) {
     global $wpdb;
     $table = $wpdb->prefix . 'sc_survey_responses';

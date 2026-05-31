@@ -100,6 +100,22 @@ function sc_register_admin_dashboard_widgets() {
         'کدهای تخفیف استفاده شده',
         'sc_dw_render_discount_codes_usage'
     );
+
+    // 9) نظرسنجی‌های فعال
+    if (function_exists('sc_is_pro_feature_surveys_enabled') && sc_is_pro_feature_surveys_enabled()) {
+        wp_add_dashboard_widget(
+            'sc_dw_active_surveys',
+            'نظرسنجی‌های فعال',
+            'sc_dw_render_active_surveys'
+        );
+    }
+
+    // 10) تولدهای هفته (شمسی)
+    wp_add_dashboard_widget(
+        'sc_dw_week_birthdays',
+        'تولدهای این هفته',
+        'sc_dw_render_week_birthdays'
+    );
 }
 
 /**
@@ -810,4 +826,118 @@ function sc_dw_render_discount_codes_usage() {
     echo '</div>'; // section
 
     echo '</div>'; // card
+}
+
+/* ====================================================================
+ * 9) نظرسنجی‌های فعال — تعداد پاسخ‌دهندگان
+ * ================================================================= */
+function sc_dw_render_active_surveys() {
+    if (!function_exists('sc_survey_get_active_surveys_dashboard_snapshot')) {
+        echo '<div class="sc-dw-card sc-dw-card-blue">';
+        sc_dw_render_empty('ماژول نظرسنجی در دسترس نیست.');
+        echo '</div>';
+        return;
+    }
+
+    $snapshot = sc_survey_get_active_surveys_dashboard_snapshot(5);
+    $rows       = isset($snapshot['items']) && is_array($snapshot['items']) ? $snapshot['items'] : [];
+    $total      = isset($snapshot['total']) ? (int) $snapshot['total'] : 0;
+    $total_resp = isset($snapshot['total_responses']) ? (int) $snapshot['total_responses'] : 0;
+
+    $list_url = sc_dw_admin_url(['page' => 'sc-survey-stats']);
+
+    echo '<div class="sc-dw-card sc-dw-card-blue">';
+    echo '<div class="sc-dw-card-head">';
+    echo '<span class="sc-dw-badge sc-dw-badge-blue">' . esc_html(number_format_i18n($total)) . ' نظرسنجی فعال</span>';
+    echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
+    echo '</div>';
+
+    if ($total_resp > 0) {
+        echo '<div class="sc-dw-stat-row">مجموع پاسخ‌های ثبت‌شده: <strong>' . esc_html(number_format_i18n($total_resp)) . ' نفر</strong></div>';
+    }
+
+    if (empty($rows)) {
+        sc_dw_render_empty('✅ نظرسنجی فعالی در حال حاضر وجود ندارد.', true);
+    } else {
+        echo '<ul class="sc-dw-list">';
+        foreach ($rows as $row) {
+            $survey = $row['survey'];
+            $stats_url = sc_dw_admin_url([
+                'page' => 'sc-survey-stats',
+                'survey_id' => (int) $survey->id,
+            ]);
+            $response_count = (int) $row['response_count'];
+            $end_label = '—';
+            if (!empty($survey->end_at) && function_exists('sc_date_shamsi')) {
+                $end_label = sc_date_shamsi($survey->end_at, 'Y/m/d');
+            }
+            echo '<li class="sc-dw-list-item">';
+            echo '<a class="sc-dw-list-link" href="' . esc_url($stats_url) . '">';
+            echo '<div class="sc-dw-list-main">';
+            echo '<div class="sc-dw-list-title">📋 ' . esc_html($survey->title) . '</div>';
+            echo '<div class="sc-dw-list-meta">👥 ' . esc_html(number_format_i18n($response_count)) . ' پاسخ <span class="sc-dw-sep">|</span> 📅 پایان: ' . esc_html($end_label) . '</div>';
+            echo '</div>';
+            echo '<span class="sc-dw-status sc-dw-status-info">' . esc_html(number_format_i18n($response_count)) . ' نفر</span>';
+            echo '</a>';
+            echo '</li>';
+        }
+        echo '</ul>';
+    }
+    echo '</div>';
+}
+
+/* ====================================================================
+ * 10) تولدهای هفته جاری (تقویم شمسی — شنبه تا جمعه)
+ * ================================================================= */
+function sc_dw_render_week_birthdays() {
+    if (!function_exists('sc_get_shamsi_week_birthdays_snapshot')) {
+        echo '<div class="sc-dw-card sc-dw-card-purple">';
+        sc_dw_render_empty('توابع تاریخ شمسی در دسترس نیست.');
+        echo '</div>';
+        return;
+    }
+
+    $snapshot   = sc_get_shamsi_week_birthdays_snapshot(5);
+    $rows       = isset($snapshot['items']) && is_array($snapshot['items']) ? $snapshot['items'] : [];
+    $total      = isset($snapshot['total']) ? (int) $snapshot['total'] : 0;
+    $week_label = isset($snapshot['week_label']) ? (string) $snapshot['week_label'] : '';
+
+    $list_url = sc_dw_admin_url(['page' => 'sc-members']);
+
+    echo '<div class="sc-dw-card sc-dw-card-purple">';
+    echo '<div class="sc-dw-card-head">';
+    echo '<span class="sc-dw-badge sc-dw-badge-purple">' . esc_html(number_format_i18n($total)) . ' تولد این هفته</span>';
+    echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
+    echo '</div>';
+
+    if ($week_label !== '') {
+        echo '<div class="sc-dw-stat-row">هفته شمسی: <strong>' . esc_html($week_label) . '</strong></div>';
+    }
+
+    if (empty($rows)) {
+        sc_dw_render_empty('🎂 این هفته تولدی ثبت‌شده‌ای وجود ندارد.', true);
+    } else {
+        echo '<ul class="sc-dw-list">';
+        foreach ($rows as $row) {
+            $member = $row['member'];
+            $view_url = sc_dw_admin_url(['page' => 'sc-view-member', 'player_id' => (int) $member->id]);
+            $name = sc_dw_member_display_name($member);
+            $phone = !empty($member->player_phone) ? $member->player_phone : '—';
+            $birth = $row['birth_date_shamsi'];
+            $age = $row['age'];
+            $status_text = !empty($row['is_today']) ? 'امروز 🎉' : ($row['weekday_label'] ?? '');
+            $status_cls = !empty($row['is_today']) ? 'sc-dw-status-success' : 'sc-dw-status-info';
+            echo '<li class="sc-dw-list-item">';
+            echo '<a class="sc-dw-list-link" href="' . esc_url($view_url) . '">';
+            echo '<div class="sc-dw-list-main">';
+            echo '<div class="sc-dw-list-title">🎂 ' . esc_html($name) . '</div>';
+            echo '<div class="sc-dw-list-meta">📅 ' . esc_html($birth) . ' <span class="sc-dw-sep">|</span> 🎈 ' . esc_html($age) . ' <span class="sc-dw-sep">|</span> 📞 ' . esc_html($phone) . '</div>';
+            echo '</div>';
+            echo '<span class="sc-dw-status ' . esc_attr($status_cls) . '">' . esc_html($status_text) . '</span>';
+            echo '</a>';
+            echo '</li>';
+        }
+        echo '</ul>';
+    }
+    echo '</div>';
 }

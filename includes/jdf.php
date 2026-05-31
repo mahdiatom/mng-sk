@@ -347,3 +347,151 @@ if (!function_exists('sc_shamsi_add_days')) {
     }
 }
 
+if (!function_exists('sc_member_birth_date_shamsi')) {
+    /**
+     * تاریخ تولد شمسی عضو (از فیلد شمسی یا تبدیل میلادی)
+     */
+    function sc_member_birth_date_shamsi($member) {
+        if (!empty($member->birth_date_shamsi) && $member->birth_date_shamsi !== '0000-00-00') {
+            return trim((string) $member->birth_date_shamsi);
+        }
+        if (!empty($member->birth_date_gregorian) && $member->birth_date_gregorian !== '0000-00-00') {
+            if (function_exists('sc_date_shamsi_date_only')) {
+                return sc_date_shamsi_date_only($member->birth_date_gregorian);
+            }
+        }
+        return '';
+    }
+}
+
+if (!function_exists('sc_get_shamsi_week_start_timestamp')) {
+    /**
+     * شروع هفته شمسی (شنبه) — timestamp نیمه‌شب همان روز
+     */
+    function sc_get_shamsi_week_start_timestamp($timestamp = null) {
+        $timestamp = $timestamp ?? current_time('timestamp');
+        $ts = strtotime(date('Y-m-d', $timestamp) . ' 12:00:00');
+        $w = (int) date('w', $ts);
+        $days_since_sat = ($w + 1) % 7;
+        return strtotime('-' . $days_since_sat . ' days', $ts);
+    }
+}
+
+if (!function_exists('sc_get_shamsi_week_days')) {
+    /**
+     * روزهای هفته جاری شمسی (شنبه تا جمعه)
+     *
+     * @return array<int, array>
+     */
+    function sc_get_shamsi_week_days($timestamp = null) {
+        if (!function_exists('gregorian_to_jalali')) {
+            return [];
+        }
+        $labels = function_exists('sc_course_weekday_labels_ir') ? sc_course_weekday_labels_ir() : [
+            1 => 'شنبه', 2 => 'یکشنبه', 3 => 'دوشنبه', 4 => 'سه‌شنبه',
+            5 => 'چهارشنبه', 6 => 'پنج‌شنبه', 7 => 'جمعه',
+        ];
+        $start = sc_get_shamsi_week_start_timestamp($timestamp);
+        $days = [];
+        for ($i = 0; $i < 7; $i++) {
+            $ts = strtotime('+' . $i . ' days', $start);
+            $d = getdate($ts);
+            $j = gregorian_to_jalali($d['year'], $d['mon'], $d['mday']);
+            $weekday = $i + 1;
+            $days[] = [
+                'timestamp' => $ts,
+                'gregorian' => date('Y-m-d', $ts),
+                'shamsi' => sprintf('%04d/%02d/%02d', $j[0], $j[1], $j[2]),
+                'month' => (int) $j[1],
+                'day' => (int) $j[2],
+                'weekday' => $weekday,
+                'weekday_label' => $labels[$weekday] ?? '',
+            ];
+        }
+        return $days;
+    }
+}
+
+if (!function_exists('sc_get_shamsi_week_range_label')) {
+    function sc_get_shamsi_week_range_label($week_days = null) {
+        $week_days = $week_days ?: sc_get_shamsi_week_days();
+        if (count($week_days) < 7) {
+            return '';
+        }
+        $start = $week_days[0];
+        $end = $week_days[6];
+        return $start['weekday_label'] . ' ' . substr($start['shamsi'], 5) . ' — ' . $end['weekday_label'] . ' ' . substr($end['shamsi'], 5);
+    }
+}
+
+if (!function_exists('sc_get_shamsi_week_birthdays_snapshot')) {
+    /**
+     * تولدهای هفته جاری شمسی برای ابزارک پیشخوان
+     *
+     * @return array{items: array, total: int, week_label: string}
+     */
+    function sc_get_shamsi_week_birthdays_snapshot($limit = 5) {
+        global $wpdb;
+
+        $limit = max(1, absint($limit));
+        $week_days = sc_get_shamsi_week_days();
+        $week_md = [];
+        foreach ($week_days as $wd) {
+            $week_md[sprintf('%02d-%02d', $wd['month'], $wd['day'])] = $wd;
+        }
+
+        $today_shamsi = function_exists('sc_get_today_shamsi') ? sc_get_today_shamsi() : '';
+        $today_md = $today_shamsi !== '' ? substr($today_shamsi, 5) : '';
+
+        $members_table = $wpdb->prefix . 'sc_members';
+        $rows = $wpdb->get_results(
+            "SELECT id, first_name, last_name, player_phone, birth_date_shamsi, birth_date_gregorian
+             FROM $members_table
+             WHERE is_active = 1
+               AND (
+                   (birth_date_shamsi IS NOT NULL AND birth_date_shamsi <> '' AND birth_date_shamsi <> '0000-00-00')
+                   OR (birth_date_gregorian IS NOT NULL AND birth_date_gregorian <> '' AND birth_date_gregorian <> '0000-00-00')
+               )
+             ORDER BY first_name ASC, last_name ASC"
+        );
+
+        $matches = [];
+        foreach ((array) $rows as $row) {
+            $birth_sh = sc_member_birth_date_shamsi($row);
+            if ($birth_sh === '') {
+                continue;
+            }
+            $parts = explode('/', $birth_sh);
+            if (count($parts) !== 3) {
+                continue;
+            }
+            $md_key = sprintf('%02d-%02d', (int) $parts[1], (int) $parts[2]);
+            if (!isset($week_md[$md_key])) {
+                continue;
+            }
+            $wd = $week_md[$md_key];
+            $matches[] = [
+                'member' => $row,
+                'birth_date_shamsi' => $birth_sh,
+                'age' => function_exists('sc_calculate_age') ? sc_calculate_age($birth_sh) : '-',
+                'weekday' => (int) $wd['weekday'],
+                'weekday_label' => $wd['weekday_label'],
+                'is_today' => ($today_md !== '' && $md_key === str_replace('/', '-', $today_md)),
+            ];
+        }
+
+        usort($matches, function ($a, $b) {
+            if ($a['weekday'] !== $b['weekday']) {
+                return $a['weekday'] - $b['weekday'];
+            }
+            return strcmp($a['birth_date_shamsi'], $b['birth_date_shamsi']);
+        });
+
+        return [
+            'items' => array_slice($matches, 0, $limit),
+            'total' => count($matches),
+            'week_label' => sc_get_shamsi_week_range_label($week_days),
+        ];
+    }
+}
+
