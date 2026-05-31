@@ -288,5 +288,160 @@
             .catch(function () { alert('خطا در ارتباط با سرور'); });
     });
 
-    renderStep();
+    // ============================================================
+    // Mobile Verification Flow (for public surveys)
+    // ============================================================
+    var verificationCard = document.getElementById('sc-survey-mobile-verification');
+    var verifiedPhone = null;
+
+    function startSurveyAfterVerification(phone) {
+        verifiedPhone = phone;
+
+        // Hide verification card
+        if (verificationCard) {
+            verificationCard.style.display = 'none';
+        }
+
+        // Show the form and start wizard
+        if (form) {
+            form.style.display = '';
+        }
+
+        // If guest info fields exist, make sure they are visible
+        var guestInfo = document.querySelector('.sc-survey-guest-info');
+        if (guestInfo) {
+            guestInfo.style.display = '';
+        }
+
+        // Pre-fill the phone if guest field exists
+        var phoneInput = form.querySelector('input[name="guest_phone"]');
+        if (phoneInput && phone) {
+            phoneInput.value = phone;
+        }
+
+        renderStep();
+    }
+
+    if (verificationCard) {
+        // Hide the form initially until verification is done
+        if (form) {
+            form.style.display = 'none';
+        }
+
+        var sendBtn = document.getElementById('sc-survey-send-code-btn');
+        var verifyBtn = document.getElementById('sc-survey-verify-code-btn');
+        var resendBtn = document.getElementById('sc-survey-resend-code-btn');
+        var phoneInput = document.getElementById('sc-survey-guest-phone-input');
+        var codeInput = document.getElementById('sc-survey-verification-code-input');
+        var statusEl = document.getElementById('sc-survey-verification-status');
+        var step1 = document.getElementById('sc-survey-mobile-step-1');
+        var step2 = document.getElementById('sc-survey-mobile-step-2');
+
+        function setStatus(msg, isError) {
+            if (!statusEl) return;
+            statusEl.textContent = msg;
+            statusEl.className = 'sc-survey-verification-status ' + (isError ? 'error' : 'success');
+        }
+
+        if (sendBtn && phoneInput) {
+            sendBtn.addEventListener('click', function () {
+                var phone = phoneInput.value.trim();
+                if (!phone) {
+                    alert('لطفاً شماره موبایل را وارد کنید.');
+                    return;
+                }
+
+                sendBtn.disabled = true;
+                sendBtn.textContent = 'در حال ارسال...';
+
+                var data = new FormData();
+                data.append('action', 'sc_survey_guest_send_mobile_code');
+                data.append('survey_id', cfg.surveyId || (new URLSearchParams(window.location.search)).get('survey_id') || 0);
+                data.append('phone', phone);
+                data.append('nonce', cfg.nonce);
+
+                fetch(cfg.ajaxUrl, {
+                    method: 'POST',
+                    body: data
+                })
+                .then(r => r.json())
+                .then(res => {
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'ارسال کد تأیید';
+
+                    if (res.success) {
+                        step1.style.display = 'none';
+                        step2.style.display = '';
+                        setStatus('کد ارسال شد. لطفاً آن را وارد کنید.', false);
+                    } else {
+                        alert(res.data && res.data.message ? res.data.message : 'خطا در ارسال کد');
+                    }
+                })
+                .catch(() => {
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'ارسال کد تأیید';
+                    alert('خطا در ارتباط با سرور');
+                });
+            });
+        }
+
+        if (verifyBtn && codeInput) {
+            verifyBtn.addEventListener('click', function () {
+                var phone = phoneInput ? phoneInput.value.trim() : '';
+                var code = codeInput.value.trim();
+
+                if (!code) {
+                    alert('لطفاً کد تأیید را وارد کنید.');
+                    return;
+                }
+
+                verifyBtn.disabled = true;
+                verifyBtn.textContent = 'در حال بررسی...';
+
+                var data = new FormData();
+                data.append('action', 'sc_survey_guest_verify_mobile_code');
+                data.append('survey_id', cfg.surveyId || 0);
+                data.append('phone', phone);
+                data.append('code', code);
+                data.append('nonce', cfg.nonce);
+
+                fetch(cfg.ajaxUrl, {
+                    method: 'POST',
+                    body: data
+                })
+                .then(r => r.json())
+                .then(res => {
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'تأیید کد';
+
+                    if (res.success) {
+                        setStatus('تأیید شد! در حال بارگذاری نظرسنجی...', false);
+                        // Proceed to survey
+                        setTimeout(function () {
+                            startSurveyAfterVerification(phone);
+                        }, 600);
+                    } else {
+                        setStatus(res.data && res.data.message ? res.data.message : 'کد صحیح نیست.', true);
+                    }
+                })
+                .catch(() => {
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'تأیید کد';
+                    setStatus('خطا در ارتباط با سرور', true);
+                });
+            });
+        }
+
+        if (resendBtn) {
+            resendBtn.addEventListener('click', function () {
+                step2.style.display = 'none';
+                step1.style.display = '';
+                if (statusEl) statusEl.textContent = '';
+                if (codeInput) codeInput.value = '';
+            });
+        }
+    } else {
+        // No mobile verification required — start normally
+        renderStep();
+    }
 })();

@@ -356,6 +356,15 @@
 
     $('#sc-survey-target-type, #include_players, #include_coaches').on('change', toggleAudienceBlocks);
     $('#trigger_type').on('change', toggleTriggerBlocks);
+
+    // Toggle guest settings when is_public changes
+    function toggleGuestSettings() {
+        var isPublic = $('#sc-survey-is-public').is(':checked');
+        $('#sc-survey-guest-settings').toggle(isPublic);
+    }
+    $('#sc-survey-is-public').on('change', toggleGuestSettings);
+    // initial state
+    toggleGuestSettings();
     $('#sc-survey-restriction-enabled').on('change', toggleRestrictionBox);
 
     $('#sc-survey-form').on('submit', function () {

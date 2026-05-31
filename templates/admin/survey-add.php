@@ -147,7 +147,35 @@ $questions_json = wp_json_encode(array_map(function ($q) {
             <div class="sc-row sc-survey-status-row">
                 <label>وضعیت</label>
                 <label class="sc-inline-check"><input type="checkbox" name="is_active" value="1" <?php checked(isset($survey->is_active) ? (int)$survey->is_active : 1, 1); ?>> فعال</label>
-                <label class="sc-inline-check"><input type="checkbox" name="is_public" value="1" <?php checked($survey->is_public ?? 0, 1); ?>> لینک عمومی (بدون نیاز به ورود)</label>
+                <label class="sc-inline-check"><input type="checkbox" name="is_public" id="sc-survey-is-public" value="1" <?php checked($survey->is_public ?? 0, 1); ?>> لینک عمومی (بدون نیاز به ورود)</label>
+            </div>
+
+            <div id="sc-survey-guest-settings" class="sc-survey-guest-settings" style="<?php echo empty($survey->is_public) ? 'display:none;' : ''; ?>">
+                <h4>تنظیمات ثبت‌نام مهمان</h4>
+                <div class="sc-row">
+                    <label class="sc-inline-check">
+                        <input type="checkbox" name="guest_show_info" value="1" <?php checked(!empty($audience['guest_settings']['show_guest_info'])); ?>>
+                        نمایش فیلدهای اطلاعات ثبت‌نام (نام، تلفن، کد ملی)
+                    </label>
+                </div>
+                <div class="sc-row">
+                    <label class="sc-inline-check">
+                        <input type="checkbox" name="guest_require_info" value="1" <?php checked(!empty($audience['guest_settings']['require_guest_info'])); ?>>
+                        اجباری کردن اطلاعات ثبت‌نام
+                    </label>
+                </div>
+                <div class="sc-row">
+                    <label class="sc-inline-check">
+                        <input type="checkbox" name="guest_verify_national_id" value="1" <?php checked(!empty($audience['guest_settings']['verify_national_id'])); ?>>
+                        احراز هویت با کد ملی (بررسی تکراری + اتصال به عضو)
+                    </label>
+                </div>
+                <div class="sc-row">
+                    <label class="sc-inline-check">
+                        <input type="checkbox" name="guest_verify_mobile" value="1" <?php checked(!empty($audience['guest_settings']['verify_mobile'])); ?>>
+                        احراز هویت با موبایل (ارسال پیامک قبل از نمایش سوالات)
+                    </label>
+                </div>
             </div>
             <div class="sc-row sc-survey-date-row">
                 <div class="sc-survey-date-field">

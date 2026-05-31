@@ -55,19 +55,49 @@ $questions_for_js = array_map(function ($q) {
                 <p class="sc-dashboard-page-subtitle"><?php echo wp_kses_post($survey->description); ?></p>
             <?php endif; ?>
 
-            <div class="sc-survey-progress-card sc-dashboard-card">
-                <div class="sc-dashboard-card-body">
-                    <div class="sc-survey-progress-wrap">
-                        <div class="sc-survey-progress-bar"><span id="scSurveyProgressFill"></span></div>
-                        <span id="scSurveyProgressText" class="sc-survey-progress-label"></span>
-                    </div>
-                </div>
-            </div>
-
             <?php
             $is_guest = !is_user_logged_in();
-            $show_guest_fields = $is_guest && !empty($survey->is_public);
+            $guest_settings = [];
+            if (!empty($survey->audience_config)) {
+                $aud = sc_survey_decode_json($survey->audience_config);
+                $guest_settings = isset($aud['guest_settings']) ? (array) $aud['guest_settings'] : [];
+            }
+            $show_guest_fields = $is_guest && !empty($survey->is_public) && !empty($guest_settings['show_guest_info']);
+            $require_guest_fields = !empty($guest_settings['require_guest_info']);
+            $verify_national_id = !empty($guest_settings['verify_national_id']);
+            $verify_mobile = !empty($guest_settings['verify_mobile']);
             ?>
+
+            <?php if ($verify_mobile && $is_guest) : ?>
+            <!-- Mobile Verification Step -->
+            <div id="sc-survey-mobile-verification" class="sc-survey-verification-card">
+                <div class="sc-survey-verification-header">
+                    <h3>احراز هویت با موبایل</h3>
+                    <p>برای شرکت در این نظرسنجی، لطفاً شماره موبایل خود را تأیید کنید.</p>
+                </div>
+
+                <div id="sc-survey-mobile-step-1">
+                    <div class="sc-survey-guest-field">
+                        <label>شماره موبایل</label>
+                        <input type="tel" id="sc-survey-guest-phone-input" placeholder="09123456789" class="sc-survey-input">
+                    </div>
+                    <button type="button" id="sc-survey-send-code-btn" class="sc-dashboard-btn sc-survey-btn-primary">ارسال کد تأیید</button>
+                    <p class="sc-survey-verification-note">کد تأیید به این شماره ارسال خواهد شد.</p>
+                </div>
+
+                <div id="sc-survey-mobile-step-2" style="display:none;">
+                    <div class="sc-survey-guest-field">
+                        <label>کد تأیید</label>
+                        <input type="text" id="sc-survey-verification-code-input" placeholder="کد تایید پیامک شده را وارد کنید." class="sc-survey-input" maxlength="6">
+                    </div>
+                    <div class="sc-survey-verification-actions">
+                        <button type="button" id="sc-survey-verify-code-btn" class="sc-dashboard-btn sc-survey-btn-primary">تأیید کد</button>
+                        <button type="button" id="sc-survey-resend-code-btn" class="sc-dashboard-btn sc-survey-btn-secondary">ارسال مجدد کد</button>
+                    </div>
+                    <p id="sc-survey-verification-status" class="sc-survey-verification-status"></p>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <form id="sc-survey-wizard-form" method="post" enctype="multipart/form-data">
                 <?php wp_nonce_field('sc_submit_survey_' . (int) $survey->id, 'sc_survey_submit_nonce'); ?>
@@ -76,18 +106,24 @@ $questions_for_js = array_map(function ($q) {
 
                 <?php if ($show_guest_fields) : ?>
                 <div class="sc-survey-guest-info">
-                    <h4>اطلاعات شما (اختیاری)</h4>
+                    <h4>اطلاعات شما <?php echo $require_guest_fields ? '(الزامی)' : '(اختیاری)'; ?></h4>
                     <div class="sc-survey-guest-grid">
                         <div class="sc-survey-guest-field">
-                            <label>نام و نام خانوادگی</label>
-                            <input type="text" name="guest_name" placeholder="مثال: علی رضایی">
+                            <label>نام و نام خانوادگی <?php echo $require_guest_fields ? '<span class="req">*</span>' : ''; ?></label>
+                            <input type="text" name="guest_name" placeholder="مثال: علی رضایی" <?php echo $require_guest_fields ? 'required' : ''; ?>>
                         </div>
                         <div class="sc-survey-guest-field">
-                            <label>شماره تماس</label>
-                            <input type="tel" name="guest_phone" placeholder="مثال: 09123456789">
+                            <label>شماره تماس <?php echo $require_guest_fields ? '<span class="req">*</span>' : ''; ?></label>
+                            <input type="tel" name="guest_phone" placeholder="مثال: 09123456789" <?php echo $require_guest_fields ? 'required' : ''; ?>>
                         </div>
+                        <?php if ($verify_national_id) : ?>
+                        <div class="sc-survey-guest-field">
+                            <label>کد ملی <?php echo $require_guest_fields ? '<span class="req">*</span>' : ''; ?></label>
+                            <input type="text" name="guest_national_id" placeholder="مثال: 0012345678" <?php echo $require_guest_fields ? 'required' : ''; ?>>
+                        </div>
+                        <?php endif; ?>
                     </div>
-                    <p class="sc-survey-guest-note">این اطلاعات فقط برای ثبت پاسخ شما استفاده می‌شود و الزامی نیست.</p>
+                    <p class="sc-survey-guest-note">این اطلاعات فقط برای ثبت پاسخ شما استفاده می‌شود.</p>
                 </div>
                 <?php endif; ?>
 
@@ -124,6 +160,7 @@ $questions_for_js = array_map(function ($q) {
                 questions: <?php echo wp_json_encode($questions_for_js, JSON_UNESCAPED_UNICODE); ?>,
                 ajaxUrl: <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>,
                 nonce: <?php echo wp_json_encode(wp_create_nonce('sc_survey_wizard')); ?>,
+                surveyId: <?php echo wp_json_encode((int) $survey->id); ?>,
                 todayShamsi: <?php echo wp_json_encode(function_exists('sc_get_today_shamsi') ? sc_get_today_shamsi() : ''); ?>,
                 thankYouMessage: <?php echo wp_json_encode($custom_thank); ?>,
                 thankYouFixed: <?php echo wp_json_encode('از وقت و همراهی شما در بهبود خدمات باشگاه سپاسگزاریم.'); ?>

@@ -8454,3 +8454,6 @@ border-radius: 10px;
 .sc-event-public-guest-box .cols{
     display: flex;
 }
+#sc-survey-send-code-btn{
+    margin-top: 10px;
+}
