@@ -510,6 +510,9 @@ function sc_add_my_account_menu_item($items) {
         $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications(get_current_user_id()) : 0;
         $items['sc-notifications'] = $unread > 0 ? sprintf('اطلاعیه‌ها (%d)', $unread) : 'اطلاعیه‌ها';
     }
+    if (function_exists('sc_is_pro_feature_surveys_enabled') && sc_is_pro_feature_surveys_enabled()) {
+        $items['sc-surveys'] = 'نظرسنجی‌ها';
+    }
     // تب کیف پول: فقط امکانات پرو (هم‌سطح با پنل ادمین). محتوا تنظیم کیف پول را چک می‌کند.
     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {
         $items['sc-wallet'] = 'کیف پول';
@@ -565,9 +568,14 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-my-honors', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-certificates', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-notifications', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-surveys', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-support-tickets', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-private-notes', EP_ROOT | EP_PAGES);
 
+    if (get_option('sc_surveys_endpoint_flushed') !== 'yes') {
+        flush_rewrite_rules();
+        update_option('sc_surveys_endpoint_flushed', 'yes');
+    }
 }
 
 /**
@@ -589,6 +597,7 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-invoices';
     $vars[] = 'sc-wallet';
     $vars[] = 'sc-notifications';
+    $vars[] = 'sc-surveys';
     $vars[] = 'sc-support-tickets';
     $vars[] = 'sc-private-notes';
     $vars[] = 'my-orders';
@@ -639,6 +648,7 @@ add_filter('woocommerce_endpoint_my-orders_title', function() {
 add_filter('woocommerce_endpoint_sc-invoices_title', 'sc_invoices_endpoint_title');
 
 add_filter('woocommerce_endpoint_sc-notifications_title', function() { return 'اطلاعیه‌ها'; });
+add_filter('woocommerce_endpoint_sc-surveys_title', function() { return 'نظرسنجی‌ها'; });
 add_filter('woocommerce_endpoint_sc-support-tickets_title', function() { return 'تیکت پشتیبانی'; });
 add_filter('woocommerce_endpoint_sc-private-notes_title', function() { return 'یادداشت های من'; });
 add_filter('woocommerce_endpoint_sc-my-certificates_title', function() { return 'گواهینامه‌ها'; });
@@ -3068,6 +3078,22 @@ function sc_my_account_notifications_content() {
         exit;
     }
     include SC_TEMPLATES_PUBLIC_DIR . 'my-notifications.php';
+}
+
+add_action('woocommerce_account_sc-surveys_endpoint', 'sc_my_account_surveys_content');
+function sc_my_account_surveys_content() {
+    sc_check_and_create_tables();
+    if (!is_user_logged_in()) {
+        return;
+    }
+    if (function_exists('sc_is_pro_feature_surveys_enabled') && !sc_is_pro_feature_surveys_enabled()) {
+        wp_safe_redirect(wc_get_account_endpoint_url('dashboard'));
+        exit;
+    }
+    if (!sc_check_user_active_status() && !sc_survey_get_coach_id_for_user(get_current_user_id())) {
+        return;
+    }
+    include SC_TEMPLATES_PUBLIC_DIR . 'survey-list.php';
 }
 
 add_action('woocommerce_account_sc-support-tickets_endpoint', 'sc_my_account_support_tickets_content');

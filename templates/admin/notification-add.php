@@ -59,6 +59,25 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
     if ($target_type === 'phone') {
         $phones_str = isset($_POST['phone_numbers_str']) ? sanitize_text_field($_POST['phone_numbers_str']) : '';
         $target_config['phone_numbers'] = $phones_str ? array_filter(array_map('trim', explode(',', $phones_str))) : [];
+        if (function_exists('sc_normalize_phone_numbers_list')) {
+            $target_config['phone_numbers'] = sc_normalize_phone_numbers_list($target_config['phone_numbers']);
+        }
+
+        if (!empty($_FILES['phone_excel_file']['name'])) {
+            $excel_phones = sc_import_phone_numbers_from_uploaded_excel($_FILES['phone_excel_file']);
+            if (is_wp_error($excel_phones)) {
+                if (empty($target_config['phone_numbers'])) {
+                    $message = $excel_phones->get_error_message();
+                    $message_type = 'error';
+                }
+            } else {
+                $target_config['phone_numbers'] = array_values(array_unique(array_merge(
+                    (array) $target_config['phone_numbers'],
+                    (array) $excel_phones
+                )));
+                $target_config['phone_excel_count'] = count($excel_phones);
+            }
+        }
     } elseif ($target_type === 'all') {
         $target_config['user_type'] = isset($_POST['user_type']) ? sanitize_text_field($_POST['user_type']) : 'all';
         $target_config['course_scope'] = isset($_POST['course_scope']) ? sanitize_text_field($_POST['course_scope']) : 'all';
@@ -131,12 +150,14 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
     }
 
     if ($target_type === 'phone' && empty($target_config['phone_numbers'])) {
-        $message = 'لطفاً حداقل یک شماره موبایل وارد کنید.';
-        $message_type = 'error';
+        if ($message_type !== 'error') {
+            $message = 'لطفاً حداقل یک شماره موبایل وارد کنید یا فایل اکسل آپلود کنید.';
+            $message_type = 'error';
+        }
     } elseif ($target_type === 'event' && empty($target_config['event_ids'])) {
         $message = 'لطفاً حداقل یک رویداد انتخاب کنید.';
         $message_type = 'error';
-    } else {
+    } elseif ($message_type !== 'error') {
     $result = sc_save_notification($data);
     if ($result['success']) {
         $msg = 'اطلاعیه با موفقیت ذخیره شد. ';
@@ -153,6 +174,9 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
                     $msg .= '. توجه: پیامک ارسال نشد — ' . ($fail ? $fail : 'تنظیمات پیامک (API Key و شماره فرستنده) را در تنظیمات > پیامک بررسی کنید');
                 }
             }
+        }
+        if ($target_type === 'phone' && !empty($target_config['phone_excel_count'])) {
+            $msg .= ' (' . (int) $target_config['phone_excel_count'] . ' شماره از فایل اکسل)';
         }
         $msg .= '.';
         wp_safe_redirect(add_query_arg(['saved' => 1, 'msg' => $msg], $list_url));
@@ -269,10 +293,11 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
     <?php endif; ?>
 
     <div class="sc-notification-form-card">
-    <form method="post" id="notification-form" class="sc-notification-form">
+    <form method="post" id="notification-form" class="sc-notification-form" enctype="multipart/form-data">
         <?php wp_nonce_field('save_notification_nonce'); ?>
         <input type="hidden" name="edit_id" value="<?php echo $edit_id; ?>">
         <input type="hidden" id="sc-notification-preview-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_notification_recipients_preview')); ?>">
+        <input type="hidden" id="sc-phone-excel-preview-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_preview_phone_excel')); ?>">
         <table class="form-table sc-notification-form-table">
             <tr>
                 <th scope="row"><label for="title">عنوان <span class="required">*</span></label></th>
@@ -554,8 +579,20 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                         <input type="text" id="phone-input" class="regular-text" placeholder="۰۹۱۲۳۴۵۶۷۸۹" style="max-width: 180px;">
                         <button type="button" id="phone-add-btn" class="button">افزودن شماره</button>
                     </div>
-                    <p class="description">شماره موبایل را وارد کنید و افزودن را بزنید. فقط پیامک ارسال می‌شود.</p>
+                    <p class="description">شماره موبایل را وارد کنید و «افزودن شماره» را بزنید. فقط پیامک ارسال می‌شود.</p>
                     <input type="hidden" name="phone_numbers_str" id="phone-numbers-input" value="">
+
+                    <div class="sc-phone-excel-import" style="margin-top: 18px; padding-top: 16px; border-top: 1px dashed #ccd0d4;">
+                        <p style="margin: 0 0 8px; font-weight: 600;">یا ارسال از لیست اکسل</p>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="file" name="phone_excel_file" id="phone-excel-file" accept=".xls,.xlsx,.csv">
+                            <span id="phone-excel-preview" class="description" style="margin: 0;"></span>
+                        </div>
+                        <p class="description" style="margin-top: 8px;">
+                            ستون <strong>اول</strong> فایل (A) باید شماره موبایل باشد. فرمت‌های xls، xlsx و csv — حداکثر ۵ مگابایت.
+                            می‌توانید همزمان شماره دستی و فایل اکسل داشته باشید.
+                        </p>
+                    </div>
                 </td>
             </tr>
             <tr id="row-target-team" class="target-row" style="display:none;">
@@ -669,6 +706,7 @@ jQuery(document).ready(function($) {
     var ajaxUrl = '<?php echo esc_url(admin_url('admin-ajax.php')); ?>';
     var isCoach = <?php echo $is_coach ? 'true' : 'false'; ?>;
     var notificationPreviewLoaded = false;
+    var excelPhoneCount = 0;
 
     function updateSmsCounter() {
         var content = $('#content').val() || '';
@@ -743,7 +781,7 @@ jQuery(document).ready(function($) {
         $('#sc-sms-summary').show();
         var smsPerMsg = updateSmsCounter();
         if (targetType === 'phone') {
-            var recipients = phoneNumbers.length;
+            var recipients = phoneNumbers.length + excelPhoneCount;
             var totalSms = smsPerMsg * recipients;
             var cost = Math.round(totalSms * smsCostPerMessage);
             $('#sms-recipients-count').text(recipients);
@@ -1044,6 +1082,93 @@ jQuery(document).ready(function($) {
             $('#phone-add-btn').click();
         }
     });
+
+    function resetPhoneExcelPreview() {
+        excelPhoneCount = 0;
+        $('#phone-excel-preview').text('').css('color', '');
+        updateSmsSummary();
+    }
+
+    $('#phone-excel-file').on('change', function() {
+        var fileInput = this;
+        resetPhoneExcelPreview();
+
+        if (!fileInput.files || !fileInput.files.length) {
+            return;
+        }
+
+        if (fileInput.files[0].size > (5 * 1024 * 1024)) {
+            $('#phone-excel-preview').text('حداکثر حجم فایل ۵ مگابایت است.').css('color', '#b32d2e');
+            fileInput.value = '';
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('action', 'sc_preview_phone_excel');
+        formData.append('nonce', $('#sc-phone-excel-preview-nonce').val());
+        formData.append('phone_excel_file', fileInput.files[0]);
+
+        $('#phone-excel-preview').text('در حال بررسی فایل...').css('color', '#666');
+
+        $.ajax({
+            url: ajaxUrl,
+            type: 'POST',
+            data: formData,
+            dataType: 'json',
+            processData: false,
+            contentType: false
+        }).done(function(res) {
+            if (res && res.success && res.data) {
+                excelPhoneCount = parseInt(res.data.count, 10) || 0;
+                var previewText = excelPhoneCount + ' شماره معتبر در ستون اول یافت شد.';
+                if (res.data.sample && res.data.sample.length) {
+                    previewText += ' نمونه: ' + res.data.sample.join('، ');
+                }
+                $('#phone-excel-preview').text(previewText).css('color', '#007017');
+                updateSmsSummary();
+            } else {
+                var errMsg = 'خطا در خواندن فایل اکسل.';
+                if (res && res.data) {
+                    if (typeof res.data === 'string') {
+                        errMsg = res.data;
+                    } else if (res.data.message) {
+                        errMsg = res.data.message;
+                    }
+                }
+                $('#phone-excel-preview').text(errMsg).css('color', '#b32d2e');
+                fileInput.value = '';
+            }
+        }).fail(function(xhr) {
+            var errMsg = 'خطا در ارتباط با سرور.';
+            if (xhr && xhr.responseText) {
+                if (xhr.responseText === '0') {
+                    errMsg = 'درخواست AJAX ناموفق بود. صفحه را رفرش کنید یا حجم فایل/تنظیمات PHP (upload_max_filesize) را بررسی کنید.';
+                } else if (xhr.responseText === '-1') {
+                    errMsg = 'نشست شما منقضی شده. لطفاً صفحه را رفرش کرده و دوباره وارد شوید.';
+                } else {
+                    try {
+                        var parsed = JSON.parse(xhr.responseText);
+                        if (parsed.data && parsed.data.message) {
+                            errMsg = parsed.data.message;
+                        }
+                    } catch (e) {
+                        if (xhr.status === 413) {
+                            errMsg = 'حجم فایل بیش از حد مجاز سرور است.';
+                        }
+                    }
+                }
+            }
+            $('#phone-excel-preview').text(errMsg).css('color', '#b32d2e');
+            fileInput.value = '';
+        });
+    });
+
+    $('#target_type').on('change', function() {
+        if ($(this).val() !== 'phone') {
+            resetPhoneExcelPreview();
+            $('#phone-excel-file').val('');
+        }
+    });
     renderPhoneList();
 
     $(document).on('scPhoneListChanged', function() {
@@ -1104,9 +1229,10 @@ jQuery(document).ready(function($) {
         $('#exclude-recipient-ids-input').val(excludeRecipientIds.join(','));
         var targetType = $('#target_type').val();
         if (targetType === 'phone') {
-            if (phoneNumbers.length === 0) {
+            var hasExcel = $('#phone-excel-file').length && $('#phone-excel-file')[0].files.length > 0;
+            if (phoneNumbers.length === 0 && !hasExcel) {
                 e.preventDefault();
-                alert('لطفاً حداقل یک شماره موبایل وارد کنید.');
+                alert('لطفاً حداقل یک شماره موبایل وارد کنید یا فایل اکسل انتخاب کنید.');
                 return false;
             }
         }

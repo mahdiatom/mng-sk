@@ -188,6 +188,19 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_certificate_user_template', $sms_certificate_user_template, 'sms');
         sc_update_setting('sms_certificate_user_pattern', $sms_certificate_user_pattern, 'sms');
 
+        $sms_survey_submission_user_enabled = isset($_POST['sms_survey_submission_user_enabled']) ? 1 : 0;
+        $sms_survey_submission_user_template = isset($_POST['sms_survey_submission_user_template']) ? wp_kses($_POST['sms_survey_submission_user_template'], array()) : '';
+        $sms_survey_submission_user_pattern = isset($_POST['sms_survey_submission_user_pattern']) ? absint($_POST['sms_survey_submission_user_pattern']) : '';
+        $sms_survey_submission_admin_enabled = isset($_POST['sms_survey_submission_admin_enabled']) ? 1 : 0;
+        $sms_survey_submission_admin_template = isset($_POST['sms_survey_submission_admin_template']) ? wp_kses($_POST['sms_survey_submission_admin_template'], array()) : '';
+        $sms_survey_submission_admin_pattern = isset($_POST['sms_survey_submission_admin_pattern']) ? absint($_POST['sms_survey_submission_admin_pattern']) : '';
+        sc_update_setting('sms_survey_submission_user_enabled', $sms_survey_submission_user_enabled, 'sms');
+        sc_update_setting('sms_survey_submission_user_template', $sms_survey_submission_user_template, 'sms');
+        sc_update_setting('sms_survey_submission_user_pattern', $sms_survey_submission_user_pattern, 'sms');
+        sc_update_setting('sms_survey_submission_admin_enabled', $sms_survey_submission_admin_enabled, 'sms');
+        sc_update_setting('sms_survey_submission_admin_template', $sms_survey_submission_admin_template, 'sms');
+        sc_update_setting('sms_survey_submission_admin_pattern', $sms_survey_submission_admin_pattern, 'sms');
+
         // Wallet SMS Settings
         $sms_wallet_low_balance_user_enabled = isset($_POST['sms_wallet_low_balance_user_enabled']) ? 1 : 0;
         $sms_wallet_low_balance_user_template = isset($_POST['sms_wallet_low_balance_user_template']) ? wp_kses($_POST['sms_wallet_low_balance_user_template'], array()) : '';
@@ -394,6 +407,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     $pro_feature_faq = isset($_POST['pro_feature_faq']) ? (int) $_POST['pro_feature_faq'] : 0;
     $pro_feature_nav_menus = isset($_POST['pro_feature_nav_menus']) ? (int) $_POST['pro_feature_nav_menus'] : 0;
     $pro_feature_permalinks = isset($_POST['pro_feature_permalinks']) ? (int) $_POST['pro_feature_permalinks'] : 0;
+    $pro_feature_surveys = isset($_POST['pro_feature_surveys']) ? (int) $_POST['pro_feature_surveys'] : 0;
 
     sc_update_setting('pro_feature_notifications', $pro_feature_notifications, 'pro_features');
     sc_update_setting('pro_feature_coaches', $pro_feature_coaches, 'pro_features');
@@ -418,6 +432,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     sc_update_setting('pro_feature_faq', $pro_feature_faq, 'pro_features');
     sc_update_setting('pro_feature_nav_menus', $pro_feature_nav_menus, 'pro_features');
     sc_update_setting('pro_feature_permalinks', $pro_feature_permalinks, 'pro_features');
+    sc_update_setting('pro_feature_surveys', $pro_feature_surveys, 'pro_features');
     if (function_exists('sc_log_activity')) {
         sc_log_activity('updated', 'settings', 0, 'تنظیمات تب امکانات پرو ذخیره شد', null, ['tab' => 'pro_features']);
     }
@@ -632,6 +647,13 @@ $sms_certificate_user_enabled = (int)sc_get_setting('sms_certificate_user_enable
 $sms_certificate_user_template = sc_get_setting('sms_certificate_user_template', 'کاربر گرامی %user_name%، یک گواهینامه برای شما صادر شد. لطفا به پنل خود مراجعه کنید.');
 $sms_certificate_user_pattern = sc_get_setting('sms_certificate_user_pattern', '');
 
+$sms_survey_submission_user_enabled = (int) sc_get_setting('sms_survey_submission_user_enabled', '0');
+$sms_survey_submission_user_template = sc_get_setting('sms_survey_submission_user_template', 'کاربر گرامی %user_name%، پاسخ شما در نظرسنجی «%survey_title%» با موفقیت ثبت شد.');
+$sms_survey_submission_user_pattern = sc_get_setting('sms_survey_submission_user_pattern', '');
+$sms_survey_submission_admin_enabled = (int) sc_get_setting('sms_survey_submission_admin_enabled', '0');
+$sms_survey_submission_admin_template = sc_get_setting('sms_survey_submission_admin_template', 'پاسخ جدید نظرسنجی: %user_name% - %survey_title%');
+$sms_survey_submission_admin_pattern = sc_get_setting('sms_survey_submission_admin_pattern', '');
+
 // Wallet SMS Settings
 $sms_wallet_low_balance_user_enabled = (int)sc_get_setting('sms_wallet_low_balance_user_enabled', '1');
 $sms_wallet_low_balance_user_template = sc_get_setting('sms_wallet_low_balance_user_template', '');
@@ -690,6 +712,7 @@ $pro_feature_chapters = (int) sc_get_setting('pro_feature_chapters', 1);
 $pro_feature_faq = (int) sc_get_setting('pro_feature_faq', 1);
 $pro_feature_nav_menus = (int) sc_get_setting('pro_feature_nav_menus', 1);
 $pro_feature_permalinks = (int) sc_get_setting('pro_feature_permalinks', 1);
+$pro_feature_surveys = (int) sc_get_setting('pro_feature_surveys', 0);
 $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
 
 $activity_log_cleanup_day = max(1, min(28, (int) sc_get_setting('activity_log_cleanup_day', '1')));
@@ -2143,6 +2166,29 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     </tr>
                 </table>
 
+                <h3>پیامک ثبت نظرسنجی</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">پیامک به کاربر (بعد از ثبت نهایی)</th>
+                        <td>
+                            <label><input type="checkbox" name="sms_survey_submission_user_enabled" value="1" <?php checked($sms_survey_submission_user_enabled, 1); ?>> فعال</label>
+                            <br><br>
+                            <textarea name="sms_survey_submission_user_template" rows="3" class="large-text"><?php echo esc_textarea($sms_survey_submission_user_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name% ، %survey_title%</p>
+                            <input type="number" name="sms_survey_submission_user_pattern" value="<?php echo esc_attr($sms_survey_submission_user_pattern); ?>" class="small-text" placeholder="کد پترن">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پیامک به مدیر</th>
+                        <td>
+                            <label><input type="checkbox" name="sms_survey_submission_admin_enabled" value="1" <?php checked($sms_survey_submission_admin_enabled, 1); ?>> فعال</label>
+                            <br><br>
+                            <textarea name="sms_survey_submission_admin_template" rows="3" class="large-text"><?php echo esc_textarea($sms_survey_submission_admin_template); ?></textarea>
+                            <input type="number" name="sms_survey_submission_admin_pattern" value="<?php echo esc_attr($sms_survey_submission_admin_pattern); ?>" class="small-text" placeholder="کد پترن">
+                        </td>
+                    </tr>
+                </table>
+
                 </div>
                 <div class="sc-sms-message-section" data-section="wallet">
                 <!-- Wallet SMS Settings -->
@@ -3050,6 +3096,16 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     <label class="switch">
                         <input type="hidden" name="pro_feature_notifications" value="0">
                         <input type="checkbox" name="pro_feature_notifications" value="1" <?php checked($pro_feature_notifications, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">نظرسنجی</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_surveys" value="0">
+                        <input type="checkbox" name="pro_feature_surveys" value="1" <?php checked($pro_feature_surveys, 1); ?>>
                         <span class="slider round"></span>
                     </label>
                 </td>

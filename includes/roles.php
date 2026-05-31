@@ -749,7 +749,8 @@ function club_hide_menus_for_coach() {
                     $item[2] !== 'sc-coach-my-profile' &&
                     $item[2] !== 'sc-coach-support-tickets' &&
                     $item[2] !== 'sc-coach-private-notes' &&
-                    $item[2] !== 'sc-coach-private-classes'
+                    $item[2] !== 'sc-coach-private-classes' &&
+                    $item[2] !== 'sc-coach-surveys'
                 ) {
                     sc_safe_remove_menu_page($item[2]);
                 }
@@ -830,6 +831,7 @@ if ( current_user_can('coach') ) {
             'sc-coach-list-privet-class',
             'sc-private-bookings-list',
             'sc-coach-private-classes',
+            'sc-coach-surveys'
            
         ];
 

@@ -300,3 +300,50 @@ if (!function_exists('sc_get_today_shamsi')) {
     }
 }
 
+if (!function_exists('sc_shamsi_add_days')) {
+    /**
+     * افزودن تعداد روز به تاریخ شمسی
+     *
+     * @param string $shamsi_date تاریخ شمسی YYYY/MM/DD
+     * @param int    $days
+     * @return string
+     */
+    function sc_shamsi_add_days($shamsi_date, $days) {
+        $days = (int) $days;
+        $base = trim((string) $shamsi_date);
+        if ($base === '' && function_exists('sc_get_today_shamsi')) {
+            $base = sc_get_today_shamsi();
+        }
+        if ($base === '' || !function_exists('sc_shamsi_to_gregorian_date')) {
+            return '';
+        }
+
+        $greg = sc_shamsi_to_gregorian_date($base);
+        if (!$greg) {
+            return '';
+        }
+
+        $ts = strtotime($greg . ' ' . ($days >= 0 ? '+' : '') . $days . ' days');
+        if (!$ts) {
+            return '';
+        }
+
+        if (function_exists('sc_date_shamsi_date_only')) {
+            return sc_date_shamsi_date_only(date('Y-m-d', $ts));
+        }
+
+        if (!function_exists('gregorian_to_jalali')) {
+            return date('Y/m/d', $ts);
+        }
+
+        $y = (int) date('Y', $ts);
+        $m = (int) date('n', $ts);
+        $d = (int) date('j', $ts);
+        $j = gregorian_to_jalali($y, $m, $d);
+
+        return $j[0] . '/' .
+            ($j[1] < 10 ? '0' . $j[1] : $j[1]) . '/' .
+            ($j[2] < 10 ? '0' . $j[2] : $j[2]);
+    }
+}
+

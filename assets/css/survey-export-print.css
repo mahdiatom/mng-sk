@@ -1,0 +1,159 @@
+@font-face {
+    font-family: IRANYekanXFaNum;
+    font-style: normal;
+    font-weight: normal;
+    src: url('../fonts/Woff/IRANYekanXFaNum-Regular.woff') format('woff'),
+         url('../fonts/Woff2/IRANYekanXFaNum-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: IRANYekanXFaNum;
+    font-style: normal;
+    font-weight: bold;
+    src: url('../fonts/Woff/IRANYekanXFaNum-Bold.woff') format('woff'),
+         url('../fonts/Woff2/IRANYekanXFaNum-Bold.woff2') format('woff2');
+}
+
+@page {
+    margin: 12mm;
+}
+
+body.sc-survey-export-print-page {
+    margin: 0;
+    padding: 16px;
+    direction: rtl;
+    font-family: "IRANYekanXFaNum", Tahoma, Arial, sans-serif;
+    background: #fff;
+    color: #111827;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.sc-survey-print-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.sc-survey-print-title-wrap h1 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.sc-survey-print-title-wrap p {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.sc-survey-print-actions button {
+    border: 1px solid #2271b1;
+    background: #2271b1;
+    color: #fff;
+    border-radius: 8px;
+    padding: 9px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sc-survey-print-actions button:hover {
+    background: #135e96;
+    border-color: #135e96;
+}
+
+.sc-survey-print-response {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 22px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
+    page-break-inside: avoid;
+}
+
+.sc-survey-print-response + .sc-survey-print-response {
+    page-break-before: always;
+}
+
+.sc-survey-print-response-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.sc-survey-print-response-head h2 {
+    width: 100%;
+    margin: 0 0 4px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.sc-survey-print-meta {
+    font-size: 13px;
+    color: #475569;
+}
+
+.sc-survey-print-meta strong {
+    color: #334155;
+}
+
+.sc-survey-print-answers {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.sc-survey-print-answers th,
+.sc-survey-print-answers td {
+    border: 1px solid #e5e7eb;
+    padding: 10px 12px;
+    text-align: right;
+    vertical-align: top;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.sc-survey-print-answers th {
+    width: 38%;
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 700;
+}
+
+.sc-survey-print-answers td {
+    color: #111827;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.sc-survey-print-empty {
+    padding: 40px 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+@media print {
+    body.sc-survey-export-print-page {
+        padding: 0;
+    }
+
+    .sc-survey-print-actions {
+        display: none !important;
+    }
+
+    .sc-survey-print-response {
+        box-shadow: none;
+        border-color: #d1d5db;
+    }
+}

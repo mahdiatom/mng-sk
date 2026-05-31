@@ -252,7 +252,7 @@ button[name="save_honors"],
    
     
 }
-.menu-header ul li a ,
+.menus_header ul li a ,
  .menus .header_phone ,
 a.details_info_user_pannel,
 .woocommerce-MyAccount-navigation ul li a,

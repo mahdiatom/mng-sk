@@ -511,9 +511,14 @@ function sc_clean_mobile_number($mobile) {
         return '0' . substr($mobile, 2);
     }
 
-    // If it starts with 9 (without 0), add 0
-    if (preg_match('/^9\d{8}$/', $mobile)) {
+    // If it starts with 9 (without 0), add 0 — Iranian mobile is 10 digits: 9XXXXXXXXX
+    if (preg_match('/^9\d{9}$/', $mobile)) {
         return '0' . $mobile;
+    }
+
+    // 00989xxxxxxxxx
+    if (preg_match('/^00989\d{9}$/', $mobile)) {
+        return '0' . substr($mobile, 4);
     }
 
     return false;
@@ -629,6 +634,10 @@ function sc_get_sms_template($action, $type = 'user') {
         ],
         'course_capacity_waitlist' => [
             'user' => 'کاربر گرامی %user_name%، ظرفیت ثبت‌نام دوره «%item_name%» باز شد. ثبت‌نام: %enroll_url%'
+        ],
+        'survey_submission' => [
+            'user' => 'کاربر گرامی %user_name%، پاسخ شما در نظرسنجی «%survey_title%» با موفقیت ثبت شد.',
+            'admin' => 'پاسخ جدید نظرسنجی: %user_name% - %survey_title%'
         ]
     ];
 
@@ -1216,4 +1225,67 @@ function sc_initialize_sms_settings() {
  */
 function sc_get_reminder_delay_minutes() {
     return (int)sc_get_setting('sms_reminder_delay_minutes', '4320');
+}
+
+/**
+ * Send SMS after survey submission
+ */
+function sc_send_survey_submission_sms($response_id) {
+    if (!function_exists('sc_is_sms_enabled_for') || !sc_is_pro_feature_sms_enabled()) {
+        return;
+    }
+    global $wpdb;
+    $responses_table = $wpdb->prefix . 'sc_survey_responses';
+    $surveys_table = $wpdb->prefix . 'sc_surveys';
+    $members_table = $wpdb->prefix . 'sc_members';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+    $response = $wpdb->get_row($wpdb->prepare(
+        "SELECT r.*, s.title AS survey_title
+         FROM $responses_table r
+         INNER JOIN $surveys_table s ON s.id = r.survey_id
+         WHERE r.id = %d",
+        absint($response_id)
+    ));
+    if (!$response) {
+        return;
+    }
+
+    $phone = '';
+    $user_name = 'کاربر';
+    if ($response->member_id) {
+        $member = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name, player_phone FROM $members_table WHERE id = %d", (int) $response->member_id));
+        if ($member) {
+            $phone = $member->player_phone ?? '';
+            $user_name = trim($member->first_name . ' ' . $member->last_name);
+        }
+    } elseif ($response->user_id) {
+        $coach = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name, mobile_phone FROM $coaches_table WHERE user_id = %d LIMIT 1", (int) $response->user_id));
+        if ($coach) {
+            $phone = $coach->mobile_phone ?? '';
+            $user_name = trim($coach->first_name . ' ' . $coach->last_name);
+        }
+    }
+
+    $variables = [
+        'user_name' => $user_name,
+        'survey_title' => $response->survey_title,
+    ];
+
+    if ($phone && sc_is_sms_enabled_for('survey_submission', 'user')) {
+        $message = sc_get_sms_template('survey_submission', 'user');
+        $pattern_code = sc_get_sms_pattern('survey_submission', 'user');
+        $message = sc_replace_sms_variables($message, $variables);
+        sc_send_sms($phone, $message, !empty($pattern_code), $pattern_code, $variables, 'survey_submission');
+    }
+
+    if (sc_is_sms_enabled_for('survey_submission', 'admin')) {
+        $admin_phone = sc_get_setting('sms_admin_phone', '');
+        if ($admin_phone) {
+            $message = sc_get_sms_template('survey_submission', 'admin');
+            $pattern_code = sc_get_sms_pattern('survey_submission', 'admin');
+            $message = sc_replace_sms_variables($message, $variables);
+            sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'survey_submission');
+        }
+    }
 }

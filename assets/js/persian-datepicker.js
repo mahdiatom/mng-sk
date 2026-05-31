@@ -650,5 +650,8 @@
     $(document).on('DOMNodeInserted', '.gregorian-date-input', function() {
         initGregorianDatePicker();
     });
-    
+
+    window.initPersianDatePicker = initPersianDatePicker;
+    window.initGregorianDatePicker = initGregorianDatePicker;
+
 })(jQuery);

@@ -83,7 +83,9 @@ input {
 select#new_role option[value="coach"] {
     display: none;
 }
-
+.wp-core-ui .button{
+    line-height: 2 !important;
+}
 /* input[type="checkbox"] {
     height: 15px ;
 } */

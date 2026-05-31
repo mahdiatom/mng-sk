@@ -872,6 +872,130 @@ function sc_create_certificates_table() {
 }
 
 /**
+ * Survey tables
+ */
+function sc_create_surveys_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_surveys';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `title` varchar(255) NOT NULL,
+        `description` text DEFAULT NULL,
+        `is_active` tinyint(1) NOT NULL DEFAULT 0,
+        `is_public` tinyint(1) NOT NULL DEFAULT 0,
+        `public_token` varchar(64) DEFAULT NULL,
+        `audience_config` longtext DEFAULT NULL,
+        `activation_config` longtext DEFAULT NULL,
+        `thank_you_message` text DEFAULT NULL,
+        `start_at` datetime DEFAULT NULL,
+        `end_at` datetime DEFAULT NULL,
+        `created_by` bigint(20) unsigned DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_public_token` (`public_token`),
+        KEY `idx_is_active` (`is_active`),
+        KEY `idx_dates` (`start_at`, `end_at`)
+    ) $charset_collate";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+function sc_create_survey_questions_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_survey_questions';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `survey_id` bigint(20) unsigned NOT NULL,
+        `question_type` varchar(30) NOT NULL,
+        `question_text` text NOT NULL,
+        `options_json` longtext DEFAULT NULL,
+        `settings_json` longtext DEFAULT NULL,
+        `sort_order` int(11) NOT NULL DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_survey_id` (`survey_id`),
+        KEY `idx_sort_order` (`sort_order`)
+    ) $charset_collate";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+function sc_create_survey_responses_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_survey_responses';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `survey_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned DEFAULT NULL,
+        `user_id` bigint(20) unsigned DEFAULT NULL,
+        `guest_data` longtext DEFAULT NULL,
+        `status` varchar(20) NOT NULL DEFAULT 'completed',
+        `completed_at` datetime DEFAULT NULL,
+        `ip_address` varchar(45) DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_survey_id` (`survey_id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_user_id` (`user_id`),
+        KEY `idx_completed_at` (`completed_at`)
+    ) $charset_collate";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+function sc_create_survey_answers_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_survey_answers';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `response_id` bigint(20) unsigned NOT NULL,
+        `question_id` bigint(20) unsigned NOT NULL,
+        `answer_text` longtext DEFAULT NULL,
+        `answer_json` longtext DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_response_question` (`response_id`, `question_id`),
+        KEY `idx_question_id` (`question_id`)
+    ) $charset_collate";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+function sc_create_survey_eligibility_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_survey_eligibility';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `survey_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `source` varchar(40) NOT NULL DEFAULT 'manual',
+        `eligible_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_survey_member` (`survey_id`, `member_id`),
+        KEY `idx_member_id` (`member_id`)
+    ) $charset_collate";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+/**
  * Create support tickets table (تیکت پشتیبانی)
  */
 function sc_create_support_tickets_table() {
@@ -1178,6 +1302,11 @@ function sc_update_database() {
         sc_create_notifications_table();
         sc_create_notification_recipients_table();
         sc_create_notification_reads_table();
+        sc_create_surveys_table();
+        sc_create_survey_questions_table();
+        sc_create_survey_responses_table();
+        sc_create_survey_answers_table();
+        sc_create_survey_eligibility_table();
         sc_create_support_tickets_table();
         sc_create_support_ticket_messages_table();
         sc_create_private_notes_table();

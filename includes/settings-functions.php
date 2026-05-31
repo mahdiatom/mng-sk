@@ -326,6 +326,10 @@ function sc_set_invoice_last_run() {
 function sc_is_pro_feature_notifications_enabled() {
     return (int) sc_get_setting('pro_feature_notifications', '0') === 1;
 }
+
+function sc_is_pro_feature_surveys_enabled() {
+    return (int) sc_get_setting('pro_feature_surveys', '0') === 1;
+}
 //sms
 function sc_is_pro_feature_sms_enabled() {
     return (int) sc_get_setting('pro_feature_sms', '0') === 1;
@@ -889,6 +893,8 @@ function sc_decrease_member_session($member_id, $course_id) {
         return false;
     }
 
+    $was_last_session = ((int) $member_course->remaining_sessions === 1);
+
     $wpdb->query($wpdb->prepare(
         "UPDATE $table
          SET remaining_sessions = remaining_sessions - 1,
@@ -897,6 +903,10 @@ function sc_decrease_member_session($member_id, $course_id) {
         current_time('mysql'),
         $member_course->id
     ));
+
+    if ($was_last_session) {
+        do_action('sc_member_course_last_session', $member_id, $course_id);
+    }
 
     return true;
 }

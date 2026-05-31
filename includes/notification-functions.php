@@ -1217,3 +1217,38 @@ function sc_mark_all_notifications_read_callback() {
 
     wp_send_json_success('تمام اعلان‌ها خوانده شدند.');
 }
+
+/**
+ * AJAX: preview phone numbers from uploaded Excel (column A).
+ */
+add_action('wp_ajax_sc_preview_phone_excel', 'sc_ajax_preview_phone_excel');
+function sc_ajax_preview_phone_excel() {
+    try {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+        }
+
+        if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'sc_preview_phone_excel')) {
+            wp_send_json_error(['message' => 'خطای امنیتی. لطفاً صفحه را رفرش کنید.']);
+        }
+
+        if (empty($_FILES['phone_excel_file']['name'])) {
+            if (empty($_POST['action'])) {
+                wp_send_json_error(['message' => 'درخواست ناقص است. احتمالاً حجم فایل از upload_max_filesize یا post_max_size سرور بیشتر است.']);
+            }
+            wp_send_json_error(['message' => 'فایلی انتخاب نشده است.']);
+        }
+
+        $phones = sc_import_phone_numbers_from_uploaded_excel($_FILES['phone_excel_file']);
+        if (is_wp_error($phones)) {
+            wp_send_json_error(['message' => $phones->get_error_message()]);
+        }
+
+        wp_send_json_success([
+            'count' => count($phones),
+            'sample' => array_slice($phones, 0, 5),
+        ]);
+    } catch (Throwable $e) {
+        wp_send_json_error(['message' => 'خطای سرور: ' . $e->getMessage()]);
+    }
+}

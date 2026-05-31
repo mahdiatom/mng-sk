@@ -67,6 +67,414 @@ function sc_check_phpspreadsheet() {
 }
 
 /**
+ * Check PhpSpreadsheet availability without wp_die.
+ */
+function sc_phpspreadsheet_is_available() {
+    if (class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
+        return true;
+    }
+
+    $vendor_path = SC_VENDOR_DIR . 'autoload.php';
+    if (file_exists($vendor_path)) {
+        require_once $vendor_path;
+    }
+
+    return class_exists('\PhpOffice\PhpSpreadsheet\IOFactory');
+}
+
+/**
+ * Detect header row in phone Excel import (column A).
+ */
+function sc_is_phone_excel_header_cell($value) {
+    $value = trim((string) $value);
+    if ($value === '') {
+        return false;
+    }
+
+    $normalized = function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
+    $headers = ['mobile', 'phone', 'tel', 'cell', 'number', 'شماره', 'موبایل', 'تلفن', 'شماره موبایل', 'شماره تماس', 'موبایل'];
+
+    foreach ($headers as $header) {
+        $header_norm = function_exists('mb_strtolower') ? mb_strtolower($header, 'UTF-8') : strtolower($header);
+        if ($normalized === $header_norm || strpos($normalized, $header_norm) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Convert Excel/raw phone cell value to a clean string before validation.
+ */
+function sc_normalize_excel_phone_raw_value($value) {
+    if ($value === null || $value === '') {
+        return '';
+    }
+
+    if (is_float($value) || is_int($value)) {
+        return sprintf('%.0f', $value);
+    }
+
+    $value = trim((string) $value);
+    if ($value === '') {
+        return '';
+    }
+
+    $persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    $arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    $latin = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    $value = str_replace($persian, $latin, $value);
+    $value = str_replace($arabic, $latin, $value);
+
+    if (preg_match('/^[\d.]+[eE][+\-]?\d+$/', $value)) {
+        return sprintf('%.0f', (float) $value);
+    }
+
+    if (is_numeric($value) && strpos($value, '.') !== false) {
+        return sprintf('%.0f', (float) $value);
+    }
+
+    return $value;
+}
+
+/**
+ * Excel column index (0 = A) to letter.
+ */
+function sc_excel_col_index_to_letter($index) {
+    $letter = '';
+    $index = (int) $index + 1;
+    while ($index > 0) {
+        $index--;
+        $letter = chr(65 + ($index % 26)) . $letter;
+        $index = (int) floor($index / 26);
+    }
+    return $letter;
+}
+
+/**
+ * Get column letter from cell ref or position in row.
+ */
+function sc_excel_get_cell_column_letter($ref, $col_index) {
+    if ($ref !== '' && preg_match('/^([A-Z]+)/i', $ref, $matches)) {
+        return strtoupper($matches[1]);
+    }
+
+    return sc_excel_col_index_to_letter($col_index);
+}
+
+/**
+ * Extract cell value from xlsx XML cell node.
+ */
+function sc_excel_get_xlsx_cell_value($cell, array $shared_strings) {
+    $type = (string) $cell['t'];
+    $value = '';
+
+    if ($type === 's' && isset($cell->v)) {
+        $idx = (int) $cell->v;
+        $value = isset($shared_strings[$idx]) ? (string) $shared_strings[$idx] : '';
+    } elseif ($type === 'inlineStr' && isset($cell->is)) {
+        if (isset($cell->is->t)) {
+            $value = (string) $cell->is->t;
+        } elseif (isset($cell->is->r)) {
+            foreach ($cell->is->r as $run) {
+                $value .= (string) $run->t;
+            }
+        }
+    } elseif (isset($cell->v)) {
+        $value = (string) $cell->v;
+    }
+
+    return sc_normalize_excel_phone_raw_value($value);
+}
+
+/**
+ * Build user-facing error when no valid phones found after import.
+ */
+function sc_phone_import_no_valid_error(array $raw_phones) {
+    $sample = array_slice(array_map('sc_normalize_excel_phone_raw_value', $raw_phones), 0, 3);
+    $sample = array_filter($sample);
+
+    $message = 'هیچ شماره موبایل معتبری در ستون اول فایل یافت نشد.';
+    if (!empty($sample)) {
+        $message .= ' نمونه مقادیر خوانده‌شده: ' . implode('، ', $sample);
+        $message .= ' — فرمت صحیح: 09123456789';
+    }
+
+    return new WP_Error('no_valid_phones', $message);
+}
+
+/**
+ * Normalize and deduplicate phone numbers.
+ *
+ * @return array
+ */
+function sc_normalize_phone_numbers_list($raw_phones) {
+    $unique = [];
+
+    foreach ((array) $raw_phones as $raw) {
+        $raw = sc_normalize_excel_phone_raw_value($raw);
+        if ($raw === '') {
+            continue;
+        }
+
+        $clean = function_exists('sc_clean_mobile_number')
+            ? sc_clean_mobile_number($raw)
+            : preg_replace('/\D/', '', $raw);
+
+        if (!$clean || in_array($clean, $unique, true)) {
+            continue;
+        }
+
+        $unique[] = $clean;
+    }
+
+    return $unique;
+}
+
+/**
+ * Human-readable PHP upload error.
+ */
+function sc_get_upload_error_message($error_code) {
+    switch ((int) $error_code) {
+        case UPLOAD_ERR_INI_SIZE:
+        case UPLOAD_ERR_FORM_SIZE:
+            return 'حجم فایل بیش از حد مجاز سرور است. فایل کوچک‌تر انتخاب کنید یا upload_max_filesize در PHP را افزایش دهید.';
+        case UPLOAD_ERR_PARTIAL:
+            return 'فایل به‌صورت ناقص آپلود شد. دوباره تلاش کنید.';
+        case UPLOAD_ERR_NO_FILE:
+            return 'فایلی انتخاب نشده است.';
+        default:
+            return 'خطا در آپلود فایل (کد: ' . (int) $error_code . ').';
+    }
+}
+
+/**
+ * Read phone numbers from CSV (column A / first column).
+ *
+ * @return array|WP_Error
+ */
+function sc_read_phone_numbers_from_csv_file($file_path) {
+    if (!is_readable($file_path)) {
+        return new WP_Error('file_not_readable', 'فایل CSV قابل خواندن نیست.');
+    }
+
+    $raw_phones = [];
+    $handle = fopen($file_path, 'rb');
+    if ($handle === false) {
+        return new WP_Error('csv_open_failed', 'باز کردن فایل CSV ممکن نشد.');
+    }
+
+    $first_row = true;
+    while (($row = fgetcsv($handle)) !== false) {
+        if (!isset($row[0])) {
+            continue;
+        }
+        $value = trim(sc_normalize_excel_phone_raw_value($row[0]));
+        if ($value === '') {
+            continue;
+        }
+        if ($first_row && sc_is_phone_excel_header_cell($value)) {
+            $first_row = false;
+            continue;
+        }
+        $first_row = false;
+        $raw_phones[] = $value;
+    }
+    fclose($handle);
+
+    $phones = sc_normalize_phone_numbers_list($raw_phones);
+    if (empty($phones)) {
+        return sc_phone_import_no_valid_error($raw_phones);
+    }
+
+    return $phones;
+}
+
+/**
+ * Read column A from xlsx without PhpSpreadsheet (Zip + XML).
+ *
+ * @return array|WP_Error
+ */
+function sc_read_phone_numbers_from_xlsx_native($file_path) {
+    if (!class_exists('ZipArchive')) {
+        return new WP_Error('zip_missing', 'افزونه ZipArchive در PHP فعال نیست.');
+    }
+
+    $zip = new ZipArchive();
+    if ($zip->open($file_path) !== true) {
+        return new WP_Error('xlsx_open_failed', 'باز کردن فایل xlsx ممکن نشد.');
+    }
+
+    $shared_strings = [];
+    $shared_xml = $zip->getFromName('xl/sharedStrings.xml');
+    if ($shared_xml !== false && $shared_xml !== '') {
+        $shared_doc = @simplexml_load_string($shared_xml);
+        if ($shared_doc && isset($shared_doc->si)) {
+            foreach ($shared_doc->si as $si) {
+                if (isset($si->t)) {
+                    $shared_strings[] = (string) $si->t;
+                } elseif (isset($si->r)) {
+                    $text = '';
+                    foreach ($si->r as $run) {
+                        $text .= (string) $run->t;
+                    }
+                    $shared_strings[] = $text;
+                } else {
+                    $shared_strings[] = '';
+                }
+            }
+        }
+    }
+
+    $sheet_xml = $zip->getFromName('xl/worksheets/sheet1.xml');
+    if ($sheet_xml === false || $sheet_xml === '') {
+        $zip->close();
+        return new WP_Error('xlsx_sheet_missing', 'برگه اول فایل xlsx یافت نشد.');
+    }
+
+    $sheet_doc = @simplexml_load_string($sheet_xml);
+    $raw_phones = [];
+    if ($sheet_doc && isset($sheet_doc->sheetData->row)) {
+        foreach ($sheet_doc->sheetData->row as $row) {
+            if (!isset($row->c)) {
+                continue;
+            }
+
+            $col_index = 0;
+            foreach ($row->c as $cell) {
+                $ref = (string) $cell['r'];
+                $col_letter = sc_excel_get_cell_column_letter($ref, $col_index);
+                $col_index++;
+
+                if ($col_letter !== 'A') {
+                    continue;
+                }
+
+                $value = sc_excel_get_xlsx_cell_value($cell, $shared_strings);
+                if ($value !== '') {
+                    $raw_phones[] = $value;
+                }
+                break;
+            }
+        }
+    }
+    $zip->close();
+
+    if (empty($raw_phones)) {
+        return new WP_Error('no_valid_phones', 'هیچ داده‌ای در ستون اول فایل xlsx یافت نشد.');
+    }
+
+    if (sc_is_phone_excel_header_cell($raw_phones[0])) {
+        array_shift($raw_phones);
+    }
+
+    $phones = sc_normalize_phone_numbers_list($raw_phones);
+    if (empty($phones)) {
+        return sc_phone_import_no_valid_error($raw_phones);
+    }
+
+    return $phones;
+}
+
+/**
+ * Read phone numbers from first column of Excel/CSV file.
+ *
+ * @return array|WP_Error
+ */
+function sc_read_phone_numbers_from_excel_file($file_path) {
+    if (!is_readable($file_path)) {
+        return new WP_Error('file_not_readable', 'فایل اکسل قابل خواندن نیست.');
+    }
+
+    $ext = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+    $native = null;
+
+    if ($ext === 'csv') {
+        return sc_read_phone_numbers_from_csv_file($file_path);
+    }
+    if ($ext === 'xlsx') {
+        $native = sc_read_phone_numbers_from_xlsx_native($file_path);
+        if (!is_wp_error($native)) {
+            return $native;
+        }
+    }
+
+    if (!sc_phpspreadsheet_is_available()) {
+        if ($ext === 'xls') {
+            return new WP_Error('phpspreadsheet_missing', 'خواندن فایل xls نیاز به PhpSpreadsheet دارد. فایل را به xlsx یا csv تبدیل کنید.');
+        }
+        if ($ext === 'xlsx' && is_wp_error($native)) {
+            return $native;
+        }
+        return new WP_Error('phpspreadsheet_missing', 'امکان خواندن فایل اکسل وجود ندارد. از فرمت csv یا xlsx استاندارد استفاده کنید.');
+    }
+
+    try {
+        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($file_path);
+        $reader->setReadDataOnly(true);
+        $spreadsheet = $reader->load($file_path);
+        $sheet = $spreadsheet->getActiveSheet();
+        $highest_row = (int) $sheet->getHighestDataRow();
+        $raw_phones = [];
+
+        for ($row = 1; $row <= $highest_row; $row++) {
+            $cell = $sheet->getCell('A' . $row);
+            $value = method_exists($cell, 'getCalculatedValue') ? $cell->getCalculatedValue() : $cell->getValue();
+            $value = sc_normalize_excel_phone_raw_value($value);
+            if ($value === '') {
+                continue;
+            }
+
+            if ($row === 1 && sc_is_phone_excel_header_cell($value)) {
+                continue;
+            }
+
+            $raw_phones[] = $value;
+        }
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+    } catch (Throwable $e) {
+        return new WP_Error('excel_read_failed', 'خطا در خواندن فایل اکسل: ' . $e->getMessage());
+    }
+
+    $phones = sc_normalize_phone_numbers_list($raw_phones);
+    if (empty($phones)) {
+        return sc_phone_import_no_valid_error($raw_phones);
+    }
+
+    return $phones;
+}
+
+/**
+ * Parse uploaded Excel file for phone numbers.
+ *
+ * @return array|WP_Error
+ */
+function sc_import_phone_numbers_from_uploaded_excel($file) {
+    if (empty($file['tmp_name']) || !is_readable($file['tmp_name'])) {
+        return new WP_Error('invalid_upload', 'فایل اکسل آپلود نشده است.');
+    }
+
+    if (!empty($file['error']) && (int) $file['error'] !== UPLOAD_ERR_OK) {
+        return new WP_Error('upload_error', sc_get_upload_error_message($file['error']));
+    }
+
+    $ext = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, ['xls', 'xlsx', 'csv'], true)) {
+        return new WP_Error('invalid_type', 'فرمت فایل مجاز نیست. فقط xls، xlsx و csv پشتیبانی می‌شود.');
+    }
+
+    $max_size = 5 * 1024 * 1024;
+    if (!empty($file['size']) && (int) $file['size'] > $max_size) {
+        return new WP_Error('file_too_large', 'حداکثر حجم فایل اکسل ۵ مگابایت است.');
+    }
+
+    return sc_read_phone_numbers_from_excel_file($file['tmp_name']);
+}
+
+/**
  * ایجاد استایل برای header در Excel
  */
 function sc_get_excel_header_style() {

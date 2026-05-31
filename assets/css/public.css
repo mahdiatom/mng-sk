@@ -58,6 +58,7 @@ a {
     text-decoration: none;
 
 }
+
 svg path,
 svg circle {
     stroke: white !important;      /* این کار می‌کنه: رنگ خطوط رو عوض می‌کنه */
