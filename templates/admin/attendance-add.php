@@ -15,6 +15,7 @@ $attendances_table = $wpdb->prefix . 'sc_attendances';
 
     // پردازش فرم ثبت حضور و غیاب
 if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_nonce', 'sc_attendance_nonce')) {
+    $salary_notices = [];
     $course_id = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
     
     // پردازش تاریخ (شمسی به میلادی)
@@ -237,9 +238,9 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 }
             }
 
-            // دستمزد درصدی (و بخش درصدی ترکیبی): بلافاصله پس از ذخیره حضور بازمحاسبه و به کیف پول اعمال می‌شود.
-            if (($saved_count > 0 || $updated_count > 0) && function_exists('sc_refresh_coach_percentage_salary_for_course_date')) {
-                sc_refresh_coach_percentage_salary_for_course_date($course_id, $attendance_date);
+            // دستمزد درصدی (و بخش درصدی ترکیبی): بلافاصله پس از ذخیره حضور بازمحاسبه، به کیف پول اعمال و نوتیف ارسال می‌شود.
+            if (($saved_count > 0 || $updated_count > 0) && function_exists('sc_process_coach_salary_attendance_notifications')) {
+                $salary_notices = sc_process_coach_salary_attendance_notifications($course_id, $attendance_date, $course_title);
             }
 
             if ($saved_count > 0 || $updated_count > 0) {
@@ -267,6 +268,16 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
     
     if (isset($message)) {
         echo '<div class="notice notice-' . esc_attr($message_type) . ' is-dismissible"><p>' . esc_html($message) . '</p></div>';
+    }
+    if (!empty($salary_notices) && is_array($salary_notices)) {
+        foreach ($salary_notices as $salary_notice) {
+            $notice_type = isset($salary_notice['type']) ? $salary_notice['type'] : 'info';
+            $notice_message = isset($salary_notice['message']) ? $salary_notice['message'] : '';
+            if ($notice_message === '') {
+                continue;
+            }
+            echo '<div class="notice notice-' . esc_attr($notice_type) . ' is-dismissible"><p>' . esc_html($notice_message) . '</p></div>';
+        }
     }
 }
 

@@ -224,12 +224,18 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
  *
  * @param int    $course_id
  * @param string $attendance_date Y-m-d
+ * @return array{price_per_session: float, coaches: array<int, array>}
  */
 function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attendance_date) {
     $course_id = absint($course_id);
     $attendance_date = sanitize_text_field((string) $attendance_date);
+    $results = [
+        'price_per_session' => 0,
+        'coaches' => [],
+    ];
+
     if (!$course_id || $attendance_date === '') {
-        return;
+        return $results;
     }
 
     global $wpdb;
@@ -239,6 +245,7 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
         $course_id
     ));
     $price_per_session = $course_row ? floatval($course_row->price_per_session) : 0;
+    $results['price_per_session'] = $price_per_session;
 
     $calc_couch_salary = function_exists('sc_get_setting') ? sc_get_setting('calc_couch_salary') : '';
     $present_only_for_salary = !empty($calc_couch_salary);
@@ -247,7 +254,7 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
     $coaches_table = $wpdb->prefix . 'sc_coaches';
 
     $coaches = $wpdb->get_results($wpdb->prepare(
-        "SELECT cc.coach_id, cc.salary_percentage, c.settlement_type
+        "SELECT cc.coach_id, cc.salary_percentage, c.settlement_type, c.first_name, c.last_name
          FROM $course_coaches_table cc
          INNER JOIN $coaches_table c ON cc.coach_id = c.id
          WHERE cc.course_id = %d AND c.settlement_type IN ('percentage', 'both') AND c.is_active = 1",
@@ -255,23 +262,214 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
     ));
 
     foreach ($coaches as $coach) {
+        $coach_id = (int) $coach->coach_id;
+        $coach_name = trim((string) $coach->first_name . ' ' . (string) $coach->last_name);
+
         if (floatval($coach->salary_percentage) <= 0 || !function_exists('sc_get_coach_attendance_count_for_salary')) {
             continue;
         }
+
+        if ($price_per_session <= 0) {
+            $results['coaches'][] = [
+                'coach_id' => $coach_id,
+                'coach_name' => $coach_name,
+                'status' => 'missing_price',
+                'salary_amount' => 0,
+                'deposited_amount' => 0,
+                'message' => 'قیمت هر جلسه دوره تنظیم نشده است',
+            ];
+            continue;
+        }
+
         $coach_attendance_count = sc_get_coach_attendance_count_for_salary(
-            (int) $coach->coach_id,
+            $coach_id,
             $course_id,
             $attendance_date,
             $present_only_for_salary
         );
-        sc_calculate_coach_percentage_salary(
-            (int) $coach->coach_id,
+        $calc_result = sc_calculate_coach_percentage_salary(
+            $coach_id,
             $course_id,
             $attendance_date,
             $coach_attendance_count,
             $price_per_session
         );
+
+        $deposited_amount = 0;
+        $status = 'error';
+
+        if (!empty($calc_result['success'])) {
+            if (isset($calc_result['difference']) && abs((float) $calc_result['difference']) >= 0.01) {
+                $difference = (float) $calc_result['difference'];
+                if ($difference > 0) {
+                    $deposited_amount = $difference;
+                    $status = 'calculated';
+                } else {
+                    $status = 'updated';
+                }
+            } elseif (!empty($calc_result['transaction_id'])) {
+                $deposited_amount = (float) ($calc_result['salary_amount'] ?? 0);
+                $status = $deposited_amount > 0 ? 'calculated' : 'zero_amount';
+            } elseif (($calc_result['message'] ?? '') === 'مبلغ تغییر نکرده') {
+                $status = 'no_change';
+            } elseif (($calc_result['message'] ?? '') === 'دستمزد قابل پرداختی وجود ندارد') {
+                $status = 'zero_amount';
+            } else {
+                $status = 'no_change';
+            }
+        }
+
+        $results['coaches'][] = [
+            'coach_id' => $coach_id,
+            'coach_name' => $coach_name,
+            'status' => $status,
+            'salary_amount' => (float) ($calc_result['salary_amount'] ?? 0),
+            'deposited_amount' => $deposited_amount,
+            'message' => (string) ($calc_result['message'] ?? ''),
+        ];
     }
+
+    return $results;
+}
+
+/**
+ * ارسال اطلاعیه دستمزد مربی پس از ثبت حضور و غیاب.
+ *
+ * @param int    $coach_id
+ * @param string $type missing_price|calculated
+ * @param string $title
+ * @param string $content
+ * @param array  $meta
+ */
+function sc_send_coach_salary_attendance_notification($coach_id, $type, $title, $content, $meta = []) {
+    if (!function_exists('sc_save_notification') || !function_exists('sc_is_pro_feature_notifications_enabled') || !sc_is_pro_feature_notifications_enabled()) {
+        return false;
+    }
+
+    $coach_id = absint($coach_id);
+    if (!$coach_id) {
+        return false;
+    }
+
+    $course_id = isset($meta['course_id']) ? absint($meta['course_id']) : 0;
+    $attendance_date = isset($meta['attendance_date']) ? sanitize_text_field((string) $meta['attendance_date']) : '';
+    $alert_key = 'coach_salary_' . sanitize_key($type) . '_' . $coach_id . '_' . $course_id . '_' . str_replace('-', '', $attendance_date);
+
+    $result = sc_save_notification([
+        'title' => $title,
+        'content' => $content,
+        'target_type' => 'specific',
+        'target_config' => [
+            'recipient_ids' => ['coach_' . $coach_id],
+            'alert_kind' => 'coach_salary_attendance',
+            'alert_key' => $alert_key,
+            'alert_meta' => $meta,
+        ],
+        'notification_type' => 'system',
+        'send_sms' => 0,
+    ]);
+
+    return !empty($result['success']);
+}
+
+/**
+ * پردازش نوتیف دستمزد مربی پس از ثبت حضور و غیاب.
+ *
+ * @param int    $course_id
+ * @param string $attendance_date Y-m-d
+ * @param string $course_title
+ * @return array<int, array{type: string, message: string, coach_id: int}>
+ */
+function sc_process_coach_salary_attendance_notifications($course_id, $attendance_date, $course_title = '') {
+    if (!function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') || !sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+        return [];
+    }
+
+    $course_id = absint($course_id);
+    $attendance_date = sanitize_text_field((string) $attendance_date);
+    if (!$course_id || $attendance_date === '') {
+        return [];
+    }
+
+    $salary_results = sc_refresh_coach_percentage_salary_for_course_date($course_id, $attendance_date);
+    if (empty($salary_results['coaches']) || !is_array($salary_results['coaches'])) {
+        return [];
+    }
+
+    $course_title = $course_title !== '' ? $course_title : ('دوره #' . $course_id);
+    $attendance_date_shamsi = function_exists('sc_date_shamsi_date_only')
+        ? sc_date_shamsi_date_only($attendance_date)
+        : $attendance_date;
+
+    $current_coach_id = function_exists('sc_current_user_coach_id') ? (int) sc_current_user_coach_id() : 0;
+    $is_pure_coach = current_user_can('coach')
+        && !current_user_can('administrator')
+        && !current_user_can('club_coach');
+
+    $notices = [];
+
+    foreach ($salary_results['coaches'] as $coach_result) {
+        $coach_id = (int) ($coach_result['coach_id'] ?? 0);
+        if (!$coach_id) {
+            continue;
+        }
+
+        if ($is_pure_coach && $current_coach_id > 0 && $coach_id !== $current_coach_id) {
+            continue;
+        }
+
+        $coach_name = trim((string) ($coach_result['coach_name'] ?? ''));
+        $name_prefix = ($is_pure_coach || $current_coach_id === $coach_id) ? '' : ($coach_name !== '' ? 'مربی ' . $coach_name . ': ' : '');
+
+        if (($coach_result['status'] ?? '') === 'missing_price') {
+            $title = 'دستمزد محاسبه نشد';
+            $content = sprintf(
+                'دستمزد شما برای دوره «%s» در تاریخ %s به علت نداشتن قیمت هر جلسه محاسبه نشد. از طریق مدیریت این موضوع را پیگیری کنید.',
+                $course_title,
+                $attendance_date_shamsi
+            );
+
+            sc_send_coach_salary_attendance_notification($coach_id, 'missing_price', $title, $content, [
+                'course_id' => $course_id,
+                'attendance_date' => $attendance_date,
+                'course_title' => $course_title,
+            ]);
+
+            $notices[] = [
+                'type' => 'warning',
+                'coach_id' => $coach_id,
+                'message' => $name_prefix . 'دستمزد شما به علت نداشتن قیمت هر جلسه محاسبه نشد. از طریق مدیریت این موضوع را پیگیری کنید.',
+            ];
+            continue;
+        }
+
+        if (($coach_result['status'] ?? '') === 'calculated' && (float) ($coach_result['deposited_amount'] ?? 0) > 0) {
+            $deposited_amount = (float) $coach_result['deposited_amount'];
+            $amount_formatted = number_format($deposited_amount, 0, '.', ',');
+            $title = 'دستمزد محاسبه شد';
+            $content = sprintf(
+                'دستمزد شما برای دوره «%s» در تاریخ %s محاسبه شد و مبلغ %s تومان به کیف پول شما واریز شد.',
+                $course_title,
+                $attendance_date_shamsi,
+                $amount_formatted
+            );
+
+            sc_send_coach_salary_attendance_notification($coach_id, 'calculated', $title, $content, [
+                'course_id' => $course_id,
+                'attendance_date' => $attendance_date,
+                'course_title' => $course_title,
+                'deposited_amount' => $deposited_amount,
+            ]);
+
+            $notices[] = [
+                'type' => 'success',
+                'coach_id' => $coach_id,
+                'message' => $name_prefix . 'دستمزد شما محاسبه شد و مبلغ ' . $amount_formatted . ' تومان به کیف پول شما واریز شد.',
+            ];
+        }
+    }
+
+    return $notices;
 }
 
 /**
@@ -441,9 +639,11 @@ function sc_calculate_coach_percentage_salary($coach_id, $course_id, $attendance
     );
     
     if ($salary_insert) {
+        $salary_record_id = $wpdb->insert_id;
+        $wallet_table = $wpdb->prefix . 'sc_coach_wallet_transactions';
         $wpdb->update(
-            $salary_records_table,
-            ['related_salary_record_id' => $wpdb->insert_id],
+            $wallet_table,
+            ['related_salary_record_id' => $salary_record_id],
             ['id' => $transaction_result['transaction_id']],
             ['%d'],
             ['%d']

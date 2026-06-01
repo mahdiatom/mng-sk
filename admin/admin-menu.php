@@ -4425,13 +4425,16 @@ function get_course_active_users() {
     global $wpdb;
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $members_table = $wpdb->prefix . 'sc_members';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
     
     // دریافت کاربران فعال دوره (status = 'active' و بدون هیچ flag)
     $users = $wpdb->get_results($wpdb->prepare(
         "SELECT m.id, m.first_name, m.last_name, m.national_id, m.player_phone, 
-                m.father_name, m.father_phone, m.created_at, mc.enrollment_date
+                m.father_name, m.father_phone, m.created_at, mc.enrollment_date,
+                ch.first_name AS coach_first_name, ch.last_name AS coach_last_name
          FROM $member_courses_table mc
          INNER JOIN $members_table m ON mc.member_id = m.id
+         LEFT JOIN $coaches_table ch ON ch.id = mc.coach_id
          WHERE mc.course_id = %d
          AND mc.status = 'active'
          AND (
@@ -4463,6 +4466,8 @@ function get_course_active_users() {
         } else {
             $user['created_at_shamsi'] = '-';
         }
+        $coach_name = trim((string) ($user['coach_first_name'] ?? '') . ' ' . (string) ($user['coach_last_name'] ?? ''));
+        $user['coach_name'] = $coach_name !== '' ? $coach_name : '-';
     }
     unset($user);
     

@@ -164,7 +164,7 @@ jQuery(document).ready(function($) {
                         html += '<div class="sc-users-table-container" style="max-height: 500px; overflow-y: auto;">';
                         html += '<table class="wp-list-table widefat fixed striped"><thead><tr>';
                         html += '<th style="width: 50px;">ردیف</th><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th>';
-                        html += '<th>شماره تماس</th><th>نام پدر</th><th>شماره تماس پدر</th><th>تاریخ ثبت‌نام</th>';
+                        html += '<th>شماره تماس</th><th>نام پدر</th><th>شماره تماس پدر</th><th>مربی</th><th>تاریخ ثبت‌نام</th>';
                         html += '</tr></thead><tbody>';
                         
                         $.each(users, function(index, user){
@@ -175,6 +175,7 @@ jQuery(document).ready(function($) {
                             html += '<td>' + (user.player_phone || '-') + '</td>';
                             html += '<td>' + (user.father_name || '-') + '</td>';
                             html += '<td>' + (user.father_phone || '-') + '</td>';
+                            html += '<td>' + (user.coach_name || '-') + '</td>';
                             html += '<td>' + (user.enrollment_date_shamsi || user.enrollment_date || '-') + '</td></tr>';
                         });
                         

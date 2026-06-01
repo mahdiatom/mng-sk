@@ -64,24 +64,22 @@ function sc_get_absence_limit_alerts() {
     return is_array($rows) ? $rows : [];
 }
 
-function sc_alert_notification_exists_today($alert_key, $target_type) {
+function sc_alert_notification_exists_today($alert_key, $target_type, $check_today_only = true) {
     global $wpdb;
     $notifications_table = $wpdb->prefix . 'sc_notifications';
-    $today = current_time('Y-m-d');
     $alert_key_like = '%"alert_key":"' . $wpdb->esc_like($alert_key) . '"%';
-    return (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT id FROM $notifications_table
+    $sql = "SELECT id FROM $notifications_table
          WHERE notification_type = %s
            AND target_type = %s
-           AND DATE(created_at) = %s
-           AND target_config LIKE %s
-         ORDER BY id DESC
-         LIMIT 1",
-        'system',
-        $target_type,
-        $today,
-        $alert_key_like
-    ));
+           AND target_config LIKE %s";
+    $params = ['system', $target_type, $alert_key_like];
+    if ($check_today_only) {
+        $today = current_time('Y-m-d');
+        $sql .= " AND DATE(created_at) = %s";
+        $params[] = $today;
+    }
+    $sql .= " ORDER BY id DESC LIMIT 1";
+    return (int) $wpdb->get_var($wpdb->prepare($sql, $params));
 }
 
 /**
@@ -120,8 +118,8 @@ function sc_get_multiple_debt_alerts() {
     return $result;
 }
 
-function sc_create_system_alert_notification($alert_key, $alert_kind, $title, $content, $meta = []) {
-    $existing_id = sc_alert_notification_exists_today($alert_key, 'admin_users');
+function sc_create_system_alert_notification($alert_key, $alert_kind, $title, $content, $meta = [], $check_today_only = true) {
+    $existing_id = sc_alert_notification_exists_today($alert_key, 'admin_users', $check_today_only);
     if ($existing_id > 0) {
         return $existing_id;
     }
@@ -182,7 +180,7 @@ function sc_create_member_absence_alert_notification_and_sms($item, $absence_lim
     }
 
     $alert_key = 'absence_user_' . $member_id . '_' . (int) $item->course_id;
-    $existing_id = sc_alert_notification_exists_today($alert_key, 'specific');
+    $existing_id = sc_alert_notification_exists_today($alert_key, 'specific', false);
     if ($existing_id > 0) {
         return $existing_id;
     }
@@ -282,7 +280,7 @@ function sc_generate_system_alert_notifications($force = false) {
             'course_id' => (int) $item->course_id,
             'absent_count' => (int) $item->absent_count,
             'absence_limit' => (int) $absence_limit,
-        ]);
+        ], false);
         if ($created > 0) {
             $created_count++;
             sc_send_absence_alert_admin_sms($item, $absence_limit);
@@ -301,7 +299,7 @@ function sc_generate_system_alert_notifications($force = false) {
             'member_id' => (int) $item->member_id,
             'debt_count' => (int) $item->debt_count,
             'debt_amount' => (float) $item->debt_amount,
-        ]);
+        ], false);
         if ($created > 0) {
             $created_count++;
         }

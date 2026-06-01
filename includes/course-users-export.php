@@ -10,6 +10,7 @@ function sc_export_course_users_to_excel() {
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $members_table = $wpdb->prefix . 'sc_members';
     $courses_table = $wpdb->prefix . 'sc_courses';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
     
     $course_id = isset($_GET['course_id']) ? absint($_GET['course_id']) : 0;
     
@@ -28,9 +29,11 @@ function sc_export_course_users_to_excel() {
     // دریافت کاربران فعال دوره
     $users = $wpdb->get_results($wpdb->prepare(
         "SELECT m.id, m.first_name, m.last_name, m.national_id, m.player_phone, 
-                m.father_name, m.father_phone, m.created_at, mc.enrollment_date
+                m.father_name, m.father_phone, m.created_at, mc.enrollment_date,
+                ch.first_name AS coach_first_name, ch.last_name AS coach_last_name
          FROM $member_courses_table mc
          INNER JOIN $members_table m ON mc.member_id = m.id
+         LEFT JOIN $coaches_table ch ON ch.id = mc.coach_id
          WHERE mc.course_id = %d
          AND mc.status = 'active'
          AND (
@@ -53,7 +56,7 @@ function sc_export_course_users_to_excel() {
     $sheet->setTitle('کاربران دوره');
     
     // هدرها
-    $headers = ['ردیف', 'نام', 'نام خانوادگی', 'کد ملی', 'شماره تماس', 'نام پدر', 'شماره تماس پدر', 'تاریخ ثبت‌نام'];
+    $headers = ['ردیف', 'نام', 'نام خانوادگی', 'کد ملی', 'شماره تماس', 'نام پدر', 'شماره تماس پدر', 'مربی', 'تاریخ ثبت‌نام'];
     $col = 1;
     foreach ($headers as $header) {
         $sheet->setCellValueByColumnAndRow($col, 1, $header);
@@ -62,7 +65,7 @@ function sc_export_course_users_to_excel() {
     
     // استایل هدر
     $headerStyle = sc_get_excel_header_style();
-    $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
     
     // داده‌ها
     $row = 2;
@@ -75,6 +78,8 @@ function sc_export_course_users_to_excel() {
         $sheet->setCellValueByColumnAndRow($col++, $row, $user['player_phone'] ?: '-');
         $sheet->setCellValueByColumnAndRow($col++, $row, $user['father_name'] ?: '-');
         $sheet->setCellValueByColumnAndRow($col++, $row, $user['father_phone'] ?: '-');
+        $coach_name = trim((string) ($user['coach_first_name'] ?? '') . ' ' . (string) ($user['coach_last_name'] ?? ''));
+        $sheet->setCellValueByColumnAndRow($col++, $row, $coach_name !== '' ? $coach_name : '-');
         
         // تبدیل تاریخ به شمسی
         $enrollment_date = '-';
@@ -85,13 +90,13 @@ function sc_export_course_users_to_excel() {
         
         // استایل داده
         $dataStyle = ($row % 2 == 0) ? sc_get_excel_data_style() : sc_get_excel_alternate_row_style();
-        $sheet->getStyle("A$row:H$row")->applyFromArray($dataStyle);
+        $sheet->getStyle("A$row:I$row")->applyFromArray($dataStyle);
         
         $row++;
     }
     
     // تنظیم عرض ستون‌ها
-    sc_auto_size_columns($sheet, 8);
+    sc_auto_size_columns($sheet, 9);
     
     // نام فایل
     $filename = 'کاربران-دوره-' . sanitize_file_name($course_title) . '-' . date('Y-m-d') . '.xlsx';
