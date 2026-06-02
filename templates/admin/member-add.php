@@ -375,7 +375,12 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 <?php endif; ?>
                 <tr>
                     <th scope="row">احراز هویت تایید شده</th>
-                    <td><label><input name="identity_verified" type="checkbox" <?php checked($identity_verified, 1); ?> value="1"> بله</label></td>
+                    <td>
+                        <label style="margin-left:10px;"><input name="identity_verified" type="checkbox" <?php checked($identity_verified, 1); ?> value="1"> بله</label>
+                        <?php if (!empty($player) && !empty($player->id)) : ?>
+                            <button type="button" class="button button-secondary" id="sc_reject_identity_btn" style="margin-right:10px;">عدم احراز هویت</button>
+                        <?php endif; ?>
+                    </td>
                 </tr>
 
                
@@ -642,4 +647,52 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
         </p>
 
     </form>
+
+    <!-- Rejection Modal -->
+    <div id="sc_reject_identity_modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999; align-items:center; justify-content:center;">
+        <div style="background:#fff; width:400px; max-width:90%; padding:20px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+            <h3 style="margin-top:0;">عدم احراز هویت</h3>
+            <p>لطفاً علت رد احراز هویت را وارد کنید:</p>
+            <textarea id="sc_reject_reason" rows="4" style="width:100%;"></textarea>
+            <div style="margin-top:15px; text-align:left;">
+                <button type="button" class="button" id="sc_reject_cancel">انصراف</button>
+                <button type="button" class="button button-primary" id="sc_reject_send">ارسال پیامک و نوتیفیکیشن</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    jQuery(document).ready(function($){
+        var memberId = <?php echo !empty($player) && !empty($player->id) ? (int)$player->id : 0; ?>;
+        if (memberId > 0) {
+            $('#sc_reject_identity_btn').on('click', function(){
+                $('#sc_reject_identity_modal').css('display', 'flex');
+            });
+            $('#sc_reject_cancel').on('click', function(){
+                $('#sc_reject_identity_modal').hide();
+            });
+            $('#sc_reject_send').on('click', function(){
+                var reason = $('#sc_reject_reason').val().trim();
+                if (!reason) {
+                    alert('لطفاً علت را وارد کنید.');
+                    return;
+                }
+                $.post(ajaxurl, {
+                    action: 'sc_reject_identity',
+                    member_id: memberId,
+                    reason: reason,
+                    _wpnonce: '<?php echo wp_create_nonce('sc_reject_identity'); ?>'
+                }, function(resp){
+                    if (resp.success) {
+                        alert('پیامک و نوتیفیکیشن با موفقیت ارسال شد.');
+                        $('#sc_reject_identity_modal').hide();
+                        $('#sc_reject_reason').val('');
+                    } else {
+                        alert(resp.data || 'خطا در ارسال.');
+                    }
+                });
+            });
+        }
+    });
+    </script>
 </div>

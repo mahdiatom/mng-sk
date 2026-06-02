@@ -91,6 +91,90 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_invoice_admin_template', $sms_invoice_admin_template, 'sms');
         sc_update_setting('sms_invoice_admin_pattern', $sms_invoice_admin_pattern, 'sms');
 
+        // Additional Invoice states (cancelled, onhold)
+        $sms_invoice_cancelled_user_enabled = isset($_POST['sms_invoice_cancelled_user_enabled']) ? 1 : 0;
+        $sms_invoice_cancelled_user_template = isset($_POST['sms_invoice_cancelled_user_template']) ? wp_kses($_POST['sms_invoice_cancelled_user_template'], array()) : '';
+        $sms_invoice_cancelled_user_pattern = isset($_POST['sms_invoice_cancelled_user_pattern']) ? absint($_POST['sms_invoice_cancelled_user_pattern']) : '';
+        $sms_invoice_cancelled_admin_enabled = isset($_POST['sms_invoice_cancelled_admin_enabled']) ? 1 : 0;
+        $sms_invoice_cancelled_admin_template = isset($_POST['sms_invoice_cancelled_admin_template']) ? wp_kses($_POST['sms_invoice_cancelled_admin_template'], array()) : '';
+        $sms_invoice_cancelled_admin_pattern = isset($_POST['sms_invoice_cancelled_admin_pattern']) ? absint($_POST['sms_invoice_cancelled_admin_pattern']) : '';
+        $sms_invoice_onhold_user_enabled = isset($_POST['sms_invoice_onhold_user_enabled']) ? 1 : 0;
+        $sms_invoice_onhold_user_template = isset($_POST['sms_invoice_onhold_user_template']) ? wp_kses($_POST['sms_invoice_onhold_user_template'], array()) : '';
+        $sms_invoice_onhold_user_pattern = isset($_POST['sms_invoice_onhold_user_pattern']) ? absint($_POST['sms_invoice_onhold_user_pattern']) : '';
+        $sms_invoice_onhold_admin_enabled = isset($_POST['sms_invoice_onhold_admin_enabled']) ? 1 : 0;
+        $sms_invoice_onhold_admin_template = isset($_POST['sms_invoice_onhold_admin_template']) ? wp_kses($_POST['sms_invoice_onhold_admin_template'], array()) : '';
+        $sms_invoice_onhold_admin_pattern = isset($_POST['sms_invoice_onhold_admin_pattern']) ? absint($_POST['sms_invoice_onhold_admin_pattern']) : '';
+
+        sc_update_setting('sms_invoice_cancelled_user_enabled', $sms_invoice_cancelled_user_enabled, 'sms');
+        sc_update_setting('sms_invoice_cancelled_user_template', $sms_invoice_cancelled_user_template, 'sms');
+        sc_update_setting('sms_invoice_cancelled_user_pattern', $sms_invoice_cancelled_user_pattern, 'sms');
+        sc_update_setting('sms_invoice_cancelled_admin_enabled', $sms_invoice_cancelled_admin_enabled, 'sms');
+        sc_update_setting('sms_invoice_cancelled_admin_template', $sms_invoice_cancelled_admin_template, 'sms');
+        sc_update_setting('sms_invoice_cancelled_admin_pattern', $sms_invoice_cancelled_admin_pattern, 'sms');
+        sc_update_setting('sms_invoice_onhold_user_enabled', $sms_invoice_onhold_user_enabled, 'sms');
+        sc_update_setting('sms_invoice_onhold_user_template', $sms_invoice_onhold_user_template, 'sms');
+        sc_update_setting('sms_invoice_onhold_user_pattern', $sms_invoice_onhold_user_pattern, 'sms');
+        sc_update_setting('sms_invoice_onhold_admin_enabled', $sms_invoice_onhold_admin_enabled, 'sms');
+        sc_update_setting('sms_invoice_onhold_admin_template', $sms_invoice_onhold_admin_template, 'sms');
+        sc_update_setting('sms_invoice_onhold_admin_pattern', $sms_invoice_onhold_admin_pattern, 'sms');
+
+        // WooCommerce Product Order SMS (پیامک محصول)
+        $sms_wc_order_completed_user_enabled = isset($_POST['sms_wc_order_completed_user_enabled']) ? 1 : 0;
+        $sms_wc_order_completed_user_template = isset($_POST['sms_wc_order_completed_user_template']) ? wp_kses($_POST['sms_wc_order_completed_user_template'], array()) : '';
+        $sms_wc_order_completed_user_pattern = isset($_POST['sms_wc_order_completed_user_pattern']) ? absint($_POST['sms_wc_order_completed_user_pattern']) : '';
+        $sms_wc_order_completed_admin_enabled = isset($_POST['sms_wc_order_completed_admin_enabled']) ? 1 : 0;
+        $sms_wc_order_completed_admin_template = isset($_POST['sms_wc_order_completed_admin_template']) ? wp_kses($_POST['sms_wc_order_completed_admin_template'], array()) : '';
+        $sms_wc_order_completed_admin_pattern = isset($_POST['sms_wc_order_completed_admin_pattern']) ? absint($_POST['sms_wc_order_completed_admin_pattern']) : '';
+
+        $sms_wc_order_cancelled_user_enabled = isset($_POST['sms_wc_order_cancelled_user_enabled']) ? 1 : 0;
+        $sms_wc_order_cancelled_user_template = isset($_POST['sms_wc_order_cancelled_user_template']) ? wp_kses($_POST['sms_wc_order_cancelled_user_template'], array()) : '';
+        $sms_wc_order_cancelled_user_pattern = isset($_POST['sms_wc_order_cancelled_user_pattern']) ? absint($_POST['sms_wc_order_cancelled_user_pattern']) : '';
+        $sms_wc_order_cancelled_admin_enabled = isset($_POST['sms_wc_order_cancelled_admin_enabled']) ? 1 : 0;
+        $sms_wc_order_cancelled_admin_template = isset($_POST['sms_wc_order_cancelled_admin_template']) ? wp_kses($_POST['sms_wc_order_cancelled_admin_template'], array()) : '';
+        $sms_wc_order_cancelled_admin_pattern = isset($_POST['sms_wc_order_cancelled_admin_pattern']) ? absint($_POST['sms_wc_order_cancelled_admin_pattern']) : '';
+
+        $sms_wc_order_onhold_user_enabled = isset($_POST['sms_wc_order_onhold_user_enabled']) ? 1 : 0;
+        $sms_wc_order_onhold_user_template = isset($_POST['sms_wc_order_onhold_user_template']) ? wp_kses($_POST['sms_wc_order_onhold_user_template'], array()) : '';
+        $sms_wc_order_onhold_user_pattern = isset($_POST['sms_wc_order_onhold_user_pattern']) ? absint($_POST['sms_wc_order_onhold_user_pattern']) : '';
+        $sms_wc_order_onhold_admin_enabled = isset($_POST['sms_wc_order_onhold_admin_enabled']) ? 1 : 0;
+        $sms_wc_order_onhold_admin_template = isset($_POST['sms_wc_order_onhold_admin_template']) ? wp_kses($_POST['sms_wc_order_onhold_admin_template'], array()) : '';
+        $sms_wc_order_onhold_admin_pattern = isset($_POST['sms_wc_order_onhold_admin_pattern']) ? absint($_POST['sms_wc_order_onhold_admin_pattern']) : '';
+
+        $sms_wc_order_failed_user_enabled = isset($_POST['sms_wc_order_failed_user_enabled']) ? 1 : 0;
+        $sms_wc_order_failed_user_template = isset($_POST['sms_wc_order_failed_user_template']) ? wp_kses($_POST['sms_wc_order_failed_user_template'], array()) : '';
+        $sms_wc_order_failed_user_pattern = isset($_POST['sms_wc_order_failed_user_pattern']) ? absint($_POST['sms_wc_order_failed_user_pattern']) : '';
+        $sms_wc_order_failed_admin_enabled = isset($_POST['sms_wc_order_failed_admin_enabled']) ? 1 : 0;
+        $sms_wc_order_failed_admin_template = isset($_POST['sms_wc_order_failed_admin_template']) ? wp_kses($_POST['sms_wc_order_failed_admin_template'], array()) : '';
+        $sms_wc_order_failed_admin_pattern = isset($_POST['sms_wc_order_failed_admin_pattern']) ? absint($_POST['sms_wc_order_failed_admin_pattern']) : '';
+
+        sc_update_setting('sms_wc_order_completed_user_enabled', $sms_wc_order_completed_user_enabled, 'sms');
+        sc_update_setting('sms_wc_order_completed_user_template', $sms_wc_order_completed_user_template, 'sms');
+        sc_update_setting('sms_wc_order_completed_user_pattern', $sms_wc_order_completed_user_pattern, 'sms');
+        sc_update_setting('sms_wc_order_completed_admin_enabled', $sms_wc_order_completed_admin_enabled, 'sms');
+        sc_update_setting('sms_wc_order_completed_admin_template', $sms_wc_order_completed_admin_template, 'sms');
+        sc_update_setting('sms_wc_order_completed_admin_pattern', $sms_wc_order_completed_admin_pattern, 'sms');
+
+        sc_update_setting('sms_wc_order_cancelled_user_enabled', $sms_wc_order_cancelled_user_enabled, 'sms');
+        sc_update_setting('sms_wc_order_cancelled_user_template', $sms_wc_order_cancelled_user_template, 'sms');
+        sc_update_setting('sms_wc_order_cancelled_user_pattern', $sms_wc_order_cancelled_user_pattern, 'sms');
+        sc_update_setting('sms_wc_order_cancelled_admin_enabled', $sms_wc_order_cancelled_admin_enabled, 'sms');
+        sc_update_setting('sms_wc_order_cancelled_admin_template', $sms_wc_order_cancelled_admin_template, 'sms');
+        sc_update_setting('sms_wc_order_cancelled_admin_pattern', $sms_wc_order_cancelled_admin_pattern, 'sms');
+
+        sc_update_setting('sms_wc_order_onhold_user_enabled', $sms_wc_order_onhold_user_enabled, 'sms');
+        sc_update_setting('sms_wc_order_onhold_user_template', $sms_wc_order_onhold_user_template, 'sms');
+        sc_update_setting('sms_wc_order_onhold_user_pattern', $sms_wc_order_onhold_user_pattern, 'sms');
+        sc_update_setting('sms_wc_order_onhold_admin_enabled', $sms_wc_order_onhold_admin_enabled, 'sms');
+        sc_update_setting('sms_wc_order_onhold_admin_template', $sms_wc_order_onhold_admin_template, 'sms');
+        sc_update_setting('sms_wc_order_onhold_admin_pattern', $sms_wc_order_onhold_admin_pattern, 'sms');
+
+        sc_update_setting('sms_wc_order_failed_user_enabled', $sms_wc_order_failed_user_enabled, 'sms');
+        sc_update_setting('sms_wc_order_failed_user_template', $sms_wc_order_failed_user_template, 'sms');
+        sc_update_setting('sms_wc_order_failed_user_pattern', $sms_wc_order_failed_user_pattern, 'sms');
+        sc_update_setting('sms_wc_order_failed_admin_enabled', $sms_wc_order_failed_admin_enabled, 'sms');
+        sc_update_setting('sms_wc_order_failed_admin_template', $sms_wc_order_failed_admin_template, 'sms');
+        sc_update_setting('sms_wc_order_failed_admin_pattern', $sms_wc_order_failed_admin_pattern, 'sms');
+
         // Enrollment SMS Settings
         $sms_enrollment_user_enabled = isset($_POST['sms_enrollment_user_enabled']) ? 1 : 0;
         $sms_enrollment_user_template = isset($_POST['sms_enrollment_user_template']) ? wp_kses($_POST['sms_enrollment_user_template'], array()) : '';
@@ -179,6 +263,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_identity_verified_user_enabled', $sms_identity_verified_user_enabled, 'sms');
         sc_update_setting('sms_identity_verified_user_template', $sms_identity_verified_user_template, 'sms');
         sc_update_setting('sms_identity_verified_user_pattern', $sms_identity_verified_user_pattern, 'sms');
+
+        // Identity rejection SMS settings
+        $sms_identity_rejected_user_enabled = isset($_POST['sms_identity_rejected_user_enabled']) ? 1 : 0;
+        $sms_identity_rejected_user_template = isset($_POST['sms_identity_rejected_user_template']) ? wp_kses($_POST['sms_identity_rejected_user_template'], array()) : '';
+        $sms_identity_rejected_user_pattern = isset($_POST['sms_identity_rejected_user_pattern']) ? absint($_POST['sms_identity_rejected_user_pattern']) : '';
+        sc_update_setting('sms_identity_rejected_user_enabled', $sms_identity_rejected_user_enabled, 'sms');
+        sc_update_setting('sms_identity_rejected_user_template', $sms_identity_rejected_user_template, 'sms');
+        sc_update_setting('sms_identity_rejected_user_pattern', $sms_identity_rejected_user_pattern, 'sms');
 
         // Certificate issued SMS settings
         $sms_certificate_user_enabled = isset($_POST['sms_certificate_user_enabled']) ? 1 : 0;
@@ -579,6 +671,50 @@ $sms_invoice_admin_enabled = (int)sc_get_setting('sms_invoice_admin_enabled', '1
 $sms_invoice_admin_template = sc_get_setting('sms_invoice_admin_template', '');
 $sms_invoice_admin_pattern = sc_get_setting('sms_invoice_admin_pattern', '');
 
+// Additional Invoice states (cancelled, onhold)
+$sms_invoice_cancelled_user_enabled = (int)sc_get_setting('sms_invoice_cancelled_user_enabled', '0');
+$sms_invoice_cancelled_user_template = sc_get_setting('sms_invoice_cancelled_user_template', '');
+$sms_invoice_cancelled_user_pattern = sc_get_setting('sms_invoice_cancelled_user_pattern', '');
+$sms_invoice_cancelled_admin_enabled = (int)sc_get_setting('sms_invoice_cancelled_admin_enabled', '0');
+$sms_invoice_cancelled_admin_template = sc_get_setting('sms_invoice_cancelled_admin_template', '');
+$sms_invoice_cancelled_admin_pattern = sc_get_setting('sms_invoice_cancelled_admin_pattern', '');
+
+$sms_invoice_onhold_user_enabled = (int)sc_get_setting('sms_invoice_onhold_user_enabled', '0');
+$sms_invoice_onhold_user_template = sc_get_setting('sms_invoice_onhold_user_template', '');
+$sms_invoice_onhold_user_pattern = sc_get_setting('sms_invoice_onhold_user_pattern', '');
+$sms_invoice_onhold_admin_enabled = (int)sc_get_setting('sms_invoice_onhold_admin_enabled', '0');
+$sms_invoice_onhold_admin_template = sc_get_setting('sms_invoice_onhold_admin_template', '');
+$sms_invoice_onhold_admin_pattern = sc_get_setting('sms_invoice_onhold_admin_pattern', '');
+
+// WooCommerce Product Order SMS (پیامک محصول)
+$sms_wc_order_completed_user_enabled = (int)sc_get_setting('sms_wc_order_completed_user_enabled', '1');
+$sms_wc_order_completed_user_template = sc_get_setting('sms_wc_order_completed_user_template', '');
+$sms_wc_order_completed_user_pattern = sc_get_setting('sms_wc_order_completed_user_pattern', '');
+$sms_wc_order_completed_admin_enabled = (int)sc_get_setting('sms_wc_order_completed_admin_enabled', '1');
+$sms_wc_order_completed_admin_template = sc_get_setting('sms_wc_order_completed_admin_template', '');
+$sms_wc_order_completed_admin_pattern = sc_get_setting('sms_wc_order_completed_admin_pattern', '');
+
+$sms_wc_order_cancelled_user_enabled = (int)sc_get_setting('sms_wc_order_cancelled_user_enabled', '1');
+$sms_wc_order_cancelled_user_template = sc_get_setting('sms_wc_order_cancelled_user_template', '');
+$sms_wc_order_cancelled_user_pattern = sc_get_setting('sms_wc_order_cancelled_user_pattern', '');
+$sms_wc_order_cancelled_admin_enabled = (int)sc_get_setting('sms_wc_order_cancelled_admin_enabled', '1');
+$sms_wc_order_cancelled_admin_template = sc_get_setting('sms_wc_order_cancelled_admin_template', '');
+$sms_wc_order_cancelled_admin_pattern = sc_get_setting('sms_wc_order_cancelled_admin_pattern', '');
+
+$sms_wc_order_onhold_user_enabled = (int)sc_get_setting('sms_wc_order_onhold_user_enabled', '1');
+$sms_wc_order_onhold_user_template = sc_get_setting('sms_wc_order_onhold_user_template', '');
+$sms_wc_order_onhold_user_pattern = sc_get_setting('sms_wc_order_onhold_user_pattern', '');
+$sms_wc_order_onhold_admin_enabled = (int)sc_get_setting('sms_wc_order_onhold_admin_enabled', '1');
+$sms_wc_order_onhold_admin_template = sc_get_setting('sms_wc_order_onhold_admin_template', '');
+$sms_wc_order_onhold_admin_pattern = sc_get_setting('sms_wc_order_onhold_admin_pattern', '');
+
+$sms_wc_order_failed_user_enabled = (int)sc_get_setting('sms_wc_order_failed_user_enabled', '1');
+$sms_wc_order_failed_user_template = sc_get_setting('sms_wc_order_failed_user_template', '');
+$sms_wc_order_failed_user_pattern = sc_get_setting('sms_wc_order_failed_user_pattern', '');
+$sms_wc_order_failed_admin_enabled = (int)sc_get_setting('sms_wc_order_failed_admin_enabled', '1');
+$sms_wc_order_failed_admin_template = sc_get_setting('sms_wc_order_failed_admin_template', '');
+$sms_wc_order_failed_admin_pattern = sc_get_setting('sms_wc_order_failed_admin_pattern', '');
+
 // Enrollment SMS Settings
 
 $sms_enrollment_user_enabled = (int)sc_get_setting('sms_enrollment_user_enabled', '1');
@@ -643,6 +779,12 @@ $sms_insurance_expiry_user_pattern = sc_get_setting('sms_insurance_expiry_user_p
 $sms_identity_verified_user_enabled = (int)sc_get_setting('sms_identity_verified_user_enabled', '1');
 $sms_identity_verified_user_template = sc_get_setting('sms_identity_verified_user_template', 'کاربر گرامی %user_name%، احراز هویت شما تایید شد.');
 $sms_identity_verified_user_pattern = sc_get_setting('sms_identity_verified_user_pattern', '');
+
+// Identity rejection
+$sms_identity_rejected_user_enabled = (int)sc_get_setting('sms_identity_rejected_user_enabled', '1');
+$sms_identity_rejected_user_template = sc_get_setting('sms_identity_rejected_user_template', 'کاربر گرامی %user_name%، احراز هویت شما رد شد. علت: %reason%');
+$sms_identity_rejected_user_pattern = sc_get_setting('sms_identity_rejected_user_pattern', '');
+
 $sms_certificate_user_enabled = (int)sc_get_setting('sms_certificate_user_enabled', '1');
 $sms_certificate_user_template = sc_get_setting('sms_certificate_user_template', 'کاربر گرامی %user_name%، یک گواهینامه برای شما صادر شد. لطفا به پنل خود مراجعه کنید.');
 $sms_certificate_user_pattern = sc_get_setting('sms_certificate_user_pattern', '');
@@ -1576,6 +1718,7 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     <strong>نمایش بخش‌های تنظیمات پیامک</strong>
                     <div class="sc-sms-checkbox-list">
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="invoice"> پیامک صورت حساب</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="wc-product"> پیامک محصول (ووکامرس)</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="enrollment"> پیامک ثبت نام</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="course-capacity-waitlist"> پیامک خالی شدن ظرفیت دوره</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="reminder"> پیامک یادآوری پرداخت</label>
@@ -1665,9 +1808,308 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                             <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
                         </td>
                     </tr>
+
+                    <!-- Additional Invoice States: Cancelled -->
+                    <tr>
+                        <th scope="row">پیامک لغو شده به کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_invoice_cancelled_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_invoice_cancelled_user_enabled, 1); ?>>
+                                فعال کردن پیامک لغو صورت حساب به کاربر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_invoice_cancelled_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک لغو به کاربر"><?php echo esc_textarea($sms_invoice_cancelled_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% - 
+                                نام آیتم = %item_name% - 
+                                مبلغ = %amount%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_invoice_cancelled_user_pattern"
+                                   value="<?php echo esc_attr($sms_invoice_cancelled_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پیامک لغو شده به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_invoice_cancelled_admin_enabled"
+                                       value="1"
+                                       <?php checked($sms_invoice_cancelled_admin_enabled, 1); ?>>
+                                فعال کردن پیامک لغو صورت حساب به مدیر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_invoice_cancelled_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک لغو به مدیر"><?php echo esc_textarea($sms_invoice_cancelled_admin_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% - 
+                                نام آیتم = %item_name% - 
+                                مبلغ = %amount%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_invoice_cancelled_admin_pattern"
+                                   value="<?php echo esc_attr($sms_invoice_cancelled_admin_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir</p>
+                        </td>
+                    </tr>
+
+                    <!-- Additional Invoice States: On-hold / Pending review -->
+                    <tr>
+                        <th scope="row">پیامک در انتظار بررسی به کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_invoice_onhold_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_invoice_onhold_user_enabled, 1); ?>>
+                                فعال کردن پیامک در انتظار بررسی صورت حساب به کاربر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_invoice_onhold_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک در انتظار بررسی به کاربر"><?php echo esc_textarea($sms_invoice_onhold_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% - 
+                                نام آیتم = %item_name% - 
+                                مبلغ = %amount%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_invoice_onhold_user_pattern"
+                                   value="<?php echo esc_attr($sms_invoice_onhold_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پیامک در انتظار بررسی به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_invoice_onhold_admin_enabled"
+                                       value="1"
+                                       <?php checked($sms_invoice_onhold_admin_enabled, 1); ?>>
+                                فعال کردن پیامک در انتظار بررسی صورت حساب به مدیر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_invoice_onhold_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک در انتظار بررسی به مدیر"><?php echo esc_textarea($sms_invoice_onhold_admin_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% - 
+                                نام آیتم = %item_name% - 
+                                مبلغ = %amount%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_invoice_onhold_admin_pattern"
+                                   value="<?php echo esc_attr($sms_invoice_onhold_admin_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir</p>
+                        </td>
+                    </tr>
+
                 </table>
 
                 </div>
+                <!-- WooCommerce Product Order SMS Section -->
+                <div class="sc-sms-message-section" data-section="wc-product">
+                <h3>پیامک محصول (سفارشات ووکامرس)</h3>
+                <table class="form-table">
+                    <!-- Completed -->
+                    <tr>
+                        <th scope="row">پیامک تکمیل‌شده به کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wc_order_completed_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_wc_order_completed_user_enabled, 1); ?>>
+                                فعال کردن پیامک سفارش تکمیل‌شده به کاربر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wc_order_completed_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wc_order_completed_user_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %order_id%، %amount%</p>
+                            <br>
+                            <input type="number" name="sms_wc_order_completed_user_pattern" value="<?php echo esc_attr($sms_wc_order_completed_user_pattern); ?>" class="small-text" placeholder="کد پترن">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پیامک تکمیل‌شده به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wc_order_completed_admin_enabled"
+                                       value="1"
+                                       <?php checked($sms_wc_order_completed_admin_enabled, 1); ?>>
+                                فعال کردن پیامک سفارش تکمیل‌شده به مدیر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wc_order_completed_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wc_order_completed_admin_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %order_id%، %amount%</p>
+                            <br>
+                            <input type="number" name="sms_wc_order_completed_admin_pattern" value="<?php echo esc_attr($sms_wc_order_completed_admin_pattern); ?>" class="small-text" placeholder="کد پترن">
+                        </td>
+                    </tr>
+
+                    <!-- Cancelled -->
+                    <tr>
+                        <th scope="row">پیامک لغو‌شده به کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wc_order_cancelled_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_wc_order_cancelled_user_enabled, 1); ?>>
+                                فعال کردن پیامک سفارش لغو‌شده به کاربر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wc_order_cancelled_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wc_order_cancelled_user_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %order_id%</p>
+                            <br>
+                            <input type="number" name="sms_wc_order_cancelled_user_pattern" value="<?php echo esc_attr($sms_wc_order_cancelled_user_pattern); ?>" class="small-text" placeholder="کد پترن">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پیامک لغو‌شده به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wc_order_cancelled_admin_enabled"
+                                       value="1"
+                                       <?php checked($sms_wc_order_cancelled_admin_enabled, 1); ?>>
+                                فعال کردن پیامک سفارش لغو‌شده به مدیر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wc_order_cancelled_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wc_order_cancelled_admin_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %order_id%</p>
+                            <br>
+                            <input type="number" name="sms_wc_order_cancelled_admin_pattern" value="<?php echo esc_attr($sms_wc_order_cancelled_admin_pattern); ?>" class="small-text" placeholder="کد پترن">
+                        </td>
+                    </tr>
+
+                    <!-- On-hold / Pending -->
+                    <tr>
+                        <th scope="row">پیامک در انتظار بررسی به کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wc_order_onhold_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_wc_order_onhold_user_enabled, 1); ?>>
+                                فعال کردن پیامک سفارش در انتظار بررسی به کاربر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wc_order_onhold_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wc_order_onhold_user_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %order_id%</p>
+                            <br>
+                            <input type="number" name="sms_wc_order_onhold_user_pattern" value="<?php echo esc_attr($sms_wc_order_onhold_user_pattern); ?>" class="small-text" placeholder="کد پترن">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پیامک در انتظار بررسی به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wc_order_onhold_admin_enabled"
+                                       value="1"
+                                       <?php checked($sms_wc_order_onhold_admin_enabled, 1); ?>>
+                                فعال کردن پیامک سفارش در انتظار بررسی به مدیر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wc_order_onhold_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wc_order_onhold_admin_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %order_id%</p>
+                            <br>
+                            <input type="number" name="sms_wc_order_onhold_admin_pattern" value="<?php echo esc_attr($sms_wc_order_onhold_admin_pattern); ?>" class="small-text" placeholder="کد پترن">
+                        </td>
+                    </tr>
+
+                    <!-- Failed -->
+                    <tr>
+                        <th scope="row">پیامک ناموفق به کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wc_order_failed_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_wc_order_failed_user_enabled, 1); ?>>
+                                فعال کردن پیامک سفارش ناموفق به کاربر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wc_order_failed_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wc_order_failed_user_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %order_id%</p>
+                            <br>
+                            <input type="number" name="sms_wc_order_failed_user_pattern" value="<?php echo esc_attr($sms_wc_order_failed_user_pattern); ?>" class="small-text" placeholder="کد پترن">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پیامک ناموفق به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_wc_order_failed_admin_enabled"
+                                       value="1"
+                                       <?php checked($sms_wc_order_failed_admin_enabled, 1); ?>>
+                                فعال کردن پیامک سفارش ناموفق به مدیر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_wc_order_failed_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_wc_order_failed_admin_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %order_id%</p>
+                            <br>
+                            <input type="number" name="sms_wc_order_failed_admin_pattern" value="<?php echo esc_attr($sms_wc_order_failed_admin_pattern); ?>" class="small-text" placeholder="کد پترن">
+                        </td>
+                    </tr>
+                </table>
+                </div>
+
                 <div class="sc-sms-message-section" data-section="enrollment">
                 <!-- Enrollment SMS Settings -->
                 <h3>پیامک ثبت نام</h3>
@@ -2126,6 +2568,36 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                             <input type="number"
                                    name="sms_identity_verified_user_pattern"
                                    value="<?php echo esc_attr($sms_identity_verified_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">پیامک بعد از رد احراز هویت</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_identity_rejected_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_identity_rejected_user_enabled, 1); ?>>
+                                فعال کردن ارسال پیامک پس از رد احراز هویت بازیکن
+                            </label>
+                            <br><br>
+                            <textarea name="sms_identity_rejected_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_identity_rejected_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name%<br>
+                                علت رد = %reason%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_identity_rejected_user_pattern"
+                                   value="<?php echo esc_attr($sms_identity_rejected_user_pattern); ?>"
                                    class="small-text"
                                    placeholder="کد پترن (اختیاری)">
                             <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>

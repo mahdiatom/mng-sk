@@ -1204,12 +1204,62 @@ function sc_initialize_sms_settings() {
         'sms_identity_verified_user_enabled' => '1',
         'sms_identity_verified_user_template' => 'کاربر گرامی %user_name%، احراز هویت شما تایید شد.',
         'sms_identity_verified_user_pattern' => '',
+
+        // Identity rejection SMS
+        'sms_identity_rejected_user_enabled' => '1',
+        'sms_identity_rejected_user_template' => 'کاربر گرامی %user_name%، احراز هویت شما رد شد. علت: %reason%',
+        'sms_identity_rejected_user_pattern' => '',
+
         'sms_certificate_user_enabled' => '1',
         'sms_certificate_user_template' => 'کاربر گرامی %user_name%، یک گواهینامه برای شما صادر شد. لطفا به پنل خود مراجعه کنید.',
         'sms_certificate_user_pattern' => '',
         'sms_course_capacity_waitlist_user_enabled' => '0',
         'sms_course_capacity_waitlist_user_template' => 'کاربر گرامی %user_name%، ظرفیت ثبت‌نام دوره «%item_name%» باز شد. ثبت‌نام: %enroll_url%',
         'sms_course_capacity_waitlist_user_pattern' => '',
+
+        // WooCommerce Product Order SMS (پیامک محصول)
+        'sms_wc_order_completed_user_enabled' => '1',
+        'sms_wc_order_completed_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% شما با موفقیت تکمیل شد. مبلغ: %amount% تومان',
+        'sms_wc_order_completed_user_pattern' => '',
+        'sms_wc_order_completed_admin_enabled' => '1',
+        'sms_wc_order_completed_admin_template' => 'سفارش #%order_id% تکمیل شد - %user_name% - مبلغ: %amount% تومان',
+        'sms_wc_order_completed_admin_pattern' => '',
+
+        'sms_wc_order_cancelled_user_enabled' => '1',
+        'sms_wc_order_cancelled_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% شما لغو شد.',
+        'sms_wc_order_cancelled_user_pattern' => '',
+        'sms_wc_order_cancelled_admin_enabled' => '1',
+        'sms_wc_order_cancelled_admin_template' => 'سفارش #%order_id% لغو شد - %user_name%',
+        'sms_wc_order_cancelled_admin_pattern' => '',
+
+        'sms_wc_order_onhold_user_enabled' => '1',
+        'sms_wc_order_onhold_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% شما در انتظار بررسی است.',
+        'sms_wc_order_onhold_user_pattern' => '',
+        'sms_wc_order_onhold_admin_enabled' => '1',
+        'sms_wc_order_onhold_admin_template' => 'سفارش #%order_id% در انتظار بررسی - %user_name%',
+        'sms_wc_order_onhold_admin_pattern' => '',
+
+        'sms_wc_order_failed_user_enabled' => '1',
+        'sms_wc_order_failed_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% شما ناموفق بود.',
+        'sms_wc_order_failed_user_pattern' => '',
+        'sms_wc_order_failed_admin_enabled' => '1',
+        'sms_wc_order_failed_admin_template' => 'سفارش #%order_id% ناموفق - %user_name%',
+        'sms_wc_order_failed_admin_pattern' => '',
+
+        // Additional Invoice states
+        'sms_invoice_cancelled_user_enabled' => '0',
+        'sms_invoice_cancelled_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% لغو شد.',
+        'sms_invoice_cancelled_user_pattern' => '',
+        'sms_invoice_cancelled_admin_enabled' => '0',
+        'sms_invoice_cancelled_admin_template' => 'صورت حساب لغو شد: %user_name% - %item_name%',
+        'sms_invoice_cancelled_admin_pattern' => '',
+
+        'sms_invoice_onhold_user_enabled' => '0',
+        'sms_invoice_onhold_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% در انتظار بررسی است.',
+        'sms_invoice_onhold_user_pattern' => '',
+        'sms_invoice_onhold_admin_enabled' => '0',
+        'sms_invoice_onhold_admin_template' => 'صورت حساب در انتظار بررسی: %user_name% - %item_name%',
+        'sms_invoice_onhold_admin_pattern' => '',
     ];
 
     foreach ($defaults as $key => $value) {
@@ -1288,4 +1338,177 @@ function sc_send_survey_submission_sms($response_id) {
             sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'survey_submission');
         }
     }
+}
+
+/**
+ * Send SMS for WooCommerce product order status changes
+ */
+function sc_send_wc_order_status_sms($order_id, $status) {
+    if (!class_exists('WC_Order')) {
+        return;
+    }
+
+    $order = wc_get_order($order_id);
+    if (!$order) {
+        return;
+    }
+
+    $user_name = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
+    if (trim($user_name) === '') {
+        $user_name = $order->get_billing_company() ?: 'کاربر';
+    }
+
+    $phone = $order->get_billing_phone();
+    if (empty($phone)) {
+        // try customer user phone
+        $user_id = $order->get_user_id();
+        if ($user_id) {
+            $phone = get_user_meta($user_id, 'billing_phone', true);
+        }
+    }
+    if (empty($phone)) {
+        return;
+    }
+
+    $variables = [
+        'user_name' => trim($user_name),
+        'order_id' => $order->get_order_number(),
+        'amount' => number_format($order->get_total(), 0, '.', ','),
+        'status' => $status
+    ];
+
+    $action_map = [
+        'completed' => 'wc_order_completed',
+        'cancelled' => 'wc_order_cancelled',
+        'on-hold' => 'wc_order_onhold',
+        'failed' => 'wc_order_failed',
+        'pending' => 'wc_order_onhold',
+    ];
+
+    $action = $action_map[$status] ?? null;
+    if (!$action) {
+        return;
+    }
+
+    // Send to user
+    if (sc_is_sms_enabled_for($action, 'user')) {
+        $template = sc_get_sms_template($action, 'user');
+        if (!empty($template)) {
+            $message = sc_replace_sms_variables($template, $variables);
+            $pattern_code = sc_get_sms_pattern($action, 'user');
+            sc_send_sms($phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wc_order_' . $status);
+        }
+    }
+
+    // Send to admin
+    if (sc_is_sms_enabled_for($action, 'admin')) {
+        $admin_phone = sc_get_setting('sms_admin_phone', '');
+        if (!empty($admin_phone)) {
+            $template = sc_get_sms_template($action, 'admin');
+            if (!empty($template)) {
+                $message = sc_replace_sms_variables($template, $variables);
+                $pattern_code = sc_get_sms_pattern($action, 'admin');
+                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wc_order_' . $status);
+            }
+        }
+    }
+}
+
+// WooCommerce order status hooks for product orders SMS
+add_action('woocommerce_order_status_completed', function($order_id) {
+    sc_send_wc_order_status_sms($order_id, 'completed');
+}, 10, 1);
+
+add_action('woocommerce_order_status_cancelled', function($order_id) {
+    sc_send_wc_order_status_sms($order_id, 'cancelled');
+}, 10, 1);
+
+add_action('woocommerce_order_status_failed', function($order_id) {
+    sc_send_wc_order_status_sms($order_id, 'failed');
+}, 10, 1);
+
+add_action('woocommerce_order_status_on-hold', function($order_id) {
+    sc_send_wc_order_status_sms($order_id, 'on-hold');
+}, 10, 1);
+
+add_action('woocommerce_order_status_pending', function($order_id) {
+    sc_send_wc_order_status_sms($order_id, 'pending');
+}, 10, 1);
+
+/**
+ * Send SMS + notification when identity is rejected
+ */
+function sc_send_identity_rejected_notifications($member_id, $reason) {
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, user_id, first_name, last_name, player_phone FROM $members_table WHERE id = %d LIMIT 1",
+        $member_id
+    ));
+    if (!$member) {
+        return;
+    }
+
+    $user_name = trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? ''));
+    if ($user_name === '') {
+        $user_name = 'کاربر گرامی';
+    }
+
+    // In-app notification
+    if (function_exists('sc_save_notification')) {
+        sc_save_notification([
+            'title' => 'رد احراز هویت',
+            'content' => 'کاربر گرامی، احراز هویت شما رد شد. علت: ' . $reason,
+            'target_type' => 'specific',
+            'target_config' => [
+                'recipient_ids' => ['member_' . (int) $member->id]
+            ],
+            'notification_type' => 'system',
+            'send_sms' => 0
+        ]);
+    }
+
+    // SMS (if enabled)
+    if (!function_exists('sc_is_sms_enabled_for') || !function_exists('sc_get_sms_template') || !function_exists('sc_send_sms')) {
+        return;
+    }
+
+    if (sc_is_sms_enabled_for('identity_rejected', 'user') && !empty($member->player_phone)) {
+        $template = sc_get_sms_template('identity_rejected', 'user');
+        if (!empty($template)) {
+            $variables = [
+                'user_name' => $user_name,
+                'reason' => $reason
+            ];
+            $message = sc_replace_sms_variables($template, $variables);
+            $pattern_code = sc_get_sms_pattern('identity_rejected', 'user');
+            sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'identity_rejected');
+        }
+    }
+}
+
+// AJAX handler for rejecting identity
+add_action('wp_ajax_sc_reject_identity', 'sc_ajax_reject_identity');
+function sc_ajax_reject_identity() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('دسترسی غیرمجاز');
+    }
+    if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'sc_reject_identity')) {
+        wp_send_json_error('خطای امنیتی');
+    }
+    $member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
+    $reason = isset($_POST['reason']) ? sanitize_text_field($_POST['reason']) : '';
+    if (!$member_id || empty($reason)) {
+        wp_send_json_error('اطلاعات ناقص است');
+    }
+
+    // Optionally uncheck identity_verified in DB
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $wpdb->update($members_table, ['identity_verified' => 0], ['id' => $member_id], ['%d'], ['%d']);
+
+    // Send notifications
+    sc_send_identity_rejected_notifications($member_id, $reason);
+
+    wp_send_json_success(['message' => 'ارسال شد']);
 }
