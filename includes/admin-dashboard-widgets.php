@@ -116,6 +116,13 @@ function sc_register_admin_dashboard_widgets() {
         'تولدهای این هفته',
         'sc_dw_render_week_birthdays'
     );
+
+    // 11) کاربران بدون مربی تخصیص یافته
+    wp_add_dashboard_widget(
+        'sc_dw_unassigned_coach_members',
+        'کاربران بدون مربی تخصیص یافته',
+        'sc_dw_render_unassigned_coach_members'
+    );
 }
 
 /**
@@ -934,6 +941,83 @@ function sc_dw_render_week_birthdays() {
             echo '<div class="sc-dw-list-meta">📅 ' . esc_html($birth) . ' <span class="sc-dw-sep">|</span> 🎈 ' . esc_html($age) . ' <span class="sc-dw-sep">|</span> 📞 ' . esc_html($phone) . '</div>';
             echo '</div>';
             echo '<span class="sc-dw-status ' . esc_attr($status_cls) . '">' . esc_html($status_text) . '</span>';
+            echo '</a>';
+            echo '</li>';
+        }
+        echo '</ul>';
+    }
+    echo '</div>';
+}
+
+/* ====================================================================
+ * 11) کاربران بدون مربی تخصیص یافته (بازیکنان فعال بدون coach_id)
+ * ================================================================= */
+function sc_dw_render_unassigned_coach_members() {
+    global $wpdb;
+    $members_table        = $wpdb->prefix . 'sc_members';
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table        = $wpdb->prefix . 'sc_courses';
+
+    // تعداد کل بازیکنان متمایز که حداقل یک دوره فعال بدون مربی دارند
+    $total = (int) $wpdb->get_var(
+        "SELECT COUNT(DISTINCT m.id)
+         FROM $member_courses_table mc
+         INNER JOIN $members_table m ON m.id = mc.member_id
+         WHERE mc.status = 'active'
+           AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+           AND (mc.coach_id IS NULL OR mc.coach_id = 0)
+           AND m.is_active = 1"
+    );
+
+    // دریافت ۵ بازیکن اخیر (با یک نمونه دوره)
+    $rows = $wpdb->get_results(
+        "SELECT m.id, m.first_name, m.last_name, m.player_phone, m.created_at,
+                c.title AS course_title,
+                (SELECT COUNT(*) FROM $member_courses_table mc2
+                 WHERE mc2.member_id = m.id
+                   AND mc2.status = 'active'
+                   AND (mc2.course_status_flags IS NULL OR TRIM(mc2.course_status_flags) = '')
+                   AND (mc2.coach_id IS NULL OR mc2.coach_id = 0)
+                ) AS unassigned_count
+         FROM $member_courses_table mc
+         INNER JOIN $members_table m ON m.id = mc.member_id
+         LEFT JOIN $courses_table c ON c.id = mc.course_id
+         WHERE mc.status = 'active'
+           AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+           AND (mc.coach_id IS NULL OR mc.coach_id = 0)
+           AND m.is_active = 1
+         GROUP BY m.id
+         ORDER BY m.created_at DESC
+         LIMIT 5"
+    );
+
+    $list_url = sc_dw_admin_url(['page' => 'sc-members']);
+
+    echo '<div class="sc-dw-card sc-dw-card-orange">';
+    echo '<div class="sc-dw-card-head">';
+    echo '<span class="sc-dw-badge sc-dw-badge-orange">' . esc_html(number_format_i18n($total)) . ' کاربر بدون مربی </span>';
+    echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
+    echo '</div>';
+
+    if (empty($rows)) {
+        sc_dw_render_empty('✅ همه بازیکنان فعال به مربی تخصیص یافته‌اند.', true);
+    } else {
+        echo '<ul class="sc-dw-list">';
+        foreach ($rows as $row) {
+            $view_url = sc_dw_admin_url(['page' => 'sc-view-member', 'player_id' => (int) $row->id]);
+            $name     = sc_dw_member_display_name($row);
+            $phone    = !empty($row->player_phone) ? $row->player_phone : '—';
+            $course   = !empty($row->course_title) ? $row->course_title : 'دوره نامشخص';
+            $count    = (int) ($row->unassigned_count ?? 1);
+            $meta_course = $count > 1 ? $course . ' (+' . ($count - 1) . ')' : $course;
+
+            echo '<li class="sc-dw-list-item">';
+            echo '<a class="sc-dw-list-link" href="' . esc_url($view_url) . '">';
+            echo '<div class="sc-dw-list-main">';
+            echo '<div class="sc-dw-list-title">' . esc_html($name) . '</div>';
+            echo '<div class="sc-dw-list-meta">📞 ' . esc_html($phone) . ' <span class="sc-dw-sep">|</span> 📘 ' . esc_html($meta_course) . '</div>';
+            echo '</div>';
+            echo '<span class="sc-dw-status sc-dw-status-warning">بدون مربی</span>';
             echo '</a>';
             echo '</li>';
         }
