@@ -963,11 +963,11 @@ function sc_support_attachment_download_url($attachment_id, $ticket_id) {
  * Send SMS when new ticket is created - to recipient (مدیر، مربی یا کاربر عضو).
  */
 function sc_support_send_sms_on_new_ticket($ticket) {
-    $enabled = (int) sc_get_setting('sms_ticket_new_recipient_enabled', '0');
+    $enabled = (int) sc_get_sms_setting('sms_ticket_new_recipient_enabled');
     if ($enabled !== 1) {
         return;
     }
-    $template = sc_get_setting('sms_ticket_new_recipient_template', 'تیکت پشتیبانی جدید #%s با موضوع: %s');
+    $template = sc_get_sms_setting('sms_ticket_new_recipient_template');
     $template = str_replace(['{ticket_id}', '{subject}'], [$ticket->id, $ticket->subject], $template);
     if (strpos($template, '%s') !== false) {
         $template = sprintf($template, $ticket->id, $ticket->subject);
@@ -1011,11 +1011,11 @@ function sc_support_send_sms_on_new_ticket($ticket) {
  * Send SMS when new message is added - to the other party (if user replied -> to manager/coach; if admin/coach replied -> to user).
  */
 function sc_support_send_sms_on_new_message($ticket, $sender_type, $sender_id) {
-    $enabled = (int) sc_get_setting('sms_ticket_reply_enabled', '0');
+    $enabled = (int) sc_get_sms_setting('sms_ticket_reply_enabled');
     if ($enabled !== 1) {
         return;
     }
-    $template = sc_get_setting('sms_ticket_reply_template', 'پاسخ جدید به تیکت #%s. لطفا پنل خود را بررسی کنید.');
+    $template = sc_get_sms_setting('sms_ticket_reply_template');
     $template = str_replace(['{ticket_id}', '{subject}'], [$ticket->id, $ticket->subject], $template);
     if (strpos($template, '%s') !== false) {
         $template = sprintf($template, $ticket->id);

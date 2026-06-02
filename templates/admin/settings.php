@@ -698,64 +698,64 @@ $sms_cost_per_message = floatval(sc_get_setting('sms_cost_per_message', '200'));
 $sms_master_enabled = (int)sc_get_setting('sms_master_enabled', '1');
 
 // Invoice SMS Settings
-$sms_invoice_user_enabled = (int)sc_get_setting('sms_invoice_user_enabled', '1');
-$sms_invoice_user_template = sc_get_setting('sms_invoice_user_template', '');
-$sms_invoice_user_pattern = sc_get_setting('sms_invoice_user_pattern', '');
-$sms_invoice_admin_enabled = (int)sc_get_setting('sms_invoice_admin_enabled', '1');
-$sms_invoice_admin_template = sc_get_setting('sms_invoice_admin_template', '');
-$sms_invoice_admin_pattern = sc_get_setting('sms_invoice_admin_pattern', '');
+$sms_invoice_user_enabled = (int) sc_get_sms_setting('sms_invoice_user_enabled');
+$sms_invoice_user_template = sc_get_sms_setting('sms_invoice_user_template');
+$sms_invoice_user_pattern = sc_get_sms_setting('sms_invoice_user_pattern');
+$sms_invoice_admin_enabled = (int) sc_get_sms_setting('sms_invoice_admin_enabled');
+$sms_invoice_admin_template = sc_get_sms_setting('sms_invoice_admin_template');
+$sms_invoice_admin_pattern = sc_get_sms_setting('sms_invoice_admin_pattern');
 
 // Additional Invoice states (cancelled, onhold)
-$sms_invoice_cancelled_user_enabled = (int)sc_get_setting('sms_invoice_cancelled_user_enabled', '0');
-$sms_invoice_cancelled_user_template = sc_get_setting('sms_invoice_cancelled_user_template', '');
-$sms_invoice_cancelled_user_pattern = sc_get_setting('sms_invoice_cancelled_user_pattern', '');
-$sms_invoice_cancelled_admin_enabled = (int)sc_get_setting('sms_invoice_cancelled_admin_enabled', '0');
-$sms_invoice_cancelled_admin_template = sc_get_setting('sms_invoice_cancelled_admin_template', '');
-$sms_invoice_cancelled_admin_pattern = sc_get_setting('sms_invoice_cancelled_admin_pattern', '');
+$sms_invoice_cancelled_user_enabled = (int) sc_get_sms_setting('sms_invoice_cancelled_user_enabled');
+$sms_invoice_cancelled_user_template = sc_get_sms_setting('sms_invoice_cancelled_user_template');
+$sms_invoice_cancelled_user_pattern = sc_get_sms_setting('sms_invoice_cancelled_user_pattern');
+$sms_invoice_cancelled_admin_enabled = (int) sc_get_sms_setting('sms_invoice_cancelled_admin_enabled');
+$sms_invoice_cancelled_admin_template = sc_get_sms_setting('sms_invoice_cancelled_admin_template');
+$sms_invoice_cancelled_admin_pattern = sc_get_sms_setting('sms_invoice_cancelled_admin_pattern');
 
-$sms_invoice_onhold_user_enabled = (int)sc_get_setting('sms_invoice_onhold_user_enabled', '0');
-$sms_invoice_onhold_user_template = sc_get_setting('sms_invoice_onhold_user_template', '');
-$sms_invoice_onhold_user_pattern = sc_get_setting('sms_invoice_onhold_user_pattern', '');
-$sms_invoice_onhold_admin_enabled = (int)sc_get_setting('sms_invoice_onhold_admin_enabled', '0');
-$sms_invoice_onhold_admin_template = sc_get_setting('sms_invoice_onhold_admin_template', '');
-$sms_invoice_onhold_admin_pattern = sc_get_setting('sms_invoice_onhold_admin_pattern', '');
+$sms_invoice_onhold_user_enabled = (int) sc_get_sms_setting('sms_invoice_onhold_user_enabled');
+$sms_invoice_onhold_user_template = sc_get_sms_setting('sms_invoice_onhold_user_template');
+$sms_invoice_onhold_user_pattern = sc_get_sms_setting('sms_invoice_onhold_user_pattern');
+$sms_invoice_onhold_admin_enabled = (int) sc_get_sms_setting('sms_invoice_onhold_admin_enabled');
+$sms_invoice_onhold_admin_template = sc_get_sms_setting('sms_invoice_onhold_admin_template');
+$sms_invoice_onhold_admin_pattern = sc_get_sms_setting('sms_invoice_onhold_admin_pattern');
 
 // Invoice paid
-$sms_invoice_paid_user_enabled = (int)sc_get_setting('sms_invoice_paid_user_enabled', '1');
-$sms_invoice_paid_user_template = sc_get_setting('sms_invoice_paid_user_template', 'کاربر گرامی %user_name%، صورت حساب %item_name% به مبلغ %amount% تومان پرداخت شد.');
-$sms_invoice_paid_user_pattern = sc_get_setting('sms_invoice_paid_user_pattern', '');
-$sms_invoice_paid_admin_enabled = (int)sc_get_setting('sms_invoice_paid_admin_enabled', '1');
-$sms_invoice_paid_admin_template = sc_get_setting('sms_invoice_paid_admin_template', 'صورت حساب پرداخت شد: %user_name% - %item_name% - مبلغ %amount% تومان');
-$sms_invoice_paid_admin_pattern = sc_get_setting('sms_invoice_paid_admin_pattern', '');
+$sms_invoice_paid_user_enabled = (int) sc_get_sms_setting('sms_invoice_paid_user_enabled');
+$sms_invoice_paid_user_template = sc_get_sms_setting('sms_invoice_paid_user_template');
+$sms_invoice_paid_user_pattern = sc_get_sms_setting('sms_invoice_paid_user_pattern');
+$sms_invoice_paid_admin_enabled = (int) sc_get_sms_setting('sms_invoice_paid_admin_enabled');
+$sms_invoice_paid_admin_template = sc_get_sms_setting('sms_invoice_paid_admin_template');
+$sms_invoice_paid_admin_pattern = sc_get_sms_setting('sms_invoice_paid_admin_pattern');
 
 // WooCommerce Product Order SMS (پیامک محصول)
-$sms_wc_order_completed_user_enabled = (int)sc_get_setting('sms_wc_order_completed_user_enabled', '1');
-$sms_wc_order_completed_user_template = sc_get_setting('sms_wc_order_completed_user_template', '');
-$sms_wc_order_completed_user_pattern = sc_get_setting('sms_wc_order_completed_user_pattern', '');
-$sms_wc_order_completed_admin_enabled = (int)sc_get_setting('sms_wc_order_completed_admin_enabled', '1');
-$sms_wc_order_completed_admin_template = sc_get_setting('sms_wc_order_completed_admin_template', '');
-$sms_wc_order_completed_admin_pattern = sc_get_setting('sms_wc_order_completed_admin_pattern', '');
+$sms_wc_order_completed_user_enabled = (int) sc_get_sms_setting('sms_wc_order_completed_user_enabled');
+$sms_wc_order_completed_user_template = sc_get_sms_setting('sms_wc_order_completed_user_template');
+$sms_wc_order_completed_user_pattern = sc_get_sms_setting('sms_wc_order_completed_user_pattern');
+$sms_wc_order_completed_admin_enabled = (int) sc_get_sms_setting('sms_wc_order_completed_admin_enabled');
+$sms_wc_order_completed_admin_template = sc_get_sms_setting('sms_wc_order_completed_admin_template');
+$sms_wc_order_completed_admin_pattern = sc_get_sms_setting('sms_wc_order_completed_admin_pattern');
 
-$sms_wc_order_cancelled_user_enabled = (int)sc_get_setting('sms_wc_order_cancelled_user_enabled', '1');
-$sms_wc_order_cancelled_user_template = sc_get_setting('sms_wc_order_cancelled_user_template', '');
-$sms_wc_order_cancelled_user_pattern = sc_get_setting('sms_wc_order_cancelled_user_pattern', '');
-$sms_wc_order_cancelled_admin_enabled = (int)sc_get_setting('sms_wc_order_cancelled_admin_enabled', '1');
-$sms_wc_order_cancelled_admin_template = sc_get_setting('sms_wc_order_cancelled_admin_template', '');
-$sms_wc_order_cancelled_admin_pattern = sc_get_setting('sms_wc_order_cancelled_admin_pattern', '');
+$sms_wc_order_cancelled_user_enabled = (int) sc_get_sms_setting('sms_wc_order_cancelled_user_enabled');
+$sms_wc_order_cancelled_user_template = sc_get_sms_setting('sms_wc_order_cancelled_user_template');
+$sms_wc_order_cancelled_user_pattern = sc_get_sms_setting('sms_wc_order_cancelled_user_pattern');
+$sms_wc_order_cancelled_admin_enabled = (int) sc_get_sms_setting('sms_wc_order_cancelled_admin_enabled');
+$sms_wc_order_cancelled_admin_template = sc_get_sms_setting('sms_wc_order_cancelled_admin_template');
+$sms_wc_order_cancelled_admin_pattern = sc_get_sms_setting('sms_wc_order_cancelled_admin_pattern');
 
-$sms_wc_order_onhold_user_enabled = (int)sc_get_setting('sms_wc_order_onhold_user_enabled', '1');
-$sms_wc_order_onhold_user_template = sc_get_setting('sms_wc_order_onhold_user_template', '');
-$sms_wc_order_onhold_user_pattern = sc_get_setting('sms_wc_order_onhold_user_pattern', '');
-$sms_wc_order_onhold_admin_enabled = (int)sc_get_setting('sms_wc_order_onhold_admin_enabled', '1');
-$sms_wc_order_onhold_admin_template = sc_get_setting('sms_wc_order_onhold_admin_template', '');
-$sms_wc_order_onhold_admin_pattern = sc_get_setting('sms_wc_order_onhold_admin_pattern', '');
+$sms_wc_order_onhold_user_enabled = (int) sc_get_sms_setting('sms_wc_order_onhold_user_enabled');
+$sms_wc_order_onhold_user_template = sc_get_sms_setting('sms_wc_order_onhold_user_template');
+$sms_wc_order_onhold_user_pattern = sc_get_sms_setting('sms_wc_order_onhold_user_pattern');
+$sms_wc_order_onhold_admin_enabled = (int) sc_get_sms_setting('sms_wc_order_onhold_admin_enabled');
+$sms_wc_order_onhold_admin_template = sc_get_sms_setting('sms_wc_order_onhold_admin_template');
+$sms_wc_order_onhold_admin_pattern = sc_get_sms_setting('sms_wc_order_onhold_admin_pattern');
 
-$sms_wc_order_failed_user_enabled = (int)sc_get_setting('sms_wc_order_failed_user_enabled', '1');
-$sms_wc_order_failed_user_template = sc_get_setting('sms_wc_order_failed_user_template', '');
-$sms_wc_order_failed_user_pattern = sc_get_setting('sms_wc_order_failed_user_pattern', '');
-$sms_wc_order_failed_admin_enabled = (int)sc_get_setting('sms_wc_order_failed_admin_enabled', '1');
-$sms_wc_order_failed_admin_template = sc_get_setting('sms_wc_order_failed_admin_template', '');
-$sms_wc_order_failed_admin_pattern = sc_get_setting('sms_wc_order_failed_admin_pattern', '');
+$sms_wc_order_failed_user_enabled = (int) sc_get_sms_setting('sms_wc_order_failed_user_enabled');
+$sms_wc_order_failed_user_template = sc_get_sms_setting('sms_wc_order_failed_user_template');
+$sms_wc_order_failed_user_pattern = sc_get_sms_setting('sms_wc_order_failed_user_pattern');
+$sms_wc_order_failed_admin_enabled = (int) sc_get_sms_setting('sms_wc_order_failed_admin_enabled');
+$sms_wc_order_failed_admin_template = sc_get_sms_setting('sms_wc_order_failed_admin_template');
+$sms_wc_order_failed_admin_pattern = sc_get_sms_setting('sms_wc_order_failed_admin_pattern');
 
 // WooCommerce Virtual/Downloadable Product Order SMS
 $sc_wc_virtual_sms = [];
@@ -764,9 +764,9 @@ foreach ($sc_wc_virtual_sms_statuses as $sc_wc_virtual_status) {
     foreach (['user', 'admin'] as $sc_wc_virtual_recipient) {
         $sc_wc_virtual_prefix = 'sms_wc_order_virtual_' . $sc_wc_virtual_status . '_' . $sc_wc_virtual_recipient;
         $sc_wc_virtual_sms[$sc_wc_virtual_status][$sc_wc_virtual_recipient] = [
-            'enabled' => (int) sc_get_setting($sc_wc_virtual_prefix . '_enabled', '1'),
-            'template' => sc_get_setting($sc_wc_virtual_prefix . '_template', ''),
-            'pattern' => sc_get_setting($sc_wc_virtual_prefix . '_pattern', ''),
+            'enabled' => (int) sc_get_sms_setting($sc_wc_virtual_prefix . '_enabled'),
+            'template' => sc_get_sms_setting($sc_wc_virtual_prefix . '_template'),
+            'pattern' => sc_get_sms_setting($sc_wc_virtual_prefix . '_pattern'),
         ];
     }
 }
@@ -782,37 +782,38 @@ $sc_wc_virtual_sms_recipient_labels = [
 ];
 
 // Enrollment SMS Settings
+$sms_enrollment_user_enabled = (int) sc_get_sms_setting('sms_enrollment_user_enabled');
+$sms_enrollment_user_template = sc_get_sms_setting('sms_enrollment_user_template');
+$sms_enrollment_user_pattern = sc_get_sms_setting('sms_enrollment_user_pattern');
+$sms_enrollment_admin_enabled = (int) sc_get_sms_setting('sms_enrollment_admin_enabled');
+$sms_enrollment_admin_template = sc_get_sms_setting('sms_enrollment_admin_template');
+$sms_enrollment_admin_pattern = sc_get_sms_setting('sms_enrollment_admin_pattern');
 
-$sms_enrollment_user_enabled = (int)sc_get_setting('sms_enrollment_user_enabled', '1');
-$sms_enrollment_user_template = sc_get_setting('sms_enrollment_user_template', '');
-$sms_enrollment_user_pattern = sc_get_setting('sms_enrollment_user_pattern', '');
-$sms_enrollment_admin_enabled = (int)sc_get_setting('sms_enrollment_admin_enabled', '1');
-$sms_enrollment_admin_template = sc_get_setting('sms_enrollment_admin_template', '');
-$sms_enrollment_admin_pattern = sc_get_setting('sms_enrollment_admin_pattern', '');
-
-$sms_course_capacity_waitlist_user_enabled = (int) sc_get_setting('sms_course_capacity_waitlist_user_enabled', '0');
-$sms_course_capacity_waitlist_user_template = sc_get_setting('sms_course_capacity_waitlist_user_template', '');
-$sms_course_capacity_waitlist_user_pattern = sc_get_setting('sms_course_capacity_waitlist_user_pattern', '');
+$sms_course_capacity_waitlist_user_enabled = (int) sc_get_sms_setting('sms_course_capacity_waitlist_user_enabled');
+$sms_course_capacity_waitlist_user_template = sc_get_sms_setting('sms_course_capacity_waitlist_user_template');
+$sms_course_capacity_waitlist_user_pattern = sc_get_sms_setting('sms_course_capacity_waitlist_user_pattern');
 
 // Reminder SMS Settings
-$sms_reminder_user_enabled = (int)sc_get_setting('sms_reminder_user_enabled', '1');
-$sms_reminder_user_template = sc_get_setting('sms_reminder_user_template', '');
-$sms_reminder_user_pattern = sc_get_setting('sms_reminder_user_pattern', '');
-$sms_reminder_admin_enabled = (int)sc_get_setting('sms_reminder_admin_enabled', '1');
-$sms_reminder_admin_template = sc_get_setting('sms_reminder_admin_template', '');
-$sms_reminder_admin_pattern = sc_get_setting('sms_reminder_admin_pattern', '');
+$sms_reminder_user_enabled = (int) sc_get_sms_setting('sms_reminder_user_enabled');
+$sms_reminder_user_template = sc_get_sms_setting('sms_reminder_user_template');
+$sms_reminder_user_pattern = sc_get_sms_setting('sms_reminder_user_pattern');
+$sms_reminder_admin_enabled = (int) sc_get_sms_setting('sms_reminder_admin_enabled');
+$sms_reminder_admin_template = sc_get_sms_setting('sms_reminder_admin_template');
+$sms_reminder_admin_pattern = sc_get_sms_setting('sms_reminder_admin_pattern');
 
 // Absence SMS Settings
-$sms_absence_user_enabled = (int)sc_get_setting('sms_absence_user_enabled', '1');
-$sms_absence_user_template = sc_get_setting('sms_absence_user_template', 'کاربر گرامی %user_name%، غیبت شما در جلسه دوره %course_name% مورخ %date% ثبت شد.');
-$sms_absence_user_pattern = sc_get_setting('sms_absence_user_pattern', '');
-$sms_absence_admin_enabled = (int)sc_get_setting('sms_absence_admin_enabled', '1');
-$sms_absence_alert_user_enabled = (int)sc_get_setting('sms_absence_alert_user_enabled', '0');
-$sms_absence_alert_user_template = sc_get_setting('sms_absence_alert_user_template', 'کاربر گرامی %user_name%، تعداد غیبت شما در %item_name% به %absence_count% رسیده است (حد مجاز: %absence_limit%).');
-$sms_absence_alert_user_pattern = sc_get_setting('sms_absence_alert_user_pattern', '');
-$sms_absence_alert_admin_enabled = (int)sc_get_setting('sms_absence_alert_admin_enabled', '0');
-$sms_absence_alert_admin_template = sc_get_setting('sms_absence_alert_admin_template', 'هشدار غیبت: %user_name% در %item_name% دارای %absence_count% غیبت است (حد مجاز: %absence_limit%).');
-$sms_absence_alert_admin_pattern = sc_get_setting('sms_absence_alert_admin_pattern', '');
+$sms_absence_user_enabled = (int) sc_get_sms_setting('sms_absence_user_enabled');
+$sms_absence_user_template = sc_get_sms_setting('sms_absence_user_template');
+$sms_absence_user_pattern = sc_get_sms_setting('sms_absence_user_pattern');
+$sms_absence_admin_enabled = (int) sc_get_sms_setting('sms_absence_admin_enabled');
+$sms_absence_admin_template = sc_get_sms_setting('sms_absence_admin_template');
+$sms_absence_admin_pattern = sc_get_sms_setting('sms_absence_admin_pattern');
+$sms_absence_alert_user_enabled = (int) sc_get_sms_setting('sms_absence_alert_user_enabled');
+$sms_absence_alert_user_template = sc_get_sms_setting('sms_absence_alert_user_template');
+$sms_absence_alert_user_pattern = sc_get_sms_setting('sms_absence_alert_user_pattern');
+$sms_absence_alert_admin_enabled = (int) sc_get_sms_setting('sms_absence_alert_admin_enabled');
+$sms_absence_alert_admin_template = sc_get_sms_setting('sms_absence_alert_admin_template');
+$sms_absence_alert_admin_pattern = sc_get_sms_setting('sms_absence_alert_admin_pattern');
 
 // Wallet Settings
 $wallet_enabled = (int)sc_get_setting('wallet_enabled', '0');
@@ -822,68 +823,60 @@ $wallet_max_negative_balance = floatval(sc_get_setting('wallet_max_negative_bala
 $wallet_min_balance_alert = floatval(sc_get_setting('wallet_min_balance_alert', '50000'));
 $wallet_allow_partial_payment = (int)sc_get_setting('wallet_allow_partial_payment', '1');
 $user_alert_absence_limit = (int) sc_get_setting('user_alert_absence_limit', '3');
-$sms_absence_admin_template = sc_get_setting('sms_absence_admin_template', 'غیبت: %user_name% - دوره %course_name% - تاریخ %date%');
-$sms_absence_admin_pattern = sc_get_setting('sms_absence_admin_pattern', '');
-$sms_absence_alert_user_enabled = (int)sc_get_setting('sms_absence_alert_user_enabled', '0');
-$sms_absence_alert_user_template = sc_get_setting('sms_absence_alert_user_template', 'کاربر گرامی %user_name%، تعداد غیبت شما در %item_name% به %absence_count% رسیده است (حد مجاز: %absence_limit%).');
-$sms_absence_alert_user_pattern = sc_get_setting('sms_absence_alert_user_pattern', '');
-$sms_absence_alert_admin_enabled = (int)sc_get_setting('sms_absence_alert_admin_enabled', '0');
-$sms_absence_alert_admin_template = sc_get_setting('sms_absence_alert_admin_template', 'هشدار غیبت: %user_name% در %item_name% دارای %absence_count% غیبت است (حد مجاز: %absence_limit%).');
-$sms_absence_alert_admin_pattern = sc_get_setting('sms_absence_alert_admin_pattern', '');
 
 // Birthday SMS Settings
-$sms_birthday_user_enabled = (int)sc_get_setting('sms_birthday_user_enabled', '0');
-$sms_birthday_user_template = sc_get_setting('sms_birthday_user_template', '');
-$sms_birthday_user_pattern = sc_get_setting('sms_birthday_user_pattern', '');
+$sms_birthday_user_enabled = (int) sc_get_sms_setting('sms_birthday_user_enabled');
+$sms_birthday_user_template = sc_get_sms_setting('sms_birthday_user_template');
+$sms_birthday_user_pattern = sc_get_sms_setting('sms_birthday_user_pattern');
 
 // Insurance expiry SMS Settings
-$sms_insurance_expiry_user_enabled = (int)sc_get_setting('sms_insurance_expiry_user_enabled', '0');
-$sms_insurance_expiry_user_template = sc_get_setting('sms_insurance_expiry_user_template', '');
-$sms_insurance_expiry_user_pattern = sc_get_setting('sms_insurance_expiry_user_pattern', '');
+$sms_insurance_expiry_user_enabled = (int) sc_get_sms_setting('sms_insurance_expiry_user_enabled');
+$sms_insurance_expiry_user_template = sc_get_sms_setting('sms_insurance_expiry_user_template');
+$sms_insurance_expiry_user_pattern = sc_get_sms_setting('sms_insurance_expiry_user_pattern');
 
 // Identity verification approved SMS settings
-$sms_identity_verified_user_enabled = (int)sc_get_setting('sms_identity_verified_user_enabled', '1');
-$sms_identity_verified_user_template = sc_get_setting('sms_identity_verified_user_template', 'کاربر گرامی %user_name%، احراز هویت شما تایید شد.');
-$sms_identity_verified_user_pattern = sc_get_setting('sms_identity_verified_user_pattern', '');
+$sms_identity_verified_user_enabled = (int) sc_get_sms_setting('sms_identity_verified_user_enabled');
+$sms_identity_verified_user_template = sc_get_sms_setting('sms_identity_verified_user_template');
+$sms_identity_verified_user_pattern = sc_get_sms_setting('sms_identity_verified_user_pattern');
 
 // Identity rejection
-$sms_identity_rejected_user_enabled = (int)sc_get_setting('sms_identity_rejected_user_enabled', '1');
-$sms_identity_rejected_user_template = sc_get_setting('sms_identity_rejected_user_template', 'کاربر گرامی %user_name%، احراز هویت شما رد شد. علت: %reason%');
-$sms_identity_rejected_user_pattern = sc_get_setting('sms_identity_rejected_user_pattern', '');
+$sms_identity_rejected_user_enabled = (int) sc_get_sms_setting('sms_identity_rejected_user_enabled');
+$sms_identity_rejected_user_template = sc_get_sms_setting('sms_identity_rejected_user_template');
+$sms_identity_rejected_user_pattern = sc_get_sms_setting('sms_identity_rejected_user_pattern');
 
-$sms_certificate_user_enabled = (int)sc_get_setting('sms_certificate_user_enabled', '1');
-$sms_certificate_user_template = sc_get_setting('sms_certificate_user_template', 'کاربر گرامی %user_name%، یک گواهینامه برای شما صادر شد. لطفا به پنل خود مراجعه کنید.');
-$sms_certificate_user_pattern = sc_get_setting('sms_certificate_user_pattern', '');
+$sms_certificate_user_enabled = (int) sc_get_sms_setting('sms_certificate_user_enabled');
+$sms_certificate_user_template = sc_get_sms_setting('sms_certificate_user_template');
+$sms_certificate_user_pattern = sc_get_sms_setting('sms_certificate_user_pattern');
 
-$sms_survey_submission_user_enabled = (int) sc_get_setting('sms_survey_submission_user_enabled', '0');
-$sms_survey_submission_user_template = sc_get_setting('sms_survey_submission_user_template', 'کاربر گرامی %user_name%، پاسخ شما در نظرسنجی «%survey_title%» با موفقیت ثبت شد.');
-$sms_survey_submission_user_pattern = sc_get_setting('sms_survey_submission_user_pattern', '');
-$sms_survey_submission_admin_enabled = (int) sc_get_setting('sms_survey_submission_admin_enabled', '0');
-$sms_survey_submission_admin_template = sc_get_setting('sms_survey_submission_admin_template', 'پاسخ جدید نظرسنجی: %user_name% - %survey_title%');
-$sms_survey_submission_admin_pattern = sc_get_setting('sms_survey_submission_admin_pattern', '');
+$sms_survey_submission_user_enabled = (int) sc_get_sms_setting('sms_survey_submission_user_enabled');
+$sms_survey_submission_user_template = sc_get_sms_setting('sms_survey_submission_user_template');
+$sms_survey_submission_user_pattern = sc_get_sms_setting('sms_survey_submission_user_pattern');
+$sms_survey_submission_admin_enabled = (int) sc_get_sms_setting('sms_survey_submission_admin_enabled');
+$sms_survey_submission_admin_template = sc_get_sms_setting('sms_survey_submission_admin_template');
+$sms_survey_submission_admin_pattern = sc_get_sms_setting('sms_survey_submission_admin_pattern');
 
 // Wallet SMS Settings
-$sms_wallet_low_balance_user_enabled = (int)sc_get_setting('sms_wallet_low_balance_user_enabled', '1');
-$sms_wallet_low_balance_user_template = sc_get_setting('sms_wallet_low_balance_user_template', '');
-$sms_wallet_low_balance_user_pattern = sc_get_setting('sms_wallet_low_balance_user_pattern', '');
+$sms_wallet_low_balance_user_enabled = (int) sc_get_sms_setting('sms_wallet_low_balance_user_enabled');
+$sms_wallet_low_balance_user_template = sc_get_sms_setting('sms_wallet_low_balance_user_template');
+$sms_wallet_low_balance_user_pattern = sc_get_sms_setting('sms_wallet_low_balance_user_pattern');
 
-$sms_wallet_negative_balance_user_enabled = (int)sc_get_setting('sms_wallet_negative_balance_user_enabled', '1');
-$sms_wallet_negative_balance_user_template = sc_get_setting('sms_wallet_negative_balance_user_template', '');
-$sms_wallet_negative_balance_user_pattern = sc_get_setting('sms_wallet_negative_balance_user_pattern', '');
+$sms_wallet_negative_balance_user_enabled = (int) sc_get_sms_setting('sms_wallet_negative_balance_user_enabled');
+$sms_wallet_negative_balance_user_template = sc_get_sms_setting('sms_wallet_negative_balance_user_template');
+$sms_wallet_negative_balance_user_pattern = sc_get_sms_setting('sms_wallet_negative_balance_user_pattern');
 
-$sms_wallet_charge_success_user_enabled = (int)sc_get_setting('sms_wallet_charge_success_user_enabled', '1');
-$sms_wallet_charge_success_user_template = sc_get_setting('sms_wallet_charge_success_user_template', '');
-$sms_wallet_charge_success_user_pattern = sc_get_setting('sms_wallet_charge_success_user_pattern', '');
+$sms_wallet_charge_success_user_enabled = (int) sc_get_sms_setting('sms_wallet_charge_success_user_enabled');
+$sms_wallet_charge_success_user_template = sc_get_sms_setting('sms_wallet_charge_success_user_template');
+$sms_wallet_charge_success_user_pattern = sc_get_sms_setting('sms_wallet_charge_success_user_pattern');
 
-$sms_wallet_payment_user_enabled = (int)sc_get_setting('sms_wallet_payment_user_enabled', '1');
-$sms_wallet_payment_user_template = sc_get_setting('sms_wallet_payment_user_template', '');
-$sms_wallet_payment_user_pattern = sc_get_setting('sms_wallet_payment_user_pattern', '');
+$sms_wallet_payment_user_enabled = (int) sc_get_sms_setting('sms_wallet_payment_user_enabled');
+$sms_wallet_payment_user_template = sc_get_sms_setting('sms_wallet_payment_user_template');
+$sms_wallet_payment_user_pattern = sc_get_sms_setting('sms_wallet_payment_user_pattern');
 
 // Support ticket SMS
-$sms_ticket_new_recipient_enabled = (int)sc_get_setting('sms_ticket_new_recipient_enabled', '0');
-$sms_ticket_new_recipient_template = sc_get_setting('sms_ticket_new_recipient_template', 'تیکت پشتیبانی جدید #{ticket_id} با موضوع: {subject}');
-$sms_ticket_reply_enabled = (int)sc_get_setting('sms_ticket_reply_enabled', '0');
-$sms_ticket_reply_template = sc_get_setting('sms_ticket_reply_template', 'پاسخ جدید به تیکت #{ticket_id}. لطفا پنل خود را بررسی کنید.');
+$sms_ticket_new_recipient_enabled = (int) sc_get_sms_setting('sms_ticket_new_recipient_enabled');
+$sms_ticket_new_recipient_template = sc_get_sms_setting('sms_ticket_new_recipient_template');
+$sms_ticket_reply_enabled = (int) sc_get_sms_setting('sms_ticket_reply_enabled');
+$sms_ticket_reply_template = sc_get_sms_setting('sms_ticket_reply_template');
 
 // Private classes cancellation SMS (stored in classes settings)
 $private_class_sms_user_cancel_to_coach_enabled = (int) sc_get_setting('private_class_sms_user_cancel_to_coach_enabled', '0');

@@ -592,70 +592,185 @@ function sc_log_sms_entry_to_db($created_at, $level, $message, $data = array()) 
 }
 
 /**
+ * Default values for all SMS settings (templates, enabled flags, patterns).
+ */
+function sc_get_sms_settings_defaults() {
+    static $defaults = null;
+    if ($defaults !== null) {
+        return $defaults;
+    }
+
+    $pair = static function ($prefix, $user_template, $admin_template) {
+        return [
+            $prefix . '_user_enabled' => '0',
+            $prefix . '_user_template' => $user_template,
+            $prefix . '_user_pattern' => '',
+            $prefix . '_admin_enabled' => '0',
+            $prefix . '_admin_template' => $admin_template,
+            $prefix . '_admin_pattern' => '',
+        ];
+    };
+
+    $user_only = static function ($prefix, $user_template) {
+        return [
+            $prefix . '_user_enabled' => '0',
+            $prefix . '_user_template' => $user_template,
+            $prefix . '_user_pattern' => '',
+        ];
+    };
+
+    $defaults = [
+        'sms_master_enabled' => '1',
+        'sms_api_key' => '',
+        'sms_sender' => '',
+        'sms_admin_phone' => '',
+        'sms_reminder_delay_minutes' => '4320',
+    ];
+
+    $defaults = array_merge($defaults, $pair(
+        'sms_invoice',
+        'کاربر گرامی %user_name%، صورت‌حساب %item_name% به مبلغ %amount% تومان صادر شد.',
+        'صورت‌حساب جدید: %user_name% - %item_name% - %amount% تومان'
+    ));
+    $defaults = array_merge($defaults, $pair(
+        'sms_invoice_cancelled',
+        'کاربر گرامی %user_name%، صورت‌حساب %item_name% لغو شد.',
+        'صورت‌حساب لغو شد: %user_name% - %item_name%'
+    ));
+    $defaults = array_merge($defaults, $pair(
+        'sms_invoice_onhold',
+        'کاربر گرامی %user_name%، صورت‌حساب %item_name% در انتظار بررسی است.',
+        'صورت‌حساب در انتظار بررسی: %user_name% - %item_name%'
+    ));
+    $defaults = array_merge($defaults, $pair(
+        'sms_invoice_paid',
+        'کاربر گرامی %user_name%، صورت‌حساب %item_name% پرداخت شد.',
+        'صورت‌حساب پرداخت شد: %user_name% - %item_name%'
+    ));
+    $defaults = array_merge($defaults, $pair(
+        'sms_enrollment',
+        'کاربر گرامی %user_name%، ثبت‌نام شما در %item_name% انجام شد.',
+        'ثبت‌نام جدید: %user_name% در %item_name%'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_course_capacity_waitlist',
+        'کاربر گرامی %user_name%، ظرفیت %item_name% باز شد. ثبت‌نام: %enroll_url%'
+    ));
+    $defaults = array_merge($defaults, $pair(
+        'sms_reminder',
+        'کاربر گرامی %user_name%، مهلت پرداخت %item_name% (%amount% تومان) به پایان رسیده است.',
+        'یادآوری پرداخت: %user_name% - %item_name% - %amount% تومان'
+    ));
+    $defaults = array_merge($defaults, $pair(
+        'sms_absence',
+        'کاربر گرامی %user_name%، غیبت شما در %item_name% مورخ %date% ثبت شد.',
+        'غیبت: %user_name% - %item_name% - %date%'
+    ));
+    $defaults = array_merge($defaults, $pair(
+        'sms_absence_alert',
+        'کاربر گرامی %user_name%، غیبت شما در %item_name% به %absence_count% رسید.',
+        'هشدار غیبت: %user_name% - %item_name% - %absence_count% غیبت'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_birthday',
+        '%user_name% عزیز، تولدتان مبارک!'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_insurance_expiry',
+        'کاربر گرامی %user_name%، بیمه شما تا %expiry_date% اعتبار دارد.'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_identity_verified',
+        'کاربر گرامی %user_name%، احراز هویت شما تأیید شد.'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_identity_rejected',
+        'کاربر گرامی %user_name%، احراز هویت شما رد شد. علت: %reason%'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_certificate',
+        'کاربر گرامی %user_name%، گواهینامه شما صادر شد.'
+    ));
+    $defaults = array_merge($defaults, $pair(
+        'sms_survey_submission',
+        'کاربر گرامی %user_name%، پاسخ شما در نظرسنجی «%survey_title%» ثبت شد.',
+        'پاسخ جدید نظرسنجی: %user_name% - %survey_title%'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_wallet_low_balance',
+        'کاربر گرامی %user_name%، موجودی کیف پول %balance% تومان است.'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_wallet_negative_balance',
+        'کاربر گرامی %user_name%، موجودی کیف پول منفی شده (%balance% تومان).'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_wallet_charge_success',
+        'کاربر گرامی %user_name%، کیف پول %amount% تومان شارژ شد. موجودی: %balance% تومان.'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_wallet_payment',
+        'کاربر گرامی %user_name%، %amount% تومان از کیف پول کسر شد. موجودی: %balance% تومان.'
+    ));
+
+    $wc_physical = [
+        'paid' => ['پرداخت شده', 'کاربر گرامی %user_name%، سفارش #%order_id% پرداخت شد.', 'سفارش #%order_id% پرداخت شد - %user_name%'],
+        'awaiting_shipment' => ['در انتظار ارسال', 'کاربر گرامی %user_name%، سفارش #%order_id% در انتظار ارسال است.', 'سفارش #%order_id% در انتظار ارسال - %user_name%'],
+        'confirmed_shipped' => ['ارسال و تأیید', 'کاربر گرامی %user_name%، سفارش #%order_id% ارسال و تأیید شد.', 'سفارش #%order_id% ارسال و تأیید - %user_name%'],
+        'completed' => ['تکمیل‌شده', 'کاربر گرامی %user_name%، سفارش #%order_id% تکمیل شد.', 'سفارش #%order_id% تکمیل شد - %user_name%'],
+        'cancelled' => ['لغو‌شده', 'کاربر گرامی %user_name%، سفارش #%order_id% لغو شد.', 'سفارش #%order_id% لغو شد - %user_name%'],
+        'onhold' => ['در انتظار بررسی', 'کاربر گرامی %user_name%، سفارش #%order_id% در انتظار بررسی است.', 'سفارش #%order_id% در انتظار بررسی - %user_name%'],
+        'failed' => ['ناموفق', 'کاربر گرامی %user_name%، سفارش #%order_id% ناموفق بود.', 'سفارش #%order_id% ناموفق - %user_name%'],
+    ];
+    foreach ($wc_physical as $status => $tpl) {
+        $defaults = array_merge($defaults, $pair('sms_wc_order_' . $status, $tpl[1], $tpl[2]));
+    }
+
+    $wc_virtual = [
+        'paid' => ['کاربر گرامی %user_name%، سفارش مجازی #%order_id% (%product_names%) پرداخت شد.', 'سفارش مجازی #%order_id% پرداخت شد - %user_name%'],
+        'awaiting_shipment' => ['کاربر گرامی %user_name%، سفارش مجازی #%order_id% در انتظار ارسال است.', 'سفارش مجازی #%order_id% در انتظار ارسال - %user_name%'],
+        'confirmed_shipped' => ['کاربر گرامی %user_name%، سفارش مجازی #%order_id% ارسال و تأیید شد.', 'سفارش مجازی #%order_id% ارسال و تأیید - %user_name%'],
+        'completed' => ['کاربر گرامی %user_name%، سفارش مجازی #%order_id% (%product_names%) تکمیل شد.', 'سفارش مجازی #%order_id% - %user_name% - %product_names%'],
+        'cancelled' => ['کاربر گرامی %user_name%، سفارش مجازی #%order_id% لغو شد.', 'سفارش مجازی #%order_id% لغو شد - %user_name%'],
+        'onhold' => ['کاربر گرامی %user_name%، سفارش مجازی #%order_id% در انتظار بررسی است.', 'سفارش مجازی #%order_id% در انتظار بررسی - %user_name%'],
+        'failed' => ['کاربر گرامی %user_name%، سفارش مجازی #%order_id% ناموفق بود.', 'سفارش مجازی #%order_id% ناموفق - %user_name%'],
+    ];
+    foreach ($wc_virtual as $status => $tpl) {
+        $defaults = array_merge($defaults, $pair('sms_wc_order_virtual_' . $status, $tpl[0], $tpl[1]));
+    }
+
+    $defaults['sms_ticket_new_recipient_enabled'] = '0';
+    $defaults['sms_ticket_new_recipient_template'] = 'تیکت جدید #{ticket_id} - موضوع: {subject}';
+    $defaults['sms_ticket_reply_enabled'] = '0';
+    $defaults['sms_ticket_reply_template'] = 'پاسخ جدید به تیکت #{ticket_id}. لطفاً پنل خود را بررسی کنید.';
+
+    return $defaults;
+}
+
+/**
+ * Get SMS setting with fallback to defaults (empty templates use default text).
+ */
+function sc_get_sms_setting($key) {
+    $defaults = sc_get_sms_settings_defaults();
+    $default = array_key_exists($key, $defaults) ? $defaults[$key] : '';
+    $value = sc_get_setting($key, null);
+
+    if ($value === null) {
+        return $default;
+    }
+
+    if ($value === '' && $default !== '' && strpos($key, '_template') !== false) {
+        return $default;
+    }
+
+    return $value;
+}
+
+/**
  * Get SMS template for specific action
  */
 function sc_get_sms_template($action, $type = 'user') {
-    // $type can be 'user' or 'admin'
-    $default_templates = [
-        'invoice' => [
-            'user' => '%user_name% عزیز، صورت حساب جدید برای %item_name% صادر شد. مبلغ %amount% تومان - سررسید: %due_date%',
-            'admin' => 'صورت حساب جدید: %user_name% - %item_name% - مبلغ %amount% تومان'
-        ],
-        'wallet_low_balance' => [
-            'user' => '%user_name% عزیز، موجودی کیف پول شما به %balance% تومان رسیده است. لطفاً کیف پول خود را شارژ کنید.',
-            'admin' => 'هشدار موجودی کم: %user_name% - موجودی: %balance% تومان'
-        ],
-        'wallet_negative_balance' => [
-            'user' => '%user_name% عزیز، موجودی کیف پول شما منفی شده است (%balance% تومان). لطفاً فوراً کیف پول خود را شارژ کنید.',
-            'admin' => 'هشدار موجودی منفی: %user_name% - موجودی: %balance% تومان'
-        ],
-        'wallet_charge_success' => [
-            'user' => '%user_name% عزیز، کیف پول شما به مبلغ %amount% تومان شارژ شد. موجودی فعلی: %balance% تومان.',
-            'admin' => 'شارژ کیف پول: %user_name% - مبلغ: %amount% تومان - موجودی: %balance% تومان'
-        ],
-        'wallet_payment' => [
-            'user' => '%user_name% عزیز، مبلغ %amount% تومان از کیف پول شما کسر شد. موجودی فعلی: %balance% تومان.',
-            'admin' => 'پرداخت از کیف پول: %user_name% - مبلغ: %amount% تومان - موجودی: %balance% تومان'
-        ],
-        'enrollment' => [
-            'user' => '%user_name% عزیز، ثبت نام شما در %item_name% تکمیل شد.',
-            'admin' => 'ثبت نام جدید: %user_name% در %item_name%'
-        ],
-        'reminder' => [
-            'user' => '%user_name% عزیز، صورت حساب %amount% تومان برای %item_name% سر رسیده است. لطفاً پرداخت کنید.',
-            'admin' => 'یادآوری پرداخت: %user_name% - %item_name% - مبلغ %amount% تومان'
-        ],
-        'absence' => [
-            'user' => 'کاربر گرامی %user_name%، غیبت شما در جلسه %item_name% مورخ %date% ثبت شد.',
-            'admin' => 'غیبت: %user_name% - %item_name% - تاریخ %date%'
-        ],
-        'absence_alert' => [
-            'user' => 'کاربر گرامی %user_name%، تعداد غیبت شما در %item_name% به %absence_count% رسیده است (حد مجاز: %absence_limit%).',
-            'admin' => 'هشدار غیبت: %user_name% در %item_name% دارای %absence_count% غیبت است (حد مجاز: %absence_limit%).'
-        ],
-        'birthday' => [
-            'user' => 'کاربر گرامی %user_name%، تولدتان مبارک! باشگاه ورزشی ما این روز را به شما تبریک می‌گوید.'
-        ],
-        'insurance_expiry' => [
-            'user' => 'کاربر گرامی %user_name%، تاریخ انقضای بیمه شما %expiry_date% است. لطفاً نسبت به تمدید اقدام کنید.'
-        ],
-        'identity_verified' => [
-            'user' => 'کاربر گرامی %user_name%، احراز هویت شما تایید شد.'
-        ],
-        'certificate' => [
-            'user' => 'کاربر گرامی %user_name%، یک گواهینامه برای شما صادر شد. لطفا به پنل خود مراجعه کنید.'
-        ],
-        'course_capacity_waitlist' => [
-            'user' => 'کاربر گرامی %user_name%، ظرفیت ثبت‌نام دوره «%item_name%» باز شد. ثبت‌نام: %enroll_url%'
-        ],
-        'survey_submission' => [
-            'user' => 'کاربر گرامی %user_name%، پاسخ شما در نظرسنجی «%survey_title%» با موفقیت ثبت شد.',
-            'admin' => 'پاسخ جدید نظرسنجی: %user_name% - %survey_title%'
-        ]
-    ];
-
-    $default = isset($default_templates[$action][$type]) ? $default_templates[$action][$type] : '';
-    return sc_get_setting("sms_{$action}_{$type}_template", $default);
+    return sc_get_sms_setting("sms_{$action}_{$type}_template");
 }
 
 /**
@@ -671,8 +786,7 @@ function sc_get_sms_pattern($action, $type = 'user') {
  * Check if SMS is enabled for specific action
  */
 function sc_is_sms_enabled_for($action, $type = 'user') {
-    // $type can be 'user' or 'admin'
-    return (int)sc_get_setting("sms_{$action}_{$type}_enabled", '0') === 1;
+    return (int) sc_get_sms_setting("sms_{$action}_{$type}_enabled") === 1;
 }
 
 /**
@@ -1081,210 +1195,16 @@ function sc_send_identity_verified_notifications($member_id) {
  * Initialize SMS settings defaults
  */
 function sc_initialize_sms_settings() {
-    $defaults = [
-        // Master SMS switch
-        'sms_master_enabled' => '1',
-
-        // API Settings
-        'sms_api_key' => '',
-        'sms_sender' => '',
-        'sms_admin_phone' => '',
-        'sms_reminder_delay_minutes' => '4320', // 3 days in minutes
-
-        // Invoice SMS - User
-        'sms_invoice_user_enabled' => '0',
-        'sms_invoice_user_template' => 'کاربر گرامی %user_name%، صورت‌حساب %item_name% به مبلغ %amount% تومان ایجاد شد.',
-        'sms_invoice_user_pattern' => '',
-
-        // Invoice SMS - Admin
-        'sms_invoice_admin_enabled' => '0',
-        'sms_invoice_admin_template' => 'صورت‌حساب جدید: %user_name% - %item_name% - %amount% تومان',
-        'sms_invoice_admin_pattern' => '',
-
-        // Enrollment SMS - User
-        'sms_enrollment_user_enabled' => '1',
-        'sms_enrollment_user_template' => 'کاربر گرامی %user_name%، ثبت نام شما در %item_name% با موفقیت انجام شد.',
-        'sms_enrollment_user_pattern' => '',
-
-        // Enrollment SMS - Admin
-        'sms_enrollment_admin_enabled' => '1',
-        'sms_enrollment_admin_template' => 'ثبت نام جدید: %user_name% در %item_name%',
-        'sms_enrollment_admin_pattern' => '',
-
-        // Reminder SMS - User
-        'sms_reminder_user_enabled' => '1',
-        'sms_reminder_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% به مبلغ %amount% تومان پرداخت نشده است. در صورت تأخیر شامل جریمه %penalty_amount% تومان می‌شود.',
-        'sms_reminder_user_pattern' => '',
-
-        // Reminder SMS - Admin
-        'sms_reminder_admin_enabled' => '1',
-        'sms_reminder_admin_template' => 'یادآوری پرداخت: %user_name% - %item_name% - مبلغ %amount% تومان',
-        'sms_reminder_admin_pattern' => '',
-
-        // Absence SMS - User
-        'sms_absence_user_enabled' => '1',
-        'sms_absence_user_template' => 'کاربر گرامی %user_name%، غیبت شما در جلسه %item_name% مورخ %date% ثبت شد.',
-        'sms_absence_user_pattern' => '',
-
-        // Absence SMS - Admin
-        'sms_absence_admin_enabled' => '1',
-        'sms_absence_admin_template' => 'غیبت: %user_name% - %item_name% - تاریخ %date%',
-        'sms_absence_admin_pattern' => '',
-        'sms_absence_alert_user_enabled' => '0',
-        'sms_absence_alert_user_template' => 'کاربر گرامی %user_name%، تعداد غیبت شما در %item_name% به %absence_count% رسیده است (حد مجاز: %absence_limit%).',
-        'sms_absence_alert_user_pattern' => '',
-        'sms_absence_alert_admin_enabled' => '0',
-        'sms_absence_alert_admin_template' => 'هشدار غیبت: %user_name% در %item_name% دارای %absence_count% غیبت است (حد مجاز: %absence_limit%).',
-        'sms_absence_alert_admin_pattern' => '',
-
-        // Reminder Settings
-        //'sms_reminder_delay_minutes' => '4320', // 3 days in minutes
-        'sms_identity_verified_user_enabled' => '1',
-        'sms_identity_verified_user_template' => 'کاربر گرامی %user_name%، احراز هویت شما تایید شد.',
-        'sms_identity_verified_user_pattern' => '',
-
-        // Identity rejection SMS
-        'sms_identity_rejected_user_enabled' => '1',
-        'sms_identity_rejected_user_template' => 'کاربر گرامی %user_name%، احراز هویت شما رد شد. علت: %reason%',
-        'sms_identity_rejected_user_pattern' => '',
-
-        'sms_certificate_user_enabled' => '1',
-        'sms_certificate_user_template' => 'کاربر گرامی %user_name%، یک گواهینامه برای شما صادر شد. لطفا به پنل خود مراجعه کنید.',
-        'sms_certificate_user_pattern' => '',
-        'sms_course_capacity_waitlist_user_enabled' => '0',
-        'sms_course_capacity_waitlist_user_template' => 'کاربر گرامی %user_name%، ظرفیت ثبت‌نام دوره «%item_name%» باز شد. ثبت‌نام: %enroll_url%',
-        'sms_course_capacity_waitlist_user_pattern' => '',
-
-        // WooCommerce Product Order SMS (پیامک محصول)
-        'sms_wc_order_completed_user_enabled' => '1',
-        'sms_wc_order_completed_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% شما با موفقیت تکمیل شد. مبلغ: %amount% تومان',
-        'sms_wc_order_completed_user_pattern' => '',
-        'sms_wc_order_completed_admin_enabled' => '1',
-        'sms_wc_order_completed_admin_template' => 'سفارش #%order_id% تکمیل شد - %user_name% - مبلغ: %amount% تومان',
-        'sms_wc_order_completed_admin_pattern' => '',
-
-        'sms_wc_order_cancelled_user_enabled' => '1',
-        'sms_wc_order_cancelled_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% شما لغو شد.',
-        'sms_wc_order_cancelled_user_pattern' => '',
-        'sms_wc_order_cancelled_admin_enabled' => '1',
-        'sms_wc_order_cancelled_admin_template' => 'سفارش #%order_id% لغو شد - %user_name%',
-        'sms_wc_order_cancelled_admin_pattern' => '',
-
-        'sms_wc_order_onhold_user_enabled' => '1',
-        'sms_wc_order_onhold_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% شما در انتظار بررسی است.',
-        'sms_wc_order_onhold_user_pattern' => '',
-        'sms_wc_order_onhold_admin_enabled' => '1',
-        'sms_wc_order_onhold_admin_template' => 'سفارش #%order_id% در انتظار بررسی - %user_name%',
-        'sms_wc_order_onhold_admin_pattern' => '',
-
-        'sms_wc_order_failed_user_enabled' => '1',
-        'sms_wc_order_failed_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% شما ناموفق بود.',
-        'sms_wc_order_failed_user_pattern' => '',
-        'sms_wc_order_failed_admin_enabled' => '1',
-        'sms_wc_order_failed_admin_template' => 'سفارش #%order_id% ناموفق - %user_name%',
-        'sms_wc_order_failed_admin_pattern' => '',
-
-        // WooCommerce Virtual/Downloadable Product Order SMS
-        'sms_wc_order_virtual_completed_user_enabled' => '1',
-        'sms_wc_order_virtual_completed_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% (%product_names%) تکمیل شد.',
-        'sms_wc_order_virtual_completed_user_pattern' => '',
-        'sms_wc_order_virtual_completed_admin_enabled' => '1',
-        'sms_wc_order_virtual_completed_admin_template' => 'سفارش محصول مجازی #%order_id% - %user_name% - %product_names%',
-        'sms_wc_order_virtual_completed_admin_pattern' => '',
-
-        'sms_wc_order_virtual_cancelled_user_enabled' => '1',
-        'sms_wc_order_virtual_cancelled_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% لغو شد.',
-        'sms_wc_order_virtual_cancelled_user_pattern' => '',
-        'sms_wc_order_virtual_cancelled_admin_enabled' => '1',
-        'sms_wc_order_virtual_cancelled_admin_template' => 'سفارش محصول مجازی #%order_id% لغو شد - %user_name%',
-        'sms_wc_order_virtual_cancelled_admin_pattern' => '',
-
-        'sms_wc_order_virtual_onhold_user_enabled' => '1',
-        'sms_wc_order_virtual_onhold_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% در انتظار بررسی است.',
-        'sms_wc_order_virtual_onhold_user_pattern' => '',
-        'sms_wc_order_virtual_onhold_admin_enabled' => '1',
-        'sms_wc_order_virtual_onhold_admin_template' => 'سفارش محصول مجازی #%order_id% در انتظار بررسی - %user_name%',
-        'sms_wc_order_virtual_onhold_admin_pattern' => '',
-
-        'sms_wc_order_virtual_failed_user_enabled' => '1',
-        'sms_wc_order_virtual_failed_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% ناموفق بود.',
-        'sms_wc_order_virtual_failed_user_pattern' => '',
-        'sms_wc_order_virtual_failed_admin_enabled' => '1',
-        'sms_wc_order_virtual_failed_admin_template' => 'سفارش محصول مجازی #%order_id% ناموفق - %user_name%',
-        'sms_wc_order_virtual_failed_admin_pattern' => '',
-
-        // Custom order status SMS (aligned with sc_orders UI labels)
-        'sms_wc_order_paid_user_enabled' => '1',
-        'sms_wc_order_paid_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% شما پرداخت شد.',
-        'sms_wc_order_paid_user_pattern' => '',
-        'sms_wc_order_paid_admin_enabled' => '1',
-        'sms_wc_order_paid_admin_template' => 'سفارش #%order_id% پرداخت شد - %user_name%',
-        'sms_wc_order_paid_admin_pattern' => '',
-
-        'sms_wc_order_awaiting_shipment_user_enabled' => '1',
-        'sms_wc_order_awaiting_shipment_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% پرداخت شده و در انتظار ارسال است.',
-        'sms_wc_order_awaiting_shipment_user_pattern' => '',
-        'sms_wc_order_awaiting_shipment_admin_enabled' => '1',
-        'sms_wc_order_awaiting_shipment_admin_template' => 'سفارش #%order_id% پرداخت شده منتظر ارسال - %user_name%',
-        'sms_wc_order_awaiting_shipment_admin_pattern' => '',
-
-        'sms_wc_order_confirmed_shipped_user_enabled' => '1',
-        'sms_wc_order_confirmed_shipped_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% ارسال و تایید شد.',
-        'sms_wc_order_confirmed_shipped_user_pattern' => '',
-        'sms_wc_order_confirmed_shipped_admin_enabled' => '1',
-        'sms_wc_order_confirmed_shipped_admin_template' => 'سفارش #%order_id% ارسال و تایید - %user_name%',
-        'sms_wc_order_confirmed_shipped_admin_pattern' => '',
-
-        // Virtual variants of custom statuses
-        'sms_wc_order_virtual_paid_user_enabled' => '1',
-        'sms_wc_order_virtual_paid_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% (%product_names%) پرداخت شد.',
-        'sms_wc_order_virtual_paid_user_pattern' => '',
-        'sms_wc_order_virtual_paid_admin_enabled' => '1',
-        'sms_wc_order_virtual_paid_admin_template' => 'سفارش محصول مجازی #%order_id% پرداخت شد - %user_name% - %product_names%',
-        'sms_wc_order_virtual_paid_admin_pattern' => '',
-
-        'sms_wc_order_virtual_awaiting_shipment_user_enabled' => '1',
-        'sms_wc_order_virtual_awaiting_shipment_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% پرداخت شده و در انتظار ارسال است.',
-        'sms_wc_order_virtual_awaiting_shipment_user_pattern' => '',
-        'sms_wc_order_virtual_awaiting_shipment_admin_enabled' => '1',
-        'sms_wc_order_virtual_awaiting_shipment_admin_template' => 'سفارش محصول مجازی #%order_id% پرداخت شده منتظر ارسال - %user_name%',
-        'sms_wc_order_virtual_awaiting_shipment_admin_pattern' => '',
-
-        'sms_wc_order_virtual_confirmed_shipped_user_enabled' => '1',
-        'sms_wc_order_virtual_confirmed_shipped_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% ارسال و تایید شد.',
-        'sms_wc_order_virtual_confirmed_shipped_user_pattern' => '',
-        'sms_wc_order_virtual_confirmed_shipped_admin_enabled' => '1',
-        'sms_wc_order_virtual_confirmed_shipped_admin_template' => 'سفارش محصول مجازی #%order_id% ارسال و تایید - %user_name%',
-        'sms_wc_order_virtual_confirmed_shipped_admin_pattern' => '',
-
-        // Additional Invoice states
-        'sms_invoice_cancelled_user_enabled' => '0',
-        'sms_invoice_cancelled_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% لغو شد.',
-        'sms_invoice_cancelled_user_pattern' => '',
-        'sms_invoice_cancelled_admin_enabled' => '0',
-        'sms_invoice_cancelled_admin_template' => 'صورت حساب لغو شد: %user_name% - %item_name%',
-        'sms_invoice_cancelled_admin_pattern' => '',
-
-        'sms_invoice_onhold_user_enabled' => '0',
-        'sms_invoice_onhold_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% در انتظار بررسی است.',
-        'sms_invoice_onhold_user_pattern' => '',
-        'sms_invoice_onhold_admin_enabled' => '0',
-        'sms_invoice_onhold_admin_template' => 'صورت حساب در انتظار بررسی: %user_name% - %item_name%',
-        'sms_invoice_onhold_admin_pattern' => '',
-
-        // Invoice paid SMS
-        'sms_invoice_paid_user_enabled' => '1',
-        'sms_invoice_paid_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% به مبلغ %amount% تومان پرداخت شد.',
-        'sms_invoice_paid_user_pattern' => '',
-        'sms_invoice_paid_admin_enabled' => '1',
-        'sms_invoice_paid_admin_template' => 'صورت حساب پرداخت شد: %user_name% - %item_name% - مبلغ %amount% تومان',
-        'sms_invoice_paid_admin_pattern' => '',
-    ];
+    $defaults = sc_get_sms_settings_defaults();
 
     foreach ($defaults as $key => $value) {
-        if (sc_get_setting($key, null) === null) {
+        $current = sc_get_setting($key, null);
+        if ($current === null) {
             sc_update_setting($key, $value, 'sms');
-            error_log("SC SMS: Initialized setting $key = $value");
+            continue;
+        }
+        if ($current === '' && $value !== '' && strpos($key, '_template') !== false) {
+            sc_update_setting($key, $value, 'sms');
         }
     }
 }

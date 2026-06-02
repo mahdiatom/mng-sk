@@ -34,7 +34,9 @@ $first_template_key = !empty($templates) ? array_key_first($templates) : '';
 
 <div class="wrap sc-users-export-wrap">
     <h1>تعریف قالب گواهینامه</h1>
+</div>
 
+<div class="wrap sc-users-export-wrap">
     <?php if ($notice) : ?>
         <div class="notice notice-success is-dismissible"><p><?php echo esc_html($notice); ?></p></div>
     <?php endif; ?>
@@ -60,7 +62,9 @@ $first_template_key = !empty($templates) ? array_key_first($templates) : '';
                     <?php endforeach; ?>
                 </div>
             </div>
-
+</div>
+                    </div>
+<div class="wrap sc-users-export-wrap">
             <div class="sc-users-export-card">
                 <p class="description">برای هر قالب، متغیرها را از زیر بخش «متن گواهینامه» درج کنید.</p>
                 <div id="sc-certificate-templates-container">
@@ -267,14 +271,14 @@ $first_template_key = !empty($templates) ? array_key_first($templates) : '';
             <?php endforeach; ?>
                 </div>
             </div>
-        </div>
+        
 
         <p class="submit">
             <button type="submit" name="sc_save_certificate_templates" class="button button-primary">ذخیره قالب‌ها</button>
         </p>
     </form>
 </div>
-
+</div>
 <style>
 @font-face {
     font-family: Vazir;
@@ -297,7 +301,7 @@ $first_template_key = !empty($templates) ? array_key_first($templates) : '';
     font-style: normal;
 }
 .sc-template-manager-grid { display: block !important; }
-.sc-template-manager-grid > .sc-users-export-card { width: 100% !important; max-width: 100% !important; margin-bottom: 16px; }
+.sc-template-manager-grid > .sc-users-export-card {  margin-bottom: 16px; }
 .sc-padding-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .sc-padding-item small { display: block; margin-bottom: 4px; color: #666; }
 .sc-padding-item input { width: 100%; max-width: 100%; box-sizing: border-box; }
