@@ -998,6 +998,9 @@ function sc_send_absence_sms($attendance_id) {
 
 // Hook for invoice creation
 add_action('sc_invoice_created', 'sc_send_invoice_sms', 10, 1);
+add_action('sc_invoice_paid', function($invoice_id) {
+    sc_send_invoice_action_sms($invoice_id, 'invoice_paid');
+}, 10, 1);
 
 // Hook for course enrollment success (after payment)
 add_action('sc_course_enrolled_success', 'sc_send_enrollment_success_sms', 10, 1);
@@ -1089,13 +1092,13 @@ function sc_initialize_sms_settings() {
         'sms_reminder_delay_minutes' => '4320', // 3 days in minutes
 
         // Invoice SMS - User
-        'sms_invoice_user_enabled' => '1',
-        'sms_invoice_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% به مبلغ %amount% تومان ایجاد شد. مهلت پرداخت: %due_date%',
+        'sms_invoice_user_enabled' => '0',
+        'sms_invoice_user_template' => 'کاربر گرامی %user_name%، صورت‌حساب %item_name% به مبلغ %amount% تومان ایجاد شد.',
         'sms_invoice_user_pattern' => '',
 
         // Invoice SMS - Admin
-        'sms_invoice_admin_enabled' => '1',
-        'sms_invoice_admin_template' => 'صورت حساب جدید: %user_name% - %item_name% - مبلغ %amount% تومان',
+        'sms_invoice_admin_enabled' => '0',
+        'sms_invoice_admin_template' => 'صورت‌حساب جدید: %user_name% - %item_name% - %amount% تومان',
         'sms_invoice_admin_pattern' => '',
 
         // Enrollment SMS - User
@@ -1210,6 +1213,50 @@ function sc_initialize_sms_settings() {
         'sms_wc_order_virtual_failed_admin_template' => 'سفارش محصول مجازی #%order_id% ناموفق - %user_name%',
         'sms_wc_order_virtual_failed_admin_pattern' => '',
 
+        // Custom order status SMS (aligned with sc_orders UI labels)
+        'sms_wc_order_paid_user_enabled' => '1',
+        'sms_wc_order_paid_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% شما پرداخت شد.',
+        'sms_wc_order_paid_user_pattern' => '',
+        'sms_wc_order_paid_admin_enabled' => '1',
+        'sms_wc_order_paid_admin_template' => 'سفارش #%order_id% پرداخت شد - %user_name%',
+        'sms_wc_order_paid_admin_pattern' => '',
+
+        'sms_wc_order_awaiting_shipment_user_enabled' => '1',
+        'sms_wc_order_awaiting_shipment_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% پرداخت شده و در انتظار ارسال است.',
+        'sms_wc_order_awaiting_shipment_user_pattern' => '',
+        'sms_wc_order_awaiting_shipment_admin_enabled' => '1',
+        'sms_wc_order_awaiting_shipment_admin_template' => 'سفارش #%order_id% پرداخت شده منتظر ارسال - %user_name%',
+        'sms_wc_order_awaiting_shipment_admin_pattern' => '',
+
+        'sms_wc_order_confirmed_shipped_user_enabled' => '1',
+        'sms_wc_order_confirmed_shipped_user_template' => 'کاربر گرامی %user_name%، سفارش #%order_id% ارسال و تایید شد.',
+        'sms_wc_order_confirmed_shipped_user_pattern' => '',
+        'sms_wc_order_confirmed_shipped_admin_enabled' => '1',
+        'sms_wc_order_confirmed_shipped_admin_template' => 'سفارش #%order_id% ارسال و تایید - %user_name%',
+        'sms_wc_order_confirmed_shipped_admin_pattern' => '',
+
+        // Virtual variants of custom statuses
+        'sms_wc_order_virtual_paid_user_enabled' => '1',
+        'sms_wc_order_virtual_paid_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% (%product_names%) پرداخت شد.',
+        'sms_wc_order_virtual_paid_user_pattern' => '',
+        'sms_wc_order_virtual_paid_admin_enabled' => '1',
+        'sms_wc_order_virtual_paid_admin_template' => 'سفارش محصول مجازی #%order_id% پرداخت شد - %user_name% - %product_names%',
+        'sms_wc_order_virtual_paid_admin_pattern' => '',
+
+        'sms_wc_order_virtual_awaiting_shipment_user_enabled' => '1',
+        'sms_wc_order_virtual_awaiting_shipment_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% پرداخت شده و در انتظار ارسال است.',
+        'sms_wc_order_virtual_awaiting_shipment_user_pattern' => '',
+        'sms_wc_order_virtual_awaiting_shipment_admin_enabled' => '1',
+        'sms_wc_order_virtual_awaiting_shipment_admin_template' => 'سفارش محصول مجازی #%order_id% پرداخت شده منتظر ارسال - %user_name%',
+        'sms_wc_order_virtual_awaiting_shipment_admin_pattern' => '',
+
+        'sms_wc_order_virtual_confirmed_shipped_user_enabled' => '1',
+        'sms_wc_order_virtual_confirmed_shipped_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% ارسال و تایید شد.',
+        'sms_wc_order_virtual_confirmed_shipped_user_pattern' => '',
+        'sms_wc_order_virtual_confirmed_shipped_admin_enabled' => '1',
+        'sms_wc_order_virtual_confirmed_shipped_admin_template' => 'سفارش محصول مجازی #%order_id% ارسال و تایید - %user_name%',
+        'sms_wc_order_virtual_confirmed_shipped_admin_pattern' => '',
+
         // Additional Invoice states
         'sms_invoice_cancelled_user_enabled' => '0',
         'sms_invoice_cancelled_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% لغو شد.',
@@ -1224,6 +1271,14 @@ function sc_initialize_sms_settings() {
         'sms_invoice_onhold_admin_enabled' => '0',
         'sms_invoice_onhold_admin_template' => 'صورت حساب در انتظار بررسی: %user_name% - %item_name%',
         'sms_invoice_onhold_admin_pattern' => '',
+
+        // Invoice paid SMS
+        'sms_invoice_paid_user_enabled' => '1',
+        'sms_invoice_paid_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% به مبلغ %amount% تومان پرداخت شد.',
+        'sms_invoice_paid_user_pattern' => '',
+        'sms_invoice_paid_admin_enabled' => '1',
+        'sms_invoice_paid_admin_template' => 'صورت حساب پرداخت شد: %user_name% - %item_name% - مبلغ %amount% تومان',
+        'sms_invoice_paid_admin_pattern' => '',
     ];
 
     foreach ($defaults as $key => $value) {
@@ -1471,6 +1526,8 @@ function sc_send_invoice_sms_on_wc_order_status($order_id, $old_status, $new_sta
         'cancelled' => 'invoice_cancelled',
         'on-hold' => 'invoice_onhold',
         'pending' => 'invoice_onhold',
+        'processing' => 'invoice_paid',
+        'completed' => 'invoice_paid',
     ];
 
     $action = $action_map[$new_status] ?? null;
@@ -1529,11 +1586,12 @@ function sc_send_wc_order_status_sms($order_id, $status) {
     $prefix = $is_virtual ? 'wc_order_virtual' : 'wc_order';
 
     $status_suffix_map = [
-        'completed' => 'completed',
+        'processing' => 'awaiting_shipment',
+        'on-hold' => 'paid',
+        'pending' => 'paid',
+        'completed' => 'confirmed_shipped',
         'cancelled' => 'cancelled',
-        'on-hold' => 'onhold',
         'failed' => 'failed',
-        'pending' => 'onhold',
     ];
 
     $suffix = $status_suffix_map[$status] ?? null;

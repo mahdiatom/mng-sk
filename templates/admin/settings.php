@@ -122,6 +122,21 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_invoice_onhold_admin_template', $sms_invoice_onhold_admin_template, 'sms');
         sc_update_setting('sms_invoice_onhold_admin_pattern', $sms_invoice_onhold_admin_pattern, 'sms');
 
+        // Invoice paid SMS
+        $sms_invoice_paid_user_enabled = isset($_POST['sms_invoice_paid_user_enabled']) ? 1 : 0;
+        $sms_invoice_paid_user_template = isset($_POST['sms_invoice_paid_user_template']) ? wp_kses($_POST['sms_invoice_paid_user_template'], array()) : '';
+        $sms_invoice_paid_user_pattern = isset($_POST['sms_invoice_paid_user_pattern']) ? absint($_POST['sms_invoice_paid_user_pattern']) : '';
+        $sms_invoice_paid_admin_enabled = isset($_POST['sms_invoice_paid_admin_enabled']) ? 1 : 0;
+        $sms_invoice_paid_admin_template = isset($_POST['sms_invoice_paid_admin_template']) ? wp_kses($_POST['sms_invoice_paid_admin_template'], array()) : '';
+        $sms_invoice_paid_admin_pattern = isset($_POST['sms_invoice_paid_admin_pattern']) ? absint($_POST['sms_invoice_paid_admin_pattern']) : '';
+
+        sc_update_setting('sms_invoice_paid_user_enabled', $sms_invoice_paid_user_enabled, 'sms');
+        sc_update_setting('sms_invoice_paid_user_template', $sms_invoice_paid_user_template, 'sms');
+        sc_update_setting('sms_invoice_paid_user_pattern', $sms_invoice_paid_user_pattern, 'sms');
+        sc_update_setting('sms_invoice_paid_admin_enabled', $sms_invoice_paid_admin_enabled, 'sms');
+        sc_update_setting('sms_invoice_paid_admin_template', $sms_invoice_paid_admin_template, 'sms');
+        sc_update_setting('sms_invoice_paid_admin_pattern', $sms_invoice_paid_admin_pattern, 'sms');
+
         // WooCommerce Product Order SMS (پیامک محصول)
         $sms_wc_order_completed_user_enabled = isset($_POST['sms_wc_order_completed_user_enabled']) ? 1 : 0;
         $sms_wc_order_completed_user_template = isset($_POST['sms_wc_order_completed_user_template']) ? wp_kses($_POST['sms_wc_order_completed_user_template'], array()) : '';
@@ -704,6 +719,14 @@ $sms_invoice_onhold_user_pattern = sc_get_setting('sms_invoice_onhold_user_patte
 $sms_invoice_onhold_admin_enabled = (int)sc_get_setting('sms_invoice_onhold_admin_enabled', '0');
 $sms_invoice_onhold_admin_template = sc_get_setting('sms_invoice_onhold_admin_template', '');
 $sms_invoice_onhold_admin_pattern = sc_get_setting('sms_invoice_onhold_admin_pattern', '');
+
+// Invoice paid
+$sms_invoice_paid_user_enabled = (int)sc_get_setting('sms_invoice_paid_user_enabled', '1');
+$sms_invoice_paid_user_template = sc_get_setting('sms_invoice_paid_user_template', 'کاربر گرامی %user_name%، صورت حساب %item_name% به مبلغ %amount% تومان پرداخت شد.');
+$sms_invoice_paid_user_pattern = sc_get_setting('sms_invoice_paid_user_pattern', '');
+$sms_invoice_paid_admin_enabled = (int)sc_get_setting('sms_invoice_paid_admin_enabled', '1');
+$sms_invoice_paid_admin_template = sc_get_setting('sms_invoice_paid_admin_template', 'صورت حساب پرداخت شد: %user_name% - %item_name% - مبلغ %amount% تومان');
+$sms_invoice_paid_admin_pattern = sc_get_setting('sms_invoice_paid_admin_pattern', '');
 
 // WooCommerce Product Order SMS (پیامک محصول)
 $sms_wc_order_completed_user_enabled = (int)sc_get_setting('sms_wc_order_completed_user_enabled', '1');
@@ -1993,6 +2016,67 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                             <input type="number"
                                    name="sms_invoice_onhold_admin_pattern"
                                    value="<?php echo esc_attr($sms_invoice_onhold_admin_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir</p>
+                        </td>
+                    </tr>
+                    <!-- Paid row -->
+                    <tr>
+                        <th scope="row">پیامک پرداخت شده به کاربر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_invoice_paid_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_invoice_paid_user_enabled, 1); ?>>
+                                فعال کردن پیامک پرداخت شده صورت حساب به کاربر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_invoice_paid_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک پرداخت شده به کاربر"><?php echo esc_textarea($sms_invoice_paid_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% - 
+                                نام آیتم = %item_name% - 
+                                مبلغ = %amount%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_invoice_paid_user_pattern"
+                                   value="<?php echo esc_attr($sms_invoice_paid_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پیامک پرداخت شده به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_invoice_paid_admin_enabled"
+                                       value="1"
+                                       <?php checked($sms_invoice_paid_admin_enabled, 1); ?>>
+                                فعال کردن پیامک پرداخت شده صورت حساب به مدیر
+                            </label>
+                            <br><br>
+                            <textarea name="sms_invoice_paid_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک پرداخت شده به مدیر"><?php echo esc_textarea($sms_invoice_paid_admin_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده:<br>
+                                نام کاربر = %user_name% - 
+                                نام آیتم = %item_name% - 
+                                مبلغ = %amount%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_invoice_paid_admin_pattern"
+                                   value="<?php echo esc_attr($sms_invoice_paid_admin_pattern); ?>"
                                    class="small-text"
                                    placeholder="کد پترن (اختیاری)">
                             <p class="description">کد پترن از پنل sms.ir</p>
