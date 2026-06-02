@@ -76,6 +76,10 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_reminder_delay_minutes', $sms_reminder_delay_minutes, 'sms');
         sc_update_setting('sms_cost_per_message', $sms_cost_per_message, 'sms');
 
+        // Master SMS switch
+        $sms_master_enabled = isset($_POST['sms_master_enabled']) ? 1 : 0;
+        sc_update_setting('sms_master_enabled', $sms_master_enabled, 'sms');
+
         // Invoice SMS Settings
         $sms_invoice_user_enabled = isset($_POST['sms_invoice_user_enabled']) ? 1 : 0;
         $sms_invoice_user_template = isset($_POST['sms_invoice_user_template']) ? wp_kses($_POST['sms_invoice_user_template'], array()) : '';
@@ -174,6 +178,20 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_wc_order_failed_admin_enabled', $sms_wc_order_failed_admin_enabled, 'sms');
         sc_update_setting('sms_wc_order_failed_admin_template', $sms_wc_order_failed_admin_template, 'sms');
         sc_update_setting('sms_wc_order_failed_admin_pattern', $sms_wc_order_failed_admin_pattern, 'sms');
+
+        // WooCommerce Virtual/Downloadable Product Order SMS
+        $wc_virtual_sms_statuses = ['completed', 'cancelled', 'onhold', 'failed'];
+        foreach ($wc_virtual_sms_statuses as $wc_virtual_status) {
+            foreach (['user', 'admin'] as $wc_virtual_recipient) {
+                $wc_virtual_prefix = 'sms_wc_order_virtual_' . $wc_virtual_status . '_' . $wc_virtual_recipient;
+                $wc_virtual_enabled = isset($_POST[$wc_virtual_prefix . '_enabled']) ? 1 : 0;
+                $wc_virtual_template = isset($_POST[$wc_virtual_prefix . '_template']) ? wp_kses($_POST[$wc_virtual_prefix . '_template'], array()) : '';
+                $wc_virtual_pattern = isset($_POST[$wc_virtual_prefix . '_pattern']) ? absint($_POST[$wc_virtual_prefix . '_pattern']) : '';
+                sc_update_setting($wc_virtual_prefix . '_enabled', $wc_virtual_enabled, 'sms');
+                sc_update_setting($wc_virtual_prefix . '_template', $wc_virtual_template, 'sms');
+                sc_update_setting($wc_virtual_prefix . '_pattern', $wc_virtual_pattern, 'sms');
+            }
+        }
 
         // Enrollment SMS Settings
         $sms_enrollment_user_enabled = isset($_POST['sms_enrollment_user_enabled']) ? 1 : 0;
@@ -662,6 +680,7 @@ $sms_sender = sc_get_setting('sms_sender', '');
 $sms_admin_phone = sc_get_setting('sms_admin_phone', '');
 $sms_reminder_delay_minutes = sc_get_setting('sms_reminder_delay_minutes', '4320');
 $sms_cost_per_message = floatval(sc_get_setting('sms_cost_per_message', '200'));
+$sms_master_enabled = (int)sc_get_setting('sms_master_enabled', '1');
 
 // Invoice SMS Settings
 $sms_invoice_user_enabled = (int)sc_get_setting('sms_invoice_user_enabled', '1');
@@ -714,6 +733,30 @@ $sms_wc_order_failed_user_pattern = sc_get_setting('sms_wc_order_failed_user_pat
 $sms_wc_order_failed_admin_enabled = (int)sc_get_setting('sms_wc_order_failed_admin_enabled', '1');
 $sms_wc_order_failed_admin_template = sc_get_setting('sms_wc_order_failed_admin_template', '');
 $sms_wc_order_failed_admin_pattern = sc_get_setting('sms_wc_order_failed_admin_pattern', '');
+
+// WooCommerce Virtual/Downloadable Product Order SMS
+$sc_wc_virtual_sms = [];
+$sc_wc_virtual_sms_statuses = ['completed', 'cancelled', 'onhold', 'failed'];
+foreach ($sc_wc_virtual_sms_statuses as $sc_wc_virtual_status) {
+    foreach (['user', 'admin'] as $sc_wc_virtual_recipient) {
+        $sc_wc_virtual_prefix = 'sms_wc_order_virtual_' . $sc_wc_virtual_status . '_' . $sc_wc_virtual_recipient;
+        $sc_wc_virtual_sms[$sc_wc_virtual_status][$sc_wc_virtual_recipient] = [
+            'enabled' => (int) sc_get_setting($sc_wc_virtual_prefix . '_enabled', '1'),
+            'template' => sc_get_setting($sc_wc_virtual_prefix . '_template', ''),
+            'pattern' => sc_get_setting($sc_wc_virtual_prefix . '_pattern', ''),
+        ];
+    }
+}
+$sc_wc_virtual_sms_labels = [
+    'completed' => 'تکمیل‌شده',
+    'cancelled' => 'لغو‌شده',
+    'onhold' => 'در انتظار بررسی',
+    'failed' => 'ناموفق',
+];
+$sc_wc_virtual_sms_recipient_labels = [
+    'user' => 'کاربر',
+    'admin' => 'مدیر',
+];
 
 // Enrollment SMS Settings
 
@@ -1714,6 +1757,29 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                     }
                 </style>
 
+                <!-- Master SMS Enable/Disable -->
+                <table class="form-table" style="margin-bottom:20px; background:#fff3cd; padding:15px; border:1px solid #f0c36d; border-radius:6px;">
+                    <tr>
+                        <th scope="row" style="width:200px; vertical-align:middle;">
+                            <label for="sms_master_enabled"><strong>وضعیت کلی ارسال پیامک</strong></label>
+                        </th>
+                        <td>
+                            <label style="font-size:15px;">
+                                <input type="checkbox"
+                                       id="sms_master_enabled"
+                                       name="sms_master_enabled"
+                                       value="1"
+                                       <?php checked($sms_master_enabled, 1); ?>>
+                                <strong style="color:#d63638;">فعال کردن ارسال پیامک</strong>
+                            </label>
+                            <p class="description" style="margin-top:8px; color:#b32d2e; font-weight:500;">
+                                ⚠️ با غیرفعال کردن این گزینه، <strong>تمامی پیامک‌های خودکار</strong> (از جمله پیامک‌های ورود، عضویت، صورت‌حساب، ثبت‌نام، غیبت، احراز هویت و ...) متوقف خواهند شد.
+                                حتی اگر الگوها فعال باشند، هیچ پیامکی ارسال نمی‌شود.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
                 <div class="sc-sms-section-selector">
                     <strong>نمایش بخش‌های تنظیمات پیامک</strong>
                     <div class="sc-sms-checkbox-list">
@@ -1939,6 +2005,11 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                 <!-- WooCommerce Product Order SMS Section -->
                 <div class="sc-sms-message-section" data-section="wc-product">
                 <h3>پیامک محصول (سفارشات ووکامرس)</h3>
+                <p class="description" style="margin-bottom:15px;">
+                    سفارش‌های مربوط به <strong>دوره، رویداد و صورت‌حساب داخلی</strong> از بخش «پیامک صورت حساب» پیام می‌گیرند و اینجا پیامک نمی‌گیرند.
+                    بخش زیر فقط برای سفارش‌های مستقیم فروشگاه (محصول فیزیکی، مجازی یا دانلودی) است.
+                </p>
+                <h4 style="margin:20px 0 10px;">محصول فیزیکی (غیرمجازی)</h4>
                 <table class="form-table">
                     <!-- Completed -->
                     <tr>
@@ -2107,6 +2178,45 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
                             <input type="number" name="sms_wc_order_failed_admin_pattern" value="<?php echo esc_attr($sms_wc_order_failed_admin_pattern); ?>" class="small-text" placeholder="کد پترن">
                         </td>
                     </tr>
+                </table>
+
+                <h4 style="margin:30px 0 10px;">محصول مجازی / دانلودی</h4>
+                <p class="description" style="margin-bottom:15px;">
+                    اگر سفارش حداقل یک محصول مجازی یا دانلودی داشته باشد، به‌جای الگوی محصول فیزیکی از این بخش استفاده می‌شود.
+                    متغیرهای اضافه: %product_names%، %item_name%
+                </p>
+                <table class="form-table">
+                    <?php foreach ($sc_wc_virtual_sms_statuses as $sc_wc_virtual_status) : ?>
+                        <?php foreach (['user', 'admin'] as $sc_wc_virtual_recipient) :
+                            $sc_wc_virtual_prefix = 'sms_wc_order_virtual_' . $sc_wc_virtual_status . '_' . $sc_wc_virtual_recipient;
+                            $sc_wc_virtual_row = $sc_wc_virtual_sms[$sc_wc_virtual_status][$sc_wc_virtual_recipient];
+                        ?>
+                    <tr>
+                        <th scope="row">پیامک <?php echo esc_html($sc_wc_virtual_sms_labels[$sc_wc_virtual_status]); ?> به <?php echo esc_html($sc_wc_virtual_sms_recipient_labels[$sc_wc_virtual_recipient]); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="<?php echo esc_attr($sc_wc_virtual_prefix . '_enabled'); ?>"
+                                       value="1"
+                                       <?php checked($sc_wc_virtual_row['enabled'], 1); ?>>
+                                فعال کردن پیامک سفارش <?php echo esc_html($sc_wc_virtual_sms_labels[$sc_wc_virtual_status]); ?> (مجازی/دانلودی) به <?php echo esc_html($sc_wc_virtual_sms_recipient_labels[$sc_wc_virtual_recipient]); ?>
+                            </label>
+                            <br><br>
+                            <textarea name="<?php echo esc_attr($sc_wc_virtual_prefix . '_template'); ?>"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sc_wc_virtual_row['template']); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %order_id%، %amount%، %product_names%، %item_name%</p>
+                            <br>
+                            <input type="number"
+                                   name="<?php echo esc_attr($sc_wc_virtual_prefix . '_pattern'); ?>"
+                                   value="<?php echo esc_attr($sc_wc_virtual_row['pattern']); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن">
+                        </td>
+                    </tr>
+                        <?php endforeach; ?>
+                    <?php endforeach; ?>
                 </table>
                 </div>
 

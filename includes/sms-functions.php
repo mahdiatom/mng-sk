@@ -231,6 +231,11 @@ function sc_ajax_check_sms_delivery_status() {
  * @param string $context بخش مبدا برای لاگ: ticket_new, invoice, enrollment, ...
  */
 function sc_send_sms($mobile, $message, $is_pattern = false, $pattern_code = null, $parameters = array(), $context = '') {
+    // Master SMS switch check
+    if ((int)sc_get_setting('sms_master_enabled', '1') !== 1) {
+        return ['success' => false, 'message' => 'ارسال پیامک توسط مدیر غیرفعال شده است'];
+    }
+
     // Get SMS settings
     $api_key = sc_get_setting('sms_api_key', '');
     $sender = sc_get_setting('sms_sender', '');
@@ -282,6 +287,10 @@ function sc_send_sms($mobile, $message, $is_pattern = false, $pattern_code = nul
  * Send regular SMS via sms.ir
  */
 function sc_send_regular_sms($mobile, $message) {
+    if ((int)sc_get_setting('sms_master_enabled', '1') !== 1) {
+        return ['success' => false, 'message' => 'ارسال پیامک توسط مدیر غیرفعال شده است'];
+    }
+
     $api_key = sc_get_setting('sms_api_key', '');
     $sender = sc_get_setting('sms_sender', '');
 
@@ -392,6 +401,10 @@ function sc_send_regular_sms($mobile, $message) {
  * Send pattern SMS via sms.ir
  */
 function sc_send_pattern_sms($mobile, $pattern_code, $parameters = array()) {
+    if ((int)sc_get_setting('sms_master_enabled', '1') !== 1) {
+        return ['success' => false, 'message' => 'ارسال پیامک توسط مدیر غیرفعال شده است'];
+    }
+
     $api_key = sc_get_setting('sms_api_key', '');
 
     // sms.ir API endpoint for verify (pattern) SMS
@@ -677,88 +690,7 @@ function sc_replace_sms_variables($template, $variables) {
  */
 function sc_send_invoice_sms($invoice_id) {
     error_log("SC SMS: Invoice SMS hook called for invoice ID: $invoice_id");
-    global $wpdb;
-    $invoices_table = $wpdb->prefix . 'sc_invoices';
-    $members_table = $wpdb->prefix . 'sc_members';
-    $courses_table = $wpdb->prefix . 'sc_courses';
-    $events_table = $wpdb->prefix . 'sc_events';
-
-    // Get invoice details with support for courses, events, and expenses
-    $invoice = $wpdb->get_row($wpdb->prepare(
-        "SELECT i.*, m.first_name, m.last_name, m.player_phone,
-                c.title as course_title, c.price as course_price,
-                e.name as event_name, e.price as event_price 
-         FROM $invoices_table i
-         LEFT JOIN $members_table m ON i.member_id = m.id
-         LEFT JOIN $courses_table c ON i.course_id = c.id
-         LEFT JOIN $events_table e ON i.event_id = e.id
-         WHERE i.id = %d",
-        $invoice_id
-    ));
-
-    if (!$invoice || empty($invoice->player_phone)) {
-        return;
-    }
-
-    $user_name = trim($invoice->first_name . ' ' . $invoice->last_name);
-
-    // Determine item name based on invoice type
-    $item_name = '';
-    if (!empty($invoice->course_title)) {
-        $item_name = $invoice->course_title;
-    } elseif (!empty($invoice->event_name)) {
-        $item_name = $invoice->event_name;
-    } elseif (!empty($invoice->expense_name)) {
-        $item_name = $invoice->expense_name;
-    } else {
-        $item_name = 'صورت حساب';
-    }
-
-    $amount = number_format($invoice->amount + $invoice->penalty_amount, 0, '.', ',');
-
-    // Calculate due date (7 days from creation) in Shamsi format
-    $due_date_timestamp = strtotime($invoice->created_at . ' +7 days');
-    $due_date = sc_date_shamsi_date_only(date('Y-m-d', $due_date_timestamp));
-
-    $variables = [
-        'user_name' => $user_name,
-        'course_name' => $invoice->course_title ?: '',
-        'event_name' => $invoice->event_name ?: '',
-        'item_name' => $item_name,
-        'expense_name' => $invoice->expense_name ?: '',
-        'amount' => $amount,
-        'due_date' => $due_date
-    ];
-
-    // Send SMS to user
-    if (sc_is_sms_enabled_for('invoice', 'user')) {
-        $template = sc_get_sms_template('invoice', 'user');
-        if (!empty($template)) {
-            $message = sc_replace_sms_variables($template, $variables);
-            $pattern_code = sc_get_sms_pattern('invoice', 'user');
-            sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'invoice');
-        }
-        $bot_id = sc_get_user_bale_chat_id($invoice->id);
-        if($bot_id > 0 && function_exists('bale_send_message') ){
-            bale_send_message($bot_id ,$message );
-        }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
-            sc_bale_send_by_phone(sc_convert_phone_to_98($invoice->player_phone) , $message);
-        }
-    }
-
-    // Send SMS to admin
-    if (sc_is_sms_enabled_for('invoice', 'admin')) {
-        $admin_phone = sc_get_setting('sms_admin_phone', '');
-        if (!empty($admin_phone)) {
-            $template = sc_get_sms_template('invoice', 'admin');
-            if (!empty($template)) {
-                $message = sc_replace_sms_variables($template, $variables);
-                $pattern_code = sc_get_sms_pattern('invoice', 'admin');
-                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'invoice');
-                
-            }
-        }
-    }
+    sc_send_invoice_action_sms($invoice_id, 'invoice');
 }
 
 /**
@@ -1147,6 +1079,9 @@ function sc_send_identity_verified_notifications($member_id) {
  */
 function sc_initialize_sms_settings() {
     $defaults = [
+        // Master SMS switch
+        'sms_master_enabled' => '1',
+
         // API Settings
         'sms_api_key' => '',
         'sms_sender' => '',
@@ -1246,6 +1181,35 @@ function sc_initialize_sms_settings() {
         'sms_wc_order_failed_admin_template' => 'سفارش #%order_id% ناموفق - %user_name%',
         'sms_wc_order_failed_admin_pattern' => '',
 
+        // WooCommerce Virtual/Downloadable Product Order SMS
+        'sms_wc_order_virtual_completed_user_enabled' => '1',
+        'sms_wc_order_virtual_completed_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% (%product_names%) تکمیل شد.',
+        'sms_wc_order_virtual_completed_user_pattern' => '',
+        'sms_wc_order_virtual_completed_admin_enabled' => '1',
+        'sms_wc_order_virtual_completed_admin_template' => 'سفارش محصول مجازی #%order_id% - %user_name% - %product_names%',
+        'sms_wc_order_virtual_completed_admin_pattern' => '',
+
+        'sms_wc_order_virtual_cancelled_user_enabled' => '1',
+        'sms_wc_order_virtual_cancelled_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% لغو شد.',
+        'sms_wc_order_virtual_cancelled_user_pattern' => '',
+        'sms_wc_order_virtual_cancelled_admin_enabled' => '1',
+        'sms_wc_order_virtual_cancelled_admin_template' => 'سفارش محصول مجازی #%order_id% لغو شد - %user_name%',
+        'sms_wc_order_virtual_cancelled_admin_pattern' => '',
+
+        'sms_wc_order_virtual_onhold_user_enabled' => '1',
+        'sms_wc_order_virtual_onhold_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% در انتظار بررسی است.',
+        'sms_wc_order_virtual_onhold_user_pattern' => '',
+        'sms_wc_order_virtual_onhold_admin_enabled' => '1',
+        'sms_wc_order_virtual_onhold_admin_template' => 'سفارش محصول مجازی #%order_id% در انتظار بررسی - %user_name%',
+        'sms_wc_order_virtual_onhold_admin_pattern' => '',
+
+        'sms_wc_order_virtual_failed_user_enabled' => '1',
+        'sms_wc_order_virtual_failed_user_template' => 'کاربر گرامی %user_name%، سفارش محصول مجازی #%order_id% ناموفق بود.',
+        'sms_wc_order_virtual_failed_user_pattern' => '',
+        'sms_wc_order_virtual_failed_admin_enabled' => '1',
+        'sms_wc_order_virtual_failed_admin_template' => 'سفارش محصول مجازی #%order_id% ناموفق - %user_name%',
+        'sms_wc_order_virtual_failed_admin_pattern' => '',
+
         // Additional Invoice states
         'sms_invoice_cancelled_user_enabled' => '0',
         'sms_invoice_cancelled_user_template' => 'کاربر گرامی %user_name%، صورت حساب %item_name% لغو شد.',
@@ -1341,10 +1305,192 @@ function sc_send_survey_submission_sms($response_id) {
 }
 
 /**
- * Send SMS for WooCommerce product order status changes
+ * Get internal invoice ID linked to a WooCommerce order (course/event/wallet).
+ */
+function sc_get_invoice_id_by_wc_order_id($order_id) {
+    global $wpdb;
+    $id = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM {$wpdb->prefix}sc_invoices WHERE woocommerce_order_id = %d LIMIT 1",
+        (int) $order_id
+    ));
+    return $id ? (int) $id : 0;
+}
+
+/**
+ * Check if order contains at least one virtual or downloadable product.
+ */
+function sc_wc_order_has_virtual_or_downloadable_items($order) {
+    if (!$order || !method_exists($order, 'get_items')) {
+        return false;
+    }
+    foreach ($order->get_items() as $item) {
+        if (!is_a($item, 'WC_Order_Item_Product')) {
+            continue;
+        }
+        $product = $item->get_product();
+        if ($product && ($product->is_virtual() || $product->is_downloadable())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Get comma-separated names of virtual/downloadable products in an order.
+ */
+function sc_wc_order_get_virtual_product_names($order) {
+    $names = [];
+    if (!$order || !method_exists($order, 'get_items')) {
+        return '';
+    }
+    foreach ($order->get_items() as $item) {
+        if (!is_a($item, 'WC_Order_Item_Product')) {
+            continue;
+        }
+        $product = $item->get_product();
+        if ($product && ($product->is_virtual() || $product->is_downloadable())) {
+            $names[] = $item->get_name();
+        }
+    }
+    return implode('، ', $names);
+}
+
+/**
+ * Build SMS variables array for an invoice record.
+ */
+function sc_build_invoice_sms_variables($invoice) {
+    $user_name = trim(($invoice->first_name ?? '') . ' ' . ($invoice->last_name ?? ''));
+
+    $item_name = '';
+    if (!empty($invoice->course_title)) {
+        $item_name = $invoice->course_title;
+    } elseif (!empty($invoice->event_name)) {
+        $item_name = $invoice->event_name;
+    } elseif (!empty($invoice->expense_name)) {
+        $item_name = $invoice->expense_name;
+    } else {
+        $item_name = 'صورت حساب';
+    }
+
+    $amount = number_format((float) $invoice->amount + (float) $invoice->penalty_amount, 0, '.', ',');
+    $due_date_timestamp = strtotime($invoice->created_at . ' +7 days');
+    $due_date = function_exists('sc_date_shamsi_date_only')
+        ? sc_date_shamsi_date_only(date('Y-m-d', $due_date_timestamp))
+        : date('Y-m-d', $due_date_timestamp);
+
+    return [
+        'user_name' => $user_name,
+        'course_name' => $invoice->course_title ?? '',
+        'event_name' => $invoice->event_name ?? '',
+        'item_name' => $item_name,
+        'expense_name' => $invoice->expense_name ?? '',
+        'amount' => $amount,
+        'due_date' => $due_date,
+    ];
+}
+
+/**
+ * Fetch invoice row with member/course/event details for SMS.
+ */
+function sc_get_invoice_for_sms($invoice_id) {
+    global $wpdb;
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $members_table = $wpdb->prefix . 'sc_members';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $events_table = $wpdb->prefix . 'sc_events';
+
+    return $wpdb->get_row($wpdb->prepare(
+        "SELECT i.*, m.first_name, m.last_name, m.player_phone,
+                c.title as course_title, c.price as course_price,
+                e.name as event_name, e.price as event_price
+         FROM $invoices_table i
+         LEFT JOIN $members_table m ON i.member_id = m.id
+         LEFT JOIN $courses_table c ON i.course_id = c.id
+         LEFT JOIN $events_table e ON i.event_id = e.id
+         WHERE i.id = %d",
+        (int) $invoice_id
+    ));
+}
+
+/**
+ * Send invoice SMS for a specific action (invoice, invoice_cancelled, invoice_onhold, ...).
+ */
+function sc_send_invoice_action_sms($invoice_id, $action) {
+    $invoice = sc_get_invoice_for_sms($invoice_id);
+    if (!$invoice || empty($invoice->player_phone)) {
+        return;
+    }
+
+    $variables = sc_build_invoice_sms_variables($invoice);
+
+    if (sc_is_sms_enabled_for($action, 'user')) {
+        $template = sc_get_sms_template($action, 'user');
+        if (!empty($template)) {
+            $message = sc_replace_sms_variables($template, $variables);
+            $pattern_code = sc_get_sms_pattern($action, 'user');
+            sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, $action);
+
+            if ($action === 'invoice') {
+                $bot_id = function_exists('sc_get_user_bale_chat_id') ? sc_get_user_bale_chat_id($invoice->member_id) : 0;
+                if ($bot_id > 0 && function_exists('bale_send_message')) {
+                    bale_send_message($bot_id, $message);
+                } elseif ($bot_id === null && function_exists('sc_bale_send_by_phone')) {
+                    sc_bale_send_by_phone(sc_convert_phone_to_98($invoice->player_phone), $message);
+                }
+            }
+        }
+    }
+
+    if (sc_is_sms_enabled_for($action, 'admin')) {
+        $admin_phone = sc_get_setting('sms_admin_phone', '');
+        if (!empty($admin_phone)) {
+            $template = sc_get_sms_template($action, 'admin');
+            if (!empty($template)) {
+                $message = sc_replace_sms_variables($template, $variables);
+                $pattern_code = sc_get_sms_pattern($action, 'admin');
+                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, $action);
+            }
+        }
+    }
+}
+
+/**
+ * Send invoice status SMS when linked WooCommerce order status changes.
+ */
+function sc_send_invoice_sms_on_wc_order_status($order_id, $old_status, $new_status, $order) {
+    if ($old_status === $new_status) {
+        return;
+    }
+
+    $invoice_id = sc_get_invoice_id_by_wc_order_id($order_id);
+    if (!$invoice_id) {
+        return;
+    }
+
+    $action_map = [
+        'cancelled' => 'invoice_cancelled',
+        'on-hold' => 'invoice_onhold',
+        'pending' => 'invoice_onhold',
+    ];
+
+    $action = $action_map[$new_status] ?? null;
+    if (!$action) {
+        return;
+    }
+
+    sc_send_invoice_action_sms($invoice_id, $action);
+}
+
+/**
+ * Send SMS for WooCommerce shop product orders (not course/event invoices).
  */
 function sc_send_wc_order_status_sms($order_id, $status) {
     if (!class_exists('WC_Order')) {
+        return;
+    }
+
+    // Course/event/wallet invoices use invoice SMS templates, not shop product SMS.
+    if (sc_get_invoice_id_by_wc_order_id($order_id)) {
         return;
     }
 
@@ -1360,7 +1506,6 @@ function sc_send_wc_order_status_sms($order_id, $status) {
 
     $phone = $order->get_billing_phone();
     if (empty($phone)) {
-        // try customer user phone
         $user_id = $order->get_user_id();
         if ($user_id) {
             $phone = get_user_meta($user_id, 'billing_phone', true);
@@ -1370,37 +1515,43 @@ function sc_send_wc_order_status_sms($order_id, $status) {
         return;
     }
 
+    $product_names = sc_wc_order_get_virtual_product_names($order);
     $variables = [
         'user_name' => trim($user_name),
         'order_id' => $order->get_order_number(),
         'amount' => number_format($order->get_total(), 0, '.', ','),
-        'status' => $status
+        'status' => $status,
+        'product_names' => $product_names,
+        'item_name' => $product_names ?: '',
     ];
 
-    $action_map = [
-        'completed' => 'wc_order_completed',
-        'cancelled' => 'wc_order_cancelled',
-        'on-hold' => 'wc_order_onhold',
-        'failed' => 'wc_order_failed',
-        'pending' => 'wc_order_onhold',
+    $is_virtual = sc_wc_order_has_virtual_or_downloadable_items($order);
+    $prefix = $is_virtual ? 'wc_order_virtual' : 'wc_order';
+
+    $status_suffix_map = [
+        'completed' => 'completed',
+        'cancelled' => 'cancelled',
+        'on-hold' => 'onhold',
+        'failed' => 'failed',
+        'pending' => 'onhold',
     ];
 
-    $action = $action_map[$status] ?? null;
-    if (!$action) {
+    $suffix = $status_suffix_map[$status] ?? null;
+    if (!$suffix) {
         return;
     }
 
-    // Send to user
+    $action = $prefix . '_' . $suffix;
+
     if (sc_is_sms_enabled_for($action, 'user')) {
         $template = sc_get_sms_template($action, 'user');
         if (!empty($template)) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern($action, 'user');
-            sc_send_sms($phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wc_order_' . $status);
+            sc_send_sms($phone, $message, !empty($pattern_code), $pattern_code, $variables, $action);
         }
     }
 
-    // Send to admin
     if (sc_is_sms_enabled_for($action, 'admin')) {
         $admin_phone = sc_get_setting('sms_admin_phone', '');
         if (!empty($admin_phone)) {
@@ -1408,7 +1559,7 @@ function sc_send_wc_order_status_sms($order_id, $status) {
             if (!empty($template)) {
                 $message = sc_replace_sms_variables($template, $variables);
                 $pattern_code = sc_get_sms_pattern($action, 'admin');
-                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wc_order_' . $status);
+                sc_send_sms($admin_phone, $message, !empty($pattern_code), $pattern_code, $variables, $action);
             }
         }
     }
@@ -1434,6 +1585,9 @@ add_action('woocommerce_order_status_on-hold', function($order_id) {
 add_action('woocommerce_order_status_pending', function($order_id) {
     sc_send_wc_order_status_sms($order_id, 'pending');
 }, 10, 1);
+
+// Invoice SMS when linked WC order status changes (course/event/wallet)
+add_action('woocommerce_order_status_changed', 'sc_send_invoice_sms_on_wc_order_status', 25, 4);
 
 /**
  * Send SMS + notification when identity is rejected
