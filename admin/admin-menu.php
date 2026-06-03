@@ -14,6 +14,13 @@ add_action('admin_menu', 'sc_register_admin_menu');
 
 function sc_register_admin_menu() {
 
+    if (function_exists('sc_is_license_active') && !sc_is_license_active()) {
+        if (function_exists('sc_register_license_only_admin_menu')) {
+            sc_register_license_only_admin_menu();
+        }
+        return;
+    }
+
     /* ================= Dashboard ================= */
 
     add_menu_page(
@@ -1335,6 +1342,10 @@ function sc_handle_excel_export() {
     // بررسی اینکه آیا درخواست export است
     if (!isset($_GET['sc_export']) || $_GET['sc_export'] !== 'excel') {
         return;
+    }
+
+    if (!function_exists('sc_is_license_active') || !sc_is_license_active()) {
+        wp_die(esc_html__('خروجی اکسل به‌دلیل غیرفعال بودن لایسنس در دسترس نیست.', 'sportclub-manager'));
     }
     
     // بررسی دسترسی
@@ -5235,16 +5246,24 @@ function sc_admin_coach_management_withdrawals_page() {
 }
 
 /**
- * Add SMS credit info to admin bar
+ * Add SMS credit info to admin bar (فقط وقتی لایسنس فعال و ماژول پیامک بارگذاری شده)
  */
-add_action('admin_bar_menu', 'sc_add_sms_credit_to_admin_bar', 999);
+if (function_exists('sc_is_license_active') && sc_is_license_active()) {
+    add_action('admin_bar_menu', 'sc_add_sms_credit_to_admin_bar', 999);
+}
 
 function sc_add_sms_credit_to_admin_bar($wp_admin_bar) {
+    if (!function_exists('sc_is_license_active') || !sc_is_license_active()) {
+        return;
+    }
+    if (!function_exists('sc_get_sms_credit')) {
+        return;
+    }
     // Only show for admins
     if ( !current_user_can('manage_options')  || current_user_can('coach') ) {
         return;
     }
-    if( !sc_is_pro_feature_sms_enabled()){
+    if( !function_exists('sc_is_pro_feature_sms_enabled') || !sc_is_pro_feature_sms_enabled()){
         return;
     }
 

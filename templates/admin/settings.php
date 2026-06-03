@@ -8,10 +8,38 @@ if (!defined('ABSPATH')) {
 sc_check_and_create_tables();
 
 // دریافت تب فعلی (باید قبل از پردازش فرم باشد)
-$current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'penalty';
+$sc_settings_default_tab = (function_exists('sc_is_license_active') && !sc_is_license_active()) ? 'license' : 'penalty';
+$current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : $sc_settings_default_tab;
 
-// پردازش فرم
-if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce', 'sc_settings_nonce')) {
+if (function_exists('sc_is_license_active') && !sc_is_license_active()) {
+    if ($current_tab !== 'license') {
+        wp_safe_redirect(admin_url('admin.php?page=sc_setting&tab=license'));
+        exit;
+    }
+}
+
+/**
+ * فقط تب لایسنس — بدون بارگذاری تنظیمات SMS و سایر ماژول‌ها
+ */
+if ($current_tab === 'license' && function_exists('sc_is_license_active') && !sc_is_license_active()) {
+    ?>
+    <div class="wrap sc_setting_section">
+        <h1>تنظیمات SportClub Manager</h1>
+        <nav class="nav-tab-wrapper">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc_setting&tab=license')); ?>"
+               class="nav-tab nav-tab-active">لایسنس</a>
+        </nav>
+        <div class="tab-content" style="margin-top: 20px;">
+            <?php include SC_TEMPLATES_ADMIN_DIR . 'settings-tab-license.php'; ?>
+        </div>
+    </div>
+    <?php
+    return;
+}
+
+// پردازش فرم (بدون لایسنس فعال ذخیره سایر تب‌ها مجاز نیست)
+if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce', 'sc_settings_nonce')
+    && (!function_exists('sc_is_license_active') || sc_is_license_active())) {
     if ($current_tab === 'penalty') {
         $penalty_enabled = isset($_POST['penalty_enabled']) ? 1 : 0;
         $penalty_minutes = isset($_POST['penalty_minutes']) ? absint($_POST['penalty_minutes']) : 7;
@@ -670,7 +698,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
 }
 
 // پردازش فرم بازگشت به کارخانه
-if (isset($_POST['sc_reset_factory']) && check_admin_referer('sc_reset_factory', 'sc_reset_factory_nonce')) {
+if (isset($_POST['sc_reset_factory']) && check_admin_referer('sc_reset_factory', 'sc_reset_factory_nonce')
+    && function_exists('sc_reset_factory_data')) {
     if (isset($_POST['confirm_reset']) && $_POST['confirm_reset'] == '1') {
         $reset_result = sc_reset_factory_data();
         if ($reset_result['success']) {
@@ -682,6 +711,9 @@ if (isset($_POST['sc_reset_factory']) && check_admin_referer('sc_reset_factory',
         echo '<div class="notice notice-error is-dismissible"><p>لطفاً تأیید را علامت بزنید.</p></div>';
     }
 }
+
+// دریافت تنظیمات سایر تب‌ها — تب لایسنس به این داده‌ها نیاز ندارد
+if ($current_tab !== 'license') :
 
 // دریافت تنظیمات فعلی
 $penalty_enabled = sc_is_penalty_enabled();
@@ -955,12 +987,19 @@ if (is_array($decoded_header_suggestions)) {
 
 // ذخیره سازی صورتحساب
 $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
+
+endif; // پایان بارگذاری تنظیمات (غیر از تب لایسنس)
 ?>
 
 <div class="wrap sc_setting_section" >
     <h1>تنظیمات SportClub Manager</h1>
 
     <nav class="nav-tab-wrapper">
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=license'); ?>"
+           class="nav-tab <?php echo $current_tab === 'license' ? 'nav-tab-active' : ''; ?>">
+            لایسنس
+        </a>
+        <?php if (!function_exists('sc_is_license_active') || sc_is_license_active()) : ?>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=penalty'); ?>"
            class="nav-tab <?php echo $current_tab === 'penalty' ? 'nav-tab-active' : ''; ?>">
             جریمه
@@ -1040,10 +1079,13 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
             بازگشت به کارخانه
         </a> -->
 <?php } ?>
+        <?php endif; ?>
     </nav>
 
     <div class="tab-content" style="margin-top: 20px;">
-        <?php if ($current_tab === 'penalty') : ?>
+        <?php if ($current_tab === 'license') :
+            include SC_TEMPLATES_ADMIN_DIR . 'settings-tab-license.php';
+        elseif ($current_tab === 'penalty') : ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
 

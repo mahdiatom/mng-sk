@@ -1,14 +1,16 @@
 <?php
-/*
-Plugin Name: SportClub Manager
-Plugin URI:  https://example.com
-Description: Sport club management plugin (members, courses, payments, attendance, etc.)
-Version:     1.3.6
-Author:      Mahdi Babashahi
-Author URI:  https://example.com
-License:     GPL2
-Text Domain: sportclub-manager
-*/
+/**
+ * Plugin Name:       سامانه مدیریت باشگاه اتم کلاب
+ * Plugin URI:        https://atomwp.ir
+ * Description:       یک سیستم جامع برای مدیریت اعضا، دوره‌های ورزشی، پرداخت‌ها و حضور و غیاب باشگاه با قابلیت یکپارچگی کامل با ووکامرس.
+ * Version:           1.4.9
+ * Author:            مهدی باباشاهی
+ * Author URI:        https://atomwp.ir
+ * License:           GPL2
+ * Text Domain:       atom-club-manager
+ * Requires Plugins:  woocommerce
+ */
+
 
 
 // Prevent direct access
@@ -33,6 +35,15 @@ define('SC_TEMPLATES_PUBLIC_DIR', SC_TEMPLATES_DIR . 'public/');// Public templa
 define('SC_ASSETS_DIR', SC_PLUGIN_DIR . 'assets/');              // Assets folder (CSS, JS, images)
 define('SC_ASSETS_URL', SC_PLUGIN_URL . 'assets/');              // Assets URL
 define('SC_VENDOR_DIR', WP_CONTENT_DIR . '/vendor/');            // Shared vendor folder in wp-content
+define('SC_PLUGIN_MAIN_FILE', __FILE__);
+define('SC_PLUGIN_VERSION', '1.3.6');
+
+/**
+ * ============================
+ * License (همیشه بارگذاری می‌شود)
+ * ============================
+ */
+require_once SC_INCLUDES_DIR . 'license/license-functions.php';
 
 /**
  * ============================
@@ -42,10 +53,12 @@ define('SC_VENDOR_DIR', WP_CONTENT_DIR . '/vendor/');            // Shared vendo
 require_once SC_INCLUDES_DIR . 'jdf.php';                  // JDF library for Persian date conversion
 require_once SC_INCLUDES_DIR . 'persian-datepicker-helper.php'; // Persian datepicker helper
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
+require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
+
+if (sc_is_license_active()) {
 require_once SC_INCLUDES_DIR . 'course-packages-functions.php'; // پکیج‌های قیمت دوره
 require_once SC_INCLUDES_DIR . 'course-schedule-functions.php'; // برنامه هفتگی کلاس دوره
 require_once SC_INCLUDES_DIR . 'discount-codes-functions.php'; // کدهای تخفیف صورت‌حساب
-require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'header-search-functions.php'; // جستجوی هدر (AJAX)
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'invoices-bulk-background.php'; // پردازش پس‌زمینهٔ عملیات دسته‌جمعی صورت‌حساب‌ها
@@ -85,8 +98,6 @@ require_once SC_INCLUDES_DIR . 'attendance_logs.php'; // ارتباط با api �
 require_once SC_INCLUDES_DIR . 'attendance-auto.php'; // تطبیق لاگ دستگاه با حضور و غیاب (کرون)
 require_once SC_INCLUDES_DIR . 'admin-dashboard-widgets.php'; // ابزارک‌های پیشخوان وردپرس برای مدیران
 
-
-include(SC_ADMIN_DIR . 'admin-menu.php');
 // Include WooCommerce My Account integration
 require_once SC_PUBLIC_DIR . 'my-account.php';
 // Include WooCommerce Thank You Page customization
@@ -94,6 +105,9 @@ require_once SC_PUBLIC_DIR . 'woocommerce-thankyou.php';
 //header footer
 require_once SC_PUBLIC_DIR . 'header.php';
 require_once SC_PUBLIC_DIR . 'footer.php';
+}
+
+include SC_ADMIN_DIR . 'admin-menu.php';
 
 
 
