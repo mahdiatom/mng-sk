@@ -690,7 +690,10 @@ function sc_users_export_prepare_rows($members, $fields) {
                     $row[$field] = !empty($member->is_active) ? 'فعال' : 'غیرفعال';
                     break;
                 case 'profile_completed':
-                    $row[$field] = !empty($member->profile_completed) ? 'تکمیل شده' : 'ناقص';
+                    $is_completed = function_exists('sc_check_profile_completed')
+                        ? sc_check_profile_completed((int) $member->id, $member)
+                        : !empty($member->profile_completed);
+                    $row[$field] = $is_completed ? 'تکمیل شده' : 'ناقص';
                     break;
                 case 'health_verified':
                 case 'info_verified':

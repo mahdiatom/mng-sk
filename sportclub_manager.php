@@ -678,83 +678,63 @@ if (!function_exists('sc_add_absence_sms_sent_column')) {
 }
 
 /**
- * Check if member profile is completed
- * بررسی تمام فیلدها (به جز is_active) - همه باید پر باشند و boolean ها باید true باشند
+ * Check if member profile is completed.
+ * All visible player-info fields (per settings) must be filled.
  */
-function sc_check_profile_completed($member_id) {
+function sc_check_profile_completed($member_id, $member = null) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
-    
-    $member = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $table_name WHERE id = %d",
-        $member_id
-    ));
-    
+
+    if ($member === null) {
+        $member = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d",
+            $member_id
+        ));
+    } elseif (is_array($member)) {
+        $member = (object) $member;
+    }
+
     if (!$member) {
         return false;
     }
-    
-    $builtin_fields = function_exists('sc_get_player_info_builtin_fields') ? sc_get_player_info_builtin_fields() : [];
-    $rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
+
+    $builtin_fields = sc_get_player_info_builtin_fields();
+    $rules = sc_get_player_info_field_rules();
     foreach ($rules as $field_key => $rule) {
-        if (empty($rule['visible']) || empty($rule['required'])) {
+        if (empty($rule['visible']) || !isset($builtin_fields[$field_key])) {
             continue;
         }
-        if (!isset($builtin_fields[$field_key])) {
-            continue;
-        }
-        $value = isset($member->{$field_key}) ? $member->{$field_key} : null;
-        if (in_array($field_key, ['health_verified', 'info_verified'], true)) {
-            if ((int) $value !== 1) {
-                return false;
-            }
-            continue;
-        }
-        if (empty($value) || (is_string($value) && trim($value) === '')) {
+        if (sc_player_info_member_builtin_field_is_empty($member, $field_key, $builtin_fields[$field_key])) {
             return false;
         }
     }
 
-    $custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
+    $custom_fields = sc_get_player_info_custom_fields();
     $extra_values = !empty($member->member_extra_fields) ? json_decode((string) $member->member_extra_fields, true) : [];
     if (!is_array($extra_values)) {
         $extra_values = [];
     }
     foreach ($custom_fields as $field) {
-        if (empty($field['visible']) || empty($field['required']) || empty($field['key'])) {
+        if (empty($field['visible'])) {
             continue;
         }
-        $key = $field['key'];
-        $value = $extra_values[$key] ?? null;
-        $type = $field['type'] ?? 'text';
-        if ($type === 'multiselect') {
-            if (!is_array($value) || empty($value)) {
-                return false;
-            }
-        } elseif ($type === 'image') {
-            if (!is_string($value) || trim($value) === '') {
-                return false;
-            }
-        } else {
-            if (!is_string($value) || trim($value) === '') {
-                return false;
-            }
+        if (sc_player_info_member_custom_field_is_empty($field, $extra_values)) {
+            return false;
         }
     }
-    
-    // اگر همه فیلدها پر باشند و boolean ها true باشند
+
     return true;
 }
 
 /**
  * Update profile_completed status for a member
  */
-function sc_update_profile_completed_status($member_id) {
+function sc_update_profile_completed_status($member_id, $member = null) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_members';
-    
-    $is_completed = sc_check_profile_completed($member_id) ? 1 : 0;
-    
+
+    $is_completed = sc_check_profile_completed($member_id, $member) ? 1 : 0;
+
     $wpdb->update(
         $table_name,
         ['profile_completed' => $is_completed],
@@ -762,8 +742,35 @@ function sc_update_profile_completed_status($member_id) {
         ['%d'],
         ['%d']
     );
-    
+
     return $is_completed;
+}
+
+/**
+ * Recalculate profile_completed for all members.
+ */
+function sc_sync_all_profile_completed_statuses() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+    $members = $wpdb->get_results("SELECT * FROM $table_name");
+    if (empty($members)) {
+        return;
+    }
+    foreach ($members as $member) {
+        sc_update_profile_completed_status((int) $member->id, $member);
+    }
+}
+
+/**
+ * One-time sync after profile completion logic changes.
+ */
+add_action('admin_init', 'sc_maybe_sync_profile_completed_statuses');
+function sc_maybe_sync_profile_completed_statuses() {
+    if (get_option('sc_profile_completed_logic_version', '0') === '2') {
+        return;
+    }
+    sc_sync_all_profile_completed_statuses();
+    update_option('sc_profile_completed_logic_version', '2', false);
 }
 
 

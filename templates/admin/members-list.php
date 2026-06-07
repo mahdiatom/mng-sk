@@ -156,7 +156,7 @@ public function column_full_name($item) {
                 $type = isset($item['member_type']) ? $item['member_type'] : 'normal';
                 return $type === 'team' ? 'بازیکن تیم' : 'بازیکن عادی';
             case 'profile_completed':
-                return $item['profile_completed']
+                return !empty($item['profile_completed'])
         ? '<span style="color:#00a32a;font-weight:bold;">✓ تکمیل شده</span>'
         : '<span style="color:#d63638;font-weight:bold;">✗ ناقص</span>';
             case 'identity_verified':
@@ -533,6 +533,18 @@ public function column_full_name($item) {
             "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
             ARRAY_A
         );
+
+        if (!empty($results) && function_exists('sc_check_profile_completed')) {
+            foreach ($results as &$row) {
+                $computed = sc_check_profile_completed((int) $row['id'], $row) ? 1 : 0;
+                if ((int) ($row['profile_completed'] ?? 0) !== $computed && function_exists('sc_update_profile_completed_status')) {
+                    sc_update_profile_completed_status((int) $row['id'], $row);
+                }
+                $row['profile_completed'] = $computed;
+            }
+            unset($row);
+        }
+
         $this->set_pagination_args([
             'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
             'per_page' => $per_page

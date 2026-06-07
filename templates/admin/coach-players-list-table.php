@@ -107,7 +107,10 @@ public function column_full_name($item) {
                 $type = isset($item['member_type']) ? $item['member_type'] : 'normal';
                 return $type === 'team' ? 'بازیکن تیم' : 'بازیکن عادی';
             case 'profile_completed':
-                return $item['profile_completed']
+                $is_completed = function_exists('sc_check_profile_completed')
+                    ? sc_check_profile_completed((int) $item['id'])
+                    : !empty($item['profile_completed']);
+                return $is_completed
         ? '<span style="color:#00a32a;font-weight:bold;">✓ تکمیل شده</span>'
         : '<span style="color:#d63638;font-weight:bold;">✗ ناقص</span>';
             case 'insurance_status':

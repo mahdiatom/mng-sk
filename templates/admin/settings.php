@@ -501,6 +501,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
             ? sc_sanitize_player_info_custom_fields_input($_POST['player_custom_fields'])
             : [];
         sc_update_setting('player_info_custom_fields', wp_json_encode($custom_fields, JSON_UNESCAPED_UNICODE), 'player_info');
+        if (function_exists('sc_sync_all_profile_completed_statuses')) {
+            sc_sync_all_profile_completed_statuses();
+        }
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب اطلاعات بازیکن ذخیره شد', null, ['tab' => 'player_info']);
         }

@@ -610,6 +610,69 @@ function sc_player_info_field_required_attr($field_key, $rules = null) {
 }
 
 /**
+ * Whether a player info field value is considered empty for profile completion.
+ */
+function sc_player_info_value_is_empty($value, $type = 'text') {
+    if ($type === 'checkbox') {
+        return (int) $value !== 1;
+    }
+    if ($type === 'multiselect') {
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                $value = $decoded;
+            }
+        }
+        return !is_array($value) || count(array_filter($value, static function ($item) {
+            return $item !== null && $item !== '';
+        })) === 0;
+    }
+    if ($type === 'image') {
+        return !is_string($value) || trim($value) === '';
+    }
+    if ($value === null) {
+        return true;
+    }
+    if (is_string($value)) {
+        $trimmed = trim($value);
+        return $trimmed === '' || $trimmed === '0000-00-00';
+    }
+    if (is_numeric($value)) {
+        return false;
+    }
+    if (is_array($value)) {
+        return empty($value);
+    }
+    return empty($value);
+}
+
+/**
+ * Whether a builtin player info field is empty on a member record.
+ */
+function sc_player_info_member_builtin_field_is_empty($member, $field_key, $field_meta = null) {
+    $builtin_fields = sc_get_player_info_builtin_fields();
+    if ($field_meta === null) {
+        $field_meta = $builtin_fields[$field_key] ?? ['type' => 'text'];
+    }
+    $type = $field_meta['type'] ?? 'text';
+    $value = isset($member->{$field_key}) ? $member->{$field_key} : null;
+    return sc_player_info_value_is_empty($value, $type);
+}
+
+/**
+ * Whether a custom player info field is empty on a member record.
+ */
+function sc_player_info_member_custom_field_is_empty($field, $extra_values) {
+    if (!is_array($field) || empty($field['key'])) {
+        return true;
+    }
+    $key = $field['key'];
+    $type = $field['type'] ?? 'text';
+    $value = $extra_values[$key] ?? null;
+    return sc_player_info_value_is_empty($value, $type);
+}
+
+/**
  * Render custom player info fields as admin form-table rows.
  */
 function sc_render_admin_player_custom_fields_rows($custom_fields, $section, $values = []) {

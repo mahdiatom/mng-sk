@@ -47,10 +47,9 @@
     width: 100%;
     max-width: 450px;
     
-    /* --- استایل شیشه‌ای --- */
-    background: rgba(255, 255, 255, 0.1); /* رنگ سفید با شفافیت کم */
-    backdrop-filter: blur(8px); /* مات کردن پشت کارت */
-    -webkit-backdrop-filter: blur(5px); /* برای مرورگرهای اپل */
+    background: rgb(255 255 255 / 72%);
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px); /* برای مرورگرهای اپل */
     border: 1px solid rgba(255, 255, 255, 0.2); /* لبه براق شیشه‌ای */
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); /* سایه عمیق‌تر برای جدا شدن از صفحه */
     /* ---------------------- */
@@ -60,7 +59,6 @@
     direction: rtl;
     text-align: right;
 }
-
 
 /* خطا – بالای لوگو، دیزاین حرفه‌ای */
 .sc-lr-alert {
