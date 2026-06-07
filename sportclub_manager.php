@@ -1710,35 +1710,37 @@ function sc_public_enqueue_assets() {
         wp_enqueue_script('sc-survey-wizard-js', SC_ASSETS_URL . 'js/survey-wizard.js', array('jquery', 'sc-public-js', 'persian-datepicker-js'), time(), true);
     }
 
-    wp_enqueue_script(
-        'sc-header-search',
-        SC_ASSETS_URL . 'js/header-search.js',
-        array( 'jquery' ),
-        file_exists( SC_PLUGIN_DIR . 'assets/js/header-search.js' )
-            ? (string) filemtime( SC_PLUGIN_DIR . 'assets/js/header-search.js' )
-            : '1.1',
-        true
-    );
-    wp_localize_script(
-        'sc-header-search',
-        'scHeaderSearch',
-        array(
-            'ajaxurl'    => admin_url( 'admin-ajax.php' ),
-            'nonce'      => wp_create_nonce( 'sc_header_search' ),
-            'quickLinks' => sc_header_search_quick_links_for_overlay(),
-            'i18n'       => array(
-                'suggestionsTitle'  => __( 'پیشنهادها', 'sportclub-manager' ),
-                'quickLinksTitle'   => __( 'صفحات کاربردی', 'sportclub-manager' ),
-                'clubServicesTitle' => __( 'دوره‌ها و رویدادها', 'sportclub-manager' ),
-                'pagesPostsTitle'   => __( 'صفحات، مطالب و خدمات', 'sportclub-manager' ),
-                'productsTitle'     => __( 'محصولات', 'sportclub-manager' ),
-                'noResults'         => __( 'نتیجه‌ای یافت نشد', 'sportclub-manager' ),
-                'noResultsHint'     => __( 'می‌توانید از پیشنهادها یا میانبرهای زیر استفاده کنید.', 'sportclub-manager' ),
-                'loading'           => __( 'در حال جستجو…', 'sportclub-manager' ),
-                'shortcutMeta'      => __( 'میانبر', 'sportclub-manager' ),
-            ),
-        )
-    );
+    if ( function_exists( 'sc_header_search_quick_links_for_overlay' ) ) {
+        wp_enqueue_script(
+            'sc-header-search',
+            SC_ASSETS_URL . 'js/header-search.js',
+            array( 'jquery' ),
+            file_exists( SC_PLUGIN_DIR . 'assets/js/header-search.js' )
+                ? (string) filemtime( SC_PLUGIN_DIR . 'assets/js/header-search.js' )
+                : '1.1',
+            true
+        );
+        wp_localize_script(
+            'sc-header-search',
+            'scHeaderSearch',
+            array(
+                'ajaxurl'    => admin_url( 'admin-ajax.php' ),
+                'nonce'      => wp_create_nonce( 'sc_header_search' ),
+                'quickLinks' => sc_header_search_quick_links_for_overlay(),
+                'i18n'       => array(
+                    'suggestionsTitle'  => __( 'پیشنهادها', 'sportclub-manager' ),
+                    'quickLinksTitle'   => __( 'صفحات کاربردی', 'sportclub-manager' ),
+                    'clubServicesTitle' => __( 'دوره‌ها و رویدادها', 'sportclub-manager' ),
+                    'pagesPostsTitle'   => __( 'صفحات، مطالب و خدمات', 'sportclub-manager' ),
+                    'productsTitle'     => __( 'محصولات', 'sportclub-manager' ),
+                    'noResults'         => __( 'نتیجه‌ای یافت نشد', 'sportclub-manager' ),
+                    'noResultsHint'     => __( 'می‌توانید از پیشنهادها یا میانبرهای زیر استفاده کنید.', 'sportclub-manager' ),
+                    'loading'           => __( 'در حال جستجو…', 'sportclub-manager' ),
+                    'shortcutMeta'      => __( 'میانبر', 'sportclub-manager' ),
+                ),
+            )
+        );
+    }
 
     if (is_account_page() && get_query_var('sc-submit-documents') !== false) {
         wp_enqueue_script('sc-submit-documents-js', SC_ASSETS_URL . 'js/submit-documents.js', array('jquery'), time(), true);
