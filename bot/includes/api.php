@@ -29,6 +29,14 @@ function bale_send_message_with_buttons($chat_id, $text, $buttons) {
     ]);
 }
 
+function bale_answer_callback_query($callback_query_id, $text = '') {
+    $payload = ['callback_query_id' => $callback_query_id];
+    if ($text !== '') {
+        $payload['text'] = $text;
+    }
+    return bale_api_request('answerCallbackQuery', $payload);
+}
+
 function bale_send_message_with_keyboard($chat_id, $text, $keyboard) {
     return bale_api_request('sendMessage', [
         'chat_id'      => $chat_id,

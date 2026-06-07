@@ -38,7 +38,7 @@ function sc_license_register_module_stubs() {
             return [
                 'success' => false,
                 'credit'  => 0,
-                'message' => __('ماژول پیامک بارگذاری نشده است.', 'sportclub-manager'),
+                'message' => 'ماژول پیامک بارگذاری نشده است.',
             ];
         }
     }
@@ -248,7 +248,7 @@ function sc_license_bootstrap() {
             $reason     = 'expired';
             $show_error = true;
             if ($message === '' && is_object($response_obj) && !empty($response_obj->expire_date)) {
-                $message = __('لایسنس منقضی شده است.', 'sportclub-manager');
+                $message = 'لایسنس منقضی شده است.';
             }
         }
     } else {

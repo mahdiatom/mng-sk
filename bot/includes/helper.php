@@ -8,7 +8,7 @@ function sc_get_member_by_chatid($chat_id) {
     $table_members = $wpdb->prefix . 'sc_members';
 
     return $wpdb->get_row($wpdb->prepare(
-        "SELECT user_id,
+        "SELECT id, user_id,
                 CONCAT(first_name, ' ', last_name) AS full_name,
                 national_id, player_phone, birth_date_shamsi, birth_date_gregorian,
                 insurance_expiry_date_gregorian, is_active, profile_completed,

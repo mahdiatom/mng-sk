@@ -97,8 +97,20 @@ function bale_router($update) {
         $callback = $update['callback_query'];
         $chat_id  = $callback['message']['chat']['id'] ?? null;
         $data     = $callback['data'] ?? '';
+        $callback_id = $callback['id'] ?? '';
 
         if (!$chat_id || !$data) {
+            return;
+        }
+
+        if (!sc_require_connected_user($chat_id)) {
+            if ($callback_id !== '') {
+                bale_answer_callback_query($callback_id, 'ابتدا حساب را متصل کنید.');
+            }
+            return;
+        }
+
+        if (bale_bot_route_data_callback($chat_id, $data, $callback_id)) {
             return;
         }
 

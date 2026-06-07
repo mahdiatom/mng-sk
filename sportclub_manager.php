@@ -7,7 +7,7 @@
  * Author:            مهدی باباشاهی
  * Author URI:        https://atomwp.ir
  * License:           GPL2
- * Text Domain:       atom-club-manager
+ * Text Domain:       sportclub-manager
  * Requires Plugins:  woocommerce
  */
 
@@ -37,6 +37,17 @@ define('SC_ASSETS_URL', SC_PLUGIN_URL . 'assets/');              // Assets URL
 define('SC_VENDOR_DIR', WP_CONTENT_DIR . '/vendor/');            // Shared vendor folder in wp-content
 define('SC_PLUGIN_MAIN_FILE', __FILE__);
 define('SC_PLUGIN_VERSION', '1.3.6');
+
+/**
+ * بارگذاری ترجمه — فقط از init به بعد (سازگار با وردپرس 6.7+)
+ */
+function sc_load_textdomain() {
+    $rel_path = dirname(plugin_basename(SC_PLUGIN_MAIN_FILE)) . '/languages';
+    load_plugin_textdomain('sportclub-manager', false, $rel_path);
+    // سازگاری با Text Domain قدیمی در صورت وجود فایل ترجمه
+    load_plugin_textdomain('atom-club-manager', false, $rel_path);
+}
+add_action('init', 'sc_load_textdomain', 0);
 
 /**
  * ============================
