@@ -392,6 +392,7 @@ function sc_save_notification($data) {
     $coach_id = function_exists('sc_current_user_coach_id') ? sc_current_user_coach_id() : 0;
     $is_coach = $coach_id > 0;
     $send_sms = $is_coach ? 0 : (isset($data['send_sms']) ? (int)$data['send_sms'] : 0);
+    $send_bale = $is_coach ? 0 : (isset($data['send_bale']) ? (int)$data['send_bale'] : 0);
     $notification_id = isset($data['id']) ? absint($data['id']) : 0;
     $attachment_ids = isset($data['attachment_ids']) ? sc_notification_validate_attachment_ids($data['attachment_ids'], 5) : [];
 
@@ -418,7 +419,7 @@ function sc_save_notification($data) {
     $created_by_entity_id = $is_coach ? $coach_id : 0;
 
     if ($notification_id > 0) {
-        $old_row = $wpdb->get_row($wpdb->prepare("SELECT title, content, target_type, target_config, notification_type, send_sms FROM $notifications_table WHERE id = %d", $notification_id), ARRAY_A);
+        $old_row = $wpdb->get_row($wpdb->prepare("SELECT title, content, target_type, target_config, notification_type, send_sms, send_bale FROM $notifications_table WHERE id = %d", $notification_id), ARRAY_A);
         $attachment_json = !empty($attachment_ids) ? wp_json_encode(array_map('absint', $attachment_ids)) : null;
         $wpdb->update(
             $notifications_table,
@@ -430,12 +431,13 @@ function sc_save_notification($data) {
                 'notification_type' => $notification_type,
                 'attachment_ids' => $attachment_json,
                 'send_sms' => $send_sms,
+                'send_bale' => $send_bale,
                 'created_by_type' => $created_by_type,
                 'created_by_entity_id' => $created_by_entity_id,
                 'updated_at' => $now
             ],
             ['id' => $notification_id],
-            ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s'],
+            ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s'],
             ['%d']
         );
         $wpdb->delete($recipients_table, ['notification_id' => $notification_id], ['%d']);
@@ -454,13 +456,14 @@ function sc_save_notification($data) {
                 'notification_type' => $notification_type,
                 'attachment_ids' => $attachment_json,
                 'send_sms' => $send_sms,
+                'send_bale' => $send_bale,
                 'created_by' => $created_by,
                 'created_by_type' => $created_by_type,
                 'created_by_entity_id' => $created_by_entity_id,
                 'created_at' => $now,
                 'updated_at' => $now
             ],
-            ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s']
+            ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%d', '%s', '%s']
         );
         $notification_id = $wpdb->insert_id;
         if (function_exists('sc_log_activity') && $notification_id) {
@@ -506,7 +509,6 @@ function sc_save_notification($data) {
         } else {
         foreach ($user_ids as $uid) {
             $phone = sc_get_user_phone($uid);
-            $bot_id = sc_get_user_bale_chat_id($uid);
             if ($phone) {
                 $recipients_with_phone++;
                 $r = sc_send_sms($phone, $sms_text, false, null, [], 'notification');
@@ -523,14 +525,14 @@ function sc_save_notification($data) {
                         'message' => $r['message'] ?? ''
                     ]);
                 }
-                if($bot_id > 0 && function_exists('bale_send_message') ){
-                    bale_send_message($bot_id ,$r['message'] );
-                }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
-                    sc_bale_send_by_phone(sc_convert_phone_to_98($phone) , $r['message']);
-                }
             }
         }
         }
+    }
+
+    $bale_sent = 0;
+    if ($send_bale && $target_type !== 'phone' && function_exists('sc_bale_send_notification_to_users')) {
+        $bale_sent = sc_bale_send_notification_to_users($user_ids, $title, $content);
     }
 
     $recipients_count = ($target_type === 'phone') ? count($phone_numbers) : count($user_ids);
@@ -540,6 +542,7 @@ function sc_save_notification($data) {
         'notification_id' => $notification_id,
         'recipients_count' => $recipients_count,
         'sms_sent' => $sms_sent,
+        'bale_sent' => $bale_sent,
         'recipients_with_phone' => $recipients_with_phone,
         'sms_fail_reason' => $sms_fail_reason
     ];
@@ -1168,6 +1171,10 @@ function sc_send_invoice_notification_real($invoice_id) {
         'notification_type' => 'system', // نوع نوتیف خودکار سیستمی
         'send_sms' => 0 // پیامک نمی‌فرستیم
     ]);
+
+    if (function_exists('sc_bale_notify_user')) {
+        sc_bale_notify_user((int) $invoice->member_id, '', $content);
+    }
 }
 
 

@@ -891,11 +891,8 @@ function sc_send_enrollment_sms($member_course_id) {
                 'message' => $result['message']
             ]);
 
-            $bot_id = sc_get_user_bale_chat_id($enrollment->member_id);
-            if($bot_id > 0 && function_exists('bale_send_message') ){
-                bale_send_message($bot_id ,$message );
-            }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
-                sc_bale_send_by_phone(sc_convert_phone_to_98($enrollment->player_phone) , $message);
+            if (function_exists('sc_bale_notify_user')) {
+                sc_bale_notify_user($enrollment->member_id, $enrollment->player_phone, $message);
             }
         } else {
             sc_log_sms('DEBUG', 'Enrollment SMS to user skipped - no template');
@@ -996,11 +993,8 @@ function sc_send_payment_reminder_sms($invoice_id) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('reminder', 'user');
             sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'reminder');
-            $bot_id = sc_get_user_bale_chat_id($invoice->id);
-            if($bot_id > 0 && function_exists('bale_send_message') ){
-                bale_send_message($bot_id ,$message );
-            }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
-                sc_bale_send_by_phone(sc_convert_phone_to_98($invoice->player_phone) , $message);
+            if (function_exists('sc_bale_notify_user')) {
+                sc_bale_notify_user($invoice->member_id, $invoice->player_phone, $message);
             }
         }
     }
@@ -1070,11 +1064,8 @@ function sc_send_absence_sms($attendance_id) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('absence', 'user');
             $result = sc_send_sms($attendance->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'absence');
-            $bot_id = sc_get_user_bale_chat_id($attendance->member_id);
-            if($bot_id > 0 && function_exists('bale_send_message') ){
-                bale_send_message($bot_id ,$message );
-            }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
-                sc_bale_send_by_phone(sc_convert_phone_to_98($attendance->member_id) , $message);
+            if (function_exists('sc_bale_notify_user')) {
+                sc_bale_notify_user($attendance->member_id, $attendance->player_phone, $message);
             }
             if ($result['success']) {
                 $sms_sent_successfully = true;
@@ -1159,11 +1150,13 @@ function sc_send_identity_verified_notifications($member_id) {
         $user_name = 'کاربر گرامی';
     }
 
+    $verified_message = 'کاربر گرامی .... احراز هویت شما تایید شد.';
+
     // Fixed in-app notification text
     if (function_exists('sc_save_notification')) {
         sc_save_notification([
             'title' => 'تایید احراز هویت',
-            'content' => 'کاربر گرامی .... احراز هویت شما تایید شد.',
+            'content' => $verified_message,
             'target_type' => 'specific',
             'target_config' => [
                 'recipient_ids' => ['member_' . (int) $member->id]
@@ -1171,6 +1164,10 @@ function sc_send_identity_verified_notifications($member_id) {
             'notification_type' => 'system',
             'send_sms' => 0
         ]);
+    }
+
+    if (function_exists('sc_bale_notify_user')) {
+        sc_bale_notify_user($member->id, '', $verified_message);
     }
 
     // SMS (configurable from settings)
@@ -1187,6 +1184,9 @@ function sc_send_identity_verified_notifications($member_id) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('identity_verified', 'user');
             sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'identity_verified');
+            if (function_exists('sc_bale_notify_user')) {
+                sc_bale_notify_user($member->id, $member->player_phone, $message);
+            }
         }
     }
 }
@@ -1266,6 +1266,9 @@ function sc_send_survey_submission_sms($response_id) {
         $pattern_code = sc_get_sms_pattern('survey_submission', 'user');
         $message = sc_replace_sms_variables($message, $variables);
         sc_send_sms($phone, $message, !empty($pattern_code), $pattern_code, $variables, 'survey_submission');
+        if (function_exists('sc_bale_notify_user') && !empty($response->member_id)) {
+            sc_bale_notify_user((int) $response->member_id, $phone, $message);
+        }
     }
 
     if (sc_is_sms_enabled_for('survey_submission', 'admin')) {
@@ -1404,14 +1407,8 @@ function sc_send_invoice_action_sms($invoice_id, $action) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern($action, 'user');
             sc_send_sms($invoice->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, $action);
-
-            if ($action === 'invoice') {
-                $bot_id = function_exists('sc_get_user_bale_chat_id') ? sc_get_user_bale_chat_id($invoice->member_id) : 0;
-                if ($bot_id > 0 && function_exists('bale_send_message')) {
-                    bale_send_message($bot_id, $message);
-                } elseif ($bot_id === null && function_exists('sc_bale_send_by_phone')) {
-                    sc_bale_send_by_phone(sc_convert_phone_to_98($invoice->player_phone), $message);
-                }
+            if (function_exists('sc_bale_notify_user')) {
+                sc_bale_notify_user($invoice->member_id, $invoice->player_phone, $message);
             }
         }
     }
@@ -1527,6 +1524,12 @@ function sc_send_wc_order_status_sms($order_id, $status) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern($action, 'user');
             sc_send_sms($phone, $message, !empty($pattern_code), $pattern_code, $variables, $action);
+            if (function_exists('sc_bale_notify_user')) {
+                $user_id = $order->get_user_id();
+                if ($user_id) {
+                    sc_bale_notify_user((int) $user_id, $phone, $message);
+                }
+            }
         }
     }
 
@@ -1586,11 +1589,13 @@ function sc_send_identity_rejected_notifications($member_id, $reason) {
         $user_name = 'کاربر گرامی';
     }
 
+    $rejected_message = 'کاربر گرامی، احراز هویت شما رد شد. علت: ' . $reason;
+
     // In-app notification
     if (function_exists('sc_save_notification')) {
         sc_save_notification([
             'title' => 'رد احراز هویت',
-            'content' => 'کاربر گرامی، احراز هویت شما رد شد. علت: ' . $reason,
+            'content' => $rejected_message,
             'target_type' => 'specific',
             'target_config' => [
                 'recipient_ids' => ['member_' . (int) $member->id]
@@ -1598,6 +1603,10 @@ function sc_send_identity_rejected_notifications($member_id, $reason) {
             'notification_type' => 'system',
             'send_sms' => 0
         ]);
+    }
+
+    if (function_exists('sc_bale_notify_user')) {
+        sc_bale_notify_user($member->id, '', $rejected_message);
     }
 
     // SMS (if enabled)
@@ -1615,6 +1624,9 @@ function sc_send_identity_rejected_notifications($member_id, $reason) {
             $message = sc_replace_sms_variables($template, $variables);
             $pattern_code = sc_get_sms_pattern('identity_rejected', 'user');
             sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'identity_rejected');
+            if (function_exists('sc_bale_notify_user')) {
+                sc_bale_notify_user($member->id, $member->player_phone, $message);
+            }
         }
     }
 }

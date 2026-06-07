@@ -223,6 +223,10 @@ function sc_create_member_absence_alert_notification_and_sms($item, $absence_lim
         'send_sms' => 0,
     ]);
 
+    if (function_exists('sc_bale_notify_user')) {
+        sc_bale_notify_user($member_id, '', $content);
+    }
+
     if (function_exists('sc_is_sms_enabled_for') && function_exists('sc_get_sms_template') && function_exists('sc_replace_sms_variables') && function_exists('sc_send_sms')) {
         if (sc_is_sms_enabled_for('absence_alert', 'user')) {
             $template = sc_get_sms_template('absence_alert', 'user');
@@ -242,6 +246,9 @@ function sc_create_member_absence_alert_notification_and_sms($item, $absence_lim
                 $message = sc_replace_sms_variables($template, $variables);
                 $pattern_code = function_exists('sc_get_sms_pattern') ? sc_get_sms_pattern('absence_alert', 'user') : null;
                 sc_send_sms($phone, $message, !empty($pattern_code), $pattern_code, $variables, 'absence_alert');
+                if (function_exists('sc_bale_notify_user')) {
+                    sc_bale_notify_user($member_id, $phone, $message);
+                }
             }
         }
     }

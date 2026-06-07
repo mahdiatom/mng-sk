@@ -999,12 +999,9 @@ function sc_support_send_sms_on_new_ticket($ticket) {
     if ($mobile && function_exists('sc_send_sms')) {
         sc_send_sms($mobile, $template, false, null, [], 'ticket_new');
     }
-    $bot_id = sc_get_user_bale_chat_id($member_id);
-    if($bot_id > 0 && function_exists('bale_send_message') ){
-                    bale_send_message($bot_id ,$template );
-                }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
-                    sc_bale_send_by_phone(sc_convert_phone_to_98($mobile) , $template);
-                }
+    if (function_exists('sc_bale_notify_user')) {
+        sc_bale_notify_user($member_id, $mobile, $template);
+    }
 }
 
 /**
@@ -1065,11 +1062,8 @@ function sc_support_send_sms_on_new_message($ticket, $sender_type, $sender_id) {
         sc_send_sms($mobile, $template, false, null, [], 'ticket_reply');
 
     }
-    $bot_id = sc_get_user_bale_chat_id($member_id);
-    if($bot_id > 0 && function_exists('bale_send_message') ){
-        bale_send_message($bot_id ,$template );
-    }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
-        sc_bale_send_by_phone(sc_convert_phone_to_98($mobile) , $template);
+    if (function_exists('sc_bale_notify_user')) {
+        sc_bale_notify_user($member_id, $mobile, $template);
     }
 
 }

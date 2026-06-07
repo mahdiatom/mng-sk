@@ -119,6 +119,9 @@ function sc_send_insurance_expiry_sms_daily() {
             $message = str_replace('%' . $k . '%', $v, $message);
         }
         sc_send_sms($m->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'insurance_expiry');
+        if (function_exists('sc_bale_notify_user')) {
+            sc_bale_notify_user((int) $m->id, $m->player_phone, $message);
+        }
     }
 }
 

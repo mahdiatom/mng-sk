@@ -51,8 +51,10 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
     $content = isset($_POST['content']) ? sanitize_textarea_field($_POST['content']) : '';
     $target_type = isset($_POST['target_type']) ? sanitize_text_field($_POST['target_type']) : 'all';
     $send_sms = isset($_POST['send_sms']) ? 1 : 0;
+    $send_bale = isset($_POST['send_bale']) ? 1 : 0;
     if ($target_type === 'phone') {
         $send_sms = 1;
+        $send_bale = 0;
     }
 
     $target_config = [];
@@ -143,6 +145,7 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
         'target_type' => $target_type,
         'target_config' => $target_config,
         'send_sms' => $send_sms,
+        'send_bale' => $send_bale,
         'attachment_ids' => $attachment_ids
     ];
     if ($edit_id) {
@@ -173,6 +176,13 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
                     $fail = isset($result['sms_fail_reason']) ? $result['sms_fail_reason'] : '';
                     $msg .= '. توجه: پیامک ارسال نشد — ' . ($fail ? $fail : 'تنظیمات پیامک (API Key و شماره فرستنده) را در تنظیمات > پیامک بررسی کنید');
                 }
+            }
+        }
+        if ($send_bale && isset($result['bale_sent'])) {
+            if ($result['bale_sent'] > 0) {
+                $msg .= ' و ' . (int) $result['bale_sent'] . ' پیام در ربات بله ارسال شد';
+            } else {
+                $msg .= '. توجه: پیام ربات بله ارسال نشد — مخاطبین Chat ID ندارند یا ربات پیکربندی نشده است';
             }
         }
         if ($target_type === 'phone' && !empty($target_config['phone_excel_count'])) {
@@ -682,6 +692,18 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                     <label><input type="checkbox" name="send_sms" id="send_sms" value="1" <?php checked($notification ? $notification->send_sms : 0, 1); ?>> ارسال پیامک  ( sms ) به مخاطبین + جزئیات هزینه و تعداد ارسالی ها </label>
                 </td>
             </tr>
+            <?php if (function_exists('bale_is_configured') && bale_is_configured() && function_exists('sc_bale_is_enabled') && sc_bale_is_enabled()) : ?>
+            <tr id="row-send-bale">
+                <th scope="row">ارسال در ربات بله</th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="send_bale" id="send_bale" value="1" <?php checked($notification && isset($notification->send_bale) ? $notification->send_bale : 0, 1); ?>>
+                        ارسال به کاربران بله در ربات (فقط دارای Chat ID — رایگان)
+                    </label>
+                    <p class="description">مستقل از پیامک است. فقط کاربرانی که ربات را متصل کرده‌اند پیام را در بله دریافت می‌کنند.</p>
+                </td>
+            </tr>
+            <?php endif; ?>
         </table>
         <div id="sc-sms-summary" class="sc-sms-summary" style="display: none; margin: 20px 0; padding: 16px; background: #f0f6fc; border: 1px solid #c3c4c7; border-radius: 8px;">
             <strong>خلاصه ارسال پیامک:</strong>
@@ -1208,10 +1230,15 @@ jQuery(document).ready(function($) {
     if (t === 'phone' && $('#row-send-sms').length) {
         $('#row-send-sms').hide();
         $('#send_sms').prop('checked', true);
-    }
-    // در تمام حالت‌های دیگر -> نمایش ارسال sms
-    else if ($('#row-send-sms').length) {
-        $('#row-send-sms').show();
+        $('#row-send-bale').hide();
+        $('#send_bale').prop('checked', false);
+    } else {
+        if ($('#row-send-sms').length) {
+            $('#row-send-sms').show();
+        }
+        if ($('#row-send-bale').length) {
+            $('#row-send-bale').show();
+        }
     }
 }
 

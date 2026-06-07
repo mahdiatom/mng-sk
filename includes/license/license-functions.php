@@ -52,6 +52,30 @@ function sc_is_license_active() {
 }
 
 /**
+ * فقط مدیر کل سایت (نقش administrator) — نه مدیر باشگاه
+ *
+ * @return bool
+ */
+function sc_can_manage_license() {
+    if (!is_user_logged_in()) {
+        return false;
+    }
+    $user = wp_get_current_user();
+    return $user->exists() && in_array('administrator', (array) $user->roles, true);
+}
+
+/**
+ * ثبت capability مدیریت لایسنس فقط برای administrator
+ */
+function sc_license_register_admin_capability() {
+    $admin_role = get_role('administrator');
+    if ($admin_role && !$admin_role->has_cap('sc_manage_license')) {
+        $admin_role->add_cap('sc_manage_license');
+    }
+}
+add_action('admin_init', 'sc_license_register_admin_capability', 1);
+
+/**
  * دلیل غیرفعال بودن: missing | expired | invalid | error
  *
  * @return string
@@ -257,8 +281,8 @@ add_action('admin_post_sc_license_deactivate', 'sc_license_handle_deactivate');
  * فعال‌سازی لایسنس
  */
 function sc_license_handle_activate() {
-    if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('شما اجازه انجام این کار را ندارید.', 'sportclub-manager'));
+    if (!sc_can_manage_license()) {
+        wp_die(esc_html__('فقط مدیر کل سایت می‌تواند لایسنس را فعال کند.', 'sportclub-manager'), '', ['response' => 403]);
     }
     check_admin_referer('sc-license');
 
@@ -306,8 +330,8 @@ function sc_license_handle_activate() {
  * غیرفعال‌سازی لایسنس
  */
 function sc_license_handle_deactivate() {
-    if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('شما اجازه انجام این کار را ندارید.', 'sportclub-manager'));
+    if (!sc_can_manage_license()) {
+        wp_die(esc_html__('فقط مدیر کل سایت می‌تواند لایسنس را غیرفعال کند.', 'sportclub-manager'), '', ['response' => 403]);
     }
     check_admin_referer('sc-license');
 
@@ -354,7 +378,7 @@ add_action('admin_enqueue_scripts', 'sc_license_admin_styles');
  */
 function sc_license_plugin_list_notice($plugin_file = '', $plugin_data = null) {
     unset($plugin_file, $plugin_data);
-    if (sc_is_license_active() || !current_user_can('manage_options')) {
+    if (sc_is_license_active() || !sc_can_manage_license()) {
         return;
     }
     echo '<tr class="plugin-update-tr active sc-license-plugin-row-notice"><td colspan="4" class="plugin-update colspanchange">';
@@ -371,10 +395,13 @@ if (defined('SC_PLUGIN_MAIN_FILE')) {
  * فقط منوی تنظیمات (تب لایسنس) وقتی لایسنس فعال نیست
  */
 function sc_register_license_only_admin_menu() {
+    if (!sc_can_manage_license()) {
+        return;
+    }
     add_menu_page(
         'فعال‌سازی لایسنس',
         'SportClub — لایسنس',
-        'manage_options',
+        'sc_manage_license',
         'sc_setting',
         'sc_setting_callback',
         'dashicons-lock',
@@ -398,28 +425,44 @@ function sc_license_gate_admin_pages() {
     if (sc_is_license_active() || !is_admin()) {
         return;
     }
-    if (!current_user_can('manage_options')) {
-        return;
-    }
 
     $page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
-    if ($page === '' || !is_string($page)) {
-        return;
-    }
-    if (strpos($page, 'sc-') !== 0 && $page !== 'sc_setting') {
-        return;
-    }
-    if (in_array($page, sc_license_allowed_admin_pages(), true)) {
-        $tab = isset($_GET['tab']) ? sanitize_text_field(wp_unslash($_GET['tab'])) : '';
-        if ($page === 'sc_setting' && $tab !== 'license') {
-            wp_safe_redirect(admin_url('admin.php?page=sc_setting&tab=license'));
-            exit;
+    $is_sc_page = ($page !== '' && (strpos($page, 'sc-') === 0 || $page === 'sc_setting'));
+
+    if ($is_sc_page) {
+        if (!sc_can_manage_license()) {
+            wp_die(
+                esc_html__('افزونه SportClub به‌دلیل غیرفعال بودن لایسنس در دسترس نیست. لطفاً با مدیر کل سایت تماس بگیرید.', 'sportclub-manager'),
+                esc_html__('لایسنس غیرفعال', 'sportclub-manager'),
+                ['response' => 403]
+            );
         }
-        return;
+        if (in_array($page, sc_license_allowed_admin_pages(), true)) {
+            $tab = isset($_GET['tab']) ? sanitize_text_field(wp_unslash($_GET['tab'])) : '';
+            if ($page === 'sc_setting' && $tab !== 'license') {
+                wp_safe_redirect(admin_url('admin.php?page=sc_setting&tab=license'));
+                exit;
+            }
+            return;
+        }
+        wp_safe_redirect(admin_url('admin.php?page=sc_setting&tab=license'));
+        exit;
     }
 
-    wp_safe_redirect(admin_url('admin.php?page=sc_setting&tab=license'));
-    exit;
+    // بدون لایسنس، مدیر باشگاه و سایر نقش‌های افزونه به صفحات حساس وردپرس دسترسی نداشته باشند (پشتیبان roles.php)
+    if (current_user_can('club_coach') && !sc_can_manage_license()) {
+        $blocked_fragments = ['plugins.php', 'plugin-install.php', 'plugin-editor.php', 'themes.php', 'options-general.php', 'tools.php'];
+        $uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+        foreach ($blocked_fragments as $fragment) {
+            if ($uri !== '' && stripos($uri, $fragment) !== false) {
+                wp_die(
+                    esc_html__('شما به این بخش دسترسی ندارید.', 'sportclub-manager'),
+                    esc_html__('خطای دسترسی', 'sportclub-manager'),
+                    ['response' => 403]
+                );
+            }
+        }
+    }
 }
 add_action('admin_init', 'sc_license_gate_admin_pages', 1);
 
@@ -438,7 +481,7 @@ function sc_license_render_notice_markup() {
  * اعلان در همه صفحات پیشخوان
  */
 function sc_license_admin_notice() {
-    if (sc_is_license_active() || !current_user_can('manage_options')) {
+    if (sc_is_license_active() || !sc_can_manage_license()) {
         return;
     }
     sc_license_render_notice_markup();
@@ -450,7 +493,7 @@ add_action('network_admin_notices', 'sc_license_admin_notice', 1);
  * هشدار در نوار ابزار مدیریت (همه صفحات پیشخوان و فرانت برای مدیر)
  */
 function sc_license_admin_bar_notice($wp_admin_bar) {
-    if (sc_is_license_active() || !current_user_can('manage_options')) {
+    if (sc_is_license_active() || !sc_can_manage_license()) {
         return;
     }
     $wp_admin_bar->add_node([
@@ -467,7 +510,7 @@ add_action('admin_bar_menu', 'sc_license_admin_bar_notice', 999);
  * هشدار در صفحات سایت برای مدیر (وقتی نوار ابزار نیست)
  */
 function sc_license_frontend_admin_banner() {
-    if (sc_is_license_active() || is_admin() || !current_user_can('manage_options')) {
+    if (sc_is_license_active() || is_admin() || !sc_can_manage_license()) {
         return;
     }
     if (is_admin_bar_showing()) {

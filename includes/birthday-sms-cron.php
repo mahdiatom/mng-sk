@@ -100,17 +100,14 @@ function sc_send_birthday_sms_daily() {
 
     foreach ($members as $member) {
         $user_name = trim($member->first_name . ' ' . $member->last_name);
-        $bot_id = $member->bot_id ?? null;
         if ($user_name === '') {
             $user_name = 'کاربر';
         }
         $variables = ['user_name' => $user_name];
         $message = function_exists('sc_replace_sms_variables') ? sc_replace_sms_variables($template, $variables) : str_replace('%user_name%', $user_name, $template);
         sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'birthday');
-        if($bot_id > 0 && function_exists('bale_send_message') ){
-            bale_send_message($bot_id ,$message );
-        }elseif($bot_id === null && function_exists('sc_bale_send_by_phone')){
-            sc_bale_send_by_phone(sc_convert_phone_to_98($member->player_phone) , $message);
+        if (function_exists('sc_bale_notify_user')) {
+            sc_bale_notify_user($member->id, $member->player_phone, $message);
         }
 
     }

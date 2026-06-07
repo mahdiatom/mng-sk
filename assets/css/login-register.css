@@ -6,15 +6,157 @@
     --sc-lr-btn-color: #ffffff;
     position: relative;
     min-height: 100vh;
+    box-sizing: border-box;
+    background-color: var(--sc-lr-bg);
+}
+
+/* حالت یک — کارت وسط صفحه */
+.sc-lr-mode-1 {
     display: flex;
     align-items: center;
-    justify-content: center;
     padding: 20px;
-    box-sizing: border-box;
+}
+
+.sc-lr-mode-1.sc-lr-align-left {
+    justify-content: flex-start;
+}
+
+.sc-lr-mode-1.sc-lr-align-center {
+    justify-content: center;
+}
+
+.sc-lr-mode-1.sc-lr-align-right {
+    justify-content: flex-end;
+}
+
+.sc-lr-mode-1 .sc-lr-background {
+    position: absolute;
+    inset: 0;
     background-color: var(--sc-lr-bg);
     background-image: var(--sc-lr-bg-image);
     background-size: cover;
-    background-position: center;
+    background-repeat: no-repeat;
+    background-position: center center;
+    z-index: 0;
+}
+
+.sc-lr-mode-1.sc-lr-align-left .sc-lr-background {
+    background-position: left center;
+}
+
+.sc-lr-mode-1.sc-lr-align-center .sc-lr-background {
+    background-position: center center;
+}
+
+.sc-lr-mode-1.sc-lr-align-right .sc-lr-background {
+    background-position: right center;
+}
+
+.sc-lr-mode-1 .sc-lr-card {
+    position: relative;
+    z-index: 1;
+}
+
+/* حالت دو و سه — چیدمان دو ستونه */
+.sc-lr-mode-2,
+.sc-lr-mode-3 {
+    padding: 0;
+}
+
+.sc-lr-mode-2 .sc-lr-split,
+.sc-lr-mode-3 .sc-lr-split {
+    display: grid;
+    min-height: 100vh;
+    height: 100vh;
+    width: 100%;
+    direction: ltr;
+}
+
+.sc-lr-mode-2 .sc-lr-split {
+    grid-template-columns: 70% 30%;
+}
+
+.sc-lr-mode-3 .sc-lr-split {
+    grid-template-columns: 30% 70%;
+}
+
+.sc-lr-mode-2 .sc-lr-split-image,
+.sc-lr-mode-3 .sc-lr-split-image {
+    position: relative;
+    min-height: 100%;
+    overflow: hidden;
+    background-color: var(--sc-lr-bg);
+}
+
+.sc-lr-mode-2 .sc-lr-split-image img,
+.sc-lr-mode-3 .sc-lr-split-image img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+}
+
+.sc-lr-mode-2.sc-lr-align-left .sc-lr-split-image img,
+.sc-lr-mode-3.sc-lr-align-left .sc-lr-split-image img {
+    object-position: left center;
+}
+
+.sc-lr-mode-2.sc-lr-align-center .sc-lr-split-image img,
+.sc-lr-mode-3.sc-lr-align-center .sc-lr-split-image img {
+    object-position: center center;
+}
+
+.sc-lr-mode-2.sc-lr-align-right .sc-lr-split-image img,
+.sc-lr-mode-3.sc-lr-align-right .sc-lr-split-image img {
+    object-position: right center;
+}
+
+.sc-lr-mode-2 .sc-lr-split-form,
+.sc-lr-mode-3 .sc-lr-split-form {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    background-color: var(--sc-lr-bg);
+    box-sizing: border-box;
+    direction: rtl;
+}
+
+.sc-lr-mode-2 .sc-lr-card,
+.sc-lr-mode-3 .sc-lr-card {
+    width: 100%;
+    max-width: 420px;
+}
+
+@media (max-width: 900px) {
+    .sc-lr-mode-2 .sc-lr-split,
+    .sc-lr-mode-3 .sc-lr-split {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .sc-lr-mode-2 .sc-lr-split {
+        grid-template-rows: minmax(240px, 40vh) 1fr;
+    }
+
+    .sc-lr-mode-3 .sc-lr-split {
+        grid-template-rows: 1fr minmax(240px, 40vh);
+    }
+
+    .sc-lr-mode-2 .sc-lr-split-image,
+    .sc-lr-mode-3 .sc-lr-split-image {
+        min-height: 240px;
+        height: 100%;
+    }
+
+    .sc-lr-mode-2 .sc-lr-split-form,
+    .sc-lr-mode-3 .sc-lr-split-form {
+        min-height: auto;
+    }
 }
 
 .sc-lr-background {
@@ -23,38 +165,21 @@
     background-color: var(--sc-lr-bg);
     background-image: var(--sc-lr-bg-image);
     background-size: cover;
-    background-position: center;
+    background-repeat: no-repeat;
+    background-position: center center;
     z-index: 0;
 }
-/* 
 .sc-lr-card {
     position: relative;
     z-index: 1;
     width: 100%;
     max-width: 450px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-    padding: 32px 28px;
-    direction: rtl;
-    text-align: right;
-
-    
-} */
-.sc-lr-card {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 450px;
-    
     background: rgb(255 255 255 / 72%);
     backdrop-filter: blur(1px);
-    -webkit-backdrop-filter: blur(1px); /* برای مرورگرهای اپل */
-    border: 1px solid rgba(255, 255, 255, 0.2); /* لبه براق شیشه‌ای */
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); /* سایه عمیق‌تر برای جدا شدن از صفحه */
-    /* ---------------------- */
-
-    border-radius: 20px; /* لبه‌های گردتر برای ظاهر مدرن */
+    -webkit-backdrop-filter: blur(1px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    border-radius: 20px;
     padding: 32px 28px;
     direction: rtl;
     text-align: right;

@@ -735,6 +735,7 @@ function sc_create_notifications_table() {
         `target_config` longtext DEFAULT NULL COMMENT 'JSON: user_type, course_ids, recipient_ids, etc.',
         `notification_type` varchar(30) NOT NULL DEFAULT 'admin',
         `send_sms` tinyint(1) NOT NULL DEFAULT 0,
+        `send_bale` tinyint(1) NOT NULL DEFAULT 0,
         `created_by` bigint(20) unsigned DEFAULT NULL,
         `created_by_type` varchar(20) NOT NULL DEFAULT 'admin' COMMENT 'admin=مدیر, coach=مربی',
         `created_by_entity_id` bigint(20) unsigned DEFAULT 0 COMMENT 'coach_id if coach, 0 if admin',

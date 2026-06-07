@@ -514,6 +514,9 @@ function sc_issue_certificates_handler() {
                 if (!empty($result['success'])) {
                     $sms_sent++;
                 }
+                if (function_exists('sc_bale_notify_user')) {
+                    sc_bale_notify_user((int) $member->id, $member->player_phone, $sms_text);
+                }
             }
         }
 

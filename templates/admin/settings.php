@@ -12,6 +12,13 @@ $sc_settings_default_tab = (function_exists('sc_is_license_active') && !sc_is_li
 $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : $sc_settings_default_tab;
 
 if (function_exists('sc_is_license_active') && !sc_is_license_active()) {
+    if (!function_exists('sc_can_manage_license') || !sc_can_manage_license()) {
+        wp_die(
+            esc_html__('افزونه SportClub به‌دلیل غیرفعال بودن لایسنس در دسترس نیست. لطفاً با مدیر کل سایت تماس بگیرید.', 'sportclub-manager'),
+            esc_html__('لایسنس غیرفعال', 'sportclub-manager'),
+            ['response' => 403]
+        );
+    }
     if ($current_tab !== 'license') {
         wp_safe_redirect(admin_url('admin.php?page=sc_setting&tab=license'));
         exit;
@@ -615,6 +622,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $sc_login_btn_bg         = isset($_POST['sc_login_btn_bg']) ? sanitize_hex_color($_POST['sc_login_btn_bg']) : '#e60012';
         $sc_login_btn_color      = isset($_POST['sc_login_btn_color']) ? sanitize_hex_color($_POST['sc_login_btn_color']) : '#ffffff';
         $sc_login_page_id        = isset($_POST['sc_login_page_id']) ? absint($_POST['sc_login_page_id']) : 0;
+        $sc_login_display_mode   = isset($_POST['sc_login_display_mode']) ? sanitize_text_field($_POST['sc_login_display_mode']) : 'mode1';
+        $sc_login_card_align     = isset($_POST['sc_login_card_align']) ? sanitize_text_field($_POST['sc_login_card_align']) : 'center';
+        if (!in_array($sc_login_display_mode, ['mode1', 'mode2', 'mode3'], true)) {
+            $sc_login_display_mode = 'mode1';
+        }
+        if (!in_array($sc_login_card_align, ['left', 'center', 'right'], true)) {
+            $sc_login_card_align = 'center';
+        }
         sc_update_setting('sc_login_redirect_path', $sc_login_redirect_path, 'login_register');
         sc_update_setting('sc_login_otp_pattern', $sc_login_otp_pattern, 'login_register');
         sc_update_setting('sc_login_logo_url', $sc_login_logo_url, 'login_register');
@@ -623,6 +638,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sc_login_btn_bg', $sc_login_btn_bg, 'login_register');
         sc_update_setting('sc_login_btn_color', $sc_login_btn_color, 'login_register');
         sc_update_setting('sc_login_page_id', $sc_login_page_id, 'login_register');
+        sc_update_setting('sc_login_display_mode', $sc_login_display_mode, 'login_register');
+        sc_update_setting('sc_login_card_align', $sc_login_card_align, 'login_register');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب ورود و عضویت ذخیره شد', null, ['tab' => 'login_register']);
         }
@@ -636,14 +653,10 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $sc_name_club   = isset($_POST['sc_name_club']) ? sanitize_text_field($_POST['sc_name_club']) : 'باشگاه اتم';
         $sc_club_logo_url        = isset($_POST['sc_club_logo_url']) ? esc_url_raw($_POST['sc_club_logo_url']) : '';
         $sc_phone_club        = isset($_POST['sc_phone_club']) ? sanitize_text_field($_POST['sc_phone_club']) : '';
-        $sc_token_club        = isset($_POST['sc_token_club']) ? sanitize_text_field($_POST['sc_token_club']) : '';
-        $sc_botname_club        = isset($_POST['sc_botname_club']) ? sanitize_text_field($_POST['sc_botname_club']) : '';
 
         sc_update_setting('sc_name_club', $sc_name_club, 'abaut_club');
         sc_update_setting('sc_club_logo_url', $sc_club_logo_url, 'abaut_club');
         sc_update_setting('sc_phone_club', $sc_phone_club, 'abaut_club');
-        sc_update_setting('sc_token_club', $sc_token_club, 'bot');
-        sc_update_setting('sc_botname_club', $sc_botname_club, 'bot');
         sc_update_setting('sc_org_bg_color', $sc_org_bg_color, 'abaut_club');
         sc_update_setting('sc_txt_bg_color', $sc_txt_bg_color, 'abaut_club');
 
@@ -651,6 +664,28 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب درباره مجموعه ذخیره شد', null, ['tab' => 'about']);
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات درباره مجموعه شد.</p></div>';
+    }
+    elseif ($current_tab === 'bale_bot') {
+        $sc_token_club          = isset($_POST['sc_token_club']) ? sanitize_text_field($_POST['sc_token_club']) : '';
+        $sc_botname_club        = isset($_POST['sc_botname_club']) ? sanitize_text_field($_POST['sc_botname_club']) : '';
+        $sc_bale_safir_api_key  = isset($_POST['sc_bale_safir_api_key']) ? sanitize_text_field($_POST['sc_bale_safir_api_key']) : '';
+        $sc_bale_safir_bot_id   = isset($_POST['sc_bale_safir_bot_id']) ? absint($_POST['sc_bale_safir_bot_id']) : 0;
+        $sc_bale_bot_enabled    = isset($_POST['sc_bale_bot_enabled']) ? 1 : 0;
+        $sc_bale_use_miniapp    = isset($_POST['sc_bale_use_miniapp']) ? 1 : 0;
+        $sc_bale_webhook_secret = isset($_POST['sc_bale_webhook_secret']) ? sanitize_text_field($_POST['sc_bale_webhook_secret']) : '';
+
+        sc_update_setting('sc_token_club', $sc_token_club, 'bot');
+        sc_update_setting('sc_botname_club', $sc_botname_club, 'bot');
+        sc_update_setting('sc_bale_safir_api_key', $sc_bale_safir_api_key, 'bot');
+        sc_update_setting('sc_bale_safir_bot_id', $sc_bale_safir_bot_id, 'bot');
+        sc_update_setting('sc_bale_bot_enabled', $sc_bale_bot_enabled, 'bot');
+        sc_update_setting('sc_bale_use_miniapp', $sc_bale_use_miniapp, 'bot');
+        sc_update_setting('sc_bale_webhook_secret', $sc_bale_webhook_secret, 'bot');
+
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب ربات بله ذخیره شد', null, ['tab' => 'bale_bot']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات ربات بله ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'header_footer') {
     
@@ -962,6 +997,14 @@ $sc_login_bg_image      = sc_get_setting('sc_login_bg_image', '');
 $sc_login_btn_bg        = sc_get_setting('sc_login_btn_bg', '#e60012');
 $sc_login_btn_color     = sc_get_setting('sc_login_btn_color', '#ffffff');
 $sc_login_page_id       = (int) sc_get_setting('sc_login_page_id', 0);
+$sc_login_display_mode  = sc_get_setting('sc_login_display_mode', 'mode1');
+$sc_login_card_align    = sc_get_setting('sc_login_card_align', 'center');
+if (!in_array($sc_login_display_mode, ['mode1', 'mode2', 'mode3'], true)) {
+    $sc_login_display_mode = 'mode1';
+}
+if (!in_array($sc_login_card_align, ['left', 'center', 'right'], true)) {
+    $sc_login_card_align = 'center';
+}
 // تنطیمات حضور و غیاب 
 
 $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
@@ -970,8 +1013,6 @@ $deduction_wallet_enabled = (int)sc_get_setting('deduction_wallet',0);
 $sc_name_club      = sc_get_setting('sc_name_club', '');
 $sc_club_logo_url      = sc_get_setting('sc_club_logo_url', '');
 $sc_phone_club      = sc_get_setting('sc_phone_club', '');
-$sc_token_club      = sc_get_setting('sc_token_club', '');
-$sc_botname_club      = sc_get_setting('sc_botname_club', '');
 
 $sc_header_search_placeholder = sc_get_setting('sc_header_search_placeholder', 'جستجو در خدمات، صفحات و فروشگاه…');
 $sc_org_bg_color = sc_get_setting('sc_org_bg_color', '#6D34FF');
@@ -1026,6 +1067,10 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=about'); ?>"
            class="nav-tab <?php echo $current_tab === 'about' ? 'nav-tab-active' : ''; ?>">
             درباره  مجموعه
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=bale_bot'); ?>"
+           class="nav-tab <?php echo $current_tab === 'bale_bot' ? 'nav-tab-active' : ''; ?>">
+            ربات بله
         </a>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=header_footer'); ?>"
            class="nav-tab <?php echo $current_tab === 'header_footer' ? 'nav-tab-active' : ''; ?>">
@@ -1388,6 +1433,28 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         </td>
                     </tr>
                     <tr>
+                        <th scope="row"><label for="sc_login_display_mode">حالت نمایش</label></th>
+                        <td>
+                            <select name="sc_login_display_mode" id="sc_login_display_mode">
+                                <option value="mode1" <?php selected($sc_login_display_mode, 'mode1'); ?>>حالت یک — کارت وسط صفحه با تصویر پس‌زمینه</option>
+                                <option value="mode2" <?php selected($sc_login_display_mode, 'mode2'); ?>>حالت دو — تصویر ۷۰٪ چپ و فرم ۳۰٪ راست</option>
+                                <option value="mode3" <?php selected($sc_login_display_mode, 'mode3'); ?>>حالت سه — فرم ۳۰٪ چپ و تصویر ۷۰٪ راست</option>
+                            </select>
+                            <p class="description">حالت یک: کارت شیشه‌ای روی پس‌زمینه. حالت دو: تصویر چپ، فرم راست. حالت سه: برعکس حالت دو — فرم چپ، تصویر راست.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_login_card_align">تراز</label></th>
+                        <td>
+                            <select name="sc_login_card_align" id="sc_login_card_align">
+                                <option value="right" <?php selected($sc_login_card_align, 'right'); ?>>راست</option>
+                                <option value="center" <?php selected($sc_login_card_align, 'center'); ?>>وسط</option>
+                                <option value="left" <?php selected($sc_login_card_align, 'left'); ?>>چپ</option>
+                            </select>
+                            <p class="description">حالت یک: موقعیت کارت روی صفحه. حالت دو و سه: تراز تصویر در بخش تصویر.</p>
+                        </td>
+                    </tr>
+                    <tr>
                         <th scope="row"><label for="sc_login_logo_url">لوگو</label></th>
                         <td>
                             <div class="sc-lr-media-wrap">
@@ -1428,7 +1495,11 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <p class="description">در صورت پر بودن، این تصویر به جای رنگ استفاده می‌شود</p>
+                            <p class="description">
+                                <strong>حالت یک:</strong> تصویر تمام‌صفحه — اندازه پیشنهادی <strong>1920×1080</strong> پیکسل (نسبت ۱۶:۹).<br>
+                                <strong>حالت دو و سه:</strong> تصویر بخش بزرگ — اندازه پیشنهادی <strong>1344×1080</strong> پیکسل (نسبت ۷۰٪ عرض صفحه Full HD).<br>
+                                تصویر کل ناحیه را می‌پوشاند؛ اگر نسبت تصویر با صفحه فرق داشته باشد، لبه‌ها کمی برش می‌خورند. در صورت خالی بودن، فقط رنگ پس‌زمینه اعمال می‌شود.
+                            </p>
                         </td>
                     </tr>
                     <tr>
@@ -1522,30 +1593,15 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         </td>
                     </tr>
                 
-                    <tr>
-                        <th scope="row"><label for="sc_token_club">توکن ربات بله</label></th>
-                        <td>
-                            <input type="password" name="sc_token_club" 
-                                   value="<?php echo esc_attr($sc_token_club); ?>"
-                                   class="regular-text" placeholder="مثلا : 123456789:xxkjdkjfkjdfiejdekjdf  ">
-                            <p class="description">برای ساخت توکن ربات وارد آیدی @botfather در اپ بله شوید سپس احراز هویت شوید و یک ربات بسازید در انتها یک توکن عددی- متنی می دهد.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="sc_botname_club">نام کاربری ربات بله</label></th>
-                        <td>
-                            <input type="text" name="sc_botname_club" 
-                                   value="<?php echo esc_attr($sc_botname_club); ?>"
-                                   class="regular-text" placeholder="مثلا : mahdi_bot  ">
-                            <p class="description">نام رباتی که در @botfather ساختید را وارد کنید.</p>
-                        </td>
-                    </tr>
                 </table>
                 <p class="submit">
-                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات ورود و عضویت">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات درباره مجموعه">
                 </p>
             </form>
          
+        <?php elseif ($current_tab === 'bale_bot') : ?>
+            <?php include SC_TEMPLATES_ADMIN_DIR . 'settings-tab-bale-bot.php'; ?>
+
         <?php elseif ($current_tab === 'header_footer') : ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>

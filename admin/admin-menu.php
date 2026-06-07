@@ -64,6 +64,34 @@ function sc_register_admin_menu() {
 
         
     }
+
+    /* ================= Bale Bot ================= */
+    add_menu_page(
+        'ربات بله',
+        'ربات بله',
+        'manage_options',
+        'sc-bale-bot-messages',
+        'sc_admin_bale_bot_messages_list_page',
+        'dashicons-format-chat',
+        21
+    );
+    add_submenu_page(
+        'sc-bale-bot-messages',
+        'لیست پیام‌های ربات',
+        'لیست پیام‌ها',
+        'manage_options',
+        'sc-bale-bot-messages',
+        'sc_admin_bale_bot_messages_list_page'
+    );
+    add_submenu_page(
+        'sc-bale-bot-messages',
+        'ارسال پیام ربات',
+        'ارسال پیام',
+        'manage_options',
+        'sc-bale-bot-send',
+        'sc_admin_bale_bot_send_page'
+    );
+
     if (function_exists('sc_is_pro_feature_user_alerts_enabled') && sc_is_pro_feature_user_alerts_enabled()) {
         add_menu_page(
             'هشدارهای کاربر',
@@ -1604,6 +1632,22 @@ function sc_admin_add_notification_page() {
     sc_check_and_create_tables();
     $GLOBALS['sc_notification_is_coach'] = false;
     include SC_TEMPLATES_ADMIN_DIR . 'notification-add.php';
+}
+
+function sc_admin_bale_bot_messages_list_page() {
+    sc_check_and_create_tables();
+    if (function_exists('sc_create_bot_messages_table')) {
+        sc_create_bot_messages_table();
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'bale-bot-messages-list.php';
+}
+
+function sc_admin_bale_bot_send_page() {
+    sc_check_and_create_tables();
+    if (function_exists('sc_create_bot_messages_table')) {
+        sc_create_bot_messages_table();
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'bale-bot-message-add.php';
 }
 
 function sc_admin_surveys_list_page() {

@@ -395,6 +395,64 @@ add_filter('woocommerce_logout_default_redirect_url', function ($redirect) {
 add_action('init', function () {
     add_shortcode('sc_login_register_form', 'sc_login_register_shortcode');
 });
+
+/**
+ * HTML داخلی کارت فرم ورود
+ */
+function sc_login_register_render_card() {
+    $logo_url     = sc_get_setting('sc_login_logo_url', '');
+    $sc_name_club = sc_get_setting('sc_name_club', '');
+    ob_start();
+    ?>
+    <div class="sc-lr-card">
+        <div class="sc-lr-alert sc-lr-alert-error" id="sc-lr-global-error" role="alert" aria-live="polite" style="display:none;">
+            <span class="sc-lr-alert-icon" aria-hidden="true"></span>
+            <span class="sc-lr-alert-text" id="sc-lr-global-error-text"></span>
+        </div>
+        <?php if ($logo_url) : ?>
+            <div class="sc-lr-logo">
+                <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
+            </div>
+        <?php endif; ?>
+        <h2 class="sc-lr-title">ورود به <?php echo esc_html($sc_name_club); ?></h2>
+        <div class="sc-lr-form" id="sc-login-register-form">
+            <div class="sc-lr-step sc-lr-step-phone" data-step="phone">
+                <p class="sc-lr-desc" id="sc-lr-desc">لطفا شماره موبایل خود را وارد کنید</p>
+                <input type="tel" class="sc-lr-input" id="sc-lr-phone" placeholder="شماره موبایل بازیکن" autocomplete="tel" maxlength="11" inputmode="numeric">
+                <button type="button" class="sc-lr-btn" id="sc-lr-submit-phone">ورود </button>
+            </div>
+            <div class="sc-lr-step sc-lr-step-exists" data-step="exists" style="display:none;">
+                <p class="sc-lr-desc" id="sc-lr-desc">رمز عبور خود را وارد کنید در صورتی که فراموش کرده اید از کد یک بار مصرف استفاده کنید.</p>
+                <input type="password" class="sc-lr-input" id="sc-lr-password" placeholder="رمز عبور" autocomplete="current-password">
+                <button type="button" class="sc-lr-btn" id="sc-lr-login-password">ورود</button>
+                <button type="button" class="sc-lr-btn sc-lr-btn-outline" id="sc-lr-send-otp">ارسال کد یکبارمصرف</button>
+                <p class="sc-lr-back"><button type="button" class="sc-lr-link-btn" id="sc-lr-back-phone">بازگشت و تصحیح شماره </button></p>
+            </div>
+            <div class="sc-lr-step sc-lr-step-register" data-step="register" style="display:none;">
+                <input type="text" class="sc-lr-input" id="sc-lr-first-name" placeholder="نام" autocomplete="given-name">
+                <input type="text" class="sc-lr-input" id="sc-lr-last-name" placeholder="نام خانوادگی" autocomplete="family-name">
+                <input type="password" class="sc-lr-input" id="sc-lr-reg-password" placeholder="رمز عبور (حداقل ۶ کاراکتر)" autocomplete="new-password">
+                <button type="button" class="sc-lr-btn" id="sc-lr-register-submit">ثبت‌نام و دریافت کد</button>
+                <p class="sc-lr-back"><button type="button" class="sc-lr-link-btn" id="sc-lr-back-phone-reg">بازگشت</button></p>
+            </div>
+            <div class="sc-lr-step sc-lr-step-otp" data-step="otp" style="display:none;">
+                <input type="text" class="sc-lr-input" id="sc-lr-otp" placeholder="  کد تأیید ۵ رقمی ارسال شده به " maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+                <button type="button" class="sc-lr-btn" id="sc-lr-verify-otp">تأیید و ورود</button>
+                <button type="button" class="sc-lr-back-top" id="sc-lr-otp-back" title="بازگشت">→ بازگشت و تصحیح شماره </button>
+                <div class="sc-lr-resend-wrap" id="sc-lr-resend-wrap" style="display:none;">
+                    <button type="button" class="sc-lr-btn sc-lr-btn-outline" id="sc-lr-resend-otp">دریافت مجدد کد</button>
+                </div>
+                <p class="sc-lr-otp-timer-wrap">
+                    <span class="sc-lr-otp-timer-label">اعتبار کد:</span>
+                    <span class="sc-lr-otp-timer" id="sc-lr-otp-timer" aria-live="polite">۲:۰۰</span>
+                </p>
+            </div>
+        </div>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
 function sc_login_register_shortcode() {
     if (is_user_logged_in()) {
         $redirect = sc_login_register_redirect_url();
@@ -432,68 +490,58 @@ function sc_login_register_shortcode() {
             'err_phone'     => 'شماره موبایل معتبر وارد کنید.',
         ],
     ]);
-    $logo_url   = sc_get_setting('sc_login_logo_url', '');
     $bg_color   = sc_get_setting('sc_login_bg_color', '#ffffff');
     $bg_image   = sc_get_setting('sc_login_bg_image', '');
-    $btn_bg    = sc_get_setting('sc_login_btn_bg', '#e60012');
-    $btn_color = sc_get_setting('sc_login_btn_color', '#ffffff');
+    $btn_bg     = sc_get_setting('sc_login_btn_bg', '#e60012');
+    $btn_color  = sc_get_setting('sc_login_btn_color', '#ffffff');
+    $display_mode = sc_get_setting('sc_login_display_mode', 'mode1');
+    $card_align   = sc_get_setting('sc_login_card_align', 'center');
+    if (!in_array($display_mode, ['mode1', 'mode2', 'mode3'], true)) {
+        $display_mode = 'mode1';
+    }
+    if (!in_array($card_align, ['left', 'center', 'right'], true)) {
+        $card_align = 'center';
+    }
     $style_vars = '--sc-lr-bg:' . esc_attr($bg_color) . ';--sc-lr-btn-bg:' . esc_attr($btn_bg) . ';--sc-lr-btn-color:' . esc_attr($btn_color) . ';';
-    if ($bg_image) {
+    if ($bg_image && $display_mode === 'mode1') {
         $style_vars .= '--sc-lr-bg-image:url(' . esc_url($bg_image) . ');';
     }
+    $wrap_classes = 'sc-login-register-wrap sc-lr-mode-' . esc_attr(substr($display_mode, -1)) . ' sc-lr-align-' . esc_attr($card_align);
     ob_start();
-    ?>
-    <div class="sc-login-register-wrap" style="<?php echo $style_vars; ?>">
-        <div class="sc-lr-background" aria-hidden="true"></div>
-        <div class="sc-lr-card">
-            <div class="sc-lr-alert sc-lr-alert-error" id="sc-lr-global-error" role="alert" aria-live="polite" style="display:none;">
-                <span class="sc-lr-alert-icon" aria-hidden="true"></span>
-                <span class="sc-lr-alert-text" id="sc-lr-global-error-text"></span>
-            </div>
-            <?php if ($logo_url) : ?>
-                <div class="sc-lr-logo">
-                    <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
-                </div>
-            <?php endif;
-            $sc_name_club      = sc_get_setting('sc_name_club', '');
-            ?>
-            <h2 class="sc-lr-title">ورود به  <?php echo $sc_name_club; ?></h2>
-            <div class="sc-lr-form" id="sc-login-register-form">
-                <div class="sc-lr-step sc-lr-step-phone" data-step="phone">
-                    <p class="sc-lr-desc" id="sc-lr-desc">لطفا شماره موبایل خود را وارد کنید</p>
-                    <input type="tel" class="sc-lr-input" id="sc-lr-phone" placeholder="شماره موبایل بازیکن" autocomplete="tel" maxlength="11" inputmode="numeric">
-                    <button type="button" class="sc-lr-btn" id="sc-lr-submit-phone">ورود </button>
-                </div>
-                <div class="sc-lr-step sc-lr-step-exists" data-step="exists" style="display:none;">
-                    <p class="sc-lr-desc" id="sc-lr-desc">رمز عبور خود را وارد کنید در صورتی که فراموش کرده اید از کد یک بار مصرف استفاده کنید.</p>
-                    <input type="password" class="sc-lr-input" id="sc-lr-password" placeholder="رمز عبور" autocomplete="current-password">
-                    <button type="button" class="sc-lr-btn" id="sc-lr-login-password">ورود</button>
-                    <button type="button" class="sc-lr-btn sc-lr-btn-outline" id="sc-lr-send-otp">ارسال کد یکبارمصرف</button>
-                    <p class="sc-lr-back"><button type="button" class="sc-lr-link-btn" id="sc-lr-back-phone">بازگشت و تصحیح شماره </button></p>
-                </div>
-                <div class="sc-lr-step sc-lr-step-register" data-step="register" style="display:none;">
-                    <input type="text" class="sc-lr-input" id="sc-lr-first-name" placeholder="نام" autocomplete="given-name">
-                    <input type="text" class="sc-lr-input" id="sc-lr-last-name" placeholder="نام خانوادگی" autocomplete="family-name">
-                    <input type="password" class="sc-lr-input" id="sc-lr-reg-password" placeholder="رمز عبور (حداقل ۶ کاراکتر)" autocomplete="new-password">
-                    <button type="button" class="sc-lr-btn" id="sc-lr-register-submit">ثبت‌نام و دریافت کد</button>
-                    <p class="sc-lr-back"><button type="button" class="sc-lr-link-btn" id="sc-lr-back-phone-reg">بازگشت</button></p>
-                </div>
-                <div class="sc-lr-step sc-lr-step-otp" data-step="otp" style="display:none;">
-                    <input type="text" class="sc-lr-input" id="sc-lr-otp" placeholder="  کد تأیید ۵ رقمی ارسال شده به " maxlength="6" inputmode="numeric" autocomplete="one-time-code">
-                    <button type="button" class="sc-lr-btn" id="sc-lr-verify-otp">تأیید و ورود</button>
-                    <button type="button" class="sc-lr-back-top" id="sc-lr-otp-back" title="بازگشت">→ بازگشت و تصحیح شماره </button>
-                    <div class="sc-lr-resend-wrap" id="sc-lr-resend-wrap" style="display:none;">
-                        <button type="button" class="sc-lr-btn sc-lr-btn-outline" id="sc-lr-resend-otp">دریافت مجدد کد</button>
+    if (in_array($display_mode, ['mode2', 'mode3'], true)) :
+        $form_html = sc_login_register_render_card();
+        ?>
+        <div class="<?php echo esc_attr($wrap_classes); ?>" style="<?php echo $style_vars; ?>">
+            <div class="sc-lr-split">
+                <?php if ($display_mode === 'mode3') : ?>
+                    <div class="sc-lr-split-form">
+                        <?php echo $form_html; ?>
                     </div>
-                    <p class="sc-lr-otp-timer-wrap">
-                        <span class="sc-lr-otp-timer-label">اعتبار کد:</span>
-                        <span class="sc-lr-otp-timer" id="sc-lr-otp-timer" aria-live="polite">۲:۰۰</span>
-                    </p>
-                    
-                </div>
+                    <div class="sc-lr-split-image">
+                        <?php if ($bg_image) : ?>
+                            <img src="<?php echo esc_url($bg_image); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
+                        <?php endif; ?>
+                    </div>
+                <?php else : ?>
+                    <div class="sc-lr-split-image">
+                        <?php if ($bg_image) : ?>
+                            <img src="<?php echo esc_url($bg_image); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
+                        <?php endif; ?>
+                    </div>
+                    <div class="sc-lr-split-form">
+                        <?php echo $form_html; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
-    </div>
-    <?php
+        <?php
+    else :
+        ?>
+        <div class="<?php echo esc_attr($wrap_classes); ?>" style="<?php echo $style_vars; ?>">
+            <div class="sc-lr-background" aria-hidden="true"></div>
+            <?php echo sc_login_register_render_card(); ?>
+        </div>
+        <?php
+    endif;
     return ob_get_clean();
 }

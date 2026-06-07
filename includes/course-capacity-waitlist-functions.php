@@ -290,6 +290,9 @@ function sc_maybe_notify_course_capacity_waitlist($course_id) {
                     $variables,
                     'course_capacity_waitlist'
                 );
+                if (function_exists('sc_bale_notify_user')) {
+                    sc_bale_notify_user((int) $member->id, $member->player_phone, $message);
+                }
             }
         }
 

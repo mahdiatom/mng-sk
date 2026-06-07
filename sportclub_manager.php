@@ -54,6 +54,7 @@ require_once SC_INCLUDES_DIR . 'jdf.php';                  // JDF library for Pe
 require_once SC_INCLUDES_DIR . 'persian-datepicker-helper.php'; // Persian datepicker helper
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
+require_once SC_INCLUDES_DIR . 'roles.php';                // نقش‌ها و محدودیت دسترسی (همیشه، حتی بدون لایسنس)
 
 if (sc_is_license_active()) {
 require_once SC_INCLUDES_DIR . 'course-packages-functions.php'; // پکیج‌های قیمت دوره
@@ -80,7 +81,6 @@ require_once SC_INCLUDES_DIR . 'survey-functions.php'; // Surveys
 require_once SC_INCLUDES_DIR . 'survey-export.php'; // Survey Excel export
 require_once SC_INCLUDES_DIR . 'course-capacity-waitlist-functions.php'; // اطلاع‌رسانی خالی شدن ظرفیت دوره
 require_once SC_INCLUDES_DIR . 'alerts-functions.php'; // User alerts (admin)
-require_once SC_INCLUDES_DIR . 'roles.php'; // Roles functions
 require_once SC_INCLUDES_DIR . 'wallet-functions.php'; // Wallet functions
 require_once SC_INCLUDES_DIR . 'coach-wallet-functions.php'; // Coach wallet functions
 require_once SC_INCLUDES_DIR . 'coach-salary-cron.php'; // Coach salary cron jobs
@@ -92,6 +92,7 @@ require_once SC_INCLUDES_DIR . 'honor-attachments-functions.php'; // Honor attac
 require_once SC_INCLUDES_DIR . 'private-classes-functions.php'; // Private classes (My Account booking + admin/coach management)
 require_once SC_INCLUDES_DIR . 'activity-log-functions.php';   // Activity log (admin actions)
 require_once SC_INCLUDES_DIR . 'login-register-functions.php'; // ورود و عضویت با پیامک و رمز
+require_once SC_PLUGIN_DIR . 'bot/bootstrap.php'; // ماژول ربات بله
 require_once SC_INCLUDES_DIR . 'redirect.php'; // ورود و عضویت با پیامک و رمز‌
 require_once SC_INCLUDES_DIR . 'cleanup.php'; // حدف درخواست های خارجی  برای عملکرد بهتر‌
 require_once SC_INCLUDES_DIR . 'attendance_logs.php'; // ارتباط با api حضور غیاب برای لاگ دستگاه
@@ -1583,6 +1584,32 @@ function sc_admin_enqueue_assets() {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
         wp_enqueue_style('sc-bulk-actions-admin-css', SC_ASSETS_URL . 'css/admin-bulk-actions.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
     }
+    $sc_bale_admin_pages = array('sc-bale-bot-messages', 'sc-bale-bot-send');
+    if (in_array($current_page, $sc_bale_admin_pages, true)) {
+        wp_enqueue_style('sc-bale-bot-admin-css', SC_ASSETS_URL . 'css/bale-bot-admin.css', array('sc-admin-css'), time());
+        wp_enqueue_script('sc-bale-bot-admin-js', SC_ASSETS_URL . 'js/bale-bot-admin.js', array('jquery'), time(), true);
+        wp_localize_script('sc-bale-bot-admin-js', 'scBaleBot', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce'   => wp_create_nonce('sc_bale_admin_nonce'),
+        ));
+    }
+    if ($current_page === 'sc-bale-bot-send') {
+        wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+        wp_enqueue_style('sc-bulk-actions-admin-css', SC_ASSETS_URL . 'css/admin-bulk-actions.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
+        wp_enqueue_script('sc-bale-bot-message-add-js', SC_ASSETS_URL . 'js/bale-bot-message-add.js', array('jquery', 'sc-admin-js', 'sc-confirm-js'), time(), true);
+        wp_localize_script('sc-bale-bot-message-add-js', 'scBaleBotMessage', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce'   => wp_create_nonce('sc_bale_admin_nonce'),
+        ));
+    }
+    if (is_admin() && isset($_GET['page']) && $_GET['page'] === 'sc_setting' && isset($_GET['tab']) && $_GET['tab'] === 'bale_bot') {
+        wp_enqueue_style('sc-bale-bot-admin-css', SC_ASSETS_URL . 'css/bale-bot-admin.css', array('sc-admin-css'), time());
+        wp_enqueue_script('sc-bale-bot-admin-js', SC_ASSETS_URL . 'js/bale-bot-admin.js', array('jquery'), time(), true);
+        wp_localize_script('sc-bale-bot-admin-js', 'scBaleBot', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce'   => wp_create_nonce('sc_bale_admin_nonce'),
+        ));
+    }
     $sc_survey_admin_pages = array('sc-add-survey', 'sc-surveys', 'sc-survey-data', 'sc-survey-stats', 'sc-coach-surveys');
     if (in_array($current_page, $sc_survey_admin_pages, true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
@@ -1636,6 +1663,9 @@ function sc_public_enqueue_assets() {
 
     wp_enqueue_script('sc-confirm-js', SC_ASSETS_URL . 'js/sc-confirm.js', array(), time(), true);
     wp_enqueue_script('sc-public-js', SC_ASSETS_URL . 'js/public.js', array('jquery', 'sc-confirm-js'), '1.0', true);
+    wp_enqueue_style('sc-bale-bot-css', SC_ASSETS_URL . 'css/bale-bot.css', array('sc-public-css'), time());
+    wp_enqueue_script('bale-miniapp-sdk', 'https://tapi.bale.ai/miniapp.js?3', array(), null, false);
+    wp_enqueue_script('sc-bale-miniapp-js', SC_ASSETS_URL . 'js/bale-miniapp.js', array('bale-miniapp-sdk'), time(), true);
 
     $sc_req_uri = isset($_SERVER['REQUEST_URI']) ? rawurldecode((string) wp_unslash($_SERVER['REQUEST_URI'])) : '';
     $sc_is_public_event_view = !is_admin()
