@@ -207,9 +207,6 @@ function sc_private_send_cancel_sms($session_id, $cancelled_by = 'user') {
         $message = function_exists('sc_replace_sms_variables') ? sc_replace_sms_variables($template, $variables) : $template;
         $pattern_code = (int) sc_get_setting('private_class_sms_coach_cancel_to_user_pattern', '0');
         sc_send_sms((string) $row->player_phone, $message, $pattern_code > 0, $pattern_code > 0 ? $pattern_code : null, $variables, 'private_cancel_to_user');
-        if (function_exists('sc_bale_notify_user') && !empty($row->member_id)) {
-            sc_bale_notify_user((int) $row->member_id, (string) $row->player_phone, $message);
-        }
     }
 }
 

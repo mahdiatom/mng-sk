@@ -657,11 +657,7 @@ function sc_send_wallet_low_balance_sms($member_id, $balance) {
     $message = sc_replace_sms_variables($template, $variables);
     $pattern_code = sc_get_sms_pattern('wallet_low_balance', 'user');
     
-    $result = sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_low_balance');
-    if (function_exists('sc_bale_notify_user')) {
-        sc_bale_notify_user($member_id, $member->player_phone, $message);
-    }
-    return $result;
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_low_balance');
 }
 
 /**
@@ -705,11 +701,7 @@ function sc_send_wallet_negative_balance_sms($member_id, $balance) {
     $message = sc_replace_sms_variables($template, $variables);
     $pattern_code = sc_get_sms_pattern('wallet_negative_balance', 'user');
     
-    $result = sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_negative_balance');
-    if (function_exists('sc_bale_notify_user')) {
-        sc_bale_notify_user($member_id, $member->player_phone, $message);
-    }
-    return $result;
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_negative_balance');
 }
 
 /**
@@ -754,11 +746,7 @@ function sc_send_wallet_charge_success_sms($member_id, $amount, $new_balance) {
     $message = sc_replace_sms_variables($template, $variables);
     $pattern_code = sc_get_sms_pattern('wallet_charge_success', 'user');
     
-    $result = sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_charge_success');
-    if (function_exists('sc_bale_notify_user')) {
-        sc_bale_notify_user($member_id, $member->player_phone, $message);
-    }
-    return $result;
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_charge_success');
 }
 
 /**
@@ -807,11 +795,7 @@ function sc_send_wallet_payment_sms($member_id, $amount, $new_balance, $invoice_
     $message = sc_replace_sms_variables($template, $variables);
     $pattern_code = sc_get_sms_pattern('wallet_payment', 'user');
     
-    $result = sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_payment');
-    if (function_exists('sc_bale_notify_user')) {
-        sc_bale_notify_user($member_id, $member->player_phone, $message);
-    }
-    return $result;
+    return sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'wallet_payment');
 }
 
 /**

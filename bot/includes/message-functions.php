@@ -70,6 +70,79 @@ function sc_bale_send_notification_to_users($user_ids, $title, $content) {
 }
 
 /**
+ * آینه‌سازی پیامک تنظیمات به ربات — فقط دارای Chat ID، بدون سفیر
+ */
+function sc_bale_mirror_sms_from_mobile($mobile, $message, $context = '') {
+    $message = trim((string) $message);
+    if ($message === '' || !function_exists('sc_bale_notify_user') || !sc_bale_is_enabled()) {
+        return;
+    }
+
+    $skip_contexts = ['private_cancel_to_admin', 'identity_verified', 'identity_rejected'];
+    if (in_array($context, $skip_contexts, true)) {
+        return;
+    }
+
+    if (function_exists('sc_get_setting') && function_exists('sc_clean_mobile_number')) {
+        $admin_phone = sc_get_setting('sms_admin_phone', '');
+        if ($admin_phone !== '' && sc_clean_mobile_number($mobile) === sc_clean_mobile_number($admin_phone)) {
+            return;
+        }
+    }
+
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+    $member_id = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $members_table WHERE player_phone = %s LIMIT 1",
+        $mobile
+    ));
+    if ($member_id <= 0 && function_exists('sc_clean_mobile_number')) {
+        $clean = sc_clean_mobile_number($mobile);
+        if ($clean) {
+            $member_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $members_table WHERE player_phone = %s LIMIT 1",
+                $clean
+            ));
+        }
+    }
+    if ($member_id > 0) {
+        sc_bale_notify_user($member_id, '', $message);
+        return;
+    }
+
+    if (function_exists('sc_clean_mobile_number')) {
+        $clean = sc_clean_mobile_number($mobile);
+        if ($clean) {
+            $wp_user_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = 'billing_phone' AND meta_value = %s LIMIT 1",
+                $clean
+            ));
+            if ($wp_user_id > 0) {
+                $linked = function_exists('sc_bot_get_member_for_wp_user')
+                    ? sc_bot_get_member_for_wp_user($wp_user_id)
+                    : null;
+                if ($linked && !empty($linked->id)) {
+                    sc_bale_notify_user((int) $linked->id, '', $message);
+                    return;
+                }
+                sc_bale_notify_user($wp_user_id, '', $message);
+                return;
+            }
+        }
+    }
+
+    $coach_user_id = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT user_id FROM $coaches_table WHERE mobile_phone = %s LIMIT 1",
+        $mobile
+    ));
+    if ($coach_user_id > 0) {
+        sc_bale_notify_user($coach_user_id, '', $message);
+    }
+}
+
+/**
  * ساخت target_config از POST — همان منطق اطلاعیه
  */
 function sc_bale_parse_target_config_from_post($post) {

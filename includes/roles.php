@@ -377,6 +377,7 @@ function club_add_woocommerce_capabilities_to_club_coach() {
     
             // حذف منوهای ووکامرس
            sc_safe_remove_menu_page('woocommerce');
+           sc_safe_remove_menu_page('updraftplus');
         //   sc_safe_remove_menu_page('wc-admin');
         //   sc_safe_remove_menu_page('edit.php?post_type=product');
         //   sc_safe_remove_menu_page('edit.php?post_type=shop_coupon');

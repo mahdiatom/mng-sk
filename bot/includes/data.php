@@ -6,6 +6,46 @@ if (!defined('ABSPATH')) {
 define('SC_BOT_LIST_PER_PAGE', 5);
 
 /**
+ * همان منطق sc_get_current_member_for_account_user — برای تطابق دادهٔ سایت و ربات
+ *
+ * @return object|null
+ */
+function sc_bot_get_member_for_wp_user($user_id) {
+    global $wpdb;
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) {
+        return null;
+    }
+
+    $table = $wpdb->prefix . 'sc_members';
+    $player = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table WHERE user_id = %d LIMIT 1",
+        $user_id
+    ));
+
+    if (!$player) {
+        $billing_phone = get_user_meta($user_id, 'billing_phone', true);
+        if ($billing_phone) {
+            $player = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $table WHERE player_phone = %s LIMIT 1",
+                $billing_phone
+            ));
+            if (!$player && function_exists('sc_clean_mobile_number')) {
+                $clean = sc_clean_mobile_number($billing_phone);
+                if ($clean) {
+                    $player = $wpdb->get_row($wpdb->prepare(
+                        "SELECT * FROM $table WHERE player_phone = %s LIMIT 1",
+                        $clean
+                    ));
+                }
+            }
+        }
+    }
+
+    return $player ?: null;
+}
+
+/**
  * @return array{user_id:int,member_id:int,full_name:string,chat_id:int|string}|false
  */
 function sc_bot_resolve_member($chat_id) {
@@ -15,23 +55,25 @@ function sc_bot_resolve_member($chat_id) {
     }
 
     $user_id = (int) $member->user_id;
-    $member_id = !empty($member->id) ? (int) $member->id : 0;
+    $player = sc_bot_get_member_for_wp_user($user_id);
+    $member_id = $player ? (int) $player->id : 0;
 
     if ($member_id <= 0 && function_exists('sc_survey_get_member_id_for_user')) {
         $member_id = (int) sc_survey_get_member_id_for_user($user_id);
     }
-    if ($member_id <= 0) {
-        global $wpdb;
-        $member_id = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$wpdb->prefix}sc_members WHERE user_id = %d LIMIT 1",
-            $user_id
-        ));
+
+    $full_name = '';
+    if ($player) {
+        $full_name = trim((string) (($player->first_name ?? '') . ' ' . ($player->last_name ?? '')));
+    }
+    if ($full_name === '') {
+        $full_name = trim((string) ($member->full_name ?? ''));
     }
 
     return [
         'user_id'    => $user_id,
         'member_id'  => $member_id,
-        'full_name'  => trim((string) ($member->full_name ?? '')),
+        'full_name'  => $full_name,
         'chat_id'    => $chat_id,
     ];
 }
@@ -373,20 +415,171 @@ function sc_bot_site_link_button($label, $path) {
     return [bale_make_link_button($label, $path)];
 }
 
-function sc_bot_get_active_courses($member_id, $limit = 6) {
+function sc_bot_get_member_row($member_id) {
+    global $wpdb;
+    return $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}sc_members WHERE id = %d LIMIT 1",
+        (int) $member_id
+    ));
+}
+
+/**
+ * همان فیلتر «دوره‌های فعال» در my-account/sc-my-courses
+ */
+function sc_bot_get_active_courses($member_id, $limit = 8) {
     global $wpdb;
     $mc = $wpdb->prefix . 'sc_member_courses';
     $courses = $wpdb->prefix . 'sc_courses';
     return $wpdb->get_results($wpdb->prepare(
-        "SELECT c.title, mc.status, mc.start_date
+        "SELECT c.title, mc.status, mc.start_date, mc.course_status_flags, mc.remaining_sessions
          FROM $mc mc
          INNER JOIN $courses c ON c.id = mc.course_id
-         WHERE mc.member_id = %d AND mc.status = 'active'
-         ORDER BY mc.start_date DESC
+         WHERE mc.member_id = %d
+           AND mc.status IN ('active', 'inactive')
+           AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+           AND c.deleted_at IS NULL
+         ORDER BY
+            CASE WHEN mc.status = 'active' THEN 0 ELSE 1 END,
+            mc.created_at DESC
          LIMIT %d",
         (int) $member_id,
         (int) $limit
     ));
+}
+
+function sc_bot_course_status_label($row) {
+    $flags = isset($row->course_status_flags) ? trim((string) $row->course_status_flags) : '';
+    if ($flags !== '') {
+        if (strpos($flags, 'paused') !== false) {
+            return '⏸ متوقف';
+        }
+        if (strpos($flags, 'canceled') !== false) {
+            return '❌ لغو شده';
+        }
+        if (strpos($flags, 'completed') !== false) {
+            return '✅ تکمیل‌شده';
+        }
+    }
+    if (isset($row->status) && $row->status === 'inactive') {
+        return '⏳ در انتظار پرداخت';
+    }
+    return '✅ فعال';
+}
+
+function sc_bot_get_faq_items($limit = 20) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_faq';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+        return [];
+    }
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT id, question, answer FROM $table ORDER BY id ASC LIMIT %d",
+        (int) $limit
+    ));
+}
+
+/**
+ * کارهای ناتمام — همان منطق dashboard-player.php (بدون «اتصال ربات»)
+ *
+ * @return array<int, array{icon:string,title:string,description:string}>
+ */
+function sc_bot_collect_dashboard_tasks($member_id, $user_id) {
+    global $wpdb;
+
+    $member_id = (int) $member_id;
+    $user_id = (int) $user_id;
+    $player = sc_bot_get_member_row($member_id);
+    if (!$player) {
+        return [];
+    }
+
+    $tasks = [];
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+
+    if (function_exists('sc_check_profile_completed') && !sc_check_profile_completed($member_id)) {
+        $tasks[] = [
+            'icon' => '👤',
+            'title' => 'تکمیل اطلاعات پروفایل',
+            'description' => 'برای استفاده کامل از خدمات، اطلاعات پروفایل را تکمیل کنید.',
+        ];
+    }
+
+    if (!empty($player->insurance_expiry_date_shamsi)
+        && function_exists('sc_get_today_shamsi')
+        && function_exists('sc_compare_shamsi_dates')) {
+        if (sc_compare_shamsi_dates(sc_get_today_shamsi(), $player->insurance_expiry_date_shamsi) >= 0) {
+            $tasks[] = [
+                'icon' => '🛡️',
+                'title' => 'تمدید بیمه ورزشی',
+                'description' => 'اعتبار بیمه ورزشی شما به پایان رسیده است.',
+            ];
+        }
+    }
+
+    $active_courses_count = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*)
+         FROM $member_courses_table mc
+         INNER JOIN $courses_table c ON mc.course_id = c.id
+         WHERE mc.member_id = %d
+           AND mc.status IN ('active', 'inactive')
+           AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+           AND c.deleted_at IS NULL",
+        $member_id
+    ));
+    if ($active_courses_count === 0) {
+        $tasks[] = [
+            'icon' => '🏃',
+            'title' => 'ثبت نام در دوره',
+            'description' => 'در هیچ دوره فعالی ثبت‌نام نشده‌اید.',
+        ];
+    }
+
+    if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()
+        && function_exists('sc_count_unread_notifications')) {
+        $unread = (int) sc_count_unread_notifications($user_id);
+        if ($unread > 0) {
+            $tasks[] = [
+                'icon' => '🔔',
+                'title' => 'مطالعه اطلاعیه‌ها',
+                'description' => sprintf('شما %s اطلاعیه خوانده‌نشده دارید.', number_format_i18n($unread)),
+            ];
+        }
+    }
+
+    $pending = $wpdb->get_row($wpdb->prepare(
+        "SELECT COUNT(*) AS cnt, COALESCE(SUM(amount + COALESCE(penalty_amount, 0)), 0) AS total_amount
+         FROM $invoices_table
+         WHERE member_id = %d
+           AND status IN ('pending', 'under_review')
+           AND (course_id > 0 OR event_id > 0 OR invoice_description IS NOT NULL)",
+        $member_id
+    ));
+    if ($pending && (int) $pending->cnt > 0) {
+        $tasks[] = [
+            'icon' => '💳',
+            'title' => 'پرداخت صورتحساب',
+            'description' => sprintf(
+                '%s صورتحساب در انتظار (جمع: %s)',
+                number_format_i18n((int) $pending->cnt),
+                sc_bot_format_amount((float) $pending->total_amount)
+            ),
+        ];
+    }
+
+    if (function_exists('sc_support_count_tickets_for_user')) {
+        $pending_tickets = sc_support_count_tickets_for_user($user_id, 'pending_reply');
+        if ($pending_tickets > 0) {
+            $tasks[] = [
+                'icon' => '🎫',
+                'title' => 'پاسخ تیکت پشتیبانی',
+                'description' => sprintf('%s تیکت در انتظار پاسخ شماست.', number_format_i18n($pending_tickets)),
+            ];
+        }
+    }
+
+    return $tasks;
 }
 
 function sc_bot_get_recent_attendances($member_id, $limit = 5) {

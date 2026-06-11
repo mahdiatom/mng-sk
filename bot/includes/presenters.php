@@ -18,36 +18,92 @@ function bale_present_dashboard($chat_id) {
         return;
     }
 
-    $s = sc_bot_get_dashboard_summary($ctx);
+    $tasks = sc_bot_collect_dashboard_tasks($ctx['member_id'], $ctx['user_id']);
     $lines = ["<b>پیشخوان</b>", ''];
     if ($ctx['full_name'] !== '') {
         $lines[] = '👤 ' . esc_html($ctx['full_name']);
+        $lines[] = '';
     }
 
-    if ($s['pending_invoices_count'] > 0) {
-        $lines[] = '💳 صورتحساب معوق: ' . $s['pending_invoices_count'] . ' مورد — ' . sc_bot_format_amount($s['pending_invoices_total']);
+    if (!empty($tasks)) {
+        $lines[] = '<b>✅ کارهای ناتمام (' . count($tasks) . ')</b>';
+        foreach ($tasks as $task) {
+            $lines[] = $task['icon'] . ' <b>' . esc_html($task['title']) . '</b>';
+            $lines[] = '   ' . esc_html($task['description']);
+        }
     } else {
-        $lines[] = '💳 صورتحساب معوق: ندارد';
-    }
-
-    if ($s['wallet_balance'] !== null) {
-        $lines[] = '👛 موجودی کیف پول: ' . sc_bot_format_amount($s['wallet_balance']);
-    }
-
-    if ($s['unread_notifications'] > 0) {
-        $lines[] = '📢 اطلاعیه خوانده‌نشده: ' . $s['unread_notifications'];
-    }
-
-    if ($s['certificates_count'] > 0) {
-        $lines[] = '📜 گواهینامه: ' . $s['certificates_count'] . ' مورد';
-    }
-
-    if ($s['upcoming_private'] > 0) {
-        $lines[] = '🎯 کلاس خصوصی پیش‌رو: ' . $s['upcoming_private'] . ' جلسه';
+        $lines[] = '✅ کار ناتمامی ندارید — همه چیز به‌روز است!';
     }
 
     $buttons = [
         sc_bot_site_link_button('ورود به پیشخوان', '/my-account/sc-dashboard'),
+    ];
+    bale_send_message_with_buttons($chat_id, implode("\n", $lines), $buttons);
+}
+
+function bale_present_logout_confirm($chat_id) {
+    $text = "⚠️ <b>خروج از حساب کاربری</b>\n\n"
+        . "آیا مطمئن هستید که می‌خواهید حساب خود را از ربات خارج کنید؟\n\n"
+        . "پس از خروج، برای استفاده مجدد باید از سایت دوباره «اتصال به ربات» را بزنید.";
+
+    $buttons = [
+        [
+            ['text' => '✅ بله، خارج شو', 'callback_data' => 'blogout:yes'],
+            ['text' => '❌ انصراف', 'callback_data' => 'blogout:no'],
+        ],
+    ];
+    bale_send_message_with_buttons($chat_id, $text, $buttons);
+}
+
+function bale_present_faq($chat_id) {
+    $default_intro = "در صورت پیدا نکردن پاسخ، از بخش تیکت پشتیبانی پیام بفرستید.";
+    $default_faqs = [
+        [
+            'q' => 'آیا در سایت حتما باید اطلاعاتم را تکمیل کنم؟',
+            'a' => 'خیر، لزومی به ثبت تمامی اطلاعات نیست مگر به اجبار مدیریت مجموعه.',
+        ],
+        [
+            'q' => 'چرا در ثبت‌نام دوره هیچ دوره‌ای برای من نیست؟',
+            'a' => 'ممکن است دوره در انتظار پرداخت باشد. فیلتر ثبت‌نام را روی «همه دوره‌ها» قرار دهید.',
+        ],
+        [
+            'q' => 'صورتحساب را نمی‌توانم لغو کنم؛ چرا؟',
+            'a' => 'در حال حاضر فقط مدیریت می‌تواند صورتحساب را لغو کند.',
+        ],
+    ];
+
+    $site_faqs = sc_bot_get_faq_items(15);
+    $lines = ["<b>سوالات متداول</b>", '', $default_intro, ''];
+
+    if (!empty($site_faqs)) {
+        $lines[] = '<b>📋 سوالات باشگاه:</b>';
+        $n = 1;
+        foreach ($site_faqs as $faq) {
+            $q = sc_bot_truncate(wp_strip_all_tags($faq->question), 200);
+            $a = sc_bot_truncate(wp_strip_all_tags($faq->answer), 300);
+            if ($q === '') {
+                continue;
+            }
+            $lines[] = '';
+            $lines[] = '<b>' . $n . '. ' . esc_html($q) . '</b>';
+            if ($a !== '') {
+                $lines[] = esc_html($a);
+            }
+            $n++;
+        }
+        $lines[] = '';
+    }
+
+    $lines[] = '<b>📌 راهنمای عمومی:</b>';
+    foreach ($default_faqs as $i => $faq) {
+        $lines[] = '';
+        $lines[] = '<b>' . ($i + 1) . '. ' . esc_html($faq['q']) . '</b>';
+        $lines[] = esc_html($faq['a']);
+    }
+
+    $buttons = [
+        [bale_make_link_button('سوالات متداول در سایت', '/my-account/sc-faq')],
+        [bale_make_link_button('ثبت تیکت پشتیبانی', '/my-account/sc-support-tickets')],
     ];
     bale_send_message_with_buttons($chat_id, implode("\n", $lines), $buttons);
 }
@@ -420,8 +476,12 @@ function bale_present_courses($chat_id) {
     } else {
         foreach ($courses as $c) {
             $lines[] = '▫️ <b>' . esc_html($c->title) . '</b>';
+            $lines[] = '   ' . sc_bot_course_status_label($c);
             if (!empty($c->start_date)) {
                 $lines[] = '   📅 شروع: ' . sc_bot_format_date($c->start_date);
+            }
+            if (isset($c->remaining_sessions) && $c->remaining_sessions !== null && $c->remaining_sessions !== '') {
+                $lines[] = '   🎯 جلسات باقی‌مانده: ' . (int) $c->remaining_sessions;
             }
         }
     }
@@ -551,6 +611,18 @@ function bale_present_support($chat_id) {
 function bale_bot_route_data_callback($chat_id, $data, $callback_query_id = '') {
     if ($callback_query_id !== '') {
         bale_answer_callback_query($callback_query_id);
+    }
+
+    if ($data === 'blogout:yes') {
+        $ok = sc_unlink_bot_account($chat_id);
+        bale_send_message($chat_id, $ok
+            ? '✅ حساب شما با موفقیت از ربات خارج شد.'
+            : 'شما قبلاً از حساب خارج شده‌اید یا حسابی متصل نیست.');
+        return true;
+    }
+    if ($data === 'blogout:no') {
+        bale_send_message($chat_id, 'خروج لغو شد. همچنان به حساب متصل هستید.');
+        return true;
     }
 
     if (preg_match('/^binv:d:(\d+)$/', $data, $m)) {

@@ -106,9 +106,6 @@ function sc_send_birthday_sms_daily() {
         $variables = ['user_name' => $user_name];
         $message = function_exists('sc_replace_sms_variables') ? sc_replace_sms_variables($template, $variables) : str_replace('%user_name%', $user_name, $template);
         sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'birthday');
-        if (function_exists('sc_bale_notify_user')) {
-            sc_bale_notify_user($member->id, $member->player_phone, $message);
-        }
 
     }
 }

@@ -62,13 +62,11 @@ function bale_router($update) {
         }
 
         if ($text === 'خروج از حساب کاربری') {
-            $result = sc_unlink_bot_account($chat_id);
-            if ($result) {
-                bale_send_message($chat_id, '✅ حساب شما با موفقیت از ربات خارج شد.');
-            } else {
-                bale_send_message($chat_id, 'شما قبلاً از حساب خارج شده‌اید یا حسابی متصل نیست.');
+            $member = sc_require_connected_user($chat_id);
+            if (!$member) {
+                return;
             }
-            return;
+            return bale_present_logout_confirm($chat_id);
         }
 
         $commands = bale_get_text_commands();
