@@ -70,6 +70,7 @@ require_once SC_INCLUDES_DIR . 'roles.php';                // نقش‌ها و �
 if (sc_is_license_active()) {
 require_once SC_INCLUDES_DIR . 'course-packages-functions.php'; // پکیج‌های قیمت دوره
 require_once SC_INCLUDES_DIR . 'course-schedule-functions.php'; // برنامه هفتگی کلاس دوره
+require_once SC_INCLUDES_DIR . 'course-chapter-coach-functions.php'; // شعبه و مربی دوره
 require_once SC_INCLUDES_DIR . 'discount-codes-functions.php'; // کدهای تخفیف صورت‌حساب
 require_once SC_INCLUDES_DIR . 'header-search-functions.php'; // جستجوی هدر (AJAX)
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions

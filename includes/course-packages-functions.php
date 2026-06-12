@@ -117,7 +117,7 @@ function sc_parse_course_packages_from_post() {
             continue;
         }
         if ($s < 1 || $p <= 0) {
-            return new WP_Error('pkg_invalid', 'هر ردیف پکیج باید تعداد جلسه و قیمت معتبر داشته باشد.');
+            continue;
         }
         if (isset($seen[$s])) {
             return new WP_Error('pkg_dup', 'تعداد جلسه در پکیج‌ها تکراری است.');

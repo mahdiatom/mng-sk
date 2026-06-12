@@ -1075,8 +1075,9 @@ function sc_my_account_enroll_course_content() {
     // دریافت فیلتر وضعیت - پیش‌فرض: آخرین دوره‌ها (دوره‌های فعال که کاربر می‌تواند ثبت نام کند)
     $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'latest';
     $course_search = isset($_GET['course_search']) ? sanitize_text_field(wp_unslash($_GET['course_search'])) : '';
-    
+
     $chapter = isset($chapter) ? $chapter : (isset($_GET['chapter']) ? sanitize_text_field(wp_unslash($_GET['chapter'])) : 'all');
+    $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
 
     // ساخت شرط WHERE
     $where_conditions = ["c.deleted_at IS NULL", "c.is_active = 1", "(c.course_type IS NULL OR c.course_type = '' OR c.course_type = 'group')"];
@@ -1243,9 +1244,16 @@ function sc_my_account_enroll_course_content() {
     
 
     // فیلتر بر اساس شعبه
-    if($chapter !== 'all'){
-        $where_conditions[] = " chapter LIKE '%$chapter%' ";
-        //$where_values = $chapter;
+    if ($chapter !== 'all') {
+        $chapters_table = $wpdb->prefix . 'sc_course_chapters';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $chapters_table)) === $chapters_table) {
+            $where_conditions[] = "(EXISTS (SELECT 1 FROM `$chapters_table` cc WHERE cc.course_id = c.id AND cc.chapter_name = %s) OR c.chapter = %s)";
+            $where_values[] = $chapter;
+            $where_values[] = $chapter;
+        } else {
+            $where_conditions[] = 'c.chapter = %s';
+            $where_values[] = $chapter;
+        }
     }
 
     if ($course_search !== '') {
@@ -1255,59 +1263,66 @@ function sc_my_account_enroll_course_content() {
         $where_values[] = $like;
     }
 
+    // فیلتر بر اساس مربی (دوره‌هایی که این مربی به آن‌ها تخصیص دارد)
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    if ($filter_coach > 0) {
+        $where_conditions[] = "EXISTS (SELECT 1 FROM `$course_coaches_table` fcc WHERE fcc.course_id = c.id AND fcc.coach_id = %d)";
+        $where_values[] = $filter_coach;
+    }
 
+    // لیست مربی‌های دارای دوره برای فیلتر
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $enroll_filter_coaches = $wpdb->get_results(
+        "SELECT DISTINCT co.id, co.first_name, co.last_name
+         FROM `$coaches_table` co
+         INNER JOIN `$course_coaches_table` cc ON cc.coach_id = co.id
+         WHERE co.is_active = 1
+         ORDER BY co.last_name ASC, co.first_name ASC"
+    );
 
     $where_clause = implode(' AND ', $where_conditions);
-    
-    // محاسبه تعداد کل
-    $count_query = "SELECT COUNT(*) FROM $courses_table c WHERE $where_clause";
+
+    $id_query = "SELECT c.id FROM $courses_table c WHERE $where_clause ORDER BY c.created_at DESC";
     if (!empty($where_values)) {
-        $total_courses = $wpdb->get_var($wpdb->prepare($count_query, $where_values));
+        $all_ids = $wpdb->get_col($wpdb->prepare($id_query, $where_values));
     } else {
-        $total_courses = $wpdb->get_var($count_query);
+        $all_ids = $wpdb->get_col($id_query);
     }
-    
-    $total_courses = (int) $total_courses;
-    
+
+    $all_courses = [];
+    if (!empty($all_ids)) {
+        $id_placeholders = implode(',', array_fill(0, count($all_ids), '%d'));
+        $all_courses = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.* FROM $courses_table c WHERE c.id IN ($id_placeholders) ORDER BY c.created_at DESC",
+            $all_ids
+        ));
+        $all_courses = array_values(array_filter((array) $all_courses, function ($course) use ($player) {
+            return sc_member_matches_item_restrictions($course, $player);
+        }));
+    }
+
+    $total_courses = count($all_courses);
+
     // صفحه‌بندی
     $per_page = 10;
-    $current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+    $current_page = isset($_GET['pag']) ? max(1, absint($_GET['pag'])) : 1;
     $total_pages = max(1, (int) ceil($total_courses / $per_page));
     if ($current_page > $total_pages) {
         $current_page = $total_pages;
     }
     $offset = ($current_page - 1) * $per_page;
-    
-    // دریافت دوره‌های کاربر با صفحه‌بندی
-    // ترتیب: بر اساس تاریخ ایجاد (جدیدترین اول)
-    $query = "SELECT c.*
-              FROM $courses_table c
-              WHERE $where_clause
-              ORDER BY c.created_at DESC
-               LIMIT %d OFFSET %d";
-
-            
-    
-    $query_values = array_merge($where_values, [$per_page, $offset]);
-    $courses = $wpdb->get_results($wpdb->prepare($query, $query_values));
-
-    // اعمال محدودیت تیم/سطح/جنسیت روی دوره‌ها
-    if (!empty($courses)) {
-        $courses = array_values(array_filter($courses, function ($course) use ($player) {
-            return sc_member_matches_item_restrictions($course, $player);
-        }));
-    }
+    $courses = array_slice($all_courses, $offset, $per_page);
     
     // انتقال متغیرهای فیلتر و صفحه‌بندی به template
-    // $filter_status = $filter_status;
-    // $current_page = $current_page;
-    // $total_pages = $total_pages;
-    // $total_courses = $total_courses;
-    
-    // همیشه template را include کن تا فیلتر نمایش داده شود
     $capacity_waitlist_pending = function_exists('sc_get_member_pending_waitlist_course_ids')
         ? sc_get_member_pending_waitlist_course_ids((int) $player->id)
         : [];
+    $enroll_branch_configs = [];
+    if (!empty($courses) && function_exists('sc_get_course_enrollment_branch_config')) {
+        foreach ($courses as $enroll_course_row) {
+            $enroll_branch_configs[(int) $enroll_course_row->id] = sc_get_course_enrollment_branch_config((int) $enroll_course_row->id);
+        }
+    }
     include SC_TEMPLATES_PUBLIC_DIR . 'enroll-course.php';
 }
 
@@ -1373,6 +1388,24 @@ function sc_handle_course_enrollment() {
         exit;
     }
 
+    $posted_chapter = isset($_POST['enrollment_chapter']) ? sanitize_text_field(wp_unslash($_POST['enrollment_chapter'])) : '';
+    $posted_coach_id = isset($_POST['enrollment_coach_id']) ? absint($_POST['enrollment_coach_id']) : 0;
+    $assignment = function_exists('sc_resolve_member_course_assignment')
+        ? sc_resolve_member_course_assignment($course_id, $posted_chapter, $posted_coach_id, '', 0)
+        : ['chapter' => $posted_chapter, 'coach_id' => $posted_coach_id];
+
+    $course_chapters = function_exists('sc_get_course_chapters') ? sc_get_course_chapters($course_id) : [];
+    if (count($course_chapters) > 1 && $assignment['chapter'] === '') {
+        wc_add_notice('لطفاً شعبه دوره را انتخاب کنید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+        exit;
+    }
+    if (function_exists('sc_course_has_any_enrollment_slot') && !sc_course_has_any_enrollment_slot($course_id)) {
+        wc_add_notice('در حال حاضر ظرفیت ثبت‌نام این دوره تکمیل شده است.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+        exit;
+    }
+
     $has_pkg = function_exists('sc_course_has_packages') && sc_course_has_packages($course_id);
     $enrollment_sessions_sel = isset($_POST['enrollment_sessions']) ? absint($_POST['enrollment_sessions']) : 0;
     $invoice_amount = floatval($course->price);
@@ -1398,25 +1431,6 @@ function sc_handle_course_enrollment() {
         exit;
     }
 
-    // بررسی ظرفیت دوره — همان منطق نمایش لیست ثبت‌نام (فعال + بدون فلگ وضعیت)
-    if ($course->capacity) {
-        $enrolled_count = function_exists('sc_count_course_capacity_slots_used')
-            ? sc_count_course_capacity_slots_used($course_id)
-            : (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM $member_courses_table
-                 WHERE course_id = %d
-                   AND status = 'active'
-                   AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')",
-                $course_id
-            ));
-
-        if ($enrolled_count >= (int) $course->capacity) {
-            wc_add_notice('ظرفیت این دوره تکمیل شده است.', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
-            exit;
-        }
-    }
-    
     // بررسی ثبت‌نام قبلی
     $existing = $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM $member_courses_table WHERE member_id = %d AND course_id = %d",
@@ -1452,6 +1466,8 @@ function sc_handle_course_enrollment() {
             $upd_inactive = [
                 'status' => 'inactive',
                 'course_status_flags' => '',
+                'coach_id' => (int) $assignment['coach_id'],
+                'chapter' => $assignment['chapter'] !== '' ? $assignment['chapter'] : null,
                 'enrollment_date' => null,
                 'updated_at' => current_time('mysql'),
             ];
@@ -1460,7 +1476,7 @@ function sc_handle_course_enrollment() {
             } else {
                 $upd_inactive['enrollment_sessions'] = null;
             }
-            $fmt_inactive = ['%s', '%s', '%s', '%s', '%s'];
+            $fmt_inactive = ['%s', '%s', '%d', '%s', '%s', '%s', '%s'];
             $updated = $wpdb->update(
                 $member_courses_table,
                 $upd_inactive,
@@ -1490,6 +1506,8 @@ function sc_handle_course_enrollment() {
         $insert_mc = [
             'member_id' => $player->id,
             'course_id' => $course_id,
+            'coach_id' => (int) $assignment['coach_id'],
+            'chapter' => $assignment['chapter'] !== '' ? $assignment['chapter'] : null,
             'enrollment_date' => null,
             'status' => 'inactive',
             'created_at' => current_time('mysql'),
@@ -1499,7 +1517,7 @@ function sc_handle_course_enrollment() {
         $inserted = $wpdb->insert(
             $member_courses_table,
             $insert_mc,
-            ['%d', '%d', '%s', '%s', '%s', '%s', '%s']
+            ['%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s']
         );
         
         // اگر خطا در insert بود، لاگ کن
@@ -1524,6 +1542,8 @@ function sc_handle_course_enrollment() {
             $team_upd = [
                 'status' => 'active',
                 'enrollment_date' => current_time('Y-m-d'),
+                'coach_id' => (int) $assignment['coach_id'],
+                'chapter' => $assignment['chapter'] !== '' ? $assignment['chapter'] : null,
                 'updated_at' => current_time('mysql'),
                 'total_sessions' => (int) $sf_team['total_sessions'],
                 'remaining_sessions' => (int) $sf_team['remaining_sessions'],
@@ -1533,7 +1553,7 @@ function sc_handle_course_enrollment() {
             } else {
                 $team_upd['enrollment_sessions'] = (int) $sf_team['enrollment_sessions'];
             }
-            $team_fmt = ['%s', '%s', '%s', '%d', '%d'];
+            $team_fmt = ['%s', '%s', '%d', '%s', '%s', '%d', '%d'];
             $team_fmt[] = $sf_team['enrollment_sessions'] === null ? '%s' : '%d';
             $wpdb->update(
                 $member_courses_table,
@@ -1562,13 +1582,12 @@ function sc_handle_course_enrollment() {
                 'subtotal' => $invoice_amount,
                 'course_id' => $course_id,
                 'course' => $course,
+                'enrollment_chapter' => $assignment['chapter'],
             ]);
+            // کد نامعتبر ثبت‌نام را متوقف نمی‌کند؛ فقط بدون تخفیف ادامه می‌دهیم
             if (is_wp_error($vd)) {
-                wc_add_notice($vd->get_error_message(), 'error');
-                wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
-                exit;
-            }
-            if ($vd['discount_amount'] > 0) {
+                wc_add_notice('کد تخفیف اعمال نشد (' . $vd->get_error_message() . ') و ثبت‌نام بدون تخفیف انجام شد.', 'notice');
+            } elseif (!empty($vd['discount_amount']) && $vd['discount_amount'] > 0) {
                 $discount_meta = [
                     'discount_code_id' => $vd['discount_code_id'],
                     'discount_code' => $vd['code'],

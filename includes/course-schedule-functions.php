@@ -107,6 +107,8 @@ function sc_save_course_weekly_schedule_from_post($course_id) {
     $now = current_time('mysql');
     $sort = 0;
 
+    $has_chapter_coach_cols = sc_course_schedule_has_chapter_coach_columns();
+
     foreach (wp_unslash($_POST['csched_row']) as $row) {
         if (!is_array($row)) {
             continue;
@@ -123,23 +125,48 @@ function sc_save_course_weekly_schedule_from_post($course_id) {
         if (strcmp($ts, $te) >= 0) {
             continue;
         }
+        $row_chapter = isset($row['chapter']) ? sanitize_text_field((string) $row['chapter']) : '';
+        $row_coach = isset($row['coach']) ? absint($row['coach']) : 0;
         foreach ($wd as $d) {
             $sort++;
-            $wpdb->insert(
-                $table,
-                [
-                    'course_id' => $course_id,
-                    'weekday' => $d,
-                    'time_start' => $ts,
-                    'time_end' => $te,
-                    'sort_order' => $sort,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ],
-                ['%d', '%d', '%s', '%s', '%d', '%s', '%s']
-            );
+            $data = [
+                'course_id' => $course_id,
+                'weekday' => $d,
+                'time_start' => $ts,
+                'time_end' => $te,
+                'sort_order' => $sort,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+            $formats = ['%d', '%d', '%s', '%s', '%d', '%s', '%s'];
+            if ($has_chapter_coach_cols) {
+                $data['chapter_name'] = $row_chapter;
+                $data['coach_id'] = $row_coach;
+                $formats[] = '%s';
+                $formats[] = '%d';
+            }
+            $wpdb->insert($table, $data, $formats);
         }
     }
+}
+
+/**
+ * @return bool
+ */
+function sc_course_schedule_has_chapter_coach_columns() {
+    global $wpdb;
+    static $has = null;
+    if ($has !== null) {
+        return $has;
+    }
+    if (!sc_course_weekly_schedule_table_ready()) {
+        $has = false;
+        return $has;
+    }
+    $t = $wpdb->prefix . 'sc_course_weekly_schedule';
+    $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$t` LIKE %s", 'chapter_name'));
+    $has = !empty($col);
+    return $has;
 }
 
 /**
@@ -159,10 +186,10 @@ function sc_get_course_weekly_schedule_rows($course_id) {
 }
 
 /**
- * برای فرم ادمین: ادغام ردیف‌های هم‌زمان به یک بلوک با چند روز
+ * برای فرم ادمین: ادغام ردیف‌های هم‌زمان (و هم‌شعبه/هم‌مربی) به یک بلوک با چند روز
  *
  * @param array<int,object> $rows
- * @return array<int,array{start:string,end:string,wd:array<int,int>}>
+ * @return array<int,array{start:string,end:string,wd:array<int,int>,chapter:string,coach_id:int}>
  */
 function sc_group_course_schedule_for_form($rows) {
     $groups = [];
@@ -170,11 +197,15 @@ function sc_group_course_schedule_for_form($rows) {
         if (!isset($r->time_start, $r->time_end, $r->weekday)) {
             continue;
         }
-        $k = $r->time_start . '|' . $r->time_end;
+        $chapter = isset($r->chapter_name) ? (string) $r->chapter_name : '';
+        $coach_id = isset($r->coach_id) ? (int) $r->coach_id : 0;
+        $k = $r->time_start . '|' . $r->time_end . '|' . $chapter . '|' . $coach_id;
         if (!isset($groups[$k])) {
             $groups[$k] = [
                 'start' => $r->time_start,
                 'end' => $r->time_end,
+                'chapter' => $chapter,
+                'coach_id' => $coach_id,
                 'wd' => [],
             ];
         }
@@ -214,6 +245,14 @@ function sc_get_member_weekly_schedule_matrix($member_id) {
     $c = $wpdb->prefix . 'sc_courses';
     $sch = $wpdb->prefix . 'sc_course_weekly_schedule';
 
+    // فقط ردیف‌های برنامه که با شعبه/مربی انتخابی بازیکن هنگام ثبت‌نام مطابقت دارند
+    $chapter_coach_filter = '';
+    if (function_exists('sc_course_schedule_has_chapter_coach_columns') && sc_course_schedule_has_chapter_coach_columns()) {
+        $chapter_coach_filter = "
+          AND (s.chapter_name IS NULL OR s.chapter_name = '' OR mc.chapter IS NULL OR mc.chapter = '' OR s.chapter_name = mc.chapter)
+          AND (s.coach_id IS NULL OR s.coach_id = 0 OR mc.coach_id IS NULL OR mc.coach_id = 0 OR s.coach_id = mc.coach_id)";
+    }
+
     $sql = "SELECT s.id AS schedule_id, s.weekday, s.time_start, s.time_end, c.id AS course_id, c.title AS course_title
         FROM {$mc} mc
         INNER JOIN {$c} c ON c.id = mc.course_id AND c.deleted_at IS NULL
@@ -221,6 +260,7 @@ function sc_get_member_weekly_schedule_matrix($member_id) {
         WHERE mc.member_id = %d
           AND mc.status IN ('active','inactive')
           AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '' OR TRIM(mc.course_status_flags) = '')
+          {$chapter_coach_filter}
         ORDER BY s.weekday ASC, s.time_start ASC";
 
     $rows = $wpdb->get_results($wpdb->prepare($sql, $member_id));

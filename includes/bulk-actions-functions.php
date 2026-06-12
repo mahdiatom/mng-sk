@@ -654,37 +654,27 @@ function sc_bulk_actions_execute_handler() {
 
     if ($action_key === 'assign_course_coach') {
         $assign_course_id = isset($_POST['assign_course_id']) ? absint($_POST['assign_course_id']) : 0;
+        $assign_chapter_name = isset($_POST['assign_chapter_name']) ? sanitize_text_field(wp_unslash($_POST['assign_chapter_name'])) : '';
         $assign_coach_id = isset($_POST['assign_coach_id']) ? absint($_POST['assign_coach_id']) : 0;
-        if ($assign_course_id <= 0 || $assign_coach_id <= 0) {
+        if ($assign_course_id <= 0 || $assign_chapter_name === '' || $assign_coach_id <= 0) {
             sc_bulk_actions_finish_with_report(
                 'assign_course_coach',
                 array(),
-                array(array('line' => 'دوره یا مربی انتخاب نشده است.')),
+                array(array('line' => 'دوره، شعبه یا مربی انتخاب نشده است.')),
                 $filtered_count
             );
         }
-        $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-        $coaches_table = $wpdb->prefix . 'sc_coaches';
-        $is_valid_course_coach = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*)
-                 FROM $course_coaches_table cc
-                 INNER JOIN $coaches_table c ON c.id = cc.coach_id
-                 WHERE cc.course_id = %d AND cc.coach_id = %d AND c.is_active = 1",
-                $assign_course_id,
-                $assign_coach_id
-            )
-        );
-        if ($is_valid_course_coach <= 0) {
+        if (!function_exists('sc_is_valid_course_chapter_coach') || !sc_is_valid_course_chapter_coach($assign_course_id, $assign_chapter_name, $assign_coach_id)) {
             sc_bulk_actions_finish_with_report(
                 'assign_course_coach',
                 array(),
-                array(array('line' => 'مربی انتخاب‌شده برای این دوره معتبر نیست یا غیرفعال است.')),
+                array(array('line' => 'مربی انتخاب‌شده برای این دوره و شعبه معتبر نیست یا غیرفعال است.')),
                 $filtered_count
             );
         }
         $course_title = $wpdb->get_var($wpdb->prepare("SELECT title FROM {$courses_table} WHERE id = %d", $assign_course_id));
         $course_title = $course_title ? (string) $course_title : ('#' . $assign_course_id);
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
         $coach_row = $wpdb->get_row($wpdb->prepare("SELECT first_name, last_name FROM {$coaches_table} WHERE id = %d LIMIT 1", $assign_coach_id));
         $coach_label = $coach_row ? trim(($coach_row->first_name ?: '') . ' ' . ($coach_row->last_name ?: '')) : '';
         if ($coach_label === '') {
@@ -710,16 +700,17 @@ function sc_bulk_actions_execute_handler() {
                 $member_courses_table,
                 array(
                     'coach_id'   => $assign_coach_id,
+                    'chapter'    => $assign_chapter_name,
                     'updated_at' => current_time('mysql'),
                 ),
                 array('id' => (int) $mc_id),
-                array('%d', '%s'),
+                array('%d', '%s', '%s'),
                 array('%d')
             );
             if ($res === false) {
                 $fail_lines[] = $label . ' — خطای پایگاه داده هنگام تخصیص مربی.';
             } else {
-                $success_lines[] = $label . ' — برای دوره «' . $course_title . '» به مربی «' . $coach_label . '» تخصیص داده شد.';
+                $success_lines[] = $label . ' — برای دوره «' . $course_title . '» در شعبه «' . $assign_chapter_name . '» به مربی «' . $coach_label . '» تخصیص داده شد.';
             }
         }
         sc_bulk_actions_finish_with_report('assign_course_coach', $success_lines, $fail_lines, $filtered_count);

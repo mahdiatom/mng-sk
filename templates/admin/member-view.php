@@ -27,7 +27,7 @@ if (!$player) {
 // دریافت دوره‌های بازیکن
 $player_courses = $wpdb->get_results($wpdb->prepare(
     "SELECT c.title, c.price, mc.status, mc.course_status_flags, mc.created_at AS enrolled_at, c.id,
-            mc.total_sessions, mc.remaining_sessions, mc.coach_id,
+            mc.total_sessions, mc.remaining_sessions, mc.coach_id, mc.chapter,
             ch.first_name AS coach_first_name, ch.last_name AS coach_last_name
      FROM $member_courses_table mc
      INNER JOIN $courses_table c ON c.id = mc.course_id
@@ -218,6 +218,7 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
                 <thead>
                     <tr>
                         <th style="width: 120px;">نام دوره</th>
+                        <th style="width: 110px;">شعبه</th>
                         <th style="width: 140px;">مربی</th>
                         <th style="width: 120px;">قیمت</th>
                         <th style="width: 120px;">وضعیت</th>
@@ -239,6 +240,12 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
                     ?>
                         <tr>
                             <td><strong><?php echo esc_html($pc->title); ?></strong></td>
+                            <td><?php
+                                $chapter_mv = isset($pc->chapter) ? trim((string) $pc->chapter) : '';
+                                echo $chapter_mv !== ''
+                                    ? esc_html($chapter_mv)
+                                    : '<span style="color:#646970;">—</span>';
+                            ?></td>
                             <td><?php
                                 $coach_name_mv = trim((string) ($pc->coach_first_name ?? '') . ' ' . (string) ($pc->coach_last_name ?? ''));
                                 echo $coach_name_mv !== ''

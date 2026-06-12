@@ -242,7 +242,12 @@ function sc_validate_sc_discount_code($raw_code, array $ctx) {
             $dc_id
         ));
         if ($n_ch > 0) {
-            $ch_name = $course && isset($course->chapter) ? trim((string) $course->chapter) : '';
+            $ch_name = '';
+            if (!empty($args['enrollment_chapter'])) {
+                $ch_name = trim((string) $args['enrollment_chapter']);
+            } elseif ($course && isset($course->chapter)) {
+                $ch_name = trim((string) $course->chapter);
+            }
             if ($ch_name === '') {
                 return new WP_Error('sc_discount_chapter', 'این کد فقط برای شعبه‌های مشخص‌شده مجاز است.');
             }
@@ -445,6 +450,7 @@ function sc_ajax_preview_sc_discount_course() {
     $code = isset($_POST['code']) ? sanitize_text_field(wp_unslash($_POST['code'])) : '';
     $course_id = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
     $enrollment_sessions = isset($_POST['enrollment_sessions']) ? absint($_POST['enrollment_sessions']) : 0;
+    $enrollment_chapter = isset($_POST['enrollment_chapter']) ? sanitize_text_field(wp_unslash($_POST['enrollment_chapter'])) : '';
 
     global $wpdb;
     $members_table = $wpdb->prefix . 'sc_members';
@@ -494,6 +500,7 @@ function sc_ajax_preview_sc_discount_course() {
         'subtotal' => $subtotal,
         'course_id' => $course_id,
         'course' => $course,
+        'enrollment_chapter' => $enrollment_chapter,
     ]);
 
     if (is_wp_error($r)) {

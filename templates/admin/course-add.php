@@ -10,6 +10,7 @@ $start_date = '';
 $end_date = '';
 $is_active = 1;
 $chapter = '';
+$course_chapters_selected = [];
 $restriction_enabled = 0;
 $allowed_teams = [];
 $allowed_levels = [];
@@ -26,6 +27,9 @@ if ($course && isset($_GET['course_id'])) {
     $start_date = $course->start_date ?? '';
     $end_date = $course->end_date ?? '';
     $chapter = $course->chapter ?? '';
+    if (function_exists('sc_get_course_chapters')) {
+        $course_chapters_selected = sc_get_course_chapters((int) $course->id);
+    }
     $is_active = $course->is_active ?? 1;
     $restriction_enabled = isset($course->restriction_enabled) ? (int)$course->restriction_enabled : 0;
     $allowed_gender = !empty($course->allowed_gender) ? $course->allowed_gender : 'both';
@@ -52,6 +56,38 @@ $course_packages = [];
 if (!empty($course->id) && function_exists('sc_get_course_packages')) {
     $course_packages = sc_get_course_packages((int) $course->id);
 }
+
+// مربی‌های فعال + تخصیص‌های فعلی این دوره (شعبه => مربی‌ها)
+$coaches_table = $wpdb->prefix . 'sc_coaches';
+$all_active_coaches = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+$course_coach_assignments_map = (!empty($course->id) && function_exists('sc_get_course_coach_assignments_map'))
+    ? sc_get_course_coach_assignments_map((int) $course->id)
+    : [];
+
+$schedule_chapter_options = !empty($course_chapters_selected) ? $course_chapters_selected : [];
+if (empty($schedule_chapter_options) && !empty($chapter)) {
+    $schedule_chapter_options = [(string) $chapter];
+}
+
+$sc_coach_labels_for_js = [];
+foreach ((array) $all_active_coaches as $sc_co) {
+    $sc_label = trim((string) $sc_co->first_name . ' ' . (string) $sc_co->last_name);
+    $sc_coach_labels_for_js[(int) $sc_co->id] = $sc_label !== '' ? $sc_label : ('مربی #' . (int) $sc_co->id);
+}
+
+$sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($schedule_chapter_options, $course_coach_assignments_map) {
+    $ids = [];
+    $chapters = ($chapter_name !== '') ? [$chapter_name] : $schedule_chapter_options;
+    foreach ($chapters as $ch_name) {
+        if (!isset($course_coach_assignments_map[$ch_name]) || !is_array($course_coach_assignments_map[$ch_name])) {
+            continue;
+        }
+        foreach (array_keys($course_coach_assignments_map[$ch_name]) as $coach_id) {
+            $ids[(int) $coach_id] = (int) $coach_id;
+        }
+    }
+    return array_values($ids);
+};
 
 
 ?>
@@ -265,18 +301,56 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                 </tr>
 
                 <tr>
-                <th scope="row"><label for="chapter">شعبه</label></th>
+                <th scope="row"><label>شعبه‌ها <span style="color:red;">*</span></label></th>
                     <td>
+                        <div id="sc-course-chapters-box" class="sc-course-chapters-box">
+                            <?php if (!empty($chapters)) : ?>
+                                <?php foreach ($chapters as $ch) : ?>
+                                    <label class="sc-course-chapter-item">
+                                        <input type="checkbox"
+                                               name="course_chapters[]"
+                                               class="sc-course-chapter-cb"
+                                               value="<?php echo esc_attr($ch->name); ?>"
+                                               <?php checked(in_array($ch->name, $course_chapters_selected, true) || ($chapter === $ch->name && empty($course_chapters_selected))); ?>>
+                                        <?php echo esc_html($ch->name); ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            <?php else : ?>
+                                <p>هنوز شعبه‌ای تعریف نشده است.</p>
+                            <?php endif; ?>
+                        </div>
+                        <p class="description">می‌توانید چند شعبه برای یک دوره انتخاب کنید. بازیکن هنگام ثبت‌نام یکی را انتخاب می‌کند.</p>
+                        <p id="sc-course-chapters-error" style="display:none;color:#d63638;font-weight:600;margin:8px 0 0;">لطفاً حداقل یک شعبه را انتخاب کنید.</p>
 
-                        <select name="chapter" id="chapter" class="regular-text">
-                          <?php 
-                      
-                          
-                          foreach($chapters as $ch){ ?>
-                            <option value="<?php echo $ch->name; ?>" <?php selected($chapter,  $ch->name); ?>><?php echo $ch->name; ?></option>
-                           <?php } ?>
-                        </select>
-                        <p class="description">برای افزودن شعبه از بخش شعبه های باشگاه شعبه های  خودرا اضافه کنید.</p>
+                        <?php if (!empty($chapters) && !empty($all_active_coaches)) : ?>
+                        <div id="sc-course-coaches-box" class="sc-course-coaches-box">
+                            <input type="hidden" name="course_coach_assign_present" value="1">
+                            <strong class="sc-course-coaches-title">مربی‌های هر شعبه</strong>
+                            <?php foreach ($chapters as $ch) : ?>
+                                <div class="sc-course-chapter-coaches"
+                                     data-chapter="<?php echo esc_attr($ch->name); ?>">
+                                    <span class="sc-chapter-coaches-heading">شعبه «<?php echo esc_html($ch->name); ?>»:</span>
+                                    <div class="sc-chapter-coach-list">
+                                    <?php foreach ($all_active_coaches as $co) :
+                                        $co_label = isset($sc_coach_labels_for_js[(int) $co->id]) ? $sc_coach_labels_for_js[(int) $co->id] : ('مربی #' . (int) $co->id);
+                                        $is_assigned = isset($course_coach_assignments_map[(string) $ch->name][(int) $co->id]);
+                                        ?>
+                                        <label class="sc-chapter-coach-item">
+                                            <input type="checkbox"
+                                                   class="sc-course-coach-assign-cb"
+                                                   name="course_coach_assign[<?php echo esc_attr($ch->name); ?>][<?php echo (int) $co->id; ?>]"
+                                                   value="1"
+                                                   data-coach-id="<?php echo (int) $co->id; ?>"
+                                                   <?php checked($is_assigned); ?>>
+                                            <?php echo esc_html($co_label); ?>
+                                        </label>
+                                    <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                            <p class="description">با ذخیره دوره، این انتخاب در «دوره‌های» همان مربی هم به‌صورت خودکار فعال/غیرفعال می‌شود. درصد دستمزد از فرم مربی تنظیم می‌شود.</p>
+                        </div>
+                        <?php endif; ?>
                     </td>
                 </tr>
 
@@ -299,6 +373,8 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                                     <th class="sc-csched-col-days">روزهای هفته</th>
                                     <th class="sc-csched-col-time">شروع</th>
                                     <th class="sc-csched-col-time">پایان</th>
+                                    <th class="sc-csched-col-chapter">شعبه</th>
+                                    <th class="sc-csched-col-coach">مربی</th>
                                     <th class="sc-csched-col-actions"></th>
                                 </tr>
                             </thead>
@@ -307,6 +383,8 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                                     $sel = isset($block['wd']) && is_array($block['wd']) ? array_map('intval', $block['wd']) : [];
                                     $st = isset($block['start']) ? substr((string) $block['start'], 0, 5) : '';
                                     $en = isset($block['end']) ? substr((string) $block['end'], 0, 5) : '';
+                                    $block_chapter = isset($block['chapter']) ? (string) $block['chapter'] : '';
+                                    $block_coach = isset($block['coach_id']) ? (int) $block['coach_id'] : 0;
                                     ?>
                                 <tr class="sc-csched-row">
                                     <td class="sc-csched-wd-cell" data-label="روزهای هفته">
@@ -321,6 +399,29 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
                                     </td>
                                     <td data-label="شروع"><input type="time" class="regular-text sc-csched-time-input" name="csched_row[<?php echo (int) $bi; ?>][start]" value="<?php echo esc_attr($st); ?>"></td>
                                     <td data-label="پایان"><input type="time" class="regular-text sc-csched-time-input" name="csched_row[<?php echo (int) $bi; ?>][end]" value="<?php echo esc_attr($en); ?>"></td>
+                                    <td data-label="شعبه">
+                                        <select name="csched_row[<?php echo (int) $bi; ?>][chapter]" class="sc-csched-chapter-select">
+                                            <option value="">همه شعبه‌ها</option>
+                                            <?php foreach ($schedule_chapter_options as $sch_ch) : ?>
+                                                <option value="<?php echo esc_attr($sch_ch); ?>" <?php selected($block_chapter, $sch_ch); ?>><?php echo esc_html($sch_ch); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </td>
+                                    <td data-label="مربی">
+                                        <?php
+                                        $row_coach_ids = $sc_schedule_coach_ids_for_chapter($block_chapter);
+                                        ?>
+                                        <select name="csched_row[<?php echo (int) $bi; ?>][coach]" class="sc-csched-coach-select">
+                                            <option value="0">همه مربی‌ها</option>
+                                            <?php foreach ($row_coach_ids as $row_coach_id) :
+                                                if (!isset($sc_coach_labels_for_js[$row_coach_id])) {
+                                                    continue;
+                                                }
+                                                ?>
+                                                <option value="<?php echo (int) $row_coach_id; ?>" <?php selected($block_coach, (int) $row_coach_id); ?>><?php echo esc_html($sc_coach_labels_for_js[$row_coach_id]); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </td>
                                     <td class="sc-csched-actions-cell" data-label=""><button type="button" class="sc_button sc-csched-remove-row" style="margin-right: 10px; ">حذف</button></td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -387,6 +488,7 @@ if (!empty($course->id) && function_exists('sc_get_course_packages')) {
 </div>
 
 <script type="text/javascript">
+var scCourseCoachLabels = <?php echo wp_json_encode($sc_coach_labels_for_js, JSON_UNESCAPED_UNICODE); ?>;
 jQuery(document).ready(function($) {
     // فرمت کردن فیلد قیمت کل دوره
     if ($('#price').length && $('#price_raw').length) {
@@ -409,7 +511,7 @@ jQuery(document).ready(function($) {
         }
         function reindexCschedRows() {
             $tb.find('tr.sc-csched-row').each(function (idx) {
-                jQuery(this).find('input[name^="csched_row["]').each(function () {
+                jQuery(this).find('input[name^="csched_row["], select[name^="csched_row["]').each(function () {
                     var $el = jQuery(this);
                     var n = $el.attr('name');
                     if (!n) {
@@ -424,8 +526,12 @@ jQuery(document).ready(function($) {
             var $clone = $rows.last().clone();
             $clone.find('input[type="checkbox"]').prop('checked', false);
             $clone.find('input[type="time"]').val('');
+            $clone.find('select').prop('selectedIndex', 0);
             $tb.append($clone);
             reindexCschedRows();
+            if (typeof scSyncScheduleSelects === 'function') {
+                scSyncScheduleSelects();
+            }
         });
         $tb.on('click', '.sc-csched-remove-row', function () {
             if ($tb.find('tr.sc-csched-row').length <= 1) {
@@ -442,6 +548,140 @@ jQuery(document).ready(function($) {
         } else {
             $('#course-restrictions-box').slideUp(150);
         }
+    });
+
+    // اعتبارسنجی: برای دوره گروهی حداقل یک شعبه باید انتخاب شود
+    $('.sc-course-add-form').on('submit', function (e) {
+        var courseType = $('#course_type').val() || 'group';
+        if (courseType !== 'group') {
+            return true;
+        }
+        var $cbs = $('.sc-course-chapter-cb');
+        if (!$cbs.length) {
+            return true;
+        }
+        if (!$cbs.filter(':checked').length) {
+            e.preventDefault();
+            var $box = $('#sc-course-chapters-box');
+            var $err = $('#sc-course-chapters-error');
+            $err.show();
+            $box.css('border-color', '#d63638');
+            if ($box.length && $box[0].scrollIntoView) {
+                $box[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return false;
+        }
+        return true;
+    });
+
+    // نمایش گروه مربی‌های هر شعبه فقط وقتی آن شعبه انتخاب شده باشد
+    function scGetSelectedChapters() {
+        var chapters = [];
+        $('.sc-course-chapter-cb:checked').each(function () {
+            chapters.push(String($(this).val() || ''));
+        });
+        return chapters;
+    }
+
+    function scGetCoachesForChapter(chapterName) {
+        var coaches = [];
+        var seen = {};
+        if (!chapterName) {
+            scGetSelectedChapters().forEach(function (ch) {
+                scGetCoachesForChapter(ch).forEach(function (c) {
+                    if (!seen[c.id]) {
+                        seen[c.id] = true;
+                        coaches.push(c);
+                    }
+                });
+            });
+            return coaches;
+        }
+        var $grp = $('.sc-course-chapter-coaches').filter(function () {
+            return String($(this).data('chapter') || '') === chapterName;
+        });
+        $grp.find('.sc-course-coach-assign-cb:checked').each(function () {
+            var id = parseInt($(this).data('coach-id') || $(this).attr('name').replace(/.*\[(\d+)\]$/, '$1'), 10);
+            if (!id || seen[id]) {
+                return;
+            }
+            seen[id] = true;
+            coaches.push({
+                id: id,
+                label: (window.scCourseCoachLabels && scCourseCoachLabels[id]) ? scCourseCoachLabels[id] : ('مربی #' + id)
+            });
+        });
+        return coaches;
+    }
+
+    function scSyncScheduleCoachSelect($coachSel) {
+        if (!$coachSel || !$coachSel.length) {
+            return;
+        }
+        var $row = $coachSel.closest('tr');
+        var chapter = String($row.find('.sc-csched-chapter-select').val() || '');
+        var current = String($coachSel.val() || '0');
+        var coaches = scGetCoachesForChapter(chapter);
+        $coachSel.find('option:not(:first)').remove();
+        coaches.forEach(function (c) {
+            $coachSel.append($('<option></option>').val(String(c.id)).text(c.label));
+        });
+        if (current !== '0' && coaches.some(function (c) { return String(c.id) === current; })) {
+            $coachSel.val(current);
+        } else {
+            $coachSel.val('0');
+        }
+    }
+
+    window.scSyncScheduleSelects = function () {
+        var chapters = scGetSelectedChapters();
+        $('.sc-csched-chapter-select').each(function () {
+            var $sel = $(this);
+            var current = String($sel.val() || '');
+            $sel.find('option:not(:first)').remove();
+            chapters.forEach(function (ch) {
+                $sel.append($('<option></option>').val(ch).text(ch));
+            });
+            if (current && chapters.indexOf(current) !== -1) {
+                $sel.val(current);
+            } else {
+                $sel.val('');
+            }
+            scSyncScheduleCoachSelect($sel.closest('tr').find('.sc-csched-coach-select'));
+        });
+    };
+
+    function scSyncChapterCoachGroups() {
+        var checkedChapters = {};
+        $('.sc-course-chapter-cb:checked').each(function () {
+            checkedChapters[$(this).val()] = true;
+        });
+        $('.sc-course-chapter-coaches').each(function () {
+            var $grp = $(this);
+            var visible = !!checkedChapters[$grp.data('chapter')];
+            $grp.toggle(visible);
+            if (!visible) {
+                $grp.find('input[type="checkbox"]').prop('checked', false);
+            }
+        });
+        scSyncScheduleSelects();
+    }
+    scSyncChapterCoachGroups();
+
+    $(document).on('change', '.sc-course-chapter-cb', function () {
+        if ($('.sc-course-chapter-cb:checked').length) {
+            $('#sc-course-chapters-error').hide();
+            $('#sc-course-chapters-box').css('border-color', '#ddd');
+        }
+        scSyncChapterCoachGroups();
+    });
+
+    $(document).on('change', '.sc-course-coach-assign-cb', function () {
+        scSyncScheduleSelects();
+    });
+
+    $(document).on('change', '.sc-csched-chapter-select', function () {
+        scSyncScheduleCoachSelect($(this).closest('tr').find('.sc-csched-coach-select'));
     });
 });
 </script>

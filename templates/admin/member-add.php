@@ -492,12 +492,15 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 $player_courses_active = [];
                 $player_courses_flags = [];
                 $player_courses_enrollment_sessions = [];
+                $player_course_chapter = [];
+                $player_course_coach = [];
                 /** ثبت‌نام فعال بدون فلگ وضعیت (paused/completed/canceled): course_id => [ total_sessions, remaining_sessions ] */
                 $player_courses_sessions = [];
+                $member_branch_configs = [];
                 $edit_member_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
                 if ($edit_member_id) {
                     $player_courses_data = $wpdb->get_results($wpdb->prepare(
-                        "SELECT course_id, status, course_status_flags, enrollment_sessions, total_sessions, remaining_sessions FROM $member_courses_table WHERE member_id = %d",
+                        "SELECT course_id, status, course_status_flags, enrollment_sessions, total_sessions, remaining_sessions, chapter, coach_id FROM $member_courses_table WHERE member_id = %d",
                         $edit_member_id
                     ), ARRAY_A);
                     if ($player_courses_data) {
@@ -515,6 +518,8 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             }
                             $player_courses_flags[$cid] = $flags;
                             $player_courses_enrollment_sessions[$cid] = isset($pc['enrollment_sessions']) ? (int) $pc['enrollment_sessions'] : 0;
+                            $player_course_chapter[$cid] = isset($pc['chapter']) ? (string) $pc['chapter'] : '';
+                            $player_course_coach[$cid] = isset($pc['coach_id']) ? (int) $pc['coach_id'] : 0;
                             if ($pc['status'] === 'active' && empty($flags)) {
                                 $player_courses_sessions[$cid] = [
                                     'total_sessions' => (int) ($pc['total_sessions'] ?? 0),
@@ -550,6 +555,11 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         $course_packages = function_exists('sc_get_course_packages') ? sc_get_course_packages($course->id) : [];
                         $has_course_packages = !empty($course_packages);
                         $selected_pkg_sessions = isset($player_courses_enrollment_sessions[$course->id]) ? (int) $player_courses_enrollment_sessions[$course->id] : 0;
+                        $selected_chapter = isset($player_course_chapter[$course->id]) ? (string) $player_course_chapter[$course->id] : '';
+                        $selected_coach = isset($player_course_coach[$course->id]) ? (int) $player_course_coach[$course->id] : 0;
+                        if (function_exists('sc_get_course_enrollment_branch_config')) {
+                            $member_branch_configs[(int) $course->id] = sc_get_course_enrollment_branch_config((int) $course->id);
+                        }
                         $capacity_text = $course->capacity ? "($enrolled/{$course->capacity})" : "(نامحدود)";
                         $capacity_warning = ($course->capacity && $enrolled >= $course->capacity) ? ' style="color: #d63638; font-weight: bold;"' : '';
                         
@@ -598,8 +608,11 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             echo '</div>';
                         }
 
-
-                            
+                        echo '<div class="sc-member-course-branch-block" id="sc_member_branch_' . esc_attr((string) $course->id) . '" style="margin-top:10px;padding:10px;background:#f0f6fc;border:1px solid #c3d9e8;border-radius:4px;" data-course-id="' . esc_attr((string) $course->id) . '">';
+                        echo '<strong style="display:block;margin-bottom:8px;">شعبه و مربی</strong>';
+                        echo '<div class="sc-member-chapter-field" style="margin-bottom:8px;"></div>';
+                        echo '<div class="sc-member-coach-field"></div>';
+                        echo '</div>';
 
                         echo '</label>';
                         
@@ -635,6 +648,13 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     echo '<br><strong style="margin-top:10px;  font-size:24px; font-weight:bold; ">راهنما دوره های بازیکن : <br></strong>';
                     echo '<p class="description" style="margin-top: 10px; font-size:20px; ">بازیکن می‌تواند در چند دوره شرکت کند. تیک اول دوره را فعال/غیرفعال می‌کند و تیک‌های دیگر وضعیت‌های اضافی هستند. - در صورت انتخاب وضعیت های اضافی صورت حساب برای آن دوره ایجاد نخواهد شد.</p>';
                     echo '<p class="description" style="margin-top: 10px;  font-size:20px; "> دوره فعال برای بازیکن به این معنا است که بازیکن در کلاس ها حاضر است و برای بازیکن به صورت ماهیانه صورتحساب ایجاد می شود.</p>';
+                    if (!empty($member_branch_configs)) {
+                        echo '<script type="application/json" id="sc-member-branch-configs">' . wp_json_encode($member_branch_configs, JSON_UNESCAPED_UNICODE) . '</script>';
+                        echo '<script type="application/json" id="sc-member-branch-selected">' . wp_json_encode([
+                            'chapters' => $player_course_chapter,
+                            'coaches' => $player_course_coach,
+                        ], JSON_UNESCAPED_UNICODE) . '</script>';
+                    }
                 }
                 ?>
             </div>
@@ -693,6 +713,97 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 });
             });
         }
+
+        var branchConfigs = {};
+        var branchSelected = { chapters: {}, coaches: {} };
+        try {
+            var cfgEl = document.getElementById('sc-member-branch-configs');
+            var selEl = document.getElementById('sc-member-branch-selected');
+            if (cfgEl) {
+                branchConfigs = JSON.parse(cfgEl.textContent || '{}');
+            }
+            if (selEl) {
+                branchSelected = JSON.parse(selEl.textContent || '{}');
+            }
+        } catch (e) {
+            branchConfigs = {};
+        }
+
+        function renderMemberBranchBlock(courseId) {
+            var cfg = branchConfigs[courseId];
+            var $block = $('#sc_member_branch_' + courseId);
+            if (!$block.length || !cfg) {
+                return;
+            }
+            var chapters = cfg.chapters || [];
+            var selChapter = (branchSelected.chapters && branchSelected.chapters[courseId]) ? branchSelected.chapters[courseId] : '';
+            var selCoach = (branchSelected.coaches && branchSelected.coaches[courseId]) ? parseInt(branchSelected.coaches[courseId], 10) : 0;
+            var $chField = $block.find('.sc-member-chapter-field');
+            var $coField = $block.find('.sc-member-coach-field');
+            $chField.empty();
+            $coField.empty();
+
+            if (!chapters.length) {
+                $chField.html('<span class="description">شعبه‌ای برای این دوره تعریف نشده است.</span>');
+                return;
+            }
+
+            if (chapters.length === 1) {
+                var onlyName = chapters[0].name;
+                $chField.html('<span><strong>شعبه:</strong> ' + onlyName + '</span><input type="hidden" name="course_chapter[' + courseId + ']" value="' + onlyName + '">');
+                selChapter = onlyName;
+            } else {
+                var html = '<label><strong>شعبه:</strong> <select name="course_chapter[' + courseId + ']" class="sc-member-chapter-select" data-course-id="' + courseId + '">';
+                html += '<option value="">انتخاب شعبه</option>';
+                chapters.forEach(function (ch) {
+                    html += '<option value="' + ch.name + '"' + (selChapter === ch.name ? ' selected' : '') + '>' + ch.name + '</option>';
+                });
+                html += '</select></label>';
+                $chField.html(html);
+            }
+
+            renderMemberCoachField(courseId, selChapter, selCoach);
+        }
+
+        function renderMemberCoachField(courseId, chapterName, selectedCoachId) {
+            var cfg = branchConfigs[courseId];
+            var $coField = $('#sc_member_branch_' + courseId + ' .sc-member-coach-field');
+            $coField.empty();
+            if (!cfg || !chapterName) {
+                return;
+            }
+            var coaches = [];
+            (cfg.chapters || []).forEach(function (ch) {
+                if (ch.name === chapterName) {
+                    coaches = ch.coaches || [];
+                }
+            });
+            if (!coaches.length) {
+                $coField.html('<span class="description">مربی برای این شعبه تعریف نشده — ثبت‌نام بدون مربی.</span><input type="hidden" name="course_coach[' + courseId + ']" value="0">');
+                return;
+            }
+            if (coaches.length === 1) {
+                var c = coaches[0];
+                $coField.html('<span><strong>مربی:</strong> ' + c.label + '</span><input type="hidden" name="course_coach[' + courseId + ']" value="' + c.id + '">');
+                return;
+            }
+            var html = '<label><strong>مربی:</strong> <select name="course_coach[' + courseId + ']" class="sc-member-coach-select">';
+            html += '<option value="0">انتخاب مربی (اختیاری)</option>';
+            coaches.forEach(function (c) {
+                html += '<option value="' + c.id + '"' + (selectedCoachId === c.id ? ' selected' : '') + '>' + c.label + '</option>';
+            });
+            html += '</select></label>';
+            $coField.html(html);
+        }
+
+        Object.keys(branchConfigs).forEach(function (courseId) {
+            renderMemberBranchBlock(courseId);
+        });
+
+        $(document).on('change', '.sc-member-chapter-select', function () {
+            var courseId = $(this).data('course-id');
+            renderMemberCoachField(courseId, $(this).val(), 0);
+        });
     });
     </script>
 </div>

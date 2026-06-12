@@ -510,15 +510,9 @@ window.scInitCoursePackagesUI = function () {
         );
     }
 
-    if (!$body.children().length) {
-        var $first = makeRow();
-        $body.append($first);
-        bindRowPriceFormatter($first);
-    } else {
-        $body.find('.sc-course-package-row').each(function () {
-            bindRowPriceFormatter($(this));
-        });
-    }
+    $body.find('.sc-course-package-row').each(function () {
+        bindRowPriceFormatter($(this));
+    });
 
     $addBtn.off('click.scCoursePkg').on('click.scCoursePkg', function () {
         var $row = makeRow();

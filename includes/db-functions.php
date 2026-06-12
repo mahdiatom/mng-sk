@@ -1329,6 +1329,9 @@ function sc_update_database() {
         if (function_exists('sc_create_course_capacity_waitlist_table')) {
             sc_create_course_capacity_waitlist_table();
         }
+        if (function_exists('sc_create_course_chapters_table')) {
+            sc_create_course_chapters_table();
+        }
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
         // $table_name = $wpdb->prefix . 'sc_invoices';
@@ -1914,6 +1917,69 @@ function sc_update_database() {
 
         update_option('sc_money_columns_decimal_15_2', '1');
     }
+
+    // جدول شعبه‌های دوره + ستون‌های شعبه/ظرفیت مربی و شعبه ثبت‌نام
+    if (get_option('sc_course_chapters_branch_v1', '0') !== '1') {
+        if (function_exists('sc_create_course_chapters_table')) {
+            sc_create_course_chapters_table();
+        }
+
+        $mc = $wpdb->prefix . 'sc_member_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $mc)) === $mc) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$mc` LIKE %s", 'chapter'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$mc` ADD COLUMN `chapter` varchar(255) DEFAULT NULL COMMENT 'شعبه انتخابی' AFTER `coach_id`");
+                $wpdb->query("ALTER TABLE `$mc` ADD KEY `idx_chapter` (`chapter`)");
+            }
+        }
+
+        $cc = $wpdb->prefix . 'sc_course_coaches';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $cc)) === $cc) {
+            $col_ch = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$cc` LIKE %s", 'chapter_name'));
+            if (empty($col_ch)) {
+                $wpdb->query("ALTER TABLE `$cc` ADD COLUMN `chapter_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه' AFTER `coach_id`");
+                $wpdb->query("ALTER TABLE `$cc` ADD KEY `idx_chapter_name` (`chapter_name`)");
+            }
+            $col_cap = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$cc` LIKE %s", 'capacity'));
+            if (empty($col_cap)) {
+                $wpdb->query("ALTER TABLE `$cc` ADD COLUMN `capacity` int(11) DEFAULT NULL COMMENT 'ظرفیت این مربی در این شعبه' AFTER `chapter_name`");
+            }
+            $idx_old = $wpdb->get_results($wpdb->prepare(
+                "SHOW INDEX FROM `$cc` WHERE Key_name = %s",
+                'idx_course_coach'
+            ));
+            if (!empty($idx_old)) {
+                $wpdb->query("ALTER TABLE `$cc` DROP INDEX `idx_course_coach`");
+            }
+            $idx_new = $wpdb->get_results($wpdb->prepare(
+                "SHOW INDEX FROM `$cc` WHERE Key_name = %s",
+                'idx_course_coach_chapter'
+            ));
+            if (empty($idx_new)) {
+                $wpdb->query("ALTER TABLE `$cc` ADD UNIQUE KEY `idx_course_coach_chapter` (`course_id`, `coach_id`, `chapter_name`)");
+            }
+        }
+
+        update_option('sc_course_chapters_branch_v1', '1');
+    }
+
+    // ستون‌های شعبه و مربی برای زمان‌بندی هفتگی دوره
+    if (get_option('sc_course_schedule_chapter_coach_v1', '0') !== '1') {
+        $sched = $wpdb->prefix . 'sc_course_weekly_schedule';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $sched)) === $sched) {
+            $col_ch = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$sched` LIKE %s", 'chapter_name'));
+            if (empty($col_ch)) {
+                $wpdb->query("ALTER TABLE `$sched` ADD COLUMN `chapter_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه (خالی = همه شعبه‌ها)' AFTER `time_end`");
+                $wpdb->query("ALTER TABLE `$sched` ADD KEY `idx_chapter_name` (`chapter_name`)");
+            }
+            $col_co = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$sched` LIKE %s", 'coach_id'));
+            if (empty($col_co)) {
+                $wpdb->query("ALTER TABLE `$sched` ADD COLUMN `coach_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'مربی (0 = همه مربی‌ها)' AFTER `chapter_name`");
+                $wpdb->query("ALTER TABLE `$sched` ADD KEY `idx_coach_id` (`coach_id`)");
+            }
+        }
+        update_option('sc_course_schedule_chapter_coach_v1', '1');
+    }
 }
 
 /**
@@ -2050,12 +2116,16 @@ function sc_create_course_weekly_schedule_table() {
         `weekday` tinyint(1) unsigned NOT NULL COMMENT '۱=شنبه تا ۷=جمعه (تقویم ایران، از تاریخ میلادی لاگ محاسبه می‌شود)',
         `time_start` time NOT NULL,
         `time_end` time NOT NULL,
+        `chapter_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه (خالی = همه شعبه‌ها)',
+        `coach_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'مربی (0 = همه مربی‌ها)',
         `sort_order` smallint(5) unsigned NOT NULL DEFAULT 0,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
         KEY `idx_course_weekday` (`course_id`,`weekday`),
-        KEY `idx_course_time` (`course_id`,`time_start`,`time_end`)
+        KEY `idx_course_time` (`course_id`,`time_start`,`time_end`),
+        KEY `idx_chapter_name` (`chapter_name`),
+        KEY `idx_coach_id` (`coach_id`)
     ) ENGINE=InnoDB $charset_collate";
     dbDelta($sql);
 }
@@ -2103,5 +2173,29 @@ function sc_create_course_session_cancellations_table() {
         PRIMARY KEY (`id`),
         KEY `idx_course_session_date` (`course_id`, `session_date`)
     ) ENGINE=InnoDB $charset_collate";
+    dbDelta($sql);
+}
+
+/**
+ * Course chapters (many branches per course).
+ */
+function sc_create_course_chapters_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_course_chapters';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `chapter_name` varchar(255) NOT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_course_chapter` (`course_id`, `chapter_name`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_chapter_name` (`chapter_name`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     dbDelta($sql);
 }

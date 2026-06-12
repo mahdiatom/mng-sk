@@ -3011,6 +3011,78 @@ width: fit-content;
     margin-bottom: 0;
 }
 
+.sc-course-add-wrap {
+    overflow-x: hidden;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.sc-course-add-wrap .sc-course-chapters-box {
+    max-height: 220px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid #ddd;
+    padding: 12px;
+    border-radius: 4px;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.sc-course-add-wrap .sc-course-chapter-item {
+    display: block;
+    margin: 6px 0;
+    max-width: 100%;
+    word-break: break-word;
+}
+
+.sc-course-add-wrap .sc-course-coaches-box {
+    margin-top: 16px;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.sc-course-add-wrap .sc-course-coaches-title {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.sc-course-add-wrap .sc-course-chapter-coaches {
+    display: none;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fafafa;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.sc-course-add-wrap .sc-chapter-coaches-heading {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    word-break: break-word;
+}
+
+.sc-course-add-wrap .sc-chapter-coach-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    max-width: 100%;
+}
+
+.sc-course-add-wrap .sc-chapter-coach-item {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 4px;
+    margin: 0;
+    flex: 0 1 auto;
+    max-width: 100%;
+    word-break: break-word;
+}
+
 /* جدول اصلی فرم: بدون table-layout:fixed تا ستون عنوان/فیلد مثل قبل بماند */
 .sc-course-add-wrap table.form-table.sc_form-table {
     display: table !important;
@@ -3025,11 +3097,15 @@ width: fit-content;
     overflow-wrap: break-word;
     box-sizing: border-box;
     vertical-align: top;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .sc-course-add-wrap .sc-table-scroll {
     overflow-x: auto;
+    overflow-y: hidden;
     max-width: 100%;
+    width: 100%;
     -webkit-overflow-scrolling: touch;
     margin-top: 8px;
     box-sizing: border-box;
@@ -3074,10 +3150,6 @@ width: fit-content;
         width: auto;
         min-width: 7rem;
     }
-
-    .sc-course-add-wrap .sc-table-scroll--schedule {
-        overflow-x: visible;
-    }
 }
 
 
@@ -3094,23 +3166,32 @@ width: fit-content;
 /* جدول برنامه هفتگی — دسکتاپ */
 .sc-course-add-wrap .sc-course-schedule-table {
     width: 100%;
-    max-width: 920px;
-    table-layout: auto;
+    max-width: 100%;
+    min-width: 0;
+    table-layout: fixed;
     border-collapse: collapse;
 }
 
 .sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-days {
-    min-width: 320px;
+    width: 38%;
+    min-width: 0;
     padding-right: 10px;
 }
 
 .sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-time {
-    width: 7.5rem;
+    width: 9%;
+    min-width: 5.5rem;
     white-space: nowrap;
 }
 
+.sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-chapter,
+.sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-coach {
+    width: 14%;
+    min-width: 0;
+}
+
 .sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-actions {
-    width: 5rem;
+    width: 6rem;
     white-space: nowrap;
 }
 
@@ -3131,11 +3212,17 @@ width: fit-content;
     align-items: center;
     gap: 4px;
     margin: 0;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
 }
 
-.sc-course-add-wrap .sc-csched-time-input {
+.sc-course-add-wrap .sc-csched-time-input,
+.sc-course-add-wrap .sc-csched-chapter-select,
+.sc-course-add-wrap .sc-csched-coach-select {
     box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 
 /* تبلت: فیلدهای تک‌ستونهٔ فرم اصلی تمام‌عرض سلول؛ جداول توکار بدون فشرده‌شدن اجباری */
@@ -3167,7 +3254,13 @@ width: fit-content;
     }
 
     .sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-days {
-        min-width: 260px;
+        min-width: 0;
+    }
+
+    .sc-course-add-wrap .sc-csched-chapter-select,
+    .sc-course-add-wrap .sc-csched-coach-select {
+        width: 100%;
+        max-width: 100%;
     }
 }
 
@@ -3313,7 +3406,9 @@ width: fit-content;
         margin: 0;
     }
 
-    .sc-course-add-wrap .sc-csched-time-input {
+    .sc-course-add-wrap .sc-csched-time-input,
+    .sc-course-add-wrap .sc-csched-chapter-select,
+    .sc-course-add-wrap .sc-csched-coach-select {
         width: 100%;
         max-width: 100%;
     }

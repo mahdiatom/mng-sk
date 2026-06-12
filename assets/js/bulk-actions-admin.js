@@ -18,23 +18,62 @@
         }
     }
 
-    function refreshAssignCoachOptions() {
+    function refreshAssignChapterOptions() {
         var $courseSelect = $('#sc-assign-course-id');
+        var $chapterSelect = $('#sc-assign-chapter-name');
         var $coachSelect = $('#sc-assign-coach-id');
-        if (!$courseSelect.length || !$coachSelect.length) {
+        if (!$courseSelect.length || !$chapterSelect.length || !$coachSelect.length) {
             return;
         }
 
         var courseId = $courseSelect.val();
-        var coaches = (courseId && courseCoachesMap[courseId]) ? courseCoachesMap[courseId] : [];
+        var courseData = (courseId && courseCoachesMap[courseId]) ? courseCoachesMap[courseId] : null;
+        var chapters = courseData && courseData.chapters ? courseData.chapters : [];
+
+        $chapterSelect.empty();
         $coachSelect.empty();
 
         if (!courseId) {
-            $coachSelect.append('<option value="">ابتدا دوره را انتخاب کنید</option>');
+            $chapterSelect.append('<option value="">ابتدا دوره را انتخاب کنید</option>');
+            $coachSelect.append('<option value="">ابتدا شعبه را انتخاب کنید</option>');
+            return;
+        }
+        if (!chapters.length) {
+            $chapterSelect.append('<option value="">شعبه‌ای برای این دوره تعریف نشده</option>');
+            $coachSelect.append('<option value="">—</option>');
+            return;
+        }
+
+        $chapterSelect.append('<option value="">انتخاب شعبه</option>');
+        chapters.forEach(function (chapterName) {
+            $chapterSelect.append('<option value="' + chapterName + '">' + chapterName + '</option>');
+        });
+        $coachSelect.append('<option value="">ابتدا شعبه را انتخاب کنید</option>');
+    }
+
+    function refreshAssignCoachOptions() {
+        var $courseSelect = $('#sc-assign-course-id');
+        var $chapterSelect = $('#sc-assign-chapter-name');
+        var $coachSelect = $('#sc-assign-coach-id');
+        if (!$courseSelect.length || !$chapterSelect.length || !$coachSelect.length) {
+            return;
+        }
+
+        var courseId = $courseSelect.val();
+        var chapterName = $chapterSelect.val();
+        var courseData = (courseId && courseCoachesMap[courseId]) ? courseCoachesMap[courseId] : null;
+        var coaches = (courseData && courseData.coaches && chapterName && courseData.coaches[chapterName])
+            ? courseData.coaches[chapterName]
+            : [];
+
+        $coachSelect.empty();
+
+        if (!courseId || !chapterName) {
+            $coachSelect.append('<option value="">ابتدا شعبه را انتخاب کنید</option>');
             return;
         }
         if (!coaches.length) {
-            $coachSelect.append('<option value="">مربی فعالی برای این دوره یافت نشد</option>');
+            $coachSelect.append('<option value="">مربی فعالی برای این شعبه یافت نشد</option>');
             return;
         }
 
@@ -155,6 +194,7 @@
             $('#sc-action-change-type').show();
         } else if (action === 'assign_course_coach') {
             $('#sc-action-assign-course-coach').show();
+            refreshAssignChapterOptions();
             refreshAssignCoachOptions();
         } else if (action === 'course_activate' || action === 'course_deactivate') {
             $('#sc-action-course-common').show();
@@ -268,6 +308,10 @@
                 alert('برای اختصاص مربی، ابتدا دوره را انتخاب کنید.');
                 return false;
             }
+            if (!$('#sc-assign-chapter-name').val()) {
+                alert('لطفاً شعبه را انتخاب کنید.');
+                return false;
+            }
             if (!$('#sc-assign-coach-id').val()) {
                 alert('لطفاً مربی دوره را انتخاب کنید.');
                 return false;
@@ -285,7 +329,11 @@
         syncExcludedMemberInputs();
         $('#sc-target-type').on('change', toggleFilterBlocks);
         $('#sc-bulk-action-type').on('change', toggleActionFields);
-        $('#sc-assign-course-id').on('change', refreshAssignCoachOptions);
+        $('#sc-assign-course-id').on('change', function () {
+            refreshAssignChapterOptions();
+            refreshAssignCoachOptions();
+        });
+        $('#sc-assign-chapter-name').on('change', refreshAssignCoachOptions);
 
         $('#sc-bulk-preview-btn').on('click', function () {
             var $btn = $(this);
