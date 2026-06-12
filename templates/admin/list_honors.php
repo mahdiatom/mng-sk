@@ -352,6 +352,7 @@ $total_pages = ceil($total_items / $per_page);
             <p><?php echo esc_html($message); ?></p>
         </div>
     <?php endif; ?>
+
 <div class="filter_search_honors">
     <!-- فیلترها (همان ساختار حضور و غیاب / لیست بازیکنان) -->
     <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1 honors-filter-form">
@@ -507,6 +508,7 @@ $total_pages = ceil($total_items / $per_page);
                         <input type="checkbox" id="cb-select-all">
                     </td>
                     <th  class="manage-column">نام بازیکن/مربی</th>
+                    <th class="manage-column">مربی مرتبط</th>
                     <th class="manage-column">عنوان افتخار</th>
                     <th class="manage-column">دسته</th>
                     <th class="manage-column">توضیحات</th>
@@ -536,6 +538,18 @@ $total_pages = ceil($total_items / $per_page);
                             ));
                             if ($coach) {
                                 $member_name = esc_html($coach->first_name . ' ' . $coach->last_name) . ' <span style="color: #666;">(مربی)</span>';
+                            }
+                        }
+
+                        // مربی مرتبط با افتخار بازیکن (جدا از coach_id اصلی که ممکن است برای افتخار مربی باشد)
+                        $associated_coach_name = '-';
+                        if (!empty($honor->member_id) && !empty($honor->coach_id)) {
+                            $assoc_coach = $wpdb->get_row($wpdb->prepare(
+                                "SELECT first_name, last_name FROM $coaches_table WHERE id = %d",
+                                $honor->coach_id
+                            ));
+                            if ($assoc_coach) {
+                                $associated_coach_name = esc_html($assoc_coach->first_name . ' ' . $assoc_coach->last_name);
                             }
                         }
                         
@@ -587,6 +601,7 @@ $total_pages = ceil($total_items / $per_page);
                                     </span>
                                 </div>
                             </td>
+                            <td><?php echo $associated_coach_name; ?></td>
                             <td><strong><?php echo esc_html($honor->name); ?></strong></td>
                             <td><?php echo $category_name; ?></td>
                             <td>

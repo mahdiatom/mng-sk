@@ -15,6 +15,7 @@ global $wpdb;
 $honors_table = $wpdb->prefix . 'sc_honors';
 $categories_table = $wpdb->prefix . 'sc_honor_categories';
 $members_table = $wpdb->prefix . 'sc_members';
+$coaches_table = $wpdb->prefix . 'sc_coaches';
 
 // پردازش فرم افزودن افتخار
 $message = '';
@@ -24,6 +25,7 @@ if (isset($_POST['save_honor']) && check_admin_referer('save_honor_for_member_no
     $member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
     $honor_name = isset($_POST['honor_name']) ? sanitize_text_field($_POST['honor_name']) : '';
     $honor_category = isset($_POST['honor_category']) ? absint($_POST['honor_category']) : 0;
+    $honor_coach_id = isset($_POST['honor_coach_id']) ? absint($_POST['honor_coach_id']) : 0;
     $honor_description = isset($_POST['honor_description']) ? sanitize_textarea_field($_POST['honor_description']) : '';
     
     if (empty($member_id)) {
@@ -59,11 +61,12 @@ if (isset($_POST['save_honor']) && check_admin_referer('save_honor_for_member_no
             
             if ($message_type !== 'error') {
                 // ذخیره افتخار
+                $coach_id_to_save = ($honor_coach_id > 0) ? $honor_coach_id : null;
                 $inserted = $wpdb->insert(
                     $honors_table,
                     [
                         'member_id' => $member_id,
-                        'coach_id' => null,
+                        'coach_id' => $coach_id_to_save,
                         'name' => $honor_name,
                         'category_id' => $honor_category,
                         'description' => $honor_description ?: null,
@@ -98,6 +101,9 @@ $categories = $wpdb->get_results("SELECT id, name FROM $categories_table ORDER B
 
 // دریافت لیست بازیکنان (با national_id برای دراپ‌داون با جستجو)
 $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+
+// دریافت لیست مربی‌های فعال برای فیلد مربی افتخار
+$coaches = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
 
 ?>
 <div class="wrap">
@@ -180,6 +186,22 @@ $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FRO
                                     <option value="<?php echo esc_attr($category->id); ?>" <?php selected(isset($_POST['honor_category']) ? $_POST['honor_category'] : '', $category->id); ?>><?php echo esc_html($category->name); ?></option>
                                 <?php endforeach; ?>
                             </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="honor_coach_id">مربی مرتبط <span class="required">*</span></label></th>
+                        <td>
+                            <?php $selected_coach = isset($_POST['honor_coach_id']) ? absint($_POST['honor_coach_id']) : 0; ?>
+                            <select name="honor_coach_id" id="honor_coach_id" class="regular-text" required>
+                                <option value="0" <?php selected($selected_coach, 0); ?>>هیچ کدام</option>
+                                <?php foreach ($coaches as $coach) : 
+                                    $coach_label = trim($coach->first_name . ' ' . $coach->last_name);
+                                    if ($coach_label === '') { $coach_label = 'مربی #' . $coach->id; }
+                                ?>
+                                    <option value="<?php echo esc_attr($coach->id); ?>" <?php selected($selected_coach, $coach->id); ?>><?php echo esc_html($coach_label); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description">مربی‌ای که این افتخار به او مرتبط است (اختیاری، پیش‌فرض: هیچ کدام).</p>
                         </td>
                     </tr>
                     <tr>

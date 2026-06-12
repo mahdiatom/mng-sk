@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) {
 global $wpdb;
 $honors_table = $wpdb->prefix . 'sc_honors';
 $categories_table = $wpdb->prefix . 'sc_honor_categories';
+$coaches_table = $wpdb->prefix . 'sc_coaches';
 
 $honor_status_labels = [
     'pending' => 'در انتظار بررسی',
@@ -74,6 +75,7 @@ if (isset($_POST['save_honors']) && check_admin_referer('save_honors_nonce')) {
         foreach ($honors_data as $index => $honor) {
             $honor_name = isset($honor['name']) ? sanitize_text_field($honor['name']) : '';
             $honor_category = isset($honor['category_id']) ? absint($honor['category_id']) : 0;
+            $honor_coach_id = isset($honor['coach_id']) ? absint($honor['coach_id']) : 0;
             $honor_description = isset($honor['description']) ? sanitize_textarea_field($honor['description']) : '';
             
             // اعتبارسنجی
@@ -154,11 +156,12 @@ if (isset($_POST['save_honors']) && check_admin_referer('save_honors_nonce')) {
             }
             
             // ذخیره افتخار
+            $coach_id_to_save = ($honor_coach_id > 0) ? $honor_coach_id : null;
             $inserted = $wpdb->insert(
                 $honors_table,
                 [
                     'member_id' => $player->id,
-                    'coach_id' => null,
+                    'coach_id' => $coach_id_to_save,
                     'name' => $honor_name,
                     'category_id' => $honor_category,
                     'description' => $honor_description ?: null,
@@ -194,6 +197,9 @@ if (isset($_POST['save_honors']) && check_admin_referer('save_honors_nonce')) {
 
 // دریافت لیست دسته‌ها
 $categories = $wpdb->get_results("SELECT id, name FROM $categories_table ORDER BY name ASC");
+
+// دریافت لیست مربی‌های فعال
+$coaches = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
 
 // Pagination برای افتخارات
 $per_page = 10;
@@ -253,6 +259,18 @@ $total_pages = ceil($total_honors / $per_page);
                         </select>
                     </div>
                     <div>
+                        <label>مربی مرتبط <span style="color: #d63638;">*</span></label>
+                        <select name="honors[0][coach_id]" class="regular-text" required>
+                            <option value="0">هیچ کدام</option>
+                            <?php foreach ($coaches as $coach) : 
+                                $coach_label = trim($coach->first_name . ' ' . $coach->last_name);
+                                if ($coach_label === '') { $coach_label = 'مربی #' . $coach->id; }
+                            ?>
+                                <option value="<?php echo esc_attr($coach->id); ?>"><?php echo esc_html($coach_label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
                         <label>فایل</label>
                         <div class="sc-file-upload-wrapper" style="position: relative;">
                             <input type="file" 
@@ -306,6 +324,7 @@ $total_pages = ceil($total_honors / $per_page);
                     <tr>
                         <th>عنوان افتخار</th>
                         <th>دسته</th>
+                        <th>مربی مرتبط</th>
                         <th>توضیحات</th>
                         <th>فایل</th>
                         <th>وضعیت</th>
@@ -321,6 +340,19 @@ $total_pages = ceil($total_honors / $per_page);
                             </td>
                             <td data-title="دسته">
                                 <?php echo esc_html($honor->category_name ?: '-'); ?>
+                            </td>
+                            <td data-title="مربی مرتبط">
+                                <?php 
+                                if (!empty($honor->coach_id)) {
+                                    $assoc = $wpdb->get_row($wpdb->prepare(
+                                        "SELECT first_name, last_name FROM $coaches_table WHERE id = %d",
+                                        $honor->coach_id
+                                    ));
+                                    echo $assoc ? esc_html(trim($assoc->first_name . ' ' . $assoc->last_name)) : '-';
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
                             </td>
                             <td data-title="توضیحات">
                                 <?php echo esc_html($honor->description ?: '-'); ?>
@@ -404,6 +436,18 @@ jQuery(document).ready(function($) {
                         <option value="">انتخاب کنید</option>
                         <?php foreach ($categories as $category) : ?>
                             <option value="<?php echo esc_attr($category->id); ?>"><?php echo esc_html($category->name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label>مربی مرتبط <span style="color: #d63638;">*</span></label>
+                    <select name="honors[${rowIndex}][coach_id]" class="regular-text" required>
+                        <option value="0">هیچ کدام</option>
+                        <?php foreach ($coaches as $coach) : 
+                            $coach_label = trim($coach->first_name . ' ' . $coach->last_name);
+                            if ($coach_label === '') { $coach_label = 'مربی #' . $coach->id; }
+                        ?>
+                            <option value="<?php echo esc_attr($coach->id); ?>"><?php echo esc_html($coach_label); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>

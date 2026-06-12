@@ -546,6 +546,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات کلاس‌ها با موفقیت ذخیره شد.</p></div>';
     }
+    elseif ($current_tab === 'honors') {
+        $honors_api_key = isset($_POST['honors_api_key']) ? sanitize_text_field(wp_unslash($_POST['honors_api_key'])) : '';
+        sc_update_setting('honors_api_key', $honors_api_key, 'honors_api');
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب افتخارات ذخیره شد', null, ['tab' => 'honors']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات افتخارات با موفقیت ذخیره شد.</p></div>';
+    }
     elseif ($current_tab === 'pro_features') {
     $pro_feature_notifications = isset($_POST['pro_feature_notifications']) ? (int) $_POST['pro_feature_notifications'] : 0;
     $pro_feature_coaches = isset($_POST['pro_feature_coaches']) ? (int) $_POST['pro_feature_coaches'] : 0;
@@ -1067,6 +1075,10 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=about'); ?>"
            class="nav-tab <?php echo $current_tab === 'about' ? 'nav-tab-active' : ''; ?>">
             درباره  مجموعه
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=honors'); ?>"
+           class="nav-tab <?php echo $current_tab === 'honors' ? 'nav-tab-active' : ''; ?>">
+            افتخارات
         </a>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=bale_bot'); ?>"
            class="nav-tab <?php echo $current_tab === 'bale_bot' ? 'nav-tab-active' : ''; ?>">
@@ -3788,6 +3800,51 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
 
                 <p class="submit">
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات کلاس‌ها">
+                </p>
+            </form>
+        <?php endif;
+        if ($current_tab === 'honors') :
+            $honors_api_key_value = function_exists('sc_get_honors_api_key') ? sc_get_honors_api_key() : trim((string) sc_get_setting('honors_api_key', ''));
+            $honors_api_list_url = rest_url('sportclub/v1/honors');
+            $honors_api_single_url = rest_url('sportclub/v1/honors/{id}');
+        ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                <h2>API افتخارات (برای سایت‌های خارجی)</h2>
+                <p class="description">با این API می‌توانید افتخارات بازیکنان و مربیان را در سایت دیگر نمایش دهید. فیلد <code>owner_type</code> مشخص می‌کند افتخار متعلق به بازیکن است یا مربی.</p>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="honors_api_key">کلید API</label></th>
+                        <td>
+                            <input type="text" name="honors_api_key" id="honors_api_key" value="<?php echo esc_attr($honors_api_key_value); ?>" class="regular-text" dir="ltr" autocomplete="off" placeholder="یک کلید امن وارد کنید">
+                            <p class="description">در هدر <code>X-API-Key</code> یا <code>Authorization: Bearer</code> یا پارامتر <code>api_key</code> ارسال شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">آدرس لیست</th>
+                        <td><code dir="ltr"><?php echo esc_html($honors_api_list_url); ?></code></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">آدرس تکی</th>
+                        <td><code dir="ltr"><?php echo esc_html($honors_api_single_url); ?></code></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پارامترهای فیلتر</th>
+                        <td>
+                            <p class="description" style="margin:0;">
+                                <code>owner_type=all|member|coach</code>،
+                                <code>status=approved|pending|rejected|all</code>،
+                                <code>member_id</code>،
+                                <code>coach_id</code>،
+                                <code>category_id</code>،
+                                <code>page</code>،
+                                <code>per_page</code>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات افتخارات">
                 </p>
             </form>
         <?php endif;
