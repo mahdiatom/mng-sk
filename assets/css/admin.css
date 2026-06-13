@@ -1194,14 +1194,17 @@ width: 100px;
     }
     
 }
-/* مخفی کردن همه فیلدها */
+/* مخفی کردن همه فیلدها در user-edit/profile */
 #your-profile .form-table tr {
     display: none !important;
 }
 
-/* نگه داشتن فیلدهای ضروری */
+/* فیلدهای مجاز برای نقش‌های staff (بازیکن/مربی از همین صفحه مسدود می‌شوند) */
 #your-profile tr:has(#user_login),
+#your-profile tr:has(#email),
 #your-profile tr:has(#user_email),
+#your-profile tr:has(#first_name),
+#your-profile tr:has(#last_name),
 #your-profile tr:has(#pass1),
 #your-profile tr:has(input[name="billing_phone"]) {
     display: table-row !important;

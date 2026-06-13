@@ -3,6 +3,52 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * Truncate honor description for table display.
+ *
+ * @return array{display: string, full: string, truncated: bool}
+ */
+function sc_truncate_honor_description($description, $limit = 100) {
+    $full = trim((string) $description);
+    if ($full === '') {
+        return ['display' => '-', 'full' => '', 'truncated' => false];
+    }
+
+    $len_fn = function_exists('mb_strlen') ? 'mb_strlen' : 'strlen';
+    $sub_fn = function_exists('mb_substr') ? 'mb_substr' : 'substr';
+
+    if ($len_fn($full) > (int) $limit) {
+        return [
+            'display' => $sub_fn($full, 0, (int) $limit) . '...',
+            'full' => $full,
+            'truncated' => true,
+        ];
+    }
+
+    return ['display' => $full, 'full' => $full, 'truncated' => false];
+}
+
+/**
+ * Render truncated honor description inside table cells.
+ */
+function sc_render_honor_description_cell($description, $limit = 100) {
+    $parts = sc_truncate_honor_description($description, $limit);
+    if ($parts['full'] === '') {
+        echo '-';
+        return;
+    }
+
+    $title = $parts['truncated'] ? ' title="' . esc_attr($parts['full']) . '"' : '';
+    echo '<span class="sc-honor-description"' . $title . '>' . esc_html($parts['display']) . '</span>';
+}
+
+/**
+ * Admin honors edit: مدیر کل و مدیر باشگاه
+ */
+function sc_can_manage_honors_in_admin() {
+    return current_user_can('administrator') || current_user_can('club_coach');
+}
+
 function sc_honor_allowed_mimes() {
     return [
         'jpg|jpeg|jpe' => 'image/jpeg',

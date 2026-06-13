@@ -52,6 +52,9 @@ function add_text_before_password(){
  */
 add_action('admin_init', 'sc_remove_user_profile_fields');
 function sc_remove_user_profile_fields() {
+    if (function_exists('sc_user_profile_should_hide_wp_fields') && !sc_user_profile_should_hide_wp_fields()) {
+        return;
+    }
     // حذف بخش‌های اضافی از صفحه ویرایش کاربر
     remove_action('show_user_profile', 'wp_user_contactmethods');
     remove_action('edit_user_profile', 'wp_user_contactmethods');
@@ -75,6 +78,9 @@ function sc_remove_user_profile_fields() {
 add_action('admin_head-user-edit.php', 'sc_hide_user_profile_fields');
 add_action('admin_head-profile.php', 'sc_hide_user_profile_fields');
 function sc_hide_user_profile_fields() {
+    if (function_exists('sc_user_profile_should_hide_wp_fields') && !sc_user_profile_should_hide_wp_fields()) {
+        return;
+    }
     ?>
     <style>
         
@@ -172,7 +178,13 @@ function sc_hide_user_profile_fields() {
 /**
  * حذف فیلدهای اضافی با استفاده از filter
  */
-add_filter('user_contactmethods', '__return_empty_array', 999);
+function sc_user_profile_filter_contactmethods($methods) {
+    if (function_exists('sc_user_profile_should_hide_wp_fields') && sc_user_profile_should_hide_wp_fields()) {
+        return [];
+    }
+    return $methods;
+}
+add_filter('user_contactmethods', 'sc_user_profile_filter_contactmethods', 999);
 add_filter('show_password_fields', '__return_true', 999);
 
 
@@ -209,15 +221,17 @@ function my_plugin_hide_order_totals_for_customer( $totals, $order ) {
  */
 
 /*--------------------------------------------------------------
-1. حذف فیلدهای تماس پیش‌فرض وردپرس
+1. حذف فیلدهای تماس پیش‌فرض وردپرس (فقط برای بازیکن/مربی)
 --------------------------------------------------------------*/
-add_filter('user_contactmethods', '__return_empty_array', 999);
 
 /*--------------------------------------------------------------
-2. نگه داشتن فقط شماره تلفن ووکامرس
+2. نگه داشتن فقط شماره تلفن ووکامرس (فقط برای بازیکن/مربی)
 --------------------------------------------------------------*/
 add_filter('woocommerce_customer_meta_fields', 'myadmin_keep_only_wc_phone', 999);
 function myadmin_keep_only_wc_phone($fields) {
+    if (function_exists('sc_user_profile_should_hide_wp_fields') && !sc_user_profile_should_hide_wp_fields()) {
+        return $fields;
+    }
 
     if (isset($fields['billing']['fields'])) {
         foreach ($fields['billing']['fields'] as $key => $field) {
@@ -238,6 +252,9 @@ function myadmin_keep_only_wc_phone($fields) {
 --------------------------------------------------------------*/
 add_action('admin_init', 'myadmin_disable_wc_profile_save');
 function myadmin_disable_wc_profile_save() {
+    if (function_exists('sc_user_profile_should_hide_wp_fields') && !sc_user_profile_should_hide_wp_fields()) {
+        return;
+    }
     if (class_exists('WooCommerce')) {
         remove_action('personal_options_update', ['WC_Admin_Profile', 'save_customer_meta_fields']);
         remove_action('edit_user_profile_update', ['WC_Admin_Profile', 'save_customer_meta_fields']);

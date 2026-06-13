@@ -236,6 +236,9 @@ function sc_add_private_class_my_account_menu($items) {
     if (current_user_can('manage_options')) {
         return $items;
     }
+    if (function_exists('sc_is_member_verification_gate_enabled_for_user') && sc_is_member_verification_gate_enabled_for_user()) {
+        return $items;
+    }
     if (!isset($items['sc-enroll-course'])) {
         $items['sc-private-classes'] = 'کلاس خصوصی';
         return $items;

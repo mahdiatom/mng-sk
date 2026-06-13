@@ -258,11 +258,13 @@ $total_honors = $wpdb->get_var($wpdb->prepare(
     $coach_id
 ));
 
-// دریافت افتخارات مربی با صفحه‌بندی
+// دریافت افتخارات مربی و بازیکنان مرتبط با صفحه‌بندی
 $honors = $wpdb->get_results($wpdb->prepare(
-    "SELECT h.*, c.name as category_name 
+    "SELECT h.*, c.name AS category_name,
+            m.first_name AS member_first_name, m.last_name AS member_last_name
      FROM $honors_table h
      LEFT JOIN $categories_table c ON h.category_id = c.id
+     LEFT JOIN $members_table m ON h.member_id = m.id
      WHERE h.coach_id = %d
      ORDER BY h.created_at DESC
      LIMIT %d OFFSET %d",
@@ -276,7 +278,8 @@ $total_pages = ceil($total_honors / $per_page);
 ?>
 <div class="wrap sc-coach-panel-wrap sc-coach-honors-wrap">
     <div class="sc-coach-panel-header_honors">
-        <h1 class="sc-coach-panel-title">افتخارات من</h1>
+        <h1 class="sc-coach-panel-title">افتخارات</h1>
+        <p class="description">مشاهده افتخارات خودتان و افتخارات بازیکنانی که به شما مرتبط شده‌اند. ویرایش فقط توسط مدیریت باشگاه انجام می‌شود.</p>
     </div>
     <!-- فرم افزودن افتخارات -->
     <div class="sc-coach-panel-card card sc-coach-honors-form-card" style="padding: 24px; margin-top: 0; width: 100%; max-width: none;">
@@ -358,8 +361,9 @@ $total_pages = ceil($total_honors / $per_page);
                 <thead>
                     <tr>
                         <th>عنوان افتخار</th>
+                        <th>بازیکن / نوع</th>
                         <th>دسته</th>
-                        <th>توضیحات</th>
+                        <th class="sc-honor-description-col">توضیحات</th>
                         <th>فایل</th>
                         <th>وضعیت</th>
                         <th>تاریخ ثبت</th>
@@ -367,11 +371,30 @@ $total_pages = ceil($total_honors / $per_page);
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($honors as $honor) : ?>
+                    <?php foreach ($honors as $honor) :
+                        $player_label = '-';
+                        if (!empty($honor->member_id)) {
+                            $player_label = trim(($honor->member_first_name ?? '') . ' ' . ($honor->member_last_name ?? ''));
+                            if ($player_label === '') {
+                                $player_label = 'بازیکن #' . (int) $honor->member_id;
+                            }
+                        } else {
+                            $player_label = 'افتخار مربی';
+                        }
+                    ?>
                         <tr>
                             <td><strong><?php echo esc_html($honor->name); ?></strong></td>
+                            <td><?php echo esc_html($player_label); ?></td>
                             <td><?php echo esc_html($honor->category_name ?: '-'); ?></td>
-                            <td><?php echo esc_html($honor->description ?: '-'); ?></td>
+                            <td class="sc-honor-description-cell">
+                                <?php
+                                if (function_exists('sc_render_honor_description_cell')) {
+                                    sc_render_honor_description_cell($honor->description, 100);
+                                } else {
+                                    echo esc_html($honor->description ?: '-');
+                                }
+                                ?>
+                            </td>
                             <td>
                                 <?php if (!empty($honor->file_url)) : ?>
                                     <a href="<?php echo esc_url($honor->file_url); ?>" target="_blank" style="color: #2271b1; text-decoration: none;">📎 دانلود</a>
@@ -426,6 +449,20 @@ $total_pages = ceil($total_honors / $per_page);
         </div>
     <?php endif; ?>
 </div>
+
+<style>
+.sc-coach-honors-wrap .sc-honor-description-col,
+.sc-coach-honors-wrap .sc-honor-description-cell {
+    max-width: 220px;
+    width: 220px;
+}
+.sc-coach-honors-wrap .sc-honor-description {
+    display: block;
+    overflow: hidden;
+    word-break: break-word;
+    line-height: 1.6;
+}
+</style>
 
 <script>
 jQuery(document).ready(function($) {

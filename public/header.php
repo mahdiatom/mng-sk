@@ -61,8 +61,8 @@ $verification_gate_locked = function_exists('sc_is_member_verification_gate_enab
                         <li class="icon_name" >
                             <div class="sc-user-avatar_megamenu" ><img src="<?php echo $results[0]['photo']; ?>"></div>
                             <div class="info_megamenu">
-                                <span href="#"> <?php echo $results[0]['name'] ?? ''; ?></apan>
-                                <span href="#"> <?php echo $results[0]['player_phone'] ?? ''; ?></apan>
+                                <span href="#"> <?php echo $results[0]['name'] ?? ''; ?></span>
+                                <span href="#"> <?php echo $results[0]['player_phone'] ?? ''; ?></span>
                             </div>
                             
                         </li>
@@ -243,7 +243,8 @@ button[name="save_honors"],
   .woocommerce-tabs .wc-tab ,
   .custom-footer a ,
   .sc-notifications-pagination span,
-  .sc-thankyou-header
+  .sc-thankyou-header,
+  .woo_panel_mini .count_unread_notif_mini
  
  {
  
@@ -257,6 +258,7 @@ button[name="save_honors"],
 a.details_info_user_pannel,
 .woocommerce-MyAccount-navigation ul li a,
 .megamenu-box span
+
 
 {
      color:<?php echo $color_org_txt;  ?>!important;

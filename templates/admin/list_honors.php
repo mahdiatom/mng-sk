@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 // بررسی دسترسی
-if (!current_user_can('manage_options')) {
+if (!function_exists('sc_can_manage_honors_in_admin') || !sc_can_manage_honors_in_admin()) {
     wp_die('شما دسترسی به این صفحه ندارید.');
 }
 
@@ -200,6 +200,82 @@ if (isset($_GET['status_updated'])) {
     $message_type = 'success';
 }
 
+if (isset($_GET['honor_updated']) && $_GET['honor_updated'] === '1') {
+    $message = 'افتخار با موفقیت ویرایش شد.';
+    $message_type = 'success';
+}
+
+if (isset($_POST['update_honor']) && check_admin_referer('update_admin_honor_nonce')) {
+    $honor_id = isset($_POST['honor_id']) ? absint($_POST['honor_id']) : 0;
+    $honor_name = isset($_POST['honor_name']) ? sanitize_text_field(wp_unslash($_POST['honor_name'])) : '';
+    $honor_category = isset($_POST['honor_category_id']) ? absint($_POST['honor_category_id']) : 0;
+    $honor_description = isset($_POST['honor_description']) ? sanitize_textarea_field(wp_unslash($_POST['honor_description'])) : '';
+    $honor_status = isset($_POST['honor_status']) ? sanitize_key(wp_unslash($_POST['honor_status'])) : 'pending';
+    $honor_coach_id = isset($_POST['honor_coach_id']) ? absint($_POST['honor_coach_id']) : 0;
+
+    if (!in_array($honor_status, ['pending', 'approved', 'rejected'], true)) {
+        $honor_status = 'pending';
+    }
+
+    if ($honor_id <= 0 || $honor_name === '' || $honor_category <= 0) {
+        $message = 'اطلاعات ویرایش افتخار ناقص است.';
+        $message_type = 'error';
+    } else {
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $honors_table WHERE id = %d",
+            $honor_id
+        ), ARRAY_A);
+
+        if (!$existing) {
+            $message = 'افتخار یافت نشد.';
+            $message_type = 'error';
+        } else {
+            $category_exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $categories_table WHERE id = %d",
+                $honor_category
+            ));
+
+            if (!$category_exists) {
+                $message = 'دسته انتخاب‌شده معتبر نیست.';
+                $message_type = 'error';
+            } else {
+                $update_data = [
+                    'name' => $honor_name,
+                    'category_id' => $honor_category,
+                    'description' => $honor_description !== '' ? $honor_description : null,
+                    'status' => $honor_status,
+                    'updated_at' => current_time('mysql'),
+                ];
+                $update_formats = ['%s', '%d', '%s', '%s', '%s'];
+
+                if (!empty($existing['member_id'])) {
+                    $update_data['coach_id'] = $honor_coach_id > 0 ? $honor_coach_id : null;
+                    $update_formats[] = $honor_coach_id > 0 ? '%d' : '%s';
+                }
+
+                $updated = $wpdb->update(
+                    $honors_table,
+                    $update_data,
+                    ['id' => $honor_id],
+                    $update_formats,
+                    ['%d']
+                );
+
+                if ($updated !== false) {
+                    if (function_exists('sc_log_activity')) {
+                        sc_log_activity('updated', 'honor', $honor_id, 'افتخار «' . $honor_name . '» ویرایش شد', $existing, $update_data);
+                    }
+                    wp_safe_redirect(add_query_arg('honor_updated', '1', admin_url('admin.php?page=sc-honors')));
+                    exit;
+                }
+
+                $message = 'خطا در ذخیره تغییرات افتخار.';
+                $message_type = 'error';
+            }
+        }
+    }
+}
+
 // پردازش فیلترها (فرم با method="get" است)
 $filter_category_raw = isset($_GET['filter_category']) ? $_GET['filter_category'] : 'all';
 $filter_category = ($filter_category_raw === 'all' || $filter_category_raw === '') ? 'all' : absint($filter_category_raw);
@@ -337,6 +413,24 @@ if (!empty($filter_user)) {
 
 $total_pages = ceil($total_items / $per_page);
 
+$edit_honor = null;
+if (isset($_GET['edit_honor'])) {
+    $edit_honor_id = absint($_GET['edit_honor']);
+    if ($edit_honor_id > 0) {
+        $edit_honor = $wpdb->get_row($wpdb->prepare(
+            "SELECT h.*, c.name AS category_name,
+                    m.first_name AS member_first_name, m.last_name AS member_last_name
+             FROM $honors_table h
+             LEFT JOIN $categories_table c ON h.category_id = c.id
+             LEFT JOIN $members_table m ON h.member_id = m.id
+             WHERE h.id = %d",
+            $edit_honor_id
+        ));
+    }
+}
+
+$coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+
 ?>
 <div class="wrap">
     <h1 class="wp-heading-inline">لیست افتخارات</h1> 
@@ -350,6 +444,96 @@ $total_pages = ceil($total_items / $per_page);
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
             <p><?php echo esc_html($message); ?></p>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($edit_honor) :
+        $edit_player_name = '';
+        if (!empty($edit_honor->member_id)) {
+            $edit_player_name = trim(($edit_honor->member_first_name ?? '') . ' ' . ($edit_honor->member_last_name ?? ''));
+        }
+    ?>
+        <div class="card" style="padding: 20px; margin-bottom: 20px; max-width: 900px;">
+            <h2>ویرایش افتخار</h2>
+            <?php if ($edit_player_name !== '') : ?>
+                <p><strong>بازیکن:</strong> <?php echo esc_html($edit_player_name); ?></p>
+            <?php elseif (!empty($edit_honor->coach_id) && empty($edit_honor->member_id)) : ?>
+                <?php
+                $edit_coach = $wpdb->get_row($wpdb->prepare(
+                    "SELECT first_name, last_name FROM $coaches_table WHERE id = %d",
+                    $edit_honor->coach_id
+                ));
+                ?>
+                <p><strong>مربی:</strong> <?php echo esc_html($edit_coach ? trim($edit_coach->first_name . ' ' . $edit_coach->last_name) : '-'); ?></p>
+            <?php endif; ?>
+
+            <form method="post">
+                <?php wp_nonce_field('update_admin_honor_nonce'); ?>
+                <input type="hidden" name="honor_id" value="<?php echo esc_attr($edit_honor->id); ?>">
+
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="honor_name">عنوان افتخار</label></th>
+                        <td><input type="text" name="honor_name" id="honor_name" class="regular-text" value="<?php echo esc_attr($edit_honor->name); ?>" required></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="honor_category_id">دسته</label></th>
+                        <td>
+                            <select name="honor_category_id" id="honor_category_id" class="regular-text" required>
+                                <option value="">انتخاب کنید</option>
+                                <?php foreach ($categories as $category) : ?>
+                                    <option value="<?php echo esc_attr($category->id); ?>" <?php selected((int) $edit_honor->category_id, (int) $category->id); ?>>
+                                        <?php echo esc_html($category->name); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
+                    <?php if (!empty($edit_honor->member_id)) : ?>
+                    <tr>
+                        <th scope="row"><label for="honor_coach_id">مربی مرتبط</label></th>
+                        <td>
+                            <select name="honor_coach_id" id="honor_coach_id" class="regular-text">
+                                <option value="0">هیچ کدام</option>
+                                <?php foreach ($coaches_for_edit as $coach_item) :
+                                    $coach_label = trim($coach_item->first_name . ' ' . $coach_item->last_name);
+                                    if ($coach_label === '') {
+                                        $coach_label = 'مربی #' . $coach_item->id;
+                                    }
+                                ?>
+                                    <option value="<?php echo esc_attr($coach_item->id); ?>" <?php selected((int) ($edit_honor->coach_id ?? 0), (int) $coach_item->id); ?>>
+                                        <?php echo esc_html($coach_label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                    <tr>
+                        <th scope="row"><label for="honor_status">وضعیت</label></th>
+                        <td>
+                            <select name="honor_status" id="honor_status" class="regular-text">
+                                <?php foreach ($honor_status_labels as $status_key => $status_label) : ?>
+                                    <option value="<?php echo esc_attr($status_key); ?>" <?php selected($edit_honor->status ?? 'pending', $status_key); ?>>
+                                        <?php echo esc_html($status_label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="honor_description">توضیحات</label></th>
+                        <td>
+                            <textarea name="honor_description" id="honor_description" rows="4" class="large-text"><?php echo esc_textarea($edit_honor->description ?? ''); ?></textarea>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="submit">
+                    <button type="submit" name="update_honor" class="button button-primary">ذخیره تغییرات</button>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honors')); ?>" class="sc_button">انصراف</a>
+                </p>
+            </form>
         </div>
     <?php endif; ?>
 
@@ -511,7 +695,7 @@ $total_pages = ceil($total_items / $per_page);
                     <th class="manage-column">مربی مرتبط</th>
                     <th class="manage-column">عنوان افتخار</th>
                     <th class="manage-column">دسته</th>
-                    <th class="manage-column">توضیحات</th>
+                    <th class="manage-column sc-honor-description-col">توضیحات</th>
                     <th class="manage-column">فایل</th>
                     <th class="manage-column">وضعیت</th>
                     <th class="manage-column">تاریخ ثبت</th>
@@ -576,6 +760,7 @@ $total_pages = ceil($total_items / $per_page);
                             admin_url('admin.php?page=sc-honors&action=reject&honor_id=' . $honor->id),
                             'change_honor_status_' . $honor->id
                         );
+                        $edit_url = admin_url('admin.php?page=sc-honors&edit_honor=' . (int) $honor->id);
                         $status_key = isset($honor->status) ? $honor->status : 'pending';
                         $status_label = isset($honor_status_labels[$status_key]) ? $honor_status_labels[$status_key] : $honor_status_labels['pending'];
                         ?>
@@ -586,6 +771,9 @@ $total_pages = ceil($total_items / $per_page);
                             <td>
                                 <?php echo $member_name; ?>
                                 <div class="row-actions">
+                                    <span class="edit">
+                                        <a href="<?php echo esc_url($edit_url); ?>">ویرایش</a> |
+                                    </span>
                                     <?php if ($status_key !== 'approved') : ?>
                                         <span class="edit">
                                             <a href="<?php echo esc_url($approve_url); ?>">تایید</a> |
@@ -604,13 +792,12 @@ $total_pages = ceil($total_items / $per_page);
                             <td><?php echo $associated_coach_name; ?></td>
                             <td><strong><?php echo esc_html($honor->name); ?></strong></td>
                             <td><?php echo $category_name; ?></td>
-                            <td>
-                                <?php 
-                                $description = esc_html($honor->description);
-                                if (mb_strlen($description) > 50) {
-                                    echo mb_substr($description, 0, 50) . '...';
+                            <td class="sc-honor-description-cell">
+                                <?php
+                                if (function_exists('sc_render_honor_description_cell')) {
+                                    sc_render_honor_description_cell($honor->description, 100);
                                 } else {
-                                    echo $description ?: '-';
+                                    echo esc_html($honor->description ?: '-');
                                 }
                                 ?>
                             </td>
@@ -684,6 +871,20 @@ $total_pages = ceil($total_items / $per_page);
         <?php endif; ?>
     </form>
 </div>
+
+<style>
+.sc-honor-description-col,
+.sc-honor-description-cell {
+    max-width: 220px;
+    width: 220px;
+}
+.sc-honor-description {
+    display: block;
+    overflow: hidden;
+    word-break: break-word;
+    line-height: 1.6;
+}
+</style>
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {

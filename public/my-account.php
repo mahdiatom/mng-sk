@@ -686,7 +686,8 @@ function sc_get_current_member_for_account_user() {
 }
 
 /**
- * Check if verification gate is active for current user
+ * Check if verification gate is active for current user.
+ * Only team players (بازیکن تیم) are restricted; normal players keep full access.
  */
 function sc_is_member_verification_gate_enabled_for_user($player = null) {
     if (current_user_can('manage_options')) {
@@ -698,7 +699,13 @@ function sc_is_member_verification_gate_enabled_for_user($player = null) {
     if (!$player) {
         $player = sc_get_current_member_for_account_user();
     }
-    return $player && (int)($player->identity_verified ?? 0) !== 1;
+    if (!$player || (int) ($player->identity_verified ?? 0) === 1) {
+        return false;
+    }
+    if (function_exists('sc_is_member_team')) {
+        return sc_is_member_team((int) $player->id);
+    }
+    return isset($player->member_type) && $player->member_type === 'team';
 }
 
 /**
@@ -724,6 +731,32 @@ function sc_render_member_verification_required_message() {
     </div>
     <?php
 }
+
+/**
+ * Banner above My Account menu for team players awaiting identity verification.
+ */
+function sc_render_member_verification_gate_banner() {
+    if (!is_user_logged_in() || current_user_can('manage_options')) {
+        return;
+    }
+    if (!function_exists('sc_is_member_verification_gate_enabled_for_user') || !sc_is_member_verification_gate_enabled_for_user()) {
+        return;
+    }
+
+    $profile_url = wc_get_account_endpoint_url('sc-submit-documents');
+    ?>
+    <div class="sc-verification-gate-notice">
+        <strong>دسترسی به پنل در انتظار تأیید احراز هویت</strong>
+        <p>
+            لطفاً ابتدا بخش «اطلاعات بازیکن» را تکمیل کنید. پس از بررسی و تأیید احراز هویت توسط باشگاه،
+            دسترسی کامل به تمام بخش‌های پنل کاربری برای شما فعال می‌شود.
+            <a href="<?php echo esc_url($profile_url); ?>">تکمیل اطلاعات بازیکن</a>
+        </p>
+    </div>
+    <?php
+}
+
+add_action('woocommerce_before_account_navigation', 'sc_render_member_verification_gate_banner', 15);
 
 /**
  * Check whether a member can access a restricted item (course/event).

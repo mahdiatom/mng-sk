@@ -652,9 +652,7 @@ a.icon_adv svg circle{
 }
 
 .woo_panel_mini .count_unread_notif_mini{
-       background-color:  #1144f6;;
     border-radius: 100%;
-    color: #ffffff;
         padding: 2px 7px 1px 7px;
     font-size: 11px;
     
@@ -1607,6 +1605,29 @@ a.details_info_user_pannel:hover {
     border-radius: 10px;
     padding: 5px 10px;
     color: white;
+}
+.sc-verification-gate-notice {
+    background-color: #fff8e6;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 0 0 16px;
+    color: #856404;
+}
+.sc-verification-gate-notice strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 15px;
+}
+.sc-verification-gate-notice p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.8;
+}
+.sc-verification-gate-notice a {
+    color: #6d34ff;
+    font-weight: 600;
+    text-decoration: underline;
 }
 /* حذف هدر و فوتر  */
 
@@ -7565,6 +7586,7 @@ display: block;
   padding-right: 0 !important;
   font-size: 10px !important;
   font-weight: normal !important;
+  color: #000 !important;
 }
 
 .arrow_megamenu_account svg {

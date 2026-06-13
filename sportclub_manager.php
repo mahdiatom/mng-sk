@@ -3,7 +3,7 @@
  * Plugin Name:       سامانه مدیریت باشگاه اتم کلاب
  * Plugin URI:        https://atomwp.ir
  * Description:       یک سیستم جامع برای مدیریت اعضا، دوره‌های ورزشی، پرداخت‌ها و حضور و غیاب باشگاه با قابلیت یکپارچگی کامل با ووکامرس.
- * Version:           1.4.10
+ * Version:           1.4.11
  * Author:            مهدی باباشاهی
  * Author URI:        https://atomwp.ir
  * License:           GPL2
@@ -65,6 +65,7 @@ require_once SC_INCLUDES_DIR . 'jdf.php';                  // JDF library for Pe
 require_once SC_INCLUDES_DIR . 'persian-datepicker-helper.php'; // Persian datepicker helper
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
+require_once SC_INCLUDES_DIR . 'user-profile-access.php'; // دسترسی user-edit/profile وردپرس
 require_once SC_INCLUDES_DIR . 'roles.php';                // نقش‌ها و محدودیت دسترسی (همیشه، حتی بدون لایسنس)
 
 if (sc_is_license_active()) {

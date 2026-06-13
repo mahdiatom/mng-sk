@@ -736,6 +736,13 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         }
         sc_update_setting('sc_header_search_keywords_json', wp_json_encode($kw_clean, JSON_UNESCAPED_UNICODE), 'header_footer');
 
+        if (function_exists('sc_can_manage_license') ? sc_can_manage_license() : in_array('administrator', (array) wp_get_current_user()->roles, true)) {
+            $sc_footer_text_line1 = isset($_POST['sc_footer_text_line1']) ? sanitize_textarea_field(wp_unslash($_POST['sc_footer_text_line1'])) : '';
+            $sc_footer_text_line2 = isset($_POST['sc_footer_text_line2']) ? sanitize_textarea_field(wp_unslash($_POST['sc_footer_text_line2'])) : '';
+            sc_update_setting('sc_footer_text_line1', $sc_footer_text_line1, 'header_footer');
+            sc_update_setting('sc_footer_text_line2', $sc_footer_text_line2, 'header_footer');
+        }
+
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات هدر و فوتر ذخیره شد', null, ['tab' => 'header_footer']);
         }
@@ -1023,6 +1030,11 @@ $sc_club_logo_url      = sc_get_setting('sc_club_logo_url', '');
 $sc_phone_club      = sc_get_setting('sc_phone_club', '');
 
 $sc_header_search_placeholder = sc_get_setting('sc_header_search_placeholder', 'جستجو در خدمات، صفحات و فروشگاه…');
+$sc_footer_text_line1 = sc_get_setting('sc_footer_text_line1', '{year} تمامی حقوق برای سیستم هوشمند باشگاه اتم کلاب محفوظ است.');
+$sc_footer_text_line2 = sc_get_setting('sc_footer_text_line2', 'طراحی شده توسط اتم کلاب');
+$sc_can_edit_footer_texts = function_exists('sc_can_manage_license')
+    ? sc_can_manage_license()
+    : in_array('administrator', (array) wp_get_current_user()->roles, true);
 $sc_org_bg_color = sc_get_setting('sc_org_bg_color', '#6D34FF');
 $sc_txt_bg_color = sc_get_setting('sc_txt_bg_color', '#6D34FF');
 
@@ -1734,6 +1746,25 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <?php endif; ?>
                     </tbody>
                 </table>
+
+                <?php if ($sc_can_edit_footer_texts) : ?>
+                <h3 style="margin-top:24px;">متن فوتر</h3>
+                <p class="description">این بخش فقط توسط مدیر کل سایت قابل ویرایش است. در خط اول می‌توانید از <code>{year}</code> برای نمایش سال جاری استفاده کنید.</p>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="sc_footer_text_line1">متن خط اول فوتر</label></th>
+                        <td>
+                            <textarea name="sc_footer_text_line1" id="sc_footer_text_line1" rows="2" class="large-text"><?php echo esc_textarea($sc_footer_text_line1); ?></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_footer_text_line2">متن خط دوم فوتر</label></th>
+                        <td>
+                            <textarea name="sc_footer_text_line2" id="sc_footer_text_line2" rows="2" class="large-text"><?php echo esc_textarea($sc_footer_text_line2); ?></textarea>
+                        </td>
+                    </tr>
+                </table>
+                <?php endif; ?>
 
                 <p class="submit">
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات هدر و فوتر">
@@ -3492,7 +3523,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                 <input type="checkbox" name="player_verification_required" value="1" <?php checked($player_verification_required, 1); ?>>
                                 <span class="slider round"></span>
                             </label>
-                            <p class="description">در صورت فعال بودن، بازیکن تا زمان تایید احراز هویت فقط به بخش «اطلاعات بازیکن» دسترسی خواهد داشت.</p>
+                            <p class="description">در صورت فعال بودن، فقط «بازیکن تیم» تا زمان تایید احراز هویت به بخش «اطلاعات بازیکن» محدود می‌شود. «بازیکن عادی» بدون تکمیل احراز هویت به تمام بخش‌ها دسترسی دارد.</p>
                         </td>
                     </tr>
                 </table>

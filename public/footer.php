@@ -4,14 +4,22 @@ if ( ! defined('ABSPATH') ) exit;
 // اضافه کردن فوتر
 add_action('wp_footer', 'custom_footer_output');
 function custom_footer_output() {
-
-
+    $footer_line1 = sc_get_setting(
+        'sc_footer_text_line1',
+        '{year} تمامی حقوق برای سیستم هوشمند باشگاه اتم کلاب محفوظ است.'
+    );
+    $footer_line2 = sc_get_setting('sc_footer_text_line2', 'طراحی شده توسط اتم کلاب');
+    $footer_line1 = str_replace('{year}', date('Y'), (string) $footer_line1);
 
     ?>
     
     <footer class="custom-footer" >
-       <p> <a href="https://atomclubapp.ir" target="_blank" rel="nofollow"> <?php echo date('Y'); ?> تمامی حقوق برای سیستم هوشمند باشگاه اتم کلاب محفوظ است.</a> </p>
-       <p> <a href="https://atomclubapp.ir" target="_blank" rel="nofollow">طراحی شده توسط اتم کلاب</a> </p>
+       <?php if (trim($footer_line1) !== '') : ?>
+       <p><?php echo esc_html($footer_line1); ?></p>
+       <?php endif; ?>
+       <?php if (trim($footer_line2) !== '') : ?>
+       <p><?php echo esc_html($footer_line2); ?></p>
+       <?php endif; ?>
     </footer>
 
 <script>

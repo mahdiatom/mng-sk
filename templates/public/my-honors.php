@@ -325,7 +325,7 @@ $total_pages = ceil($total_honors / $per_page);
                         <th>عنوان افتخار</th>
                         <th>دسته</th>
                         <th>مربی مرتبط</th>
-                        <th>توضیحات</th>
+                        <th class="sc-honor-description-col">توضیحات</th>
                         <th>فایل</th>
                         <th>وضعیت</th>
                         <th>تاریخ ثبت</th>
@@ -354,8 +354,14 @@ $total_pages = ceil($total_honors / $per_page);
                                 }
                                 ?>
                             </td>
-                            <td data-title="توضیحات">
-                                <?php echo esc_html($honor->description ?: '-'); ?>
+                            <td data-title="توضیحات" class="sc-honor-description-cell">
+                                <?php
+                                if (function_exists('sc_render_honor_description_cell')) {
+                                    sc_render_honor_description_cell($honor->description, 100);
+                                } else {
+                                    echo esc_html($honor->description ?: '-');
+                                }
+                                ?>
                             </td>
                             <td data-title="فایل">
                                 <?php if (!empty($honor->file_url)) : ?>
@@ -679,5 +685,18 @@ document.addEventListener('DOMContentLoaded', function() {
     height: 0 !important;
     overflow: hidden !important;
     z-index: -1 !important;
+}
+
+.sc-honors-list-wrapper .sc-honor-description-col,
+.sc-honors-list-wrapper .sc-honor-description-cell {
+    max-width: 220px;
+    width: 220px;
+}
+
+.sc-honor-description {
+    display: block;
+    overflow: hidden;
+    word-break: break-word;
+    line-height: 1.6;
 }
 </style>
