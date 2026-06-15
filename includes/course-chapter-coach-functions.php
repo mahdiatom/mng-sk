@@ -349,6 +349,65 @@ function sc_save_coach_course_assignments($coach_id, array $assignments) {
 }
 
 /**
+ * @return array{price_per_session:float,capacity:?int,salary_percentage:float}|null
+ */
+function sc_get_course_coach_branch_meta($course_id, $chapter_name, $coach_id) {
+    global $wpdb;
+    $course_id = absint($course_id);
+    $coach_id = absint($coach_id);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    if (!$course_id || !$coach_id || $chapter_name === '') {
+        return null;
+    }
+
+    $table = $wpdb->prefix . 'sc_course_coaches';
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT price_per_session, capacity, salary_percentage FROM `$table`
+         WHERE course_id = %d AND coach_id = %d AND chapter_name = %s LIMIT 1",
+        $course_id,
+        $coach_id,
+        $chapter_name
+    ));
+    if (!$row) {
+        return null;
+    }
+
+    return [
+        'price_per_session' => isset($row->price_per_session) ? (float) $row->price_per_session : 0.0,
+        'capacity' => ($row->capacity !== null && $row->capacity !== '') ? (int) $row->capacity : null,
+        'salary_percentage' => isset($row->salary_percentage) ? (float) $row->salary_percentage : 0.0,
+    ];
+}
+
+/**
+ * @return array<string, array<int, array{price_per_session:float,capacity:?int,salary_percentage:float}>>
+ */
+function sc_get_course_coach_branch_meta_map($course_id) {
+    global $wpdb;
+    $course_id = absint($course_id);
+    if (!$course_id) {
+        return [];
+    }
+
+    $table = $wpdb->prefix . 'sc_course_coaches';
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT coach_id, chapter_name, price_per_session, capacity, salary_percentage FROM `$table` WHERE course_id = %d",
+        $course_id
+    ));
+
+    $map = [];
+    foreach ((array) $rows as $row) {
+        $map[(string) $row->chapter_name][(int) $row->coach_id] = [
+            'price_per_session' => isset($row->price_per_session) ? (float) $row->price_per_session : 0.0,
+            'capacity' => ($row->capacity !== null && $row->capacity !== '') ? (int) $row->capacity : null,
+            'salary_percentage' => isset($row->salary_percentage) ? (float) $row->salary_percentage : 0.0,
+        ];
+    }
+
+    return $map;
+}
+
+/**
  * Existing coach assignments of a course: [chapter_name][coach_id] => salary_percentage.
  *
  * @return array<string, array<int, float>>
@@ -395,6 +454,12 @@ function sc_save_course_coach_assignments_from_post($course_id, array $allowed_c
 
     $table = $wpdb->prefix . 'sc_course_coaches';
     $salary_map = sc_get_course_coach_assignments_map($course_id);
+    $branch_prices = isset($_POST['coach_branch_price_raw']) && is_array($_POST['coach_branch_price_raw'])
+        ? wp_unslash($_POST['coach_branch_price_raw'])
+        : [];
+    $branch_capacities = isset($_POST['coach_branch_capacity']) && is_array($_POST['coach_branch_capacity'])
+        ? wp_unslash($_POST['coach_branch_capacity'])
+        : [];
 
     $raw = isset($_POST['course_coach_assign']) && is_array($_POST['course_coach_assign'])
         ? wp_unslash($_POST['course_coach_assign'])
@@ -417,19 +482,40 @@ function sc_save_course_coach_assignments_from_post($course_id, array $allowed_c
                 continue;
             }
             $salary = isset($salary_map[$chapter_name][$coach_id]) ? (float) $salary_map[$chapter_name][$coach_id] : 0.0;
-            $wpdb->insert(
-                $table,
-                [
-                    'course_id' => $course_id,
-                    'coach_id' => $coach_id,
-                    'chapter_name' => $chapter_name,
-                    'capacity' => null,
-                    'salary_percentage' => $salary,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ],
-                ['%d', '%d', '%s', '%s', '%f', '%s', '%s']
-            );
+
+            $price_per_session = 0.0;
+            if (isset($branch_prices[$chapter_name][$coach_id])) {
+                $price_raw = preg_replace('/[^\d.]/', '', str_replace(',', '', sanitize_text_field((string) $branch_prices[$chapter_name][$coach_id])));
+                $price_per_session = (float) $price_raw;
+            }
+
+            $capacity = null;
+            if (isset($branch_capacities[$chapter_name][$coach_id]) && $branch_capacities[$chapter_name][$coach_id] !== '') {
+                $capacity = max(1, absint($branch_capacities[$chapter_name][$coach_id]));
+            }
+
+            $row_data = [
+                'course_id' => $course_id,
+                'coach_id' => $coach_id,
+                'chapter_name' => $chapter_name,
+                'capacity' => $capacity,
+                'price_per_session' => $price_per_session,
+                'salary_percentage' => $salary,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+            $row_format = [
+                '%d',
+                '%d',
+                '%s',
+                ($capacity !== null ? '%d' : '%s'),
+                '%f',
+                '%f',
+                '%s',
+                '%s',
+            ];
+
+            $wpdb->insert($table, $row_data, $row_format);
         }
     }
 }

@@ -865,6 +865,8 @@ function sc_check_and_create_tables() {
     $discount_codes_table = $wpdb->prefix . 'sc_discount_codes';
     $course_weekly_schedule_table = $wpdb->prefix . 'sc_course_weekly_schedule';
     $course_capacity_waitlist_table = $wpdb->prefix . 'sc_course_capacity_waitlist';
+    $private_course_bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
+    $private_booking_sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
     
     // بررسی وجود جداول
     $members_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table)) == $members_table;
@@ -900,6 +902,8 @@ function sc_check_and_create_tables() {
     $discount_codes_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $discount_codes_table)) == $discount_codes_table;
     $course_weekly_schedule_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_weekly_schedule_table)) == $course_weekly_schedule_table;
     $course_capacity_waitlist_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $course_capacity_waitlist_table)) == $course_capacity_waitlist_table;
+    $private_course_bookings_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $private_course_bookings_table)) == $private_course_bookings_table;
+    $private_booking_sessions_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $private_booking_sessions_table)) == $private_booking_sessions_table;
     
     // ایجاد جداول در صورت عدم وجود
     if (!$members_exists && function_exists('sc_create_members_table')) {
@@ -1000,6 +1004,12 @@ function sc_check_and_create_tables() {
     }
     if (!$course_capacity_waitlist_exists && function_exists('sc_create_course_capacity_waitlist_table')) {
         sc_create_course_capacity_waitlist_table();
+    }
+    if (!$private_course_bookings_exists && function_exists('sc_create_private_course_bookings_table')) {
+        sc_create_private_course_bookings_table();
+    }
+    if (!$private_booking_sessions_exists && function_exists('sc_create_private_booking_sessions_table')) {
+        sc_create_private_booking_sessions_table();
     }
     
     // اجرای به‌روزرسانی‌های دیتابیس

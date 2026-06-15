@@ -2891,6 +2891,12 @@ function callback_add_course_sufix() {
         
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_courses';
+
+        $course_type_value = (isset($_POST['course_type']) && in_array($_POST['course_type'], ['group', 'private'], true))
+            ? sanitize_text_field($_POST['course_type'])
+            : 'group';
+        $is_private_course = ($course_type_value === 'private');
+        $private_variable_coach_pricing = ($is_private_course && isset($_POST['private_variable_coach_pricing'])) ? 1 : 0;
         
         // پردازش قیمت از price_raw
         $price_value = 0;
@@ -2930,19 +2936,46 @@ function callback_add_course_sufix() {
             $price_per_session_value = 0;
         }
 
-        $parsed_packages = function_exists('sc_parse_course_packages_from_post') ? sc_parse_course_packages_from_post() : [];
-        if (is_wp_error($parsed_packages)) {
-            wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_pkg_error&course_id=' . (isset($_GET['course_id']) ? absint($_GET['course_id']) : 0)));
-            exit;
+        if ($is_private_course && $private_variable_coach_pricing) {
+            $parsed_packages = function_exists('sc_parse_private_session_options_from_post') ? sc_parse_private_session_options_from_post() : [];
+            if (is_wp_error($parsed_packages)) {
+                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_pkg_error&course_id=' . (isset($_GET['course_id']) ? absint($_GET['course_id']) : 0)));
+                exit;
+            }
+            if (empty($parsed_packages)) {
+                $fallback_sessions = !empty($_POST['sessions_count']) ? absint($_POST['sessions_count']) : 10;
+                if ($fallback_sessions > 0) {
+                    $parsed_packages = [
+                        ['sessions' => $fallback_sessions, 'price' => 0.0],
+                    ];
+                }
+            }
+            $price_value = 0;
+            $price_per_session_value = 0;
+        } else {
+            $parsed_packages = function_exists('sc_parse_course_packages_from_post') ? sc_parse_course_packages_from_post() : [];
+            if (is_wp_error($parsed_packages)) {
+                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_pkg_error&course_id=' . (isset($_GET['course_id']) ? absint($_GET['course_id']) : 0)));
+                exit;
+            }
         }
+
         $has_course_packages = !empty($parsed_packages);
 
-        // Validation: بدون پکیج، قیمت دوره اجباری؛ با پکیج، قیمت/تعداد جلسهٔ تک‌خطی برای ثبت‌نام استفاده نمی‌شود
+        // Validation
         if (empty($_POST['title'])) {
             wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
             exit;
         }
-        if (!$has_course_packages && $price_value <= 0) {
+
+        if ($is_private_course && $private_variable_coach_pricing) {
+            // قیمت سراسری لازم نیست
+        } elseif ($is_private_course) {
+            if (!$has_course_packages && $price_value <= 0 && $price_per_session_value <= 0) {
+                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
+                exit;
+            }
+        } elseif (!$has_course_packages && $price_value <= 0) {
             wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
             exit;
         }
@@ -2962,10 +2995,6 @@ function callback_add_course_sufix() {
         } elseif (!empty($_POST['end_date'])) {
             $end_date = sanitize_text_field($_POST['end_date']);
         }
-        
-        $course_type_value = (isset($_POST['course_type']) && in_array($_POST['course_type'], ['group', 'private'], true))
-            ? sanitize_text_field($_POST['course_type'])
-            : 'group';
 
         $posted_chapters = [];
         if (!empty($_POST['course_chapters']) && is_array($_POST['course_chapters'])) {
@@ -2977,10 +3006,10 @@ function callback_add_course_sufix() {
             }
         }
         $posted_chapters = array_values(array_unique($posted_chapters));
-        $primary_chapter = !empty($posted_chapters) ? $posted_chapters[0] : null;
+        $primary_chapter = !empty($posted_chapters) ? $posted_chapters[0] : '';
 
-        // برای دوره گروهی انتخاب حداقل یک شعبه الزامی است
-        if ($course_type_value === 'group' && empty($posted_chapters)) {
+        // برای دوره گروهی/خصوصی انتخاب حداقل یک شعبه الزامی است
+        if (in_array($course_type_value, ['group', 'private'], true) && empty($posted_chapters)) {
             wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_chapter_required' . (isset($_GET['course_id']) ? '&course_id=' . absint($_GET['course_id']) : '')));
             exit;
         }
@@ -2988,9 +3017,9 @@ function callback_add_course_sufix() {
         $data = [
             'title' => sanitize_text_field($_POST['title']),
             'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
-            'price' => $price_value,
-            'price_per_session' => $price_per_session_value,
-            'capacity' => !empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL,
+            'price' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_value,
+            'price_per_session' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_per_session_value,
+            'capacity' => ($is_private_course && $private_variable_coach_pricing) ? null : (!empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL),
             'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
             'start_date' => $start_date,
             'end_date' => $end_date,
@@ -2999,6 +3028,7 @@ function callback_add_course_sufix() {
             'allowed_levels' => !empty($_POST['allowed_levels']) && is_array($_POST['allowed_levels']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_levels'])), JSON_UNESCAPED_UNICODE) : NULL,
             'allowed_gender' => (isset($_POST['allowed_gender']) && in_array($_POST['allowed_gender'], ['male', 'female', 'both'], true)) ? sanitize_text_field($_POST['allowed_gender']) : 'both',
             'course_type' => $course_type_value,
+            'private_variable_coach_pricing' => $private_variable_coach_pricing,
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
             'updated_at' => current_time('mysql'),
             'chapter' => $primary_chapter,
@@ -3015,7 +3045,7 @@ function callback_add_course_sufix() {
                     $format[] = '%s';
                 } elseif (in_array($key, ['price', 'price_per_session'], true)) {
                     $format[] = '%f';
-                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active'], true)) {
+                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active', 'private_variable_coach_pricing'], true)) {
                     $format[] = '%d';
                 } else {
                     $format[] = '%s';
@@ -3032,7 +3062,7 @@ function callback_add_course_sufix() {
 
             if ($updated !== false) {
                 if (function_exists('sc_replace_course_packages')) {
-                    sc_replace_course_packages($course_id, $parsed_packages);
+                    sc_replace_course_packages($course_id, $parsed_packages, ($course_type_value === 'private' && $private_variable_coach_pricing));
                 }
                 if (function_exists('sc_save_course_weekly_schedule_from_post')) {
                     sc_save_course_weekly_schedule_from_post($course_id);
@@ -3069,9 +3099,9 @@ function callback_add_course_sufix() {
             $insert_data = [
                 'title' => sanitize_text_field($_POST['title']),
                 'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
-                'price' => $price_value,
-                'price_per_session' => $price_per_session_value,
-                'capacity' => !empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL,
+                'price' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_value,
+                'price_per_session' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_per_session_value,
+                'capacity' => ($is_private_course && $private_variable_coach_pricing) ? null : (!empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL),
                 'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
                 'start_date' => $start_date,
                 'end_date' => $end_date,
@@ -3080,6 +3110,7 @@ function callback_add_course_sufix() {
                 'allowed_levels' => !empty($_POST['allowed_levels']) && is_array($_POST['allowed_levels']) ? wp_json_encode(array_values(array_map('sanitize_text_field', $_POST['allowed_levels'])), JSON_UNESCAPED_UNICODE) : NULL,
                 'allowed_gender' => (isset($_POST['allowed_gender']) && in_array($_POST['allowed_gender'], ['male', 'female', 'both'], true)) ? sanitize_text_field($_POST['allowed_gender']) : 'both',
                 'course_type' => $course_type_value,
+                'private_variable_coach_pricing' => $private_variable_coach_pricing,
                 'chapter' => $primary_chapter,
                 'is_active' => isset($_POST['is_active']) ? 1 : 0,
                 'created_at' => current_time('mysql'),
@@ -3092,7 +3123,7 @@ function callback_add_course_sufix() {
                     $format[] = '%s';
                 } elseif (in_array($key, ['price', 'price_per_session'], true)) {
                     $format[] = '%f';
-                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active'], true)) {
+                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active', 'private_variable_coach_pricing'], true)) {
                     $format[] = '%d';
                 } else {
                     $format[] = '%s';
@@ -3108,7 +3139,7 @@ function callback_add_course_sufix() {
             if ($inserted !== false) {
                 $insert_id = $wpdb->insert_id;
                 if (function_exists('sc_replace_course_packages')) {
-                    sc_replace_course_packages($insert_id, $parsed_packages);
+                    sc_replace_course_packages($insert_id, $parsed_packages, ($course_type_value === 'private' && $private_variable_coach_pricing));
                 }
                 if (function_exists('sc_save_course_weekly_schedule_from_post')) {
                     sc_save_course_weekly_schedule_from_post($insert_id);
@@ -4257,7 +4288,7 @@ function sc_sprot_notices(){
         }
         if($status == 'course_chapter_required'){
             $type='error';
-            $messege="برای دوره گروهی انتخاب حداقل یک شعبه الزامی است.";
+            $messege="برای دوره گروهی/خصوصی انتخاب حداقل یک شعبه الزامی است.";
         }
         if($status == 'member_pkg_error'){
             $type='error';

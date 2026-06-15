@@ -37,6 +37,9 @@ if ($member_id > 0) {
     ));
 }
 $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+$booking_config = isset($private_booking_config) && is_array($private_booking_config) ? $private_booking_config : [];
+$ajax_url = admin_url('admin-ajax.php');
+$ajax_nonce = wp_create_nonce('sc_private_check_slots');
 ?>
 
 <div class="sc-enroll-course-page sc-private-wrap">
@@ -46,12 +49,12 @@ $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_dat
             در حال حاضر کلاس خصوصی فعالی برای رزرو وجود ندارد.
         </div>
     <?php else : ?>
-        <form method="post" action="">
+        <form method="post" action="" id="sc-private-booking-form">
             <?php wp_nonce_field('sc_book_private_class', 'sc_private_class_nonce'); ?>
             <input type="hidden" name="sc_book_private_class" value="1">
             <div class="sc-private-grid">
                 <div class="sc-private-field">
-                    <label for="sc_private_course_id">انتخاب کلاس خصوصی</label>
+                    <label for="sc_private_course_id">انتخاب دوره</label>
                     <select name="course_id" id="sc_private_course_id" required>
                         <option value="">انتخاب کنید</option>
                         <?php foreach ($courses as $course) : ?>
@@ -62,31 +65,41 @@ $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_dat
                     </select>
                 </div>
                 <div class="sc-private-field">
+                    <label for="sc_private_chapter">انتخاب شعبه</label>
+                    <select name="chapter" id="sc_private_chapter" required disabled>
+                        <option value="">ابتدا دوره را انتخاب کنید</option>
+                    </select>
+                </div>
+                <div class="sc-private-field">
                     <label for="sc_private_coach_id">انتخاب مربی</label>
                     <select name="coach_id" id="sc_private_coach_id" required disabled>
-                        <option value="">ابتدا کلاس را انتخاب کنید</option>
+                        <option value="">ابتدا شعبه را انتخاب کنید</option>
                     </select>
                 </div>
                 <div class="sc-private-field">
                     <label>انتخاب اسلات هفتگی</label>
                     <div id="sc_private_slots_wrap" class="sc-private-slots">
-                        <p class="description">ابتدا کلاس را انتخاب کنید.</p>
+                        <p class="description">ابتدا دوره، شعبه و مربی را انتخاب کنید.</p>
                     </div>
                 </div>
                 <div class="sc-private-field">
-                    <label for="sc_private_pkg_sessions">پکیج جلسات</label>
-                    <select name="enrollment_sessions" id="sc_private_pkg_sessions" required disabled>
-                        <option value="">ابتدا کلاس را انتخاب کنید</option>
+                    <label for="sc_private_sessions_count">تعداد جلسات</label>
+                    <select name="enrollment_sessions" id="sc_private_sessions_count" required disabled>
+                        <option value="">ابتدا دوره را انتخاب کنید</option>
                     </select>
                 </div>
                 <div class="sc-private-field">
                     <label for="sc_private_start_date_shamsi">تاریخ شروع</label>
                     <input type="text" name="start_date_shamsi" id="sc_private_start_date_shamsi" value="<?php echo esc_attr($today_shamsi); ?>" class="regular-text persian-date-input" placeholder="مثلا 1405/02/17" readonly required>
-                    <p class="description">کل بازه پکیج از این تاریخ بر اساس برنامه هفتگی تولید می‌شود.</p>
+                    <p class="description">کل بازه از این تاریخ بر اساس برنامه هفتگی تولید می‌شود.</p>
+                </div>
+                <div class="sc-private-field">
+                    <label>مبلغ قابل پرداخت</label>
+                    <div id="sc_private_price_preview" class="sc-private-price-preview">—</div>
                 </div>
             </div>
             <p class="submit">
-                <button type="submit" class="button button-primary">رزرو و ایجاد صورت حساب</button>
+                <button type="submit" class="button button-primary" id="sc_private_submit_btn">رزرو و ایجاد صورت حساب</button>
             </p>
         </form>
     <?php endif; ?>
@@ -163,114 +176,308 @@ $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_dat
 <?php if (!empty($courses)) : ?>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const data = <?php
-        $map = [];
-        foreach ($courses as $course) {
-            $course_id = (int) $course->id;
-            $coaches = function_exists('sc_get_private_course_coaches') ? sc_get_private_course_coaches($course_id) : [];
-            $schedule_rows = function_exists('sc_get_course_weekly_schedule_rows') ? sc_get_course_weekly_schedule_rows($course_id) : [];
-            $slots = [];
-            $weekday_labels = function_exists('sc_course_weekday_labels_ir') ? sc_course_weekday_labels_ir() : [];
-            foreach ($schedule_rows as $row) {
-                $slots[] = [
-                    'id' => (int) $row->id,
-                    'label' => (isset($weekday_labels[(int) $row->weekday]) ? $weekday_labels[(int) $row->weekday] : '-') . ' | ' . substr((string) $row->time_start, 0, 5) . ' تا ' . substr((string) $row->time_end, 0, 5),
-                ];
-            }
-            $packages = [];
-            if (function_exists('sc_get_course_packages')) {
-                $pkg_rows = sc_get_course_packages($course_id);
-                foreach ($pkg_rows as $pkg) {
-                    $price_label = number_format((float) $pkg->price, 0, '.', ',') . ' تومان';
-                    if (function_exists('wc_price')) {
-                        $price_raw = html_entity_decode(wc_price((float) $pkg->price), ENT_QUOTES, 'UTF-8');
-                        $price_raw = wp_strip_all_tags($price_raw);
-                        $price_raw = preg_replace('/\x{00A0}/u', ' ', $price_raw);
-                        $price_label = trim((string) $price_raw);
-                    }
-                    $packages[] = [
-                        'sessions' => (int) $pkg->sessions_count,
-                        'label' => ((int) $pkg->sessions_count) . ' جلسه - ' . $price_label,
-                    ];
-                }
-            }
-            $map[$course_id] = [
-                'coaches' => array_map(function ($c) {
-                    return ['id' => (int) $c->id, 'name' => trim((string) $c->first_name . ' ' . $c->last_name)];
-                }, $coaches),
-                'slots' => $slots,
-                'packages' => $packages,
-            ];
-        }
-        echo wp_json_encode($map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        ?>;
+        const data = <?php echo wp_json_encode($booking_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const ajaxUrl = <?php echo wp_json_encode($ajax_url); ?>;
+        const ajaxNonce = <?php echo wp_json_encode($ajax_nonce); ?>;
 
         const courseSel = document.getElementById('sc_private_course_id');
+        const chapterSel = document.getElementById('sc_private_chapter');
         const coachSel = document.getElementById('sc_private_coach_id');
         const slotsWrap = document.getElementById('sc_private_slots_wrap');
-        const pkgSel = document.getElementById('sc_private_pkg_sessions');
+        const sessionsSel = document.getElementById('sc_private_sessions_count');
+        const startDateEl = document.getElementById('sc_private_start_date_shamsi');
+        const pricePreview = document.getElementById('sc_private_price_preview');
+        let slotCheckTimer = null;
 
-        function resetSelect(sel, placeholder) {
+        function resetSelect(sel, placeholder, disabled) {
             sel.innerHTML = '';
             const opt = document.createElement('option');
             opt.value = '';
             opt.textContent = placeholder;
             sel.appendChild(opt);
+            sel.disabled = !!disabled;
+        }
+
+        function formatPrice(amount) {
+            if (!amount || amount <= 0) {
+                return '—';
+            }
+            try {
+                return Number(amount).toLocaleString('fa-IR') + ' تومان';
+            } catch (e) {
+                return String(amount) + ' تومان';
+            }
+        }
+
+        function slotMatchesSelection(slot, chapter, coachId) {
+            if (!chapter || !coachId) {
+                return false;
+            }
+            const rowChapter = String(slot.chapter || '').trim();
+            const rowCoach = parseInt(slot.coach_id || '0', 10);
+
+            if (rowChapter !== '' && rowChapter !== chapter) {
+                return false;
+            }
+            if (rowCoach > 0 && rowCoach !== coachId) {
+                return false;
+            }
+            // ردیف عمومی (همه شعبه/همه مربی) در انتخاب مشخص نشان داده نشود
+            if (rowChapter === '' && rowCoach === 0) {
+                return false;
+            }
+            return true;
+        }
+
+        function getSelectedSlotIds() {
+            return Array.from(slotsWrap.querySelectorAll('input[name="schedule_slot_ids[]"]:checked:not(:disabled)')).map(function (el) {
+                return parseInt(el.value, 10);
+            }).filter(function (id) { return id > 0; });
+        }
+
+        function updatePricePreview() {
+            const cid = parseInt(courseSel.value || '0', 10);
+            const chapter = String(chapterSel.value || '');
+            const coachId = parseInt(coachSel.value || '0', 10);
+            const sessions = parseInt(sessionsSel.value || '0', 10);
+            const info = cid && data[cid] ? data[cid] : null;
+            if (!info || !chapter || !coachId || sessions <= 0) {
+                pricePreview.textContent = '—';
+                return;
+            }
+            let amount = 0;
+            if (info.variable_coach_pricing) {
+                (info.chapters || []).forEach(function (ch) {
+                    if (ch.name !== chapter) {
+                        return;
+                    }
+                    (ch.coaches || []).forEach(function (co) {
+                        if (parseInt(co.id, 10) === coachId) {
+                            amount = parseFloat(co.price_per_session || 0) * sessions;
+                        }
+                    });
+                });
+            } else if ((info.packages || []).length) {
+                (info.packages || []).forEach(function (pkg) {
+                    if (parseInt(pkg.sessions, 10) === sessions) {
+                        amount = parseFloat(pkg.price || 0);
+                    }
+                });
+            } else if (parseFloat(info.price_per_session || 0) > 0) {
+                amount = parseFloat(info.price_per_session) * sessions;
+            } else {
+                amount = parseFloat(info.price || 0);
+            }
+            pricePreview.textContent = amount > 0 ? formatPrice(amount) : '—';
+        }
+
+        function renderSlots(chapter, coachId) {
+            slotsWrap.innerHTML = '';
+            const cid = parseInt(courseSel.value || '0', 10);
+            const info = cid && data[cid] ? data[cid] : null;
+            if (!info || !chapter || !coachId) {
+                slotsWrap.innerHTML = '<p class="description">ابتدا شعبه و مربی را انتخاب کنید.</p>';
+                return;
+            }
+            const rows = (info.slots || []).filter(function (slot) {
+                return slotMatchesSelection(slot, chapter, coachId);
+            });
+            if (!rows.length) {
+                slotsWrap.innerHTML = '<p class="description" style="color:#d63638;">برای این شعبه/مربی اسلات زمانی تعریف نشده است.</p>';
+                return;
+            }
+            rows.forEach(function (slot) {
+                const label = document.createElement('label');
+                label.style.display = 'block';
+                label.className = 'sc-private-slot-item';
+                label.dataset.slotId = String(slot.id);
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.name = 'schedule_slot_ids[]';
+                cb.value = String(slot.id);
+                cb.addEventListener('change', scheduleSlotAvailabilityCheck);
+                label.appendChild(cb);
+                const text = document.createElement('span');
+                text.className = 'sc-private-slot-label';
+                text.textContent = ' ' + slot.label;
+                label.appendChild(text);
+                const status = document.createElement('span');
+                status.className = 'sc-private-slot-status';
+                label.appendChild(status);
+                slotsWrap.appendChild(label);
+            });
+            scheduleSlotAvailabilityCheck();
+        }
+
+        function scheduleSlotAvailabilityCheck() {
+            clearTimeout(slotCheckTimer);
+            slotCheckTimer = setTimeout(runSlotAvailabilityCheck, 350);
+        }
+
+        function runSlotAvailabilityCheck() {
+            const cid = parseInt(courseSel.value || '0', 10);
+            const chapter = String(chapterSel.value || '');
+            const coachId = parseInt(coachSel.value || '0', 10);
+            const sessions = parseInt(sessionsSel.value || '0', 10);
+            const slotIds = getSelectedSlotIds();
+            const allSlotInputs = slotsWrap.querySelectorAll('input[name="schedule_slot_ids[]"]');
+
+            if (!cid || !chapter || !coachId || sessions <= 0) {
+                allSlotInputs.forEach(function (cb) {
+                    cb.disabled = false;
+                    const statusEl = cb.closest('.sc-private-slot-item')?.querySelector('.sc-private-slot-status');
+                    if (statusEl) {
+                        statusEl.textContent = '';
+                    }
+                });
+                return;
+            }
+
+            const body = new URLSearchParams();
+            body.append('action', 'sc_private_check_slots');
+            body.append('nonce', ajaxNonce);
+            body.append('course_id', String(cid));
+            body.append('chapter', chapter);
+            body.append('coach_id', String(coachId));
+            body.append('enrollment_sessions', String(sessions));
+            body.append('start_date_shamsi', String(startDateEl.value || ''));
+            allSlotInputs.forEach(function (cb) {
+                body.append('schedule_slot_ids[]', String(cb.value));
+            });
+
+            fetch(ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body.toString()
+            }).then(function (res) { return res.json(); }).then(function (json) {
+                if (!json || !json.success || !json.data || !json.data.slots) {
+                    return;
+                }
+                allSlotInputs.forEach(function (cb) {
+                    const slotId = parseInt(cb.value, 10);
+                    const slotInfo = json.data.slots[slotId] || json.data.slots[String(slotId)];
+                    const statusEl = cb.closest('.sc-private-slot-item')?.querySelector('.sc-private-slot-status');
+                    if (!slotInfo) {
+                        cb.disabled = false;
+                        if (statusEl) {
+                            statusEl.textContent = '';
+                        }
+                        return;
+                    }
+                    if (slotInfo.full) {
+                        cb.checked = false;
+                        cb.disabled = true;
+                        if (statusEl) {
+                            statusEl.textContent = ' (تکمیل ظرفیت)';
+                            statusEl.style.color = '#d63638';
+                        }
+                    } else {
+                        cb.disabled = false;
+                        if (statusEl) {
+                            statusEl.textContent = '';
+                        }
+                    }
+                });
+            }).catch(function () {});
         }
 
         function onCourseChange() {
             const cid = parseInt(courseSel.value || '0', 10);
             const info = cid && data[cid] ? data[cid] : null;
-            resetSelect(coachSel, info ? 'مربی را انتخاب کنید' : 'ابتدا کلاس را انتخاب کنید');
-            resetSelect(pkgSel, info ? 'پکیج را انتخاب کنید' : 'ابتدا کلاس را انتخاب کنید');
-            coachSel.disabled = !info;
-            pkgSel.disabled = !info;
-            slotsWrap.innerHTML = '';
+
+            resetSelect(chapterSel, info ? 'شعبه را انتخاب کنید' : 'ابتدا دوره را انتخاب کنید', !info);
+            resetSelect(coachSel, 'ابتدا شعبه را انتخاب کنید', true);
+            resetSelect(sessionsSel, info ? 'تعداد جلسات' : 'ابتدا دوره را انتخاب کنید', !info);
+            slotsWrap.innerHTML = '<p class="description">ابتدا دوره، شعبه و مربی را انتخاب کنید.</p>';
+            pricePreview.textContent = '—';
+
             if (!info) {
-                slotsWrap.innerHTML = '<p class="description">ابتدا کلاس را انتخاب کنید.</p>';
                 return;
             }
-            info.coaches.forEach(function (item) {
+
+            (info.chapters || []).forEach(function (ch) {
                 const opt = document.createElement('option');
-                opt.value = String(item.id);
-                opt.textContent = item.name;
+                opt.value = ch.name;
+                opt.textContent = ch.name;
+                chapterSel.appendChild(opt);
+            });
+            if ((info.chapters || []).length === 1) {
+                chapterSel.value = info.chapters[0].name;
+                onChapterChange();
+            }
+
+            (info.session_options || []).forEach(function (n) {
+                const opt = document.createElement('option');
+                opt.value = String(n);
+                opt.textContent = String(n) + ' جلسه';
+                sessionsSel.appendChild(opt);
+            });
+            if ((info.session_options || []).length === 1) {
+                sessionsSel.value = String(info.session_options[0]);
+            }
+            updatePricePreview();
+        }
+
+        function onChapterChange() {
+            const cid = parseInt(courseSel.value || '0', 10);
+            const chapter = String(chapterSel.value || '');
+            const info = cid && data[cid] ? data[cid] : null;
+            resetSelect(coachSel, chapter ? 'مربی را انتخاب کنید' : 'ابتدا شعبه را انتخاب کنید', !chapter);
+            slotsWrap.innerHTML = '<p class="description">ابتدا مربی را انتخاب کنید.</p>';
+            if (!info || !chapter) {
+                updatePricePreview();
+                return;
+            }
+            let coaches = [];
+            (info.chapters || []).forEach(function (ch) {
+                if (ch.name === chapter) {
+                    coaches = ch.coaches || [];
+                }
+            });
+            coaches.forEach(function (co) {
+                const opt = document.createElement('option');
+                opt.value = String(co.id);
+                opt.textContent = co.name;
                 coachSel.appendChild(opt);
             });
-            info.packages.forEach(function (item) {
-                const opt = document.createElement('option');
-                opt.value = String(item.sessions);
-                opt.textContent = item.label;
-                pkgSel.appendChild(opt);
-            });
-            if (info.slots.length === 0) {
-                slotsWrap.innerHTML = '<p class="description" style="color:#d63638;">برای این دوره اسلات زمانی تعریف نشده است.</p>';
-                return;
+            coachSel.disabled = false;
+            if (coaches.length === 1) {
+                coachSel.value = String(coaches[0].id);
+                onCoachChange();
+            } else {
+                updatePricePreview();
             }
-            info.slots.forEach(function (slot) {
-                const label = document.createElement('label');
-                label.style.display = 'block';
-                const cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.name = 'schedule_slot_ids[]';
-                cb.value = String(slot.id);
-                label.appendChild(cb);
-                label.append(' ' + slot.label);
-                slotsWrap.appendChild(label);
-            });
         }
+
+        function onCoachChange() {
+            const chapter = String(chapterSel.value || '');
+            const coachId = parseInt(coachSel.value || '0', 10);
+            renderSlots(chapter, coachId);
+            updatePricePreview();
+        }
+
         courseSel.addEventListener('change', onCourseChange);
+        chapterSel.addEventListener('change', onChapterChange);
+        coachSel.addEventListener('change', onCoachChange);
+        sessionsSel.addEventListener('change', function () {
+            updatePricePreview();
+            scheduleSlotAvailabilityCheck();
+        });
+        if (startDateEl) {
+            startDateEl.addEventListener('change', scheduleSlotAvailabilityCheck);
+            startDateEl.addEventListener('blur', scheduleSlotAvailabilityCheck);
+        }
     });
     </script>
 <?php endif; ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // بررسی هر 100ms تا المان حاضر شود
     const interval = setInterval(function() {
-        const el = document.querySelector('.sc-private-wrap h2'); // المان هدف
+        const el = document.querySelector('.sc-private-wrap h2');
         if (el) {
-            // اسکرول نرم و مرکز صفحه
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            clearInterval(interval); // توقف بررسی بعد از اسکرول
+            clearInterval(interval);
         }
     }, 100);
 });

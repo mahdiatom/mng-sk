@@ -61,7 +61,7 @@ function sc_get_course_package_by_sessions($course_id, $sessions_count) {
  *
  * @param array<int, array{sessions:int, price:float}> $rows
  */
-function sc_replace_course_packages($course_id, array $rows) {
+function sc_replace_course_packages($course_id, array $rows, $allow_zero_price = false) {
     global $wpdb;
     $t = $wpdb->prefix . 'sc_course_packages';
     $course_id = absint($course_id);
@@ -74,7 +74,7 @@ function sc_replace_course_packages($course_id, array $rows) {
     foreach ($rows as $row) {
         $sessions = isset($row['sessions']) ? absint($row['sessions']) : 0;
         $price = isset($row['price']) ? floatval($row['price']) : 0;
-        if ($sessions < 1 || $price <= 0) {
+        if ($sessions < 1 || (!$allow_zero_price && $price <= 0)) {
             continue;
         }
         $wpdb->insert(
@@ -126,6 +126,109 @@ function sc_parse_course_packages_from_post() {
         $rows[] = ['sessions' => $s, 'price' => $p];
     }
     return $rows;
+}
+
+/**
+ * پارس گزینه‌های تعداد جلسه (بدون قیمت) برای کلاس خصوصی با قیمت متغیر مربی
+ *
+ * @return array<int, array{sessions:int, price:float}>|WP_Error
+ */
+function sc_parse_private_session_options_from_post() {
+    $sessions_raw = isset($_POST['private_sess_counts']) ? (array) $_POST['private_sess_counts'] : [];
+    $rows = [];
+    $seen = [];
+
+    foreach ($sessions_raw as $raw) {
+        $s = absint($raw);
+        if ($s < 1) {
+            continue;
+        }
+        if (isset($seen[$s])) {
+            return new WP_Error('private_sess_dup', 'تعداد جلسه تکراری است.');
+        }
+        $seen[$s] = true;
+        $rows[] = ['sessions' => $s, 'price' => 0.0];
+    }
+
+    return $rows;
+}
+
+/**
+ * گزینه‌های تعداد جلسه برای UI کلاس خصوصی
+ *
+ * @return int[]
+ */
+function sc_get_course_private_session_count_options($course_id) {
+    $course_id = absint($course_id);
+    if (!$course_id) {
+        return [];
+    }
+
+    global $wpdb;
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $course = $wpdb->get_row($wpdb->prepare("SELECT sessions_count, private_variable_coach_pricing FROM `$courses_table` WHERE id = %d", $course_id));
+    $variable = $course && !empty($course->private_variable_coach_pricing);
+
+    $counts = [];
+    if ($variable) {
+        $pkgs = sc_get_course_packages($course_id);
+        foreach ($pkgs as $pkg) {
+            $n = (int) $pkg->sessions_count;
+            if ($n > 0) {
+                $counts[$n] = $n;
+            }
+        }
+    } elseif (sc_course_has_packages($course_id)) {
+        foreach (sc_get_course_packages($course_id) as $pkg) {
+            $n = (int) $pkg->sessions_count;
+            if ($n > 0) {
+                $counts[$n] = $n;
+            }
+        }
+    }
+
+    if (empty($counts) && $course && !empty($course->sessions_count)) {
+        $counts[(int) $course->sessions_count] = (int) $course->sessions_count;
+    }
+
+    $out = array_values($counts);
+    sort($out, SORT_NUMERIC);
+    return $out;
+}
+
+/**
+ * محاسبه مبلغ کلاس خصوصی
+ */
+function sc_calculate_private_class_invoice_amount($course, $enrollment_sessions, $chapter_name = '', $coach_id = 0) {
+    if (!$course) {
+        return 0.0;
+    }
+    $course_id = (int) $course->id;
+    $sessions = max(0, absint($enrollment_sessions));
+    if ($sessions <= 0) {
+        return 0.0;
+    }
+
+    $variable = !empty($course->private_variable_coach_pricing);
+    if ($variable && $chapter_name !== '' && $coach_id > 0 && function_exists('sc_get_course_coach_branch_meta')) {
+        $meta = sc_get_course_coach_branch_meta($course_id, $chapter_name, $coach_id);
+        if ($meta && (float) $meta['price_per_session'] > 0) {
+            return (float) $meta['price_per_session'] * $sessions;
+        }
+    }
+
+    if (sc_course_has_packages($course_id)) {
+        $pkg = sc_get_course_package_by_sessions($course_id, $sessions);
+        if ($pkg) {
+            return (float) $pkg->price;
+        }
+    }
+
+    if (!empty($course->price_per_session) && (float) $course->price_per_session > 0) {
+        return (float) $course->price_per_session * $sessions;
+    }
+
+    return (float) $course->price;
 }
 
 /**

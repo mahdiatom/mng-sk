@@ -1980,6 +1980,117 @@ function sc_update_database() {
         }
         update_option('sc_course_schedule_chapter_coach_v1', '1');
     }
+
+    // کلاس خصوصی: جداول رزرو + قیمت/ظرفیت مربی-شعبه
+    if (get_option('sc_private_classes_v1', '0') !== '1') {
+        if (function_exists('sc_create_private_course_bookings_table')) {
+            sc_create_private_course_bookings_table();
+        }
+        if (function_exists('sc_create_private_booking_sessions_table')) {
+            sc_create_private_booking_sessions_table();
+        }
+
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $courses_table)) === $courses_table) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$courses_table` LIKE %s", 'private_variable_coach_pricing'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$courses_table` ADD COLUMN `private_variable_coach_pricing` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'قیمت متفاوت برای هر مربی/شعبه' AFTER `course_type`");
+            }
+        }
+
+        $cc = $wpdb->prefix . 'sc_course_coaches';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $cc)) === $cc) {
+            $col_price = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$cc` LIKE %s", 'price_per_session'));
+            if (empty($col_price)) {
+                $wpdb->query("ALTER TABLE `$cc` ADD COLUMN `price_per_session` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'قیمت هر جلسه برای کلاس خصوصی' AFTER `capacity`");
+            }
+        }
+
+        $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $bookings_table)) === $bookings_table) {
+            $col_ch = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$bookings_table` LIKE %s", 'chapter'));
+            if (empty($col_ch)) {
+                $wpdb->query("ALTER TABLE `$bookings_table` ADD COLUMN `chapter` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه' AFTER `coach_id`");
+            }
+        }
+
+        $sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $sessions_table)) === $sessions_table) {
+            $col_ch = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$sessions_table` LIKE %s", 'chapter'));
+            if (empty($col_ch)) {
+                $wpdb->query("ALTER TABLE `$sessions_table` ADD COLUMN `chapter` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه' AFTER `coach_id`");
+            }
+        }
+
+        update_option('sc_private_classes_v1', '1');
+    }
+}
+
+/**
+ * جدول رزرو کلاس خصوصی
+ */
+function sc_create_private_course_bookings_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_private_course_bookings';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `coach_id` bigint(20) unsigned NOT NULL,
+        `chapter` varchar(255) NOT NULL DEFAULT '',
+        `member_course_id` bigint(20) unsigned NOT NULL,
+        `package_sessions` int(11) NOT NULL DEFAULT 0,
+        `start_date` date NOT NULL,
+        `end_date` date NOT NULL,
+        `status` varchar(30) NOT NULL DEFAULT 'pending_payment',
+        `invoice_id` bigint(20) unsigned DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_coach_id` (`coach_id`),
+        KEY `idx_status` (`status`),
+        KEY `idx_invoice_id` (`invoice_id`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+/**
+ * جدول جلسات رزرو کلاس خصوصی
+ */
+function sc_create_private_booking_sessions_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_private_booking_sessions';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `booking_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `course_id` bigint(20) unsigned NOT NULL,
+        `coach_id` bigint(20) unsigned NOT NULL,
+        `chapter` varchar(255) NOT NULL DEFAULT '',
+        `schedule_slot_id` bigint(20) unsigned NOT NULL,
+        `session_date` date NOT NULL,
+        `time_start` time NOT NULL,
+        `time_end` time NOT NULL,
+        `status` varchar(30) NOT NULL DEFAULT 'scheduled',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_booking_id` (`booking_id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_coach_slot_date` (`coach_id`, `schedule_slot_id`, `session_date`),
+        KEY `idx_session_date` (`session_date`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
 }
 
 /**

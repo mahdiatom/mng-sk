@@ -16,6 +16,7 @@ $allowed_teams = [];
 $allowed_levels = [];
 $allowed_gender = 'both';
 $course_type = 'group';
+$private_variable_coach_pricing = 0;
 
 if ($course && isset($_GET['course_id'])) {
     $title = $course->title ?? '';
@@ -34,6 +35,7 @@ if ($course && isset($_GET['course_id'])) {
     $restriction_enabled = isset($course->restriction_enabled) ? (int)$course->restriction_enabled : 0;
     $allowed_gender = !empty($course->allowed_gender) ? $course->allowed_gender : 'both';
     $course_type = !empty($course->course_type) && in_array($course->course_type, ['group', 'private'], true) ? $course->course_type : 'group';
+    $private_variable_coach_pricing = !empty($course->private_variable_coach_pricing) ? 1 : 0;
     $allowed_teams = !empty($course->allowed_teams) ? json_decode($course->allowed_teams, true) : [];
     $allowed_levels = !empty($course->allowed_levels) ? json_decode($course->allowed_levels, true) : [];
     if (!is_array($allowed_teams)) {
@@ -63,6 +65,15 @@ $all_active_coaches = $wpdb->get_results("SELECT id, first_name, last_name FROM 
 $course_coach_assignments_map = (!empty($course->id) && function_exists('sc_get_course_coach_assignments_map'))
     ? sc_get_course_coach_assignments_map((int) $course->id)
     : [];
+$course_coach_branch_meta_map = (!empty($course->id) && function_exists('sc_get_course_coach_branch_meta_map'))
+    ? sc_get_course_coach_branch_meta_map((int) $course->id)
+    : [];
+$private_session_options = [];
+if (!empty($course->id) && $course_type === 'private' && $private_variable_coach_pricing && !empty($course_packages)) {
+    foreach ($course_packages as $pkg) {
+        $private_session_options[] = (int) $pkg->sessions_count;
+    }
+}
 
 $schedule_chapter_options = !empty($course_chapters_selected) ? $course_chapters_selected : [];
 if (empty($schedule_chapter_options) && !empty($chapter)) {
@@ -129,8 +140,19 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                     </td>
                 </tr>
 
-                <tr>
-                    <th scope="row"><label for="price">قیمت <span style="color:red;">*</span></label></th>
+                <tr class="sc-private-course-row" style="<?php echo $course_type === 'private' ? '' : 'display:none;'; ?>">
+                    <th scope="row">تنظیمات کلاس خصوصی</th>
+                    <td>
+                        <label style="display:block;margin-bottom:10px;">
+                            <input type="checkbox" name="private_variable_coach_pricing" id="private_variable_coach_pricing" value="1" <?php checked($private_variable_coach_pricing, 1); ?>>
+                            قیمت‌ها برای هر مربی متفاوت است
+                        </label>
+                        <p class="description">با فعال بودن این گزینه، قیمت و ظرفیت هر مربی در هر شعبه جداگانه تعیین می‌شود و گزینه‌های تعداد جلسه (بدون قیمت) جایگزین پکیج‌های قیمت می‌شود.</p>
+                    </td>
+                </tr>
+
+                <tr class="sc-course-price-row sc-standard-pricing-field">
+                    <th scope="row"><label for="price">قیمت <span class="sc-price-required-mark" style="color:red;">*</span></label></th>
                     <td>
                         <?php
                         // استفاده از تنظیمات WooCommerce برای تعداد اعشار و جداکننده‌ها
@@ -181,7 +203,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                     </td>
                 </tr>
 
-                <tr>
+                <tr class="sc-standard-pricing-field">
                     <th scope="row"><label for="capacity">ظرفیت</label></th>
                     <td>
                         <input name="capacity" type="number" id="capacity" value="<?php echo esc_attr($capacity ?? ''); ?>" class="regular-text" min="1">
@@ -189,7 +211,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                     </td>
                 </tr>
 
-                <tr>
+                <tr class="sc-standard-pricing-field">
                     <th scope="row"><label for="sessions_count">تعداد جلسات</label></th>
                     <td>
                         <input name="sessions_count" type="number" id="sessions_count" value="<?php echo esc_attr($sessions_count ?? ''); ?>" class="regular-text" min="1">
@@ -197,7 +219,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                     </td>
                 </tr>
 
-                <tr>
+                <tr id="sc-course-packages-row" class="sc-standard-pricing-field">
                     <th scope="row">پکیج‌های قیمت دوره</th>
                     <td>
                         <div id="sc-course-packages-wrap">
@@ -238,6 +260,29 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                             </p>
                             <p class="description">تعداد جلسه در هر دوره باید یکتا باشد. تکراری بودن سمت سرور رد می‌شود.</p>
                         </div>
+                    </td>
+                </tr>
+
+                <tr id="sc-private-session-options-row" style="display:none;">
+                    <th scope="row">گزینه‌های تعداد جلسه</th>
+                    <td>
+                        <p class="description" style="margin-bottom:10px;">برای کلاس خصوصی با قیمت متفاوت مربی: فقط تعداد جلسات را تعیین کنید (بدون قیمت).</p>
+                        <table class="widefat striped">
+                            <thead>
+                                <tr><th>تعداد جلسه</th><th>حذف</th></tr>
+                            </thead>
+                            <tbody id="sc-private-session-options-body">
+                            <?php
+                            $sess_opts = !empty($private_session_options) ? $private_session_options : [10];
+                            foreach ($sess_opts as $sess_n) : ?>
+                                <tr>
+                                    <td><input type="number" min="1" name="private_sess_counts[]" value="<?php echo esc_attr((int) $sess_n); ?>" class="small-text"></td>
+                                    <td><button type="button" class="button sc-remove-private-sess-row">حذف</button></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <p style="margin-top:10px;"><button type="button" class="button" id="sc-add-private-sess-row">+ افزودن تعداد جلسه</button></p>
                     </td>
                 </tr>
 
@@ -350,6 +395,55 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                             <?php endforeach; ?>
                             <p class="description">با ذخیره دوره، این انتخاب در «دوره‌های» همان مربی هم به‌صورت خودکار فعال/غیرفعال می‌شود. درصد دستمزد از فرم مربی تنظیم می‌شود.</p>
                         </div>
+
+                        <div id="sc-coach-branch-pricing-wrap" class="sc-private-course-row" style="margin-top:16px;<?php echo ($course_type === 'private') ? '' : 'display:none;'; ?>">
+                            <strong>قیمت و ظرفیت هر مربی در شعبه (کلاس خصوصی)</strong>
+                            <p class="description">برای کلاس خصوصی/نیمه‌خصوصی، ظرفیت هر بازه زمانی بر اساس مربی+شعبه محاسبه می‌شود. در حالت «قیمت متفاوت»، قیمت هر جلسه از این جدول خوانده می‌شود.</p>
+                            <table class="widefat striped" style="margin-top:10px;">
+                                <thead>
+                                    <tr>
+                                        <th>شعبه</th>
+                                        <th>مربی</th>
+                                        <th class="sc-branch-price-col">قیمت هر جلسه (تومان)</th>
+                                        <th>ظرفیت</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sc-coach-branch-pricing-body">
+                                <?php foreach ($chapters as $ch) :
+                                    foreach ($all_active_coaches as $co) :
+                                        $ch_name = (string) $ch->name;
+                                        $co_id = (int) $co->id;
+                                        if (empty($course_coach_assignments_map[$ch_name][$co_id])) {
+                                            continue;
+                                        }
+                                        $meta = isset($course_coach_branch_meta_map[$ch_name][$co_id]) ? $course_coach_branch_meta_map[$ch_name][$co_id] : null;
+                                        $branch_price = $meta ? (float) $meta['price_per_session'] : 0;
+                                        $branch_capacity = ($meta && $meta['capacity'] !== null) ? (int) $meta['capacity'] : '';
+                                        $co_label = isset($sc_coach_labels_for_js[$co_id]) ? $sc_coach_labels_for_js[$co_id] : ('مربی #' . $co_id);
+                                        ?>
+                                        <tr data-chapter="<?php echo esc_attr($ch_name); ?>" data-coach-id="<?php echo (int) $co_id; ?>">
+                                            <td><?php echo esc_html($ch_name); ?></td>
+                                            <td><?php echo esc_html($co_label); ?></td>
+                                            <td class="sc-branch-price-col"<?php echo ($course_type === 'private' && $private_variable_coach_pricing) ? '' : ' style="display:none;"'; ?>>
+                                                <input type="text" dir="ltr" class="regular-text sc-branch-price-input"
+                                                       name="coach_branch_price[<?php echo esc_attr($ch_name); ?>][<?php echo (int) $co_id; ?>]"
+                                                       value="<?php echo $branch_price > 0 ? esc_attr(number_format($branch_price, 0, '.', ',')) : ''; ?>">
+                                                <input type="hidden" class="sc-branch-price-raw"
+                                                       name="coach_branch_price_raw[<?php echo esc_attr($ch_name); ?>][<?php echo (int) $co_id; ?>]"
+                                                       value="<?php echo esc_attr($branch_price); ?>">
+                                            </td>
+                                            <td>
+                                                <input type="number" min="1" class="small-text"
+                                                       name="coach_branch_capacity[<?php echo esc_attr($ch_name); ?>][<?php echo (int) $co_id; ?>]"
+                                                       value="<?php echo esc_attr($branch_capacity); ?>" placeholder="پیش‌فرض: ۱">
+                                            </td>
+                                        </tr>
+                                    <?php endforeach;
+                                endforeach; ?>
+                                </tbody>
+                            </table>
+                            <p id="sc-coach-branch-pricing-hint" class="description" style="margin-top:8px;<?php echo ($course_type === 'private') ? '' : 'display:none;'; ?>">پس از انتخاب شعبه و مربی، ردیف‌های این جدول به‌صورت خودکار ساخته می‌شوند.</p>
+                        </div>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -360,6 +454,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                         <p class="description" style="margin-bottom:10px;">
                             روزهای برگزاری را تیک بزنید و بازهٔ ساعت را وارد کنید (مثال ۰۸:۰۰ تا ۱۰:۰۰). می‌توانید چند ردیف برای زمان‌های مختلف داشته باشید. این داده بعداً برای حضور و غیاب و دستگاه قابل استفاده است.
                         </p>
+                        <div id="sc-csched-schedule-error" class="notice notice-error inline" style="display:none;margin:0 0 10px;padding:8px 12px;"></div>
                         <?php
                         $wd_labels = function_exists('sc_course_weekday_labels_ir') ? sc_course_weekday_labels_ir() : [];
                         if (!isset($course_schedule_blocks) || !is_array($course_schedule_blocks)) {
@@ -542,6 +637,50 @@ jQuery(document).ready(function($) {
         });
     })();
 
+    function scValidateCourseScheduleRows(scrollToError) {
+        var valid = true;
+        var $firstBad = null;
+        jQuery('#sc-csched-schedule-error').hide().text('');
+        jQuery('#sc-csched-tbody tr.sc-csched-row').each(function () {
+            var $row = jQuery(this);
+            var days = $row.find('input[type=checkbox][name*="[wd]"]:checked').length;
+            $row.find('.sc-csched-time-input').css('border-color', '');
+            $row.find('.sc-csched-inline-error').remove();
+            if (!days) {
+                return;
+            }
+            var start = jQuery.trim($row.find('input[name*="[start]"]').val() || '');
+            var end = jQuery.trim($row.find('input[name*="[end]"]').val() || '');
+            var errMsg = '';
+            if (!start || !end) {
+                errMsg = 'ساعت شروع و پایان را وارد کنید.';
+            } else if (start >= end) {
+                errMsg = 'ساعت پایان باید بعد از شروع باشد.';
+            }
+            if (errMsg) {
+                valid = false;
+                if (!$firstBad) {
+                    $firstBad = $row;
+                }
+                $row.find('.sc-csched-time-input').css('border-color', '#d63638');
+                $row.find('.sc-csched-actions-cell').append(
+                    jQuery('<div class="sc-csched-inline-error" style="color:#d63638;font-size:12px;margin-top:4px;"></div>').text(errMsg)
+                );
+            }
+        });
+        if (!valid) {
+            jQuery('#sc-csched-schedule-error').text('برنامه هفتگی: برای هر ردیفی که روز انتخاب شده، ساعت شروع و پایان الزامی است.').show();
+            if (scrollToError !== false && $firstBad && $firstBad.length && $firstBad[0].scrollIntoView) {
+                $firstBad[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        return valid;
+    }
+
+    jQuery(document).on('change blur', '#sc-csched-tbody input[type=time], #sc-csched-tbody input[type=checkbox]', function () {
+        scValidateCourseScheduleRows(false);
+    });
+
     $('#restriction_enabled').on('change', function () {
         if ($(this).is(':checked')) {
             $('#course-restrictions-box').slideDown(150);
@@ -550,27 +689,190 @@ jQuery(document).ready(function($) {
         }
     });
 
-    // اعتبارسنجی: برای دوره گروهی حداقل یک شعبه باید انتخاب شود
+    function scTogglePrivateCourseFields() {
+        var isPrivate = ($('#course_type').val() || 'group') === 'private';
+        var variablePricing = isPrivate && $('#private_variable_coach_pricing').is(':checked');
+
+        $('.sc-private-course-row').toggle(isPrivate);
+        $('#sc-coach-branch-pricing-wrap').toggle(isPrivate);
+        $('#sc-coach-branch-pricing-hint').toggle(isPrivate);
+
+        // فیلدهای قیمت/ظرفیت/پکیج عادی — در حالت قیمت متفاوت مربی پنهان
+        $('.sc-standard-pricing-field').toggle(!variablePricing);
+
+        $('#sc-private-session-options-row').toggle(variablePricing);
+        $('#sc-coach-branch-pricing-wrap .sc-branch-price-col').toggle(variablePricing);
+
+        if (variablePricing) {
+            $('.sc-price-required-mark').hide();
+        } else if (!isPrivate || $('#sc-course-packages-body tr').length === 0) {
+            $('.sc-price-required-mark').show();
+        } else {
+            $('.sc-price-required-mark').hide();
+        }
+
+        scSyncCoachBranchPricingTable();
+    }
+
+    function scCollectBranchPricingValues() {
+        var values = {};
+        $('#sc-coach-branch-pricing-body tr[data-chapter][data-coach-id]').each(function () {
+            var ch = String($(this).data('chapter') || '');
+            var coachId = parseInt($(this).data('coach-id') || '0', 10);
+            if (!ch || !coachId) {
+                return;
+            }
+            values[ch] = values[ch] || {};
+            values[ch][coachId] = {
+                price: $(this).find('.sc-branch-price-raw').val() || '',
+                priceDisplay: $(this).find('.sc-branch-price-input').val() || '',
+                capacity: $(this).find('input[name^="coach_branch_capacity"]').val() || ''
+            };
+        });
+        return values;
+    }
+
+    function scSyncCoachBranchPricingTable() {
+        var isPrivate = ($('#course_type').val() || 'group') === 'private';
+        var variablePricing = $('#private_variable_coach_pricing').is(':checked');
+        var $tbody = $('#sc-coach-branch-pricing-body');
+        if (!$tbody.length || !isPrivate) {
+            return;
+        }
+
+        var preserved = scCollectBranchPricingValues();
+        $tbody.empty();
+
+        var rowCount = 0;
+        $('.sc-course-chapter-coaches').each(function () {
+            var $grp = $(this);
+            if (!$grp.is(':visible')) {
+                return;
+            }
+            var chapter = String($grp.data('chapter') || '');
+            if (!chapter) {
+                return;
+            }
+            $grp.find('.sc-course-coach-assign-cb:checked').each(function () {
+                var coachId = parseInt($(this).data('coach-id') || '0', 10);
+                if (!coachId) {
+                    return;
+                }
+                rowCount++;
+                var label = (window.scCourseCoachLabels && scCourseCoachLabels[coachId]) ? scCourseCoachLabels[coachId] : ('مربی #' + coachId);
+                var prev = (preserved[chapter] && preserved[chapter][coachId]) ? preserved[chapter][coachId] : {};
+                var priceVal = prev.price || '';
+                var priceDisplay = prev.priceDisplay || priceVal;
+                var capVal = prev.capacity || '';
+
+                var $tr = $('<tr></tr>').attr('data-chapter', chapter).attr('data-coach-id', coachId);
+                $tr.append($('<td></td>').text(chapter));
+                $tr.append($('<td></td>').text(label));
+
+                var $priceTd = $('<td class="sc-branch-price-col"></td>');
+                if (!variablePricing) {
+                    $priceTd.hide();
+                }
+                $priceTd.append(
+                    $('<input type="text" dir="ltr" class="regular-text sc-branch-price-input">')
+                        .attr('name', 'coach_branch_price[' + chapter + '][' + coachId + ']')
+                        .val(priceDisplay),
+                    $('<input type="hidden" class="sc-branch-price-raw">')
+                        .attr('name', 'coach_branch_price_raw[' + chapter + '][' + coachId + ']')
+                        .val(priceVal)
+                );
+                $tr.append($priceTd);
+                $tr.append(
+                    $('<td></td>').append(
+                        $('<input type="number" min="1" class="small-text">')
+                            .attr('name', 'coach_branch_capacity[' + chapter + '][' + coachId + ']')
+                            .attr('placeholder', 'پیش‌فرض: ۱')
+                            .val(capVal)
+                    )
+                );
+                $tbody.append($tr);
+            });
+        });
+
+        if (rowCount === 0) {
+            $tbody.append(
+                $('<tr class="sc-coach-branch-pricing-empty"></tr>').append(
+                    $('<td colspan="4"></td>').html('<em>ابتدا شعبه و مربی را انتخاب کنید تا ردیف‌های جدول ساخته شوند.</em>')
+                )
+            );
+        }
+    }
+
+    $('#course_type, #private_variable_coach_pricing').on('change', scTogglePrivateCourseFields);
+    scTogglePrivateCourseFields();
+
+    $('#sc-add-private-sess-row').on('click', function () {
+        var $row = $('<tr><td><input type="number" min="1" name="private_sess_counts[]" value="" class="small-text"></td><td><button type="button" class="button sc-remove-private-sess-row">حذف</button></td></tr>');
+        $('#sc-private-session-options-body').append($row);
+    });
+    $(document).on('click', '.sc-remove-private-sess-row', function () {
+        var $body = $('#sc-private-session-options-body');
+        if ($body.find('tr').length <= 1) {
+            return;
+        }
+        $(this).closest('tr').remove();
+    });
+
+    $(document).on('input', '.sc-branch-price-input', function () {
+        var raw = String($(this).val() || '').replace(/,/g, '').replace(/[^\d.]/g, '');
+        $(this).closest('td').find('.sc-branch-price-raw').val(raw);
+    });
+
+    // اعتبارسنجی: برای دوره گروهی/خصوصی حداقل یک شعبه باید انتخاب شود
     $('.sc-course-add-form').on('submit', function (e) {
         var courseType = $('#course_type').val() || 'group';
-        if (courseType !== 'group') {
-            return true;
-        }
-        var $cbs = $('.sc-course-chapter-cb');
-        if (!$cbs.length) {
-            return true;
-        }
-        if (!$cbs.filter(':checked').length) {
+        var variablePricing = courseType === 'private' && $('#private_variable_coach_pricing').is(':checked');
+
+        if (!scValidateCourseScheduleRows()) {
             e.preventDefault();
-            var $box = $('#sc-course-chapters-box');
-            var $err = $('#sc-course-chapters-error');
-            $err.show();
-            $box.css('border-color', '#d63638');
-            if ($box.length && $box[0].scrollIntoView) {
-                $box[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
             return false;
         }
+
+        if (courseType === 'group' || courseType === 'private') {
+            var $cbs = $('.sc-course-chapter-cb');
+            if ($cbs.length && !$cbs.filter(':checked').length) {
+                e.preventDefault();
+                var $box = $('#sc-course-chapters-box');
+                var $err = $('#sc-course-chapters-error');
+                $err.show();
+                $box.css('border-color', '#d63638');
+                if ($box.length && $box[0].scrollIntoView) {
+                    $box[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return false;
+            }
+        }
+
+        if (courseType === 'private' && !variablePricing) {
+            var hasPkg = $('#sc-course-packages-body tr').length > 0;
+            var priceVal = parseFloat($('#price_raw').val() || '0');
+            var ppsVal = parseFloat($('#price_per_session_raw').val() || '0');
+            if (!hasPkg && priceVal <= 0 && ppsVal <= 0) {
+                e.preventDefault();
+                alert('برای دوره خصوصی، قیمت کل، قیمت هر جلسه یا پکیج جلسات را وارد کنید.');
+                return false;
+            }
+        }
+
+        if (variablePricing) {
+            var hasSess = false;
+            $('input[name="private_sess_counts[]"]').each(function () {
+                if (parseInt($(this).val() || '0', 10) > 0) {
+                    hasSess = true;
+                }
+            });
+            if (!hasSess) {
+                e.preventDefault();
+                alert('حداقل یک گزینه تعداد جلسه وارد کنید.');
+                return false;
+            }
+        }
+
         return true;
     });
 
@@ -665,8 +967,10 @@ jQuery(document).ready(function($) {
             }
         });
         scSyncScheduleSelects();
+        scSyncCoachBranchPricingTable();
     }
     scSyncChapterCoachGroups();
+    scSyncCoachBranchPricingTable();
 
     $(document).on('change', '.sc-course-chapter-cb', function () {
         if ($('.sc-course-chapter-cb:checked').length) {
@@ -678,6 +982,7 @@ jQuery(document).ready(function($) {
 
     $(document).on('change', '.sc-course-coach-assign-cb', function () {
         scSyncScheduleSelects();
+        scSyncCoachBranchPricingTable();
     });
 
     $(document).on('change', '.sc-csched-chapter-select', function () {
