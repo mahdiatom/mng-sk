@@ -1,22 +1,23 @@
 <?php
-// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-// دریافت متغیرهای فیلتر و صفحه‌بندی (اگر از my-account.php فراخوانی شده باشد)
 $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all');
 $current_page = isset($current_page) ? $current_page : (isset($_GET['pag']) ? absint($_GET['pag']) : 1);
 $total_pages = isset($total_pages) ? $total_pages : 1;
 $total_courses = isset($total_courses) ? $total_courses : 0;
 $course_search = isset($course_search) ? $course_search : (isset($_GET['course_search']) ? sanitize_text_field(wp_unslash($_GET['course_search'])) : '');
+$pending_invoices = isset($pending_invoices) && is_array($pending_invoices) ? $pending_invoices : [];
+$under_review_invoices = isset($under_review_invoices) && is_array($under_review_invoices) ? $under_review_invoices : [];
+$invoice_urls = isset($invoice_urls) && is_array($invoice_urls) ? $invoice_urls : [];
 ?>
 
 <div class="sc-my-courses-page">
-    <h2 style="margin-bottom: 25px; color: #1a1a1a; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 32px;">📚</span>
-        دوره‌های من
-    </h2>
+    <div class="sc-my-courses-header">
+        <h2>دوره‌های من</h2>
+        <p>هر ثبت‌نام با شعبه و مربی مشخص به‌صورت جداگانه نمایش داده می‌شود.</p>
+    </div>
 
     <?php
     if (!isset($sc_weekly_schedule_matrix) || !is_array($sc_weekly_schedule_matrix)) {
@@ -32,10 +33,10 @@ $course_search = isset($course_search) ? $course_search : (isset($_GET['course_s
         }
     }
     ?>
-    <div class="sc-weekly-schedule-card" style="margin-bottom: 28px; padding: 20px; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04);">
-        <h3 style="margin: 0 0 14px; font-size: 18px; font-weight: 700; color: #1a1a1a;">📅 برنامه هفتگی کلاس‌ها</h3>
+    <div class="sc-weekly-schedule-card">
+        <h3>برنامه هفتگی کلاس‌ها</h3>
         <?php if (!$ws_has_any) : ?>
-            <p style="margin:0;color:#666;font-size:14px;">هنوز برای دوره‌های شما زمان ثابت هفتگی تعریف نشده است. پس از تعریف توسط باشگاه، اینجا نمایش داده می‌شود.</p>
+            <p class="sc-private-panel-hint" style="margin:0;">هنوز برای دوره‌های شما زمان ثابت هفتگی تعریف نشده است.</p>
         <?php else : ?>
             <div style="overflow-x:auto;">
                 <table class="sc-weekly-schedule-table" style="width:100%; min-width:640px; border-collapse:collapse; font-size:13px;">
@@ -51,7 +52,7 @@ $course_search = isset($course_search) ? $course_search : (isset($_GET['course_s
                     <tbody>
                         <tr>
                             <?php foreach (range(1, 7) as $d) : ?>
-                                <td style="vertical-align:top; padding:10px 8px; border:1px solid #ddd; background:#fafafa; min-height:80px;">
+                                <td style="vertical-align:top; padding:10px 8px; border:1px solid #ddd; background:#fafafa;">
                                     <?php if (empty($ws_cells[$d])) : ?>
                                         <span style="color:#bbb;">—</span>
                                     <?php else : ?>
@@ -72,36 +73,32 @@ $course_search = isset($course_search) ? $course_search : (isset($_GET['course_s
             </div>
         <?php endif; ?>
     </div>
-    
-    <!-- فیلتر وضعیت -->
-    <div class="sc-my-courses-filters" style="margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-        <form method="GET" action="<?php echo esc_url(wc_get_account_endpoint_url('sc-my-courses')); ?>" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+
+    <div class="sc-my-courses-filters">
+        <form method="GET" action="<?php echo esc_url(wc_get_account_endpoint_url('sc-my-courses')); ?>">
             <input type="hidden" name="pag" value="1">
-            
-            <div style="flex: 1; min-width: 200px;">
-                <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
-                <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="active" <?php selected($filter_status, 'active'); ?>>ثبت نام شده و در حال پرداخت</option>
+            <div class="sc-my-courses-filter-field">
+                <label for="filter_status">وضعیت</label>
+                <select name="filter_status" id="filter_status">
+                    <option value="active" <?php selected($filter_status, 'active'); ?>>ثبت‌نام شده و در حال پرداخت</option>
                     <option value="canceled" <?php selected($filter_status, 'canceled'); ?>>لغو شده</option>
                     <option value="paused" <?php selected($filter_status, 'paused'); ?>>متوقف شده</option>
                     <option value="completed" <?php selected($filter_status, 'completed'); ?>>تمام شده</option>
                     <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
                 </select>
             </div>
-
-            <div style="flex: 1; min-width: 220px;">
-                <label for="course_search" style="display: block; margin-bottom: 5px; font-weight: 600;">جستجو:</label>
-                <input type="search" name="course_search" id="course_search" value="<?php echo esc_attr($course_search); ?>" placeholder="نام یا توضیح دوره..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+            <div class="sc-my-courses-filter-field">
+                <label for="course_search">جستجو</label>
+                <input type="search" name="course_search" id="course_search" value="<?php echo esc_attr($course_search); ?>" placeholder="نام دوره...">
             </div>
-            
-            <div>
-                <button type="submit" class="button button-primary" style="padding: 8px 20px; height: auto;">اعمال فیلتر</button>
+            <div class="sc-my-courses-filter-actions">
+                <button type="submit" class="button button-primary">اعمال فیلتر</button>
             </div>
         </form>
     </div>
-    
+
     <?php if (empty($user_courses)) : ?>
-        <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
+        <div class="sc-message sc-message-info">
             <?php if ($filter_status !== 'all') : ?>
                 دوره‌ای با این وضعیت یافت نشد.
             <?php elseif ($course_search !== '') : ?>
@@ -111,287 +108,130 @@ $course_search = isset($course_search) ? $course_search : (isset($_GET['course_s
             <?php endif; ?>
         </div>
     <?php else : ?>
-    
-    <!-- نمایش دوره‌ها به صورت کارت -->
-    <div class="sc-my-courses-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px;">
-        <?php foreach ($user_courses as $user_course) : 
-            // پردازش course_status_flags
-            // مهم: وضعیت دوره فقط بر اساس course_status_flags تعیین می‌شود
-            $flags = [];
-            $has_flags = false;
-            if (!empty($user_course->course_status_flags)) {
-                $flags_string = trim($user_course->course_status_flags);
-                if (!empty($flags_string)) {
-                    $flags = explode(',', $flags_string);
-                    $flags = array_map('trim', $flags);
-                    $flags = array_filter($flags); // حذف مقادیر خالی
-                    $has_flags = !empty($flags);
-                }
-            }
-            
-            // بررسی فلگ‌ها - فقط اگر در course_status_flags باشند
-            $is_paused = in_array('paused', $flags);
-            $is_completed = in_array('completed', $flags);
-            $is_canceled = in_array('canceled', $flags);
-            
-            // بررسی اینکه آیا دوره در حال پرداخت است یا در انتظار بررسی
-            // در انتظار پرداخت: وقتی کاربر برای آن صورت حساب ایجاد شده ولی هنوز پرداخت نکرده
-            // در انتظار بررسی: وقتی invoice در حالت under_review است
-            
-            // ابتدا مستقیماً از دیتابیس بررسی کن (قابل اعتمادتر)
-            $is_under_review = false;
-            $has_pending_invoice = false;
-            
-            if (isset($player) && isset($player->id) && isset($user_course->course_id)) {
-                global $wpdb;
-                $invoices_table = $wpdb->prefix . 'sc_invoices';
-                
-                // بررسی invoice های pending و under_review برای این دوره
-                $invoice_status = $wpdb->get_row($wpdb->prepare(
-                    "SELECT status FROM $invoices_table 
-                     WHERE member_id = %d AND course_id = %d AND status IN ('pending', 'under_review') 
-                     ORDER BY created_at DESC LIMIT 1",
-                    $player->id,
-                    $user_course->course_id
-                ));
-                
-                
-                if ($invoice_status) {
-                    if ($invoice_status->status === 'under_review') {
-                        $is_under_review = true;
-                    } else {
-                        $has_pending_invoice = true;
-                    }
-                }
-            }
-            
-            // اگر از آرایه‌ها هم set شده باشند، استفاده کن (fallback)
-            if (!$is_under_review && isset($under_review_invoices) && is_array($under_review_invoices)) {
-                $is_under_review = isset($under_review_invoices[$user_course->course_id]) && $under_review_invoices[$user_course->course_id] === true;
-            }
-            
-            if (!$has_pending_invoice && isset($pending_invoices) && isset($pending_invoices[$user_course->course_id])) {
-                $has_pending_invoice = true;
-            }
-            
+
+    <div class="sc-my-courses-grid">
+        <?php foreach ($user_courses as $user_course) :
+            $mc_id = (int) $user_course->id;
+            $flags = function_exists('sc_member_course_parse_flags')
+                ? sc_member_course_parse_flags($user_course)
+                : [];
+            $has_flags = !empty($flags);
+            $is_paused = in_array('paused', $flags, true);
+            $is_completed = in_array('completed', $flags, true);
+            $is_canceled = in_array('canceled', $flags, true);
+
+            $is_under_review = !empty($under_review_invoices[$mc_id]);
+            $has_pending_invoice = !empty($pending_invoices[$mc_id]);
             $is_pending_payment = (!$has_flags && $user_course->status === 'inactive' && $has_pending_invoice && !$is_under_review);
-            
-            // تعیین برچسب وضعیت و رنگ
-            // اولویت: canceled > paused > completed > under_review > pending_payment > active
-            $status_labels = [];
-            $status_color = '#155724';
-            $status_bg = '#d4edda';
-            $status_icon = '✅';
-            $status_tooltip = '';
+
+            $status_label = 'نامشخص';
+            $status_class = 'sc-my-course-status-unknown';
             $display = true;
-            
+            $can_cancel = false;
+
             if ($is_canceled) {
-                // دوره لغو شده: در صورتی که دوره فعال باشه و flag لغو شده داشته باشه
-                $status_labels[] = 'لغو شده';
-                $status_color = '#d63638';
-                $status_bg = '#ffeaea';
-                $status_icon = '❌';
-                $status_tooltip = 'این دوره لغو شده است.';
+                $status_label = 'لغو شده';
+                $status_class = 'sc-my-course-status-canceled';
             } elseif ($is_paused) {
-                // دوره متوقف شده: در صورتی که دوره فعال باشه و flag متوقف شده داشته باشه
-                $status_labels[] = 'متوقف شده';
-                $status_color = '#f0a000';
-                $status_bg = '#fff8e1';
-                $status_icon = '⏸️';
-                $status_tooltip = 'این دوره متوقف شده است.';
+                $status_label = 'متوقف شده';
+                $status_class = 'sc-my-course-status-paused';
             } elseif ($is_completed) {
-                // دوره تمام شده: در صورتی که دوره فعال باشه و flag تمام شده داشته باشه
-                $status_labels[] = 'تمام شده';
-                $status_color = '#666';
-                $status_bg = '#f5f5f5';
-                $status_icon = '✔️';
-                $status_tooltip = 'این دوره به اتمام رسیده است.';
+                $status_label = 'تمام شده';
+                $status_class = 'sc-my-course-status-completed';
             } elseif ($is_under_review) {
-                // در انتظار بررسی: وقتی invoice در حالت under_review است
-                $status_labels[] = 'در انتظار بررسی';
-                $status_color = '#856404';
-                $status_bg = '#fff3cd';
-                $status_icon = '⏳';
-                $status_tooltip = 'صورت حساب این دوره در حال بررسی است. پس از تایید مدیر و تبدیل به پرداخت شده، دوره فعال خواهد شد.';
+                $status_label = 'در انتظار بررسی';
+                $status_class = 'sc-my-course-status-review';
             } elseif ($is_pending_payment) {
-                // در انتظار پرداخت: وقتی کاربر برای آن صورت حساب ایجاد شده ولی هنوز پرداخت نکرده
-                $status_labels[] = 'در انتظار پرداخت';
-                $status_color = '#856404';
-                $status_bg = '#fff3cd';
-                $status_icon = '⏳';
-                $status_tooltip = 'صورت حساب این دوره در حال پرداخت است. پس از پرداخت، دوره فعال خواهد شد.';
+                $status_label = 'در انتظار پرداخت';
+                $status_class = 'sc-my-course-status-pending';
             } elseif (!$is_under_review && !$is_pending_payment && $user_course->status === 'active' && !$has_flags) {
-                // دوره فعال: هیچ فلگی ندارد و status = 'active' و under_review نیست و pending_payment نیست
-                $status_labels[] = 'فعال';
-                $status_color = '#155724';
-                $status_bg = '#d4edda';
-                $status_icon = '✅';
-                $status_tooltip = 'این دوره فعال است و شما در آن ثبت‌نام کرده‌اید.';
-            } 
-            else {
-                // حالت پیش‌فرض (اگر هیچکدام از شرایط بالا برقرار نبود)
-                // این حالت نباید اتفاق بیفتد، اما برای اطمینان اضافه شده
-                $status_labels[] = 'نامشخص';
-                $status_color = '#666';
-                $status_bg = '#f5f5f5';
-                $status_icon = '❓';
-                $status_tooltip = 'وضعیت این دوره نامشخص است.';
+                $status_label = 'فعال';
+                $status_class = 'sc-my-course-status-active';
+                $can_cancel = true;
+            } else {
                 $display = false;
             }
-            
-            $status_display = implode('، ', $status_labels);
-            // فقط دوره‌های فعال (بدون هیچ flag و بدون pending payment و بدون under_review) می‌توانند لغو شوند
-            $can_cancel = !$has_flags && !$is_pending_payment && !$is_under_review && $user_course->status === 'active';
+
+            $coach_name = trim((string) ($user_course->coach_first_name ?? '') . ' ' . (string) ($user_course->coach_last_name ?? ''));
+            if ($coach_name === '' && !empty($user_course->coach_id) && function_exists('sc_get_coach_display_name')) {
+                $coach_name = sc_get_coach_display_name((int) $user_course->coach_id);
+            }
+            $chapter_name = trim((string) ($user_course->chapter ?? ''));
+            $invoice_url = isset($invoice_urls[$mc_id]) ? $invoice_urls[$mc_id] : '';
         ?>
-        
-            <div class="sc-course-card" style="
-                background: #fff;
-                border-radius: 13px;
-                padding: 20px;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-                transition: all 0.3s ease;
-                border: 2px solid transparent;
-                position: relative;
-                overflow: hidden;
-                display : <?php echo $display === false ? 'none' : 'block' ?>;
-            " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 6px 20px rgba(0, 0, 0, 0.12)'; this.style.borderColor='#2271b1';" 
-               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 0, 0, 0.08)'; this.style.borderColor='transparent';">
-                
-                <!-- نوار رنگی بالای کارت -->
-                <div style="
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    width: 4px;
-                    height: 100%;
-                    background: linear-gradient(180deg, #2271b1 0%, #135e96 100%);
-                "></div>
-                
-                <!-- عنوان دوره -->
-                <div style="margin-bottom: 15px; padding-right: 10px;">
-                    <h3 style="
-                        margin: 0;
-                        font-size: 20px;
-                        font-weight: 600;
-                        color: #1a1a1a;
-                        line-height: 1.4;
-                    ">
-                        <?php echo esc_html($user_course->course_title); ?>
-                    </h3>
+            <?php if (!$display) { continue; } ?>
+            <article class="sc-my-course-card">
+                <div class="sc-my-course-card-head">
+                    <h3 class="sc-my-course-card-title"><?php echo esc_html($user_course->course_title); ?></h3>
+                    <span class="sc-my-course-status <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span>
                 </div>
-                
-                <!-- وضعیت دوره -->
-                <div style="margin-bottom: 20px;">
-                    <span style="
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 6px;
-                        padding: 8px 14px;
-                        border-radius: 6px;
-                        font-weight: 600;
-                        font-size: 13px;
-                        background-color: <?php echo esc_attr($status_bg); ?>;
-                        color: <?php echo esc_attr($status_color); ?>;
-                        cursor: <?php echo !empty($status_tooltip) ? 'help' : 'default'; ?>;
-                        position: relative;
-                    " 
-                    <?php if (!empty($status_tooltip)) : ?>
-                        title="<?php echo esc_attr($status_tooltip); ?>"
-                        data-tooltip="<?php echo esc_attr($status_tooltip); ?>"
+
+                <div class="sc-my-course-meta">
+                    <?php if ($chapter_name !== '') : ?>
+                        <span class="sc-my-course-meta-item"><strong>شعبه:</strong> <?php echo esc_html($chapter_name); ?></span>
                     <?php endif; ?>
-                    >
-                        <span style="font-size: 16px;"><?php echo esc_html($status_icon); ?></span>
-                        <?php echo esc_html($status_display); ?>
-                    </span>
+                    <?php if ($coach_name !== '') : ?>
+                        <span class="sc-my-course-meta-item"><strong>مربی:</strong> <?php echo esc_html($coach_name); ?></span>
+                    <?php endif; ?>
+                    <span class="sc-my-course-meta-item"><strong>تاریخ ثبت‌نام:</strong> <?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($user_course->created_at) : $user_course->created_at); ?></span>
                 </div>
-                <div class="created_at_class">
-                        <span class="key">تاریخ ثبت نام: </span>
-                        <span class="val"> <?php echo sc_date_shamsi_date_only($user_course->created_at); ?> </span>
-                </div>
-                <?php if($user_course->total_sessions > 0): ?>
-                <div class="total_sessions">
-                        <span class="key">کل جلسات دوره : </span>
-                        <span class="val"> <?php echo $user_course->total_sessions ?> </span>
-                </div>
-                <div class="remaining_sessions">
-                        <span class="key">جلسات باقی مانده : </span>
-                        <span class="val"> <?php echo $user_course->remaining_sessions  ?> </span>
+
+                <?php if ((int) $user_course->total_sessions > 0) : ?>
+                <div class="sc-my-course-sessions">
+                    <span class="sc-my-course-session-pill">کل جلسات: <?php echo esc_html((string) (int) $user_course->total_sessions); ?></span>
+                    <span class="sc-my-course-session-pill">باقی‌مانده: <?php echo esc_html((string) (int) $user_course->remaining_sessions); ?></span>
                 </div>
                 <?php endif; ?>
-                <!-- دکمه عملیات -->
-                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
-                    <?php if ($can_cancel) : ?>
-                        <form method="POST" action="" style="margin: 0;" onsubmit="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید که می‌خواهید این دوره را لغو کنید؟' });">
+
+                <div class="sc-my-course-actions">
+                    <?php if ($is_pending_payment && $invoice_url !== '') : ?>
+                        <a href="<?php echo esc_url($invoice_url); ?>" class="sc-my-course-btn sc-my-course-btn-pay">پرداخت صورت‌حساب</a>
+                    <?php elseif ($is_under_review && $invoice_url !== '') : ?>
+                        <a href="<?php echo esc_url($invoice_url); ?>" class="sc-my-course-btn sc-my-course-btn-muted">مشاهده صورت‌حساب</a>
+                    <?php elseif ($can_cancel) : ?>
+                        <form method="POST" action="" style="width:100%; margin:0;" onsubmit="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید که می‌خواهید این دوره را لغو کنید؟' });">
                             <?php wp_nonce_field('sc_cancel_course', 'sc_cancel_course_nonce'); ?>
-                            <input type="hidden" name="cancel_course_id" value="<?php echo esc_attr($user_course->id); ?>">
-                            <button type="submit" name="sc_cancel_course" style="
-                                width: 100%;
-                                background: linear-gradient(135deg, #d63638 0%, #b32d2e 100%);
-                                color: #fff;
-                                border: none;
-                                padding: 12px 20px;
-                                border-radius: 8px;
-                                font-size: 14px;
-                                font-weight: 600;
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                box-shadow: 0 2px 8px rgba(214, 54, 56, 0.3);
-                            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(214, 54, 56, 0.4)';" 
-                               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(214, 54, 56, 0.3)';">
-                                لغو دوره
-                            </button>
+                            <input type="hidden" name="cancel_course_id" value="<?php echo esc_attr($mc_id); ?>">
+                            <button type="submit" name="sc_cancel_course" class="sc_button sc-my-course-btn sc-my-course-btn-cancel">لغو دوره</button>
                         </form>
                     <?php else : ?>
-                        <div style="
-                            text-align: center;
-                            padding: 12px;
-                            color: #999;
-                            font-size: 14px;
-                            background: #f9f9f9;
-                            border-radius: 8px;
-                        ">
-                            عملیات در دسترس نیست
-                        </div>
+                        <span class="sc-my-course-btn sc-my-course-btn-disabled">عملیات در دسترس نیست</span>
                     <?php endif; ?>
                 </div>
-            </div>
+            </article>
         <?php endforeach; ?>
     </div>
-    
-    <!-- صفحه‌بندی -->
-            <?php if ($total_pages > 1) : ?>
-                <div class="tablenav bottom sc_paginate" style="margin: 20px 10px 50px 0px;">
-                    <div class="tablenav-pages">
-                        <?php
-                        $pagination_add = ['filter_status' => $filter_status];
-                        if ($course_search !== '') {
-                            $pagination_add['course_search'] = $course_search;
-                        }
-                        $page_links = paginate_links([
-                            'base' => add_query_arg(['pag' => '%#%']),
-                            'format' => '',
-                            'add_args' => $pagination_add,
-                            'prev_text' => '< قبلی ',
-                            'next_text' => ' بعدی >' ,
-                            'total' => $total_pages,
-                            'current' => $current_page
-                        ]);
-                        echo $page_links;
-                        ?>
-                    </div>
-                </div>
-            <?php endif; ?>
+
+    <?php if ($total_pages > 1) : ?>
+        <div class="tablenav bottom sc_paginate" style="margin: 20px 10px 50px 0;">
+            <div class="tablenav-pages">
+                <?php
+                $pagination_add = ['filter_status' => $filter_status];
+                if ($course_search !== '') {
+                    $pagination_add['course_search'] = $course_search;
+                }
+                echo paginate_links([
+                    'base' => add_query_arg(['pag' => '%#%']),
+                    'format' => '',
+                    'add_args' => $pagination_add,
+                    'prev_text' => '< قبلی ',
+                    'next_text' => ' بعدی >',
+                    'total' => $total_pages,
+                    'current' => $current_page,
+                ]);
+                ?>
+            </div>
+        </div>
+    <?php endif; ?>
     <?php endif; ?>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // بررسی هر 100ms تا المان حاضر شود
     const interval = setInterval(function() {
-        const el = document.querySelector('.sc-my-courses-page h2'); // المان هدف
+        const el = document.querySelector('.sc-my-courses-header h2');
         if (el) {
-            // اسکرول نرم و مرکز صفحه
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            clearInterval(interval); // توقف بررسی بعد از اسکرول
+            clearInterval(interval);
         }
     }, 100);
 });

@@ -166,9 +166,9 @@ $sql = "CREATE TABLE `$table_name` (
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
-        UNIQUE KEY `idx_member_course` (`member_id`,`course_id`),
         KEY `idx_member_id` (`member_id`),
         KEY `idx_course_id` (`course_id`),
+        KEY `idx_member_course_lookup` (`member_id`,`course_id`,`chapter`,`coach_id`),
         KEY `idx_status` (`status`)
     ) ENGINE=InnoDB $table_collation";
 
@@ -2023,6 +2023,44 @@ function sc_update_database() {
         }
 
         update_option('sc_private_classes_v1', '1');
+    }
+
+    // کلاس خصوصی: رزرو با تایید مدیر + ثبت‌نام توسط مدیر
+    if (get_option('sc_private_classes_v2', '0') !== '1') {
+        $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $bookings_table)) === $bookings_table) {
+            $col_src = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$bookings_table` LIKE %s", 'booking_source'));
+            if (empty($col_src)) {
+                $wpdb->query("ALTER TABLE `$bookings_table` ADD COLUMN `booking_source` varchar(20) NOT NULL DEFAULT 'user_direct' COMMENT 'user_direct|user_request|admin' AFTER `status`");
+            }
+            $col_rej = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$bookings_table` LIKE %s", 'rejected_reason'));
+            if (empty($col_rej)) {
+                $wpdb->query("ALTER TABLE `$bookings_table` ADD COLUMN `rejected_reason` varchar(500) DEFAULT NULL AFTER `invoice_id`");
+            }
+        }
+        update_option('sc_private_classes_v2', '1');
+    }
+
+    // چند ثبت‌نام برای یک دوره (شعبه/مربی متفاوت) — حذف unique قدیمی
+    if (get_option('sc_member_courses_multi_enrollment_v1', '0') !== '1') {
+        $mc = $wpdb->prefix . 'sc_member_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $mc)) === $mc) {
+            $unique_old = $wpdb->get_results($wpdb->prepare(
+                "SHOW INDEX FROM `$mc` WHERE Key_name = %s",
+                'idx_member_course'
+            ));
+            if (!empty($unique_old)) {
+                $wpdb->query("ALTER TABLE `$mc` DROP INDEX `idx_member_course`");
+            }
+            $lookup_idx = $wpdb->get_results($wpdb->prepare(
+                "SHOW INDEX FROM `$mc` WHERE Key_name = %s",
+                'idx_member_course_lookup'
+            ));
+            if (empty($lookup_idx)) {
+                $wpdb->query("ALTER TABLE `$mc` ADD KEY `idx_member_course_lookup` (`member_id`, `course_id`, `chapter`, `coach_id`)");
+            }
+        }
+        update_option('sc_member_courses_multi_enrollment_v1', '1');
     }
 }
 

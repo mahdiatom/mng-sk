@@ -1119,7 +1119,7 @@ function sc_my_account_enroll_course_content() {
     // بررسی دوره‌های ثبت‌نام شده کاربر (با flags) - شامل active و inactive (pending invoice)
     /** @var stdClass|null $player */
     $member_courses = $wpdb->get_results($wpdb->prepare(
-        "SELECT course_id, course_status_flags, status FROM $member_courses_table 
+        "SELECT id, course_id, course_status_flags, status, chapter, coach_id FROM $member_courses_table 
          WHERE member_id = %d AND status IN ('active', 'inactive')",
         $player->id
     ));
@@ -1127,69 +1127,83 @@ function sc_my_account_enroll_course_content() {
     // بررسی دوره‌هایی که صورت حساب pending یا under_review دارند
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $pending_invoices = $wpdb->get_results($wpdb->prepare(
-        "SELECT course_id, status FROM $invoices_table 
+        "SELECT course_id, member_course_id, status FROM $invoices_table 
          WHERE member_id = %d AND course_id IS NOT NULL AND status IN ('pending', 'under_review')",
         $player->id
     ));
     
+    $pending_member_course_ids = function_exists('sc_get_pending_invoice_member_course_ids')
+        ? sc_get_pending_invoice_member_course_ids((int) $player->id)
+        : [];
+    $under_review_member_course_ids = [];
     $pending_course_ids = [];
-    $under_review_course_ids = [];
     foreach ($pending_invoices as $invoice) {
-        if ($invoice->course_id) {
-            $pending_course_ids[] = $invoice->course_id;
-            if ($invoice->status === 'under_review') {
-                $under_review_course_ids[] = $invoice->course_id;
-            }
+        if (!empty($invoice->course_id)) {
+            $pending_course_ids[] = (int) $invoice->course_id;
+        }
+        if ($invoice->status === 'under_review' && !empty($invoice->member_course_id)) {
+            $under_review_member_course_ids[] = (int) $invoice->member_course_id;
         }
     }
+    $pending_course_ids = array_values(array_unique($pending_course_ids));
     
-    // تبدیل به آرایه برای استفاده راحت‌تر
+    // تبدیل به آرایه برای استفاده راحت‌تر — فقط ثبت‌نام‌های مسدودکننده
     $enrolled_courses_data = [];
     foreach ($member_courses as $mc) {
-        $flags = [];
-        if (!empty($mc->course_status_flags)) {
-            $flags = explode(',', $mc->course_status_flags);
-            $flags = array_map('trim', $flags);
+        $summary = function_exists('sc_summarize_member_course_enrollment_status')
+            ? sc_summarize_member_course_enrollment_status($mc, $pending_member_course_ids, $under_review_member_course_ids)
+            : ['blocking' => true, 'is_under_review' => false, 'is_pending_payment' => false, 'is_canceled' => false, 'is_completed' => false, 'is_paused' => false, 'is_active' => true];
+
+        if (!$summary['blocking']) {
+            continue;
         }
-        
-        // بررسی اینکه آیا invoice pending یا under_review دارد یا نه
-        $has_pending_invoice = in_array($mc->course_id, $pending_course_ids);
-        $is_under_review = in_array($mc->course_id, $under_review_course_ids);
-        
-        // اگر status = 'inactive' است و invoice pending یا under_review ندارد، این دوره را نادیده بگیر (اجازه ثبت نام دوباره)
-        if ($mc->status === 'inactive' && !$has_pending_invoice) {
-            continue; // این دوره را در enrolled_courses_data قرار نده
-        }
-        
-        $enrolled_courses_data[$mc->course_id] = [
-            'flags' => $flags,
-            'is_canceled' => in_array('canceled', $flags),
-            'is_completed' => in_array('completed', $flags),
-            'is_paused' => in_array('paused', $flags),
-            'is_pending_payment' => ($mc->status === 'inactive' && $has_pending_invoice && !$is_under_review), // فقط اگر status = inactive باشد و invoice pending داشته باشد و under_review نباشد
-            'is_under_review' => ($mc->status === 'inactive' && $is_under_review) // در انتظار بررسی
-        ];
-    }
-    
-    // اضافه کردن دوره‌هایی که صورت حساب pending یا under_review دارند اما در member_courses نیستند
-    foreach ($pending_course_ids as $course_id) {
+
+        $course_id = (int) $mc->course_id;
         if (!isset($enrolled_courses_data[$course_id])) {
-            $is_under_review = in_array($course_id, $under_review_course_ids);
             $enrolled_courses_data[$course_id] = [
                 'flags' => [],
                 'is_canceled' => false,
                 'is_completed' => false,
                 'is_paused' => false,
-                'is_pending_payment' => !$is_under_review, // فقط اگر under_review نباشد
-                'is_under_review' => $is_under_review
+                'is_pending_payment' => false,
+                'is_under_review' => false,
+                'is_active' => false,
+                'blocking' => true,
             ];
         }
+
+        $data = &$enrolled_courses_data[$course_id];
+        $data['is_canceled'] = $data['is_canceled'] || !empty($summary['is_canceled']);
+        $data['is_completed'] = $data['is_completed'] || !empty($summary['is_completed']);
+        $data['is_paused'] = $data['is_paused'] || !empty($summary['is_paused']);
+        $data['is_pending_payment'] = $data['is_pending_payment'] || !empty($summary['is_pending_payment']);
+        $data['is_under_review'] = $data['is_under_review'] || !empty($summary['is_under_review']);
+        $data['is_active'] = $data['is_active'] || !empty($summary['is_active']);
+    }
+    
+    // دوره‌هایی که فقط صورت‌حساب pending دارند (بدون رکورد member_courses)
+    foreach ($pending_invoices as $invoice) {
+        $course_id = (int) $invoice->course_id;
+        if ($course_id <= 0 || isset($enrolled_courses_data[$course_id])) {
+            continue;
+        }
+        $is_under_review = ($invoice->status === 'under_review');
+        $enrolled_courses_data[$course_id] = [
+            'flags' => [],
+            'is_canceled' => false,
+            'is_completed' => false,
+            'is_paused' => false,
+            'is_pending_payment' => !$is_under_review,
+            'is_under_review' => $is_under_review,
+            'is_active' => false,
+            'blocking' => true,
+        ];
     }
     
     $enrolled_course_ids = array_keys($enrolled_courses_data);
     
-    // اضافه کردن دوره‌هایی که صورت حساب pending دارند به لیست دوره‌های ثبت‌نام شده
-    $all_enrolled_course_ids = array_unique(array_merge($enrolled_course_ids, $pending_course_ids));
+    // فقط دوره‌های با ثبت‌نام مسدودکننده از لیست «آخرین دوره‌ها» حذف می‌شوند
+    $all_enrolled_course_ids = array_values(array_unique($enrolled_course_ids));
     
     // فیلتر بر اساس وضعیت
     if ($filter_status === 'latest') {
@@ -1464,106 +1478,56 @@ function sc_handle_course_enrollment() {
         exit;
     }
 
-    // بررسی ثبت‌نام قبلی
-    $existing = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $member_courses_table WHERE member_id = %d AND course_id = %d",
-        $player->id,
-        $course_id
-    ));
-    
-    // بررسی اینکه آیا صورت حساب pending برای این دوره وجود دارد
-    $invoices_table = $wpdb->prefix . 'sc_invoices';
-    $pending_invoice = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $invoices_table 
-         WHERE member_id = %d AND course_id = %d AND status IN ('pending', 'under_review')",
-        $player->id,
-        $course_id
-    ));
-    
-    $member_course_id = null;
-    
-    if ($existing) {
-        // اگر کاربر قبلاً در این دوره ثبت‌نام کرده
-        if ($existing->status === 'active') {
-            wc_add_notice('شما قبلاً در این دوره ثبت‌نام کرده‌اید.', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
-            exit;
-        } elseif ($existing->status === 'inactive' && $pending_invoice) {
-            // اگر status = 'inactive' و صورت حساب pending دارد، نمی‌تواند دوباره ثبت‌نام کند
-            wc_add_notice('شما قبلاً در این دوره ثبت‌نام کرده‌اید و صورت حساب شما در حال پرداخت است. لطفاً ابتدا صورت حساب را پرداخت یا لغو کنید.', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
-            exit;
-        } elseif (in_array($existing->status, ['canceled', 'completed', 'paused', 'inactive'])) {
-            // اگر دوره قبلاً cancel، complete، paused یا inactive بود (بدون pending invoice)، می‌تواند دوباره ثبت‌نام کند
-            // رکورد موجود را به inactive تغییر می‌دهیم (بعد از پرداخت فعال می‌شود)
-            $upd_inactive = [
-                'status' => 'inactive',
-                'course_status_flags' => '',
-                'coach_id' => (int) $assignment['coach_id'],
-                'chapter' => $assignment['chapter'] !== '' ? $assignment['chapter'] : null,
-                'enrollment_date' => null,
-                'updated_at' => current_time('mysql'),
-            ];
-            if ($has_pkg && $enrollment_sessions_sel) {
-                $upd_inactive['enrollment_sessions'] = $enrollment_sessions_sel;
-            } else {
-                $upd_inactive['enrollment_sessions'] = null;
-            }
-            $fmt_inactive = ['%s', '%s', '%d', '%s', '%s', '%s', '%s'];
-            $updated = $wpdb->update(
-                $member_courses_table,
-                $upd_inactive,
-                ['id' => $existing->id],
-                $fmt_inactive,
-                ['%d']
-            );
-            
-            if ($updated !== false) {
-                $member_course_id = $existing->id;
-            } else {
-                error_log('SC Course Enrollment Update Error: ' . $wpdb->last_error);
-                error_log('SC Course Enrollment Update Query: ' . $wpdb->last_query);
-                wc_add_notice('خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.', 'error');
-                wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
-                exit;
-            }
+    // بررسی ثبت‌نام قبلی — هر شعبه/مربی رکورد جداگانه دارد
+    $assignment_chapter = function_exists('sc_normalize_member_course_chapter')
+        ? sc_normalize_member_course_chapter($assignment['chapter'] ?? '')
+        : trim((string) ($assignment['chapter'] ?? ''));
+    $assignment_coach_id = (int) ($assignment['coach_id'] ?? 0);
+
+    $blocking = function_exists('sc_find_blocking_member_course_enrollment')
+        ? sc_find_blocking_member_course_enrollment($player->id, $course_id, $assignment_chapter, $assignment_coach_id)
+        : null;
+
+    if ($blocking) {
+        if ((string) $blocking->status === 'active') {
+            wc_add_notice('شما قبلاً در این دوره با همین شعبه و مربی ثبت‌نام کرده‌اید.', 'error');
+        } else {
+            wc_add_notice('شما قبلاً در این دوره با همین شعبه و مربی ثبت‌نام کرده‌اید و صورت حساب شما در حال پرداخت است. لطفاً ابتدا صورت حساب را پرداخت یا لغو کنید.', 'error');
         }
-    } else {
-        // بررسی اینکه آیا صورت حساب pending وجود دارد (حتی اگر member_course وجود نداشته باشد)
-        if ($pending_invoice) {
-            wc_add_notice('شما قبلاً در این دوره ثبت‌نام کرده‌اید و صورت حساب شما در حال پرداخت است. لطفاً ابتدا صورت حساب را پرداخت یا لغو کنید.', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
-            exit;
-        }
-        // اگر رکورد وجود ندارد، insert می‌کنیم با status = inactive (بعد از پرداخت فعال می‌شود)
-        $insert_mc = [
-            'member_id' => $player->id,
-            'course_id' => $course_id,
-            'coach_id' => (int) $assignment['coach_id'],
-            'chapter' => $assignment['chapter'] !== '' ? $assignment['chapter'] : null,
-            'enrollment_date' => null,
-            'status' => 'inactive',
-            'created_at' => current_time('mysql'),
-            'updated_at' => current_time('mysql'),
-            'enrollment_sessions' => ($has_pkg && $enrollment_sessions_sel) ? $enrollment_sessions_sel : null,
-        ];
-        $inserted = $wpdb->insert(
-            $member_courses_table,
-            $insert_mc,
-            ['%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s']
-        );
-        
-        // اگر خطا در insert بود، لاگ کن
-        if ($inserted === false) {
-            error_log('SC Course Enrollment Error: ' . $wpdb->last_error);
-            error_log('SC Course Enrollment Query: ' . $wpdb->last_query);
-            wc_add_notice('خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
-            exit;
-        }
-        
-        $member_course_id = $wpdb->insert_id;
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+        exit;
     }
+
+    $member_course_id = null;
+
+    // همیشه رکورد جدید — ثبت‌نام‌های قبلی (مثلاً تمام‌شده) حفظ می‌شوند
+    $insert_mc = [
+        'member_id' => $player->id,
+        'course_id' => $course_id,
+        'coach_id' => $assignment_coach_id,
+        'chapter' => $assignment_chapter !== '' ? $assignment_chapter : null,
+        'enrollment_date' => null,
+        'status' => 'inactive',
+        'course_status_flags' => '',
+        'created_at' => current_time('mysql'),
+        'updated_at' => current_time('mysql'),
+        'enrollment_sessions' => ($has_pkg && $enrollment_sessions_sel) ? $enrollment_sessions_sel : null,
+    ];
+    $inserted = $wpdb->insert(
+        $member_courses_table,
+        $insert_mc,
+        ['%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
+    );
+
+    if ($inserted === false) {
+        error_log('SC Course Enrollment Error: ' . $wpdb->last_error);
+        error_log('SC Course Enrollment Query: ' . $wpdb->last_query);
+        wc_add_notice('خطا در ثبت‌نام. لطفاً دوباره تلاش کنید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+        exit;
+    }
+
+    $member_course_id = $wpdb->insert_id;
 
     if (isset($member_course_id) && $member_course_id) {
         // بازیکن تیم: صورت حساب ایجاد نمی‌شود، دوره فوراً فعال است - فعلا غیرفعال شود تا بررسی شود 
@@ -2101,6 +2065,7 @@ function sc_my_account_my_courses_content() {
     global $wpdb;
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $courses_table = $wpdb->prefix . 'sc_courses';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
     
     // دریافت فیلتر وضعیت - پیش‌فرض: فقط دوره‌های فعال و بدون flag
     $filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'active';
@@ -2165,9 +2130,11 @@ function sc_my_account_my_courses_content() {
                  END ASC, 
                  mc.created_at DESC";
     
-    $query = "SELECT mc.*, c.title as course_title, c.is_active as course_is_active, c.deleted_at as course_deleted_at
+    $query = "SELECT mc.*, c.title as course_title, c.is_active as course_is_active, c.deleted_at as course_deleted_at,
+                     co.first_name AS coach_first_name, co.last_name AS coach_last_name
               FROM $member_courses_table mc
               INNER JOIN $courses_table c ON mc.course_id = c.id
+              LEFT JOIN $coaches_table co ON co.id = mc.coach_id
               WHERE $where_clause
               ORDER BY $order_by
               LIMIT %d OFFSET %d";
@@ -2175,30 +2142,41 @@ function sc_my_account_my_courses_content() {
     $query_values = array_merge($where_values, [$per_page, $offset]);
     $user_courses = $wpdb->get_results($wpdb->prepare($query, $query_values));
     
-    // دریافت invoice‌های pending برای دوره‌ها
+    // دریافت invoice‌های pending برای هر ثبت‌نام
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $pending_invoices = [];
+    $under_review_invoices = [];
+    $invoice_urls = [];
     if (!empty($user_courses)) {
-        $course_ids = array_map(function($course) {
-            return $course->course_id;
+        $member_course_ids = array_map(function ($course) {
+            return (int) $course->id;
         }, $user_courses);
-        
-        if (!empty($course_ids)) {
-            $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
+
+        if (!empty($member_course_ids)) {
+            $placeholders = implode(',', array_fill(0, count($member_course_ids), '%d'));
             $pending_invoices_query = $wpdb->prepare(
-                "SELECT course_id, status FROM $invoices_table 
-                 WHERE member_id = %d AND course_id IN ($placeholders) AND status IN ('pending', 'under_review')",
-                array_merge([$player->id], $course_ids)
+                "SELECT id, member_course_id, course_id, status FROM $invoices_table 
+                 WHERE member_id = %d AND member_course_id IN ($placeholders) AND status IN ('pending', 'under_review')
+                 ORDER BY created_at DESC",
+                array_merge([$player->id], $member_course_ids)
             );
             $pending_invoice_results = $wpdb->get_results($pending_invoices_query);
-            
-            $under_review_invoices = [];
+
             foreach ($pending_invoice_results as $invoice) {
-                if ($invoice->course_id) {
-                    $pending_invoices[$invoice->course_id] = true;
-                    if ($invoice->status === 'under_review') {
-                        $under_review_invoices[$invoice->course_id] = true;
-                    }
+                $mc_id = (int) $invoice->member_course_id;
+                if ($mc_id <= 0) {
+                    continue;
+                }
+                if ($invoice->status === 'under_review') {
+                    $under_review_invoices[$mc_id] = true;
+                } else {
+                    $pending_invoices[$mc_id] = true;
+                }
+                if (!isset($invoice_urls[$mc_id])) {
+                    $invoice_urls[$mc_id] = add_query_arg(
+                        ['invoice_search' => (int) $invoice->id],
+                        wc_get_account_endpoint_url('sc-invoices')
+                    );
                 }
             }
         }

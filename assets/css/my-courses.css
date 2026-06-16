@@ -1,0 +1,244 @@
+/* ===== دوره‌های من — پنل کاربر ===== */
+
+.sc-my-courses-page {
+    max-width: 960px;
+}
+
+.sc-my-courses-header {
+    margin-bottom: 20px;
+}
+
+.sc-my-courses-header h2 {
+    margin: 0 0 6px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.sc-my-courses-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.sc-my-courses-filters {
+    margin-bottom: 24px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.sc-my-courses-filters form {
+    display: flex;
+    gap: 14px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.sc-my-courses-filter-field {
+    flex: 1;
+    min-width: 200px;
+}
+
+.sc-my-courses-filter-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #475569;
+}
+
+.sc-my-courses-filter-field select,
+.sc-my-courses-filter-field input[type="search"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #dcdcde;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 14px;
+    color: #1e293b;
+    box-sizing: border-box;
+}
+
+.sc-my-courses-filter-actions .button-primary {
+    min-height: 42px;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    padding: 8px 22px !important;
+}
+
+.sc-my-courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+    margin-bottom: 30px;
+}
+
+.sc-my-course-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: box-shadow 0.15s ease, transform 0.12s ease;
+}
+
+.sc-my-course-card:hover {
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.sc-my-course-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.sc-my-course-card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.4;
+}
+
+.sc-my-course-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.sc-my-course-status-active { background: #dcfce7; color: #166534; }
+.sc-my-course-status-pending { background: #fef3c7; color: #92400e; }
+.sc-my-course-status-review { background: #dbeafe; color: #1e40af; }
+.sc-my-course-status-completed { background: #f3f4f6; color: #4b5563; }
+.sc-my-course-status-canceled { background: #fee2e2; color: #991b1b; }
+.sc-my-course-status-paused { background: #ffedd5; color: #9a3412; }
+.sc-my-course-status-unknown { background: #f3f4f6; color: #6b7280; }
+
+.sc-my-course-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.sc-my-course-meta-item strong {
+    color: #334155;
+    font-weight: 700;
+}
+
+.sc-my-course-sessions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sc-my-course-session-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: 12px;
+    color: #475569;
+    font-weight: 600;
+}
+
+.sc-my-course-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 4px;
+}
+
+.sc-my-course-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none !important;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+.sc-my-course-btn:hover {
+    transform: translateY(-1px);
+}
+
+.sc-my-course-btn-pay {
+    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(34, 113, 177, 0.28);
+}
+
+.sc-my-course-btn-muted {
+    background: #f1f5f9;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0;
+}
+
+.sc-my-course-btn-cancel {
+    background: #fff;
+    color: #d63638 !important;
+    border: 1.5px solid #fecaca !important;
+    width: 100%;
+}
+
+.sc-my-course-btn-disabled {
+    background: #f1f5f9;
+    color: #94a3b8 !important;
+    width: 100%;
+    cursor: default;
+}
+
+.sc-my-course-btn-disabled:hover {
+    transform: none;
+}
+
+.sc-weekly-schedule-card {
+    margin-bottom: 24px;
+    padding: 18px 20px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.sc-weekly-schedule-card h3 {
+    margin: 0 0 14px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+@media screen and (max-width: 782px) {
+    .sc-my-courses-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-my-courses-filters form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

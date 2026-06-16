@@ -317,6 +317,171 @@ function sc_course_enrollment_fee_label($course_title, $package_sessions = null)
 }
 
 /**
+ * @return string[]
+ */
+function sc_member_course_parse_flags($member_course) {
+    if (!$member_course || empty($member_course->course_status_flags)) {
+        return [];
+    }
+    $flags = explode(',', (string) $member_course->course_status_flags);
+    return array_values(array_filter(array_map('trim', $flags)));
+}
+
+function sc_normalize_member_course_chapter($chapter) {
+    return trim((string) $chapter);
+}
+
+function sc_member_course_assignments_match($row, $chapter, $coach_id) {
+    if (!$row) {
+        return false;
+    }
+    $row_ch = sc_normalize_member_course_chapter($row->chapter ?? '');
+    $want_ch = sc_normalize_member_course_chapter($chapter);
+    if ($row_ch !== $want_ch) {
+        return false;
+    }
+    return (int) ($row->coach_id ?? 0) === (int) $coach_id;
+}
+
+function sc_member_course_is_terminal($member_course) {
+    $flags = sc_member_course_parse_flags($member_course);
+    return in_array('completed', $flags, true) || in_array('canceled', $flags, true);
+}
+
+function sc_member_course_is_paused($member_course) {
+    return in_array('paused', sc_member_course_parse_flags($member_course), true);
+}
+
+/**
+ * @param int[] $pending_member_course_ids
+ */
+function sc_member_course_blocks_new_enrollment($member_course, array $pending_member_course_ids = []) {
+    if (!$member_course) {
+        return false;
+    }
+    if (sc_member_course_is_terminal($member_course)) {
+        return false;
+    }
+    if (sc_member_course_is_paused($member_course)) {
+        return true;
+    }
+    $flags = sc_member_course_parse_flags($member_course);
+    if (!empty($flags)) {
+        return true;
+    }
+    if ((string) $member_course->status === 'active') {
+        return true;
+    }
+    if ((string) $member_course->status === 'inactive') {
+        $mc_id = (int) $member_course->id;
+        if ($mc_id > 0 && in_array($mc_id, $pending_member_course_ids, true)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @return int[]
+ */
+function sc_get_pending_invoice_member_course_ids($member_id) {
+    global $wpdb;
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $member_id = (int) $member_id;
+    if ($member_id <= 0) {
+        return [];
+    }
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT member_course_id FROM $invoices_table
+         WHERE member_id = %d AND member_course_id IS NOT NULL AND member_course_id > 0
+           AND status IN ('pending', 'under_review')",
+        $member_id
+    ));
+    $ids = [];
+    foreach ((array) $rows as $row) {
+        $ids[] = (int) $row->member_course_id;
+    }
+    return $ids;
+}
+
+/**
+ * @return object|null
+ */
+function sc_find_blocking_member_course_enrollment($member_id, $course_id, $chapter = '', $coach_id = 0) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_member_courses';
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $table WHERE member_id = %d AND course_id = %d ORDER BY created_at DESC",
+        (int) $member_id,
+        (int) $course_id
+    ));
+    $pending_ids = sc_get_pending_invoice_member_course_ids($member_id);
+    foreach ((array) $rows as $row) {
+        if (!sc_member_course_assignments_match($row, $chapter, $coach_id)) {
+            continue;
+        }
+        if (sc_member_course_blocks_new_enrollment($row, $pending_ids)) {
+            return $row;
+        }
+    }
+    return null;
+}
+
+function sc_course_has_blocking_enrollment($member_id, $course_id) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_member_courses';
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $table WHERE member_id = %d AND course_id = %d",
+        (int) $member_id,
+        (int) $course_id
+    ));
+    $pending_ids = sc_get_pending_invoice_member_course_ids($member_id);
+    foreach ((array) $rows as $row) {
+        if (sc_member_course_blocks_new_enrollment($row, $pending_ids)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function sc_get_coach_display_name($coach_id) {
+    $coach_id = (int) $coach_id;
+    if ($coach_id <= 0) {
+        return '';
+    }
+    global $wpdb;
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT first_name, last_name FROM $coaches_table WHERE id = %d",
+        $coach_id
+    ));
+    if (!$row) {
+        return '';
+    }
+    return trim((string) $row->first_name . ' ' . (string) $row->last_name);
+}
+
+/**
+ * خلاصه وضعیت ثبت‌نام کاربر در یک دوره (برای صفحه ثبت‌نام)
+ *
+ * @return array{blocking:bool,is_under_review:bool,is_pending_payment:bool,is_canceled:bool,is_completed:bool,is_paused:bool,is_active:bool}
+ */
+function sc_summarize_member_course_enrollment_status($member_course, array $pending_member_course_ids, array $under_review_member_course_ids) {
+    $mc_id = (int) $member_course->id;
+    $flags = sc_member_course_parse_flags($member_course);
+    $summary = [
+        'blocking' => sc_member_course_blocks_new_enrollment($member_course, $pending_member_course_ids),
+        'is_under_review' => in_array($mc_id, $under_review_member_course_ids, true),
+        'is_pending_payment' => in_array($mc_id, $pending_member_course_ids, true) && !in_array($mc_id, $under_review_member_course_ids, true),
+        'is_canceled' => in_array('canceled', $flags, true),
+        'is_completed' => in_array('completed', $flags, true),
+        'is_paused' => in_array('paused', $flags, true),
+        'is_active' => ((string) $member_course->status === 'active' && empty($flags)),
+    ];
+    return $summary;
+}
+
+/**
  * AJAX: پیش‌نمایش قیمت پکیج در صفحه ثبت‌نام
  */
 add_action('wp_ajax_sc_enroll_course_package_preview', 'sc_ajax_enroll_course_package_preview');

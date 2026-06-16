@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -38,78 +38,176 @@ if ($member_id > 0) {
 }
 $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
 $booking_config = isset($private_booking_config) && is_array($private_booking_config) ? $private_booking_config : [];
+$booking_mode = isset($private_booking_mode) ? $private_booking_mode : (function_exists('sc_get_private_booking_mode') ? sc_get_private_booking_mode() : 'direct_payment');
+$user_fields = isset($private_booking_user_fields) && is_array($private_booking_user_fields)
+    ? $private_booking_user_fields
+    : array_fill_keys(['course', 'chapter', 'coach', 'slots', 'sessions', 'start_date'], 1);
+$is_admin_approval = ($booking_mode === 'admin_approval');
+$member_bookings = isset($private_member_bookings) && is_array($private_member_bookings) ? $private_member_bookings : [];
 $ajax_url = admin_url('admin-ajax.php');
 $ajax_nonce = wp_create_nonce('sc_private_check_slots');
+$show_price = !$is_admin_approval || (!empty($user_fields['sessions']) && !empty($user_fields['slots']) && !empty($user_fields['coach']) && !empty($user_fields['chapter']) && !empty($user_fields['course']));
 ?>
 
-<div class="sc-enroll-course-page sc-private-wrap">
-    <h2>رزرو کلاس خصوصی</h2>
+<div class="sc-private-page sc-enroll-course-page">
+    <div class="sc-private-page-header">
+        <h2>رزرو کلاس خصوصی</h2>
+        <?php if ($is_admin_approval) : ?>
+            <p>درخواست خود را ثبت کنید؛ پس از بررسی مدیر، صورت‌حساب صادر می‌شود.</p>
+        <?php else : ?>
+            <p>دوره، زمان و تعداد جلسات را انتخاب کنید و پس از پرداخت، جلسات فعال می‌شوند.</p>
+        <?php endif; ?>
+    </div>
+
     <?php if (empty($courses)) : ?>
-        <div class="sc-message sc-message-info" style="background-color:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:15px;margin-bottom:20px;color:#856404;">
-            در حال حاضر کلاس خصوصی فعالی برای رزرو وجود ندارد.
-        </div>
+        <div class="sc-message sc-message-info">در حال حاضر کلاس خصوصی فعالی برای رزرو وجود ندارد.</div>
     <?php else : ?>
-        <form method="post" action="" id="sc-private-booking-form">
+        <div class="sc-private-wrap">
+        <form method="post" action="" id="sc-private-booking-form" class="sc-private-booking-form">
             <?php wp_nonce_field('sc_book_private_class', 'sc_private_class_nonce'); ?>
-            <input type="hidden" name="sc_book_private_class" value="1">
-            <div class="sc-private-grid">
-                <div class="sc-private-field">
-                    <label for="sc_private_course_id">انتخاب دوره</label>
-                    <select name="course_id" id="sc_private_course_id" required>
-                        <option value="">انتخاب کنید</option>
-                        <?php foreach ($courses as $course) : ?>
-                            <option value="<?php echo esc_attr((int) $course->id); ?>">
-                                <?php echo esc_html($course->title); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="sc-private-field">
-                    <label for="sc_private_chapter">انتخاب شعبه</label>
-                    <select name="chapter" id="sc_private_chapter" required disabled>
-                        <option value="">ابتدا دوره را انتخاب کنید</option>
-                    </select>
-                </div>
-                <div class="sc-private-field">
-                    <label for="sc_private_coach_id">انتخاب مربی</label>
-                    <select name="coach_id" id="sc_private_coach_id" required disabled>
-                        <option value="">ابتدا شعبه را انتخاب کنید</option>
-                    </select>
-                </div>
-                <div class="sc-private-field">
-                    <label>انتخاب اسلات هفتگی</label>
-                    <div id="sc_private_slots_wrap" class="sc-private-slots">
-                        <p class="description">ابتدا دوره، شعبه و مربی را انتخاب کنید.</p>
+            <?php if ($is_admin_approval) : ?>
+                <input type="hidden" name="sc_book_private_class_request" value="1">
+            <?php else : ?>
+                <input type="hidden" name="sc_book_private_class" value="1">
+            <?php endif; ?>
+
+            <div class="sc-private-form-layout">
+                <?php if (!empty($user_fields['course']) || !empty($user_fields['chapter']) || !empty($user_fields['coach']) || !empty($user_fields['start_date'])) : ?>
+                <div class="sc-enroll-panel sc-private-panel sc-private-panel-basic">
+                    <div class="sc-enroll-panel-title">اطلاعات رزرو</div>
+                    <div class="sc-enroll-fields">
+                        <?php if (!empty($user_fields['course'])) : ?>
+                        <div class="sc-private-field-wrap sc-private-field-course">
+                            <label class="sc-enroll-field-label" for="sc_private_course_id">انتخاب دوره</label>
+                            <select name="course_id" id="sc_private_course_id" class="sc-enroll-select" required>
+                                <option value="">انتخاب کنید</option>
+                                <?php foreach ($courses as $course) : ?>
+                                    <option value="<?php echo esc_attr((int) $course->id); ?>"><?php echo esc_html($course->title); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <?php endif; ?>
+                        <?php if (!empty($user_fields['chapter'])) : ?>
+                        <div class="sc-private-field-wrap sc-private-field-chapter">
+                            <label class="sc-enroll-field-label" for="sc_private_chapter">انتخاب شعبه</label>
+                            <select name="chapter" id="sc_private_chapter" class="sc-enroll-select" <?php echo !empty($user_fields['course']) ? 'required disabled' : 'required'; ?>>
+                                <option value=""><?php echo !empty($user_fields['course']) ? 'ابتدا دوره را انتخاب کنید' : 'انتخاب کنید'; ?></option>
+                            </select>
+                        </div>
+                        <?php endif; ?>
+                        <?php if (!empty($user_fields['coach'])) : ?>
+                        <div class="sc-private-field-wrap sc-private-field-coach">
+                            <label class="sc-enroll-field-label" for="sc_private_coach_id">انتخاب مربی</label>
+                            <select name="coach_id" id="sc_private_coach_id" class="sc-enroll-select" <?php echo !empty($user_fields['chapter']) ? 'required disabled' : 'required'; ?>>
+                                <option value=""><?php echo !empty($user_fields['chapter']) ? 'ابتدا شعبه را انتخاب کنید' : 'انتخاب کنید'; ?></option>
+                            </select>
+                        </div>
+                        <?php endif; ?>
+                        <?php if (!empty($user_fields['start_date'])) : ?>
+                        <div class="sc-private-field-wrap sc-private-field-start-date">
+                            <label class="sc-enroll-field-label" for="sc_private_start_date_shamsi">تاریخ شروع</label>
+                            <input type="text" name="start_date_shamsi" id="sc_private_start_date_shamsi" value="<?php echo esc_attr($today_shamsi); ?>" class="sc-enroll-select persian-date-input" placeholder="مثلا 1405/02/17" readonly required>
+                            <p class="sc-private-panel-hint">کل بازه از این تاریخ بر اساس برنامه هفتگی تولید می‌شود.</p>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
-                <div class="sc-private-field">
-                    <label for="sc_private_sessions_count">تعداد جلسات</label>
-                    <select name="enrollment_sessions" id="sc_private_sessions_count" required disabled>
-                        <option value="">ابتدا دوره را انتخاب کنید</option>
+                <?php endif; ?>
+
+                <?php if (!empty($user_fields['slots'])) : ?>
+                <div class="sc-enroll-panel sc-private-panel">
+                    <div class="sc-enroll-panel-title">انتخاب زمان هفتگی</div>
+                    <p class="sc-private-panel-hint">می‌توانید یک یا چند اسلات را برای برنامه جلسات انتخاب کنید.</p>
+                    <div id="sc_private_slots_wrap" class="sc-private-slot-grid">
+                        <div class="sc-private-slot-empty">ابتدا دوره، شعبه و مربی را انتخاب کنید.</div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <?php if (!empty($user_fields['sessions'])) : ?>
+                <div class="sc-enroll-panel sc-private-panel">
+                    <div class="sc-enroll-panel-title">تعداد جلسات</div>
+                    <div id="sc_private_sessions_wrap" class="sc-private-sessions-grid"></div>
+                    <select name="enrollment_sessions" id="sc_private_sessions_count" class="sc-private-sessions-native" <?php echo !empty($user_fields['course']) ? 'required disabled' : 'required'; ?> tabindex="-1" aria-hidden="true">
+                        <option value=""><?php echo !empty($user_fields['course']) ? 'ابتدا دوره را انتخاب کنید' : 'انتخاب کنید'; ?></option>
                     </select>
                 </div>
-                <div class="sc-private-field">
-                    <label for="sc_private_start_date_shamsi">تاریخ شروع</label>
-                    <input type="text" name="start_date_shamsi" id="sc_private_start_date_shamsi" value="<?php echo esc_attr($today_shamsi); ?>" class="regular-text persian-date-input" placeholder="مثلا 1405/02/17" readonly required>
-                    <p class="description">کل بازه از این تاریخ بر اساس برنامه هفتگی تولید می‌شود.</p>
+                <?php endif; ?>
+
+                <?php if ($show_price) : ?>
+                <div class="sc-enroll-panel sc-private-panel">
+                    <div class="sc-private-price-box">
+                        <span class="sc-private-price-box-label">مبلغ قابل پرداخت</span>
+                        <div id="sc_private_price_preview" class="sc-private-price-preview">—</div>
+                    </div>
                 </div>
-                <div class="sc-private-field">
-                    <label>مبلغ قابل پرداخت</label>
-                    <div id="sc_private_price_preview" class="sc-private-price-preview">—</div>
-                </div>
+                <?php endif; ?>
             </div>
-            <p class="submit">
-                <button type="submit" class="button button-primary" id="sc_private_submit_btn">رزرو و ایجاد صورت حساب</button>
-            </p>
+
+            <div class="sc-private-form-actions">
+                <button type="submit" class="button button-primary sc-private-submit-btn" id="sc_private_submit_btn">
+                    <?php echo $is_admin_approval ? 'ارسال درخواست رزرو' : 'رزرو و ایجاد صورت حساب'; ?>
+                </button>
+                <?php if ($is_admin_approval) : ?>
+                    <p class="sc-private-form-note">پس از بررسی مدیر، صورت‌حساب برای شما صادر می‌شود و پس از پرداخت، جلسات فعال خواهند شد.</p>
+                <?php endif; ?>
+            </div>
         </form>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($member_bookings)) : ?>
+    <div class="sc-private-requests-section">
+        <div class="sc-private-section-head">
+            <h3><?php echo $is_admin_approval ? 'درخواست‌های رزرو من' : 'رزروهای من'; ?></h3>
+        </div>
+        <div class="sc-private-requests-grid">
+            <?php foreach ($member_bookings as $brow) :
+                $blabel = function_exists('sc_private_booking_status_label') ? sc_private_booking_status_label((string) $brow->status) : $brow->status;
+                $badge_class = function_exists('sc_private_booking_status_badge_class') ? sc_private_booking_status_badge_class((string) $brow->status) : 'sc-pb-status';
+                $invoice_url = !empty($brow->invoice_id)
+                    ? add_query_arg(['invoice_search' => (int) $brow->invoice_id], wc_get_account_endpoint_url('sc-invoices'))
+                    : '';
+            ?>
+                <article class="sc-private-request-card">
+                    <div class="sc-private-request-card-head">
+                        <div class="sc-private-request-course"><?php echo esc_html($brow->course_title ?: '—'); ?></div>
+                        <span class="<?php echo esc_attr($badge_class); ?>"><?php echo esc_html($blabel); ?></span>
+                    </div>
+                    <div class="sc-private-request-meta">
+                        <?php if ($brow->chapter !== '') : ?>
+                            <span class="sc-private-request-meta-item"><strong>شعبه:</strong> <?php echo esc_html($brow->chapter); ?></span>
+                        <?php endif; ?>
+                        <?php if ((int) $brow->package_sessions > 0) : ?>
+                            <span class="sc-private-request-meta-item"><strong>جلسات:</strong> <?php echo esc_html((string) (int) $brow->package_sessions); ?></span>
+                        <?php endif; ?>
+                        <span class="sc-private-request-meta-item"><strong>تاریخ:</strong> <?php echo esc_html(function_exists('sc_date_shamsi') ? sc_date_shamsi($brow->created_at) : $brow->created_at); ?></span>
+                    </div>
+                    <?php if ((string) $brow->status === 'rejected' && !empty($brow->rejected_reason)) : ?>
+                        <div class="sc-private-request-reason"><?php echo esc_html($brow->rejected_reason); ?></div>
+                    <?php endif; ?>
+                    <div class="sc-private-request-actions">
+                        <?php if (!empty($brow->invoice_id) && (string) $brow->status === 'pending_payment') : ?>
+                            <a href="<?php echo esc_url($invoice_url); ?>" class="sc-private-btn sc-private-btn-pay">پرداخت صورت‌حساب #<?php echo esc_html((string) $brow->invoice_id); ?></a>
+                        <?php elseif (!empty($brow->invoice_id)) : ?>
+                            <a href="<?php echo esc_url($invoice_url); ?>" class="sc-private-btn sc-private-btn-muted">مشاهده صورت‌حساب #<?php echo esc_html((string) $brow->invoice_id); ?></a>
+                        <?php endif; ?>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+        </div>
+    </div>
     <?php endif; ?>
 
     <div class="sc-private-card">
-        <h3>جلسات خصوصی من</h3>
+        <div class="sc-private-section-head">
+            <h3>جلسات خصوصی من</h3>
+        </div>
         <?php if (empty($my_sessions)) : ?>
-            <p class="description">جلسه‌ای برای نمایش وجود ندارد.</p>
+            <p class="sc-private-panel-hint">جلسه‌ای برای نمایش وجود ندارد.</p>
         <?php else : ?>
-            <table class="shop_table shop_table_responsive my_account_orders">
+            <div class="sc-private-sessions-table-wrap">
+            <table class="sc-private-sessions-table">
                 <thead>
                     <tr>
                         <th>دوره</th>
@@ -153,6 +251,7 @@ $ajax_nonce = wp_create_nonce('sc_private_check_slots');
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
             <?php if ($sessions_total_pages > 1) : ?>
                 <div class="tablenav bottom sc_paginate" style="margin-top:12px;">
                     <div class="tablenav-pages">
@@ -174,307 +273,23 @@ $ajax_nonce = wp_create_nonce('sc_private_check_slots');
     </div>
 </div>
 <?php if (!empty($courses)) : ?>
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const data = <?php echo wp_json_encode($booking_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-        const ajaxUrl = <?php echo wp_json_encode($ajax_url); ?>;
-        const ajaxNonce = <?php echo wp_json_encode($ajax_nonce); ?>;
-
-        const courseSel = document.getElementById('sc_private_course_id');
-        const chapterSel = document.getElementById('sc_private_chapter');
-        const coachSel = document.getElementById('sc_private_coach_id');
-        const slotsWrap = document.getElementById('sc_private_slots_wrap');
-        const sessionsSel = document.getElementById('sc_private_sessions_count');
-        const startDateEl = document.getElementById('sc_private_start_date_shamsi');
-        const pricePreview = document.getElementById('sc_private_price_preview');
-        let slotCheckTimer = null;
-
-        function resetSelect(sel, placeholder, disabled) {
-            sel.innerHTML = '';
-            const opt = document.createElement('option');
-            opt.value = '';
-            opt.textContent = placeholder;
-            sel.appendChild(opt);
-            sel.disabled = !!disabled;
-        }
-
-        function formatPrice(amount) {
-            if (!amount || amount <= 0) {
-                return '—';
-            }
-            try {
-                return Number(amount).toLocaleString('fa-IR') + ' تومان';
-            } catch (e) {
-                return String(amount) + ' تومان';
-            }
-        }
-
-        function slotMatchesSelection(slot, chapter, coachId) {
-            if (!chapter || !coachId) {
-                return false;
-            }
-            const rowChapter = String(slot.chapter || '').trim();
-            const rowCoach = parseInt(slot.coach_id || '0', 10);
-
-            if (rowChapter !== '' && rowChapter !== chapter) {
-                return false;
-            }
-            if (rowCoach > 0 && rowCoach !== coachId) {
-                return false;
-            }
-            // ردیف عمومی (همه شعبه/همه مربی) در انتخاب مشخص نشان داده نشود
-            if (rowChapter === '' && rowCoach === 0) {
-                return false;
-            }
-            return true;
-        }
-
-        function getSelectedSlotIds() {
-            return Array.from(slotsWrap.querySelectorAll('input[name="schedule_slot_ids[]"]:checked:not(:disabled)')).map(function (el) {
-                return parseInt(el.value, 10);
-            }).filter(function (id) { return id > 0; });
-        }
-
-        function updatePricePreview() {
-            const cid = parseInt(courseSel.value || '0', 10);
-            const chapter = String(chapterSel.value || '');
-            const coachId = parseInt(coachSel.value || '0', 10);
-            const sessions = parseInt(sessionsSel.value || '0', 10);
-            const info = cid && data[cid] ? data[cid] : null;
-            if (!info || !chapter || !coachId || sessions <= 0) {
-                pricePreview.textContent = '—';
-                return;
-            }
-            let amount = 0;
-            if (info.variable_coach_pricing) {
-                (info.chapters || []).forEach(function (ch) {
-                    if (ch.name !== chapter) {
-                        return;
-                    }
-                    (ch.coaches || []).forEach(function (co) {
-                        if (parseInt(co.id, 10) === coachId) {
-                            amount = parseFloat(co.price_per_session || 0) * sessions;
-                        }
-                    });
-                });
-            } else if ((info.packages || []).length) {
-                (info.packages || []).forEach(function (pkg) {
-                    if (parseInt(pkg.sessions, 10) === sessions) {
-                        amount = parseFloat(pkg.price || 0);
-                    }
-                });
-            } else if (parseFloat(info.price_per_session || 0) > 0) {
-                amount = parseFloat(info.price_per_session) * sessions;
-            } else {
-                amount = parseFloat(info.price || 0);
-            }
-            pricePreview.textContent = amount > 0 ? formatPrice(amount) : '—';
-        }
-
-        function renderSlots(chapter, coachId) {
-            slotsWrap.innerHTML = '';
-            const cid = parseInt(courseSel.value || '0', 10);
-            const info = cid && data[cid] ? data[cid] : null;
-            if (!info || !chapter || !coachId) {
-                slotsWrap.innerHTML = '<p class="description">ابتدا شعبه و مربی را انتخاب کنید.</p>';
-                return;
-            }
-            const rows = (info.slots || []).filter(function (slot) {
-                return slotMatchesSelection(slot, chapter, coachId);
-            });
-            if (!rows.length) {
-                slotsWrap.innerHTML = '<p class="description" style="color:#d63638;">برای این شعبه/مربی اسلات زمانی تعریف نشده است.</p>';
-                return;
-            }
-            rows.forEach(function (slot) {
-                const label = document.createElement('label');
-                label.style.display = 'block';
-                label.className = 'sc-private-slot-item';
-                label.dataset.slotId = String(slot.id);
-                const cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.name = 'schedule_slot_ids[]';
-                cb.value = String(slot.id);
-                cb.addEventListener('change', scheduleSlotAvailabilityCheck);
-                label.appendChild(cb);
-                const text = document.createElement('span');
-                text.className = 'sc-private-slot-label';
-                text.textContent = ' ' + slot.label;
-                label.appendChild(text);
-                const status = document.createElement('span');
-                status.className = 'sc-private-slot-status';
-                label.appendChild(status);
-                slotsWrap.appendChild(label);
-            });
-            scheduleSlotAvailabilityCheck();
-        }
-
-        function scheduleSlotAvailabilityCheck() {
-            clearTimeout(slotCheckTimer);
-            slotCheckTimer = setTimeout(runSlotAvailabilityCheck, 350);
-        }
-
-        function runSlotAvailabilityCheck() {
-            const cid = parseInt(courseSel.value || '0', 10);
-            const chapter = String(chapterSel.value || '');
-            const coachId = parseInt(coachSel.value || '0', 10);
-            const sessions = parseInt(sessionsSel.value || '0', 10);
-            const slotIds = getSelectedSlotIds();
-            const allSlotInputs = slotsWrap.querySelectorAll('input[name="schedule_slot_ids[]"]');
-
-            if (!cid || !chapter || !coachId || sessions <= 0) {
-                allSlotInputs.forEach(function (cb) {
-                    cb.disabled = false;
-                    const statusEl = cb.closest('.sc-private-slot-item')?.querySelector('.sc-private-slot-status');
-                    if (statusEl) {
-                        statusEl.textContent = '';
-                    }
-                });
-                return;
-            }
-
-            const body = new URLSearchParams();
-            body.append('action', 'sc_private_check_slots');
-            body.append('nonce', ajaxNonce);
-            body.append('course_id', String(cid));
-            body.append('chapter', chapter);
-            body.append('coach_id', String(coachId));
-            body.append('enrollment_sessions', String(sessions));
-            body.append('start_date_shamsi', String(startDateEl.value || ''));
-            allSlotInputs.forEach(function (cb) {
-                body.append('schedule_slot_ids[]', String(cb.value));
-            });
-
-            fetch(ajaxUrl, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                body: body.toString()
-            }).then(function (res) { return res.json(); }).then(function (json) {
-                if (!json || !json.success || !json.data || !json.data.slots) {
-                    return;
-                }
-                allSlotInputs.forEach(function (cb) {
-                    const slotId = parseInt(cb.value, 10);
-                    const slotInfo = json.data.slots[slotId] || json.data.slots[String(slotId)];
-                    const statusEl = cb.closest('.sc-private-slot-item')?.querySelector('.sc-private-slot-status');
-                    if (!slotInfo) {
-                        cb.disabled = false;
-                        if (statusEl) {
-                            statusEl.textContent = '';
-                        }
-                        return;
-                    }
-                    if (slotInfo.full) {
-                        cb.checked = false;
-                        cb.disabled = true;
-                        if (statusEl) {
-                            statusEl.textContent = ' (تکمیل ظرفیت)';
-                            statusEl.style.color = '#d63638';
-                        }
-                    } else {
-                        cb.disabled = false;
-                        if (statusEl) {
-                            statusEl.textContent = '';
-                        }
-                    }
-                });
-            }).catch(function () {});
-        }
-
-        function onCourseChange() {
-            const cid = parseInt(courseSel.value || '0', 10);
-            const info = cid && data[cid] ? data[cid] : null;
-
-            resetSelect(chapterSel, info ? 'شعبه را انتخاب کنید' : 'ابتدا دوره را انتخاب کنید', !info);
-            resetSelect(coachSel, 'ابتدا شعبه را انتخاب کنید', true);
-            resetSelect(sessionsSel, info ? 'تعداد جلسات' : 'ابتدا دوره را انتخاب کنید', !info);
-            slotsWrap.innerHTML = '<p class="description">ابتدا دوره، شعبه و مربی را انتخاب کنید.</p>';
-            pricePreview.textContent = '—';
-
-            if (!info) {
-                return;
-            }
-
-            (info.chapters || []).forEach(function (ch) {
-                const opt = document.createElement('option');
-                opt.value = ch.name;
-                opt.textContent = ch.name;
-                chapterSel.appendChild(opt);
-            });
-            if ((info.chapters || []).length === 1) {
-                chapterSel.value = info.chapters[0].name;
-                onChapterChange();
-            }
-
-            (info.session_options || []).forEach(function (n) {
-                const opt = document.createElement('option');
-                opt.value = String(n);
-                opt.textContent = String(n) + ' جلسه';
-                sessionsSel.appendChild(opt);
-            });
-            if ((info.session_options || []).length === 1) {
-                sessionsSel.value = String(info.session_options[0]);
-            }
-            updatePricePreview();
-        }
-
-        function onChapterChange() {
-            const cid = parseInt(courseSel.value || '0', 10);
-            const chapter = String(chapterSel.value || '');
-            const info = cid && data[cid] ? data[cid] : null;
-            resetSelect(coachSel, chapter ? 'مربی را انتخاب کنید' : 'ابتدا شعبه را انتخاب کنید', !chapter);
-            slotsWrap.innerHTML = '<p class="description">ابتدا مربی را انتخاب کنید.</p>';
-            if (!info || !chapter) {
-                updatePricePreview();
-                return;
-            }
-            let coaches = [];
-            (info.chapters || []).forEach(function (ch) {
-                if (ch.name === chapter) {
-                    coaches = ch.coaches || [];
-                }
-            });
-            coaches.forEach(function (co) {
-                const opt = document.createElement('option');
-                opt.value = String(co.id);
-                opt.textContent = co.name;
-                coachSel.appendChild(opt);
-            });
-            coachSel.disabled = false;
-            if (coaches.length === 1) {
-                coachSel.value = String(coaches[0].id);
-                onCoachChange();
-            } else {
-                updatePricePreview();
-            }
-        }
-
-        function onCoachChange() {
-            const chapter = String(chapterSel.value || '');
-            const coachId = parseInt(coachSel.value || '0', 10);
-            renderSlots(chapter, coachId);
-            updatePricePreview();
-        }
-
-        courseSel.addEventListener('change', onCourseChange);
-        chapterSel.addEventListener('change', onChapterChange);
-        coachSel.addEventListener('change', onCoachChange);
-        sessionsSel.addEventListener('change', function () {
-            updatePricePreview();
-            scheduleSlotAvailabilityCheck();
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof window.scInitPrivateBookingForm === 'function') {
+        window.scInitPrivateBookingForm({
+            data: <?php echo wp_json_encode($booking_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+            ajaxUrl: <?php echo wp_json_encode($ajax_url); ?>,
+            ajaxNonce: <?php echo wp_json_encode($ajax_nonce); ?>,
+            prefill: {}
         });
-        if (startDateEl) {
-            startDateEl.addEventListener('change', scheduleSlotAvailabilityCheck);
-            startDateEl.addEventListener('blur', scheduleSlotAvailabilityCheck);
-        }
-    });
-    </script>
+    }
+});
+</script>
 <?php endif; ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const interval = setInterval(function() {
-        const el = document.querySelector('.sc-private-wrap h2');
+        const el = document.querySelector('.sc-private-page-header h2');
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             clearInterval(interval);

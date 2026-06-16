@@ -3,7 +3,7 @@
  * Plugin Name:       سامانه مدیریت باشگاه اتم کلاب
  * Plugin URI:        https://atomwp.ir
  * Description:       یک سیستم جامع برای مدیریت اعضا، دوره‌های ورزشی، پرداخت‌ها و حضور و غیاب باشگاه با قابلیت یکپارچگی کامل با ووکامرس.
- * Version:           1.4.11
+ * Version:           1.4.12
  * Author:            مهدی باباشاهی
  * Author URI:        https://atomwp.ir
  * License:           GPL2
@@ -1663,6 +1663,11 @@ function sc_admin_enqueue_assets() {
             'maxPreviewRows' => 200,
         ));
     }
+    if (in_array($current_page, array('sc-private-booking-requests', 'sc-private-booking-form'), true)) {
+        wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+        wp_enqueue_style('sc-private-booking-css', SC_ASSETS_URL . 'css/private-booking.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
+        wp_enqueue_script('sc-private-booking-form-js', SC_ASSETS_URL . 'js/private-booking-form.js', array(), time(), true);
+    }
     if (in_array($current_page, array('sc-private-notes', 'sc-add-private-note', 'sc-private-notes-view', 'sc-coach-private-notes', 'sc-coach-add-private-note'), true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
         wp_enqueue_style('sc-bulk-actions-admin-css', SC_ASSETS_URL . 'css/admin-bulk-actions.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
@@ -1784,6 +1789,13 @@ function sc_public_enqueue_assets() {
     }
     if (is_account_page() && get_query_var('sc-private-notes', false) !== false) {
         wp_enqueue_style('sc-private-notes-css', SC_ASSETS_URL . 'css/private-notes.css', array('sc-public-css'), time());
+    }
+    if (is_account_page() && get_query_var('sc-private-classes', false) !== false) {
+        wp_enqueue_style('sc-private-booking-css', SC_ASSETS_URL . 'css/private-booking.css', array('sc-public-css'), time());
+        wp_enqueue_script('sc-private-booking-form-js', SC_ASSETS_URL . 'js/private-booking-form.js', array(), time(), true);
+    }
+    if (is_account_page() && get_query_var('sc-my-courses', false) !== false) {
+        wp_enqueue_style('sc-my-courses-css', SC_ASSETS_URL . 'css/my-courses.css', array('sc-public-css'), time());
     }
 }
 

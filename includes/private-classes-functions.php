@@ -3,6 +3,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once __DIR__ . '/private-booking-admin-functions.php';
+
 function sc_is_private_course($course) {
     return is_object($course) && isset($course->course_type) && $course->course_type === 'private';
 }
@@ -527,12 +529,36 @@ function sc_private_classes_endpoint_content() {
     $private_booking_config = function_exists('sc_private_build_booking_config')
         ? sc_private_build_booking_config($courses)
         : [];
+    $private_booking_mode = function_exists('sc_get_private_booking_mode') ? sc_get_private_booking_mode() : 'direct_payment';
+    $private_booking_user_fields = function_exists('sc_get_private_booking_user_field_settings')
+        ? sc_get_private_booking_user_field_settings()
+        : array_fill_keys(['course', 'chapter', 'coach', 'slots', 'sessions', 'start_date'], 1);
+    $private_member_bookings = [];
+    if ($player) {
+        $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
+        $status_filter = function_exists('sc_is_private_booking_admin_approval_mode') && sc_is_private_booking_admin_approval_mode()
+            ? "('pending_admin','pending_payment','rejected','paused')"
+            : "('pending_payment','active','paused')";
+        $private_member_bookings = $wpdb->get_results($wpdb->prepare(
+            "SELECT b.*, c.title AS course_title
+             FROM {$bookings_table} b
+             LEFT JOIN {$courses_table} c ON c.id = b.course_id
+             WHERE b.member_id = %d
+               AND b.status IN {$status_filter}
+             ORDER BY b.created_at DESC
+             LIMIT 20",
+            (int) $player->id
+        ));
+    }
     include SC_TEMPLATES_PUBLIC_DIR . 'private-classes.php';
 }
 
 add_action('template_redirect', 'sc_handle_private_class_booking');
 function sc_handle_private_class_booking() {
     if (!is_user_logged_in() || !isset($_POST['sc_book_private_class'])) {
+        return;
+    }
+    if (function_exists('sc_is_private_booking_admin_approval_mode') && sc_is_private_booking_admin_approval_mode()) {
         return;
     }
     if (!isset($_POST['sc_private_class_nonce']) || !wp_verify_nonce($_POST['sc_private_class_nonce'], 'sc_book_private_class')) {
@@ -545,219 +571,18 @@ function sc_handle_private_class_booking() {
         wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
         exit;
     }
-    global $wpdb;
-    $courses_table = $wpdb->prefix . 'sc_courses';
-    $course_id = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
-    $chapter = isset($_POST['chapter']) ? sanitize_text_field(wp_unslash($_POST['chapter'])) : '';
-    $coach_id = isset($_POST['coach_id']) ? absint($_POST['coach_id']) : 0;
-    $schedule_ids = isset($_POST['schedule_slot_ids']) && is_array($_POST['schedule_slot_ids']) ? array_values(array_filter(array_map('absint', $_POST['schedule_slot_ids']))) : [];
-    $start_date = current_time('Y-m-d');
-    if (!empty($_POST['start_date_shamsi'])) {
-        $start_date_shamsi = sanitize_text_field(wp_unslash($_POST['start_date_shamsi']));
-        if (function_exists('sc_shamsi_to_gregorian_date')) {
-            $maybe_gregorian = sc_shamsi_to_gregorian_date($start_date_shamsi);
-            if (!empty($maybe_gregorian)) {
-                $start_date = $maybe_gregorian;
-            }
-        }
-    } elseif (!empty($_POST['start_date'])) {
-        $start_date = sanitize_text_field(wp_unslash($_POST['start_date']));
-    }
-    $enrollment_sessions = isset($_POST['enrollment_sessions']) ? absint($_POST['enrollment_sessions']) : 0;
-    if (!$course_id || $chapter === '' || !$coach_id || empty($schedule_ids) || $enrollment_sessions <= 0) {
-        wc_add_notice('اطلاعات رزرو کامل نیست. شعبه، مربی، اسلات و تعداد جلسات را انتخاب کنید.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-        exit;
-    }
 
-    $course = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM {$courses_table} WHERE id = %d AND deleted_at IS NULL AND is_active = 1 AND course_type = 'private'",
-        $course_id
-    ));
-    if (!$course) {
-        wc_add_notice('دوره خصوصی معتبر نیست.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-        exit;
-    }
+    $input = sc_private_parse_booking_form_input('POST');
+    $input['member_id'] = $member_id;
+    $result = sc_private_finalize_booking_with_invoice($input, ['booking_source' => 'user_direct']);
 
-    $chapters = function_exists('sc_get_course_chapters') ? sc_get_course_chapters($course_id) : [];
-    if (!empty($chapters) && !in_array($chapter, $chapters, true)) {
-        wc_add_notice('شعبه انتخاب شده معتبر نیست.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-        exit;
-    }
-
-    if (!function_exists('sc_is_valid_course_chapter_coach') || !sc_is_valid_course_chapter_coach($course_id, $chapter, $coach_id)) {
-        wc_add_notice('مربی انتخاب شده برای این شعبه مجاز نیست.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-        exit;
-    }
-
-    $session_options = function_exists('sc_get_course_private_session_count_options')
-        ? sc_get_course_private_session_count_options($course_id)
-        : [];
-    if (!empty($session_options) && !in_array($enrollment_sessions, $session_options, true)) {
-        wc_add_notice('تعداد جلسات انتخابی معتبر نیست.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-        exit;
-    }
-
-    $sch_table = $wpdb->prefix . 'sc_course_weekly_schedule';
-    $ph = implode(',', array_fill(0, count($schedule_ids), '%d'));
-    $qv = array_merge([$course_id], $schedule_ids);
-    $schedule_rows = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM {$sch_table} WHERE course_id = %d AND id IN ($ph) ORDER BY weekday ASC, time_start ASC",
-        $qv
-    ));
-    if (count($schedule_rows) !== count($schedule_ids)) {
-        wc_add_notice('اسلات زمانی انتخابی معتبر نیست.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-        exit;
-    }
-
-    $filtered_rows = [];
-    foreach ($schedule_rows as $row) {
-        if (!sc_private_schedule_row_matches($row, $chapter, $coach_id)) {
-            wc_add_notice('اسلات انتخابی با شعبه/مربی همخوانی ندارد.', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-            exit;
-        }
-        $filtered_rows[] = $row;
-    }
-
-    $invoice_amount = function_exists('sc_calculate_private_class_invoice_amount')
-        ? sc_calculate_private_class_invoice_amount($course, $enrollment_sessions, $chapter, $coach_id)
-        : 0.0;
-    if ($invoice_amount <= 0) {
-        wc_add_notice('قیمت این انتخاب تعریف نشده است. با باشگاه تماس بگیرید.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-        exit;
-    }
-
-    $sessions = sc_private_generate_sessions($filtered_rows, $start_date, $enrollment_sessions);
-    if (count($sessions) < $enrollment_sessions) {
-        wc_add_notice('با برنامه هفتگی انتخابی، تعداد جلسه کافی برای کل بازه تولید نشد.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-        exit;
-    }
-
-    $capacity = sc_private_get_branch_capacity($course_id, $chapter, $coach_id, $course);
-    foreach ($sessions as $session) {
-        if (!sc_private_can_reserve_slot($coach_id, (int) $session['schedule_slot_id'], (string) $session['session_date'], $capacity)) {
-            wc_add_notice('بخشی از زمان‌های انتخابی تکمیل ظرفیت شده است. لطفا اسلات دیگری انتخاب کنید.', 'error');
-            wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-            exit;
-        }
-    }
-
-    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-    $existing = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM {$member_courses_table} WHERE member_id = %d AND course_id = %d LIMIT 1",
-        $member_id,
-        $course_id
-    ));
-    $now = current_time('mysql');
-    $member_course_id = 0;
-    if ($existing) {
-        $member_course_id = (int) $existing->id;
-        $wpdb->update(
-            $member_courses_table,
-            [
-                'status' => 'inactive',
-                'chapter' => $chapter,
-                'coach_id' => $coach_id,
-                'enrollment_sessions' => $enrollment_sessions,
-                'total_sessions' => $enrollment_sessions,
-                'remaining_sessions' => $enrollment_sessions,
-                'updated_at' => $now,
-            ],
-            ['id' => $member_course_id],
-            ['%s', '%s', '%d', '%d', '%d', '%d', '%s'],
-            ['%d']
-        );
-    } else {
-        $wpdb->insert(
-            $member_courses_table,
-            [
-                'member_id' => $member_id,
-                'course_id' => $course_id,
-                'chapter' => $chapter,
-                'coach_id' => $coach_id,
-                'enrollment_date' => null,
-                'total_sessions' => $enrollment_sessions,
-                'remaining_sessions' => $enrollment_sessions,
-                'enrollment_sessions' => $enrollment_sessions,
-                'status' => 'inactive',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            ['%d', '%d', '%s', '%d', '%s', '%d', '%d', '%d', '%s', '%s', '%s']
-        );
-        $member_course_id = (int) $wpdb->insert_id;
-    }
-    if (!$member_course_id) {
-        wc_add_notice('خطا در ذخیره ثبت‌نام کلاس خصوصی.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-        exit;
-    }
-
-    if (function_exists('sc_check_and_create_tables')) {
-        sc_check_and_create_tables();
-    }
-
-    $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
-    $end_date = end($sessions);
-    $end_date = is_array($end_date) && isset($end_date['session_date']) ? $end_date['session_date'] : $start_date;
-
-    $inserted = $wpdb->insert(
-        $bookings_table,
-        [
-            'member_id' => $member_id,
-            'course_id' => $course_id,
-            'coach_id' => $coach_id,
-            'chapter' => $chapter,
-            'member_course_id' => $member_course_id,
-            'package_sessions' => $enrollment_sessions,
-            'start_date' => $start_date,
-            'end_date' => $end_date,
-            'status' => 'pending_payment',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ],
-        ['%d', '%d', '%d', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s']
-    );
-    $booking_id = (int) $wpdb->insert_id;
-    if (!$inserted || !$booking_id) {
-        if ($wpdb->last_error) {
-            error_log('SC Private Booking Insert Error: ' . $wpdb->last_error);
-        }
-        wc_add_notice('خطا در ایجاد رزرو خصوصی.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
-        exit;
-    }
-    $fee_label = function_exists('sc_course_enrollment_fee_label')
-        ? sc_course_enrollment_fee_label($course->title, $enrollment_sessions)
-        : ('ثبت نام کلاس خصوصی: ' . $course->title);
-    $invoice_result = function_exists('sc_create_course_invoice')
-        ? sc_create_course_invoice($member_id, $course_id, $member_course_id, $invoice_amount, '', $fee_label, null)
-        : ['success' => false, 'message' => 'تابع صورت حساب در دسترس نیست'];
-    if (!empty($invoice_result['success'])) {
-        if (!empty($invoice_result['invoice_id'])) {
-            $wpdb->update($bookings_table, ['invoice_id' => (int) $invoice_result['invoice_id'], 'updated_at' => $now], ['id' => $booking_id], ['%d', '%s'], ['%d']);
-        }
-        sc_private_store_pending_booking_payload($booking_id, [
-            'member_id' => $member_id,
-            'course_id' => $course_id,
-            'coach_id' => $coach_id,
-            'chapter' => $chapter,
-            'sessions' => $sessions,
-        ]);
+    if (!empty($result['success'])) {
         wc_add_notice('رزرو کلاس خصوصی ثبت شد. برای فعال‌سازی، صورت‌حساب را پرداخت کنید.', 'success');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
         exit;
     }
-    $wpdb->delete($bookings_table, ['id' => $booking_id], ['%d']);
-    wc_add_notice('ایجاد صورت‌حساب با خطا مواجه شد. رزرو ذخیره نشد.', 'error');
+
+    wc_add_notice($result['message'] ?? 'خطا در ثبت رزرو.', 'error');
     wp_safe_redirect(wc_get_account_endpoint_url('sc-private-classes'));
     exit;
 }
