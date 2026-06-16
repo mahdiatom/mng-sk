@@ -9,7 +9,7 @@ $courses_table = $wpdb->prefix . 'sc_courses';
 $coaches_table = $wpdb->prefix . 'sc_coaches';
 $members_table = $wpdb->prefix . 'sc_members';
 
-$filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'pending_admin';
+$filter_status = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all';
 $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
 
 $where = ['1=1'];
@@ -60,6 +60,14 @@ $status_options = [
     'paused' => 'متوقف',
     'cancelled' => 'لغو شده',
 ];
+$bulk_status_options = [
+    'pending_admin' => 'در انتظار بررسی',
+    'pending_payment' => 'منتظر پرداخت',
+    'active' => 'فعال',
+    'rejected' => 'رد شده',
+    'paused' => 'متوقف',
+    'cancelled' => 'لغو شده',
+];
 ?>
 <div class="wrap sc-private-admin-wrap sc-users-export-wrap">
     <div class="sc-private-admin-toolbar">
@@ -74,7 +82,16 @@ $status_options = [
         <div class="notice notice-success is-dismissible"><p>رزرو با موفقیت ثبت شد و صورت‌حساب ایجاد گردید.</p></div>
     <?php endif; ?>
     <?php if (!empty($_GET['rejected'])) : ?>
-        <div class="notice notice-success is-dismissible"><p>درخواست رد شد.</p></div>
+        <div class="notice notice-success is-dismissible"><p>درخواست رد شد و وضعیت به «رد شده» تغییر کرد.</p></div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['bulk_done'])) : ?>
+        <div class="notice notice-success is-dismissible"><p><?php echo esc_html(sprintf('%d مورد با موفقیت انجام شد.', absint($_GET['bulk_done']))); ?></p></div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['bulk_error'])) : ?>
+        <div class="notice notice-error is-dismissible"><p><?php echo esc_html(urldecode(sanitize_text_field(wp_unslash($_GET['bulk_error'])))); ?></p></div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['error'])) : ?>
+        <div class="notice notice-error is-dismissible"><p><?php echo esc_html(urldecode(sanitize_text_field(wp_unslash($_GET['error'])))); ?></p></div>
     <?php endif; ?>
 
     <div class="sc-private-admin-filters sc-users-export-card">
@@ -111,61 +128,99 @@ $status_options = [
     <?php if (empty($rows)) : ?>
         <div class="sc-users-export-card"><p>رکوردی یافت نشد.</p></div>
     <?php else : ?>
-        <div class="sc-private-admin-table-card">
-            <table class="wp-list-table widefat striped">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>بازیکن</th>
-                        <th>دوره</th>
-                        <th>شعبه</th>
-                        <th>مربی</th>
-                        <th>جلسات</th>
-                        <th>وضعیت</th>
-                        <th>صورت‌حساب</th>
-                        <th>تاریخ ثبت</th>
-                        <th>عملیات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($rows as $row) : ?>
-                        <?php
-                        $status_label = function_exists('sc_private_booking_status_label')
-                            ? sc_private_booking_status_label((string) $row->status)
-                            : $row->status;
-                        $badge_class = function_exists('sc_private_booking_status_badge_class')
-                            ? sc_private_booking_status_badge_class((string) $row->status)
-                            : 'sc-pb-status';
-                        $form_url = add_query_arg(['page' => 'sc-private-booking-form', 'booking_id' => (int) $row->id], admin_url('admin.php'));
-                        ?>
-                        <tr>
-                            <td><strong>#<?php echo esc_html((string) $row->id); ?></strong></td>
-                            <td><?php echo esc_html(trim($row->first_name . ' ' . $row->last_name)); ?></td>
-                            <td><?php echo esc_html($row->course_title ?: '—'); ?></td>
-                            <td><?php echo esc_html($row->chapter !== '' ? $row->chapter : '—'); ?></td>
-                            <td><?php echo esc_html(trim(($row->coach_first_name ?? '') . ' ' . ($row->coach_last_name ?? '')) ?: '—'); ?></td>
-                            <td><?php echo (int) $row->package_sessions > 0 ? esc_html((string) $row->package_sessions) : '—'; ?></td>
-                            <td><span class="<?php echo esc_attr($badge_class); ?>"><?php echo esc_html($status_label); ?></span></td>
-                            <td>
-                                <?php if (!empty($row->invoice_id)) : ?>
-                                    <a class="button button-small sc-private-invoice-btn" href="<?php echo esc_url(admin_url('admin.php?page=sc-invoices&invoice_id=' . (int) $row->invoice_id)); ?>">صورت‌حساب #<?php echo esc_html((string) $row->invoice_id); ?></a>
-                                <?php else : ?>
-                                    —
-                                <?php endif; ?>
-                            </td>
-                            <td><?php echo esc_html(function_exists('sc_date_shamsi') ? sc_date_shamsi($row->created_at) : $row->created_at); ?></td>
-                            <td>
-                                <?php if ((string) $row->status === 'pending_admin') : ?>
-                                    <a class="sc_button button-primary button-small" href="<?php echo esc_url($form_url); ?>">تکمیل و ثبت</a>
-                                <?php else : ?>
-                                    <a class="button button-small" href="<?php echo esc_url($form_url); ?>">مشاهده</a>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
+        <form method="post" action="<?php echo esc_url(admin_url('admin.php?page=sc-private-booking-requests')); ?>" id="sc-private-bookings-bulk-form">
+            <?php wp_nonce_field('sc_private_bookings_bulk', 'sc_private_bookings_bulk_nonce'); ?>
+            <input type="hidden" name="filter_status" value="<?php echo esc_attr($filter_status); ?>">
+            <div class="sc-private-bookings-bulk-bar">
+                <label class="sc-private-bookings-bulk-check-all">
+                    <input type="checkbox" id="sc-private-bookings-check-all">
+                    <span>انتخاب همه</span>
+                </label>
+                <div class="sc-private-bookings-bulk-bar-actions">
+                <select name="sc_private_bookings_bulk_action" id="sc-private-bookings-bulk-action" class="sc-enroll-select sc-private-bookings-bulk-select">
+                    <option value="">عملیات دست‌جمعی</option>
+                    <option value="reject">رد درخواست</option>
+                    <option value="set_status">تغییر وضعیت</option>
+                    <option value="delete">حذف</option>
+                </select>
+                <select name="bulk_new_status" id="sc-private-bookings-bulk-status" class="sc-enroll-select sc-private-bookings-bulk-select" hidden>
+                    <option value="">انتخاب وضعیت جدید</option>
+                    <?php foreach ($bulk_status_options as $key => $label) : ?>
+                        <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
                     <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+                </select>
+                <input type="text" name="bulk_rejected_reason" id="sc-private-bookings-bulk-reason" class="sc-enroll-select sc-private-bookings-bulk-reason" placeholder="دلیل رد (در صورت نیاز)" hidden>
+                <button type="submit" class="button button-primary sc-private-bookings-bulk-submit" id="sc-private-bookings-bulk-submit">اجرا</button>
+                </div>
+            </div>
+
+            <div class="sc-private-admin-table-card">
+                <table class="wp-list-table widefat striped">
+                    <thead>
+                        <tr>
+                            <td class="check-column"><span class="screen-reader-text">انتخاب</span></td>
+                            <th>#</th>
+                            <th>بازیکن</th>
+                            <th>دوره</th>
+                            <th>شعبه</th>
+                            <th>مربی</th>
+                            <th>جلسات</th>
+                            <th>وضعیت</th>
+                            <th>صورت‌حساب</th>
+                            <th>تاریخ ثبت</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($rows as $row) : ?>
+                            <?php
+                            $status_label = function_exists('sc_private_booking_status_label')
+                                ? sc_private_booking_status_label((string) $row->status)
+                                : $row->status;
+                            $badge_class = function_exists('sc_private_booking_status_badge_class')
+                                ? sc_private_booking_status_badge_class((string) $row->status)
+                                : 'sc-pb-status';
+                            $form_url = add_query_arg(['page' => 'sc-private-booking-form', 'booking_id' => (int) $row->id], admin_url('admin.php'));
+                            $status = (string) $row->status;
+                            ?>
+                            <tr>
+                                <th scope="row" class="check-column">
+                                    <input type="checkbox" name="booking_ids[]" value="<?php echo esc_attr((int) $row->id); ?>" class="sc-private-booking-row-check">
+                                </th>
+                                <td><strong>#<?php echo esc_html((string) $row->id); ?></strong></td>
+                                <td><?php echo esc_html(trim($row->first_name . ' ' . $row->last_name)); ?></td>
+                                <td><?php echo esc_html($row->course_title ?: '—'); ?></td>
+                                <td><?php echo esc_html($row->chapter !== '' ? $row->chapter : '—'); ?></td>
+                                <td><?php echo esc_html(trim(($row->coach_first_name ?? '') . ' ' . ($row->coach_last_name ?? '')) ?: '—'); ?></td>
+                                <td><?php echo (int) $row->package_sessions > 0 ? esc_html((string) $row->package_sessions) : '—'; ?></td>
+                                <td>
+                                    <span class="<?php echo esc_attr($badge_class); ?>"><?php echo esc_html($status_label); ?></span>
+                                    <?php if ($status === 'rejected' && !empty($row->rejected_reason)) : ?>
+                                        <span class="sc-private-booking-reason-cell"><?php echo esc_html($row->rejected_reason); ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if (!empty($row->invoice_id)) : ?>
+                                        <a class="button button-small sc-private-invoice-btn" href="<?php echo esc_url(admin_url('admin.php?page=sc-invoices&invoice_id=' . (int) $row->invoice_id)); ?>">صورت‌حساب #<?php echo esc_html((string) $row->invoice_id); ?></a>
+                                    <?php else : ?>
+                                        —
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo esc_html(function_exists('sc_date_shamsi') ? sc_date_shamsi($row->created_at) : $row->created_at); ?></td>
+                                <td>
+                                    <?php if ($status === 'pending_admin') : ?>
+                                        <a class="sc_button button-primary button-small" href="<?php echo esc_url($form_url); ?>">تکمیل و ثبت</a>
+                                    <?php else : ?>
+                                        <a class="button button-small" href="<?php echo esc_url($form_url); ?>">مشاهده</a>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </form>
+
         <?php if ($total_pages > 1) : ?>
             <div class="tablenav bottom sc_paginate" style="margin-top:12px;">
                 <div class="tablenav-pages">
@@ -189,3 +244,64 @@ $status_options = [
         <?php endif; ?>
     <?php endif; ?>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var checkAll = document.getElementById('sc-private-bookings-check-all');
+    var bulkAction = document.getElementById('sc-private-bookings-bulk-action');
+    var bulkStatus = document.getElementById('sc-private-bookings-bulk-status');
+    var bulkReason = document.getElementById('sc-private-bookings-bulk-reason');
+    var bulkForm = document.getElementById('sc-private-bookings-bulk-form');
+
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            document.querySelectorAll('.sc-private-booking-row-check').forEach(function (cb) {
+                cb.checked = checkAll.checked;
+            });
+        });
+    }
+
+    function syncBulkFields() {
+        if (!bulkAction || !bulkStatus || !bulkReason) {
+            return;
+        }
+        var action = bulkAction.value;
+        bulkStatus.hidden = action !== 'set_status';
+        bulkReason.hidden = action !== 'reject' && action !== 'set_status';
+    }
+
+    if (bulkAction) {
+        bulkAction.addEventListener('change', syncBulkFields);
+        syncBulkFields();
+    }
+
+    if (bulkForm) {
+        bulkForm.addEventListener('submit', function (e) {
+            var action = bulkAction ? bulkAction.value : '';
+            var checked = document.querySelectorAll('.sc-private-booking-row-check:checked').length;
+            if (!action) {
+                e.preventDefault();
+                window.alert('عملیات دست‌جمعی را انتخاب کنید.');
+                return false;
+            }
+            if (!checked) {
+                e.preventDefault();
+                window.alert('حداقل یک رزرو را انتخاب کنید.');
+                return false;
+            }
+            if (action === 'set_status' && bulkStatus && !bulkStatus.value) {
+                e.preventDefault();
+                window.alert('وضعیت جدید را انتخاب کنید.');
+                return false;
+            }
+            if (action === 'delete' && !window.confirm('رزروهای انتخاب‌شده حذف شوند؟ اگر صورت‌حساب داشته باشند حذف نمی‌شوند.')) {
+                e.preventDefault();
+                return false;
+            }
+            if (action === 'reject' && !window.confirm('درخواست‌های انتخاب‌شده رد شوند؟')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
+});
+</script>

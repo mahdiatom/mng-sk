@@ -53,22 +53,33 @@ if ($booking_id > 0) {
 $today_shamsi = $prefill['start_date_shamsi'];
 $ajax_url = admin_url('admin-ajax.php');
 $ajax_nonce = wp_create_nonce('sc_private_check_slots');
+$is_admin_approval_mode = function_exists('sc_is_private_booking_admin_approval_mode') && sc_is_private_booking_admin_approval_mode();
 $page_title = $booking_id > 0 ? 'تکمیل / ثبت رزرو کلاس خصوصی' : 'ثبت‌نام کلاس خصوصی';
+$back_url = $is_admin_approval_mode
+    ? admin_url('admin.php?page=sc-private-booking-requests')
+    : admin_url('admin.php?page=sc-private-bookings-list');
+$back_label = $is_admin_approval_mode ? 'بازگشت به لیست' : 'کلاس‌های خصوصی';
 ?>
 <div class="wrap sc-private-admin-wrap sc-users-export-wrap">
     <div class="sc-private-admin-toolbar">
         <div>
             <h1 class="sc-private-admin-title"><?php echo esc_html($page_title); ?></h1>
-            <p class="sc-private-admin-subtitle">اطلاعات رزرو را تکمیل کنید و صورت‌حساب برای بازیکن صادر شود.</p>
+            <p class="sc-private-admin-subtitle"><?php echo $is_admin_approval_mode ? 'اطلاعات رزرو را تکمیل کنید و صورت‌حساب برای بازیکن صادر شود.' : 'بازیکن را انتخاب کنید، اطلاعات رزرو را تکمیل کنید و صورت‌حساب صادر شود.'; ?></p>
         </div>
-        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-private-booking-requests')); ?>" class="page-title-action">بازگشت به لیست</a>
+        <a href="<?php echo esc_url($back_url); ?>" class="page-title-action"><?php echo esc_html($back_label); ?></a>
     </div>
 
+    <?php if (!empty($_GET['updated'])) : ?>
+        <div class="notice notice-success"><p>رزرو با موفقیت ثبت شد و صورت‌حساب ایجاد شد.</p></div>
+    <?php endif; ?>
     <?php if (!empty($_GET['error'])) : ?>
         <div class="notice notice-error"><p><?php echo esc_html(wp_unslash($_GET['error'])); ?></p></div>
     <?php endif; ?>
-    <?php if ($booking && (string) $booking->status === 'pending_admin') : ?>
+    <?php if ($is_admin_approval_mode && $booking && (string) $booking->status === 'pending_admin') : ?>
         <div class="notice notice-info"><p>این درخواست توسط کاربر ثبت شده است. فیلدهای ناقص را تکمیل کنید.</p></div>
+    <?php endif; ?>
+    <?php if ($booking && (string) $booking->status === 'rejected') : ?>
+        <div class="notice notice-error"><p><strong>این درخواست رد شده است.</strong><?php if (!empty($booking->rejected_reason)) : ?> دلیل: <?php echo esc_html($booking->rejected_reason); ?><?php endif; ?></p></div>
     <?php endif; ?>
     <?php if ($is_readonly) : ?>
         <div class="notice notice-warning"><p>این رزرو در وضعیت «<?php echo esc_html(sc_private_booking_status_label((string) $booking->status)); ?>» است و قابل ویرایش نیست.</p></div>
@@ -80,6 +91,7 @@ $page_title = $booking_id > 0 ? 'تکمیل / ثبت رزرو کلاس خصوص�
             <input type="hidden" name="sc_admin_finalize_private_booking" value="1">
             <?php if ($booking_id > 0) : ?>
                 <input type="hidden" name="booking_id" value="<?php echo esc_attr($booking_id); ?>">
+                <input type="hidden" name="member_id" id="sc_admin_member_id" value="<?php echo esc_attr($selected_member_id); ?>">
             <?php endif; ?>
 
             <div class="sc-private-form-layout">
@@ -153,10 +165,18 @@ $page_title = $booking_id > 0 ? 'تکمیل / ثبت رزرو کلاس خصوص�
 
                 <div class="sc-enroll-panel sc-private-panel">
                     <div class="sc-enroll-panel-title">انتخاب زمان هفتگی</div>
-                    <p class="sc-private-panel-hint">یک یا چند اسلات را برای برنامه جلسات انتخاب کنید.</p>
+                    <p class="sc-private-panel-hint">یک یا چند بازه زمانی هفتگی را انتخاب کنید. بازه‌های «پر شده» قابل رزرو نیستند. با تغییر تاریخ شروع، وضعیت رزرو به‌روز می‌شود.</p>
+                    <div class="sc-private-slots-preview-bar">
+                        <div id="sc_private_slots_preview" class="sc-private-slots-preview" hidden></div>
+                        <button type="button" id="sc_private_slots_preview_refresh" class="sc-private-slots-preview-refresh" hidden>
+                            <span class="sc-private-slots-preview-refresh-icon" aria-hidden="true">↻</span>
+                            <span class="sc-private-slots-preview-refresh-label">بروزرسانی پیش‌نمایش</span>
+                        </button>
+                    </div>
                     <div id="sc_private_slots_wrap" class="sc-private-slot-grid">
                         <div class="sc-private-slot-empty">ابتدا دوره، شعبه و مربی را انتخاب کنید.</div>
                     </div>
+                    <div id="sc_private_sessions_schedule_preview" class="sc-private-sessions-schedule-preview" hidden></div>
                 </div>
 
                 <div class="sc-enroll-panel sc-private-panel">
@@ -183,15 +203,23 @@ $page_title = $booking_id > 0 ? 'تکمیل / ثبت رزرو کلاس خصوص�
         </form>
     </div>
 
-    <?php if ($booking && (string) $booking->status === 'pending_admin' && !$is_readonly) : ?>
-        <div class="sc-private-admin-reject-box">
-            <h2>رد درخواست</h2>
-            <form method="post" action="" onsubmit="return confirm('درخواست رد شود؟');">
+    <?php if ($is_admin_approval_mode && $booking && (string) $booking->status === 'pending_admin' && !$is_readonly) : ?>
+        <div class="sc-users-export-card sc-private-admin-reject-box">
+            <div class="sc-private-admin-reject-head">
+                <div>
+                    <h2>رد درخواست</h2>
+                    <p class="sc-private-admin-reject-desc">در صورت عدم امکان رزرو، درخواست را رد کنید. دلیل رد برای بازیکن نمایش داده می‌شود.</p>
+                </div>
+            </div>
+            <form method="post" action="<?php echo esc_url(admin_url('admin.php?page=sc-private-booking-form&booking_id=' . (int) $booking_id)); ?>" class="sc-private-admin-reject-form" onsubmit="return confirm('درخواست رد شود؟');">
                 <?php wp_nonce_field('sc_admin_private_booking', 'sc_admin_private_booking_nonce'); ?>
                 <input type="hidden" name="sc_reject_private_booking" value="1">
                 <input type="hidden" name="booking_id" value="<?php echo esc_attr($booking_id); ?>">
-                <textarea name="rejected_reason" class="large-text" rows="2" placeholder="دلیل رد (اختیاری)"></textarea>
-                <p style="margin-top:10px;"><button type="submit" class="button button-link-delete">رد درخواست</button></p>
+                <label class="sc-enroll-field-label" for="sc_private_rejected_reason">دلیل رد (اختیاری)</label>
+                <textarea name="rejected_reason" id="sc_private_rejected_reason" class="sc-private-admin-reject-textarea" rows="3" placeholder="مثلاً: ظرفیت این بازه تکمیل است یا اطلاعات درخواست ناقص بود."></textarea>
+                <div class="sc-private-admin-reject-actions">
+                    <button type="submit" class="sc-private-admin-reject-btn">رد درخواست</button>
+                </div>
             </form>
         </div>
     <?php endif; ?>
@@ -218,6 +246,8 @@ document.addEventListener('DOMContentLoaded', function () {
             data: <?php echo wp_json_encode($booking_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
             ajaxUrl: <?php echo wp_json_encode($ajax_url); ?>,
             ajaxNonce: <?php echo wp_json_encode($ajax_nonce); ?>,
+            isAdmin: true,
+            userFields: <?php echo wp_json_encode(array_fill_keys(['course', 'chapter', 'coach', 'slots', 'sessions', 'start_date'], 1), JSON_UNESCAPED_UNICODE); ?>,
             prefill: <?php echo wp_json_encode([
                 'course_id' => $prefill['course_id'],
                 'chapter' => $prefill['chapter'],

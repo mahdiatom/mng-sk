@@ -12,6 +12,10 @@ function sc_is_private_booking_admin_approval_mode() {
     return sc_get_private_booking_mode() === 'admin_approval';
 }
 
+function sc_get_private_class_page_description() {
+    return trim((string) sc_get_setting('private_class_page_description', ''));
+}
+
 function sc_get_private_booking_user_field_keys() {
     return ['course', 'chapter', 'coach', 'slots', 'sessions', 'start_date'];
 }
@@ -56,6 +60,50 @@ function sc_private_booking_status_badge_class($status) {
 
 function sc_private_booking_pending_placeholder_date() {
     return '1970-01-01';
+}
+
+function sc_private_patch_booking_row($booking_id, array $fields) {
+    global $wpdb;
+    $booking_id = absint($booking_id);
+    if ($booking_id <= 0 || empty($fields)) {
+        return false;
+    }
+
+    if (function_exists('sc_private_ensure_booking_schema_columns')) {
+        sc_private_ensure_booking_schema_columns();
+    }
+
+    $table = $wpdb->prefix . 'sc_private_course_bookings';
+    $columns = $wpdb->get_col("SHOW COLUMNS FROM `{$table}`", 0);
+    $column_map = [];
+    foreach ((array) $columns as $column_name) {
+        $column_map[strtolower((string) $column_name)] = (string) $column_name;
+    }
+
+    $data = [];
+    $formats = [];
+    foreach ($fields as $key => $value) {
+        $lower = strtolower((string) $key);
+        if (!isset($column_map[$lower])) {
+            continue;
+        }
+        $data[$column_map[$lower]] = $value;
+        $formats[] = is_int($value) ? '%d' : '%s';
+    }
+
+    if (empty($data)) {
+        return false;
+    }
+
+    $updated = $wpdb->update(
+        $table,
+        $data,
+        ['id' => $booking_id],
+        $formats,
+        ['%d']
+    );
+
+    return $updated !== false;
 }
 
 function sc_private_can_manage_booking_requests() {
@@ -491,28 +539,156 @@ function sc_private_create_booking_request($member_id, array $input) {
 }
 
 function sc_private_reject_booking_request($booking_id, $reason = '') {
-    global $wpdb;
     $booking_id = absint($booking_id);
-    $booking = sc_private_get_booking_row($booking_id);
-    if (!$booking || (string) $booking->status !== 'pending_admin') {
-        return ['success' => false, 'message' => 'درخواست قابل رد نیست.'];
+    if ($booking_id <= 0) {
+        return ['success' => false, 'message' => 'شناسه درخواست نامعتبر است.'];
     }
 
-    $wpdb->update(
-        $wpdb->prefix . 'sc_private_course_bookings',
-        [
-            'status' => 'rejected',
-            'rejected_reason' => sanitize_text_field((string) $reason),
-            'updated_at' => current_time('mysql'),
-        ],
-        ['id' => $booking_id],
-        ['%s', '%s', '%s'],
-        ['%d']
-    );
+    if (function_exists('sc_private_ensure_booking_schema_columns')) {
+        sc_private_ensure_booking_schema_columns();
+    }
+
+    $booking = sc_private_get_booking_row($booking_id);
+    if (!$booking) {
+        return ['success' => false, 'message' => 'درخواست یافت نشد.'];
+    }
+    if ((string) $booking->status !== 'pending_admin') {
+        return ['success' => false, 'message' => 'فقط درخواست‌های در انتظار بررسی قابل رد هستند.'];
+    }
+
+    $patched = sc_private_patch_booking_row($booking_id, [
+        'status' => 'rejected',
+        'rejected_reason' => sanitize_textarea_field((string) $reason),
+        'updated_at' => current_time('mysql'),
+    ]);
+    if (!$patched) {
+        return ['success' => false, 'message' => 'خطا در به‌روزرسانی وضعیت درخواست.'];
+    }
+
     sc_private_delete_pending_booking_payload($booking_id);
     sc_private_send_booking_event_notification('rejected_to_user', $booking_id, ['reason' => $reason]);
 
     return ['success' => true, 'message' => 'درخواست رد شد.'];
+}
+
+function sc_private_admin_change_booking_status($booking_id, $new_status, $reason = '') {
+    $booking_id = absint($booking_id);
+    $new_status = sanitize_key((string) $new_status);
+    $allowed = ['pending_admin', 'pending_payment', 'active', 'rejected', 'paused', 'cancelled', 'completed'];
+    if ($booking_id <= 0 || !in_array($new_status, $allowed, true)) {
+        return ['success' => false, 'message' => 'وضعیت نامعتبر است.'];
+    }
+
+    if (function_exists('sc_private_ensure_booking_schema_columns')) {
+        sc_private_ensure_booking_schema_columns();
+    }
+
+    $booking = sc_private_get_booking_row($booking_id);
+    if (!$booking) {
+        return ['success' => false, 'message' => 'رزرو یافت نشد.'];
+    }
+
+    $fields = [
+        'status' => $new_status,
+        'updated_at' => current_time('mysql'),
+    ];
+    if ($new_status === 'rejected') {
+        $fields['rejected_reason'] = sanitize_textarea_field((string) $reason);
+    }
+
+    if (!sc_private_patch_booking_row($booking_id, $fields)) {
+        return ['success' => false, 'message' => 'خطا در تغییر وضعیت.'];
+    }
+
+    if ($new_status === 'rejected') {
+        sc_private_delete_pending_booking_payload($booking_id);
+        sc_private_send_booking_event_notification('rejected_to_user', $booking_id, ['reason' => $reason]);
+    }
+
+    return ['success' => true, 'message' => 'وضعیت به‌روزرسانی شد.'];
+}
+
+function sc_private_admin_delete_booking($booking_id) {
+    global $wpdb;
+    $booking_id = absint($booking_id);
+    if ($booking_id <= 0) {
+        return ['success' => false, 'message' => 'شناسه نامعتبر است.'];
+    }
+
+    $booking = sc_private_get_booking_row($booking_id);
+    if (!$booking) {
+        return ['success' => false, 'message' => 'رزرو یافت نشد.'];
+    }
+
+    if (!empty($booking->invoice_id)) {
+        return [
+            'success' => false,
+            'message' => sprintf(
+                'رزرو #%d صورت‌حساب #%d دارد و حذف نمی‌شود. وضعیت را به «لغو شده» تغییر دهید.',
+                $booking_id,
+                (int) $booking->invoice_id
+            ),
+        ];
+    }
+
+    $sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
+    $wpdb->delete($sessions_table, ['booking_id' => $booking_id], ['%d']);
+    $wpdb->delete($wpdb->prefix . 'sc_private_course_bookings', ['id' => $booking_id], ['%d']);
+    sc_private_delete_pending_booking_payload($booking_id);
+
+    return ['success' => true, 'message' => 'رزرو حذف شد.'];
+}
+
+function sc_private_handle_booking_requests_bulk_action() {
+    if (!is_admin() || !sc_private_can_manage_booking_requests()) {
+        return;
+    }
+    if (!sc_is_private_booking_admin_approval_mode()) {
+        return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['sc_private_bookings_bulk_action'])) {
+        return;
+    }
+    if (!isset($_POST['sc_private_bookings_bulk_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['sc_private_bookings_bulk_nonce'])), 'sc_private_bookings_bulk')) {
+        wp_die('خطای امنیتی.');
+    }
+
+    $action = sanitize_key(wp_unslash($_POST['sc_private_bookings_bulk_action']));
+    $booking_ids = isset($_POST['booking_ids']) ? array_map('absint', (array) $_POST['booking_ids']) : [];
+    $booking_ids = array_values(array_filter($booking_ids));
+    $reason = isset($_POST['bulk_rejected_reason']) ? sanitize_text_field(wp_unslash($_POST['bulk_rejected_reason'])) : '';
+    $new_status = isset($_POST['bulk_new_status']) ? sanitize_key(wp_unslash($_POST['bulk_new_status'])) : '';
+
+    $done = 0;
+    $errors = [];
+    foreach ($booking_ids as $booking_id) {
+        if ($action === 'delete') {
+            $result = sc_private_admin_delete_booking($booking_id);
+        } elseif ($action === 'set_status' && $new_status !== '') {
+            $result = sc_private_admin_change_booking_status($booking_id, $new_status, $new_status === 'rejected' ? $reason : '');
+        } elseif ($action === 'reject') {
+            $result = sc_private_reject_booking_request($booking_id, $reason);
+        } else {
+            $result = ['success' => false, 'message' => 'عملیات نامعتبر است.'];
+        }
+
+        if (!empty($result['success'])) {
+            $done++;
+        } else {
+            $errors[] = '#' . $booking_id . ': ' . ($result['message'] ?? 'خطا');
+        }
+    }
+
+    $redirect_args = [
+        'page' => 'sc-private-booking-requests',
+        'filter_status' => isset($_POST['filter_status']) ? sanitize_text_field(wp_unslash($_POST['filter_status'])) : 'all',
+        'bulk_done' => $done,
+    ];
+    if (!empty($errors)) {
+        $redirect_args['bulk_error'] = urlencode(implode(' | ', array_slice($errors, 0, 3)));
+    }
+    wp_safe_redirect(add_query_arg($redirect_args, admin_url('admin.php')));
+    exit;
 }
 
 function sc_private_get_booking_notification_context($booking_id) {
@@ -635,32 +811,29 @@ function sc_private_send_booking_event_notification($event, $booking_id, array $
             if ($admin_phone !== '') {
                 sc_send_sms($admin_phone, $message, $pattern_code > 0, $pattern_code > 0 ? $pattern_code : null, $variables, 'private_request_to_admin');
             }
-        } else {
-            if ($ctx['player_phone'] !== '') {
-                sc_send_sms($ctx['player_phone'], $message, $pattern_code > 0, $pattern_code > 0 ? $pattern_code : null, $variables, 'private_' . $event);
-            }
+        } elseif ($ctx['player_phone'] !== '') {
+            sc_send_sms($ctx['player_phone'], $message, $pattern_code > 0, $pattern_code > 0 ? $pattern_code : null, $variables, 'private_' . $event);
         }
     }
 
-    if ((int) sc_get_setting($cfg['bale'], '1') === 1) {
+    if ($cfg['target'] === 'user') {
         sc_private_load_bale_api_if_needed();
-        $bale_text = sprintf(
-            "رزرو کلاس خصوصی\nبازیکن: %s\nدوره: %s\nمربی: %s\nوضعیت: %s",
-            $ctx['user_name'],
-            $ctx['item_name'],
-            $ctx['coach_name'],
-            $ctx['status_label']
-        );
-        if ($event === 'approved_to_user' && !empty($ctx['invoice_id'])) {
-            $bale_text .= "\nصورت‌حساب: #" . (int) $ctx['invoice_id'];
-        }
-        if ($event === 'rejected_to_user' && !empty($ctx['reason'])) {
-            $bale_text .= "\nدلیل: " . $ctx['reason'];
-        }
-
-        if ($cfg['target'] === 'user' && function_exists('sc_get_user_bale_chat_id') && function_exists('bale_send_message')) {
+        if (function_exists('sc_get_user_bale_chat_id') && function_exists('bale_send_message')) {
             $chat_id = sc_get_user_bale_chat_id((int) $ctx['member_id']);
             if ($chat_id) {
+                $bale_text = sprintf(
+                    "رزرو کلاس خصوصی\nبازیکن: %s\nدوره: %s\nمربی: %s\nوضعیت: %s",
+                    $ctx['user_name'],
+                    $ctx['item_name'],
+                    $ctx['coach_name'],
+                    $ctx['status_label']
+                );
+                if ($event === 'approved_to_user' && !empty($ctx['invoice_id'])) {
+                    $bale_text .= "\nصورت‌حساب: #" . (int) $ctx['invoice_id'];
+                }
+                if ($event === 'rejected_to_user' && !empty($ctx['reason'])) {
+                    $bale_text .= "\nدلیل: " . $ctx['reason'];
+                }
                 bale_send_message($chat_id, $bale_text);
             }
         }
@@ -684,6 +857,7 @@ function sc_private_notify_after_activation($invoice_id) {
     }
 }
 
+add_action('admin_init', 'sc_private_handle_booking_requests_bulk_action');
 add_action('admin_init', 'sc_private_handle_admin_booking_actions');
 function sc_private_handle_admin_booking_actions() {
     if (!is_admin() || !sc_private_can_manage_booking_requests()) {
@@ -717,12 +891,22 @@ function sc_private_handle_admin_booking_actions() {
         ]);
 
         if (!empty($result['success'])) {
-            sc_private_send_booking_event_notification('approved_to_user', (int) $result['booking_id']);
-            $redirect = add_query_arg([
-                'page' => 'sc-private-booking-requests',
-                'updated' => 1,
-                'booking_id' => (int) $result['booking_id'],
-            ], admin_url('admin.php'));
+            if (!empty($result['booking_id'])) {
+                sc_private_send_booking_event_notification('approved_to_user', (int) $result['booking_id']);
+            }
+            if (sc_is_private_booking_admin_approval_mode()) {
+                $redirect = add_query_arg([
+                    'page' => 'sc-private-booking-requests',
+                    'updated' => 1,
+                    'booking_id' => (int) $result['booking_id'],
+                ], admin_url('admin.php'));
+            } else {
+                $redirect = add_query_arg([
+                    'page' => 'sc-private-booking-form',
+                    'updated' => 1,
+                    'booking_id' => (int) $result['booking_id'],
+                ], admin_url('admin.php'));
+            }
             wp_safe_redirect($redirect);
             exit;
         }
@@ -737,13 +921,35 @@ function sc_private_handle_admin_booking_actions() {
     }
 
     if (isset($_POST['sc_reject_private_booking']) && isset($_POST['booking_id'])) {
+        if (!sc_is_private_booking_admin_approval_mode()) {
+            return;
+        }
         if (!isset($_POST['sc_admin_private_booking_nonce']) || !wp_verify_nonce($_POST['sc_admin_private_booking_nonce'], 'sc_admin_private_booking')) {
             wp_die('خطای امنیتی.');
         }
         $booking_id = absint($_POST['booking_id']);
-        $reason = isset($_POST['rejected_reason']) ? sanitize_text_field(wp_unslash($_POST['rejected_reason'])) : '';
-        sc_private_reject_booking_request($booking_id, $reason);
-        wp_safe_redirect(add_query_arg(['page' => 'sc-private-booking-requests', 'rejected' => 1], admin_url('admin.php')));
+        if ($booking_id <= 0) {
+            wp_safe_redirect(add_query_arg([
+                'page' => 'sc-private-booking-requests',
+                'error' => urlencode('شناسه درخواست نامعتبر است.'),
+            ], admin_url('admin.php')));
+            exit;
+        }
+        $reason = isset($_POST['rejected_reason']) ? sanitize_textarea_field(wp_unslash($_POST['rejected_reason'])) : '';
+        $result = sc_private_reject_booking_request($booking_id, $reason);
+        if (!empty($result['success'])) {
+            wp_safe_redirect(add_query_arg([
+                'page' => 'sc-private-booking-requests',
+                'rejected' => 1,
+                'filter_status' => 'rejected',
+            ], admin_url('admin.php')));
+            exit;
+        }
+        wp_safe_redirect(add_query_arg([
+            'page' => 'sc-private-booking-form',
+            'booking_id' => $booking_id,
+            'error' => urlencode($result['message'] ?? 'رد درخواست انجام نشد.'),
+        ], admin_url('admin.php')));
         exit;
     }
 }
@@ -794,10 +1000,6 @@ function sc_render_private_booking_requests_page() {
 function sc_render_private_booking_form_page() {
     if (!sc_private_can_manage_booking_requests()) {
         wp_die('دسترسی غیرمجاز.');
-    }
-    if (!sc_is_private_booking_admin_approval_mode()) {
-        echo '<div class="wrap"><h1>ثبت‌نام کلاس خصوصی</h1><div class="notice notice-warning"><p>این بخش فقط در حالت «رزرو با تایید مدیر» فعال است.</p></div></div>';
-        return;
     }
     include SC_TEMPLATES_ADMIN_DIR . 'private-booking-admin-form.php';
 }

@@ -47,9 +47,15 @@ $member_bookings = isset($private_member_bookings) && is_array($private_member_b
 $ajax_url = admin_url('admin-ajax.php');
 $ajax_nonce = wp_create_nonce('sc_private_check_slots');
 $show_price = !$is_admin_approval || (!empty($user_fields['sessions']) && !empty($user_fields['slots']) && !empty($user_fields['coach']) && !empty($user_fields['chapter']) && !empty($user_fields['course']));
+$page_description = function_exists('sc_get_private_class_page_description') ? sc_get_private_class_page_description() : '';
 ?>
 
 <div class="sc-private-page sc-enroll-course-page">
+    <?php if ($page_description !== '') : ?>
+        <div class="sc-private-page-notice" role="status" aria-live="polite">
+            <?php echo wp_kses_post(wpautop($page_description)); ?>
+        </div>
+    <?php endif; ?>
     <div class="sc-private-page-header">
         <h2>رزرو کلاس خصوصی</h2>
         <?php if ($is_admin_approval) : ?>
@@ -117,10 +123,22 @@ $show_price = !$is_admin_approval || (!empty($user_fields['sessions']) && !empty
                 <?php if (!empty($user_fields['slots'])) : ?>
                 <div class="sc-enroll-panel sc-private-panel">
                     <div class="sc-enroll-panel-title">انتخاب زمان هفتگی</div>
-                    <p class="sc-private-panel-hint">می‌توانید یک یا چند اسلات را برای برنامه جلسات انتخاب کنید.</p>
-                    <div id="sc_private_slots_wrap" class="sc-private-slot-grid">
-                        <div class="sc-private-slot-empty">ابتدا دوره، شعبه و مربی را انتخاب کنید.</div>
+                    <p class="sc-private-panel-hint">یک یا چند بازه زمانی هفتگی را انتخاب کنید. بازه‌های «پر شده» قابل رزرو نیستند. با تغییر تاریخ شروع، وضعیت رزرو به‌روز می‌شود.</p>
+                    <div class="sc-private-slots-preview-bar">
+                        <div id="sc_private_slots_preview" class="sc-private-slots-preview" hidden></div>
+                        <button type="button" id="sc_private_slots_preview_refresh" class="sc-private-slots-preview-refresh" hidden>
+                            <span class="sc-private-slots-preview-refresh-icon" aria-hidden="true">↻</span>
+                            <span class="sc-private-slots-preview-refresh-label">بروزرسانی پیش‌نمایش</span>
+                        </button>
                     </div>
+                    <div id="sc_private_slots_wrap" class="sc-private-slot-grid">
+                        <?php if (!empty($user_fields['course'])) : ?>
+                        <div class="sc-private-slot-empty">ابتدا دوره<?php echo !empty($user_fields['chapter']) ? '، شعبه' : ''; ?><?php echo !empty($user_fields['coach']) ? ' و مربی' : ''; ?> را انتخاب کنید.</div>
+                        <?php else : ?>
+                        <div class="sc-private-slot-empty">در حال بارگذاری بازه‌های زمانی...</div>
+                        <?php endif; ?>
+                    </div>
+                    <div id="sc_private_sessions_schedule_preview" class="sc-private-sessions-schedule-preview" hidden></div>
                 </div>
                 <?php endif; ?>
 
@@ -280,6 +298,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data: <?php echo wp_json_encode($booking_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
             ajaxUrl: <?php echo wp_json_encode($ajax_url); ?>,
             ajaxNonce: <?php echo wp_json_encode($ajax_nonce); ?>,
+            userFields: <?php echo wp_json_encode(array_map('intval', $user_fields), JSON_UNESCAPED_UNICODE); ?>,
             prefill: {}
         });
     }

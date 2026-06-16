@@ -4413,6 +4413,7 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
         // فقط در حالت‌های processing و completed دوره را فعال کن
         if (in_array($new_status, ['processing', 'completed'])) {
             $payment_date = current_time('mysql');
+            $was_already_paid = in_array($invoice->status, ['processing', 'completed', 'paid'], true);
             
             // بررسی اینکه آیا این صورت حساب برای شارژ کیف پول است
             if (!empty($invoice->expense_name) && $invoice->expense_name === 'شارژ کیف پول' && $invoice->course_id == 0 && empty($invoice->member_course_id)) {
@@ -4505,9 +4506,9 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
                 }
             }
 
-            // ======== اضافه‌شده (شناسایی پرداخت موفق) ========
-    do_action('sc_invoice_paid', $invoice->id);
-    // ================================================
+            if (!$was_already_paid) {
+                do_action('sc_invoice_paid', $invoice->id);
+            }
 
         }
         

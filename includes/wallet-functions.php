@@ -518,7 +518,9 @@ function sc_pay_invoice_from_wallet($invoice_id, $amount = null) {
             ['%s', '%s', '%s'],
             ['%d']
         );
-        
+
+        do_action('sc_invoice_paid', $invoice_id);
+
         // بروزرسانی وضعیت سفارش WooCommerce
         if (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
             $order = wc_get_order($invoice->woocommerce_order_id);

@@ -413,7 +413,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                                     foreach ($all_active_coaches as $co) :
                                         $ch_name = (string) $ch->name;
                                         $co_id = (int) $co->id;
-                                        if (empty($course_coach_assignments_map[$ch_name][$co_id])) {
+                                        if (!isset($course_coach_assignments_map[$ch_name][$co_id])) {
                                             continue;
                                         }
                                         $meta = isset($course_coach_branch_meta_map[$ch_name][$co_id]) ? $course_coach_branch_meta_map[$ch_name][$co_id] : null;
@@ -584,6 +584,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
 
 <script type="text/javascript">
 var scCourseCoachLabels = <?php echo wp_json_encode($sc_coach_labels_for_js, JSON_UNESCAPED_UNICODE); ?>;
+var scCourseCoachBranchMeta = <?php echo wp_json_encode($course_coach_branch_meta_map, JSON_UNESCAPED_UNICODE); ?>;
 jQuery(document).ready(function($) {
     // فرمت کردن فیلد قیمت کل دوره
     if ($('#price').length && $('#price_raw').length) {
@@ -714,11 +715,68 @@ jQuery(document).ready(function($) {
         scSyncCoachBranchPricingTable();
     }
 
+    function scReadCoachIdFromEl($el) {
+        var coachId = parseInt($el.attr('data-coach-id') || $el.data('coachId') || '0', 10);
+        if (!coachId) {
+            var nm = String($el.attr('name') || '');
+            var m = nm.match(/\[(\d+)\]\s*$/);
+            if (m) {
+                coachId = parseInt(m[1], 10);
+            }
+        }
+        return coachId;
+    }
+
+    function scGetSavedBranchMeta(chapter, coachId) {
+        var map = window.scCourseCoachBranchMeta || {};
+        var ch = map[chapter];
+        if (!ch) {
+            return null;
+        }
+        return ch[coachId] || ch[String(coachId)] || null;
+    }
+
+    function scFormatBranchPriceDisplay(num) {
+        var n = parseFloat(num || 0);
+        if (isNaN(n) || n <= 0) {
+            return '';
+        }
+        return n.toLocaleString('en-US');
+    }
+
+    function scBranchPricingRowValues(chapter, coachId, preserved) {
+        var prev = (preserved[chapter] && preserved[chapter][coachId]) ? $.extend({}, preserved[chapter][coachId]) : {};
+        var hasPrice = prev.price !== undefined && prev.price !== null && String(prev.price) !== '';
+        var hasCap = prev.capacity !== undefined && prev.capacity !== null && String(prev.capacity) !== '';
+
+        if (!hasPrice || !hasCap) {
+            var meta = scGetSavedBranchMeta(chapter, coachId);
+            if (meta) {
+                if (!hasPrice && meta.price_per_session !== undefined && meta.price_per_session !== null) {
+                    var pps = parseFloat(meta.price_per_session);
+                    if (!isNaN(pps)) {
+                        prev.price = String(pps);
+                        prev.priceDisplay = scFormatBranchPriceDisplay(pps);
+                    }
+                }
+                if (!hasCap && meta.capacity !== undefined && meta.capacity !== null && meta.capacity !== '') {
+                    prev.capacity = String(meta.capacity);
+                }
+            }
+        }
+
+        return {
+            priceVal: (prev.price !== undefined && prev.price !== null && String(prev.price) !== '') ? prev.price : '',
+            priceDisplay: (prev.priceDisplay !== undefined && prev.priceDisplay !== null && String(prev.priceDisplay) !== '') ? prev.priceDisplay : scFormatBranchPriceDisplay(prev.price),
+            capVal: (prev.capacity !== undefined && prev.capacity !== null && String(prev.capacity) !== '') ? prev.capacity : ''
+        };
+    }
+
     function scCollectBranchPricingValues() {
         var values = {};
         $('#sc-coach-branch-pricing-body tr[data-chapter][data-coach-id]').each(function () {
-            var ch = String($(this).data('chapter') || '');
-            var coachId = parseInt($(this).data('coach-id') || '0', 10);
+            var ch = String($(this).attr('data-chapter') || '');
+            var coachId = scReadCoachIdFromEl($(this));
             if (!ch || !coachId) {
                 return;
             }
@@ -749,21 +807,21 @@ jQuery(document).ready(function($) {
             if (!$grp.is(':visible')) {
                 return;
             }
-            var chapter = String($grp.data('chapter') || '');
+            var chapter = String($grp.attr('data-chapter') || '');
             if (!chapter) {
                 return;
             }
             $grp.find('.sc-course-coach-assign-cb:checked').each(function () {
-                var coachId = parseInt($(this).data('coach-id') || '0', 10);
+                var coachId = scReadCoachIdFromEl($(this));
                 if (!coachId) {
                     return;
                 }
                 rowCount++;
                 var label = (window.scCourseCoachLabels && scCourseCoachLabels[coachId]) ? scCourseCoachLabels[coachId] : ('مربی #' + coachId);
-                var prev = (preserved[chapter] && preserved[chapter][coachId]) ? preserved[chapter][coachId] : {};
-                var priceVal = prev.price || '';
-                var priceDisplay = prev.priceDisplay || priceVal;
-                var capVal = prev.capacity || '';
+                var rowValues = scBranchPricingRowValues(chapter, coachId, preserved);
+                var priceVal = rowValues.priceVal;
+                var priceDisplay = rowValues.priceDisplay;
+                var capVal = rowValues.capVal;
 
                 var $tr = $('<tr></tr>').attr('data-chapter', chapter).attr('data-coach-id', coachId);
                 $tr.append($('<td></td>').text(chapter));
@@ -804,7 +862,6 @@ jQuery(document).ready(function($) {
     }
 
     $('#course_type, #private_variable_coach_pricing').on('change', scTogglePrivateCourseFields);
-    scTogglePrivateCourseFields();
 
     $('#sc-add-private-sess-row').on('click', function () {
         var $row = $('<tr><td><input type="number" min="1" name="private_sess_counts[]" value="" class="small-text"></td><td><button type="button" class="button sc-remove-private-sess-row">حذف</button></td></tr>');
@@ -900,10 +957,10 @@ jQuery(document).ready(function($) {
             return coaches;
         }
         var $grp = $('.sc-course-chapter-coaches').filter(function () {
-            return String($(this).data('chapter') || '') === chapterName;
+            return String($(this).attr('data-chapter') || '') === chapterName;
         });
         $grp.find('.sc-course-coach-assign-cb:checked').each(function () {
-            var id = parseInt($(this).data('coach-id') || $(this).attr('name').replace(/.*\[(\d+)\]$/, '$1'), 10);
+            var id = scReadCoachIdFromEl($(this));
             if (!id || seen[id]) {
                 return;
             }
@@ -960,7 +1017,8 @@ jQuery(document).ready(function($) {
         });
         $('.sc-course-chapter-coaches').each(function () {
             var $grp = $(this);
-            var visible = !!checkedChapters[$grp.data('chapter')];
+            var chapterKey = String($grp.attr('data-chapter') || '');
+            var visible = !!checkedChapters[chapterKey];
             $grp.toggle(visible);
             if (!visible) {
                 $grp.find('input[type="checkbox"]').prop('checked', false);
@@ -969,8 +1027,10 @@ jQuery(document).ready(function($) {
         scSyncScheduleSelects();
         scSyncCoachBranchPricingTable();
     }
+
+    // ابتدا شعبه/مربی همگام شود، بعد فیلدهای کلاس خصوصی (جلوگیری از پاک شدن قیمت/ظرفیت)
     scSyncChapterCoachGroups();
-    scSyncCoachBranchPricingTable();
+    scTogglePrivateCourseFields();
 
     $(document).on('change', '.sc-course-chapter-cb', function () {
         if ($('.sc-course-chapter-cb:checked').length) {

@@ -117,6 +117,8 @@ require_once SC_INCLUDES_DIR . 'admin-dashboard-widgets.php'; // ابزارک‌
 require_once SC_PUBLIC_DIR . 'my-account.php';
 // Include WooCommerce Thank You Page customization
 require_once SC_PUBLIC_DIR . 'woocommerce-thankyou.php';
+require_once SC_INCLUDES_DIR . 'woocommerce-order-context.php';
+require_once SC_PUBLIC_DIR . 'woocommerce-order-pay.php';
 //header footer
 require_once SC_PUBLIC_DIR . 'header.php';
 require_once SC_PUBLIC_DIR . 'footer.php';

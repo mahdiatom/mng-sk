@@ -1307,7 +1307,12 @@ order: 21;
 .woocommerce-MyAccount-navigation-link--bot-connect{
 order: 22;
 }
-
+.woocommerce-MyAccount-navigation-link--customer-logout{
+    order: 42;
+}
+.woocommerce-MyAccount-navigation-link--bot-connect{
+    order:4
+}
 .woocommerce-MyAccount-navigation li{
     font-size: 14px;
 }
@@ -4056,29 +4061,49 @@ width: 150px;
 /* Responsive برای صفحه تشکر */
 @media (max-width: 768px) {
     .sc-thankyou-page {
-        padding: 0 15px;
-        margin: 20px auto;
+        padding: 0 16px;
+        margin: 16px auto 24px;
     }
     
     .sc-thankyou-header {
-        padding: 40px 20px;
+        padding: 32px 18px;
+        border-radius: 16px;
+        margin-bottom: 24px;
     }
     
     .sc-thankyou-title {
-        font-size: 28px;
+        font-size: 26px;
     }
     
     .sc-thankyou-message {
-        font-size: 16px;
+        font-size: 15px;
+    }
+
+    .after_do_pay {
+        font-size: 14px;
+        line-height: 1.7;
+        padding: 0 4px;
     }
     
     .sc-thankyou-cards {
         grid-template-columns: 1fr;
-        gap: 20px;
+        gap: 14px;
+        margin-bottom: 24px;
     }
     
     .sc-thankyou-card {
-        padding: 20px;
+        padding: 18px;
+    }
+
+    .sc-thankyou-item-info,
+    .sc-thankyou-order-items {
+        padding: 22px 16px;
+        border-radius: 14px;
+        margin-bottom: 20px;
+    }
+
+    .sc-thankyou-section-title {
+        font-size: 20px;
     }
     
     .sc-thankyou-order-details {
@@ -4092,6 +4117,44 @@ width: 150px;
     .sc-thankyou-btn {
         width: 100%;
         min-width: auto;
+    }
+
+    .boxs_do_after_pay {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding-top: 8px;
+    }
+
+    .boxs_do_after_pay div {
+        padding: 14px 16px;
+    }
+
+    .boxs_do_after_pay a {
+        font-size: 13px;
+    }
+}
+
+body.woocommerce-order-received .entry-content,
+body.woocommerce-order-received .site-main,
+body.sc-order-pay-page-active .entry-content,
+body.sc-order-pay-page-active .site-main {
+    overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+    body.woocommerce-order-received .entry-content,
+    body.woocommerce-order-received .site-main,
+    body.sc-order-pay-page-active .entry-content,
+    body.sc-order-pay-page-active .site-main {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    body.woocommerce-order-received .woocommerce,
+    body.sc-order-pay-page-active .woocommerce {
+        padding-left: 0;
+        padding-right: 0;
     }
 }
 
@@ -4328,6 +4391,15 @@ width: 150px;
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
+    }
+}
+
+/* حذف media تکراری boxs_do_after_pay — در بلوک بالا ادغام شد */
+@media (max-width: 990px) {
+    .boxs_do_after_pay:not(.sc-thankyou-page .boxs_do_after_pay) {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
     }
 }
 
@@ -4674,71 +4746,6 @@ ul.woocommerce-error a{
 .sc-thankyou-icon svg{
     border: 3px solid;
     border-radius: 50%;
-}
-
-/* Responsive برای صفحه تشکر */
-@media (max-width: 768px) {
-    .woocommerce-order-received,
-    .woocommerce-thankyou-order-received {
-        padding: 0 15px;
-        margin: 20px auto;
-    }
-    
-    .woocommerce-order-received .woocommerce-thankyou-order-received,
-    .woocommerce-thankyou-order-received .woocommerce-thankyou-order-received {
-        padding: 30px 15px;
-    }
-    
-    .woocommerce-order-received .woocommerce-thankyou-order-received h2,
-    .woocommerce-thankyou-order-received .woocommerce-thankyou-order-received h2 {
-        font-size: 24px;
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .woocommerce-order-overview {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-    
-    .woocommerce-order-overview li {
-        padding: 15px;
-    }
-    
-    .woocommerce-order-received .woocommerce-order-details,
-    .woocommerce-thankyou-order-received .woocommerce-order-details,
-    .woocommerce-order-received .woocommerce-customer-details,
-    .woocommerce-thankyou-order-received .woocommerce-customer-details {
-        padding: 20px 15px;
-    }
-    
-    .woocommerce-order-received .button,
-    .woocommerce-thankyou-order-received .button {
-        width: 100%;
-        margin: 10px 0;
-        text-align: center;
-    }
-    .boxs_do_after_pay{
-            display: flex;
-    flex-direction: column;
-    gap: 6px;
-    }
-    .after_do_pay{
-        font-size: 13px;
-    line-height: 19px;
-    }
-
-}
-@media (max-width: 990px) {
-.boxs_do_after_pay{
-            display: flex;
-    flex-direction: column;
-    gap: 6px;
-    }
-    .after_do_pay{
-        font-size: 13px;
-    line-height: 19px;
-    }
 }
 
 /* enroll course */
@@ -7509,6 +7516,117 @@ display: block;
       background-color: #1144f638;
       color: white;
 }
+
+/* زیرمنوی منوی وسط هدر (بعد از مگامنو دسته‌بندی) */
+@media screen and (min-width: 781px) {
+    .menu-header_dl > ul > li > .sub-menu {
+        right: 0;
+        left: auto;
+        min-width: 230px;
+        width: max-content;
+        max-width: 280px;
+        padding: 6px 0 8px;
+        border: none;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow:
+            0 4px 6px rgba(109, 52, 255, 0.04),
+            0 14px 40px rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+        transform: translateY(6px);
+        transition: opacity 0.22s ease, visibility 0.22s ease, transform 0.22s ease, top 0.22s ease;
+    }
+
+    .menu-header_dl > ul > li:hover > .sub-menu {
+        transform: translateY(0);
+    }
+
+    .menu-header_dl > ul > li > .sub-menu::before {
+        content: "";
+        display: block;
+        height: 3px;
+        margin: -6px 0 4px;
+        background: linear-gradient(90deg, #6d34ff 0%, #9333ea 100%);
+    }
+
+    .menu-header_dl > ul > li > .sub-menu::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 14px;
+        top: -14px;
+        right: 0;
+    }
+
+    .menu-header_dl .sub-menu > li {
+        position: relative;
+    }
+
+    .menu-header_dl .sub-menu > li + li {
+        border-top: 1px solid #f2f0f7;
+    }
+
+    .menu-header_dl .sub-menu > li > a {
+        padding: 11px 18px 11px 14px;
+        font-size: 13.5px;
+        font-weight: 500;
+        line-height: 1.45;
+        color: #2a2a2f !important;
+        border-right: 3px solid transparent;
+        transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .menu-header_dl .sub-menu > li > a:hover {
+        background: #f7f3ff !important;
+        color: #6d34ff !important;
+        border-right-color: #6d34ff;
+    }
+
+    .menu-header_dl .sub-menu .sub-menu {
+        top: -6px;
+        right: calc(100% + 6px);
+        left: auto;
+        min-width: 210px;
+        max-width: 260px;
+        padding: 6px 0 8px;
+        border: none;
+        border-radius: 12px;
+        box-shadow:
+            0 4px 6px rgba(109, 52, 255, 0.04),
+            0 12px 32px rgba(0, 0, 0, 0.1);
+        transform: translateX(8px);
+        transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+    }
+
+    .menu-header_dl .sub-menu li:hover > .sub-menu {
+        transform: translateX(0);
+    }
+
+    .menu-header_dl .sub-menu .menu-item-has-children > a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .menu-header_dl .sub-menu .menu-item-has-children > a::after {
+        content: "\f053";
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        flex-shrink: 0;
+        margin: 0;
+        font-size: 10px;
+        color: #a8a8b3;
+        width: auto;
+        transition: color 0.18s ease, transform 0.18s ease;
+    }
+
+    .menu-header_dl .sub-menu .menu-item-has-children:hover > a::after {
+        color: #6d34ff;
+        transform: translateX(-2px);
+    }
+}
+
 .menu-header_moblie{
     display: none;
 }
@@ -7542,12 +7660,12 @@ display: block;
 
 .modal-menu_mobile{
         width: 90%;
-    background: #3e009fd4;;
+
     position: absolute;
     margin: 20px;
     top: 80px;
     border-radius: 10px;
-      border: 2px solid #0c02c9;
+     
       z-index: 9999;
     
 
@@ -8697,5 +8815,402 @@ border-radius: 10px;
     .sc-enroll-fields {
         flex-direction: column;
         gap: 12px;
+    }
+}
+
+/* ============================================
+   صفحه پرداخت سفارش (order-pay)
+   ============================================ */
+.sc-order-pay-page {
+    max-width: 1140px;
+    margin: 24px auto 48px;
+    padding: 0 20px;
+}
+
+.sc-order-pay-hero {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #6D34FF 0%, #4f3988 55%, #2d1b69 100%);
+    box-shadow: 0 14px 40px rgba(109, 52, 255, 0.28);
+}
+
+.sc-order-pay-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.18) 0%, transparent 42%),
+        radial-gradient(circle at 85% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 38%);
+    pointer-events: none;
+}
+
+.sc-order-pay-hero-inner {
+    position: relative;
+    z-index: 1;
+    padding: 36px 32px;
+    color: #fff;
+    text-align: center;
+}
+
+.sc-order-pay-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    backdrop-filter: blur(6px);
+}
+
+.sc-order-pay-hero-title {
+    margin: 0 0 10px;
+    font-size: 30px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.sc-order-pay-hero-sub {
+    margin: 0 0 22px;
+    font-size: 15px;
+    opacity: 0.92;
+    line-height: 1.7;
+}
+
+.sc-order-pay-hero-sub strong {
+    background: rgba(255, 255, 255, 0.18);
+    padding: 2px 10px;
+    border-radius: 8px;
+}
+
+.sc-order-pay-hero-amount {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 16px 28px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(8px);
+}
+
+.sc-order-pay-hero-amount-label {
+    font-size: 12px;
+    opacity: 0.85;
+    font-weight: 600;
+}
+
+.sc-order-pay-hero-amount-value {
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.sc-order-pay-hero-amount-value .woocommerce-Price-amount,
+.sc-order-pay-hero-amount-value bdi {
+    color: #fff !important;
+}
+
+.sc-order-pay-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.sc-order-pay-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.07);
+    border: 1px solid #ececf3;
+}
+
+.sc-order-pay-card + .sc-order-pay-card {
+    margin-top: 16px;
+}
+
+.sc-order-pay-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 18px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #6D34FF;
+    font-size: 20px;
+    font-weight: 800;
+    color: #1a1a1a;
+}
+
+.sc-order-pay-card-icon {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.sc-order-pay-item-name {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #eef0ff 100%);
+    border-right: 4px solid #6D34FF;
+    margin-bottom: 12px;
+}
+
+.sc-order-pay-label,
+.sc-order-pay-detail-row .sc-thankyou-item-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 700;
+}
+
+.sc-order-pay-value,
+.sc-order-pay-detail-row .sc-thankyou-item-value {
+    font-size: 16px;
+    color: #1e293b;
+    font-weight: 800;
+}
+
+.sc-order-pay-detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.sc-order-pay-detail-row:last-child {
+    border-bottom: none;
+}
+
+.sc-order-pay-empty-note {
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.7;
+}
+
+.sc-order-pay-trust-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    font-size: 14px;
+    color: #475569;
+    font-weight: 600;
+}
+
+.sc-order-pay-trust-item + .sc-order-pay-trust-item {
+    border-top: 1px dashed #e2e8f0;
+}
+
+.sc-order-pay-trust-icon {
+    font-size: 18px;
+}
+
+.sc-order-pay-items {
+    border: 1px solid #e8ebf3;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.sc-order-pay-items-head,
+.sc-order-pay-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: start;
+    padding: 14px 16px;
+}
+
+.sc-order-pay-items-head {
+    background: #f8fafc;
+    font-size: 12px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 1px solid #e8ebf3;
+}
+
+.sc-order-pay-item + .sc-order-pay-item {
+    border-top: 1px solid #eef2f7;
+}
+
+.sc-order-pay-item-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.5;
+}
+
+.sc-order-pay-item-price {
+    font-size: 15px;
+    font-weight: 800;
+    color: #6D34FF;
+    white-space: nowrap;
+}
+
+.sc-order-pay-item .wc-item-meta,
+.sc-order-pay-item .variation {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.sc-order-pay-totals {
+    border-top: 1px solid #e8ebf3;
+    background: #fafbff;
+}
+
+.sc-order-pay-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #475569;
+    border-top: 1px solid #eef2f7;
+}
+
+.sc-order-pay-total-row--grand {
+    background: linear-gradient(135deg, #f3eeff 0%, #ebe4ff 100%);
+    font-size: 17px;
+    font-weight: 800;
+    color: #6D34FF;
+    border-top: 2px solid #6D34FF;
+}
+
+.sc-order-pay-gateways {
+    margin-top: 8px;
+}
+
+.sc-order-pay-gateways .wc_payment_methods {
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.sc-order-pay-gateways .wc_payment_method {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sc-order-pay-gateways .wc_payment_method:hover,
+.sc-order-pay-gateways .wc_payment_method.payment_method_selected {
+    border-color: #6D34FF;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.1);
+}
+
+.sc-order-pay-gateways .payment_box {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px dashed #dbe3ef;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.sc-order-pay-submit-row {
+    margin: 0;
+    padding-top: 4px;
+}
+
+.sc-order-pay-submit,
+.sc-order-pay-page #place_order {
+    width: 100%;
+    min-height: 52px;
+    border: none !important;
+    border-radius: 12px !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.sc-order-pay-submit:hover,
+.sc-order-pay-page #place_order:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(109, 52, 255, 0.34);
+}
+
+body.sc-order-pay-page-active .page-header h1,
+body.sc-order-pay-page-active .entry-header {
+    display: none;
+}
+
+body.sc-order-pay-page-active .woocommerce > .woocommerce-notices-wrapper {
+    max-width: 1140px;
+    margin: 16px auto 0;
+    padding: 0 20px;
+}
+
+@media (max-width: 960px) {
+    .sc-order-pay-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-order-pay-summary {
+        order: 2;
+    }
+
+    .sc-order-pay-main {
+        order: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .sc-order-pay-page {
+        margin: 12px auto 32px;
+        padding: 0 16px;
+    }
+
+    .sc-order-pay-hero-inner {
+        padding: 28px 18px;
+    }
+
+    .sc-order-pay-hero-title {
+        font-size: 24px;
+    }
+
+    .sc-order-pay-hero-amount-value {
+        font-size: 22px;
+    }
+
+    .sc-order-pay-card {
+        padding: 18px 16px;
+        border-radius: 14px;
+    }
+
+    .sc-order-pay-card-title {
+        font-size: 18px;
+    }
+
+    .sc-order-pay-items-head,
+    .sc-order-pay-item {
+        padding: 12px 14px;
+    }
+
+    .sc-order-pay-detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
     }
 }

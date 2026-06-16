@@ -454,6 +454,7 @@ function sc_save_course_coach_assignments_from_post($course_id, array $allowed_c
 
     $table = $wpdb->prefix . 'sc_course_coaches';
     $salary_map = sc_get_course_coach_assignments_map($course_id);
+    $branch_meta_map = sc_get_course_coach_branch_meta_map($course_id);
     $branch_prices = isset($_POST['coach_branch_price_raw']) && is_array($_POST['coach_branch_price_raw'])
         ? wp_unslash($_POST['coach_branch_price_raw'])
         : [];
@@ -484,14 +485,30 @@ function sc_save_course_coach_assignments_from_post($course_id, array $allowed_c
             $salary = isset($salary_map[$chapter_name][$coach_id]) ? (float) $salary_map[$chapter_name][$coach_id] : 0.0;
 
             $price_per_session = 0.0;
+            $posted_price = null;
             if (isset($branch_prices[$chapter_name][$coach_id])) {
-                $price_raw = preg_replace('/[^\d.]/', '', str_replace(',', '', sanitize_text_field((string) $branch_prices[$chapter_name][$coach_id])));
+                $posted_price = $branch_prices[$chapter_name][$coach_id];
+            } elseif (isset($branch_prices[$chapter_name][(string) $coach_id])) {
+                $posted_price = $branch_prices[$chapter_name][(string) $coach_id];
+            }
+            if ($posted_price !== null && $posted_price !== '') {
+                $price_raw = preg_replace('/[^\d.]/', '', str_replace(',', '', sanitize_text_field((string) $posted_price)));
                 $price_per_session = (float) $price_raw;
+            } elseif (isset($branch_meta_map[$chapter_name][$coach_id]['price_per_session'])) {
+                $price_per_session = (float) $branch_meta_map[$chapter_name][$coach_id]['price_per_session'];
             }
 
             $capacity = null;
-            if (isset($branch_capacities[$chapter_name][$coach_id]) && $branch_capacities[$chapter_name][$coach_id] !== '') {
-                $capacity = max(1, absint($branch_capacities[$chapter_name][$coach_id]));
+            $posted_capacity = null;
+            if (isset($branch_capacities[$chapter_name][$coach_id])) {
+                $posted_capacity = $branch_capacities[$chapter_name][$coach_id];
+            } elseif (isset($branch_capacities[$chapter_name][(string) $coach_id])) {
+                $posted_capacity = $branch_capacities[$chapter_name][(string) $coach_id];
+            }
+            if ($posted_capacity !== null && $posted_capacity !== '') {
+                $capacity = max(1, absint($posted_capacity));
+            } elseif (isset($branch_meta_map[$chapter_name][$coach_id]['capacity']) && $branch_meta_map[$chapter_name][$coach_id]['capacity'] !== null) {
+                $capacity = max(1, (int) $branch_meta_map[$chapter_name][$coach_id]['capacity']);
             }
 
             $row_data = [

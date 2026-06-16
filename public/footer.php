@@ -15,10 +15,10 @@ function custom_footer_output() {
     
     <footer class="custom-footer" >
        <?php if (trim($footer_line1) !== '') : ?>
-       <p><?php echo esc_html($footer_line1); ?></p>
+      <a href="https://atomclubapp.ir" target="_blank"> <p><?php echo esc_html($footer_line1); ?></p></a>
        <?php endif; ?>
        <?php if (trim($footer_line2) !== '') : ?>
-       <p><?php echo esc_html($footer_line2); ?></p>
+       <a href="https://atomclubapp.ir" target="_blank"> <p><?php echo esc_html($footer_line2); ?></p></a>
        <?php endif; ?>
     </footer>
 

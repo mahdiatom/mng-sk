@@ -65,7 +65,4 @@
     border-radius: 8px;
 }
 
-.woocommerce-MyAccount-navigation-link--bot-connect a::before {
-    content: "\1F4AC";
-    margin-left: 6px;
-}
+

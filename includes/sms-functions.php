@@ -1425,12 +1425,11 @@ function sc_send_invoice_sms_on_wc_order_status($order_id, $old_status, $new_sta
         return;
     }
 
+    // پرداخت موفق فقط از هوک sc_invoice_paid پیامک می‌گیرد (جلوگیری از ارسال تکراری)
     $action_map = [
         'cancelled' => 'invoice_cancelled',
         'on-hold' => 'invoice_onhold',
         'pending' => 'invoice_onhold',
-        'processing' => 'invoice_paid',
-        'completed' => 'invoice_paid',
     ];
 
     $action = $action_map[$new_status] ?? null;

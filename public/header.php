@@ -244,8 +244,10 @@ button[name="save_honors"],
   .custom-footer a ,
   .sc-notifications-pagination span,
   .sc-thankyou-header,
-  .woo_panel_mini .count_unread_notif_mini
- 
+  .sc-order-pay-submit,
+  .sc-order-pay-page #place_order,
+  .woo_panel_mini .count_unread_notif_mini 
+
  {
  
     background-color: <?php echo $color_org;  ?> !important;
@@ -253,7 +255,13 @@ button[name="save_honors"],
    
     
 }
-.menus_header ul li a ,
+ .modal-menu_mobile{
+        background-color: <?php echo $color_org;  ?>a6  !important;
+        border: 1px solid <?php echo $color_org_txt;  ?>!important;
+;
+
+ }
+.menu_custom_gym .menu > li > a,
  .menus .header_phone ,
 a.details_info_user_pannel,
 .woocommerce-MyAccount-navigation ul li a,

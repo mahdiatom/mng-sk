@@ -565,31 +565,43 @@ function sc_register_admin_menu() {
                 'sc-private-bookings-list',
                 'sc_render_private_bookings_admin_page'
             );
-            add_menu_page(
-                'رزرو کلاس خصوصی',
-                'رزرو کلاس خصوصی',
-                'read',
-                'sc-private-booking-requests',
-                'sc_render_private_booking_requests_page',
-                'dashicons-calendar-alt',
-                15.5
-            );
-            add_submenu_page(
-                'sc-private-booking-requests',
-                'لیست رزروها',
-                'لیست رزروها',
-                'read',
-                'sc-private-booking-requests',
-                'sc_render_private_booking_requests_page'
-            );
-            add_submenu_page(
-                'sc-private-booking-requests',
-                'ثبت‌نام کلاس خصوصی',
-                'ثبت‌نام کلاس خصوصی',
-                'read',
-                'sc-private-booking-form',
-                'sc_render_private_booking_form_page'
-            );
+            if (function_exists('sc_is_private_booking_admin_approval_mode') && sc_is_private_booking_admin_approval_mode()) {
+                add_menu_page(
+                    'رزرو کلاس خصوصی',
+                    'رزرو کلاس خصوصی',
+                    'read',
+                    'sc-private-booking-requests',
+                    'sc_render_private_booking_requests_page',
+                    'dashicons-calendar-alt',
+                    15.5
+                );
+                add_submenu_page(
+                    'sc-private-booking-requests',
+                    'لیست رزروها',
+                    'لیست رزروها',
+                    'read',
+                    'sc-private-booking-requests',
+                    'sc_render_private_booking_requests_page'
+                );
+                add_submenu_page(
+                    'sc-private-booking-requests',
+                    'ثبت‌نام کلاس خصوصی',
+                    'ثبت‌نام کلاس خصوصی',
+                    'read',
+                    'sc-private-booking-form',
+                    'sc_render_private_booking_form_page'
+                );
+            } else {
+                add_menu_page(
+                    'ثبت‌نام کلاس خصوصی',
+                    'ثبت‌نام کلاس خصوصی',
+                    'read',
+                    'sc-private-booking-form',
+                    'sc_render_private_booking_form_page',
+                    'dashicons-calendar-alt',
+                    15.5
+                );
+            }
         }
     }
 

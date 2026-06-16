@@ -437,10 +437,6 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $private_class_sms_approved_to_user_pattern = isset($_POST['private_class_sms_approved_to_user_pattern']) ? absint($_POST['private_class_sms_approved_to_user_pattern']) : 0;
         $private_class_sms_rejected_to_user_pattern = isset($_POST['private_class_sms_rejected_to_user_pattern']) ? absint($_POST['private_class_sms_rejected_to_user_pattern']) : 0;
         $private_class_sms_activated_to_user_pattern = isset($_POST['private_class_sms_activated_to_user_pattern']) ? absint($_POST['private_class_sms_activated_to_user_pattern']) : 0;
-        $private_class_bale_request_to_admin_enabled = isset($_POST['private_class_bale_request_to_admin_enabled']) ? 1 : 0;
-        $private_class_bale_approved_to_user_enabled = isset($_POST['private_class_bale_approved_to_user_enabled']) ? 1 : 0;
-        $private_class_bale_rejected_to_user_enabled = isset($_POST['private_class_bale_rejected_to_user_enabled']) ? 1 : 0;
-        $private_class_bale_activated_to_user_enabled = isset($_POST['private_class_bale_activated_to_user_enabled']) ? 1 : 0;
 
         sc_update_setting('private_class_sms_request_to_admin_enabled', (string) $private_class_sms_request_to_admin_enabled, 'classes');
         sc_update_setting('private_class_sms_approved_to_user_enabled', (string) $private_class_sms_approved_to_user_enabled, 'classes');
@@ -454,10 +450,6 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('private_class_sms_approved_to_user_pattern', (string) $private_class_sms_approved_to_user_pattern, 'classes');
         sc_update_setting('private_class_sms_rejected_to_user_pattern', (string) $private_class_sms_rejected_to_user_pattern, 'classes');
         sc_update_setting('private_class_sms_activated_to_user_pattern', (string) $private_class_sms_activated_to_user_pattern, 'classes');
-        sc_update_setting('private_class_bale_request_to_admin_enabled', (string) $private_class_bale_request_to_admin_enabled, 'classes');
-        sc_update_setting('private_class_bale_approved_to_user_enabled', (string) $private_class_bale_approved_to_user_enabled, 'classes');
-        sc_update_setting('private_class_bale_rejected_to_user_enabled', (string) $private_class_bale_rejected_to_user_enabled, 'classes');
-        sc_update_setting('private_class_bale_activated_to_user_enabled', (string) $private_class_bale_activated_to_user_enabled, 'classes');
 
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب پیامک ذخیره شد', null, ['tab' => 'sms']);
@@ -581,6 +573,10 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
             ? 'admin_approval'
             : 'direct_payment';
         sc_update_setting('private_booking_mode', $private_booking_mode, 'classes');
+        $private_class_page_description = isset($_POST['private_class_page_description'])
+            ? wp_kses_post(wp_unslash($_POST['private_class_page_description']))
+            : '';
+        sc_update_setting('private_class_page_description', $private_class_page_description, 'classes');
         foreach (['course', 'chapter', 'coach', 'slots', 'sessions', 'start_date'] as $field_key) {
             $val = isset($_POST['private_booking_user_show_' . $field_key]) ? 1 : 0;
             sc_update_setting('private_booking_user_show_' . $field_key, (string) $val, 'classes');
@@ -3278,12 +3274,12 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 </div>
                 <div class="sc-sms-message-section" data-section="private-class-booking">
                 <h3>پیامک / بله — رزرو کلاس خصوصی (حالت تایید مدیر)</h3>
+                <p class="description" style="margin-bottom:12px;">پیام بله برای کاربر به‌صورت خودکار ارسال می‌شود اگر chat id او در سیستم ثبت شده باشد.</p>
                 <table class="form-table">
                     <tr>
                         <th scope="row">درخواست کاربر → مدیر</th>
                         <td>
                             <label><input type="checkbox" name="private_class_sms_request_to_admin_enabled" value="1" <?php checked($private_class_sms_request_to_admin_enabled, 1); ?>> پیامک به مدیر</label>
-                            &nbsp; <label><input type="checkbox" name="private_class_bale_request_to_admin_enabled" value="1" <?php checked($private_class_bale_request_to_admin_enabled, 1); ?>> پیام بله (در صورت اتصال)</label>
                             <br><br>
                             <textarea name="private_class_sms_request_to_admin_template" rows="2" class="large-text"><?php echo esc_textarea($private_class_sms_request_to_admin_template); ?></textarea>
                             <br><input type="number" name="private_class_sms_request_to_admin_pattern" value="<?php echo esc_attr($private_class_sms_request_to_admin_pattern); ?>" class="small-text" placeholder="کد پترن">
@@ -3293,7 +3289,6 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <th scope="row">تایید مدیر → کاربر</th>
                         <td>
                             <label><input type="checkbox" name="private_class_sms_approved_to_user_enabled" value="1" <?php checked($private_class_sms_approved_to_user_enabled, 1); ?>> پیامک به کاربر</label>
-                            &nbsp; <label><input type="checkbox" name="private_class_bale_approved_to_user_enabled" value="1" <?php checked($private_class_bale_approved_to_user_enabled, 1); ?>> پیام بله</label>
                             <br><br>
                             <textarea name="private_class_sms_approved_to_user_template" rows="2" class="large-text"><?php echo esc_textarea($private_class_sms_approved_to_user_template); ?></textarea>
                             <br><input type="number" name="private_class_sms_approved_to_user_pattern" value="<?php echo esc_attr($private_class_sms_approved_to_user_pattern); ?>" class="small-text" placeholder="کد پترن">
@@ -3303,7 +3298,6 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <th scope="row">رد درخواست → کاربر</th>
                         <td>
                             <label><input type="checkbox" name="private_class_sms_rejected_to_user_enabled" value="1" <?php checked($private_class_sms_rejected_to_user_enabled, 1); ?>> پیامک</label>
-                            &nbsp; <label><input type="checkbox" name="private_class_bale_rejected_to_user_enabled" value="1" <?php checked($private_class_bale_rejected_to_user_enabled, 1); ?>> بله</label>
                             <br><br>
                             <textarea name="private_class_sms_rejected_to_user_template" rows="2" class="large-text"><?php echo esc_textarea($private_class_sms_rejected_to_user_template); ?></textarea>
                             <br><input type="number" name="private_class_sms_rejected_to_user_pattern" value="<?php echo esc_attr($private_class_sms_rejected_to_user_pattern); ?>" class="small-text" placeholder="کد پترن">
@@ -3313,7 +3307,6 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <th scope="row">فعال‌سازی جلسات (پس از پرداخت) → کاربر</th>
                         <td>
                             <label><input type="checkbox" name="private_class_sms_activated_to_user_enabled" value="1" <?php checked($private_class_sms_activated_to_user_enabled, 1); ?>> پیامک</label>
-                            &nbsp; <label><input type="checkbox" name="private_class_bale_activated_to_user_enabled" value="1" <?php checked($private_class_bale_activated_to_user_enabled, 1); ?>> بله</label>
                             <br><br>
                             <textarea name="private_class_sms_activated_to_user_template" rows="2" class="large-text"><?php echo esc_textarea($private_class_sms_activated_to_user_template); ?></textarea>
                             <br><input type="number" name="private_class_sms_activated_to_user_pattern" value="<?php echo esc_attr($private_class_sms_activated_to_user_pattern); ?>" class="small-text" placeholder="کد پترن">
@@ -3921,6 +3914,9 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
             foreach ($private_booking_field_defaults as $fkey => $fdefault) {
                 $private_booking_user_fields[$fkey] = (int) sc_get_setting('private_booking_user_show_' . $fkey, (string) $fdefault) === 1;
             }
+            $private_class_page_description = function_exists('sc_get_private_class_page_description')
+                ? sc_get_private_class_page_description()
+                : trim((string) sc_get_setting('private_class_page_description', ''));
             $field_labels = [
                 'course' => 'انتخاب دوره',
                 'chapter' => 'انتخاب شعبه',
@@ -3955,6 +3951,12 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                             <p class="description" style="margin:6px 0 0;">کاربر درخواست می‌دهد، مدیر تکمیل می‌کند و صورت‌حساب صادر می‌شود. تا پرداخت یا تایید پرداخت، جلسه‌ای رزرو نمی‌شود.</p>
                         </label>
                     </div>
+                </div>
+
+                <div class="sc-classes-settings-card">
+                    <h3 style="margin-top:0;">توضیحات صفحه رزرو کلاس خصوصی (کاربر)</h3>
+                    <p class="description">این متن بالای فرم رزرو در پنل کاربر نمایش داده می‌شود و قابل بستن نیست.</p>
+                    <textarea name="private_class_page_description" id="private_class_page_description" rows="4" class="large-text" placeholder="مثلاً: برای رزرو کلاس خصوصی، ابتدا دوره و مربی را انتخاب کنید..."><?php echo esc_textarea($private_class_page_description); ?></textarea>
                 </div>
 
                 <div class="sc-classes-settings-card sc-booking-mode-2-fields" <?php echo $private_booking_mode !== 'admin_approval' ? 'style="display:none;"' : ''; ?>>

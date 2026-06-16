@@ -2062,6 +2062,44 @@ function sc_update_database() {
         }
         update_option('sc_member_courses_multi_enrollment_v1', '1');
     }
+
+    if (function_exists('sc_private_ensure_booking_schema_columns')) {
+        sc_private_ensure_booking_schema_columns();
+    }
+}
+
+/**
+ * اطمینان از وجود ستون‌های رزرو خصوصی (booking_source, rejected_reason)
+ */
+function sc_private_ensure_booking_schema_columns() {
+    global $wpdb;
+    static $checked = false;
+    if ($checked) {
+        return true;
+    }
+
+    $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $bookings_table)) !== $bookings_table) {
+        return false;
+    }
+
+    $columns = $wpdb->get_col("SHOW COLUMNS FROM `{$bookings_table}`", 0);
+    $columns = array_map('strtolower', array_map('strval', (array) $columns));
+
+    if (!in_array('booking_source', $columns, true)) {
+        $wpdb->query("ALTER TABLE `$bookings_table` ADD COLUMN `booking_source` varchar(20) NOT NULL DEFAULT 'user_direct' COMMENT 'user_direct|user_request|admin' AFTER `status`");
+        $columns[] = 'booking_source';
+    }
+    if (!in_array('rejected_reason', $columns, true)) {
+        $after_invoice = in_array('invoice_id', $columns, true)
+            ? ' AFTER `invoice_id`'
+            : '';
+        $wpdb->query("ALTER TABLE `$bookings_table` ADD COLUMN `rejected_reason` varchar(500) DEFAULT NULL{$after_invoice}");
+        $columns[] = 'rejected_reason';
+    }
+
+    $checked = in_array('booking_source', $columns, true);
+    return $checked;
 }
 
 /**
@@ -2083,7 +2121,9 @@ function sc_create_private_course_bookings_table() {
         `start_date` date NOT NULL,
         `end_date` date NOT NULL,
         `status` varchar(30) NOT NULL DEFAULT 'pending_payment',
+        `booking_source` varchar(20) NOT NULL DEFAULT 'user_direct',
         `invoice_id` bigint(20) unsigned DEFAULT NULL,
+        `rejected_reason` varchar(500) DEFAULT NULL,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
