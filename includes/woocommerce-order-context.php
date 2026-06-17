@@ -10,16 +10,12 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Build display context for a WooCommerce order linked to SportClub invoices.
+ * Default SportClub invoice/order display context.
  *
- * @param int $order_id
  * @return array<string,mixed>
  */
-function sc_get_order_sportclub_context($order_id) {
-    global $wpdb;
-
-    $order_id = absint($order_id);
-    $context = [
+function sc_get_empty_sportclub_context() {
+    return [
         'invoice' => null,
         'course' => null,
         'member_course' => null,
@@ -40,18 +36,28 @@ function sc_get_order_sportclub_context($order_id) {
         'skill_level' => '',
         'course_chapter_legacy' => '',
     ];
+}
 
-    if ($order_id <= 0) {
-        return $context;
+/**
+ * Build display context from a SportClub invoice row.
+ *
+ * @param object|int|null $invoice Invoice row or invoice ID.
+ * @return array<string,mixed>
+ */
+function sc_get_invoice_sportclub_context($invoice) {
+    global $wpdb;
+
+    $context = sc_get_empty_sportclub_context();
+
+    if (is_numeric($invoice)) {
+        $invoices_table = $wpdb->prefix . 'sc_invoices';
+        $invoice = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $invoices_table WHERE id = %d LIMIT 1",
+            absint($invoice)
+        ));
     }
 
-    $invoices_table = $wpdb->prefix . 'sc_invoices';
-    $invoice = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $invoices_table WHERE woocommerce_order_id = %d LIMIT 1",
-        $order_id
-    ));
-
-    if (!$invoice) {
+    if (!$invoice || !is_object($invoice)) {
         return $context;
     }
 
@@ -159,7 +165,179 @@ function sc_get_order_sportclub_context($order_id) {
         }
     }
 
+    if ($context['item_type'] === 'other' && !empty($invoice->expense_name)) {
+        $context['item_type'] = 'expense';
+        $context['item_name'] = (string) $invoice->expense_name;
+    }
+
     return $context;
+}
+
+/**
+ * Build display context for a WooCommerce order linked to SportClub invoices.
+ *
+ * @param int $order_id
+ * @return array<string,mixed>
+ */
+function sc_get_order_sportclub_context($order_id) {
+    global $wpdb;
+
+    $order_id = absint($order_id);
+    if ($order_id <= 0) {
+        return sc_get_empty_sportclub_context();
+    }
+
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+    $invoice = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $invoices_table WHERE woocommerce_order_id = %d LIMIT 1",
+        $order_id
+    ));
+
+    return sc_get_invoice_sportclub_context($invoice);
+}
+
+/**
+ * Status badge data for public invoice lists.
+ *
+ * @param string $status
+ * @return array{label:string,class:string,bg:string,color:string,icon:string}
+ */
+function sc_get_invoice_status_display($status) {
+    switch ($status) {
+        case 'paid':
+        case 'completed':
+            return [
+                'label' => 'تایید پرداخت',
+                'class' => 'paid',
+                'bg' => '#d4edda',
+                'color' => '#155724',
+                'icon' => '✅',
+            ];
+        case 'processing':
+            return [
+                'label' => 'پرداخت شده',
+                'class' => 'processing',
+                'bg' => '#d4edda',
+                'color' => '#155724',
+                'icon' => '✅',
+            ];
+        case 'under_review':
+        case 'on-hold':
+            return [
+                'label' => 'در حال بررسی',
+                'class' => 'under_review',
+                'bg' => '#e5f5fa',
+                'color' => '#2271b1',
+                'icon' => '🔍',
+            ];
+        case 'cancelled':
+            return [
+                'label' => 'لغو شده',
+                'class' => 'cancelled',
+                'bg' => '#ffeaea',
+                'color' => '#d63638',
+                'icon' => '❌',
+            ];
+        case 'refunded':
+            return [
+                'label' => 'بازگشت شده',
+                'class' => 'refunded',
+                'bg' => '#ffeaea',
+                'color' => '#d63638',
+                'icon' => '↩️',
+            ];
+        case 'failed':
+            return [
+                'label' => 'ناموفق',
+                'class' => 'failed',
+                'bg' => '#ffeaea',
+                'color' => '#d63638',
+                'icon' => '⚠️',
+            ];
+        case 'pending':
+        default:
+            return [
+                'label' => 'در انتظار پرداخت',
+                'class' => 'pending',
+                'bg' => '#fff3cd',
+                'color' => '#856404',
+                'icon' => '⏳',
+            ];
+    }
+}
+
+/**
+ * Status badge for WooCommerce order status strings (wc-pending, etc.).
+ *
+ * @param string $status
+ * @return array{label:string,class:string,bg:string,color:string,icon:string}
+ */
+function sc_get_wc_order_status_display($status) {
+    $normalized = preg_replace('/^wc-/', '', (string) $status);
+    if ($normalized === 'under_review') {
+        $normalized = 'under_review';
+    }
+    if ($normalized === 'checkout-draft') {
+        $normalized = 'pending';
+    }
+    if ($normalized === 'paid') {
+        $normalized = 'completed';
+    }
+    return sc_get_invoice_status_display($normalized);
+}
+
+/**
+ * Whether an invoice card should show expandable details.
+ *
+ * @param object              $invoice
+ * @param array<string,mixed> $context
+ */
+function sc_invoice_has_expandable_details($invoice, $context) {
+    if (!empty($invoice->invoice_description)) {
+        return true;
+    }
+
+    $item_type = $context['item_type'] ?? 'other';
+    if (in_array($item_type, ['course', 'event'], true)) {
+        return true;
+    }
+
+    if (!empty($context['chapter']) || !empty($context['coach_name'])) {
+        return true;
+    }
+
+    if (!empty($invoice->expense_name) && !empty($invoice->course_title)) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Whether a shop order card should show expandable details.
+ *
+ * @param object              $order
+ * @param array<string,mixed> $context
+ */
+function sc_shop_order_has_expandable_details($order, $context) {
+    if (!empty($order->order_description)) {
+        return true;
+    }
+
+    if (!empty($order->products_with_quantity) && substr_count((string) $order->products_with_quantity, '<br>') > 0) {
+        return true;
+    }
+
+    $item_type = $context['item_type'] ?? 'other';
+    if (in_array($item_type, ['course', 'event'], true)) {
+        return true;
+    }
+
+    if (!empty($context['chapter']) || !empty($context['coach_name'])) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -239,6 +417,7 @@ function sc_render_order_item_detail_rows($context, $row_class = 'sc-thankyou-it
 
     $row_class = sanitize_html_class($row_class);
     $show_dates = !isset($options['show_dates']) || $options['show_dates'];
+    $show_price = !isset($options['show_price']) || $options['show_price'];
 
     if ($context['item_type'] === 'course') {
         if (!empty($context['course_type_label'])) {
@@ -246,7 +425,7 @@ function sc_render_order_item_detail_rows($context, $row_class = 'sc-thankyou-it
         }
 
         $price = (float) ($context['display_price'] ?? 0);
-        if ($price > 0) {
+        if ($show_price && $price > 0) {
             sc_render_order_detail_row($row_class, 'مبلغ:', wp_kses_post(sc_format_order_display_price($price)));
         }
 

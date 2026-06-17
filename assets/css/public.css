@@ -2968,7 +2968,8 @@ ease !important;
 .sc-enroll-course-filters button , 
 .sc-my-courses-filters button ,
  .sc-events-filters button,
- .sc-invoices-filters button {
+ .sc-invoices-filters button,
+ .sc-orders-filters button {
     color: #fff !important;
     border: none !important;
     padding: 10px 15px !important;
@@ -3216,21 +3217,620 @@ ease !important;
         }
     }
 
-    /* صورت حساب */
-    .sc-invoices-page {
-    margin-top: 20px;
-}
+    /* صورت حساب / سفارشات — طراحی کارت مشترک */
+    .sc-account-list-page,
+    .sc-invoices-page,
+    .sc-orders-page {
+        margin-top: 20px;
+        max-width: 1200px;
+    }
 
-.sc-invoices-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-top: 20px;
-    background: #fff;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
+    .sc-account-card,
+    .sc-invoice-card,
+    .sc-order-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+        border: 1px solid #eee;
+        overflow: hidden;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    .sc-account-card:hover,
+    .sc-invoice-card:hover,
+    .sc-order-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(109, 52, 255, 0.12);
+    }
+
+    .sc-account-card-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .sc-account-card-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        background: #f1f5f9;
+        border-radius: 999px;
+        font-size: 11px;
+        color: #475569;
+        font-weight: 600;
+    }
+
+    .sc-account-card-details {
+        padding: 0 22px 16px;
+        border-top: 1px dashed #e8e8f0;
+        background: #fcfcff;
+    }
+
+    .sc-account-card-details[hidden] {
+        display: none !important;
+    }
+
+    .sc-account-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 12px 18px 14px;
+        border-top: 1px solid #eee;
+        background: #fafafa;
+    }
+
+    .sc-account-card-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border: 1px solid #d8ccf5;
+        border-radius: 8px;
+        background: #fff;
+        color: #6D34FF;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .sc-account-card-toggle:hover,
+    .sc-account-card-toggle.is-open {
+        background: #6D34FF;
+        color: #fff;
+        border-color: #6D34FF;
+    }
+
+    .sc-account-card-actions,
+    .sc-invoice-card-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        flex-direction: row;
+        text-align: center;
+        padding: 0;
+        border-top: none;
+        background: transparent;
+        margin-right: auto;
+        margin-left: 0;
+    }
+
+    .sc-account-card-footer .sc-account-card-actions {
+        margin-right: 0;
+        margin-left: auto;
+    }
+
+    .sc-account-btn-compact,
+    .sc-invoice-btn,
+    .sc-order-btn {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 12px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+        line-height: 1.3 !important;
+        min-height: 30px;
+        white-space: nowrap;
+        text-decoration: none !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .sc-invoice-btn-pay,
+    .sc-order-btn-pay {
+        color: #fff !important;
+        box-shadow: 0 1px 4px rgba(34, 113, 177, 0.25) !important;
+    }
+
+    .sc-invoice-btn-wallet,
+    .sc-order-btn-wallet {
+        background: #28a745 !important;
+        color: #fff !important;
+        border: none !important;
+    }
+
+    .sc-invoice-btn-cancel,
+    .sc-order-btn-cancel {
+        background: #dc3545 !important;
+        color: #fff !important;
+        border: none !important;
+        box-shadow: 0 1px 4px rgba(214, 54, 56, 0.25) !important;
+    }
+
+    .sc-invoice-btn-view,
+    .sc-order-btn-view {
+        background: #f9f9f9 !important;
+        color: #333 !important;
+        border: 1px solid #ddd !important;
+    }
+
+    .sc-order-products-list {
+        padding: 12px 0 8px;
+    }
+
+    .sc-order-products-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #666;
+        margin-bottom: 6px;
+    }
+
+    .sc-order-products-value {
+        font-size: 13px;
+        color: #333;
+        line-height: 1.7;
+    }
+
+    .sc-invoices-page {
+        max-width: 1200px;
+    }
+
+    .sc-invoices-page-header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 28px;
+        padding: 28px 30px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #6D34FF 0%, #5a2ae6 100%);
+        color: #fff;
+        box-shadow: 0 10px 30px rgba(109, 52, 255, 0.25);
+    }
+
+    .sc-invoices-page-icon {
+        width: 64px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 16px;
+        flex-shrink: 0;
+    }
+
+    .sc-invoices-page-title {
+        margin: 0 0 6px;
+        font-size: 28px;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .sc-invoices-page-subtitle {
+        margin: 0;
+        font-size: 15px;
+        opacity: 0.92;
+        line-height: 1.6;
+    }
+
+    .sc-invoices-notice {
+        margin-bottom: 24px;
+        border-radius: 12px;
+    }
+
+    .sc-invoices-filters {
+        margin-bottom: 28px;
+        background: #fff;
+        padding: 22px 24px;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+        border: 1px solid #eee;
+    }
+
+    .sc-invoices-filter-form {
+        display: flex;
+        gap: 16px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .sc-invoices-filter-field {
+        flex: 1;
+        min-width: 180px;
+    }
+
+    .sc-invoices-filter-field-dates {
+        flex: 2;
+        min-width: 280px;
+    }
+
+    .sc-invoices-filter-field label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #444;
+    }
+
+    .sc-invoices-filter-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        box-sizing: border-box;
+        font-size: 14px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .sc-invoices-filter-control:focus {
+        border-color: #6D34FF;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12);
+    }
+
+    .sc-invoices-date-range {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .sc-invoices-date-sep {
+        color: #666;
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    .sc-invoices-filter-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .sc-invoices-filter-submit,
+    .sc-invoices-filter-reset {
+        padding: 10px 20px !important;
+        height: auto !important;
+        border-radius: 10px !important;
+    }
+
+    .sc-invoices-empty {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 12px;
+        padding: 20px 24px;
+        color: #856404;
+        text-align: center;
+        font-size: 15px;
+    }
+
+    .sc-invoices-list,
+    .sc-orders-list {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .sc-invoice-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 22px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #eef0ff 100%);
+        border-bottom: 1px solid #e8e8f0;
+        flex-wrap: wrap;
+    }
+
+    .sc-invoice-card-head-main {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .sc-invoice-card-number-label,
+    .sc-invoice-card-amount-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 4px;
+    }
+
+    .sc-invoice-card-number strong {
+        font-size: 18px;
+        font-weight: 700;
+        color: #6D34FF;
+    }
+
+    .sc-invoice-card-date {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #666;
+    }
+
+    .sc-invoice-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 12px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .sc-invoice-status-icon {
+        font-size: 15px;
+    }
+
+    .sc-invoice-card-body {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 20px;
+        padding: 22px;
+        align-items: start;
+    }
+
+    .sc-invoice-card-item-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .sc-invoice-card-item-icon {
+        font-size: 20px;
+    }
+
+    .sc-invoice-card-item-type {
+        font-size: 12px;
+        font-weight: 700;
+        color: #6D34FF;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .sc-invoice-card-item-title {
+        margin: 0 0 12px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a1a1a;
+        line-height: 1.45;
+    }
+
+    .sc-invoice-card-item-title--muted {
+        color: #999;
+        font-weight: 600;
+    }
+
+    .sc-invoice-card-details {
+        margin-top: 4px;
+    }
+
+    .sc-invoice-detail-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 14px;
+        background: #f9f9fb;
+        border-radius: 10px;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .sc-invoice-detail-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .sc-invoice-detail-row .sc-thankyou-item-label {
+        min-width: auto;
+        font-size: 13px;
+        color: #666;
+        font-weight: 600;
+    }
+
+    .sc-invoice-detail-row .sc-thankyou-item-value {
+        font-size: 14px;
+        color: #6D34FF;
+        font-weight: 700;
+        text-align: left;
+    }
+
+    .sc-invoice-card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .sc-invoice-card-meta-item strong {
+        color: #334155;
+        font-weight: 700;
+    }
+
+    .sc-invoice-card-description {
+        margin-top: 12px;
+        padding: 12px 14px;
+        background: #f5f5f5;
+        border-radius: 10px;
+        font-size: 13px;
+        color: #555;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        border-right: 3px solid #6D34FF;
+    }
+
+    .sc-invoice-card-amount {
+        min-width: 140px;
+        padding: 16px 18px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #eef0ff 100%);
+        border-radius: 14px;
+        border-right: 4px solid #6D34FF;
+        text-align: center;
+    }
+
+    .sc-invoice-card-amount-value {
+        font-size: 20px;
+        font-weight: 800;
+        color: #6D34FF;
+        line-height: 1.3;
+    }
+
+    .sc-invoice-card-amount-value .woocommerce-Price-amount {
+        color: inherit;
+    }
+
+    .sc-invoice-card-penalty {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed #ddd;
+        font-size: 12px;
+        color: #d63638;
+    }
+
+    .sc-invoice-card-total {
+        margin-top: 6px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #6D34FF;
+    }
+
+    .sc-invoice-card-waiting {
+        color: #d63638;
+        font-size: 11px;
+        padding: 6px 10px;
+        background: #ffeaea;
+        border-radius: 8px;
+        display: inline-block;
+    }
+
+    .sc-invoice-card-no-action {
+        color: #999;
+        font-size: 12px;
+    }
+
+    .sc-invoices-pagination {
+        margin: 24px 0 50px;
+    }
+
+    .sc-account-btn-compact:hover,
+    .sc-invoice-btn-pay:hover,
+    .sc-order-btn-pay:hover {
+        transform: translateY(-1px);
+    }
+
+    .order-again{
+        display: none !important;
+    }
+
+    /* رسپانسیو صورت حساب / سفارشات */
+    @media (max-width: 768px) {
+        .sc-invoices-page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 22px 18px;
+            border-radius: 16px;
+        }
+
+        .sc-invoices-page-title {
+            font-size: 22px;
+        }
+
+        .sc-invoices-filters {
+            padding: 16px;
+        }
+
+        .sc-invoices-filter-field,
+        .sc-invoices-filter-field-dates {
+            min-width: 100%;
+            flex: 1 1 100%;
+        }
+
+        .sc-invoices-date-range {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .sc-invoices-date-sep {
+            text-align: center;
+        }
+
+        .sc-invoice-card-head {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .sc-invoice-card-body {
+            grid-template-columns: 1fr;
+        }
+
+        .sc-invoice-card-amount {
+            text-align: right;
+        }
+
+        .sc-invoice-detail-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+
+        .sc-account-card-footer {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .sc-account-card-footer .sc-account-card-actions {
+            justify-content: stretch;
+            width: 100%;
+        }
+
+        .sc-account-card-footer .sc-account-btn-compact {
+            flex: 1;
+            min-width: calc(50% - 4px);
+        }
+    }
+
+    /* Legacy table styles kept for admin / backward compat */
+    .sc-invoices-table-wrap{
+        overflow-x: auto;
+    }
+    .sc-invoices-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 20px;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
 .woocommerce-orders-table__header-order-number{
     width: 15%;
     
@@ -3271,42 +3871,6 @@ text-align: center !important;
 table td, table th{
     border: none !important;
 }
-.sc-invoice-btn-pay{
-    display: inline-block !important;
-    padding: 10px 18px !important;
-    color: #fff !important;
-    text-decoration: none !important;
-    border-radius: 6px !important;
-    font-weight: 600 !important;
-    font-size: 13px !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 2px 6px rgba(34, 113, 177, 0.3) !important;
-}
-
-.sc-invoice-btn-view{
-    display: inline-block !important;
-    padding: 10px 18px !important;
-    background: #f9f9f9 !important;
-    color: #333 !important;
-    text-decoration: none !important;
-    border-radius: 6px !important;
-    font-weight: 600 !important;
-    font-size: 13px !important;
-    border: 1px solid #ddd !important;
-    transition: all 0.3s ease !important;
-}
-.sc-invoice-btn-cancel{
-    display: inline-block !important;
-    padding: 10px 18px !important;
-    background: red !important;
-    color: #fff !important;
-    text-decoration: none !important;
-    border-radius: 6px !important;
-    font-weight: 600 !important;
-    font-size: 13px !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 2px 6px rgba(214, 54, 56, 0.3) !important;
-}
 .sc-invoices-table tbody tr:hover {
     background-color: #f9f9f9;
     transform: translateX(-2px);
@@ -3315,36 +3879,14 @@ table td, table th{
 .sc-invoices-table tbody tr:last-child td {
     border-bottom: none;
 }
-
-.sc-invoice-btn {
-    white-space: nowrap;
-}
-
-.sc-invoice-btn-pay:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(34, 113, 177, 0.4) !important;
-}
-
-.sc-invoice-btn-view:hover {
-    background: #e9e9e9 !important;
-    border-color: #bbb !important;
-}
-
-.sc-invoice-btn-cancel:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(214, 54, 56, 0.4) !important;
-}
 .woocommerce-orders-table__header , .woocommerce-orders-table__cell{
     text-align: center !important;
 }
 .woocommerce-orders-table__cell-order-number{
     text-align: right !important;
 }
-.order-again{
-    display: none !important;
-}
 
-/* رسپانسیو صورت حساب: هر سطر به صورت کارت، متن در عرض کامل شکسته می‌شود */
+/* Legacy table responsive (admin / my-orders) */
 @media (max-width: 768px) {
     .sc-invoices-table-wrap {
         overflow-x: visible;

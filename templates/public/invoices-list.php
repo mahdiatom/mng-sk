@@ -4,7 +4,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// استفاده از تنظیمات WooCommerce برای فرمت قیمت
 $decimal_places = 0;
 $decimal_separator = '.';
 $thousand_separator = ',';
@@ -18,15 +17,11 @@ if (function_exists('wc_get_price_decimal_separator')) {
 if (function_exists('wc_get_price_thousand_separator')) {
     $thousand_separator = wc_get_price_thousand_separator();
 }
-?>
 
-<?php
-// دریافت متغیر فیلتر (اگر از my-account.php فراخوانی شده باشد)
 $filter_status = isset($filter_status) ? $filter_status : (isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all');
 $invoice_search = isset($invoice_search) ? $invoice_search : (isset($_GET['invoice_search']) ? sanitize_text_field(wp_unslash($_GET['invoice_search'])) : '');
 $filter_date_from_shamsi = isset($filter_date_from_shamsi) ? $filter_date_from_shamsi : (isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '');
 $filter_date_to_shamsi = isset($filter_date_to_shamsi) ? $filter_date_to_shamsi : (isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '');
-// تاریخ پیش‌فرض نمایشی روی امروز (شمسی) — فقط برای placeholder/مقدار نمایشی، اعمال نمی‌شود
 $sc_inv_today_shamsi = '';
 if (function_exists('sc_date_shamsi_date_only')) {
     $sc_inv_today_shamsi = sc_date_shamsi_date_only(current_time('Y-m-d'));
@@ -38,30 +33,31 @@ $display_date_to_shamsi = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi
 $invoices = isset($invoices) ? $invoices : [];
 $current_page = isset($current_page) ? max(1, absint($current_page)) : 1;
 $total_pages = isset($total_pages) ? max(1, absint($total_pages)) : 1;
-$get_certificate =isset( $_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
+$get_certificate = isset($_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
 ?>
 
-<div class="sc-invoices-page">
-    <h2 style="margin-bottom: 25px; color: #1a1a1a; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 32px;">💳</span>
-        صورت حساب‌ها
-    </h2>
-    <?php 
-    if($get_certificate){
-        ?>
-           <div class="woocommerce-message" role="alert" tabindex="-1">
-		صورت حساب درخواست فیزیکی گواهینامه شما صادر شد لطفا نسبت به پرداخت آن اقدام فرمایید.	</div>
-        <?php
-    }
+<div class="sc-invoices-page sc-account-list-page">
+    <div class="sc-invoices-page-header">
+        <div class="sc-invoices-page-icon">💳</div>
+        <div>
+            <h2 class="sc-invoices-page-title">صورت حساب‌ها</h2>
+            <p class="sc-invoices-page-subtitle">لیست پرداخت‌های دوره، رویداد و سایر هزینه‌های شما</p>
+        </div>
+    </div>
 
-        ?>
-    <!-- فیلتر وضعیت -->
-    <div class="sc-invoices-filters" style="margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-        <form method="GET" action="<?php echo esc_url(wc_get_account_endpoint_url('sc-invoices')); ?>" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+    <?php if ($get_certificate) : ?>
+        <div class="woocommerce-message sc-invoices-notice" role="alert" tabindex="-1">
+            صورت حساب درخواست فیزیکی گواهینامه شما صادر شد. لطفاً نسبت به پرداخت آن اقدام فرمایید.
+        </div>
+    <?php endif; ?>
+
+    <div class="sc-invoices-filters">
+        <form method="GET" action="<?php echo esc_url(wc_get_account_endpoint_url('sc-invoices')); ?>" class="sc-invoices-filter-form">
             <input type="hidden" name="pag" value="1" />
-            <div style="flex: 1; min-width: 200px;">
-                <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
-                <select name="filter_status" id="filter_status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+
+            <div class="sc-invoices-filter-field">
+                <label for="filter_status">وضعیت</label>
+                <select name="filter_status" id="filter_status" class="sc-invoices-filter-control">
                     <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
                     <option value="pending" <?php selected($filter_status, 'pending'); ?>>در انتظار پرداخت</option>
                     <option value="under_review" <?php selected($filter_status, 'under_review'); ?>>در حال بررسی</option>
@@ -74,32 +70,31 @@ $get_certificate =isset( $_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
                 </select>
             </div>
 
-            <div style="flex: 1; min-width: 220px;">
-                <label for="invoice_search" style="display: block; margin-bottom: 5px; font-weight: 600;">جستجو:</label>
-                <input type="search" name="invoice_search" id="invoice_search" value="<?php echo esc_attr($invoice_search); ?>" placeholder="نام، شماره سفارش یا توضیحات..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+            <div class="sc-invoices-filter-field">
+                <label for="invoice_search">جستجو</label>
+                <input type="search" name="invoice_search" id="invoice_search" class="sc-invoices-filter-control" value="<?php echo esc_attr($invoice_search); ?>" placeholder="نام، شماره سفارش یا توضیحات...">
             </div>
 
-            <div style="flex: 2; min-width: 280px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600;">بازه تاریخ:</label>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-inv-date-input" data-today-shamsi="<?php echo esc_attr($sc_inv_today_shamsi); ?>" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="<?php echo esc_attr($display_date_from_shamsi); ?>" readonly autocomplete="off" style="flex:1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
-                    <span style="color:#666;">تا</span>
-                    <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-inv-date-input" data-today-shamsi="<?php echo esc_attr($sc_inv_today_shamsi); ?>" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="<?php echo esc_attr($display_date_to_shamsi); ?>" readonly autocomplete="off" style="flex:1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+            <div class="sc-invoices-filter-field sc-invoices-filter-field-dates">
+                <label>بازه تاریخ</label>
+                <div class="sc-invoices-date-range">
+                    <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-inv-date-input sc-invoices-filter-control" data-today-shamsi="<?php echo esc_attr($sc_inv_today_shamsi); ?>" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="<?php echo esc_attr($display_date_from_shamsi); ?>" readonly autocomplete="off">
+                    <span class="sc-invoices-date-sep">تا</span>
+                    <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-inv-date-input sc-invoices-filter-control" data-today-shamsi="<?php echo esc_attr($sc_inv_today_shamsi); ?>" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="<?php echo esc_attr($display_date_to_shamsi); ?>" readonly autocomplete="off">
                 </div>
             </div>
 
-            <div style="display:flex; gap:8px;">
-                <button type="submit" class="button button-primary" style="padding: 8px 20px; height: auto;">اعمال فیلتر</button>
+            <div class="sc-invoices-filter-actions">
+                <button type="submit" class="button button-primary sc-invoices-filter-submit">اعمال فیلتر</button>
                 <?php if ($filter_status !== 'all' || $invoice_search !== '' || $filter_date_from_shamsi !== '' || $filter_date_to_shamsi !== '') : ?>
-                    <a href="<?php echo esc_url(wc_get_account_endpoint_url('sc-invoices')); ?>" class="button" style="padding: 8px 20px; height: auto;">پاک کردن</a>
+                    <a href="<?php echo esc_url(wc_get_account_endpoint_url('sc-invoices')); ?>" class="button sc-invoices-filter-reset">پاک کردن</a>
                 <?php endif; ?>
             </div>
         </form>
-
     </div>
-    
+
     <?php if (empty($invoices)) : ?>
-        <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
+        <div class="sc-invoices-empty">
             <?php if ($invoice_search !== '' || $filter_date_from_shamsi !== '' || $filter_date_to_shamsi !== '') : ?>
                 موردی با این جستجو/بازه تاریخ یافت نشد.
             <?php elseif ($filter_status !== 'all') : ?>
@@ -109,401 +104,340 @@ $get_certificate =isset( $_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
             <?php endif; ?>
         </div>
     <?php else : ?>
-        <div class="sc-invoices-table-wrap">
-        <table class="woocommerce-orders-table woocommerce-MyAccount-orders shop_table my_account_orders account-orders-table sc-invoices-table sc-invoices-table-desktop">
-            <thead>
-                <tr>
-                    <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-number">
-                        <span class="nobr">شماره سفارش</span>
-                    </th>
-                    <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-date">
-                        <span class="nobr">سفارش</span>
-                    </th>
-                    <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-status">
-                        <span class="nobr">مبلغ</span>
-                    </th>
-                    <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-total">
-                        <span class="nobr">وضعیت</span>
-                    </th>
-                    <th class="woocommerce-orders-table__header woocommerce-orders-table__header-order-actions">
-                        <span class="nobr">عملیات</span>
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php 
-                $count_invoices =  0;
-                foreach ($invoices as $invoice) : 
-                    $count_invoices++;
-                    
-                    $total_amount = (float)$invoice->amount + (float)($invoice->penalty_amount ?? 0);
-                    
-                    $formatted_price = '';
-                    if (function_exists('wc_price')) {
-                        $formatted_price = wc_price($invoice->amount);
-                    } else {
-                        $formatted_price = number_format((float)$invoice->amount, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
+        <div class="sc-invoices-list">
+            <?php foreach ($invoices as $invoice) :
+                $total_amount = (float) $invoice->amount + (float) ($invoice->penalty_amount ?? 0);
+
+                if (function_exists('wc_price')) {
+                    $formatted_price = wc_price($invoice->amount);
+                    $formatted_total = wc_price($total_amount);
+                } else {
+                    $formatted_price = number_format((float) $invoice->amount, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
+                    $formatted_total = number_format($total_amount, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
+                }
+
+                $penalty_amount = (float) ($invoice->penalty_amount ?? 0);
+                $formatted_penalty = '';
+                if ($penalty_amount > 0) {
+                    $formatted_penalty = function_exists('wc_price')
+                        ? wc_price($penalty_amount)
+                        : number_format($penalty_amount, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
+                }
+
+                $status = function_exists('sc_get_invoice_status_display')
+                    ? sc_get_invoice_status_display((string) $invoice->status)
+                    : ['label' => 'در انتظار پرداخت', 'class' => 'pending', 'bg' => '#fff3cd', 'color' => '#856404', 'icon' => '⏳'];
+                $status_label = $status['label'];
+                $status_class = $status['class'];
+                $status_bg = $status['bg'];
+                $status_color = $status['color'];
+                $status_icon = $status['icon'];
+
+                $inv_ctx = function_exists('sc_get_invoice_sportclub_context')
+                    ? sc_get_invoice_sportclub_context($invoice)
+                    : ['item_type' => 'other', 'item_name' => ''];
+
+                $order_number = '#' . $invoice->id;
+                if (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
+                    $order = wc_get_order($invoice->woocommerce_order_id);
+                    if ($order) {
+                        $order_number = $order->get_order_number();
                     }
-                    
-                    $formatted_total = '';
-                    if (function_exists('wc_price')) {
-                        $formatted_total = wc_price($total_amount);
-                    } else {
-                        $formatted_total = number_format($total_amount, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
-                    }
-                    
-                    $penalty_amount = (float)($invoice->penalty_amount ?? 0);
-                    $formatted_penalty = '';
-                    if ($penalty_amount > 0) {
-                        if (function_exists('wc_price')) {
-                            $formatted_penalty = wc_price($penalty_amount);
-                        } else {
-                            $formatted_penalty = number_format($penalty_amount, $decimal_places, $decimal_separator, $thousand_separator) . ' تومان';
-                        }
-                    }
-                    
-                    // تعیین وضعیت و رنگ
-                    $status_label = '';
-                    $status_class = '';
-                    $status_bg = '';
-                    $status_color = '';
-                    $status_icon = '';
-                    
-                    switch ($invoice->status) {
-                        case 'paid':
-                        case 'completed':
-                            $status_label = 'تایید پرداخت';
-                            $status_class = 'paid';
-                            $status_bg = '#d4edda';
-                            $status_color = '#155724';
-                            $status_icon = '✅';
-                            break;
-                        case 'processing':
-                            $status_label = 'پرداخت شده';
-                            $status_class = 'processing';
-                            $status_bg = '#d4edda';
-                            $status_color = '#155724';
-                            $status_icon = '✅';
-                            break;
-                        case 'pending':
-                            $status_label = 'در انتظار پرداخت';
-                            $status_class = 'pending';
-                            $status_bg = '#fff3cd';
-                            $status_color = '#856404';
-                            $status_icon = '⏳';
-                            break;
-                        case 'under_review':
-                        case 'on-hold':
-                            $status_label = 'در حال بررسی';
-                            $status_class = 'under_review';
-                            $status_bg = '#e5f5fa';
-                            $status_color = '#2271b1';
-                            $status_icon = '🔍';
-                            break;
-                        case 'cancelled':
-                            $status_label = 'لغو شده';
-                            $status_class = 'cancelled';
-                            $status_bg = '#ffeaea';
-                            $status_color = '#d63638';
-                            $status_icon = '❌';
-                            break;
-                        case 'refunded':
-                            $status_label = 'بازگشت شده';
-                            $status_class = 'refunded';
-                            $status_bg = '#ffeaea';
-                            $status_color = '#d63638';
-                            $status_icon = '↩️';
-                            break;
-                        case 'failed':
-                            $status_label = 'ناموفق';
-                            $status_class = 'failed';
-                            $status_bg = '#ffeaea';
-                            $status_color = '#d63638';
-                            $status_icon = '⚠️';
-                            break;
-                        default:
-                            $status_label = 'در انتظار پرداخت';
-                            $status_class = 'pending';
-                            $status_bg = '#fff3cd';
-                            $status_color = '#856404';
-                            $status_icon = '⏳';
-                    }
-                    
-                    // دریافت لینک پرداخت اگر سفارش WooCommerce وجود دارد
-                    $payment_url = '';
-                    $order_object = null;
-                    $is_order_paid = false;
-                    $has_valid_order = false;
-                    
-                    // بررسی وجود woocommerce_order_id و وضعیت pending یا under_review
-                    if (!empty($invoice->woocommerce_order_id) && in_array($invoice->status, ['pending', 'under_review'])) {
-                        if (function_exists('wc_get_order')) {
-                            $order_object = wc_get_order($invoice->woocommerce_order_id);
-                            if ($order_object) {
-                                $has_valid_order = true;
-                                $is_order_paid = $order_object->is_paid();
-                                $order_status = $order_object->get_status();
-                                
-                                // اگر سفارش پرداخت نشده است و وضعیت pending است، لینک پرداخت را ایجاد کن
-                                // برای under_review فقط لینک مشاهده سفارش نمایش داده می‌شود
-                                if (!$is_order_paid && $invoice->status === 'pending') {
-                                    // استفاده از متد اصلی WooCommerce برای لینک پرداخت
-                                    $payment_url = $order_object->get_checkout_payment_url();
-                                    
-                                    // اگر لینک خالی بود یا متد وجود نداشت، از endpoint استفاده کن
-                                    if (empty($payment_url)) {
-                                        $checkout_page_id = wc_get_page_id('checkout');
-                                        if ($checkout_page_id) {
-                                            $payment_url = add_query_arg('order-pay', $invoice->woocommerce_order_id, get_permalink($checkout_page_id));
-                                            $payment_url = add_query_arg('key', $order_object->get_order_key(), $payment_url);
-                                        } else {
-                                            // در صورت عدم وجود صفحه checkout، از order-pay endpoint استفاده کن
-                                            $payment_url = wc_get_endpoint_url('order-pay', $invoice->woocommerce_order_id, wc_get_page_permalink('checkout'));
-                                        }
+                }
+
+                $item_type = $inv_ctx['item_type'] ?? 'other';
+                $item_icon = '📄';
+                $item_section_label = 'جزئیات';
+                if ($item_type === 'course') {
+                    $item_icon = !empty($inv_ctx['is_private']) ? '🏋️' : '📚';
+                    $item_section_label = !empty($inv_ctx['is_private']) ? 'کلاس خصوصی' : 'دوره';
+                } elseif ($item_type === 'event') {
+                    $item_icon = '🎯';
+                    $item_section_label = 'رویداد / مسابقه';
+                } elseif ($item_type === 'expense') {
+                    $item_icon = '💰';
+                    $item_section_label = 'هزینه';
+                } elseif (!empty($invoice->course_title)) {
+                    $item_icon = '📚';
+                    $item_section_label = 'دوره';
+                } elseif (!empty($invoice->event_name)) {
+                    $item_icon = '🎯';
+                    $item_section_label = 'رویداد / مسابقه';
+                } elseif (!empty($invoice->expense_name)) {
+                    $item_icon = '💰';
+                    $item_section_label = 'هزینه اضافی';
+                }
+
+                $item_title = '';
+                if (!empty($inv_ctx['item_name'])) {
+                    $item_title = (string) $inv_ctx['item_name'];
+                } elseif (!empty($invoice->course_title)) {
+                    $item_title = (string) $invoice->course_title;
+                } elseif (!empty($invoice->event_name)) {
+                    $item_title = (string) $invoice->event_name;
+                } elseif (!empty($invoice->expense_name)) {
+                    $item_title = (string) $invoice->expense_name;
+                }
+
+                $payment_url = '';
+                $order_object = null;
+                $is_order_paid = false;
+
+                if (!empty($invoice->woocommerce_order_id) && in_array($invoice->status, ['pending', 'under_review'], true)) {
+                    if (function_exists('wc_get_order')) {
+                        $order_object = wc_get_order($invoice->woocommerce_order_id);
+                        if ($order_object) {
+                            $is_order_paid = $order_object->is_paid();
+                            if (!$is_order_paid && $invoice->status === 'pending') {
+                                $payment_url = $order_object->get_checkout_payment_url();
+                                if (empty($payment_url)) {
+                                    $checkout_page_id = wc_get_page_id('checkout');
+                                    if ($checkout_page_id) {
+                                        $payment_url = add_query_arg('order-pay', $invoice->woocommerce_order_id, get_permalink($checkout_page_id));
+                                        $payment_url = add_query_arg('key', $order_object->get_order_key(), $payment_url);
+                                    } else {
+                                        $payment_url = wc_get_endpoint_url('order-pay', $invoice->woocommerce_order_id, wc_get_page_permalink('checkout'));
                                     }
                                 }
                             }
                         }
                     }
-                    
-                    // اگر لینک پرداخت وجود ندارد اما woocommerce_order_id و وضعیت pending یا under_review دارد، لینک را ایجاد کن
-                    if (empty($payment_url) && !empty($invoice->woocommerce_order_id) && in_array($invoice->status, ['pending', 'under_review'])) {
-                        // اگر order پیدا نشد، دوباره تلاش کن
-                        if (!$order_object && function_exists('wc_get_order')) {
-                            $order_object = wc_get_order($invoice->woocommerce_order_id);
-                            if ($order_object) {
-                                $is_order_paid = $order_object->is_paid();
-                            }
-                        }
-                        
-                        if ($order_object && !$is_order_paid) {
-                            // تلاش برای ایجاد لینک پرداخت با استفاده از order key
-                            $order_key = $order_object->get_order_key();
-                            $checkout_page_id = wc_get_page_id('checkout');
-                            if ($checkout_page_id && $order_key) {
-                                $payment_url = add_query_arg([
-                                    'order-pay' => $invoice->woocommerce_order_id,
-                                    'key' => $order_key
-                                ], get_permalink($checkout_page_id));
-                            }
-                        } elseif (!empty($invoice->woocommerce_order_id)) {
-                            // اگر order پیدا نشد اما order_id وجود دارد، یک لینک ساده ایجاد کن
-                            $checkout_page_id = wc_get_page_id('checkout');
-                            if ($checkout_page_id) {
-                                $payment_url = add_query_arg('order-pay', $invoice->woocommerce_order_id, get_permalink($checkout_page_id));
-                            }
+                }
+
+                if (empty($payment_url) && !empty($invoice->woocommerce_order_id) && in_array($invoice->status, ['pending', 'under_review'], true)) {
+                    if (!$order_object && function_exists('wc_get_order')) {
+                        $order_object = wc_get_order($invoice->woocommerce_order_id);
+                        if ($order_object) {
+                            $is_order_paid = $order_object->is_paid();
                         }
                     }
-                ?>
-                    <tr class="woocommerce-orders-table__row woocommerce-orders-table__row--status-<?php echo esc_attr($status_class); ?> order">
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-number" data-label="شماره سفارش">
-                            <?php
-                            // استفاده از شماره سفارش WooCommerce اگر وجود داشته باشد
-                            $order_number = '#' . $invoice->id;
-                            if (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
-                                $order = wc_get_order($invoice->woocommerce_order_id);
-                                if ($order) {
-                                    $order_number = $order->get_order_number();
-                                }
-                            }
-                            ?>
-                            <strong style="color: #2271b1; font-size: 15px;"><?php echo esc_html($order_number); ?></strong>
-                            <br>
-                            <small style="color: #666; font-size: 12px;">
-                                📅 <?php echo sc_date_shamsi_date_only($invoice->created_at); ?>
-                            </small>
-                        </td>
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-date" data-label="سفارش">
-                            <?php if (!empty($invoice->course_title)) : ?>
-                                <div style="margin-bottom: 5px;">
-                                    <strong style="color: #2271b1;">📚 دوره:</strong>
-                                    <span style="color: #333;"><?php echo esc_html($invoice->course_title); ?></span>
+
+                    if ($order_object && !$is_order_paid) {
+                        $order_key = $order_object->get_order_key();
+                        $checkout_page_id = wc_get_page_id('checkout');
+                        if ($checkout_page_id && $order_key) {
+                            $payment_url = add_query_arg([
+                                'order-pay' => $invoice->woocommerce_order_id,
+                                'key' => $order_key,
+                            ], get_permalink($checkout_page_id));
+                        }
+                    } elseif (!empty($invoice->woocommerce_order_id)) {
+                        $checkout_page_id = wc_get_page_id('checkout');
+                        if ($checkout_page_id) {
+                            $payment_url = add_query_arg('order-pay', $invoice->woocommerce_order_id, get_permalink($checkout_page_id));
+                        }
+                    }
+                }
+                $has_expandable = function_exists('sc_invoice_has_expandable_details')
+                    && sc_invoice_has_expandable_details($invoice, $inv_ctx);
+            ?>
+                <article class="sc-account-card sc-invoice-card sc-invoice-card--status-<?php echo esc_attr($status_class); ?>">
+                    <div class="sc-invoice-card-head">
+                        <div class="sc-invoice-card-head-main">
+                            <div class="sc-invoice-card-number">
+                                <span class="sc-invoice-card-number-label">شماره سفارش</span>
+                                <strong><?php echo esc_html($order_number); ?></strong>
+                            </div>
+                            <div class="sc-invoice-card-date">
+                                <span class="sc-invoice-card-date-icon">📅</span>
+                                <?php echo esc_html(sc_date_shamsi_date_only($invoice->created_at)); ?>
+                            </div>
+                        </div>
+                        <span class="sc-invoice-status-badge" style="background-color: <?php echo esc_attr($status_bg); ?>; color: <?php echo esc_attr($status_color); ?>;">
+                            <span class="sc-invoice-status-icon"><?php echo esc_html($status_icon); ?></span>
+                            <?php echo esc_html($status_label); ?>
+                        </span>
+                    </div>
+
+                    <div class="sc-account-card-summary sc-invoice-card-body">
+                        <div class="sc-invoice-card-item">
+                            <div class="sc-invoice-card-item-head">
+                                <span class="sc-invoice-card-item-icon"><?php echo esc_html($item_icon); ?></span>
+                                <span class="sc-invoice-card-item-type"><?php echo esc_html($item_section_label); ?></span>
+                            </div>
+
+                            <?php if ($item_title !== '') : ?>
+                                <h3 class="sc-invoice-card-item-title"><?php echo esc_html($item_title); ?></h3>
+                            <?php else : ?>
+                                <h3 class="sc-invoice-card-item-title sc-invoice-card-item-title--muted">بدون عنوان</h3>
+                            <?php endif; ?>
+
+                            <?php if (!$has_expandable && (!empty($inv_ctx['chapter']) || !empty($inv_ctx['coach_name']))) : ?>
+                                <div class="sc-account-card-chips">
+                                    <?php if (!empty($inv_ctx['chapter'])) : ?>
+                                        <span class="sc-account-card-chip">شعبه: <?php echo esc_html($inv_ctx['chapter']); ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($inv_ctx['coach_name'])) : ?>
+                                        <span class="sc-account-card-chip">مربی: <?php echo esc_html($inv_ctx['coach_name']); ?></span>
+                                    <?php endif; ?>
                                 </div>
-                            <?php elseif (!empty($invoice->event_name)) : ?>
-                                <div style="margin-bottom: 5px;">
-                                    <strong style="color: #2271b1;">🎯 رویداد / مسابقه:</strong>
-                                    <span style="color: #333;"><?php echo esc_html($invoice->event_name); ?></span>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="sc-invoice-card-amount">
+                            <div class="sc-invoice-card-amount-label">مبلغ</div>
+                            <div class="sc-invoice-card-amount-value"><?php echo wp_kses_post($formatted_price); ?></div>
+                            <?php if ($penalty_amount > 0) : ?>
+                                <div class="sc-invoice-card-penalty">
+                                    <span class="sc-invoice-card-penalty-label">جریمه:</span>
+                                    <?php echo wp_kses_post($formatted_penalty); ?>
                                 </div>
-                            <?php elseif (!empty($invoice->expense_name)) : ?>
-                                <div style="margin-bottom: 5px;">
-                                    <strong style="color: #2271b1;">💰 هزینه اضافی:</strong>
-                                    <span style="color: #333;"><?php echo esc_html($invoice->expense_name); ?></span>
+                                <div class="sc-invoice-card-total">
+                                    <span class="sc-invoice-card-total-label">مجموع:</span>
+                                    <?php echo wp_kses_post($formatted_total); ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <?php if ($has_expandable) : ?>
+                        <div class="sc-account-card-details" id="sc-inv-details-<?php echo esc_attr((string) $invoice->id); ?>" hidden>
+                            <?php if ($item_type === 'course' || $item_type === 'event') : ?>
+                                <div class="sc-invoice-card-details">
+                                    <?php
+                                    if (function_exists('sc_render_order_item_detail_rows')) {
+                                        sc_render_order_item_detail_rows($inv_ctx, 'sc-invoice-detail-row', ['show_dates' => false, 'show_price' => false]);
+                                    }
+                                    ?>
                                 </div>
                             <?php else : ?>
-                                <span style="color: #999;">-</span>
-                            <?php endif; ?>
-                            <?php if (!empty($invoice->expense_name) && !empty($invoice->course_title)) : ?>
-                                <div style="margin-top: 5px; padding-top: 5px; border-top: 1px solid #eee;">
-                                    <small><strong style="color: #2271b1;">💰 هزینه اضافی:</strong> <?php echo esc_html($invoice->expense_name); ?></small>
+                                <div class="sc-invoice-card-meta">
+                                    <?php if (!empty($inv_ctx['chapter'])) : ?>
+                                        <span class="sc-invoice-card-meta-item"><strong>شعبه:</strong> <?php echo esc_html($inv_ctx['chapter']); ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($inv_ctx['coach_name'])) : ?>
+                                        <span class="sc-invoice-card-meta-item"><strong>مربی:</strong> <?php echo esc_html($inv_ctx['coach_name']); ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($invoice->expense_name) && !empty($invoice->course_title) && $item_type !== 'expense') : ?>
+                                        <span class="sc-invoice-card-meta-item"><strong>هزینه اضافی:</strong> <?php echo esc_html($invoice->expense_name); ?></span>
+                                    <?php endif; ?>
                                 </div>
                             <?php endif; ?>
+
                             <?php if (!empty($invoice->invoice_description)) : ?>
-                                <div class="sc-invoice-description" style="margin-top: 8px; padding: 8px 10px; background: #f5f5f5; border-radius: 6px; font-size: 13px; color: #555; line-height: 1.5; min-height: 2.5em; white-space: pre-wrap; word-wrap: break-word;"><?php echo wp_kses_post(nl2br(esc_html(trim($invoice->invoice_description)))); ?></div>
+                                <div class="sc-invoice-card-description"><?php echo wp_kses_post(nl2br(esc_html(trim($invoice->invoice_description)))); ?></div>
                             <?php endif; ?>
-                        </td>
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-status" data-label="مبلغ">
-                            <div style="margin-bottom: 5px;">
-                                <strong style="font-size: 16px; color: #2271b1;"><?php echo $formatted_price; ?></strong>
-                            </div>
-                            <?php if ($penalty_amount > 0) : ?>
-                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
-                                    <small style="color: #d63638; display: block; margin-bottom: 3px;">
-                                        <strong>جریمه:</strong> <?php echo $formatted_penalty; ?>
-                                    </small>
-                                    <strong style="color: #2271b1; font-size: 15px;">مجموع: <?php echo $formatted_total; ?></strong>
-                                </div>
-                            <?php endif; ?>
-                        </td>
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-total" data-label="وضعیت">
-                            <span class="woocommerce-orders-table__status status-<?php echo esc_attr($status_class); ?>" style="
-                                display: inline-flex;
-                                align-items: center;
-                                gap: 6px;
-                                padding: 8px 14px;
-                                border-radius: 6px;
-                                font-weight: 600;
-                                font-size: 10px;
-                                background-color: <?php echo esc_attr($status_bg); ?>;
-                                color: <?php echo esc_attr($status_color); ?>;
-                            ">
-                                <span style="font-size: 16px;"><?php echo esc_html($status_icon); ?></span>
-                                <?php echo esc_html($status_label); ?>
-                            </span>
-                        </td>
-                        <td class="woocommerce-orders-table__cell woocommerce-orders-table__cell-order-actions" data-label="عملیات">
-                            <div style="display: flex;gap: 8px;flex-wrap: wrap;justify-content: center;flex-direction: column;text-align: center;">
-                                <?php 
-                                // دکمه‌های عملیات
-                                $action_buttons = [];
-                                
-                                // دکمه پرداخت برای pending
-                                if ($payment_url && $invoice->status === 'pending') {
-                                    $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
-                                    $can_pay_from_wallet = false;
+                        </div>
+                    <?php endif; ?>
 
-                                    if ($wallet_enabled) {
-                                        $total_amount = (float)$invoice->amount + (float)($invoice->penalty_amount ?? 0);
-                                        $can_pay_from_wallet = sc_can_pay_amount_from_wallet($player->id, $total_amount);
-                                    }
+                    <div class="sc-account-card-footer">
+                        <?php if ($has_expandable) : ?>
+                            <button type="button"
+                                class="sc_button sc-account-card-toggle"
+                                aria-expanded="false"
+                                aria-controls="sc-inv-details-<?php echo esc_attr((string) $invoice->id); ?>">
+                                مشاهده جزئیات
+                            </button>
+                        <?php endif; ?>
 
-                                    if ($can_pay_from_wallet && !($invoice->expense_name === 'شارژ کیف پول')) {
-                                        $wallet_pay_url = wp_nonce_url(
-                                            add_query_arg([
-                                                'pay_from_wallet' => '1',
-                                                'invoice_id' => $invoice->id
-                                            ], wc_get_account_endpoint_url('sc-invoices')),
-                                            'pay_from_wallet_' . $invoice->id
-                                        );
-                                        
-                                        $wallet_text = sc_get_wallet_payment_button_label($player->id, $total_amount);
-                                        $action_buttons[] = '<a href="' . esc_url($wallet_pay_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-wallet" style="background: #28a745; color: white;"
-                                        >💰 ' . esc_html($wallet_text) . '</a>';
-                                    }
-                                    
-                                    // دکمه پرداخت از درگاه
-                                    $action_buttons[] = '<a href="' . esc_url($payment_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-pay"
-                                    >💳 پرداخت از درگاه</a>';
-                                }
-                                
-                                // // دکمه مشاهده سفارش برای under_review یا سایر حالات
-                                // if ($invoice->status === 'under_review' && !empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url')) {
-                                //     $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-view"
-                                //    >👁️ مشاهده</a>';
-                                // } elseif (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_endpoint_url') && !in_array($invoice->status, ['pending', 'under_review'])) {
-                                //     $action_buttons[] = '<a href="' . esc_url(wc_get_endpoint_url('view-order', $invoice->woocommerce_order_id)) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-view" 
-                                //     >👁️ مشاهده</a>';
-                                // }
-                                
-                                // دکمه لغو برای pending و under_review
-                                if (in_array($invoice->status, ['pending', 'under_review']) && $invoice->expense_name === 'شارژ کیف پول') {
-                                    $cancel_base_url = wc_get_account_endpoint_url('sc-invoices');
-                                    $cancel_args = [
-                                        'cancel_invoice' => '1',
-                                        'invoice_id' => $invoice->id
-                                    ];
-                                    // حفظ فیلتر در URL لغو
-                                    if ($filter_status !== 'all') {
-                                        $cancel_args['filter_status'] = $filter_status;
-                                    }
-                                    $cancel_url = wp_nonce_url(
-                                        add_query_arg($cancel_args, $cancel_base_url),
-                                        'cancel_invoice_' . $invoice->id
-                                    );
-                                    $action_buttons[] = '<a href="' . esc_url($cancel_url) . '" 
-                                        class="woocommerce-button button sc-invoice-btn sc-invoice-btn-cancel"
-                                        onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید می‌خواهید این صورت‌حساب را لغو کنید؟\' })"
-                                        style="background:#dc3545;color:#fff;">
-                                         لغو صورتحساب
-                                    </a>';
-                                    
-                                }
-                                
-                                // نمایش دکمه‌ها یا پیام
-                                if (!empty($action_buttons)) {
-                                    echo implode('', $action_buttons);
-                                } elseif (in_array($invoice->status, ['pending', 'under_review']) && empty($invoice->woocommerce_order_id)) {
-                                    echo '<span style="color: #d63638; font-size: 12px; padding: 8px; background: #ffeaea; border-radius: 6px; display: inline-block;">⏳ در انتظار ایجاد سفارش</span>';
-                                } else {
-                                    echo '<span style="color: #999;">-</span>';
-                                }
-                                ?>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-        </div>
-        <!-- Pagination -->
-            <?php if ($total_pages > 1) : ?>
-                <div class="tablenav bottom sc_paginate" style="margin: 20px 10px 50px 0px;">
-                    <div class="tablenav-pages">
+                        <div class="sc-account-card-actions sc-invoice-card-actions">
                         <?php
-                        $sc_inv_pag_base = wc_get_account_endpoint_url('sc-invoices');
-                        if ($filter_status !== '' && $filter_status !== 'all') {
-                            $sc_inv_pag_base = add_query_arg('filter_status', $filter_status, $sc_inv_pag_base);
+                        $action_buttons = [];
+
+                        if ($payment_url && $invoice->status === 'pending') {
+                            $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
+                            $can_pay_from_wallet = false;
+
+                            if ($wallet_enabled) {
+                                $can_pay_from_wallet = sc_can_pay_amount_from_wallet($player->id, $total_amount);
+                            }
+
+                            if ($can_pay_from_wallet && !($invoice->expense_name === 'شارژ کیف پول')) {
+                                $wallet_pay_url = wp_nonce_url(
+                                    add_query_arg([
+                                        'pay_from_wallet' => '1',
+                                        'invoice_id' => $invoice->id,
+                                    ], wc_get_account_endpoint_url('sc-invoices')),
+                                    'pay_from_wallet_' . $invoice->id
+                                );
+
+                                $wallet_text = sc_get_wallet_payment_button_label($player->id, $total_amount);
+                                $action_buttons[] = '<a href="' . esc_url($wallet_pay_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-wallet sc-account-btn-compact">💰 ' . esc_html($wallet_text) . '</a>';
+                            }
+
+                            $action_buttons[] = '<a href="' . esc_url($payment_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-pay sc-account-btn-compact">💳 پرداخت</a>';
                         }
-                        if ($invoice_search !== '') {
-                            $sc_inv_pag_base = add_query_arg('invoice_search', $invoice_search, $sc_inv_pag_base);
+
+                        if (in_array($invoice->status, ['pending', 'under_review'], true) && $invoice->expense_name === 'شارژ کیف پول') {
+                            $cancel_base_url = wc_get_account_endpoint_url('sc-invoices');
+                            $cancel_args = [
+                                'cancel_invoice' => '1',
+                                'invoice_id' => $invoice->id,
+                            ];
+                            if ($filter_status !== 'all') {
+                                $cancel_args['filter_status'] = $filter_status;
+                            }
+                            $cancel_url = wp_nonce_url(
+                                add_query_arg($cancel_args, $cancel_base_url),
+                                'cancel_invoice_' . $invoice->id
+                            );
+                            $action_buttons[] = '<a href="' . esc_url($cancel_url) . '"
+                                class="woocommerce-button button sc-invoice-btn sc-invoice-btn-cancel sc-account-btn-compact"
+                                onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید می‌خواهید این صورت‌حساب را لغو کنید؟\' })">
+                                 لغو
+                            </a>';
                         }
-                        if ($filter_date_from_shamsi !== '') {
-                            $sc_inv_pag_base = add_query_arg('filter_date_from_shamsi', $filter_date_from_shamsi, $sc_inv_pag_base);
+
+                        if (!empty($action_buttons)) {
+                            echo implode('', $action_buttons);
+                        } elseif (in_array($invoice->status, ['pending', 'under_review'], true) && empty($invoice->woocommerce_order_id)) {
+                            echo '<span class="sc-invoice-card-waiting">⏳ در انتظار ایجاد سفارش</span>';
+                        } else {
+                            echo '<span class="sc-invoice-card-no-action">—</span>';
                         }
-                        if ($filter_date_to_shamsi !== '') {
-                            $sc_inv_pag_base = add_query_arg('filter_date_to_shamsi', $filter_date_to_shamsi, $sc_inv_pag_base);
-                        }
-                        $sc_inv_pag_base = remove_query_arg('pag', $sc_inv_pag_base);
-                        $sc_inv_pag_join = (strpos($sc_inv_pag_base, '?') !== false) ? '&' : '?';
-                        $sc_inv_pagination_base = esc_url($sc_inv_pag_base) . $sc_inv_pag_join . 'pag=%#%';
-                        $page_links = paginate_links([
-                            'base' => $sc_inv_pagination_base,
-                            'format' => '',
-                            'type' => 'list',
-                            'prev_text' => '< قبلی ',
-                            'next_text' => ' بعدی >',
-                            'total' => $total_pages,
-                            'current' => $current_page,
-                        ]);
-                        echo $page_links ? $page_links : '';
                         ?>
+                        </div>
                     </div>
+                </article>
+            <?php endforeach; ?>
+        </div>
+
+        <?php if ($total_pages > 1) : ?>
+            <div class="tablenav bottom sc_paginate sc-invoices-pagination">
+                <div class="tablenav-pages">
+                    <?php
+                    $sc_inv_pag_base = wc_get_account_endpoint_url('sc-invoices');
+                    if ($filter_status !== '' && $filter_status !== 'all') {
+                        $sc_inv_pag_base = add_query_arg('filter_status', $filter_status, $sc_inv_pag_base);
+                    }
+                    if ($invoice_search !== '') {
+                        $sc_inv_pag_base = add_query_arg('invoice_search', $invoice_search, $sc_inv_pag_base);
+                    }
+                    if ($filter_date_from_shamsi !== '') {
+                        $sc_inv_pag_base = add_query_arg('filter_date_from_shamsi', $filter_date_from_shamsi, $sc_inv_pag_base);
+                    }
+                    if ($filter_date_to_shamsi !== '') {
+                        $sc_inv_pag_base = add_query_arg('filter_date_to_shamsi', $filter_date_to_shamsi, $sc_inv_pag_base);
+                    }
+                    $sc_inv_pag_base = remove_query_arg('pag', $sc_inv_pag_base);
+                    $sc_inv_pag_join = (strpos($sc_inv_pag_base, '?') !== false) ? '&' : '?';
+                    $sc_inv_pagination_base = esc_url($sc_inv_pag_base) . $sc_inv_pag_join . 'pag=%#%';
+                    $page_links = paginate_links([
+                        'base' => $sc_inv_pagination_base,
+                        'format' => '',
+                        'type' => 'list',
+                        'prev_text' => '< قبلی ',
+                        'next_text' => ' بعدی >',
+                        'total' => $total_pages,
+                        'current' => $current_page,
+                    ]);
+                    echo $page_links ? $page_links : '';
+                    ?>
                 </div>
-            <?php endif; ?>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // بررسی هر 100ms تا المان حاضر شود
     const interval = setInterval(function() {
-        const el = document.querySelector('.sc-invoices-page h2'); // المان هدف
+        const el = document.querySelector('.sc-invoices-page-header');
         if (el) {
-            // اسکرول نرم و مرکز صفحه
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            clearInterval(interval); // توقف بررسی بعد از اسکرول
+            clearInterval(interval);
         }
     }, 100);
 
-    // پر کردن خودکار فیلدهای بازه تاریخ صورت‌حساب با تاریخ امروز هنگام اولین کلیک (وقتی خالی هستند)
     document.querySelectorAll('.sc-inv-date-input').forEach(function (input) {
         input.addEventListener('mousedown', function () {
             if (!input.value) {
@@ -514,6 +448,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, true);
     });
+
+    document.querySelectorAll('.sc-account-card-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var panelId = btn.getAttribute('aria-controls');
+            var panel = panelId ? document.getElementById(panelId) : null;
+            if (!panel) {
+                return;
+            }
+            var isOpen = !panel.hidden;
+            panel.hidden = isOpen;
+            btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+            btn.textContent = isOpen ? 'مشاهده جزئیات' : 'بستن جزئیات';
+            btn.classList.toggle('is-open', !isOpen);
+        });
+    });
 });
 </script>
-
