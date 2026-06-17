@@ -4,6 +4,7 @@
     var selectedMemberIds = [];
     var excludedMemberIds = [];
     var courseCoachesMap = {};
+    var activateBranchState = {};
 
     function loadCourseCoachesMap() {
         var raw = $('#sc-bulk-actions-form').attr('data-course-coaches');
@@ -18,6 +19,204 @@
         }
     }
 
+    function getSelectedActivateCourseIds() {
+        return ($('#sc-action-course-ids').val() || [])
+            .map(function (v) { return parseInt(v, 10); })
+            .filter(function (id) { return id > 0; });
+    }
+
+    function getCourseOptionTitle(courseId) {
+        var $opt = $('#sc-action-course-ids option[value="' + courseId + '"]');
+        return $opt.length ? $opt.text() : ('دوره #' + courseId);
+    }
+
+    function getCourseData(courseId) {
+        return courseCoachesMap[courseId] || courseCoachesMap[String(courseId)] || null;
+    }
+
+    function getCourseChapters(courseId) {
+        var courseData = getCourseData(courseId);
+        return courseData && courseData.chapters ? courseData.chapters : [];
+    }
+
+    function getCoachesForChapter(courseId, chapterName) {
+        var courseData = getCourseData(courseId);
+        if (!courseData || !courseData.coaches || !chapterName) {
+            return [];
+        }
+        return courseData.coaches[chapterName] || [];
+    }
+
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function saveActivateBranchStateFromDom() {
+        $('#sc-action-course-activate-branch-list .sc-bulk-activate-course-block').each(function () {
+            var courseId = parseInt($(this).attr('data-course-id'), 10);
+            if (!courseId) {
+                return;
+            }
+            var $chapterSelect = $(this).find('.sc-bulk-activate-chapter-select');
+            var $chapterHidden = $(this).find('input[name="course_chapter[' + courseId + ']"]');
+            var chapter = $chapterSelect.length ? ($chapterSelect.val() || '') : ($chapterHidden.val() || '');
+            var coachRaw = $(this).find('select[name="course_coach[' + courseId + ']"], input[name="course_coach[' + courseId + ']"]').val();
+            activateBranchState[courseId] = {
+                chapter: chapter,
+                coachId: parseInt(coachRaw, 10) || 0
+            };
+        });
+    }
+
+    function renderActivateCoachField($block, courseId, chapterName, selectedCoachId) {
+        var $coField = $block.find('.sc-bulk-activate-coach-field');
+        $coField.empty();
+
+        if (!chapterName) {
+            return;
+        }
+
+        var coaches = getCoachesForChapter(courseId, chapterName);
+        if (!coaches.length) {
+            $coField.html(
+                '<span class="description">مربی برای این شعبه تعریف نشده — ثبت‌نام بدون مربی.</span>' +
+                '<input type="hidden" name="course_coach[' + courseId + ']" value="0">'
+            );
+            return;
+        }
+
+        if (coaches.length === 1) {
+            var onlyCoach = coaches[0];
+            $coField.html(
+                '<span><strong>مربی:</strong> ' + escapeHtml(onlyCoach.label) + '</span>' +
+                '<input type="hidden" name="course_coach[' + courseId + ']" value="' + onlyCoach.id + '">'
+            );
+            return;
+        }
+
+        var html = '<label><strong>مربی:</strong> ' +
+            '<select name="course_coach[' + courseId + ']" class="sc-bulk-activate-coach-select" data-course-id="' + courseId + '">' +
+            '<option value="">انتخاب مربی</option>';
+        coaches.forEach(function (coach) {
+            html += '<option value="' + coach.id + '"' + (selectedCoachId === coach.id ? ' selected' : '') + '>' +
+                escapeHtml(coach.label) + '</option>';
+        });
+        html += '</select></label>';
+        $coField.html(html);
+    }
+
+    function renderActivateCourseBranchBlocks() {
+        var $list = $('#sc-action-course-activate-branch-list');
+        if (!$list.length) {
+            return;
+        }
+
+        saveActivateBranchStateFromDom();
+
+        var courseIds = getSelectedActivateCourseIds();
+        Object.keys(activateBranchState).forEach(function (key) {
+            var cid = parseInt(key, 10);
+            if (courseIds.indexOf(cid) === -1) {
+                delete activateBranchState[cid];
+            }
+        });
+
+        $list.empty();
+
+        if (!courseIds.length) {
+            $list.html('<p class="description">ابتدا یک یا چند دوره را از لیست «دوره‌های هدف» انتخاب کنید.</p>');
+            return;
+        }
+
+        courseIds.forEach(function (courseId) {
+            var chapters = getCourseChapters(courseId);
+            var state = activateBranchState[courseId] || { chapter: '', coachId: 0 };
+            var selChapter = state.chapter || '';
+            var selCoach = state.coachId || 0;
+            var title = getCourseOptionTitle(courseId);
+
+            var $block = $('<div class="sc-bulk-activate-course-block" data-course-id="' + courseId + '"></div>');
+            $block.append('<div class="sc-bulk-activate-course-title"><strong>' + escapeHtml(title) + '</strong></div>');
+
+            var $chField = $('<div class="sc-bulk-activate-chapter-field"></div>');
+            if (!chapters.length) {
+                $chField.html('<span class="description">شعبه‌ای برای این دوره تعریف نشده است.</span>');
+            } else if (chapters.length === 1) {
+                selChapter = chapters[0];
+                $chField.html(
+                    '<span><strong>شعبه:</strong> ' + escapeHtml(selChapter) + '</span>' +
+                    '<input type="hidden" name="course_chapter[' + courseId + ']" value="' + escapeHtml(selChapter) + '">'
+                );
+            } else {
+                var chHtml = '<label><strong>شعبه:</strong> ' +
+                    '<select name="course_chapter[' + courseId + ']" class="sc-bulk-activate-chapter-select" data-course-id="' + courseId + '">' +
+                    '<option value="">انتخاب شعبه</option>';
+                chapters.forEach(function (chapterName) {
+                    chHtml += '<option value="' + escapeHtml(chapterName) + '"' +
+                        (selChapter === chapterName ? ' selected' : '') + '>' +
+                        escapeHtml(chapterName) + '</option>';
+                });
+                chHtml += '</select></label>';
+                $chField.html(chHtml);
+                if (!selChapter || chapters.indexOf(selChapter) === -1) {
+                    selChapter = '';
+                    selCoach = 0;
+                }
+            }
+
+            $block.append($chField);
+            $block.append('<div class="sc-bulk-activate-coach-field"></div>');
+            $list.append($block);
+            renderActivateCoachField($block, courseId, selChapter, selCoach);
+        });
+    }
+
+    function validateActivateBranchAssignments() {
+        var courseIds = getSelectedActivateCourseIds();
+        var i;
+
+        for (i = 0; i < courseIds.length; i++) {
+            var courseId = courseIds[i];
+            var chapters = getCourseChapters(courseId);
+            var title = getCourseOptionTitle(courseId);
+            var $block = $('#sc-action-course-activate-branch-list .sc-bulk-activate-course-block[data-course-id="' + courseId + '"]');
+            var chapter = '';
+            var coachId = 0;
+
+            if ($block.length) {
+                var $chapterSelect = $block.find('.sc-bulk-activate-chapter-select');
+                if ($chapterSelect.length) {
+                    chapter = $chapterSelect.val() || '';
+                } else {
+                    chapter = $block.find('input[name="course_chapter[' + courseId + ']"]').val() || '';
+                }
+                var coachRaw = $block.find('select[name="course_coach[' + courseId + ']"], input[name="course_coach[' + courseId + ']"]').val();
+                coachId = parseInt(coachRaw, 10) || 0;
+            }
+
+            if (chapters.length > 1 && (!chapter || chapters.indexOf(chapter) === -1)) {
+                alert('برای دوره «' + title + '» انتخاب شعبه الزامی است.');
+                return false;
+            }
+
+            if (!chapter && chapters.length === 1) {
+                chapter = chapters[0];
+            }
+
+            var coaches = getCoachesForChapter(courseId, chapter);
+            if (coaches.length > 1 && coachId <= 0) {
+                alert('برای دوره «' + title + '» در شعبه «' + chapter + '» انتخاب مربی الزامی است.');
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     function refreshAssignChapterOptions() {
         var $courseSelect = $('#sc-assign-course-id');
         var $chapterSelect = $('#sc-assign-chapter-name');
@@ -27,7 +226,7 @@
         }
 
         var courseId = $courseSelect.val();
-        var courseData = (courseId && courseCoachesMap[courseId]) ? courseCoachesMap[courseId] : null;
+        var courseData = courseId ? getCourseData(courseId) : null;
         var chapters = courseData && courseData.chapters ? courseData.chapters : [];
 
         $chapterSelect.empty();
@@ -61,10 +260,7 @@
 
         var courseId = $courseSelect.val();
         var chapterName = $chapterSelect.val();
-        var courseData = (courseId && courseCoachesMap[courseId]) ? courseCoachesMap[courseId] : null;
-        var coaches = (courseData && courseData.coaches && chapterName && courseData.coaches[chapterName])
-            ? courseData.coaches[chapterName]
-            : [];
+        var coaches = getCoachesForChapter(courseId, chapterName);
 
         $coachSelect.empty();
 
@@ -196,7 +392,11 @@
             $('#sc-action-assign-course-coach').show();
             refreshAssignChapterOptions();
             refreshAssignCoachOptions();
-        } else if (action === 'course_activate' || action === 'course_deactivate') {
+        } else if (action === 'course_activate') {
+            $('#sc-action-course-common').show();
+            $('#sc-action-course-activate-branch').show();
+            renderActivateCourseBranchBlocks();
+        } else if (action === 'course_deactivate') {
             $('#sc-action-course-common').show();
         } else if (action === 'course_set_flag') {
             $('#sc-action-course-common').show();
@@ -317,6 +517,9 @@
                 return false;
             }
         }
+        if (action === 'course_activate' && !validateActivateBranchAssignments()) {
+            return false;
+        }
         return true;
     }
 
@@ -329,6 +532,31 @@
         syncExcludedMemberInputs();
         $('#sc-target-type').on('change', toggleFilterBlocks);
         $('#sc-bulk-action-type').on('change', toggleActionFields);
+        $('#sc-action-course-ids').on('change', function () {
+            if ($('#sc-bulk-action-type').val() === 'course_activate') {
+                renderActivateCourseBranchBlocks();
+            }
+        });
+        $(document).on('change', '.sc-bulk-activate-chapter-select', function () {
+            var courseId = parseInt($(this).data('course-id'), 10);
+            var $block = $(this).closest('.sc-bulk-activate-course-block');
+            if (!courseId || !$block.length) {
+                return;
+            }
+            activateBranchState[courseId] = {
+                chapter: $(this).val() || '',
+                coachId: 0
+            };
+            renderActivateCoachField($block, courseId, activateBranchState[courseId].chapter, 0);
+        });
+        $(document).on('change', '.sc-bulk-activate-coach-select', function () {
+            var courseId = parseInt($(this).data('course-id'), 10);
+            if (!courseId) {
+                return;
+            }
+            activateBranchState[courseId] = activateBranchState[courseId] || { chapter: '', coachId: 0 };
+            activateBranchState[courseId].coachId = parseInt($(this).val(), 10) || 0;
+        });
         $('#sc-assign-course-id').on('change', function () {
             refreshAssignChapterOptions();
             refreshAssignCoachOptions();

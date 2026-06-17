@@ -621,7 +621,89 @@ function sc_get_bulk_course_branch_coaches_map() {
         ];
     }
 
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $all_course_ids = $wpdb->get_col(
+        "SELECT id FROM `$courses_table` WHERE deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00'"
+    );
+    foreach ((array) $all_course_ids as $cid) {
+        $cid = (int) $cid;
+        if ($cid <= 0 || isset($map[$cid])) {
+            continue;
+        }
+        $chapters = sc_get_course_chapters($cid);
+        if (!empty($chapters)) {
+            $map[$cid] = [
+                'chapters' => $chapters,
+                'coaches' => [],
+            ];
+        }
+    }
+
     return $map;
+}
+
+/**
+ * Validate branch/coach selections for bulk course activation.
+ *
+ * @param int[] $course_ids
+ * @return string[] error lines (empty = ok)
+ */
+function sc_validate_bulk_course_activate_assignments(array $course_ids) {
+    global $wpdb;
+    $errors = [];
+    $courses_table = $wpdb->prefix . 'sc_courses';
+
+    $chapters_post = isset($_POST['course_chapter']) && is_array($_POST['course_chapter'])
+        ? wp_unslash($_POST['course_chapter'])
+        : [];
+    $coaches_post = isset($_POST['course_coach']) && is_array($_POST['course_coach'])
+        ? wp_unslash($_POST['course_coach'])
+        : [];
+
+    foreach ($course_ids as $course_id) {
+        $course_id = absint($course_id);
+        if (!$course_id) {
+            continue;
+        }
+
+        $title = $wpdb->get_var($wpdb->prepare("SELECT title FROM {$courses_table} WHERE id = %d", $course_id));
+        $label = $title ? (string) $title : ('دوره #' . $course_id);
+
+        $chapters = function_exists('sc_get_course_chapters') ? sc_get_course_chapters($course_id) : [];
+        $sel_chapter = isset($chapters_post[$course_id]) ? sanitize_text_field((string) $chapters_post[$course_id]) : '';
+        $sel_coach = isset($coaches_post[$course_id]) ? absint($coaches_post[$course_id]) : 0;
+
+        if (count($chapters) > 1) {
+            if ($sel_chapter === '' || !in_array($sel_chapter, $chapters, true)) {
+                $errors[] = 'برای دوره «' . $label . '» انتخاب شعبه الزامی است.';
+                continue;
+            }
+        } elseif (count($chapters) === 1) {
+            $sel_chapter = $chapters[0];
+        }
+
+        if ($sel_chapter === '') {
+            continue;
+        }
+
+        $coaches = function_exists('sc_get_course_chapter_coaches')
+            ? sc_get_course_chapter_coaches($course_id, $sel_chapter)
+            : [];
+
+        if (count($coaches) > 1) {
+            if ($sel_coach <= 0 || !function_exists('sc_is_valid_course_chapter_coach') || !sc_is_valid_course_chapter_coach($course_id, $sel_chapter, $sel_coach)) {
+                $errors[] = 'برای دوره «' . $label . '» در شعبه «' . $sel_chapter . '» انتخاب مربی الزامی است.';
+            }
+        } elseif (count($coaches) === 1) {
+            if ($sel_coach > 0 && function_exists('sc_is_valid_course_chapter_coach') && !sc_is_valid_course_chapter_coach($course_id, $sel_chapter, $sel_coach)) {
+                $errors[] = 'مربی انتخاب‌شده برای دوره «' . $label . '» در شعبه «' . $sel_chapter . '» معتبر نیست.';
+            }
+        } elseif ($sel_coach > 0 && function_exists('sc_is_valid_course_chapter_coach') && !sc_is_valid_course_chapter_coach($course_id, $sel_chapter, $sel_coach)) {
+            $errors[] = 'مربی انتخاب‌شده برای دوره «' . $label . '» در شعبه «' . $sel_chapter . '» معتبر نیست.';
+        }
+    }
+
+    return $errors;
 }
 
 function sc_parse_member_course_assignments_from_post() {

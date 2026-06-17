@@ -539,6 +539,7 @@ function sc_register_admin_menu() {
             'sc-courses',
             'sc_admin_courses_list_page'
         );
+        add_action('load-' . $list_courses_sufix, 'sc_courses_screen_option');
 
         $add_course_sufix = add_submenu_page(
             'sc-courses',
@@ -1368,9 +1369,20 @@ function sc_coaches_screen_option() {
     add_screen_option('per_page', $args);
 }
 
+function sc_courses_screen_option() {
+    $option = 'courses_per_page';
+    $args = [
+        'label'   => 'تعداد دوره در هر صفحه',
+        'default' => 10,
+        'option'  => $option
+    ];
+    add_screen_option('per_page', $args);
+}
+
 add_filter('set-screen-option', function($status, $option, $value) {
     if ($option === 'coaches_per_page') return (int) $value;
     if ($option === 'coach_players_per_page') return (int) $value;
+    if ($option === 'courses_per_page') return (int) $value;
     return $status;
 }, 10, 3);
 

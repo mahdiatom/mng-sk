@@ -470,7 +470,7 @@ class Courses_List_Table extends WP_List_Table {
 
         $this->packages_by_course = [];
 
-        $per_page = 10;
+        $per_page = $this->get_items_per_page('courses_per_page', 10);
         $page = $this->get_pagenum();
         $offset = ($page - 1) * $per_page;
 

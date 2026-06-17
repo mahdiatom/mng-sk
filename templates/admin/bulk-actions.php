@@ -282,6 +282,13 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 </div>
             </div>
 
+            <div id="sc-action-course-activate-branch" class="sc-action-extra">
+                <p class="description" style="margin-top:0;">برای هر دوره انتخاب‌شده، شعبه و مربی ثبت‌نام را مشخص کنید.</p>
+                <div id="sc-action-course-activate-branch-list" class="sc-bulk-activate-branch-list">
+                    <p class="description">ابتدا یک یا چند دوره را از لیست «دوره‌های هدف» انتخاب کنید.</p>
+                </div>
+            </div>
+
             <div id="sc-action-course-flag" class="sc-action-extra">
                 <div class="sc-row">
                     <label for="sc-action-course-flag-select">فلگ دوره</label>

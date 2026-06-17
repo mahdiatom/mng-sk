@@ -5256,6 +5256,7 @@ ul.woocommerce-error a{
 }
 .boxs_do_after_pay {
     display: flex;
+    flex-direction: column;
     justify-content: space-between;
     gap: 20px;
     padding-top: 10px;
@@ -9357,6 +9358,347 @@ border-radius: 10px;
     .sc-enroll-fields {
         flex-direction: column;
         gap: 12px;
+    }
+}
+
+/* ===== ثبت‌نام دوره — هماهنگ با لیست صورت‌حساب ===== */
+.sc-enroll-course-page.sc-account-list-page {
+    max-width: 1200px;
+}
+
+.sc-enroll-filters-panel {
+    margin-bottom: 28px;
+    background: #fff;
+    padding: 22px 24px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    border: 1px solid #eee;
+}
+
+.sc-enroll-filters-title {
+    margin-bottom: 16px;
+}
+
+.sc-enroll-filters-title::before {
+    background: #6D34FF;
+}
+
+.sc-enroll-courses-list {
+    gap: 18px;
+}
+
+.sc-enroll-course-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.sc-enroll-course-card-head {
+    padding: 18px 20px 0;
+    align-items: flex-start;
+}
+
+.sc-enroll-course-card-head input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    margin: 4px 0 0 12px;
+    accent-color: #6D34FF;
+    flex-shrink: 0;
+}
+
+.sc-enroll-course-card .sc-course-accordion-header {
+    padding: 0 18px 18px 0;
+    border: none;
+    background: transparent !important;
+}
+
+.sc-enroll-course-card .sc-course-title strong {
+    color: #1a1a1a;
+    font-size: 17px;
+}
+
+.sc-enroll-course-card .sc-course-meta {
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.sc-enroll-course-card .sc-course-meta span {
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.sc-enroll-course-card .sc-course-price {
+    color: #6D34FF;
+    background: #f3eeff;
+}
+
+.sc-enroll-course-card .sc-course-sessions {
+    background: #eef0ff;
+    color: #444;
+}
+
+.sc-enroll-course-card .sc-course-capacity {
+    background: #fff8e1;
+}
+
+.sc-enroll-course-card .detiles_course {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #f9f9fb;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.6;
+}
+
+.sc-enroll-course-card .sc-course-accordion-content {
+    display: none;
+    padding: 0 20px 20px;
+    background: transparent;
+    border-top: 1px dashed #e8e8f0;
+    margin: 0 18px 18px;
+}
+
+.sc-enroll-course-card:has(.sc-course-radio:checked) .sc-course-accordion-content {
+    display: block;
+}
+
+.sc-enroll-course-card:has(.sc-course-radio:checked) {
+    border-color: #6D34FF;
+    box-shadow: 0 8px 25px rgba(109, 52, 255, 0.14);
+}
+
+.sc-enroll-course-card:has(.sc-course-radio:checked) .sc-course-accordion-header {
+    background: linear-gradient(135deg, #f8f9ff 0%, #eef0ff 100%) !important;
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.sc-enroll-course-card .sc-course-capacity-waitlist-outer {
+    margin: 0 18px 12px !important;
+    padding: 12px 14px !important;
+    background: #f8f9ff !important;
+    border: 1px solid #e0d4ff !important;
+    border-radius: 12px !important;
+}
+
+.sc-enroll-course-card .sc-enroll-panel {
+    border-color: #e8e8f0;
+    border-radius: 12px;
+    margin-top: 14px;
+}
+
+.sc-enroll-course-card .sc-enroll-panel-title::before {
+    background: #6D34FF;
+}
+
+.sc-enroll-checkout-panel {
+    margin-top: 16px;
+    border: 1px solid #d8ccf5;
+    background: linear-gradient(135deg, #faf8ff 0%, #f3eeff 100%);
+    border-radius: 14px;
+    padding: 16px 18px;
+}
+
+.sc-enroll-checkout-panel[hidden] {
+    display: none !important;
+}
+
+.sc-enroll-checkout-title {
+    margin-bottom: 12px;
+    color: #6D34FF;
+}
+
+.sc-enroll-discount-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.sc-enroll-discount-input {
+    flex: 1;
+    min-width: 180px;
+}
+
+.sc-enroll-discount-hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.sc-enroll-discount-preview {
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.sc-enroll-discount-preview:not(:empty) {
+    padding: 10px 12px;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e8e8f0;
+}
+
+.sc-enroll-submit-row {
+    margin-top: 14px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.sc-enroll-submit-btn {
+    padding: 10px 20px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    min-height: 38px;
+}
+
+.sc-enroll-discount-preview-btn {
+    background: #fff !important;
+    color: #6D34FF !important;
+    border: 1px solid #6D34FF !important;
+}
+
+@media (max-width: 768px) {
+    .sc-enroll-course-card-head {
+        padding: 14px 14px 0;
+    }
+
+    .sc-enroll-course-card .sc-course-accordion-content {
+        margin: 0 12px 12px;
+        padding: 0 8px 12px;
+    }
+
+    .sc-enroll-discount-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sc-enroll-submit-row .sc-enroll-submit-btn {
+        width: 100%;
+    }
+}
+
+/* ===== حضور و غیاب بازیکن — هماهنگ با لیست صورت‌حساب ===== */
+.sc-my-attendances-page.sc-account-list-page {
+    max-width: 1200px;
+}
+
+.sc-my-attendances-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.sc-my-attendances-stat {
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.sc-my-attendances-stat-value {
+    display: block;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.sc-my-attendances-stat-label {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.sc-my-attendances-stat--present .sc-my-attendances-stat-value { color: #155724; }
+.sc-my-attendances-stat--absent .sc-my-attendances-stat-value { color: #d63638; }
+.sc-my-attendances-stat--excused .sc-my-attendances-stat-value { color: #2271b1; }
+
+.sc-my-attendance-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.sc-my-attendance-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #eef0ff 100%);
+    border-bottom: 1px solid #e8e8f0;
+}
+
+.sc-my-attendance-card-date {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sc-my-attendance-date-icon {
+    font-size: 22px;
+}
+
+.sc-my-attendance-card-date strong {
+    display: block;
+    font-size: 16px;
+    color: #6D34FF;
+}
+
+.sc-my-attendance-card-time {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.sc-my-attendance-time-label {
+    margin-top: 8px;
+}
+
+.sc-my-attendance-card-body {
+    padding: 18px 20px;
+    display: block;
+}
+
+.sc-my-attendance-card-main .sc-invoice-card-item-title {
+    margin-bottom: 8px;
+}
+
+.sc-my-attendance-no-meta {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 6px;
+}
+
+.sc-my-attendance-card--present {
+    border-right: 4px solid #00a32a;
+}
+
+.sc-my-attendance-card--absent {
+    border-right: 4px solid #d63638;
+}
+
+.sc-my-attendance-card--excused {
+    border-right: 4px solid #2271b1;
+}
+
+@media (max-width: 768px) {
+    .sc-my-attendances-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-my-attendance-card-head {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
 

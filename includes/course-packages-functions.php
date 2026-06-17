@@ -353,6 +353,62 @@ function sc_member_course_is_paused($member_course) {
 }
 
 /**
+ * Active enrollment for player filters: status active, not canceled/completed.
+ * Includes enrollments without flags and with non-terminal flags (e.g. paused).
+ */
+function sc_member_course_is_active_enrollment($member_course) {
+    if (!$member_course || (string) $member_course->status !== 'active') {
+        return false;
+    }
+    return !sc_member_course_is_terminal($member_course);
+}
+
+/**
+ * Courses where the member has an active enrollment (for attendance/order filters).
+ *
+ * @return object{id:int,title:string}[]
+ */
+function sc_get_member_active_enrollment_courses($member_id) {
+    global $wpdb;
+
+    $member_id = (int) $member_id;
+    if ($member_id <= 0) {
+        return [];
+    }
+
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT mc.status, mc.course_status_flags, c.id, c.title
+         FROM $member_courses_table mc
+         INNER JOIN $courses_table c ON c.id = mc.course_id
+         WHERE mc.member_id = %d AND c.deleted_at IS NULL
+         ORDER BY c.title ASC",
+        $member_id
+    ));
+
+    $courses = [];
+    $seen = [];
+    foreach ((array) $rows as $row) {
+        if (!sc_member_course_is_active_enrollment($row)) {
+            continue;
+        }
+        $course_id = (int) $row->id;
+        if (isset($seen[$course_id])) {
+            continue;
+        }
+        $seen[$course_id] = true;
+        $courses[] = (object) [
+            'id' => $course_id,
+            'title' => (string) $row->title,
+        ];
+    }
+
+    return $courses;
+}
+
+/**
  * @param int[] $pending_member_course_ids
  */
 function sc_member_course_blocks_new_enrollment($member_course, array $pending_member_course_ids = []) {

@@ -40,18 +40,23 @@ if (function_exists('wc_get_price_thousand_separator')) {
 $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
 ?>
 
-<div class="sc-enroll-course-page">
-    <h2>ثبت‌نام در دوره</h2>
+<div class="sc-enroll-course-page sc-account-list-page">
+    <div class="sc-invoices-page-header sc-enroll-page-header">
+        <div class="sc-invoices-page-icon">📚</div>
+        <div>
+            <h2 class="sc-invoices-page-title">ثبت‌نام در دوره</h2>
+            <p class="sc-invoices-page-subtitle">دوره مورد نظر را انتخاب کنید، شعبه و مربی را مشخص کنید و ثبت‌نام را تکمیل نمایید</p>
+        </div>
+    </div>
     
-    <!-- فیلتر وضعیت -->
-    <div class="sc-enroll-course-filters sc-enroll-panel sc-enroll-filters-panel">
-        <div class="sc-enroll-panel-title">فیلتر دوره‌ها</div>
-        <form method="GET" action="<?php echo esc_url(wc_get_account_endpoint_url('sc-enroll-course')); ?>" class="sc-enroll-filters-form">
+    <div class="sc-invoices-filters sc-enroll-course-filters sc-enroll-filters-panel">
+        <div class="sc-enroll-panel-title sc-enroll-filters-title">فیلتر دوره‌ها</div>
+        <form method="GET" action="<?php echo esc_url(wc_get_account_endpoint_url('sc-enroll-course')); ?>" class="sc-invoices-filter-form sc-enroll-filters-form">
             <input type="hidden" name="pag" value="1">
             
-            <div class="sc-enroll-filter-field">
+            <div class="sc-invoices-filter-field sc-enroll-filter-field">
                 <label for="filter_status" class="sc-enroll-field-label">وضعیت</label>
-                <select name="filter_status" id="filter_status" class="sc-enroll-select">
+                <select name="filter_status" id="filter_status" class="sc-invoices-filter-control sc-enroll-select">
                     <option value="latest" <?php selected($filter_status, 'latest'); ?>>آخرین دوره‌ها</option>
                     <option value="active" <?php selected($filter_status, 'active'); ?>>دوره‌های ثبت نام شده</option>
                     <option value="paused" <?php selected($filter_status, 'paused'); ?>>دوره‌های متوقف شده</option>
@@ -61,9 +66,9 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
                     <option value="all" <?php selected($filter_status, 'all'); ?>>همه دوره‌ها</option>
                 </select>
             </div>
-            <div class="sc-enroll-filter-field">
+            <div class="sc-invoices-filter-field sc-enroll-filter-field">
                 <label for="chapter" class="sc-enroll-field-label">شعبه</label>
-                <select name="chapter" id="chapter" class="sc-enroll-select">
+                <select name="chapter" id="chapter" class="sc-invoices-filter-control sc-enroll-select">
                     <option value="all" <?php selected($chapter, 'all'); ?>>همه شعبه‌ها</option>
                     <?php foreach ($chapters as $ch) : ?>
                         <option value="<?php echo esc_attr($ch->name); ?>" <?php selected($chapter, $ch->name); ?>><?php echo esc_html($ch->name); ?></option>
@@ -71,9 +76,9 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
                 </select>
             </div>
             <?php if (!empty($enroll_filter_coaches)) : ?>
-            <div class="sc-enroll-filter-field">
+            <div class="sc-invoices-filter-field sc-enroll-filter-field">
                 <label for="filter_coach" class="sc-enroll-field-label">مربی</label>
-                <select name="filter_coach" id="filter_coach" class="sc-enroll-select">
+                <select name="filter_coach" id="filter_coach" class="sc-invoices-filter-control sc-enroll-select">
                     <option value="0" <?php selected($filter_coach, 0); ?>>همه مربی‌ها</option>
                     <?php foreach ($enroll_filter_coaches as $fc) :
                         $fc_label = trim((string) $fc->first_name . ' ' . (string) $fc->last_name);
@@ -87,19 +92,19 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
             </div>
             <?php endif; ?>
 
-            <div class="sc-enroll-filter-field sc-enroll-filter-field--search">
+            <div class="sc-invoices-filter-field sc-enroll-filter-field sc-enroll-filter-field--search">
                 <label for="course_search" class="sc-enroll-field-label">جستجو</label>
-                <input type="search" name="course_search" id="course_search" class="sc-enroll-select sc-enroll-search-input" value="<?php echo esc_attr($course_search); ?>" placeholder="نام یا توضیح دوره...">
+                <input type="search" name="course_search" id="course_search" class="sc-invoices-filter-control sc-enroll-select sc-enroll-search-input" value="<?php echo esc_attr($course_search); ?>" placeholder="نام یا توضیح دوره...">
             </div>
             
-            <div class="sc-enroll-filter-submit">
-                <button type="submit" class="button button-primary sc-enroll-filter-btn">اعمال فیلتر</button>
+            <div class="sc-invoices-filter-actions sc-enroll-filter-submit">
+                <button type="submit" class="button button-primary sc-invoices-filter-submit sc-enroll-filter-btn">اعمال فیلتر</button>
             </div>
         </form>
     </div>
     
     <?php if (empty($courses)) : ?>
-        <div class="sc-message sc-message-info" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin-bottom: 20px; color: #856404;">
+        <div class="sc-invoices-empty">
             <?php if ($filter_status === 'latest') : ?>
                 در حال حاضر دوره‌ای برای ثبت نام موجود نیست.
             <?php elseif ($filter_status === 'all') : ?>
@@ -116,7 +121,7 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
         <?php wp_nonce_field('sc_enroll_course', 'sc_enroll_course_nonce'); ?>
         <input type="hidden" name="enrollment_sessions" id="sc-enrollment-sessions-field" value="">
         
-        <div class="sc-courses-accordion">
+        <div class="sc-invoices-list sc-enroll-courses-list">
             <?php foreach ($courses as $index => $course) : 
                 $is_enrolled = isset($enrolled_courses_data[$course->id]);
                 $course_status = null;
@@ -237,8 +242,8 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
 
                 $waitlist_subscribed = in_array((int) $course->id, array_map('intval', $capacity_waitlist_pending), true);
             ?>
-                <div class="sc-course-accordion-item" id="course_item_<?php echo esc_attr($course->id); ?>" data-course-id="<?php echo esc_attr($course->id); ?>" data-has-packages="<?php echo $has_course_packages ? '1' : '0'; ?>">
-    <div class="sc_radio_detailes_courses">  
+                <article class="sc-account-card sc-enroll-course-card sc-course-accordion-item" id="course_item_<?php echo esc_attr($course->id); ?>" data-course-id="<?php echo esc_attr($course->id); ?>" data-has-packages="<?php echo $has_course_packages ? '1' : '0'; ?>">
+    <div class="sc-enroll-course-card-head sc_radio_detailes_courses">
         <input type="radio" 
                name="course_id" 
                id="course_<?php echo esc_attr($course->id); ?>" 
@@ -334,10 +339,14 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
                     <div class="sc-enroll-coach-wrap sc-enroll-field-wrap"></div>
                 </div>
                 <div class="sc-enroll-schedule-wrap"></div>
+                <div class="sc-enroll-checkout-anchor"></div>
             </div>
         <?php endif; ?>
+        <?php if ($show_branch_ui === false && !$is_enrolled && !$is_capacity_full && !$is_date_expired) : ?>
+            <div class="sc-enroll-checkout-anchor sc-enroll-checkout-anchor--standalone"></div>
+        <?php endif; ?>
     </div>
-</div>
+</article>
             <?php endforeach; ?>
         </div>
         
@@ -383,21 +392,23 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
         <input type="hidden" name="enrollment_chapter" id="sc-enrollment-chapter-field" value="">
         <input type="hidden" name="enrollment_coach_id" id="sc-enrollment-coach-field" value="0">
 
-        <div class="sc-enroll-discount-row">
-            <label for="sc_invoice_discount_code" style="display: block; font-weight: 600; margin-bottom: 8px;">کد تخفیف (اختیاری)</label>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
-                <input type="text" name="sc_invoice_discount_code" id="sc_invoice_discount_code" class="regular-text" autocomplete="off" placeholder="مثال: SUMMER1404" style="flex: 1; min-width: 200px; padding: 8px 12px;">
-                <button type="button" class="sc_button button button-primary" id="sc-preview-discount-course"><?php esc_html_e('بررسی کد', 'sportclub-manager'); ?></button>
+        <div id="sc-enroll-global-checkout" class="sc-enroll-checkout-panel sc-enroll-panel" hidden>
+            <div class="sc-enroll-panel-title sc-enroll-checkout-title">تکمیل ثبت‌نام</div>
+            <div class="sc-enroll-discount-row">
+                <label for="sc_invoice_discount_code" class="sc-enroll-field-label">کد تخفیف (اختیاری)</label>
+                <div class="sc-enroll-discount-actions">
+                    <input type="text" name="sc_invoice_discount_code" id="sc_invoice_discount_code" class="sc-invoices-filter-control sc-enroll-discount-input" autocomplete="off" placeholder="مثال: SUMMER1404">
+                    <button type="button" class="button sc-account-btn-compact sc-enroll-discount-preview-btn" id="sc-preview-discount-course"><?php esc_html_e('بررسی کد', 'sportclub-manager'); ?></button>
+                </div>
+                <p class="sc-enroll-discount-hint">پس از انتخاب دوره و شعبه/مربی، می‌توانید کد را بررسی کنید.</p>
+                <div id="sc-discount-preview-course" class="sc-enroll-discount-preview" aria-live="polite"></div>
             </div>
-            <p class="description" style="margin: 8px 0 0; color: #646970; font-size: 13px;">پس از انتخاب دوره (و در صورت وجود، پکیج)، می‌توانید کد را بررسی کنید تا مبلغ نهایی نمایش داده شود.</p>
-            <div id="sc-discount-preview-course" style="margin-top: 12px; font-size: 14px; line-height: 1.6;"></div>
+            <div class="sc-enroll-submit-row">
+                <button type="submit" name="sc_enroll_course" class="button button-primary sc-enroll-submit-btn sc-account-btn-compact">
+                    ثبت نام و ایجاد صورت حساب
+                </button>
+            </div>
         </div>
-        
-        <p class="form-row" style="margin-top: 20px;">
-            <button type="submit" name="sc_enroll_course" class="button button-primary" style="padding: 12px 30px; font-size: 16px;">
-                ثبت نام و ایجاد صورت حساب
-            </button>
-        </p>
     </form>
     <?php endif; ?>
 </div>
@@ -413,8 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var maxTries = 40;
         var interval = setInterval(function () {
             tries++;
-            var page = document.querySelector('.sc-enroll-course-page');
-            var el = page ? page.querySelector('h2') : null;
+            var el = document.querySelector('.sc-enroll-page-header');
             if (el) {
                 var y = window.scrollY || document.documentElement.scrollTop || 0;
                 if (y < 120) {
@@ -428,6 +438,7 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
 
     const form = document.querySelector('.sc-enroll-course-form-packages');
+    const checkoutPanel = document.getElementById('sc-enroll-global-checkout');
     const ajaxUrl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
     const waitlistNonce = '<?php echo esc_js($sc_waitlist_ajax_nonce); ?>';
 
@@ -492,6 +503,60 @@ document.addEventListener('DOMContentLoaded', function() {
         branchConfigs = {};
     }
 
+    function isEnrollCheckoutReady(courseId) {
+        if (!courseId) {
+            return false;
+        }
+        var courseItem = document.getElementById('course_item_' + courseId);
+        var courseRadio = document.getElementById('course_' + courseId);
+        if (!courseItem || !courseRadio || courseRadio.disabled) {
+            return false;
+        }
+        if (courseItem.getAttribute('data-has-packages') === '1') {
+            var checkedPkg = form.querySelector('input[name="sc_pkg_course_' + courseId + '"]:checked');
+            if (!checkedPkg) {
+                return false;
+            }
+        }
+        var cfg = branchConfigs[courseId];
+        if (cfg && cfg.chapters && cfg.chapters.length) {
+            var chField = document.getElementById('sc-enrollment-chapter-field');
+            if (!chField || !chField.value) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function updateEnrollCheckoutPanel() {
+        if (!checkoutPanel || !form) {
+            return;
+        }
+        var checkedCourse = form.querySelector('input[name="course_id"]:checked');
+        if (!checkedCourse) {
+            checkoutPanel.hidden = true;
+            return;
+        }
+        var courseId = parseInt(checkedCourse.value || '0', 10);
+        if (!isEnrollCheckoutReady(courseId)) {
+            checkoutPanel.hidden = true;
+            return;
+        }
+        var courseItem = document.getElementById('course_item_' + courseId);
+        if (!courseItem) {
+            checkoutPanel.hidden = true;
+            return;
+        }
+        var anchor = courseItem.querySelector('.sc-enroll-branch-coach-inner .sc-enroll-checkout-anchor')
+            || courseItem.querySelector('.sc-enroll-checkout-anchor');
+        if (!anchor) {
+            checkoutPanel.hidden = true;
+            return;
+        }
+        anchor.appendChild(checkoutPanel);
+        checkoutPanel.hidden = false;
+    }
+
     function renderEnrollBranchCoach(courseId) {
         document.querySelectorAll('.sc-enroll-branch-coach-inner').forEach(function (el) {
             el.style.display = 'none';
@@ -520,21 +585,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var courseItem = document.getElementById('course_item_' + courseId);
         if (!courseItem) {
+            updateEnrollCheckoutPanel();
             return;
         }
         var panel = courseItem.querySelector('.sc-enroll-branch-coach-inner');
         if (!panel) {
+            updateEnrollCheckoutPanel();
             return;
         }
         var chWrap = panel.querySelector('.sc-enroll-chapter-wrap');
         var coWrap = panel.querySelector('.sc-enroll-coach-wrap');
         var schWrap = panel.querySelector('.sc-enroll-schedule-wrap');
         if (!chWrap || !coWrap || !chField || !coField) {
+            updateEnrollCheckoutPanel();
             return;
         }
 
         var cfg = branchConfigs[courseId];
         if (!cfg || !cfg.chapters || !cfg.chapters.length) {
+            updateEnrollCheckoutPanel();
             return;
         }
         panel.style.display = 'block';
@@ -597,11 +666,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             if (!coaches.length) {
                 coWrap.innerHTML = '<div class="sc-enroll-coach-note">مربی برای این شعبه تعریف نشده — ثبت‌نام بدون مربی انجام می‌شود.</div>';
+                updateEnrollCheckoutPanel();
                 return;
             }
             if (coaches.length === 1) {
                 coWrap.innerHTML = '<div class="sc-enroll-static-field"><span class="sc-enroll-field-label">مربی:</span><span class="sc-enroll-field-value">' + coaches[0].label + '</span></div>';
                 coField.value = String(coaches[0].id);
+                updateEnrollCheckoutPanel();
                 return;
             }
             var html = '<label class="sc-enroll-select-field"><span class="sc-enroll-field-label">مربی</span><select class="sc-enroll-select sc-enroll-coach-select"><option value="0">انتخاب مربی (اختیاری)</option>';
@@ -616,14 +687,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 sel.addEventListener('change', function () {
                     coField.value = sel.value || '0';
                     renderSchedule(chapterName);
+                    updateEnrollCheckoutPanel();
                 });
             }
+            updateEnrollCheckoutPanel();
         }
 
         if (cfg.chapters.length === 1) {
             chWrap.innerHTML = '<div class="sc-enroll-static-field"><span class="sc-enroll-field-label">شعبه:</span><span class="sc-enroll-field-value">' + cfg.chapters[0].name + '</span></div>';
             chField.value = cfg.chapters[0].name;
             renderCoach(cfg.chapters[0].name, 0);
+            updateEnrollCheckoutPanel();
             return;
         }
 
@@ -638,8 +712,10 @@ document.addEventListener('DOMContentLoaded', function() {
             chSel.addEventListener('change', function () {
                 chField.value = chSel.value || '';
                 renderCoach(chSel.value || '', 0);
+                updateEnrollCheckoutPanel();
             });
         }
+        updateEnrollCheckoutPanel();
     }
 
     document.querySelectorAll('.sc-course-radio').forEach(function (radio) {
@@ -649,6 +725,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (selectedSessionsInput) {
                 selectedSessionsInput.value = '';
             }
+            updateEnrollCheckoutPanel();
         });
     });
 
@@ -692,6 +769,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }).catch(function () {
                 live.textContent = 'خطا در ارتباط با سرور';
             });
+            updateEnrollCheckoutPanel();
         });
     });
 

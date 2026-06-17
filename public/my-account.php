@@ -594,6 +594,11 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-faq';
     $vars[] = 'sc-event-detail';
     $vars[] = 'sc-my-attendances';
+    $vars[] = 'filter_course';
+    $vars[] = 'filter_date_from';
+    $vars[] = 'filter_date_to';
+    $vars[] = 'filter_date_from_shamsi';
+    $vars[] = 'filter_date_to_shamsi';
     $vars[] = 'sc-invoices';
     $vars[] = 'sc-wallet';
     $vars[] = 'sc-notifications';
@@ -602,6 +607,36 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-private-notes';
     $vars[] = 'my-orders';
     return $vars;
+}
+
+/**
+ * Prevent canonical redirect from stripping attendance/invoice filter query args on my-account.
+ */
+add_filter('redirect_canonical', 'sc_my_account_preserve_filter_query_args', 10, 2);
+function sc_my_account_preserve_filter_query_args($redirect_url, $requested_url) {
+    if (!function_exists('is_account_page') || !is_account_page()) {
+        return $redirect_url;
+    }
+
+    $preserve_keys = [
+        'filter_course',
+        'filter_date_from',
+        'filter_date_to',
+        'filter_date_from_shamsi',
+        'filter_date_to_shamsi',
+        'filter_status',
+        'invoice_search',
+        'course_search',
+        'pag',
+    ];
+
+    foreach ($preserve_keys as $key) {
+        if (array_key_exists($key, $_GET)) {
+            return false;
+        }
+    }
+
+    return $redirect_url;
 }
 
 /**
@@ -2047,7 +2082,7 @@ function sc_my_account_attendances_content() {
     $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC");
 
 
-    include SC_TEMPLATES_PUBLIC_DIR . 'my-attendances.php';
+    include SC_TEMPLATES_PUBLIC_DIR . 'MY-attendances.php';
 
 }
 

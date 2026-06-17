@@ -750,6 +750,21 @@ function sc_bulk_actions_execute_handler() {
                 $filtered_count
             );
         }
+
+        $assignment_errors = function_exists('sc_validate_bulk_course_activate_assignments')
+            ? sc_validate_bulk_course_activate_assignments($course_ids)
+            : array();
+        if (!empty($assignment_errors)) {
+            sc_bulk_actions_finish_with_report(
+                'course_activate',
+                array(),
+                array_map(static function ($line) {
+                    return array('line' => $line);
+                }, $assignment_errors),
+                $filtered_count
+            );
+        }
+
         $course_titles = array();
         foreach ($course_ids as $cid) {
             $cid = absint($cid);

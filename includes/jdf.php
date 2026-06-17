@@ -227,6 +227,8 @@ if (!function_exists('sc_shamsi_to_gregorian_date')) {
         if (empty($shamsi_date) || $shamsi_date === '0000-00-00') {
             return '';
         }
+
+        $shamsi_date = trim(str_replace('-', '/', (string) $shamsi_date));
         
         // تبدیل تاریخ شمسی به آرایه
         $parts = explode('/', $shamsi_date);

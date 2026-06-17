@@ -54,3 +54,38 @@
     margin: 8px 0 0 1.25em;
     list-style: disc;
 }
+
+.sc-bulk-activate-branch-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.sc-bulk-activate-course-block {
+    padding: 12px 14px;
+    border: 1px solid #c3d9e8;
+    border-radius: 8px;
+    background: #f0f6fc;
+}
+
+.sc-bulk-activate-course-title {
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.sc-bulk-activate-chapter-field,
+.sc-bulk-activate-coach-field {
+    margin-bottom: 8px;
+}
+
+.sc-bulk-activate-chapter-field:last-child,
+.sc-bulk-activate-coach-field:last-child {
+    margin-bottom: 0;
+}
+
+.sc-bulk-activate-chapter-field select,
+.sc-bulk-activate-coach-field select {
+    min-width: 220px;
+    margin-right: 6px;
+}
