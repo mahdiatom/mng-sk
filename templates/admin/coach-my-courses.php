@@ -17,11 +17,11 @@ $coach_settlement_type_row = $wpdb->get_row($wpdb->prepare(
 ));
 $coach_settlement_type_g = $coach_settlement_type_row ? $coach_settlement_type_row->settlement_type : '';
 $courses = $wpdb->get_results($wpdb->prepare(
-    "SELECT c.id, c.title, cc.salary_percentage , c.price, c.sessions_count, c.start_date, c.end_date, c.is_active
+    "SELECT c.id, c.title, cc.chapter_name, cc.salary_percentage, c.price, c.sessions_count, c.start_date, c.end_date, c.is_active
      FROM $courses_table c
-     INNER JOIN $course_coaches_table cc ON cc.course_id = c.id AND cc.coach_id = %d
+     INNER JOIN $course_coaches_table cc ON cc.course_id = c.id AND cc.coach_id = %d AND cc.chapter_name != ''
      WHERE c.deleted_at IS NULL
-     ORDER BY c.title",
+     ORDER BY c.title ASC, cc.chapter_name ASC",
     $coach_id
 ));
 ?>
@@ -41,6 +41,7 @@ $courses = $wpdb->get_results($wpdb->prepare(
                 <thead>
                     <tr>
                         <th class="column-title">عنوان</th>
+                        <th class="column-chapter">شعبه</th>
                         <th class="column-price">قیمت</th>
                         <th class="column-price">نوع همکاری</th>
                         <th class="column-salary_percentage">درصد همکاری</th>
@@ -56,6 +57,7 @@ $courses = $wpdb->get_results($wpdb->prepare(
                     ?>
                         <tr>
                             <td class="column-title"><strong><?php echo esc_html($c->title); ?></strong></td>
+                            <td class="column-chapter"><?php echo esc_html($c->chapter_name ?? '-'); ?></td>
                             <td class="column-price"><?php echo $c->price ? number_format((float)$c->price, 0) : '-'; ?></td>
                             <td class="column-salary_percentage"><?php
                                 if ($coach_settlement_type_g === 'both') {

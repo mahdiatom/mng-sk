@@ -232,6 +232,7 @@ $all_courses_for_filter = $wpdb->get_results(
                 <th class="column-id">ID</th>
                 <th class="column-date">تاریخ</th>
                 <th class="column-course">دوره</th>
+                <th class="column-chapter">شعبه</th>
                 <th class="column-type">نوع</th>
                 <th class="column-attendance">تعداد افراد</th>
                 <th class="column-price">قیمت هر جلسه</th>
@@ -243,7 +244,7 @@ $all_courses_for_filter = $wpdb->get_results(
         <tbody>
             <?php if (empty($salary_records)): ?>
                 <tr>
-                    <td colspan="10" style="text-align: center; padding: 30px;">
+                    <td colspan="11" style="text-align: center; padding: 30px;">
                         <p>هیچ رکورد دستمزدی یافت نشد.</p>
                     </td>
                 </tr>
@@ -264,6 +265,7 @@ $all_courses_for_filter = $wpdb->get_results(
                             }
                             ?>
                         </td>
+                        <td class="column-chapter"><?php echo !empty($record->chapter_name) ? esc_html($record->chapter_name) : '-'; ?></td>
                         <td class="column-type">
                             <?php if ($record->salary_type === 'percentage'): ?>
                                 <span style="color: #2271b1;">درصدی</span>
@@ -282,7 +284,7 @@ $all_courses_for_filter = $wpdb->get_results(
         </tbody>
         <tfoot>
             <tr>
-                <th colspan="9" style="text-align: left;">مجموع:</th>
+                <th colspan="10" style="text-align: left;">مجموع:</th>
                 <th><strong><?php echo number_format($total_salary, 0, '.', ','); ?> تومان</strong></th>
             </tr>
         </tfoot>

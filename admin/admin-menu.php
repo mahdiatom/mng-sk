@@ -5280,29 +5280,47 @@ function sc_create_coach_wp_user($coach_id, $data, $username = '', $password = '
 function sc_save_coach_courses($coach_id, $course_ids, $course_percentages = []) {
     global $wpdb;
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-    
-    // حذف دوره‌های قبلی
+
     $wpdb->delete($course_coaches_table, ['coach_id' => $coach_id], ['%d']);
-    
-    // افزودن دوره‌های جدید با درصد دستمزد
+
     if (!empty($course_ids) && is_array($course_ids)) {
+        $now = current_time('mysql');
         foreach ($course_ids as $course_id) {
             $course_id = absint($course_id);
-            if ($course_id) {
-                $salary_percentage = isset($course_percentages[$course_id]) ? floatval($course_percentages[$course_id]) : 0.00;
-                if ($salary_percentage < 0) $salary_percentage = 0;
-                if ($salary_percentage > 100) $salary_percentage = 100;
-                
+            if (!$course_id) {
+                continue;
+            }
+
+            $chapters = function_exists('sc_get_course_chapters') ? sc_get_course_chapters($course_id) : [];
+            if (empty($chapters)) {
+                continue;
+            }
+
+            $salary_percentage = isset($course_percentages[$course_id]) ? floatval($course_percentages[$course_id]) : 0.00;
+            if ($salary_percentage < 0) {
+                $salary_percentage = 0;
+            }
+            if ($salary_percentage > 100) {
+                $salary_percentage = 100;
+            }
+
+            foreach ($chapters as $chapter_name) {
+                $chapter_name = sanitize_text_field((string) $chapter_name);
+                if ($chapter_name === '') {
+                    continue;
+                }
+
                 $wpdb->insert(
                     $course_coaches_table,
                     [
                         'coach_id' => $coach_id,
                         'course_id' => $course_id,
+                        'chapter_name' => $chapter_name,
                         'salary_percentage' => $salary_percentage,
-                        'created_at' => current_time('mysql'),
-                        'updated_at' => current_time('mysql')
+                        'created_at' => $now,
+                        'updated_at' => $now,
                     ],
-                    ['%d', '%d', '%f', '%s', '%s']
+                    ['%d', '%d', '%s', '%f', '%s', '%s']
                 );
             }
         }

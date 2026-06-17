@@ -589,6 +589,7 @@ function sc_create_coach_salary_records_table() {
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `coach_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه مربی',
         `course_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه دوره',
+        `chapter_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه',
         `attendance_date` date NOT NULL COMMENT 'تاریخ حضور',
         `attendance_count` int(11) NOT NULL DEFAULT 0 COMMENT 'تعداد شرکت کنندگان',
         `price_per_session` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'قیمت هر جلسه',
@@ -600,9 +601,10 @@ function sc_create_coach_salary_records_table() {
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
-        UNIQUE KEY `idx_coach_course_date` (`coach_id`, `course_id`, `attendance_date`),
+        UNIQUE KEY `idx_coach_course_chapter_date` (`coach_id`, `course_id`, `chapter_name`, `attendance_date`),
         KEY `idx_coach_id` (`coach_id`),
         KEY `idx_course_id` (`course_id`),
+        KEY `idx_chapter_name` (`chapter_name`),
         KEY `idx_attendance_date` (`attendance_date`),
         KEY `idx_salary_type` (`salary_type`)
     ) ENGINE=InnoDB $table_collation";
@@ -2065,6 +2067,70 @@ function sc_update_database() {
 
     if (function_exists('sc_private_ensure_booking_schema_columns')) {
         sc_private_ensure_booking_schema_columns();
+    }
+
+    // دستمزد مربی: شعبه در رکورد دستمزد + مهاجرت داده legacy
+    if (get_option('sc_coach_salary_chapter_v1', '0') !== '1') {
+        $sr = $wpdb->prefix . 'sc_coach_salary_records';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $sr)) === $sr) {
+            $col_ch = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$sr` LIKE %s", 'chapter_name'));
+            if (empty($col_ch)) {
+                $wpdb->query("ALTER TABLE `$sr` ADD COLUMN `chapter_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه' AFTER `course_id`");
+                $wpdb->query("ALTER TABLE `$sr` ADD KEY `idx_chapter_name` (`chapter_name`)");
+            }
+
+            $idx_old = $wpdb->get_results($wpdb->prepare(
+                "SHOW INDEX FROM `$sr` WHERE Key_name = %s",
+                'idx_coach_course_date'
+            ));
+            if (!empty($idx_old)) {
+                $wpdb->query("ALTER TABLE `$sr` DROP INDEX `idx_coach_course_date`");
+            }
+            $idx_new = $wpdb->get_results($wpdb->prepare(
+                "SHOW INDEX FROM `$sr` WHERE Key_name = %s",
+                'idx_coach_course_chapter_date'
+            ));
+            if (empty($idx_new)) {
+                $wpdb->query("ALTER TABLE `$sr` ADD UNIQUE KEY `idx_coach_course_chapter_date` (`coach_id`, `course_id`, `chapter_name`, `attendance_date`)");
+            }
+        }
+
+        $cc = $wpdb->prefix . 'sc_course_coaches';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $cc)) === $cc) {
+            $legacy_rows = $wpdb->get_results(
+                "SELECT id, course_id, coach_id, salary_percentage, price_per_session, capacity
+                 FROM `$cc` WHERE chapter_name = '' OR chapter_name IS NULL"
+            );
+            foreach ((array) $legacy_rows as $legacy) {
+                $course_id = (int) $legacy->course_id;
+                $coach_id = (int) $legacy->coach_id;
+                $chapters = function_exists('sc_get_course_chapters')
+                    ? sc_get_course_chapters($course_id)
+                    : [];
+                if (count($chapters) === 1) {
+                    $chapter_name = $chapters[0];
+                    $exists = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(*) FROM `$cc` WHERE course_id = %d AND coach_id = %d AND chapter_name = %s",
+                        $course_id,
+                        $coach_id,
+                        $chapter_name
+                    ));
+                    if ($exists > 0) {
+                        $wpdb->delete($cc, ['id' => (int) $legacy->id], ['%d']);
+                    } else {
+                        $wpdb->update(
+                            $cc,
+                            ['chapter_name' => $chapter_name, 'updated_at' => current_time('mysql')],
+                            ['id' => (int) $legacy->id],
+                            ['%s', '%s'],
+                            ['%d']
+                        );
+                    }
+                }
+            }
+        }
+
+        update_option('sc_coach_salary_chapter_v1', '1');
     }
 }
 

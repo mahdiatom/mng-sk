@@ -203,6 +203,7 @@ $courses = $wpdb->get_results(
                 <th>تاریخ</th>
                 <th>مربی</th>
                 <th>دوره</th>
+                <th>شعبه</th>
                 <th>نوع</th>
                 <th>تعداد شرکت‌کنندگان</th>
                 <th>قیمت هر جلسه</th>
@@ -214,7 +215,7 @@ $courses = $wpdb->get_results(
         <tbody>
             <?php if (empty($salary_records)): ?>
                 <tr>
-                    <td colspan="11" style="text-align: center; padding: 30px;">
+                    <td colspan="12" style="text-align: center; padding: 30px;">
                         <p>هیچ رکورد دستمزدی یافت نشد.</p>
                     </td>
                 </tr>
@@ -244,6 +245,7 @@ $courses = $wpdb->get_results(
                             }
                             ?>
                         </td>
+                        <td><?php echo !empty($record->chapter_name) ? esc_html($record->chapter_name) : '-'; ?></td>
                         <td>
                             <?php if ($record->salary_type === 'percentage'): ?>
                                 <span style="color: #2271b1;">درصدی</span>
@@ -262,7 +264,7 @@ $courses = $wpdb->get_results(
         </tbody>
         <tfoot>
             <tr>
-                <th colspan="10" style="text-align: left;">مجموع:</th>
+                <th colspan="11" style="text-align: left;">مجموع:</th>
                 <th><strong><?php echo number_format($total_salary, 0, '.', ','); ?> تومان</strong></th>
             </tr>
         </tfoot>

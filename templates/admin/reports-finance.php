@@ -293,11 +293,16 @@ $finance_chart_config = null;
             <?php elseif ($tab === 'coach_share') :
                 $invoices_table = $wpdb->prefix . 'sc_invoices';
                 $wallet_table = $wpdb->prefix . 'sc_coach_wallet_transactions';
+                $salary_records_table = $wpdb->prefix . 'sc_coach_salary_records';
                 $salary_where = ["w.status = 'completed'", "w.transaction_type IN ('salary_percentage','salary_fixed')", "DATE(w.created_at) BETWEEN %s AND %s"];
                 $salary_args = [$filter_date_from, $filter_date_to];
                 if ($filter_coach > 0) { $salary_where[] = "w.coach_id = %d"; $salary_args[] = $filter_coach; }
                 if ($filter_course > 0) { $salary_where[] = "w.related_course_id = %d"; $salary_args[] = $filter_course; }
-                if ($filter_chapter !== '') { $salary_where[] = "co.chapter = %s"; $salary_args[] = $filter_chapter; }
+                if ($filter_chapter !== '') {
+                    $salary_where[] = "(sr.chapter_name = %s OR (sr.id IS NULL AND co.chapter = %s))";
+                    $salary_args[] = $filter_chapter;
+                    $salary_args[] = $filter_chapter;
+                }
 
                 $income_where = ["i.status IN ('paid','completed','processing')", "i.payment_date IS NOT NULL", "DATE(i.payment_date) BETWEEN %s AND %s", "i.course_id > 0"];
                 $income_args = [$filter_date_from, $filter_date_to];
@@ -312,6 +317,7 @@ $finance_chart_config = null;
                             FROM $wallet_table w
                             INNER JOIN $coaches_table cc ON cc.id = w.coach_id
                             LEFT JOIN $courses_table co ON co.id = w.related_course_id
+                            LEFT JOIN $salary_records_table sr ON sr.id = w.related_salary_record_id
                             WHERE " . implode(' AND ', $salary_where) . "
                             GROUP BY w.coach_id, cc.first_name, cc.last_name, w.related_course_id
                         ) coach_rows

@@ -2396,6 +2396,7 @@ if (!empty($where_values)) {
             'تاریخ ',
             'نام مربی',
             'دوره',
+            'شعبه',
             'نوع تسویه حساب',
             'تعداد شرکت کننده',
             'قیمت هر جلسه',
@@ -2411,7 +2412,8 @@ if (!empty($where_values)) {
     }
 // استایل هدر
     $headerStyle = sc_get_excel_header_style();
-    $sheet->getStyle('A1:N1')->applyFromArray($headerStyle);
+    $last_col = chr(ord('A') + count($headers) - 1);
+    $sheet->getStyle("A1:{$last_col}1")->applyFromArray($headerStyle);
 
 // داده‌ها
     $row        = 2;
@@ -2446,8 +2448,8 @@ if (!empty($where_values)) {
       // نام دوره 
         $sheet->setCellValueByColumnAndRow($col++, $row, $t->course_title ?? '-');
 
-      // نام دوره 
-      $value_settlement = $t->settlement_type ; 
+        $sheet->setCellValueByColumnAndRow($col++, $row, !empty($t->chapter_name) ? $t->chapter_name : '-');
+      $value_settlement = $t->settlement_type;
         $sheet->setCellValueByColumnAndRow($col++, $row, $settlement_type["$value_settlement"] ?? '-');
 
 // قیمت هر جلسه
@@ -2470,9 +2472,9 @@ if (!empty($where_values)) {
         $dataStyle = sc_get_excel_data_style();
         if ($row % 2 === 0) {
             $alternateStyle = sc_get_excel_alternate_row_style();
-            $sheet->getStyle("A{$row}:N{$row}")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+            $sheet->getStyle("A{$row}:{$last_col}{$row}")->applyFromArray(array_merge($dataStyle, $alternateStyle));
         } else {
-            $sheet->getStyle("A{$row}:N{$row}")->applyFromArray($dataStyle);
+            $sheet->getStyle("A{$row}:{$last_col}{$row}")->applyFromArray($dataStyle);
         }
 
         $row++;

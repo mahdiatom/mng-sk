@@ -261,7 +261,7 @@ button[name="save_honors"],
 ;
 
  }
-.menu_custom_gym .menu > li > a,
+.menu-header_dl .menu > li > a,
  .menus .header_phone ,
 a.details_info_user_pannel,
 .woocommerce-MyAccount-navigation ul li a,

@@ -612,6 +612,67 @@ function sc_backfill_member_courses_single_coach_assignment() {
 }
 
 /**
+ * Backfill coach_id for member_courses using chapter when member has chapter but no coach.
+ */
+add_action('admin_init', 'sc_backfill_member_courses_chapter_coach_assignment');
+function sc_backfill_member_courses_chapter_coach_assignment() {
+    if (get_option('sc_member_courses_chapter_coach_backfill_v1', '0') === '1') {
+        return;
+    }
+
+    global $wpdb;
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+    $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $member_courses_table));
+    if ($table_exists !== $member_courses_table) {
+        return;
+    }
+
+    $rows = $wpdb->get_results(
+        "SELECT id, course_id, chapter
+         FROM `$member_courses_table`
+         WHERE status = 'active'
+           AND (coach_id IS NULL OR coach_id = 0)
+           AND chapter IS NOT NULL
+           AND chapter != ''"
+    );
+
+    foreach ((array) $rows as $row) {
+        $course_id = (int) $row->course_id;
+        $chapter = sanitize_text_field((string) $row->chapter);
+        if (!$course_id || $chapter === '') {
+            continue;
+        }
+
+        $coach_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
+             FROM `$course_coaches_table` cc
+             INNER JOIN `$coaches_table` c ON c.id = cc.coach_id
+             WHERE cc.course_id = %d AND cc.chapter_name = %s AND c.is_active = 1",
+            $course_id,
+            $chapter
+        ));
+
+        if ($coach_id > 0) {
+            $wpdb->update(
+                $member_courses_table,
+                [
+                    'coach_id' => $coach_id,
+                    'updated_at' => current_time('mysql'),
+                ],
+                ['id' => (int) $row->id],
+                ['%d', '%s'],
+                ['%d']
+            );
+        }
+    }
+
+    update_option('sc_member_courses_chapter_coach_backfill_v1', '1');
+}
+
+/**
  * ============================
  * Add price_per_session column to courses table if not exists
  * ============================
