@@ -3110,6 +3110,9 @@ function callback_add_course_sufix() {
                 if (function_exists('sc_save_course_coach_assignments_from_post')) {
                     sc_save_course_coach_assignments_from_post($course_id, $posted_chapters);
                 }
+                if (function_exists('sc_private_sync_branch_capacities_to_course_ceiling')) {
+                    sc_private_sync_branch_capacities_to_course_ceiling($course_id);
+                }
                 if (function_exists('sc_maybe_notify_course_capacity_waitlist')) {
                     sc_maybe_notify_course_capacity_waitlist($course_id);
                 }
@@ -3186,6 +3189,9 @@ function callback_add_course_sufix() {
                 }
                 if (function_exists('sc_save_course_coach_assignments_from_post')) {
                     sc_save_course_coach_assignments_from_post($insert_id, $posted_chapters);
+                }
+                if (function_exists('sc_private_sync_branch_capacities_to_course_ceiling')) {
+                    sc_private_sync_branch_capacities_to_course_ceiling($insert_id);
                 }
                 if (function_exists('sc_log_activity')) {
                     sc_log_activity('created', 'course', $insert_id, 'دوره «' . $insert_data['title'] . '» ایجاد شد', null, ['title' => $insert_data['title'], 'price' => $insert_data['price'], 'is_active' => $insert_data['is_active']]);

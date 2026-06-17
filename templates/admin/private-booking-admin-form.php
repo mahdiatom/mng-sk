@@ -164,6 +164,16 @@ $back_label = $is_admin_approval_mode ? 'بازگشت به لیست' : 'کلاس
                 </div>
 
                 <div class="sc-enroll-panel sc-private-panel">
+                    <div class="sc-enroll-panel-title">تعداد جلسات</div>
+                    <p class="sc-private-panel-hint">ابتدا تعداد جلسات را انتخاب کنید؛ پیش‌نمایش جلسات آینده و بررسی ظرفیت بازه‌ها بر اساس این عدد انجام می‌شود.</p>
+                    <div id="sc_private_sessions_wrap" class="sc-private-sessions-grid"></div>
+                    <input type="hidden" name="enrollment_sessions" id="sc_private_enrollment_sessions_value" value="">
+                    <select id="sc_private_sessions_count" class="sc-private-sessions-native" tabindex="-1" aria-hidden="true">
+                        <option value="">ابتدا دوره را انتخاب کنید</option>
+                    </select>
+                </div>
+
+                <div class="sc-enroll-panel sc-private-panel">
                     <div class="sc-enroll-panel-title">انتخاب زمان هفتگی</div>
                     <p class="sc-private-panel-hint">یک یا چند بازه زمانی هفتگی را انتخاب کنید. بازه‌های «پر شده» قابل رزرو نیستند. با تغییر تاریخ شروع، وضعیت رزرو به‌روز می‌شود.</p>
                     <div class="sc-private-slots-preview-bar">
@@ -174,17 +184,14 @@ $back_label = $is_admin_approval_mode ? 'بازگشت به لیست' : 'کلاس
                         </button>
                     </div>
                     <div id="sc_private_slots_wrap" class="sc-private-slot-grid">
-                        <div class="sc-private-slot-empty">ابتدا دوره، شعبه و مربی را انتخاب کنید.</div>
+                        <div class="sc-private-slot-empty">ابتدا دوره، شعبه، مربی و تعداد جلسات را انتخاب کنید.</div>
                     </div>
-                    <div id="sc_private_sessions_schedule_preview" class="sc-private-sessions-schedule-preview" hidden></div>
                 </div>
 
-                <div class="sc-enroll-panel sc-private-panel">
-                    <div class="sc-enroll-panel-title">تعداد جلسات</div>
-                    <div id="sc_private_sessions_wrap" class="sc-private-sessions-grid"></div>
-                    <select name="enrollment_sessions" id="sc_private_sessions_count" class="sc-private-sessions-native" required <?php disabled($is_readonly); ?> tabindex="-1" aria-hidden="true">
-                        <option value="">ابتدا دوره را انتخاب کنید</option>
-                    </select>
+                <div class="sc-enroll-panel sc-private-panel sc-private-panel-schedule-preview">
+                    <div class="sc-enroll-panel-title">پیش‌نمایش جلسات آینده</div>
+                    <p class="sc-private-panel-hint">پس از انتخاب تعداد جلسات و بازه‌های زمانی، برنامه جلسات در این بخش نمایش داده می‌شود.</p>
+                    <div id="sc_private_sessions_schedule_preview" class="sc-private-sessions-schedule-preview" hidden></div>
                 </div>
 
                 <div class="sc-enroll-panel sc-private-panel">

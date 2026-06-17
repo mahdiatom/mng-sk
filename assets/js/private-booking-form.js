@@ -68,7 +68,9 @@
         var coachSel = document.getElementById('sc_private_coach_id');
         var slotsWrap = document.getElementById('sc_private_slots_wrap');
         var sessionsSel = document.getElementById('sc_private_sessions_count');
+        var sessionsHidden = document.getElementById('sc_private_enrollment_sessions_value');
         var sessionsWrap = document.getElementById('sc_private_sessions_wrap');
+        var pickedSessionCount = 0;
         var startDateEl = document.getElementById('sc_private_start_date_shamsi');
         var pricePreview = document.getElementById('sc_private_price_preview');
         var slotsPreviewEl = document.getElementById('sc_private_slots_preview');
@@ -87,20 +89,139 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;');
         }
+        function getCourseInfo() {
+            var cid = getCourseId();
+            return cid && data[cid] ? data[cid] : null;
+        }
+
+        function populateSessionSelectOptions(info, placeholder) {
+            if (!sessionsSel || !info) {
+                return;
+            }
+            placeholder = placeholder || 'تعداد جلسات';
+            var keep = pickedSessionCount > 0 ? pickedSessionCount : getSelectedSessionCount();
+            sessionsSel.innerHTML = '';
+            var emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            emptyOpt.textContent = placeholder;
+            sessionsSel.appendChild(emptyOpt);
+            (info.session_options || []).forEach(function (n) {
+                var count = parseInt(n, 10);
+                if (count <= 0) {
+                    return;
+                }
+                var opt = document.createElement('option');
+                opt.value = String(count);
+                opt.textContent = count + ' جلسه';
+                sessionsSel.appendChild(opt);
+            });
+            sessionsSel.disabled = false;
+            if (keep > 0) {
+                setSelectedSessionCount(keep, false);
+            }
+        }
+
+        function setSelectedSessionCount(count, triggerRefresh) {
+            count = parseInt(count, 10) || 0;
+            pickedSessionCount = count > 0 ? count : 0;
+            if (sessionsHidden) {
+                sessionsHidden.value = pickedSessionCount > 0 ? String(pickedSessionCount) : '';
+            }
+            if (sessionsSel) {
+                sessionsSel.disabled = false;
+                if (pickedSessionCount > 0) {
+                    var hasOption = Array.prototype.some.call(sessionsSel.options, function (optionEl) {
+                        return optionEl.value === String(pickedSessionCount);
+                    });
+                    if (!hasOption) {
+                        var dynamicOpt = document.createElement('option');
+                        dynamicOpt.value = String(pickedSessionCount);
+                        dynamicOpt.textContent = pickedSessionCount + ' جلسه';
+                        sessionsSel.appendChild(dynamicOpt);
+                    }
+                    sessionsSel.value = String(pickedSessionCount);
+                } else {
+                    sessionsSel.value = '';
+                }
+            }
+            if (sessionsWrap) {
+                sessionsWrap.querySelectorAll('.sc-private-session-card').forEach(function (card) {
+                    var radio = card.querySelector('input[type="radio"]');
+                    var isMatch = radio && parseInt(radio.value, 10) === pickedSessionCount;
+                    card.classList.toggle('is-checked', !!isMatch);
+                    if (radio) {
+                        radio.checked = !!isMatch;
+                    }
+                });
+            }
+            if (triggerRefresh !== false) {
+                updatePricePreview();
+                updateSessionsSchedulePreview(null);
+                if (userFields.slots) {
+                    refreshSlots();
+                } else if (typeof scheduleSlotAvailabilityCheck === 'function') {
+                    scheduleSlotAvailabilityCheck();
+                }
+            }
+        }
+
+        function getSelectedSessionCount() {
+            if (pickedSessionCount > 0) {
+                return pickedSessionCount;
+            }
+            if (sessionsWrap) {
+                var checkedRadio = sessionsWrap.querySelector('input[name="sc_private_session_pick"]:checked');
+                if (checkedRadio) {
+                    var fromRadio = parseInt(checkedRadio.value, 10);
+                    if (fromRadio > 0) {
+                        pickedSessionCount = fromRadio;
+                        if (sessionsHidden) {
+                            sessionsHidden.value = String(fromRadio);
+                        }
+                        return fromRadio;
+                    }
+                }
+            }
+            if (sessionsHidden && sessionsHidden.value) {
+                var fromHidden = parseInt(sessionsHidden.value, 10);
+                if (fromHidden > 0) {
+                    pickedSessionCount = fromHidden;
+                    return fromHidden;
+                }
+            }
+            if (sessionsSel && sessionsSel.value) {
+                var fromSelect = parseInt(sessionsSel.value, 10);
+                if (fromSelect > 0) {
+                    pickedSessionCount = fromSelect;
+                    if (sessionsHidden) {
+                        sessionsHidden.value = String(fromSelect);
+                    }
+                    return fromSelect;
+                }
+            }
+            return 0;
+        }
+
         function getEffectiveSessionCount() {
-            var selected = sessionsSel ? parseInt(sessionsSel.value || '0', 10) : 0;
+            var selected = getSelectedSessionCount();
             if (selected > 0) {
                 return selected;
             }
-            var cid = getCourseId();
-            var info = cid && data[cid] ? data[cid] : null;
-            if (info && info.session_options && info.session_options.length) {
-                var mins = info.session_options.map(function (n) { return parseInt(n, 10); }).filter(function (n) { return n > 0; });
-                if (mins.length) {
-                    return Math.min.apply(null, mins);
+            if (!userFields.sessions) {
+                var info = getCourseInfo();
+                if (info && info.session_options && info.session_options.length) {
+                    var mins = info.session_options.map(function (n) { return parseInt(n, 10); }).filter(function (n) { return n > 0; });
+                    if (mins.length) {
+                        return Math.min.apply(null, mins);
+                    }
                 }
+                return 1;
             }
-            return 1;
+            return 0;
+        }
+
+        function needsSessionSelectionFirst() {
+            return !!userFields.sessions && getSelectedSessionCount() <= 0;
         }
 
         function togglePreviewRefreshButton(show) {
@@ -196,8 +317,15 @@
                 return;
             }
 
+            var sessionCount = parseInt(
+                scheduleData.requested_sessions || scheduleData.sessions_count || scheduleData.items.length || '0',
+                10
+            );
+            var titleBase = scheduleData.title || 'پیش‌نمایش جلسات آینده';
+            var title = sessionCount > 0 ? (titleBase + ' (' + sessionCount + ' جلسه)') : titleBase;
+
             var html = '<div class="sc-private-schedule-preview-panel">';
-            html += '<div class="sc-private-schedule-preview-title">' + escapeHtml(scheduleData.title || 'برنامه جلسات') + '</div>';
+            html += '<div class="sc-private-schedule-preview-title">' + escapeHtml(title) + '</div>';
             html += '<div class="sc-private-schedule-preview-grid">';
             scheduleData.items.forEach(function (item, index) {
                 html += '<div class="sc-private-schedule-preview-card">'
@@ -381,20 +509,20 @@
             return parseFloat(info.price || 0);
         }
 
-        function renderSessionCards(sessionsWrap, sessionsSel, sessionOptions, selectedValue) {
-            if (!sessionsWrap || !sessionsSel) {
+        function renderSessionCards(sessionsWrapEl, sessionsSelectEl, sessionOptions, selectedValue) {
+            if (!sessionsWrapEl || !sessionsSelectEl) {
                 return;
             }
-            sessionsWrap.innerHTML = '';
+            sessionsWrapEl.innerHTML = '';
             if (!sessionOptions || !sessionOptions.length) {
-                sessionsWrap.innerHTML = '<p class="sc-private-panel-hint">گزینه‌ای برای این دوره تعریف نشده است.</p>';
+                sessionsWrapEl.innerHTML = '<p class="sc-private-panel-hint">گزینه‌ای برای این دوره تعریف نشده است.</p>';
                 return;
             }
 
-            var cid = courseSel ? parseInt(courseSel.value || '0', 10) : 0;
-            var info = cid && data[cid] ? data[cid] : null;
+            var info = getCourseInfo();
             var chapter = chapterSel ? String(chapterSel.value || '') : '';
             var coachId = coachSel ? parseInt(coachSel.value || '0', 10) : 0;
+            var activeValue = parseInt(selectedValue || getSelectedSessionCount() || '0', 10);
 
             sessionOptions.forEach(function (n) {
                 var count = parseInt(n, 10);
@@ -407,20 +535,19 @@
                 radio.type = 'radio';
                 radio.name = 'sc_private_session_pick';
                 radio.value = String(count);
-                if (String(selectedValue || '') === String(count) || String(sessionsSel.value || '') === String(count)) {
+                if (activeValue === count) {
                     radio.checked = true;
-                    sessionsSel.value = String(count);
                     label.classList.add('is-checked');
                 }
                 radio.addEventListener('change', function () {
-                    sessionsSel.value = String(count);
-                    sessionsSel.disabled = false;
-                    sessionsWrap.querySelectorAll('.sc-private-session-card').forEach(function (card) {
-                        card.classList.remove('is-checked');
-                    });
-                    label.classList.add('is-checked');
-                    updatePricePreview();
-                    scheduleSlotAvailabilityCheck();
+                    setSelectedSessionCount(count, true);
+                });
+                label.addEventListener('click', function () {
+                    window.setTimeout(function () {
+                        if (radio.checked) {
+                            setSelectedSessionCount(count, true);
+                        }
+                    }, 0);
                 });
 
                 var sessionsSpan = document.createElement('span');
@@ -435,19 +562,13 @@
                 label.appendChild(radio);
                 label.appendChild(sessionsSpan);
                 label.appendChild(priceSpan);
-                sessionsWrap.appendChild(label);
+                sessionsWrapEl.appendChild(label);
             });
 
-            if (!sessionsSel.value && sessionOptions.length === 1) {
-                sessionsSel.value = String(sessionOptions[0]);
-                var firstCard = sessionsWrap.querySelector('.sc-private-session-card');
-                if (firstCard) {
-                    firstCard.classList.add('is-checked');
-                    var firstRadio = firstCard.querySelector('input[type="radio"]');
-                    if (firstRadio) {
-                        firstRadio.checked = true;
-                    }
-                }
+            if (activeValue > 0) {
+                setSelectedSessionCount(activeValue, false);
+            } else if (sessionOptions.length === 1) {
+                setSelectedSessionCount(parseInt(sessionOptions[0], 10), false);
             }
         }
 
@@ -625,6 +746,14 @@
                 updateSubmitState();
                 return;
             }
+            if (needsSessionSelectionFirst()) {
+                slotsWrap.innerHTML = '<div class="sc-private-slot-empty">ابتدا تعداد جلسات را انتخاب کنید.</div>';
+                updateSlotsPreviewBanner(null);
+                updateSessionsSchedulePreview(null);
+                updateSubmitState();
+                togglePreviewRefreshButton(false);
+                return;
+            }
 
             var rows = [];
             if (cid) {
@@ -682,6 +811,23 @@
             var chapter = getChapterValue();
             var coachId = getCoachIdValue();
             var sessions = getEffectiveSessionCount();
+
+            if (userFields.sessions && sessions <= 0) {
+                if (slotsPreviewEl) {
+                    slotsPreviewEl.hidden = false;
+                    slotsPreviewEl.classList.remove('is-loading', 'is-warning', 'is-ok');
+                    slotsPreviewEl.classList.add('is-muted');
+                    slotsPreviewEl.textContent = 'ابتدا تعداد جلسات را انتخاب کنید تا وضعیت بازه‌ها و پیش‌نمایش جلسات بررسی شود.';
+                }
+                if (slotsPreviewRefreshBtn) {
+                    slotsPreviewRefreshBtn.classList.remove('is-loading');
+                    slotsPreviewRefreshBtn.disabled = true;
+                    slotsPreviewRefreshBtn.hidden = true;
+                }
+                updateSessionsSchedulePreview(null);
+                updateSubmitState();
+                return;
+            }
 
             var body = new URLSearchParams();
             body.append('action', 'sc_private_check_slots');
@@ -743,6 +889,11 @@
             var cid = courseSel ? parseInt(courseSel.value || '0', 10) : 0;
             var info = cid && data[cid] ? data[cid] : null;
 
+            pickedSessionCount = 0;
+            if (sessionsHidden) {
+                sessionsHidden.value = '';
+            }
+
             if (chapterSel) {
                 resetSelect(chapterSel, info ? 'شعبه را انتخاب کنید' : 'ابتدا دوره را انتخاب کنید', !info);
             }
@@ -752,8 +903,11 @@
             if (sessionsSel) {
                 resetSelect(sessionsSel, info ? 'تعداد جلسات' : 'ابتدا دوره را انتخاب کنید', !info);
             }
+            if (info && sessionsSel) {
+                populateSessionSelectOptions(info);
+            }
             if (sessionsWrap) {
-                renderSessionCards(sessionsWrap, sessionsSel, info ? info.session_options : [], 0);
+                renderSessionCards(sessionsWrap, sessionsSel, info ? info.session_options : [], prefill.enrollment_sessions || 0);
             }
             if (slotsWrap) {
                 if (!userFields.course) {
@@ -761,7 +915,7 @@
                 } else if (!info) {
                     slotsWrap.innerHTML = '<div class="sc-private-slot-empty">ابتدا دوره را انتخاب کنید.</div>';
                 } else if (chapterSel) {
-                    slotsWrap.innerHTML = '<div class="sc-private-slot-empty">ابتدا شعبه' + (userFields.coach ? ' و مربی' : '') + ' را انتخاب کنید.</div>';
+                    slotsWrap.innerHTML = '<div class="sc-private-slot-empty">ابتدا شعبه' + (userFields.coach ? ' و مربی' : '') + (userFields.sessions ? ' و تعداد جلسات' : '') + ' را انتخاب کنید.</div>';
                 } else if (coachSel && !userFields.chapter) {
                     populateCoachesForCourse(info);
                     refreshSlots();
@@ -793,18 +947,6 @@
                 populateCoachesForCourse(info);
             }
 
-            if (sessionsSel) {
-                (info.session_options || []).forEach(function (n) {
-                    var opt = document.createElement('option');
-                    opt.value = String(n);
-                    opt.textContent = String(n) + ' جلسه';
-                    sessionsSel.appendChild(opt);
-                });
-                sessionsSel.disabled = false;
-            }
-            if (sessionsWrap) {
-                renderSessionCards(sessionsWrap, sessionsSel, info.session_options || [], prefill.enrollment_sessions || 0);
-            }
             refreshSlots();
             updatePricePreview();
         }
@@ -813,13 +955,12 @@
             if (!sessionsWrap || !sessionsSel) {
                 return;
             }
-            var cid = courseSel ? parseInt(courseSel.value || '0', 10) : 0;
-            var info = cid && data[cid] ? data[cid] : null;
+            var info = getCourseInfo();
             if (!info) {
                 return;
             }
-            var selected = parseInt(sessionsSel.value || '0', 10);
-            renderSessionCards(sessionsWrap, sessionsSel, info.session_options || [], selected);
+            populateSessionSelectOptions(info);
+            renderSessionCards(sessionsWrap, sessionsSel, info.session_options || [], getSelectedSessionCount());
         }
 
         function onChapterChange() {
@@ -857,8 +998,7 @@
         }
         if (sessionsSel) {
             sessionsSel.addEventListener('change', function () {
-                updatePricePreview();
-                scheduleSlotAvailabilityCheck();
+                setSelectedSessionCount(parseInt(sessionsSel.value || '0', 10), true);
             });
         }
         if (startDateEl) {
@@ -889,13 +1029,18 @@
                 coachSel.value = String(prefill.coach_id);
                 renderSlots(prefill.chapter || (chapterSel ? chapterSel.value : ''), prefill.coach_id, prefill.slot_ids || []);
             }
-            if (prefill.enrollment_sessions && sessionsSel) {
-                sessionsSel.value = String(prefill.enrollment_sessions);
+            if (prefill.enrollment_sessions) {
+                setSelectedSessionCount(parseInt(prefill.enrollment_sessions, 10), false);
             }
             if (sessionsWrap && sessionsSel) {
-                var cid = parseInt(String(prefill.course_id || '0'), 10);
-                var info = cid && data[cid] ? data[cid] : null;
-                renderSessionCards(sessionsWrap, sessionsSel, info ? info.session_options : [], prefill.enrollment_sessions || 0);
+                var info = getCourseInfo();
+                if (info) {
+                    populateSessionSelectOptions(info);
+                    renderSessionCards(sessionsWrap, sessionsSel, info.session_options || [], prefill.enrollment_sessions || getSelectedSessionCount());
+                }
+            }
+            if (prefill.enrollment_sessions && userFields.slots) {
+                refreshSlots();
             }
             updatePricePreview();
         }
@@ -906,6 +1051,11 @@
 
         if (bookingForm && userFields.slots) {
             bookingForm.addEventListener('submit', function (e) {
+                if (userFields.sessions && getSelectedSessionCount() <= 0) {
+                    e.preventDefault();
+                    window.alert('لطفاً تعداد جلسات را انتخاب کنید.');
+                    return false;
+                }
                 if (countCheckedFullSlots() > 0) {
                     e.preventDefault();
                     window.alert('یک یا چند بازه زمانی انتخابی پر شده است. لطفاً بازه دیگری انتخاب کنید.');

@@ -77,25 +77,81 @@ function sc_private_schedule_row_matches($row, $chapter_name, $coach_id) {
     return true;
 }
 
+function sc_private_get_course_capacity_ceiling($course_id) {
+    global $wpdb;
+    $course_id = absint($course_id);
+    if ($course_id <= 0) {
+        return null;
+    }
+
+    if (isset($_POST['capacity']) && $_POST['capacity'] !== '') {
+        return max(1, absint($_POST['capacity']));
+    }
+
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT capacity FROM {$wpdb->prefix}sc_courses WHERE id = %d",
+        $course_id
+    ));
+    if ($row && $row->capacity !== null && $row->capacity !== '' && (int) $row->capacity > 0) {
+        return max(1, (int) $row->capacity);
+    }
+
+    return null;
+}
+
+function sc_private_cap_branch_capacity_value($course_id, $branch_capacity) {
+    $ceiling = sc_private_get_course_capacity_ceiling($course_id);
+    if ($ceiling === null) {
+        if ($branch_capacity === null || $branch_capacity === '') {
+            return null;
+        }
+        return max(1, (int) $branch_capacity);
+    }
+    if ($branch_capacity === null || $branch_capacity === '') {
+        return $ceiling;
+    }
+    return min(max(1, (int) $branch_capacity), $ceiling);
+}
+
 function sc_private_get_branch_capacity($course_id, $chapter_name, $coach_id, $course = null) {
-    $capacity = null;
+    $course_id = absint($course_id);
+    $course_capacity = sc_private_get_course_capacity_ceiling($course_id);
+
+    $branch_capacity = null;
     if (function_exists('sc_get_course_coach_branch_meta')) {
         $meta = sc_get_course_coach_branch_meta($course_id, $chapter_name, $coach_id);
         if ($meta && $meta['capacity'] !== null && (int) $meta['capacity'] > 0) {
-            return (int) $meta['capacity'];
+            $branch_capacity = (int) $meta['capacity'];
         }
     }
-    if (!$course) {
-        global $wpdb;
-        $course = $wpdb->get_row($wpdb->prepare(
-            "SELECT capacity FROM {$wpdb->prefix}sc_courses WHERE id = %d",
-            absint($course_id)
-        ));
+
+    return sc_private_cap_branch_capacity_value($course_id, $branch_capacity) ?? 1;
+}
+
+/**
+ * وقتی ظرفیت کلی دوره کاهش می‌یابد، ظرفیت ذخیره‌شده شعبه/مربی را هم به سقف دوره محدود می‌کند.
+ */
+function sc_private_sync_branch_capacities_to_course_ceiling($course_id) {
+    global $wpdb;
+    $course_id = absint($course_id);
+    if ($course_id <= 0) {
+        return;
     }
-    if ($course && !empty($course->capacity)) {
-        return max(1, (int) $course->capacity);
+
+    $cap = sc_private_get_course_capacity_ceiling($course_id);
+    if ($cap === null) {
+        return;
     }
-    return 1;
+
+    $table = $wpdb->prefix . 'sc_course_coaches';
+    $wpdb->query($wpdb->prepare(
+        "UPDATE {$table}
+         SET capacity = %d, updated_at = %s
+         WHERE course_id = %d",
+        $cap,
+        current_time('mysql'),
+        $course_id
+    ));
 }
 
 function sc_private_build_booking_config(array $courses) {
@@ -326,7 +382,7 @@ function sc_private_evaluate_slot_plan($row, $slot_coach_id, $start_date, $sessi
             continue;
         }
         $future_checks++;
-        if (!sc_private_can_reserve_slot($slot_coach_id, $slot_id, $session_date, $capacity)) {
+        if (!sc_private_can_reserve_slot($slot_coach_id, $slot_id, $session_date, $capacity, 0)) {
             $full = true;
             $blocked_dates++;
             if (count($conflicts) < 4) {
@@ -339,7 +395,7 @@ function sc_private_evaluate_slot_plan($row, $slot_coach_id, $start_date, $sessi
                         : $session_date,
                     'label' => sc_private_format_session_occurrence_label($session_date, $time_start, $time_end),
                     'member_names' => $names,
-                    'reserved_count' => (int) ($occupants['count'] ?? 0),
+                    'reserved_count' => sc_private_slot_reserved_count($slot_coach_id, $slot_id, $session_date),
                     'capacity' => max(1, (int) $capacity),
                     'message' => !empty($names)
                         ? sprintf(
@@ -354,6 +410,19 @@ function sc_private_evaluate_slot_plan($row, $slot_coach_id, $start_date, $sessi
                 ];
             }
         }
+    }
+
+    if ($future_checks === 0 && !empty($generated)) {
+        return [
+            'available' => false,
+            'full' => true,
+            'unknown' => false,
+            'blocked_dates' => 0,
+            'future_checks' => 0,
+            'conflicts' => [[
+                'message' => 'با تاریخ شروع انتخابی، جلسه‌ای در آینده برای بررسی ظرفیت باقی نمانده است. تاریخ شروع دیگری انتخاب کنید.',
+            ]],
+        ];
     }
 
     return [
@@ -453,6 +522,7 @@ function sc_private_build_session_schedule_preview($selected_slot_ids, $course_i
             : 'کلاس‌های شما در این تاریخ‌ها برگزار می‌شود',
         'items' => $items,
         'sessions_count' => count($items),
+        'requested_sessions' => $sessions_count,
         'start_date' => $start_date,
     ];
 }
@@ -525,6 +595,7 @@ function sc_private_check_slots_availability($course_id, $chapter_name, $coach_i
             'preview_sessions' => $sessions_count,
             'start_date_used' => $start_date,
             'conflicts' => $eval['conflicts'] ?? [],
+            'capacity_limit' => $capacity,
         ];
 
         if (!empty($eval['full'])) {
@@ -538,7 +609,15 @@ function sc_private_check_slots_availability($course_id, $chapter_name, $coach_i
                 $slot_result['admin_message'] = !empty($conflict_messages)
                     ? implode(' ', $conflict_messages)
                     : 'این بازه در تاریخ شروع انتخابی پر است.';
-                $slot_result['admin_suggestion'] = 'ظرفیت دوره یا شعبه را افزایش دهید، یا تاریخ شروع دیگری انتخاب کنید.';
+                $reserved_hint = '';
+                if (!empty($eval['conflicts'][0]['reserved_count']) && !empty($eval['conflicts'][0]['capacity'])) {
+                    $reserved_hint = sprintf(
+                        ' (رزروشده: %d از %d)',
+                        (int) $eval['conflicts'][0]['reserved_count'],
+                        (int) $eval['conflicts'][0]['capacity']
+                    );
+                }
+                $slot_result['admin_suggestion'] = 'ظرفیت فعلی این بازه: ' . (int) $capacity . ' نفر.' . $reserved_hint . ' ظرفیت دوره یا شعبه را افزایش دهید، یا تاریخ شروع دیگری انتخاب کنید.';
                 $earliest = sc_private_find_earliest_available_start_date(
                     $row,
                     $slot_coach_id,
@@ -712,10 +791,107 @@ function sc_private_generate_sessions($schedule_rows, $start_date, $sessions_nee
     return $items;
 }
 
-function sc_private_slot_reserved_count($coach_id, $schedule_slot_id, $session_date) {
+function sc_private_resolve_booking_held_sessions($booking, array $payload) {
+    if (!empty($payload['sessions']) && is_array($payload['sessions'])) {
+        return $payload['sessions'];
+    }
+    if (empty($payload['schedule_slot_ids']) || !is_array($payload['schedule_slot_ids'])) {
+        return [];
+    }
+
+    global $wpdb;
+    $slot_ids = array_values(array_unique(array_filter(array_map('absint', $payload['schedule_slot_ids']))));
+    if (empty($slot_ids)) {
+        return [];
+    }
+
+    $sch_table = $wpdb->prefix . 'sc_course_weekly_schedule';
+    $ph = implode(',', array_fill(0, count($slot_ids), '%d'));
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM {$sch_table} WHERE id IN ($ph) ORDER BY weekday ASC, time_start ASC",
+        ...$slot_ids
+    ));
+    if (empty($rows)) {
+        return [];
+    }
+
+    $start_date = '';
+    if (!empty($payload['start_date']) && $payload['start_date'] !== sc_private_booking_pending_placeholder_date()) {
+        $start_date = (string) $payload['start_date'];
+    } elseif ($booking && !empty($booking->start_date) && $booking->start_date !== sc_private_booking_pending_placeholder_date()) {
+        $start_date = (string) $booking->start_date;
+    } else {
+        $start_date = current_time('Y-m-d');
+    }
+    $start_date = sc_private_normalize_booking_start_date($start_date);
+
+    $sessions_needed = 0;
+    if (!empty($payload['enrollment_sessions'])) {
+        $sessions_needed = (int) $payload['enrollment_sessions'];
+    } elseif ($booking && !empty($booking->package_sessions)) {
+        $sessions_needed = (int) $booking->package_sessions;
+    }
+    if ($sessions_needed <= 0) {
+        $sessions_needed = sc_private_guess_preview_sessions((int) ($booking->course_id ?? 0));
+    }
+
+    return sc_private_generate_sessions($rows, $start_date, $sessions_needed);
+}
+
+function sc_private_count_held_slot_reservations($coach_id, $schedule_slot_id, $session_date, $exclude_booking_id = 0) {
+    global $wpdb;
+    $coach_id = (int) $coach_id;
+    $schedule_slot_id = (int) $schedule_slot_id;
+    $session_date = (string) $session_date;
+    $exclude_booking_id = absint($exclude_booking_id);
+    if ($coach_id <= 0 || $schedule_slot_id <= 0 || $session_date === '') {
+        return 0;
+    }
+
+    $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
+    $rows = $wpdb->get_results(
+        "SELECT id, coach_id, course_id, chapter, package_sessions, start_date, status
+         FROM {$bookings_table}
+         WHERE status IN ('pending_payment','pending_admin')"
+    );
+    if (empty($rows)) {
+        return 0;
+    }
+
+    $count = 0;
+    foreach ($rows as $booking) {
+        if ($exclude_booking_id > 0 && (int) $booking->id === $exclude_booking_id) {
+            continue;
+        }
+        if ((int) $booking->coach_id !== $coach_id) {
+            continue;
+        }
+        $payload = sc_private_get_pending_booking_payload((int) $booking->id);
+        if (empty($payload)) {
+            continue;
+        }
+        $held_sessions = sc_private_resolve_booking_held_sessions($booking, $payload);
+        foreach ($held_sessions as $session) {
+            if ((int) ($session['schedule_slot_id'] ?? 0) !== $schedule_slot_id) {
+                continue;
+            }
+            if ((string) ($session['session_date'] ?? '') !== $session_date) {
+                continue;
+            }
+            if (sc_private_session_occurrence_is_past($session_date, (string) ($session['time_start'] ?? ''))) {
+                continue;
+            }
+            $count++;
+        }
+    }
+
+    return $count;
+}
+
+function sc_private_slot_reserved_count($coach_id, $schedule_slot_id, $session_date, $exclude_booking_id = 0) {
     global $wpdb;
     $t = $wpdb->prefix . 'sc_private_booking_sessions';
-    return (int) $wpdb->get_var($wpdb->prepare(
+    $active_count = (int) $wpdb->get_var($wpdb->prepare(
         "SELECT COUNT(*)
          FROM {$t}
          WHERE coach_id = %d
@@ -726,11 +902,18 @@ function sc_private_slot_reserved_count($coach_id, $schedule_slot_id, $session_d
         (int) $schedule_slot_id,
         (string) $session_date
     ));
+
+    return $active_count + sc_private_count_held_slot_reservations(
+        $coach_id,
+        $schedule_slot_id,
+        $session_date,
+        $exclude_booking_id
+    );
 }
 
-function sc_private_can_reserve_slot($coach_id, $schedule_slot_id, $session_date, $capacity) {
+function sc_private_can_reserve_slot($coach_id, $schedule_slot_id, $session_date, $capacity, $exclude_booking_id = 0) {
     $capacity = max(1, (int) $capacity);
-    return sc_private_slot_reserved_count($coach_id, $schedule_slot_id, $session_date) < $capacity;
+    return sc_private_slot_reserved_count($coach_id, $schedule_slot_id, $session_date, $exclude_booking_id) < $capacity;
 }
 
 function sc_private_send_cancel_sms($session_id, $cancelled_by = 'user') {
@@ -1002,7 +1185,7 @@ function sc_private_activate_sessions_after_payment($invoice_id) {
         foreach ($sessions as $session) {
             $slot_id = isset($session['schedule_slot_id']) ? (int) $session['schedule_slot_id'] : 0;
             $session_date = isset($session['session_date']) ? (string) $session['session_date'] : '';
-            if (!$slot_id || $session_date === '' || !sc_private_can_reserve_slot((int) $booking->coach_id, $slot_id, $session_date, $capacity)) {
+            if (!$slot_id || $session_date === '' || !sc_private_can_reserve_slot((int) $booking->coach_id, $slot_id, $session_date, $capacity, $booking_id)) {
                 $can_activate = false;
                 break;
             }

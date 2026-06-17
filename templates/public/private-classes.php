@@ -7,34 +7,91 @@ $member_id = function_exists('sc_private_get_member_id_for_current_user') ? sc_p
 $sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
 $courses_table = $wpdb->prefix . 'sc_courses';
 $my_sessions = [];
+$session_courses = [];
 $sessions_per_page = 10;
 $sessions_page = isset($_GET['private_sessions_paged']) ? max(1, absint($_GET['private_sessions_paged'])) : 1;
 $sessions_offset = ($sessions_page - 1) * $sessions_per_page;
 $sessions_total = 0;
 $sessions_total_pages = 1;
+$session_filter_course = isset($_GET['session_filter_course']) ? absint($_GET['session_filter_course']) : 0;
+$session_filter_status = isset($_GET['session_filter_status']) ? sanitize_text_field(wp_unslash($_GET['session_filter_status'])) : 'all';
+$session_filter_date_from_shamsi = '';
+$session_filter_date_to_shamsi = '';
+$session_filter_date_from = '';
+$session_filter_date_to = '';
+if (!empty($_GET['session_filter_date_from_shamsi'])) {
+    $session_filter_date_from_shamsi = sanitize_text_field(wp_unslash($_GET['session_filter_date_from_shamsi']));
+    $session_filter_date_from = function_exists('sc_shamsi_to_gregorian_date') ? sc_shamsi_to_gregorian_date($session_filter_date_from_shamsi) : '';
+}
+if (!empty($_GET['session_filter_date_to_shamsi'])) {
+    $session_filter_date_to_shamsi = sanitize_text_field(wp_unslash($_GET['session_filter_date_to_shamsi']));
+    $session_filter_date_to = function_exists('sc_shamsi_to_gregorian_date') ? sc_shamsi_to_gregorian_date($session_filter_date_to_shamsi) : '';
+}
+$session_filters_active = (
+    $session_filter_course > 0
+    || $session_filter_status !== 'all'
+    || $session_filter_date_from_shamsi !== ''
+    || $session_filter_date_to_shamsi !== ''
+);
+$session_status_options = [
+    'all' => 'همه وضعیت‌ها',
+    'scheduled' => 'برنامه‌ریزی‌شده',
+    'done' => 'برگزار شده',
+    'cancelled' => 'لغو شده',
+    'absent' => 'غایب',
+    'excused' => 'غیبت مجاز',
+    'rescheduled' => 'جابجا شده',
+];
+$sessions_endpoint_url = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-private-classes') : '';
 if ($member_id > 0) {
-    $sessions_total = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*)
-         FROM {$sessions_table}
-         WHERE member_id = %d
-           AND session_date >= %s",
-        $member_id,
-        current_time('Y-m-d')
-    ));
-    $sessions_total_pages = max(1, (int) ceil($sessions_total / $sessions_per_page));
-    $my_sessions = $wpdb->get_results($wpdb->prepare(
-        "SELECT ps.*, c.title AS course_title
+    $session_courses = $wpdb->get_results($wpdb->prepare(
+        "SELECT DISTINCT c.id, c.title
          FROM {$sessions_table} ps
          INNER JOIN {$courses_table} c ON c.id = ps.course_id
          WHERE ps.member_id = %d
-           AND ps.session_date >= %s
-         ORDER BY ps.session_date ASC, ps.time_start ASC
-         LIMIT %d OFFSET %d",
-        $member_id,
-        current_time('Y-m-d'),
-        $sessions_per_page,
-        $sessions_offset
+         ORDER BY c.title ASC",
+        $member_id
     ));
+    $session_where = ['ps.member_id = %d'];
+    $session_values = [$member_id];
+    if ($session_filter_course > 0) {
+        $session_where[] = 'ps.course_id = %d';
+        $session_values[] = $session_filter_course;
+    }
+    if ($session_filter_status !== 'all') {
+        $session_where[] = 'ps.status = %s';
+        $session_values[] = $session_filter_status;
+    }
+    if ($session_filter_date_from !== '') {
+        $session_where[] = 'ps.session_date >= %s';
+        $session_values[] = $session_filter_date_from;
+    } elseif (!$session_filters_active) {
+        $session_where[] = 'ps.session_date >= %s';
+        $session_values[] = current_time('Y-m-d');
+    }
+    if ($session_filter_date_to !== '') {
+        $session_where[] = 'ps.session_date <= %s';
+        $session_values[] = $session_filter_date_to;
+    }
+    $session_where_clause = implode(' AND ', $session_where);
+    $sessions_count_sql = "SELECT COUNT(*)
+                           FROM {$sessions_table} ps
+                           INNER JOIN {$courses_table} c ON c.id = ps.course_id
+                           WHERE {$session_where_clause}";
+    $sessions_total = !empty($session_values)
+        ? (int) $wpdb->get_var($wpdb->prepare($sessions_count_sql, $session_values))
+        : (int) $wpdb->get_var($sessions_count_sql);
+    $sessions_total_pages = max(1, (int) ceil($sessions_total / $sessions_per_page));
+    $sessions_list_sql = "SELECT ps.*, c.title AS course_title
+                          FROM {$sessions_table} ps
+                          INNER JOIN {$courses_table} c ON c.id = ps.course_id
+                          WHERE {$session_where_clause}
+                          ORDER BY ps.session_date ASC, ps.time_start ASC
+                          LIMIT %d OFFSET %d";
+    $sessions_list_values = $session_values;
+    $sessions_list_values[] = $sessions_per_page;
+    $sessions_list_values[] = $sessions_offset;
+    $my_sessions = $wpdb->get_results($wpdb->prepare($sessions_list_sql, $sessions_list_values));
 }
 $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
 $booking_config = isset($private_booking_config) && is_array($private_booking_config) ? $private_booking_config : [];
@@ -120,6 +177,18 @@ $page_description = function_exists('sc_get_private_class_page_description') ? s
                 </div>
                 <?php endif; ?>
 
+                <?php if (!empty($user_fields['sessions'])) : ?>
+                <div class="sc-enroll-panel sc-private-panel">
+                    <div class="sc-enroll-panel-title">تعداد جلسات</div>
+                    <p class="sc-private-panel-hint">ابتدا تعداد جلسات را انتخاب کنید؛ پیش‌نمایش جلسات آینده و بررسی ظرفیت بازه‌ها بر اساس این عدد انجام می‌شود.</p>
+                    <div id="sc_private_sessions_wrap" class="sc-private-sessions-grid"></div>
+                    <input type="hidden" name="enrollment_sessions" id="sc_private_enrollment_sessions_value" value="">
+                    <select id="sc_private_sessions_count" class="sc-private-sessions-native" tabindex="-1" aria-hidden="true">
+                        <option value=""><?php echo !empty($user_fields['course']) ? 'ابتدا دوره را انتخاب کنید' : 'انتخاب کنید'; ?></option>
+                    </select>
+                </div>
+                <?php endif; ?>
+
                 <?php if (!empty($user_fields['slots'])) : ?>
                 <div class="sc-enroll-panel sc-private-panel">
                     <div class="sc-enroll-panel-title">انتخاب زمان هفتگی</div>
@@ -133,22 +202,17 @@ $page_description = function_exists('sc_get_private_class_page_description') ? s
                     </div>
                     <div id="sc_private_slots_wrap" class="sc-private-slot-grid">
                         <?php if (!empty($user_fields['course'])) : ?>
-                        <div class="sc-private-slot-empty">ابتدا دوره<?php echo !empty($user_fields['chapter']) ? '، شعبه' : ''; ?><?php echo !empty($user_fields['coach']) ? ' و مربی' : ''; ?> را انتخاب کنید.</div>
+                        <div class="sc-private-slot-empty">ابتدا دوره<?php echo !empty($user_fields['chapter']) ? '، شعبه' : ''; ?><?php echo !empty($user_fields['coach']) ? ' و مربی' : ''; ?><?php echo !empty($user_fields['sessions']) ? ' و تعداد جلسات' : ''; ?> را انتخاب کنید.</div>
                         <?php else : ?>
                         <div class="sc-private-slot-empty">در حال بارگذاری بازه‌های زمانی...</div>
                         <?php endif; ?>
                     </div>
-                    <div id="sc_private_sessions_schedule_preview" class="sc-private-sessions-schedule-preview" hidden></div>
                 </div>
-                <?php endif; ?>
 
-                <?php if (!empty($user_fields['sessions'])) : ?>
-                <div class="sc-enroll-panel sc-private-panel">
-                    <div class="sc-enroll-panel-title">تعداد جلسات</div>
-                    <div id="sc_private_sessions_wrap" class="sc-private-sessions-grid"></div>
-                    <select name="enrollment_sessions" id="sc_private_sessions_count" class="sc-private-sessions-native" <?php echo !empty($user_fields['course']) ? 'required disabled' : 'required'; ?> tabindex="-1" aria-hidden="true">
-                        <option value=""><?php echo !empty($user_fields['course']) ? 'ابتدا دوره را انتخاب کنید' : 'انتخاب کنید'; ?></option>
-                    </select>
+                <div class="sc-enroll-panel sc-private-panel sc-private-panel-schedule-preview">
+                    <div class="sc-enroll-panel-title">پیش‌نمایش جلسات آینده</div>
+                    <p class="sc-private-panel-hint">پس از انتخاب تعداد جلسات و بازه‌های زمانی، برنامه جلسات در این بخش نمایش داده می‌شود.</p>
+                    <div id="sc_private_sessions_schedule_preview" class="sc-private-sessions-schedule-preview" hidden></div>
                 </div>
                 <?php endif; ?>
 
@@ -221,8 +285,47 @@ $page_description = function_exists('sc_get_private_class_page_description') ? s
         <div class="sc-private-section-head">
             <h3>جلسات خصوصی من</h3>
         </div>
+        <?php if ($member_id > 0) : ?>
+            <form method="get" action="<?php echo esc_url($sessions_endpoint_url); ?>" class="sc-private-sessions-filters">
+                <div class="sc-enroll-fields sc-private-sessions-filter-fields">
+                    <div class="sc-private-field-wrap">
+                        <label class="sc-enroll-field-label" for="session_filter_course">نام دوره</label>
+                        <select class="sc-enroll-select" id="session_filter_course" name="session_filter_course">
+                            <option value="0">همه دوره‌ها</option>
+                            <?php foreach ($session_courses as $session_course) : ?>
+                                <option value="<?php echo esc_attr((int) $session_course->id); ?>" <?php selected($session_filter_course, (int) $session_course->id); ?>><?php echo esc_html($session_course->title); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="sc-private-field-wrap">
+                        <label class="sc-enroll-field-label" for="session_filter_status">وضعیت</label>
+                        <select class="sc-enroll-select" id="session_filter_status" name="session_filter_status">
+                            <?php foreach ($session_status_options as $status_key => $status_label) : ?>
+                                <option value="<?php echo esc_attr($status_key); ?>" <?php selected($session_filter_status, $status_key); ?>><?php echo esc_html($status_label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="sc-private-field-wrap sc-private-sessions-filter-date-wrap">
+                        <label class="sc-enroll-field-label">بازه تاریخ</label>
+                        <div class="sc-private-sessions-filter-date-range">
+                            <input type="text" name="session_filter_date_from_shamsi" class="sc-enroll-select persian-date-input sc-no-default-date" value="<?php echo esc_attr($session_filter_date_from_shamsi); ?>" placeholder="از تاریخ" readonly autocomplete="off">
+                            <span class="sc-private-sessions-filter-date-sep">تا</span>
+                            <input type="text" name="session_filter_date_to_shamsi" class="sc-enroll-select persian-date-input sc-no-default-date" value="<?php echo esc_attr($session_filter_date_to_shamsi); ?>" placeholder="تا تاریخ" readonly autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+                <div class="sc-private-sessions-filter-actions">
+                    <button type="submit" class="button button-primary sc-private-submit-btn">اعمال فیلتر</button>
+                    <?php if ($session_filters_active) : ?>
+                        <a href="<?php echo esc_url($sessions_endpoint_url); ?>" class="sc-private-btn sc-private-btn-muted">پاک کردن فیلترها</a>
+                    <?php endif; ?>
+                </div>
+            </form>
+        <?php endif; ?>
         <?php if (empty($my_sessions)) : ?>
-            <p class="sc-private-panel-hint">جلسه‌ای برای نمایش وجود ندارد.</p>
+            <p class="sc-private-panel-hint">
+                <?php echo $session_filters_active ? 'جلسه‌ای با این فیلترها یافت نشد.' : 'جلسه‌ای برای نمایش وجود ندارد.'; ?>
+            </p>
         <?php else : ?>
             <div class="sc-private-sessions-table-wrap">
             <table class="sc-private-sessions-table">
@@ -274,8 +377,21 @@ $page_description = function_exists('sc_get_private_class_page_description') ? s
                 <div class="tablenav bottom sc_paginate" style="margin-top:12px;">
                     <div class="tablenav-pages">
                         <?php
+                        $sessions_paginate_args = ['private_sessions_paged' => '%#%'];
+                        if ($session_filter_course > 0) {
+                            $sessions_paginate_args['session_filter_course'] = $session_filter_course;
+                        }
+                        if ($session_filter_status !== 'all') {
+                            $sessions_paginate_args['session_filter_status'] = $session_filter_status;
+                        }
+                        if ($session_filter_date_from_shamsi !== '') {
+                            $sessions_paginate_args['session_filter_date_from_shamsi'] = $session_filter_date_from_shamsi;
+                        }
+                        if ($session_filter_date_to_shamsi !== '') {
+                            $sessions_paginate_args['session_filter_date_to_shamsi'] = $session_filter_date_to_shamsi;
+                        }
                         echo paginate_links([
-                            'base' => add_query_arg('private_sessions_paged', '%#%'),
+                            'base' => add_query_arg($sessions_paginate_args, $sessions_endpoint_url),
                             'format' => '',
                             'prev_text' => '< قبلی',
                             'next_text' => 'بعدی >',

@@ -511,6 +511,10 @@ function sc_save_course_coach_assignments_from_post($course_id, array $allowed_c
                 $capacity = max(1, (int) $branch_meta_map[$chapter_name][$coach_id]['capacity']);
             }
 
+            if (function_exists('sc_private_cap_branch_capacity_value')) {
+                $capacity = sc_private_cap_branch_capacity_value($course_id, $capacity);
+            }
+
             $row_data = [
                 'course_id' => $course_id,
                 'coach_id' => $coach_id,
