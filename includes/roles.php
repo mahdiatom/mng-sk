@@ -378,6 +378,8 @@ function club_add_woocommerce_capabilities_to_club_coach() {
             // حذف منوهای ووکامرس
            sc_safe_remove_menu_page('woocommerce');
            sc_safe_remove_menu_page('updraftplus');
+           sc_safe_remove_menu_page('duplicator');
+
         //   sc_safe_remove_menu_page('wc-admin');
         //   sc_safe_remove_menu_page('edit.php?post_type=product');
         //   sc_safe_remove_menu_page('edit.php?post_type=shop_coupon');
@@ -387,7 +389,7 @@ function club_add_woocommerce_capabilities_to_club_coach() {
 
     /**
      * ===============================
-     * حسابدار -  جلوگیری از دسترسی مستقیم (SECURITY)
+     * مدیریت باشگاه -  جلوگیری از دسترسی مستقیم (SECURITY)
      * ===============================
      */
     add_action('admin_menu', 'club_block_restricted_pages_for_club_coach');
@@ -420,6 +422,8 @@ function club_add_woocommerce_capabilities_to_club_coach() {
             // المنتور
             'elementor',
             'hello-elementor',
+            'duplicator-getting-started',
+            'duplicator',
 
             // ووکامرس اصلی
          //   'wc-admin',

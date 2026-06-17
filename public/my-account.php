@@ -510,8 +510,11 @@ function sc_add_my_account_menu_item($items) {
         $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications(get_current_user_id()) : 0;
         $items['sc-notifications'] = $unread > 0 ? sprintf('اطلاعیه‌ها (%d)', $unread) : 'اطلاعیه‌ها';
     }
+    $pro_feature_surveys = (int) sc_get_setting('pro_feature_surveys', 0);
+    if($pro_feature_surveys){
     if (function_exists('sc_is_pro_feature_surveys_enabled') && sc_is_pro_feature_surveys_enabled()) {
         $items['sc-surveys'] = 'نظرسنجی‌ها';
+    }
     }
     // تب کیف پول: فقط امکانات پرو (هم‌سطح با پنل ادمین). محتوا تنظیم کیف پول را چک می‌کند.
     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled()) {

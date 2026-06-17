@@ -394,14 +394,14 @@ function sc_register_admin_menu() {
                 'sc-coach-private-classes',
                 'sc_render_private_bookings_admin_page'
             );
-            add_submenu_page(
-                'sc-coach-my-courses',
-                'کلاس‌های خصوصی من',
-                'کلاس‌های خصوصی من',
-                'sc_view_coach_salary',
-                'sc-private-bookings-list',
-                'sc_render_private_bookings_admin_page'
-            );
+            // add_submenu_page(
+            //     'sc-coach-my-courses',
+            //     'کلاس‌های خصوصی من',
+            //     'کلاس‌های خصوصی من',
+            //     'sc_view_coach_salary',
+            //     'sc-private-bookings-list',
+            //     'sc_render_private_bookings_admin_page'
+            // );
         }
     }
 
@@ -488,6 +488,8 @@ function sc_register_admin_menu() {
             'sc_admin_coach_private_notes_add_page'
         );
     }
+    $pro_feature_surveys = (int) sc_get_setting('pro_feature_surveys', 0);
+    if($pro_feature_surveys){
 
     add_menu_page(
         'نظرسنجی‌ها',
@@ -515,7 +517,7 @@ function sc_register_admin_menu() {
     add_submenu_page('sc-surveys', 'افزودن نظرسنجی', 'افزودن نظرسنجی', 'manage_options', 'sc-add-survey', 'sc_admin_survey_add_page');
     add_submenu_page('sc-surveys', 'داده‌های نظرسنجی', 'داده‌های نظرسنجی', 'manage_options', 'sc-survey-data', 'sc_admin_survey_data_page');
     add_submenu_page('sc-surveys', 'آمار نظرسنجی', 'آمار نظرسنجی', 'manage_options', 'sc-survey-stats', 'sc_admin_survey_stats_page');
-
+    }
     /* ================= Courses ================= */
 
     $list_courses_sufix = null;
