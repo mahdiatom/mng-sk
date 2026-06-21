@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-/** Capability for باشگاه admin ticket screens (administrator, club_coach, accountant). */
+/** Capability for باشگاه admin ticket screens (administrator, club_coach, system_manager, accountant). */
 if (!defined('SC_CAP_CLUB_SUPPORT_TICKETS')) {
     define('SC_CAP_CLUB_SUPPORT_TICKETS', 'sc_club_support_tickets');
 }
@@ -17,7 +17,8 @@ if (!defined('SC_CAP_CLUB_SUPPORT_TICKETS')) {
  */
 function sc_support_register_club_ticket_admin_cap() {
     $cap = SC_CAP_CLUB_SUPPORT_TICKETS;
-    foreach (['administrator', 'club_coach', 'accountantt'] as $role_name) {
+    $club_staff_roles = array_merge(['administrator', 'accountantt'], function_exists('sc_get_club_manager_role_slugs') ? sc_get_club_manager_role_slugs() : ['club_coach']);
+    foreach ($club_staff_roles as $role_name) {
         $role = get_role($role_name);
         if ($role && !$role->has_cap($cap)) {
             $role->add_cap($cap);

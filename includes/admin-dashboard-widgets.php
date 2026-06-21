@@ -11,14 +11,14 @@ if (!defined('ABSPATH')) {
 
 /**
  * بررسی اینکه آیا کاربر فعلی اجازهٔ دیدن ابزارک‌های پیشخوان SportClub را دارد.
- * فقط نقش‌های: مدیر کل (administrator)، مدیر باشگاه (club_coach)، حسابدار (accountantt).
+ * فقط نقش‌های: مدیر کل (administrator)، مدیر باشگاه (club_coach)، مدیر سامانه (system_manager)، حسابدار (accountantt).
  * مربی، مدیر فروشگاه و سایر نقش‌ها ابزارک‌ها را نمی‌بینند.
  */
 function sc_admin_dashboard_widgets_user_can() {
     if (!is_user_logged_in()) {
         return false;
     }
-    $allowed_roles = ['administrator', 'club_coach'];
+    $allowed_roles = array_merge(['administrator'], function_exists('sc_get_club_manager_role_slugs') ? sc_get_club_manager_role_slugs() : ['club_coach']);
     $user          = wp_get_current_user();
     if (!$user || empty($user->roles)) {
         return false;

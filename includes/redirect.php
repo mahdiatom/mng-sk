@@ -54,7 +54,7 @@ function redirect_my_account_shop_to_shop() {
     }
 
     $pattern_main_page = home_url('');
-    $not_subscriber = (current_user_can('club_coach') || current_user_can('coach') || current_user_can('shop_manager') || current_user_can('accountantt') || current_user_can('administrator')) ? true : false;
+    $not_subscriber = (current_user_can('club_coach') || current_user_can('system_manager') || current_user_can('coach') || current_user_can('shop_manager') || current_user_can('accountantt') || current_user_can('administrator')) ? true : false;
 
     if ($current_url === $pattern_main_page && is_user_logged_in() && !$not_subscriber) {
         $redirect_url3 = home_url('/my-account/sc-submit-documents/');

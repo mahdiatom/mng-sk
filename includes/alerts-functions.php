@@ -129,7 +129,7 @@ function sc_create_system_alert_notification($alert_key, $alert_kind, $title, $c
         'content' => $content,
         'target_type' => 'admin_users',
         'target_config' => [
-            'roles' => ['administrator', 'club_coach'],
+            'roles' => array_merge(['administrator'], function_exists('sc_get_club_manager_role_slugs') ? sc_get_club_manager_role_slugs() : ['club_coach']),
             'alert_kind' => $alert_kind,
             'alert_key' => $alert_key,
             'alert_meta' => $meta,

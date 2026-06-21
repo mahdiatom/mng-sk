@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
  * نقش‌هایی که از طریق سامانه باشگاه مدیریت می‌شوند (نه user-edit وردپرس)
  */
 function sc_user_profile_staff_roles() {
-    return ['administrator', 'club_coach', 'accountantt', 'shop_manager'];
+    return array_merge(['administrator', 'accountantt', 'shop_manager'], function_exists('sc_get_club_manager_role_slugs') ? sc_get_club_manager_role_slugs() : ['club_coach']);
 }
 
 function sc_user_profile_user_has_staff_role($user) {

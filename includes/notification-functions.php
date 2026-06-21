@@ -75,7 +75,7 @@ function sc_get_notification_recipients($target_type, $target_config) {
         $user_ids = [];
 
     if ($target_type === 'admin_users') {
-        $admin_roles = isset($target_config['roles']) && is_array($target_config['roles']) ? $target_config['roles'] : ['administrator', 'club_coach'];
+        $admin_roles = isset($target_config['roles']) && is_array($target_config['roles']) ? $target_config['roles'] : array_merge(['administrator'], function_exists('sc_get_club_manager_role_slugs') ? sc_get_club_manager_role_slugs() : ['club_coach']);
         $admin_roles = array_values(array_filter(array_map('sanitize_key', $admin_roles)));
         if (empty($admin_roles)) {
             $admin_roles = ['administrator'];

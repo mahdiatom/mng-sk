@@ -135,6 +135,7 @@ include SC_ADMIN_DIR . 'admin-menu.php';
  */
 register_activation_hook(__FILE__, 'sc_activate_plugin');
 register_activation_hook( __FILE__, 'club_create_club_coach_role' );
+register_activation_hook( __FILE__, 'club_create_system_manager_role' );
 register_activation_hook(__FILE__, 'sc_create_coach_role');
 register_activation_hook(__FILE__, 'sc_update_database');
 register_deactivation_hook(__FILE__, 'sc_clear_recurring_invoices_cron');

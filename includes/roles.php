@@ -38,6 +38,76 @@ function club_create_club_coach_role() {
     }
 }
 add_action('admin_init', 'club_create_club_coach_role');
+
+/**
+ * نقش‌های هم‌سطح «مدیر باشگاه» (دسترسی و محدودیت یکسان).
+ *
+ * @return string[]
+ */
+function sc_get_club_manager_role_slugs() {
+    return ['club_coach', 'system_manager'];
+}
+
+/**
+ * آیا کاربر یکی از نقش‌های مدیر باشگاه / مدیر سامانه را دارد؟
+ *
+ * @param int $user_id
+ * @return bool
+ */
+function sc_user_has_club_manager_role($user_id = 0) {
+    $user_id = $user_id > 0 ? (int) $user_id : get_current_user_id();
+    if ($user_id <= 0) {
+        return false;
+    }
+    $user = get_userdata($user_id);
+    if (!$user || empty($user->roles)) {
+        return false;
+    }
+    return (bool) array_intersect(sc_get_club_manager_role_slugs(), (array) $user->roles);
+}
+
+/**
+ * ===============================
+ * ایجاد نقش مدیر سامانه (کپی مدیر باشگاه)
+ * ===============================
+ */
+function club_create_system_manager_role() {
+    if (!get_role('club_coach')) {
+        club_create_club_coach_role();
+    }
+    $source_role = get_role('club_coach');
+    if (!$source_role) {
+        return;
+    }
+
+    $caps = (array) $source_role->capabilities;
+    $caps['system_manager'] = true;
+
+    $target_role = get_role('system_manager');
+    if (!$target_role) {
+        add_role('system_manager', 'مدیر سامانه', $caps);
+        return;
+    }
+
+    foreach ($caps as $cap => $grant) {
+        if ($grant && !$target_role->has_cap($cap)) {
+            $target_role->add_cap($cap);
+        }
+    }
+}
+add_action('admin_init', 'club_create_system_manager_role', 20);
+
+/**
+ * مدیر سامانه در تمام بررسی‌های club_coach هم معتبر است.
+ */
+add_filter('user_has_cap', 'sc_map_system_manager_to_club_coach_cap', 9, 4);
+function sc_map_system_manager_to_club_coach_cap($allcaps, $caps, $args, $user) {
+    if (!empty($allcaps['system_manager']) && $allcaps['system_manager']) {
+        $allcaps['club_coach'] = true;
+    }
+    return $allcaps;
+}
+
 /**
  * ===============================
  * ایجاد نقش مربی
@@ -112,6 +182,63 @@ $accountant_caps = get_role('accountantt')->capabilities;
      }
 }
 add_action('admin_init', 'sc_create_accountant_role');
+
+/**
+ * دسترسی‌های ووکامرس (محصولات، سفارشات، کوپن، گزارش) — مشترک بین مدیر فروشگاه و حسابدار.
+ *
+ * @return array<string, bool>
+ */
+function sc_get_shop_woocommerce_capabilities() {
+    return array(
+        'read' => true,
+        'edit_products' => true,
+        'delete_products' => true,
+        'publish_products' => true,
+        'edit_published_products' => true,
+        'delete_published_products' => true,
+        'edit_others_products' => true,
+        'delete_others_products' => true,
+        'read_private_products' => true,
+        'edit_private_products' => true,
+        'delete_private_products' => true,
+        'edit_shop_orders' => true,
+        'read_shop_orders' => true,
+        'delete_shop_orders' => true,
+        'edit_published_shop_orders' => true,
+        'delete_published_shop_orders' => true,
+        'edit_others_shop_orders' => true,
+        'delete_others_shop_orders' => true,
+        'read_private_shop_orders' => true,
+        'edit_private_shop_orders' => true,
+        'delete_private_shop_orders' => true,
+        'edit_shop_coupons' => true,
+        'read_shop_coupons' => true,
+        'delete_shop_coupons' => true,
+        'edit_published_shop_coupons' => true,
+        'delete_published_shop_coupons' => true,
+        'edit_others_shop_coupons' => true,
+        'delete_others_shop_coupons' => true,
+        'manage_woocommerce' => true,
+        'view_woocommerce_reports' => true,
+    );
+}
+
+/**
+ * اعطای دسترسی فروشگاه/محصولات به نقش حسابدار (برای نقش‌های از قبل ساخته‌شده).
+ */
+function sc_grant_shop_capabilities_to_accountant() {
+    $role = get_role('accountantt');
+    if (!$role) {
+        return;
+    }
+    foreach (sc_get_shop_woocommerce_capabilities() as $cap => $grant) {
+        if ($grant && !$role->has_cap($cap)) {
+            $role->add_cap($cap);
+        }
+    }
+}
+add_action('admin_init', 'sc_grant_shop_capabilities_to_accountant', 10);
+
 /**
  * ===============================
  * ایجاد نقش - بررسی مدیر فروشگاه
@@ -129,48 +256,15 @@ function club_recreate_shop_manager_role() {
         add_role(
             'shop_manager',
             'مدیر فروشگاه',
-            array(
-                // دسترسی‌های محصولات
-                'read' => true,
-                'edit_products' => true,
-                'delete_products' => true,
-                'publish_products' => true,
-                'edit_published_products' => true,
-                'delete_published_products' => true,
-                'edit_others_products' => true,
-                'delete_others_products' => true,
-                'read_private_products' => true,
-                'edit_private_products' => true,
-                'delete_private_products' => true,
-// دسترسی‌های سفارشات
-                'edit_shop_orders' => true,
-                'read_shop_orders' => true,
-                'delete_shop_orders' => true,
-                'edit_published_shop_orders' => true,
-                'delete_published_shop_orders' => true,
-                'edit_others_shop_orders' => true,
-                'delete_others_shop_orders' => true,
-                'read_private_shop_orders' => true,
-                'edit_private_shop_orders' => true,
-                'delete_private_shop_orders' => true,
-// دسترسی‌های کوپن‌ها
-                'edit_shop_coupons' => true,
-                'read_shop_coupons' => true,
-                'delete_shop_coupons' => true,
-                'edit_published_shop_coupons' => true,
-                'delete_published_shop_coupons' => true,
-                'edit_others_shop_coupons' => true,
-                'delete_others_shop_coupons' => true,
-// دسترسی‌های ووکامرس و گزارشات
-                'manage_woocommerce' => true,
-                'view_woocommerce_reports' => true,
-// دسترسی‌های پایه
-                'read_private_pages' => true,
-                'edit_private_pages' => true,
-                'delete_private_pages' => true,
-                'edit_published_pages' => true,
-                'delete_published_pages' => true,
-                
+            array_merge(
+                sc_get_shop_woocommerce_capabilities(),
+                array(
+                    'read_private_pages' => true,
+                    'edit_private_pages' => true,
+                    'delete_private_pages' => true,
+                    'edit_published_pages' => true,
+                    'delete_published_pages' => true,
+                )
             )
         );
 
@@ -475,7 +569,7 @@ function club_add_woocommerce_capabilities_to_club_coach() {
                     '
                     <div >
                     <h2 style="text-align: left;">Access Denied</h2>
-                    <p style="text-align: left;">نقش شما مدیرباشگاه است - شما به این بخش دسترسی ندارید </p>',
+                    <p style="text-align: left;">نقش شما مدیر باشگاه یا مدیر سامانه است - شما به این بخش دسترسی ندارید </p>',
                     'خطای دسترسی',
                     array('response' => 403)
                 );
@@ -528,6 +622,8 @@ function club_add_woocommerce_capabilities_to_club_coach() {
                         $item[2] !== 'woocommerce'&&
                         $item[2] !== 'woocommerce-marketing' &&
                         $item[2] !== 'sc_orders' &&
+                        $item[2] !== 'edit.php?post_type=product' &&
+                        $item[2] !== 'page=wc-admin' &&
                         $item[2] !== 'wc-admin&path=/analytics/overview' 
 
                 
@@ -554,9 +650,6 @@ function club_add_woocommerce_capabilities_to_club_coach() {
     
             // حذف منوهای ووکامرس
           sc_safe_remove_menu_page('woocommerce');
-        //  sc_safe_remove_menu_page('wc-admin');
-        //   sc_safe_remove_menu_page('edit.php?post_type=product');
-          sc_safe_remove_menu_page('edit.php?post_type=shop_coupon');
         //  sc_safe_remove_menu_page('wc-settings');
             
             // حذف منوهای افزونه
@@ -606,13 +699,12 @@ function club_add_woocommerce_capabilities_to_club_coach() {
                 'wc-admin',
                 'post-new.php',
                 'shop_coupon',
+                'product',
                 'sc-support-tickets',
                 'sc-support-ticket-view',
                 'sc-support-ticket-new',
                 'sc-discount-codes',
-                'sc-add-discount-code'
-                
-                
+                'sc-add-discount-code',
             ];
 
             $blocked_pages = array(
@@ -983,7 +1075,10 @@ function club_remove_all_dashboard_widgets() {
 add_action('init', 'club_cleanup_roles');
 function club_cleanup_roles() {
 
-    $keep_roles = array('administrator','subscriber','club_coach','coach','accountantt' , 'shop_manager');
+    $keep_roles = array_merge(
+        ['administrator', 'subscriber', 'coach', 'accountantt', 'shop_manager'],
+        sc_get_club_manager_role_slugs()
+    );
 
     global $wp_roles;
     if ( ! isset($wp_roles) ) $wp_roles = new WP_Roles();
