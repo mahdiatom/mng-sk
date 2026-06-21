@@ -1,0 +1,495 @@
+<?php
+/**
+ * Business intelligence / analytics helpers for club reports.
+ */
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * Parse date filters from GET (Shamsi + Gregorian).
+ *
+ * @return array{from:string,to:string,from_shamsi:string,to_shamsi:string}
+ */
+function sc_bi_parse_date_filters($default_months = 6) {
+    $from        = '';
+    $to          = '';
+    $from_shamsi = '';
+    $to_shamsi   = '';
+
+    if (!empty($_GET['filter_date_from_shamsi'])) {
+        $from_shamsi = sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi']));
+        $from        = function_exists('sc_shamsi_to_gregorian_date') ? sc_shamsi_to_gregorian_date($from_shamsi) : '';
+    }
+    if (!empty($_GET['filter_date_to_shamsi'])) {
+        $to_shamsi = sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi']));
+        $to        = function_exists('sc_shamsi_to_gregorian_date') ? sc_shamsi_to_gregorian_date($to_shamsi) : '';
+    }
+    if ($from === '' && !empty($_GET['filter_date_from'])) {
+        $from = sanitize_text_field(wp_unslash($_GET['filter_date_from']));
+    }
+    if ($to === '' && !empty($_GET['filter_date_to'])) {
+        $to = sanitize_text_field(wp_unslash($_GET['filter_date_to']));
+    }
+
+    if ($from === '' || $to === '') {
+        $today = new DateTimeImmutable('today', wp_timezone());
+        $start = $today->modify('-' . max(1, (int) $default_months) . ' months');
+        $from  = $start->format('Y-m-d');
+        $to    = $today->format('Y-m-d');
+        if (function_exists('gregorian_to_jalali')) {
+            $fj = gregorian_to_jalali((int) $start->format('Y'), (int) $start->format('m'), (int) $start->format('d'));
+            $tj = gregorian_to_jalali((int) $today->format('Y'), (int) $today->format('m'), (int) $today->format('d'));
+            $from_shamsi = $fj[0] . '/' . str_pad((string) $fj[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad((string) $fj[2], 2, '0', STR_PAD_LEFT);
+            $to_shamsi   = $tj[0] . '/' . str_pad((string) $tj[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad((string) $tj[2], 2, '0', STR_PAD_LEFT);
+        }
+    } elseif ($from_shamsi === '' && function_exists('sc_date_shamsi_date_only')) {
+        $from_shamsi = sc_date_shamsi_date_only($from);
+        $to_shamsi   = sc_date_shamsi_date_only($to);
+    }
+
+    return [
+        'from'        => $from,
+        'to'          => $to,
+        'from_shamsi' => $from_shamsi,
+        'to_shamsi'   => $to_shamsi,
+    ];
+}
+
+/**
+ * Build month buckets inside a date range.
+ *
+ * @return array<int, array{label:string,start:string,end:string}>
+ */
+function sc_bi_month_buckets($date_from, $date_to) {
+    $buckets     = [];
+    $range_start = new DateTimeImmutable($date_from, wp_timezone());
+    $range_end   = new DateTimeImmutable($date_to, wp_timezone());
+    $cursor      = $range_start->modify('first day of this month');
+    $last_month  = $range_end->modify('first day of this month');
+
+    while ($cursor <= $last_month) {
+        $month_start = $cursor > $range_start ? $cursor : $range_start;
+        $month_end   = $cursor->modify('last day of this month');
+        if ($month_end > $range_end) {
+            $month_end = $range_end;
+        }
+        $ms = $month_start->format('Y-m-d');
+        $buckets[] = [
+            'label' => function_exists('sc_date_shamsi') ? sc_date_shamsi($ms, 'Y/m') : $ms,
+            'start' => $ms,
+            'end'   => $month_end->format('Y-m-d'),
+        ];
+        $cursor = $cursor->modify('+1 month');
+    }
+
+    return $buckets;
+}
+
+/**
+ * Member IDs with at least one active course enrollment at a given date (club-wide player).
+ *
+ * @param int[] $course_ids Optional restrict to courses.
+ * @return int[]
+ */
+function sc_bi_get_active_member_ids_at_date($date_ymd, array $course_ids = []) {
+    global $wpdb;
+    $mc      = $wpdb->prefix . 'sc_member_courses';
+    $members = $wpdb->prefix . 'sc_members';
+
+    $where  = [
+        'DATE(COALESCE(NULLIF(mc.enrollment_date, \'0000-00-00\'), DATE(mc.created_at))) <= %s',
+        '(mc.status = \'active\' OR (mc.status <> \'active\' AND DATE(mc.updated_at) > %s))',
+    ];
+    $params = [$date_ymd, $date_ymd];
+
+    if (!empty($course_ids)) {
+        $holders = implode(',', array_fill(0, count($course_ids), '%d'));
+        $where[] = "mc.course_id IN ($holders)";
+        $params  = array_merge($params, $course_ids);
+    }
+
+    $sql = "SELECT DISTINCT mc.member_id
+            FROM $mc mc
+            INNER JOIN $members m ON m.id = mc.member_id AND m.is_active = 1
+            WHERE " . implode(' AND ', $where);
+
+    $rows = $wpdb->get_col($wpdb->prepare($sql, ...$params));
+    return array_map('absint', $rows ?: []);
+}
+
+/**
+ * Count club-active members at date.
+ */
+function sc_bi_count_club_active_members_at_date($date_ymd, array $course_ids = []) {
+    return count(sc_bi_get_active_member_ids_at_date($date_ymd, $course_ids));
+}
+
+/**
+ * Monthly club member metrics: active snapshot, new, churn, renewal rate.
+ *
+ * @return array<int, array{month:string,active:int,new:int,churn:int,renewed:int,renewal_rate:float,churn_rate:float}>
+ */
+function sc_bi_club_monthly_member_metrics($date_from, $date_to) {
+    global $wpdb;
+    $mc       = $wpdb->prefix . 'sc_member_courses';
+    $members  = $wpdb->prefix . 'sc_members';
+    $invoices = $wpdb->prefix . 'sc_invoices';
+    $rows     = [];
+
+    foreach (sc_bi_month_buckets($date_from, $date_to) as $bucket) {
+        $ms           = $bucket['start'];
+        $me           = $bucket['end'];
+        $active_start = sc_bi_get_active_member_ids_at_date($ms);
+        $active_end   = sc_bi_get_active_member_ids_at_date($me);
+        $active_count = count($active_end);
+
+        // New club members: first enrollment ever falls in this month.
+        $new_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM (
+                SELECT mc.member_id,
+                       MIN(DATE(COALESCE(NULLIF(mc.enrollment_date, '0000-00-00'), DATE(mc.created_at)))) AS first_enroll
+                FROM $mc mc
+                INNER JOIN $members m ON m.id = mc.member_id
+                GROUP BY mc.member_id
+                HAVING first_enroll >= %s AND first_enroll <= %s
+             ) t",
+            $ms,
+            $me
+        ));
+
+        $start_set = array_flip($active_start);
+        $end_set   = array_flip($active_end);
+        $churned   = 0;
+        foreach ($active_start as $mid) {
+            if (!isset($end_set[$mid])) {
+                $churned++;
+            }
+        }
+
+        // Renewed: paid invoice in month where member had a prior paid invoice before month start.
+        $renewed = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT i.member_id)
+             FROM $invoices i
+             WHERE i.status IN ('paid','completed','processing')
+               AND i.payment_date IS NOT NULL
+               AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
+               AND EXISTS (
+                   SELECT 1 FROM $invoices i2
+                   WHERE i2.member_id = i.member_id
+                     AND i2.status IN ('paid','completed','processing')
+                     AND i2.payment_date IS NOT NULL
+                     AND DATE(i2.payment_date) < %s
+               )",
+            $ms,
+            $me,
+            $ms
+        ));
+
+        $eligible_renewal = count($active_start);
+        $renewal_rate     = $eligible_renewal > 0 ? round(($renewed / $eligible_renewal) * 100, 1) : 0.0;
+        $churn_rate       = count($active_start) > 0 ? round(($churned / count($active_start)) * 100, 1) : 0.0;
+
+        $rows[] = [
+            'month'         => $bucket['label'],
+            'active'        => $active_count,
+            'new'           => $new_count,
+            'churn'         => $churned,
+            'renewed'       => $renewed,
+            'renewal_rate'  => $renewal_rate,
+            'churn_rate'    => $churn_rate,
+        ];
+    }
+
+    return $rows;
+}
+
+/**
+ * Revenue by branch (chapter) in date range.
+ *
+ * @return array<int, object{chapter:string,revenue:float,invoice_count:int}>
+ */
+function sc_bi_branch_revenue_rows($date_from, $date_to) {
+    global $wpdb;
+    $invoices = $wpdb->prefix . 'sc_invoices';
+    $courses  = $wpdb->prefix . 'sc_courses';
+
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT COALESCE(NULLIF(TRIM(c.chapter), ''), 'بدون شعبه') AS chapter,
+                COUNT(i.id) AS invoice_count,
+                COALESCE(SUM(i.amount), 0) AS revenue
+         FROM $invoices i
+         INNER JOIN $courses c ON c.id = i.course_id
+         WHERE i.status IN ('paid','completed','processing')
+           AND i.payment_date IS NOT NULL
+           AND i.course_id > 0
+           AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
+         GROUP BY chapter
+         ORDER BY revenue DESC",
+        $date_from,
+        $date_to
+    )) ?: [];
+}
+
+/**
+ * Monthly revenue by branch for line chart.
+ *
+ * @return array<string, array<int, array{month:string,revenue:float}>>
+ */
+function sc_bi_branch_monthly_revenue($date_from, $date_to) {
+    global $wpdb;
+    $invoices = $wpdb->prefix . 'sc_invoices';
+    $courses  = $wpdb->prefix . 'sc_courses';
+    $by_chapter = [];
+
+    foreach (sc_bi_month_buckets($date_from, $date_to) as $bucket) {
+        $branch_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT COALESCE(NULLIF(TRIM(c.chapter), ''), 'بدون شعبه') AS chapter,
+                    COALESCE(SUM(i.amount), 0) AS revenue
+             FROM $invoices i
+             INNER JOIN $courses c ON c.id = i.course_id
+             WHERE i.status IN ('paid','completed','processing')
+               AND i.payment_date IS NOT NULL
+               AND i.course_id > 0
+               AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
+             GROUP BY chapter",
+            $bucket['start'],
+            $bucket['end']
+        )) ?: [];
+
+        foreach ($branch_rows as $row) {
+            $ch = (string) $row->chapter;
+            if (!isset($by_chapter[$ch])) {
+                $by_chapter[$ch] = [];
+            }
+            $by_chapter[$ch][] = [
+                'month'   => $bucket['label'],
+                'revenue' => (float) $row->revenue,
+            ];
+        }
+    }
+
+    // Fill missing months with zero for each branch.
+    $labels = array_column(sc_bi_month_buckets($date_from, $date_to), 'label');
+    foreach ($by_chapter as $ch => $series) {
+        $map = [];
+        foreach ($series as $point) {
+            $map[$point['month']] = $point['revenue'];
+        }
+        $filled = [];
+        foreach ($labels as $label) {
+            $filled[] = ['month' => $label, 'revenue' => isset($map[$label]) ? (float) $map[$label] : 0.0];
+        }
+        $by_chapter[$ch] = $filled;
+    }
+
+    return $by_chapter;
+}
+
+/**
+ * Popular courses by metric.
+ *
+ * @param string $metric enrolled|revenue|attendance
+ * @return array<int, object>
+ */
+function sc_bi_popular_courses($date_from, $date_to, $metric = 'enrolled', $limit = 15) {
+    global $wpdb;
+    $courses  = $wpdb->prefix . 'sc_courses';
+    $mc       = $wpdb->prefix . 'sc_member_courses';
+    $invoices = $wpdb->prefix . 'sc_invoices';
+    $att      = $wpdb->prefix . 'sc_attendances';
+    $limit    = max(1, min(50, (int) $limit));
+
+    if ($metric === 'revenue') {
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT c.id, c.title, c.chapter,
+                    COUNT(i.id) AS metric_count,
+                    COALESCE(SUM(i.amount), 0) AS metric_value
+             FROM $invoices i
+             INNER JOIN $courses c ON c.id = i.course_id AND c.deleted_at IS NULL
+             WHERE i.status IN ('paid','completed','processing')
+               AND i.payment_date IS NOT NULL
+               AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
+             GROUP BY c.id, c.title, c.chapter
+             ORDER BY metric_value DESC
+             LIMIT %d",
+            $date_from,
+            $date_to,
+            $limit
+        )) ?: [];
+    }
+
+    if ($metric === 'attendance') {
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT c.id, c.title, c.chapter,
+                    COUNT(a.id) AS metric_count,
+                    COUNT(a.id) AS metric_value
+             FROM $att a
+             INNER JOIN $courses c ON c.id = a.course_id AND c.deleted_at IS NULL
+             WHERE a.attendance_date >= %s AND a.attendance_date <= %s
+               AND a.status = 'present'
+             GROUP BY c.id, c.title, c.chapter
+             ORDER BY metric_value DESC
+             LIMIT %d",
+            $date_from,
+            $date_to,
+            $limit
+        )) ?: [];
+    }
+
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT c.id, c.title, c.chapter,
+                COUNT(DISTINCT mc.member_id) AS metric_count,
+                COUNT(DISTINCT mc.member_id) AS metric_value
+         FROM $courses c
+         INNER JOIN $mc mc ON mc.course_id = c.id AND mc.status = 'active'
+         WHERE c.deleted_at IS NULL AND c.is_active = 1
+         GROUP BY c.id, c.title, c.chapter
+         ORDER BY metric_value DESC
+         LIMIT %d",
+        $limit
+    )) ?: [];
+}
+
+/**
+ * Coach summary rows for BI ranking.
+ *
+ * @return array<int, object>
+ */
+function sc_bi_coaches_summary($date_from, $date_to) {
+    global $wpdb;
+    $coaches  = $wpdb->prefix . 'sc_coaches';
+    $cc       = $wpdb->prefix . 'sc_course_coaches';
+    $wallet   = $wpdb->prefix . 'sc_coach_wallet_transactions';
+    $courses  = $wpdb->prefix . 'sc_courses';
+    $invoices = $wpdb->prefix . 'sc_invoices';
+
+    $coach_rows = $wpdb->get_results(
+        "SELECT id, first_name, last_name FROM $coaches WHERE is_active = 1 ORDER BY first_name, last_name"
+    ) ?: [];
+
+    $summaries = [];
+    foreach ($coach_rows as $coach) {
+        $coach_id   = (int) $coach->id;
+        $course_ids = array_map('absint', $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT course_id FROM $cc WHERE coach_id = %d",
+            $coach_id
+        )) ?: []);
+
+        $active_now = !empty($course_ids)
+            ? sc_bi_count_club_active_members_at_date($date_to, $course_ids)
+            : 0;
+
+        $coach_income = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(amount), 0) FROM $wallet
+             WHERE coach_id = %d AND status = 'completed'
+               AND transaction_type IN ('salary_percentage','salary_fixed')
+               AND DATE(created_at) >= %s AND DATE(created_at) <= %s",
+            $coach_id,
+            $date_from,
+            $date_to
+        ));
+
+        $class_revenue = 0.0;
+        if (!empty($course_ids)) {
+            $holders = implode(',', array_fill(0, count($course_ids), '%d'));
+            $args    = array_merge([$date_from, $date_to], $course_ids);
+            $class_revenue = (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(i.amount), 0) FROM $invoices i
+                 WHERE i.status IN ('paid','completed','processing')
+                   AND i.payment_date IS NOT NULL
+                   AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
+                   AND i.course_id IN ($holders)",
+                ...$args
+            ));
+        }
+
+        $summaries[] = (object) [
+            'coach_id'      => $coach_id,
+            'name'          => trim($coach->first_name . ' ' . $coach->last_name),
+            'active_now'    => $active_now,
+            'coach_income'  => $coach_income,
+            'class_revenue' => $class_revenue,
+            'course_count'  => count($course_ids),
+        ];
+    }
+
+    usort($summaries, static function ($a, $b) {
+        return $b->active_now <=> $a->active_now;
+    });
+
+    return $summaries;
+}
+
+/**
+ * Monthly coach student & performance metrics.
+ *
+ * @param int[] $course_ids
+ * @return array<int, array{month:string,active:int,new:int,churn:int,income:float,avg_attendance:float}>
+ */
+function sc_bi_coach_monthly_metrics($coach_id, array $course_ids, $date_from, $date_to) {
+    global $wpdb;
+    $mc     = $wpdb->prefix . 'sc_member_courses';
+    $wallet = $wpdb->prefix . 'sc_coach_wallet_transactions';
+    $salary = $wpdb->prefix . 'sc_coach_salary_records';
+    $rows   = [];
+
+    foreach (sc_bi_month_buckets($date_from, $date_to) as $bucket) {
+        $ms = $bucket['start'];
+        $me = $bucket['end'];
+
+        $active_start_ids = sc_bi_get_active_member_ids_at_date($ms, $course_ids);
+        $active_end_ids   = sc_bi_get_active_member_ids_at_date($me, $course_ids);
+        $active_count     = count($active_end_ids);
+
+        $new_count = 0;
+        if (!empty($course_ids)) {
+            $holders = implode(',', array_fill(0, count($course_ids), '%d'));
+            $args    = array_merge($course_ids, [$ms, $me]);
+            $new_count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(DISTINCT mc.member_id) FROM $mc mc
+                 WHERE mc.course_id IN ($holders)
+                   AND DATE(COALESCE(NULLIF(mc.enrollment_date, '0000-00-00'), DATE(mc.created_at))) >= %s
+                   AND DATE(COALESCE(NULLIF(mc.enrollment_date, '0000-00-00'), DATE(mc.created_at))) <= %s",
+                ...$args
+            ));
+        }
+
+        $end_set = array_flip($active_end_ids);
+        $churn   = 0;
+        foreach ($active_start_ids as $mid) {
+            if (!isset($end_set[$mid])) {
+                $churn++;
+            }
+        }
+
+        $income = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(amount), 0) FROM $wallet
+             WHERE coach_id = %d AND status = 'completed'
+               AND transaction_type IN ('salary_percentage','salary_fixed')
+               AND DATE(created_at) >= %s AND DATE(created_at) <= %s",
+            (int) $coach_id,
+            $ms,
+            $me
+        ));
+
+        $avg_attendance = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(AVG(attendance_count), 0) FROM $salary
+             WHERE coach_id = %d AND attendance_date >= %s AND attendance_date <= %s",
+            (int) $coach_id,
+            $ms,
+            $me
+        ));
+
+        $rows[] = [
+            'month'          => $bucket['label'],
+            'active'         => $active_count,
+            'new'            => $new_count,
+            'churn'          => $churn,
+            'income'         => $income,
+            'avg_attendance' => round($avg_attendance, 1),
+        ];
+    }
+
+    return $rows;
+}

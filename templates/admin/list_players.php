@@ -263,6 +263,42 @@ global $title ,$player_list_table;
         // در صورت نیاز می‌توانید آن را اینجا هم تعریف کنید.
         </script>
 
+        <script type="text/javascript">
+        jQuery(document).ready(function ($) {
+            function scMembersBulkConfirm(e, actionSelector) {
+                var action = $(actionSelector).val();
+                if (action !== 'delete') {
+                    return true;
+                }
+                var checked = $('input[name="player[]"]:checked').length;
+                if (checked === 0) {
+                    e.preventDefault();
+                    alert('لطفاً حداقل یک بازیکن را انتخاب کنید.');
+                    return false;
+                }
+                e.preventDefault();
+                var form = $(e.target).closest('form');
+                var msg = checked === 1
+                    ? 'آیا از حذف بازیکن انتخاب‌شده اطمینان دارید؟ این عمل قابل بازگشت نیست.'
+                    : 'آیا از حذف ' + checked + ' بازیکن انتخاب‌شده اطمینان دارید؟ این عمل قابل بازگشت نیست.';
+                if (typeof scConfirm === 'function') {
+                    scConfirm({ type: 'danger', message: msg }).then(function (ok) {
+                        if (ok) {
+                            form.off('submit').submit();
+                        }
+                    });
+                } else if (window.confirm(msg)) {
+                    form.off('submit').submit();
+                }
+                return false;
+            }
+            $('#doaction, #doaction2').on('click', function (e) {
+                var selector = $(this).attr('id') === 'doaction2' ? '#bulk-action-selector-bottom' : '#bulk-action-selector-top';
+                return scMembersBulkConfirm(e, selector);
+            });
+        });
+        </script>
+
 
 
 

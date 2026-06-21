@@ -68,11 +68,21 @@ public function column_full_name($item) {
         // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
         $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
         $wallet_balance = $wallet_enabled ? sc_get_wallet_balance($item['id']) : 0;
-        
+
+        $delete_url  = admin_url('admin.php?page=sc-members&action=delete&player_id=' . absint($item['id']));
+        $delete_name = trim($item['first_name'] . ' ' . $item['last_name']);
+        $delete_msg  = $delete_name !== ''
+            ? sprintf('آیا از حذف بازیکن «%s» اطمینان دارید؟ این عمل قابل بازگشت نیست.', $delete_name)
+            : 'آیا از حذف این بازیکن اطمینان دارید؟ این عمل قابل بازگشت نیست.';
+
         $actions = [
             'view' => '<a href="' . admin_url('admin.php?page=sc-view-member&player_id=') . $item['id'] . '">مشاهده</a>',
             'edit' => '<a href="' . admin_url('admin.php?page=sc-add-member&player_id=') . $item['id'] . '">ویرایش</a>',
-            'delete' => '<a href="' . admin_url('admin.php?page=sc-members&action=delete&player_id=') . $item['id'] . '">حذف</a>',
+            'delete' => sprintf(
+                '<a href="%s" onclick="return scConfirmInline(event, { type: \'danger\', message: \'%s\' });">حذف</a>',
+                esc_url($delete_url),
+                esc_js($delete_msg)
+            ),
         ];
         
         // // اضافه کردن دکمه مدیریت کیف پول

@@ -74,6 +74,7 @@ $salary_total_participants    = 0;
 $salary_avg_participants      = 0.0;
 $attendance_rows_period       = 0;
 $monthly_student_chart        = [];
+$monthly_coach_metrics        = [];
 
 $coach_row = null;
 $course_ids                   = [];
@@ -186,49 +187,17 @@ if ($filter_coach_id > 0) {
             ));
         }
 
-        // نمودار ماهانه: تعداد هنرجوی جدید (ثبت‌نام در دوره‌های مربی) بر اساس تاریخ ثبت‌نام.
-        $monthly_student_chart = [];
-        $range_start           = new DateTimeImmutable($filter_date_from, wp_timezone());
-        $range_end             = new DateTimeImmutable($filter_date_to, wp_timezone());
-        $cursor                = $range_start->modify('first day of this month');
-        $last_month            = $range_end->modify('first day of this month');
-        while ($cursor <= $last_month) {
-            $month_start = $cursor > $range_start ? $cursor : $range_start;
-            $month_end   = $cursor->modify('last day of this month');
-            if ($month_end > $range_end) {
-                $month_end = $range_end;
-            }
-            $ms = $month_start->format('Y-m-d');
-            $me = $month_end->format('Y-m-d');
-
-            $month_label = function_exists('sc_date_shamsi') ? sc_date_shamsi($ms, 'Y/m') : $ms;
-            $cnt_students = 0;
-            if (!empty($course_ids)) {
-                $holders_m = implode(',', array_fill(0, count($course_ids), '%d'));
-                $args_m    = array_merge($course_ids, [$ms, $me]);
-                $cnt_students = (int) $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(DISTINCT mc.member_id) FROM $mc_table mc
-                     WHERE mc.course_id IN ($holders_m)
-                       AND DATE(
-                         COALESCE(
-                           NULLIF(mc.enrollment_date, '0000-00-00'),
-                           DATE(mc.created_at)
-                         )
-                       ) >= %s
-                       AND DATE(
-                         COALESCE(
-                           NULLIF(mc.enrollment_date, '0000-00-00'),
-                           DATE(mc.created_at)
-                         )
-                       ) <= %s",
-                    ...$args_m
-                ));
-            }
-            $monthly_student_chart[] = [
-                'month' => $month_label,
-                'count' => $cnt_students,
-            ];
-            $cursor = $cursor->modify('+1 month');
+        // نمودارهای ماهانه (فعال، جدید، ریزش، درآمد، میانگین حضور).
+        if (function_exists('sc_bi_coach_monthly_metrics')) {
+            $monthly_coach_metrics = sc_bi_coach_monthly_metrics(
+                $filter_coach_id,
+                $course_ids,
+                $filter_date_from,
+                $filter_date_to
+            );
+            $monthly_student_chart = array_map(static function ($row) {
+                return ['month' => $row['month'], 'count' => $row['new']];
+            }, $monthly_coach_metrics);
         }
     }
 }
@@ -353,11 +322,60 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
         </div>
 
         <div class="sc-stat-box" style="margin-top: 20px;">
-            <h2>نمودار ماهانه — هنرجویان جدید (منحنی)</h2>
-            <p class="description">تعداد هنرجویان با تاریخ ثبت‌نام در هر ماه شمسی (در دوره‌های تحت این مربی).</p>
+            <h2>نمودار ماهانه — تعداد دانشجویان فعال (منحنی)</h2>
+            <p class="description">تعداد بازیکنان فعال در پایان هر ماه در دوره‌های این مربی.</p>
             <div style="max-width: 960px; margin-top: 16px;">
-                <canvas id="coachStudentsMonthlyChart" style="max-height: 380px;"></canvas>
+                <canvas id="coachActiveMonthlyChart" style="max-height: 380px;"></canvas>
             </div>
+        </div>
+
+        <div class="sc-stat-box" style="margin-top: 20px;">
+            <h2>نمودار ماهانه — عضو جدید و ریزش</h2>
+            <p class="description">ثبت‌نام جدید و بازیکنانی که از ابتدا تا پایان ماه دیگر فعال نیستند.</p>
+            <div style="max-width: 960px; margin-top: 16px;">
+                <canvas id="coachNewChurnChart" style="max-height: 380px;"></canvas>
+            </div>
+        </div>
+
+        <div class="chart_dashboard" style="display:flex;flex-wrap:wrap;gap:20px;margin-top:20px;">
+            <div class="sc-stat-box" style="flex:1;min-width:300px;">
+                <h2>درآمد مربی (ماهانه)</h2>
+                <canvas id="coachIncomeChart" style="max-height:340px;"></canvas>
+            </div>
+            <div class="sc-stat-box" style="flex:1;min-width:300px;">
+                <h2>میانگین نفر جلسه (ماهانه)</h2>
+                <canvas id="coachAvgAttendanceChart" style="max-height:340px;"></canvas>
+            </div>
+        </div>
+
+        <div class="sc-stat-box" style="margin-top: 20px;">
+            <h2>جدول ماهانه</h2>
+            <table class="wp-list-table widefat fixed striped" style="max-width:900px;">
+                <thead>
+                    <tr>
+                        <th>ماه</th>
+                        <th>فعال (پایان ماه)</th>
+                        <th>جدید</th>
+                        <th>ریزش</th>
+                        <th>درآمد مربی</th>
+                        <th>میانگین نفر جلسه</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php if (empty($monthly_coach_metrics)) : ?>
+                    <tr><td colspan="6">داده‌ای یافت نشد.</td></tr>
+                <?php else : foreach ($monthly_coach_metrics as $mrow) : ?>
+                    <tr>
+                        <td><?php echo esc_html($mrow['month']); ?></td>
+                        <td><?php echo (int) $mrow['active']; ?></td>
+                        <td><?php echo (int) $mrow['new']; ?></td>
+                        <td><?php echo (int) $mrow['churn']; ?></td>
+                        <td><?php echo esc_html(number_format((float) $mrow['income'], 0, '.', ',')); ?></td>
+                        <td><?php echo esc_html(number_format((float) $mrow['avg_attendance'], 1, '.', ',')); ?></td>
+                    </tr>
+                <?php endforeach; endif; ?>
+                </tbody>
+            </table>
         </div>
 
         <div class="sc-stat-box" style="margin-top: 20px;">
@@ -387,46 +405,103 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
         <script src="<?php echo esc_url(SC_ASSETS_URL . 'js/vendor/chart.min.js'); ?>"></script>
         <script>
         document.addEventListener('DOMContentLoaded', function () {
-            var canvas = document.getElementById('coachStudentsMonthlyChart');
-            if (!canvas || typeof Chart === 'undefined') {
+            if (typeof Chart === 'undefined') {
                 return;
             }
-            var monthly = <?php echo wp_json_encode($monthly_student_chart); ?>;
+            var monthly = <?php echo wp_json_encode($monthly_coach_metrics); ?>;
             if (!monthly || !monthly.length) {
-                canvas.parentElement.innerHTML = '<p style="padding:24px;color:#666;">داده‌ای برای نمودار وجود ندارد.</p>';
                 return;
             }
             var labels = monthly.map(function (r) { return r.month; });
-            var data = monthly.map(function (r) { return parseInt(r.count, 10) || 0; });
-            new Chart(canvas, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'هنرجوی جدید',
-                        data: data,
-                        borderColor: 'rgba(34, 113, 177, 1)',
-                        backgroundColor: 'rgba(34, 113, 177, 0.12)',
-                        tension: 0.45,
-                        fill: true,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                        }
+
+            var activeCanvas = document.getElementById('coachActiveMonthlyChart');
+            if (activeCanvas) {
+                new Chart(activeCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'دانشجویان فعال',
+                            data: monthly.map(function (r) { return parseInt(r.active, 10) || 0; }),
+                            borderColor: 'rgba(34, 113, 177, 1)',
+                            backgroundColor: 'rgba(34, 113, 177, 0.12)',
+                            tension: 0.45,
+                            fill: true,
+                            pointRadius: 4
+                        }]
                     },
-                    plugins: {
-                        legend: { display: true, position: 'top' }
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                        plugins: { legend: { position: 'top' } }
                     }
-                }
-            });
+                });
+            }
+
+            var ncCanvas = document.getElementById('coachNewChurnChart');
+            if (ncCanvas) {
+                new Chart(ncCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'عضو جدید',
+                                data: monthly.map(function (r) { return parseInt(r.new, 10) || 0; }),
+                                backgroundColor: 'rgba(0, 163, 42, 0.7)'
+                            },
+                            {
+                                label: 'ریزش',
+                                data: monthly.map(function (r) { return parseInt(r.churn, 10) || 0; }),
+                                backgroundColor: 'rgba(214, 54, 56, 0.7)'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                        plugins: { legend: { position: 'top' } }
+                    }
+                });
+            }
+
+            var incomeCanvas = document.getElementById('coachIncomeChart');
+            if (incomeCanvas) {
+                new Chart(incomeCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'درآمد مربی (تومان)',
+                            data: monthly.map(function (r) { return parseFloat(r.income) || 0; }),
+                            borderColor: 'rgba(0, 163, 42, 1)',
+                            backgroundColor: 'rgba(0, 163, 42, 0.1)',
+                            tension: 0.35,
+                            fill: true
+                        }]
+                    },
+                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                });
+            }
+
+            var attCanvas = document.getElementById('coachAvgAttendanceChart');
+            if (attCanvas) {
+                new Chart(attCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'میانگین نفر جلسه',
+                            data: monthly.map(function (r) { return parseFloat(r.avg_attendance) || 0; }),
+                            borderColor: 'rgba(240, 160, 0, 1)',
+                            backgroundColor: 'rgba(240, 160, 0, 0.1)',
+                            tension: 0.35,
+                            fill: true
+                        }]
+                    },
+                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                });
+            }
         });
         </script>
     <?php endif; ?>

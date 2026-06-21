@@ -77,6 +77,7 @@ require_once SC_INCLUDES_DIR . 'header-search-functions.php'; // جستجوی ه
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'invoices-bulk-background.php'; // پردازش پس‌زمینهٔ عملیات دسته‌جمعی صورت‌حساب‌ها
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions
+require_once SC_INCLUDES_DIR . 'bi-analytics-functions.php'; // BI / analytics reports
 require_once SC_INCLUDES_DIR . 'users-info-export-functions.php'; // Users info export (PDF/Excel)
 require_once SC_INCLUDES_DIR . 'bulk-actions-functions.php'; // Bulk actions on filtered members
 require_once SC_INCLUDES_DIR . 'certificates-functions.php'; // Certificates templates and issue

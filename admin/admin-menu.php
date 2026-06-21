@@ -1102,6 +1102,15 @@ function sc_register_admin_menu() {
             'sc_admin_reports_income_expenses_page'
         );
 
+        add_submenu_page(
+            'sc-reports',
+            'تحلیل و هوش تجاری',
+            'تحلیل و هوش تجاری',
+            'sc_finance_reports_access',
+            'sc-reports-bi-analytics',
+            'sc_admin_reports_bi_analytics_page'
+        );
+
         if (function_exists('sc_is_pro_feature_coaches_enabled') && sc_is_pro_feature_coaches_enabled()) {
             add_submenu_page(
                 'sc-reports',
@@ -2538,7 +2547,18 @@ function sc_admin_reports_income_expenses_page() {
 
 function sc_admin_reports_coach_performance_page() {
     sc_check_and_create_tables();
+    if (!function_exists('sc_bi_coach_monthly_metrics')) {
+        require_once SC_INCLUDES_DIR . 'bi-analytics-functions.php';
+    }
     include SC_TEMPLATES_ADMIN_DIR . 'reports-coach-performance.php';
+}
+
+function sc_admin_reports_bi_analytics_page() {
+    sc_check_and_create_tables();
+    if (!function_exists('sc_bi_parse_date_filters')) {
+        require_once SC_INCLUDES_DIR . 'bi-analytics-functions.php';
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-bi-analytics.php';
 }
 
 function sc_admin_reports_debtors_page() {
