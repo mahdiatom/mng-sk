@@ -1,8 +1,6 @@
 /* ===== رزرو کلاس خصوصی — پنل کاربر و ادمین ===== */
 
-.sc-private-page {
-    max-width: 960px;
-}
+
 
 .sc-private-page-header {
     margin-bottom: 20px;
@@ -40,7 +38,7 @@
 }
 
 .sc-private-page-notice p {
-    margin: 0 0 8px;
+    margin: 0px 24px 8px 0px;
 }
 
 .sc-private-page-notice p:last-child {
