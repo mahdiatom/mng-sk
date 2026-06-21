@@ -594,6 +594,7 @@ function sc_register_admin_menu() {
                     'sc-private-booking-form',
                     'sc_render_private_booking_form_page'
                 );
+                add_action('admin_menu', 'sc_private_booking_requests_menu_badge', 999);
             } else {
                 add_menu_page(
                     'ثبت‌نام کلاس خصوصی',
@@ -1821,6 +1822,31 @@ function sc_admin_coach_private_notes_add_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'private-note-add.php';
 }
 
+function sc_private_booking_requests_menu_badge() {
+    if (!function_exists('sc_private_can_manage_booking_requests') || !sc_private_can_manage_booking_requests()) {
+        return;
+    }
+    if (!function_exists('sc_is_private_booking_admin_approval_mode') || !sc_is_private_booking_admin_approval_mode()) {
+        return;
+    }
+    if (!isset($GLOBALS['menu'])) {
+        return;
+    }
+    $pending = function_exists('sc_count_pending_private_booking_requests')
+        ? sc_count_pending_private_booking_requests()
+        : 0;
+    if ($pending <= 0) {
+        return;
+    }
+    $badge = ' <span class="awaiting-mod count-' . esc_attr($pending) . '"><span class="pending-count">' . (int) $pending . '</span></span>';
+    foreach ($GLOBALS['menu'] as $key => $item) {
+        if (isset($item[2]) && $item[2] === 'sc-private-booking-requests') {
+            $GLOBALS['menu'][$key][0] = 'رزرو کلاس خصوصی' . $badge;
+            break;
+        }
+    }
+}
+
 function sc_coach_notifications_menu_badge() {
     if (!current_user_can('sc_view_coach_salary') || !isset($GLOBALS['submenu']['sc-coach-notifications'])) {
         return;
@@ -2990,7 +3016,15 @@ function callback_add_course_sufix() {
         if ($is_private_course && $private_variable_coach_pricing) {
             $parsed_packages = function_exists('sc_parse_private_session_options_from_post') ? sc_parse_private_session_options_from_post() : [];
             if (is_wp_error($parsed_packages)) {
-                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_pkg_error&course_id=' . (isset($_GET['course_id']) ? absint($_GET['course_id']) : 0)));
+                $pkg_redirect = ['page' => 'sc-add-course', 'sc_status' => 'course_pkg_error'];
+                if (isset($_GET['course_id'])) {
+                    $pkg_redirect['course_id'] = absint($_GET['course_id']);
+                }
+                $pkg_err_code = $parsed_packages->get_error_code();
+                if ($pkg_err_code === 'private_sess_dup') {
+                    $pkg_redirect['sc_error'] = 'duplicate_sessions';
+                }
+                wp_redirect(add_query_arg($pkg_redirect, admin_url('admin.php')));
                 exit;
             }
             if (empty($parsed_packages)) {
@@ -3006,16 +3040,27 @@ function callback_add_course_sufix() {
         } else {
             $parsed_packages = function_exists('sc_parse_course_packages_from_post') ? sc_parse_course_packages_from_post() : [];
             if (is_wp_error($parsed_packages)) {
-                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_pkg_error&course_id=' . (isset($_GET['course_id']) ? absint($_GET['course_id']) : 0)));
+                $pkg_redirect = ['page' => 'sc-add-course', 'sc_status' => 'course_pkg_error'];
+                if (isset($_GET['course_id'])) {
+                    $pkg_redirect['course_id'] = absint($_GET['course_id']);
+                }
+                if ($parsed_packages->get_error_code() === 'pkg_dup') {
+                    $pkg_redirect['sc_error'] = 'duplicate_sessions';
+                }
+                wp_redirect(add_query_arg($pkg_redirect, admin_url('admin.php')));
                 exit;
             }
         }
 
         $has_course_packages = !empty($parsed_packages);
+        $course_redirect_base = ['page' => 'sc-add-course'];
+        if (isset($_GET['course_id'])) {
+            $course_redirect_base['course_id'] = absint($_GET['course_id']);
+        }
 
         // Validation
         if (empty($_POST['title'])) {
-            wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
+            wp_redirect(add_query_arg(array_merge($course_redirect_base, ['sc_status' => 'course_title_required']), admin_url('admin.php')));
             exit;
         }
 
@@ -3023,11 +3068,11 @@ function callback_add_course_sufix() {
             // قیمت سراسری لازم نیست
         } elseif ($is_private_course) {
             if (!$has_course_packages && $price_value <= 0 && $price_per_session_value <= 0) {
-                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
+                wp_redirect(add_query_arg(array_merge($course_redirect_base, ['sc_status' => 'course_private_price_required']), admin_url('admin.php')));
                 exit;
             }
         } elseif (!$has_course_packages && $price_value <= 0) {
-            wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
+            wp_redirect(add_query_arg(array_merge($course_redirect_base, ['sc_status' => 'course_price_required']), admin_url('admin.php')));
             exit;
         }
         
@@ -3061,7 +3106,7 @@ function callback_add_course_sufix() {
 
         // برای دوره گروهی/خصوصی انتخاب حداقل یک شعبه الزامی است
         if (in_array($course_type_value, ['group', 'private'], true) && empty($posted_chapters)) {
-            wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_chapter_required' . (isset($_GET['course_id']) ? '&course_id=' . absint($_GET['course_id']) : '')));
+            wp_redirect(add_query_arg(array_merge($course_redirect_base, ['sc_status' => 'course_chapter_required']), admin_url('admin.php')));
             exit;
         }
 
@@ -3220,7 +3265,7 @@ function callback_add_course_sufix() {
                     error_log('SC Course Insert Data: ' . print_r($insert_data, true));
                     error_log('SC Course Insert Format: ' . print_r($format, true));
                 }
-                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_add_error'));
+                wp_redirect(admin_url('admin.php?page=sc-add-course&sc_status=course_db_error'));
                 exit;
             }
         }
@@ -4335,17 +4380,38 @@ function sc_sprot_notices(){
             $type='success';
             $messege="دوره با موفقیت اضافه شد";
         }
+        if($status == 'course_title_required'){
+            $type='error';
+            $messege="ثبت دوره انجام نشد: عنوان دوره الزامی است.";
+        }
+        if($status == 'course_price_required'){
+            $type='error';
+            $messege="ثبت دوره انجام نشد: برای دوره گروهی، قیمت کل دوره یا حداقل یک پکیج معتبر الزامی است.";
+        }
+        if($status == 'course_private_price_required'){
+            $type='error';
+            $messege="ثبت دوره انجام نشد: برای دوره خصوصی، قیمت کل، قیمت هر جلسه یا حداقل یک پکیج معتبر الزامی است.";
+        }
         if($status == 'course_add_error'){
             $type='error';
-            $messege="خطا: دوره اضافه نشد لطفا فیلدهای ورودی را بررسی کنید.";
+            $messege="ثبت دوره انجام نشد: لطفاً فیلدهای اجباری را بررسی کنید.";
+        }
+        if($status == 'course_db_error'){
+            $type='error';
+            $messege="ثبت دوره انجام نشد: خطا در ذخیره‌سازی اطلاعات در پایگاه داده. لطفاً دوباره تلاش کنید.";
         }
         if($status == 'course_pkg_error'){
             $type='error';
-            $messege="خطا در پکیج‌های قیمت: تعداد جلسه تکراری است یا مقدار ناقص است.";
+            $sc_error = isset($_GET['sc_error']) ? sanitize_text_field(wp_unslash($_GET['sc_error'])) : '';
+            if ($sc_error === 'duplicate_sessions') {
+                $messege="ثبت دوره انجام نشد: تعداد جلسه در پکیج‌ها یا گزینه‌های جلسه نباید تکراری باشد.";
+            } else {
+                $messege="ثبت دوره انجام نشد: در پکیج‌های قیمت، تعداد جلسه و قیمت باید هر دو وارد شوند.";
+            }
         }
         if($status == 'course_chapter_required'){
             $type='error';
-            $messege="برای دوره گروهی/خصوصی انتخاب حداقل یک شعبه الزامی است.";
+            $messege="ثبت دوره انجام نشد: برای دوره گروهی/خصوصی انتخاب حداقل یک شعبه الزامی است.";
         }
         if($status == 'member_pkg_error'){
             $type='error';

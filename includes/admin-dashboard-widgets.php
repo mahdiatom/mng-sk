@@ -123,6 +123,24 @@ function sc_register_admin_dashboard_widgets() {
         'کاربران بدون مربی تخصیص یافته',
         'sc_dw_render_unassigned_coach_members'
     );
+
+    // 12) کلاس خصوصی — حالت ۲: درخواست‌های رزرو در انتظار بررسی
+    if (function_exists('sc_is_private_booking_admin_approval_mode') && sc_is_private_booking_admin_approval_mode()) {
+        wp_add_dashboard_widget(
+            'sc_dw_private_booking_requests',
+            'درخواست‌های رزرو کلاس خصوصی',
+            'sc_dw_render_private_booking_requests'
+        );
+    }
+
+    // 13) کلاس خصوصی — حالت ۱: ثبت‌نام‌های اخیر
+    if (!function_exists('sc_is_private_booking_admin_approval_mode') || !sc_is_private_booking_admin_approval_mode()) {
+        wp_add_dashboard_widget(
+            'sc_dw_private_class_registrations',
+            'ثبت‌نام‌های کلاس خصوصی',
+            'sc_dw_render_private_class_registrations'
+        );
+    }
 }
 
 /**
@@ -168,6 +186,84 @@ function sc_dw_render_empty($message, $is_success = false) {
 /** ساخت لینک admin */
 function sc_dw_admin_url($args) {
     return add_query_arg($args, admin_url('admin.php'));
+}
+
+/** برچسب و کلاس CSS وضعیت رزرو کلاس خصوصی */
+function sc_dw_private_booking_status_ui($status) {
+    $status = (string) $status;
+    $label  = function_exists('sc_private_booking_status_label')
+        ? sc_private_booking_status_label($status)
+        : $status;
+    $class_map = [
+        'pending_admin'   => 'sc-dw-status-warning',
+        'pending_payment' => 'sc-dw-status-info',
+        'active'          => 'sc-dw-status-success',
+        'rejected'        => 'sc-dw-status-danger',
+        'paused'          => 'sc-dw-status-warning',
+        'cancelled'       => 'sc-dw-status-danger',
+        'completed'       => 'sc-dw-status-success',
+    ];
+    return [
+        'label' => $label,
+        'class' => isset($class_map[$status]) ? $class_map[$status] : 'sc-dw-status-info',
+    ];
+}
+
+/** کوئری مشترک رزروهای کلاس خصوصی برای ابزارک پیشخوان */
+function sc_dw_private_bookings_query(array $args = []) {
+    global $wpdb;
+
+    $defaults = [
+        'status_in' => [],
+        'limit'     => 5,
+        'count_only' => false,
+    ];
+    $args = wp_parse_args($args, $defaults);
+
+    $bookings_table = $wpdb->prefix . 'sc_private_course_bookings';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $bookings_table)) !== $bookings_table) {
+        return $args['count_only'] ? 0 : [];
+    }
+
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $members_table = $wpdb->prefix . 'sc_members';
+
+    $where  = ['1=1'];
+    $values = [];
+    if (!empty($args['status_in']) && is_array($args['status_in'])) {
+        $status_in = array_values(array_filter(array_map('strval', $args['status_in'])));
+        if (!empty($status_in)) {
+            $holders = implode(',', array_fill(0, count($status_in), '%s'));
+            $where[] = "b.status IN ({$holders})";
+            $values  = array_merge($values, $status_in);
+        }
+    }
+
+    $where_clause = implode(' AND ', $where);
+
+    if ($args['count_only']) {
+        $count_sql = "SELECT COUNT(*) FROM {$bookings_table} b WHERE {$where_clause}";
+        return !empty($values)
+            ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $values))
+            : (int) $wpdb->get_var($count_sql);
+    }
+
+    $limit = max(1, min(20, (int) $args['limit']));
+    $list_sql = "SELECT b.*, c.title AS course_title,
+                        m.first_name, m.last_name, m.player_phone,
+                        co.first_name AS coach_first_name, co.last_name AS coach_last_name
+                 FROM {$bookings_table} b
+                 LEFT JOIN {$courses_table} c ON c.id = b.course_id
+                 LEFT JOIN {$members_table} m ON m.id = b.member_id
+                 LEFT JOIN {$coaches_table} co ON co.id = b.coach_id
+                 WHERE {$where_clause}
+                 ORDER BY b.created_at DESC
+                 LIMIT %d";
+    $list_values   = $values;
+    $list_values[] = $limit;
+
+    return $wpdb->get_results($wpdb->prepare($list_sql, $list_values));
 }
 
 /* ====================================================================
@@ -1018,6 +1114,132 @@ function sc_dw_render_unassigned_coach_members() {
             echo '<div class="sc-dw-list-meta">📞 ' . esc_html($phone) . ' <span class="sc-dw-sep">|</span> 📘 ' . esc_html($meta_course) . '</div>';
             echo '</div>';
             echo '<span class="sc-dw-status sc-dw-status-warning">بدون مربی</span>';
+            echo '</a>';
+            echo '</li>';
+        }
+        echo '</ul>';
+    }
+    echo '</div>';
+}
+
+/* ====================================================================
+ * 12) درخواست‌های رزرو کلاس خصوصی (حالت ۲ — تایید مدیر)
+ * ================================================================= */
+function sc_dw_render_private_booking_requests() {
+    $pending_total = function_exists('sc_count_pending_private_booking_requests')
+        ? sc_count_pending_private_booking_requests()
+        : sc_dw_private_bookings_query([
+            'status_in'  => ['pending_admin'],
+            'count_only' => true,
+        ]);
+    $rows = sc_dw_private_bookings_query([
+        'status_in' => ['pending_admin'],
+        'limit'     => 5,
+    ]);
+
+    $list_url = sc_dw_admin_url([
+        'page'          => 'sc-private-booking-requests',
+        'filter_status' => 'pending_admin',
+    ]);
+
+    echo '<div class="sc-dw-card sc-dw-card-orange">';
+    echo '<div class="sc-dw-card-head">';
+    echo '<span class="sc-dw-badge sc-dw-badge-orange">' . esc_html(number_format_i18n($pending_total)) . ' درخواست در انتظار بررسی</span>';
+    echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
+    echo '</div>';
+
+    if (empty($rows)) {
+        sc_dw_render_empty('✅ درخواست رزروی در انتظار بررسی وجود ندارد.', true);
+    } else {
+        echo '<ul class="sc-dw-list">';
+        foreach ($rows as $row) {
+            $view_url = sc_dw_admin_url([
+                'page'       => 'sc-private-booking-form',
+                'booking_id' => (int) $row->id,
+            ]);
+            $name       = trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? ''));
+            if ($name === '') {
+                $name = 'بازیکن #' . (int) $row->member_id;
+            }
+            $course     = !empty($row->course_title) ? $row->course_title : '—';
+            $chapter    = ($row->chapter ?? '') !== '' ? $row->chapter : '—';
+            $coach_name = trim(($row->coach_first_name ?? '') . ' ' . ($row->coach_last_name ?? ''));
+            if ($coach_name === '') {
+                $coach_name = '—';
+            }
+            $sessions   = (int) ($row->package_sessions ?? 0);
+            $sessions_l = $sessions > 0 ? number_format_i18n($sessions) . ' جلسه' : '—';
+            $created    = function_exists('sc_date_shamsi') ? sc_date_shamsi($row->created_at, 'Y/m/d - H:i') : $row->created_at;
+            $status_ui  = sc_dw_private_booking_status_ui((string) $row->status);
+
+            echo '<li class="sc-dw-list-item">';
+            echo '<a class="sc-dw-list-link" href="' . esc_url($view_url) . '">';
+            echo '<div class="sc-dw-list-main">';
+            echo '<div class="sc-dw-list-title">' . esc_html($name) . ' — ' . esc_html($course) . '</div>';
+            echo '<div class="sc-dw-list-meta">🏢 ' . esc_html($chapter) . ' <span class="sc-dw-sep">|</span> 🧑‍🏫 ' . esc_html($coach_name) . ' <span class="sc-dw-sep">|</span> 📚 ' . esc_html($sessions_l) . ' <span class="sc-dw-sep">|</span> 🕒 ' . esc_html($created) . '</div>';
+            echo '</div>';
+            echo '<span class="sc-dw-status ' . esc_attr($status_ui['class']) . '">' . esc_html($status_ui['label']) . '</span>';
+            echo '</a>';
+            echo '</li>';
+        }
+        echo '</ul>';
+    }
+    echo '</div>';
+}
+
+/* ====================================================================
+ * 13) ثبت‌نام‌های کلاس خصوصی (حالت ۱ — رزرو با پرداخت کاربر)
+ * ================================================================= */
+function sc_dw_render_private_class_registrations() {
+    $active_statuses = ['pending_payment', 'active', 'paused'];
+    $total           = sc_dw_private_bookings_query([
+        'status_in'  => $active_statuses,
+        'count_only' => true,
+    ]);
+    $rows = sc_dw_private_bookings_query([
+        'status_in' => $active_statuses,
+        'limit'     => 5,
+    ]);
+
+    $list_url = sc_dw_admin_url(['page' => 'sc-private-bookings-list']);
+
+    echo '<div class="sc-dw-card sc-dw-card-blue">';
+    echo '<div class="sc-dw-card-head">';
+    echo '<span class="sc-dw-badge sc-dw-badge-blue">' . esc_html(number_format_i18n($total)) . ' ثبت‌نام فعال</span>';
+    echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
+    echo '</div>';
+
+    if (empty($rows)) {
+        sc_dw_render_empty('✅ ثبت‌نام فعالی برای کلاس خصوصی وجود ندارد.', true);
+    } else {
+        echo '<ul class="sc-dw-list">';
+        foreach ($rows as $row) {
+            $view_url = sc_dw_admin_url([
+                'page'          => 'sc-private-bookings-list',
+                'filter_member' => (int) $row->member_id,
+            ]);
+            $name       = trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? ''));
+            if ($name === '') {
+                $name = 'بازیکن #' . (int) $row->member_id;
+            }
+            $course     = !empty($row->course_title) ? $row->course_title : '—';
+            $chapter    = ($row->chapter ?? '') !== '' ? $row->chapter : '—';
+            $coach_name = trim(($row->coach_first_name ?? '') . ' ' . ($row->coach_last_name ?? ''));
+            if ($coach_name === '') {
+                $coach_name = '—';
+            }
+            $sessions   = (int) ($row->package_sessions ?? 0);
+            $sessions_l = $sessions > 0 ? number_format_i18n($sessions) . ' جلسه' : '—';
+            $created    = function_exists('sc_date_shamsi') ? sc_date_shamsi($row->created_at, 'Y/m/d - H:i') : $row->created_at;
+            $status_ui  = sc_dw_private_booking_status_ui((string) $row->status);
+
+            echo '<li class="sc-dw-list-item">';
+            echo '<a class="sc-dw-list-link" href="' . esc_url($view_url) . '">';
+            echo '<div class="sc-dw-list-main">';
+            echo '<div class="sc-dw-list-title">' . esc_html($name) . ' — ' . esc_html($course) . '</div>';
+            echo '<div class="sc-dw-list-meta">🏢 ' . esc_html($chapter) . ' <span class="sc-dw-sep">|</span> 🧑‍🏫 ' . esc_html($coach_name) . ' <span class="sc-dw-sep">|</span> 📚 ' . esc_html($sessions_l) . ' <span class="sc-dw-sep">|</span> 🕒 ' . esc_html($created) . '</div>';
+            echo '</div>';
+            echo '<span class="sc-dw-status ' . esc_attr($status_ui['class']) . '">' . esc_html($status_ui['label']) . '</span>';
             echo '</a>';
             echo '</li>';
         }

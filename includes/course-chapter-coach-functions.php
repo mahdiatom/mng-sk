@@ -739,6 +739,109 @@ function sc_parse_member_course_assignments_from_post() {
     return $out;
 }
 
+/**
+ * Parse course selection value (course_id or course_id|chapter_name).
+ *
+ * @return array{course_id:int,chapter_name:string}
+ */
+function sc_attendance_course_selection_parts($raw) {
+    $raw = sanitize_text_field((string) $raw);
+    if ($raw === '') {
+        return ['course_id' => 0, 'chapter_name' => ''];
+    }
+
+    $pipe_pos = strpos($raw, '|');
+    if ($pipe_pos === false) {
+        return ['course_id' => absint($raw), 'chapter_name' => ''];
+    }
+
+    return [
+        'course_id' => absint(substr($raw, 0, $pipe_pos)),
+        'chapter_name' => sanitize_text_field(substr($raw, $pipe_pos + 1)),
+    ];
+}
+
+function sc_attendance_course_option_value($course_id, $chapter_name = '') {
+    $course_id = absint($course_id);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    if ($chapter_name === '') {
+        return (string) $course_id;
+    }
+
+    return $course_id . '|' . $chapter_name;
+}
+
+function sc_attendance_course_option_label($title, $chapter_name = '') {
+    $title = (string) $title;
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    if ($chapter_name === '') {
+        return $title;
+    }
+
+    return $title . ' — ' . $chapter_name;
+}
+
+/**
+ * SQL scope for member_courses rows in attendance by coach and branch.
+ *
+ * @return array{coach_scope_where:string,chapter_where:string,prepare_args:array<int,mixed>}
+ */
+function sc_attendance_member_scope_sql($course_id, $coach_id, $chapter_name = '') {
+    global $wpdb;
+
+    $course_id = absint($course_id);
+    $coach_id = absint($coach_id);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+
+    $coach_scope_where = 'mc.coach_id = %d';
+    $chapter_where = '';
+    $prepare_args = [];
+
+    if ($chapter_name !== '') {
+        $single_coach_for_chapter = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
+             FROM $course_coaches_table cc
+             INNER JOIN $coaches_table c ON c.id = cc.coach_id
+             WHERE cc.course_id = %d AND cc.chapter_name = %s AND c.is_active = 1",
+            $course_id,
+            $chapter_name
+        ));
+
+        if ($single_coach_for_chapter > 0 && $single_coach_for_chapter === $coach_id) {
+            $coach_scope_where = '(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)';
+            $chapter_where = " AND (mc.chapter = %s OR mc.chapter IS NULL OR mc.chapter = '')";
+        } else {
+            $chapter_where = ' AND mc.chapter = %s';
+        }
+
+        $prepare_args[] = $coach_id;
+        $prepare_args[] = $chapter_name;
+    } else {
+        $single_active_coach_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
+             FROM $course_coaches_table cc
+             INNER JOIN $coaches_table c ON c.id = cc.coach_id
+             WHERE cc.course_id = %d AND c.is_active = 1 AND cc.chapter_name != ''",
+            $course_id
+        ));
+
+        if ($single_active_coach_id > 0 && $single_active_coach_id === $coach_id) {
+            $coach_scope_where = '(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)';
+        }
+
+        $prepare_args[] = $coach_id;
+    }
+
+    return [
+        'coach_scope_where' => $coach_scope_where,
+        'chapter_where' => $chapter_where,
+        'prepare_args' => $prepare_args,
+    ];
+}
+
 add_action('wp_ajax_sc_get_course_enrollment_options', 'sc_ajax_get_course_enrollment_options');
 add_action('wp_ajax_nopriv_sc_get_course_enrollment_options', 'sc_ajax_get_course_enrollment_options');
 

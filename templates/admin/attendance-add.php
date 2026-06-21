@@ -16,7 +16,12 @@ $attendances_table = $wpdb->prefix . 'sc_attendances';
     // پردازش فرم ثبت حضور و غیاب
 if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_nonce', 'sc_attendance_nonce')) {
     $salary_notices = [];
-    $course_id = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
+    $course_selection = isset($_POST['course_id']) ? wp_unslash($_POST['course_id']) : '';
+    $selection_parts = function_exists('sc_attendance_course_selection_parts')
+        ? sc_attendance_course_selection_parts($course_selection)
+        : ['course_id' => absint($course_selection), 'chapter_name' => ''];
+    $course_id = (int) $selection_parts['course_id'];
+    $chapter_name = (string) $selection_parts['chapter_name'];
     
     // پردازش تاریخ (شمسی به میلادی)
     $attendance_date = '';
@@ -79,40 +84,64 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
 
                 // مربی فقط بازیکن خودش یا بدون انتساب را می‌تواند ثبت کند؛ غیرمجاز را رد کن.
                 if ($current_coach_id_for_assignment > 0) {
-                    $can_touch = (int) $wpdb->get_var($wpdb->prepare(
-                        "SELECT COUNT(*) FROM $member_courses_table
-                         WHERE member_id = %d AND course_id = %d AND status = 'active'
-                           AND (coach_id = %d OR coach_id IS NULL OR coach_id = 0)
+                    $member_scope = function_exists('sc_attendance_member_scope_sql')
+                        ? sc_attendance_member_scope_sql($course_id, $current_coach_id_for_assignment, $chapter_name)
+                        : [
+                            'coach_scope_where' => '(coach_id = %d OR coach_id IS NULL OR coach_id = 0)',
+                            'chapter_where' => '',
+                            'prepare_args' => [$current_coach_id_for_assignment],
+                        ];
+
+                    $can_touch_sql = "SELECT COUNT(*) FROM $member_courses_table mc
+                         WHERE mc.member_id = %d AND mc.course_id = %d AND mc.status = 'active'
+                           AND {$member_scope['coach_scope_where']}
+                           {$member_scope['chapter_where']}
                            AND (
-                             course_status_flags IS NULL OR course_status_flags = ''
+                             mc.course_status_flags IS NULL OR mc.course_status_flags = ''
                              OR (
-                               course_status_flags NOT LIKE %s
-                               AND course_status_flags NOT LIKE %s
-                               AND course_status_flags NOT LIKE %s
+                               mc.course_status_flags NOT LIKE %s
+                               AND mc.course_status_flags NOT LIKE %s
+                               AND mc.course_status_flags NOT LIKE %s
                              )
-                           )",
-                        $member_id,
-                        $course_id,
-                        $current_coach_id_for_assignment,
-                        '%paused%',
-                        '%completed%',
-                        '%canceled%'
-                    ));
+                           )";
+                    $can_touch_args = array_merge(
+                        [$member_id, $course_id],
+                        $member_scope['prepare_args'],
+                        ['%paused%', '%completed%', '%canceled%']
+                    );
+                    $can_touch = (int) $wpdb->get_var($wpdb->prepare($can_touch_sql, $can_touch_args));
                     if (!$can_touch) {
                         continue;
                     }
                     // بازیکن بدون مربی را با اولین ثبت حضور توسط این مربی به خودش منتسب کن.
-                    $wpdb->query($wpdb->prepare(
-                        "UPDATE $member_courses_table
-                         SET coach_id = %d, updated_at = %s
-                         WHERE member_id = %d
-                           AND course_id = %d
-                           AND (coach_id IS NULL OR coach_id = 0)",
-                        $current_coach_id_for_assignment,
-                        current_time('mysql'),
-                        $member_id,
-                        $course_id
-                    ));
+                    if ($chapter_name !== '') {
+                        $wpdb->query($wpdb->prepare(
+                            "UPDATE $member_courses_table
+                             SET coach_id = %d, chapter = %s, updated_at = %s
+                             WHERE member_id = %d
+                               AND course_id = %d
+                               AND (coach_id IS NULL OR coach_id = 0)
+                               AND (chapter = %s OR chapter IS NULL OR chapter = '')",
+                            $current_coach_id_for_assignment,
+                            $chapter_name,
+                            current_time('mysql'),
+                            $member_id,
+                            $course_id,
+                            $chapter_name
+                        ));
+                    } else {
+                        $wpdb->query($wpdb->prepare(
+                            "UPDATE $member_courses_table
+                             SET coach_id = %d, updated_at = %s
+                             WHERE member_id = %d
+                               AND course_id = %d
+                               AND (coach_id IS NULL OR coach_id = 0)",
+                            $current_coach_id_for_assignment,
+                            current_time('mysql'),
+                            $member_id,
+                            $course_id
+                        ));
+                    }
                 }
 
                 // بررسی وجود رکورد قبلی
@@ -301,15 +330,14 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
     if ($coach) {
         $coach_id = $coach->id;
         $current_coach_id = $coach_id;
-        // دریافت دوره‌های مربی که فعال هستند
+        // دریافت دوره‌های مربی به تفکیک شعبه
         $courses = $wpdb->get_results($wpdb->prepare(
-            "SELECT c.* 
+            "SELECT c.id, c.title, cc.chapter_name
              FROM $courses_table c
-             INNER JOIN $course_coaches_table cc ON c.id = cc.course_id
-             WHERE cc.coach_id = %d
-             AND c.deleted_at IS NULL 
-             AND c.is_active = 1 
-             ORDER BY c.title ASC",
+             INNER JOIN $course_coaches_table cc ON cc.course_id = c.id AND cc.coach_id = %d
+             WHERE c.deleted_at IS NULL
+             AND c.is_active = 1
+             ORDER BY c.title ASC, cc.chapter_name ASC",
             $coach_id
         ));
     } else {
@@ -325,8 +353,18 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
     );
 }
 
-    // دریافت دوره انتخاب شده
-    $selected_course_id = isset($_GET['course_id']) ? absint($_GET['course_id']) : (isset($_POST['course_id']) ? absint($_POST['course_id']) : 0);
+    // دریافت دوره و شعبه انتخاب شده
+    $raw_course_selection = '';
+    if (isset($_GET['course_id']) && $_GET['course_id'] !== '') {
+        $raw_course_selection = wp_unslash($_GET['course_id']);
+    } elseif (isset($_POST['course_id']) && $_POST['course_id'] !== '') {
+        $raw_course_selection = wp_unslash($_POST['course_id']);
+    }
+    $selected_parts = function_exists('sc_attendance_course_selection_parts')
+        ? sc_attendance_course_selection_parts($raw_course_selection)
+        : ['course_id' => absint($raw_course_selection), 'chapter_name' => ''];
+    $selected_course_id = (int) $selected_parts['course_id'];
+    $selected_chapter_name = (string) $selected_parts['chapter_name'];
     
     // پردازش تاریخ (شمسی به میلادی)
     $selected_date = '';
@@ -358,13 +396,19 @@ $existing_attendances = [];
 if ($selected_course_id) {
     // دریافت کاربران فعال دوره (برای مربی: خودش + بازیکنان بدون انتساب؛ نه بازیکنان مربی دیگر)
     if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
-        $coach_scope_where = '(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)';
-        $active_members = $wpdb->get_results($wpdb->prepare(
-            "SELECT m.id, m.first_name, m.last_name, m.national_id
+        $member_scope = function_exists('sc_attendance_member_scope_sql')
+            ? sc_attendance_member_scope_sql($selected_course_id, $current_coach_id, $selected_chapter_name)
+            : [
+                'coach_scope_where' => '(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)',
+                'chapter_where' => '',
+                'prepare_args' => [$current_coach_id],
+            ];
+        $members_sql = "SELECT m.id, m.first_name, m.last_name, m.national_id
              FROM $member_courses_table mc
              INNER JOIN $members_table m ON mc.member_id = m.id
              WHERE mc.course_id = %d
-             AND $coach_scope_where
+             AND {$member_scope['coach_scope_where']}
+             {$member_scope['chapter_where']}
              AND mc.status = 'active'
              AND (
                  mc.course_status_flags IS NULL
@@ -375,9 +419,10 @@ if ($selected_course_id) {
                      AND mc.course_status_flags NOT LIKE '%%canceled%%'
                  )
              )
-             ORDER BY m.last_name ASC, m.first_name ASC",
-            $selected_course_id,
-            $current_coach_id
+             ORDER BY m.last_name ASC, m.first_name ASC";
+        $active_members = $wpdb->get_results($wpdb->prepare(
+            $members_sql,
+            array_merge([$selected_course_id], $member_scope['prepare_args'])
         ));
     } else {
         $active_members = $wpdb->get_results($wpdb->prepare(
@@ -444,9 +489,18 @@ $is_update_mode = !empty($existing_attendances);
                 <td>
                     <select name="course_id" id="course_id" required >
                         <option value="">-- انتخاب دوره --</option>
-                        <?php foreach ($courses as $course) : ?>
-                            <option value="<?php echo esc_attr($course->id); ?>" <?php selected($selected_course_id, $course->id); ?>>
-                                <?php echo esc_html($course->title); ?>
+                        <?php foreach ($courses as $course) :
+                            $course_chapter = isset($course->chapter_name) ? (string) $course->chapter_name : '';
+                            $option_value = function_exists('sc_attendance_course_option_value')
+                                ? sc_attendance_course_option_value($course->id, $course_chapter)
+                                : (string) $course->id;
+                            $option_label = function_exists('sc_attendance_course_option_label')
+                                ? sc_attendance_course_option_label($course->title, $course_chapter)
+                                : $course->title;
+                            $is_selected = ($selected_course_id === (int) $course->id && $selected_chapter_name === $course_chapter);
+                            ?>
+                            <option value="<?php echo esc_attr($option_value); ?>" <?php selected($is_selected, true); ?>>
+                                <?php echo esc_html($option_label); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -483,7 +537,7 @@ $is_update_mode = !empty($existing_attendances);
     ?>
         <form method="POST" action="" style="margin-top: 30px;">
             <?php wp_nonce_field('sc_attendance_nonce', 'sc_attendance_nonce'); ?>
-            <input type="hidden" name="course_id" value="<?php echo esc_attr($selected_course_id); ?>">
+            <input type="hidden" name="course_id" value="<?php echo esc_attr(function_exists('sc_attendance_course_option_value') ? sc_attendance_course_option_value($selected_course_id, $selected_chapter_name) : $selected_course_id); ?>">
             <input type="hidden" name="attendance_date" id="attendance_date_hidden_form" value="<?php echo esc_attr($selected_date); ?>">
             <input type="hidden" name="attendance_date_shamsi" id="attendance_date_shamsi_form" value="<?php echo esc_attr($selected_date_shamsi); ?>">
             
@@ -492,7 +546,12 @@ $is_update_mode = !empty($existing_attendances);
                     لیست حضور و غیاب - 
                     
                     
-                    <?php echo esc_html($course->title); ?>
+                    <?php
+                    echo esc_html($course->title);
+                    if ($selected_chapter_name !== '') {
+                        echo ' — ' . esc_html($selected_chapter_name);
+                    }
+                    ?>
                     <span class="name_course_attendance">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>
                     
                 </h2>
@@ -589,7 +648,7 @@ $is_update_mode = !empty($existing_attendances);
         </form>
     <?php elseif ($selected_course_id && empty($active_members)) : ?>
         <div class="notice notice-info" style="margin-top: 20px;">
-            <p>در این دوره هیچ کاربر فعالی ثبت‌نام نشده است.</p>
+            <p><?php echo $selected_chapter_name !== '' ? 'در این دوره و شعبه هیچ کاربر فعالی ثبت‌نام نشده است.' : 'در این دوره هیچ کاربر فعالی ثبت‌نام نشده است.'; ?></p>
         </div>
     <?php endif; ?>
 </div>

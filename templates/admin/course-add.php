@@ -115,12 +115,16 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
     ?>
     </div>
 <div class="wrap sc-course-add-wrap">
+    <div id="sc-course-form-summary-error" class="notice notice-error inline" style="display:none;margin:16px 0 20px;"></div>
     <form action="" method="POST" class="sc-course-add-form" >
         <table class="form-table sc_form-table">
             <tbody>
                 <tr>
                     <th scope="row"><label for="title">عنوان دوره <span style="color:red;">*</span></label></th>
-                    <td><input name="title" type="text" id="title" value="<?php echo esc_attr($title ?? ''); ?>" class="regular-text" required></td>
+                    <td>
+                        <input name="title" type="text" id="title" value="<?php echo esc_attr($title ?? ''); ?>" class="regular-text" required>
+                        <p id="sc-course-title-error" style="display:none;color:#d63638;font-weight:600;margin:8px 0 0;">لطفاً عنوان دوره را وارد کنید.</p>
+                    </td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="course_type">نوع دوره</label></th>
@@ -199,7 +203,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                         </div>
                         <input type="hidden" name="price_raw" id="price_raw" value="<?php echo esc_attr($price_display); ?>">
                         <input type="hidden" name="price_per_session_raw" id="price_per_session_raw" value="<?php echo esc_attr($price_per_session_display); ?>">
-                        
+                        <p id="sc-course-price-error" style="display:none;color:#d63638;font-weight:600;margin:8px 0 0;"></p>
                     </td>
                 </tr>
 
@@ -259,6 +263,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                                 <button type="button" class="button button-secondary" id="sc-add-course-package-row">+ افزودن ردیف پکیج</button>
                             </p>
                             <p class="description">تعداد جلسه در هر دوره باید یکتا باشد. تکراری بودن سمت سرور رد می‌شود.</p>
+                            <p id="sc-course-packages-error" style="display:none;color:#d63638;font-weight:600;margin:8px 0 0;"></p>
                         </div>
                     </td>
                 </tr>
@@ -283,6 +288,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                             </tbody>
                         </table>
                         <p style="margin-top:10px;"><button type="button" class="button" id="sc-add-private-sess-row">+ افزودن تعداد جلسه</button></p>
+                        <p id="sc-private-sess-error" style="display:none;color:#d63638;font-weight:600;margin:8px 0 0;"></p>
                     </td>
                 </tr>
 
@@ -671,8 +677,12 @@ jQuery(document).ready(function($) {
         });
         if (!valid) {
             jQuery('#sc-csched-schedule-error').text('برنامه هفتگی: برای هر ردیفی که روز انتخاب شده، ساعت شروع و پایان الزامی است.').show();
-            if (scrollToError !== false && $firstBad && $firstBad.length && $firstBad[0].scrollIntoView) {
-                $firstBad[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (scrollToError !== false && $firstBad && $firstBad.length) {
+                if (typeof scScrollToFirstError === 'function') {
+                    scScrollToFirstError($firstBad);
+                } else if ($firstBad[0].scrollIntoView) {
+                    $firstBad[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
         }
         return valid;
@@ -880,54 +890,301 @@ jQuery(document).ready(function($) {
         $(this).closest('td').find('.sc-branch-price-raw').val(raw);
     });
 
-    // اعتبارسنجی: برای دوره گروهی/خصوصی حداقل یک شعبه باید انتخاب شود
-    $('.sc-course-add-form').on('submit', function (e) {
-        var courseType = $('#course_type').val() || 'group';
-        var variablePricing = courseType === 'private' && $('#private_variable_coach_pricing').is(':checked');
+    function scScrollToEl($el) {
+        if ($el && $el.length && $el[0].scrollIntoView) {
+            $el[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
 
-        if (!scValidateCourseScheduleRows()) {
-            e.preventDefault();
+    function scScrollToFirstError($el) {
+        if (!window.scCourseFormScrolledToError && $el && $el.length) {
+            window.scCourseFormScrolledToError = true;
+            scScrollToEl($el);
+        }
+    }
+
+    function scSyncCoursePriceRawFields() {
+        ['#price', '#price_per_session'].forEach(function (sel) {
+            var $display = $(sel);
+            if (!$display.length) {
+                return;
+            }
+            var rawId = sel === '#price' ? '#price_raw' : '#price_per_session_raw';
+            var cleaned = String($display.val() || '').replace(/,/g, '').replace(/[^\d.]/g, '');
+            $(rawId).val(cleaned || '0');
+        });
+        $('#sc-course-packages-body tr.sc-course-package-row').each(function () {
+            var $row = $(this);
+            var raw = String($row.find('.sc-pkg-price-input').val() || '').replace(/,/g, '').replace(/[^\d.]/g, '');
+            $row.find('.sc-pkg-price-raw').val(raw || '0');
+        });
+    }
+
+    function scClearCourseFormErrors() {
+        $('#sc-course-title-error, #sc-course-price-error, #sc-course-packages-error, #sc-private-sess-error').hide().text('');
+        $('#title, #price, #price_per_session').css('border-color', '');
+        $('#sc-course-packages-wrap').css('border-color', '');
+        $('#sc-course-packages-body tr.sc-course-package-row').css('outline', '');
+        $('#sc-course-form-summary-error').hide().empty();
+    }
+
+    function scShowCourseValidationSummary() {
+        var msgs = [];
+        var fields = [
+            '#sc-course-title-error',
+            '#sc-csched-schedule-error',
+            '#sc-course-chapters-error',
+            '#sc-course-price-error',
+            '#sc-course-packages-error',
+            '#sc-private-sess-error'
+        ];
+
+        fields.forEach(function (sel) {
+            var $el = $(sel);
+            if (!$el.length) {
+                return;
+            }
+            var text = $.trim($el.text() || '');
+            if ($el.is(':visible') && text && msgs.indexOf(text) === -1) {
+                msgs.push(text);
+            }
+        });
+
+        var $box = $('#sc-course-form-summary-error');
+        if (!msgs.length) {
+            $box.hide().empty();
+            return;
+        }
+
+        var html = '<p><strong>ثبت دوره انجام نشد. موارد زیر را اصلاح کنید:</strong></p><ul style="margin:0.5em 0 0 1.2em;list-style:disc;">';
+        msgs.forEach(function (msg) {
+            html += '<li>' + $('<div>').text(msg).html() + '</li>';
+        });
+        html += '</ul>';
+        $box.html(html).show();
+    }
+
+    function scValidateCourseTitle() {
+        var title = $.trim($('#title').val() || '');
+        var $err = $('#sc-course-title-error');
+        if (!title) {
+            $err.show();
+            $('#title').css('border-color', '#d63638');
+            scScrollToFirstError($('#title'));
+            return false;
+        }
+        return true;
+    }
+
+    function scParseCoursePackages() {
+        var valid = [];
+        var incomplete = false;
+        var duplicates = false;
+        var seen = {};
+        var $firstBad = null;
+
+        $('#sc-course-packages-body tr.sc-course-package-row').each(function () {
+            var $row = $(this);
+            var sessions = parseInt($row.find('.sc-pkg-sessions-input').val() || '0', 10);
+            var price = parseFloat($row.find('.sc-pkg-price-raw').val() || '0');
+
+            if (sessions < 1 && price <= 0) {
+                return;
+            }
+            if (sessions < 1 || price <= 0) {
+                incomplete = true;
+                if (!$firstBad) {
+                    $firstBad = $row;
+                }
+                $row.css('outline', '2px solid #d63638');
+                return;
+            }
+            if (seen[sessions]) {
+                duplicates = true;
+                if (!$firstBad) {
+                    $firstBad = $row;
+                }
+                $row.css('outline', '2px solid #d63638');
+                return;
+            }
+            seen[sessions] = true;
+            valid.push({ sessions: sessions, price: price });
+        });
+
+        return { valid: valid, incomplete: incomplete, duplicates: duplicates, $firstBad: $firstBad };
+    }
+
+    function scValidateCoursePackages() {
+        var $err = $('#sc-course-packages-error');
+        var result = scParseCoursePackages();
+
+        if (result.incomplete) {
+            $err.text('در هر ردیف پکیج، تعداد جلسه و قیمت باید هر دو وارد شوند.').show();
+            $('#sc-course-packages-wrap').css('border-color', '#d63638');
+            scScrollToFirstError(result.$firstBad || $('#sc-course-packages-wrap'));
+            return false;
+        }
+        if (result.duplicates) {
+            $err.text('تعداد جلسه در پکیج‌ها نباید تکراری باشد.').show();
+            $('#sc-course-packages-wrap').css('border-color', '#d63638');
+            scScrollToFirstError(result.$firstBad || $('#sc-course-packages-wrap'));
+            return false;
+        }
+        return result.valid;
+    }
+
+    function scValidateCoursePrice(courseType, variablePricing, validPackages) {
+        var $err = $('#sc-course-price-error');
+        var hasValidPackages = validPackages && validPackages.length > 0;
+        var priceVal = parseFloat($('#price_raw').val() || '0');
+        var ppsVal = parseFloat($('#price_per_session_raw').val() || '0');
+
+        if (variablePricing) {
+            return true;
+        }
+
+        if (courseType === 'private') {
+            if (!hasValidPackages && priceVal <= 0 && ppsVal <= 0) {
+                $err.text('برای دوره خصوصی، قیمت کل، قیمت هر جلسه یا حداقل یک پکیج معتبر وارد کنید.').show();
+                $('#price, #price_per_session').css('border-color', '#d63638');
+                scScrollToFirstError($('#price'));
+                return false;
+            }
+            return true;
+        }
+
+        if (!hasValidPackages && priceVal <= 0) {
+            $err.text('برای دوره گروهی، قیمت کل دوره یا حداقل یک پکیج معتبر الزامی است.').show();
+            $('#price').css('border-color', '#d63638');
+            scScrollToFirstError($('#price'));
             return false;
         }
 
-        if (courseType === 'group' || courseType === 'private') {
-            var $cbs = $('.sc-course-chapter-cb');
-            if ($cbs.length && !$cbs.filter(':checked').length) {
-                e.preventDefault();
-                var $box = $('#sc-course-chapters-box');
-                var $err = $('#sc-course-chapters-error');
-                $err.show();
-                $box.css('border-color', '#d63638');
-                if ($box.length && $box[0].scrollIntoView) {
-                    $box[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                return false;
+        return true;
+    }
+
+    function scValidatePrivateSessionOptions() {
+        var $err = $('#sc-private-sess-error');
+        var counts = [];
+        var seen = {};
+        var hasValid = false;
+        var duplicate = false;
+
+        $('input[name="private_sess_counts[]"]').each(function () {
+            var val = parseInt($(this).val() || '0', 10);
+            if (val < 1) {
+                return;
+            }
+            if (seen[val]) {
+                duplicate = true;
+            }
+            seen[val] = true;
+            counts.push(val);
+            hasValid = true;
+        });
+
+        if (!hasValid) {
+            $err.text('حداقل یک گزینه تعداد جلسه وارد کنید.').show();
+            scScrollToFirstError($('#sc-private-session-options-row'));
+            return false;
+        }
+        if (duplicate) {
+            $err.text('تعداد جلسه نباید تکراری باشد.').show();
+            scScrollToFirstError($('#sc-private-session-options-row'));
+            return false;
+        }
+        return true;
+    }
+
+    function scValidateCourseChapters(courseType) {
+        if (courseType !== 'group' && courseType !== 'private') {
+            return true;
+        }
+        var $cbs = $('.sc-course-chapter-cb');
+        if (!$cbs.length || $cbs.filter(':checked').length) {
+            return true;
+        }
+        var $box = $('#sc-course-chapters-box');
+        var $err = $('#sc-course-chapters-error');
+        $err.show();
+        $box.css('border-color', '#d63638');
+        scScrollToFirstError($box);
+        return false;
+    }
+
+    $(document).on('input change', '#title', function () {
+        if ($.trim($(this).val() || '')) {
+            $('#sc-course-title-error').hide();
+            $(this).css('border-color', '');
+        }
+    });
+
+    $(document).on('input change', '#price, #price_per_session', function () {
+        $('#sc-course-price-error').hide();
+        $('#price, #price_per_session').css('border-color', '');
+    });
+
+    $(document).on('change', '.sc-course-chapter-cb', function () {
+        if ($('.sc-course-chapter-cb:checked').length) {
+            $('#sc-course-chapters-error').hide();
+            $('#sc-course-chapters-box').css('border-color', '');
+        }
+    });
+
+    $(document).on('input change', '.sc-pkg-sessions-input, .sc-pkg-price-input', function () {
+        $('#sc-course-packages-error').hide();
+        $('#sc-course-packages-wrap').css('border-color', '');
+        $(this).closest('tr.sc-course-package-row').css('outline', '');
+    });
+
+    $(document).on('input change', 'input[name="private_sess_counts[]"]', function () {
+        $('#sc-private-sess-error').hide();
+    });
+
+    // اعتبارسنجی سمت کاربر قبل از ارسال فرم — جلوگیری از ریدایرکت سرور و از دست رفتن داده‌ها
+    $('.sc-course-add-form').on('submit', function (e) {
+        window.scCourseFormScrolledToError = false;
+        scSyncCoursePriceRawFields();
+        scClearCourseFormErrors();
+
+        var courseType = $('#course_type').val() || 'group';
+        var variablePricing = courseType === 'private' && $('#private_variable_coach_pricing').is(':checked');
+        var isValid = true;
+
+        if (!scValidateCourseTitle()) {
+            isValid = false;
+        }
+
+        if (!scValidateCourseScheduleRows()) {
+            isValid = false;
+        }
+
+        if (!scValidateCourseChapters(courseType)) {
+            isValid = false;
+        }
+
+        var validPackages = [];
+        if (!variablePricing) {
+            var pkgResult = scValidateCoursePackages();
+            if (pkgResult === false) {
+                isValid = false;
+            } else {
+                validPackages = pkgResult;
             }
         }
 
-        if (courseType === 'private' && !variablePricing) {
-            var hasPkg = $('#sc-course-packages-body tr').length > 0;
-            var priceVal = parseFloat($('#price_raw').val() || '0');
-            var ppsVal = parseFloat($('#price_per_session_raw').val() || '0');
-            if (!hasPkg && priceVal <= 0 && ppsVal <= 0) {
-                e.preventDefault();
-                alert('برای دوره خصوصی، قیمت کل، قیمت هر جلسه یا پکیج جلسات را وارد کنید.');
-                return false;
-            }
+        if (!scValidateCoursePrice(courseType, variablePricing, validPackages)) {
+            isValid = false;
         }
 
-        if (variablePricing) {
-            var hasSess = false;
-            $('input[name="private_sess_counts[]"]').each(function () {
-                if (parseInt($(this).val() || '0', 10) > 0) {
-                    hasSess = true;
-                }
-            });
-            if (!hasSess) {
-                e.preventDefault();
-                alert('حداقل یک گزینه تعداد جلسه وارد کنید.');
-                return false;
-            }
+        if (variablePricing && !scValidatePrivateSessionOptions()) {
+            isValid = false;
+        }
+
+        if (!isValid) {
+            scShowCourseValidationSummary();
+            e.preventDefault();
+            return false;
         }
 
         return true;

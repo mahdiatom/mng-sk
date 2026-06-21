@@ -110,6 +110,18 @@ function sc_private_can_manage_booking_requests() {
     return current_user_can('manage_options') || current_user_can('club_coach');
 }
 
+/** تعداد درخواست‌های رزرو در انتظار بررسی مدیر (حالت ۲) */
+function sc_count_pending_private_booking_requests() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_private_course_bookings';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+        return 0;
+    }
+    return (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$table} WHERE status = 'pending_admin'"
+    );
+}
+
 function sc_private_get_booking_row($booking_id) {
     global $wpdb;
     $booking_id = absint($booking_id);
