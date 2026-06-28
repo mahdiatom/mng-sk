@@ -246,6 +246,7 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                     <option value="course_deactivate">غیرفعال کردن دوره</option>
                     <option value="course_set_flag">افزودن فلگ دوره</option>
                     <option value="assign_course_coach">اختصاص بازیکن‌های انتخاب‌شده به مربی دوره</option>
+                    <option value="assign_course_group">تخصیص مخاطب به گروه‌بندی کلاس</option>
                     <option value="remaining_sessions_adjust">تغییر جلسات باقی‌مانده</option>
                     <option value="delete_members">حذف بازیکن‌ها</option>
                 </select>
@@ -339,6 +340,37 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                     </select>
                 </div>
                 <p class="description">فقط بازیکن‌هایی که در همین دوره ثبت‌نام دارند به مربی انتخاب‌شده در همان شعبه منتسب می‌شوند.</p>
+            </div>
+
+            <div id="sc-action-assign-course-group" class="sc-action-extra">
+                <div class="sc-row sc-bulk-field-row">
+                    <label for="sc-assign-course-group-id">دوره</label>
+                    <select name="assign_course_group_id" id="sc-assign-course-group-id">
+                        <option value="">انتخاب دوره</option>
+                        <?php foreach ($courses as $course) : ?>
+                            <option value="<?php echo (int) $course->id; ?>"><?php echo esc_html($course->title); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="sc-row sc-bulk-field-row">
+                    <label for="sc-assign-course-group-chapter">شعبه (اختیاری)</label>
+                    <select name="assign_course_group_chapter" id="sc-assign-course-group-chapter">
+                        <option value="">ابتدا دوره را انتخاب کنید</option>
+                    </select>
+                </div>
+                <div class="sc-row sc-bulk-field-row">
+                    <label for="sc-assign-course-group-coach">مربی (اختیاری)</label>
+                    <select name="assign_course_group_coach" id="sc-assign-course-group-coach">
+                        <option value="">ابتدا شعبه را انتخاب کنید</option>
+                    </select>
+                </div>
+                <div class="sc-row sc-bulk-field-row">
+                    <label for="sc-assign-course-group-name">گروه</label>
+                    <select name="assign_course_group_name" id="sc-assign-course-group-name">
+                        <option value="">بدون گروه</option>
+                    </select>
+                </div>
+                <p class="description">فقط بازیکن‌های دارای ثبت‌نام در دوره انتخاب‌شده به‌روز می‌شوند. سوابق حضور و غیاب قبلی حفظ می‌شود.</p>
             </div>
 
             <div id="sc-action-remaining-sessions" class="sc-action-extra">

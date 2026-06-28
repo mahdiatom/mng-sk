@@ -19,9 +19,10 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
     $course_selection = isset($_POST['course_id']) ? wp_unslash($_POST['course_id']) : '';
     $selection_parts = function_exists('sc_attendance_course_selection_parts')
         ? sc_attendance_course_selection_parts($course_selection)
-        : ['course_id' => absint($course_selection), 'chapter_name' => ''];
+        : ['course_id' => absint($course_selection), 'chapter_name' => '', 'group_name' => ''];
     $course_id = (int) $selection_parts['course_id'];
     $chapter_name = (string) $selection_parts['chapter_name'];
+    $group_name = (string) ($selection_parts['group_name'] ?? '');
     
     // پردازش تاریخ (شمسی به میلادی)
     $attendance_date = '';
@@ -91,11 +92,15 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                             'chapter_where' => '',
                             'prepare_args' => [$current_coach_id_for_assignment],
                         ];
+                    $group_filter = function_exists('sc_attendance_member_group_filter_sql')
+                        ? sc_attendance_member_group_filter_sql($group_name)
+                        : ['sql' => '', 'args' => []];
 
                     $can_touch_sql = "SELECT COUNT(*) FROM $member_courses_table mc
                          WHERE mc.member_id = %d AND mc.course_id = %d AND mc.status = 'active'
                            AND {$member_scope['coach_scope_where']}
                            {$member_scope['chapter_where']}
+                           {$group_filter['sql']}
                            AND (
                              mc.course_status_flags IS NULL OR mc.course_status_flags = ''
                              OR (
@@ -107,6 +112,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     $can_touch_args = array_merge(
                         [$member_id, $course_id],
                         $member_scope['prepare_args'],
+                        $group_filter['args'],
                         ['%paused%', '%completed%', '%canceled%']
                     );
                     $can_touch = (int) $wpdb->get_var($wpdb->prepare($can_touch_sql, $can_touch_args));
@@ -362,9 +368,10 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
     }
     $selected_parts = function_exists('sc_attendance_course_selection_parts')
         ? sc_attendance_course_selection_parts($raw_course_selection)
-        : ['course_id' => absint($raw_course_selection), 'chapter_name' => ''];
+        : ['course_id' => absint($raw_course_selection), 'chapter_name' => '', 'group_name' => ''];
     $selected_course_id = (int) $selected_parts['course_id'];
     $selected_chapter_name = (string) $selected_parts['chapter_name'];
+    $selected_group_name = (string) ($selected_parts['group_name'] ?? '');
 
     $selected_course_type_filter = 'group';
     if (isset($_GET['filter_course_type']) && in_array($_GET['filter_course_type'], ['group', 'private'], true)) {
@@ -407,6 +414,10 @@ $active_members = [];
 $existing_attendances = [];
 
 if ($selected_course_id) {
+    $group_filter = function_exists('sc_attendance_member_group_filter_sql')
+        ? sc_attendance_member_group_filter_sql($selected_group_name)
+        : ['sql' => '', 'args' => []];
+
     // دریافت کاربران فعال دوره (برای مربی: خودش + بازیکنان بدون انتساب؛ نه بازیکنان مربی دیگر)
     if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
         $member_scope = function_exists('sc_attendance_member_scope_sql')
@@ -422,6 +433,7 @@ if ($selected_course_id) {
              WHERE mc.course_id = %d
              AND {$member_scope['coach_scope_where']}
              {$member_scope['chapter_where']}
+             {$group_filter['sql']}
              AND mc.status = 'active'
              AND (
                  mc.course_status_flags IS NULL
@@ -435,14 +447,14 @@ if ($selected_course_id) {
              ORDER BY m.last_name ASC, m.first_name ASC";
         $active_members = $wpdb->get_results($wpdb->prepare(
             $members_sql,
-            array_merge([$selected_course_id], $member_scope['prepare_args'])
+            array_merge([$selected_course_id], $member_scope['prepare_args'], $group_filter['args'])
         ));
     } else {
-        $active_members = $wpdb->get_results($wpdb->prepare(
-            "SELECT m.id, m.first_name, m.last_name, m.national_id
+        $members_sql = "SELECT m.id, m.first_name, m.last_name, m.national_id
              FROM $member_courses_table mc
              INNER JOIN $members_table m ON mc.member_id = m.id
              WHERE mc.course_id = %d
+             {$group_filter['sql']}
              AND mc.status = 'active'
              AND (
                  mc.course_status_flags IS NULL
@@ -453,8 +465,10 @@ if ($selected_course_id) {
                      AND mc.course_status_flags NOT LIKE '%%canceled%%'
                  )
              )
-             ORDER BY m.last_name ASC, m.first_name ASC",
-            $selected_course_id
+             ORDER BY m.last_name ASC, m.first_name ASC";
+        $active_members = $wpdb->get_results($wpdb->prepare(
+            $members_sql,
+            array_merge([$selected_course_id], $group_filter['args'])
         ));
     }
     
@@ -487,17 +501,18 @@ $selected_course_value = '';
 $selected_course_label = '';
 if ($selected_course_id) {
     $selected_course_value = function_exists('sc_attendance_course_option_value')
-        ? sc_attendance_course_option_value($selected_course_id, $selected_chapter_name)
+        ? sc_attendance_course_option_value($selected_course_id, $selected_chapter_name, $selected_group_name)
         : (string) $selected_course_id;
-    foreach ($courses as $course_item) {
-        $course_chapter = isset($course_item->chapter_name) ? (string) $course_item->chapter_name : '';
-        if ((int) $course_item->id === $selected_course_id && $course_chapter === $selected_chapter_name) {
-            $selected_course_label = function_exists('sc_attendance_course_option_label')
-                ? sc_attendance_course_option_label($course_item->title, $course_chapter)
-                : $course_item->title;
-            break;
+
+    if (function_exists('sc_attendance_build_course_dropdown_options')) {
+        foreach (sc_attendance_build_course_dropdown_options($courses) as $opt) {
+            if ((string) $opt['value'] === (string) $selected_course_value) {
+                $selected_course_label = (string) $opt['label'];
+                break;
+            }
         }
     }
+
     if ($selected_course_label === '') {
         $course_row_for_label = $wpdb->get_row($wpdb->prepare(
             "SELECT title FROM $courses_table WHERE id = %d LIMIT 1",
@@ -505,11 +520,15 @@ if ($selected_course_id) {
         ));
         if ($course_row_for_label) {
             $selected_course_label = function_exists('sc_attendance_course_option_label')
-                ? sc_attendance_course_option_label($course_row_for_label->title, $selected_chapter_name)
+                ? sc_attendance_course_option_label($course_row_for_label->title, $selected_chapter_name, $selected_group_name)
                 : $course_row_for_label->title;
         }
     }
 }
+
+$attendance_course_dropdown_options = function_exists('sc_attendance_build_course_dropdown_options')
+    ? sc_attendance_build_course_dropdown_options($courses)
+    : [];
 ?>
 
 <div class="wrap sc-attendance-page-header">
@@ -557,23 +576,16 @@ if ($selected_course_id) {
                             <?php
                             $course_display_count = 0;
                             $course_max_display = 10;
-                            foreach ($courses as $course) :
-                                $course_chapter = isset($course->chapter_name) ? (string) $course->chapter_name : '';
-                                $course_type_normalized = function_exists('sc_normalize_attendance_course_type')
-                                    ? sc_normalize_attendance_course_type($course->course_type ?? 'group')
-                                    : 'group';
-                                $option_value = function_exists('sc_attendance_course_option_value')
-                                    ? sc_attendance_course_option_value($course->id, $course_chapter)
-                                    : (string) $course->id;
-                                $option_label = function_exists('sc_attendance_course_option_label')
-                                    ? sc_attendance_course_option_label($course->title, $course_chapter)
-                                    : $course->title;
+                            foreach ($attendance_course_dropdown_options as $opt) :
+                                $course_type_normalized = (string) ($opt['course_type'] ?? 'group');
+                                $option_value = (string) $opt['value'];
+                                $option_label = (string) $opt['label'];
+                                $search_blob = (string) ($opt['search'] ?? strtolower($option_label));
                                 $matches_type = ($course_type_normalized === $selected_course_type_filter);
                                 $display_class = ($matches_type && $course_display_count < $course_max_display) ? 'sc-visible' : 'sc-hidden';
                                 if ($matches_type) {
                                     $course_display_count++;
                                 }
-                                $search_blob = strtolower($option_label . ' ' . $course->id . ' ' . $course_type_normalized);
                                 ?>
                                 <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?><?php echo $matches_type ? '' : ' sc-course-type-hidden'; ?>"
                                      data-value="<?php echo esc_attr($option_value); ?>"
@@ -615,7 +627,7 @@ if ($selected_course_id) {
     ?>
         <form method="POST" action="" class="sc-attendance-save-form">
             <?php wp_nonce_field('sc_attendance_nonce', 'sc_attendance_nonce'); ?>
-            <input type="hidden" name="course_id" value="<?php echo esc_attr(function_exists('sc_attendance_course_option_value') ? sc_attendance_course_option_value($selected_course_id, $selected_chapter_name) : $selected_course_id); ?>">
+            <input type="hidden" name="course_id" value="<?php echo esc_attr($selected_course_value); ?>">
             <input type="hidden" name="attendance_date" id="attendance_date_hidden_form" value="<?php echo esc_attr($selected_date); ?>">
             <input type="hidden" name="attendance_date_shamsi" id="attendance_date_shamsi_form" value="<?php echo esc_attr($selected_date_shamsi); ?>">
 
@@ -627,6 +639,9 @@ if ($selected_course_id) {
                         echo esc_html($course->title);
                         if ($selected_chapter_name !== '') {
                             echo ' — ' . esc_html($selected_chapter_name);
+                        }
+                        if ($selected_group_name !== '') {
+                            echo ' — گروه: ' . esc_html($selected_group_name);
                         }
                         ?>
                         <span class="name_course_attendance">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>

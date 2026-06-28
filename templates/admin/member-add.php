@@ -770,6 +770,18 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
             renderMemberGroupField(courseId);
         }
 
+        function groupMatchesBranch(group, chapterName, coachId) {
+            chapterName = String(chapterName || '');
+            coachId = parseInt(coachId, 10) || 0;
+            if (group.chapter_name && group.chapter_name !== '' && (chapterName === '' || group.chapter_name !== chapterName)) {
+                return false;
+            }
+            if (group.coach_id > 0 && (coachId <= 0 || group.coach_id !== coachId)) {
+                return false;
+            }
+            return true;
+        }
+
         function renderMemberGroupField(courseId) {
             var cfg = branchConfigs[courseId];
             var $groupField = $('#sc_member_branch_' + courseId + ' .sc-member-group-field');
@@ -777,12 +789,25 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
             if (!cfg || !cfg.groups || !cfg.groups.has_grouping || !cfg.groups.groups || !cfg.groups.groups.length) {
                 return;
             }
+
+            var selChapter = '';
+            var $chapterHidden = $('#sc_member_branch_' + courseId + ' input[name="course_chapter[' + courseId + ']"]');
+            var $chapterSelect = $('#sc_member_branch_' + courseId + ' .sc-member-chapter-select');
+            if ($chapterSelect.length) {
+                selChapter = $chapterSelect.val() || '';
+            } else if ($chapterHidden.length) {
+                selChapter = $chapterHidden.val() || '';
+            }
+
+            var coachRaw = $('#sc_member_branch_' + courseId + ' select[name="course_coach[' + courseId + ']"], #sc_member_branch_' + courseId + ' input[name="course_coach[' + courseId + ']"]').val();
+            var selCoach = parseInt(coachRaw, 10) || 0;
+
             var selGroup = (branchSelected.groups && branchSelected.groups[courseId]) ? branchSelected.groups[courseId] : '';
             var html = '<label><strong>گروه (اختیاری):</strong> <select name="course_group[' + courseId + ']" class="sc-member-group-select">';
             html += '<option value="">بدون گروه</option>';
             (cfg.groups.groups || []).forEach(function (g) {
                 var name = g.name || '';
-                if (!name) {
+                if (!name || !groupMatchesBranch(g, selChapter, selCoach)) {
                     return;
                 }
                 html += '<option value="' + name + '"' + (selGroup === name ? ' selected' : '') + '>' + name + '</option>';
@@ -817,11 +842,13 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
             });
             if (!coaches.length) {
                 $coField.html('<span class="description">مربی برای این شعبه تعریف نشده — ثبت‌نام بدون مربی.</span><input type="hidden" name="course_coach[' + courseId + ']" value="0">');
+                renderMemberGroupField(courseId);
                 return;
             }
             if (coaches.length === 1) {
                 var c = coaches[0];
                 $coField.html('<span><strong>مربی:</strong> ' + c.label + '</span><input type="hidden" name="course_coach[' + courseId + ']" value="' + c.id + '">');
+                renderMemberGroupField(courseId);
                 return;
             }
             var html = '<label><strong>مربی:</strong> <select name="course_coach[' + courseId + ']" class="sc-member-coach-select">';
@@ -831,6 +858,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
             });
             html += '</select></label>';
             $coField.html(html);
+            renderMemberGroupField(courseId);
         }
 
         Object.keys(branchConfigs).forEach(function (courseId) {
@@ -840,6 +868,15 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
         $(document).on('change', '.sc-member-chapter-select', function () {
             var courseId = $(this).data('course-id');
             renderMemberCoachField(courseId, $(this).val(), 0);
+            renderMemberGroupField(courseId);
+        });
+
+        $(document).on('change', '.sc-member-coach-select', function () {
+            var courseId = $(this).closest('[id^="sc_member_branch_"]').attr('id');
+            if (courseId) {
+                courseId = courseId.replace('sc_member_branch_', '');
+                renderMemberGroupField(courseId);
+            }
         });
     });
     </script>

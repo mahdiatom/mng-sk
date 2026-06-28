@@ -166,6 +166,7 @@ function sc_bulk_actions_action_title($action_key) {
         'change_level'           => 'تغییر سطح',
         'change_member_type'     => 'تغییر نوع بازیکن',
         'assign_course_coach'    => 'تخصیص مربی به ثبت‌نام دوره',
+        'assign_course_group'    => 'تخصیص مخاطب به گروه‌بندی کلاس',
         'delete_members'         => 'حذف بازیکن',
         'course_activate'        => 'فعال کردن دوره',
         'course_deactivate'      => 'غیرفعال کردن دوره',
@@ -714,6 +715,116 @@ function sc_bulk_actions_execute_handler() {
             }
         }
         sc_bulk_actions_finish_with_report('assign_course_coach', $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'assign_course_group') {
+        $assign_course_id = isset($_POST['assign_course_group_id']) ? absint($_POST['assign_course_group_id']) : 0;
+        $assign_group_name = isset($_POST['assign_course_group_name']) ? sanitize_text_field(wp_unslash((string) $_POST['assign_course_group_name'])) : '';
+        $assign_chapter_name = isset($_POST['assign_course_group_chapter']) ? sanitize_text_field(wp_unslash((string) $_POST['assign_course_group_chapter'])) : '';
+        $assign_coach_id = isset($_POST['assign_course_group_coach']) ? absint($_POST['assign_course_group_coach']) : 0;
+
+        if ($assign_course_id <= 0) {
+            sc_bulk_actions_finish_with_report(
+                'assign_course_group',
+                array(),
+                array(array('line' => 'دوره را انتخاب کنید.')),
+                $filtered_count
+            );
+        }
+
+        if ($assign_group_name !== '' && function_exists('sc_is_valid_course_group_name') && !sc_is_valid_course_group_name($assign_course_id, $assign_group_name)) {
+            sc_bulk_actions_finish_with_report(
+                'assign_course_group',
+                array(),
+                array(array('line' => 'گروه انتخاب‌شده برای این دوره معتبر نیست.')),
+                $filtered_count
+            );
+        }
+
+        $course_title = $wpdb->get_var($wpdb->prepare("SELECT title FROM {$courses_table} WHERE id = %d", $assign_course_id));
+        $course_title = $course_title ? (string) $course_title : ('#' . $assign_course_id);
+        $group_label = $assign_group_name !== '' ? $assign_group_name : 'بدون گروه';
+
+        $from_group = function_exists('sc_resolve_enrollment_from_course_group')
+            ? sc_resolve_enrollment_from_course_group($assign_course_id, $assign_group_name)
+            : ['chapter' => '', 'coach_id' => 0, 'group_name' => $assign_group_name];
+
+        $target_chapter = $assign_chapter_name !== '' ? $assign_chapter_name : (string) $from_group['chapter'];
+        $target_coach = $assign_coach_id > 0 ? $assign_coach_id : (int) $from_group['coach_id'];
+
+        if ($target_chapter !== '' && function_exists('sc_get_course_chapters')) {
+            $chapters = sc_get_course_chapters($assign_course_id);
+            if (!empty($chapters) && !in_array($target_chapter, $chapters, true)) {
+                sc_bulk_actions_finish_with_report(
+                    'assign_course_group',
+                    array(),
+                    array(array('line' => 'شعبه انتخاب‌شده برای این دوره معتبر نیست.')),
+                    $filtered_count
+                );
+            }
+        }
+
+        if ($target_chapter !== '' && $target_coach > 0 && function_exists('sc_is_valid_course_chapter_coach')
+            && !sc_is_valid_course_chapter_coach($assign_course_id, $target_chapter, $target_coach)) {
+            sc_bulk_actions_finish_with_report(
+                'assign_course_group',
+                array(),
+                array(array('line' => 'مربی انتخاب‌شده برای این دوره و شعبه معتبر نیست.')),
+                $filtered_count
+            );
+        }
+
+        $success_lines = array();
+        $fail_lines = array();
+
+        foreach ($member_ids as $member_id) {
+            $label = sc_bulk_actions_member_label($member_id);
+            $mc_row = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, chapter, coach_id FROM {$member_courses_table} WHERE member_id = %d AND course_id = %d LIMIT 1",
+                $member_id,
+                $assign_course_id
+            ));
+
+            if (!$mc_row) {
+                $fail_lines[] = $label . ' — ثبت‌نام برای دوره «' . $course_title . '» وجود ندارد.';
+                continue;
+            }
+
+            $update_data = array(
+                'updated_at' => current_time('mysql'),
+            );
+            $update_fmt = array('%s');
+
+            if (function_exists('sc_member_courses_has_group_column') && sc_member_courses_has_group_column()) {
+                $update_data['group_name'] = $assign_group_name !== '' ? $assign_group_name : null;
+                $update_fmt[] = '%s';
+            }
+
+            if ($target_chapter !== '') {
+                $update_data['chapter'] = $target_chapter;
+                $update_fmt[] = '%s';
+            }
+            if ($target_coach > 0) {
+                $update_data['coach_id'] = $target_coach;
+                $update_fmt[] = '%d';
+            }
+
+            $res = $wpdb->update(
+                $member_courses_table,
+                $update_data,
+                array('id' => (int) $mc_row->id),
+                $update_fmt,
+                array('%d')
+            );
+
+            if ($res === false) {
+                $fail_lines[] = $label . ' — خطای پایگاه داده هنگام تخصیص گروه.';
+            } else {
+                $success_lines[] = $label . ' — برای دوره «' . $course_title . '» گروه «' . $group_label . '» ثبت شد.';
+            }
+        }
+
+        sc_bulk_actions_finish_with_report('assign_course_group', $success_lines, $fail_lines, $filtered_count);
     }
 
     if ($action_key === 'delete_members') {

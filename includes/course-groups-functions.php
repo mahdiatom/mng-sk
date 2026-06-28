@@ -26,12 +26,15 @@ function sc_create_course_groups_table() {
         `course_id` bigint(20) unsigned NOT NULL,
         `group_name` varchar(255) NOT NULL,
         `description` text DEFAULT NULL,
+        `chapter_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه مرتبط',
+        `coach_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'مربی مرتبط',
         `sort_order` smallint(5) unsigned NOT NULL DEFAULT 0,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
         UNIQUE KEY `idx_course_group` (`course_id`, `group_name`),
-        KEY `idx_course_id` (`course_id`)
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_chapter_coach` (`course_id`, `chapter_name`, `coach_id`)
     ) ENGINE=InnoDB $charset_collate";
     dbDelta($sql);
 
@@ -84,6 +87,37 @@ function sc_ensure_course_groups_schema() {
             $wpdb->query("ALTER TABLE `$sched` ADD COLUMN `group_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'گروه'");
         }
     }
+
+    $groups_table = $wpdb->prefix . 'sc_course_groups';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $groups_table)) === $groups_table) {
+        $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$groups_table` LIKE %s", 'chapter_name'));
+        if (empty($col)) {
+            $wpdb->query("ALTER TABLE `$groups_table` ADD COLUMN `chapter_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه مرتبط' AFTER `description`");
+        }
+        $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$groups_table` LIKE %s", 'coach_id'));
+        if (empty($col)) {
+            $wpdb->query("ALTER TABLE `$groups_table` ADD COLUMN `coach_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'مربی مرتبط' AFTER `chapter_name`");
+        }
+    }
+}
+
+/**
+ * @return bool
+ */
+function sc_course_groups_has_branch_columns() {
+    global $wpdb;
+    static $has = null;
+    if ($has !== null) {
+        return $has;
+    }
+    if (!sc_course_groups_table_ready()) {
+        $has = false;
+        return $has;
+    }
+    $t = $wpdb->prefix . 'sc_course_groups';
+    $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$t` LIKE %s", 'chapter_name'));
+    $has = !empty($col);
+    return $has;
 }
 
 /**
@@ -113,6 +147,8 @@ function sc_parse_course_groups_from_post() {
                 $rows[] = [
                     'name' => $name,
                     'description' => isset($item['description']) ? (string) $item['description'] : '',
+                    'chapter_name' => isset($item['chapter_name']) ? (string) $item['chapter_name'] : '',
+                    'coach_id' => isset($item['coach_id']) ? absint($item['coach_id']) : 0,
                 ];
             }
         }
@@ -137,6 +173,8 @@ function sc_parse_course_groups_from_post() {
         $rows[] = [
             'name' => $name,
             'description' => isset($row['description']) ? (string) $row['description'] : '',
+            'chapter_name' => isset($row['chapter_name']) ? (string) $row['chapter_name'] : '',
+            'coach_id' => isset($row['coach_id']) ? absint($row['coach_id']) : 0,
         ];
     }
 
@@ -307,18 +345,24 @@ function sc_save_course_groups_from_post($course_id, $has_grouping = false) {
         $seen[$name] = true;
         $sort++;
         $desc = isset($row['description']) ? sanitize_textarea_field((string) $row['description']) : '';
-        $inserted = $wpdb->insert(
-            $table,
-            [
-                'course_id' => $course_id,
-                'group_name' => $name,
-                'description' => $desc,
-                'sort_order' => $sort,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            ['%d', '%s', '%s', '%d', '%s', '%s']
-        );
+        $chapter_name = isset($row['chapter_name']) ? sanitize_text_field((string) $row['chapter_name']) : '';
+        $coach_id = isset($row['coach_id']) ? absint($row['coach_id']) : 0;
+        $insert_data = [
+            'course_id' => $course_id,
+            'group_name' => $name,
+            'description' => $desc,
+            'sort_order' => $sort,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+        $insert_fmt = ['%d', '%s', '%s', '%d', '%s', '%s'];
+        if (sc_course_groups_has_branch_columns()) {
+            $insert_data['chapter_name'] = $chapter_name;
+            $insert_data['coach_id'] = $coach_id;
+            $insert_fmt[] = '%s';
+            $insert_fmt[] = '%d';
+        }
+        $inserted = $wpdb->insert($table, $insert_data, $insert_fmt);
         if ($inserted === false && $wpdb->last_error) {
             error_log('SC Course Groups Insert Error: ' . $wpdb->last_error);
             error_log('SC Course Groups Insert Query: ' . $wpdb->last_query);
@@ -436,10 +480,7 @@ function sc_get_course_groups_config($course_id) {
     $items = [];
 
     foreach (sc_get_course_groups($course_id) as $row) {
-        $items[] = [
-            'name' => (string) $row->group_name,
-            'description' => isset($row->description) ? (string) $row->description : '',
-        ];
+        $items[] = sc_format_course_group_item($row);
     }
 
     $player_can_select = sc_course_player_can_select_group($course_id);
@@ -457,6 +498,162 @@ function sc_get_course_groups_config($course_id) {
  * @param array{chapter?:string,coach_id?:int,group_name?:string} $assignment
  * @return array<string,mixed>
  */
+/**
+ * @param object|array<string,mixed> $row
+ * @return array{name:string,description:string,chapter_name:string,coach_id:int}
+ */
+function sc_format_course_group_item($row) {
+    if (is_array($row)) {
+        return [
+            'name' => isset($row['group_name']) ? (string) $row['group_name'] : (isset($row['name']) ? (string) $row['name'] : ''),
+            'description' => isset($row['description']) ? (string) $row['description'] : '',
+            'chapter_name' => isset($row['chapter_name']) ? (string) $row['chapter_name'] : '',
+            'coach_id' => isset($row['coach_id']) ? absint($row['coach_id']) : 0,
+        ];
+    }
+
+    return [
+        'name' => isset($row->group_name) ? (string) $row->group_name : '',
+        'description' => isset($row->description) ? (string) $row->description : '',
+        'chapter_name' => isset($row->chapter_name) ? (string) $row->chapter_name : '',
+        'coach_id' => isset($row->coach_id) ? absint($row->coach_id) : 0,
+    ];
+}
+
+/**
+ * @param object|array<string,mixed> $group
+ * @param string                   $chapter_name
+ * @param int                      $coach_id
+ */
+function sc_course_group_matches_branch($group, $chapter_name = '', $coach_id = 0) {
+    $item = sc_format_course_group_item($group);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    $coach_id = absint($coach_id);
+
+    if ($item['chapter_name'] !== '') {
+        if ($chapter_name === '' || $item['chapter_name'] !== $chapter_name) {
+            return false;
+        }
+    }
+    if ($item['coach_id'] > 0) {
+        if ($coach_id <= 0 || $item['coach_id'] !== $coach_id) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Match group for weekly schedule row: both branch and coach must be selected and match the group definition.
+ *
+ * @param array<string,mixed>|object $group
+ * @param string                   $chapter_name
+ * @param int                      $coach_id
+ */
+function sc_course_group_matches_schedule_row($group, $chapter_name = '', $coach_id = 0) {
+    $item = sc_format_course_group_item($group);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    $coach_id = absint($coach_id);
+
+    if ($chapter_name === '' || $coach_id <= 0) {
+        return false;
+    }
+    if ($item['chapter_name'] === '' || $item['chapter_name'] !== $chapter_name) {
+        return false;
+    }
+    if ($item['coach_id'] <= 0 || $item['coach_id'] !== $coach_id) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * @param int    $course_id
+ * @param string $chapter_name
+ * @param int    $coach_id
+ * @return array<int,array<string,mixed>>
+ */
+function sc_get_course_groups_for_branch($course_id, $chapter_name = '', $coach_id = 0) {
+    $items = [];
+    foreach (sc_get_course_groups($course_id) as $row) {
+        if (sc_course_group_matches_branch($row, $chapter_name, $coach_id)) {
+            $items[] = sc_format_course_group_item($row);
+        }
+    }
+    return $items;
+}
+
+/**
+ * @param int    $course_id
+ * @param string $group_name
+ * @return object|null
+ */
+function sc_get_course_group_row($course_id, $group_name) {
+    global $wpdb;
+    $course_id = absint($course_id);
+    $group_name = sanitize_text_field((string) $group_name);
+    if (!$course_id || $group_name === '' || !sc_course_groups_table_ready()) {
+        return null;
+    }
+
+    return $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}sc_course_groups WHERE course_id = %d AND group_name = %s LIMIT 1",
+        $course_id,
+        $group_name
+    ));
+}
+
+/**
+ * @param int    $course_id
+ * @param string $group_name
+ * @return array{chapter:string,coach_id:int,group_name:string}
+ */
+function sc_resolve_enrollment_from_course_group($course_id, $group_name) {
+    $course_id = absint($course_id);
+    $group_name = sanitize_text_field((string) $group_name);
+    $out = [
+        'chapter' => '',
+        'coach_id' => 0,
+        'group_name' => '',
+    ];
+
+    if ($group_name === '') {
+        return $out;
+    }
+    if (!sc_is_valid_course_group_name($course_id, $group_name)) {
+        return $out;
+    }
+
+    $out['group_name'] = $group_name;
+    $row = sc_get_course_group_row($course_id, $group_name);
+    if ($row) {
+        $item = sc_format_course_group_item($row);
+        $out['chapter'] = $item['chapter_name'];
+        $out['coach_id'] = (int) $item['coach_id'];
+    }
+
+    return $out;
+}
+
+/**
+ * @param int $course_id
+ * @return array<int,array<string,mixed>>
+ */
+function sc_get_bulk_course_groups_map_entry($course_id) {
+    $course_id = absint($course_id);
+    if (!$course_id || !sc_course_has_grouping_enabled($course_id)) {
+        return [];
+    }
+
+    $groups = [];
+    foreach (sc_get_course_groups($course_id) as $row) {
+        $groups[] = sc_format_course_group_item($row);
+    }
+    return $groups;
+}
+
 function sc_member_course_row_with_group(array $assignment) {
     $row = [];
     if (!function_exists('sc_member_courses_has_group_column') || !sc_member_courses_has_group_column()) {
@@ -465,4 +662,92 @@ function sc_member_course_row_with_group(array $assignment) {
     $group = isset($assignment['group_name']) ? sanitize_text_field((string) $assignment['group_name']) : '';
     $row['group_name'] = $group !== '' ? $group : null;
     return $row;
+}
+
+/**
+ * Normalize finance group filter (requires selected course with grouping enabled).
+ */
+function sc_finance_normalize_group_filter($filter_course, $filter_group) {
+    $filter_course = absint($filter_course);
+    $filter_group = sanitize_text_field((string) $filter_group);
+    if ($filter_group === '' || $filter_course <= 0) {
+        return '';
+    }
+    if (!function_exists('sc_course_has_grouping_enabled') || !sc_course_has_grouping_enabled($filter_course)) {
+        return '';
+    }
+    if ($filter_group === '__none__') {
+        return '__none__';
+    }
+    if (function_exists('sc_is_valid_course_group_name') && sc_is_valid_course_group_name($filter_course, $filter_group)) {
+        return $filter_group;
+    }
+
+    return '';
+}
+
+/**
+ * LEFT JOIN invoices to member_courses for finance filters.
+ */
+function sc_finance_invoice_member_course_join_sql($invoice_alias = 'i', $mc_alias = 'mc') {
+    global $wpdb;
+    $invoice_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $invoice_alias) ?: 'i';
+    $mc_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $mc_alias) ?: 'mc';
+    $table = $wpdb->prefix . 'sc_member_courses';
+
+    return " LEFT JOIN `{$table}` `{$mc_alias}` ON (
+        `{$mc_alias}`.`id` = `{$invoice_alias}`.`member_course_id`
+        OR (
+            (`{$invoice_alias}`.`member_course_id` IS NULL OR `{$invoice_alias}`.`member_course_id` = 0)
+            AND `{$mc_alias}`.`member_id` = `{$invoice_alias}`.`member_id`
+            AND `{$mc_alias}`.`course_id` = `{$invoice_alias}`.`course_id`
+        )
+    ) ";
+}
+
+/**
+ * Apply course group filter on invoice queries. Returns JOIN SQL when active.
+ *
+ * @param array<int,string> $where
+ * @param array<int,mixed>  $args
+ */
+function sc_finance_apply_invoice_group_filter(array &$where, array &$args, $filter_course, $filter_group, $invoice_alias = 'i', $mc_alias = 'mc') {
+    $filter_group = sc_finance_normalize_group_filter($filter_course, $filter_group);
+    if ($filter_group === '') {
+        return '';
+    }
+
+    $invoice_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $invoice_alias) ?: 'i';
+    $mc_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $mc_alias) ?: 'mc';
+
+    if ($filter_group === '__none__') {
+        $where[] = "COALESCE(`{$mc_alias}`.`group_name`, '') = ''";
+    } else {
+        $where[] = "`{$mc_alias}`.`group_name` = %s";
+        $args[] = $filter_group;
+    }
+
+    return sc_finance_invoice_member_course_join_sql($invoice_alias, $mc_alias);
+}
+
+/**
+ * Map course_id => group names for finance filter UI.
+ *
+ * @param array<int,object> $courses
+ * @return array<int,array<int,string>>
+ */
+function sc_finance_course_groups_map_for_ui(array $courses) {
+    $map = [];
+    foreach ($courses as $course) {
+        $cid = isset($course->id) ? (int) $course->id : 0;
+        if (!$cid || !function_exists('sc_course_has_grouping_enabled') || !sc_course_has_grouping_enabled($cid)) {
+            continue;
+        }
+        $names = function_exists('sc_get_course_group_names') ? sc_get_course_group_names($cid) : [];
+        if (!empty($names)) {
+            $map[$cid] = array_values($names);
+        }
+    }
+
+    return $map;
 }

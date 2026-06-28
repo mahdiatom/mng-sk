@@ -4574,7 +4574,7 @@ body[class*="_page_sc-add-member"] .label_cheakbox_active_courses_user {
 
 body.sc-members_page_sc-add-member .label_cheakbox_active_courses_user:has(input:checked),
 body[class*="_page_sc-add-member"] .label_cheakbox_active_courses_user:has(input:checked) {
-    color: #fff;
+    color: red;
     border-color: transparent;
     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
     box-shadow: 0 4px 12px rgba(109, 52, 255, 0.22);
@@ -11509,3 +11509,344 @@ body[class*="_page_sc-reports"] .sc-reports-sms-note {
     }
 }
 /* ─── پایان داشبورد و گزارشات ─── */
+
+/* ─── گزارشات مالی و حسابداری — استایل مدرن (همه تب‌ها) ─── */
+body.sc-reports_page_sc-reports-income-expenses #wpcontent,
+body[class*="_page_sc-reports-income-expenses"] #wpcontent {
+    background: #ece9f5;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-page-header.wrap,
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-page-body.wrap,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-page-header.wrap,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-page-body.wrap {
+    background: #f4f2fa !important;
+    border-radius: 14px;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+    border: 1px solid rgba(109, 52, 255, 0.08);
+    box-shadow: 0 4px 24px rgba(74, 31, 184, 0.05);
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-page-header > h1,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-page-header > h1 {
+    color: #1e1b2e;
+    font-weight: 800;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-subtitle,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-subtitle {
+    margin: 10px 0 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #6b7280;
+    max-width: 900px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-nav-tabs,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-nav-tabs {
+    margin: 0 0 16px;
+    padding: 4px 4px 0;
+    border-bottom: 1px solid rgba(109, 52, 255, 0.14);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-nav-tabs .nav-tab,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-nav-tabs .nav-tab {
+    float: none;
+    margin: 0 0 -1px 0;
+    border-radius: 10px 10px 0 0;
+    border-color: rgba(109, 52, 255, 0.12);
+    color: #4a1fb8;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.7);
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-nav-tabs .nav-tab:hover,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-nav-tabs .nav-tab:hover {
+    background: rgba(109, 52, 255, 0.08);
+    color: #4a1fb8;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-nav-tabs .nav-tab-active,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-nav-tabs .nav-tab-active {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 14px rgba(109, 52, 255, 0.25);
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-tab-content,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-tab-content {
+    margin-top: 0;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-panel.postbox,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-panel.postbox {
+    margin: 0 0 16px;
+    padding: 0 !important;
+    border: 1px solid rgba(109, 52, 255, 0.12) !important;
+    border-radius: 16px !important;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%) !important;
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+    overflow: hidden;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-panel .postbox-header,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-panel .postbox-header {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px dashed rgba(109, 52, 255, 0.18) !important;
+    padding: 16px 20px !important;
+    margin: 0 !important;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-panel .postbox-header h2,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-panel .postbox-header h2 {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    color: #1e1b2e !important;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-panel .inside,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-panel .inside {
+    padding: 18px 20px 20px !important;
+    margin: 0 !important;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-info-note,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-info-note {
+    max-width: 960px;
+    margin: 0 0 16px;
+    font-size: 13px;
+    line-height: 1.75;
+    color: #6b7280;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-group-help,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-group-help {
+    margin-top: 4px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-filter-form .sc-filter-grid,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-filter-form .sc-filter-grid {
+    gap: 14px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-filter-form .sc-filter-label,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-filter-form .sc-filter-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #4a1fb8;
+    margin-bottom: 6px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-filter-form .sc-filter-control,
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-filter-form .persian-date-input,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-filter-form .sc-filter-control,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-filter-form .persian-date-input {
+    border-radius: 10px;
+    border-color: rgba(109, 52, 255, 0.18);
+    background: #fff;
+    min-height: 38px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-filter-form .submit,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-filter-form .submit {
+    margin: 16px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-filter-form .button-primary,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-filter-form .button-primary {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    border-color: transparent;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(109, 52, 255, 0.22);
+    font-weight: 600;
+    padding: 6px 18px;
+    min-height: 38px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-filter-form .button-primary:hover,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-filter-form .button-primary:hover {
+    filter: brightness(1.05);
+    border-color: transparent;
+    color: #fff;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-filter-form .delete_fillter,
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-filter-form .button_export,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-filter-form .delete_fillter,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-filter-form .button_export {
+    border-radius: 10px;
+    border-color: rgba(109, 52, 255, 0.22);
+    color: #4a1fb8;
+    font-weight: 600;
+    min-height: 38px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-filter-form .button_export,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-filter-form .button_export {
+    background: rgba(109, 52, 255, 0.08);
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-stats,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin: 0 0 16px !important;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-stats--compact,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-stats--compact {
+    margin-top: 16px !important;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-stats .sc-stat-box,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-stats .sc-stat-box {
+    margin: 0;
+    padding: 16px 18px;
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(74, 31, 184, 0.06);
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-stats .sc-stat-box h3,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-stats .sc-stat-box h3 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-stat-value,
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-stats .sc-stat-box > div:not(.sc-finance-stat-trend),
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-stat-value,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-stats .sc-stat-box > div:not(.sc-finance-stat-trend) {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #6d34ff;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-stat-value.is-positive,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-stat-value.is-positive {
+    color: #059669;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-stat-value.is-negative,
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-stat-value.is-expense,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-stat-value.is-negative,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-stat-value.is-expense {
+    color: #dc2626;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-stat-value.is-accent,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-stat-value.is-accent {
+    color: #4a1fb8;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-stat-trend,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-stat-trend {
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-stat-trend.is-positive,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-stat-trend.is-positive {
+    color: #059669;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-stat-trend.is-negative,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-stat-trend.is-negative {
+    color: #dc2626;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-chart-wrap,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-chart-wrap {
+    max-width: 900px;
+    margin-top: 16px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-chart-wrap--wide,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-chart-wrap--wide {
+    max-width: 1100px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-chart-wrap--narrow,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-chart-wrap--narrow {
+    max-width: 700px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-chart-wrap--tall canvas,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-chart-wrap--tall canvas {
+    max-height: 400px;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-table-wrap,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-table-wrap {
+    overflow-x: auto;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-table,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-table {
+    border: none !important;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(74, 31, 184, 0.05);
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-table thead th,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-table thead th {
+    background: rgba(109, 52, 255, 0.06);
+    color: #4a1fb8;
+    font-weight: 700;
+    border-color: rgba(109, 52, 255, 0.1);
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-table tbody td,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-table tbody td {
+    border-color: rgba(109, 52, 255, 0.08);
+    vertical-align: middle;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-cell-income,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-cell-income {
+    color: #059669;
+    font-weight: 700;
+}
+
+body.sc-reports_page_sc-reports-income-expenses .sc-finance-cell-expense,
+body[class*="_page_sc-reports-income-expenses"] .sc-finance-cell-expense {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+@media screen and (max-width: 782px) {
+    body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-nav-tabs .nav-tab,
+    body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-nav-tabs .nav-tab {
+        font-size: 12px;
+        padding: 7px 10px;
+    }
+
+    body.sc-reports_page_sc-reports-income-expenses .sc-finance-reports-stats,
+    body[class*="_page_sc-reports-income-expenses"] .sc-finance-reports-stats {
+        grid-template-columns: 1fr;
+    }
+}
+/* ─── پایان گزارشات مالی و حسابداری ─── */

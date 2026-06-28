@@ -292,6 +292,9 @@ function sc_export_finance_course_income_to_excel() {
     [$from, $to] = sc_finance_export_date_range();
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
+    $filter_group = function_exists('sc_finance_normalize_group_filter')
+        ? sc_finance_normalize_group_filter($filter_course, isset($_GET['filter_group']) ? wp_unslash((string) $_GET['filter_group']) : '')
+        : '';
 
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $courses_table = $wpdb->prefix . 'sc_courses';
@@ -305,9 +308,13 @@ function sc_export_finance_course_income_to_excel() {
         $where[] = "c.chapter = %s";
         $args[] = $filter_chapter;
     }
+    $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
+        ? sc_finance_apply_invoice_group_filter($where, $args, $filter_course, $filter_group)
+        : '';
     $sql = "SELECT c.title, c.chapter, COUNT(i.id) AS paid_count, SUM(i.amount) AS income_total
             FROM $invoices_table i
             INNER JOIN $courses_table c ON c.id = i.course_id
+            {$mc_join}
             WHERE " . implode(' AND ', $where) . "
             GROUP BY c.id, c.title, c.chapter
             ORDER BY income_total DESC";
@@ -518,6 +525,9 @@ function sc_export_finance_receivables_to_excel() {
     [$from, $to] = sc_finance_export_date_range();
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
+    $filter_group = function_exists('sc_finance_normalize_group_filter')
+        ? sc_finance_normalize_group_filter($filter_course, isset($_GET['filter_group']) ? wp_unslash((string) $_GET['filter_group']) : '')
+        : '';
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $members_table = $wpdb->prefix . 'sc_members';
     $courses_table = $wpdb->prefix . 'sc_courses';
@@ -532,10 +542,14 @@ function sc_export_finance_receivables_to_excel() {
         $where[] = "c.chapter = %s";
         $args[] = $filter_chapter;
     }
+    $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
+        ? sc_finance_apply_invoice_group_filter($where, $args, $filter_course, $filter_group)
+        : '';
     $sql = "SELECT i.member_id, i.created_at, i.amount, m.first_name, m.last_name, c.title AS course_title, c.chapter, 'invoice' AS debt_type
             FROM $invoices_table i
             LEFT JOIN $members_table m ON m.id = i.member_id
             LEFT JOIN $courses_table c ON c.id = i.course_id
+            {$mc_join}
             WHERE " . implode(' AND ', $where) . "
             ORDER BY i.created_at DESC";
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
@@ -544,7 +558,7 @@ function sc_export_finance_receivables_to_excel() {
         INNER JOIN $members_table m ON m.id = w.member_id
         GROUP BY m.id, m.first_name, m.last_name
         HAVING MIN(w.balance_after) < 0");
-    if (!empty($wallet_rows)) {
+    if (empty($filter_group) && !empty($wallet_rows)) {
         foreach ($wallet_rows as $wallet_row) {
             $wallet_row->course_title = 'بدهی کیف پول';
             $wallet_row->chapter = '-';
@@ -702,6 +716,9 @@ function sc_export_finance_cashflow_to_excel() {
     [$from, $to] = sc_finance_export_date_range();
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
+    $filter_group = function_exists('sc_finance_normalize_group_filter')
+        ? sc_finance_normalize_group_filter($filter_course, isset($_GET['filter_group']) ? wp_unslash((string) $_GET['filter_group']) : '')
+        : '';
     $filter_cashflow_type = isset($_GET['filter_cashflow_type']) ? sanitize_text_field(wp_unslash($_GET['filter_cashflow_type'])) : 'all';
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $expenses_table = $wpdb->prefix . 'sc_expenses';
@@ -727,6 +744,9 @@ function sc_export_finance_cashflow_to_excel() {
         $where_in[] = 'i.course_id = %d';
         $args_in[] = $filter_course;
     }
+    $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
+        ? sc_finance_apply_invoice_group_filter($where_in, $args_in, $filter_course, $filter_group)
+        : '';
     if ($filter_cashflow_type === 'course') {
         $where_in[] = 'i.course_id > 0';
     } elseif ($filter_cashflow_type === 'event') {
@@ -736,6 +756,7 @@ function sc_export_finance_cashflow_to_excel() {
         "SELECT COALESCE(SUM(i.amount),0) FROM $invoices_table i
          LEFT JOIN $courses_table c ON c.id = i.course_id
          LEFT JOIN $events_table ev ON ev.id = i.event_id
+         {$mc_join}
          WHERE " . implode(' AND ', $where_in),
         $args_in
     ));
@@ -784,6 +805,9 @@ function sc_export_finance_ledger_to_excel() {
     [$from, $to] = sc_finance_export_date_range();
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
+    $filter_group = function_exists('sc_finance_normalize_group_filter')
+        ? sc_finance_normalize_group_filter($filter_course, isset($_GET['filter_group']) ? wp_unslash((string) $_GET['filter_group']) : '')
+        : '';
     $filter_ledger_type = isset($_GET['filter_ledger_type']) ? sanitize_text_field(wp_unslash($_GET['filter_ledger_type'])) : 'all';
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $members_table = $wpdb->prefix . 'sc_members';
@@ -802,6 +826,9 @@ function sc_export_finance_ledger_to_excel() {
         $where_in[] = "i.course_id = %d";
         $args_in[] = $filter_course;
     }
+    $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
+        ? sc_finance_apply_invoice_group_filter($where_in, $args_in, $filter_course, $filter_group)
+        : '';
     $income_rows = $wpdb->get_results($wpdb->prepare("SELECT DATE(i.payment_date) AS tx_date, 'income' AS tx_type, i.amount, CONCAT(m.first_name, ' ', m.last_name) AS person_name,
         CASE
             WHEN i.course_id > 0 THEN c.title
@@ -817,6 +844,7 @@ function sc_export_finance_ledger_to_excel() {
         LEFT JOIN $members_table m ON m.id = i.member_id
         LEFT JOIN $courses_table c ON c.id = i.course_id
         LEFT JOIN $events_table ev ON ev.id = i.event_id
+        {$mc_join}
         WHERE " . implode(' AND ', $where_in), $args_in));
     $store_income_rows = [];
     if (function_exists('wc_get_orders')) {

@@ -23,6 +23,10 @@ $coaches_table = $wpdb->prefix . 'sc_coaches';
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
 $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
 $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field($_GET['filter_chapter']) : '';
+$filter_group_raw = isset($_GET['filter_group']) ? sanitize_text_field(wp_unslash((string) $_GET['filter_group'])) : '';
+$filter_group = function_exists('sc_finance_normalize_group_filter')
+    ? sc_finance_normalize_group_filter($filter_course, $filter_group_raw)
+    : '';
 $filter_event_type = isset($_GET['filter_event_type']) ? sanitize_text_field($_GET['filter_event_type']) : '';
 $filter_store_tag = isset($_GET['filter_store_tag']) ? absint($_GET['filter_store_tag']) : 0;
 $filter_store_cat = isset($_GET['filter_store_cat']) ? absint($_GET['filter_store_cat']) : 0;
@@ -64,6 +68,10 @@ if (empty($filter_date_from) || empty($filter_date_to)) {
 }
 
 $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL ORDER BY title ASC");
+$finance_course_groups_map = function_exists('sc_finance_course_groups_map_for_ui')
+    ? sc_finance_course_groups_map_for_ui($courses)
+    : [];
+$finance_tabs_with_group_filter = ['course_income', 'receivables', 'cashflow', 'ledger'];
 $chapters = $wpdb->get_results("SELECT name FROM $chapter_categories_table ORDER BY name ASC");
 $coaches = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY first_name ASC, last_name ASC");
 $store_tags = taxonomy_exists('product_tag') ? get_terms(['taxonomy' => 'product_tag', 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC']) : [];
@@ -73,12 +81,23 @@ if (is_wp_error($store_categories)) { $store_categories = []; }
 
 $base_tab_url = admin_url('admin.php?page=sc-reports-income-expenses');
 $finance_chart_config = null;
+$finance_result_titles = [
+    'course_income' => 'درآمد دوره‌ها',
+    'event_income' => 'درآمد رویدادها',
+    'coach_share' => 'درآمد مربی / سهم مجموعه',
+    'store_income' => 'درآمد فروشگاه',
+    'receivables' => 'مطالبات',
+    'cashflow' => 'جریان نقدی',
+    'ledger' => 'دفتر تراکنش‌ها',
+];
 ?>
-<div class="wrap sc_setting_section">
+<div class="wrap sc-finance-reports-page-header sc-finance-page-header sc_setting_section">
     <h1 class="wp-heading-inline">گزارشات باشگاه - مالی و حسابداری</h1>
     <hr class="wp-header-end">
-
-    <nav class="nav-tab-wrapper">
+    <p class="sc-finance-reports-subtitle">خلاصه درآمد و هزینه، جریان نقدی، مطالبات و گزارش‌های تفصیلی مالی باشگاه.</p>
+</div>
+<div class="wrap sc-finance-reports-page-body sc-finance-page-body sc_setting_section">
+    <nav class="nav-tab-wrapper sc-finance-reports-nav-tabs">
         <a href="<?php echo esc_url(add_query_arg('tab', 'overview', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'overview' ? 'nav-tab-active' : ''; ?>">نمای کلی</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'course_income', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'course_income' ? 'nav-tab-active' : ''; ?>">درآمد دوره‌ها</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'event_income', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'event_income' ? 'nav-tab-active' : ''; ?>">درآمد رویدادها</a>
@@ -89,11 +108,14 @@ $finance_chart_config = null;
         <a href="<?php echo esc_url(add_query_arg('tab', 'ledger', $base_tab_url)); ?>" class="nav-tab <?php echo $tab === 'ledger' ? 'nav-tab-active' : ''; ?>">دفتر تراکنش‌ها</a>
     </nav>
 
-    <div class="tab-content" style="margin-top:20px;">
+    <div class="tab-content sc-finance-reports-tab-content">
         <?php if ($tab === 'overview') : ?>
             <?php include SC_TEMPLATES_ADMIN_DIR . 'reports-income-expenses.php'; ?>
         <?php else : ?>
-            <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+            <div class="sc-finance-panel postbox sc-finance-reports-filter-panel">
+                <div class="postbox-header"><h2>فیلتر گزارش</h2></div>
+                <div class="inside">
+            <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1 sc-finance-reports-filter-form">
                 <input type="hidden" name="page" value="sc-reports-income-expenses">
                 <input type="hidden" name="tab" value="<?php echo esc_attr($tab); ?>">
 
@@ -107,6 +129,24 @@ $finance_chart_config = null;
                                     <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>><?php echo esc_html($course->title); ?></option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (in_array($tab, $finance_tabs_with_group_filter, true)) : ?>
+                        <div class="sc-filter-field sc-finance-group-field" id="sc-finance-group-field" style="<?php echo ($filter_course > 0 && isset($finance_course_groups_map[$filter_course])) ? '' : 'display:none;'; ?>">
+                            <label class="sc-filter-label" for="filter_group">گروه</label>
+                            <select name="filter_group" id="filter_group" class="sc-filter-control">
+                                <option value="">همه گروه‌ها</option>
+                                <option value="__none__" <?php selected($filter_group, '__none__'); ?>>بدون گروه</option>
+                                <?php
+                                if ($filter_course > 0 && !empty($finance_course_groups_map[$filter_course])) :
+                                    foreach ($finance_course_groups_map[$filter_course] as $gname) :
+                                        ?>
+                                        <option value="<?php echo esc_attr($gname); ?>" <?php selected($filter_group, $gname); ?>><?php echo esc_html($gname); ?></option>
+                                    <?php endforeach;
+                                endif;
+                                ?>
+                            </select>
+                            <p class="description sc-finance-group-help">پس از انتخاب دوره با گروه‌بندی فعال می‌شود.</p>
                         </div>
                     <?php endif; ?>
                     <?php if ($tab === 'coach_share') : ?>
@@ -226,7 +266,7 @@ $finance_chart_config = null;
                         'ledger' => 'finance_ledger',
                     ];
                     $export_url = isset($export_map[$tab]) ? admin_url('admin.php?page=sc-reports-income-expenses&tab=' . $tab . '&sc_export=excel&export_type=' . $export_map[$tab]) : '';
-                    foreach (['filter_date_from','filter_date_to','filter_date_from_shamsi','filter_date_to_shamsi','filter_course','filter_coach','filter_chapter','filter_event_type','filter_store_tag','filter_store_cat','filter_ledger_type','filter_cashflow_type'] as $param) {
+                    foreach (['filter_date_from','filter_date_to','filter_date_from_shamsi','filter_date_to_shamsi','filter_course','filter_coach','filter_chapter','filter_group','filter_event_type','filter_store_tag','filter_store_cat','filter_ledger_type','filter_cashflow_type'] as $param) {
                         if (isset($_GET[$param]) && $_GET[$param] !== '') {
                             $export_url = add_query_arg($param, sanitize_text_field(wp_unslash($_GET[$param])), $export_url);
                         }
@@ -240,6 +280,12 @@ $finance_chart_config = null;
                     <?php endif; ?>
                 </p>
             </form>
+                </div>
+            </div>
+
+            <div class="sc-finance-panel postbox sc-finance-reports-data-panel">
+                <div class="postbox-header"><h2><?php echo esc_html($finance_result_titles[$tab] ?? 'نتایج گزارش'); ?></h2></div>
+                <div class="inside sc-finance-reports-data-inside">
 
             <?php if ($tab === 'course_income') :
                 $invoices_table = $wpdb->prefix . 'sc_invoices';
@@ -247,15 +293,19 @@ $finance_chart_config = null;
                 $args = [$filter_date_from, $filter_date_to];
                 if ($filter_course > 0) { $where[] = "i.course_id = %d"; $args[] = $filter_course; }
                 if ($filter_chapter !== '') { $where[] = "c.chapter = %s"; $args[] = $filter_chapter; }
+                $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
+                    ? sc_finance_apply_invoice_group_filter($where, $args, $filter_course, $filter_group)
+                    : '';
                 $sql = "SELECT c.id, c.title, c.chapter, COUNT(i.id) AS paid_count, SUM(i.amount) AS income_total
                         FROM $invoices_table i
                         INNER JOIN $courses_table c ON c.id = i.course_id
+                        {$mc_join}
                         WHERE " . implode(' AND ', $where) . "
                         GROUP BY c.id, c.title, c.chapter
                         ORDER BY income_total DESC";
                 $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
                 ?>
-                <table class="wp-list-table widefat fixed striped">
+                <table class="wp-list-table widefat fixed striped sc-finance-reports-table">
                     <thead><tr><th>دوره</th><th>شعبه</th><th>تعداد پرداخت</th><th>درآمد (تومان)</th></tr></thead>
                     <tbody>
                     <?php if (!empty($rows)) : foreach ($rows as $r) : ?>
@@ -280,7 +330,7 @@ $finance_chart_config = null;
                         ORDER BY income_total DESC";
                 $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
                 ?>
-                <table class="wp-list-table widefat fixed striped">
+                <table class="wp-list-table widefat fixed striped sc-finance-reports-table">
                     <thead><tr><th>رویداد/مسابقه</th><th>نوع</th><th>شعبه</th><th>تعداد پرداخت</th><th>درآمد (تومان)</th></tr></thead>
                     <tbody>
                     <?php if (!empty($rows)) : foreach ($rows as $r) : ?>
@@ -335,7 +385,7 @@ $finance_chart_config = null;
                 $coach_series = [];
                 $club_series = [];
                 ?>
-                <table class="wp-list-table widefat fixed striped">
+                <table class="wp-list-table widefat fixed striped sc-finance-reports-table">
                     <thead><tr><th>مربی</th><th>درآمد مربی (تومان)</th><th>سهم مجموعه (تومان)</th><th>درآمد کل کلاس (تومان)</th></tr></thead>
                     <tbody>
                     <?php if (!empty($rows)) : foreach ($rows as $r) :
@@ -357,7 +407,7 @@ $finance_chart_config = null;
                     <?php endif; ?>
                     </tbody>
                 </table>
-                <div style="max-width: 1100px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
+                <div class="sc-finance-chart-wrap sc-finance-chart-wrap--wide"><canvas id="financeChart"></canvas></div>
                 <?php
                 $finance_chart_config = [
                     'type' => 'bar',
@@ -433,7 +483,7 @@ $finance_chart_config = null;
                     }
                 }
                 ?>
-                <table class="wp-list-table widefat fixed striped">
+                <table class="wp-list-table widefat fixed striped sc-finance-reports-table">
                     <thead><tr><th>شماره سفارش</th><th>تاریخ</th><th>سفارش‌دهنده</th><th>اقلام</th><th>درآمد (تومان)</th></tr></thead>
                     <tbody>
                     <?php if (!empty($rows)) : foreach ($rows as $r) :
@@ -452,10 +502,10 @@ $finance_chart_config = null;
                     <?php endif; ?>
                     </tbody>
                 </table>
-                <div class="sc-dashboard-stats" style="margin-top: 12px;">
+                <div class="sc-dashboard-stats sc-finance-reports-stats sc-finance-reports-stats--compact">
                     <div class="sc-stat-box"><h3>جمع درآمد فروشگاه</h3><div><?php echo esc_html(number_format($total_store_income, 0, '.', ',')); ?></div></div>
                 </div>
-                <div style="max-width: 900px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
+                <div class="sc-finance-chart-wrap"><canvas id="financeChart"></canvas></div>
                 <?php
                 ksort($daily_income);
                 $finance_chart_config = [
@@ -474,10 +524,14 @@ $finance_chart_config = null;
                 $args = [$filter_date_from, $filter_date_to];
                 if ($filter_course > 0) { $where[] = "i.course_id = %d"; $args[] = $filter_course; }
                 if ($filter_chapter !== '') { $where[] = "c.chapter = %s"; $args[] = $filter_chapter; }
+                $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
+                    ? sc_finance_apply_invoice_group_filter($where, $args, $filter_course, $filter_group)
+                    : '';
                 $sql = "SELECT i.id, i.member_id, i.amount, i.created_at, m.first_name, m.last_name, c.title AS course_title, c.chapter, 'invoice' AS debt_type
                         FROM $invoices_table i
                         LEFT JOIN $members_table m ON m.id = i.member_id
                         LEFT JOIN $courses_table c ON c.id = i.course_id
+                        {$mc_join}
                         WHERE " . implode(' AND ', $where) . "
                         ORDER BY i.created_at DESC";
                 $invoice_rows = $wpdb->get_results($wpdb->prepare($sql, $args));
@@ -487,7 +541,7 @@ $finance_chart_config = null;
                     GROUP BY m.id, m.first_name, m.last_name
                     HAVING MIN(w.balance_after) < 0");
                 $rows = $invoice_rows ?: [];
-                if (!empty($wallet_rows)) {
+                if (empty($filter_group) && !empty($wallet_rows)) {
                     foreach ($wallet_rows as $wallet_row) {
                         $wallet_row->course_title = 'بدهی کیف پول';
                         $wallet_row->chapter = '-';
@@ -497,7 +551,7 @@ $finance_chart_config = null;
                 }
                 $receivable_chart = ['فاکتور معوق' => 0, 'بدهی کیف پول' => 0];
                 ?>
-                <table class="wp-list-table widefat fixed striped">
+                <table class="wp-list-table widefat fixed striped sc-finance-reports-table">
                     <thead><tr><th>تاریخ</th><th>بازیکن</th><th>نوع</th><th>دوره/شرح</th><th>شعبه</th><th>مبلغ مطالبه (تومان)</th><th>جزئیات</th></tr></thead>
                     <tbody>
                     <?php if (!empty($rows)) : foreach ($rows as $r) : ?>
@@ -520,7 +574,7 @@ $finance_chart_config = null;
                     <?php endif; ?>
                     </tbody>
                 </table>
-                <div style="max-width: 700px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
+                <div class="sc-finance-chart-wrap sc-finance-chart-wrap--narrow"><canvas id="financeChart"></canvas></div>
                 <?php
                 $finance_chart_config = [
                     'type' => 'doughnut',
@@ -554,6 +608,9 @@ $finance_chart_config = null;
                     $where_in[] = 'i.course_id = %d';
                     $args_in[] = $filter_course;
                 }
+                $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
+                    ? sc_finance_apply_invoice_group_filter($where_in, $args_in, $filter_course, $filter_group)
+                    : '';
                 if ($filter_cashflow_type === 'course') {
                     $where_in[] = 'i.course_id > 0';
                 } elseif ($filter_cashflow_type === 'event') {
@@ -563,6 +620,7 @@ $finance_chart_config = null;
                     "SELECT COALESCE(SUM(i.amount),0) FROM $invoices_table i
                      LEFT JOIN $courses_table c ON c.id = i.course_id
                      LEFT JOIN $events_table ev ON ev.id = i.event_id
+                     {$mc_join}
                      WHERE " . implode(' AND ', $where_in),
                     $args_in
                 ));
@@ -578,15 +636,15 @@ $finance_chart_config = null;
                 $cash_out = (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(e.amount),0) FROM $expenses_table e WHERE " . implode(' AND ', $where_out), $args_out));
                 $net_cashflow = $cash_in - $cash_out;
                 ?>
-                <p class="description" style="max-width: 920px;">
+                <p class="description sc-finance-reports-info-note">
                     ورودی نقدی بر اساس نوع انتخابی (همه/دوره/رویداد/فروشگاه) محاسبه می‌شود؛ فیلتر دوره و شعبه فقط روی داده‌های آکادمی اثر دارد.
                 </p>
-                <div class="sc-dashboard-stats">
+                <div class="sc-dashboard-stats sc-finance-reports-stats">
                     <div class="sc-stat-box"><h3>ورودی نقدی</h3><div><?php echo esc_html(number_format($cash_in, 0, '.', ',')); ?></div></div>
                     <div class="sc-stat-box"><h3>خروجی نقدی</h3><div><?php echo esc_html(number_format($cash_out, 0, '.', ',')); ?></div></div>
                     <div class="sc-stat-box"><h3>خالص جریان نقدی</h3><div><?php echo esc_html(number_format($net_cashflow, 0, '.', ',')); ?></div></div>
                 </div>
-                <div style="max-width: 900px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
+                <div class="sc-finance-chart-wrap"><canvas id="financeChart"></canvas></div>
                 <?php
                 $finance_chart_config = [
                     'type' => 'bar',
@@ -609,6 +667,9 @@ $finance_chart_config = null;
                     $args_in[] = $filter_chapter;
                 }
                 if ($filter_course > 0) { $where_in[] = "i.course_id = %d"; $args_in[] = $filter_course; }
+                $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
+                    ? sc_finance_apply_invoice_group_filter($where_in, $args_in, $filter_course, $filter_group)
+                    : '';
                 $income_rows = $wpdb->get_results($wpdb->prepare("SELECT DATE(i.payment_date) AS tx_date, 'income' AS tx_type, i.amount, CONCAT(m.first_name, ' ', m.last_name) AS person_name,
                     CASE
                         WHEN i.course_id > 0 THEN c.title
@@ -624,6 +685,7 @@ $finance_chart_config = null;
                     LEFT JOIN $members_table m ON m.id = i.member_id
                     LEFT JOIN $courses_table c ON c.id = i.course_id
                     LEFT JOIN $events_table ev ON ev.id = i.event_id
+                    {$mc_join}
                     WHERE " . implode(' AND ', $where_in), $args_in));
                 $store_income_rows = [];
                 if (function_exists('wc_get_orders')) {
@@ -671,7 +733,7 @@ $finance_chart_config = null;
                     return strcmp((string) $b->tx_date, (string) $a->tx_date);
                 });
                 ?>
-                <table class="wp-list-table widefat fixed striped">
+                <table class="wp-list-table widefat fixed striped sc-finance-reports-table">
                     <thead><tr><th>تاریخ</th><th>نوع</th><th>شرح</th><th>شخص</th><th>شعبه</th><th>مبلغ (تومان)</th></tr></thead>
                     <tbody>
                     <?php if (!empty($ledger_rows)) : foreach ($ledger_rows as $r) : ?>
@@ -706,16 +768,58 @@ $finance_chart_config = null;
                     ],
                 ];
                 ?>
-                <div class="sc-dashboard-stats" style="margin-top: 12px;">
+                <div class="sc-dashboard-stats sc-finance-reports-stats sc-finance-reports-stats--compact">
                     <div class="sc-stat-box"><h3>جمع ورودی فیلترشده</h3><div><?php echo esc_html(number_format($income_sum, 0, '.', ',')); ?></div></div>
                     <div class="sc-stat-box"><h3>جمع خروجی فیلترشده</h3><div><?php echo esc_html(number_format($expense_sum, 0, '.', ',')); ?></div></div>
                     <div class="sc-stat-box"><h3>خالص فیلترشده</h3><div><?php echo esc_html(number_format($income_sum - $expense_sum, 0, '.', ',')); ?></div></div>
                 </div>
-                <div style="max-width: 700px; margin-top: 16px;"><canvas id="financeChart"></canvas></div>
+                <div class="sc-finance-chart-wrap sc-finance-chart-wrap--narrow"><canvas id="financeChart"></canvas></div>
             <?php endif; ?>
+
+                </div>
+            </div>
         <?php endif; ?>
     </div>
 </div>
+<?php if ($tab !== 'overview' && in_array($tab, $finance_tabs_with_group_filter, true)) : ?>
+<script type="text/javascript">
+jQuery(function ($) {
+    var financeCourseGroups = <?php echo wp_json_encode($finance_course_groups_map, JSON_UNESCAPED_UNICODE); ?>;
+    var selectedGroup = <?php echo wp_json_encode($filter_group, JSON_UNESCAPED_UNICODE); ?>;
+
+    function refreshFinanceGroupField() {
+        var $field = $('#sc-finance-group-field');
+        var $sel = $('#filter_group');
+        if (!$field.length || !$sel.length) {
+            return;
+        }
+        var courseId = parseInt($('#filter_course').val(), 10) || 0;
+        var groups = financeCourseGroups[courseId] || financeCourseGroups[String(courseId)] || [];
+        $sel.find('option').not('[value=""], [value="__none__"]').remove();
+        if (!courseId || !groups.length) {
+            $field.hide();
+            $sel.val('');
+            return;
+        }
+        $field.show();
+        groups.forEach(function (name) {
+            $sel.append($('<option></option>').val(name).text(name));
+        });
+        if (selectedGroup && $sel.find('option[value="' + selectedGroup.replace(/"/g, '\\"') + '"]').length) {
+            $sel.val(selectedGroup);
+        } else {
+            $sel.val('');
+        }
+    }
+
+    $('#filter_course').on('change', function () {
+        selectedGroup = '';
+        refreshFinanceGroupField();
+    });
+    refreshFinanceGroupField();
+});
+</script>
+<?php endif; ?>
 <?php if ($tab !== 'overview' && !empty($finance_chart_config)) : ?>
 <script src="<?php echo esc_url(SC_ASSETS_URL . 'js/vendor/chart.min.js'); ?>"></script>
 <script>

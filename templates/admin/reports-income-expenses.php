@@ -254,12 +254,10 @@ foreach ($months as $month_start) {
 }
 ?>
 
-<div class="wrap">
-    <h1 class="wp-heading-inline">گزارشات باشگاه - درآمد و هزینه‌ها</h1>
-    <hr class="wp-header-end">
-    
-    <!-- فیلتر بازه تاریخی -->
-    <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+<div class="sc-finance-panel postbox sc-finance-reports-filter-panel">
+    <div class="postbox-header"><h2>فیلتر بازه زمانی</h2></div>
+    <div class="inside">
+    <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1 sc-finance-reports-filter-form">
         <input type="hidden" name="page" value="sc-reports-income-expenses">
         <input type="hidden" name="tab" value="overview">
 
@@ -295,21 +293,22 @@ foreach ($months as $month_start) {
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-income-expenses&tab=overview')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
         </p>
     </form>
+    </div>
+</div>
 
-    <p class="description" style="max-width: 960px; margin-bottom: 16px;">
+    <p class="description sc-finance-reports-info-note">
         <strong>کل درآمد</strong> برابر مجموع درآمد <strong>آکادمی</strong> (صورت‌حساب‌های دوره و رویداد با وضعیت پرداخت‌شده یا تأیید پرداخت، بر اساس تاریخ پرداخت)
         و <strong>فروشگاه</strong> (سفارش‌های پرداخت‌شده یا تأییدشده در ووکامرس، بر اساس تاریخ ثبت سفارش) در بازهٔ انتخابی است.
         جعبهٔ آماری پایین، تعداد صورت‌حساب‌های آکادمی مطابق همین قواعد به‌اضافهٔ تعداد سفارش‌های فروشگاه را نشان می‌دهد.
     </p>
     
-    <!-- کارت‌های خلاصه -->
-    <div class="sc-dashboard-stats">
-        <div class="sc-stat-box" >
-            <h3 >کل درآمد</h3>
-            <div>
+    <div class="sc-dashboard-stats sc-finance-reports-stats">
+        <div class="sc-stat-box sc-finance-stat-box sc-finance-stat-box--income">
+            <h3>کل درآمد</h3>
+            <div class="sc-finance-stat-value">
                 <?php echo number_format($total_income, 0, '.', ','); ?> تومان
             </div>
-            <div style="margin-top: 10px; font-size: 14px; color: <?php echo $income_change >= 0 ? '#00a32a' : '#d63638'; ?>;">
+            <div class="sc-finance-stat-trend <?php echo $income_change >= 0 ? 'is-positive' : 'is-negative'; ?>">
                 <?php if ($income_change != 0) : ?>
                     <?php echo $income_change >= 0 ? '↑' : '↓'; ?> 
                     <?php echo number_format(abs($income_change), 1); ?>% 
@@ -320,12 +319,12 @@ foreach ($months as $month_start) {
             </div>
         </div>
         
-        <div class="sc-stat-box" >
-            <h3 >کل هزینه‌ها</h3>
-            <div style="font-size: 24px; font-weight: bold; color: #d63638;">
+        <div class="sc-stat-box sc-finance-stat-box sc-finance-stat-box--expense">
+            <h3>کل هزینه‌ها</h3>
+            <div class="sc-finance-stat-value is-expense">
                 <?php echo number_format($total_expenses, 0, '.', ','); ?> تومان
             </div>
-            <div style="margin-top: 10px; font-size: 14px; color: <?php echo $expenses_change >= 0 ? '#d63638' : '#00a32a'; ?>;">
+            <div class="sc-finance-stat-trend <?php echo $expenses_change >= 0 ? 'is-negative' : 'is-positive'; ?>">
                 <?php if ($expenses_change != 0) : ?>
                     <?php echo $expenses_change >= 0 ? '↑' : '↓'; ?> 
                     <?php echo number_format(abs($expenses_change), 1); ?>% 
@@ -336,12 +335,12 @@ foreach ($months as $month_start) {
             </div>
         </div>
         
-        <div class="sc-stat-box" >
-            <h3 >سود نهایی</h3>
-            <div style="font-size: 24px; font-weight: bold; color: <?php echo $profit >= 0 ? '#00a32a' : '#d63638'; ?>;">
+        <div class="sc-stat-box sc-finance-stat-box sc-finance-stat-box--profit">
+            <h3>سود نهایی</h3>
+            <div class="sc-finance-stat-value <?php echo $profit >= 0 ? 'is-positive' : 'is-negative'; ?>">
                 <?php echo number_format($profit, 0, '.', ','); ?> تومان
             </div>
-            <div style="margin-top: 10px; font-size: 14px; color: <?php echo $profit_change >= 0 ? '#00a32a' : '#d63638'; ?>;">
+            <div class="sc-finance-stat-trend <?php echo $profit_change >= 0 ? 'is-positive' : 'is-negative'; ?>">
                 <?php if ($profit_change != 0) : ?>
                     <?php echo $profit_change >= 0 ? '↑' : '↓'; ?> 
                     <?php echo number_format(abs($profit_change), 1); ?>% 
@@ -352,25 +351,28 @@ foreach ($months as $month_start) {
             </div>
         </div>
         
-        <div class="sc-stat-box" >
-            <h3 >صورت‌حساب آکادمی + سفارش فروشگاه</h3>
-            <div style="font-size: 24px; font-weight: bold; color: #2271b1;">
+        <div class="sc-stat-box sc-finance-stat-box sc-finance-stat-box--count">
+            <h3>صورت‌حساب آکادمی + سفارش فروشگاه</h3>
+            <div class="sc-finance-stat-value is-accent">
                 <?php echo $paid_invoices_count; ?>
             </div>
         </div>
     </div>
     
-    <!-- نمودار میله‌ای -->
-    <div class="incomeExpenses">
-        <h2>نمودار درآمد و هزینه‌ها (6 ماه آخر)</h2>
-        <canvas id="incomeExpensesChart" style="max-height: 400px;"></canvas>
+    <div class="sc-finance-panel postbox sc-finance-chart-panel sc-finance-reports-chart-panel">
+        <div class="postbox-header"><h2>نمودار درآمد و هزینه‌ها (۶ ماه آخر)</h2></div>
+        <div class="inside">
+            <div class="sc-finance-chart-wrap sc-finance-chart-wrap--tall">
+                <canvas id="incomeExpensesChart"></canvas>
+            </div>
+        </div>
     </div>
     
-    <!-- لیست ماهیانه -->
-    <div class="sc-stat-box">
-        <h2>گزارش ماهیانه</h2>
-        <div class="back_attendance_list">
-            <table class="wp-list-table widefat fixed striped">
+    <div class="sc-finance-panel postbox sc-finance-reports-data-panel">
+        <div class="postbox-header"><h2>گزارش ماهیانه</h2></div>
+        <div class="inside">
+        <div class="sc-finance-reports-table-wrap">
+            <table class="wp-list-table widefat fixed striped sc-finance-reports-table">
                 <thead>
                     <tr>
                         <th>ماه</th>
@@ -383,13 +385,13 @@ foreach ($months as $month_start) {
                     <?php foreach ($monthly_data as $month) : ?>
                         <tr>
                             <td><strong><?php echo esc_html($month['month']); ?></strong></td>
-                            <td style="color: #00a32a; font-weight: bold;">
+                            <td class="sc-finance-cell-income">
                                 <?php echo number_format($month['income'], 0, '.', ','); ?> تومان
                             </td>
-                            <td style="color: #d63638; font-weight: bold;">
+                            <td class="sc-finance-cell-expense">
                                 <?php echo number_format($month['expenses'], 0, '.', ','); ?> تومان
                             </td>
-                            <td style="color: <?php echo $month['profit'] >= 0 ? '#00a32a' : '#d63638'; ?>; font-weight: bold;">
+                            <td class="<?php echo $month['profit'] >= 0 ? 'sc-finance-cell-income' : 'sc-finance-cell-expense'; ?>">
                                 <?php echo number_format($month['profit'], 0, '.', ','); ?> تومان
                             </td>
                         </tr>
@@ -397,8 +399,8 @@ foreach ($months as $month_start) {
                 </tbody>
             </table>
         </div>
+        </div>
     </div>
-</div>
 
 <script src="<?php echo esc_url(SC_ASSETS_URL . 'js/vendor/chart.min.js'); ?>"></script>
 <script>
@@ -428,23 +430,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 {
                     label: 'درآمد',
                     data: incomeData,
-                    backgroundColor: 'rgba(0, 163, 42, 0.6)',
-                    borderColor: 'rgba(0, 163, 42, 1)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(109, 52, 255, 0.65)',
+                    borderColor: 'rgba(74, 31, 184, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6
                 },
                 {
                     label: 'هزینه',
                     data: expensesData,
-                    backgroundColor: 'rgba(214, 54, 56, 0.6)',
-                    borderColor: 'rgba(214, 54, 56, 1)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(220, 38, 38, 0.55)',
+                    borderColor: 'rgba(220, 38, 38, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6
                 },
                 {
                     label: 'سود نهایی',
                     data: profitData,
-                    backgroundColor: 'rgba(34, 113, 177, 0.6)',
-                    borderColor: 'rgba(34, 113, 177, 1)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                    borderColor: 'rgba(5, 150, 105, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6
                 }
             ]
         },

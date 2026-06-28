@@ -609,6 +609,10 @@ function sc_get_bulk_course_branch_coaches_map() {
             $map[$cid] = [
                 'chapters' => sc_get_course_chapters($cid),
                 'coaches' => [],
+                'groups' => function_exists('sc_get_bulk_course_groups_map_entry')
+                    ? sc_get_bulk_course_groups_map_entry($cid)
+                    : [],
+                'has_grouping' => function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled($cid),
             ];
         }
         $label = trim((string) $row->first_name . ' ' . (string) $row->last_name);
@@ -638,7 +642,22 @@ function sc_get_bulk_course_branch_coaches_map() {
             $map[$cid] = [
                 'chapters' => $chapters,
                 'coaches' => [],
+                'groups' => function_exists('sc_get_bulk_course_groups_map_entry')
+                    ? sc_get_bulk_course_groups_map_entry($cid)
+                    : [],
+                'has_grouping' => function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled($cid),
             ];
+        }
+    }
+
+    foreach ($map as $cid => $entry) {
+        if (!isset($entry['groups'])) {
+            $map[$cid]['groups'] = function_exists('sc_get_bulk_course_groups_map_entry')
+                ? sc_get_bulk_course_groups_map_entry((int) $cid)
+                : [];
+        }
+        if (!isset($entry['has_grouping'])) {
+            $map[$cid]['has_grouping'] = function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled((int) $cid);
         }
     }
 
@@ -761,45 +780,140 @@ function sc_parse_member_course_assignments_from_post() {
 }
 
 /**
- * Parse course selection value (course_id or course_id|chapter_name).
+ * Parse course selection value (course_id|chapter_name|group_name).
  *
- * @return array{course_id:int,chapter_name:string}
+ * @return array{course_id:int,chapter_name:string,group_name:string}
  */
 function sc_attendance_course_selection_parts($raw) {
     $raw = sanitize_text_field((string) $raw);
     if ($raw === '') {
-        return ['course_id' => 0, 'chapter_name' => ''];
+        return ['course_id' => 0, 'chapter_name' => '', 'group_name' => ''];
     }
 
-    $pipe_pos = strpos($raw, '|');
-    if ($pipe_pos === false) {
-        return ['course_id' => absint($raw), 'chapter_name' => ''];
+    $parts = explode('|', $raw, 3);
+    $course_id = absint($parts[0] ?? 0);
+    $chapter_name = isset($parts[1]) ? sanitize_text_field((string) $parts[1]) : '';
+    $group_name = isset($parts[2]) ? sanitize_text_field((string) $parts[2]) : '';
+
+    if (count($parts) === 1) {
+        return ['course_id' => $course_id, 'chapter_name' => '', 'group_name' => ''];
+    }
+    if (count($parts) === 2 && strpos($raw, '|') !== false) {
+        return ['course_id' => $course_id, 'chapter_name' => $chapter_name, 'group_name' => ''];
     }
 
     return [
-        'course_id' => absint(substr($raw, 0, $pipe_pos)),
-        'chapter_name' => sanitize_text_field(substr($raw, $pipe_pos + 1)),
+        'course_id' => $course_id,
+        'chapter_name' => $chapter_name,
+        'group_name' => $group_name,
     ];
 }
 
-function sc_attendance_course_option_value($course_id, $chapter_name = '') {
+function sc_attendance_course_option_value($course_id, $chapter_name = '', $group_name = '') {
     $course_id = absint($course_id);
     $chapter_name = sanitize_text_field((string) $chapter_name);
-    if ($chapter_name === '') {
+    $group_name = sanitize_text_field((string) $group_name);
+    if ($chapter_name === '' && $group_name === '') {
         return (string) $course_id;
     }
 
-    return $course_id . '|' . $chapter_name;
+    return $course_id . '|' . $chapter_name . '|' . $group_name;
 }
 
-function sc_attendance_course_option_label($title, $chapter_name = '') {
+function sc_attendance_course_option_label($title, $chapter_name = '', $group_name = '') {
     $title = (string) $title;
     $chapter_name = sanitize_text_field((string) $chapter_name);
-    if ($chapter_name === '') {
-        return $title;
+    $group_name = sanitize_text_field((string) $group_name);
+    $label = $title;
+    if ($chapter_name !== '') {
+        $label .= ' — ' . $chapter_name;
+    }
+    if ($group_name !== '') {
+        $label .= ' — گروه: ' . $group_name;
     }
 
-    return $title . ' — ' . $chapter_name;
+    return $label;
+}
+
+/**
+ * SQL WHERE fragment for attendance member list by selected group.
+ *
+ * @return array{sql:string,args:array<int,mixed>}
+ */
+function sc_attendance_member_group_filter_sql($selected_group_name) {
+    $selected_group_name = sanitize_text_field((string) $selected_group_name);
+    if ($selected_group_name === '') {
+        return ['sql' => '', 'args' => []];
+    }
+
+    return [
+        'sql' => " AND (COALESCE(mc.group_name, '') = '' OR mc.group_name = %s)",
+        'args' => [$selected_group_name],
+    ];
+}
+
+/**
+ * Build flat course options for attendance dropdowns.
+ *
+ * @param array<int,object> $courses
+ * @return array<int,array{value:string,label:string,course_type:string,search:string,course_id:int}>
+ */
+function sc_attendance_build_course_dropdown_options($courses) {
+    $options = [];
+
+    foreach ((array) $courses as $course) {
+        $course_id = isset($course->id) ? (int) $course->id : 0;
+        if (!$course_id) {
+            continue;
+        }
+        $title = isset($course->title) ? (string) $course->title : ('#' . $course_id);
+        $course_type = function_exists('sc_normalize_attendance_course_type')
+            ? sc_normalize_attendance_course_type($course->course_type ?? 'group')
+            : 'group';
+        $chapter_from_row = isset($course->chapter_name) ? (string) $course->chapter_name : '';
+
+        if (function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled($course_id)) {
+            $groups = function_exists('sc_get_course_groups') ? sc_get_course_groups($course_id) : [];
+            if (empty($groups)) {
+                $value = sc_attendance_course_option_value($course_id, $chapter_from_row, '');
+                $label = sc_attendance_course_option_label($title, $chapter_from_row, '');
+                $options[] = [
+                    'value' => $value,
+                    'label' => $label,
+                    'course_type' => $course_type,
+                    'search' => strtolower($label . ' ' . $course_id),
+                    'course_id' => $course_id,
+                ];
+                continue;
+            }
+            foreach ($groups as $grow) {
+                $gitem = function_exists('sc_format_course_group_item') ? sc_format_course_group_item($grow) : ['name' => (string) $grow->group_name, 'chapter_name' => '', 'coach_id' => 0];
+                $chapter = $gitem['chapter_name'] !== '' ? $gitem['chapter_name'] : $chapter_from_row;
+                $value = sc_attendance_course_option_value($course_id, $chapter, $gitem['name']);
+                $label = sc_attendance_course_option_label($title, $chapter, $gitem['name']);
+                $options[] = [
+                    'value' => $value,
+                    'label' => $label,
+                    'course_type' => $course_type,
+                    'search' => strtolower($label . ' ' . $course_id . ' ' . $gitem['name']),
+                    'course_id' => $course_id,
+                ];
+            }
+            continue;
+        }
+
+        $value = sc_attendance_course_option_value($course_id, $chapter_from_row, '');
+        $label = sc_attendance_course_option_label($title, $chapter_from_row, '');
+        $options[] = [
+            'value' => $value,
+            'label' => $label,
+            'course_type' => $course_type,
+            'search' => strtolower($label . ' ' . $course_id),
+            'course_id' => $course_id,
+        ];
+    }
+
+    return $options;
 }
 
 /**

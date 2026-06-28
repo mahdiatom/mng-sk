@@ -60,6 +60,8 @@ if ($course && isset($_GET['course_id'])) {
             $course_group_rows[] = [
                 'name' => isset($grow->group_name) ? (string) $grow->group_name : '',
                 'description' => isset($grow->description) ? (string) $grow->description : '',
+                'chapter_name' => isset($grow->chapter_name) ? (string) $grow->chapter_name : '',
+                'coach_id' => isset($grow->coach_id) ? (int) $grow->coach_id : 0,
             ];
         }
     }
@@ -73,7 +75,7 @@ if ($course && isset($_GET['course_id'])) {
     }
 }
 if (empty($course_group_rows)) {
-    $course_group_rows = [['name' => '', 'description' => '']];
+    $course_group_rows = [['name' => '', 'description' => '', 'chapter_name' => '', 'coach_id' => 0]];
 }
 global $wpdb;
 $chapter_table = $wpdb->prefix . 'sc_chapter_categories';
@@ -513,16 +515,41 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                             <div id="sc-course-groups-tbody" class="sc-course-group-list">
                                 <?php
                                 if (!isset($course_group_rows) || !is_array($course_group_rows) || empty($course_group_rows)) {
-                                    $course_group_rows = [['name' => '', 'description' => '']];
+                                    $course_group_rows = [['name' => '', 'description' => '', 'chapter_name' => '', 'coach_id' => 0]];
                                 }
                                 foreach ($course_group_rows as $gi => $grow) :
                                     $gname = isset($grow['name']) ? (string) $grow['name'] : '';
                                     $gdesc = isset($grow['description']) ? (string) $grow['description'] : '';
+                                    $gchapter = isset($grow['chapter_name']) ? (string) $grow['chapter_name'] : '';
+                                    $gcoach = isset($grow['coach_id']) ? (int) $grow['coach_id'] : 0;
                                     ?>
                                     <article class="sc-course-group-card sc-course-group-row">
                                         <div class="sc-course-field">
                                             <label class="sc-course-field__label">نام گروه</label>
                                             <input type="text" class="sc-course-input sc-course-group-name" name="course_group_row[<?php echo (int) $gi; ?>][name]" value="<?php echo esc_attr($gname); ?>" placeholder="مثلاً گروه ۱">
+                                        </div>
+                                        <div class="sc-course-field">
+                                            <label class="sc-course-field__label">شعبه</label>
+                                            <select name="course_group_row[<?php echo (int) $gi; ?>][chapter_name]" class="sc-course-input sc-course-group-chapter-select">
+                                                <option value="">انتخاب شعبه (اختیاری)</option>
+                                                <?php foreach ($schedule_chapter_options as $sch_ch) : ?>
+                                                    <option value="<?php echo esc_attr($sch_ch); ?>" <?php selected($gchapter, $sch_ch); ?>><?php echo esc_html($sch_ch); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="sc-course-field">
+                                            <label class="sc-course-field__label">مربی</label>
+                                            <?php $group_coach_ids = $sc_schedule_coach_ids_for_chapter($gchapter); ?>
+                                            <select name="course_group_row[<?php echo (int) $gi; ?>][coach_id]" class="sc-course-input sc-course-group-coach-select">
+                                                <option value="0">انتخاب مربی (اختیاری)</option>
+                                                <?php foreach ($group_coach_ids as $group_coach_id) :
+                                                    if (!isset($sc_coach_labels_for_js[$group_coach_id])) {
+                                                        continue;
+                                                    }
+                                                    ?>
+                                                    <option value="<?php echo (int) $group_coach_id; ?>" <?php selected($gcoach, (int) $group_coach_id); ?>><?php echo esc_html($sc_coach_labels_for_js[$group_coach_id]); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
                                         </div>
                                         <div class="sc-course-field">
                                             <label class="sc-course-field__label">توضیحات</label>
@@ -671,6 +698,10 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                                                     if ($gopt_name === '') {
                                                         continue;
                                                     }
+                                                    if (function_exists('sc_course_group_matches_schedule_row')
+                                                        && !sc_course_group_matches_schedule_row($gopt, $block_chapter, $block_coach)) {
+                                                        continue;
+                                                    }
                                                     ?>
                                                     <option value="<?php echo esc_attr($gopt_name); ?>" <?php selected($block_group, $gopt_name); ?>><?php echo esc_html($gopt_name); ?></option>
                                                 <?php endforeach; ?>
@@ -774,6 +805,8 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
 <script type="text/javascript">
 var scCourseCoachLabels = <?php echo wp_json_encode($sc_coach_labels_for_js, JSON_UNESCAPED_UNICODE); ?>;
 var scCourseCoachBranchMeta = <?php echo wp_json_encode($course_coach_branch_meta_map, JSON_UNESCAPED_UNICODE); ?>;
+var scScheduleChapterOptions = <?php echo wp_json_encode(array_values($schedule_chapter_options), JSON_UNESCAPED_UNICODE); ?>;
+var scCourseCoachAssignments = <?php echo wp_json_encode($course_coach_assignments_map, JSON_UNESCAPED_UNICODE); ?>;
 jQuery(document).ready(function($) {
     // فرمت کردن فیلد قیمت کل دوره
     if ($('#price').length && $('#price_raw').length) {
@@ -943,17 +976,68 @@ jQuery(document).ready(function($) {
         scToggleScheduleGroupColumns();
     });
 
-    function scSerializeCourseGroupsPayload() {
+    function scGetCoachIdsForChapter(chapterName) {
+        var ids = [];
+        if (!chapterName || !scCourseCoachAssignments || !scCourseCoachAssignments[chapterName]) {
+            return ids;
+        }
+        Object.keys(scCourseCoachAssignments[chapterName]).forEach(function (coachId) {
+            ids.push(parseInt(coachId, 10));
+        });
+        return ids.filter(function (id) { return id > 0; });
+    }
+
+    function scBuildCoachSelectOptions(chapterName, selectedCoachId) {
+        var html = '<option value="0">انتخاب مربی (اختیاری)</option>';
+        scGetCoachIdsForChapter(chapterName).forEach(function (coachId) {
+            var label = scCourseCoachLabels[coachId] || scCourseCoachLabels[String(coachId)] || ('مربی #' + coachId);
+            html += '<option value="' + coachId + '"' + (selectedCoachId === coachId ? ' selected' : '') + '>' + label + '</option>';
+        });
+        return html;
+    }
+
+    function scBuildChapterSelectOptions(selectedChapter) {
+        var html = '<option value="">انتخاب شعبه (اختیاری)</option>';
+        (scScheduleChapterOptions || []).forEach(function (ch) {
+            html += '<option value="' + ch + '"' + (selectedChapter === ch ? ' selected' : '') + '>' + ch + '</option>';
+        });
+        return html;
+    }
+
+    function scGetCourseGroupsFromDom() {
         var groups = [];
         $('#sc-course-groups-tbody .sc-course-group-row').each(function () {
             var name = $.trim($(this).find('.sc-course-group-name').val() || '');
             if (name === '') {
                 return;
             }
-            var desc = $.trim($(this).find('input[name*="[description]"]').val() || '');
-            groups.push({ name: name, description: desc });
+            groups.push({
+                name: name,
+                description: $.trim($(this).find('input[name*="[description]"]').val() || ''),
+                chapter_name: String($(this).find('.sc-course-group-chapter-select').val() || ''),
+                coach_id: parseInt($(this).find('.sc-course-group-coach-select').val(), 10) || 0
+            });
         });
-        $('#course_groups_json').val(JSON.stringify(groups));
+        return groups;
+    }
+
+    function scGroupMatchesScheduleRow(group, chapterName, coachId) {
+        chapterName = String(chapterName || '');
+        coachId = parseInt(coachId, 10) || 0;
+        if (chapterName === '' || coachId <= 0) {
+            return false;
+        }
+        if (!group.chapter_name || group.chapter_name !== chapterName) {
+            return false;
+        }
+        if (!group.coach_id || group.coach_id !== coachId) {
+            return false;
+        }
+        return true;
+    }
+
+    function scSerializeCourseGroupsPayload() {
+        $('#course_groups_json').val(JSON.stringify(scGetCourseGroupsFromDom()));
     }
 
     function scReindexCourseGroupRows() {
@@ -965,24 +1049,49 @@ jQuery(document).ready(function($) {
         });
     }
 
-    $('#sc-course-group-add').on('click', function () {
-        var $row = $('<article class="sc-course-group-card sc-course-group-row">' +
+    function scBuildGroupRowHtml() {
+        return '<article class="sc-course-group-card sc-course-group-row">' +
             '<div class="sc-course-field"><label class="sc-course-field__label">نام گروه</label>' +
             '<input type="text" class="sc-course-input sc-course-group-name" name="course_group_row[0][name]" value="" placeholder="مثلاً گروه ۱"></div>' +
+            '<div class="sc-course-field"><label class="sc-course-field__label">شعبه</label>' +
+            '<select name="course_group_row[0][chapter_name]" class="sc-course-input sc-course-group-chapter-select">' +
+            scBuildChapterSelectOptions('') + '</select></div>' +
+            '<div class="sc-course-field"><label class="sc-course-field__label">مربی</label>' +
+            '<select name="course_group_row[0][coach_id]" class="sc-course-input sc-course-group-coach-select">' +
+            scBuildCoachSelectOptions('', 0) + '</select></div>' +
             '<div class="sc-course-field"><label class="sc-course-field__label">توضیحات</label>' +
             '<input type="text" class="sc-course-input" name="course_group_row[0][description]" value="" placeholder="توضیح کوتاه (اختیاری)"></div>' +
             '<button type="button" class="sc-course-pkg-remove sc-course-group-remove" title="حذف گروه">' +
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>' +
-            '</article>');
-        $('#sc-course-groups-tbody').append($row);
+            '</article>';
+    }
+
+    $('#sc-course-group-add').on('click', function () {
+        $('#sc-course-groups-tbody').append($(scBuildGroupRowHtml()));
         scReindexCourseGroupRows();
+        scSyncScheduleGroupSelects();
+    });
+
+    $(document).on('change', '.sc-course-group-chapter-select', function () {
+        var $row = $(this).closest('.sc-course-group-row');
+        var chapter = String($(this).val() || '');
+        $row.find('.sc-course-group-coach-select').html(scBuildCoachSelectOptions(chapter, 0));
+        scSyncScheduleGroupSelects();
+    });
+
+    $(document).on('change', '.sc-course-group-coach-select', function () {
         scSyncScheduleGroupSelects();
     });
 
     $(document).on('click', '.sc-course-group-remove', function () {
         var $body = $('#sc-course-groups-tbody');
         if ($body.find('.sc-course-group-row').length <= 1) {
-            $(this).closest('.sc-course-group-row').find('input').val('');
+            $(this).closest('.sc-course-group-row').find('input, select').val('');
+            $(this).closest('.sc-course-group-row').find('select').each(function () {
+                if ($(this).hasClass('sc-course-group-coach-select')) {
+                    $(this).val('0');
+                }
+            });
             scSyncScheduleGroupSelects();
             return;
         }
@@ -1005,33 +1114,35 @@ jQuery(document).ready(function($) {
         scSyncScheduleGroupSelects();
     });
 
-    function scGetCourseGroupNames() {
-        var names = [];
-        $('#sc-course-groups-tbody .sc-course-group-name').each(function () {
-            var n = $.trim($(this).val() || '');
-            if (n && names.indexOf(n) === -1) {
-                names.push(n);
-            }
-        });
-        return names;
-    }
-
     window.scSyncScheduleGroupSelects = function () {
-        var names = scGetCourseGroupNames();
-        $('.sc-csched-group-select').each(function () {
-            var $sel = $(this);
+        var groups = scGetCourseGroupsFromDom();
+        $('.sc-csched-row').each(function () {
+            var $row = $(this);
+            var chapter = String($row.find('.sc-csched-chapter-select').val() || '');
+            var coachId = parseInt($row.find('.sc-csched-coach-select').val(), 10) || 0;
+            var $sel = $row.find('.sc-csched-group-select');
             var current = String($sel.val() || '');
             $sel.find('option:not(:first)').remove();
-            names.forEach(function (name) {
-                $sel.append($('<option></option>').val(name).text(name));
+            groups.forEach(function (group) {
+                if (scGroupMatchesScheduleRow(group, chapter, coachId)) {
+                    $sel.append($('<option></option>').val(group.name).text(group.name));
+                }
             });
-            if (current && names.indexOf(current) !== -1) {
+            if (current && $sel.find('option[value="' + current.replace(/"/g, '\\"') + '"]').length) {
                 $sel.val(current);
             } else {
                 $sel.val('');
             }
         });
     };
+
+    $(document).on('change', '.sc-csched-chapter-select, .sc-csched-coach-select', function () {
+        var $row = $(this).closest('.sc-csched-row');
+        if ($(this).hasClass('sc-csched-chapter-select')) {
+            scSyncScheduleCoachSelect($row.find('.sc-csched-coach-select'));
+        }
+        scSyncScheduleGroupSelects();
+    });
 
     function scToggleScheduleGroupColumns() {
         var show = $('#has_grouping').is(':checked');
@@ -1614,6 +1725,9 @@ jQuery(document).ready(function($) {
         } else {
             $coachSel.val('0');
         }
+        if (typeof scSyncScheduleGroupSelects === 'function') {
+            scSyncScheduleGroupSelects();
+        }
     }
 
     window.scSyncScheduleSelects = function () {
@@ -1670,10 +1784,6 @@ jQuery(document).ready(function($) {
     $(document).on('change', '.sc-course-coach-assign-cb', function () {
         scSyncScheduleSelects();
         scSyncCoachBranchPricingTable();
-    });
-
-    $(document).on('change', '.sc-csched-chapter-select', function () {
-        scSyncScheduleCoachSelect($(this).closest('.sc-csched-row').find('.sc-csched-coach-select'));
     });
 });
 </script>

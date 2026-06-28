@@ -2115,6 +2115,21 @@ function sc_update_database() {
         update_option('sc_course_groups_v2', '1');
     }
 
+    if (get_option('sc_course_groups_v3', '0') !== '1') {
+        $groups_table = $wpdb->prefix . 'sc_course_groups';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $groups_table)) === $groups_table) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$groups_table` LIKE %s", 'chapter_name'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$groups_table` ADD COLUMN `chapter_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه مرتبط' AFTER `description`");
+            }
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$groups_table` LIKE %s", 'coach_id'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$groups_table` ADD COLUMN `coach_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'مربی مرتبط' AFTER `chapter_name`");
+            }
+        }
+        update_option('sc_course_groups_v3', '1');
+    }
+
     if (function_exists('sc_ensure_course_groups_schema')) {
         sc_ensure_course_groups_schema();
     }

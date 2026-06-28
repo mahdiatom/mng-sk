@@ -2986,12 +2986,14 @@ function sc_admin_add_course_page() {
                 $course_group_rows[] = [
                     'name' => isset($grow->group_name) ? (string) $grow->group_name : '',
                     'description' => isset($grow->description) ? (string) $grow->description : '',
+                    'chapter_name' => isset($grow->chapter_name) ? (string) $grow->chapter_name : '',
+                    'coach_id' => isset($grow->coach_id) ? (int) $grow->coach_id : 0,
                 ];
             }
         }
     }
     if (empty($course_group_rows)) {
-        $course_group_rows = [['name' => '', 'description' => '']];
+        $course_group_rows = [['name' => '', 'description' => '', 'chapter_name' => '', 'coach_id' => 0]];
     }
     include SC_TEMPLATES_ADMIN_DIR . 'course-add.php';
 }
@@ -4342,6 +4344,7 @@ function sc_member_course_activate_one($member_id, $course_id, $course_package_s
 
     $sel_chapter = isset($_POST['course_chapter'][$course_id]) ? sanitize_text_field((string) wp_unslash($_POST['course_chapter'][$course_id])) : '';
     $sel_coach = isset($_POST['course_coach'][$course_id]) ? absint($_POST['course_coach'][$course_id]) : 0;
+    $sel_group = isset($_POST['course_group'][$course_id]) ? sanitize_text_field((string) wp_unslash($_POST['course_group'][$course_id])) : '';
 
     $flags_string = '';
 
@@ -4351,16 +4354,37 @@ function sc_member_course_activate_one($member_id, $course_id, $course_package_s
         $course_id
     ));
 
+    $apply_group_to_assignment = static function ($course_id, array $assignment, $group_name) {
+        if ($group_name === '' || !function_exists('sc_resolve_enrollment_from_course_group')) {
+            return $assignment;
+        }
+        $from_group = sc_resolve_enrollment_from_course_group($course_id, $group_name);
+        if ($from_group['chapter'] !== '') {
+            $assignment['chapter'] = $from_group['chapter'];
+        }
+        if ((int) $from_group['coach_id'] > 0) {
+            $assignment['coach_id'] = (int) $from_group['coach_id'];
+        }
+        return $assignment;
+    };
+
     if ($existing) {
         $existing_row = $wpdb->get_row($wpdb->prepare(
-            "SELECT coach_id, chapter FROM $table_name WHERE id = %d LIMIT 1",
+            "SELECT coach_id, chapter, group_name FROM $table_name WHERE id = %d LIMIT 1",
             $existing
         ));
         $existing_coach_id = $existing_row ? (int) $existing_row->coach_id : 0;
         $existing_chapter = $existing_row && isset($existing_row->chapter) ? (string) $existing_row->chapter : '';
+        $existing_group = $existing_row && isset($existing_row->group_name) ? (string) $existing_row->group_name : '';
         $assignment = function_exists('sc_resolve_member_course_assignment')
             ? sc_resolve_member_course_assignment($course_id, $sel_chapter, $sel_coach, $existing_chapter, $existing_coach_id)
             : ['chapter' => $sel_chapter, 'coach_id' => $sel_coach];
+        if (function_exists('sc_resolve_member_course_group')) {
+            $assignment['group_name'] = sc_resolve_member_course_group($course_id, $sel_group, $existing_group);
+        } else {
+            $assignment['group_name'] = sanitize_text_field($sel_group !== '' ? $sel_group : $existing_group);
+        }
+        $assignment = $apply_group_to_assignment($course_id, $assignment, $assignment['group_name']);
         $upd = [
             'status' => 'active',
             'coach_id' => (int) $assignment['coach_id'],
@@ -4372,6 +4396,10 @@ function sc_member_course_activate_one($member_id, $course_id, $course_package_s
             'updated_at' => current_time('mysql'),
         ];
         $fmt = ['%s', '%d', '%s', '%s', '%s', '%d', '%d', '%s'];
+        if (function_exists('sc_member_course_row_with_group')) {
+            $upd = array_merge($upd, sc_member_course_row_with_group($assignment));
+            $fmt[] = '%s';
+        }
         if ($sf['enrollment_sessions'] === null) {
             $upd['enrollment_sessions'] = null;
             $fmt[] = '%s';
@@ -4384,6 +4412,12 @@ function sc_member_course_activate_one($member_id, $course_id, $course_package_s
         $assignment = function_exists('sc_resolve_member_course_assignment')
             ? sc_resolve_member_course_assignment($course_id, $sel_chapter, $sel_coach, '', 0)
             : ['chapter' => $sel_chapter, 'coach_id' => $sel_coach];
+        if (function_exists('sc_resolve_member_course_group')) {
+            $assignment['group_name'] = sc_resolve_member_course_group($course_id, $sel_group, '');
+        } else {
+            $assignment['group_name'] = sanitize_text_field($sel_group);
+        }
+        $assignment = $apply_group_to_assignment($course_id, $assignment, $assignment['group_name']);
         $insert_row = [
             'member_id' => $member_id,
             'course_id' => $course_id,
@@ -4398,6 +4432,10 @@ function sc_member_course_activate_one($member_id, $course_id, $course_package_s
             'updated_at' => current_time('mysql'),
         ];
         $fmt = ['%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s'];
+        if (function_exists('sc_member_course_row_with_group')) {
+            $insert_row = array_merge($insert_row, sc_member_course_row_with_group($assignment));
+            $fmt[] = '%s';
+        }
         if ($sf['enrollment_sessions'] === null) {
             $insert_row['enrollment_sessions'] = null;
             $fmt[] = '%s';
