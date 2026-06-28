@@ -24,11 +24,13 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
 $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
 ?>
 
-<div class="wrap create_invoice">
+<div class="wrap sc-invoice-add-page-header create_invoice sc-bulk-actions-wrap sc-users-export-wrap">
     <h1 class="wp-heading-inline">ایجاد صورت حساب جدید</h1>
-    <a href="<?php echo admin_url('admin.php?page=sc-invoices'); ?>" class="page-title-action">بازگشت به لیست صورت حساب‌ها</a>
-    
+    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-invoices')); ?>" class="page-title-action">لیست صورت حساب‌ها</a>
     <hr class="wp-header-end">
+    <p class="sc-invoice-add-subtitle">کاربران را فیلتر کنید، پیش‌نمایش بگیرید و صورت‌حساب گروهی ثبت کنید.</p>
+</div>
+<div class="wrap sc-invoice-add-page-body create_invoice sc-bulk-actions-wrap sc-users-export-wrap">
     <?php if (isset($_GET['sc_status']) && $_GET['sc_status'] === 'invoice_add_true') : ?>
         <div class="notice notice-success is-dismissible">
             <p>
@@ -39,23 +41,23 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
         </div>
     <?php elseif (isset($_GET['sc_status']) && $_GET['sc_status'] === 'invoice_add_empty_selection') : ?>
         <div class="notice notice-warning is-dismissible">
-            <p>هیچ کاربری برای صدور صورت حساب انتخاب نشده است. ابتدا فیلتر و پیش نمایش را بررسی کنید.</p>
+            <p>هیچ کاربری برای صدور صورت حساب انتخاب نشده است. ابتدا فیلتر و پیش‌نمایش را بررسی کنید.</p>
         </div>
     <?php elseif (isset($_GET['sc_status']) && $_GET['sc_status'] === 'invoice_add_error') : ?>
         <div class="notice notice-error is-dismissible">
             <p>خطا در ثبت صورت حساب. لطفاً دوباره تلاش کنید.</p>
         </div>
     <?php endif; ?>
-    </div>
-   <div class="wrap create_invoice sc-bulk-actions-wrap">
-    <form method="POST" action="" id="sc-invoice-add-form">
+
+    <form method="POST" action="" id="sc-invoice-add-form" class="sc-invoice-add-form">
         <?php wp_nonce_field('sc_add_invoice', 'sc_invoice_nonce'); ?>
         <div id="sc-invoice-excluded-members-inputs"></div>
-        <div class="sc-users-export-card">
-            <h2>۱) فیلتر کاربران</h2>
-            <div class="sc-row">
+        <div class="sc-invoice-panel sc-invoice-panel--filter sc-finance-panel sc-bulk-panel postbox">
+            <div class="postbox-header"><h2>۱) فیلتر کاربران</h2></div>
+            <div class="inside sc-invoice-panel-fields">
+            <div class="sc-row sc-invoice-field-row">
                 <label for="sc-invoice-target-type">نوع انتخاب</label>
-                <select name="target_type" id="sc-invoice-target-type" style="width: 300px;">
+                <select name="target_type" id="sc-invoice-target-type">
                     <option value="all">همه کاربران</option>
                     <option value="free_users">کاربران آزاد (بدون هیچ دوره تا امروز)</option>
                     <option value="specific">انتخاب کاربران خاص (جستجو)</option>
@@ -67,25 +69,25 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                 </select>
             </div>
 
-            <div class="sc-row">
-                <label for="sc-invoice-member-status" >وضعیت کاربر</label>
-                <select name="member_status" id="sc-invoice-member-status" style="width: 300px;">
+            <div class="sc-row sc-invoice-field-row">
+                <label for="sc-invoice-member-status">وضعیت کاربر</label>
+                <select name="member_status" id="sc-invoice-member-status">
                     <option value="all">همه</option>
                     <option value="active" selected>فقط فعال</option>
                     <option value="inactive">فقط غیرفعال</option>
                 </select>
             </div>
 
-            <div class="sc-row">
-                <label for="sc-invoice-member-type" >دسته بندی بازیکن</label>
-                <select name="member_type" id="sc-invoice-member-type" >
+            <div class="sc-row sc-invoice-field-row">
+                <label for="sc-invoice-member-type">دسته‌بندی بازیکن</label>
+                <select name="member_type" id="sc-invoice-member-type">
                     <option value="all">همه</option>
                     <option value="normal">بازیکن عادی</option>
                     <option value="team">بازیکن تیم</option>
                 </select>
             </div>
 
-            <div class="sc-filter-block" id="sc-invoice-filter-specific">
+            <div class="sc-filter-block sc-invoice-field-row" id="sc-invoice-filter-specific">
                 <label>انتخاب کاربران</label>
                 <div id="sc-invoice-selected-members" class="sc-notification-recipient-tags"></div>
                 <div class="sc-searchable-dropdown sc-notification-recipient-dropdown" id="sc-invoice-member-dropdown">
@@ -116,7 +118,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                 <div id="sc-invoice-member-hidden-inputs"></div>
             </div>
 
-            <div class="sc-filter-block">
+            <div class="sc-filter-block sc-invoice-field-row">
                 <label>استثنا از فیلتر (اختیاری)</label>
                 <div id="sc-invoice-exclude-members" class="sc-notification-recipient-tags"></div>
                 <div class="sc-searchable-dropdown sc-exclude-recipient-dropdown" id="sc-invoice-exclude-dropdown">
@@ -147,7 +149,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                 <p class="description">کاربرانی که اینجا انتخاب شوند، حتی اگر در فیلتر باشند برای آن‌ها صورت‌حساب ثبت نمی‌شود.</p>
             </div>
 
-            <div class="sc-filter-block" id="sc-invoice-filter-course">
+            <div class="sc-filter-block sc-invoice-field-row" id="sc-invoice-filter-course">
                 <label for="sc-invoice-course-ids">دوره ها</label>
                 <select name="course_ids[]" id="sc-invoice-course-ids" multiple size="7">
                     <?php foreach ($courses as $course) : ?>
@@ -156,7 +158,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                 </select>
             </div>
 
-            <div class="sc-filter-block" id="sc-invoice-filter-event">
+            <div class="sc-filter-block sc-invoice-field-row" id="sc-invoice-filter-event">
                 <label for="sc-invoice-event-ids">رویدادها</label>
                 <select name="event_ids[]" id="sc-invoice-event-ids" multiple size="7">
                     <?php foreach ($events as $event) : ?>
@@ -165,7 +167,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                 </select>
             </div>
 
-            <div class="sc-filter-block" id="sc-invoice-filter-team">
+            <div class="sc-filter-block sc-invoice-field-row" id="sc-invoice-filter-team">
                 <label for="sc-invoice-team-names">تیم ها</label>
                 <select name="team_names[]" id="sc-invoice-team-names" multiple size="7">
                     <?php foreach ($teams as $team) : ?>
@@ -174,7 +176,7 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                 </select>
             </div>
 
-            <div class="sc-filter-block" id="sc-invoice-filter-level">
+            <div class="sc-filter-block sc-invoice-field-row" id="sc-invoice-filter-level">
                 <label for="sc-invoice-level-names">سطح ها</label>
                 <select name="level_names[]" id="sc-invoice-level-names" multiple size="7">
                     <?php foreach ($levels as $level) : ?>
@@ -183,63 +185,52 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                 </select>
             </div>
 
-            <p class="submit">
-                <button type="button" class="button button-secondary" id="sc-invoice-preview-btn">پیش نمایش کاربران فیلتر شده</button>
+            <p class="submit sc-invoice-preview-submit">
+                <button type="button" class="button button-secondary" id="sc-invoice-preview-btn">پیش‌نمایش کاربران فیلتر شده</button>
             </p>
-        </div>
-
-        <div class="sc-users-export-card">
-            <h2>۲) پیش نمایش کاربران</h2>
-            <div id="sc-invoice-preview-result" class="sc-bulk-preview-result back_table_list">
-                <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش کاربران فیلتر شده» کلیک کنید.</p>
             </div>
         </div>
 
-        <div class="sc-users-export-card">
-            <h2>۳) اطلاعات صورت حساب</h2>
-            <div class="sc-form-flex">
+        <div class="sc-invoice-panel sc-invoice-panel--preview sc-finance-panel sc-bulk-panel postbox">
+            <div class="postbox-header"><h2>۲) پیش‌نمایش کاربران</h2></div>
+            <div class="inside">
+            <div id="sc-invoice-preview-result" class="sc-bulk-preview-result back_table_list sc-invoice-preview-result">
+                <p class="description">بعد از انتخاب فیلتر، روی «پیش‌نمایش کاربران فیلتر شده» کلیک کنید.</p>
+            </div>
+            </div>
+        </div>
 
+        <div class="sc-invoice-panel sc-invoice-panel--info sc-finance-panel sc-bulk-panel postbox">
+            <div class="postbox-header"><h2>۳) اطلاعات صورت‌حساب</h2></div>
+            <div class="inside sc-invoice-panel-fields">
+            <div class="sc-form-flex sc-invoice-info-fields">
 
-
-    <!-- هزینه: نام + مبلغ -->
-    <div class="sc-form-row">
-
-        <div class="sc-form-field" style="width: 100%;">
-            <label for="expense_name">نام هزینه:</label>
+    <div class="sc-form-row sc-invoice-field-row">
+        <div class="sc-form-field">
+            <label for="expense_name">نام هزینه</label>
             <input type="text"
                    name="expense_name"
                    id="expense_name"
                    value="<?php echo esc_attr(isset($_POST['expense_name']) ? $_POST['expense_name'] : ''); ?>"
-                   class=""
                    placeholder="مثلاً: هزینه ماهانه، هزینه تغذیه و..."
                    required>
         </div>
-
-        <div class="sc-form-field" style="
-    width: 100%;
-">
-            <label for="amount">مبلغ (تومان):</label>
-
+        <div class="sc-form-field">
+            <label for="amount">مبلغ (تومان)</label>
             <input type="text"
                    name="amount"
                    id="amount"
                    value="<?php echo $amount > 0 ? number_format($amount, 0, '.', ',') : ''; ?>"
-                   class=""
                    placeholder="0"
                    required
                    dir="ltr"
                    inputmode="numeric">
-
             <input type="hidden" name="amount_raw" id="amount_raw" value="<?php echo esc_attr($amount); ?>">
         </div>
-
     </div>
 
-
-    <!-- توضیحات -->
-    <div class="sc-form-field sc-full">
-        <label for="invoice_description">توضیحات (اجباری):</label>
-
+    <div class="sc-form-field sc-full sc-invoice-field-row sc-invoice-field-row--full">
+        <label for="invoice_description">توضیحات (اجباری)</label>
         <textarea required
                   name="invoice_description"
                   id="invoice_description"
@@ -247,39 +238,31 @@ $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
                   rows="3"
                   placeholder="توضیحات برای نمایش به کاربر (۲ تا ۴ خط)"
                   ><?php echo esc_textarea(isset($_POST['invoice_description']) ? $_POST['invoice_description'] : ''); ?></textarea>
-
-        <p class="description">در صورت پر کردن، در بخش صورت حساب‌های کاربر نمایش داده می‌شود.</p>
+        <p class="description">در صورت پر کردن، در بخش صورت‌حساب‌های کاربر نمایش داده می‌شود.</p>
     </div>
 
-
-
-    <!-- جریمه -->
-    <div class="sc-form-field sc-full">
+    <div class="sc-form-field sc-full sc-invoice-field-row sc-invoice-field-row--full">
         <label>
             <input type="checkbox" name="disable_penalty" value="1" <?php checked(isset($_POST['disable_penalty'])); ?>>
             این صورت‌حساب شامل جریمه نشود
         </label>
-
-        <p class="description">
-            اگر تیک زده شود، برای این صورت‌حساب هیچ جریمه‌ای محاسبه نخواهد شد.
-        </p>
+        <p class="description">اگر تیک زده شود، برای این صورت‌حساب هیچ جریمه‌ای محاسبه نخواهد شد.</p>
     </div>
 
             </div>
+            </div>
         </div>
-        <div class="sc-users-export-card">
-            <h2>۴) ثبت گروهی</h2>
-            <p class="description">پس از پیش نمایش و کنترل تیک‌ها، برای کاربران انتخاب‌شده صورت حساب ثبت می‌شود.</p>
-        <p class="submit">
-            <input type="submit" name="submit_invoice" class="button button-primary" value="ثبت صورت حساب">
-            <a href="<?php echo admin_url('admin.php?page=sc-invoices'); ?>" class="sc_button">انصراف</a>
-        </p>
+
+        <div class="sc-invoice-panel sc-invoice-panel--submit sc-finance-panel sc-bulk-panel postbox">
+            <div class="postbox-header"><h2>۴) ثبت گروهی</h2></div>
+            <div class="inside">
+            <p class="description">پس از پیش‌نمایش و کنترل تیک‌ها، برای کاربران انتخاب‌شده صورت‌حساب ثبت می‌شود.</p>
+            <p class="submit sc-invoice-add-submit">
+                <input type="submit" name="submit_invoice" class="button button-primary" value="ثبت صورت‌حساب">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-invoices')); ?>" class="button button-secondary">انصراف</a>
+            </p>
+            </div>
         </div>
     </form>
 </div>
-
-
-<style>
-
-</style>
 

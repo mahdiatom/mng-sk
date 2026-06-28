@@ -11,8 +11,11 @@ $level_table = $wpdb->prefix . 'sc_level_categories';
 $teams_list = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name ASC");
 $levels_list = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name ASC");
 ?>
-        <div class="sc-users-export-card sc-notification-bulk-filter-card">
-            <h2>۲) فیلتر مخاطبین</h2>
+        <div class="sc-bale-panel sc-bale-filter-panel sc-users-export-card sc-notification-bulk-filter-card postbox">
+            <div class="postbox-header">
+                <h2>۲) فیلتر مخاطبین</h2>
+            </div>
+            <div class="inside">
             <table class="form-table sc-notification-form-table">
             <tr>
                 <th scope="row">نوع ارسال</th>
@@ -312,15 +315,20 @@ $levels_list = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY na
             </tr>
             <?php endif; ?>
             </table>
-            <p id="sc-bale-preview-submit-wrap" class="submit" style="display:none; margin: 0; padding: 16px 0 0; border-top: 1px solid #f0f0f1;">
+            <p id="sc-bale-preview-submit-wrap" class="submit sc-bale-preview-submit-wrap" style="display:none;">
                 <button type="button" class="button button-secondary" id="sc-bale-preview-btn">پیش‌نمایش مخاطبین</button>
             </p>
+            </div>
         </div>
-        <div id="sc-bale-preview-bulk-cards" style="display:none;">
-            <div class="sc-users-export-card">
-                <h2>۳) پیش‌نمایش مخاطبین فیلترشده</h2>
-                <div id="sc-bale-preview-result" class="sc-bulk-preview-result back_table_list">
-                    <p class="description">بعد از انتخاب فیلتر و حالت ارسال، روی «پیش‌نمایش مخاطبین» کلیک کنید.</p>
+        <div id="sc-bale-preview-bulk-cards" class="sc-bale-preview-section" style="display:none;">
+            <div class="sc-bale-panel sc-bale-preview-panel sc-users-export-card postbox">
+                <div class="postbox-header">
+                    <h2>۳) پیش‌نمایش مخاطبین فیلترشده</h2>
+                </div>
+                <div class="inside">
+                    <div id="sc-bale-preview-result" class="sc-bulk-preview-result back_table_list">
+                        <p class="description">بعد از انتخاب فیلتر و حالت ارسال، روی «پیش‌نمایش مخاطبین» کلیک کنید.</p>
+                    </div>
                 </div>
             </div>
         </div>

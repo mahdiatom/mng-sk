@@ -53,27 +53,26 @@ if ($selected_member_id > 0) {
 }
 ?>
 
-<div class="wrap wrap_wallet_manage_list_uesr">
-    <h1 class="wp-heading-inline">مدیریت شارژ کیف پول</h1>
-    <a href="<?php echo admin_url('admin.php?page=sc-wallet-charge'); ?>" class="page-title-action">شارژ کیف پول</a>
-    <a href="<?php echo admin_url('admin.php?page=sc-wallet-deduct'); ?>" class="page-title-action ">کاهش کیف پول</a>
-    <a href="<?php echo admin_url('admin.php?page=sc-wallet'); ?>" class="page-title-action">لیست تراکنش‌ها</a>
+<div class="wrap sc-wallet-manage-page-header sc-finance-page-header wrap_wallet_manage_list_uesr">
+    <h1 class="wp-heading-inline">مدیریت کیف پول بازیکنان</h1>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-wallet-charge')); ?>" class="page-title-action">شارژ کیف پول</a>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-wallet-deduct')); ?>" class="page-title-action">کاهش کیف پول</a>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-wallet')); ?>" class="page-title-action">لیست تراکنش‌ها</a>
     <hr class="wp-header-end">
+    <p class="sc-wallet-manage-subtitle">بازیکن را انتخاب کنید تا موجودی و تاریخچه تراکنش‌ها نمایش داده شود.</p>
 </div>
-<div class="wrap"  >
-    <div >
-        <!-- ستون سمت راست: لیست کاربران -->
-        <div>
-            <div class="postbox" style="margin-top: 0;">
-                <div class="postbox-header">
-                    <h2 class="filter_head_player">لیست کاربران</h2>
-                </div>
-                <div class="inside" style="padding: 15px;">
-                    <p style="margin-bottom: 10px;"><label for="member_id">کاربر:</label></p>
-                    <div class="sc-searchable-dropdown" style="width: 100%;">
+<div class="wrap sc-wallet-manage-page-body sc-finance-page-body">
+    <div class="sc-wallet-manage-layout">
+        <div class="sc-wallet-manage-sidebar">
+            <div class="sc-wallet-panel sc-finance-panel postbox">
+                <div class="postbox-header"><h2>انتخاب بازیکن</h2></div>
+                <div class="inside">
+                    <div class="sc-wallet-field-row">
+                        <label for="member_id">بازیکن</label>
+                    <div class="sc-searchable-dropdown sc-wallet-member-dropdown">
                         <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>">
-                        <div class="sc-dropdown-toggle" style="width: 100%;">
-                            <span class="sc-dropdown-placeholder" <?php if ($selected_member_id) echo 'style="display:none"'; ?>>انتخاب کاربر</span>
+                        <div class="sc-dropdown-toggle">
+                            <span class="sc-dropdown-placeholder" <?php if ($selected_member_id) echo 'style="display:none"'; ?>>انتخاب بازیکن</span>
                             <span class="sc-dropdown-selected" <?php if (!$selected_member_id) echo 'style="display:none"'; ?>>
                                 <?php
                                 if ($selected_member_id > 0) {
@@ -88,7 +87,7 @@ if ($selected_member_id > 0) {
                             </span>
                             <span class="sc-dropdown-arrow">▼</span>
                         </div>
-                        <div class="sc-dropdown-menu" style="width: 100%; max-height: 400px; overflow-y: auto;">
+                        <div class="sc-dropdown-menu">
                             <div class="sc-dropdown-search">
                                 <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
                             </div>
@@ -113,35 +112,26 @@ if ($selected_member_id > 0) {
                             </div>
                         </div>
                     </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ستون سمت چپ: اطلاعات کاربر و تاریخچه -->
-        <div>
+        <div class="sc-wallet-manage-main">
             <?php if ($selected_member_id > 0 && $member_info) : ?>
-                <!-- کارت موجودی -->
-                <div class="postbox" style="margin-top: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
-                    <div class="inside" style="padding: 20px; color: white;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">موجودی کیف پول</div>
-                                <div style="font-size: 36px; font-weight: 700; line-height: 1.2;">
-                                    <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> <span style="font-size: 20px; font-weight: 400;">تومان</span>
-                                </div>
-                            </div>
-                            <div style="font-size: 60px; opacity: 0.2;">💳</div>
+                <div class="sc-wallet-balance-card sc-finance-panel postbox">
+                    <div class="inside sc-wallet-balance-inner">
+                        <div class="sc-wallet-balance-label">موجودی کیف پول</div>
+                        <div class="sc-wallet-balance-amount">
+                            <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> <span>تومان</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- اطلاعات کاربر -->
-                <div class="postbox">
-                    <div class="postbox-header">
-                        <h2 class="filter_head_player">اطلاعات کاربر</h2>
-                    </div>
+                <div class="sc-wallet-panel sc-finance-panel postbox">
+                    <div class="postbox-header"><h2>اطلاعات بازیکن</h2></div>
                     <div class="inside">
-                        <table class="form-table">
+                        <table class="form-table sc-wallet-member-info-table">
                             <tr>
                                 <th scope="row" style="width: 180px;">نام و نام خانوادگی:</th>
                                 <td><strong><?php echo esc_html($member_info->first_name . ' ' . $member_info->last_name); ?></strong></td>
@@ -156,30 +146,26 @@ if ($selected_member_id > 0) {
                             </tr>
                         </table>
                         
-                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
-                            <a href="<?php echo admin_url('admin.php?page=sc-wallet-charge&member_id=' . $selected_member_id); ?>" class="button button-primary sc_button" style="padding: 10px;">شارژ کیف پول</a>
-                            <a href="<?php echo admin_url('admin.php?page=sc-wallet-deduct&member_id=' . $selected_member_id); ?>" class="button sc_button" style="padding: 10px;">کاهش کیف پول</a>
-                            <a href="<?php echo admin_url('admin.php?page=sc-wallet&filter_member=' . $selected_member_id); ?>" class="button sc_button" style="padding: 10px;">مشاهده تمام تراکنش‌ها</a>
+                        <div class="sc-wallet-member-actions">
+                            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-wallet-charge&member_id=' . $selected_member_id)); ?>" class="button button-primary">شارژ کیف پول</a>
+                            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-wallet-deduct&member_id=' . $selected_member_id)); ?>" class="button button-secondary">کاهش کیف پول</a>
+                            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-wallet&filter_member=' . $selected_member_id)); ?>" class="button button-secondary">مشاهده تراکنش‌ها</a>
                         </div>
                     </div>
                 </div>
                 
-                <!-- لیست تراکنش‌ها -->
-                 
-                <div class="postbox">
-                    <div class="postbox-header" style="display: flex; align-items: center; justify-content: space-between;">
-                        <h2 class="filter_head_player" style="margin: 0;">تاریخچه تراکنش‌ها</h2>
+                <div class="sc-wallet-panel sc-finance-panel postbox">
+                    <div class="postbox-header sc-wallet-transactions-header">
+                        <h2>تاریخچه تراکنش‌ها</h2>
                         <?php
                         // لینک خروجی اکسل برای تراکنش‌های همین کاربر
                         $member_export_url = admin_url('admin.php?page=sc-wallet&sc_export=excel&export_type=wallet_transactions');
                         $member_export_url = add_query_arg('filter_member', $selected_member_id, $member_export_url);
                         $member_export_url = wp_nonce_url($member_export_url, 'sc_export_excel');
                         ?>
-                        <a href="<?php echo esc_url($member_export_url); ?>" class="button_export button button-secondary" >
-                            📊 خروجی Excel این کاربر
-                        </a>
+                        <a href="<?php echo esc_url($member_export_url); ?>" class="button button-secondary button_export">خروجی Excel</a>
                     </div>
-                    <div class="inside" style="padding: 0;">
+                    <div class="inside sc-wallet-transactions-inside">
                         <?php if (!empty($member_transactions)) : ?>
                             <div class="back_table_list">
                             <table class="wp-list-table widefat fixed striped" style="margin: 0;">
@@ -280,35 +266,17 @@ if ($selected_member_id > 0) {
                     </div>
                 </div>
             <?php else : ?>
-                <div class="postbox" style="margin-top: 0;">
-                    <div class="inside" style="padding: 30px; text-align: center;">
-                        <div style="font-size: 48px; opacity: 0.3; margin-bottom: 15px;">👤</div>
-                        <h2 style="margin: 0 0 10px 0; color: #666;">کاربری انتخاب نشده است</h2>
-                        <p style="color: #999; margin: 0;">لطفاً یک کاربر را از لیست سمت راست انتخاب کنید تا اطلاعات و تاریخچه تراکنش‌هایش نمایش داده شود.</p>
+                <div class="sc-wallet-panel sc-finance-panel postbox sc-wallet-empty-state">
+                    <div class="inside">
+                        <div class="sc-wallet-empty-icon">👤</div>
+                        <h2>بازیکنی انتخاب نشده است</h2>
+                        <p>از پنل کنار، یک بازیکن انتخاب کنید تا موجودی و تاریخچه تراکنش‌ها نمایش داده شود.</p>
                     </div>
                 </div>
             <?php endif; ?>
         </div>
     </div>
-    </div>
 </div>
-
-<style>
-@media (max-width: 1200px) {
-    .wrap > div[style*="grid-template-columns"] {
-        grid-template-columns: 1fr !important;
-    }
-}
-
-.postbox table.wp-list-table tbody tr {
-    transition: background-color 0.15s ease, transform 0.1s ease;
-}
-
-.postbox table.wp-list-table tbody tr:hover {
-    background-color: #f7f7f7;
-    transform: translateY(-1px);
-}
-</style>
 
 <script>
 jQuery(document).ready(function($) {

@@ -1,10 +1,4 @@
-.sc-bulk-actions-wrap .sc-users-export-card {
-    border-radius: 10px;
-}
-
-.sc-bulk-actions-wrap .sc-users-export-card h2 {
-    margin-bottom: 14px;
-}
+/* کارهای دسته‌جمعی — تکمیل استایل (اصلی در admin.css) */
 
 .sc-bulk-preview-result {
     min-height: 80px;
@@ -13,20 +7,13 @@
 .sc-bulk-preview-meta {
     margin-bottom: 10px;
     font-size: 14px;
+    color: #4a1fb8;
+    font-weight: 600;
 }
 
 .sc-bulk-preview-table th,
 .sc-bulk-preview-table td {
     vertical-align: middle;
-}
-
-.sc-action-extra {
-    display: none;
-    margin-top: 12px;
-    padding: 10px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    background: #fafcff;
 }
 
 #sc-bulk-preview-btn[disabled] {
@@ -37,17 +24,7 @@
 .sc-bulk-report-notice .sc-bulk-report-block {
     margin-top: 12px;
     padding: 10px 12px;
-    border-radius: 8px;
-}
-
-.sc-bulk-report-notice .sc-bulk-report-success {
-    background: #edfaef;
-    border: 1px solid #00a32a;
-}
-
-.sc-bulk-report-notice .sc-bulk-report-fail {
-    background: #fcf0f1;
-    border: 1px solid #d63638;
+    border-radius: 10px;
 }
 
 .sc-bulk-report-notice .sc-bulk-report-list {
@@ -62,16 +39,11 @@
     margin-top: 10px;
 }
 
-.sc-bulk-activate-course-block {
-    padding: 12px 14px;
-    border: 1px solid #c3d9e8;
-    border-radius: 8px;
-    background: #f0f6fc;
-}
-
 .sc-bulk-activate-course-title {
     margin-bottom: 10px;
     font-size: 14px;
+    font-weight: 700;
+    color: #4a1fb8;
 }
 
 .sc-bulk-activate-chapter-field,

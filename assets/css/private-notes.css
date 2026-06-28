@@ -1,4 +1,5 @@
-.sc-private-notes-wrap .sc-private-note-form {
+/* Admin add form — base; modern purple theme on add page is in admin.css */
+.sc-private-notes-wrap:not(.sc-private-note-add-page-body):not(.sc-private-note-add-page-header) .sc-private-note-form {
     background: #fff;
     border: 1px solid #dcdcde;
     border-radius: 8px;

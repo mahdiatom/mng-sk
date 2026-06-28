@@ -25,9 +25,12 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
     : array();
 ?>
 
-<div class="wrap sc-users-export-wrap sc-bulk-actions-wrap">
-    <h1>کار های دست جمعی</h1>
-    <p class="description">کاربران را فیلتر کنید، پیش نمایش بگیرید و عملیات گروهی را با تایید نهایی اجرا کنید.</p>
+<div class="wrap sc-bulk-actions-page-header sc-users-export-wrap sc-bulk-actions-wrap">
+    <h1 class="wp-heading-inline">کارهای دسته‌جمعی</h1>
+    <hr class="wp-header-end">
+    <p class="sc-bulk-actions-subtitle">کاربران را فیلتر کنید، پیش‌نمایش بگیرید و عملیات گروهی را با تأیید نهایی اجرا کنید.</p>
+</div>
+<div class="wrap sc-bulk-actions-page-body sc-users-export-wrap sc-bulk-actions-wrap">
 
     <?php
     $sc_bulk_report_data = null;
@@ -95,14 +98,17 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
         </div>
     <?php endif; ?>
 
-    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="sc-bulk-actions-form" data-course-coaches="<?php echo esc_attr(wp_json_encode($course_coaches_map)); ?>">
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="sc-bulk-actions-form" class="sc-bulk-actions-form" data-course-coaches="<?php echo esc_attr(wp_json_encode($course_coaches_map)); ?>">
         <?php wp_nonce_field('sc_bulk_actions_execute_action', 'sc_bulk_actions_execute_nonce'); ?>
         <input type="hidden" name="action" value="sc_bulk_actions_execute">
         <div id="sc-bulk-excluded-members-inputs"></div>
 
-        <div class="sc-users-export-card">
-            <h2>۱) فیلتر کاربران</h2>
-            <div class="sc-row">
+        <div class="sc-bulk-panel sc-bulk-panel--filter sc-users-export-card postbox">
+            <div class="postbox-header">
+                <h2>۱) فیلتر کاربران</h2>
+            </div>
+            <div class="inside sc-bulk-panel-fields">
+            <div class="sc-row sc-bulk-field-row">
                 <label for="sc-target-type">نوع انتخاب</label>
                 <select name="target_type" id="sc-target-type">
                     <option value="all">همه کاربران</option>
@@ -116,7 +122,7 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 </select>
             </div>
 
-            <div class="sc-row">
+            <div class="sc-row sc-bulk-field-row">
                 <label for="sc-member-status">وضعیت کاربر</label>
                 <select name="member_status" id="sc-member-status">
                     <option value="all">همه</option>
@@ -125,8 +131,8 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 </select>
             </div>
 
-            <div class="sc-row">
-                <label for="sc-member-type">دسته بندی بازیکن</label>
+            <div class="sc-row sc-bulk-field-row">
+                <label for="sc-member-type">دسته‌بندی بازیکن</label>
                 <select name="member_type" id="sc-member-type">
                     <option value="all">همه</option>
                     <option value="normal">بازیکن عادی</option>
@@ -134,7 +140,7 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 </select>
             </div>
 
-            <div class="sc-filter-block" id="sc-filter-specific">
+            <div class="sc-filter-block sc-bulk-field-row" id="sc-filter-specific">
                 <label>انتخاب کاربران</label>
                 <div id="sc-selected-members-count" class="sc-selected-count">0 کاربر انتخاب شده</div>
                 <div id="sc-selected-members" class="sc-selected-tags"></div>
@@ -165,8 +171,8 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 <div id="sc-member-hidden-inputs"></div>
             </div>
 
-            <div class="sc-filter-block" id="sc-filter-course">
-                <label for="sc-course-ids">دوره ها</label>
+            <div class="sc-filter-block sc-bulk-field-row" id="sc-filter-course">
+                <label for="sc-course-ids">دوره‌ها</label>
                 <select name="course_ids[]" id="sc-course-ids" multiple size="7">
                     <?php foreach ($courses as $course) : ?>
                         <option value="<?php echo (int) $course->id; ?>"><?php echo esc_html($course->title); ?></option>
@@ -174,7 +180,7 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 </select>
             </div>
 
-            <div class="sc-filter-block" id="sc-filter-event">
+            <div class="sc-filter-block sc-bulk-field-row" id="sc-filter-event">
                 <label for="sc-event-ids">رویدادها</label>
                 <select name="event_ids[]" id="sc-event-ids" multiple size="7">
                     <?php foreach ($events as $event) : ?>
@@ -183,8 +189,8 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 </select>
             </div>
 
-            <div class="sc-filter-block" id="sc-filter-team">
-                <label for="sc-team-names">تیم ها</label>
+            <div class="sc-filter-block sc-bulk-field-row" id="sc-filter-team">
+                <label for="sc-team-names">تیم‌ها</label>
                 <select name="team_names[]" id="sc-team-names" multiple size="7">
                     <?php foreach ($teams as $team) : ?>
                         <option value="<?php echo esc_attr($team->name); ?>"><?php echo esc_html($team->name); ?></option>
@@ -192,8 +198,8 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 </select>
             </div>
 
-            <div class="sc-filter-block" id="sc-filter-level">
-                <label for="sc-level-names">سطح ها</label>
+            <div class="sc-filter-block sc-bulk-field-row" id="sc-filter-level">
+                <label for="sc-level-names">سطح‌ها</label>
                 <select name="level_names[]" id="sc-level-names" multiple size="7">
                     <?php foreach ($levels as $level) : ?>
                         <option value="<?php echo esc_attr($level->name); ?>"><?php echo esc_html($level->name); ?></option>
@@ -201,21 +207,29 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 </select>
             </div>
 
-            <p class="submit">
-                <button type="button" class="button button-secondary" id="sc-bulk-preview-btn">پیش نمایش کاربران فیلتر شده</button>
+            <p class="submit sc-bulk-preview-submit">
+                <button type="button" class="button button-secondary" id="sc-bulk-preview-btn">پیش‌نمایش کاربران فیلترشده</button>
             </p>
-        </div>
-
-        <div class="sc-users-export-card">
-            <h2>۲) پیش نمایش کاربران</h2>
-            <div id="sc-bulk-preview-result" class="sc-bulk-preview-result back_table_list">
-                <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش کاربران فیلتر شده» کلیک کنید.</p>
             </div>
         </div>
 
-        <div class="sc-users-export-card">
-            <h2>۳) انتخاب عملیات گروهی</h2>
-            <div class="sc-row">
+        <div class="sc-bulk-panel sc-bulk-panel--preview sc-users-export-card postbox">
+            <div class="postbox-header">
+                <h2>۲) پیش‌نمایش کاربران</h2>
+            </div>
+            <div class="inside">
+            <div id="sc-bulk-preview-result" class="sc-bulk-preview-result back_table_list">
+                <p class="description">بعد از انتخاب فیلتر، روی «پیش‌نمایش کاربران فیلترشده» کلیک کنید.</p>
+            </div>
+            </div>
+        </div>
+
+        <div class="sc-bulk-panel sc-bulk-panel--action sc-users-export-card postbox">
+            <div class="postbox-header">
+                <h2>۳) انتخاب عملیات گروهی</h2>
+            </div>
+            <div class="inside sc-bulk-panel-fields">
+            <div class="sc-row sc-bulk-field-row">
                 <label for="sc-bulk-action-type">نوع عملیات</label>
                 <select name="bulk_action_type" id="sc-bulk-action-type" required>
                     <option value="">انتخاب کنید</option>
@@ -231,14 +245,14 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                     <option value="course_activate">فعال کردن دوره</option>
                     <option value="course_deactivate">غیرفعال کردن دوره</option>
                     <option value="course_set_flag">افزودن فلگ دوره</option>
-                    <option value="assign_course_coach">اختصاص بازیکن های انتخاب شده به مربی دوره</option>
-                    <option value="remaining_sessions_adjust">تغییر جلسات باقی مانده</option>
-                    <option value="delete_members">حذف بازیکن ها</option>
+                    <option value="assign_course_coach">اختصاص بازیکن‌های انتخاب‌شده به مربی دوره</option>
+                    <option value="remaining_sessions_adjust">تغییر جلسات باقی‌مانده</option>
+                    <option value="delete_members">حذف بازیکن‌ها</option>
                 </select>
             </div>
 
             <div id="sc-action-change-team" class="sc-action-extra">
-                <div class="sc-row">
+                <div class="sc-row sc-bulk-field-row">
                     <label for="sc-action-team-player">تیم جدید</label>
                     <select name="action_team_player" id="sc-action-team-player">
                         <option value="">انتخاب تیم</option>
@@ -250,7 +264,7 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
             </div>
 
             <div id="sc-action-change-level" class="sc-action-extra">
-                <div class="sc-row">
+                <div class="sc-row sc-bulk-field-row">
                     <label for="sc-action-skill-level">سطح جدید</label>
                     <select name="action_skill_level" id="sc-action-skill-level">
                         <option value="">انتخاب سطح</option>
@@ -262,7 +276,7 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
             </div>
 
             <div id="sc-action-change-type" class="sc-action-extra">
-                <div class="sc-row">
+                <div class="sc-row sc-bulk-field-row">
                     <label for="sc-action-member-type">نوع بازیکن</label>
                     <select name="action_member_type" id="sc-action-member-type">
                         <option value="normal">بازیکن عادی</option>
@@ -272,8 +286,8 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
             </div>
 
             <div id="sc-action-course-common" class="sc-action-extra">
-                <div class="sc-row">
-                    <label for="sc-action-course-ids">دوره های هدف</label>
+                <div class="sc-row sc-bulk-field-row">
+                    <label for="sc-action-course-ids">دوره‌های هدف</label>
                     <select name="action_course_ids[]" id="sc-action-course-ids" multiple size="7">
                         <?php foreach ($courses as $course) : ?>
                             <option value="<?php echo (int) $course->id; ?>"><?php echo esc_html($course->title); ?></option>
@@ -283,14 +297,14 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
             </div>
 
             <div id="sc-action-course-activate-branch" class="sc-action-extra">
-                <p class="description" style="margin-top:0;">برای هر دوره انتخاب‌شده، شعبه و مربی ثبت‌نام را مشخص کنید.</p>
+                <p class="description sc-bulk-action-hint">برای هر دوره انتخاب‌شده، شعبه و مربی ثبت‌نام را مشخص کنید.</p>
                 <div id="sc-action-course-activate-branch-list" class="sc-bulk-activate-branch-list">
                     <p class="description">ابتدا یک یا چند دوره را از لیست «دوره‌های هدف» انتخاب کنید.</p>
                 </div>
             </div>
 
             <div id="sc-action-course-flag" class="sc-action-extra">
-                <div class="sc-row">
+                <div class="sc-row sc-bulk-field-row">
                     <label for="sc-action-course-flag-select">فلگ دوره</label>
                     <select name="action_course_flag" id="sc-action-course-flag-select">
                         <option value="">انتخاب فلگ</option>
@@ -299,11 +313,11 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <p class="description">فلگ انتخابی به فلگ های قبلی اضافه می شود و مقادیر قبلی حذف نمی شوند.</p>
+                <p class="description">فلگ انتخابی به فلگ‌های قبلی اضافه می‌شود و مقادیر قبلی حذف نمی‌شوند.</p>
             </div>
 
             <div id="sc-action-assign-course-coach" class="sc-action-extra">
-                <div class="sc-row">
+                <div class="sc-row sc-bulk-field-row">
                     <label for="sc-assign-course-id">دوره</label>
                     <select name="assign_course_id" id="sc-assign-course-id">
                         <option value="">انتخاب دوره</option>
@@ -312,13 +326,13 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="sc-row">
+                <div class="sc-row sc-bulk-field-row">
                     <label for="sc-assign-chapter-name">شعبه</label>
                     <select name="assign_chapter_name" id="sc-assign-chapter-name">
                         <option value="">ابتدا دوره را انتخاب کنید</option>
                     </select>
                 </div>
-                <div class="sc-row">
+                <div class="sc-row sc-bulk-field-row">
                     <label for="sc-assign-coach-id">مربی دوره</label>
                     <select name="assign_coach_id" id="sc-assign-coach-id">
                         <option value="">ابتدا شعبه را انتخاب کنید</option>
@@ -328,7 +342,7 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
             </div>
 
             <div id="sc-action-remaining-sessions" class="sc-action-extra">
-                <div class="sc-row">
+                <div class="sc-row sc-bulk-field-row">
                     <label for="sc-remaining-sessions-mode">نحوهٔ تغییر جلسات باقی‌مانده</label>
                     <select name="remaining_sessions_mode" id="sc-remaining-sessions-mode">
                         <option value="set">تغییر به مقدار مشخص (همان مقدار ثبت می‌شود)</option>
@@ -336,20 +350,25 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                         <option value="subtract">کاهش به مقدار مشخص (از عدد فعلی کم می‌شود؛ حداقل صفر)</option>
                     </select>
                 </div>
-                <div class="sc-row">
+                <div class="sc-row sc-bulk-field-row">
                     <label for="sc-remaining-sessions-amount">مقدار (عدد صحیح از ۰ به بالا)</label>
                     <input type="number" name="remaining_sessions_amount" id="sc-remaining-sessions-amount" class="small-text" min="0" step="1" inputmode="numeric" placeholder="مثلاً ۳">
                 </div>
-                <p class="description">ابتدا در بالا «دوره‌های هدف» را انتخاب کنید. برای هر بازیکن، فقط ردیف ثبت‌نام همان دوره‌ها به‌روز می‌شود؛ اگر در دوره‌ای ثبت‌نام نداشته باشد در گزارش ناموفق می‌آید.</p>
+                <p class="description">ابتدا در بالا «دوره‌های هدف» را انتخاب کنید. برای هر بازیکن، فقط ردیف ثبت‌نام همان دوره‌ها به‌روز می‌شود.</p>
+            </div>
             </div>
         </div>
 
-        <div class="sc-users-export-card">
-            <h2>۴) تایید و اجرا</h2>
-            <p class="description">قبل از اجرا، پیش نمایش را بررسی کنید. عملیات حذف با تایید نهایی انجام می شود.</p>
-            <p class="submit">
+        <div class="sc-bulk-panel sc-bulk-panel--confirm sc-users-export-card postbox">
+            <div class="postbox-header">
+                <h2>۴) تأیید و اجرا</h2>
+            </div>
+            <div class="inside">
+            <p class="description">قبل از اجرا، پیش‌نمایش را بررسی کنید. عملیات حذف با تأیید نهایی انجام می‌شود.</p>
+            <p class="submit sc-bulk-actions-submit">
                 <button class="button button-primary" type="submit" id="sc-bulk-submit-btn">اجرای عملیات</button>
             </p>
+            </div>
         </div>
     </form>
 </div>

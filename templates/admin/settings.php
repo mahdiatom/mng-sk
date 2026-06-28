@@ -30,13 +30,17 @@ if (function_exists('sc_is_license_active') && !sc_is_license_active()) {
  */
 if ($current_tab === 'license' && function_exists('sc_is_license_active') && !sc_is_license_active()) {
     ?>
-    <div class="wrap sc_setting_section">
-        <h1>تنظیمات SportClub Manager</h1>
-        <nav class="nav-tab-wrapper">
+    <div class="wrap sc-settings-page-header sc-finance-page-header sc_setting_section">
+        <h1 class="wp-heading-inline">تنظیمات باشگاه</h1>
+        <hr class="wp-header-end">
+        <p class="sc-settings-subtitle">پیکربندی جریمه، صورت‌حساب، پیامک، کیف پول و سایر امکانات باشگاه.</p>
+    </div>
+    <div class="wrap sc-settings-page-body sc-finance-page-body sc_setting_section">
+        <nav class="nav-tab-wrapper sc-settings-nav-tabs">
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc_setting&tab=license')); ?>"
                class="nav-tab nav-tab-active">لایسنس</a>
         </nav>
-        <div class="tab-content" style="margin-top: 20px;">
+        <div class="tab-content sc-settings-tab-content">
             <?php include SC_TEMPLATES_ADMIN_DIR . 'settings-tab-license.php'; ?>
         </div>
     </div>
@@ -1114,10 +1118,13 @@ $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
 endif; // پایان بارگذاری تنظیمات (غیر از تب لایسنس)
 ?>
 
-<div class="wrap sc_setting_section" >
-    <h1>تنظیمات SportClub Manager</h1>
-
-    <nav class="nav-tab-wrapper">
+<div class="wrap sc-settings-page-header sc-finance-page-header sc_setting_section">
+    <h1 class="wp-heading-inline">تنظیمات باشگاه</h1>
+    <hr class="wp-header-end">
+    <p class="sc-settings-subtitle">پیکربندی جریمه، صورت‌حساب، پیامک، کیف پول و سایر امکانات باشگاه.</p>
+</div>
+<div class="wrap sc-settings-page-body sc-finance-page-body sc_setting_section">
+    <nav class="nav-tab-wrapper sc-settings-nav-tabs">
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=license'); ?>"
            class="nav-tab <?php echo $current_tab === 'license' ? 'nav-tab-active' : ''; ?>">
             لایسنس
@@ -1213,7 +1220,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
         <?php endif; ?>
     </nav>
 
-    <div class="tab-content" style="margin-top: 20px;">
+    <div class="tab-content sc-settings-tab-content">
         <?php if ($current_tab === 'license') :
             include SC_TEMPLATES_ADMIN_DIR . 'settings-tab-license.php';
         elseif ($current_tab === 'penalty') : ?>
@@ -3605,20 +3612,14 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
             $player_field_rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
             $player_custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
         ?>
-            <style>
-                /* .sc-player-info-settings-wrap{max-width:1100px} */
-                .sc-player-info-card{background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:18px;margin:14px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-                .sc-player-info-card h2{margin:0 0 8px}
-                .sc-player-info-card h3{margin:16px 0 10px}
-                .sc-player-info-table{border-radius:8px;overflow:hidden}
-                .sc-player-custom-field-item{transition:all .2s ease}
-                .sc-player-custom-field-item:hover{box-shadow:0 2px 10px rgba(0,0,0,.06)}
-            </style>
             <div class="sc-player-info-settings-wrap">
-            <form method="POST" action="">
+            <form method="POST" action="" class="sc-player-info-settings-form">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
-                <div class="sc-player-info-card">
-                <table class="form-table">
+
+                <div class="sc-player-info-panel sc-finance-panel postbox">
+                    <div class="postbox-header"><h2>احراز هویت بازیکن</h2></div>
+                    <div class="inside">
+                <table class="form-table sc-player-info-form-table">
                     <tr>
                         <th scope="row">اجبار احراز هویت بازیکن</th>
                         <td>
@@ -3630,14 +3631,16 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         </td>
                     </tr>
                 </table>
+                    </div>
                 </div>
 
-                <div class="sc-player-info-card">
-                <h2 style="margin-top: 24px;">مدیریت فیلدهای پیش‌فرض اطلاعات بازیکن</h2>
-                <p class="description">فقط «کد ملی» و «شماره موبایل بازیکن» همیشه نمایش داده می‌شوند و اجباری هستند.</p>
+                <div class="sc-player-info-panel sc-finance-panel postbox">
+                    <div class="postbox-header"><h2>مدیریت فیلدهای پیش‌فرض</h2></div>
+                    <div class="inside">
+                <p class="description sc-player-info-panel-desc">فقط «کد ملی» و «شماره موبایل بازیکن» همیشه نمایش داده می‌شوند و اجباری هستند.</p>
                 <?php foreach ($player_sections as $section_key => $section_label) : ?>
-                    <h3 style="margin-top: 18px;"><?php echo esc_html($section_label); ?></h3>
-                    <table class="widefat striped sc-player-info-table" >
+                    <h3 class="sc-player-info-section-title"><?php echo esc_html($section_label); ?></h3>
+                    <table class="widefat striped sc-player-info-table">
                         <thead>
                             <tr>
                                 <th>فیلد</th>
@@ -3698,40 +3701,69 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         </tbody>
                     </table>
                 <?php endforeach; ?>
+                    </div>
                 </div>
 
-                <div class="sc-player-info-card">
-                <h2 style="margin-top: 24px;">فیلدهای سفارشی اطلاعات بازیکن</h2>
-                <p class="description">نوع‌های مجاز: متن، عکس و چندانتخابی</p>
-                <div id="sc-player-custom-fields-container">
+                <div class="sc-player-info-panel sc-player-custom-fields-panel sc-finance-panel postbox">
+                    <div class="postbox-header sc-player-custom-fields-header">
+                        <h2>فیلدهای سفارشی اطلاعات بازیکن</h2>
+                        <button type="button" class="button button-secondary" id="sc-add-player-custom-field-btn">+ افزودن فیلد</button>
+                    </div>
+                    <div class="inside">
+                <p class="description sc-player-info-panel-desc">نوع‌های مجاز: متن، عکس و چندانتخابی — فیلدهای سفارشی در فرم اطلاعات بازیکن نمایش داده می‌شوند.</p>
+                <div id="sc-player-custom-fields-container" class="sc-player-custom-fields-container">
                     <?php foreach ($player_custom_fields as $idx => $custom_field) : ?>
-                        <div class="sc-player-custom-field-item" >
-                            <div class="session_portocol">
-                                <input type="text" name="player_custom_fields[<?php echo (int) $idx; ?>][label]" value="<?php echo esc_attr($custom_field['label'] ?? ''); ?>" placeholder="عنوان فیلد" style="min-width:180px;">
-                                <input type="text" name="player_custom_fields[<?php echo (int) $idx; ?>][key]" value="<?php echo esc_attr($custom_field['key'] ?? ''); ?>" placeholder="کلید انگلیسی (اختیاری)" style="min-width:180px;" dir="ltr">
-                                <select name="player_custom_fields[<?php echo (int) $idx; ?>][section]">
-                                    <?php foreach ($player_sections as $sec_key => $sec_label) : ?>
-                                        <option value="<?php echo esc_attr($sec_key); ?>" <?php selected(($custom_field['section'] ?? 'additional'), $sec_key); ?>><?php echo esc_html($sec_label); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <select name="player_custom_fields[<?php echo (int) $idx; ?>][type]" class="sc-player-custom-type">
-                                    <option value="text" <?php selected(($custom_field['type'] ?? 'text'), 'text'); ?>>متن</option>
-                                    <option value="image" <?php selected(($custom_field['type'] ?? ''), 'image'); ?>>عکس</option>
-                                    <option value="multiselect" <?php selected(($custom_field['type'] ?? ''), 'multiselect'); ?>>چند انتخابی</option>
-                                </select>
-                                <input type="text" name="player_custom_fields[<?php echo (int) $idx; ?>][options]" value="<?php echo esc_attr(!empty($custom_field['options']) && is_array($custom_field['options']) ? implode(', ', $custom_field['options']) : ''); ?>" placeholder="گزینه‌ها (با , جدا شود)" class="sc-player-custom-options" style="<?php echo (($custom_field['type'] ?? '') === 'multiselect') ? '' : 'display:none;'; ?>min-width:220px;">
-                                <label><input type="checkbox" name="player_custom_fields[<?php echo (int) $idx; ?>][required]" value="1" <?php checked(!empty($custom_field['required'])); ?>> اجباری</label>
-                                <label><input type="checkbox" name="player_custom_fields[<?php echo (int) $idx; ?>][visible]" value="1" <?php checked(!isset($custom_field['visible']) || !empty($custom_field['visible'])); ?>> نمایش</label>
-                                <button type="button" class="button sc-player-custom-remove" style="color:#b32d2e;">حذف</button>
+                        <div class="sc-player-custom-field-item" data-index="<?php echo (int) $idx; ?>">
+                            <div class="sc-player-custom-field-item-header">
+                                <span class="sc-player-custom-field-badge">فیلد سفارشی <?php echo (int) $idx + 1; ?></span>
+                                <button type="button" class="button button-small sc-player-custom-remove">حذف</button>
+                            </div>
+                            <div class="sc-player-custom-field-grid">
+                                <div class="sc-player-custom-field-row">
+                                    <label>عنوان فیلد</label>
+                                    <input type="text" class="regular-text" name="player_custom_fields[<?php echo (int) $idx; ?>][label]" value="<?php echo esc_attr($custom_field['label'] ?? ''); ?>" placeholder="مثلاً: شماره بیمه">
+                                </div>
+                                <div class="sc-player-custom-field-row">
+                                    <label>کلید انگلیسی</label>
+                                    <input type="text" class="regular-text" name="player_custom_fields[<?php echo (int) $idx; ?>][key]" value="<?php echo esc_attr($custom_field['key'] ?? ''); ?>" placeholder="insurance_no" dir="ltr">
+                                    <p class="description">اختیاری — برای ذخیره در دیتابیس</p>
+                                </div>
+                                <div class="sc-player-custom-field-row">
+                                    <label>بخش نمایش</label>
+                                    <select name="player_custom_fields[<?php echo (int) $idx; ?>][section]" class="sc-player-custom-section">
+                                        <?php foreach ($player_sections as $sec_key => $sec_label) : ?>
+                                            <option value="<?php echo esc_attr($sec_key); ?>" <?php selected(($custom_field['section'] ?? 'additional'), $sec_key); ?>><?php echo esc_html($sec_label); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="sc-player-custom-field-row">
+                                    <label>نوع فیلد</label>
+                                    <select name="player_custom_fields[<?php echo (int) $idx; ?>][type]" class="sc-player-custom-type">
+                                        <option value="text" <?php selected(($custom_field['type'] ?? 'text'), 'text'); ?>>متن</option>
+                                        <option value="image" <?php selected(($custom_field['type'] ?? ''), 'image'); ?>>عکس</option>
+                                        <option value="multiselect" <?php selected(($custom_field['type'] ?? ''), 'multiselect'); ?>>چند انتخابی</option>
+                                    </select>
+                                </div>
+                                <div class="sc-player-custom-field-row sc-player-custom-field-row--options" style="<?php echo (($custom_field['type'] ?? '') === 'multiselect') ? '' : 'display:none;'; ?>">
+                                    <label>گزینه‌ها</label>
+                                    <input type="text" class="regular-text sc-player-custom-options" name="player_custom_fields[<?php echo (int) $idx; ?>][options]" value="<?php echo esc_attr(!empty($custom_field['options']) && is_array($custom_field['options']) ? implode(', ', $custom_field['options']) : ''); ?>" placeholder="گزینه۱, گزینه۲, گزینه۳">
+                                    <p class="description">برای نوع چندانتخابی — با ویرگول جدا کنید</p>
+                                </div>
+                                <div class="sc-player-custom-field-row sc-player-custom-field-row--flags">
+                                    <label>تنظیمات</label>
+                                    <div class="sc-player-custom-flags">
+                                        <label class="sc-player-custom-flag"><input type="checkbox" name="player_custom_fields[<?php echo (int) $idx; ?>][required]" value="1" <?php checked(!empty($custom_field['required'])); ?>> اجباری</label>
+                                        <label class="sc-player-custom-flag"><input type="checkbox" name="player_custom_fields[<?php echo (int) $idx; ?>][visible]" value="1" <?php checked(!isset($custom_field['visible']) || !empty($custom_field['visible'])); ?>> نمایش</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <p>
-                    <button type="button" class="sc_button" id="sc-add-player-custom-field-btn">افزودن فیلد سفارشی</button>
-                </p>
+                <p class="sc-player-custom-fields-empty" id="sc-player-custom-fields-empty"<?php echo !empty($player_custom_fields) ? ' style="display:none;"' : ''; ?>>هنوز فیلد سفارشی ثبت نشده است. روی «افزودن فیلد» کلیک کنید.</p>
+                    </div>
                 </div>
-                <p class="submit">
+                <p class="submit sc-player-info-submit">
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات اطلاعات بازیکن">
                 </p>
             </form>
@@ -3750,39 +3782,72 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                     return html;
                 }
 
+                function toggleEmptyState() {
+                    var hasItems = $('#sc-player-custom-fields-container .sc-player-custom-field-item').length > 0;
+                    if (hasItems) {
+                        $('#sc-player-custom-fields-empty').hide();
+                    } else if ($('#sc-player-custom-fields-empty').length) {
+                        $('#sc-player-custom-fields-empty').show();
+                    }
+                }
+
+                function renumberBadges() {
+                    $('#sc-player-custom-fields-container .sc-player-custom-field-item').each(function(i) {
+                        $(this).find('.sc-player-custom-field-badge').text('فیلد سفارشی ' + (i + 1));
+                    });
+                }
+
                 $(document).on('change', '.sc-player-custom-type', function() {
                     var $row = $(this).closest('.sc-player-custom-field-item');
+                    var $opts = $row.find('.sc-player-custom-field-row--options');
                     if ($(this).val() === 'multiselect') {
-                        $row.find('.sc-player-custom-options').show();
+                        $opts.show();
                     } else {
-                        $row.find('.sc-player-custom-options').hide().val('');
+                        $opts.hide();
+                        $row.find('.sc-player-custom-options').val('');
                     }
                 });
 
                 $(document).on('click', '#sc-add-player-custom-field-btn', function() {
                     var idx = customIndex++;
                     var html = '' +
-                        '<div class="sc-player-custom-field-item" style="margin:0 0 12px;padding:12px;border:1px solid #dcdcde;border-radius:6px;background:#fff;">' +
-                        '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">' +
-                        '<input type="text" name="player_custom_fields[' + idx + '][label]" placeholder="عنوان فیلد" style="min-width:180px;">' +
-                        '<input type="text" name="player_custom_fields[' + idx + '][key]" placeholder="کلید انگلیسی (اختیاری)" style="min-width:180px;" dir="ltr">' +
-                        '<select name="player_custom_fields[' + idx + '][section]">' + sectionOptions() + '</select>' +
+                        '<div class="sc-player-custom-field-item" data-index="' + idx + '">' +
+                        '<div class="sc-player-custom-field-item-header">' +
+                        '<span class="sc-player-custom-field-badge">فیلد سفارشی</span>' +
+                        '<button type="button" class="button button-small sc-player-custom-remove">حذف</button>' +
+                        '</div>' +
+                        '<div class="sc-player-custom-field-grid">' +
+                        '<div class="sc-player-custom-field-row"><label>عنوان فیلد</label>' +
+                        '<input type="text" class="regular-text" name="player_custom_fields[' + idx + '][label]" placeholder="مثلاً: شماره بیمه"></div>' +
+                        '<div class="sc-player-custom-field-row"><label>کلید انگلیسی</label>' +
+                        '<input type="text" class="regular-text" name="player_custom_fields[' + idx + '][key]" placeholder="insurance_no" dir="ltr">' +
+                        '<p class="description">اختیاری — برای ذخیره در دیتابیس</p></div>' +
+                        '<div class="sc-player-custom-field-row"><label>بخش نمایش</label>' +
+                        '<select name="player_custom_fields[' + idx + '][section]" class="sc-player-custom-section">' + sectionOptions() + '</select></div>' +
+                        '<div class="sc-player-custom-field-row"><label>نوع فیلد</label>' +
                         '<select name="player_custom_fields[' + idx + '][type]" class="sc-player-custom-type">' +
-                        '<option value="text">متن</option>' +
-                        '<option value="image">عکس</option>' +
-                        '<option value="multiselect">چند انتخابی</option>' +
-                        '</select>' +
-                        '<input type="text" name="player_custom_fields[' + idx + '][options]" placeholder="گزینه‌ها (با , جدا شود)" class="sc-player-custom-options" style="display:none;min-width:220px;">' +
-                        '<label><input type="checkbox" name="player_custom_fields[' + idx + '][required]" value="1"> اجباری</label>' +
-                        '<label><input type="checkbox" name="player_custom_fields[' + idx + '][visible]" value="1" checked> نمایش</label>' +
-                        '<button type="button" class="button sc-player-custom-remove" style="color:#b32d2e;">حذف</button>' +
-                        '</div></div>';
+                        '<option value="text">متن</option><option value="image">عکس</option><option value="multiselect">چند انتخابی</option>' +
+                        '</select></div>' +
+                        '<div class="sc-player-custom-field-row sc-player-custom-field-row--options" style="display:none;"><label>گزینه‌ها</label>' +
+                        '<input type="text" class="regular-text sc-player-custom-options" name="player_custom_fields[' + idx + '][options]" placeholder="گزینه۱, گزینه۲, گزینه۳">' +
+                        '<p class="description">برای نوع چندانتخابی — با ویرگول جدا کنید</p></div>' +
+                        '<div class="sc-player-custom-field-row sc-player-custom-field-row--flags"><label>تنظیمات</label>' +
+                        '<div class="sc-player-custom-flags">' +
+                        '<label class="sc-player-custom-flag"><input type="checkbox" name="player_custom_fields[' + idx + '][required]" value="1"> اجباری</label>' +
+                        '<label class="sc-player-custom-flag"><input type="checkbox" name="player_custom_fields[' + idx + '][visible]" value="1" checked> نمایش</label>' +
+                        '</div></div></div></div>';
                     $('#sc-player-custom-fields-container').append(html);
+                    renumberBadges();
+                    toggleEmptyState();
                 });
 
                 $(document).on('click', '.sc-player-custom-remove', function() {
                     $(this).closest('.sc-player-custom-field-item').remove();
+                    renumberBadges();
+                    toggleEmptyState();
                 });
+
+                toggleEmptyState();
             });
             </script>
 

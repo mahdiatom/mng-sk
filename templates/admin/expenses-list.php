@@ -238,14 +238,14 @@ if ($active_tab === 'categories') {
 }
 ?>
 
-<div class="wrap">
+<div class="wrap sc-expenses-page-header sc-finance-page-header">
     <h1 class="wp-heading-inline">لیست هزینه‌ها</h1>
-    <a href="<?php echo admin_url('admin.php?page=sc-add-expense'); ?>" class="page-title-action">ثبت هزینه جدید</a>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-expense')); ?>" class="page-title-action">ثبت هزینه جدید</a>
     <hr class="wp-header-end">
-   </div> 
-   <div class="wrap">
-    <!-- تب‌ها -->
-    <h2 class="nav-tab-wrapper">
+    <p class="sc-expenses-subtitle">هزینه‌های باشگاه را فیلتر، مشاهده و مدیریت کنید.</p>
+</div>
+<div class="wrap sc-expenses-page-body sc-finance-page-body">
+    <h2 class="nav-tab-wrapper sc-expenses-nav-tabs">
         <a href="?page=sc-expenses&tab=list" class="nav-tab <?php echo $active_tab === 'list' ? 'nav-tab-active' : ''; ?>">
             لیست هزینه‌ها
         </a>
@@ -255,19 +255,20 @@ if ($active_tab === 'categories') {
     </h2>
     
     <?php if ($active_tab === 'list') : ?>
-        <!-- تب 1: لیست هزینه‌ها -->
-        <!-- فیلترها -->
-        <form method="GET" action="" class="form_filter_general">
+        <div class="sc-expenses-filter-panel sc-finance-panel postbox">
+            <div class="postbox-header"><h2>فیلتر هزینه‌ها</h2></div>
+            <div class="inside">
+        <form method="GET" action="" class="form_filter_general sc-expenses-filter-form">
             <input type="hidden" name="page" value="sc-expenses">
             <input type="hidden" name="tab" value="list">
             
-            <table class="form-table sc_form-table">
-                <tr>
+            <table class="form-table sc_form-table sc-expenses-filter-table">
+                <tr class="sc-expenses-filter-row">
                     <th scope="row">
                         <label for="filter_category">دسته‌بندی</label>
                     </th>
                     <td>
-                        <select name="filter_category" id="filter_category" style="width: 300px; padding: 5px;">
+                        <select name="filter_category" id="filter_category">
                             <option value="0">همه دسته‌بندی‌ها</option>
                             <?php foreach ($categories as $category) : ?>
                                 <option value="<?php echo esc_attr($category->id); ?>" <?php selected($filter_category, $category->id); ?>>
@@ -277,7 +278,7 @@ if ($active_tab === 'categories') {
                         </select>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-expenses-filter-row">
                     <th scope="row">
                         <label>بازه تاریخ (شمسی)</label>
                     </th>
@@ -286,24 +287,24 @@ if ($active_tab === 'categories') {
                                value="<?php echo esc_attr($filter_date_from_shamsi_default); ?>" 
                                class="regular-text persian-date-input" 
                                placeholder="از تاریخ (شمسی)" 
-                               style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
+                               readonly>
                         <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
                         <span>تا</span>
                         <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" 
                                value="<?php echo esc_attr($filter_date_to_shamsi_default); ?>" 
                                class="regular-text persian-date-input" 
                                placeholder="تا تاریخ (شمسی)" 
-                               style="padding: 5px; margin-left: 10px; width: 150px;" readonly>
+                               readonly>
                         <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
                         <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-expenses-filter-row">
                     <th scope="row">
                         <label for="s">جستجو</label>
                     </th>
                     <td>
-                        <input type="text" name="s" id="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در نام هزینه و توضیحات..." style="width: 400px; padding: 5px;">
+                        <input type="text" name="s" id="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در نام هزینه و توضیحات...">
                     </td>
                 </tr>
             </table>
@@ -331,8 +332,12 @@ if ($active_tab === 'categories') {
                 <a href="<?php echo admin_url('admin.php?page=sc-expenses&tab=list'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
             </p>
         </form>
+            </div>
+        </div>
         
-        <!-- لیست هزینه‌ها -->
+        <div class="sc-expenses-list-panel sc-finance-panel postbox">
+            <div class="postbox-header"><h2>لیست هزینه‌ها</h2></div>
+            <div class="inside">
         <?php if (empty($expenses)) : ?>
             <div class="notice notice-info">
                 <p>هیچ هزینه‌ای یافت نشد.</p>
@@ -403,14 +408,16 @@ if ($active_tab === 'categories') {
                 <?php endif; ?>
             </div>
         <?php endif; ?>
+            </div>
+        </div>
         
     <?php elseif ($active_tab === 'categories') : ?>
-        <!-- تب 2: مدیریت دسته‌بندی‌ها -->
+        <div class="sc-expenses-categories-wrap">
         <div class="admin_category">
             <!-- فرم افزودن/ویرایش دسته‌بندی -->
-            <div class="back_form_cat">
-                <h2><?php echo $editing_category ? 'ویرایش دسته‌بندی' : 'افزودن دسته‌بندی جدید'; ?></h2>
-                
+            <div class="back_form_cat sc-expenses-category-form-panel sc-finance-panel postbox">
+                <div class="postbox-header"><h2><?php echo $editing_category ? 'ویرایش دسته‌بندی' : 'افزودن دسته‌بندی جدید'; ?></h2></div>
+                <div class="inside">
                 <?php if ($editing_category) : ?>
                     <p><a href="<?php echo admin_url('admin.php?page=sc-expenses&tab=categories'); ?>" class="button">افزودن دسته‌بندی جدید</a></p>
                 <?php endif; ?>
@@ -460,12 +467,12 @@ if ($active_tab === 'categories') {
                         <?php endif; ?>
                     </p>
                 </form>
+                </div>
             </div>
             
-            <!-- لیست دسته‌بندی‌ها -->
-            <div class="back_form_cat">
-                <h2>لیست دسته‌بندی‌ها</h2>
-                
+            <div class="back_form_cat sc-expenses-category-list-panel sc-finance-panel postbox">
+                <div class="postbox-header"><h2>لیست دسته‌بندی‌ها</h2></div>
+                <div class="inside">
                 <?php if (empty($categories)) : ?>
                     <p>هیچ دسته‌بندی‌ای ثبت نشده است.</p>
                 <?php else : ?>
@@ -495,7 +502,9 @@ if ($active_tab === 'categories') {
                         </tbody>
                     </table>
                 <?php endif; ?>
+                </div>
             </div>
+        </div>
         </div>
     <?php endif; ?>
 </div>

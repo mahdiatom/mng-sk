@@ -255,8 +255,13 @@ if (!empty($_GET['member_ids']) && !$edit_id && current_user_can('manage_options
 }
 $initial_target_type = $notification ? (isset($notification->target_type) ? $notification->target_type : 'all') : (!empty($preselected_member_ids) ? 'specific' : 'all');
 ?>
-<div class="wrap sc-notification-add-wrap sc-users-export-wrap sc-bulk-actions-wrap">
-    <h1 class="sc-notification-add-title"><?php echo $edit_id ? 'ویرایش اطلاعیه' : 'افزودن اطلاعیه'; ?></h1>
+<div class="wrap sc-notification-add-page-header sc-notification-add-wrap">
+    <h1 class="wp-heading-inline"><?php echo $edit_id ? 'ویرایش اطلاعیه' : 'افزودن اطلاعیه'; ?></h1>
+    <a href="<?php echo esc_url($list_url); ?>" class="page-title-action">لیست اطلاعیه‌ها</a>
+    <hr class="wp-header-end">
+    <p class="sc-notification-add-subtitle">عنوان و متن اطلاعیه را وارد کنید، مخاطبین را فیلتر کنید و در صورت نیاز پیامک یا بله ارسال کنید.</p>
+</div>
+<div class="wrap sc-notification-add-page-body sc-notification-add-wrap sc-users-export-wrap sc-bulk-actions-wrap">
     <?php if ($is_coach && empty($courses_list)) : ?>
         <div class="notice notice-warning"><p>شما به هیچ دوره‌ای اختصاص داده نشده‌اید. برای ارسال اطلاعیه به بازیکنان، ابتدا از طریق مدیر به دوره‌ها اضافه شوید.</p></div>
     <?php endif; ?>
@@ -302,18 +307,24 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
         </div>
     <?php endif; ?>
 
-    <div class="sc-notification-form-card">
     <form method="post" id="notification-form" class="sc-notification-form" enctype="multipart/form-data">
         <?php wp_nonce_field('save_notification_nonce'); ?>
         <input type="hidden" name="edit_id" value="<?php echo $edit_id; ?>">
         <input type="hidden" id="sc-notification-preview-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_notification_recipients_preview')); ?>">
         <input type="hidden" id="sc-phone-excel-preview-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_preview_phone_excel')); ?>">
-        <table class="form-table sc-notification-form-table">
-            <tr>
+
+        <div class="sc-notification-add-panel postbox sc-notification-form-card">
+            <div class="postbox-header">
+                <h2>محتوای اطلاعیه</h2>
+            </div>
+            <div class="inside">
+        <table class="form-table sc-notification-form-table sc-notification-add-form-table" role="presentation">
+            <tbody>
+            <tr class="sc-notification-field-row sc-notification-field-row--title">
                 <th scope="row"><label for="title">عنوان <span class="required">*</span></label></th>
                 <td><input type="text" name="title" id="title" class="regular-text sc-notification-input" required value="<?php echo esc_attr($notification ? $notification->title : ''); ?>"></td>
             </tr>
-            <tr>
+            <tr class="sc-notification-field-row sc-notification-field-row--content">
                 <th scope="row"><label for="content">متن اطلاعیه <span class="required">*</span></label></th>
                 <td>
                     <textarea name="content" id="content" rows="6" class="large-text sc-notification-textarea" required><?php echo esc_textarea($notification ? $notification->content : ''); ?></textarea>
@@ -324,7 +335,7 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                     </p>
                 </td>
             </tr>
-            <tr>
+            <tr class="sc-notification-field-row sc-notification-field-row--attachment">
                 <th scope="row"><label>پیوست</label></th>
                 <td>
                     <div class="sc-ticket-attachment-zone sc-notification-attachment-zone" data-input-name="notification_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_notification_upload_attachment')); ?>" data-action="sc_upload_notification_attachment" data-nonce-key="sc_notification_upload_nonce">
@@ -347,16 +358,16 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                      $attachment_ids = isset($notification->attachment_ids) && $notification->attachment_ids ? json_decode($notification->attachment_ids, true) : [];
                 if (!empty($attachment_ids) && is_array($attachment_ids) && function_exists('sc_notification_attachment_download_url')) :
                     ?>
-                    <div class="sc-notification-detail-attachments" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-                        <strong style="display: block; margin-bottom: 10px;">پیوست‌ها:</strong>
-                        <ul style="list-style: none; margin: 0; padding: 0;">
+                    <div class="sc-notification-detail-attachments sc-notification-existing-attachments">
+                        <strong class="sc-notification-existing-attachments-title">پیوست‌های ذخیره‌شده:</strong>
+                        <ul class="sc-notification-existing-attachments-list">
                             <?php foreach (array_map('absint', $attachment_ids) as $aid) :
                                 if (!$aid) continue;
                                 $current_user_id = get_current_user_id();
                                 $name = get_the_title($aid) ?: basename(get_attached_file($aid)) ?: 'پیوست';
                                 $url = sc_notification_attachment_download_url($aid, $notification->id, $current_user_id);
                                 ?>
-                                <li style="margin-bottom: 8px;"><a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener" class="sc-notification-attachment-link" style="display: inline-flex; align-items: center; gap: 6px;">📎 <?php echo esc_html($name); ?></a></li>
+                                <li><a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener" class="sc-notification-attachment-link">📎 <?php echo esc_html($name); ?></a></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
@@ -364,9 +375,16 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                 
                 </td>
             </tr>
+            </tbody>
         </table>
-        <div class="sc-users-export-card sc-notification-bulk-filter-card">
-            <h2>۱) فیلتر مخاطبین</h2>
+            </div>
+        </div>
+
+        <div class="sc-notification-filter-panel sc-users-export-card sc-notification-bulk-filter-card postbox">
+            <div class="postbox-header">
+                <h2>۱) فیلتر مخاطبین</h2>
+            </div>
+            <div class="inside">
             <table class="form-table sc-notification-form-table">
             <tr>
                 <th scope="row">نوع ارسال</th>
@@ -672,20 +690,30 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
             </tr>
             <?php endif; ?>
             </table>
-            <p id="sc-notification-preview-submit-wrap" class="submit" style="display:none; margin: 0; padding: 16px 0 0; border-top: 1px solid #f0f0f1;">
+            <p id="sc-notification-preview-submit-wrap" class="submit sc-notification-preview-submit-wrap">
                 <button type="button" class="button button-secondary" id="sc-notification-preview-btn">پیش نمایش مخاطبین</button>
             </p>
+            </div>
         </div>
-        <div id="sc-notification-preview-bulk-cards" style="display:none;">
-        <div class="sc-users-export-card">
-            <h2>۲) پیش‌نمایش مخاطبین فیلترشده</h2>
+        <div id="sc-notification-preview-bulk-cards" class="sc-notification-preview-section" style="display:none;">
+        <div class="sc-notification-preview-panel sc-users-export-card postbox">
+            <div class="postbox-header">
+                <h2>۲) پیش‌نمایش مخاطبین فیلترشده</h2>
+            </div>
+            <div class="inside">
             <div id="sc-notification-preview-result" class="sc-bulk-preview-result back_table_list">
                 <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش مخاطبین» کلیک کنید.</p>
+            </div>
             </div>
         </div>
         </div>
         <?php if (!$is_coach) : ?>
-        <table class="form-table sc-notification-form-table">
+        <div class="sc-notification-options-panel postbox">
+            <div class="postbox-header">
+                <h2>کانال‌های ارسال</h2>
+            </div>
+            <div class="inside">
+        <table class="form-table sc-notification-form-table sc-notification-options-table" role="presentation">
             <tr id="row-send-sms">
                 <th scope="row">ارسال پیامک</th>
                 <td>
@@ -705,20 +733,21 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
             </tr>
             <?php endif; ?>
         </table>
-        <div id="sc-sms-summary" class="sc-sms-summary" style="display: none; margin: 20px 0; padding: 16px; background: #f0f6fc; border: 1px solid #c3c4c7; border-radius: 8px;">
-            <strong>خلاصه ارسال پیامک:</strong>
-            <p style="margin: 8px 0 0 0; color: #1d2327;">
+            </div>
+        </div>
+        <div id="sc-sms-summary" class="sc-sms-summary sc-notification-sms-summary">
+            <strong>خلاصه ارسال پیامک</strong>
+            <p class="sc-notification-sms-summary-text">
                 تعداد مخاطبین: <span id="sms-recipients-count">0</span> نفر |
                 تعداد پیامک: <span id="sms-total-count">0</span> عدد |
                 هزینه حدودی: <span id="sms-estimated-cost">0</span> تومان
             </p>
         </div>
         <?php endif; ?>
-        <p class="submit">
+        <p class="submit sc-notification-add-submit">
             <button type="submit" name="save_notification" id="btn-save-notification" class="button button-primary">ذخیره و ارسال</button>
         </p>
     </form>
-    </div>
 </div>
 
 <script>

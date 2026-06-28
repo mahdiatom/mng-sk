@@ -72,82 +72,93 @@ $saved = [];
 $initial_target_type = 'all';
 $safir_configured = sc_bale_safir_is_configured();
 ?>
-<div class="wrap sc-bale-admin-wrap sc-notification-add-wrap sc-users-export-wrap sc-bulk-actions-wrap">
-    <h1 class="sc-notification-add-title">ارسال پیام ربات بله</h1>
-    <p>
-        <a href="<?php echo esc_url($list_url); ?>">&larr; بازگشت به لیست</a>
-        &nbsp;|&nbsp;
-        <a href="<?php echo esc_url(admin_url('admin.php?page=sc_setting&tab=bale_bot')); ?>">تنظیمات ربات</a>
-    </p>
-
+<div class="wrap sc-bale-send-page-header sc-bale-admin-wrap">
+    <h1 class="wp-heading-inline">ارسال پیام ربات بله</h1>
+    <a href="<?php echo esc_url($list_url); ?>" class="page-title-action">لیست پیام‌ها</a>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=sc_setting&tab=bale_bot')); ?>" class="page-title-action">تنظیمات ربات</a>
+    <hr class="wp-header-end">
+    <p class="sc-bale-send-subtitle">عنوان و متن پیام را وارد کنید، حالت ارسال و مخاطبین را مشخص کنید و پیام را از طریق ربات بله ارسال کنید.</p>
+</div>
+<div class="wrap sc-bale-send-page-body sc-bale-admin-wrap sc-notification-add-wrap sc-users-export-wrap sc-bulk-actions-wrap">
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo $message_type === 'error' ? 'error' : 'warning'; ?> is-dismissible">
             <p><?php echo esc_html($message); ?></p>
         </div>
     <?php endif; ?>
 
-    <div class="sc-notification-form-card">
     <form method="post" id="bale-bot-message-form" class="sc-notification-form" enctype="multipart/form-data">
         <?php wp_nonce_field('sc_bale_send_message_nonce'); ?>
         <input type="hidden" id="sc-bale-preview-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_bale_admin_nonce')); ?>">
         <input type="hidden" id="sc-phone-excel-preview-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_preview_phone_excel')); ?>">
 
-        <table class="form-table sc-notification-form-table">
-            <tr>
-                <th scope="row"><label for="title">عنوان <span class="required">*</span></label></th>
-                <td><input type="text" name="title" id="title" class="regular-text sc-notification-input" required></td>
-            </tr>
-            <tr>
-                <th scope="row"><label for="content">متن پیام <span class="required">*</span></label></th>
-                <td><textarea name="content" id="content" rows="6" class="large-text sc-notification-textarea" required></textarea></td>
-            </tr>
-        </table>
-
-        <div class="sc-users-export-card sc-bale-delivery-mode-card">
-            <h2>۱) مخاطبین ارسال — Chat ID</h2>
-            <p class="description" style="margin-bottom:16px;">
-                ابتدا مشخص کنید پیام به کدام گروه ارسال شود. ارسال از طریق ربات (Chat ID) رایگان است؛
-                ارسال از طریق <a href="https://docs.bale.ai/safir" target="_blank" rel="noopener">سفیر</a> برای کاربران بدون Chat ID هزینه‌دار است.
-            </p>
-            <div class="sc-bale-delivery-options">
-                <label class="sc-bale-delivery-option">
-                    <input type="radio" name="delivery_mode" value="bot_only" checked>
-                    <span class="sc-bale-delivery-option__title">فقط دارای Chat ID</span>
-                    <span class="sc-bale-delivery-option__badge sc-bale-badge sc-bale-badge--free">رایگان</span>
-                    <span class="sc-bale-delivery-option__desc">فقط کاربرانی که ربات را متصل کرده‌اند</span>
-                </label>
-                <label class="sc-bale-delivery-option<?php echo $safir_configured ? '' : ' is-disabled'; ?>">
-                    <input type="radio" name="delivery_mode" value="safir_only" <?php disabled(!$safir_configured); ?>>
-                    <span class="sc-bale-delivery-option__title">فقط بدون Chat ID</span>
-                    <span class="sc-bale-delivery-option__badge sc-bale-badge sc-bale-badge--paid">هزینه‌دار — سفیر</span>
-                    <span class="sc-bale-delivery-option__desc">کاربرانی که هنوز ربات را متصل نکرده‌اند</span>
-                </label>
-                <label class="sc-bale-delivery-option<?php echo $safir_configured ? '' : ' is-disabled'; ?>">
-                    <input type="radio" name="delivery_mode" value="both" <?php disabled(!$safir_configured); ?>>
-                    <span class="sc-bale-delivery-option__title">هر دو گروه</span>
-                    <span class="sc-bale-delivery-option__badge sc-bale-badge sc-bale-badge--mixed">ترکیبی</span>
-                    <span class="sc-bale-delivery-option__desc">دارای Chat ID رایگان + بدون Chat ID از سفیر</span>
-                </label>
+        <div class="sc-bale-panel sc-bale-message-panel postbox">
+            <div class="postbox-header">
+                <h2>محتوای پیام</h2>
             </div>
-            <?php if (!$safir_configured) : ?>
-                <p class="description" style="color:#b45309;margin-top:12px;">
-                    برای گزینه‌های هزینه‌دار، API سفیر را در <a href="<?php echo esc_url(admin_url('admin.php?page=sc_setting&tab=bale_bot')); ?>">تنظیمات ربات بله</a> وارد کنید.
+            <div class="inside">
+                <table class="form-table sc-notification-form-table sc-notification-add-form-table" role="presentation">
+                    <tbody>
+                    <tr class="sc-notification-field-row">
+                        <th scope="row"><label for="title">عنوان <span class="required">*</span></label></th>
+                        <td><input type="text" name="title" id="title" class="regular-text sc-notification-input" required></td>
+                    </tr>
+                    <tr class="sc-notification-field-row">
+                        <th scope="row"><label for="content">متن پیام <span class="required">*</span></label></th>
+                        <td><textarea name="content" id="content" rows="6" class="large-text sc-notification-textarea" required></textarea></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="sc-bale-panel sc-bale-delivery-panel postbox sc-bale-delivery-mode-card">
+            <div class="postbox-header">
+                <h2>۱) مخاطبین ارسال — Chat ID</h2>
+            </div>
+            <div class="inside">
+                <p class="description sc-bale-delivery-intro">
+                    ابتدا مشخص کنید پیام به کدام گروه ارسال شود. ارسال از طریق ربات (Chat ID) رایگان است؛
+                    ارسال از طریق <a href="https://docs.bale.ai/safir" target="_blank" rel="noopener">سفیر</a> برای کاربران بدون Chat ID هزینه‌دار است.
                 </p>
-            <?php endif; ?>
-            <div id="sc-bale-live-counts" class="sc-bale-live-counts" style="display:none;">
-                <div class="sc-bale-stats">
-                    <div class="sc-bale-stat sc-bale-stat--free"><strong id="sc-bale-count-with">0</strong><span>دارای Chat ID</span></div>
-                    <div class="sc-bale-stat sc-bale-stat--paid"><strong id="sc-bale-count-without">0</strong><span>بدون Chat ID</span></div>
-                    <div class="sc-bale-stat"><strong id="sc-bale-count-send">0</strong><span>قابل ارسال (حالت فعلی)</span></div>
+                <div class="sc-bale-delivery-options">
+                    <label class="sc-bale-delivery-option">
+                        <input type="radio" name="delivery_mode" value="bot_only" checked>
+                        <span class="sc-bale-delivery-option__title">فقط دارای Chat ID</span>
+                        <span class="sc-bale-delivery-option__badge sc-bale-badge sc-bale-badge--free">رایگان</span>
+                        <span class="sc-bale-delivery-option__desc">فقط کاربرانی که ربات را متصل کرده‌اند</span>
+                    </label>
+                    <label class="sc-bale-delivery-option<?php echo $safir_configured ? '' : ' is-disabled'; ?>">
+                        <input type="radio" name="delivery_mode" value="safir_only" <?php disabled(!$safir_configured); ?>>
+                        <span class="sc-bale-delivery-option__title">فقط بدون Chat ID</span>
+                        <span class="sc-bale-delivery-option__badge sc-bale-badge sc-bale-badge--paid">هزینه‌دار — سفیر</span>
+                        <span class="sc-bale-delivery-option__desc">کاربرانی که هنوز ربات را متصل نکرده‌اند</span>
+                    </label>
+                    <label class="sc-bale-delivery-option<?php echo $safir_configured ? '' : ' is-disabled'; ?>">
+                        <input type="radio" name="delivery_mode" value="both" <?php disabled(!$safir_configured); ?>>
+                        <span class="sc-bale-delivery-option__title">هر دو گروه</span>
+                        <span class="sc-bale-delivery-option__badge sc-bale-badge sc-bale-badge--mixed">ترکیبی</span>
+                        <span class="sc-bale-delivery-option__desc">دارای Chat ID رایگان + بدون Chat ID از سفیر</span>
+                    </label>
+                </div>
+                <?php if (!$safir_configured) : ?>
+                    <p class="description sc-bale-safir-warning">
+                        برای گزینه‌های هزینه‌دار، API سفیر را در <a href="<?php echo esc_url(admin_url('admin.php?page=sc_setting&tab=bale_bot')); ?>">تنظیمات ربات بله</a> وارد کنید.
+                    </p>
+                <?php endif; ?>
+                <div id="sc-bale-live-counts" class="sc-bale-live-counts" style="display:none;">
+                    <div class="sc-bale-stats">
+                        <div class="sc-bale-stat sc-bale-stat--free"><strong id="sc-bale-count-with">0</strong><span>دارای Chat ID</span></div>
+                        <div class="sc-bale-stat sc-bale-stat--paid"><strong id="sc-bale-count-without">0</strong><span>بدون Chat ID</span></div>
+                        <div class="sc-bale-stat"><strong id="sc-bale-count-send">0</strong><span>قابل ارسال (حالت فعلی)</span></div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <?php include SC_TEMPLATES_ADMIN_DIR . 'partials/bale-bot-audience-filters.php'; ?>
 
-        <p class="submit">
+        <p class="submit sc-bale-send-submit">
             <button type="submit" name="send_bale_message" id="btn-send-bale-message" class="button button-primary">ارسال پیام</button>
         </p>
     </form>
-    </div>
 </div>

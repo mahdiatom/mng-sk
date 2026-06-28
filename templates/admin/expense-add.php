@@ -48,30 +48,32 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
 }
 ?>
 
-<div class="wrap">
+<div class="wrap sc-expense-add-page-header sc-finance-page-header">
     <h1 class="wp-heading-inline">
         <?php echo $expense_id > 0 ? 'ویرایش هزینه' : 'ثبت هزینه جدید'; ?>
     </h1>
-   
-    <a href="<?php echo admin_url('admin.php?page=sc-expenses'); ?>" class="page-title-action">بازگشت به لیست هزینه‌ها</a>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-expenses')); ?>" class="page-title-action">لیست هزینه‌ها</a>
     <?php if ($expense_id > 0) : ?>
-        <a href="<?php echo admin_url('admin.php?page=sc-add-expense'); ?>" class="page-title-action">ثبت هزینه جدید</a>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-expense')); ?>" class="page-title-action">ثبت هزینه جدید</a>
     <?php endif; ?>
-    
     <hr class="wp-header-end">
-     </div>
-    <div class="wrap">
-    <form method="POST" action="">
+    <p class="sc-expense-add-subtitle">مشخصات هزینه، دسته‌بندی و تاریخ را ثبت کنید.</p>
+</div>
+<div class="wrap sc-expense-add-page-body sc-finance-page-body">
+    <form method="POST" action="" class="sc-expense-add-form">
         <?php wp_nonce_field('sc_add_expense', 'sc_expense_nonce'); ?>
         <?php if ($expense_id > 0) : ?>
             <input type="hidden" name="expense_id" value="<?php echo esc_attr($expense_id); ?>">
         <?php endif; ?>
-        
-        <table class="form-table sc_form-table">
+
+        <div class="sc-expense-add-panel sc-finance-panel postbox">
+            <div class="postbox-header"><h2>اطلاعات هزینه</h2></div>
+            <div class="inside">
+        <table class="form-table sc_form-table sc-expense-add-form-table">
             <tbody>
-                <tr>
+                <tr class="sc-expense-field-row">
                     <th scope="row">
-                        <label for="expense_name">نام هزینه <span style="color:red;">*</span></label>
+                        <label for="expense_name">نام هزینه <span class="required">*</span></label>
                     </th>
                     <td>
                         <input type="text" 
@@ -85,7 +87,7 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                     </td>
                 </tr>
                 
-                <tr>
+                <tr class="sc-expense-field-row">
                     <th scope="row">
                         <label for="chapter">شعبه</label>
                     </th>
@@ -101,7 +103,7 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                     </td>
                 </tr>
 
-                <tr>
+                <tr class="sc-expense-field-row">
                     <th scope="row">
                         <label for="category_id">دسته‌بندی</label>
                     </th>
@@ -118,9 +120,9 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                     </td>
                 </tr>
                 
-                <tr>
+                <tr class="sc-expense-field-row">
                     <th scope="row">
-                        <label for="expense_date_shamsi">تاریخ (شمسی) <span style="color:red;">*</span></label>
+                        <label for="expense_date_shamsi">تاریخ (شمسی) <span class="required">*</span></label>
                     </th>
                     <td>
                         <input type="text" 
@@ -137,9 +139,9 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                     </td>
                 </tr>
                 
-                <tr>
+                <tr class="sc-expense-field-row">
                     <th scope="row">
-                        <label for="amount">مبلغ (تومان) <span style="color:red;">*</span></label>
+                        <label for="amount">مبلغ (تومان) <span class="required">*</span></label>
                     </th>
                     <td>
                         <input type="text" 
@@ -149,7 +151,6 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                                class="regular-text" 
                                placeholder="0"
                                required
-                               style="width: 300px;"
                                dir="ltr"
                                inputmode="numeric">
                         <input type="hidden" name="amount_raw" id="amount_raw" value="<?php echo esc_attr($amount); ?>">
@@ -157,7 +158,7 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                     </td>
                 </tr>
                 
-                <tr>
+                <tr class="sc-expense-field-row sc-expense-field-row--full">
                     <th scope="row">
                         <label for="description">توضیحات تکمیلی</label>
                     </th>
@@ -171,10 +172,12 @@ if ($expense && !empty($expense->expense_date_shamsi)) {
                 </tr>
             </tbody>
         </table>
+            </div>
+        </div>
         
-        <p class="submit">
+        <p class="submit sc-expense-add-submit">
             <input type="submit" name="submit_expense" class="button button-primary" value="<?php echo $expense_id > 0 ? 'بروزرسانی هزینه' : 'ثبت هزینه'; ?>">
-            <a href="<?php echo admin_url('admin.php?page=sc-expenses'); ?>" class="sc_button">انصراف</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-expenses')); ?>" class="button button-secondary">انصراف</a>
         </p>
     </form>
 </div>

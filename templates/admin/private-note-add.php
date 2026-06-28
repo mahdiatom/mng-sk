@@ -106,46 +106,66 @@ if ($is_coach && function_exists('sc_support_get_coach_id_by_user_id')) {
 $teams = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name");
 $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
 ?>
-<div class="wrap sc-private-notes-wrap sc-users-export-wrap sc-bulk-actions-wrap sc-ticket-new-admin-wrap">
-    <h1 style="margin-bottom: 10px;"><?php echo esc_html($title_page); ?></h1>
-    <a href="<?php echo esc_url($list_url); ?>" class="sc_button">بازگشت به لیست</a>
+<div class="wrap sc-private-note-add-page-header sc-private-notes-wrap sc-users-export-wrap sc-bulk-actions-wrap">
+    <h1 class="wp-heading-inline"><?php echo esc_html($title_page); ?></h1>
+    <a href="<?php echo esc_url($list_url); ?>" class="page-title-action">لیست یادداشت‌ها</a>
+    <hr class="wp-header-end">
+    <p class="sc-private-note-add-subtitle">یادداشت خصوصی را بنویسید، گیرندگان را فیلتر کنید و نحوه ثبت در پرونده را انتخاب کنید.</p>
+</div>
+<div class="wrap sc-private-note-add-page-body sc-private-notes-wrap sc-users-export-wrap sc-bulk-actions-wrap">
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
     <?php endif; ?>
-</div>
-<div class="wrap sc-private-notes-wrap sc-users-export-wrap sc-bulk-actions-wrap sc-ticket-new-admin-wrap">
 
     <form method="post" id="sc-private-note-form" class="sc-private-note-form">
         <?php wp_nonce_field('sc_save_private_note_action', 'sc_save_private_note_nonce'); ?>
-        <table class="form-table">
-            <tr>
-                <th><label for="sc-private-note-content">متن یادداشت</label></th>
-                <td><textarea id="sc-private-note-content" name="content" rows="6" class="large-text" required></textarea></td>
-            </tr>
-            <tr>
-                <th>پیوست</th>
-                <td>
-                    <div class="sc-ticket-attachment-zone" data-input-name="private_note_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_private_note_upload_attachment')); ?>" data-action="sc_upload_private_note_attachment" data-nonce-key="sc_private_note_upload_nonce">
-                        <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
-                            <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,.svg,.tiff,.tif,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple>
-                            <span class="sc-file-upload-icon">📎</span>
-                            <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
-                            <span class="sc-file-upload-hint">حداکثر ۵ فایل، هرکدام ۵ مگابایت</span>
-                        </div>
-                        <div class="sc-ticket-upload-progress-wrap" style="display:none;"><div class="sc-upload-progress sc-ticket-upload-progress"><div class="sc-upload-bar"></div><span class="sc-upload-text"></span></div></div>
-                        <div class="sc-ticket-uploaded-list"></div>
-                        <div class="sc-ticket-attachment-ids-hidden"></div>
-                    </div>
-                </td>
-            </tr>
-        </table>
-        
-        <div class="sc-users-export-card">
-            <h2>فیلتر کاربران گیرنده یادداشت</h2>
+
+        <div class="sc-private-note-add-panel postbox">
+            <div class="postbox-header">
+                <h2>محتوای یادداشت</h2>
+            </div>
+            <div class="inside">
+                <table class="form-table sc-private-note-add-form-table" role="presentation">
+                    <tbody>
+                        <tr class="sc-private-note-field-row sc-private-note-field-row--content">
+                            <th scope="row"><label for="sc-private-note-content">متن یادداشت <span class="required">*</span></label></th>
+                            <td><textarea id="sc-private-note-content" name="content" rows="6" class="large-text" required></textarea></td>
+                        </tr>
+                        <tr class="sc-private-note-field-row sc-private-note-field-row--attachment">
+                            <th scope="row"><label>پیوست</label></th>
+                            <td>
+                                <div class="sc-ticket-attachment-zone sc-private-note-attachment-zone" data-input-name="private_note_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_private_note_upload_attachment')); ?>" data-action="sc_upload_private_note_attachment" data-nonce-key="sc_private_note_upload_nonce">
+                                    <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
+                                        <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,.svg,.tiff,.tif,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple>
+                                        <span class="sc-file-upload-icon">📎</span>
+                                        <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
+                                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هرکدام ۵ مگابایت</span>
+                                    </div>
+                                    <div class="sc-ticket-upload-progress-wrap" style="display:none;">
+                                        <div class="sc-upload-progress sc-ticket-upload-progress">
+                                            <div class="sc-upload-bar"></div>
+                                            <span class="sc-upload-text"></span>
+                                        </div>
+                                    </div>
+                                    <div class="sc-ticket-uploaded-list"></div>
+                                    <div class="sc-ticket-attachment-ids-hidden"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="sc-private-note-filter-panel sc-users-export-card postbox">
+            <div class="postbox-header">
+                <h2>فیلتر کاربران گیرنده</h2>
+            </div>
+            <div class="inside sc-private-note-panel-fields">
             <?php if ($is_coach) : ?>
-                <p class="description">فقط بازیکنان دوره‌های شما و بازیکنانی که در ثبت‌نام دوره به شما تخصیص داده شده‌اند در این لیست نمایش داده می‌شوند.</p>
+                <p class="description sc-private-note-coach-hint">فقط بازیکنان دوره‌های شما و بازیکنانی که در ثبت‌نام دوره به شما تخصیص داده شده‌اند در این لیست نمایش داده می‌شوند.</p>
             <?php endif; ?>
-            <div class="sc-row">
+            <div class="sc-row sc-private-note-field-row">
                 <label for="sc-target-type">نوع انتخاب</label>
                 <select name="target_type" id="sc-target-type">
                     <?php if ($is_coach) : ?>
@@ -163,7 +183,7 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
                     <option value="team_level">بر اساس تیم + سطح</option>
                 </select>
             </div>
-            <div class="sc-row">
+            <div class="sc-row sc-private-note-field-row">
                 <label for="sc-member-status">وضعیت کاربر</label>
                 <select name="member_status" id="sc-member-status">
                     <option value="all">همه</option>
@@ -171,8 +191,8 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
                     <option value="inactive">فقط غیرفعال</option>
                 </select>
             </div>
-            <div class="sc-row">
-                <label for="sc-member-type">دسته بندی بازیکن</label>
+            <div class="sc-row sc-private-note-field-row">
+                <label for="sc-member-type">دسته‌بندی بازیکن</label>
                 <select name="member_type" id="sc-member-type">
                     <option value="all">همه</option>
                     <option value="normal">بازیکن عادی</option>
@@ -180,7 +200,7 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
                 </select>
             </div>
 
-            <div class="sc-filter-block" id="sc-filter-specific">
+            <div class="sc-filter-block sc-private-note-field-row" id="sc-filter-specific">
                 <label>انتخاب کاربران</label>
                 <div id="sc-selected-members" class="sc-selected-tags"></div>
                 <div id="sc-users-member-dropdown" class="sc-users-member-dropdown">
@@ -212,8 +232,8 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
                 <div id="sc-member-hidden-inputs"></div>
             </div>
 
-            <div class="sc-filter-block" id="sc-filter-course">
-                <label for="sc-course-ids">دوره ها</label>
+            <div class="sc-filter-block sc-private-note-field-row" id="sc-filter-course">
+                <label for="sc-course-ids">دوره‌ها</label>
                 <select name="course_ids[]" id="sc-course-ids" multiple size="7">
                     <?php foreach ((array) $courses as $c) : ?>
                         <option value="<?php echo (int) $c->id; ?>"><?php echo esc_html($c->title); ?></option>
@@ -221,7 +241,7 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
                 </select>
             </div>
             <?php if (!$is_coach) : ?>
-            <div class="sc-filter-block" id="sc-filter-event">
+            <div class="sc-filter-block sc-private-note-field-row" id="sc-filter-event">
                 <label for="sc-event-ids">رویدادها</label>
                 <select name="event_ids[]" id="sc-event-ids" multiple size="7">
                     <?php foreach ((array) $events as $e) : ?>
@@ -230,33 +250,38 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
                 </select>
             </div>
             <?php endif; ?>
-            <div class="sc-filter-block" id="sc-filter-team">
-                <label for="sc-team-names">تیم ها</label>
+            <div class="sc-filter-block sc-private-note-field-row" id="sc-filter-team">
+                <label for="sc-team-names">تیم‌ها</label>
                 <select name="team_names[]" id="sc-team-names" multiple size="7">
                     <?php foreach ((array) $teams as $t) : ?>
                         <option value="<?php echo esc_attr($t->name); ?>"><?php echo esc_html($t->name); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="sc-filter-block" id="sc-filter-level">
-                <label for="sc-level-names">سطح ها</label>
+            <div class="sc-filter-block sc-private-note-field-row" id="sc-filter-level">
+                <label for="sc-level-names">سطح‌ها</label>
                 <select name="level_names[]" id="sc-level-names" multiple size="7">
                     <?php foreach ((array) $levels as $l) : ?>
                         <option value="<?php echo esc_attr($l->name); ?>"><?php echo esc_html($l->name); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <p class="submit">
-                <button type="button" class="button button-secondary" id="sc-private-notes-preview-btn">پیش نمایش کاربران فیلتر شده</button>
+            <p class="submit sc-private-note-preview-submit">
+                <button type="button" class="button button-secondary" id="sc-private-notes-preview-btn">پیش‌نمایش کاربران فیلترشده</button>
             </p>
-            <div id="sc-private-notes-preview-result" class="sc-bulk-preview-result">
-                <p class="description">پس از انتخاب فیلتر، پیش نمایش کاربران را دریافت کنید.</p>
+            <div id="sc-private-notes-preview-result" class="sc-bulk-preview-result sc-private-note-preview-result">
+                <p class="description">پس از انتخاب فیلتر، پیش‌نمایش کاربران را دریافت کنید.</p>
             </div>
             <div id="sc-private-notes-excluded-members-inputs"></div>
+            </div>
         </div>
-        <div class="sc-users-export-card">
-            <h2>نحوه ثبت</h2>
-            <div class="sc-row">
+
+        <div class="sc-private-note-send-panel sc-users-export-card postbox">
+            <div class="postbox-header">
+                <h2>نحوه ثبت</h2>
+            </div>
+            <div class="inside sc-private-note-panel-fields">
+            <div class="sc-row sc-private-note-field-row">
                 <label for="sc-send-mode">مدل ثبت یادداشت</label>
                 <select name="send_mode" id="sc-send-mode">
                     <option value="append_to_default_thread">افزودن به پرونده پیش‌فرض (آخرین پرونده انتخاب‌شده)</option>
@@ -264,18 +289,20 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
                     <option value="create_new_thread">شروع پرونده جدید برای هر کاربر</option>
                 </select>
             </div>
-            <div class="sc-row" id="sc-row-thread-title" style="display:none;">
+            <div class="sc-row sc-private-note-field-row sc-private-note-thread-title-row" id="sc-row-thread-title" style="display:none;">
                 <label for="sc-thread-title">نام پرونده جدید</label>
-                <input type="text" id="sc-thread-title" name="thread_title" placeholder="مثلا: پیشرفت تیر ۱۴۰۵">
+                <input type="text" id="sc-thread-title" name="thread_title" class="regular-text" placeholder="مثلاً: پیشرفت تیر ۱۴۰۵">
             </div>
-            <div class="sc-row" id="sc-row-selected-thread" style="display:none;">
+            <div class="sc-row sc-private-note-field-row sc-private-note-thread-select-row" id="sc-row-selected-thread" style="display:none;">
                 <label for="sc-selected-thread-id">پرونده مقصد</label>
                 <select id="sc-selected-thread-id" name="selected_thread_id">
                     <option value="0">ابتدا یک کاربر خاص انتخاب کنید</option>
                 </select>
             </div>
+            </div>
         </div>
-        <p class="submit">
+
+        <p class="submit sc-private-note-add-submit">
             <button type="submit" name="sc_save_private_note" class="button button-primary">ثبت یادداشت خصوصی</button>
         </p>
     </form>

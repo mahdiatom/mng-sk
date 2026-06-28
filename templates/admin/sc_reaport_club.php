@@ -220,12 +220,20 @@ $unpaid_invoices_count = (int) $wpdb->get_var(
 
 ?>
 
-<div class="wrap">
-<div class="title_head_btn_report">
+<div class="wrap sc-reports-page-header sc-club-reports-wrap">
+    <h1 class="wp-heading-inline">گزارشات باشگاه</h1>
+    <hr class="wp-header-end">
+    <p class="sc-reports-subtitle">خلاصه آماری باشگاه در بخش‌های کاربران، مالی، دوره‌ها، رویدادها، حضور و غیاب و پیامک.</p>
+</div>
+<div class="wrap sc-reports-page-body sc-club-reports-wrap">
+
+<div class="sc-reports-section postbox">
+<div class="title_head_btn_report sc-reports-section-header">
 <h3>کاربران</h3>
 <a href="<?php echo admin_url('admin.php?page=sc-members'); ?>">مدیریت لیست کاربران</a>
 </div>
-<div class="sc-dashboard-stats">
+<div class="inside">
+<div class="sc-dashboard-stats sc-reports-stats">
         <div class="sc-stat-box">
             <h3>کل کاربران </h3>
             <div>
@@ -264,12 +272,16 @@ $unpaid_invoices_count = (int) $wpdb->get_var(
             </div>
         </div>
     </div>
-<div class="title_head_btn_report">
-<h3>مالی و حسابداری  </h3>
-<a href="<?php echo admin_url('admin.php?page=sc-reports-income-expenses'); ?>">مشاهده جزئیات مالی باشگاه</a>
-
 </div>
- <div class="sc-dashboard-stats">
+</div>
+
+<div class="sc-reports-section postbox">
+<div class="title_head_btn_report sc-reports-section-header">
+<h3>مالی و حسابداری</h3>
+<a href="<?php echo admin_url('admin.php?page=sc-reports-income-expenses'); ?>">مشاهده جزئیات مالی باشگاه</a>
+</div>
+<div class="inside">
+ <div class="sc-dashboard-stats sc-reports-stats">
         <div class="sc-stat-box">
             <h3>کل درآمد</h3>
             <div>
@@ -313,12 +325,16 @@ $unpaid_invoices_count = (int) $wpdb->get_var(
             </div>
         </div>
     </div>
-
-    <div class="title_head_btn_report">
-<h3> دوره</h3>
-        <a href="<?php echo admin_url('admin.php?page=sc-courses'); ?>">مدیریت لیست دوره ها </a>
 </div>
- <div class="sc-dashboard-stats">
+</div>
+
+    <div class="sc-reports-section postbox">
+    <div class="title_head_btn_report sc-reports-section-header">
+<h3>دوره</h3>
+        <a href="<?php echo admin_url('admin.php?page=sc-courses'); ?>">مدیریت لیست دوره ها</a>
+</div>
+<div class="inside">
+ <div class="sc-dashboard-stats sc-reports-stats">
         <div class="sc-stat-box">
             <h3>کل دوره ها</h3>
             <div>
@@ -356,15 +372,17 @@ $unpaid_invoices_count = (int) $wpdb->get_var(
                 به زودی...
             </div>
         </div>
-        
     </div>
+</div>
+</div>
 
-
-    <div class="title_head_btn_report">
-<h3>رویداد ها </h3>
-        <a href="<?php echo admin_url('admin.php?page=sc-events'); ?>">مدیریت لیست رویداد ها </a>
+    <div class="sc-reports-section postbox">
+    <div class="title_head_btn_report sc-reports-section-header">
+<h3>رویدادها</h3>
+        <a href="<?php echo admin_url('admin.php?page=sc-events'); ?>">مدیریت لیست رویدادها</a>
     </div>
- <div class="sc-dashboard-stats">
+<div class="inside">
+ <div class="sc-dashboard-stats sc-reports-stats">
         <div class="sc-stat-box">
             <h3>کل رویداد ها</h3>
             <div>
@@ -395,14 +413,17 @@ $unpaid_invoices_count = (int) $wpdb->get_var(
                 <?php echo $events_free; ?>
         </div>
         </div>
-        
     </div>
+</div>
+</div>
 
-    <div class="title_head_btn_report">
+    <div class="sc-reports-section postbox">
+    <div class="title_head_btn_report sc-reports-section-header">
         <h3>حضور و غیاب</h3>
         <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list_report')); ?>">لیست حضور و غیاب</a>
     </div>
-    <div class="sc-dashboard-stats">
+<div class="inside">
+    <div class="sc-dashboard-stats sc-reports-stats">
         <div class="sc-stat-box">
             <h3>تعداد حضور</h3>
             <div><?php echo (int) $att_present_count; ?></div>
@@ -416,12 +437,16 @@ $unpaid_invoices_count = (int) $wpdb->get_var(
             <div><?php echo (int) $att_excused_count; ?></div>
         </div>
     </div>
+</div>
+</div>
 
-    <div class="title_head_btn_report">
+    <div class="sc-reports-section postbox">
+    <div class="title_head_btn_report sc-reports-section-header">
         <h3>پیامک‌های ارسال‌شده</h3>
         <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-sms-log')); ?>">گزارش و لاگ ارسال پیامک</a>
     </div>
-    <div class="sc-dashboard-stats">
+<div class="inside">
+    <div class="sc-dashboard-stats sc-reports-stats">
         <div class="sc-stat-box">
             <h3>کل پیامک‌های ارسال‌شده</h3>
             <div><?php echo (int) $sms_sent_accepted; ?></div>
@@ -435,7 +460,10 @@ $unpaid_invoices_count = (int) $wpdb->get_var(
             <div><?php echo (int) $sms_failed_or_not_delivered; ?></div>
         </div>
     </div>
-    <p class="description" style="margin-top:-8px;color:#646970;font-size:12px;">
+    <p class="description sc-reports-sms-note">
         آمار پیامک بر اساس جدول لاگ است؛ «تحویل» پس از بررسی وضعیت از سامانه در همان گزارش به‌روز می‌شود. ردیف‌های بدون بررسی تحویل در این عدد آخر لحاظ نمی‌شوند.
     </p>
+</div>
+</div>
+
 </div>

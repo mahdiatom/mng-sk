@@ -106,146 +106,158 @@ $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FRO
 $coaches = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
 
 ?>
-<div class="wrap">
-    <h1>افزودن افتخار برای بازیکن</h1>
-    
-    <div class="card sc-honor-add-card">
-        
-        <?php if ($message) : ?>
-            <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
-                <p><?php echo esc_html($message); ?></p>
-            </div>
-        <?php endif; ?>
-        
-        <form method="post" enctype="multipart/form-data" class="sc-honor-add-form">
-            <?php wp_nonce_field('save_honor_for_member_nonce'); ?>
-            
-            <table class="form-table" role="presentation">
-                <tbody>
-                    <tr>
-                        <th scope="row"><label for="member_id">بازیکن <span class="required">*</span></label></th>
-                        <td>
-                            <?php
-                            $selected_member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
-                            $selected_member_text = 'انتخاب بازیکن';
-                            if ($selected_member_id > 0) {
-                                foreach ($members as $m) {
-                                    if ($m->id == $selected_member_id) {
-                                        $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . ($m->national_id ? $m->national_id : $m->id);
-                                        break;
+<div class="wrap sc-honor-add-page-header">
+    <h1 class="wp-heading-inline">افزودن افتخار برای بازیکن</h1>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honors')); ?>" class="page-title-action">لیست افتخارات</a>
+    <hr class="wp-header-end">
+    <p class="sc-honor-add-subtitle">افتخار جدید را برای یک بازیکن ثبت کنید؛ پس از تایید در پروفایل و لیست افتخارات نمایش داده می‌شود.</p>
+</div>
+<div class="wrap sc-honor-add-page-body">
+    <?php if ($message) : ?>
+        <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
+            <p><?php echo esc_html($message); ?></p>
+        </div>
+    <?php endif; ?>
+
+    <div class="sc-honor-add-panel postbox">
+        <div class="postbox-header">
+            <h2>فرم ثبت افتخار</h2>
+        </div>
+        <div class="inside">
+            <form method="post" enctype="multipart/form-data" class="sc-honor-add-form" id="sc-honor-add-form">
+                <?php wp_nonce_field('save_honor_for_member_nonce'); ?>
+
+                <table class="form-table sc-honor-add-form-table" role="presentation">
+                    <tbody>
+                        <tr class="sc-honor-field-row sc-honor-field-row--member">
+                            <th scope="row"><label for="member_id">بازیکن <span class="required">*</span></label></th>
+                            <td>
+                                <?php
+                                $selected_member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
+                                $selected_member_text = 'انتخاب بازیکن';
+                                if ($selected_member_id > 0) {
+                                    foreach ($members as $m) {
+                                        if ($m->id == $selected_member_id) {
+                                            $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . ($m->national_id ? $m->national_id : $m->id);
+                                            break;
+                                        }
                                     }
                                 }
-                            }
-                            ?>
-                            <div class="sc-searchable-dropdown sc-honor-member-dropdown">
-                                <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>" required>
-                                <div class="sc-dropdown-toggle">
-                                    <span class="sc-dropdown-placeholder" <?php if ($selected_member_id) echo 'style="display:none"'; ?>>انتخاب بازیکن</span>
-                                    <span class="sc-dropdown-selected" <?php if (!$selected_member_id) echo 'style="display:none"'; ?>><?php echo esc_html($selected_member_text); ?></span>
-                                    <span class="sc-dropdown-arrow">▼</span>
-                                </div>
-                                <div class="sc-dropdown-menu">
-                                    <div class="sc-dropdown-search">
-                                        <input type="text" class="sc-search-input" placeholder="جستجوی نام یا کد ملی...">
-                                    </div>
-                                    <div class="sc-dropdown-options">
-                                        <?php
-                                        $display_count = 0;
-                                        $max_display = 10;
-                                        foreach ($members as $member) :
-                                            $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
-                                            $display_count++;
-                                            $label = $member->first_name . ' ' . $member->last_name . ' - ' . ($member->national_id ? $member->national_id : $member->id);
-                                            $is_selected = ($selected_member_id == $member->id);
-                                        ?>
-                                            <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?> <?php echo $is_selected ? 'sc-selected' : ''; ?>"
-                                                 data-value="<?php echo esc_attr($member->id); ?>"
-                                                 data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . ($member->national_id ? $member->national_id : ''))); ?>"
-                                                 onclick="scSelectMemberForHonor(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($label); ?>')">
-                                                <?php echo esc_html($label); ?>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-                            </div>
-                            <p class="description">با تایپ جستجو کنید یا از لیست انتخاب کنید.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="honor_name">عنوان افتخار <span class="required">*</span></label></th>
-                        <td>
-                            <input type="text" name="honor_name" id="honor_name" class="regular-text" required value="<?php echo isset($_POST['honor_name']) ? esc_attr($_POST['honor_name']) : ''; ?>">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="honor_category">دسته <span class="required">*</span></label></th>
-                        <td>
-                            <select name="honor_category" id="honor_category" class="regular-text" required>
-                                <option value="">انتخاب کنید</option>
-                                <?php foreach ($categories as $category) : ?>
-                                    <option value="<?php echo esc_attr($category->id); ?>" <?php selected(isset($_POST['honor_category']) ? $_POST['honor_category'] : '', $category->id); ?>><?php echo esc_html($category->name); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="honor_coach_id">مربی مرتبط <span class="required">*</span></label></th>
-                        <td>
-                            <?php $selected_coach = isset($_POST['honor_coach_id']) ? absint($_POST['honor_coach_id']) : 0; ?>
-                            <select name="honor_coach_id" id="honor_coach_id" class="regular-text" required>
-                                <option value="0" <?php selected($selected_coach, 0); ?>>هیچ کدام</option>
-                                <?php foreach ($coaches as $coach) : 
-                                    $coach_label = trim($coach->first_name . ' ' . $coach->last_name);
-                                    if ($coach_label === '') { $coach_label = 'مربی #' . $coach->id; }
                                 ?>
-                                    <option value="<?php echo esc_attr($coach->id); ?>" <?php selected($selected_coach, $coach->id); ?>><?php echo esc_html($coach_label); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <p class="description">مربی‌ای که این افتخار به او مرتبط است (اختیاری، پیش‌فرض: هیچ کدام).</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="honor_description">توضیحات</label></th>
-                        <td>
-                            <textarea name="honor_description" id="honor_description" rows="4"  class="large-text"><?php echo isset($_POST['honor_description']) ? esc_textarea($_POST['honor_description']) : ''; ?></textarea>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label>فایل</label></th>
-                        <td>
-                            <div class="sc-ticket-attachment-zone sc-honor-attachment-zone"
-                                 data-input-name="honor_attachment_ids"
-                                 data-nonce="<?php echo esc_attr(wp_create_nonce('sc_honor_upload_attachment')); ?>"
-                                 data-action="sc_upload_honor_attachment"
-                                 data-nonce-key="sc_honor_upload_nonce"
-                                 data-max-files="1"
-                                 data-max-size-mb="1"
-                                 data-allowed-ext="jpg,jpeg,jpe,png,gif,webp,bmp,pdf,doc,docx,xls,xlsx">
-                                <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
-                                    <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.jpe,.png,.gif,.webp,.bmp,.pdf,.doc,.docx,.xls,.xlsx">
-                                    <span class="sc-file-upload-icon">📎</span>
-                                    <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
-                                    <span class="sc-file-upload-hint">حداکثر ۱ فایل، حداکثر ۱ مگابایت. فرمت‌های مجاز: تصویر، PDF، ورد، اکسل</span>
-                                </div>
-                                <div class="sc-ticket-upload-progress-wrap" style="display:none;">
-                                    <div class="sc-upload-progress sc-ticket-upload-progress">
-                                        <div class="sc-upload-bar"></div>
-                                        <span class="sc-upload-text"></span>
+                                <div class="sc-searchable-dropdown sc-honor-member-dropdown">
+                                    <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>" required>
+                                    <div class="sc-dropdown-toggle" tabindex="0" role="button" aria-haspopup="listbox">
+                                        <span class="sc-dropdown-placeholder" <?php if ($selected_member_id) echo 'style="display:none"'; ?>>انتخاب بازیکن</span>
+                                        <span class="sc-dropdown-selected" <?php if (!$selected_member_id) echo 'style="display:none"'; ?>><?php echo esc_html($selected_member_text); ?></span>
+                                        <span class="sc-dropdown-arrow">▼</span>
+                                    </div>
+                                    <div class="sc-dropdown-menu" role="listbox">
+                                        <div class="sc-dropdown-search">
+                                            <input type="text" class="sc-search-input" placeholder="جستجوی نام یا کد ملی..." autocomplete="off">
+                                        </div>
+                                        <div class="sc-dropdown-options">
+                                            <?php
+                                            $display_count = 0;
+                                            $max_display = 10;
+                                            foreach ($members as $member) :
+                                                $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                                $display_count++;
+                                                $label = $member->first_name . ' ' . $member->last_name . ' - ' . ($member->national_id ? $member->national_id : $member->id);
+                                                $is_selected = ($selected_member_id == $member->id);
+                                                ?>
+                                                <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?> <?php echo $is_selected ? 'sc-selected' : ''; ?>"
+                                                     data-value="<?php echo esc_attr($member->id); ?>"
+                                                     data-label="<?php echo esc_attr($label); ?>"
+                                                     data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . ($member->national_id ? $member->national_id : ''))); ?>"
+                                                     onclick="scSelectMemberForHonor(this, '<?php echo esc_js($member->id); ?>', '<?php echo esc_js($label); ?>')">
+                                                    <?php echo esc_html($label); ?>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="sc-ticket-uploaded-list"></div>
-                                <div class="sc-ticket-attachment-ids-hidden"></div>
-                            </div>
-                            <p class="description">حداکثر ۱ مگابایت. فرمت‌های مجاز: تصاویر، PDF، Word، Excel</p>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            <p class="submit">
-                <input type="submit" name="save_honor" id="save_honor" class="button button-primary" value="ذخیره افتخار">
-            </p>
-        </form>
+                                <p class="description">با تایپ جستجو کنید یا از لیست انتخاب کنید.</p>
+                            </td>
+                        </tr>
+                        <tr class="sc-honor-field-row sc-honor-field-row--title">
+                            <th scope="row"><label for="honor_name">عنوان افتخار <span class="required">*</span></label></th>
+                            <td>
+                                <input type="text" name="honor_name" id="honor_name" class="regular-text" required value="<?php echo isset($_POST['honor_name']) ? esc_attr($_POST['honor_name']) : ''; ?>">
+                                <p class="description">مثلاً: قهرمان مسابقات استانی، مدال طلای...</p>
+                            </td>
+                        </tr>
+                        <tr class="sc-honor-field-row sc-honor-field-row--category">
+                            <th scope="row"><label for="honor_category">دسته <span class="required">*</span></label></th>
+                            <td>
+                                <select name="honor_category" id="honor_category" class="regular-text" required>
+                                    <option value="">انتخاب کنید</option>
+                                    <?php foreach ($categories as $category) : ?>
+                                        <option value="<?php echo esc_attr($category->id); ?>" <?php selected(isset($_POST['honor_category']) ? $_POST['honor_category'] : '', $category->id); ?>><?php echo esc_html($category->name); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr class="sc-honor-field-row sc-honor-field-row--coach">
+                            <th scope="row"><label for="honor_coach_id">مربی مرتبط</label></th>
+                            <td>
+                                <?php $selected_coach = isset($_POST['honor_coach_id']) ? absint($_POST['honor_coach_id']) : 0; ?>
+                                <select name="honor_coach_id" id="honor_coach_id" class="regular-text">
+                                    <option value="0" <?php selected($selected_coach, 0); ?>>هیچ کدام</option>
+                                    <?php foreach ($coaches as $coach) :
+                                        $coach_label = trim($coach->first_name . ' ' . $coach->last_name);
+                                        if ($coach_label === '') {
+                                            $coach_label = 'مربی #' . $coach->id;
+                                        }
+                                        ?>
+                                        <option value="<?php echo esc_attr($coach->id); ?>" <?php selected($selected_coach, $coach->id); ?>><?php echo esc_html($coach_label); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="description">مربی مرتبط با این افتخار (اختیاری).</p>
+                            </td>
+                        </tr>
+                        <tr class="sc-honor-field-row sc-honor-field-row--description">
+                            <th scope="row"><label for="honor_description">توضیحات</label></th>
+                            <td>
+                                <textarea name="honor_description" id="honor_description" rows="4" class="large-text"><?php echo isset($_POST['honor_description']) ? esc_textarea($_POST['honor_description']) : ''; ?></textarea>
+                            </td>
+                        </tr>
+                        <tr class="sc-honor-field-row sc-honor-field-row--file">
+                            <th scope="row"><label>فایل پیوست</label></th>
+                            <td>
+                                <div class="sc-ticket-attachment-zone sc-honor-attachment-zone"
+                                     data-input-name="honor_attachment_ids"
+                                     data-nonce="<?php echo esc_attr(wp_create_nonce('sc_honor_upload_attachment')); ?>"
+                                     data-action="sc_upload_honor_attachment"
+                                     data-nonce-key="sc_honor_upload_nonce"
+                                     data-max-files="1"
+                                     data-max-size-mb="1"
+                                     data-allowed-ext="jpg,jpeg,jpe,png,gif,webp,bmp,pdf,doc,docx,xls,xlsx">
+                                    <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
+                                        <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.jpe,.png,.gif,.webp,.bmp,.pdf,.doc,.docx,.xls,.xlsx">
+                                        <span class="sc-file-upload-icon">📎</span>
+                                        <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
+                                        <span class="sc-file-upload-hint">حداکثر ۱ فایل، حداکثر ۱ مگابایت. فرمت‌های مجاز: تصویر، PDF، ورد، اکسل</span>
+                                    </div>
+                                    <div class="sc-ticket-upload-progress-wrap" style="display:none;">
+                                        <div class="sc-upload-progress sc-ticket-upload-progress">
+                                            <div class="sc-upload-bar"></div>
+                                            <span class="sc-upload-text"></span>
+                                        </div>
+                                    </div>
+                                    <div class="sc-ticket-uploaded-list"></div>
+                                    <div class="sc-ticket-attachment-ids-hidden"></div>
+                                </div>
+                                <p class="description">مدرک یا تصویر مرتبط با افتخار (اختیاری).</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p class="submit sc-honor-add-submit">
+                    <input type="submit" name="save_honor" id="save_honor" class="button button-primary" value="ذخیره افتخار">
+                </p>
+            </form>
+        </div>
     </div>
 </div>
 

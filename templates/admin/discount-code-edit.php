@@ -140,10 +140,13 @@ if (!$row) {
     }
 }
 ?>
-<div class="wrap">
-    <h1><?php echo esc_html($page_title); ?></h1>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-discount-codes')); ?>" class="page-title-action">← بازگشت به لیست</a>
-
+<div class="wrap sc-discount-add-page-header sc-finance-page-header">
+    <h1 class="wp-heading-inline"><?php echo esc_html($page_title); ?></h1>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-discount-codes')); ?>" class="page-title-action">لیست کدهای تخفیف</a>
+    <hr class="wp-header-end">
+    <p class="sc-discount-add-subtitle">کد تخفیف، محدودیت‌ها و اعضای مجاز را تنظیم کنید.</p>
+</div>
+<div class="wrap sc-discount-add-page-body sc-finance-page-body">
     <?php if ($err_msg) : ?>
         <div class="notice notice-error"><p><?php echo esc_html($err_msg); ?></p></div>
     <?php endif; ?>
@@ -152,15 +155,18 @@ if (!$row) {
         <div class="notice notice-error"><p>کد تخفیف یافت نشد.</p></div>
     <?php else : ?>
 
-    <form method="post" action="" class="sc_discount_form">
+    <form method="post" action="" class="sc_discount_form sc-discount-add-form">
         <?php wp_nonce_field('sc_save_discount_code'); ?>
         <input type="hidden" name="discount_id" value="<?php echo esc_attr((string) $discount_id); ?>">
         <input type="hidden" name="sc_save_discount_code" value="1">
 
-        <table class="form-table" role="presentation">
+        <div class="sc-discount-add-panel sc-discount-add-panel--basic sc-finance-panel postbox">
+            <div class="postbox-header"><h2>مشخصات کد</h2></div>
+            <div class="inside">
+        <table class="form-table sc-discount-add-form-table sc-discount-add-form-table--basic" role="presentation">
             <tbody>
-                <tr>
-                    <th scope="row"><label for="sc_dc_code">کد تخفیف <span style="color:red">*</span></label></th>
+                <tr class="sc-discount-field-row">
+                    <th scope="row"><label for="sc_dc_code">کد تخفیف <span class="required">*</span></label></th>
                     <td>
                         <input name="code" id="sc_dc_code" type="text" class="regular-text" required
                                value="<?php echo $row ? esc_attr($row->code) : ''; ?>"
@@ -168,11 +174,11 @@ if (!$row) {
                         <p class="description">بدون فاصله؛ هنگام ورود کاربر نادیده گرفته می‌شود.</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="sc_dc_desc">توضیحات داخلی</label></th>
                     <td><textarea name="description" id="sc_dc_desc" rows="3" class="large-text"><?php echo $row ? esc_textarea($row->description) : ''; ?></textarea></td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row">نوع تخفیف</th>
                     <td>
                         <label><input type="radio" name="discount_type" value="percent" <?php checked(!$row || $row->discount_type !== 'fixed'); ?>> درصد</label>
@@ -180,7 +186,7 @@ if (!$row) {
                         <label><input type="radio" name="discount_type" value="fixed" <?php checked($row && $row->discount_type === 'fixed'); ?>> مبلغ ثابت (تومان)</label>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="discount_value_raw">مقدار</label></th>
                     <td>
                         <input name="discount_value_raw" id="discount_value_raw" type="text" class="regular-text"
@@ -188,7 +194,7 @@ if (!$row) {
                         <p class="description">درصد یا مبلغ ثابت به تومان.</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="max_discount_amount_raw">سقف مبلغ تخفیف (درصدی)</label></th>
                     <td>
                         <input name="max_discount_amount_raw" id="max_discount_amount_raw" type="text" class="regular-text"
@@ -196,7 +202,7 @@ if (!$row) {
                         <p class="description">فقط برای نوع درصد؛ خالی = بدون سقف.</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="min_subtotal_raw">حداقل مبلغ صورت‌حساب</label></th>
                     <td>
                         <input name="min_subtotal_raw" id="min_subtotal_raw" type="text" class="regular-text"
@@ -204,7 +210,7 @@ if (!$row) {
                         <p class="description">خالی یا صفر = بدون حداقل.</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="starts_at_date_shamsi">تاریخ شروع</label></th>
                     <td>
                         <div class="sc-discount-datetime-row">
@@ -215,7 +221,7 @@ if (!$row) {
                         </div>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="ends_at_date_shamsi">تاریخ پایان</label></th>
                     <td>
                         <div class="sc-discount-datetime-row">
@@ -226,7 +232,7 @@ if (!$row) {
                         </div>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="usage_limit_total">سقف استفاده (کل)</label></th>
                     <td>
                         <input name="usage_limit_total" id="usage_limit_total" type="number" min="0" class="small-text"
@@ -234,7 +240,7 @@ if (!$row) {
                         <p class="description">خالی = نامحدود.</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="usage_limit_per_member">سقف برای هر عضو</label></th>
                     <td>
                         <input name="usage_limit_per_member" id="usage_limit_per_member" type="number" min="0" class="small-text"
@@ -242,18 +248,28 @@ if (!$row) {
                         <p class="description">خالی = نامحدود برای هر نفر.</p>
                     </td>
                 </tr>
-                <tr>
-                    <th scope="row">بر روی کدام بخش اعمال شود ؟</th>
+                <tr class="sc-discount-field-row">
+                    <th scope="row">بر روی کدام بخش اعمال شود؟</th>
                     <td>
                         <label class="sc-switch-label"><span class="switch"><input type="checkbox" name="allow_course" value="1" <?php checked(!$row || (int) $row->allow_course === 1); ?>><span class="slider round"></span></span><span> دوره</span></label><br><br>
                         <label class="sc-switch-label"><span class="switch"><input type="checkbox" name="allow_event" value="1" <?php checked(!$row || (int) $row->allow_event === 1); ?>><span class="slider round"></span></span><span> رویداد</span></label>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="is_active">فعال</label></th>
                     <td><label class="sc-switch-label"><span class="switch"><input type="checkbox" name="is_active" id="is_active" value="1" <?php checked(!$row || (int) $row->is_active === 1); ?>><span class="slider round"></span></span></label></td>
                 </tr>
-                <tr>
+            </tbody>
+        </table>
+            </div>
+        </div>
+
+        <div class="sc-discount-add-panel sc-discount-add-panel--limits sc-finance-panel postbox">
+            <div class="postbox-header"><h2>محدودیت‌های اعمال</h2></div>
+            <div class="inside">
+        <table class="form-table sc-discount-add-form-table sc-discount-add-form-table--limits" role="presentation">
+            <tbody>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="course_ids">محدودیت دوره‌ها</label></th>
                     <td>
                         <select name="course_ids[]" id="course_ids" multiple size="8">
@@ -266,7 +282,7 @@ if (!$row) {
                         <p class="description">بدون انتخاب = همهٔ دوره‌ها (در صورت فعال بودن ثبت‌نام دوره).</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="event_ids">محدودیت رویدادها</label></th>
                     <td>
                         <select name="event_ids[]" id="event_ids" multiple size="8" >
@@ -279,10 +295,10 @@ if (!$row) {
                         <p class="description">بدون انتخاب = همهٔ رویدادها.</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="chapter_names">محدودیت شعبه (نام شعبه دوره)</label></th>
                     <td>
-                        <select name="chapter_names[]" id="chapter_names" multiple size="6" style="min-width:280px;">
+                        <select name="chapter_names[]" id="chapter_names" multiple size="6">
                             <?php foreach ($chapters_all as $ch) : ?>
                                 <option value="<?php echo esc_attr($ch->name); ?>" <?php echo in_array($ch->name, $sel_chapters, true) ? 'selected' : ''; ?>>
                                     <?php echo esc_html($ch->name); ?>
@@ -292,10 +308,10 @@ if (!$row) {
                         <p class="description">خالی = همهٔ شعبه‌ها. در دوره و رویداد، شعبهٔ آیتم باید داخل لیست باشد.</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="gender_values">محدودیت جنسیت بازیکن</label></th>
                     <td>
-                        <select name="gender_values[]" id="gender_values" multiple size="4" style="min-width:280px;">
+                        <select name="gender_values[]" id="gender_values" multiple size="4">
                             <?php foreach ($genders_all as $gender_opt) : ?>
                                 <option value="<?php echo esc_attr($gender_opt['value']); ?>" <?php echo in_array($gender_opt['value'], $sel_genders, true) ? 'selected' : ''; ?>>
                                     <?php echo esc_html($gender_opt['label']); ?>
@@ -305,10 +321,10 @@ if (!$row) {
                         <p class="description">خالی = هر جنسیت.</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="team_names">محدودیت تیم بازیکن</label></th>
                     <td>
-                        <select name="team_names[]" id="team_names" multiple size="6" style="min-width:280px;">
+                        <select name="team_names[]" id="team_names" multiple size="6">
                             <?php foreach ($teams_all as $t) : ?>
                                 <option value="<?php echo esc_attr($t->name); ?>" <?php echo in_array($t->name, $sel_teams, true) ? 'selected' : ''; ?>>
                                     <?php echo esc_html($t->name); ?>
@@ -317,10 +333,10 @@ if (!$row) {
                         </select>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row">
                     <th scope="row"><label for="level_names">محدودیت سطح</label></th>
                     <td>
-                        <select name="level_names[]" id="level_names" multiple size="6" style="min-width:280px;">
+                        <select name="level_names[]" id="level_names" multiple size="6">
                             <?php foreach ($levels_all as $lv) : ?>
                                 <option value="<?php echo esc_attr($lv->name); ?>" <?php echo in_array($lv->name, $sel_levels, true) ? 'selected' : ''; ?>>
                                     <?php echo esc_html($lv->name); ?>
@@ -329,7 +345,7 @@ if (!$row) {
                         </select>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row sc-discount-field-row--full">
                     <th scope="row">فقط اعضا</th>
                     <td>
                         <div id="sc-discount-allow-tags" class="sc-notification-recipient-tags"></div>
@@ -364,7 +380,7 @@ if (!$row) {
                         <p class="description">خالی = بدون محدودیت لیست سفید.</p>
                     </td>
                 </tr>
-                <tr>
+                <tr class="sc-discount-field-row sc-discount-field-row--full">
                     <th scope="row">به‌جز اعضا</th>
                     <td>
                         <div id="sc-discount-deny-tags" class="sc-notification-recipient-tags"></div>
@@ -400,8 +416,13 @@ if (!$row) {
                 </tr>
             </tbody>
         </table>
+            </div>
+        </div>
 
-        <?php submit_button('ذخیره کد تخفیف'); ?>
+        <p class="submit sc-discount-add-submit">
+            <input type="submit" name="submit" class="button button-primary" value="ذخیره کد تخفیف">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-discount-codes')); ?>" class="button button-secondary">انصراف</a>
+        </p>
     </form>
     <?php endif; ?>
 </div>

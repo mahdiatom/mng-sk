@@ -49,41 +49,49 @@ for ($i = 5; $i >= 0; $i--) {
     ];
 }
 ?>
-<div class="wrap">
-    <h1>داشبورد مدیریت باشگاه ورزشی</h1>
-    
-    <div class="sc-dashboard-stats">
-        <div class="sc-stat-box">
-            <h3>کل بازیکنان</h3>
-            <div><?php echo $total_members; ?></div>
+<div class="wrap sc-dashboard-page-header sc-club-dashboard-wrap">
+    <h1 class="wp-heading-inline">داشبورد مدیریت باشگاه ورزشی</h1>
+    <hr class="wp-header-end">
+    <p class="sc-dashboard-subtitle">خلاصه وضعیت بازیکنان، دوره‌ها و روند ثبت‌نام در باشگاه.</p>
+</div>
+<div class="wrap sc-dashboard-page-body sc-club-dashboard-wrap">
+    <div class="sc-dashboard-panel postbox">
+        <div class="postbox-header"><h2>آمار کلی</h2></div>
+        <div class="inside">
+            <div class="sc-dashboard-stats">
+                <div class="sc-stat-box">
+                    <h3>کل بازیکنان</h3>
+                    <div class="sc-stat-value"><?php echo (int) $total_members; ?></div>
+                </div>
+                <div class="sc-stat-box sc-stat-box--success">
+                    <h3>بازیکنان فعال</h3>
+                    <div class="sc-stat-value"><?php echo (int) $active_members; ?></div>
+                </div>
+                <div class="sc-stat-box sc-stat-box--muted">
+                    <h3>بازیکنان غیرفعال</h3>
+                    <div class="sc-stat-value"><?php echo (int) $inactive_members; ?></div>
+                </div>
+                <div class="sc-stat-box">
+                    <h3>دوره‌های فعال</h3>
+                    <div class="sc-stat-value"><?php echo (int) $active_courses; ?></div>
+                </div>
+            </div>
         </div>
-        
-        <div class="sc-stat-box" >
-            <h3>بازیکنان فعال</h3>
-            <div style="font-size: 36px; font-weight: bold; color: #00a32a;"><?php echo $active_members; ?></div>
-        </div>
-        
-        <div class="sc-stat-box" >
-            <h3 >بازیکنان غیرفعال</h3>
-            <div><?php echo $inactive_members; ?></div>
-        </div>
-        
-        <div class="sc-stat-box">
-            <h3>دوره‌های فعال</h3>
-            <div><?php echo $active_courses; ?></div>
-        </div>
-        
     </div>
-    
-    <div class="chart_dashboard">
-        <div class="chart_courses_users_dashboard sc_chart">
-            <h2>بازیکنان بر اساس دوره</h2>
-            <canvas id="courseChart" ></canvas>
+
+    <div class="chart_dashboard sc-dashboard-charts">
+        <div class="chart_courses_users_dashboard sc_chart sc-dashboard-chart-panel postbox">
+            <div class="postbox-header"><h2>بازیکنان بر اساس دوره</h2></div>
+            <div class="inside sc-dashboard-chart-inner">
+                <canvas id="courseChart"></canvas>
+            </div>
         </div>
-        
-        <div class="new_users sc_chart ">
-            <h2>بازیکنان جدید (6 ماه گذشته)</h2>
-            <canvas id="monthlyChart" ></canvas>
+
+        <div class="new_users sc_chart sc-dashboard-chart-panel postbox">
+            <div class="postbox-header"><h2>بازیکنان جدید (۶ ماه گذشته)</h2></div>
+            <div class="inside sc-dashboard-chart-inner">
+                <canvas id="monthlyChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -91,7 +99,6 @@ for ($i = 5; $i >= 0; $i--) {
 <script src="<?php echo esc_url(SC_ASSETS_URL . 'js/vendor/chart.min.js'); ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // نمودار دوره‌ها
     const courseCtx = document.getElementById('courseChart');
     if (courseCtx) {
         const courseData = <?php echo json_encode($course_stats); ?>;
@@ -102,9 +109,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'تعداد ثبت‌نام',
                     data: courseData.map(c => parseInt(c.enrolled_count)),
-                    backgroundColor: 'rgba(34, 113, 177, 0.6)',
-                    borderColor: 'rgba(34, 113, 177, 1)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(109, 52, 255, 0.55)',
+                    borderColor: 'rgba(74, 31, 184, 1)',
+                    borderWidth: 1,
+                    borderRadius: 8
                 }]
             },
             options: {
@@ -113,21 +121,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        }
+                        ticks: { stepSize: 1 }
                     }
                 },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
+                plugins: { legend: { display: false } }
             }
         });
     }
-    
-    // نمودار ماهانه
+
     const monthlyCtx = document.getElementById('monthlyChart');
     if (monthlyCtx) {
         const monthlyData = <?php echo json_encode($monthly_stats); ?>;
@@ -138,8 +139,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'بازیکنان جدید',
                     data: monthlyData.map(m => parseInt(m.count)),
-                    borderColor: 'rgba(0, 163, 42, 1)',
-                    backgroundColor: 'rgba(0, 163, 42, 0.1)',
+                    borderColor: 'rgba(109, 52, 255, 1)',
+                    backgroundColor: 'rgba(109, 52, 255, 0.12)',
                     tension: 0.4,
                     fill: true
                 }]
@@ -150,9 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        }
+                        ticks: { stepSize: 1 }
                     }
                 }
             }
@@ -160,4 +159,3 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
