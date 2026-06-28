@@ -127,6 +127,11 @@ function sc_save_course_weekly_schedule_from_post($course_id) {
         }
         $row_chapter = isset($row['chapter']) ? sanitize_text_field((string) $row['chapter']) : '';
         $row_coach = isset($row['coach']) ? absint($row['coach']) : 0;
+        $row_uses_group = !empty($row['uses_group']) ? 1 : 0;
+        $row_group = isset($row['group']) ? sanitize_text_field((string) $row['group']) : '';
+        if (!$row_uses_group) {
+            $row_group = '';
+        }
         foreach ($wd as $d) {
             $sort++;
             $data = [
@@ -144,6 +149,12 @@ function sc_save_course_weekly_schedule_from_post($course_id) {
                 $data['coach_id'] = $row_coach;
                 $formats[] = '%s';
                 $formats[] = '%d';
+            }
+            if (function_exists('sc_course_schedule_has_group_columns') && sc_course_schedule_has_group_columns()) {
+                $data['schedule_uses_group'] = $row_uses_group;
+                $data['group_name'] = $row_group;
+                $formats[] = '%d';
+                $formats[] = '%s';
             }
             $wpdb->insert($table, $data, $formats);
         }
@@ -199,13 +210,17 @@ function sc_group_course_schedule_for_form($rows) {
         }
         $chapter = isset($r->chapter_name) ? (string) $r->chapter_name : '';
         $coach_id = isset($r->coach_id) ? (int) $r->coach_id : 0;
-        $k = $r->time_start . '|' . $r->time_end . '|' . $chapter . '|' . $coach_id;
+        $uses_group = isset($r->schedule_uses_group) ? (int) $r->schedule_uses_group : 0;
+        $group_name = isset($r->group_name) ? (string) $r->group_name : '';
+        $k = $r->time_start . '|' . $r->time_end . '|' . $chapter . '|' . $coach_id . '|' . $uses_group . '|' . $group_name;
         if (!isset($groups[$k])) {
             $groups[$k] = [
                 'start' => $r->time_start,
                 'end' => $r->time_end,
                 'chapter' => $chapter,
                 'coach_id' => $coach_id,
+                'uses_group' => $uses_group,
+                'group_name' => $group_name,
                 'wd' => [],
             ];
         }
@@ -253,7 +268,22 @@ function sc_get_member_weekly_schedule_matrix($member_id) {
           AND (s.coach_id IS NULL OR s.coach_id = 0 OR mc.coach_id IS NULL OR mc.coach_id = 0 OR s.coach_id = mc.coach_id)";
     }
 
-    $sql = "SELECT s.id AS schedule_id, s.weekday, s.time_start, s.time_end, c.id AS course_id, c.title AS course_title
+    if (function_exists('sc_course_schedule_has_group_columns') && sc_course_schedule_has_group_columns()) {
+        $chapter_coach_filter .= "
+          AND (
+            COALESCE(s.schedule_uses_group, 0) = 0
+            OR COALESCE(s.group_name, '') = ''
+            OR (mc.group_name IS NOT NULL AND mc.group_name != '' AND s.group_name = mc.group_name)
+          )";
+    }
+
+    $group_select = '';
+    if (function_exists('sc_course_schedule_has_group_columns') && sc_course_schedule_has_group_columns()) {
+        $group_select = ', s.schedule_uses_group, s.group_name';
+    }
+
+    $sql = "SELECT s.id AS schedule_id, s.weekday, s.time_start, s.time_end{$group_select},
+                   c.id AS course_id, c.title AS course_title
         FROM {$mc} mc
         INNER JOIN {$c} c ON c.id = mc.course_id AND c.deleted_at IS NULL
         INNER JOIN {$sch} s ON s.course_id = c.id
@@ -275,6 +305,10 @@ function sc_get_member_weekly_schedule_matrix($member_id) {
             'title' => (string) $r->course_title,
             'start' => substr((string) $r->time_start, 0, 5),
             'end' => substr((string) $r->time_end, 0, 5),
+            'group_name' => (
+                function_exists('sc_course_schedule_has_group_columns') && sc_course_schedule_has_group_columns()
+                && !empty($r->schedule_uses_group) && !empty($r->group_name)
+            ) ? (string) $r->group_name : '',
         ];
     }
 

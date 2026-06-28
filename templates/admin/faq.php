@@ -136,132 +136,153 @@ if (isset($_GET['updated']) && $_GET['updated'] === '1') {
 // دریافت لیست پرسش / پاسخ ‌ها
 $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
 
+if (!function_exists('sc_faq_admin_text_excerpt')) {
+    function sc_faq_admin_text_excerpt($html, $word_limit = 20) {
+        $text = trim(wp_strip_all_tags((string) $html));
+        if ($text === '') {
+            return '—';
+        }
+        return wp_trim_words($text, $word_limit, '…');
+    }
+}
+
 ?>
-<div class="wrap">
-    <h1>پرسش و پاسخ / سوالات متداول باشگاه</h1>
-    
+<div class="wrap sc-faq-page-header">
+    <h1>سوالات متداول باشگاه</h1>
+    <p class="sc-faq-page-subtitle">پرسش و پاسخ‌هایی که بازیکنان در پنل کاربری و ربات می‌بینند را اینجا مدیریت کنید.</p>
+</div>
+<div class="wrap sc-faq-page-body">
     <?php if ($message) : ?>
         <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
             <p><?php echo esc_html($message); ?></p>
         </div>
     <?php endif; ?>
-    </div>
-   <div class="wrap">
+
     <div class="sections_cat_faq">
-        <!-- فرم افزودن یا ویرایش پرسش / پاسخ  -->
-        <div class=" edit_cat_faq">
+        <div class="postbox edit_cat_faq">
             <div class="postbox-header">
-                <h2 class=""><?php echo $editing_faq ? 'ویرایش پرسش / پاسخ ' : 'افزودن پرسش / پاسخ  جدید'; ?></h2>
+                <h2><?php echo $editing_faq ? 'ویرایش سوال' : 'افزودن سوال جدید'; ?></h2>
             </div>
-            <div class="inside" style="padding: 20px;">
+            <div class="inside">
                 <?php if ($editing_faq) : ?>
-                    <form method="post">
+                    <form method="post" class="sc-faq-form">
                         <?php wp_nonce_field('edit_faq'); ?>
                         <input type="hidden" name="faq_id" value="<?php echo esc_attr($editing_faq->id); ?>">
-                        <table class="form-table">
-                            <tr>
+                        <table class="form-table sc-faq-form-table">
+                            <tr class="sc-faq-field-row sc-faq-field-row--question">
                                 <th scope="row">
-                                    
-                                    <label for="question">پرسش <span style="color: red;">*</span></label>
+                                    <label for="question">پرسش <span class="required">*</span></label>
                                 </th>
                                 <td>
-                                    <?php wp_editor($editing_faq->question , 'question', ['textarea_rows' => 6 , 'media_buttons' => true]) ?>
-                                    <!-- <input type="text" id="question" name="question" class="regular-text" value="<?php //echo esc_attr($editing_faq->question); ?>" required> -->
-                                    <p class="description"> پرسش را ویرایش کنید</p>
+                                    <?php wp_editor($editing_faq->question, 'question', ['textarea_rows' => 6, 'media_buttons' => true]); ?>
+                                    <p class="description">متن سوالی که کاربر می‌بیند.</p>
                                 </td>
                             </tr>
-                            <tr>
+                            <tr class="sc-faq-field-row sc-faq-field-row--answer">
                                 <th scope="row">
-                                    <label for="answer"> پاسخ  <span style="color: red;">*</span></label>
+                                    <label for="answer">پاسخ <span class="required">*</span></label>
                                 </th>
                                 <td>
-                                    <?php wp_editor($editing_faq->answer , 'answer', ['textarea_rows' => 8 , 'media_buttons' => true]) ?>
-                                    <!-- <input type="text" id="answer" name="answer" class="regular-text" value="<?php //echo esc_attr($editing_faq->answer); ?>" required> -->
-                                    <p class="description"> پاسخ  را ویرایش کنید</p>
+                                    <?php wp_editor($editing_faq->answer, 'answer', ['textarea_rows' => 8, 'media_buttons' => true]); ?>
+                                    <p class="description">پاسخ کامل یا راهنمای مربوط به این سوال.</p>
                                 </td>
                             </tr>
                         </table>
                         <p class="submit">
                             <input type="submit" name="edit_faq" class="button button-primary" value="ذخیره تغییرات">
-                            <a href="<?php echo esc_url(admin_url('admin.php?page=sc_faq')); ?>" class="sc_button">انصراف</a>
+                            <a href="<?php echo esc_url(admin_url('admin.php?page=sc_faq')); ?>" class="button">انصراف</a>
                         </p>
                     </form>
                 <?php else : ?>
-                    <form method="post">
+                    <form method="post" class="sc-faq-form">
                         <?php wp_nonce_field('add_faq_faq'); ?>
-                        <table class="form-table">
-                            <tr>
+                        <table class="form-table sc-faq-form-table">
+                            <tr class="sc-faq-field-row sc-faq-field-row--question">
                                 <th scope="row">
-                                    <label for="question"> پرسش   <span style="color: red;">*</span></label>
+                                    <label for="question">پرسش <span class="required">*</span></label>
                                 </th>
                                 <td>
-                                    <?php wp_editor('' , 'question' , ['textarea_rows' => 6 , 'media_buttons' => true]) ?>
-                                    <!-- <input type="text" id="question" name="question" class="regular-text" required> -->
-                                    <p class="description"> پرسش خود را را وارد کنید</p>
+                                    <?php wp_editor('', 'question', ['textarea_rows' => 6, 'media_buttons' => true]); ?>
+                                    <p class="description">متن سوال را وارد کنید.</p>
                                 </td>
                             </tr>
-                            <tr>
+                            <tr class="sc-faq-field-row sc-faq-field-row--answer">
                                 <th scope="row">
-                                    <label for="answer"> پاسخ  <span style="color: red;">*</span></label>
+                                    <label for="answer">پاسخ <span class="required">*</span></label>
                                 </th>
                                 <td>
-                                    <?php wp_editor('' , 'answer', ['textarea_rows' => 8 , 'media_buttons' => true]) ?>
-                                    <!-- <input type="text" id="answer" name="answer" class="regular-text" required> -->
-                                    <p class="description"> پاسخ خود را را وارد کنید</p>
+                                    <?php wp_editor('', 'answer', ['textarea_rows' => 8, 'media_buttons' => true]); ?>
+                                    <p class="description">پاسخ را وارد کنید.</p>
                                 </td>
                             </tr>
                         </table>
                         <p class="submit">
-                            <input type="submit" name="add_faq" class="button button-primary" value="افزودن پرسش / پاسخ ">
+                            <input type="submit" name="add_faq" class="button button-primary" value="افزودن سوال">
                         </p>
                     </form>
                 <?php endif; ?>
             </div>
         </div>
-      </div>
-      </div>
-      <div class="wrap">  
-        <!-- لیست پرسش / پاسخ ‌ها -->
-        <div class=" list_cat_faqs">
+
+        <div class="postbox list_cat_faqs">
             <div class="postbox-header">
-                <h2 class="">لیست پرسش / پاسخ ‌ها</h2>
-            </div>
-            <div class="inside" style="padding: 20px;">
+                <h2>لیست سوالات</h2>
                 <?php if (!empty($faqs)) : ?>
-                    <table class="wp-list-table widefat fixed striped">
+                    <span class="sc-faq-count-badge"><?php echo count($faqs); ?> مورد</span>
+                <?php endif; ?>
+            </div>
+            <div class="inside">
+                <?php if (!empty($faqs)) : ?>
+                    <table class="wp-list-table widefat fixed striped sc-faq-list-table">
                         <thead>
                             <tr>
-                                <th style="width: 50px;">ردیف</th>
-                                <th> پرسش  </th>
-                                <th> پاسخ  </th>
-                                <th style="width: 150px;">عملیات</th>
+                                <th class="sc-faq-col-index">#</th>
+                                <th class="sc-faq-col-question">پرسش</th>
+                                <th class="sc-faq-col-answer">پاسخ</th>
+                                <th class="sc-faq-col-actions">عملیات</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($faqs as $index => $faq) : ?>
                                 <tr>
-                                    <td><?php echo $index + 1; ?></td>
-                                    <td><?php echo wp_kses_post($faq->question); ?></td>
-                                    <td><?php echo wp_kses_post($faq->answer); ?></td>
-                                    <td>
-                                        <a href="<?php echo esc_url(admin_url('admin.php?page=sc_faq&action=edit&faq_id=' . $faq->id)); ?>" 
-                                           class="button button-small">ویرایش</a>
-                                        <?php
-                                        $delete_url = wp_nonce_url(
-                                            admin_url('admin.php?page=sc_faq&action=delete&faq_id=' . $faq->id),
-                                            'delete_faq_' . $faq->id
-                                        );
-                                        ?>
-                                        <a href="<?php echo esc_url($delete_url); ?>" 
-                                           onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟' })" 
-                                           class="button button-small btn_delete_action_admin">حذف</a>
+                                    <td class="sc-faq-col-index">
+                                        <span class="sc-faq-index-badge"><?php echo $index + 1; ?></span>
+                                    </td>
+                                    <td class="sc-faq-col-question">
+                                        <div class="sc-faq-list-preview sc-faq-list-preview--question" title="<?php echo esc_attr(wp_strip_all_tags($faq->question)); ?>">
+                                            <?php echo esc_html(sc_faq_admin_text_excerpt($faq->question, 16)); ?>
+                                        </div>
+                                    </td>
+                                    <td class="sc-faq-col-answer">
+                                        <div class="sc-faq-list-preview sc-faq-list-preview--answer" title="<?php echo esc_attr(wp_strip_all_tags($faq->answer)); ?>">
+                                            <?php echo esc_html(sc_faq_admin_text_excerpt($faq->answer, 22)); ?>
+                                        </div>
+                                    </td>
+                                    <td class="sc-faq-col-actions">
+                                        <div class="sc-faq-row-actions">
+                                            <a href="<?php echo esc_url(admin_url('admin.php?page=sc_faq&action=edit&faq_id=' . $faq->id)); ?>"
+                                               class="button button-small">ویرایش</a>
+                                            <?php
+                                            $delete_url = wp_nonce_url(
+                                                admin_url('admin.php?page=sc_faq&action=delete&faq_id=' . $faq->id),
+                                                'delete_faq_' . $faq->id
+                                            );
+                                            ?>
+                                            <a href="<?php echo esc_url($delete_url); ?>"
+                                               onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟' })"
+                                               class="button button-small btn_delete_action_admin">حذف</a>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                 <?php else : ?>
-                    <p>هیچ پرسش / پاسخ ‌ای ثبت نشده است.</p>
+                    <div class="sc-faq-empty-state">
+                        <span class="sc-faq-empty-state__icon dashicons dashicons-editor-help"></span>
+                        <p>هنوز سوالی ثبت نشده است.</p>
+                        <p class="description">اولین سوال متداول را از فرم کنار صفحه اضافه کنید.</p>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>

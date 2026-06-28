@@ -328,15 +328,22 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
             </div>
         <?php endif; ?>
         <?php
+        $can_player_pick_group = $branch_cfg
+            && !empty($branch_cfg['groups']['player_can_select_group'])
+            && !empty($branch_cfg['groups']['groups']);
         $show_branch_ui = !$is_enrolled && !$is_capacity_full && !$is_date_expired
-            && !empty($branch_cfg['chapters']);
+            && (
+                !empty($branch_cfg['chapters'])
+                || $can_player_pick_group
+            );
         if ($show_branch_ui) :
         ?>
             <div class="sc-enroll-branch-coach-inner sc-enroll-panel" data-course-id="<?php echo esc_attr($course->id); ?>" style="display:none;">
-                <div class="sc-enroll-panel-title">انتخاب شعبه و مربی</div>
+                <div class="sc-enroll-panel-title">انتخاب شعبه، مربی<?php echo $can_player_pick_group ? ' و گروه' : ''; ?></div>
                 <div class="sc-enroll-fields">
                     <div class="sc-enroll-chapter-wrap sc-enroll-field-wrap"></div>
                     <div class="sc-enroll-coach-wrap sc-enroll-field-wrap"></div>
+                    <div class="sc-enroll-group-wrap sc-enroll-field-wrap"></div>
                 </div>
                 <div class="sc-enroll-schedule-wrap"></div>
                 <div class="sc-enroll-checkout-anchor"></div>
@@ -391,6 +398,7 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
 
         <input type="hidden" name="enrollment_chapter" id="sc-enrollment-chapter-field" value="">
         <input type="hidden" name="enrollment_coach_id" id="sc-enrollment-coach-field" value="0">
+        <input type="hidden" name="enrollment_group" id="sc-enrollment-group-field" value="">
 
         <div id="sc-enroll-global-checkout" class="sc-enroll-checkout-panel sc-enroll-panel" hidden>
             <div class="sc-enroll-panel-title sc-enroll-checkout-title">تکمیل ثبت‌نام</div>
@@ -525,6 +533,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
         }
+        if (cfg && cfg.groups && cfg.groups.player_can_select_group && cfg.groups.groups && cfg.groups.groups.length) {
+            var gField = document.getElementById('sc-enrollment-group-field');
+            if (cfg.groups.requires_group_choice && (!gField || !gField.value)) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -562,12 +576,16 @@ document.addEventListener('DOMContentLoaded', function() {
             el.style.display = 'none';
             var chWrap = el.querySelector('.sc-enroll-chapter-wrap');
             var coWrap = el.querySelector('.sc-enroll-coach-wrap');
+            var grpWrap = el.querySelector('.sc-enroll-group-wrap');
             var schWrap = el.querySelector('.sc-enroll-schedule-wrap');
             if (chWrap) {
                 chWrap.innerHTML = '';
             }
             if (coWrap) {
                 coWrap.innerHTML = '';
+            }
+            if (grpWrap) {
+                grpWrap.innerHTML = '';
             }
             if (schWrap) {
                 schWrap.innerHTML = '';
@@ -576,11 +594,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var chField = document.getElementById('sc-enrollment-chapter-field');
         var coField = document.getElementById('sc-enrollment-coach-field');
+        var grpField = document.getElementById('sc-enrollment-group-field');
         if (chField) {
             chField.value = '';
         }
         if (coField) {
             coField.value = '0';
+        }
+        if (grpField) {
+            grpField.value = '';
         }
 
         var courseItem = document.getElementById('course_item_' + courseId);
@@ -595,6 +617,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var chWrap = panel.querySelector('.sc-enroll-chapter-wrap');
         var coWrap = panel.querySelector('.sc-enroll-coach-wrap');
+        var grpWrap = panel.querySelector('.sc-enroll-group-wrap');
         var schWrap = panel.querySelector('.sc-enroll-schedule-wrap');
         if (!chWrap || !coWrap || !chField || !coField) {
             updateEnrollCheckoutPanel();
@@ -602,7 +625,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         var cfg = branchConfigs[courseId];
-        if (!cfg || !cfg.chapters || !cfg.chapters.length) {
+        var hasChapters = cfg && cfg.chapters && cfg.chapters.length;
+        var canPickGroup = cfg && cfg.groups && cfg.groups.player_can_select_group && cfg.groups.groups && cfg.groups.groups.length;
+        if (!hasChapters && !canPickGroup) {
             updateEnrollCheckoutPanel();
             return;
         }
@@ -610,7 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function coachLabelById(coachId) {
             var label = '';
-            cfg.chapters.forEach(function (ch) {
+            (cfg.chapters || []).forEach(function (ch) {
                 (ch.coaches || []).forEach(function (c) {
                     if (parseInt(c.id, 10) === coachId) {
                         label = c.label;
@@ -625,31 +650,89 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             schWrap.innerHTML = '';
-            if (!chapterName) {
-                return;
-            }
             var coachId = parseInt(coField.value || '0', 10);
+            var groupName = grpField ? (grpField.value || '') : '';
             var rows = (cfg.schedule || []).filter(function (r) {
                 var rowCoach = parseInt(r.coach_id || 0, 10);
-                var chapterOk = !r.chapter || r.chapter === chapterName;
+                var chapterOk = !chapterName || !r.chapter || r.chapter === chapterName;
                 var coachOk = !rowCoach || !coachId || rowCoach === coachId;
-                return chapterOk && coachOk;
+                var groupOk = true;
+                if (canPickGroup && groupName) {
+                    groupOk = !r.uses_group || !r.group_name || r.group_name === groupName;
+                } else if (canPickGroup && !groupName) {
+                    groupOk = true;
+                }
+                return chapterOk && coachOk && groupOk;
             });
             if (!rows.length) {
+                if (canPickGroup && cfg.groups.requires_group_choice && !groupName) {
+                    schWrap.innerHTML = '<p class="sc-enroll-coach-note">پس از انتخاب گروه، برنامه هفتگی نمایش داده می‌شود.</p>';
+                }
                 return;
             }
             var html = '<div class="sc-enroll-schedule-title">برنامه هفتگی این انتخاب</div><ul class="sc-enroll-schedule-list">';
             rows.forEach(function (r) {
                 var coachName = parseInt(r.coach_id || 0, 10) ? coachLabelById(parseInt(r.coach_id, 10)) : '';
-                html += '<li>' + r.day + ' ' + r.start + ' تا ' + r.end + (coachName ? ' — ' + coachName : '') + '</li>';
+                var groupLabel = (r.uses_group && r.group_name) ? (' — گروه: ' + r.group_name) : '';
+                html += '<li>' + r.day + ' ' + r.start + ' تا ' + r.end + (coachName ? ' — ' + coachName : '') + groupLabel + '</li>';
             });
             html += '</ul>';
             schWrap.innerHTML = html;
         }
 
+        function renderEnrollGroupField() {
+            if (!grpWrap || !grpField) {
+                renderSchedule(chField.value || '');
+                return;
+            }
+            grpWrap.innerHTML = '';
+            if (!canPickGroup) {
+                renderSchedule(chField.value || '');
+                return;
+            }
+            var groups = cfg.groups.groups || [];
+            if (groups.length === 1) {
+                grpWrap.innerHTML = '<div class="sc-enroll-static-field"><span class="sc-enroll-field-label">گروه:</span><span class="sc-enroll-field-value">' + groups[0].name + '</span></div>';
+                grpField.value = groups[0].name;
+                renderSchedule(chField.value || '');
+                updateEnrollCheckoutPanel();
+                return;
+            }
+            var gHtml = '<label class="sc-enroll-select-field"><span class="sc-enroll-field-label">گروه</span><select class="sc-enroll-select sc-enroll-group-select"><option value="">انتخاب گروه</option>';
+            groups.forEach(function (g) {
+                if (!g.name) {
+                    return;
+                }
+                gHtml += '<option value="' + g.name + '">' + g.name + '</option>';
+            });
+            gHtml += '</select></label>';
+            gHtml += '<div class="sc-enroll-group-desc" style="margin-top:6px;font-size:13px;color:#555;"></div>';
+            grpWrap.innerHTML = gHtml;
+            var gSel = grpWrap.querySelector('.sc-enroll-group-select');
+            var gDesc = grpWrap.querySelector('.sc-enroll-group-desc');
+            if (gSel) {
+                gSel.addEventListener('change', function () {
+                    grpField.value = gSel.value || '';
+                    if (gDesc) {
+                        var desc = '';
+                        groups.forEach(function (g) {
+                            if (g.name === gSel.value && g.description) {
+                                desc = g.description;
+                            }
+                        });
+                        gDesc.textContent = desc;
+                    }
+                    renderSchedule(chField.value || '');
+                    updateEnrollCheckoutPanel();
+                });
+            }
+            renderSchedule(chField.value || '');
+            updateEnrollCheckoutPanel();
+        }
+
         function renderCoach(chapterName, selectedCoachId) {
             renderCoachInner(chapterName, selectedCoachId);
-            renderSchedule(chapterName);
+            renderEnrollGroupField();
         }
 
         function renderCoachInner(chapterName, selectedCoachId) {
@@ -659,7 +742,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             var coaches = [];
-            cfg.chapters.forEach(function (ch) {
+            (cfg.chapters || []).forEach(function (ch) {
                 if (ch.name === chapterName) {
                     coaches = ch.coaches || [];
                 }
@@ -693,29 +776,35 @@ document.addEventListener('DOMContentLoaded', function() {
             updateEnrollCheckoutPanel();
         }
 
-        if (cfg.chapters.length === 1) {
-            chWrap.innerHTML = '<div class="sc-enroll-static-field"><span class="sc-enroll-field-label">شعبه:</span><span class="sc-enroll-field-value">' + cfg.chapters[0].name + '</span></div>';
-            chField.value = cfg.chapters[0].name;
-            renderCoach(cfg.chapters[0].name, 0);
+        if (hasChapters) {
+            if (cfg.chapters.length === 1) {
+                chWrap.innerHTML = '<div class="sc-enroll-static-field"><span class="sc-enroll-field-label">شعبه:</span><span class="sc-enroll-field-value">' + cfg.chapters[0].name + '</span></div>';
+                chField.value = cfg.chapters[0].name;
+                renderCoach(cfg.chapters[0].name, 0);
+                updateEnrollCheckoutPanel();
+                return;
+            }
+
+            var chHtml = '<label class="sc-enroll-select-field"><span class="sc-enroll-field-label">شعبه</span><select class="sc-enroll-select sc-enroll-chapter-select"><option value="">انتخاب شعبه</option>';
+            cfg.chapters.forEach(function (ch) {
+                chHtml += '<option value="' + ch.name + '">' + ch.name + '</option>';
+            });
+            chHtml += '</select></label>';
+            chWrap.innerHTML = chHtml;
+            var chSel = chWrap.querySelector('.sc-enroll-chapter-select');
+            if (chSel) {
+                chSel.addEventListener('change', function () {
+                    chField.value = chSel.value || '';
+                    renderCoach(chSel.value || '', 0);
+                    updateEnrollCheckoutPanel();
+                });
+            }
             updateEnrollCheckoutPanel();
             return;
         }
 
-        var chHtml = '<label class="sc-enroll-select-field"><span class="sc-enroll-field-label">شعبه</span><select class="sc-enroll-select sc-enroll-chapter-select"><option value="">انتخاب شعبه</option>';
-        cfg.chapters.forEach(function (ch) {
-            chHtml += '<option value="' + ch.name + '">' + ch.name + '</option>';
-        });
-        chHtml += '</select></label>';
-        chWrap.innerHTML = chHtml;
-        var chSel = chWrap.querySelector('.sc-enroll-chapter-select');
-        if (chSel) {
-            chSel.addEventListener('change', function () {
-                chField.value = chSel.value || '';
-                renderCoach(chSel.value || '', 0);
-                updateEnrollCheckoutPanel();
-            });
-        }
-        updateEnrollCheckoutPanel();
+        chWrap.innerHTML = '';
+        renderEnrollGroupField();
     }
 
     document.querySelectorAll('.sc-course-radio').forEach(function (radio) {
@@ -794,6 +883,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!chVal || !chVal.value) {
                 e.preventDefault();
                 alert('لطفاً شعبه دوره را انتخاب کنید.');
+                return false;
+            }
+        }
+        if (cfg && cfg.groups && cfg.groups.requires_group_choice) {
+            var gVal = document.getElementById('sc-enrollment-group-field');
+            if (!gVal || !gVal.value) {
+                e.preventDefault();
+                alert('لطفاً گروه دوره را انتخاب کنید.');
                 return false;
             }
         }

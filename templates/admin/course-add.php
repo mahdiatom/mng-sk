@@ -17,6 +17,15 @@ $allowed_levels = [];
 $allowed_gender = 'both';
 $course_type = 'group';
 $private_variable_coach_pricing = 0;
+if (!isset($has_grouping)) {
+    $has_grouping = 0;
+}
+if (!isset($player_can_select_group)) {
+    $player_can_select_group = 0;
+}
+if (!isset($course_group_rows) || !is_array($course_group_rows)) {
+    $course_group_rows = [];
+}
 
 if ($course && isset($_GET['course_id'])) {
     $title = $course->title ?? '';
@@ -36,6 +45,24 @@ if ($course && isset($_GET['course_id'])) {
     $allowed_gender = !empty($course->allowed_gender) ? $course->allowed_gender : 'both';
     $course_type = !empty($course->course_type) && in_array($course->course_type, ['group', 'private'], true) ? $course->course_type : 'group';
     $private_variable_coach_pricing = !empty($course->private_variable_coach_pricing) ? 1 : 0;
+    if (function_exists('sc_course_has_grouping_enabled') && !empty($course->id)) {
+        $has_grouping = sc_course_has_grouping_enabled((int) $course->id) ? 1 : 0;
+    } elseif (isset($course->has_grouping)) {
+        $has_grouping = (int) $course->has_grouping;
+    }
+    if (function_exists('sc_course_player_can_select_group') && !empty($course->id)) {
+        $player_can_select_group = sc_course_player_can_select_group((int) $course->id) ? 1 : 0;
+    } elseif (isset($course->player_can_select_group)) {
+        $player_can_select_group = (int) $course->player_can_select_group;
+    }
+    if (empty($course_group_rows) && function_exists('sc_get_course_groups') && !empty($course->id)) {
+        foreach (sc_get_course_groups((int) $course->id) as $grow) {
+            $course_group_rows[] = [
+                'name' => isset($grow->group_name) ? (string) $grow->group_name : '',
+                'description' => isset($grow->description) ? (string) $grow->description : '',
+            ];
+        }
+    }
     $allowed_teams = !empty($course->allowed_teams) ? json_decode($course->allowed_teams, true) : [];
     $allowed_levels = !empty($course->allowed_levels) ? json_decode($course->allowed_levels, true) : [];
     if (!is_array($allowed_teams)) {
@@ -44,6 +71,9 @@ if ($course && isset($_GET['course_id'])) {
     if (!is_array($allowed_levels)) {
         $allowed_levels = [];
     }
+}
+if (empty($course_group_rows)) {
+    $course_group_rows = [['name' => '', 'description' => '']];
 }
 global $wpdb;
 $chapter_table = $wpdb->prefix . 'sc_chapter_categories';
@@ -116,301 +146,308 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
     </div>
 <div class="wrap sc-course-add-wrap">
     <div id="sc-course-form-summary-error" class="notice notice-error inline" style="display:none;margin:16px 0 20px;"></div>
-    <form action="" method="POST" class="sc-course-add-form" >
-        <table class="form-table sc_form-table">
-            <tbody>
-                <tr>
-                    <th scope="row"><label for="title">عنوان دوره <span style="color:red;">*</span></label></th>
-                    <td>
-                        <input name="title" type="text" id="title" value="<?php echo esc_attr($title ?? ''); ?>" class="regular-text" required>
-                        <p id="sc-course-title-error" style="display:none;color:#d63638;font-weight:600;margin:8px 0 0;">لطفاً عنوان دوره را وارد کنید.</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="course_type">نوع دوره</label></th>
-                    <td>
-                        <select name="course_type" id="course_type" class="regular-text">
-                            <option value="group" <?php selected($course_type, 'group'); ?>>گروهی</option>
-                            <option value="private" <?php selected($course_type, 'private'); ?>>خصوصی / نیمه خصوصی</option>
-                        </select>
-                        <p class="description">دوره خصوصی در تب جداگانه کلاس خصوصی برای کاربر نمایش داده می‌شود.</p>
-                    </td>
-                </tr>
+    <?php
+    $form_action = add_query_arg('page', 'sc-add-course', admin_url('admin.php'));
+    $edit_course_id = 0;
+    if (!empty($course) && !empty($course->id)) {
+        $edit_course_id = (int) $course->id;
+    } elseif (!empty($_GET['course_id'])) {
+        $edit_course_id = absint($_GET['course_id']);
+    }
+    if ($edit_course_id) {
+        $form_action = add_query_arg('course_id', $edit_course_id, $form_action);
+    }
+    ?>
+    <form action="<?php echo esc_url($form_action); ?>" method="POST" class="sc-course-add-form">
+        <?php if ($edit_course_id) : ?>
+            <input type="hidden" name="course_id" value="<?php echo (int) $edit_course_id; ?>">
+        <?php endif; ?>
+        <input type="hidden" name="course_groups_json" id="course_groups_json" value="">
+        <div class="sc-course-form-panels">
 
-                <tr>
-                    <th scope="row"><label for="description">توضیحات</label></th>
-                    <td>
-                        <textarea name="description" id="description" rows="5" class="large-text"><?php echo esc_textarea($description ?? ''); ?></textarea>
-                    </td>
-                </tr>
-
-                <tr class="sc-private-course-row" style="<?php echo $course_type === 'private' ? '' : 'display:none;'; ?>">
-                    <th scope="row">تنظیمات کلاس خصوصی</th>
-                    <td>
-                        <label style="display:block;margin-bottom:10px;">
-                            <input type="checkbox" name="private_variable_coach_pricing" id="private_variable_coach_pricing" value="1" <?php checked($private_variable_coach_pricing, 1); ?>>
-                            قیمت‌ها برای هر مربی متفاوت است
-                        </label>
-                        <p class="description">با فعال بودن این گزینه، قیمت و ظرفیت هر مربی در هر شعبه جداگانه تعیین می‌شود و گزینه‌های تعداد جلسه (بدون قیمت) جایگزین پکیج‌های قیمت می‌شود.</p>
-                    </td>
-                </tr>
-
-                <tr class="sc-course-price-row sc-standard-pricing-field">
-                    <th scope="row"><label for="price">قیمت <span class="sc-price-required-mark" style="color:red;">*</span></label></th>
-                    <td>
-                        <?php
-                        // استفاده از تنظیمات WooCommerce برای تعداد اعشار و جداکننده‌ها
-                        $decimal_places = 0;
-                        $decimal_separator = '.';
-                        $thousand_separator = ',';
-                        
-                        if (function_exists('wc_get_price_decimals')) {
-                            $decimal_places = wc_get_price_decimals();
-                        }
-                        if (function_exists('wc_get_price_decimal_separator')) {
-                            $decimal_separator = wc_get_price_decimal_separator();
-                        }
-                        if (function_exists('wc_get_price_thousand_separator')) {
-                            $thousand_separator = wc_get_price_thousand_separator();
-                        }
-                        
-                        $price_display = $price ?? 0;
-                        // تبدیل به عدد برای اطمینان از صحت
-                        $price_display = is_numeric($price_display) ? floatval($price_display) : 0;
-                        $price_per_session_display = is_numeric($price_per_session) ? floatval($price_per_session) : 0;
-                        ?>
-                        <div class="sc-course-price-field">
-                            <input type="text" 
-                                   name="price" 
-                                   id="price" 
-                                   value="<?php echo $price_display > 0 ? number_format($price_display, 0, '.', ',') : ''; ?>" 
-                                   class="regular-text sc-input-full-width" 
-                                   placeholder="قیمت کل دوره"
-                                   dir="ltr"
-                                   inputmode="numeric">
-                            <p class="description" style="margin-top: 5px;">مبلغ کل دوره به تومان</p>
+                <section class="sc-course-panel sc-course-panel--basic">
+                    <header class="sc-course-panel__header">
+                        <div class="sc-course-panel__intro">
+                            <div class="sc-course-panel__icon" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="sc-course-panel__title">اطلاعات پایه دوره</h3>
+                                <p class="sc-course-panel__desc">عنوان، نوع و توضیحات دوره را مشخص کنید.</p>
+                            </div>
                         </div>
-                        <div class="sc-course-price-field">
-                            <input type="text" 
-                                   name="price_per_session" 
-                                   id="price_per_session" 
-                                   value="<?php echo $price_per_session_display > 0 ? number_format($price_per_session_display, 0, '.', ',') : ''; ?>" 
-                                   class="regular-text sc-input-full-width" 
-                                   placeholder="قیمت هر جلسه"
-                                   dir="ltr"
-                                   inputmode="numeric">
-                            <p class="description" style="margin-top: 5px;">مبلغ هر جلسه به تومان (اختیاری)</p>
+                    </header>
+                    <div class="sc-course-panel__body">
+                        <div class="sc-course-fields sc-course-fields--2">
+                            <div class="sc-course-field">
+                                <label class="sc-course-field__label" for="title">عنوان دوره <span class="sc-required">*</span></label>
+                                <input name="title" type="text" id="title" value="<?php echo esc_attr($title ?? ''); ?>" class="sc-course-input" required>
+                                <p id="sc-course-title-error" class="sc-course-field__error" style="display:none;">لطفاً عنوان دوره را وارد کنید.</p>
+                            </div>
+                            <div class="sc-course-field">
+                                <label class="sc-course-field__label" for="course_type">نوع دوره</label>
+                                <select name="course_type" id="course_type" class="sc-course-input sc-course-select">
+                                    <option value="group" <?php selected($course_type, 'group'); ?>>گروهی</option>
+                                    <option value="private" <?php selected($course_type, 'private'); ?>>خصوصی / نیمه خصوصی</option>
+                                </select>
+                                <p class="sc-course-field__hint">دوره خصوصی در تب جداگانه کلاس خصوصی برای کاربر نمایش داده می‌شود.</p>
+                            </div>
+                            <div class="sc-course-field sc-course-field--full">
+                                <label class="sc-course-field__label" for="description">توضیحات</label>
+                                <textarea name="description" id="description" rows="4" class="sc-course-input sc-course-textarea"><?php echo esc_textarea($description ?? ''); ?></textarea>
+                            </div>
                         </div>
-                        <input type="hidden" name="price_raw" id="price_raw" value="<?php echo esc_attr($price_display); ?>">
-                        <input type="hidden" name="price_per_session_raw" id="price_per_session_raw" value="<?php echo esc_attr($price_per_session_display); ?>">
-                        <p id="sc-course-price-error" style="display:none;color:#d63638;font-weight:600;margin:8px 0 0;"></p>
-                    </td>
-                </tr>
+                    </div>
+                </section>
 
-                <tr class="sc-standard-pricing-field">
-                    <th scope="row"><label for="capacity">ظرفیت</label></th>
-                    <td>
-                        <input name="capacity" type="number" id="capacity" value="<?php echo esc_attr($capacity ?? ''); ?>" class="regular-text" min="1">
-                        <p class="description">تعداد مجاز ثبت‌نام. در صورت خالی بودن، نامحدود خواهد بود.</p>
-                    </td>
-                </tr>
+                <section class="sc-course-panel sc-course-panel--pricing">
+                    <header class="sc-course-panel__header">
+                        <div class="sc-course-panel__intro">
+                            <div class="sc-course-panel__icon" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="sc-course-panel__title">قیمت، ظرفیت و پکیج‌ها</h3>
+                                <p class="sc-course-panel__desc">تعرفه ثبت‌نام، ظرفیت و پکیج‌های جلسه را در این بخش تنظیم کنید.</p>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="sc-course-panel__body">
+                        <div class="sc-course-panel__sub sc-private-course-row" style="<?php echo $course_type === 'private' ? '' : 'display:none;'; ?>">
+                            <label class="sc-course-toggle-chip">
+                                <input type="checkbox" name="private_variable_coach_pricing" id="private_variable_coach_pricing" value="1" <?php checked($private_variable_coach_pricing, 1); ?>>
+                                <span>قیمت‌ها برای هر مربی متفاوت است</span>
+                            </label>
+                            <p class="sc-course-field__hint">با فعال بودن این گزینه، قیمت و ظرفیت هر مربی در هر شعبه جداگانه تعیین می‌شود و گزینه‌های تعداد جلسه جایگزین پکیج‌های قیمت می‌شود.</p>
+                        </div>
 
-                <tr class="sc-standard-pricing-field">
-                    <th scope="row"><label for="sessions_count">تعداد جلسات</label></th>
-                    <td>
-                        <input name="sessions_count" type="number" id="sessions_count" value="<?php echo esc_attr($sessions_count ?? ''); ?>" class="regular-text" min="1">
-                        <p class="description">حالت ساده: اگر پکیج تعریف نشده باشد، این تعداد جلسه استفاده می‌شود.</p>
-                    </td>
-                </tr>
+                        <div class="sc-course-fields sc-course-fields--2 sc-standard-pricing-field">
+                            <div class="sc-course-field sc-course-price-row">
+                                <?php
+                                $price_display = $price ?? 0;
+                                $price_display = is_numeric($price_display) ? floatval($price_display) : 0;
+                                $price_per_session_display = is_numeric($price_per_session) ? floatval($price_per_session) : 0;
+                                ?>
+                                <label class="sc-course-field__label" for="price">قیمت <span class="sc-required sc-price-required-mark">*</span></label>
+                                <div class="sc-course-price-field">
+                                    <input type="text" name="price" id="price"
+                                           value="<?php echo $price_display > 0 ? number_format($price_display, 0, '.', ',') : ''; ?>"
+                                           class="sc-course-input" placeholder="قیمت کل دوره" dir="ltr" inputmode="numeric">
+                                    <p class="sc-course-field__hint">مبلغ کل دوره به تومان</p>
+                                </div>
+                                <div class="sc-course-price-field">
+                                    <input type="text" name="price_per_session" id="price_per_session"
+                                           value="<?php echo $price_per_session_display > 0 ? number_format($price_per_session_display, 0, '.', ',') : ''; ?>"
+                                           class="sc-course-input" placeholder="قیمت هر جلسه" dir="ltr" inputmode="numeric">
+                                    <p class="sc-course-field__hint">مبلغ هر جلسه به تومان (اختیاری)</p>
+                                </div>
+                                <input type="hidden" name="price_raw" id="price_raw" value="<?php echo esc_attr($price_display); ?>">
+                                <input type="hidden" name="price_per_session_raw" id="price_per_session_raw" value="<?php echo esc_attr($price_per_session_display); ?>">
+                                <p id="sc-course-price-error" class="sc-course-field__error" style="display:none;"></p>
+                            </div>
+                            <div class="sc-course-field sc-standard-pricing-field">
+                                <label class="sc-course-field__label" for="capacity">ظرفیت</label>
+                                <input name="capacity" type="number" id="capacity" value="<?php echo esc_attr($capacity ?? ''); ?>" class="sc-course-input" min="1">
+                                <p class="sc-course-field__hint">تعداد مجاز ثبت‌نام. در صورت خالی بودن، نامحدود خواهد بود.</p>
+                            </div>
+                            <div class="sc-course-field sc-standard-pricing-field">
+                                <label class="sc-course-field__label" for="sessions_count">تعداد جلسات (حالت ساده)</label>
+                                <input name="sessions_count" type="number" id="sessions_count" value="<?php echo esc_attr($sessions_count ?? ''); ?>" class="sc-course-input" min="1">
+                                <p class="sc-course-field__hint">اگر پکیج تعریف نشده باشد، این تعداد جلسه استفاده می‌شود.</p>
+                            </div>
+                        </div>
 
-                <tr id="sc-course-packages-row" class="sc-standard-pricing-field">
-                    <th scope="row">پکیج‌های قیمت دوره</th>
-                    <td>
-                        <div id="sc-course-packages-wrap">
-                            <p class="description" style="margin-bottom:10px;">
-                                حالت حرفه‌ای: برای هر تعداد جلسه یک قیمت تعیین کن. در صورت داشتن حداقل یک پکیج، قیمت و تعداد جلسه حالت ساده در ثبت‌نام نادیده گرفته می‌شود.
-                            </p>
-                            <div class="sc-table-scroll sc-table-scroll--packages">
-                            <table class="widefat striped sc-course-packages-table">
-                                <thead>
-                                    <tr>
-                                        <th class="sc-pkg-col-sessions">تعداد جلسه</th>
-                                        <th class="sc-pkg-col-price">قیمت (تومان)</th>
-                                        <th class="sc-pkg-col-actions">حذف</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="sc-course-packages-body">
+                        <div id="sc-course-packages-row" class="sc-course-panel__sub sc-standard-pricing-field">
+                            <div id="sc-course-packages-wrap">
+                                <h4 class="sc-course-subtitle">پکیج‌های قیمت دوره</h4>
+                                <p class="sc-course-field__hint">برای هر تعداد جلسه یک قیمت تعیین کنید. در صورت داشتن حداقل یک پکیج، قیمت و تعداد جلسه حالت ساده نادیده گرفته می‌شود.</p>
+                                <div id="sc-course-packages-body" class="sc-course-pkg-list">
                                 <?php if (!empty($course_packages)) : ?>
                                     <?php foreach ($course_packages as $pkg) : ?>
-                                        <tr class="sc-course-package-row">
-                                            <td data-label="تعداد جلسه">
-                                                <input type="number" min="1" class="regular-text sc-pkg-sessions-input sc-course-pkg-field" name="pkg_sessions[]" value="<?php echo esc_attr((int) $pkg->sessions_count); ?>">
-                                            </td>
-                                            <td data-label="قیمت (تومان)">
-                                                <input type="text" class="regular-text sc-pkg-price-input sc-course-pkg-field" name="pkg_price[]" value="<?php echo esc_attr(number_format((float) $pkg->price, 0, '.', ',')); ?>" dir="ltr" inputmode="numeric">
+                                        <article class="sc-course-pkg-card sc-course-package-row">
+                                            <div class="sc-course-field">
+                                                <label class="sc-course-field__label">تعداد جلسه</label>
+                                                <input type="number" min="1" class="sc-course-input sc-pkg-sessions-input sc-course-pkg-field" name="pkg_sessions[]" value="<?php echo esc_attr((int) $pkg->sessions_count); ?>">
+                                            </div>
+                                            <div class="sc-course-field">
+                                                <label class="sc-course-field__label">قیمت (تومان)</label>
+                                                <input type="text" class="sc-course-input sc-pkg-price-input sc-course-pkg-field" name="pkg_price[]" value="<?php echo esc_attr(number_format((float) $pkg->price, 0, '.', ',')); ?>" dir="ltr" inputmode="numeric">
                                                 <input type="hidden" class="sc-pkg-price-raw" name="pkg_price_raw[]" value="<?php echo esc_attr((float) $pkg->price); ?>">
-                                            </td>
-                                            <td data-label="">
-                                                <button type="button" class="button sc-remove-package-row">حذف</button>
-                                            </td>
-                                        </tr>
+                                            </div>
+                                            <button type="button" class="sc-course-pkg-remove sc-remove-package-row" title="حذف پکیج">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                            </button>
+                                        </article>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
-                                </tbody>
-                            </table>
+                                </div>
+                                <button type="button" class="sc-course-add-btn" id="sc-add-course-package-row">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    افزودن پکیج
+                                </button>
+                                <p class="sc-course-field__hint">تعداد جلسه در هر دوره باید یکتا باشد.</p>
+                                <p id="sc-course-packages-error" class="sc-course-field__error" style="display:none;"></p>
                             </div>
-                            <p style="margin-top:10px;">
-                                <button type="button" class="button button-secondary" id="sc-add-course-package-row">+ افزودن ردیف پکیج</button>
-                            </p>
-                            <p class="description">تعداد جلسه در هر دوره باید یکتا باشد. تکراری بودن سمت سرور رد می‌شود.</p>
-                            <p id="sc-course-packages-error" style="display:none;color:#d63638;font-weight:600;margin:8px 0 0;"></p>
                         </div>
-                    </td>
-                </tr>
 
-                <tr id="sc-private-session-options-row" style="display:none;">
-                    <th scope="row">گزینه‌های تعداد جلسه</th>
-                    <td>
-                        <p class="description" style="margin-bottom:10px;">برای کلاس خصوصی با قیمت متفاوت مربی: فقط تعداد جلسات را تعیین کنید (بدون قیمت).</p>
-                        <table class="widefat striped">
-                            <thead>
-                                <tr><th>تعداد جلسه</th><th>حذف</th></tr>
-                            </thead>
-                            <tbody id="sc-private-session-options-body">
+                        <div id="sc-private-session-options-row" class="sc-course-panel__sub" style="display:none;">
+                            <h4 class="sc-course-subtitle">گزینه‌های تعداد جلسه (خصوصی)</h4>
+                            <p class="sc-course-field__hint">برای کلاس خصوصی با قیمت متفاوت مربی: فقط تعداد جلسات را تعیین کنید.</p>
+                            <div id="sc-private-session-options-body" class="sc-course-sess-list">
                             <?php
                             $sess_opts = !empty($private_session_options) ? $private_session_options : [10];
                             foreach ($sess_opts as $sess_n) : ?>
-                                <tr>
-                                    <td><input type="number" min="1" name="private_sess_counts[]" value="<?php echo esc_attr((int) $sess_n); ?>" class="small-text"></td>
-                                    <td><button type="button" class="button sc-remove-private-sess-row">حذف</button></td>
-                                </tr>
+                                <article class="sc-course-sess-card">
+                                    <div class="sc-course-field">
+                                        <label class="sc-course-field__label">تعداد جلسه</label>
+                                        <input type="number" min="1" name="private_sess_counts[]" value="<?php echo esc_attr((int) $sess_n); ?>" class="sc-course-input">
+                                    </div>
+                                    <button type="button" class="sc-course-pkg-remove sc-remove-private-sess-row" title="حذف">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    </button>
+                                </article>
                             <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                        <p style="margin-top:10px;"><button type="button" class="button" id="sc-add-private-sess-row">+ افزودن تعداد جلسه</button></p>
-                        <p id="sc-private-sess-error" style="display:none;color:#d63638;font-weight:600;margin:8px 0 0;"></p>
-                    </td>
-                </tr>
+                            </div>
+                            <button type="button" class="sc-course-add-btn" id="sc-add-private-sess-row">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                افزودن تعداد جلسه
+                            </button>
+                            <p id="sc-private-sess-error" class="sc-course-field__error" style="display:none;"></p>
+                        </div>
+                    </div>
+                </section>
 
-                <tr>
-                    <th scope="row"><label for="start_date_shamsi">تاریخ شروع</label></th>
-                    <td>
-                        <?php
-                        $start_date_shamsi = '';
-                        if (!empty($start_date)) {
-                            $start_date_shamsi = sc_date_shamsi_date_only($start_date);
-                        } else {
-                            // اگر دوره جدید است، تاریخ امروز را به صورت پیش‌فرض قرار می‌دهیم
-                            $today_timestamp = time();
-                            $today_date = getdate($today_timestamp);
-                            $today_jalali = gregorian_to_jalali($today_date['year'], $today_date['mon'], $today_date['mday']);
-                            $start_date_shamsi = $today_jalali[0] . '/' . 
-                                                 ($today_jalali[1] < 10 ? '0' . $today_jalali[1] : $today_jalali[1]) . '/' . 
-                                                 ($today_jalali[2] < 10 ? '0' . $today_jalali[2] : $today_jalali[2]);
-                        }
-                        ?>
-                        <input name="start_date_shamsi" type="text" id="start_date_shamsi" 
-                               value="<?php echo esc_attr($start_date_shamsi); ?>" 
-                               class="regular-text persian-date-input" 
-                               placeholder="تاریخ شروع " 
-                               readonly
-                                >
-                        <input type="hidden" name="start_date" id="start_date" value="<?php echo esc_attr($start_date ?? ''); ?>">
-                        <p class="description">برای انتخاب تاریخ، روی فیلد بالا کلیک کنید</p>
-                    </td>
-                </tr>
+                <section class="sc-course-panel sc-course-panel--dates">
+                    <header class="sc-course-panel__header">
+                        <div class="sc-course-panel__intro">
+                            <div class="sc-course-panel__icon" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 3v3M16 3v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="sc-course-panel__title">بازه زمانی دوره</h3>
+                                <p class="sc-course-panel__desc">تاریخ شروع و پایان دوره را به شمسی انتخاب کنید.</p>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="sc-course-panel__body">
+                        <div class="sc-course-fields sc-course-fields--2">
+                            <div class="sc-course-field">
+                                <label class="sc-course-field__label" for="start_date_shamsi">تاریخ شروع</label>
+                                <?php
+                                $start_date_shamsi = '';
+                                if (!empty($start_date)) {
+                                    $start_date_shamsi = sc_date_shamsi_date_only($start_date);
+                                } else {
+                                    $today_timestamp = time();
+                                    $today_date = getdate($today_timestamp);
+                                    $today_jalali = gregorian_to_jalali($today_date['year'], $today_date['mon'], $today_date['mday']);
+                                    $start_date_shamsi = $today_jalali[0] . '/' .
+                                                         ($today_jalali[1] < 10 ? '0' . $today_jalali[1] : $today_jalali[1]) . '/' .
+                                                         ($today_jalali[2] < 10 ? '0' . $today_jalali[2] : $today_jalali[2]);
+                                }
+                                ?>
+                                <input name="start_date_shamsi" type="text" id="start_date_shamsi"
+                                       value="<?php echo esc_attr($start_date_shamsi); ?>"
+                                       class="sc-course-input persian-date-input" placeholder="تاریخ شروع" readonly>
+                                <input type="hidden" name="start_date" id="start_date" value="<?php echo esc_attr($start_date ?? ''); ?>">
+                            </div>
+                            <div class="sc-course-field">
+                                <label class="sc-course-field__label" for="end_date_shamsi">تاریخ پایان</label>
+                                <?php
+                                $end_date_shamsi = '';
+                                if (!empty($end_date)) {
+                                    $end_date_shamsi = sc_date_shamsi_date_only($end_date);
+                                } else {
+                                    $today_timestamp = time();
+                                    $today_date = getdate($today_timestamp);
+                                    $today_jalali = gregorian_to_jalali($today_date['year'], $today_date['mon'], $today_date['mday']);
+                                    $end_date_shamsi = $today_jalali[0] . '/' .
+                                                       ($today_jalali[1] < 10 ? '0' . $today_jalali[1] : $today_jalali[1]) . '/' .
+                                                       ($today_jalali[2] < 10 ? '0' . $today_jalali[2] : $today_jalali[2]);
+                                }
+                                ?>
+                                <input name="end_date_shamsi" type="text" id="end_date_shamsi"
+                                       value="<?php echo esc_attr($end_date_shamsi); ?>"
+                                       class="sc-course-input persian-date-input" placeholder="تاریخ پایان (شمسی)" readonly>
+                                <input type="hidden" name="end_date" id="end_date" value="<?php echo esc_attr($end_date ?? ''); ?>">
+                            </div>
+                        </div>
+                        <div class="sc-course-alert sc-course-alert--info sc-course-date-notice">
+                            توجه: در صورتی که تاریخ دوره گذشته باشد امکان ثبت‌نام برای کاربر وجود ندارد؛ در ثبت تاریخ دقت کنید.
+                        </div>
+                    </div>
+                </section>
 
-                <tr>
-                    <th scope="row"><label for="end_date_shamsi">تاریخ پایان</label></th>
-                    <td>
-                        <?php
-                        $end_date_shamsi = '';
-                        if (!empty($end_date)) {
-                            $end_date_shamsi = sc_date_shamsi_date_only($end_date);
-                        } else {
-                            // اگر دوره جدید است، تاریخ امروز را به صورت پیش‌فرض قرار می‌دهیم
-                            $today_timestamp = time();
-                            $today_date = getdate($today_timestamp);
-                            $today_jalali = gregorian_to_jalali($today_date['year'], $today_date['mon'], $today_date['mday']);
-                            $end_date_shamsi = $today_jalali[0] . '/' . 
-                                               ($today_jalali[1] < 10 ? '0' . $today_jalali[1] : $today_jalali[1]) . '/' . 
-                                               ($today_jalali[2] < 10 ? '0' . $today_jalali[2] : $today_jalali[2]);
-                        }
-                        ?>
-                        <input name="end_date_shamsi" type="text" id="end_date_shamsi" 
-                               value="<?php echo esc_attr($end_date_shamsi); ?>" 
-                               class="regular-text persian-date-input" 
-                               placeholder="تاریخ پایان (شمسی)" 
-                               readonly
-                                >
-                        <input type="hidden" name="end_date" id="end_date" value="<?php echo esc_attr($end_date ?? ''); ?>">
-                        <p class="description">برای انتخاب تاریخ، روی فیلد بالا کلیک کنید </p>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2" class="description sc-course-date-notice">توجه: در صورتی که تاریخ دوره گذشته باشد امکان ثبت نام برای کاربر وجود ندارد در ثبت تاریخ دقت کنید.</td>
-                </tr>
-
-                <tr>
-                <th scope="row"><label>شعبه‌ها <span style="color:red;">*</span></label></th>
-                    <td>
+                <section class="sc-course-panel sc-course-panel--branches">
+                    <header class="sc-course-panel__header">
+                        <div class="sc-course-panel__intro">
+                            <div class="sc-course-panel__icon" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="sc-course-panel__title">شعبه‌ها و مربی‌ها <span class="sc-required">*</span></h3>
+                                <p class="sc-course-panel__desc">شعبه‌های برگزاری دوره و مربی هر شعبه را انتخاب کنید.</p>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="sc-course-panel__body">
                         <div id="sc-course-chapters-box" class="sc-course-chapters-box">
                             <?php if (!empty($chapters)) : ?>
                                 <?php foreach ($chapters as $ch) : ?>
-                                    <label class="sc-course-chapter-item">
+                                    <label class="sc-course-chapter-pill sc-course-chapter-item">
                                         <input type="checkbox"
                                                name="course_chapters[]"
                                                class="sc-course-chapter-cb"
                                                value="<?php echo esc_attr($ch->name); ?>"
                                                <?php checked(in_array($ch->name, $course_chapters_selected, true) || ($chapter === $ch->name && empty($course_chapters_selected))); ?>>
-                                        <?php echo esc_html($ch->name); ?>
+                                        <span class="sc-course-chapter-pill__text"><?php echo esc_html($ch->name); ?></span>
                                     </label>
                                 <?php endforeach; ?>
                             <?php else : ?>
-                                <p>هنوز شعبه‌ای تعریف نشده است.</p>
+                                <p class="sc-course-field__hint">هنوز شعبه‌ای تعریف نشده است.</p>
                             <?php endif; ?>
                         </div>
-                        <p class="description">می‌توانید چند شعبه برای یک دوره انتخاب کنید. بازیکن هنگام ثبت‌نام یکی را انتخاب می‌کند.</p>
-                        <p id="sc-course-chapters-error" style="display:none;color:#d63638;font-weight:600;margin:8px 0 0;">لطفاً حداقل یک شعبه را انتخاب کنید.</p>
+                        <p class="sc-course-field__hint">می‌توانید چند شعبه برای یک دوره انتخاب کنید. بازیکن هنگام ثبت‌نام یکی را انتخاب می‌کند.</p>
+                        <p id="sc-course-chapters-error" class="sc-course-field__error" style="display:none;">لطفاً حداقل یک شعبه را انتخاب کنید.</p>
 
                         <?php if (!empty($chapters) && !empty($all_active_coaches)) : ?>
                         <div id="sc-course-coaches-box" class="sc-course-coaches-box">
                             <input type="hidden" name="course_coach_assign_present" value="1">
-                            <strong class="sc-course-coaches-title">مربی‌های هر شعبه</strong>
+                            <h4 class="sc-course-subtitle">مربی‌های هر شعبه</h4>
                             <?php foreach ($chapters as $ch) : ?>
-                                <div class="sc-course-chapter-coaches"
-                                     data-chapter="<?php echo esc_attr($ch->name); ?>">
-                                    <span class="sc-chapter-coaches-heading">شعبه «<?php echo esc_html($ch->name); ?>»:</span>
+                                <div class="sc-course-chapter-coaches" data-chapter="<?php echo esc_attr($ch->name); ?>">
+                                    <span class="sc-chapter-coaches-heading">شعبه «<?php echo esc_html($ch->name); ?>»</span>
                                     <div class="sc-chapter-coach-list">
                                     <?php foreach ($all_active_coaches as $co) :
                                         $co_label = isset($sc_coach_labels_for_js[(int) $co->id]) ? $sc_coach_labels_for_js[(int) $co->id] : ('مربی #' . (int) $co->id);
                                         $is_assigned = isset($course_coach_assignments_map[(string) $ch->name][(int) $co->id]);
                                         ?>
-                                        <label class="sc-chapter-coach-item">
+                                        <label class="sc-chapter-coach-pill sc-chapter-coach-item">
                                             <input type="checkbox"
                                                    class="sc-course-coach-assign-cb"
                                                    name="course_coach_assign[<?php echo esc_attr($ch->name); ?>][<?php echo (int) $co->id; ?>]"
                                                    value="1"
                                                    data-coach-id="<?php echo (int) $co->id; ?>"
                                                    <?php checked($is_assigned); ?>>
-                                            <?php echo esc_html($co_label); ?>
+                                            <span class="sc-chapter-coach-pill__text"><?php echo esc_html($co_label); ?></span>
                                         </label>
                                     <?php endforeach; ?>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
-                            <p class="description">با ذخیره دوره، این انتخاب در «دوره‌های» همان مربی هم به‌صورت خودکار فعال/غیرفعال می‌شود. درصد دستمزد از فرم مربی تنظیم می‌شود.</p>
+                            <p class="sc-course-field__hint">با ذخیره دوره، این انتخاب در «دوره‌های» همان مربی هم به‌صورت خودکار فعال/غیرفعال می‌شود.</p>
                         </div>
 
-                        <div id="sc-coach-branch-pricing-wrap" class="sc-private-course-row" style="margin-top:16px;<?php echo ($course_type === 'private') ? '' : 'display:none;'; ?>">
-                            <strong>قیمت و ظرفیت هر مربی در شعبه (کلاس خصوصی)</strong>
-                            <p class="description">برای کلاس خصوصی/نیمه‌خصوصی، ظرفیت هر بازه زمانی بر اساس مربی+شعبه محاسبه می‌شود. در حالت «قیمت متفاوت»، قیمت هر جلسه از این جدول خوانده می‌شود.</p>
-                            <table class="widefat striped" style="margin-top:10px;">
+                        <div id="sc-coach-branch-pricing-wrap" class="sc-course-panel__sub sc-private-course-row" style="margin-top:4px;<?php echo ($course_type === 'private') ? '' : 'display:none;'; ?>">
+                            <h4 class="sc-course-subtitle">قیمت و ظرفیت هر مربی در شعبه</h4>
+                            <p class="sc-course-field__hint">برای کلاس خصوصی، ظرفیت هر بازه زمانی بر اساس مربی+شعبه محاسبه می‌شود.</p>
+                            <div class="sc-course-table-wrap">
+                            <table class="sc-course-modern-table">
                                 <thead>
                                     <tr>
                                         <th>شعبه</th>
                                         <th>مربی</th>
-                                        <th class="sc-branch-price-col">قیمت هر جلسه (تومان)</th>
+                                        <th class="sc-branch-price-col">قیمت هر جلسه</th>
                                         <th>ظرفیت</th>
                                     </tr>
                                 </thead>
@@ -431,7 +468,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                                             <td><?php echo esc_html($ch_name); ?></td>
                                             <td><?php echo esc_html($co_label); ?></td>
                                             <td class="sc-branch-price-col"<?php echo ($course_type === 'private' && $private_variable_coach_pricing) ? '' : ' style="display:none;"'; ?>>
-                                                <input type="text" dir="ltr" class="regular-text sc-branch-price-input"
+                                                <input type="text" dir="ltr" class="sc-course-input sc-branch-price-input"
                                                        name="coach_branch_price[<?php echo esc_attr($ch_name); ?>][<?php echo (int) $co_id; ?>]"
                                                        value="<?php echo $branch_price > 0 ? esc_attr(number_format($branch_price, 0, '.', ',')) : ''; ?>">
                                                 <input type="hidden" class="sc-branch-price-raw"
@@ -439,149 +476,295 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                                                        value="<?php echo esc_attr($branch_price); ?>">
                                             </td>
                                             <td>
-                                                <input type="number" min="1" class="small-text"
+                                                <input type="number" min="1" class="sc-course-input sc-course-input--sm"
                                                        name="coach_branch_capacity[<?php echo esc_attr($ch_name); ?>][<?php echo (int) $co_id; ?>]"
-                                                       value="<?php echo esc_attr($branch_capacity); ?>" placeholder="پیش‌فرض: ۱">
+                                                       value="<?php echo esc_attr($branch_capacity); ?>" placeholder="۱">
                                             </td>
                                         </tr>
                                     <?php endforeach;
                                 endforeach; ?>
                                 </tbody>
                             </table>
-                            <p id="sc-coach-branch-pricing-hint" class="description" style="margin-top:8px;<?php echo ($course_type === 'private') ? '' : 'display:none;'; ?>">پس از انتخاب شعبه و مربی، ردیف‌های این جدول به‌صورت خودکار ساخته می‌شوند.</p>
+                            </div>
+                            <p id="sc-coach-branch-pricing-hint" class="sc-course-field__hint" style="margin-top:8px;<?php echo ($course_type === 'private') ? '' : 'display:none;'; ?>">پس از انتخاب شعبه و مربی، ردیف‌های این جدول به‌صورت خودکار ساخته می‌شوند.</p>
                         </div>
                         <?php endif; ?>
-                    </td>
-                </tr>
+                    </div>
+                </section>
 
-                <tr>
-                    <th scope="row">برنامه هفتگی کلاس</th>
-                    <td>
-                        <p class="description" style="margin-bottom:10px;">
-                            روزهای برگزاری را تیک بزنید و بازهٔ ساعت را وارد کنید (مثال ۰۸:۰۰ تا ۱۰:۰۰). می‌توانید چند ردیف برای زمان‌های مختلف داشته باشید. این داده بعداً برای حضور و غیاب و دستگاه قابل استفاده است.
-                        </p>
-                        <div id="sc-csched-schedule-error" class="notice notice-error inline" style="display:none;margin:0 0 10px;padding:8px 12px;"></div>
-                        <?php
-                        $wd_labels = function_exists('sc_course_weekday_labels_ir') ? sc_course_weekday_labels_ir() : [];
-                        if (!isset($course_schedule_blocks) || !is_array($course_schedule_blocks)) {
-                            $course_schedule_blocks = [['wd' => [], 'start' => '08:00:00', 'end' => '10:00:00']];
-                        }
-                        ?>
-                        <div class="sc-table-scroll sc-table-scroll--schedule">
-                        <table class="widefat striped sc-course-schedule-table">
-                            <thead>
-                                <tr>
-                                    <th class="sc-csched-col-days">روزهای هفته</th>
-                                    <th class="sc-csched-col-time">شروع</th>
-                                    <th class="sc-csched-col-time">پایان</th>
-                                    <th class="sc-csched-col-chapter">شعبه</th>
-                                    <th class="sc-csched-col-coach">مربی</th>
-                                    <th class="sc-csched-col-actions"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="sc-csched-tbody">
+                <section class="sc-course-panel sc-course-panel--groups">
+                    <header class="sc-course-panel__header">
+                        <div class="sc-course-panel__intro">
+                            <div class="sc-course-panel__icon" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="sc-course-panel__title">گروه‌بندی دوره</h3>
+                                <p class="sc-course-panel__desc">بازیکنان را به گروه‌ها یا بخش‌های جدا داخل یک دوره تقسیم کنید.</p>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="sc-course-panel__body">
+                        <label class="sc-course-toggle-chip sc-course-toggle-chip--lg">
+                            <input type="checkbox" name="has_grouping" id="has_grouping" value="1" <?php checked($has_grouping, 1); ?>>
+                            <span>دوره دارای گروه‌بندی است</span>
+                        </label>
+                        <div id="sc-course-groups-box" class="sc-course-groups-box" style="<?php echo $has_grouping ? '' : 'display:none;'; ?>">
+                            <div id="sc-course-groups-tbody" class="sc-course-group-list">
+                                <?php
+                                if (!isset($course_group_rows) || !is_array($course_group_rows) || empty($course_group_rows)) {
+                                    $course_group_rows = [['name' => '', 'description' => '']];
+                                }
+                                foreach ($course_group_rows as $gi => $grow) :
+                                    $gname = isset($grow['name']) ? (string) $grow['name'] : '';
+                                    $gdesc = isset($grow['description']) ? (string) $grow['description'] : '';
+                                    ?>
+                                    <article class="sc-course-group-card sc-course-group-row">
+                                        <div class="sc-course-field">
+                                            <label class="sc-course-field__label">نام گروه</label>
+                                            <input type="text" class="sc-course-input sc-course-group-name" name="course_group_row[<?php echo (int) $gi; ?>][name]" value="<?php echo esc_attr($gname); ?>" placeholder="مثلاً گروه ۱">
+                                        </div>
+                                        <div class="sc-course-field">
+                                            <label class="sc-course-field__label">توضیحات</label>
+                                            <input type="text" class="sc-course-input" name="course_group_row[<?php echo (int) $gi; ?>][description]" value="<?php echo esc_attr($gdesc); ?>" placeholder="توضیح کوتاه (اختیاری)">
+                                        </div>
+                                        <button type="button" class="sc-course-pkg-remove sc-course-group-remove" title="حذف گروه">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                        </button>
+                                    </article>
+                                <?php endforeach; ?>
+                            </div>
+                            <button type="button" class="sc-course-add-btn" id="sc-course-group-add">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                افزودن گروه
+                            </button>
+                            <div class="sc-course-panel__sub" style="margin-top:14px;">
+                                <label class="sc-course-toggle-chip">
+                                    <input type="checkbox" name="player_can_select_group" id="player_can_select_group" value="1" <?php checked($player_can_select_group, 1); ?>>
+                                    <span>امکان انتخاب گروه توسط بازیکن هنگام ثبت‌نام</span>
+                                </label>
+                                <p class="sc-course-field__hint">در صورت فعال بودن، بازیکن در ثبت‌نام گروه خود را انتخاب می‌کند و برنامه هفتگی همان گروه نمایش داده می‌شود.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <?php
+                $wd_labels = function_exists('sc_course_weekday_labels_ir') ? sc_course_weekday_labels_ir() : [];
+                $wd_short = [1 => 'ش', 2 => 'ی', 3 => 'د', 4 => 'س', 5 => 'چ', 6 => 'پ', 7 => 'ج'];
+                if (!isset($course_schedule_blocks) || !is_array($course_schedule_blocks)) {
+                    $course_schedule_blocks = [['wd' => [], 'start' => '08:00:00', 'end' => '10:00:00']];
+                }
+                ?>
+                <section class="sc-course-panel sc-csched-panel">
+                            <div class="sc-csched-panel__header">
+                                <div class="sc-csched-panel__intro">
+                                    <div class="sc-csched-panel__icon" aria-hidden="true">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <rect x="3" y="4" width="18" height="17" rx="3" stroke="currentColor" stroke-width="1.8"/>
+                                            <path d="M3 9h18M8 3v3M16 3v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="sc-csched-panel__title">برنامه هفتگی کلاس</h3>
+                                        <p class="sc-csched-panel__desc">روزهای برگزاری را انتخاب کنید و بازهٔ ساعت هر سانس را مشخص کنید. این اطلاعات در حضور و غیاب و نمایش برنامه به بازیکن استفاده می‌شود.</p>
+                                    </div>
+                                </div>
+                                <div class="sc-csched-panel__badge">
+                                    <span class="sc-csched-panel__badge-num" id="sc-csched-count">0</span>
+                                    <span class="sc-csched-panel__badge-label">سانس فعال</span>
+                                </div>
+                            </div>
+
+                            <div class="sc-csched-week-preview" aria-hidden="true">
+                                <?php foreach ($wd_labels as $num => $lab) : ?>
+                                    <div class="sc-csched-week-day" data-wd="<?php echo esc_attr((string) $num); ?>">
+                                        <span class="sc-csched-week-day__label"><?php echo esc_html($wd_short[$num] ?? $lab); ?></span>
+                                        <div class="sc-csched-week-day__track">
+                                            <div class="sc-csched-week-day__bar"></div>
+                                        </div>
+                                        <span class="sc-csched-week-day__name"><?php echo esc_html($lab); ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <div id="sc-csched-schedule-error" class="sc-csched-alert sc-csched-alert--error" style="display:none;"></div>
+
+                            <div id="sc-csched-list" class="sc-csched-list">
                                 <?php foreach ($course_schedule_blocks as $bi => $block) :
                                     $sel = isset($block['wd']) && is_array($block['wd']) ? array_map('intval', $block['wd']) : [];
                                     $st = isset($block['start']) ? substr((string) $block['start'], 0, 5) : '';
                                     $en = isset($block['end']) ? substr((string) $block['end'], 0, 5) : '';
                                     $block_chapter = isset($block['chapter']) ? (string) $block['chapter'] : '';
                                     $block_coach = isset($block['coach_id']) ? (int) $block['coach_id'] : 0;
+                                    $block_uses_group = !empty($block['uses_group']);
+                                    $block_group = isset($block['group_name']) ? (string) $block['group_name'] : '';
                                     ?>
-                                <tr class="sc-csched-row">
-                                    <td class="sc-csched-wd-cell" data-label="روزهای هفته">
-                                        <div class="sc-csched-wd-grid">
-                                        <?php foreach ($wd_labels as $num => $lab) : ?>
-                                            <label class="sc-csched-wd-label">
-                                                <input type="checkbox" name="csched_row[<?php echo (int) $bi; ?>][wd][]" value="<?php echo esc_attr((string) $num); ?>" <?php checked(in_array((int) $num, $sel, true)); ?>>
-                                                <?php echo esc_html($lab); ?>
-                                            </label>
-                                        <?php endforeach; ?>
+                                <article class="sc-csched-card sc-csched-row">
+                                    <header class="sc-csched-card__head">
+                                        <span class="sc-csched-card__num">سانس <?php echo (int) $bi + 1; ?></span>
+                                        <button type="button" class="sc-csched-remove-row" title="حذف سانس">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                            <span>حذف</span>
+                                        </button>
+                                    </header>
+
+                                    <div class="sc-csched-card__body">
+                                        <div class="sc-csched-field sc-csched-field--days">
+                                            <label class="sc-csched-field__label">روزهای هفته</label>
+                                            <div class="sc-csched-wd-grid">
+                                            <?php foreach ($wd_labels as $num => $lab) : ?>
+                                                <label class="sc-csched-wd-pill">
+                                                    <input type="checkbox" name="csched_row[<?php echo (int) $bi; ?>][wd][]" value="<?php echo esc_attr((string) $num); ?>" <?php checked(in_array((int) $num, $sel, true)); ?>>
+                                                    <span class="sc-csched-wd-pill__text"><?php echo esc_html($lab); ?></span>
+                                                </label>
+                                            <?php endforeach; ?>
+                                            </div>
                                         </div>
-                                    </td>
-                                    <td data-label="شروع"><input type="time" class="regular-text sc-csched-time-input" name="csched_row[<?php echo (int) $bi; ?>][start]" value="<?php echo esc_attr($st); ?>"></td>
-                                    <td data-label="پایان"><input type="time" class="regular-text sc-csched-time-input" name="csched_row[<?php echo (int) $bi; ?>][end]" value="<?php echo esc_attr($en); ?>"></td>
-                                    <td data-label="شعبه">
-                                        <select name="csched_row[<?php echo (int) $bi; ?>][chapter]" class="sc-csched-chapter-select">
-                                            <option value="">همه شعبه‌ها</option>
-                                            <?php foreach ($schedule_chapter_options as $sch_ch) : ?>
-                                                <option value="<?php echo esc_attr($sch_ch); ?>" <?php selected($block_chapter, $sch_ch); ?>><?php echo esc_html($sch_ch); ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </td>
-                                    <td data-label="مربی">
-                                        <?php
-                                        $row_coach_ids = $sc_schedule_coach_ids_for_chapter($block_chapter);
-                                        ?>
-                                        <select name="csched_row[<?php echo (int) $bi; ?>][coach]" class="sc-csched-coach-select">
-                                            <option value="0">همه مربی‌ها</option>
-                                            <?php foreach ($row_coach_ids as $row_coach_id) :
-                                                if (!isset($sc_coach_labels_for_js[$row_coach_id])) {
-                                                    continue;
-                                                }
-                                                ?>
-                                                <option value="<?php echo (int) $row_coach_id; ?>" <?php selected($block_coach, (int) $row_coach_id); ?>><?php echo esc_html($sc_coach_labels_for_js[$row_coach_id]); ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </td>
-                                    <td class="sc-csched-actions-cell" data-label=""><button type="button" class="sc_button sc-csched-remove-row" style="margin-right: 10px; ">حذف</button></td>
-                                </tr>
+
+                                        <div class="sc-csched-card__grid">
+                                            <div class="sc-csched-field sc-csched-field--time">
+                                                <label class="sc-csched-field__label">ساعت شروع</label>
+                                                <input type="time" class="sc-csched-time-input" name="csched_row[<?php echo (int) $bi; ?>][start]" value="<?php echo esc_attr($st); ?>">
+                                            </div>
+                                            <div class="sc-csched-time-sep" aria-hidden="true">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            </div>
+                                            <div class="sc-csched-field sc-csched-field--time">
+                                                <label class="sc-csched-field__label">ساعت پایان</label>
+                                                <input type="time" class="sc-csched-time-input" name="csched_row[<?php echo (int) $bi; ?>][end]" value="<?php echo esc_attr($en); ?>">
+                                            </div>
+                                            <div class="sc-csched-field">
+                                                <label class="sc-csched-field__label">شعبه</label>
+                                                <select name="csched_row[<?php echo (int) $bi; ?>][chapter]" class="sc-csched-chapter-select">
+                                                    <option value="">همه شعبه‌ها</option>
+                                                    <?php foreach ($schedule_chapter_options as $sch_ch) : ?>
+                                                        <option value="<?php echo esc_attr($sch_ch); ?>" <?php selected($block_chapter, $sch_ch); ?>><?php echo esc_html($sch_ch); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="sc-csched-field">
+                                                <label class="sc-csched-field__label">مربی</label>
+                                                <?php $row_coach_ids = $sc_schedule_coach_ids_for_chapter($block_chapter); ?>
+                                                <select name="csched_row[<?php echo (int) $bi; ?>][coach]" class="sc-csched-coach-select">
+                                                    <option value="0">همه مربی‌ها</option>
+                                                    <?php foreach ($row_coach_ids as $row_coach_id) :
+                                                        if (!isset($sc_coach_labels_for_js[$row_coach_id])) {
+                                                            continue;
+                                                        }
+                                                        ?>
+                                                        <option value="<?php echo (int) $row_coach_id; ?>" <?php selected($block_coach, (int) $row_coach_id); ?>><?php echo esc_html($sc_coach_labels_for_js[$row_coach_id]); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="sc-csched-group-cell sc-csched-field sc-csched-field--group">
+                                            <label class="sc-csched-uses-group-label sc-csched-toggle-chip">
+                                                <input type="checkbox" class="sc-csched-uses-group-cb" name="csched_row[<?php echo (int) $bi; ?>][uses_group]" value="1" <?php checked($block_uses_group); ?>>
+                                                <span>این سانس مخصوص یک گروه است</span>
+                                            </label>
+                                            <select name="csched_row[<?php echo (int) $bi; ?>][group]" class="sc-csched-group-select" <?php echo $block_uses_group ? '' : 'disabled'; ?>>
+                                                <option value="">انتخاب گروه</option>
+                                                <?php foreach ($course_group_rows as $gopt) :
+                                                    $gopt_name = isset($gopt['name']) ? (string) $gopt['name'] : '';
+                                                    if ($gopt_name === '') {
+                                                        continue;
+                                                    }
+                                                    ?>
+                                                    <option value="<?php echo esc_attr($gopt_name); ?>" <?php selected($block_group, $gopt_name); ?>><?php echo esc_html($gopt_name); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <footer class="sc-csched-card__foot"></footer>
+                                </article>
                                 <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                        </div>
-                        <p style="margin-top:10px;">
-                            <button type="button" class="button" id="sc-csched-add">+ افزودن ردیف زمان</button>
-                        </p>
-                    </td>
-                </tr>
+                            </div>
 
-                <tr>
-                    <th scope="row">محدودیت دوره</th>
-                    <td>
-                        <label>
+                            <div class="sc-csched-panel__footer">
+                                <button type="button" class="sc-csched-add-btn" id="sc-csched-add">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    افزودن سانس جدید
+                                </button>
+                            </div>
+                </section>
+
+                <section class="sc-course-panel sc-course-panel--restrictions">
+                    <header class="sc-course-panel__header">
+                        <div class="sc-course-panel__intro">
+                            <div class="sc-course-panel__icon" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="sc-course-panel__title">محدودیت ثبت‌نام</h3>
+                                <p class="sc-course-panel__desc">در صورت نیاز، نمایش و ثبت‌نام دوره را به گروه خاصی محدود کنید.</p>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="sc-course-panel__body">
+                        <label class="sc-course-toggle-chip sc-course-toggle-chip--lg">
                             <input type="checkbox" name="restriction_enabled" id="restriction_enabled" value="1" <?php checked($restriction_enabled, 1); ?>>
-                            اعمال محدودیت برای نمایش/ثبت نام
+                            <span>اعمال محدودیت برای نمایش/ثبت‌نام</span>
                         </label>
-                        <div id="course-restrictions-box" style="margin-top:12px; <?php echo $restriction_enabled ? '' : 'display:none;'; ?>">
-                            <p><strong>جنسیت مجاز</strong></p>
-                            <select name="allowed_gender" class="regular-text">
-                                <option value="both" <?php selected($allowed_gender, 'both'); ?>>هردو</option>
-                                <option value="male" <?php selected($allowed_gender, 'male'); ?>>مرد</option>
-                                <option value="female" <?php selected($allowed_gender, 'female'); ?>>زن</option>
-                            </select>
-                            <p style="margin-top:10px;"><strong>تیم‌های مجاز</strong></p>
-                            <?php if (!empty($teams)) : foreach ($teams as $team) : ?>
-                                <label style="display:inline-block;margin-left:12px; margin-top: 10px;">
-                                    <input type="checkbox" name="allowed_teams[]" value="<?php echo esc_attr($team->name); ?>" <?php checked(in_array($team->name, $allowed_teams, true)); ?>>
-                                    <?php echo esc_html($team->name); ?>
-                                </label>
-                            <?php endforeach; endif; ?>
-                            <p style="margin-top:10px;"><strong>سطح‌های مجاز</strong></p>
-                            <?php if (!empty($levels)) : foreach ($levels as $level) : ?>
-                                <label style="display:inline-block;margin-left:12px; margin-top: 10px;">
-                                    <input type="checkbox" name="allowed_levels[]" value="<?php echo esc_attr($level->name); ?>" <?php checked(in_array($level->name, $allowed_levels, true)); ?>>
-                                    <?php echo esc_html($level->name); ?>
-                                </label>
-                            <?php endforeach; endif; ?>
-                            <p class="description">در صورت فعال بودن محدودیت، فقط بازیکنانی که با شروط بالا سازگارند دوره را می‌بینند و می‌توانند ثبت‌نام کنند.</p>
+                        <div id="course-restrictions-box" class="sc-course-restrictions-box" style="<?php echo $restriction_enabled ? '' : 'display:none;'; ?>">
+                            <div class="sc-course-field">
+                                <label class="sc-course-field__label">جنسیت مجاز</label>
+                                <select name="allowed_gender" class="sc-course-input sc-course-select">
+                                    <option value="both" <?php selected($allowed_gender, 'both'); ?>>هردو</option>
+                                    <option value="male" <?php selected($allowed_gender, 'male'); ?>>مرد</option>
+                                    <option value="female" <?php selected($allowed_gender, 'female'); ?>>زن</option>
+                                </select>
+                            </div>
+                            <div class="sc-course-field">
+                                <label class="sc-course-field__label">تیم‌های مجاز</label>
+                                <div class="sc-course-pill-grid">
+                                <?php if (!empty($teams)) : foreach ($teams as $team) : ?>
+                                    <label class="sc-course-filter-pill">
+                                        <input type="checkbox" name="allowed_teams[]" value="<?php echo esc_attr($team->name); ?>" <?php checked(in_array($team->name, $allowed_teams, true)); ?>>
+                                        <span><?php echo esc_html($team->name); ?></span>
+                                    </label>
+                                <?php endforeach; else : ?>
+                                    <p class="sc-course-field__hint">تیمی تعریف نشده است.</p>
+                                <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="sc-course-field">
+                                <label class="sc-course-field__label">سطح‌های مجاز</label>
+                                <div class="sc-course-pill-grid">
+                                <?php if (!empty($levels)) : foreach ($levels as $level) : ?>
+                                    <label class="sc-course-filter-pill">
+                                        <input type="checkbox" name="allowed_levels[]" value="<?php echo esc_attr($level->name); ?>" <?php checked(in_array($level->name, $allowed_levels, true)); ?>>
+                                        <span><?php echo esc_html($level->name); ?></span>
+                                    </label>
+                                <?php endforeach; else : ?>
+                                    <p class="sc-course-field__hint">سطحی تعریف نشده است.</p>
+                                <?php endif; ?>
+                                </div>
+                            </div>
+                            <p class="sc-course-field__hint">در صورت فعال بودن محدودیت، فقط بازیکنان سازگار دوره را می‌بینند و می‌توانند ثبت‌نام کنند.</p>
                         </div>
-                    </td>
-                </tr>
-                <tr>
-                   
-                    <th scope="row">وضعیت</th>
-                    <td>
-                        <label class="switch">
-                            <input name="is_active" type="checkbox" <?php checked($is_active, 1); ?> value="1">
-                            <span class="slider round"></span> فعال
-                        </label>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                    </div>
+                </section>
 
-        <p class="submit">
-            <button type="submit" name="submit_course" class="button button-primary">
+                <section class="sc-course-panel sc-course-panel--status">
+                    <div class="sc-course-panel__body sc-course-status-bar">
+                        <div class="sc-course-status-bar__info">
+                            <h3 class="sc-course-panel__title">وضعیت دوره</h3>
+                            <p class="sc-course-panel__desc">دوره‌های غیرفعال در لیست ثبت‌نام نمایش داده نمی‌شوند.</p>
+                        </div>
+                        <label class="sc-course-status-switch switch">
+                            <input name="is_active" type="checkbox" <?php checked($is_active, 1); ?> value="1">
+                            <span class="slider round"></span>
+                            <span class="sc-course-status-switch__label">فعال</span>
+                        </label>
+                    </div>
+                </section>
+
+        </div>
+
+        <p class="submit sc-course-submit-bar">
+            <button type="submit" name="submit_course" class="button button-primary sc-course-submit-btn">
                 <?php echo isset($_GET['course_id']) ? 'بروزرسانی دوره' : 'ثبت دوره جدید'; ?>
             </button>
         </p>
@@ -607,12 +790,48 @@ jQuery(document).ready(function($) {
     }
 
     (function () {
-        var $tb = jQuery('#sc-csched-tbody');
-        if (!$tb.length) {
+        var $list = jQuery('#sc-csched-list');
+        if (!$list.length) {
             return;
         }
+
+        function scRefreshCschedCardLabels() {
+            $list.find('.sc-csched-row').each(function (idx) {
+                jQuery(this).find('.sc-csched-card__num').text('سانس ' + (idx + 1));
+            });
+        }
+
+        window.scRefreshCschedWeekPreview = function () {
+            var dayCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+            var activeSlots = 0;
+            $list.find('.sc-csched-row').each(function () {
+                var $row = jQuery(this);
+                var days = $row.find('input[type=checkbox][name*="[wd]"]:checked');
+                if (!days.length) {
+                    return;
+                }
+                activeSlots++;
+                days.each(function () {
+                    var v = parseInt(jQuery(this).val(), 10);
+                    if (dayCounts[v] !== undefined) {
+                        dayCounts[v]++;
+                    }
+                });
+            });
+            jQuery('#sc-csched-count').text(activeSlots);
+            jQuery('.sc-csched-week-day').each(function () {
+                var $day = jQuery(this);
+                var wd = parseInt($day.attr('data-wd'), 10);
+                var count = dayCounts[wd] || 0;
+                $day.toggleClass('is-active', count > 0);
+                $day.attr('data-count', count);
+                var height = count ? Math.min(100, 24 + count * 22) : 8;
+                $day.find('.sc-csched-week-day__bar').css('height', height + '%');
+            });
+        };
+
         function reindexCschedRows() {
-            $tb.find('tr.sc-csched-row').each(function (idx) {
+            $list.find('.sc-csched-row').each(function (idx) {
                 jQuery(this).find('input[name^="csched_row["], select[name^="csched_row["]').each(function () {
                     var $el = jQuery(this);
                     var n = $el.attr('name');
@@ -622,36 +841,49 @@ jQuery(document).ready(function($) {
                     $el.attr('name', n.replace(/csched_row\[\d+\]/, 'csched_row[' + idx + ']'));
                 });
             });
+            scRefreshCschedCardLabels();
+            scRefreshCschedWeekPreview();
         }
+
         jQuery('#sc-csched-add').on('click', function () {
-            var $rows = $tb.find('tr.sc-csched-row');
+            var $rows = $list.find('.sc-csched-row');
             var $clone = $rows.last().clone();
             $clone.find('input[type="checkbox"]').prop('checked', false);
             $clone.find('input[type="time"]').val('');
             $clone.find('select').prop('selectedIndex', 0);
-            $tb.append($clone);
+            $clone.find('.sc-csched-group-select').prop('disabled', true);
+            $clone.find('.sc-csched-inline-error').remove();
+            $clone.find('.sc-csched-time-input').removeClass('is-invalid');
+            $clone.find('.sc-csched-card__foot').empty();
+            $list.append($clone);
             reindexCschedRows();
             if (typeof scSyncScheduleSelects === 'function') {
                 scSyncScheduleSelects();
             }
+            if (typeof scSyncScheduleGroupSelects === 'function') {
+                scSyncScheduleGroupSelects();
+            }
         });
-        $tb.on('click', '.sc-csched-remove-row', function () {
-            if ($tb.find('tr.sc-csched-row').length <= 1) {
+        $list.on('click', '.sc-csched-remove-row', function () {
+            if ($list.find('.sc-csched-row').length <= 1) {
                 return;
             }
-            jQuery(this).closest('tr').remove();
+            jQuery(this).closest('.sc-csched-row').remove();
             reindexCschedRows();
         });
+
+        jQuery(document).on('change', '#sc-csched-list input[type=checkbox][name*="[wd]"]', scRefreshCschedWeekPreview);
+        scRefreshCschedWeekPreview();
     })();
 
     function scValidateCourseScheduleRows(scrollToError) {
         var valid = true;
         var $firstBad = null;
         jQuery('#sc-csched-schedule-error').hide().text('');
-        jQuery('#sc-csched-tbody tr.sc-csched-row').each(function () {
+        jQuery('#sc-csched-list .sc-csched-row').each(function () {
             var $row = jQuery(this);
             var days = $row.find('input[type=checkbox][name*="[wd]"]:checked').length;
-            $row.find('.sc-csched-time-input').css('border-color', '');
+            $row.find('.sc-csched-time-input').removeClass('is-invalid');
             $row.find('.sc-csched-inline-error').remove();
             if (!days) {
                 return;
@@ -669,9 +901,9 @@ jQuery(document).ready(function($) {
                 if (!$firstBad) {
                     $firstBad = $row;
                 }
-                $row.find('.sc-csched-time-input').css('border-color', '#d63638');
-                $row.find('.sc-csched-actions-cell').append(
-                    jQuery('<div class="sc-csched-inline-error" style="color:#d63638;font-size:12px;margin-top:4px;"></div>').text(errMsg)
+                $row.find('.sc-csched-time-input').addClass('is-invalid');
+                $row.find('.sc-csched-card__foot').append(
+                    jQuery('<div class="sc-csched-inline-error"></div>').text(errMsg)
                 );
             }
         });
@@ -688,7 +920,7 @@ jQuery(document).ready(function($) {
         return valid;
     }
 
-    jQuery(document).on('change blur', '#sc-csched-tbody input[type=time], #sc-csched-tbody input[type=checkbox]', function () {
+    jQuery(document).on('change blur', '#sc-csched-list input[type=time], #sc-csched-list input[type=checkbox]', function () {
         scValidateCourseScheduleRows(false);
     });
 
@@ -699,6 +931,135 @@ jQuery(document).ready(function($) {
             $('#course-restrictions-box').slideUp(150);
         }
     });
+
+    $('#has_grouping').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('#sc-course-groups-box').slideDown(150);
+        } else {
+            $('#sc-course-groups-box').slideUp(150);
+            $('#player_can_select_group').prop('checked', false);
+        }
+        scSyncScheduleGroupSelects();
+        scToggleScheduleGroupColumns();
+    });
+
+    function scSerializeCourseGroupsPayload() {
+        var groups = [];
+        $('#sc-course-groups-tbody .sc-course-group-row').each(function () {
+            var name = $.trim($(this).find('.sc-course-group-name').val() || '');
+            if (name === '') {
+                return;
+            }
+            var desc = $.trim($(this).find('input[name*="[description]"]').val() || '');
+            groups.push({ name: name, description: desc });
+        });
+        $('#course_groups_json').val(JSON.stringify(groups));
+    }
+
+    function scReindexCourseGroupRows() {
+        $('#sc-course-groups-tbody .sc-course-group-row').each(function (idx) {
+            $(this).find('[name^="course_group_row"]').each(function () {
+                var n = $(this).attr('name') || '';
+                $(this).attr('name', n.replace(/course_group_row\[\d+\]/, 'course_group_row[' + idx + ']'));
+            });
+        });
+    }
+
+    $('#sc-course-group-add').on('click', function () {
+        var $row = $('<article class="sc-course-group-card sc-course-group-row">' +
+            '<div class="sc-course-field"><label class="sc-course-field__label">نام گروه</label>' +
+            '<input type="text" class="sc-course-input sc-course-group-name" name="course_group_row[0][name]" value="" placeholder="مثلاً گروه ۱"></div>' +
+            '<div class="sc-course-field"><label class="sc-course-field__label">توضیحات</label>' +
+            '<input type="text" class="sc-course-input" name="course_group_row[0][description]" value="" placeholder="توضیح کوتاه (اختیاری)"></div>' +
+            '<button type="button" class="sc-course-pkg-remove sc-course-group-remove" title="حذف گروه">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>' +
+            '</article>');
+        $('#sc-course-groups-tbody').append($row);
+        scReindexCourseGroupRows();
+        scSyncScheduleGroupSelects();
+    });
+
+    $(document).on('click', '.sc-course-group-remove', function () {
+        var $body = $('#sc-course-groups-tbody');
+        if ($body.find('.sc-course-group-row').length <= 1) {
+            $(this).closest('.sc-course-group-row').find('input').val('');
+            scSyncScheduleGroupSelects();
+            return;
+        }
+        $(this).closest('.sc-course-group-row').remove();
+        scReindexCourseGroupRows();
+        scSyncScheduleGroupSelects();
+    });
+
+    $(document).on('input', '.sc-course-group-name', function () {
+        var hasName = false;
+        $('#sc-course-groups-tbody .sc-course-group-name').each(function () {
+            if ($.trim($(this).val() || '') !== '') {
+                hasName = true;
+            }
+        });
+        if (hasName) {
+            $('#has_grouping').prop('checked', true);
+            $('#sc-course-groups-box').show();
+        }
+        scSyncScheduleGroupSelects();
+    });
+
+    function scGetCourseGroupNames() {
+        var names = [];
+        $('#sc-course-groups-tbody .sc-course-group-name').each(function () {
+            var n = $.trim($(this).val() || '');
+            if (n && names.indexOf(n) === -1) {
+                names.push(n);
+            }
+        });
+        return names;
+    }
+
+    window.scSyncScheduleGroupSelects = function () {
+        var names = scGetCourseGroupNames();
+        $('.sc-csched-group-select').each(function () {
+            var $sel = $(this);
+            var current = String($sel.val() || '');
+            $sel.find('option:not(:first)').remove();
+            names.forEach(function (name) {
+                $sel.append($('<option></option>').val(name).text(name));
+            });
+            if (current && names.indexOf(current) !== -1) {
+                $sel.val(current);
+            } else {
+                $sel.val('');
+            }
+        });
+    };
+
+    function scToggleScheduleGroupColumns() {
+        var show = $('#has_grouping').is(':checked');
+        $('.sc-csched-col-group, .sc-csched-group-cell').toggle(show);
+        if (!show) {
+            $('.sc-csched-uses-group-cb').prop('checked', false);
+            $('.sc-csched-group-select').prop('disabled', true).val('');
+        } else {
+            $('.sc-csched-uses-group-cb').each(function () {
+                var $row = $(this).closest('.sc-csched-row');
+                $row.find('.sc-csched-group-select').prop('disabled', !$(this).is(':checked'));
+            });
+        }
+    }
+
+    $(document).on('change', '.sc-csched-uses-group-cb', function () {
+        var $row = $(this).closest('.sc-csched-row');
+        var $sel = $row.find('.sc-csched-group-select');
+        if ($(this).is(':checked')) {
+            $sel.prop('disabled', false);
+            scSyncScheduleGroupSelects();
+        } else {
+            $sel.prop('disabled', true).val('');
+        }
+    });
+
+    scSyncScheduleGroupSelects();
+    scToggleScheduleGroupColumns();
 
     function scTogglePrivateCourseFields() {
         var isPrivate = ($('#course_type').val() || 'group') === 'private';
@@ -716,7 +1077,7 @@ jQuery(document).ready(function($) {
 
         if (variablePricing) {
             $('.sc-price-required-mark').hide();
-        } else if (!isPrivate || $('#sc-course-packages-body tr').length === 0) {
+        } else if (!isPrivate || $('#sc-course-packages-body .sc-course-package-row').length === 0) {
             $('.sc-price-required-mark').show();
         } else {
             $('.sc-price-required-mark').hide();
@@ -842,7 +1203,7 @@ jQuery(document).ready(function($) {
                     $priceTd.hide();
                 }
                 $priceTd.append(
-                    $('<input type="text" dir="ltr" class="regular-text sc-branch-price-input">')
+                    $('<input type="text" dir="ltr" class="sc-course-input sc-branch-price-input">')
                         .attr('name', 'coach_branch_price[' + chapter + '][' + coachId + ']')
                         .val(priceDisplay),
                     $('<input type="hidden" class="sc-branch-price-raw">')
@@ -852,7 +1213,7 @@ jQuery(document).ready(function($) {
                 $tr.append($priceTd);
                 $tr.append(
                     $('<td></td>').append(
-                        $('<input type="number" min="1" class="small-text">')
+                        $('<input type="number" min="1" class="sc-course-input sc-course-input--sm">')
                             .attr('name', 'coach_branch_capacity[' + chapter + '][' + coachId + ']')
                             .attr('placeholder', 'پیش‌فرض: ۱')
                             .val(capVal)
@@ -874,15 +1235,20 @@ jQuery(document).ready(function($) {
     $('#course_type, #private_variable_coach_pricing').on('change', scTogglePrivateCourseFields);
 
     $('#sc-add-private-sess-row').on('click', function () {
-        var $row = $('<tr><td><input type="number" min="1" name="private_sess_counts[]" value="" class="small-text"></td><td><button type="button" class="button sc-remove-private-sess-row">حذف</button></td></tr>');
+        var $row = $('<article class="sc-course-sess-card">' +
+            '<div class="sc-course-field"><label class="sc-course-field__label">تعداد جلسه</label>' +
+            '<input type="number" min="1" name="private_sess_counts[]" value="" class="sc-course-input"></div>' +
+            '<button type="button" class="sc-course-pkg-remove sc-remove-private-sess-row" title="حذف">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>' +
+            '</article>');
         $('#sc-private-session-options-body').append($row);
     });
     $(document).on('click', '.sc-remove-private-sess-row', function () {
         var $body = $('#sc-private-session-options-body');
-        if ($body.find('tr').length <= 1) {
+        if ($body.find('.sc-course-sess-card').length <= 1) {
             return;
         }
-        $(this).closest('tr').remove();
+        $(this).closest('.sc-course-sess-card').remove();
     });
 
     $(document).on('input', '.sc-branch-price-input', function () {
@@ -913,7 +1279,7 @@ jQuery(document).ready(function($) {
             var cleaned = String($display.val() || '').replace(/,/g, '').replace(/[^\d.]/g, '');
             $(rawId).val(cleaned || '0');
         });
-        $('#sc-course-packages-body tr.sc-course-package-row').each(function () {
+        $('#sc-course-packages-body .sc-course-package-row').each(function () {
             var $row = $(this);
             var raw = String($row.find('.sc-pkg-price-input').val() || '').replace(/,/g, '').replace(/[^\d.]/g, '');
             $row.find('.sc-pkg-price-raw').val(raw || '0');
@@ -924,7 +1290,7 @@ jQuery(document).ready(function($) {
         $('#sc-course-title-error, #sc-course-price-error, #sc-course-packages-error, #sc-private-sess-error').hide().text('');
         $('#title, #price, #price_per_session').css('border-color', '');
         $('#sc-course-packages-wrap').css('border-color', '');
-        $('#sc-course-packages-body tr.sc-course-package-row').css('outline', '');
+        $('#sc-course-packages-body .sc-course-package-row').css('outline', '');
         $('#sc-course-form-summary-error').hide().empty();
     }
 
@@ -983,7 +1349,7 @@ jQuery(document).ready(function($) {
         var seen = {};
         var $firstBad = null;
 
-        $('#sc-course-packages-body tr.sc-course-package-row').each(function () {
+        $('#sc-course-packages-body .sc-course-package-row').each(function () {
             var $row = $(this);
             var sessions = parseInt($row.find('.sc-pkg-sessions-input').val() || '0', 10);
             var price = parseFloat($row.find('.sc-pkg-price-raw').val() || '0');
@@ -1134,7 +1500,7 @@ jQuery(document).ready(function($) {
     $(document).on('input change', '.sc-pkg-sessions-input, .sc-pkg-price-input', function () {
         $('#sc-course-packages-error').hide();
         $('#sc-course-packages-wrap').css('border-color', '');
-        $(this).closest('tr.sc-course-package-row').css('outline', '');
+        $(this).closest('.sc-course-package-row').css('outline', '');
     });
 
     $(document).on('input change', 'input[name="private_sess_counts[]"]', function () {
@@ -1187,6 +1553,7 @@ jQuery(document).ready(function($) {
             return false;
         }
 
+        scSerializeCourseGroupsPayload();
         return true;
     });
 
@@ -1234,7 +1601,7 @@ jQuery(document).ready(function($) {
         if (!$coachSel || !$coachSel.length) {
             return;
         }
-        var $row = $coachSel.closest('tr');
+        var $row = $coachSel.closest('.sc-csched-row');
         var chapter = String($row.find('.sc-csched-chapter-select').val() || '');
         var current = String($coachSel.val() || '0');
         var coaches = scGetCoachesForChapter(chapter);
@@ -1263,8 +1630,11 @@ jQuery(document).ready(function($) {
             } else {
                 $sel.val('');
             }
-            scSyncScheduleCoachSelect($sel.closest('tr').find('.sc-csched-coach-select'));
+            scSyncScheduleCoachSelect($sel.closest('.sc-csched-row').find('.sc-csched-coach-select'));
         });
+        if (typeof scSyncScheduleGroupSelects === 'function') {
+            scSyncScheduleGroupSelects();
+        }
     };
 
     function scSyncChapterCoachGroups() {
@@ -1303,7 +1673,7 @@ jQuery(document).ready(function($) {
     });
 
     $(document).on('change', '.sc-csched-chapter-select', function () {
-        scSyncScheduleCoachSelect($(this).closest('tr').find('.sc-csched-coach-select'));
+        scSyncScheduleCoachSelect($(this).closest('.sc-csched-row').find('.sc-csched-coach-select'));
     });
 });
 </script>

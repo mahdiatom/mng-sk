@@ -37,15 +37,23 @@ $user_id = $coach ? $coach->user_id : null;
 $wp_user = $user_id ? get_userdata($user_id) : null;
 ?>
 
-<div class="wrap">
+<div class="wrap sc-coach-edit-header">
     <h1><?php echo $coach_id ? 'ویرایش مربی' : 'افزودن مربی'; ?></h1>
-    </div>
-    <div class="wrap">
-    <form method="post" action="" id="coach-form">
+    <?php if ($coach_id && $coach) : ?>
+        <p class="sc-coach-edit-subtitle">
+            <?php echo esc_html(trim($coach->first_name . ' ' . $coach->last_name)); ?>
+            <?php if (!empty($coach->specialization)) : ?>
+                <span class="sc-coach-edit-badge"><?php echo esc_html($coach->specialization); ?></span>
+            <?php endif; ?>
+        </p>
+    <?php endif; ?>
+</div>
+<div class="wrap sc-coach-edit-wrap">
+    <form method="post" action="" id="coach-form" class="sc-coach-edit-form">
         <?php wp_nonce_field('sc_add_coach', 'sc_coach_nonce'); ?>
         <input type="hidden" name="coach_id" value="<?php echo $coach_id; ?>">
         
-        <table class="form-table table_add_coach">
+        <table class="form-table table_add_coach sc_form-table">
             <tr>
                 <th><label for="first_name">نام <span class="required">*</span></label></th>
                 <td><input type="text" name="first_name" id="first_name" value="<?php echo $coach ? esc_attr($coach->first_name) : ''; ?>" required class="regular-text"></td>
@@ -114,21 +122,23 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                 </td>
             </tr>
             
-            <tr>
+            <tr class="sc-coach-settlement-row">
                 <th><label>نوع تسویه</label></th>
                 <td>
-                    <label>
-                        <input type="radio" name="settlement_type" value="fixed" id="settlement_type_fixed" <?php checked($coach ? $coach->settlement_type : 'fixed', 'fixed'); ?>>
-                        ثابت
-                    </label>
-                    <label style="margin-right: 20px;">
-                        <input type="radio" name="settlement_type" value="percentage" id="settlement_type_percentage" <?php checked($coach ? $coach->settlement_type : '', 'percentage'); ?>>
-                        درصدی
-                    </label>
-                    <label style="margin-right: 20px;">
-                        <input type="radio" name="settlement_type" value="both" id="settlement_type_both" <?php checked($coach ? $coach->settlement_type : '', 'both'); ?>>
-                        ثابت و درصدی
-                    </label>
+                    <div class="sc-coach-settlement-radios">
+                        <label class="sc-coach-settlement-option">
+                            <input type="radio" name="settlement_type" value="fixed" id="settlement_type_fixed" <?php checked($coach ? $coach->settlement_type : 'fixed', 'fixed'); ?>>
+                            <span>ثابت</span>
+                        </label>
+                        <label class="sc-coach-settlement-option">
+                            <input type="radio" name="settlement_type" value="percentage" id="settlement_type_percentage" <?php checked($coach ? $coach->settlement_type : '', 'percentage'); ?>>
+                            <span>درصدی</span>
+                        </label>
+                        <label class="sc-coach-settlement-option">
+                            <input type="radio" name="settlement_type" value="both" id="settlement_type_both" <?php checked($coach ? $coach->settlement_type : '', 'both'); ?>>
+                            <span>ثابت و درصدی</span>
+                        </label>
+                    </div>
                 </td>
             </tr>
             
@@ -148,12 +158,12 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                 </td>
             </tr>
             
-            <tr id="courses_row">
+            <tr id="courses_row" class="sc-coach-courses-row">
                 <th><label>دوره‌ها و شعبه‌ها</label></th>
                 <td>
-                    <div style="max-height: 480px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px;">
+                    <div class="sc-coach-courses-panel">
                         <?php if (!empty($all_courses)): ?>
-                            <table class="widefat striped" style="width:100%;">
+                            <table class="widefat striped sc-coach-courses-table">
                                 <thead>
                                     <tr>
                                         <th>دوره</th>

@@ -841,12 +841,12 @@ if ($active_tab === 'overall') {
 
 ?>
 
-<div class="wrap">
+<div class="wrap sc-attendance-page-header">
     <h1 class="wp-heading-inline">لیست حضور و غیاب</h1>
     <a href="<?php echo admin_url('admin.php?page=sc-attendance-add'); ?>" class="page-title-action">ثبت حضور و غیاب</a>
     <hr class="wp-header-end">
-    </div>
-    <div class="wrap">
+</div>
+<div class="wrap sc-attendance-page-body sc-attendance-list-body">
     <!-- تب‌ها -->
     <h2 class="nav-tab-wrapper">
         <a href="?page=sc-attendance-list&tab=individual" class="nav-tab <?php echo $active_tab === 'individual' ? 'nav-tab-active' : ''; ?>">
@@ -879,17 +879,12 @@ if ($active_tab === 'overall') {
 <!-- دوره -->
 <div class="sc-filter-field">
 <label class="sc-filter-label" for="filter_course">دوره</label>
-<select name="filter_course" id="filter_course" class="sc-filter-control">
-<option value="0">همه دوره‌ها</option>
 <?php
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
-foreach ($courses as $course) :
+echo function_exists('sc_render_searchable_course_filter_dropdown')
+    ? sc_render_searchable_course_filter_dropdown($courses, $filter_course)
+    : '';
 ?>
-<option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
-<?php echo esc_html($course->title); ?>
-</option>
-<?php endforeach; ?>
-</select>
 </div>
 
 <!-- کاربر -->
@@ -1311,14 +1306,9 @@ $absents = !empty($where_values)
 <!-- دوره -->
 <div class="sc-filter-field">
 <label class="sc-filter-label" for="filter_course">دوره</label>
-<select name="filter_course" id="filter_course" class="sc-filter-control">
-<option value="0">همه دوره‌ها</option>
-<?php foreach ($courses as $course) : ?>
-<option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
-<?php echo esc_html($course->title); ?>
-</option>
-<?php endforeach; ?>
-</select>
+<?php echo function_exists('sc_render_searchable_course_filter_dropdown')
+    ? sc_render_searchable_course_filter_dropdown($courses, $filter_course)
+    : ''; ?>
 </div>
 
 <!-- کاربر (Dropdown جستجو) -->
@@ -1516,14 +1506,9 @@ if ($filter_member > 0) {
             <div class="sc-filter-grid">
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_course">دوره</label>
-                    <select name="filter_course" id="filter_course" class="sc-filter-control">
-                        <option value="0">همه دوره‌ها</option>
-                        <?php foreach ($courses as $course) : ?>
-                            <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
-                                <?php echo esc_html($course->title); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php echo function_exists('sc_render_searchable_course_filter_dropdown')
+                        ? sc_render_searchable_course_filter_dropdown($courses, $filter_course)
+                        : ''; ?>
                 </div>
 
                 <?php if (!empty($coaches_list)) : ?>
@@ -1704,14 +1689,9 @@ if ($filter_member > 0) {
             <div class="sc-filter-grid">
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_course">دوره</label>
-                    <select name="filter_course" id="filter_course" class="sc-filter-control">
-                        <option value="0">همه دوره‌ها</option>
-                        <?php foreach ($courses as $course) : ?>
-                            <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
-                                <?php echo esc_html($course->title); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php echo function_exists('sc_render_searchable_course_filter_dropdown')
+                        ? sc_render_searchable_course_filter_dropdown($courses, $filter_course)
+                        : ''; ?>
                 </div>
 
                 <?php if (!empty($coaches_list)) : ?>

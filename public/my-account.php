@@ -1485,6 +1485,29 @@ function sc_handle_course_enrollment() {
         wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
         exit;
     }
+
+    $posted_group = isset($_POST['enrollment_group']) ? sanitize_text_field(wp_unslash($_POST['enrollment_group'])) : '';
+    $player_can_select_group = function_exists('sc_course_player_can_select_group') && sc_course_player_can_select_group($course_id);
+    $enrollment_group_name = '';
+    if ($player_can_select_group) {
+        $course_group_names = function_exists('sc_get_course_group_names') ? sc_get_course_group_names($course_id) : [];
+        if (count($course_group_names) === 1) {
+            $posted_group = $course_group_names[0];
+        }
+        if (count($course_group_names) > 1 && $posted_group === '') {
+            wc_add_notice('لطفاً گروه دوره را انتخاب کنید.', 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+            exit;
+        }
+        if ($posted_group !== '' && function_exists('sc_is_valid_course_group_name') && !sc_is_valid_course_group_name($course_id, $posted_group)) {
+            wc_add_notice('گروه انتخاب‌شده معتبر نیست.', 'error');
+            wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+            exit;
+        }
+        $enrollment_group_name = function_exists('sc_resolve_member_course_group')
+            ? sc_resolve_member_course_group($course_id, $posted_group, '')
+            : sanitize_text_field($posted_group);
+    }
     if (function_exists('sc_course_has_any_enrollment_slot') && !sc_course_has_any_enrollment_slot($course_id)) {
         wc_add_notice('در حال حاضر ظرفیت ثبت‌نام این دوره تکمیل شده است.', 'error');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
@@ -1551,10 +1574,15 @@ function sc_handle_course_enrollment() {
         'updated_at' => current_time('mysql'),
         'enrollment_sessions' => ($has_pkg && $enrollment_sessions_sel) ? $enrollment_sessions_sel : null,
     ];
+    $insert_formats = ['%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s'];
+    if (function_exists('sc_member_courses_has_group_column') && sc_member_courses_has_group_column()) {
+        $insert_mc = array_merge($insert_mc, sc_member_course_row_with_group(['group_name' => $enrollment_group_name]));
+        $insert_formats[] = '%s';
+    }
     $inserted = $wpdb->insert(
         $member_courses_table,
         $insert_mc,
-        ['%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
+        $insert_formats
     );
 
     if ($inserted === false) {

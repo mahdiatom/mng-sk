@@ -2065,6 +2065,60 @@ function sc_update_database() {
         update_option('sc_member_courses_multi_enrollment_v1', '1');
     }
 
+    // گروه‌بندی داخل دوره (بخش‌های کلاس)
+    if (get_option('sc_course_groups_v1', '0') !== '1') {
+        if (function_exists('sc_create_course_groups_table')) {
+            sc_create_course_groups_table();
+        }
+
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $courses_table)) === $courses_table) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$courses_table` LIKE %s", 'has_grouping'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$courses_table` ADD COLUMN `has_grouping` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'دوره دارای گروه‌بندی داخلی' AFTER `private_variable_coach_pricing`");
+            }
+        }
+
+        $mc = $wpdb->prefix . 'sc_member_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $mc)) === $mc) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$mc` LIKE %s", 'group_name'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$mc` ADD COLUMN `group_name` varchar(255) DEFAULT NULL COMMENT 'گروه/بخش داخل دوره' AFTER `chapter`");
+                $wpdb->query("ALTER TABLE `$mc` ADD KEY `idx_group_name` (`group_name`)");
+            }
+        }
+
+        $sched = $wpdb->prefix . 'sc_course_weekly_schedule';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $sched)) === $sched) {
+            $col_uses = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$sched` LIKE %s", 'schedule_uses_group'));
+            if (empty($col_uses)) {
+                $wpdb->query("ALTER TABLE `$sched` ADD COLUMN `schedule_uses_group` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'این ردیف مخصوص یک گروه است' AFTER `coach_id`");
+            }
+            $col_grp = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$sched` LIKE %s", 'group_name'));
+            if (empty($col_grp)) {
+                $wpdb->query("ALTER TABLE `$sched` ADD COLUMN `group_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'گروه (خالی = همه گروه‌ها)' AFTER `schedule_uses_group`");
+                $wpdb->query("ALTER TABLE `$sched` ADD KEY `idx_group_name` (`group_name`)");
+            }
+        }
+
+        update_option('sc_course_groups_v1', '1');
+    }
+
+    if (get_option('sc_course_groups_v2', '0') !== '1') {
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $courses_table)) === $courses_table) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$courses_table` LIKE %s", 'player_can_select_group'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$courses_table` ADD COLUMN `player_can_select_group` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'بازیکن هنگام ثبت‌نام گروه را انتخاب کند' AFTER `has_grouping`");
+            }
+        }
+        update_option('sc_course_groups_v2', '1');
+    }
+
+    if (function_exists('sc_ensure_course_groups_schema')) {
+        sc_ensure_course_groups_schema();
+    }
+
     if (function_exists('sc_private_ensure_booking_schema_columns')) {
         sc_private_ensure_booking_schema_columns();
     }

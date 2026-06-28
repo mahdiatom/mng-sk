@@ -3002,88 +3002,532 @@ width: fit-content;
 
 /* افزودن / ویرایش دوره — دسکتاپ پیش‌فرض وردپرس، تبلت و موبایل جدا */
 .sc-course-add-wrap {
+    overflow-x: hidden;
     max-width: 100%;
+    box-sizing: border-box;
+    background: #f4f2fa !important;
+}
+
+.sc-course-add-wrap .sc-course-form-panels {
+    display: grid;
+    gap: 18px;
+    margin-top: 8px;
+}
+
+/* پنل‌های مشترک فرم دوره */
+.sc-course-add-wrap .sc-course-panel,
+.sc-course-add-wrap .sc-csched-panel {
+    margin: 0;
+    padding: 22px 24px 20px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
     box-sizing: border-box;
 }
 
-.sc-course-add-wrap .sc-course-price-field {
+.sc-course-add-wrap .sc-course-panel__header,
+.sc-course-add-wrap .sc-csched-panel__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.sc-course-add-wrap .sc-course-panel__intro,
+.sc-course-add-wrap .sc-csched-panel__intro {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.sc-course-add-wrap .sc-course-panel__icon,
+.sc-course-add-wrap .sc-csched-panel__icon {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6d34ff;
+    background: rgba(109, 52, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.sc-course-add-wrap .sc-course-panel__title,
+.sc-course-add-wrap .sc-csched-panel__title {
+    margin: 0 0 6px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #1e1b2e;
+}
+
+.sc-course-add-wrap .sc-course-panel__desc,
+.sc-course-add-wrap .sc-csched-panel__desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #6b7280;
+    max-width: 52rem;
+}
+
+.sc-course-add-wrap .sc-course-panel__body {
+    display: grid;
+    gap: 16px;
+}
+
+.sc-course-add-wrap .sc-course-panel__sub {
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(109, 52, 255, 0.1);
+}
+
+.sc-course-add-wrap .sc-course-subtitle {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.sc-course-add-wrap .sc-required {
+    color: #e11d48;
+}
+
+.sc-course-add-wrap .sc-course-fields {
+    display: grid;
+    gap: 14px;
+}
+
+.sc-course-add-wrap .sc-course-fields--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sc-course-add-wrap .sc-course-field--full {
+    grid-column: 1 / -1;
+}
+
+.sc-course-add-wrap .sc-course-field__label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+.sc-course-add-wrap .sc-course-field__hint {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #9ca3af;
+}
+
+.sc-course-add-wrap .sc-course-field__error {
+    margin: 6px 0 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #d63638;
+}
+
+.sc-course-add-wrap .sc-course-input,
+.sc-course-add-wrap .sc-course-select,
+.sc-course-add-wrap .sc-course-textarea {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    height: 40px;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 12px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sc-course-add-wrap .sc-course-textarea {
+    height: auto;
+    min-height: 100px;
+    resize: vertical;
+}
+
+.sc-course-add-wrap .sc-course-input--sm {
+    max-width: 120px;
+}
+
+.sc-course-add-wrap .sc-course-input:focus,
+.sc-course-add-wrap .sc-course-select:focus,
+.sc-course-add-wrap .sc-course-textarea:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+    outline: none;
+}
+
+.sc-course-add-wrap .sc-course-toggle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e8e5f5;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    cursor: pointer;
+}
+
+.sc-course-add-wrap .sc-course-toggle-chip--lg {
+    font-size: 13px;
+    padding: 10px 16px;
+}
+
+.sc-course-add-wrap .sc-course-toggle-chip input:checked + span {
+    color: #4a1fb8;
+}
+
+.sc-course-add-wrap .sc-course-add-btn,
+.sc-course-add-wrap .sc-csched-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px dashed rgba(109, 52, 255, 0.45);
+    background: rgba(109, 52, 255, 0.06);
+    color: #4a1fb8;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    height: auto;
+    line-height: 1.4;
+    margin-top: 10px;
+}
+
+.sc-course-add-wrap .sc-course-add-btn:hover,
+.sc-course-add-wrap .sc-csched-add-btn:hover {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    border-style: solid;
+    border-color: transparent;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+}
+
+.sc-course-add-wrap .sc-course-pkg-list,
+.sc-course-add-wrap .sc-course-group-list,
+.sc-course-add-wrap .sc-course-sess-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.sc-course-add-wrap .sc-course-pkg-card,
+.sc-course-add-wrap .sc-course-group-card,
+.sc-course-add-wrap .sc-course-sess-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+    gap: 12px;
+    align-items: end;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e8e5f5;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.sc-course-add-wrap .sc-course-sess-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: 360px;
+}
+
+.sc-course-add-wrap .sc-course-pkg-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid #f3d0d0;
+    background: #fff5f5;
+    color: #c24141;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-bottom: 2px;
+}
+
+.sc-course-add-wrap .sc-course-pkg-remove:hover {
+    background: #fee2e2;
+    border-color: #f5b5b5;
+}
+
+.sc-course-add-wrap .sc-course-alert {
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.sc-course-add-wrap .sc-course-alert--info {
+    color: #4a1fb8;
+    background: rgba(109, 52, 255, 0.08);
+    border: 1px solid rgba(109, 52, 255, 0.16);
+}
+
+.sc-course-add-wrap .sc-course-chapters-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: none;
+    overflow: visible;
+    border: none;
+    padding: 0;
+}
+
+.sc-course-add-wrap .sc-course-chapter-pill {
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+}
+
+.sc-course-add-wrap .sc-course-chapter-pill input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.sc-course-add-wrap .sc-course-chapter-pill__text {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #4b5563;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.18s ease;
+}
+
+.sc-course-add-wrap .sc-course-chapter-pill input:checked + .sc-course-chapter-pill__text {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    box-shadow: 0 6px 16px rgba(109, 52, 255, 0.25);
+}
+
+.sc-course-add-wrap .sc-course-coaches-box {
+    margin-top: 8px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(109, 52, 255, 0.15);
+}
+
+.sc-course-add-wrap .sc-course-chapter-coaches {
+    display: none;
     margin-bottom: 12px;
+    padding: 12px 14px;
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.sc-course-add-wrap .sc-chapter-coaches-heading {
+    display: block;
+    font-weight: 700;
+    font-size: 12px;
+    color: #4a1fb8;
+    margin-bottom: 8px;
+}
+
+.sc-course-add-wrap .sc-chapter-coach-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sc-course-add-wrap .sc-chapter-coach-pill {
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+}
+
+.sc-course-add-wrap .sc-chapter-coach-pill input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.sc-course-add-wrap .sc-chapter-coach-pill__text {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.18s ease;
+}
+
+.sc-course-add-wrap .sc-chapter-coach-pill input:checked + .sc-chapter-coach-pill__text {
+    color: #4a1fb8;
+    border-color: rgba(109, 52, 255, 0.35);
+    background: rgba(109, 52, 255, 0.1);
+}
+
+.sc-course-add-wrap .sc-course-table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid #e8e5f5;
+    background: #fff;
+}
+
+.sc-course-add-wrap .sc-course-modern-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.sc-course-add-wrap .sc-course-modern-table th {
+    padding: 10px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b7280;
+    text-align: right;
+    background: #faf9ff;
+    border-bottom: 1px solid #ece9f8;
+}
+
+.sc-course-add-wrap .sc-course-modern-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 13px;
+}
+
+.sc-course-add-wrap .sc-course-groups-box {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(109, 52, 255, 0.15);
+}
+
+.sc-course-add-wrap .sc-course-pill-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sc-course-add-wrap .sc-course-filter-pill {
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+}
+
+.sc-course-add-wrap .sc-course-filter-pill input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.sc-course-add-wrap .sc-course-filter-pill span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #4b5563;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.18s ease;
+}
+
+.sc-course-add-wrap .sc-course-filter-pill input:checked + span {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+}
+
+.sc-course-add-wrap .sc-course-restrictions-box {
+    display: grid;
+    gap: 14px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(109, 52, 255, 0.15);
+}
+
+.sc-course-add-wrap .sc-course-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.sc-course-add-wrap .sc-course-status-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.sc-course-add-wrap .sc-course-status-switch__label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4a1fb8;
+}
+
+.sc-course-add-wrap .sc-course-submit-bar {
+    margin: 18px 0 8px;
+    padding: 0;
+}
+
+.sc-course-add-wrap .sc-course-submit-btn {
+    min-width: 180px;
+    height: 44px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(109, 52, 255, 0.28);
+}
+
+.sc-course-add-wrap .sc-course-price-field {
+    margin-bottom: 10px;
 }
 
 .sc-course-add-wrap .sc-course-price-field:last-child {
     margin-bottom: 0;
 }
 
-.sc-course-add-wrap {
-    overflow-x: hidden;
-    max-width: 100%;
-    box-sizing: border-box;
+@media screen and (max-width: 900px) {
+    .sc-course-add-wrap .sc-course-fields--2 {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-course-add-wrap .sc-course-pkg-card,
+    .sc-course-add-wrap .sc-course-group-card {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-course-add-wrap .sc-course-status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
-.sc-course-add-wrap .sc-course-chapters-box {
-    max-height: 220px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    border: 1px solid #ddd;
-    padding: 12px;
-    border-radius: 4px;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
-.sc-course-add-wrap .sc-course-chapter-item {
-    display: block;
-    margin: 6px 0;
-    max-width: 100%;
-    word-break: break-word;
-}
-
-.sc-course-add-wrap .sc-course-coaches-box {
-    margin-top: 16px;
-    max-width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
-}
-
-.sc-course-add-wrap .sc-course-coaches-title {
-    display: block;
-    margin-bottom: 8px;
-}
-
-.sc-course-add-wrap .sc-course-chapter-coaches {
-    display: none;
-    margin-bottom: 10px;
-    padding: 10px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    background: #fafafa;
-    max-width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
-}
-
-.sc-course-add-wrap .sc-chapter-coaches-heading {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 6px;
-    word-break: break-word;
-}
-
-.sc-course-add-wrap .sc-chapter-coach-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 14px;
-    max-width: 100%;
-}
-
-.sc-course-add-wrap .sc-chapter-coach-item {
-    display: inline-flex;
-    align-items: flex-start;
-    gap: 4px;
-    margin: 0;
-    flex: 0 1 auto;
-    max-width: 100%;
-    word-break: break-word;
+@media screen and (max-width: 782px) {
+    .sc-course-add-wrap .sc-course-panel,
+    .sc-course-add-wrap .sc-csched-panel {
+        padding: 16px 14px;
+        border-radius: 12px;
+    }
 }
 
 /* جدول اصلی فرم: بدون table-layout:fixed تا ستون عنوان/فیلد مثل قبل بماند */
@@ -3166,67 +3610,404 @@ width: fit-content;
     }
 }
 
-/* جدول برنامه هفتگی — دسکتاپ */
-.sc-course-add-wrap .sc-course-schedule-table {
+/* ─── برنامه هفتگی دوره — جزئیات اختصاصی ─── */
+.sc-course-add-wrap .sc-csched-panel__badge {
+    flex: 0 0 auto;
+    min-width: 92px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    text-align: center;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(109, 52, 255, 0.28);
+}
+
+.sc-course-add-wrap .sc-csched-panel__badge-num {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.sc-course-add-wrap .sc-csched-panel__badge-label {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    opacity: 0.92;
+}
+
+.sc-course-add-wrap .sc-csched-week-preview {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(109, 52, 255, 0.08);
+    backdrop-filter: blur(6px);
+}
+
+.sc-course-add-wrap .sc-csched-week-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+}
+
+.sc-course-add-wrap .sc-csched-week-day__label {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    background: #f3f4f6;
+    transition: all 0.2s ease;
+}
+
+.sc-course-add-wrap .sc-csched-week-day__track {
     width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    table-layout: fixed;
-    border-collapse: collapse;
+    height: 44px;
+    border-radius: 8px;
+    background: #eef0f4;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    padding: 3px;
+    box-sizing: border-box;
 }
 
-.sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-days {
-    width: 38%;
-    min-width: 0;
-    padding-right: 10px;
+.sc-course-add-wrap .sc-csched-week-day__bar {
+    width: 100%;
+    height: 8%;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #a78bfa 0%, #6d34ff 100%);
+    transition: height 0.25s ease, opacity 0.2s ease;
+    opacity: 0.35;
 }
 
-.sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-time {
-    width: 9%;
-    min-width: 5.5rem;
+.sc-course-add-wrap .sc-csched-week-day.is-active .sc-csched-week-day__label {
+    color: #fff;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    box-shadow: 0 4px 12px rgba(109, 52, 255, 0.25);
+}
+
+.sc-course-add-wrap .sc-csched-week-day.is-active .sc-csched-week-day__bar {
+    opacity: 1;
+}
+
+.sc-course-add-wrap .sc-csched-week-day__name {
+    font-size: 10px;
+    color: #9ca3af;
     white-space: nowrap;
 }
 
-.sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-chapter,
-.sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-coach {
-    width: 14%;
-    min-width: 0;
+.sc-course-add-wrap .sc-csched-alert {
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
 }
 
-.sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-actions {
-    width: 6rem;
-    white-space: nowrap;
+.sc-course-add-wrap .sc-csched-alert--error {
+    color: #b42318;
+    background: #fef3f2;
+    border: 1px solid #fecdca;
 }
 
-.sc-course-add-wrap .sc-csched-wd-cell {
-    line-height: 1.6;
-    padding-right: 10px;
+.sc-course-add-wrap .sc-csched-list {
+    display: grid;
+    gap: 14px;
+}
+
+.sc-course-add-wrap .sc-csched-card {
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e8e5f5;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.sc-course-add-wrap .sc-csched-card:hover {
+    border-color: rgba(109, 52, 255, 0.22);
+    box-shadow: 0 8px 28px rgba(109, 52, 255, 0.1);
+}
+
+.sc-course-add-wrap .sc-csched-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(90deg, rgba(109, 52, 255, 0.06) 0%, rgba(255, 255, 255, 0) 100%);
+    border-bottom: 1px solid #f0edf8;
+}
+
+.sc-course-add-wrap .sc-csched-card__num {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #4a1fb8;
+}
+
+.sc-course-add-wrap .sc-csched-card__num::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    box-shadow: 0 0 0 4px rgba(109, 52, 255, 0.12);
+}
+
+.sc-course-add-wrap .sc-csched-remove-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #f3d0d0;
+    background: #fff5f5;
+    color: #c24141;
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    height: auto;
+    line-height: 1.4;
+}
+
+.sc-course-add-wrap .sc-csched-remove-row:hover {
+    background: #fee2e2;
+    border-color: #f5b5b5;
+    color: #991b1b;
+}
+
+.sc-course-add-wrap .sc-csched-card__body {
+    padding: 16px;
+    display: grid;
+    gap: 16px;
+}
+
+.sc-course-add-wrap .sc-csched-field__label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
 }
 
 .sc-course-add-wrap .sc-csched-wd-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 10px;
-    align-items: center;
+    gap: 8px;
 }
 
-.sc-course-add-wrap .sc-csched-wd-label {
+.sc-course-add-wrap .sc-csched-wd-pill {
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+}
+
+.sc-course-add-wrap .sc-csched-wd-pill input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.sc-course-add-wrap .sc-csched-wd-pill__text {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    margin: 0;
-    white-space: normal;
-    word-break: break-word;
+    justify-content: center;
+    min-height: 34px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #4b5563;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.18s ease;
+    user-select: none;
+}
+
+.sc-course-add-wrap .sc-csched-wd-pill input:checked + .sc-csched-wd-pill__text {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    box-shadow: 0 6px 16px rgba(109, 52, 255, 0.28);
+}
+
+.sc-course-add-wrap .sc-csched-wd-pill:hover .sc-csched-wd-pill__text {
+    border-color: rgba(109, 52, 255, 0.35);
+}
+
+.sc-course-add-wrap .sc-csched-card__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: end;
+}
+
+.sc-course-add-wrap .sc-csched-time-sep {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #c4b5fd;
+    padding-bottom: 10px;
 }
 
 .sc-course-add-wrap .sc-csched-time-input,
 .sc-course-add-wrap .sc-csched-chapter-select,
-.sc-course-add-wrap .sc-csched-coach-select {
+.sc-course-add-wrap .sc-csched-coach-select,
+.sc-course-add-wrap .sc-csched-group-select {
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
     min-width: 0;
+    height: 40px;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
+
+.sc-course-add-wrap .sc-csched-time-input:focus,
+.sc-course-add-wrap .sc-csched-chapter-select:focus,
+.sc-course-add-wrap .sc-csched-coach-select:focus,
+.sc-course-add-wrap .sc-csched-group-select:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+    outline: none;
+}
+
+.sc-course-add-wrap .sc-csched-time-input.is-invalid {
+    border-color: #f04438 !important;
+    box-shadow: 0 0 0 3px rgba(240, 68, 56, 0.12) !important;
+}
+
+.sc-course-add-wrap .sc-csched-field--group {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #faf9ff;
+    border: 1px dashed rgba(109, 52, 255, 0.18);
+}
+
+.sc-course-add-wrap .sc-csched-toggle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e8e5f5;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    cursor: pointer;
+}
+
+.sc-course-add-wrap .sc-csched-toggle-chip input:checked + span {
+    color: #4a1fb8;
+}
+
+.sc-course-add-wrap .sc-csched-group-select:disabled {
+    opacity: 0.55;
+    background: #f3f4f6 !important;
+}
+
+.sc-course-add-wrap .sc-csched-card__foot:empty {
+    display: none;
+}
+
+.sc-course-add-wrap .sc-csched-card__foot {
+    padding: 0 16px 12px;
+}
+
+.sc-course-add-wrap .sc-csched-inline-error {
+    color: #d63638;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.sc-course-add-wrap .sc-csched-panel__footer {
+    margin-top: 16px;
+    padding-top: 4px;
+}
+
+@media screen and (max-width: 1100px) {
+    .sc-course-add-wrap .sc-csched-card__grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .sc-course-add-wrap .sc-csched-time-sep {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 782px) {
+    .sc-course-add-wrap .sc-csched-panel {
+        padding: 16px 14px;
+        border-radius: 12px;
+    }
+
+    .sc-course-add-wrap .sc-csched-panel__header {
+        flex-direction: column;
+    }
+
+    .sc-course-add-wrap .sc-csched-panel__badge {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 14px;
+    }
+
+    .sc-course-add-wrap .sc-csched-panel__badge-num {
+        font-size: 20px;
+    }
+
+    .sc-course-add-wrap .sc-csched-panel__badge-label {
+        margin-top: 0;
+    }
+
+    .sc-course-add-wrap .sc-csched-week-preview {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .sc-course-add-wrap .sc-csched-week-day__name {
+        display: none;
+    }
+
+    .sc-course-add-wrap .sc-csched-card__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-course-add-wrap .sc-csched-wd-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sc-course-add-wrap .sc-csched-add-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* پایان برنامه هفتگی دوره */
 
 /* تبلت: فیلدهای تک‌ستونهٔ فرم اصلی تمام‌عرض سلول؛ جداول توکار بدون فشرده‌شدن اجباری */
 @media screen and (max-width: 960px) and (min-width: 783px) {
@@ -3254,16 +4035,6 @@ width: fit-content;
 
     .sc-course-add-wrap .sc-course-packages-table input.sc-course-pkg-field {
         width: 100%;
-    }
-
-    .sc-course-add-wrap .sc-course-schedule-table .sc-csched-col-days {
-        min-width: 0;
-    }
-
-    .sc-course-add-wrap .sc-csched-chapter-select,
-    .sc-course-add-wrap .sc-csched-coach-select {
-        width: 100%;
-        max-width: 100%;
     }
 }
 
@@ -3351,79 +4122,6 @@ width: fit-content;
     .sc-course-add-wrap .sc-course-packages-table input.sc-course-pkg-field {
         width: 100%;
     }
-
-    /* برنامه هفتگی: هر ردیف = کارت؛ بدون اسکرول افقی */
-    .sc-course-add-wrap .sc-table-scroll--schedule {
-        overflow-x: visible;
-        margin-left: 0;
-        margin-right: 0;
-    }
-
-    .sc-course-add-wrap .sc-course-schedule-table {
-        min-width: 0;
-        max-width: 100%;
-    }
-
-    .sc-course-add-wrap .sc-course-schedule-table thead {
-        display: none;
-    }
-
-    .sc-course-add-wrap .sc-course-schedule-table tbody tr.sc-csched-row {
-        display: block;
-        margin-bottom: 16px;
-        padding: 12px 12px 8px;
-        border: 1px solid #c3c4c7;
-        border-radius: 8px;
-        background: #f6f7f7;
-    }
-
-    .sc-course-add-wrap .sc-course-schedule-table tbody tr.sc-csched-row td {
-        display: block;
-        width: 100% !important;
-        padding: 8px 0;
-        border: none;
-        box-sizing: border-box;
-    }
-
-    .sc-course-add-wrap .sc-course-schedule-table tbody tr.sc-csched-row td:before {
-        content: attr(data-label);
-        display: block;
-        font-weight: 600;
-        font-size: 12px;
-        color: #50575e;
-        margin-bottom: 6px;
-    }
-
-    .sc-course-add-wrap .sc-course-schedule-table tbody tr.sc-csched-row td[data-label=""]:before {
-        display: none;
-    }
-
-    .sc-course-add-wrap .sc-csched-wd-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px 10px;
-    }
-
-    .sc-course-add-wrap .sc-csched-wd-label {
-        white-space: normal;
-        margin: 0;
-    }
-
-    .sc-course-add-wrap .sc-csched-time-input,
-    .sc-course-add-wrap .sc-csched-chapter-select,
-    .sc-course-add-wrap .sc-csched-coach-select {
-        width: 100%;
-        max-width: 100%;
-    }
-
-    .sc-course-add-wrap .sc-course-schedule-table .sc-csched-actions-cell .button {
-        width: 100%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
-        padding-right:10px ;
-    }
 }
 
 .sc-player-custom-field-item{
@@ -3436,3 +4134,2537 @@ width: fit-content;
     gap: 20px;
     width: 100%;
 }
+
+/* ─── افزودن / ویرایش بازیکن — استایل مدرن (فقط CSS) ─── */
+body.sc-members_page_sc-add-member .wrap,
+body[class*="_page_sc-add-member"] .wrap {
+    background: #f4f2fa !important;
+    border-radius: 12px;
+    box-sizing: border-box;
+}
+
+body.sc-members_page_sc-add-member .wrap > h1,
+body[class*="_page_sc-add-member"] .wrap > h1 {
+    color: #1e1b2e;
+}
+
+body.sc-members_page_sc-add-member form .form-table.sc_form-table,
+body[class*="_page_sc-add-member"] form .form-table.sc_form-table {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+}
+
+body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody,
+body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody {
+    display: grid;
+    gap: 14px;
+}
+
+body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody > tr,
+body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody > tr {
+    display: block;
+    margin: 0;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+}
+
+body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody > tr > th,
+body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody > tr > td,
+body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody > tr > th,
+body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody > tr > td {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0;
+    border: none;
+    background: transparent;
+}
+
+body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody > tr > th,
+body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody > tr > th {
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody > tr > th label,
+body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody > tr > th label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body.sc-members_page_sc-add-member form input.regular-text,
+body.sc-members_page_sc-add-member form input[type="number"],
+body.sc-members_page_sc-add-member form input[type="text"],
+body.sc-members_page_sc-add-member form input[type="password"],
+body.sc-members_page_sc-add-member form select.regular-text,
+body.sc-members_page_sc-add-member form textarea.large-text,
+body[class*="_page_sc-add-member"] form input.regular-text,
+body[class*="_page_sc-add-member"] form input[type="number"],
+body[class*="_page_sc-add-member"] form input[type="text"],
+body[class*="_page_sc-add-member"] form input[type="password"],
+body[class*="_page_sc-add-member"] form select.regular-text,
+body[class*="_page_sc-add-member"] form textarea.large-text {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-height: 40px;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 12px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.sc-members_page_sc-add-member form textarea.large-text,
+body[class*="_page_sc-add-member"] form textarea.large-text {
+    min-height: 96px;
+    resize: vertical;
+}
+
+body.sc-members_page_sc-add-member form input:focus,
+body.sc-members_page_sc-add-member form select:focus,
+body.sc-members_page_sc-add-member form textarea:focus,
+body[class*="_page_sc-add-member"] form input:focus,
+body[class*="_page_sc-add-member"] form select:focus,
+body[class*="_page_sc-add-member"] form textarea:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+    outline: none;
+}
+
+body.sc-members_page_sc-add-member form .description,
+body[class*="_page_sc-add-member"] form .description {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.65;
+    color: #9ca3af;
+}
+
+body.sc-members_page_sc-add-member form .sc-upload-btn,
+body[class*="_page_sc-add-member"] form .sc-upload-btn {
+    margin-top: 8px;
+    border-radius: 10px !important;
+    border: 1px dashed rgba(109, 52, 255, 0.4) !important;
+    background: rgba(109, 52, 255, 0.06) !important;
+    color: #4a1fb8 !important;
+    font-weight: 600;
+}
+
+body.sc-members_page_sc-add-member form .sc-upload-btn:hover,
+body[class*="_page_sc-add-member"] form .sc-upload-btn:hover {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+
+body.sc-members_page_sc-add-member form .img_photo_prev,
+body[class*="_page_sc-add-member"] form .img_photo_prev {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid #e8e5f5;
+    background: #fff;
+    display: inline-block;
+}
+
+body.sc-members_page_sc-add-member form .img_photo_prev img,
+body[class*="_page_sc-add-member"] form .img_photo_prev img {
+    border-radius: 8px;
+    max-width: 100%;
+    height: auto;
+}
+
+body.sc-members_page_sc-add-member form label.switch,
+body[class*="_page_sc-add-member"] form label.switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+body.sc-members_page_sc-add-member form tr td > label:not(.switch),
+body[class*="_page_sc-add-member"] form tr td > label:not(.switch) {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e8e5f5;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    cursor: pointer;
+}
+
+body.sc-members_page_sc-add-member form #sc_reject_identity_btn,
+body[class*="_page_sc-add-member"] form #sc_reject_identity_btn {
+    border-radius: 10px !important;
+}
+
+body.sc-members_page_sc-add-member .sc-player-custom-field-item,
+body[class*="_page_sc-add-member"] .sc-player-custom-field-item {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid #e8e5f5;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+body.sc-members_page_sc-add-member .sc-courses-accordion,
+body[class*="_page_sc-add-member"] .sc-courses-accordion {
+    margin-top: 18px !important;
+    padding: 22px 24px 20px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+}
+
+body.sc-members_page_sc-add-member .sc-accordion-header,
+body[class*="_page_sc-add-member"] .sc-accordion-header {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 0 14px !important;
+    margin-bottom: 4px;
+    border-bottom: 1px dashed rgba(109, 52, 255, 0.18) !important;
+    border-radius: 0 !important;
+    cursor: default !important;
+}
+
+body.sc-members_page_sc-add-member .sc-accordion-header h3,
+body[class*="_page_sc-add-member"] .sc-accordion-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #1e1b2e;
+}
+
+body.sc-members_page_sc-add-member #sc-courses-content,
+body[class*="_page_sc-add-member"] #sc-courses-content {
+    border: none !important;
+    padding: 14px 0 0 !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+}
+
+body.sc-members_page_sc-add-member #sc-courses-content > div[style*="fff3cd"],
+body[class*="_page_sc-add-member"] #sc-courses-content > div[style*="fff3cd"] {
+    padding: 16px !important;
+    text-align: center;
+    background: rgba(109, 52, 255, 0.08) !important;
+    border: 1px solid rgba(109, 52, 255, 0.16) !important;
+    border-radius: 12px !important;
+    color: #4a1fb8 !important;
+}
+
+body.sc-members_page_sc-add-member #sc-courses-content > div[style*="max-height"],
+body[class*="_page_sc-add-member"] #sc-courses-content > div[style*="max-height"] {
+    max-height: 520px !important;
+    overflow-y: auto !important;
+    border: none !important;
+    padding: 4px !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    display: grid !important;
+    gap: 12px !important;
+}
+
+body.sc-members_page_sc-add-member #sc-courses-content > div[style*="max-height"] > div,
+body[class*="_page_sc-add-member"] #sc-courses-content > div[style*="max-height"] > div {
+    padding: 16px 18px !important;
+    margin-bottom: 0 !important;
+    background: #fff !important;
+    border: 1px solid #e8e5f5 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.sc-members_page_sc-add-member #sc-courses-content > div[style*="max-height"] > div:hover,
+body[class*="_page_sc-add-member"] #sc-courses-content > div[style*="max-height"] > div:hover {
+    border-color: rgba(109, 52, 255, 0.22) !important;
+    box-shadow: 0 8px 24px rgba(109, 52, 255, 0.1) !important;
+}
+
+body.sc-members_page_sc-add-member #sc-courses-content label[for^="course_cb_"],
+body[class*="_page_sc-add-member"] #sc-courses-content label[for^="course_cb_"] {
+    display: block !important;
+    padding: 0 !important;
+    margin-bottom: 10px !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    cursor: pointer;
+}
+
+body.sc-members_page_sc-add-member #sc-courses-content label[for^="course_cb_"] strong,
+body[class*="_page_sc-add-member"] #sc-courses-content label[for^="course_cb_"] strong {
+    font-size: 14px;
+    color: #1e1b2e;
+}
+
+body.sc-members_page_sc-add-member .sc-member-course-branch-block,
+body[class*="_page_sc-add-member"] .sc-member-course-branch-block {
+    margin-top: 12px !important;
+    padding: 12px 14px !important;
+    background: #faf9ff !important;
+    border: 1px dashed rgba(109, 52, 255, 0.2) !important;
+    border-radius: 12px !important;
+}
+
+body.sc-members_page_sc-add-member .sc-member-course-branch-block select,
+body.sc-members_page_sc-add-member #sc-courses-content select,
+body[class*="_page_sc-add-member"] .sc-member-course-branch-block select,
+body[class*="_page_sc-add-member"] #sc-courses-content select {
+    min-height: 38px;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 6px 10px;
+    max-width: 100%;
+}
+
+body.sc-members_page_sc-add-member .session_course_member,
+body[class*="_page_sc-add-member"] .session_course_member {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(109, 52, 255, 0.06);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+}
+
+body.sc-members_page_sc-add-member .session_course_member .key,
+body[class*="_page_sc-add-member"] .session_course_member .key {
+    display: block;
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+body.sc-members_page_sc-add-member .session_course_member .val,
+body.sc-members_page_sc-add-member .session_course_member input[type="number"],
+body[class*="_page_sc-add-member"] .session_course_member .val,
+body[class*="_page_sc-add-member"] .session_course_member input[type="number"] {
+    font-weight: 700;
+    color: #4a1fb8;
+}
+
+body.sc-members_page_sc-add-member .label_cheakbox_active_courses_user,
+body[class*="_page_sc-add-member"] .label_cheakbox_active_courses_user {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px !important;
+    margin: 4px 0 !important;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    transition: all 0.18s ease;
+}
+
+body.sc-members_page_sc-add-member .label_cheakbox_active_courses_user:has(input:checked),
+body[class*="_page_sc-add-member"] .label_cheakbox_active_courses_user:has(input:checked) {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    box-shadow: 0 4px 12px rgba(109, 52, 255, 0.22);
+}
+
+body.sc-members_page_sc-add-member #sc-courses-content > .description,
+body[class*="_page_sc-add-member"] #sc-courses-content > .description {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    font-size: 13px !important;
+    color: #6b7280 !important;
+}
+
+body.sc-members_page_sc-add-member #sc-courses-content div[style*="f6f7f7"],
+body[class*="_page_sc-add-member"] #sc-courses-content div[style*="f6f7f7"] {
+    background: #faf9ff !important;
+    border: 1px dashed rgba(109, 52, 255, 0.18) !important;
+    border-radius: 10px !important;
+}
+
+body.sc-members_page_sc-add-member .submit,
+body[class*="_page_sc-add-member"] .submit {
+    margin: 18px 0 8px;
+    padding: 0;
+}
+
+body.sc-members_page_sc-add-member .submit .button-primary,
+body[class*="_page_sc-add-member"] .submit .button-primary {
+    min-width: 190px;
+    height: 44px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(109, 52, 255, 0.28);
+}
+
+body.sc-members_page_sc-add-member #sc_reject_identity_modal > div,
+body[class*="_page_sc-add-member"] #sc_reject_identity_modal > div {
+    border-radius: 16px !important;
+    border: 1px solid rgba(109, 52, 255, 0.12) !important;
+    box-shadow: 0 16px 48px rgba(74, 31, 184, 0.18) !important;
+    padding: 24px !important;
+}
+
+body.sc-members_page_sc-add-member #sc_reject_identity_modal textarea,
+body[class*="_page_sc-add-member"] #sc_reject_identity_modal textarea {
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    padding: 10px 12px;
+}
+
+@media screen and (min-width: 1100px) {
+    body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody,
+    body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody > tr:has(textarea),
+    body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody > tr:has(.img_photo_prev),
+    body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody > tr:has(#sc_reject_identity_btn),
+    body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody > tr:has(textarea),
+    body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody > tr:has(.img_photo_prev),
+    body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody > tr:has(#sc_reject_identity_btn) {
+        grid-column: 1 / -1;
+    }
+}
+
+@media screen and (max-width: 782px) {
+    body.sc-members_page_sc-add-member .sc-courses-accordion,
+    body[class*="_page_sc-add-member"] .sc-courses-accordion {
+        padding: 16px 14px;
+    }
+
+    body.sc-members_page_sc-add-member .session_course_member,
+    body[class*="_page_sc-add-member"] .session_course_member {
+        grid-template-columns: 1fr;
+    }
+
+    body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody,
+    body[class*="_page_sc-add-member"] form .form-table.sc_form-table > tbody {
+        grid-template-columns: 1fr;
+    }
+}
+/* ─── پایان استایل افزودن / ویرایش بازیکن ─── */
+
+/* ─── تیم / سطح / شعبه — استایل مدرن (فقط CSS) ─── */
+body.toplevel_page_sc_team .wrap,
+body.sc_team_page_sc_level .wrap,
+body.sportclub-manager_page_sc_level .wrap,
+body.toplevel_page_sc_chapter .wrap,
+body[class*="_page_sc_team"] .wrap,
+body[class*="_page_sc_level"] .wrap,
+body[class*="_page_sc_chapter"] .wrap {
+    background: #f4f2fa !important;
+    border-radius: 12px;
+    box-sizing: border-box;
+}
+
+body.toplevel_page_sc_team .wrap > h1,
+body.sc_team_page_sc_level .wrap > h1,
+body.sportclub-manager_page_sc_level .wrap > h1,
+body.toplevel_page_sc_chapter .wrap > h1,
+body[class*="_page_sc_level"] .wrap > h1,
+body[class*="_page_sc_chapter"] .wrap > h1 {
+    color: #1e1b2e;
+    margin-bottom: 4px;
+}
+
+body.toplevel_page_sc_team .sections_cat_team,
+body.sc_team_page_sc_level .sections_cat_level,
+body.sportclub-manager_page_sc_level .sections_cat_level,
+body.toplevel_page_sc_chapter .sections_cat_chapter,
+body[class*="_page_sc_level"] .sections_cat_level,
+body[class*="_page_sc_chapter"] .sections_cat_chapter {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(0, 1.35fr);
+    gap: 18px;
+    margin-top: 12px;
+    align-items: start;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .postbox,
+body.sc_team_page_sc_level .sections_cat_level .postbox,
+body.sportclub-manager_page_sc_level .sections_cat_level .postbox,
+body.toplevel_page_sc_chapter .sections_cat_chapter .postbox,
+body[class*="_page_sc_level"] .sections_cat_level .postbox,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .postbox {
+    margin: 0;
+    border: 1px solid rgba(109, 52, 255, 0.12) !important;
+    border-radius: 16px !important;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%) !important;
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+    overflow: hidden;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .postbox-header,
+body.sc_team_page_sc_level .sections_cat_level .postbox-header,
+body.sportclub-manager_page_sc_level .sections_cat_level .postbox-header,
+body.toplevel_page_sc_chapter .sections_cat_chapter .postbox-header,
+body[class*="_page_sc_level"] .sections_cat_level .postbox-header,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .postbox-header {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px dashed rgba(109, 52, 255, 0.18) !important;
+    padding: 16px 20px !important;
+}
+
+body.toplevel_page_sc_team .edit_cat_team h2,
+body.toplevel_page_sc_team .list_cat_team h2,
+body.sc_team_page_sc_level .edit_cat_level h2,
+body.sc_team_page_sc_level .list_cat_levels h2,
+body.sportclub-manager_page_sc_level .edit_cat_level h2,
+body.sportclub-manager_page_sc_level .list_cat_levels h2,
+body.toplevel_page_sc_chapter .edit_cat_chapter h2,
+body.toplevel_page_sc_chapter .list_cat_chapter h2,
+body[class*="_page_sc_level"] .edit_cat_level h2,
+body[class*="_page_sc_level"] .list_cat_levels h2,
+body[class*="_page_sc_chapter"] .edit_cat_chapter h2,
+body[class*="_page_sc_chapter"] .list_cat_chapter h2 {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    color: #1e1b2e !important;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .inside,
+body.sc_team_page_sc_level .sections_cat_level .inside,
+body.sportclub-manager_page_sc_level .sections_cat_level .inside,
+body.toplevel_page_sc_chapter .sections_cat_chapter .inside,
+body[class*="_page_sc_level"] .sections_cat_level .inside,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .inside {
+    padding: 18px 20px 20px !important;
+    margin: 0 !important;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .form-table,
+body.sc_team_page_sc_level .sections_cat_level .form-table,
+body.sportclub-manager_page_sc_level .sections_cat_level .form-table,
+body.toplevel_page_sc_chapter .sections_cat_chapter .form-table,
+body[class*="_page_sc_level"] .sections_cat_level .form-table,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .form-table {
+    display: block;
+    margin: 0;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .form-table tbody,
+body.sc_team_page_sc_level .sections_cat_level .form-table tbody,
+body.sportclub-manager_page_sc_level .sections_cat_level .form-table tbody,
+body.toplevel_page_sc_chapter .sections_cat_chapter .form-table tbody,
+body[class*="_page_sc_level"] .sections_cat_level .form-table tbody,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .form-table tbody {
+    display: block;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .form-table tr,
+body.sc_team_page_sc_level .sections_cat_level .form-table tr,
+body.sportclub-manager_page_sc_level .sections_cat_level .form-table tr,
+body.toplevel_page_sc_chapter .sections_cat_chapter .form-table tr,
+body[class*="_page_sc_level"] .sections_cat_level .form-table tr,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .form-table tr {
+    display: block;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .form-table th,
+body.sc_team_page_sc_level .sections_cat_level .form-table th,
+body.sportclub-manager_page_sc_level .sections_cat_level .form-table th,
+body.toplevel_page_sc_chapter .sections_cat_chapter .form-table th,
+body[class*="_page_sc_level"] .sections_cat_level .form-table th,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .form-table th {
+    display: block;
+    width: 100% !important;
+    padding: 0 0 8px !important;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .form-table td,
+body.sc_team_page_sc_level .sections_cat_level .form-table td,
+body.sportclub-manager_page_sc_level .sections_cat_level .form-table td,
+body.toplevel_page_sc_chapter .sections_cat_chapter .form-table td,
+body[class*="_page_sc_level"] .sections_cat_level .form-table td,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .form-table td {
+    display: block;
+    width: 100% !important;
+    padding: 0 !important;
+}
+
+body.toplevel_page_sc_team .sections_cat_team input.regular-text,
+body.sc_team_page_sc_level .sections_cat_level input.regular-text,
+body.sportclub-manager_page_sc_level .sections_cat_level input.regular-text,
+body.toplevel_page_sc_chapter .sections_cat_chapter input.regular-text,
+body[class*="_page_sc_level"] .sections_cat_level input.regular-text,
+body[class*="_page_sc_chapter"] .sections_cat_chapter input.regular-text {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-height: 40px;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 12px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.toplevel_page_sc_team .sections_cat_team input.regular-text:focus,
+body.sc_team_page_sc_level .sections_cat_level input.regular-text:focus,
+body.sportclub-manager_page_sc_level .sections_cat_level input.regular-text:focus,
+body.toplevel_page_sc_chapter .sections_cat_chapter input.regular-text:focus,
+body[class*="_page_sc_level"] .sections_cat_level input.regular-text:focus,
+body[class*="_page_sc_chapter"] .sections_cat_chapter input.regular-text:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+    outline: none;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .description,
+body.sc_team_page_sc_level .sections_cat_level .description,
+body.sportclub-manager_page_sc_level .sections_cat_level .description,
+body.toplevel_page_sc_chapter .sections_cat_chapter .description,
+body[class*="_page_sc_level"] .sections_cat_level .description,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .description {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #9ca3af;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .submit,
+body.sc_team_page_sc_level .sections_cat_level .submit,
+body.sportclub-manager_page_sc_level .sections_cat_level .submit,
+body.toplevel_page_sc_chapter .sections_cat_chapter .submit,
+body[class*="_page_sc_level"] .sections_cat_level .submit,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .submit {
+    margin: 16px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .submit .button-primary,
+body.sc_team_page_sc_level .sections_cat_level .submit .button-primary,
+body.sportclub-manager_page_sc_level .sections_cat_level .submit .button-primary,
+body.toplevel_page_sc_chapter .sections_cat_chapter .submit .button-primary,
+body[class*="_page_sc_level"] .sections_cat_level .submit .button-primary,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .submit .button-primary {
+    min-width: 140px;
+    height: 42px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(109, 52, 255, 0.28);
+}
+
+body.toplevel_page_sc_team .sections_cat_team .submit .button:not(.button-primary),
+body.sc_team_page_sc_level .sections_cat_level .submit .button:not(.button-primary),
+body.sportclub-manager_page_sc_level .sections_cat_level .submit .button:not(.button-primary),
+body.toplevel_page_sc_chapter .sections_cat_chapter .submit .button:not(.button-primary),
+body[class*="_page_sc_level"] .sections_cat_level .submit .button:not(.button-primary),
+body[class*="_page_sc_chapter"] .sections_cat_chapter .submit .button:not(.button-primary) {
+    height: 42px !important;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    color: #4b5563 !important;
+    font-weight: 600;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .wp-list-table,
+body.sc_team_page_sc_level .sections_cat_level .wp-list-table,
+body.sportclub-manager_page_sc_level .sections_cat_level .wp-list-table,
+body.toplevel_page_sc_chapter .sections_cat_chapter .wp-list-table,
+body[class*="_page_sc_level"] .sections_cat_level .wp-list-table,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .wp-list-table {
+    border: none !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+    background: #fff !important;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+}
+
+body.toplevel_page_sc_team .sections_cat_team .wp-list-table thead th,
+body.sc_team_page_sc_level .sections_cat_level .wp-list-table thead th,
+body.sportclub-manager_page_sc_level .sections_cat_level .wp-list-table thead th,
+body.toplevel_page_sc_chapter .sections_cat_chapter .wp-list-table thead th,
+body[class*="_page_sc_level"] .sections_cat_level .wp-list-table thead th,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .wp-list-table thead th {
+    background: #faf9ff !important;
+    color: #6b7280 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 12px 14px !important;
+    border-bottom: 1px solid #ece9f8 !important;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .wp-list-table tbody td,
+body.sc_team_page_sc_level .sections_cat_level .wp-list-table tbody td,
+body.sportclub-manager_page_sc_level .sections_cat_level .wp-list-table tbody td,
+body.toplevel_page_sc_chapter .sections_cat_chapter .wp-list-table tbody td,
+body[class*="_page_sc_level"] .sections_cat_level .wp-list-table tbody td,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .wp-list-table tbody td {
+    padding: 12px 14px !important;
+    font-size: 13px;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .wp-list-table tbody tr:hover td,
+body.sc_team_page_sc_level .sections_cat_level .wp-list-table tbody tr:hover td,
+body.sportclub-manager_page_sc_level .sections_cat_level .wp-list-table tbody tr:hover td,
+body.toplevel_page_sc_chapter .sections_cat_chapter .wp-list-table tbody tr:hover td,
+body[class*="_page_sc_level"] .sections_cat_level .wp-list-table tbody tr:hover td,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .wp-list-table tbody tr:hover td {
+    background: rgba(109, 52, 255, 0.04) !important;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .wp-list-table tbody td strong,
+body.sc_team_page_sc_level .sections_cat_level .wp-list-table tbody td strong,
+body.sportclub-manager_page_sc_level .sections_cat_level .wp-list-table tbody td strong,
+body.toplevel_page_sc_chapter .sections_cat_chapter .wp-list-table tbody td strong,
+body[class*="_page_sc_level"] .sections_cat_level .wp-list-table tbody td strong,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .wp-list-table tbody td strong {
+    color: #1e1b2e;
+    font-weight: 700;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .wp-list-table .button-small:not(.btn_delete_action_admin),
+body.sc_team_page_sc_level .sections_cat_level .wp-list-table .button-small:not(.btn_delete_action_admin),
+body.sportclub-manager_page_sc_level .sections_cat_level .wp-list-table .button-small:not(.btn_delete_action_admin),
+body.toplevel_page_sc_chapter .sections_cat_chapter .wp-list-table .button-small:not(.btn_delete_action_admin),
+body[class*="_page_sc_level"] .sections_cat_level .wp-list-table .button-small:not(.btn_delete_action_admin),
+body[class*="_page_sc_chapter"] .sections_cat_chapter .wp-list-table .button-small:not(.btn_delete_action_admin) {
+    border-radius: 8px !important;
+    border: 1px solid rgba(109, 52, 255, 0.35) !important;
+    background: rgba(109, 52, 255, 0.06) !important;
+    color: #4a1fb8 !important;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .wp-list-table .btn_delete_action_admin,
+body.sc_team_page_sc_level .sections_cat_level .wp-list-table .btn_delete_action_admin,
+body.sportclub-manager_page_sc_level .sections_cat_level .wp-list-table .btn_delete_action_admin,
+body.toplevel_page_sc_chapter .sections_cat_chapter .wp-list-table .btn_delete_action_admin,
+body[class*="_page_sc_level"] .sections_cat_level .wp-list-table .btn_delete_action_admin,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .wp-list-table .btn_delete_action_admin {
+    border-radius: 8px !important;
+    border: 1px solid #f3d0d0 !important;
+    background: #fff5f5 !important;
+    color: #c24141 !important;
+    font-weight: 600;
+}
+
+body.toplevel_page_sc_team .sections_cat_team .inside > p,
+body.sc_team_page_sc_level .sections_cat_level .inside > p,
+body.sportclub-manager_page_sc_level .sections_cat_level .inside > p,
+body.toplevel_page_sc_chapter .sections_cat_chapter .inside > p,
+body[class*="_page_sc_level"] .sections_cat_level .inside > p,
+body[class*="_page_sc_chapter"] .sections_cat_chapter .inside > p {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: rgba(109, 52, 255, 0.06);
+    border: 1px dashed rgba(109, 52, 255, 0.2);
+    color: #6b7280;
+    text-align: center;
+}
+
+body.toplevel_page_sc_team .notice,
+body.sc_team_page_sc_level .notice,
+body.sportclub-manager_page_sc_level .notice,
+body.toplevel_page_sc_chapter .notice,
+body[class*="_page_sc_level"] .notice,
+body[class*="_page_sc_chapter"] .notice {
+    border-radius: 10px;
+    border-right-width: 4px;
+}
+
+@media screen and (max-width: 960px) {
+    body.toplevel_page_sc_team .sections_cat_team,
+    body.sc_team_page_sc_level .sections_cat_level,
+    body.sportclub-manager_page_sc_level .sections_cat_level,
+    body.toplevel_page_sc_chapter .sections_cat_chapter,
+    body[class*="_page_sc_level"] .sections_cat_level,
+    body[class*="_page_sc_chapter"] .sections_cat_chapter {
+        grid-template-columns: 1fr;
+    }
+}
+/* ─── پایان استایل تیم / سطح / شعبه ─── */
+
+/* ─── افزودن / ویرایش رویداد — استایل مدرن (فقط CSS) ─── */
+body.sc-events_page_sc-add-event .wrap,
+body[class*="_page_sc-add-event"] .wrap {
+    background: #f4f2fa !important;
+    border-radius: 12px;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+}
+
+body.sc-events_page_sc-add-event .wrap > h1,
+body[class*="_page_sc-add-event"] .wrap > h1 {
+    color: #1e1b2e;
+}
+
+body.sc-events_page_sc-add-event .wrap > p,
+body[class*="_page_sc-add-event"] .wrap > p {
+    margin: 12px 0 0;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(109, 52, 255, 0.07);
+    border: 1px solid rgba(109, 52, 255, 0.14);
+    color: #4b5563;
+    font-size: 13px;
+    line-height: 1.75;
+    max-width: 100%;
+}
+
+body.sc-events_page_sc-add-event .wrap .page-title-action,
+body[class*="_page_sc-add-event"] .wrap .page-title-action {
+    margin-top: 10px !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(109, 52, 255, 0.22) !important;
+    background: #fff !important;
+    color: #4a1fb8 !important;
+    font-weight: 600;
+}
+
+body.sc-events_page_sc-add-event .wrap .page-title-action:hover,
+body[class*="_page_sc-add-event"] .wrap .page-title-action:hover {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+
+body.sc-events_page_sc-add-event .event_public_url,
+body[class*="_page_sc-add-event"] .event_public_url {
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(109, 52, 255, 0.08) 0%, rgba(74, 31, 184, 0.06) 100%);
+    border: 1px solid rgba(109, 52, 255, 0.18);
+    border-radius: 12px;
+    box-shadow: 0 4px 18px rgba(74, 31, 184, 0.06);
+}
+
+body.sc-events_page_sc-add-event .event_public_url strong,
+body[class*="_page_sc-add-event"] .event_public_url strong {
+    color: #4a1fb8;
+    font-size: 13px;
+}
+
+body.sc-events_page_sc-add-event .event_public_url_row .button,
+body[class*="_page_sc-add-event"] .event_public_url_row .button {
+    border-radius: 10px !important;
+    font-weight: 600;
+}
+
+body.sc-events_page_sc-add-event .event_public_url_row .button-primary,
+body[class*="_page_sc-add-event"] .event_public_url_row .button-primary {
+    box-shadow: 0 6px 18px rgba(109, 52, 255, 0.22);
+}
+
+body.sc-events_page_sc-add-event form .form-table.sc_form-table,
+body[class*="_page_sc-add-event"] form .form-table.sc_form-table {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+}
+
+body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody,
+body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody {
+    display: grid;
+    gap: 14px;
+}
+
+body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody > tr,
+body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody > tr {
+    display: block;
+    margin: 0;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+}
+
+body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody > tr > th,
+body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody > tr > td,
+body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody > tr > th,
+body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody > tr > td {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0;
+    border: none;
+    background: transparent;
+}
+
+body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody > tr > th,
+body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody > tr > th {
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody > tr > th label,
+body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody > tr > th label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body.sc-events_page_sc-add-event form input.regular-text,
+body.sc-events_page_sc-add-event form input[type="number"],
+body.sc-events_page_sc-add-event form input[type="text"],
+body.sc-events_page_sc-add-event form input[type="url"],
+body.sc-events_page_sc-add-event form select.regular-text,
+body.sc-events_page_sc-add-event form textarea.large-text,
+body[class*="_page_sc-add-event"] form input.regular-text,
+body[class*="_page_sc-add-event"] form input[type="number"],
+body[class*="_page_sc-add-event"] form input[type="text"],
+body[class*="_page_sc-add-event"] form input[type="url"],
+body[class*="_page_sc-add-event"] form select.regular-text,
+body[class*="_page_sc-add-event"] form textarea.large-text {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-height: 40px;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 12px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.sc-events_page_sc-add-event form textarea.large-text,
+body[class*="_page_sc-add-event"] form textarea.large-text {
+    min-height: 96px;
+    resize: vertical;
+}
+
+body.sc-events_page_sc-add-event form input:focus,
+body.sc-events_page_sc-add-event form select:focus,
+body.sc-events_page_sc-add-event form textarea:focus,
+body[class*="_page_sc-add-event"] form input:focus,
+body[class*="_page_sc-add-event"] form select:focus,
+body[class*="_page_sc-add-event"] form textarea:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+    outline: none;
+}
+
+body.sc-events_page_sc-add-event form .description,
+body[class*="_page_sc-add-event"] form .description {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.65;
+    color: #9ca3af;
+}
+
+body.sc-events_page_sc-add-event form tr td > label:not(.switch),
+body[class*="_page_sc-add-event"] form tr td > label:not(.switch) {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e8e5f5;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    cursor: pointer;
+}
+
+body.sc-events_page_sc-add-event form label.switch,
+body[class*="_page_sc-add-event"] form label.switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+body.sc-events_page_sc-add-event form #upload_image_button,
+body[class*="_page_sc-add-event"] form #upload_image_button {
+    margin-top: 8px;
+    border-radius: 10px !important;
+    border: 1px dashed rgba(109, 52, 255, 0.4) !important;
+    background: rgba(109, 52, 255, 0.06) !important;
+    color: #4a1fb8 !important;
+    font-weight: 600;
+}
+
+body.sc-events_page_sc-add-event form #upload_image_button:hover,
+body[class*="_page_sc-add-event"] form #upload_image_button:hover {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+
+body.sc-events_page_sc-add-event form .img_photo_prev,
+body[class*="_page_sc-add-event"] form .img_photo_prev {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid #e8e5f5;
+    background: #fff;
+    display: inline-block;
+}
+
+body.sc-events_page_sc-add-event form .img_photo_prev img,
+body[class*="_page_sc-add-event"] form .img_photo_prev img {
+    border-radius: 8px;
+    max-width: 100%;
+    height: auto;
+}
+
+body.sc-events_page_sc-add-event form #age_limit_fields,
+body[class*="_page_sc-add-event"] form #age_limit_fields {
+    margin-top: 12px !important;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(109, 52, 255, 0.05);
+    border: 1px dashed rgba(109, 52, 255, 0.18);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    align-items: center;
+}
+
+body.sc-events_page_sc-add-event form #age_limit_fields label,
+body[class*="_page_sc-add-event"] form #age_limit_fields label {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+}
+
+body.sc-events_page_sc-add-event form #age_limit_fields input[type="number"],
+body[class*="_page_sc-add-event"] form #age_limit_fields input[type="number"] {
+    width: 88px !important;
+    min-height: 36px;
+}
+
+body.sc-events_page_sc-add-event form #event-restrictions-box,
+body[class*="_page_sc-add-event"] form #event-restrictions-box {
+    margin-top: 12px !important;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(109, 52, 255, 0.05);
+    border: 1px dashed rgba(109, 52, 255, 0.18);
+}
+
+body.sc-events_page_sc-add-event form #event-restrictions-box > p strong,
+body[class*="_page_sc-add-event"] form #event-restrictions-box > p strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #4a1fb8;
+}
+
+body.sc-events_page_sc-add-event form #event-restrictions-box label[style*="inline-block"],
+body[class*="_page_sc-add-event"] form #event-restrictions-box label[style*="inline-block"] {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px 8px !important;
+    padding: 7px 12px !important;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e8e5f5;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+body.sc-events_page_sc-add-event form #event-restrictions-box label[style*="inline-block"]:has(input:checked),
+body[class*="_page_sc-add-event"] form #event-restrictions-box label[style*="inline-block"]:has(input:checked) {
+    border-color: rgba(109, 52, 255, 0.35);
+    background: rgba(109, 52, 255, 0.1);
+    color: #4a1fb8;
+}
+
+body.sc-events_page_sc-add-event form #map_preview,
+body[class*="_page_sc-add-event"] form #map_preview {
+    margin-top: 12px !important;
+    border-radius: 12px !important;
+    border: 1px solid #e8e5f5 !important;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+}
+
+body.sc-events_page_sc-add-event form .wp-editor-wrap,
+body[class*="_page_sc-add-event"] form .wp-editor-wrap {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+body.sc-events_page_sc-add-event form .wp-editor-container,
+body[class*="_page_sc-add-event"] form .wp-editor-container {
+    border: none !important;
+}
+
+body.sc-events_page_sc-add-event form .wp-editor-tools,
+body[class*="_page_sc-add-event"] form .wp-editor-tools {
+    background: #faf9ff;
+    border-bottom: 1px solid #e8e5f5;
+}
+
+body.sc-events_page_sc-add-event .sc-event-custom-fields-section,
+body[class*="_page_sc-add-event"] .sc-event-custom-fields-section {
+    margin-top: 18px;
+    padding: 22px 24px 20px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+body.sc-events_page_sc-add-event .sc-event-custom-fields-section > h2,
+body[class*="_page_sc-add-event"] .sc-event-custom-fields-section > h2 {
+    margin: 0 0 8px !important;
+    font-size: 17px;
+    font-weight: 700;
+    color: #1e1b2e;
+}
+
+body.sc-events_page_sc-add-event .sc-event-custom-fields-section > .description,
+body[class*="_page_sc-add-event"] .sc-event-custom-fields-section > .description {
+    margin-bottom: 14px;
+    color: #6b7280;
+}
+
+body.sc-events_page_sc-add-event #sc-event-fields-container,
+body[class*="_page_sc-add-event"] #sc-event-fields-container {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+body.sc-events_page_sc-add-event .sc-event-field-item,
+body[class*="_page_sc-add-event"] .sc-event-field-item {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid #e8e5f5;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+}
+
+body.sc-events_page_sc-add-event .sc-event-field-item_1,
+body.sc-events_page_sc-add-event .item_field_event_add,
+body[class*="_page_sc-add-event"] .sc-event-field-item_1,
+body[class*="_page_sc-add-event"] .item_field_event_add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    align-items: flex-start;
+}
+
+body.sc-events_page_sc-add-event .label_add_field_event,
+body[class*="_page_sc-add-event"] .label_add_field_event {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body.sc-events_page_sc-add-event .sc-remove-field-btn,
+body[class*="_page_sc-add-event"] .sc-remove-field-btn {
+    border-radius: 10px !important;
+    border: 1px solid rgba(214, 54, 56, 0.25) !important;
+    background: rgba(214, 54, 56, 0.06) !important;
+    color: #b91c1c !important;
+    font-weight: 600;
+}
+
+body.sc-events_page_sc-add-event #sc-add-event-field-btn,
+body[class*="_page_sc-add-event"] #sc-add-event-field-btn {
+    border-radius: 10px !important;
+    border: 1px dashed rgba(109, 52, 255, 0.4) !important;
+    background: rgba(109, 52, 255, 0.06) !important;
+    color: #4a1fb8 !important;
+    font-weight: 700;
+    min-height: 42px;
+    padding: 0 18px !important;
+}
+
+body.sc-events_page_sc-add-event #sc-add-event-field-btn:hover,
+body[class*="_page_sc-add-event"] #sc-add-event-field-btn:hover {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+
+body.sc-events_page_sc-add-event .submit,
+body[class*="_page_sc-add-event"] .submit {
+    margin: 18px 0 8px;
+    padding: 0;
+}
+
+body.sc-events_page_sc-add-event .submit .button-primary,
+body[class*="_page_sc-add-event"] .submit .button-primary {
+    min-width: 190px;
+    height: 44px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(109, 52, 255, 0.28);
+}
+
+body.sc-events_page_sc-add-event .notice,
+body[class*="_page_sc-add-event"] .notice {
+    border-radius: 10px;
+    border-right-width: 4px;
+}
+
+@media screen and (min-width: 1100px) {
+    body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody,
+    body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody > tr:has(.wp-editor-wrap),
+    body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody > tr:has(.img_photo_prev),
+    body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody > tr:has(#map_preview),
+    body.sc-events_page_sc-add-event form .form-table.sc_form-table > tbody > tr:has(#event-restrictions-box),
+    body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody > tr:has(.wp-editor-wrap),
+    body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody > tr:has(.img_photo_prev),
+    body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody > tr:has(#map_preview),
+    body[class*="_page_sc-add-event"] form .form-table.sc_form-table > tbody > tr:has(#event-restrictions-box) {
+        grid-column: 1 / -1;
+    }
+}
+
+@media screen and (max-width: 782px) {
+    body.sc-events_page_sc-add-event .sc-event-field-item_1,
+    body.sc-events_page_sc-add-event .item_field_event_add,
+    body[class*="_page_sc-add-event"] .sc-event-field-item_1,
+    body[class*="_page_sc-add-event"] .item_field_event_add {
+        flex-direction: column;
+    }
+
+    body.sc-events_page_sc-add-event .event_public_url_row,
+    body[class*="_page_sc-add-event"] .event_public_url_row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+/* ─── پایان استایل افزودن / ویرایش رویداد ─── */
+
+/* ─── ویرایش مربی — استایل حرفه‌ای ─── */
+body.sc-coaches_page_sc-add-coach #wpcontent,
+body[class*="_page_sc-add-coach"] #wpcontent {
+    background: #ece9f5;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-edit-header.wrap,
+body.sc-coaches_page_sc-add-coach .sc-coach-edit-wrap.wrap,
+body[class*="_page_sc-add-coach"] .sc-coach-edit-header.wrap,
+body[class*="_page_sc-add-coach"] .sc-coach-edit-wrap.wrap {
+    background: #f4f2fa !important;
+    border-radius: 14px;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+    border: 1px solid rgba(109, 52, 255, 0.08);
+    box-shadow: 0 4px 24px rgba(74, 31, 184, 0.05);
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-edit-header > h1,
+body[class*="_page_sc-add-coach"] .sc-coach-edit-header > h1 {
+    margin-bottom: 4px;
+    color: #1e1b2e;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-edit-subtitle,
+body[class*="_page_sc-add-coach"] .sc-coach-edit-subtitle {
+    margin: 8px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-edit-badge,
+body[class*="_page_sc-add-coach"] .sc-coach-edit-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(109, 52, 255, 0.14) 0%, rgba(74, 31, 184, 0.1) 100%);
+    border: 1px solid rgba(109, 52, 255, 0.2);
+    color: #4a1fb8;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach,
+body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody,
+body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody {
+    display: grid;
+    gap: 14px;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody > tr,
+body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody > tr {
+    position: relative;
+    display: block;
+    margin: 0;
+    padding: 18px 20px 18px 24px;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #ffffff 0%, #faf9ff 48%, #f5f2ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.11);
+    box-shadow: 0 10px 32px rgba(74, 31, 184, 0.06), 0 2px 8px rgba(15, 23, 42, 0.03);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody > tr::before,
+body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody > tr::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #6d34ff 0%, #4a1fb8 100%);
+    opacity: 0.85;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody > tr > th,
+body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody > tr > td,
+body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody > tr > th,
+body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody > tr > td {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0;
+    border: none;
+    background: transparent;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody > tr > th,
+body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody > tr > th {
+    margin-bottom: 10px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6d34ff;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody > tr > th label,
+body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody > tr > th label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #374151;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach .required,
+body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach .required {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form input.regular-text,
+body.sc-coaches_page_sc-add-coach #coach-form input[type="number"],
+body.sc-coaches_page_sc-add-coach #coach-form input[type="text"],
+body.sc-coaches_page_sc-add-coach #coach-form input[type="password"],
+body.sc-coaches_page_sc-add-coach #coach-form select,
+body.sc-coaches_page_sc-add-coach #coach-form textarea.large-text,
+body[class*="_page_sc-add-coach"] #coach-form input.regular-text,
+body[class*="_page_sc-add-coach"] #coach-form input[type="number"],
+body[class*="_page_sc-add-coach"] #coach-form input[type="text"],
+body[class*="_page_sc-add-coach"] #coach-form input[type="password"],
+body[class*="_page_sc-add-coach"] #coach-form select,
+body[class*="_page_sc-add-coach"] #coach-form textarea.large-text {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 42px;
+    border-radius: 11px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 9px 13px;
+    font-size: 13px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form input:disabled,
+body[class*="_page_sc-add-coach"] #coach-form input:disabled {
+    background: #f3f4f6 !important;
+    color: #6b7280 !important;
+    cursor: not-allowed;
+    border-style: dashed !important;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form textarea.large-text,
+body[class*="_page_sc-add-coach"] #coach-form textarea.large-text {
+    min-height: 110px;
+    resize: vertical;
+    line-height: 1.65;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form input:focus,
+body.sc-coaches_page_sc-add-coach #coach-form select:focus,
+body.sc-coaches_page_sc-add-coach #coach-form textarea:focus,
+body[class*="_page_sc-add-coach"] #coach-form input:focus,
+body[class*="_page_sc-add-coach"] #coach-form select:focus,
+body[class*="_page_sc-add-coach"] #coach-form textarea:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.14) !important;
+    outline: none;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .description,
+body[class*="_page_sc-add-coach"] #coach-form .description {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #9ca3af;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form tr td > label:not(.switch):not(.sc-coach-settlement-option),
+body[class*="_page_sc-add-coach"] #coach-form tr td > label:not(.switch):not(.sc-coach-settlement-option) {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e8e5f5;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form tr td > label:not(.switch):not(.sc-coach-settlement-option):has(input:checked),
+body[class*="_page_sc-add-coach"] #coach-form tr td > label:not(.switch):not(.sc-coach-settlement-option):has(input:checked) {
+    border-color: rgba(109, 52, 255, 0.35);
+    background: rgba(109, 52, 255, 0.1);
+    color: #4a1fb8;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form label.switch,
+body[class*="_page_sc-add-coach"] #coach-form label.switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    color: #374151;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-settlement-radios,
+body[class*="_page_sc-add-coach"] .sc-coach-settlement-radios {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 6px;
+    border-radius: 14px;
+    background: rgba(109, 52, 255, 0.06);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-settlement-option,
+body[class*="_page_sc-add-coach"] .sc-coach-settlement-option {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0 !important;
+    cursor: pointer;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-settlement-option input,
+body[class*="_page_sc-add-coach"] .sc-coach-settlement-option input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-settlement-option span,
+body[class*="_page_sc-add-coach"] .sc-coach-settlement-option span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    background: transparent;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-settlement-option input:checked + span,
+body[class*="_page_sc-add-coach"] .sc-coach-settlement-option input:checked + span {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(109, 52, 255, 0.28);
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-settlement-option:hover span,
+body[class*="_page_sc-add-coach"] .sc-coach-settlement-option:hover span {
+    color: #4a1fb8;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-settlement-option input:checked:hover + span,
+body[class*="_page_sc-add-coach"] .sc-coach-settlement-option input:checked:hover + span {
+    color: #fff;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-courses-panel,
+body[class*="_page_sc-add-coach"] .sc-coach-courses-panel {
+    max-height: 480px;
+    overflow: auto;
+    padding: 4px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e8e5f5;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-courses-table,
+body[class*="_page_sc-add-coach"] .sc-coach-courses-table {
+    width: 100% !important;
+    border: none !important;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: transparent !important;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-courses-table thead th,
+body[class*="_page_sc-add-coach"] .sc-coach-courses-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 12px 14px !important;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #4a1fb8 !important;
+    background: #f8f6ff !important;
+    border-bottom: 2px solid rgba(109, 52, 255, 0.12) !important;
+    white-space: nowrap;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-courses-table tbody td,
+body[class*="_page_sc-add-coach"] .sc-coach-courses-table tbody td {
+    padding: 11px 14px !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #f0eef8 !important;
+    font-size: 13px;
+    color: #374151;
+    background: #fff !important;
+    transition: background 0.15s ease;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-courses-table tbody tr:hover td,
+body[class*="_page_sc-add-coach"] .sc-coach-courses-table tbody tr:hover td {
+    background: #faf9ff !important;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-courses-table tbody tr:has(.coach-course-assign-cb:checked) td,
+body[class*="_page_sc-add-coach"] .sc-coach-courses-table tbody tr:has(.coach-course-assign-cb:checked) td {
+    background: rgba(109, 52, 255, 0.06) !important;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-courses-table tbody tr:has(.coach-course-assign-cb:checked) td:first-child,
+body[class*="_page_sc-add-coach"] .sc-coach-courses-table tbody tr:has(.coach-course-assign-cb:checked) td:first-child {
+    box-shadow: inset 3px 0 0 #6d34ff;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-courses-table .coach-course-assign-cb,
+body[class*="_page_sc-add-coach"] .sc-coach-courses-table .coach-course-assign-cb {
+    width: 18px;
+    height: 18px;
+    accent-color: #6d34ff;
+    cursor: pointer;
+}
+
+body.sc-coaches_page_sc-add-coach .sc-coach-courses-table .course-percentage,
+body[class*="_page_sc-add-coach"] .sc-coach-courses-table .course-percentage {
+    width: 88px !important;
+    min-height: 36px !important;
+    text-align: center;
+    font-weight: 700;
+    color: #4a1fb8;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .submit,
+body[class*="_page_sc-add-coach"] #coach-form .submit {
+    margin: 20px 0 10px;
+    padding: 0;
+    display: flex;
+    justify-content: flex-start;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .submit .button-primary,
+body[class*="_page_sc-add-coach"] #coach-form .submit .button-primary {
+    min-width: 210px;
+    height: 46px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.01em;
+    border-radius: 12px !important;
+    border: none !important;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    box-shadow: 0 10px 28px rgba(109, 52, 255, 0.32);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.sc-coaches_page_sc-add-coach #coach-form .submit .button-primary:hover,
+body[class*="_page_sc-add-coach"] #coach-form .submit .button-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 32px rgba(109, 52, 255, 0.38);
+}
+
+body.sc-coaches_page_sc-add-coach .notice,
+body[class*="_page_sc-add-coach"] .notice {
+    border-radius: 10px;
+    border-right-width: 4px;
+}
+
+@media screen and (min-width: 1100px) {
+    body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody,
+    body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody > tr:has(textarea),
+    body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody > tr.sc-coach-courses-row,
+    body.sc-coaches_page_sc-add-coach #coach-form .form-table.table_add_coach > tbody > tr.sc-coach-settlement-row,
+    body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody > tr:has(textarea),
+    body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody > tr.sc-coach-courses-row,
+    body[class*="_page_sc-add-coach"] #coach-form .form-table.table_add_coach > tbody > tr.sc-coach-settlement-row {
+        grid-column: 1 / -1;
+    }
+}
+
+@media screen and (max-width: 782px) {
+    body.sc-coaches_page_sc-add-coach .sc-coach-settlement-radios,
+    body[class*="_page_sc-add-coach"] .sc-coach-settlement-radios {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    body.sc-coaches_page_sc-add-coach .sc-coach-settlement-option span,
+    body[class*="_page_sc-add-coach"] .sc-coach-settlement-option span {
+        width: 100%;
+        justify-content: center;
+    }
+
+    body.sc-coaches_page_sc-add-coach .sc-coach-courses-panel,
+    body[class*="_page_sc-add-coach"] .sc-coach-courses-panel {
+        max-height: 360px;
+    }
+}
+/* ─── پایان استایل ویرایش مربی ─── */
+
+/* ─── حضور و غیاب — استایل مدرن ─── */
+body.toplevel_page_sc-attendance-add #wpcontent,
+body.sc-attendance-add_page_sc-attendance-list #wpcontent,
+body[class*="_page_sc-attendance"] #wpcontent {
+    background: #ece9f5;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-page-header.wrap,
+body.toplevel_page_sc-attendance-add .sc-attendance-page-body.wrap,
+body.sc-attendance-add_page_sc-attendance-list .sc-attendance-page-header.wrap,
+body.sc-attendance-add_page_sc-attendance-list .sc-attendance-page-body.wrap,
+body[class*="_page_sc-attendance-add"] .sc-attendance-page-header.wrap,
+body[class*="_page_sc-attendance-add"] .sc-attendance-page-body.wrap,
+body[class*="_page_sc-attendance-list"] .sc-attendance-page-header.wrap,
+body[class*="_page_sc-attendance-list"] .sc-attendance-page-body.wrap {
+    background: #f4f2fa !important;
+    border-radius: 14px;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+    border: 1px solid rgba(109, 52, 255, 0.08);
+    box-shadow: 0 4px 24px rgba(74, 31, 184, 0.05);
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-page-header > h1,
+body.sc-attendance-add_page_sc-attendance-list .sc-attendance-page-header > h1,
+body[class*="_page_sc-attendance"] .sc-attendance-page-header > h1 {
+    color: #1e1b2e;
+    font-weight: 800;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-page-header .page-title-action,
+body.sc-attendance-add_page_sc-attendance-list .sc-attendance-page-header .page-title-action,
+body[class*="_page_sc-attendance"] .sc-attendance-page-header .page-title-action {
+    border-radius: 10px !important;
+    border: 1px solid rgba(109, 52, 255, 0.22) !important;
+    background: #fff !important;
+    color: #4a1fb8 !important;
+    font-weight: 600;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-filter-panel,
+body[class*="_page_sc-attendance-add"] .sc-attendance-filter-panel {
+    margin: 0 0 18px !important;
+    padding: 20px 22px !important;
+    border-radius: 16px !important;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%) !important;
+    border: 1px solid rgba(109, 52, 255, 0.12) !important;
+    box-shadow: 0 10px 36px rgba(74, 31, 184, 0.07) !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-filter-grid,
+body[class*="_page_sc-attendance-add"] .sc-attendance-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-filter-field--type,
+body[class*="_page_sc-attendance-add"] .sc-attendance-filter-field--type {
+    grid-column: 1 / -1;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-type-radios,
+body[class*="_page_sc-attendance-add"] .sc-attendance-course-type-radios {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 6px;
+    border-radius: 14px;
+    background: rgba(109, 52, 255, 0.06);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-type-option,
+body[class*="_page_sc-attendance-add"] .sc-attendance-course-type-option {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    cursor: pointer;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-type-option input,
+body[class*="_page_sc-attendance-add"] .sc-attendance-course-type-option input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-type-option span,
+body[class*="_page_sc-attendance-add"] .sc-attendance-course-type-option span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    background: transparent;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-type-option input:checked + span,
+body[class*="_page_sc-attendance-add"] .sc-attendance-course-type-option input:checked + span {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(109, 52, 255, 0.28);
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-filter-label,
+body.sc-attendance-add_page_sc-attendance-list .sc-filter-label,
+body[class*="_page_sc-attendance"] .sc-attendance-filter-label,
+body[class*="_page_sc-attendance"] .form_fillter_attendance .sc-filter-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #4a1fb8;
+    letter-spacing: 0.02em;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-date-input,
+body[class*="_page_sc-attendance-add"] .sc-attendance-date-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 42px;
+    border-radius: 11px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 9px 13px;
+    box-sizing: border-box;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-date-input:focus,
+body[class*="_page_sc-attendance-add"] .sc-attendance-date-input:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.14) !important;
+    outline: none;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-filter-actions,
+body[class*="_page_sc-attendance-add"] .sc-attendance-filter-actions {
+    margin: 16px 0 0 !important;
+    padding: 0;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-filter-actions .button-primary,
+body[class*="_page_sc-attendance-add"] .sc-attendance-filter-actions .button-primary {
+    min-width: 160px;
+    height: 44px !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    box-shadow: 0 8px 24px rgba(109, 52, 255, 0.28);
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-dropdown .sc-dropdown-toggle,
+body.sc-attendance-add_page_sc-attendance-list .sc-attendance-course-filter-dropdown .sc-dropdown-toggle,
+body[class*="_page_sc-attendance"] .sc-attendance-course-dropdown .sc-dropdown-toggle,
+body[class*="_page_sc-attendance"] .sc-attendance-course-filter-dropdown .sc-dropdown-toggle {
+    min-height: 42px;
+    border-radius: 11px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 36px 8px 12px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-dropdown .sc-dropdown-toggle:hover,
+body.sc-attendance-add_page_sc-attendance-list .sc-attendance-course-filter-dropdown .sc-dropdown-toggle:hover,
+body[class*="_page_sc-attendance"] .sc-attendance-course-dropdown .sc-dropdown-toggle:hover,
+body[class*="_page_sc-attendance"] .sc-attendance-course-filter-dropdown .sc-dropdown-toggle:hover {
+    border-color: rgba(109, 52, 255, 0.35) !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-dropdown .sc-dropdown-menu,
+body.sc-attendance-add_page_sc-attendance-list .sc-attendance-course-filter-dropdown .sc-dropdown-menu,
+body[class*="_page_sc-attendance"] .sc-attendance-course-dropdown .sc-dropdown-menu,
+body[class*="_page_sc-attendance"] .sc-attendance-course-filter-dropdown .sc-dropdown-menu {
+    border-radius: 12px !important;
+    border: 1px solid rgba(109, 52, 255, 0.16) !important;
+    box-shadow: 0 14px 40px rgba(74, 31, 184, 0.14);
+    overflow: hidden;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-dropdown .sc-dropdown-search,
+body.sc-attendance-add_page_sc-attendance-list .sc-attendance-course-filter-dropdown .sc-dropdown-search,
+body[class*="_page_sc-attendance"] .sc-attendance-course-dropdown .sc-dropdown-search,
+body[class*="_page_sc-attendance"] .sc-attendance-course-filter-dropdown .sc-dropdown-search {
+    padding: 10px;
+    background: #faf9ff;
+    border-bottom: 1px solid #ece8ff;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-dropdown .sc-search-input,
+body.sc-attendance-add_page_sc-attendance-list .sc-attendance-course-filter-dropdown .sc-search-input,
+body[class*="_page_sc-attendance"] .sc-attendance-course-dropdown .sc-search-input,
+body[class*="_page_sc-attendance"] .sc-attendance-course-filter-dropdown .sc-search-input {
+    min-height: 38px;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    padding: 8px 12px;
+    box-sizing: border-box;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-course-dropdown .sc-dropdown-option.sc-selected,
+body.sc-attendance-add_page_sc-attendance-list .sc-attendance-course-filter-dropdown .sc-dropdown-option.sc-selected,
+body[class*="_page_sc-attendance"] .sc-attendance-course-dropdown .sc-dropdown-option.sc-selected,
+body[class*="_page_sc-attendance"] .sc-attendance-course-filter-dropdown .sc-dropdown-option.sc-selected {
+    background: rgba(109, 52, 255, 0.1) !important;
+    color: #4a1fb8;
+    font-weight: 600;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-save-panel,
+body[class*="_page_sc-attendance-add"] .sc-attendance-save-panel {
+    margin-top: 6px;
+    padding: 22px 24px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08);
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-save-panel__head,
+body[class*="_page_sc-attendance-add"] .sc-attendance-save-panel__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed rgba(109, 52, 255, 0.18);
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-save-panel__head h2,
+body[class*="_page_sc-attendance-add"] .sc-attendance-save-panel__head h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #1e1b2e;
+}
+
+body.toplevel_page_sc-attendance-add .name_course_attendance,
+body[class*="_page_sc-attendance-add"] .name_course_attendance {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-mode-badge,
+body[class*="_page_sc-attendance-add"] .sc-attendance-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-mode-badge--new,
+body[class*="_page_sc-attendance-add"] .sc-attendance-mode-badge--new {
+    background: rgba(34, 197, 94, 0.12);
+    color: #15803d;
+    border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-mode-badge--update,
+body[class*="_page_sc-attendance-add"] .sc-attendance-mode-badge--update {
+    background: rgba(109, 52, 255, 0.1);
+    color: #4a1fb8;
+    border: 1px solid rgba(109, 52, 255, 0.22);
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-members-wrap,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-wrap {
+    background: #fff !important;
+    border: 1px solid #e8e5f5 !important;
+    border-radius: 14px !important;
+    padding: 8px !important;
+    overflow: auto;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-members-table,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-table {
+    border: none !important;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-members-table thead th,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-table thead th {
+    background: #f8f6ff !important;
+    color: #4a1fb8 !important;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 2px solid rgba(109, 52, 255, 0.12) !important;
+    padding: 12px 14px !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-members-table tbody td,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-table tbody td {
+    padding: 12px 14px !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #f0eef8 !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-member-row--debt td,
+body[class*="_page_sc-attendance-add"] .sc-attendance-member-row--debt td {
+    background: rgba(245, 158, 11, 0.08) !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-member-row--blocked td,
+body[class*="_page_sc-attendance-add"] .sc-attendance-member-row--blocked td {
+    background: rgba(239, 68, 68, 0.1) !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-debt-alert,
+body[class*="_page_sc-attendance-add"] .sc-attendance-debt-alert {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #b91c1c;
+}
+
+body.toplevel_page_sc-attendance-add .status_attendace_td.sc-attendance-status-cell,
+body[class*="_page_sc-attendance-add"] .status_attendace_td.sc-attendance-status-cell {
+    margin: 0 !important;
+    margin-top: 0 !important;
+    margin-right: 0 !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-status-cell,
+body[class*="_page_sc-attendance-add"] .sc-attendance-status-cell {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-status-pill,
+body[class*="_page_sc-attendance-add"] .sc-attendance-status-pill {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    margin: 0 !important;
+    padding: 8px 14px !important;
+    border-radius: 999px !important;
+    border: 1px solid #e8e5f5 !important;
+    background: #fff !important;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-status-pill--present:has(input:checked),
+body[class*="_page_sc-attendance-add"] .sc-attendance-status-pill--present:has(input:checked) {
+    border-color: rgba(34, 197, 94, 0.35) !important;
+    background: rgba(34, 197, 94, 0.12) !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-status-pill--present:has(input:checked) span:last-child,
+body[class*="_page_sc-attendance-add"] .sc-attendance-status-pill--present:has(input:checked) span:last-child {
+    color: #15803d !important;
+    font-weight: 800;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-status-pill--absent:has(input:checked),
+body[class*="_page_sc-attendance-add"] .sc-attendance-status-pill--absent:has(input:checked) {
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    background: rgba(239, 68, 68, 0.1) !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-status-pill--absent:has(input:checked) span:last-child,
+body[class*="_page_sc-attendance-add"] .sc-attendance-status-pill--absent:has(input:checked) span:last-child {
+    color: #b91c1c !important;
+    font-weight: 800;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-status-pill--present span:last-child,
+body[class*="_page_sc-attendance-add"] .sc-attendance-status-pill--present span:last-child {
+    color: #16a34a;
+    font-weight: 700;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-status-pill--absent span:last-child,
+body[class*="_page_sc-attendance-add"] .sc-attendance-status-pill--absent span:last-child {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-clear-btn,
+body[class*="_page_sc-attendance-add"] .sc-attendance-clear-btn {
+    position: static !important;
+    right: auto !important;
+    top: auto !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-clear-btn .dashicons,
+body[class*="_page_sc-attendance-add"] .sc-attendance-clear-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 1;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-save-actions .button-primary,
+body[class*="_page_sc-attendance-add"] .sc-attendance-save-actions .button-primary {
+    min-width: 210px;
+    height: 46px !important;
+    border-radius: 12px !important;
+    font-weight: 800 !important;
+    box-shadow: 0 10px 28px rgba(109, 52, 255, 0.32);
+}
+
+body.sc-attendance-add_page_sc-attendance-list .form_fillter_attendance,
+body[class*="_page_sc-attendance-list"] .form_fillter_attendance {
+    margin: 0 0 16px !important;
+    margin-left: 0 !important;
+    padding: 18px 20px !important;
+    border-radius: 16px !important;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%) !important;
+    border: 1px solid rgba(109, 52, 255, 0.12) !important;
+    box-shadow: 0 8px 32px rgba(74, 31, 184, 0.06) !important;
+}
+
+body.sc-attendance-add_page_sc-attendance-list .nav-tab-wrapper,
+body[class*="_page_sc-attendance-list"] .nav-tab-wrapper {
+    margin: 0 0 16px;
+    padding: 6px;
+    border-radius: 14px;
+    background: rgba(109, 52, 255, 0.06);
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+body.sc-attendance-add_page_sc-attendance-list .nav-tab-wrapper .nav-tab,
+body[class*="_page_sc-attendance-list"] .nav-tab-wrapper .nav-tab {
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: #6b7280 !important;
+    font-weight: 600;
+    padding: 10px 16px !important;
+}
+
+body.sc-attendance-add_page_sc-attendance-list .nav-tab-wrapper .nav-tab-active,
+body[class*="_page_sc-attendance-list"] .nav-tab-wrapper .nav-tab-active {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 6px 20px rgba(109, 52, 255, 0.25);
+}
+
+body.sc-attendance-add_page_sc-attendance-list .form_fillter_attendance .sc-filter-control,
+body[class*="_page_sc-attendance-list"] .form_fillter_attendance .sc-filter-control,
+body.sc-attendance-add_page_sc-attendance-list .form_fillter_attendance .persian-date-input,
+body[class*="_page_sc-attendance-list"] .form_fillter_attendance .persian-date-input {
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+body.sc-attendance-add_page_sc-attendance-list .form_fillter_attendance .sc-dropdown-toggle,
+body[class*="_page_sc-attendance-list"] .form_fillter_attendance .sc-dropdown-toggle {
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    min-height: 40px;
+}
+
+body.sc-attendance-add_page_sc-attendance-list .list_all_attendance,
+body[class*="_page_sc-attendance-list"] .list_all_attendance {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #e8e5f5;
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.06);
+}
+
+body.toplevel_page_sc-attendance-add .notice,
+body.sc-attendance-add_page_sc-attendance-list .notice,
+body[class*="_page_sc-attendance"] .notice {
+    border-radius: 10px;
+    border-right-width: 4px;
+}
+
+@media screen and (max-width: 900px) {
+    body.toplevel_page_sc-attendance-add .sc-attendance-filter-grid,
+    body[class*="_page_sc-attendance-add"] .sc-attendance-filter-grid {
+        grid-template-columns: 1fr;
+    }
+}
+/* ─── پایان استایل حضور و غیاب ─── */
+
+/* ─── سوالات متداول — استایل مدرن (مشابه شعبه / تیم / سطح) ─── */
+body.toplevel_page_sc_faq #wpcontent,
+body[class*="_page_sc_faq"] #wpcontent {
+    background: #ece9f5;
+}
+
+body.toplevel_page_sc_faq .sc-faq-page-header.wrap,
+body.toplevel_page_sc_faq .sc-faq-page-body.wrap,
+body[class*="_page_sc_faq"] .sc-faq-page-header.wrap,
+body[class*="_page_sc_faq"] .sc-faq-page-body.wrap {
+    background: #f4f2fa !important;
+    border-radius: 14px;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+    border: 1px solid rgba(109, 52, 255, 0.08);
+    box-shadow: 0 4px 24px rgba(74, 31, 184, 0.05);
+}
+
+body.toplevel_page_sc_faq .sc-faq-page-header > h1,
+body[class*="_page_sc_faq"] .sc-faq-page-header > h1 {
+    margin-bottom: 6px;
+    color: #1e1b2e;
+    font-weight: 800;
+}
+
+body.toplevel_page_sc_faq .sc-faq-page-subtitle,
+body[class*="_page_sc_faq"] .sc-faq-page-subtitle {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #6b7280;
+    max-width: 720px;
+}
+
+body.toplevel_page_sc_faq .sections_cat_faq,
+body[class*="_page_sc_faq"] .sections_cat_faq {
+    display: grid;
+    grid-template-columns: minmax(300px, 1fr) minmax(0, 1.4fr);
+    gap: 18px;
+    margin-top: 12px;
+    align-items: start;
+}
+
+body.toplevel_page_sc_faq .sections_cat_faq .postbox,
+body[class*="_page_sc_faq"] .sections_cat_faq .postbox {
+    margin: 0;
+    border: 1px solid rgba(109, 52, 255, 0.12) !important;
+    border-radius: 16px !important;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%) !important;
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+    overflow: hidden;
+}
+
+body.toplevel_page_sc_faq .sections_cat_faq .postbox-header,
+body[class*="_page_sc_faq"] .sections_cat_faq .postbox-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px dashed rgba(109, 52, 255, 0.18) !important;
+    padding: 16px 20px !important;
+}
+
+body.toplevel_page_sc_faq .edit_cat_faq h2,
+body.toplevel_page_sc_faq .list_cat_faqs h2,
+body[class*="_page_sc_faq"] .edit_cat_faq h2,
+body[class*="_page_sc_faq"] .list_cat_faqs h2 {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    color: #1e1b2e !important;
+}
+
+body.toplevel_page_sc_faq .sc-faq-count-badge,
+body[class*="_page_sc_faq"] .sc-faq-count-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(109, 52, 255, 0.1);
+    border: 1px solid rgba(109, 52, 255, 0.18);
+    color: #4a1fb8;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+body.toplevel_page_sc_faq .sections_cat_faq .inside,
+body[class*="_page_sc_faq"] .sections_cat_faq .inside {
+    padding: 18px 20px 20px !important;
+    margin: 0 !important;
+}
+
+body.toplevel_page_sc_faq .sc-faq-form-table,
+body[class*="_page_sc_faq"] .sc-faq-form-table {
+    display: block;
+    margin: 0;
+}
+
+body.toplevel_page_sc_faq .sc-faq-form-table tbody,
+body[class*="_page_sc_faq"] .sc-faq-form-table tbody {
+    display: grid;
+    gap: 16px;
+}
+
+body.toplevel_page_sc_faq .sc-faq-form-table tr,
+body[class*="_page_sc_faq"] .sc-faq-form-table tr {
+    display: block;
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #e8e5f5;
+}
+
+body.toplevel_page_sc_faq .sc-faq-form-table th,
+body.toplevel_page_sc_faq .sc-faq-form-table td,
+body[class*="_page_sc_faq"] .sc-faq-form-table th,
+body[class*="_page_sc_faq"] .sc-faq-form-table td {
+    display: block;
+    width: 100% !important;
+    padding: 0 !important;
+}
+
+body.toplevel_page_sc_faq .sc-faq-form-table th,
+body[class*="_page_sc_faq"] .sc-faq-form-table th {
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #4a1fb8;
+}
+
+body.toplevel_page_sc_faq .sc-faq-form-table .required,
+body[class*="_page_sc_faq"] .sc-faq-form-table .required {
+    color: #dc2626;
+}
+
+body.toplevel_page_sc_faq .sc-faq-form-table .description,
+body[class*="_page_sc_faq"] .sc-faq-form-table .description {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+body.toplevel_page_sc_faq .sc-faq-form-table .wp-editor-wrap,
+body[class*="_page_sc_faq"] .sc-faq-form-table .wp-editor-wrap {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+body.toplevel_page_sc_faq .sc-faq-form-table .wp-editor-tools,
+body[class*="_page_sc_faq"] .sc-faq-form-table .wp-editor-tools {
+    background: #faf9ff;
+    border-bottom: 1px solid #e8e5f5;
+}
+
+body.toplevel_page_sc_faq .sections_cat_faq .submit,
+body[class*="_page_sc_faq"] .sections_cat_faq .submit {
+    margin: 16px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+body.toplevel_page_sc_faq .sections_cat_faq .submit .button-primary,
+body[class*="_page_sc_faq"] .sections_cat_faq .submit .button-primary {
+    min-width: 150px;
+    height: 42px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(109, 52, 255, 0.28);
+}
+
+body.toplevel_page_sc_faq .sections_cat_faq .submit .button:not(.button-primary),
+body[class*="_page_sc_faq"] .sections_cat_faq .submit .button:not(.button-primary) {
+    height: 42px !important;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    color: #4b5563 !important;
+    font-weight: 600;
+}
+
+body.toplevel_page_sc_faq .sc-faq-list-table,
+body[class*="_page_sc_faq"] .sc-faq-list-table {
+    border: none !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+    background: #fff !important;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+}
+
+body.toplevel_page_sc_faq .sc-faq-list-table thead th,
+body[class*="_page_sc_faq"] .sc-faq-list-table thead th {
+    background: #f8f6ff !important;
+    color: #4a1fb8 !important;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 2px solid rgba(109, 52, 255, 0.12) !important;
+    padding: 12px 14px !important;
+}
+
+body.toplevel_page_sc_faq .sc-faq-list-table tbody td,
+body[class*="_page_sc_faq"] .sc-faq-list-table tbody td {
+    vertical-align: top !important;
+    padding: 12px 14px !important;
+    border-bottom: 1px solid #f0eef8 !important;
+}
+
+body.toplevel_page_sc_faq .sc-faq-list-table tbody tr:hover td,
+body[class*="_page_sc_faq"] .sc-faq-list-table tbody tr:hover td {
+    background: #faf9ff !important;
+}
+
+body.toplevel_page_sc_faq .sc-faq-col-index,
+body[class*="_page_sc_faq"] .sc-faq-col-index {
+    width: 52px;
+    text-align: center;
+}
+
+body.toplevel_page_sc_faq .sc-faq-index-badge,
+body[class*="_page_sc_faq"] .sc-faq-index-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: rgba(109, 52, 255, 0.1);
+    color: #4a1fb8;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+body.toplevel_page_sc_faq .sc-faq-list-preview,
+body[class*="_page_sc_faq"] .sc-faq-list-preview {
+    font-size: 13px;
+    line-height: 1.65;
+    color: #374151;
+}
+
+body.toplevel_page_sc_faq .sc-faq-list-preview--question,
+body[class*="_page_sc_faq"] .sc-faq-list-preview--question {
+    font-weight: 700;
+    color: #1e1b2e;
+}
+
+body.toplevel_page_sc_faq .sc-faq-list-preview--answer,
+body[class*="_page_sc_faq"] .sc-faq-list-preview--answer {
+    color: #6b7280;
+}
+
+body.toplevel_page_sc_faq .sc-faq-col-actions,
+body[class*="_page_sc_faq"] .sc-faq-col-actions {
+    width: 150px;
+}
+
+body.toplevel_page_sc_faq .sc-faq-row-actions,
+body[class*="_page_sc_faq"] .sc-faq-row-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+}
+
+body.toplevel_page_sc_faq .sc-faq-row-actions .button-small,
+body[class*="_page_sc_faq"] .sc-faq-row-actions .button-small {
+    text-align: center;
+    border-radius: 8px !important;
+    margin: 0 !important;
+}
+
+body.toplevel_page_sc_faq .sc-faq-empty-state,
+body[class*="_page_sc_faq"] .sc-faq-empty-state {
+    padding: 28px 20px;
+    text-align: center;
+    border-radius: 12px;
+    background: rgba(109, 52, 255, 0.05);
+    border: 1px dashed rgba(109, 52, 255, 0.18);
+}
+
+body.toplevel_page_sc_faq .sc-faq-empty-state__icon,
+body[class*="_page_sc_faq"] .sc-faq-empty-state__icon {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(109, 52, 255, 0.12);
+    color: #4a1fb8;
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+
+body.toplevel_page_sc_faq .sc-faq-empty-state p,
+body[class*="_page_sc_faq"] .sc-faq-empty-state p {
+    margin: 0 0 6px;
+    color: #374151;
+    font-weight: 600;
+}
+
+body.toplevel_page_sc_faq .notice,
+body[class*="_page_sc_faq"] .notice {
+    border-radius: 10px;
+    border-right-width: 4px;
+}
+
+@media screen and (max-width: 1100px) {
+    body.toplevel_page_sc_faq .sections_cat_faq,
+    body[class*="_page_sc_faq"] .sections_cat_faq {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media screen and (max-width: 782px) {
+    body.toplevel_page_sc_faq .sc-faq-list-table .sc-faq-col-answer,
+    body[class*="_page_sc_faq"] .sc-faq-list-table .sc-faq-col-answer {
+        display: none;
+    }
+
+    body.toplevel_page_sc_faq .sc-faq-list-table thead .sc-faq-col-answer,
+    body[class*="_page_sc_faq"] .sc-faq-list-table thead .sc-faq-col-answer {
+        display: none;
+    }
+}
+/* ─── پایان استایل سوالات متداول ─── */

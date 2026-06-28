@@ -292,6 +292,8 @@ function sc_get_course_enrollment_branch_config($course_id) {
                 'end' => substr((string) $srow->time_end, 0, 5),
                 'chapter' => isset($srow->chapter_name) ? (string) $srow->chapter_name : '',
                 'coach_id' => isset($srow->coach_id) ? (int) $srow->coach_id : 0,
+                'uses_group' => !empty($srow->schedule_uses_group) ? 1 : 0,
+                'group_name' => (!empty($srow->schedule_uses_group) && !empty($srow->group_name)) ? (string) $srow->group_name : '',
             ];
         }
     }
@@ -301,6 +303,7 @@ function sc_get_course_enrollment_branch_config($course_id) {
         'chapter_count' => count($chapter_items),
         'requires_chapter_choice' => count($chapter_items) > 1,
         'schedule' => $schedule_items,
+        'groups' => function_exists('sc_get_course_groups_config') ? sc_get_course_groups_config($course_id) : ['has_grouping' => false, 'groups' => [], 'group_count' => 0],
     ];
 }
 
@@ -709,6 +712,7 @@ function sc_validate_bulk_course_activate_assignments(array $course_ids) {
 function sc_parse_member_course_assignments_from_post() {
     $chapters = isset($_POST['course_chapter']) && is_array($_POST['course_chapter']) ? $_POST['course_chapter'] : [];
     $coaches = isset($_POST['course_coach']) && is_array($_POST['course_coach']) ? $_POST['course_coach'] : [];
+    $groups = isset($_POST['course_group']) && is_array($_POST['course_group']) ? $_POST['course_group'] : [];
     $out = [];
 
     foreach ($chapters as $course_id => $chapter_name) {
@@ -719,6 +723,7 @@ function sc_parse_member_course_assignments_from_post() {
         $out[$course_id] = [
             'chapter' => sanitize_text_field((string) $chapter_name),
             'coach_id' => isset($coaches[$course_id]) ? absint($coaches[$course_id]) : 0,
+            'group_name' => isset($groups[$course_id]) ? sanitize_text_field((string) $groups[$course_id]) : '',
         ];
     }
     foreach ($coaches as $course_id => $coach_id) {
@@ -730,9 +735,25 @@ function sc_parse_member_course_assignments_from_post() {
             $out[$course_id] = [
                 'chapter' => '',
                 'coach_id' => absint($coach_id),
+                'group_name' => isset($groups[$course_id]) ? sanitize_text_field((string) $groups[$course_id]) : '',
             ];
         } else {
             $out[$course_id]['coach_id'] = absint($coach_id);
+        }
+    }
+    foreach ($groups as $course_id => $group_name) {
+        $course_id = absint($course_id);
+        if (!$course_id) {
+            continue;
+        }
+        if (!isset($out[$course_id])) {
+            $out[$course_id] = [
+                'chapter' => '',
+                'coach_id' => 0,
+                'group_name' => sanitize_text_field((string) $group_name),
+            ];
+        } else {
+            $out[$course_id]['group_name'] = sanitize_text_field((string) $group_name);
         }
     }
 
@@ -779,6 +800,92 @@ function sc_attendance_course_option_label($title, $chapter_name = '') {
     }
 
     return $title . ' — ' . $chapter_name;
+}
+
+/**
+ * نرمال‌سازی نوع دوره برای حضور و غیاب.
+ */
+function sc_normalize_attendance_course_type($course_type) {
+    return (isset($course_type) && $course_type === 'private') ? 'private' : 'group';
+}
+
+/**
+ * برچسب فارسی نوع دوره.
+ */
+function sc_attendance_course_type_label($course_type) {
+    return sc_normalize_attendance_course_type($course_type) === 'private'
+        ? 'خصوصی / نیمه‌خصوصی'
+        : 'گروهی';
+}
+
+/**
+ * Dropdown جستجوی دوره برای فیلترهای حضور و غیاب.
+ *
+ * @param array<int,object> $courses
+ * @param int               $selected_course_id
+ * @param array<string,mixed> $args
+ */
+function sc_render_searchable_course_filter_dropdown($courses, $selected_course_id = 0, $args = []) {
+    $selected_course_id = absint($selected_course_id);
+    $input_name = isset($args['name']) ? (string) $args['name'] : 'filter_course';
+    $input_id = isset($args['id']) ? (string) $args['id'] : 'filter_course';
+    $all_label = isset($args['all_label']) ? (string) $args['all_label'] : 'همه دوره‌ها';
+    $placeholder = isset($args['placeholder']) ? (string) $args['placeholder'] : $all_label;
+    $wrapper_class = isset($args['wrapper_class']) ? (string) $args['wrapper_class'] : 'sc-searchable-dropdown sc-attendance-course-filter-dropdown';
+
+    $selected_text = $all_label;
+    if ($selected_course_id > 0) {
+        foreach ($courses as $course) {
+            if ((int) $course->id === $selected_course_id) {
+                $selected_text = (string) $course->title;
+                break;
+            }
+        }
+    }
+
+    ob_start();
+    ?>
+    <div class="<?php echo esc_attr($wrapper_class); ?>">
+        <input type="hidden" name="<?php echo esc_attr($input_name); ?>" id="<?php echo esc_attr($input_id); ?>" value="<?php echo esc_attr((string) $selected_course_id); ?>">
+
+        <div class="sc-dropdown-toggle" tabindex="0" role="button" aria-haspopup="listbox">
+            <span class="sc-dropdown-placeholder" <?php echo $selected_course_id > 0 ? 'style="display:none"' : ''; ?>><?php echo esc_html($placeholder); ?></span>
+            <span class="sc-dropdown-selected" <?php echo $selected_course_id <= 0 ? 'style="display:none"' : ''; ?>><?php echo esc_html($selected_text); ?></span>
+            <span class="sc-dropdown-arrow">▼</span>
+        </div>
+
+        <div class="sc-dropdown-menu" role="listbox">
+            <div class="sc-dropdown-search">
+                <input type="text" class="sc-search-input" placeholder="جستجوی نام دوره..." autocomplete="off">
+            </div>
+            <div class="sc-dropdown-options">
+                <?php
+                $display_count = 0;
+                $max_display = 10;
+                ?>
+                <div class="sc-dropdown-option sc-visible"
+                     data-value="0"
+                     data-search="<?php echo esc_attr(strtolower($all_label)); ?>"
+                     data-label="<?php echo esc_attr($all_label); ?>">
+                    <?php echo esc_html($all_label); ?>
+                </div>
+                <?php foreach ($courses as $course) :
+                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                    $display_count++;
+                    $search_blob = strtolower($course->title . ' ' . $course->id);
+                    ?>
+                    <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
+                         data-value="<?php echo esc_attr((string) $course->id); ?>"
+                         data-search="<?php echo esc_attr($search_blob); ?>"
+                         data-label="<?php echo esc_attr($course->title); ?>">
+                        <?php echo esc_html($course->title); ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+    return ob_get_clean();
 }
 
 /**

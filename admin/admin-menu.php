@@ -2969,6 +2969,30 @@ function sc_admin_add_course_page() {
             ['wd' => [], 'start' => '08:00:00', 'end' => '10:00:00'],
         ];
     }
+    $course_group_rows = [];
+    $has_grouping = 0;
+    $player_can_select_group = 0;
+    if (is_object($course) && !empty($course->id)) {
+        if (function_exists('sc_course_has_grouping_enabled')) {
+            $has_grouping = sc_course_has_grouping_enabled((int) $course->id) ? 1 : 0;
+        }
+        if (function_exists('sc_course_player_can_select_group')) {
+            $player_can_select_group = sc_course_player_can_select_group((int) $course->id) ? 1 : 0;
+        } elseif (isset($course->player_can_select_group)) {
+            $player_can_select_group = (int) $course->player_can_select_group;
+        }
+        if (function_exists('sc_get_course_groups')) {
+            foreach (sc_get_course_groups((int) $course->id) as $grow) {
+                $course_group_rows[] = [
+                    'name' => isset($grow->group_name) ? (string) $grow->group_name : '',
+                    'description' => isset($grow->description) ? (string) $grow->description : '',
+                ];
+            }
+        }
+    }
+    if (empty($course_group_rows)) {
+        $course_group_rows = [['name' => '', 'description' => '']];
+    }
     include SC_TEMPLATES_ADMIN_DIR . 'course-add.php';
 }
 
@@ -3149,8 +3173,28 @@ function callback_add_course_sufix() {
             'updated_at' => current_time('mysql'),
             'chapter' => $primary_chapter,
         ];
+        $has_grouping_flag = isset($_POST['has_grouping']) ? 1 : 0;
+        if (
+            !$has_grouping_flag
+            && function_exists('sc_course_groups_has_names_in_post')
+            && sc_course_groups_has_names_in_post()
+        ) {
+            $has_grouping_flag = 1;
+        }
+        $player_can_select_group_flag = ($has_grouping_flag && isset($_POST['player_can_select_group'])) ? 1 : 0;
+        if (function_exists('sc_courses_has_grouping_column') && sc_courses_has_grouping_column()) {
+            $data['has_grouping'] = $has_grouping_flag;
+        }
+        if (function_exists('sc_courses_player_can_select_group_column') && sc_courses_player_can_select_group_column()) {
+            $data['player_can_select_group'] = $player_can_select_group_flag;
+        }
 
-        $course_id = isset($_GET['course_id']) ? absint($_GET['course_id']) : 0;
+        $course_id = 0;
+        if (!empty($_POST['course_id'])) {
+            $course_id = absint($_POST['course_id']);
+        } elseif (isset($_GET['course_id'])) {
+            $course_id = absint($_GET['course_id']);
+        }
 
         // بروزرسانی
         if ($course_id) {
@@ -3161,7 +3205,7 @@ function callback_add_course_sufix() {
                     $format[] = '%s';
                 } elseif (in_array($key, ['price', 'price_per_session'], true)) {
                     $format[] = '%f';
-                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active', 'private_variable_coach_pricing'], true)) {
+                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active', 'private_variable_coach_pricing', 'has_grouping', 'player_can_select_group'], true)) {
                     $format[] = '%d';
                 } else {
                     $format[] = '%s';
@@ -3188,6 +3232,9 @@ function callback_add_course_sufix() {
                 }
                 if (function_exists('sc_save_course_coach_assignments_from_post')) {
                     sc_save_course_coach_assignments_from_post($course_id, $posted_chapters);
+                }
+                if (function_exists('sc_save_course_groups_from_post')) {
+                    sc_save_course_groups_from_post($course_id, (bool) $has_grouping_flag);
                 }
                 if (function_exists('sc_private_sync_branch_capacities_to_course_ceiling')) {
                     sc_private_sync_branch_capacities_to_course_ceiling($course_id);
@@ -3235,6 +3282,12 @@ function callback_add_course_sufix() {
                 'created_at' => current_time('mysql'),
                 'updated_at' => current_time('mysql'),
             ];
+            if (function_exists('sc_courses_has_grouping_column') && sc_courses_has_grouping_column()) {
+                $insert_data['has_grouping'] = $has_grouping_flag;
+            }
+            if (function_exists('sc_courses_player_can_select_group_column') && sc_courses_player_can_select_group_column()) {
+                $insert_data['player_can_select_group'] = $player_can_select_group_flag;
+            }
             
             $format = [];
             foreach ($insert_data as $key => $value) {
@@ -3242,7 +3295,7 @@ function callback_add_course_sufix() {
                     $format[] = '%s';
                 } elseif (in_array($key, ['price', 'price_per_session'], true)) {
                     $format[] = '%f';
-                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active', 'private_variable_coach_pricing'], true)) {
+                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active', 'private_variable_coach_pricing', 'has_grouping', 'player_can_select_group'], true)) {
                     $format[] = '%d';
                 } else {
                     $format[] = '%s';
@@ -3268,6 +3321,9 @@ function callback_add_course_sufix() {
                 }
                 if (function_exists('sc_save_course_coach_assignments_from_post')) {
                     sc_save_course_coach_assignments_from_post($insert_id, $posted_chapters);
+                }
+                if (function_exists('sc_save_course_groups_from_post')) {
+                    sc_save_course_groups_from_post($insert_id, (bool) $has_grouping_flag);
                 }
                 if (function_exists('sc_private_sync_branch_capacities_to_course_ceiling')) {
                     sc_private_sync_branch_capacities_to_course_ceiling($insert_id);
@@ -3977,14 +4033,25 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
         return ['enrollment_sessions' => null, 'total_sessions' => 0, 'remaining_sessions' => 0];
     };
 
-    $resolve_assignment = static function ($course_id, $existing_chapter = '', $existing_coach_id = 0) use ($course_assignments) {
+    $resolve_assignment = static function ($course_id, $existing_chapter = '', $existing_coach_id = 0, $existing_group = '') use ($course_assignments) {
         $course_id = absint($course_id);
         $sel_chapter = isset($course_assignments[$course_id]['chapter']) ? (string) $course_assignments[$course_id]['chapter'] : '';
         $sel_coach = isset($course_assignments[$course_id]['coach_id']) ? absint($course_assignments[$course_id]['coach_id']) : 0;
+        $sel_group = isset($course_assignments[$course_id]['group_name']) ? (string) $course_assignments[$course_id]['group_name'] : '';
         if (function_exists('sc_resolve_member_course_assignment')) {
-            return sc_resolve_member_course_assignment($course_id, $sel_chapter, $sel_coach, $existing_chapter, $existing_coach_id);
+            $assignment = sc_resolve_member_course_assignment($course_id, $sel_chapter, $sel_coach, $existing_chapter, $existing_coach_id);
+        } else {
+            $assignment = [
+                'chapter' => $sel_chapter,
+                'coach_id' => $sel_coach > 0 ? $sel_coach : absint($existing_coach_id),
+            ];
         }
-        return ['chapter' => $sel_chapter, 'coach_id' => $sel_coach > 0 ? $sel_coach : absint($existing_coach_id)];
+        if (function_exists('sc_resolve_member_course_group')) {
+            $assignment['group_name'] = sc_resolve_member_course_group($course_id, $sel_group, $existing_group);
+        } else {
+            $assignment['group_name'] = sanitize_text_field($sel_group !== '' ? $sel_group : $existing_group);
+        }
+        return $assignment;
     };
 
     // مهم: فلگ‌ها مستقل از تیک دوره هستند
@@ -4007,31 +4074,38 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
 
                 if ($existing) {
                     $existing_row = $wpdb->get_row($wpdb->prepare(
-                        "SELECT coach_id, chapter FROM $table_name WHERE id = %d LIMIT 1",
+                        "SELECT coach_id, chapter, group_name FROM $table_name WHERE id = %d LIMIT 1",
                         $existing
                     ));
                     $existing_coach_id = $existing_row ? (int) $existing_row->coach_id : 0;
                     $existing_chapter = $existing_row && isset($existing_row->chapter) ? (string) $existing_row->chapter : '';
-                    $assignment = $resolve_assignment($course_id, $existing_chapter, $existing_coach_id);
+                    $existing_group = $existing_row && isset($existing_row->group_name) ? (string) $existing_row->group_name : '';
+                    $assignment = $resolve_assignment($course_id, $existing_chapter, $existing_coach_id, $existing_group);
 
                     // فقط فلگ‌ها را به‌روزرسانی می‌کنیم (status را تغییر نمی‌دهیم)
+                    $flag_upd = [
+                        'course_status_flags' => $flags_string,
+                        'coach_id' => (int) $assignment['coach_id'],
+                        'chapter' => $assignment['chapter'] !== '' ? $assignment['chapter'] : null,
+                        'updated_at' => current_time('mysql'),
+                    ];
+                    $flag_fmt = ['%s', '%d', '%s', '%s'];
+                    if (function_exists('sc_member_course_row_with_group')) {
+                        $flag_upd = array_merge($flag_upd, sc_member_course_row_with_group($assignment));
+                        $flag_fmt[] = '%s';
+                    }
                     $wpdb->update(
                         $table_name,
-                        [
-                            'course_status_flags' => $flags_string,
-                            'coach_id' => (int) $assignment['coach_id'],
-                            'chapter' => $assignment['chapter'] !== '' ? $assignment['chapter'] : null,
-                            'updated_at' => current_time('mysql'),
-                        ],
+                        $flag_upd,
                         ['id' => $existing],
-                        ['%s', '%d', '%s', '%s'],
+                        $flag_fmt,
                         ['%d']
                     );
                 } else {
                     // اگر رکورد وجود ندارد و تیک دوره هم خورده، رکورد جدید ایجاد می‌کنیم
                     if (!empty($course_ids) && in_array($course_id, array_map('absint', $course_ids), true)) {
                         $sf = $resolve_sessions($course_id, $course_package_sessions);
-                        $assignment = $resolve_assignment($course_id, '', 0);
+                        $assignment = $resolve_assignment($course_id, '', 0, '');
                         $insert_row = [
                             'member_id' => $member_id,
                             'course_id' => $course_id,
@@ -4045,7 +4119,13 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                             'created_at' => current_time('mysql'),
                             'updated_at' => current_time('mysql'),
                         ];
+                        if (function_exists('sc_member_course_row_with_group')) {
+                            $insert_row = array_merge($insert_row, sc_member_course_row_with_group($assignment));
+                        }
                         $fmt = ['%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s'];
+                        if (function_exists('sc_member_courses_has_group_column') && sc_member_courses_has_group_column()) {
+                            $fmt[] = '%s';
+                        }
                         if ($sf['enrollment_sessions'] === null) {
                             $insert_row['enrollment_sessions'] = null;
                             $fmt[] = '%s';
@@ -4107,12 +4187,13 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
 
                 if ($existing) {
                     $existing_row = $wpdb->get_row($wpdb->prepare(
-                        "SELECT coach_id, chapter FROM $table_name WHERE id = %d LIMIT 1",
+                        "SELECT coach_id, chapter, group_name FROM $table_name WHERE id = %d LIMIT 1",
                         $existing
                     ));
                     $existing_coach_id = $existing_row ? (int) $existing_row->coach_id : 0;
                     $existing_chapter = $existing_row && isset($existing_row->chapter) ? (string) $existing_row->chapter : '';
-                    $assignment = $resolve_assignment($course_id, $existing_chapter, $existing_coach_id);
+                    $existing_group = $existing_row && isset($existing_row->group_name) ? (string) $existing_row->group_name : '';
+                    $assignment = $resolve_assignment($course_id, $existing_chapter, $existing_coach_id, $existing_group);
                     $upd = [
                         'status' => 'active',
                         'coach_id' => (int) $assignment['coach_id'],
@@ -4123,7 +4204,13 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                         'remaining_sessions' => (int) $sf['remaining_sessions'],
                         'updated_at' => current_time('mysql'),
                     ];
+                    if (function_exists('sc_member_course_row_with_group')) {
+                        $upd = array_merge($upd, sc_member_course_row_with_group($assignment));
+                    }
                     $fmt = ['%s', '%d', '%s', '%s', '%s', '%d', '%d', '%s'];
+                    if (function_exists('sc_member_courses_has_group_column') && sc_member_courses_has_group_column()) {
+                        $fmt[] = '%s';
+                    }
                     if ($sf['enrollment_sessions'] === null) {
                         $upd['enrollment_sessions'] = null;
                         $fmt[] = '%s';
@@ -4139,7 +4226,7 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                         ['%d']
                     );
                 } else {
-                    $assignment = $resolve_assignment($course_id, '', 0);
+                    $assignment = $resolve_assignment($course_id, '', 0, '');
                     $insert_row = [
                         'member_id' => $member_id,
                         'course_id' => $course_id,
@@ -4153,7 +4240,13 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
                         'created_at' => current_time('mysql'),
                         'updated_at' => current_time('mysql'),
                     ];
+                    if (function_exists('sc_member_course_row_with_group')) {
+                        $insert_row = array_merge($insert_row, sc_member_course_row_with_group($assignment));
+                    }
                     $fmt = ['%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s'];
+                    if (function_exists('sc_member_courses_has_group_column') && sc_member_courses_has_group_column()) {
+                        $fmt[] = '%s';
+                    }
                     if ($sf['enrollment_sessions'] === null) {
                         $insert_row['enrollment_sessions'] = null;
                         $fmt[] = '%s';

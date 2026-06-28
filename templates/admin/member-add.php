@@ -494,13 +494,14 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 $player_courses_enrollment_sessions = [];
                 $player_course_chapter = [];
                 $player_course_coach = [];
+                $player_course_group = [];
                 /** ثبت‌نام فعال بدون فلگ وضعیت (paused/completed/canceled): course_id => [ total_sessions, remaining_sessions ] */
                 $player_courses_sessions = [];
                 $member_branch_configs = [];
                 $edit_member_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
                 if ($edit_member_id) {
                     $player_courses_data = $wpdb->get_results($wpdb->prepare(
-                        "SELECT course_id, status, course_status_flags, enrollment_sessions, total_sessions, remaining_sessions, chapter, coach_id FROM $member_courses_table WHERE member_id = %d",
+                        "SELECT course_id, status, course_status_flags, enrollment_sessions, total_sessions, remaining_sessions, chapter, coach_id, group_name FROM $member_courses_table WHERE member_id = %d",
                         $edit_member_id
                     ), ARRAY_A);
                     if ($player_courses_data) {
@@ -520,6 +521,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             $player_courses_enrollment_sessions[$cid] = isset($pc['enrollment_sessions']) ? (int) $pc['enrollment_sessions'] : 0;
                             $player_course_chapter[$cid] = isset($pc['chapter']) ? (string) $pc['chapter'] : '';
                             $player_course_coach[$cid] = isset($pc['coach_id']) ? (int) $pc['coach_id'] : 0;
+                            $player_course_group[$cid] = isset($pc['group_name']) ? (string) $pc['group_name'] : '';
                             if ($pc['status'] === 'active' && empty($flags)) {
                                 $player_courses_sessions[$cid] = [
                                     'total_sessions' => (int) ($pc['total_sessions'] ?? 0),
@@ -609,9 +611,10 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         }
 
                         echo '<div class="sc-member-course-branch-block" id="sc_member_branch_' . esc_attr((string) $course->id) . '" style="margin-top:10px;padding:10px;background:#f0f6fc;border:1px solid #c3d9e8;border-radius:4px;" data-course-id="' . esc_attr((string) $course->id) . '">';
-                        echo '<strong style="display:block;margin-bottom:8px;">شعبه و مربی</strong>';
+                        echo '<strong style="display:block;margin-bottom:8px;">شعبه، مربی و گروه</strong>';
                         echo '<div class="sc-member-chapter-field" style="margin-bottom:8px;"></div>';
-                        echo '<div class="sc-member-coach-field"></div>';
+                        echo '<div class="sc-member-coach-field" style="margin-bottom:8px;"></div>';
+                        echo '<div class="sc-member-group-field"></div>';
                         echo '</div>';
 
                         echo '</label>';
@@ -653,6 +656,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         echo '<script type="application/json" id="sc-member-branch-selected">' . wp_json_encode([
                             'chapters' => $player_course_chapter,
                             'coaches' => $player_course_coach,
+                            'groups' => $player_course_group,
                         ], JSON_UNESCAPED_UNICODE) . '</script>';
                     }
                 }
@@ -715,7 +719,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
         }
 
         var branchConfigs = {};
-        var branchSelected = { chapters: {}, coaches: {} };
+        var branchSelected = { chapters: {}, coaches: {}, groups: {} };
         try {
             var cfgEl = document.getElementById('sc-member-branch-configs');
             var selEl = document.getElementById('sc-member-branch-selected');
@@ -763,6 +767,39 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
             }
 
             renderMemberCoachField(courseId, selChapter, selCoach);
+            renderMemberGroupField(courseId);
+        }
+
+        function renderMemberGroupField(courseId) {
+            var cfg = branchConfigs[courseId];
+            var $groupField = $('#sc_member_branch_' + courseId + ' .sc-member-group-field');
+            $groupField.empty();
+            if (!cfg || !cfg.groups || !cfg.groups.has_grouping || !cfg.groups.groups || !cfg.groups.groups.length) {
+                return;
+            }
+            var selGroup = (branchSelected.groups && branchSelected.groups[courseId]) ? branchSelected.groups[courseId] : '';
+            var html = '<label><strong>گروه (اختیاری):</strong> <select name="course_group[' + courseId + ']" class="sc-member-group-select">';
+            html += '<option value="">بدون گروه</option>';
+            (cfg.groups.groups || []).forEach(function (g) {
+                var name = g.name || '';
+                if (!name) {
+                    return;
+                }
+                html += '<option value="' + name + '"' + (selGroup === name ? ' selected' : '') + '>' + name + '</option>';
+            });
+            html += '</select></label>';
+            if (selGroup) {
+                var desc = '';
+                (cfg.groups.groups || []).forEach(function (g) {
+                    if (g.name === selGroup && g.description) {
+                        desc = g.description;
+                    }
+                });
+                if (desc) {
+                    html += '<p class="description" style="margin-top:6px;">' + desc + '</p>';
+                }
+            }
+            $groupField.html(html);
         }
 
         function renderMemberCoachField(courseId, chapterName, selectedCoachId) {

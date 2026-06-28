@@ -332,7 +332,7 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
         $current_coach_id = $coach_id;
         // دریافت دوره‌های مربی به تفکیک شعبه
         $courses = $wpdb->get_results($wpdb->prepare(
-            "SELECT c.id, c.title, cc.chapter_name
+            "SELECT c.id, c.title, c.course_type, cc.chapter_name
              FROM $courses_table c
              INNER JOIN $course_coaches_table cc ON cc.course_id = c.id AND cc.coach_id = %d
              WHERE c.deleted_at IS NULL
@@ -365,6 +365,19 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
         : ['course_id' => absint($raw_course_selection), 'chapter_name' => ''];
     $selected_course_id = (int) $selected_parts['course_id'];
     $selected_chapter_name = (string) $selected_parts['chapter_name'];
+
+    $selected_course_type_filter = 'group';
+    if (isset($_GET['filter_course_type']) && in_array($_GET['filter_course_type'], ['group', 'private'], true)) {
+        $selected_course_type_filter = sanitize_text_field(wp_unslash($_GET['filter_course_type']));
+    } elseif ($selected_course_id) {
+        $selected_type_row = $wpdb->get_var($wpdb->prepare(
+            "SELECT course_type FROM $courses_table WHERE id = %d LIMIT 1",
+            $selected_course_id
+        ));
+        $selected_course_type_filter = function_exists('sc_normalize_attendance_course_type')
+            ? sc_normalize_attendance_course_type($selected_type_row)
+            : 'group';
+    }
     
     // پردازش تاریخ (شمسی به میلادی)
     $selected_date = '';
@@ -469,64 +482,129 @@ if ($selected_course_id) {
 
 
 $is_update_mode = !empty($existing_attendances);
+
+$selected_course_value = '';
+$selected_course_label = '';
+if ($selected_course_id) {
+    $selected_course_value = function_exists('sc_attendance_course_option_value')
+        ? sc_attendance_course_option_value($selected_course_id, $selected_chapter_name)
+        : (string) $selected_course_id;
+    foreach ($courses as $course_item) {
+        $course_chapter = isset($course_item->chapter_name) ? (string) $course_item->chapter_name : '';
+        if ((int) $course_item->id === $selected_course_id && $course_chapter === $selected_chapter_name) {
+            $selected_course_label = function_exists('sc_attendance_course_option_label')
+                ? sc_attendance_course_option_label($course_item->title, $course_chapter)
+                : $course_item->title;
+            break;
+        }
+    }
+    if ($selected_course_label === '') {
+        $course_row_for_label = $wpdb->get_row($wpdb->prepare(
+            "SELECT title FROM $courses_table WHERE id = %d LIMIT 1",
+            $selected_course_id
+        ));
+        if ($course_row_for_label) {
+            $selected_course_label = function_exists('sc_attendance_course_option_label')
+                ? sc_attendance_course_option_label($course_row_for_label->title, $selected_chapter_name)
+                : $course_row_for_label->title;
+        }
+    }
+}
 ?>
 
-<div class="wrap">
+<div class="wrap sc-attendance-page-header">
     <h1 class="wp-heading-inline">ثبت حضور و غیاب</h1>
     <a href="<?php echo admin_url('admin.php?page=sc-attendance-list'); ?>" class="page-title-action">لیست حضور و غیاب</a>
     <hr class="wp-header-end">
-    
-</div> 
-   <div class="wrap">
-    <form method="GET" action="" class="form_attendance_add">
+</div>
+<div class="wrap sc-attendance-page-body">
+    <form method="GET" action="" class="form_attendance_add sc-attendance-filter-panel" id="sc-attendance-filter-form">
         <input type="hidden" name="page" value="sc-attendance-add">
-        
-        <table class="form-table sc_form-table">
-            <tr>
-                <th scope="row">
-                    <label for="course_id">انتخاب دوره</label>
-                </th>
-                <td>
-                    <select name="course_id" id="course_id" required >
-                        <option value="">-- انتخاب دوره --</option>
-                        <?php foreach ($courses as $course) :
-                            $course_chapter = isset($course->chapter_name) ? (string) $course->chapter_name : '';
-                            $option_value = function_exists('sc_attendance_course_option_value')
-                                ? sc_attendance_course_option_value($course->id, $course_chapter)
-                                : (string) $course->id;
-                            $option_label = function_exists('sc_attendance_course_option_label')
-                                ? sc_attendance_course_option_label($course->title, $course_chapter)
-                                : $course->title;
-                            $is_selected = ($selected_course_id === (int) $course->id && $selected_chapter_name === $course_chapter);
-                            ?>
-                            <option value="<?php echo esc_attr($option_value); ?>" <?php selected($is_selected, true); ?>>
-                                <?php echo esc_html($option_label); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row">
-                    <label for="attendance_date">تاریخ</label>
-                </th>
-                <td>
-                    <input type="text" 
-                           name="date_shamsi" 
-                           id="attendance_date" 
-                           value="<?php echo esc_attr($selected_date_shamsi); ?>" 
-                           class="regular-text persian-date-input"
-                           placeholder="تاریخ (شمسی)" 
-                           required 
-                           readonly
-                           >
-                    <input type="hidden" name="date" id="attendance_date_hidden" value="<?php echo esc_attr($selected_date); ?>">
-                    <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
-                </td>
-            </tr>
-        </table>
-        
-        <p class="submit">
+
+        <div class="sc-attendance-filter-grid">
+            <div class="sc-attendance-filter-field sc-attendance-filter-field--type">
+                <span class="sc-attendance-filter-label">نوع دوره</span>
+                <div class="sc-attendance-course-type-radios">
+                    <label class="sc-attendance-course-type-option">
+                        <input type="radio" name="filter_course_type" value="group" <?php checked($selected_course_type_filter, 'group'); ?>>
+                        <span>گروهی</span>
+                    </label>
+                    <label class="sc-attendance-course-type-option">
+                        <input type="radio" name="filter_course_type" value="private" <?php checked($selected_course_type_filter, 'private'); ?>>
+                        <span>خصوصی / نیمه‌خصوصی</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="sc-attendance-filter-field">
+                <label class="sc-attendance-filter-label" for="course_id">انتخاب دوره</label>
+                <div class="sc-searchable-dropdown sc-attendance-course-dropdown">
+                    <input type="hidden" name="course_id" id="course_id" value="<?php echo esc_attr($selected_course_value); ?>">
+
+                    <div class="sc-dropdown-toggle" tabindex="0" role="button" aria-haspopup="listbox">
+                        <span class="sc-dropdown-placeholder" <?php echo $selected_course_value !== '' ? 'style="display:none"' : ''; ?>>جستجو و انتخاب دوره...</span>
+                        <span class="sc-dropdown-selected" <?php echo $selected_course_value === '' ? 'style="display:none"' : ''; ?>>
+                            <?php echo esc_html($selected_course_label); ?>
+                        </span>
+                        <span class="sc-dropdown-arrow">▼</span>
+                    </div>
+
+                    <div class="sc-dropdown-menu" role="listbox">
+                        <div class="sc-dropdown-search">
+                            <input type="text" class="sc-attendance-course-search" placeholder="جستجوی نام دوره یا شعبه..." autocomplete="off">
+                        </div>
+                        <div class="sc-dropdown-options">
+                            <?php
+                            $course_display_count = 0;
+                            $course_max_display = 10;
+                            foreach ($courses as $course) :
+                                $course_chapter = isset($course->chapter_name) ? (string) $course->chapter_name : '';
+                                $course_type_normalized = function_exists('sc_normalize_attendance_course_type')
+                                    ? sc_normalize_attendance_course_type($course->course_type ?? 'group')
+                                    : 'group';
+                                $option_value = function_exists('sc_attendance_course_option_value')
+                                    ? sc_attendance_course_option_value($course->id, $course_chapter)
+                                    : (string) $course->id;
+                                $option_label = function_exists('sc_attendance_course_option_label')
+                                    ? sc_attendance_course_option_label($course->title, $course_chapter)
+                                    : $course->title;
+                                $matches_type = ($course_type_normalized === $selected_course_type_filter);
+                                $display_class = ($matches_type && $course_display_count < $course_max_display) ? 'sc-visible' : 'sc-hidden';
+                                if ($matches_type) {
+                                    $course_display_count++;
+                                }
+                                $search_blob = strtolower($option_label . ' ' . $course->id . ' ' . $course_type_normalized);
+                                ?>
+                                <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?><?php echo $matches_type ? '' : ' sc-course-type-hidden'; ?>"
+                                     data-value="<?php echo esc_attr($option_value); ?>"
+                                     data-search="<?php echo esc_attr($search_blob); ?>"
+                                     data-label="<?php echo esc_attr($option_label); ?>"
+                                     data-course-type="<?php echo esc_attr($course_type_normalized); ?>"
+                                     <?php echo $matches_type ? '' : 'style="display:none;"'; ?>>
+                                    <?php echo esc_html($option_label); ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sc-attendance-filter-field">
+                <label class="sc-attendance-filter-label" for="attendance_date">تاریخ</label>
+                <input type="text"
+                       name="date_shamsi"
+                       id="attendance_date"
+                       value="<?php echo esc_attr($selected_date_shamsi); ?>"
+                       class="regular-text persian-date-input sc-attendance-date-input"
+                       placeholder="تاریخ (شمسی)"
+                       required
+                       readonly>
+                <input type="hidden" name="date" id="attendance_date_hidden" value="<?php echo esc_attr($selected_date); ?>">
+                <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+            </div>
+        </div>
+
+        <p class="submit sc-attendance-filter-actions">
             <input type="submit" name="filter" class="button button-primary" value="نمایش فرم">
         </p>
     </form>
@@ -535,119 +613,109 @@ $is_update_mode = !empty($existing_attendances);
         $course = $wpdb->get_row($wpdb->prepare("SELECT * FROM $courses_table WHERE id = %d", $selected_course_id));
         
     ?>
-        <form method="POST" action="" style="margin-top: 30px;">
+        <form method="POST" action="" class="sc-attendance-save-form">
             <?php wp_nonce_field('sc_attendance_nonce', 'sc_attendance_nonce'); ?>
             <input type="hidden" name="course_id" value="<?php echo esc_attr(function_exists('sc_attendance_course_option_value') ? sc_attendance_course_option_value($selected_course_id, $selected_chapter_name) : $selected_course_id); ?>">
             <input type="hidden" name="attendance_date" id="attendance_date_hidden_form" value="<?php echo esc_attr($selected_date); ?>">
             <input type="hidden" name="attendance_date_shamsi" id="attendance_date_shamsi_form" value="<?php echo esc_attr($selected_date_shamsi); ?>">
-            
-         
-                <h2 style="margin-top: 0;">
-                    لیست حضور و غیاب - 
-                    
-                    
-                    <?php
-                    echo esc_html($course->title);
-                    if ($selected_chapter_name !== '') {
-                        echo ' — ' . esc_html($selected_chapter_name);
-                    }
-                    ?>
-                    <span class="name_course_attendance">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>
-                    
-                </h2>
 
-                <?php if ($is_update_mode): ?>
-                        <span>شما در حال بروزرسانی یک حضور و غیاب هستید.</span>
-                    <?php else: ?>
-                        <span>
-شما در حال ثبت یک حضور غیاب جدید هستید.                        </span>
+            <div class="sc-attendance-save-panel">
+                <div class="sc-attendance-save-panel__head">
+                    <h2>
+                        لیست حضور و غیاب —
+                        <?php
+                        echo esc_html($course->title);
+                        if ($selected_chapter_name !== '') {
+                            echo ' — ' . esc_html($selected_chapter_name);
+                        }
+                        ?>
+                        <span class="name_course_attendance">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>
+                    </h2>
+                    <?php if ($is_update_mode) : ?>
+                        <span class="sc-attendance-mode-badge sc-attendance-mode-badge--update">در حال بروزرسانی رکورد موجود</span>
+                    <?php else : ?>
+                        <span class="sc-attendance-mode-badge sc-attendance-mode-badge--new">ثبت حضور و غیاب جدید</span>
                     <?php endif; ?>
+                </div>
 
-             <div class="back_attendance_list">
-                <table class="wp-list-table widefat fixed striped" style="margin-top: 20px;">
-                    <thead>
-                        <tr>
-                            <th class="column-row">ردیف</th>
-                            <th> نام و نام خانوادگی </th>
-                            <th>مبلغ بدهی</th>
-                            <th>وضعیت</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($active_members as $index => $member) :
+                <div class="back_attendance_list sc-attendance-members-wrap">
+                    <table class="wp-list-table widefat fixed striped sc-attendance-members-table">
+                        <thead>
+                            <tr>
+                                <th class="column-row">ردیف</th>
+                                <th>نام و نام خانوادگی</th>
+                                <th>مبلغ بدهی</th>
+                                <th>وضعیت</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                        $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0'));
+                        foreach ($active_members as $index => $member) :
                             $debt_user = debt_user($member->id)[0];
                             $existing_status = isset($existing_attendances[$member->id]) ? $existing_attendances[$member->id] : '';
+                            $row_class = 'sc-attendance-member-row';
+                            if ($debt_user >= $max_debt_for_attendance && $max_debt_for_attendance > 0) {
+                                $row_class .= ' sc-attendance-member-row--blocked';
+                            } elseif ($debt_user > 0) {
+                                $row_class .= ' sc-attendance-member-row--debt';
+                            }
                         ?>
-                            <tr style="width = 800px; background-color: <?php echo ($debt_user > 0) ? '#c3191957' : '' ?> !important; background-color: <?php echo ( $debt_user >= floatval(sc_get_setting('max_debt_for_attendance', '0'))) ? '#f20e0e9a' : '2222' ?> !important;" >
+                            <tr class="<?php echo esc_attr($row_class); ?>">
                                 <td><?php echo $index + 1; ?></td>
-                                <td><?php echo esc_html($member->first_name . ' '. $member->last_name); ?></td>
-                                <td ><?php echo number_format($debt_user) ; ?>  تومان    <?php echo ($debt_user >= floatval(sc_get_setting('max_debt_for_attendance', '0'))) ? 'سقف موجودی - عدم ثبت رکورد کاربر' : ' '; ?></td>
-                                <td class="status_attendace_td">
+                                <td class="sc-attendance-member-name"><?php echo esc_html($member->first_name . ' ' . $member->last_name); ?></td>
+                                <td class="sc-attendance-member-debt">
+                                    <?php echo number_format($debt_user); ?> تومان
+                                    <?php if ($debt_user >= $max_debt_for_attendance && $max_debt_for_attendance > 0) : ?>
+                                        <span class="sc-attendance-debt-alert">سقف موجودی — عدم ثبت رکورد</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="status_attendace_td sc-attendance-status-cell">
                                     <?php if (empty($existing_status)) : ?>
                                     <button type="button"
                                             class="button button-small sc-attendance-clear-btn"
                                             data-attendance-name="attendance[<?php echo esc_attr($member->id); ?>]"
                                             title="حذف انتخاب"
-                                            aria-label="حذف انتخاب"
-                                            >
-                                        <span class="dashicons dashicons-no-alt" style="font-size: 16px; width: 16px; height: 16px; line-height: 1.6;"></span>
+                                            aria-label="حذف انتخاب">
+                                        <span class="dashicons dashicons-no-alt"></span>
                                     </button>
                                     <?php endif; ?>
-                                    <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
-                                        <input type="radio" 
-                                               name="attendance[<?php echo esc_attr($member->id); ?>]" 
-                                               value="present" 
-                                               <?php checked($existing_status, 'present'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?> 
-                                              
-                                               >
-                                                <?php  if($existing_status === 'excused'){ ?>
-                                               <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br> علت :  حالت غیبت مجاز</span>
-                                               <?php } ?>
-                                        <span style="color: #00a32a; font-weight: bold;">حاضر</span>
+                                    <label class="tooltip-container sc-attendance-status-pill sc-attendance-status-pill--present">
+                                        <input type="radio"
+                                               name="attendance[<?php echo esc_attr($member->id); ?>]"
+                                               value="present"
+                                               <?php checked($existing_status, 'present'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?>>
+                                        <?php if ($existing_status === 'excused') : ?>
+                                            <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br>علت: حالت غیبت مجاز</span>
+                                        <?php endif; ?>
+                                        <span>حاضر</span>
                                     </label>
-                                    <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
-                                        <input type="radio" 
-                                               name="attendance[<?php echo esc_attr($member->id); ?>]" 
+                                    <label class="tooltip-container sc-attendance-status-pill sc-attendance-status-pill--absent">
+                                        <input type="radio"
+                                               name="attendance[<?php echo esc_attr($member->id); ?>]"
                                                value="absent"
-                                               <?php checked($existing_status, 'absent'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?> 
-                                               >
-                                                <?php  if($existing_status === 'excused'){ ?>
-                                               <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br> علت :  حالت غیبت مجاز</span>
-                                               <?php } ?>
-                                               <span style="color: #d63638; font-weight: bold;">غایب</span>
+                                               <?php checked($existing_status, 'absent'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?>>
+                                        <?php if ($existing_status === 'excused') : ?>
+                                            <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br>علت: حالت غیبت مجاز</span>
+                                        <?php endif; ?>
+                                        <span>غایب</span>
                                     </label>
-                                    <!-- <label class="tooltip-container" style="display: inline-block; margin-left: 20px;">
-                                        <input type="radio" 
-                                               name="attendance[<?php echo esc_attr($member->id); ?>]" 
-                                               value="excused"
-                                               <?php checked($existing_status, 'excused');  ?> 
-                                               disabled
-                                               >
-                                        <span style="color: #d63638; font-weight: bold;">غایب مجاز</span>
-                                        <?php  if($existing_status === 'excused'){ ?>
-                                                  <span class="tooltip_text_abset_acc">غیبت مجاز شده است<br>برای ویرایش یا حذف به بخش حضور و غیاب جزئی بروید.</span>
-                                               <?php }else{
-                                                ?>
-                                                    <span class="tooltip_text_abset_acc">برای مجاز کردن غیبت <br>به لیست غایبین مراجعه کنید.</span>
-
-                                                <?php
-                                               } ?>
-                                    </label> -->
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
-                    </div>
-                <p class="submit" style="margin-top: 20px;">
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="submit sc-attendance-save-actions">
                     <button type="submit" name="sc_save_attendance" class="button button-primary button-large">
                         ذخیره حضور و غیاب
                     </button>
                 </p>
-        
+            </div>
         </form>
     <?php elseif ($selected_course_id && empty($active_members)) : ?>
-        <div class="notice notice-info" style="margin-top: 20px;">
+        <div class="notice notice-info sc-attendance-empty-notice">
             <p><?php echo $selected_chapter_name !== '' ? 'در این دوره و شعبه هیچ کاربر فعالی ثبت‌نام نشده است.' : 'در این دوره هیچ کاربر فعالی ثبت‌نام نشده است.'; ?></p>
         </div>
     <?php endif; ?>
@@ -669,6 +737,101 @@ document.addEventListener('click', function (event) {
     for (let i = 0; i < radios.length; i++) {
         radios[i].checked = false;
     }
+});
+
+jQuery(document).ready(function($) {
+    function scAttendanceGetSelectedCourseType() {
+        var $checked = $('input[name="filter_course_type"]:checked');
+        return $checked.length ? $checked.val() : 'group';
+    }
+
+    function scAttendanceResetCourseDropdown() {
+        var $dropdown = $('.sc-attendance-course-dropdown');
+        $dropdown.find('#course_id').val('');
+        $dropdown.find('.sc-dropdown-placeholder').show();
+        $dropdown.find('.sc-dropdown-selected').hide().text('');
+        $dropdown.find('.sc-option-check').remove();
+        $dropdown.find('.sc-dropdown-option').removeClass('sc-selected').css('background', '');
+    }
+
+    function scAttendanceSyncCourseDropdown(searchTerm) {
+        var type = scAttendanceGetSelectedCourseType();
+        var term = (searchTerm || '').toLowerCase().trim();
+        var $dropdown = $('.sc-attendance-course-dropdown');
+        var $options = $dropdown.find('.sc-dropdown-option');
+        var visibleCount = 0;
+        var maxVisible = 10;
+        var currentVal = $dropdown.find('#course_id').val();
+        var currentStillValid = false;
+
+        $options.closest('.sc-dropdown-options').find('div:not(.sc-dropdown-option)').remove();
+
+        $options.each(function() {
+            var $opt = $(this);
+            var optType = $opt.attr('data-course-type') || 'group';
+            var searchText = $opt.attr('data-search') || '';
+            var typeMatch = (optType === type);
+            var searchMatch = (term === '' || searchText.indexOf(term) !== -1);
+
+            if (!typeMatch) {
+                $opt.hide().addClass('sc-hidden sc-course-type-hidden').removeClass('sc-visible');
+                return;
+            }
+
+            $opt.removeClass('sc-course-type-hidden');
+
+            if (searchMatch && visibleCount < maxVisible) {
+                $opt.show().removeClass('sc-hidden').addClass('sc-visible');
+                visibleCount++;
+            } else {
+                $opt.hide().addClass('sc-hidden').removeClass('sc-visible');
+            }
+
+            if (currentVal && String($opt.attr('data-value')) === String(currentVal) && typeMatch && searchMatch) {
+                currentStillValid = true;
+            }
+        });
+
+        if (currentVal && !currentStillValid) {
+            scAttendanceResetCourseDropdown();
+        }
+
+        if (visibleCount === 0) {
+            $dropdown.find('.sc-dropdown-options').append(
+                '<div class="sc-attendance-course-empty" style="padding:15px;text-align:center;color:#757575;">دوره‌ای برای این نوع یافت نشد</div>'
+            );
+        }
+    }
+
+    scAttendanceSyncCourseDropdown($('.sc-attendance-course-search').val() || '');
+
+    $('input[name="filter_course_type"]').on('change', function() {
+        $('.sc-attendance-course-search').val('');
+        scAttendanceResetCourseDropdown();
+        scAttendanceSyncCourseDropdown('');
+    });
+
+    $('.sc-attendance-course-search').on('input', function() {
+        scAttendanceSyncCourseDropdown($(this).val() || '');
+    });
+
+    $('#sc-attendance-filter-form').on('submit', function(e) {
+        var courseVal = $('#course_id').val();
+        if (!courseVal) {
+            e.preventDefault();
+            if (typeof window.scConfirm === 'function') {
+                window.scConfirm({
+                    type: 'warning',
+                    title: 'انتخاب دوره',
+                    message: 'لطفاً یک دوره را انتخاب کنید.',
+                    confirmText: 'باشه',
+                    cancelText: ''
+                });
+            } else {
+                alert('لطفاً یک دوره را انتخاب کنید.');
+            }
+        }
+    });
 });
 </script>
 

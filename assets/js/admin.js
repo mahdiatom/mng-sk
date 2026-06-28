@@ -112,6 +112,60 @@ function scSelectEventFilter(element, eventId, eventText) {
     jQuery(element).append('<span class="sc-option-check" style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
 }
 
+// تابع انتخاب دوره در ثبت حضور و غیاب (مقدار می‌تواند course_id یا course_id|chapter باشد)
+function scSelectCourseAttendance(element, courseValue, courseText) {
+    var $dropdown = jQuery(element).closest('.sc-searchable-dropdown');
+    var $hiddenInput = $dropdown.find('input[type="hidden"]');
+    var $toggle = $dropdown.find('.sc-dropdown-toggle');
+    var $placeholder = $toggle.find('.sc-dropdown-placeholder');
+    var $selected = $toggle.find('.sc-dropdown-selected');
+    var $menu = $dropdown.find('.sc-dropdown-menu');
+
+    $hiddenInput.val(courseValue || '');
+    if (!courseValue) {
+        $placeholder.show();
+        $selected.hide();
+    } else {
+        $placeholder.hide();
+        $selected.text(courseText).show();
+    }
+
+    $menu.slideUp(200);
+
+    $dropdown.find('.sc-dropdown-option').removeClass('sc-selected').css('background', '');
+    jQuery(element).addClass('sc-selected').css('background', '#f0f6fc');
+
+    $dropdown.find('.sc-option-check').remove();
+    jQuery(element).append('<span class="sc-option-check" style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
+}
+
+// تابع انتخاب دوره در فیلتر لیست حضور و غیاب
+function scSelectCourseFilter(element, courseId, courseText) {
+    var $dropdown = jQuery(element).closest('.sc-searchable-dropdown');
+    var $hiddenInput = $dropdown.find('input[type="hidden"]');
+    var $toggle = $dropdown.find('.sc-dropdown-toggle');
+    var $placeholder = $toggle.find('.sc-dropdown-placeholder');
+    var $selected = $toggle.find('.sc-dropdown-selected');
+    var $menu = $dropdown.find('.sc-dropdown-menu');
+
+    $hiddenInput.val(courseId);
+    if (courseId == '0') {
+        $placeholder.show();
+        $selected.hide();
+    } else {
+        $placeholder.hide();
+        $selected.text(courseText).show();
+    }
+
+    $menu.slideUp(200);
+
+    $dropdown.find('.sc-dropdown-option').removeClass('sc-selected').css('background', '');
+    jQuery(element).addClass('sc-selected').css('background', '#f0f6fc');
+
+    $dropdown.find('.sc-option-check').remove();
+    jQuery(element).append('<span class="sc-option-check" style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
+}
+
 // تابع انتخاب کاربر (بدون پشتیبانی از "همه کاربران")
 function scSelectMember(element, memberId, memberText) {
     var $dropdown = jQuery(element).closest('.sc-searchable-dropdown');
@@ -214,6 +268,30 @@ jQuery(document).ready(function($) {
             $('.sc-dropdown-menu').slideUp(200);
         }
     });
+
+    // انتخاب دوره در dropdown حضور و غیاب (capture — قبل از stopPropagation منو)
+    document.addEventListener('click', function(e) {
+        var option = e.target.closest('.sc-dropdown-option');
+        if (!option) {
+            return;
+        }
+
+        var filterDropdown = option.closest('.sc-attendance-course-filter-dropdown');
+        var addDropdown = option.closest('.sc-attendance-course-dropdown');
+
+        if (!filterDropdown && !addDropdown) {
+            return;
+        }
+
+        var value = option.getAttribute('data-value') || '';
+        var label = option.getAttribute('data-label') || (option.textContent || '').replace('✓', '').trim();
+
+        if (filterDropdown && typeof scSelectCourseFilter === 'function') {
+            scSelectCourseFilter(option, value, label);
+        } else if (addDropdown && typeof scSelectCourseAttendance === 'function') {
+            scSelectCourseAttendance(option, value, label);
+        }
+    }, true);
     
     // جلوگیری از بستن dropdown با کلیک داخل
     $('.sc-dropdown-menu').on('click', function(e) {
@@ -225,7 +303,9 @@ jQuery(document).ready(function($) {
         var $dropdown = $(this);
         var selectedValue = $dropdown.find('input[type="hidden"]').val();
         if (selectedValue) {
-            var $selectedOption = $dropdown.find('.sc-dropdown-option[data-value="' + selectedValue + '"]');
+            var $selectedOption = $dropdown.find('.sc-dropdown-option').filter(function() {
+                return String($(this).attr('data-value')) === String(selectedValue);
+            }).first();
             if ($selectedOption.length) {
                 var selectedText = $selectedOption.text().replace('✓', '').trim();
                 $dropdown.find('.sc-dropdown-placeholder').hide();
@@ -499,14 +579,17 @@ window.scInitCoursePackagesUI = function () {
 
     function makeRow() {
         return $(
-            '<tr class="sc-course-package-row">' +
-                '<td data-label="تعداد جلسه"><input type="number" min="1" class="regular-text sc-pkg-sessions-input sc-course-pkg-field" name="pkg_sessions[]"></td>' +
-                '<td data-label="قیمت (تومان)">' +
-                    '<input type="text" class="regular-text sc-pkg-price-input sc-course-pkg-field" name="pkg_price[]" dir="ltr" inputmode="numeric">' +
+            '<article class="sc-course-pkg-card sc-course-package-row">' +
+                '<div class="sc-course-field"><label class="sc-course-field__label">تعداد جلسه</label>' +
+                '<input type="number" min="1" class="sc-course-input sc-pkg-sessions-input sc-course-pkg-field" name="pkg_sessions[]"></div>' +
+                '<div class="sc-course-field"><label class="sc-course-field__label">قیمت (تومان)</label>' +
+                    '<input type="text" class="sc-course-input sc-pkg-price-input sc-course-pkg-field" name="pkg_price[]" dir="ltr" inputmode="numeric">' +
                     '<input type="hidden" class="sc-pkg-price-raw" name="pkg_price_raw[]" value="0">' +
-                '</td>' +
-                '<td data-label=""><button type="button" class="button sc-remove-package-row">حذف</button></td>' +
-            '</tr>'
+                '</div>' +
+                '<button type="button" class="sc-course-pkg-remove sc-remove-package-row" title="حذف پکیج">' +
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+                '</button>' +
+            '</article>'
         );
     }
 
@@ -521,7 +604,7 @@ window.scInitCoursePackagesUI = function () {
     });
 
     $body.off('click.scCoursePkg', '.sc-remove-package-row').on('click.scCoursePkg', '.sc-remove-package-row', function () {
-        $(this).closest('tr').remove();
+        $(this).closest('.sc-course-package-row').remove();
     });
 };
 

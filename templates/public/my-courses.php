@@ -62,6 +62,11 @@ $invoice_urls = isset($invoice_urls) && is_array($invoice_urls) ? $invoice_urls 
                                                     <?php echo esc_html($slot['start'] ?? ''); ?> – <?php echo esc_html($slot['end'] ?? ''); ?>
                                                 </div>
                                                 <div style="color:#333; line-height:1.4;"><?php echo esc_html($slot['title'] ?? ''); ?></div>
+                                                <?php if (!empty($slot['group_name'])) : ?>
+                                                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                                                        <strong>گروه:</strong> <?php echo esc_html($slot['group_name']); ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
@@ -157,6 +162,7 @@ $invoice_urls = isset($invoice_urls) && is_array($invoice_urls) ? $invoice_urls 
                 $coach_name = sc_get_coach_display_name((int) $user_course->coach_id);
             }
             $chapter_name = trim((string) ($user_course->chapter ?? ''));
+            $group_name = trim((string) ($user_course->group_name ?? ''));
             $invoice_url = isset($invoice_urls[$mc_id]) ? $invoice_urls[$mc_id] : '';
         ?>
             <?php if (!$display) { continue; } ?>
@@ -172,6 +178,9 @@ $invoice_urls = isset($invoice_urls) && is_array($invoice_urls) ? $invoice_urls 
                     <?php endif; ?>
                     <?php if ($coach_name !== '') : ?>
                         <span class="sc-my-course-meta-item"><strong>مربی:</strong> <?php echo esc_html($coach_name); ?></span>
+                    <?php endif; ?>
+                    <?php if ($group_name !== '') : ?>
+                        <span class="sc-my-course-meta-item"><strong>گروه:</strong> <?php echo esc_html($group_name); ?></span>
                     <?php endif; ?>
                     <span class="sc-my-course-meta-item"><strong>تاریخ ثبت‌نام:</strong> <?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($user_course->created_at) : $user_course->created_at); ?></span>
                 </div>
