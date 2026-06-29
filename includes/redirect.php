@@ -21,12 +21,13 @@ function redirect_my_account_shop_to_shop() {
     // به جای نمایش فرم پیش‌فرض ووکامرس، او را به صفحه ورود سفارشی هدایت کن
     if (!is_user_logged_in()) {
         $is_my_account_url = ($request_path === 'my-account' || strpos($request_path, 'my-account/') === 0);
+        $is_portal_url     = ($request_path === 'portal' || strpos($request_path, 'portal/') === 0);
         if (!$is_my_account_url && function_exists('is_account_page')) {
             // در مواردی که permalink ووکامرس متفاوت است، با تابع رسمی هم بررسی کن
             $is_my_account_url = is_account_page();
         }
 
-        if ($is_my_account_url) {
+        if ($is_my_account_url || $is_portal_url) {
             $login_page_id = function_exists('sc_get_setting') ? (int) sc_get_setting('sc_login_page_id', 0) : 0;
             if ($login_page_id > 0) {
                 $login_page_url = get_permalink($login_page_id);

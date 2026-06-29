@@ -554,6 +554,14 @@ function sc_license_gate_public() {
     if ($uri === '') {
         return;
     }
+    if (function_exists('sc_is_portal_page') && sc_is_portal_page()) {
+        status_header(503);
+        wp_die(
+            esc_html__('سرویس باشگاه موقتاً در دسترس نیست. لطفاً با مدیر سایت تماس بگیرید.', 'sportclub-manager'),
+            esc_html__('لایسنس نامعتبر', 'sportclub-manager'),
+            ['response' => 503]
+        );
+    }
     $blocked_fragments = [
         '/my-account/',
         'sc_survey',

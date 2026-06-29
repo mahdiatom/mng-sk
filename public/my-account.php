@@ -617,7 +617,7 @@ function sc_add_my_account_query_vars($vars) {
  */
 add_filter('redirect_canonical', 'sc_my_account_preserve_filter_query_args', 10, 2);
 function sc_my_account_preserve_filter_query_args($redirect_url, $requested_url) {
-    if (!function_exists('is_account_page') || !is_account_page()) {
+    if (!function_exists('sc_is_player_panel_context') || !sc_is_player_panel_context()) {
         return $redirect_url;
     }
 
@@ -2798,7 +2798,7 @@ function sc_handle_invoice_cancellation() {
     }
     
     // بررسی اینکه آیا در صفحه invoices هستیم
-    if (!is_account_page()) {
+    if (!function_exists('sc_is_player_panel_context') || !sc_is_player_panel_context()) {
         return;
     }
     
@@ -2938,7 +2938,7 @@ function sc_handle_order_cancellation() {
     }
     
     // بررسی اینکه آیا در صفحه invoices هستیم
-    if (!is_account_page()) {
+    if (!function_exists('sc_is_player_panel_context') || !sc_is_player_panel_context()) {
         return;
     }
     

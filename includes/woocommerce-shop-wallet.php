@@ -560,6 +560,9 @@ function sc_maybe_create_shop_invoice_for_order($order_id) {
  * Redirect helper after wallet payment.
  */
 function sc_wallet_payment_redirect_url($endpoint = 'sc-invoices') {
+    if (function_exists('sc_panel_endpoint_url')) {
+        return sc_panel_endpoint_url($endpoint === 'my-orders' ? 'my-orders' : 'sc-invoices');
+    }
     if ($endpoint === 'my-orders' && function_exists('wc_get_account_endpoint_url')) {
         return wc_get_account_endpoint_url('my-orders');
     }

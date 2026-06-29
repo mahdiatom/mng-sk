@@ -117,6 +117,7 @@ require_once SC_INCLUDES_DIR . 'admin-dashboard-widgets.php'; // ابزارک‌
 
 // Include WooCommerce My Account integration
 require_once SC_PUBLIC_DIR . 'my-account.php';
+require_once SC_PUBLIC_DIR . 'portal.php';
 // Include WooCommerce Thank You Page customization
 require_once SC_PUBLIC_DIR . 'woocommerce-thankyou.php';
 require_once SC_INCLUDES_DIR . 'woocommerce-order-context.php';
@@ -1791,13 +1792,15 @@ function sc_public_enqueue_assets() {
     }
 
     global $wp;
+    $sc_is_panel = function_exists('sc_is_player_panel_context') && sc_is_player_panel_context();
     $sc_is_surveys_account = !is_admin()
-        && is_account_page()
+        && $sc_is_panel
         && (
             ($sc_req_uri !== '' && strpos($sc_req_uri, 'sc-surveys') !== false)
             || (is_object($wp) && isset($wp->query_vars['sc-surveys']))
             || (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url('sc-surveys'))
             || get_query_var('sc-surveys', false) !== false
+            || (function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-surveys'))
         );
     if ($sc_is_surveys_account) {
         wp_enqueue_style('sc-survey-css', SC_ASSETS_URL . 'css/survey.css', array('sc-public-css'), time());
@@ -1837,31 +1840,39 @@ function sc_public_enqueue_assets() {
         );
     }
 
-    if (is_account_page() && get_query_var('sc-submit-documents') !== false) {
+    if ($sc_is_panel && function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-submit-documents')) {
         wp_enqueue_script('sc-submit-documents-js', SC_ASSETS_URL . 'js/submit-documents.js', array('jquery'), time(), true);
         wp_localize_script('sc-submit-documents-js', 'scDocuments', array('ajaxurl' => admin_url('admin-ajax.php')));
     }
-    if (is_account_page()) {
+    if ($sc_is_panel) {
         wp_enqueue_script('sc-ticket-attachments', SC_ASSETS_URL . 'js/ticket-attachments.js', array('jquery'), time(), true);
         wp_localize_script('sc-ticket-attachments', 'scTicketAttach', array('ajaxurl' => admin_url('admin-ajax.php')));
     }
-    if (is_account_page() && function_exists('wc_get_account_endpoint_url')) {
+    if ($sc_is_panel && function_exists('sc_panel_endpoint_url')) {
         wp_enqueue_script('sc-notifications-ajax', SC_ASSETS_URL . 'js/notifications-ajax.js', array('jquery'), time(), true);
         wp_localize_script('sc-notifications-ajax', 'scNotificationsAjax', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
-            'baseUrl' => wc_get_account_endpoint_url('sc-notifications'),
+            'baseUrl' => sc_panel_endpoint_url('sc-notifications'),
             'nonceMarkRead' => wp_create_nonce('sc_mark_notification_read'),
         ));
     }
-    if (is_account_page() && get_query_var('sc-private-notes', false) !== false) {
+    if ($sc_is_panel && function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-private-notes')) {
         wp_enqueue_style('sc-private-notes-css', SC_ASSETS_URL . 'css/private-notes.css', array('sc-public-css'), time());
     }
-    if (is_account_page() && get_query_var('sc-private-classes', false) !== false) {
+    if ($sc_is_panel && function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-private-classes')) {
         wp_enqueue_style('sc-private-booking-css', SC_ASSETS_URL . 'css/private-booking.css', array('sc-public-css'), time());
         wp_enqueue_script('sc-private-booking-form-js', SC_ASSETS_URL . 'js/private-booking-form.js', array(), time(), true);
     }
-    if (is_account_page() && get_query_var('sc-my-courses', false) !== false) {
+    if ($sc_is_panel && function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-my-courses')) {
         wp_enqueue_style('sc-my-courses-css', SC_ASSETS_URL . 'css/my-courses.css', array('sc-public-css'), time());
+    }
+    if (function_exists('sc_is_portal_page') && sc_is_portal_page()) {
+        wp_enqueue_style(
+            'sc-portal-css',
+            SC_ASSETS_URL . 'css/portal.css',
+            array('sc-public-css'),
+            file_exists(SC_PLUGIN_DIR . 'assets/css/portal.css') ? (string) filemtime(SC_PLUGIN_DIR . 'assets/css/portal.css') : '1.0'
+        );
     }
 }
 

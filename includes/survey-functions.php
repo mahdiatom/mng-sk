@@ -63,6 +63,9 @@ function sc_survey_account_fill_url($survey_id) {
 }
 
 function sc_survey_is_account_surveys_context() {
+    if (function_exists('sc_is_portal_page') && sc_is_portal_page() && function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-surveys')) {
+        return true;
+    }
     if (function_exists('is_account_page') && is_account_page()) {
         if (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url('sc-surveys')) {
             return true;
