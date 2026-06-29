@@ -63,6 +63,27 @@ function sc_get_player_panel_menu_items() {
 }
 
 /**
+ * Premium section hero header (shared portal + my-account templates).
+ */
+function sc_panel_render_section_hero($title, $desc = '', $type = 'default') {
+    $type = sanitize_key($type);
+    ?>
+    <div class="sc-panel-section__hero sc-panel-section__hero--<?php echo esc_attr($type); ?>">
+        <div class="sc-panel-section__hero-glow" aria-hidden="true"></div>
+        <div class="sc-panel-section__hero-inner">
+            <span class="sc-panel-section__hero-icon" aria-hidden="true"></span>
+            <div class="sc-panel-section__hero-text">
+                <h2 class="sc-panel-section__title"><?php echo esc_html($title); ?></h2>
+                <?php if ($desc !== '') : ?>
+                    <p class="sc-panel-section__desc"><?php echo esc_html($desc); ?></p>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
+/**
  * Icon map for portal sidebar (existing SVG assets).
  */
 function sc_portal_menu_icon($slug) {
@@ -365,7 +386,7 @@ function sc_portal_render_page($tab, $menu_items) {
             </aside>
 
             <main class="sc-portal-main">
-                <div class="sc-portal-content woocommerce-MyAccount-content">
+                <div class="sc-portal-content ">
                     <?php sc_portal_render_tab_content($tab); ?>
                 </div>
             </main>

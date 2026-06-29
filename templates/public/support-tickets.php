@@ -12,6 +12,9 @@ $counts = [
     'closed'        => sc_count_user_tickets($user_id, 'closed'),
 ];
 
+$base_url = function_exists('sc_panel_endpoint_url')
+    ? sc_panel_endpoint_url('sc-support-tickets')
+    : wc_get_account_endpoint_url('sc-support-tickets');
 
 // Process POST actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action'])) {
@@ -44,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
             if (is_wp_error($result)) {
                 echo '<p class="woocommerce-error">' . esc_html($result->get_error_message()) . '</p>';
             } else {
-                wp_safe_redirect(wc_get_account_endpoint_url('sc-support-tickets') . '?view_ticket=' . $result);
+                wp_safe_redirect(add_query_arg('view_ticket', $result, $base_url));
                 exit;
             }
         } elseif ($action === 'reply') {
@@ -66,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
                 if (is_wp_error($result)) {
                     echo '<p class="woocommerce-error">' . esc_html($result->get_error_message()) . '</p>';
                 } else {
-                    wp_safe_redirect(wc_get_account_endpoint_url('sc-support-tickets') . '?view_ticket=' . $ticket_id);
+                    wp_safe_redirect(add_query_arg('view_ticket', $ticket_id, $base_url));
                     exit;
                 }
             }
@@ -77,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['sc_ticket_action']))
                 echo '<p class="woocommerce-error">امکان بستن این تیکت را ندارید.</p>';
             } else {
                 sc_support_close_ticket($ticket_id, $current_user_id);
-                wp_safe_redirect(wc_get_account_endpoint_url('sc-support-tickets'));
+                wp_safe_redirect($base_url);
                 exit;
             }
         }
@@ -92,10 +95,39 @@ if ($view_ticket_id > 0) {
     }
 }
 
-$base_url = wc_get_account_endpoint_url('sc-support-tickets');
 $coaches = sc_support_get_coaches_for_member($member_id);
 $accountants = function_exists('sc_support_get_accountant_users') ? sc_support_get_accountant_users() : [];
 ?>
+<div class="sc-panel-section sc-panel-support">
+<?php if ($view_ticket_id === 0) : ?>
+    <?php
+    if (function_exists('sc_panel_render_section_hero')) {
+        sc_panel_render_section_hero(
+            'تیکت‌های پشتیبانی',
+            'درخواست‌ها و پیام‌های خود را با مدیریت، مربی یا پشتیبانی سایت پیگیری کنید.',
+            'support'
+        );
+    }
+    ?>
+    <div class="sc-panel-stats sc-panel-stats--support">
+        <div class="sc-panel-stat-card">
+            <span class="sc-panel-stat-card__value"><?php echo (int) $counts['all']; ?></span>
+            <span class="sc-panel-stat-card__label">همه تیکت‌ها</span>
+        </div>
+        <div class="sc-panel-stat-card sc-panel-stat-card--amber">
+            <span class="sc-panel-stat-card__value"><?php echo (int) $counts['pending_reply']; ?></span>
+            <span class="sc-panel-stat-card__label">در انتظار پاسخ</span>
+        </div>
+        <div class="sc-panel-stat-card sc-panel-stat-card--green">
+            <span class="sc-panel-stat-card__value"><?php echo (int) $counts['answered']; ?></span>
+            <span class="sc-panel-stat-card__label">پاسخ داده شده</span>
+        </div>
+        <div class="sc-panel-stat-card sc-panel-stat-card--muted">
+            <span class="sc-panel-stat-card__value"><?php echo (int) $counts['closed']; ?></span>
+            <span class="sc-panel-stat-card__label">بسته شده</span>
+        </div>
+    </div>
+<?php endif; ?>
 <div class="woocommerce-MyAccount-content sc-support-tickets-content">
 <?php if ($view_ticket_id > 0 && isset($ticket)) : ?>
     <div class="sc-ticket-detail-card">
@@ -218,8 +250,7 @@ $accountants = function_exists('sc_support_get_accountant_users') ? sc_support_g
     <!-- نمای لیست تیکت‌ها (پیش‌فرض) -->
     <div id="sc-support-list-view" class="sc-support-list-view">
         <div class="sc-support-heading-row">
-            <h2 class="sc-support-heading">تیکت‌های پشتیبانی</h2>
-            <button type="button" id="sc-support-btn-new-ticket" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-new button-primary">ارسال تیکت جدید</button>
+            <button type="button" id="sc-support-btn-new-ticket" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-new sc-panel-btn-primary">+ ارسال تیکت جدید</button>
         </div>
         <div class="sc-support-toolbar">
             <ul class="sc-support-tabs" aria-label="فیلتر وضعیت">
@@ -362,17 +393,24 @@ $accountants = function_exists('sc_support_get_accountant_users') ? sc_support_g
             if (!data.items || data.items.length === 0) {
                 html = '<div class="sc-support-empty-state"><span class="sc-support-empty-icon" aria-hidden="true"></span><p class="sc-support-empty-text">' + (data.empty_message || '') + '</p></div>';
             } else {
-                html = '<div class="sc-support-grid">';
+                html = '<div class="sc-support-list">';
+                html += '<div class="sc-support-list__head">';
+                html += '<span class="sc-support-list__col-subject">موضوع تیکت</span><span>وضعیت</span><span>بخش</span><span>آخرین بروزرسانی</span><span></span>';
+                html += '</div><div class="sc-support-list__body">';
                 $.each(data.items, function(i, t) {
-                    html += '<article class="sc-ticket-card sc-ticket-status-' + (t.status || '') + '"><div class="sc-ticket-card-inner">';
-                    html += '<h3 class="sc-ticket-card-title"><a href="' + (t.view_url || '') + '">' + (t.subject || '') + '</a></h3>';
-                    html += '<div class="sc-ticket-card-meta"><span class="sc-ticket-card-date">' + (t.updated_at || '') + '</span>';
-                    html += '<span class="sc-ticket-card-badge sc-ticket-badge-' + (t.status || '') + '">' + (t.status_label || '') + '</span>';
-                    html += '<span class="sc-ticket-card-dept">' + (t.department_label || '') + '</span></div>';
-                    html += '<div class="sc-ticket-card-actions"><a href="' + (t.view_url || '') + '" class="sc-ticket-btn sc-ticket-btn-primary">مشاهده</a></div>';
-                    html += '</div></article>';
+                    var statusClass = 'sc-support-list__badge--' + (t.status || 'pending_reply');
+                    html += '<a class="sc-support-list__row" href="' + (t.view_url || '#') + '">';
+                    html += '<span class="sc-support-list__col-subject">';
+                    html += '<span class="sc-support-list__ticket-icon" aria-hidden="true"></span>';
+                    html += '<span class="sc-support-list__subject-wrap"><strong class="sc-support-list__subject">' + (t.subject || '') + '</strong>';
+                    html += '<span class="sc-support-list__id">شناسه #' + (t.id || '') + '</span></span></span>';
+                    html += '<span class="sc-support-list__badge ' + statusClass + '">' + (t.status_label || '') + '</span>';
+                    html += '<span class="sc-support-list__dept">' + (t.department_label || '') + '</span>';
+                    html += '<span class="sc-support-list__date">' + (t.updated_at || '') + '</span>';
+                    html += '<span class="sc-support-list__action-wrap"><span class="sc-support-list__action">مشاهده ←</span></span>';
+                    html += '</a>';
                 });
-                html += '</div>';
+                html += '</div></div>';
                 if (data.total_pages > 1) {
                     html += '<nav class="sc-support-pagination" aria-label="صفحه‌بندی">';
                     for (var p = 1; p <= data.total_pages; p++) {
@@ -389,8 +427,8 @@ $accountants = function_exists('sc_support_get_accountant_users') ? sc_support_g
         }
 
         function setTabActive() {
-            $('.sc-support-tab').removeClass('active').css({'background':'#f0f0f1','color':'#1d2327'});
-            $('.sc-support-tab[data-filter="' + filterStatus + '"]').addClass('active').css({'background':'#2271b1','color':'#fff'});
+            $('.sc-support-tab').removeClass('active').css({'background':'','color':''});
+            $('.sc-support-tab[data-filter="' + filterStatus + '"]').addClass('active').css({'background':'','color':''});
             $('#sc-support-filter-status').val(filterStatus);
         }
 
@@ -498,4 +536,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 100);
 });
 </script>
+</div>
 </div>

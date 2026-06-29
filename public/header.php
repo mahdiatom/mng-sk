@@ -280,6 +280,13 @@ a.details_info_user_pannel,
         border:3px solid <?php echo $color_org;  ?> !important;
 
 }
+.woocommerce-account,
+.sc-portal-app {
+    --sc-panel-primary: <?php echo $color_org; ?>;
+    --sc-panel-primary-text: <?php echo $color_org_txt; ?>;
+    --sc-panel-primary-soft: <?php echo $color_org; ?>1a;
+    --sc-panel-gradient: linear-gradient(135deg, <?php echo $color_org; ?> 0%, <?php echo $color_org; ?>cc 55%, #a78bfa 100%);
+}
 </style>
 
     <?php

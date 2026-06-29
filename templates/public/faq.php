@@ -1,74 +1,86 @@
 <?php
-if ( ! defined('ABSPATH') ) exit;
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 global $wpdb;
 $faq_table = $wpdb->prefix . 'sc_faq';
 $faqs = $wpdb->get_results("SELECT * FROM $faq_table ORDER BY id ASC");
-
 ?>
-<div class="sc-faq-page">
-    <h2>سوالات متداول باشگاه</h2>
-</div>
-<div class="wrap faq" >
-    
+<div class="sc-panel-section sc-panel-faq">
     <?php
-    if($faqs){
-    foreach($faqs as $i => $faq){ ?>
-        <div class="section_box">
+    if (function_exists('sc_panel_render_section_hero')) {
+        sc_panel_render_section_hero(
+            'سوالات متداول باشگاه',
+            'پاسخ پرسش‌های رایج درباره خدمات و قوانین باشگاه را در این بخش ببینید.',
+            'faq'
+        );
+    }
+    ?>
 
-            <div id="question" class="question">
-                <span>سوال <?php echo $i+1; ?>:</span>
-                <div class="question-content"><?php echo wp_kses_post($faq->question); ?></div>
+    <div class="sc-panel-section__body">
+        <?php if ($faqs) : ?>
+            <div class="sc-panel-faq-list" role="list">
+                <?php foreach ($faqs as $i => $faq) : ?>
+                    <article class="sc-panel-faq-item" role="listitem">
+                        <button type="button" class="sc-panel-faq-item__question" aria-expanded="false">
+                            <span class="sc-panel-faq-item__index"><?php echo (int) ($i + 1); ?></span>
+                            <span class="sc-panel-faq-item__text"><?php echo wp_kses_post($faq->question); ?></span>
+                            <span class="sc-panel-faq-item__toggle" aria-hidden="true">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                            </span>
+                        </button>
+                        <div class="sc-panel-faq-item__answer" hidden>
+                            <div class="sc-panel-faq-item__answer-inner">
+                                <?php echo wp_kses_post($faq->answer); ?>
+                            </div>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
             </div>
-            <div class="answer">
-                <div class="answer-content"><?php echo wp_kses_post($faq->answer); ?></div>
+        <?php else : ?>
+            <div class="sc-panel-empty">
+                <span class="sc-panel-empty__icon" aria-hidden="true"></span>
+                <p>هنوز هیچ پرسشی برای باشگاه ثبت نشده است.</p>
             </div>
-        </div>
-        <?php
-     }
-    }else{ ?>
-            <div class="section_box"><span>هنوز هیچ پرسشی برای باشگاه طراحی نشده است.</span> </div>
-       <?php }
-       ?>
+        <?php endif; ?>
+    </div>
 </div>
-
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.faq .section_box .question').forEach(question => {
-        question.addEventListener('click', function () {
-            const answer = this.nextElementSibling;
-           
-            const isExpanded = answer.classList.contains('show');
-            
-if (isExpanded) {
-                // بسته شدن: بازگشت به حالت اول
-                answer.classList.remove('show');
-                question.classList.remove('active');
-                answer.style.maxHeight = '0';
-                answer.style.opacity = '0';
-                console.log(question);
+    document.querySelectorAll('.sc-panel-faq-item__question').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var item = btn.closest('.sc-panel-faq-item');
+            var answer = item ? item.querySelector('.sc-panel-faq-item__answer') : null;
+            if (!item || !answer) {
+                return;
+            }
+            var isOpen = item.classList.contains('is-open');
+            document.querySelectorAll('.sc-panel-faq-item.is-open').forEach(function (openItem) {
+                if (openItem === item) {
+                    return;
+                }
+                openItem.classList.remove('is-open');
+                var openBtn = openItem.querySelector('.sc-panel-faq-item__question');
+                var openAnswer = openItem.querySelector('.sc-panel-faq-item__answer');
+                if (openBtn) {
+                    openBtn.setAttribute('aria-expanded', 'false');
+                }
+                if (openAnswer) {
+                    openAnswer.hidden = true;
+                }
+            });
+            if (isOpen) {
+                item.classList.remove('is-open');
+                btn.setAttribute('aria-expanded', 'false');
+                answer.hidden = true;
             } else {
-                // باز شدن: نمایش پاسخ با انیمیشن
-                answer.classList.add('show');
-                question.classList.add('active');
-                answer.style.maxHeight = answer.scrollHeight + 'px'; // ارتفاع واقعی پاسخ
-                answer.style.opacity = '1';
+                item.classList.add('is-open');
+                btn.setAttribute('aria-expanded', 'true');
+                answer.hidden = false;
             }
         });
     });
 });
-
-document.addEventListener('DOMContentLoaded', function() {
-    // بررسی هر 100ms تا المان حاضر شود
-    const interval = setInterval(function() {
-        const el = document.querySelector('.sc-faq-page h2'); // المان هدف
-        if (el) {
-            // اسکرول نرم و مرکز صفحه
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            clearInterval(interval); // توقف بررسی بعد از اسکرول
-        }
-    }, 100);
-});
 </script>
-
-

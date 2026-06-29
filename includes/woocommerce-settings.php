@@ -44,7 +44,24 @@ function sc_remove_default_account_menu_items($items) {
 }
 add_action('woocommerce_edit_account_form_fields' , 'add_text_before_password');
 function add_text_before_password(){
- echo '<p>کاربر عزیز در صورتی که قصد تغییر رمز خود را دارید و رمز پیشین خود را نمی دانید از مدیر مجموعه بخواهید تا رمز شما را به صورت دستی تغییر دهد و در اختیار تان قرار دهد سپس رمزی که مدیر داده است را به عنوان رمز پیشین وارد کنید و سپس رمز جدید خود را وارد کنید .</p>';
+ echo '<p class="sc-panel-alert sc-panel-alert--warning">کاربر عزیز در صورتی که قصد تغییر رمز خود را دارید و رمز پیشین خود را نمی‌دانید از مدیر مجموعه بخواهید تا رمز شما را به صورت دستی تغییر دهد و در اختیار تان قرار دهد؛ سپس رمزی که مدیر داده است را به عنوان رمز پیشین وارد کنید و سپس رمز جدید خود را وارد کنید.</p>';
+}
+
+add_action('woocommerce_before_edit_account_form', 'sc_panel_edit_account_open', 5);
+add_action('woocommerce_after_edit_account_form', 'sc_panel_edit_account_close', 99);
+function sc_panel_edit_account_open() {
+    echo '<div class="sc-panel-section sc-panel-edit-account">';
+    if (function_exists('sc_panel_render_section_hero')) {
+        sc_panel_render_section_hero(
+            __('تغییر رمز ورود', 'sportclub-manager'),
+            __('برای امنیت بیشتر، رمز عبور قوی انتخاب کنید.', 'sportclub-manager'),
+            'account'
+        );
+    }
+    echo '<div class="sc-panel-section__body">';
+}
+function sc_panel_edit_account_close() {
+    echo '</div></div>';
 }
 /**
  * حذف فیلدهای اضافی از صفحه ویرایش کاربر WordPress

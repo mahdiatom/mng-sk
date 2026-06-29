@@ -1132,7 +1132,9 @@ function sc_ajax_support_tickets_filter() {
         $total = sc_support_count_tickets_for_user($user_id, $filter_status === 'all' ? '' : $filter_status);
     }
     $total_pages = max(1, ceil($total / $per_page));
-    $base_url = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-support-tickets') : '';
+    $base_url = function_exists('sc_panel_endpoint_url')
+        ? sc_panel_endpoint_url('sc-support-tickets')
+        : (function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-support-tickets') : '');
     $items = [];
     foreach ($tickets as $t) {
         $items[] = [

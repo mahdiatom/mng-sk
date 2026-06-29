@@ -1874,6 +1874,14 @@ function sc_public_enqueue_assets() {
             file_exists(SC_PLUGIN_DIR . 'assets/css/portal.css') ? (string) filemtime(SC_PLUGIN_DIR . 'assets/css/portal.css') : '1.0'
         );
     }
+    if ($sc_is_panel) {
+        wp_enqueue_style(
+            'sc-panel-sections-css',
+            SC_ASSETS_URL . 'css/panel-sections.css',
+            array('sc-public-css'),
+            file_exists(SC_PLUGIN_DIR . 'assets/css/panel-sections.css') ? (string) filemtime(SC_PLUGIN_DIR . 'assets/css/panel-sections.css') : '1.0'
+        );
+    }
 }
 
 //پنهان کردن تاپ منو برای نقش مدیر باشگاه
