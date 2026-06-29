@@ -84,6 +84,62 @@ function sc_panel_render_section_hero($title, $desc = '', $type = 'default') {
 }
 
 /**
+ * Title + description + hero icon type for each panel tab.
+ * Tabs that already render their own hero inside the template
+ * (submit-documents, faq, support-tickets, edit-account) are excluded.
+ * Dashboard keeps its personalized greeting and is excluded too.
+ */
+function sc_panel_get_tab_hero_map() {
+    return apply_filters('sc_panel_tab_hero_map', [
+        'sc-enroll-course'   => ['ثبت‌نام در دوره', 'دوره مورد نظر را انتخاب کنید، شعبه و مربی را مشخص کنید و ثبت‌نام را تکمیل نمایید.', 'enroll'],
+        'sc-my-courses'      => ['دوره‌های من و برنامه هفتگی', 'دوره‌های ثبت‌نامی و برنامه تمرینی هفتگی خود را در این بخش مشاهده کنید.', 'courses'],
+        'sc-my-attendances'  => ['حضور و غیاب من', 'لیست جلسات ثبت‌شده همراه با وضعیت حضور، شعبه و مربی شما.', 'attendances'],
+        'sc-invoices'        => ['صورت‌حساب‌ها', 'لیست پرداخت‌های دوره، رویداد و سایر هزینه‌های شما در باشگاه.', 'invoices'],
+        'my-orders'          => ['سفارش‌های فروشگاه', 'لیست سفارش‌های ثبت‌شده شما در فروشگاه باشگاه.', 'orders'],
+        'sc-events'          => ['رویدادها و مسابقات', 'رویدادها و مسابقات فعال باشگاه را مشاهده و در آن‌ها ثبت‌نام کنید.', 'events'],
+        'sc-my-events'       => ['رویدادهای من', 'رویدادهایی که در آن‌ها ثبت‌نام کرده‌اید، همراه با زمان و محل برگزاری.', 'events'],
+        'sc-wallet'          => ['کیف پول من', 'موجودی، شارژ و تراکنش‌های کیف پول خود را مدیریت کنید.', 'wallet'],
+        'sc-notifications'   => ['اطلاعیه‌ها', 'آخرین اطلاعیه‌ها و پیام‌های باشگاه را در این بخش دنبال کنید.', 'notifications'],
+        'sc-surveys'         => ['نظرسنجی‌ها', 'در نظرسنجی‌های فعال باشگاه شرکت کنید و دیدگاه خود را ثبت کنید.', 'surveys'],
+        'sc-private-notes'   => ['یادداشت‌های من', 'گفتگوها و یادداشت‌های خصوصی شما با کادر باشگاه.', 'notes'],
+        'sc-private-classes' => ['کلاس‌های خصوصی', 'درخواست و پیگیری جلسات کلاس خصوصی خود را انجام دهید.', 'private'],
+        'sc-my-honors'       => ['افتخارات من', 'افتخارات و دستاوردهای ورزشی ثبت‌شده برای شما.', 'honors'],
+        'sc-my-certificates' => ['گواهینامه‌های من', 'گواهینامه‌های صادرشده خود را مشاهده و دانلود کنید.', 'certificates'],
+    ]);
+}
+
+/**
+ * Register the shared hero on every mapped tab endpoint (portal + my-account).
+ */
+add_action('init', 'sc_panel_register_tab_heroes', 20);
+function sc_panel_register_tab_heroes() {
+    foreach (array_keys(sc_panel_get_tab_hero_map()) as $tab) {
+        add_action('woocommerce_account_' . $tab . '_endpoint', 'sc_panel_render_current_tab_hero', 1);
+    }
+}
+
+/**
+ * Render the org-colored hero for the tab whose endpoint action is firing.
+ */
+function sc_panel_render_current_tab_hero() {
+    static $done = [];
+    $action = current_action();
+    $tab = preg_replace('/^woocommerce_account_(.+)_endpoint$/', '$1', $action);
+    if ($tab === '' || isset($done[$tab])) {
+        return;
+    }
+    $done[$tab] = true;
+    $map = sc_panel_get_tab_hero_map();
+    if (!isset($map[$tab]) || !function_exists('sc_panel_render_section_hero')) {
+        return;
+    }
+    list($title, $desc, $type) = $map[$tab];
+    echo '<div class="sc-panel-tab-hero">';
+    sc_panel_render_section_hero($title, $desc, $type);
+    echo '</div>';
+}
+
+/**
  * Icon map for portal sidebar (existing SVG assets).
  */
 function sc_portal_menu_icon($slug) {
@@ -118,6 +174,77 @@ function sc_portal_menu_icon($slug) {
         return '';
     }
     return file_get_contents($path);
+}
+
+/**
+ * Portal header: AJAX search (desktop inline + mobile popup).
+ */
+function sc_portal_render_header_search() {
+    $placeholder = esc_attr(sc_get_setting('sc_header_search_placeholder', 'جستجو در خدمات، صفحات و فروشگاه…'));
+    $svg = '<svg class="sc-header-search__icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    ?>
+    <div class="sc-portal-header__search-wrap">
+        <div class="sc-header-search sc-header-search--portal sc-header-search--desktop" role="search">
+            <div class="sc-header-search__box">
+                <?php echo $svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <input type="search" class="sc-header-search__input" placeholder="<?php echo $placeholder; ?>" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
+                <div class="sc-header-search__dropdown" hidden></div>
+            </div>
+        </div>
+        <button type="button" class="sc-portal-header__icon-btn sc-header-search-toggle sc-header-search--mobile" aria-label="<?php esc_attr_e('جستجو', 'sportclub-manager'); ?>">
+            <?php echo $svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </button>
+    </div>
+    <?php
+}
+
+/**
+ * Quick links shown in the profile chip dropdown.
+ */
+function sc_portal_get_profile_dropdown_links($verification_gate_locked = false) {
+    $links = [
+        ['slug' => 'sc-submit-documents', 'label' => 'اطلاعات من'],
+    ];
+    if (!$verification_gate_locked) {
+        $links[] = ['slug' => 'sc-my-courses', 'label' => 'دوره ها + برنامه هفتگی من'];
+        if (sc_get_setting('pro_feature_shop')) {
+            $links[] = ['slug' => 'my-orders', 'label' => 'سفارش های من'];
+        }
+        $links[] = ['slug' => 'sc-my-events', 'label' => 'رویداد های من'];
+        $links[] = ['slug' => 'sc-private-notes', 'label' => 'یادداشت های من'];
+    }
+    $links[] = ['slug' => 'edit-account', 'label' => 'تغییر رمز ورود', 'hash' => '#password_current'];
+    $links[] = ['slug' => 'home', 'label' => 'بازگشت به سایت', 'url' => home_url('/')];
+    $links[] = ['slug' => 'customer-logout', 'label' => 'خروج از پنل', 'class' => 'is-logout'];
+    return $links;
+}
+
+/**
+ * Whether a portal menu slug should show in header tab dropdown.
+ */
+function sc_portal_header_tab_visible($slug, $verification_gate_locked = false) {
+    if ($slug === 'customer-logout') {
+        return true;
+    }
+    $locked_slugs = [
+        'edit-account', 'bot-connect', 'sc-enroll-course', 'sc-private-classes',
+        'sc-my-courses', 'sc-my-attendances', 'sc-events', 'sc-my-events', 'sc-invoices',
+        'sc-my-honors', 'sc-my-certificates', 'sc-private-notes', 'sc-notifications',
+        'sc-wallet', 'sc-support-tickets', 'sc-faq', 'sc-surveys',
+    ];
+    if ($verification_gate_locked && in_array($slug, $locked_slugs, true)) {
+        return false;
+    }
+    if ($slug === 'sc-notifications' && !(function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled())) {
+        return false;
+    }
+    if ($slug === 'sc-wallet' && !sc_get_setting('pro_feature_players_wallet')) {
+        return false;
+    }
+    if (in_array($slug, ['shop', 'my-orders'], true) && !sc_get_setting('pro_feature_shop')) {
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -292,6 +419,25 @@ function sc_portal_render_page($tab, $menu_items) {
         ? (int) sc_count_user_tickets(get_current_user_id(), 'pending_reply')
         : 0;
 
+    $verification_gate_locked = function_exists('sc_is_member_verification_gate_enabled_for_user')
+        ? sc_is_member_verification_gate_enabled_for_user($player)
+        : false;
+    $player_level = ($player && !empty($player->skill_level)) ? trim((string) $player->skill_level) : '';
+    $identity_verified = $player && !empty($player->identity_verified);
+    $identity_label = $identity_verified ? __('احراز شده', 'sportclub-manager') : __('در انتظار احراز', 'sportclub-manager');
+    $identity_class = $identity_verified ? 'is-verified' : 'is-pending';
+    $cart_count = function_exists('get_cart_item_count') ? (int) get_cart_item_count()['count'] : 0;
+    $cart_sum   = function_exists('get_cart_item_count') ? (string) get_cart_item_count()['sum'] : '';
+    $user_icon_svg = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="1.9"/><path d="M4.5 20c1.4-3.4 4.4-5.1 7.5-5.1s6.1 1.7 7.5 5.1" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>';
+    $shop_icon_svg = file_exists(SC_ASSETS_DIR . 'img/icons/shop.svg')
+        ? file_get_contents(SC_ASSETS_DIR . 'img/icons/shop.svg')
+        : '';
+    $cat_icon_svg = file_exists(SC_ASSETS_DIR . 'img/icons/charkhone.svg')
+        ? file_get_contents(SC_ASSETS_DIR . 'img/icons/charkhone.svg')
+        : '';
+    $has_cat_menu  = function_exists('has_nav_menu') && has_nav_menu('maga_menu_product') && sc_get_setting('pro_feature_shop');
+    $has_main_menu = function_exists('has_nav_menu') && has_nav_menu('main_menu_header');
+
     $nav_main  = [];
     $nav_logout = null;
     foreach ($menu_items as $slug => $label) {
@@ -314,33 +460,100 @@ function sc_portal_render_page($tab, $menu_items) {
                 </span>
             </div>
             <div class="sc-portal-header__end">
-                <div class="sc-portal-header__search" role="search">
-                    <svg class="sc-portal-header__search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                    <input type="search" class="sc-portal-header-search-trigger" placeholder="<?php echo esc_attr(sc_get_setting('sc_header_search_placeholder', 'جستجو…')); ?>" readonly aria-label="<?php esc_attr_e('جستجو', 'sportclub-manager'); ?>" />
+                <?php sc_portal_render_header_search(); ?>
+
+                <div class="sc-portal-header__actions">
+                    
+
+                    <div class="sc-portal-header__menu sc-portal-header__menu--profile">
+                        <button type="button" class="sc-portal-header__profile sc-portal-header__menu-trigger" aria-expanded="false" aria-haspopup="true">
+                            <div class="info_user_portal">
+                                <img src="<?php echo esc_url($avatar); ?>" alt="" class="sc-portal-header__avatar" width="36" height="36" />
+                                <span class="sc-portal-header__profile-info">
+                                    <span class="sc-portal-header__name"><?php echo esc_html($display_name); ?></span>
+                                    <span class="sc-portal-header__meta">
+                                        <?php if ($player_level !== '') : ?>
+                                        <?php endif; ?>
+                                        <span class="sc-portal-header__verify <?php echo esc_attr($identity_class); ?>"><?php echo esc_html($identity_label); ?></span>
+                                    </span>
+                                </span>
+                            </div>
+                            <span class="sc-portal-header__menu-caret sc-portal-header__menu-caret--profile" aria-hidden="true"></span>
+                        </button>
+                        <div class="sc-portal-header__dropdown sc-portal-header__dropdown--profile" hidden>
+                            <div class="sc-portal-header__dropdown-head">
+                                <img src="<?php echo esc_url($avatar); ?>" alt="" class="sc-portal-header__dropdown-avatar" width="48" height="48" />
+                                <div>
+                                    <strong class="sc-portal-header__dropdown-name"><?php echo esc_html($display_name); ?></strong>
+                                    <?php if ($player_level !== '') : ?>
+                                        <span class="sc-portal-header__dropdown-phone"><?php echo esc_html(sprintf(__('سطح: %s', 'sportclub-manager'), $player_level)); ?></span>
+                                    <?php endif; ?>
+                                    <span class="sc-portal-header__dropdown-role <?php echo esc_attr($identity_class); ?>"><?php echo esc_html($identity_label); ?></span>
+                                </div>
+                            </div>
+                            <ul class="sc-portal-header__dropdown-list sc-portal-header__dropdown-list--quick">
+                                <?php foreach (sc_portal_get_profile_dropdown_links($verification_gate_locked) as $link) : ?>
+                                    <?php
+                                    $href = !empty($link['url']) ? $link['url'] : sc_portal_endpoint_url($link['slug']);
+                                    if (!empty($link['hash'])) {
+                                        $href .= $link['hash'];
+                                    }
+                                    $item_class = 'sc-portal-header__dropdown-item sc-portal-header__dropdown-item--' . sanitize_html_class($link['slug']);
+                                    if (!empty($link['class'])) {
+                                        $item_class .= ' ' . sanitize_html_class($link['class']);
+                                    }
+                                    $onclick = ($link['slug'] === 'customer-logout')
+                                        ? ' onclick="return typeof scConfirmInline === \'function\' ? scConfirmInline(event, { type: \'warning\', message: \'شما در حال خروج از پنل هستید؛ از این کار اطمینان دارید؟\' }) : true;"'
+                                        : '';
+                                    ?>
+                                    <li class="<?php echo esc_attr($item_class); ?>">
+                                        <a href="<?php echo esc_url($href); ?>"<?php echo $onclick; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_html($link['label']); ?></a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <?php if (function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled()) : ?>
-                <a href="<?php echo esc_url(sc_portal_endpoint_url('sc-notifications')); ?>" class="sc-portal-header__icon-btn" title="<?php esc_attr_e('اطلاعیه‌ها', 'sportclub-manager'); ?>">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 17H9c-2.2 0-4-1.8-4-4V9c0-2.2 1.8-4 4-4h6c2.2 0 4 1.8 4 4v4c0 2.2-1.8 4-4 4z" stroke="currentColor" stroke-width="1.8"/><path d="M12 21a2 2 0 002-2h-4a2 2 0 002 2z" fill="currentColor"/></svg>
-                    <?php if ($unread_notif > 0) : ?>
-                        <span class="sc-portal-header__badge"><?php echo esc_html((string) $unread_notif); ?></span>
-                    <?php endif; ?>
-                </a>
-                <?php endif; ?>
-                <a href="<?php echo esc_url(sc_portal_endpoint_url('sc-support-tickets')); ?>" class="sc-portal-header__icon-btn" title="<?php esc_attr_e('تیکت پشتیبانی', 'sportclub-manager'); ?>">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16v10H8l-4 4V6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-                    <?php if ($unread_ticket > 0) : ?>
-                        <span class="sc-portal-header__badge"><?php echo esc_html((string) $unread_ticket); ?></span>
-                    <?php endif; ?>
-                </a>
-                <a href="<?php echo esc_url(sc_portal_endpoint_url('sc-submit-documents')); ?>" class="sc-portal-header__profile">
-                    <img src="<?php echo esc_url($avatar); ?>" alt="" class="sc-portal-header__avatar" width="36" height="36" />
-                    <span class="sc-portal-header__profile-info">
-                        <span class="sc-portal-header__name"><?php echo esc_html($display_name); ?></span>
-                        <span class="sc-portal-header__role"><?php esc_html_e('بازیکن', 'sportclub-manager'); ?></span>
-                    </span>
-                </a>
             </div>
         </header>
+
+        <?php if ($has_cat_menu || $has_main_menu) : ?>
+        <nav class="sc-portal-subnav" aria-label="<?php esc_attr_e('منوی سایت', 'sportclub-manager'); ?>">
+            <button type="button" class="sc-portal-subnav__toggle" aria-expanded="false" aria-controls="sc-portal-subnav-inner">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+                <span><?php esc_html_e('منوی سایت', 'sportclub-manager'); ?></span>
+            </button>
+            <div class="sc-portal-subnav__inner" id="sc-portal-subnav-inner">
+                <?php if ($has_cat_menu) : ?>
+                <div class="sc-portal-megamenu">
+                    <button type="button" class="sc-portal-megamenu__trigger" aria-expanded="false">
+                        <span class="sc-portal-megamenu__icon" aria-hidden="true"><?php echo $cat_icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                        <span><?php esc_html_e('دسته‌بندی', 'sportclub-manager'); ?></span>
+                        <span class="sc-portal-megamenu__caret" aria-hidden="true"></span>
+                    </button>
+                    <div class="sc-portal-megamenu__panel">
+                        <?php wp_nav_menu(array(
+                            'theme_location' => 'maga_menu_product',
+                            'container'      => '',
+                            'menu_class'     => 'sc-portal-megamenu__list',
+                            'fallback_cb'    => '__return_empty_string',
+                        )); ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <?php if ($has_main_menu) : ?>
+                <div class="sc-portal-mainmenu">
+                    <?php wp_nav_menu(array(
+                        'theme_location' => 'main_menu_header',
+                        'container'      => '',
+                        'menu_class'     => 'sc-portal-mainmenu__list',
+                        'fallback_cb'    => '__return_empty_string',
+                    )); ?>
+                </div>
+                <?php endif; ?>
+            </div>
+        </nav>
+        <?php endif; ?>
 
         <div class="sc-portal-layout">
             <aside class="sc-portal-sidebar" aria-label="<?php esc_attr_e('منوی پنل', 'sportclub-manager'); ?>">
@@ -394,24 +607,99 @@ function sc_portal_render_page($tab, $menu_items) {
     </div>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
-        var trigger = document.querySelector('.sc-portal-header-search-trigger');
-        var popup = document.getElementById('sc-header-search-popup');
-        if (!trigger || !popup) {
-            return;
-        }
-        function openPortalSearch(e) {
-            if (e) {
+        var menus = document.querySelectorAll('.sc-portal-header__menu');
+        menus.forEach(function (menu) {
+            var trigger = menu.querySelector('.sc-portal-header__menu-trigger');
+            var panel = menu.querySelector('.sc-portal-header__dropdown');
+            if (!trigger || !panel) {
+                return;
+            }
+            function closeMenu() {
+                menu.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+                panel.setAttribute('hidden', 'hidden');
+            }
+            function openMenu() {
+                menus.forEach(function (other) {
+                    if (other !== menu) {
+                        var ot = other.querySelector('.sc-portal-header__menu-trigger');
+                        var op = other.querySelector('.sc-portal-header__dropdown');
+                        if (ot && op) {
+                            other.classList.remove('is-open');
+                            ot.setAttribute('aria-expanded', 'false');
+                            op.setAttribute('hidden', 'hidden');
+                        }
+                    }
+                });
+                menu.classList.add('is-open');
+                trigger.setAttribute('aria-expanded', 'true');
+                panel.removeAttribute('hidden');
+            }
+            trigger.addEventListener('click', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
+                if (menu.classList.contains('is-open')) {
+                    closeMenu();
+                } else {
+                    openMenu();
+                }
+            });
+            menu.addEventListener('mouseenter', function () {
+                if (window.matchMedia('(min-width: 901px)').matches) {
+                    openMenu();
+                }
+            });
+            menu.addEventListener('mouseleave', function () {
+                if (window.matchMedia('(min-width: 901px)').matches) {
+                    closeMenu();
+                }
+            });
+        });
+        document.addEventListener('click', function () {
+            menus.forEach(function (menu) {
+                var trigger = menu.querySelector('.sc-portal-header__menu-trigger');
+                var panel = menu.querySelector('.sc-portal-header__dropdown');
+                if (!trigger || !panel) {
+                    return;
+                }
+                menu.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+                panel.setAttribute('hidden', 'hidden');
+            });
+        });
+        document.querySelectorAll('.sc-portal-header__dropdown').forEach(function (panel) {
+            panel.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+        });
+
+        // Secondary site nav (categories + main menu)
+        var subnav = document.querySelector('.sc-portal-subnav');
+        if (subnav) {
+            var subToggle = subnav.querySelector('.sc-portal-subnav__toggle');
+            if (subToggle) {
+                subToggle.addEventListener('click', function () {
+                    var open = subnav.classList.toggle('is-open');
+                    subToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                });
             }
-            popup.classList.add('is-open');
-            popup.setAttribute('aria-hidden', 'false');
-            document.body.style.overflow = 'hidden';
-            var input = popup.querySelector('.sc-header-search__input--popup');
-            if (input) {
-                setTimeout(function () { input.focus(); }, 80);
+            var megaTrigger = subnav.querySelector('.sc-portal-megamenu__trigger');
+            var mega = subnav.querySelector('.sc-portal-megamenu');
+            if (megaTrigger && mega) {
+                megaTrigger.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var open = mega.classList.toggle('is-open');
+                    megaTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+                });
+                document.addEventListener('click', function (e) {
+                    if (!mega.contains(e.target)) {
+                        mega.classList.remove('is-open');
+                        megaTrigger.setAttribute('aria-expanded', 'false');
+                    }
+                });
             }
         }
-        trigger.addEventListener('click', openPortalSearch);
     });
     </script>
     <?php
