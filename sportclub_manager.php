@@ -129,6 +129,19 @@ require_once SC_PUBLIC_DIR . 'footer.php';
 
 include SC_ADMIN_DIR . 'admin-menu.php';
 
+// AJAX handler for public announcement active toggle (must be registered globally)
+add_action('wp_ajax_sc_set_active_public_announcement', 'sc_ajax_set_active_public_announcement');
+function sc_ajax_set_active_public_announcement() {
+    check_ajax_referer('sc_pa_ajax', 'nonce');
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'دسترسی ندارید']);
+    }
+    $id = (int)($_POST['id'] ?? 0);
+    update_option('sc_active_public_announcement_id', $id);
+    $msg = $id ? 'اطلاعیه فعال شد' : 'اطلاعیه غیرفعال شد';
+    wp_send_json_success(['message' => $msg]);
+}
+
 
 
 /**

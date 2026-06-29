@@ -65,6 +65,33 @@ function sc_register_admin_menu() {
         
     }
 
+    /* ================= اطلاعیه عمومی (بالای هدر) ================= */
+    add_menu_page(
+        'اطلاعیه عمومی',
+        'اطلاعیه عمومی',
+        'manage_options',
+        'sc-public-announcement',
+        'sc_admin_public_announcement_list_page',
+        'dashicons-megaphone',
+        22
+    );
+    add_submenu_page(
+        'sc-public-announcement',
+        'لیست اطلاعیه‌های عمومی',
+        'لیست اطلاعیه‌ها',
+        'manage_options',
+        'sc-public-announcement',
+        'sc_admin_public_announcement_list_page'
+    );
+    add_submenu_page(
+        'sc-public-announcement',
+        'افزودن اطلاعیه عمومی',
+        'افزودن اطلاعیه',
+        'manage_options',
+        'sc-public-announcement-add',
+        'sc_admin_public_announcement_add_page'
+    );
+
     /* ================= Bale Bot ================= */
     add_menu_page(
         'ربات بله',
@@ -5661,6 +5688,20 @@ add_action('admin_menu','add_place_menu');
 function add_place_menu(){
     register_nav_menu('main_menu_header' , 'منو اصلی هدر');
     register_nav_menu('maga_menu_product' , 'مگا منو محصولات  ');
+}
+
+/**
+ * صفحه لیست اطلاعیه‌های عمومی
+ */
+function sc_admin_public_announcement_list_page() {
+    include SC_PLUGIN_DIR . 'templates/admin/public-announcement-list.php';
+}
+
+/**
+ * صفحه افزودن/ویرایش اطلاعیه عمومی
+ */
+function sc_admin_public_announcement_add_page() {
+    include SC_PLUGIN_DIR . 'templates/admin/public-announcement-add.php';
 }
 
 

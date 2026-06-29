@@ -176,27 +176,6 @@ function sc_portal_menu_icon($slug) {
     return file_get_contents($path);
 }
 
-/**
- * Portal header: AJAX search (desktop inline + mobile popup).
- */
-function sc_portal_render_header_search() {
-    $placeholder = esc_attr(sc_get_setting('sc_header_search_placeholder', 'جستجو در خدمات، صفحات و فروشگاه…'));
-    $svg = '<svg class="sc-header-search__icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-    ?>
-    <div class="sc-portal-header__search-wrap">
-        <div class="sc-header-search sc-header-search--portal sc-header-search--desktop" role="search">
-            <div class="sc-header-search__box">
-                <?php echo $svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                <input type="search" class="sc-header-search__input" placeholder="<?php echo $placeholder; ?>" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
-                <div class="sc-header-search__dropdown" hidden></div>
-            </div>
-        </div>
-        <button type="button" class="sc-portal-header__icon-btn sc-header-search-toggle sc-header-search--mobile" aria-label="<?php esc_attr_e('جستجو', 'sportclub-manager'); ?>">
-            <?php echo $svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-        </button>
-    </div>
-    <?php
-}
 
 /**
  * Quick links shown in the profile chip dropdown.
@@ -460,7 +439,6 @@ function sc_portal_render_page($tab, $menu_items) {
                 </span>
             </div>
             <div class="sc-portal-header__end">
-                <?php sc_portal_render_header_search(); ?>
 
                 <div class="sc-portal-header__actions">
                     

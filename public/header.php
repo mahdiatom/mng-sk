@@ -2,6 +2,11 @@
 if ( ! defined('ABSPATH') ) exit;
 add_action('wp_head', 'custom_header_output');
 function custom_header_output() {
+    // نمایش اطلاعیه عمومی بالای هدر
+    if (function_exists('sc_render_public_announcement')) {
+        sc_render_public_announcement();
+    }
+
     global $wpdb;
 $unread = function_exists('sc_count_unread_notifications') ? sc_count_unread_notifications(get_current_user_id()) : 0;
  $members_table = $wpdb->prefix . 'sc_members';
@@ -289,6 +294,159 @@ a.details_info_user_pannel,
 }
 </style>
 
+    <?php
+}
+
+/**
+ * رندر اطلاعیه عمومی شیک بالای هدر (سایت + پورتال)
+ * - بدون عنوان
+ * - ارتفاع عددی یا auto
+ * - marquee با سرعت قابل تنظیم
+ * - جلوه‌های ویژه + ripple همرنگ متن
+ * - responsive موبایل (وسط‌چین)
+ */
+function sc_render_public_announcement() {
+    $active_id = (int) get_option('sc_active_public_announcement_id', 0);
+    if (!$active_id) return;
+
+    $announcements = get_option('sc_public_announcements', []);
+    if (!is_array($announcements)) return;
+
+    $ann = null;
+    foreach ($announcements as $a) {
+        if ((int)$a['id'] === $active_id) { $ann = $a; break; }
+    }
+    if (!$ann) return;
+
+    $bg = esc_attr($ann['bg_color'] ?? '#6D34FF');
+    $txt = esc_attr($ann['text_color'] ?? '#fff');
+    $img = !empty($ann['bg_image']) ? esc_url($ann['bg_image']) : '';
+    $height_val = $ann['height'] ?? 'auto';
+    $dismissable = !empty($ann['dismissable']);
+    $marquee = !empty($ann['marquee']);
+    $marquee_speed = isset($ann['marquee_speed']) ? max(5, (int)$ann['marquee_speed']) : 18;
+    $effects = isset($ann['effects']) && is_array($ann['effects']) ? $ann['effects'] : [];
+    $content = wp_kses_post($ann['content'] ?? '');
+
+    $style = 'background-color: ' . $bg . '; color: ' . $txt . ';';
+    if ($img) {
+        $style .= ' background-image: linear-gradient(rgba(0,0,0,0.28), rgba(0,0,0,0.28)), url(\'' . $img . '\'); background-size: cover; background-position: center;';
+    }
+
+    $height_style = '';
+    if ($height_val !== 'auto' && is_numeric($height_val)) {
+        $height_style = 'min-height:' . (int)$height_val . 'px;';
+    } else {
+        $height_style = 'padding-top:14px; padding-bottom:14px;';
+    }
+
+    $effect_classes = '';
+    foreach ($effects as $e) {
+        $effect_classes .= ' sc-pa-effect-' . sanitize_html_class($e);
+    }
+    if ($marquee) $effect_classes .= ' sc-pa-marquee';
+
+    ?>
+    <style>
+    .sc-public-announcement { font-family: IRANYekanXFaNum, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position:relative; z-index:99999; width:100%; display:flex; align-items:center; justify-content:center; }
+    .sc-pa-inner { max-width:1200px; width:100%; padding:0 22px; display:flex; align-items:center; gap:16px; }
+    .sc-pa-content { flex:1; font-size:0.97rem; line-height:1.55; opacity:0.97; display:flex; align-items:center; gap:14px; min-width:0; }
+    .sc-pa-text { display:inline-block; }
+    
+    /* Ripple - مشکی، کوچیک و متحرک (موج پشت دایره) */
+    .sc-pa-ripple { 
+        position:relative; 
+        width:18px; height:18px; 
+        border-radius:50%; 
+        background:#000; 
+        opacity:0.75; 
+        flex-shrink:0; 
+        z-index:2;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+    }
+    .sc-pa-ripple::before, 
+    .sc-pa-ripple::after { 
+        content:''; 
+        position:absolute; 
+        inset:-4px; 
+        border-radius:50%; 
+        background:#000; 
+        opacity:0.28; 
+        z-index:1; 
+        animation:sc-ripple-wave 1.65s infinite ease-out; 
+    }
+    .sc-pa-ripple::after { animation-delay:0.55s; }
+    @keyframes sc-ripple-wave { 
+        0%{transform:scale(0.4); opacity:0.28;} 
+        65%{transform:scale(1.9); opacity:0;} 
+        100%{transform:scale(2.4); opacity:0;} 
+    }
+    
+    /* Marquee - کامل از یک طرف خارج شود و از طرف دیگر وارد شود */
+    .sc-pa-marquee { overflow: hidden; }
+    .sc-pa-marquee .sc-pa-text { 
+        white-space:nowrap; 
+        animation:sc-marquee <?php echo (int)$marquee_speed; ?>s linear infinite;
+        will-change: transform;
+    }
+    @keyframes sc-marquee { 
+        0%   { transform: translateX(100%); } 
+        100% { transform: translateX(-100%); } 
+    }
+    
+    /* جلوه‌ها (با marquee تداخل کمتری داشته باشند) */
+    .sc-pa-effect-pulse .sc-pa-text { animation:sc-text-pulse 2.2s ease-in-out infinite; }
+    @keyframes sc-text-pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.025);} }
+    
+    .sc-pa-effect-glow .sc-pa-text { text-shadow: 0 0 8px currentColor, 0 0 18px currentColor; animation:sc-text-glow 2.5s ease-in-out infinite alternate; }
+    @keyframes sc-text-glow { from { text-shadow:0 0 6px currentColor; } to { text-shadow:0 0 14px currentColor, 0 0 26px currentColor; } }
+    
+    .sc-pa-effect-shine .sc-pa-text { position:relative; overflow:hidden; }
+    .sc-pa-effect-shine .sc-pa-text::after { content:''; position:absolute; top:-50%; left:-150%; width:45%; height:200%; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent); animation:sc-text-shine 2.6s linear infinite; pointer-events:none; }
+    @keyframes sc-text-shine { 0%{left:-150%;} 28%{left:220%;} 100%{left:220%;} }
+    
+    .sc-pa-effect-bounce .sc-pa-text { animation:sc-text-bounce 1.35s cubic-bezier(0.28,0.84,0.42,1) infinite; }
+    @keyframes sc-text-bounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-3.5px);} }
+    
+    .sc-pa-effect-flash .sc-pa-text { animation:sc-text-flash 2.3s ease-in-out infinite; }
+    @keyframes sc-text-flash { 0%,100%{opacity:1;} 42%{opacity:0.35;} 58%{opacity:0.35;} }
+    
+    .sc-pa-effect-swing .sc-pa-text { transform-origin:50% 10%; animation:sc-text-swing 2.05s ease-in-out infinite; }
+    @keyframes sc-text-swing { 0%,100%{transform:rotate(0deg);} 22%{transform:rotate(1.8deg);} 78%{transform:rotate(-1.8deg);} }
+    
+    /* موبایل - رسپانسیو و وسط‌چین */
+    @media (max-width: 640px) {
+        .sc-pa-inner { padding: 0 14px; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        .sc-pa-content { justify-content: center; text-align: center; }
+        .sc-pa-ripple { order: -1; }
+        .sc-pa-marquee .sc-pa-text { padding-right: 60px; }
+    }
+    </style>
+
+    <div class="sc-public-announcement<?php echo esc_attr($effect_classes); ?>" style="<?php echo $style . $height_style; ?> color:<?php echo $txt; ?>; display:flex; align-items:center; justify-content:center;">
+        <div class="sc-pa-inner">
+            <span class="sc-pa-ripple" style="color:<?php echo $txt; ?>;" aria-hidden="true"></span>
+            
+            <div class="sc-pa-content">
+                <span class="sc-pa-text"><?php echo $content; ?></span>
+            </div>
+
+            <?php if ($dismissable): ?>
+            <button type="button" onclick="this.closest('.sc-public-announcement').style.display='none'; localStorage.setItem('sc_pa_dismissed_<?php echo (int)$active_id; ?>', Date.now());" 
+                    style="background:rgba(255,255,255,0.18); border:none; color:inherit; width:30px; height:30px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; margin-right:4px;">×</button>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <script>
+    (function(){
+        var dismissed = localStorage.getItem('sc_pa_dismissed_<?php echo (int)$active_id; ?>');
+        if (dismissed) {
+            var el = document.querySelector('.sc-public-announcement');
+            if (el) el.style.display = 'none';
+        }
+    })();
+    </script>
     <?php
 }
 
