@@ -45,51 +45,59 @@ class Coach_Players_List_Table extends WP_List_Table {
         ];
     }
 public function column_full_name($item) {
-        $full_name = $item['first_name'] . ' ' . $item['last_name'];
-        
-        // نمایش دوره‌های بازیکن
-        global $wpdb;
-        $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-        $courses_table = $wpdb->prefix . 'sc_courses';
+        $full_name = trim(($item['first_name'] ?? '') . ' ' . ($item['last_name'] ?? ''));
+        $photo = !empty($item['personal_photo']) ? $item['personal_photo'] : '';
+        $phone = !empty($item['player_phone']) ? $item['player_phone'] : '';
 
-        $courses = $wpdb->get_results($wpdb->prepare(
-            "SELECT c.title FROM $courses_table c 
-             INNER JOIN $member_courses_table mc ON c.id = mc.course_id 
-             WHERE mc.member_id = %d 
-             AND mc.status = 'active' 
-             AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '')
-             AND c.deleted_at IS NULL 
-             AND c.is_active = 1
-             LIMIT 10",
-            $item['id']
-        ));
-
-        
-        $course_names = [];
-        if ($courses) {
-            foreach ($courses as $course) {
-                $course_names[] = $course->title;
-            }
+        $initials = '';
+        if (!empty($item['first_name'])) {
+            $initials .= mb_substr((string) $item['first_name'], 0, 1);
         }
-        $courses_text = !empty($course_names) ? '<br><small class="courses_member_table" style="color: #666;">دوره‌ها: ' . implode(', ', $course_names) . '<br>' . '</small>' : '';
+        if (!empty($item['last_name'])) {
+            $initials .= mb_substr((string) $item['last_name'], 0, 1);
+        }
+        if ($initials === '') {
+            $initials = '؟';
+        }
 
-        // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
+        if ($photo) {
+            $avatar_html = '<span class="sc-member-avatar"><img src="' . esc_url($photo) . '" alt="" loading="lazy"></span>';
+        } else {
+            $avatar_html = '<span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true">' . esc_html($initials) . '</span>';
+        }
+
+        $meta_parts = [];
+        if ($phone !== '') {
+            $meta_parts[] = '<span class="sc-member-meta-item">' . esc_html($phone) . '</span>';
+        }
+        if (!empty($item['national_id'])) {
+            $meta_parts[] = '<span class="sc-member-meta-item">' . esc_html($item['national_id']) . '</span>';
+        }
+        $meta_html = !empty($meta_parts)
+            ? '<span class="sc-member-meta">' . implode('<span class="sc-member-meta-dot"></span>', $meta_parts) . '</span>'
+            : '';
+
         $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
         $wallet_balance = $wallet_enabled ? sc_get_wallet_balance($item['id']) : 0;
-        
+
         $actions = [
-            'view' => '<a href="' . admin_url('admin.php?page=sc-view-member&player_id=') . $item['id'] . '"> مشاهده اطلاعات</a>',
-           // 'edit' => '<a href="' . admin_url('admin.php?page=sc-add-member&player_id=') . $item['id'] . '">ویرایش</a>',
-           // 'delete' => '<a href="' . admin_url('admin.php?page=sc-members&action=delete&player_id=') . $item['id'] . '">حذف</a>',
+            'view' => '<a href="' . admin_url('admin.php?page=sc-view-member&player_id=') . $item['id'] . '">مشاهده اطلاعات</a>',
         ];
-        
-        // اضافه کردن دکمه مدیریت کیف پول
+
         if ($wallet_enabled) {
             $wallet_url = admin_url('admin.php?page=sc-wallet&filter_member=' . $item['id']);
-            $actions['wallet'] = '<a href="' . esc_url($wallet_url) . '" style="color: #28a745;">💰 کیف پول (' . sc_format_amount_display($wallet_balance) . ' تومان)</a>';
+            $actions['wallet'] = '<a href="' . esc_url($wallet_url) . '">کیف پول (' . sc_format_amount_display($wallet_balance) . ' تومان)</a>';
         }
 
-        return $full_name . $courses_text . ' ' . $this->row_actions($actions);
+        $name_block = '<span class="sc-member-identity">'
+            . $avatar_html
+            . '<span class="sc-member-identity-text">'
+            . '<span class="sc-member-name">' . esc_html($full_name) . '</span>'
+            . $meta_html
+            . '</span>'
+            . '</span>';
+
+        return $name_block . $this->row_actions($actions);
     }
     public function column_default($item, $column_name) {
         switch ($column_name) {
@@ -316,7 +324,7 @@ public function column_full_name($item) {
                 $search, $search, $search, $search, $search
             );
         }
-        $sql = "SELECT SQL_CALC_FOUND_ROWS DISTINCT m.id, m.first_name, m.last_name, m.national_id, m.player_phone, m.is_active , m.birth_date_shamsi , m.insurance_expiry_date_shamsi , m.member_type , m.profile_completed
+        $sql = "SELECT SQL_CALC_FOUND_ROWS DISTINCT m.id, m.first_name, m.last_name, m.national_id, m.player_phone, m.personal_photo, m.is_active , m.birth_date_shamsi , m.insurance_expiry_date_shamsi , m.member_type , m.profile_completed
                 FROM {$members_table} m
                 INNER JOIN {$member_courses_table} mc ON mc.member_id = m.id AND mc.status = 'active'
                 INNER JOIN {$course_coaches_table} cc ON cc.course_id = mc.course_id AND cc.coach_id = %d

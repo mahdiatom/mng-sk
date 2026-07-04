@@ -57,23 +57,42 @@ class Courses_List_Table extends WP_List_Table {
 
     public function column_title($item) {
         $title = $item['title'];
+        $chapter = isset($item['chapter']) ? trim((string) $item['chapter']) : '';
+        $type = isset($item['course_type']) ? (string) $item['course_type'] : 'group';
+        $type_label = $type === 'private' ? 'خصوصی' : 'گروهی';
+
+        $initials = $title !== '' ? mb_substr($title, 0, 1) : 'د';
+        $avatar = '<span class="sc-course-avatar" aria-hidden="true">' . esc_html($initials) . '</span>';
+
+        $meta_parts = [];
+        if ($chapter !== '') {
+            $meta_parts[] = '<span class="sc-member-meta-item">' . esc_html($chapter) . '</span>';
+        }
+        $meta_parts[] = '<span class="sc-member-meta-item">' . esc_html($type_label) . '</span>';
+        $meta_html = '<span class="sc-member-meta">' . implode('<span class="sc-member-meta-dot"></span>', $meta_parts) . '</span>';
+
         $actions = [];
-        
         if ($item['deleted_at']) {
-            // دوره در زباله‌دان است
             $actions['restore'] = '<a href="' . admin_url('admin.php?page=sc-courses&action=restore&course_id=') . $item['id'] . '">بازیابی</a>';
             $actions['delete'] = '<a href="' . admin_url('admin.php?page=sc-courses&action=delete_permanent&course_id=') . $item['id'] . '" onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید؟ این عمل قابل بازگشت نیست.\' })">حذف دائمی</a>';
         } else {
-            // دوره فعال است
             $actions['edit'] = '<a href="' . admin_url('admin.php?page=sc-add-course&course_id=') . $item['id'] . '">ویرایش</a>';
             $actions['view_users'] = sprintf(
-                '<p class="view-course-users" data-id="%s" style="cursor: pointer; display: inline; color: #2271b1; text-decoration: none;">مشاهده کاربران</p>',
-                $item['id']
+                '<a href="#" class="view-course-users" data-id="%s">مشاهده کاربران</a>',
+                esc_attr($item['id'])
             );
             $actions['trash'] = '<a href="' . admin_url('admin.php?page=sc-courses&action=trash&course_id=') . $item['id'] . '">حذف</a>';
         }
 
-        return $title . ' ' . $this->row_actions($actions);
+        $title_block = '<span class="sc-member-identity">'
+            . $avatar
+            . '<span class="sc-member-identity-text">'
+            . '<span class="sc-member-name">' . esc_html($title) . '</span>'
+            . $meta_html
+            . '</span>'
+            . '</span>';
+
+        return $title_block . $this->row_actions($actions);
     }
 
     public function column_cb($item) {
@@ -144,9 +163,9 @@ class Courses_List_Table extends WP_List_Table {
     public function column_course_type($item) {
         $t = isset($item['course_type']) ? (string) $item['course_type'] : 'group';
         if ($t === 'private') {
-            return 'خصوصی';
+            return '<span class="sc-badge sc-badge--purple">خصوصی</span>';
         }
-        return 'گروهی';
+        return '<span class="sc-badge sc-badge--soft">گروهی</span>';
     }
 
     public function column_price($item) {
@@ -207,7 +226,12 @@ class Courses_List_Table extends WP_List_Table {
                 // تبدیل تاریخ میلادی به شمسی
                 return sc_date_shamsi_date_only($item['end_date']);
             case 'is_active':
-                return $item['is_active'] ? 'فعال' : 'غیرفعال';
+                if (!empty($item['deleted_at'])) {
+                    return '<span class="sc-badge sc-badge--muted">زباله‌دان</span>';
+                }
+                return !empty($item['is_active'])
+                    ? '<span class="sc-badge sc-badge--success">فعال</span>'
+                    : '<span class="sc-badge sc-badge--muted">غیرفعال</span>';
             default:
                 return "-";
         }
@@ -396,11 +420,13 @@ class Courses_List_Table extends WP_List_Table {
                 $url .= '&' . rawurlencode($fk) . '=' . rawurlencode(sanitize_text_field(wp_unslash($_GET[$fk])));
             }
         }
-        $view = sprintf("<a href='%s' class='%s'>%s</a>", esc_url($url), $class_view, $label);
-        
-            $view .= sprintf("<span class='count'>(%d)</span>", $count);
-        
-        return $view;
+        return sprintf(
+            "<a href='%s' class='%s'>%s <span class='count'>(%d)</span></a>",
+            esc_url($url),
+            esc_attr($class_view),
+            esc_html($label),
+            (int) $count
+        );
     }
 
     public function get_views() {

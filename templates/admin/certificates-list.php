@@ -244,23 +244,53 @@ $edit_row = null;
 if ($edit_id > 0) {
     $edit_row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$cert_table} WHERE id = %d", $edit_id));
 }
+
+$active_filters_count = 0;
+if (!empty($filter_user) && $filter_user !== '0') {
+    $active_filters_count++;
+}
+if (!empty($filter_template)) {
+    $active_filters_count++;
+}
+if ($search !== '') {
+    $active_filters_count++;
+}
+if ($filter_date_from_shamsi !== '' || $filter_date_to_shamsi !== '') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+
+$selected_user_text = 'همه کاربران';
+if (!empty($filter_user) && preg_match('/^m_(\d+)$/', $filter_user, $um)) {
+    $mid = absint($um[1]);
+    foreach ($members_for_filter as $mem) {
+        if ((int) $mem->id === $mid) {
+            $selected_user_text = $mem->first_name . ' ' . $mem->last_name . ' - ' . ($mem->national_id ?: $mem->id);
+            break;
+        }
+    }
+}
 ?>
 
-<div class="wrap">
-    <h1 class="wp-heading-inline">گواهینامه ها</h1>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-issue')); ?>" class="page-title-action">صدور گواهینامه</a>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-templates')); ?>" class="page-title-action">تعریف قالب گواهینامه</a>
-    <hr class="wp-header-end">
-</div>
+<?php if (!empty($notice)) : ?>
+    <div class="notice notice-<?php echo esc_attr($notice_type); ?> is-dismissible"><p><?php echo esc_html($notice); ?></p></div>
+<?php endif; ?>
 
-<div class="wrap">
-    <?php if (!empty($notice)) : ?>
-        <div class="notice notice-<?php echo esc_attr($notice_type); ?> is-dismissible"><p><?php echo esc_html($notice); ?></p></div>
-    <?php endif; ?>
+<div class="wrap sc-cert-wrap sc-cert-list-wrap">
+    <div class="sc-cert-header">
+        <div class="sc-cert-header-text">
+            <h1 class="sc-cert-title">گواهینامه‌ها</h1>
+            <p class="sc-cert-desc">مدیریت گواهینامه‌های صادرشده، دانلود و صورتحساب نسخه فیزیکی</p>
+        </div>
+        <div class="sc-cert-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-templates')); ?>" class="sc-cert-btn-secondary">تعریف قالب</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-issue')); ?>" class="sc-cert-btn-primary">صدور گواهینامه</a>
+        </div>
+    </div>
 
     <?php if ($edit_row) : ?>
-        <div class="sc-users-export-card sc-certificate-edit-card" style="margin-bottom:16px;">
-            <h2>ویرایش گواهینامه #<?php echo (int) $edit_row->id; ?></h2>
+        <div class="sc-cert-card sc-certificate-edit-card">
+            <h2 class="sc-cert-card-title">ویرایش گواهینامه #<?php echo (int) $edit_row->id; ?></h2>
             <form method="post" class="sc-certificate-edit-form">
                 <?php wp_nonce_field('sc_update_certificate_' . (int) $edit_row->id); ?>
                 <input type="hidden" name="certificate_id" value="<?php echo (int) $edit_row->id; ?>">
@@ -282,7 +312,7 @@ if ($edit_id > 0) {
                     );
                     ?>
                 </div>
-                <p>
+                <p class="sc-cert-edit-actions">
                     <button type="submit" name="sc_update_certificate" class="button button-primary">ذخیره تغییرات</button>
                     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-list')); ?>" class="button">انصراف</a>
                 </p>
@@ -290,9 +320,32 @@ if ($edit_id > 0) {
         </div>
     <?php endif; ?>
 
-    <div class="filter_search_certificate">
-        <!-- فیلترها (همان ساختار حضور و غیاب / لیست افتخارات) -->
-        <form method="get" action="" class="">
+    <div class="sc-cert-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-cert-filters-toolbar">
+            <button type="button"
+                    class="sc-cert-filters-toggle"
+                    id="sc-cert-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-cert-filters-panel">
+                <span class="sc-cert-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-cert-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-cert-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-cert-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-list')); ?>" class="sc-cert-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+
+        <form method="get" action="" class="sc-cert-filters-panel" id="sc-cert-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
             <input type="hidden" name="page" value="sc-certificates-list">
 
             <div class="sc-filter-grid">
@@ -300,18 +353,6 @@ if ($edit_id > 0) {
                     <label class="sc-filter-label">کاربر</label>
                     <div class="sc-searchable-dropdown">
                         <input type="hidden" name="filter_user" id="filter_user" value="<?php echo esc_attr($filter_user); ?>">
-                        <?php
-                        $selected_user_text = 'همه کاربران';
-                        if (!empty($filter_user) && preg_match('/^m_(\d+)$/', $filter_user, $um)) {
-                            $mid = absint($um[1]);
-                            foreach ($members_for_filter as $mem) {
-                                if ((int) $mem->id === $mid) {
-                                    $selected_user_text = $mem->first_name . ' ' . $mem->last_name . ' - ' . ($mem->national_id ?: $mem->id);
-                                    break;
-                                }
-                            }
-                        }
-                        ?>
                         <div class="sc-dropdown-toggle">
                             <span class="sc-dropdown-placeholder" <?php if (!empty($filter_user) && $filter_user !== '0') echo 'style="display:none"'; ?>>همه کاربران</span>
                             <span class="sc-dropdown-selected" <?php if (empty($filter_user) || $filter_user === '0') echo 'style="display:none"'; ?>><?php echo esc_html($selected_user_text); ?></span>
@@ -367,7 +408,7 @@ if ($edit_id > 0) {
 
                 <div class="sc-filter-field sc-filter-date">
                     <label class="sc-filter-label">بازه تاریخ صدور (شمسی)</label>
-                    <div class="sc-date-range">
+                    <div class="sc-date-range sc-cert-date-range">
                         <input type="text"
                                name="filter_date_from_shamsi"
                                id="certificates_filter_date_from_shamsi"
@@ -386,151 +427,167 @@ if ($edit_id > 0) {
                 </div>
             </div>
 
-            <p class="submit">
+            <div class="sc-cert-filters-actions">
                 <input type="submit" class="button button-primary" value="اعمال فیلتر">
                 <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-list')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-            </p>
+            </div>
         </form>
     </div>
-</div>
-<div class="wrap">
-    <form method="post" id="certificates-list-form" class="list_certificate">
-        <?php wp_nonce_field('sc_bulk_certificates_nonce'); ?>
-        <div class="tablenav top">
-            <div class="alignleft actions bulkactions">
-                <label for="bulk-action-selector" class="screen-reader-text">عملیات دسته‌جمعی</label>
-                <select name="bulk_action" id="bulk-action-selector">
-                    <option value="">عملیات دسته‌جمعی...</option>
-                    <option value="physical_invoice">ایجاد صورتحساب نسخه فیزیکی</option>
-                    <option value="delete">حذف</option>
-                </select>
-                <input type="submit" name="bulk_apply" id="doaction" class="button action" value="اجرا">
+
+    <div class="sc-cert-table-card">
+        <div class="sc-cert-list-summary"><span><?php echo (int) $total_items; ?> گواهینامه</span></div>
+        <form method="post" id="certificates-list-form" class="list_certificate">
+            <?php wp_nonce_field('sc_bulk_certificates_nonce'); ?>
+            <div class="tablenav top sc-cert-bulk-nav">
+                <div class="alignleft actions bulkactions">
+                    <label for="bulk-action-selector" class="screen-reader-text">عملیات دسته‌جمعی</label>
+                    <select name="bulk_action" id="bulk-action-selector">
+                        <option value="">عملیات دسته‌جمعی...</option>
+                        <option value="physical_invoice">ایجاد صورتحساب نسخه فیزیکی</option>
+                        <option value="delete">حذف</option>
+                    </select>
+                    <input type="submit" name="bulk_apply" id="doaction" class="button action" value="اجرا">
+                </div>
             </div>
-        </div>
-        
-        <div class="back_table_list">
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <td style="width: 10px;" class="manage-column column-cb check-column"><input type="checkbox" id="cb-select-all"></td>
-                        <th style="width: 20px;">شناسه</th>
-                        <th style="width: 140px;">نام کاربر</th>
-                        <th style="width: 40px;">عنوان</th>
-                        <th style="width: 100px;">کد رهگیری</th>
-                        <th style="width: 80px;">قالب</th>
-                        <th style="width: 80px;">تاریخ صدور</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($rows)) : ?>
-                        <?php foreach ($rows as $row) : ?>
-                            <?php
-                            $member_name = trim((string) ($row->first_name . ' ' . $row->last_name));
-                            if ($member_name === '') {
-                                $member_name = 'کاربر حذف شده';
-                            }
-                            $delete_url = wp_nonce_url(
-                                admin_url('admin.php?page=sc-certificates-list&action=delete&certificate_id=' . (int) $row->id),
-                                'sc_delete_certificate_' . (int) $row->id
-                            );
-                            $edit_url = admin_url('admin.php?page=sc-certificates-list&action=edit&certificate_id=' . (int) $row->id);
-                            $view_url = add_query_arg(
-                                [
-                                    'action' => 'sc_download_certificate',
-                                    'certificate_id' => (int) $row->id,
-                                    'sc_cert_admin' => '1',
-                                    'nonce' => wp_create_nonce('sc_admin_download_certificate_' . (int) $row->id),
-                                ],
-                                admin_url('admin-post.php')
-                            );
-                            $physical_invoice_url = wp_nonce_url(
-                                add_query_arg(
+
+            <div class="sc-cert-table-scroll">
+                <table class="wp-list-table widefat striped sc-cert-table">
+                    <thead>
+                        <tr>
+                            <td class="manage-column column-cb check-column"><input type="checkbox" id="cb-select-all"></td>
+                            <th class="manage-column">شناسه</th>
+                            <th class="manage-column">نام کاربر</th>
+                            <th class="manage-column">عنوان</th>
+                            <th class="manage-column">کد رهگیری</th>
+                            <th class="manage-column">قالب</th>
+                            <th class="manage-column">تاریخ صدور</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($rows)) : ?>
+                            <?php foreach ($rows as $row) : ?>
+                                <?php
+                                $member_name = trim((string) ($row->first_name . ' ' . $row->last_name));
+                                if ($member_name === '') {
+                                    $member_name = 'کاربر حذف شده';
+                                }
+                                $initials = '';
+                                $fn = trim((string) ($row->first_name ?? ''));
+                                $ln = trim((string) ($row->last_name ?? ''));
+                                if ($fn !== '' || $ln !== '') {
+                                    $initials = mb_substr($fn !== '' ? $fn : $ln, 0, 1) . mb_substr($ln !== '' ? $ln : $fn, 0, 1);
+                                } else {
+                                    $initials = '؟';
+                                }
+                                $national_id = !empty($row->national_id) ? (string) $row->national_id : '';
+                                $delete_url = wp_nonce_url(
+                                    admin_url('admin.php?page=sc-certificates-list&action=delete&certificate_id=' . (int) $row->id),
+                                    'sc_delete_certificate_' . (int) $row->id
+                                );
+                                $edit_url = admin_url('admin.php?page=sc-certificates-list&action=edit&certificate_id=' . (int) $row->id);
+                                $view_url = add_query_arg(
                                     [
-                                        'action' => 'sc_admin_create_certificate_physical_invoice',
+                                        'action' => 'sc_download_certificate',
                                         'certificate_id' => (int) $row->id,
+                                        'sc_cert_admin' => '1',
+                                        'nonce' => wp_create_nonce('sc_admin_download_certificate_' . (int) $row->id),
                                     ],
                                     admin_url('admin-post.php')
-                                ),
-                                'sc_admin_create_certificate_physical_invoice_' . (int) $row->id
-                            );
-                            ?>
-                            <tr>
-                                <th scope="row" class="check-column"><input type="checkbox" name="certificate_ids[]" value="<?php echo (int) $row->id; ?>"></th>
-                                <td><?php echo (int) $row->id; ?></td>
-                                <td>
-                                    <?php echo esc_html($member_name); ?>
-                                    <div class="row-actions">
-                                        <span class="view"><a href="<?php echo esc_url($view_url); ?>" target="_blank" rel="noopener noreferrer">مشاهده و دانلود</a> | </span>
-                                        <span class="edit"><a href="<?php echo esc_url($physical_invoice_url); ?>">ایجاد صورتحساب نسخه فیزیکی</a> | </span>
-                                        <span class="edit"><a href="<?php echo esc_url($edit_url); ?>">ویرایش</a> | </span>
-                                        <span class="delete"><a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'این گواهینامه حذف شود؟' });">حذف</a></span>
-                                    </div>
-                                </td>
-                                <td><?php echo esc_html((string) $row->title); ?></td>
-                                <td><?php echo esc_html((string) ($row->tracking_code ?: '-')); ?></td>
-                                <td><?php echo esc_html($template_titles[$row->template_key] ?? $row->template_key); ?></td>
-                                <td><?php echo esc_html(function_exists('sc_date_shamsi') ? sc_date_shamsi($row->created_at, 'Y/m/d H:i') : $row->created_at); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else : ?>
-                        <tr><td colspan="7" style="text-align:center;padding:20px;">هیچ گواهینامه‌ای یافت نشد.</td></tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </form>
-
-    <?php if ($total_pages > 1) : ?>
-        <div class="tablenav bottom sc_paginate" style="margin-top:20px;">
-            <div class="tablenav-pages">
-                <?php
-                echo paginate_links([
-                    'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
-                    'format' => '',
-                    'prev_text' => '< قبلی ',
-                    'next_text' => ' بعدی >',
-                    'total' => $total_pages,
-                    'current' => $current_page,
-                    'add_args' => [
-                        'page' => 'sc-certificates-list',
-                        'filter_user' => $filter_user,
-                        'filter_template' => $filter_template,
-                        'filter_date_from_shamsi' => $filter_date_from_shamsi,
-                        'filter_date_to_shamsi' => $filter_date_to_shamsi,
-                        's' => $search,
-                    ],
-                ]);
-                ?>
+                                );
+                                $physical_invoice_url = wp_nonce_url(
+                                    add_query_arg(
+                                        [
+                                            'action' => 'sc_admin_create_certificate_physical_invoice',
+                                            'certificate_id' => (int) $row->id,
+                                        ],
+                                        admin_url('admin-post.php')
+                                    ),
+                                    'sc_admin_create_certificate_physical_invoice_' . (int) $row->id
+                                );
+                                $template_label = $template_titles[$row->template_key] ?? $row->template_key;
+                                ?>
+                                <tr>
+                                    <th scope="row" class="check-column"><input type="checkbox" name="certificate_ids[]" value="<?php echo (int) $row->id; ?>"></th>
+                                    <td data-label="شناسه"><?php echo (int) $row->id; ?></td>
+                                    <td data-label="نام کاربر">
+                                        <div class="sc-cert-user-cell">
+                                            <span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true"><?php echo esc_html($initials); ?></span>
+                                            <div class="sc-cert-user-meta">
+                                                <strong class="sc-cert-user-name"><?php echo esc_html($member_name); ?></strong>
+                                                <?php if ($national_id !== '') : ?>
+                                                    <span class="sc-cert-user-sub"><?php echo esc_html($national_id); ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <div class="row-actions">
+                                            <span class="view"><a href="<?php echo esc_url($view_url); ?>" target="_blank" rel="noopener noreferrer">مشاهده و دانلود</a> | </span>
+                                            <span class="edit"><a href="<?php echo esc_url($physical_invoice_url); ?>">صورتحساب فیزیکی</a> | </span>
+                                            <span class="edit"><a href="<?php echo esc_url($edit_url); ?>">ویرایش</a> | </span>
+                                            <span class="delete"><a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'این گواهینامه حذف شود؟' });">حذف</a></span>
+                                        </div>
+                                    </td>
+                                    <td data-label="عنوان"><?php echo esc_html((string) $row->title); ?></td>
+                                    <td data-label="کد رهگیری"><span class="sc-cert-tracking"><?php echo esc_html((string) ($row->tracking_code ?: '-')); ?></span></td>
+                                    <td data-label="قالب"><span class="sc-badge sc-badge--soft"><?php echo esc_html($template_label); ?></span></td>
+                                    <td data-label="تاریخ صدور"><?php echo esc_html(function_exists('sc_date_shamsi') ? sc_date_shamsi($row->created_at, 'Y/m/d H:i') : $row->created_at); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <tr><td colspan="7" class="sc-cert-empty">هیچ گواهینامه‌ای یافت نشد.</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
-        </div>
-    <?php endif; ?>
-</div>
+        </form>
 
-<style>
-.sc-certificate-edit-card {
-    width: 100%;
-    box-sizing: border-box;
-}
-.sc-certificate-edit-form .sc-row {
-    display: block;
-    margin-bottom: 14px;
-}
-.sc-certificate-edit-form .sc-row label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 600;
-}
-.sc-certificate-edit-form .sc-row input[type="text"],
-.sc-certificate-edit-form .sc-row textarea,
-.sc-certificate-edit-form .sc-row .wp-editor-wrap {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-</style>
+        <?php if ($total_pages > 1) : ?>
+            <div class="tablenav bottom sc_paginate">
+                <div class="tablenav-pages">
+                    <?php
+                    echo paginate_links([
+                        'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
+                        'format' => '',
+                        'prev_text' => '‹',
+                        'next_text' => '›',
+                        'total' => $total_pages,
+                        'current' => $current_page,
+                        'add_args' => [
+                            'page' => 'sc-certificates-list',
+                            'filter_user' => $filter_user,
+                            'filter_template' => $filter_template,
+                            'filter_date_from_shamsi' => $filter_date_from_shamsi,
+                            'filter_date_to_shamsi' => $filter_date_to_shamsi,
+                            's' => $search,
+                        ],
+                    ]);
+                    ?>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
 
 <script>
 jQuery(function($){
+    var $toggle = $('#sc-cert-filters-toggle');
+    var $panel = $('#sc-cert-filters-panel');
+    var $card = $toggle.closest('.sc-cert-filters-card');
+    var $label = $toggle.find('.sc-cert-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+
     var $form = $('#certificates-list-form');
     $('#cb-select-all').on('change', function(){
         $('input[name="certificate_ids[]"]').prop('checked', this.checked);

@@ -293,12 +293,61 @@ if ($filter_course > 0 && $log_has_matched_cols) {
     $logs_notice = isset($_GET['sc_logs_notice']) ? sanitize_text_field(wp_unslash($_GET['sc_logs_notice'])) : '';
     $logs_settings_saved = isset($_GET['sc_logs_settings_saved']) && (string) $_GET['sc_logs_settings_saved'] === '1';
 
+    $selected_member_text = 'همه کاربران';
+    if (!empty($filter_user) && preg_match('/^m_(\d+)$/', $filter_user, $member_match)) {
+        $selected_member_id = absint($member_match[1]);
+        foreach ($members_for_filter as $mem) {
+            if ((int) $mem->id === $selected_member_id) {
+                $selected_member_text = trim($mem->first_name . ' ' . $mem->last_name);
+                break;
+            }
+        }
+    }
+
+    $active_filters_count = 0;
+    if (!empty($filter_user) && $filter_user !== '0') {
+        $active_filters_count++;
+    }
+    if ($filter_course > 0) {
+        $active_filters_count++;
+    }
+    if (isset($_GET['filter_date_from']) && sanitize_text_field(wp_unslash((string) $_GET['filter_date_from'])) !== '') {
+        $active_filters_count++;
+    }
+    if (isset($_GET['filter_date_to']) && sanitize_text_field(wp_unslash((string) $_GET['filter_date_to'])) !== '') {
+        $active_filters_count++;
+    }
+    if (isset($_GET['filter_time_from'])) {
+        $time_from_get = sanitize_text_field(wp_unslash((string) $_GET['filter_time_from']));
+        if ($time_from_get !== '' && $time_from_get !== '06:00') {
+            $active_filters_count++;
+        }
+    }
+    if (isset($_GET['filter_time_to'])) {
+        $time_to_get = sanitize_text_field(wp_unslash((string) $_GET['filter_time_to']));
+        if ($time_to_get !== '' && $time_to_get !== '23:59') {
+            $active_filters_count++;
+        }
+    }
+    if ($search !== '') {
+        $active_filters_count++;
+    }
+    if (isset($_GET['count_item_page']) && trim((string) $count_item_page) !== '' && (string) $count_item_page !== '20') {
+        $active_filters_count++;
+    }
+    $filters_open = $active_filters_count > 0;
+    $clear_filters_url = admin_url('admin.php?page=sc-attendance-logs');
+
     ?>
 
-    <div class="wrap wrap_log_attendance">
+    <div class="wrap sc-members-list-wrap sc-attendance-logs-wrap">
 
-        <h1 class="wp-heading-inline">لاگ حضور و غیاب</h1>
-    
+        <div class="sc-members-list-header">
+            <div class="sc-members-list-header-text">
+                <h1 class="sc-members-list-title">لاگ‌های تردد دستگاه حضور و غیاب</h1>
+                <p class="sc-members-list-desc">ثبت ترددهای دستگاه، تطبیق با حضور و فیلتر بر اساس بازیکن، دوره و بازه زمانی.</p>
+            </div>
+        </div>
 
         <?php if ($logs_settings_saved) : ?>
             <div class="notice notice-success is-dismissible"><p>تنظیمات صفحهٔ لاگ ذخیره شد.</p></div>
@@ -308,9 +357,9 @@ if ($filter_course > 0 && $log_has_matched_cols) {
         // مثل metabox وردپرس: پیش‌فرض بسته؛ بعد از ذخیرهٔ موفق باز می‌ماند تا پیام را ببینند.
         $sc_logs_settings_box_open = $logs_settings_saved;
         ?>
-        <div id="sc-attendance-logs-page-settings-box" class="postbox sc-attendance-logs-settings-postbox<?php echo $sc_logs_settings_box_open ? '' : ' closed'; ?>" >
+        <div id="sc-attendance-logs-page-settings-box" class="sc-reports-list-panel postbox sc-attendance-logs-settings-postbox<?php echo $sc_logs_settings_box_open ? '' : ' closed'; ?>" >
             <div class="postbox-header sc-attendance-logs-settings-header" role="button" tabindex="0" aria-expanded="<?php echo $sc_logs_settings_box_open ? 'true' : 'false'; ?>" aria-controls="sc-attendance-logs-page-settings-inside">
-                <h2  style="flex:1;padding:10px 12px;margin:0;font-size:14px;line-height:1.4;border:none;">تنظیمات  صفحه </h2>
+                <h2>تنظیمات صفحه</h2>
                 <div class="handle-actions hide-if-no-js">
                     <button type="button" class="handlediv sc-attendance-logs-settings-toggle" aria-expanded="<?php echo $sc_logs_settings_box_open ? 'true' : 'false'; ?>">
                         <span class="screen-reader-text">باز و بسته کردن تنظیمات صفحهٔ لاگ</span>
@@ -318,8 +367,8 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                     </button>
                 </div>
             </div>
-            <div id="sc-attendance-logs-page-settings-inside" class="inside" style="padding:14px 16px;margin:0;">
-                <p class="description" style="margin-top:0;">این موارد همان مقادیر تب «حضور و غیاب» در تنظیمات افزونه است؛ از اینجا هم می‌توانید بدون ترک صفحهٔ لاگ ویرایش کنید. تعداد رکورد در هر صفحه فقط از فیلتر پایین (فیلد «تعداد نمایش») قابل تغییر است.</p>
+            <div id="sc-attendance-logs-page-settings-inside" class="inside">
+                <p class="sc-reports-note">این موارد همان مقادیر تب «حضور و غیاب» در تنظیمات افزونه است؛ از اینجا هم می‌توانید بدون ترک صفحهٔ لاگ ویرایش کنید. تعداد رکورد در هر صفحه فقط از فیلتر پایین (فیلد «تعداد نمایش») قابل تغییر است.</p>
                 <form method="post" action="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-logs')); ?>">
                     <?php wp_nonce_field('sc_attendance_logs_page_settings', 'sc_attendance_logs_page_settings_nonce'); ?>
                     <input type="hidden" name="sc_attendance_logs_save_page_settings" value="1">
@@ -355,9 +404,9 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                         </tr>
                         </tbody>
                     </table>
-                    <p class="submit" style="margin:0;padding-top:4px;">
+                    <div class="sc-members-list-filters-actions">
                         <button type="submit" class="button button-primary">ذخیرهٔ تنظیمات صفحه</button>
-                    </p>
+                    </div>
                 </form>
             </div>
         </div>
@@ -398,17 +447,37 @@ if ($filter_course > 0 && $log_has_matched_cols) {
             }
         })();
         </script>
-</div>
 
-<div class="filter_search_logs">
-    <div class="wrap wrap_filter">
-        <!-- فیلترها (ساختار استاندارد) -->
-        <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+    <div class="sc-members-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-members-list-filters-toolbar">
+            <button type="button"
+                    class="sc-members-list-filters-toggle"
+                    id="sc-attendance-logs-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-attendance-logs-filters-panel">
+                <span class="sc-members-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-members-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-members-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-members-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url($clear_filters_url); ?>" class="sc-members-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+
+        <form method="get" action="" class="sc-members-list-filters-panel" id="sc-attendance-logs-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
             <input type="hidden" name="page" value="sc-attendance-logs">
 
-            <div class="sc-filter-grid">
+            <div class="sc-filter-grid sc-attendance-logs-filter-grid">
 
-                <!-- کاربر (searchable) -->
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_user">نام کاربر</label>
                     <div class="sc-searchable-dropdown">
@@ -416,7 +485,7 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                         <div class="sc-dropdown-toggle">
                             <span class="sc-dropdown-placeholder" <?php if (!empty($filter_user) && $filter_user !== '0') echo 'style="display:none"'; ?>>همه کاربران</span>
                             <span class="sc-dropdown-selected" <?php if (empty($filter_user) || $filter_user === '0') echo 'style="display:none"'; ?>>
-                                <?php echo !empty($filter_user) ? 'انتخاب شده' : 'همه کاربران'; ?>
+                                <?php echo esc_html($selected_member_text); ?>
                             </span>
                             <span class="sc-dropdown-arrow">▼</span>
                         </div>
@@ -459,7 +528,6 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                 </div>
                 <?php endif; ?>
 
-                <!-- بازه تاریخ -->
                 <div class="sc-filter-field sc-filter-date">
                     <label class="sc-filter-label">بازه تاریخ</label>
                     <div class="sc-date-range">
@@ -468,7 +536,6 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                     </div>
                 </div>
 
-                <!-- بازه زمان -->
                 <div class="sc-filter-field">
                     <label class="sc-filter-label">بازه زمان</label>
                     <div class="sc-date-range">
@@ -477,10 +544,9 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                     </div>
                 </div>
 
-                <!-- تعداد در صفحه + جستجو -->
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="count_item_page">تعداد در صفحه</label>
-                    <input type="text" name="count_item_page" value="<?php echo esc_attr(trim((string) $count_item_page)); ?>" class="sc-filter-control" style="width: 80px;">
+                    <input type="text" name="count_item_page" id="count_item_page" value="<?php echo esc_attr(trim((string) $count_item_page)); ?>" class="sc-filter-control">
                 </div>
 
                 <div class="sc-filter-field">
@@ -490,14 +556,13 @@ if ($filter_course > 0 && $log_has_matched_cols) {
 
             </div>
 
-            <p class="submit">
+            <div class="sc-members-list-filters-actions">
                 <input type="submit" class="button button-primary" value="اعمال فیلتر">
-                <a href="<?php echo admin_url('admin.php?page=sc-attendance-logs'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-            </p>
+                <a href="<?php echo esc_url($clear_filters_url); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            </div>
         </form>
     </div>
-</div>
- <div class="wrap ">
+
         <?php
         if ($logs_notice === 'deleted') {
             echo '<div class="notice notice-success is-dismissible"><p>رکوردهای انتخاب‌شده از لاگ حذف شدند.</p></div>';
@@ -511,25 +576,33 @@ if ($filter_course > 0 && $log_has_matched_cols) {
             echo '<div class="notice notice-error is-dismissible"><p>این عملیات مجاز نیست یا از تنظیمات غیرفعال شده است.</p></div>';
         }
         ?>
-        <form method="post" class="wrap_table_log_attendance">
+        <div class="sc-attendance-logs-meta">
+            <span class="sc-attendance-logs-count">تعداد: <strong><?php echo number_format_i18n((int) $total_items); ?></strong> مورد</span>
+        </div>
+
+        <div class="sc-members-list-table-card">
+        <form method="post" class="sc-attendance-logs-table-form">
             <?php wp_nonce_field('sc_attendance_logs_bulk', 'sc_attendance_logs_bulk_nonce'); ?>
 
             <?php if ($show_bulk_bar) : ?>
-            <div class="tablenav top" style="margin-bottom:10px;">
+            <div class="tablenav top sc-attendance-logs-bulk-bar">
                 <div class="alignleft actions bulkactions">
                     <label for="bulk-action-selector" class="screen-reader-text">عملیات دسته‌جمعی</label>
-                    <select name="bulk_action" id="bulk-action-selector">
+                    <select name="bulk_action" id="bulk-action-selector" class="sc-filter-control">
                         <option value="-1">عملیات دسته‌جمعی…</option>
                         <?php if ($bulk_delete_on) : ?>
                         <option value="delete">حذف رکوردهای لاگ</option>
                         <?php endif; ?>
+                        <?php if ($bulk_clear_on) : ?>
+                        <option value="clear_match">لغو تطبیق با حضور</option>
+                        <?php endif; ?>
                     </select>
                     <input type="submit" name="sc_attendance_logs_bulk_submit" id="doaction" class="button action" value="اعمال">
                 </div>
-                <br class="clear">
             </div>
             <?php endif; ?>
 
+            <div class="sc-attendance-logs-table-wrap">
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                 <tr>
@@ -565,8 +638,19 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                        
                     <?php foreach ($logs as $log): ?>
                         <?php
-                            $date =sc_date_shamsi_date_only( date('Y/m/d', strtotime($log->log_datetime)));
-                            $time = date('H:i',     strtotime($log->log_datetime));
+                            $date = sc_date_shamsi_date_only(date('Y/m/d', strtotime($log->log_datetime)));
+                            $time = date('H:i', strtotime($log->log_datetime));
+                            $full_name = trim($log->first_name . ' ' . $log->last_name);
+                            $initials = '';
+                            if (!empty($log->first_name)) {
+                                $initials .= mb_substr((string) $log->first_name, 0, 1);
+                            }
+                            if (!empty($log->last_name)) {
+                                $initials .= mb_substr((string) $log->last_name, 0, 1);
+                            }
+                            if ($initials === '') {
+                                $initials = '؟';
+                            }
                         ?>
 
                         <tr>
@@ -575,8 +659,13 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                                 <input type="checkbox" name="log_ids[]" value="<?php echo esc_attr($log->id); ?>">
                             </th>
                             <?php endif; ?>
-                            <td><?php echo esc_html($log->id); ?></td>
-                            <td><?php echo esc_html($log->first_name . ' ' . $log->last_name); ?></td>
+                            <td><span class="sc-member-meta-item" style="font-weight:700;color:#6b7280;">#<?php echo esc_html($log->id); ?></span></td>
+                            <td>
+                                <span class="sc-member-identity">
+                                    <span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true"><?php echo esc_html($initials); ?></span>
+                                    <span class="sc-member-identity-text"><span class="sc-member-name"><?php echo esc_html($full_name); ?></span></span>
+                                </span>
+                            </td>
                             <td><?php echo esc_html($date); ?></td>
                             <td><?php echo esc_html($time); ?></td>
                             <td><?php echo !empty($log->created_at) ? esc_html(sc_date_shamsi_date_only($log->created_at) . ' ' . date('H:i', strtotime($log->created_at))) : '—'; ?></td>
@@ -602,7 +691,7 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                             ?></td>
                             <?php endif; ?>
                             <?php if ($log_has_matched_cols) : ?>
-                            <td><?php echo !empty($log->matched_to_attendance) ? 'بله' : '—'; ?></td>
+                            <td><?php echo !empty($log->matched_to_attendance) ? '<span class="sc-badge sc-badge--success">بله</span>' : '<span class="sc-badge sc-badge--muted">—</span>'; ?></td>
                             <?php endif; ?>
                         </tr>
 
@@ -610,8 +699,8 @@ if ($filter_course > 0 && $log_has_matched_cols) {
 
                 <?php else: ?>
                     <tr>
-                        <td colspan="<?php echo (int) $table_colspan; ?>" style="text-align:center;padding:20px;">
-                            هیچ لاگی یافت نشد.
+                        <td colspan="<?php echo (int) $table_colspan; ?>">
+                            <div class="sc-attendance-logs-empty">هیچ لاگی یافت نشد.</div>
                         </td>
                     </tr>
                 <?php endif; ?>
@@ -619,9 +708,11 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                 </tbody>
 
             </table>
+            </div>
 
         </form>
 
+        <?php if ($total_pages > 1) : ?>
         <div class="tablenav bottom sc_paginate">
             <div class="tablenav-pages">
                 <?php
@@ -640,7 +731,7 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                         ],
                         admin_url('admin.php')
                     );
-                    $page_links = paginate_links([
+                    echo paginate_links([
                         'base' => esc_url($pagination_base),
                         'format' => '',
                         'prev_text' => '< قبلی ',
@@ -648,63 +739,48 @@ if ($filter_course > 0 && $log_has_matched_cols) {
                         'total' => $total_pages,
                         'current' => $current_page,
                     ]);
-                    echo $page_links;
                     ?>
             </div>
         </div>
+        <?php endif; ?>
+        </div>
 
-    </div> <!-- wrap -->
+    </div>
 
-    <!-- JS -->
-    <script>
-    // انتخاب همه
-    const cbAll = document.getElementById('cb-select-all');
-    if (cbAll) {
-        cbAll.addEventListener('click', function () {
-            const items = document.querySelectorAll('input[name="log_ids[]"]');
-            items.forEach(ch => { ch.checked = this.checked; });
-        });
-    }
+    <script type="text/javascript">
+    jQuery(function ($) {
+        var $toggle = $('#sc-attendance-logs-filters-toggle');
+        var $panel = $('#sc-attendance-logs-filters-panel');
+        var $card = $toggle.closest('.sc-members-list-filters-card');
+        var $label = $toggle.find('.sc-members-list-filters-toggle-label');
 
-   
-
-    document.addEventListener("click", function(e) {
-        const dd = e.target.closest('.sc-searchable-dropdown');
-        document.querySelectorAll('.sc-dropdown-menu').forEach(menu => {
-            if (!dd) menu.style.display = 'none';
-        });
-        if (dd) {
-            const menu = dd.querySelector('.sc-dropdown-menu');
-            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-        }
-    });
-
-    // جستجو داخل dropdown
-    document.querySelectorAll('.sc-search-input').forEach(inp => {
-        inp.addEventListener('keyup', function(){
-            let val = this.value.toLowerCase();
-            let opts = this.closest('.sc-dropdown-menu').querySelectorAll('.sc-dropdown-option');
-            opts.forEach(o => {
-
-            let search = o.getAttribute('data-search') || '';
-
-            if (search.includes(val)) {
-                o.style.display = 'block';
+        $toggle.on('click', function () {
+            var isOpen = $card.hasClass('is-open');
+            if (isOpen) {
+                $card.removeClass('is-open');
+                $panel.attr('hidden', true);
+                $toggle.attr('aria-expanded', 'false');
+                $label.text($label.data('label-closed'));
             } else {
-                o.style.display = 'none';
+                $card.addClass('is-open');
+                $panel.removeAttr('hidden');
+                $toggle.attr('aria-expanded', 'true');
+                $label.text($label.data('label-open'));
             }
-
-        });
-
         });
     });
 
+    (function () {
+        var cbAll = document.getElementById('cb-select-all');
+        if (cbAll) {
+            cbAll.addEventListener('click', function () {
+                document.querySelectorAll('input[name="log_ids[]"]').forEach(function (ch) {
+                    ch.checked = cbAll.checked;
+                });
+            });
+        }
+    })();
     </script>
-
-    <!-- CSS -->
-    <style>
-
-    </style>
 
 <?php
 

@@ -67,41 +67,61 @@ class Support_Tickets_List_Table extends WP_List_Table {
         $uid = (int) $item['user_id'];
         $created_by = isset($item['created_by_type']) ? $item['created_by_type'] : 'user';
         $coach_name = isset($item['coach_name']) ? trim($item['coach_name']) : '';
+        $meta = '';
+        $label = '';
+
         if ($uid && $name !== '') {
-            $out = $name;
-            if (current_user_can('edit_users')) {
-                $url = admin_url('user-edit.php?user_id=' . $uid);
-                $out = '<a href="' . esc_url($url) . '">' . esc_html($name) . '</a>';
-            } else {
-                $out = esc_html($name);
+            $label = $name;
+            if ($created_by === 'coach') {
+                $meta = 'ارسال توسط مربی';
+            } elseif ($created_by === 'accountant') {
+                $meta = 'ارسال توسط حسابدار';
+            } elseif ($created_by !== 'user') {
+                $meta = 'ارسال توسط مدیر';
             }
-            if ($created_by !== 'user') {
-                if ($created_by === 'coach') {
-                    $out .= ' <span class="description">(ارسال توسط مربی)</span>';
-                } elseif ($created_by === 'accountant') {
-                    $out .= ' <span class="description">(ارسال توسط حسابدار)</span>';
-                } else {
-                    $out .= ' <span class="description">(ارسال توسط مدیر)</span>';
-                }
-            }
-            return $out;
-        }
-        if ($uid) {
-            return 'کاربر #' . $uid;
-        }
-        if (isset($item['department']) && $item['department'] === 'accountant' && (int) $item['coach_id'] > 0) {
+        } elseif ($uid) {
+            $label = 'کاربر #' . $uid;
+        } elseif (isset($item['department']) && $item['department'] === 'accountant' && (int) $item['coach_id'] > 0) {
             $u = get_userdata((int) $item['coach_id']);
-            return $u ? (esc_html($u->display_name) . ' <span class="description">(حسابدار)</span>') : 'حسابدار باشگاه';
+            $label = $u ? $u->display_name : 'حسابدار باشگاه';
+            $meta = 'حسابدار';
+        } elseif ((int) $item['coach_id'] > 0 && $coach_name !== '') {
+            $label = $coach_name;
+            $meta = 'مربی';
+        } else {
+            $label = 'مدیر باشگاه';
         }
-        if ((int) $item['coach_id'] > 0 && $coach_name !== '') {
-            return esc_html($coach_name) . ' <span class="description">(مربی)</span>';
+
+        $initials = '؟';
+        $parts = preg_split('/\s+/u', trim($label));
+        if (!empty($parts[0])) {
+            $initials = mb_substr($parts[0], 0, 1);
+            if (!empty($parts[1])) {
+                $initials .= mb_substr($parts[1], 0, 1);
+            }
         }
-        return 'مدیر باشگاه';
+
+        $name_html = esc_html($label);
+        if ($uid && $name !== '' && current_user_can('edit_users')) {
+            $name_html = '<a class="sc-member-name" href="' . esc_url(admin_url('user-edit.php?user_id=' . $uid)) . '">' . esc_html($name) . '</a>';
+        } else {
+            $name_html = '<span class="sc-member-name">' . esc_html($label) . '</span>';
+        }
+
+        $out = '<div class="sc-member-identity">';
+        $out .= '<span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true">' . esc_html($initials) . '</span>';
+        $out .= '<div class="sc-member-identity-text">' . $name_html;
+        if ($meta !== '') {
+            $out .= '<span class="sc-member-meta">' . esc_html($meta) . '</span>';
+        }
+        $out .= '</div></div>';
+        return $out;
     }
 
     public function column_subject($item) {
         $url = admin_url('admin.php?page=sc-support-ticket-view&id=' . $item['id']);
-        return '<a href="' . esc_url($url) . '"><strong>' . esc_html($item['subject']) . '</strong></a>';
+        return '<a class="sc-ticket-subject-link" href="' . esc_url($url) . '"><strong>' . esc_html($item['subject']) . '</strong></a>'
+            . '<div class="row-actions"><span class="view"><a href="' . esc_url($url) . '">مشاهده و پاسخ</a></span></div>';
     }
 
     public function column_department($item) {
@@ -110,13 +130,13 @@ class Support_Tickets_List_Table extends WP_List_Table {
 
     public function column_status($item) {
         $status = $item['status'];
-        $labels = [
-            'pending_reply' => ['برچسب' => 'در انتظار پاسخ', 'رنگ' => '#f0a000'],
-            'answered' => ['برچسب' => 'پاسخ داده شده', 'رنگ' => '#00a32a'],
-            'closed' => ['برچسب' => 'بسته شده', 'رنگ' => '#666'],
+        $map = [
+            'pending_reply' => ['label' => 'در انتظار پاسخ', 'class' => 'sc-badge--warning'],
+            'answered' => ['label' => 'پاسخ داده شده', 'class' => 'sc-badge--success'],
+            'closed' => ['label' => 'بسته شده', 'class' => 'sc-badge--muted'],
         ];
-        $info = isset($labels[$status]) ? $labels[$status] : ['برچسب' => $status, 'رنگ' => '#666'];
-        return '<span style="color:' . esc_attr($info['رنگ']) . '; font-weight:bold;">' . esc_html($info['برچسب']) . '</span>';
+        $info = isset($map[$status]) ? $map[$status] : ['label' => $status, 'class' => 'sc-badge--soft'];
+        return '<span class="sc-badge ' . esc_attr($info['class']) . '">' . esc_html($info['label']) . '</span>';
     }
 
     public function column_created_at($item) {
@@ -129,7 +149,7 @@ class Support_Tickets_List_Table extends WP_List_Table {
 
     public function column_actions($item) {
         $url = admin_url('admin.php?page=sc-support-ticket-view&id=' . $item['id']);
-        return '<a href="' . esc_url($url) . '" class="button button-small">مشاهده و پاسخ</a>';
+        return '<a href="' . esc_url($url) . '" class="sc-ticket-list-action">مشاهده و پاسخ</a>';
     }
 
     public function column_default($item, $column_name) {

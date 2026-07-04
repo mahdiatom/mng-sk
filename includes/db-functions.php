@@ -464,6 +464,7 @@ function sc_create_coaches_table() {
         `coaching_level` varchar(100) DEFAULT NULL,
         `coaching_experience` int(11) DEFAULT NULL,
         `sports_history` text DEFAULT NULL,
+        `personal_photo` varchar(500) DEFAULT NULL COMMENT 'عکس پرسنلی مربی',
         `settlement_type` varchar(20) DEFAULT 'fixed',
         `settlement_amount` decimal(15,2) DEFAULT 0.00,
         `is_active` tinyint(1) DEFAULT 1,
@@ -1438,6 +1439,16 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$coaches_table_priv` ADD COLUMN `is_private_enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'مجاز به پذیرش کلاس خصوصی' AFTER `is_active`");
         }
         update_option('sc_coaches_is_private_enabled_column_added', '1');
+    }
+
+    // ستون personal_photo برای مربیان
+    if (get_option('sc_coaches_personal_photo_column_added', '0') !== '1') {
+        $coaches_table_photo = $wpdb->prefix . 'sc_coaches';
+        $col_photo = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$coaches_table_photo` LIKE %s", 'personal_photo'));
+        if (empty($col_photo)) {
+            $wpdb->query("ALTER TABLE `$coaches_table_photo` ADD COLUMN `personal_photo` varchar(500) DEFAULT NULL COMMENT 'عکس پرسنلی مربی' AFTER `sports_history`");
+        }
+        update_option('sc_coaches_personal_photo_column_added', '1');
     }
 
     // اضافه کردن ستون file_url به جدول honors (یک بار برای نصب‌های قبلی)

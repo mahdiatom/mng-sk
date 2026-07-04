@@ -32,22 +32,29 @@ $placeholders = sc_certificates_get_placeholders();
 $first_template_key = !empty($templates) ? array_key_first($templates) : '';
 ?>
 
-<div class="wrap sc-users-export-wrap">
-    <h1>تعریف قالب گواهینامه</h1>
-</div>
+<?php if ($notice) : ?>
+    <div class="notice notice-success is-dismissible"><p><?php echo esc_html($notice); ?></p></div>
+<?php endif; ?>
 
-<div class="wrap sc-users-export-wrap">
-    <?php if ($notice) : ?>
-        <div class="notice notice-success is-dismissible"><p><?php echo esc_html($notice); ?></p></div>
-    <?php endif; ?>
+<div class="wrap sc-users-export-wrap sc-cert-wrap sc-cert-templates-wrap">
+    <div class="sc-cert-header">
+        <div class="sc-cert-header-text">
+            <h1 class="sc-cert-title">تعریف قالب گواهینامه</h1>
+            <p class="sc-cert-desc">طراحی و تنظیم قالب‌های گواهینامه، پیش‌نمایش زنده و متغیرهای متن</p>
+        </div>
+        <div class="sc-cert-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-list')); ?>" class="sc-cert-btn-secondary">گواهینامه‌ها</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-issue')); ?>" class="sc-cert-btn-primary">صدور گواهینامه</a>
+        </div>
+    </div>
 
     <form method="post" id="sc-certificate-templates-form">
         <?php wp_nonce_field('sc_save_certificate_templates_nonce'); ?>
 
         <div class="sc-template-manager-grid">
-            <div class="sc-users-export-card sc-templates-list-card">
+            <div class="sc-users-export-card sc-templates-list-card sc-cert-card">
                 <div class="sc-template-list-header">
-                    <h2>لیست قالب‌ها</h2>
+                    <h2 class="sc-cert-card-title">لیست قالب‌ها</h2>
                     <button type="button" class="button button-primary" id="sc-add-certificate-template">افزودن قالب جدید</button>
                 </div>
                 <div id="sc-certificate-templates-list">
@@ -62,10 +69,8 @@ $first_template_key = !empty($templates) ? array_key_first($templates) : '';
                     <?php endforeach; ?>
                 </div>
             </div>
-</div>
-                    </div>
-<div class="wrap sc-users-export-wrap">
-            <div class="sc-users-export-card">
+
+            <div class="sc-users-export-card sc-cert-card">
                 <p class="description">برای هر قالب، متغیرها را از زیر بخش «متن گواهینامه» درج کنید.</p>
                 <div id="sc-certificate-templates-container">
             <?php foreach ($templates as $template) : ?>
@@ -271,13 +276,12 @@ $first_template_key = !empty($templates) ? array_key_first($templates) : '';
             <?php endforeach; ?>
                 </div>
             </div>
-        
+        </div>
 
-        <p class="submit">
+        <p class="submit sc-cert-submit">
             <button type="submit" name="sc_save_certificate_templates" class="button button-primary">ذخیره قالب‌ها</button>
         </p>
     </form>
-</div>
 </div>
 <style>
 @font-face {

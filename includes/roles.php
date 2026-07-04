@@ -297,6 +297,7 @@ function club_recreate_shop_manager_role() {
                     if (
                          
                          $item[2] !== 'edit.php?post_type=product' &&
+                         $item[2] !== 'sc-products' &&
                          $item[2] !== 'page=wc-admin' && 
                          $item[2] !== 'index.php'
                 
@@ -316,6 +317,7 @@ function club_recreate_shop_manager_role() {
                 'coupons-moved',
                 'wc-reports',
                 'sc_orders',
+                'sc-products',
                 'wc-admin',
                 'post-new.php',
                 'shop_coupon'
@@ -696,6 +698,7 @@ function club_add_woocommerce_capabilities_to_club_coach() {
                 'coupons-moved',
                 'wc-reports',
                 'sc_orders',
+                'sc-products',
                 'wc-admin',
                 'post-new.php',
                 'shop_coupon',

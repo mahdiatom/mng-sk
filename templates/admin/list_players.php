@@ -9,19 +9,8 @@ if (!isset($player_list_table) || !($player_list_table instanceof Player_List_Ta
     $player_list_table->prepare_items();
 }
 
-            ?>
-            <div class="wrap">
-            <h1 class="wp-heading-inline">لیست بازیکن ها</h1>
-            <a href="<?php echo admin_url('user-new.php'); ?>" class="page-title-action sc_button">افزودن بازیکن</a>
-        
-            <p>برای مشاهده اکشن‌ها روی نام کاربر بروید (حذف، مشاهده، ویرایش).</p>
-       
-        </div>
-
-
-        <?php
-        // بارگذاری داده‌ها برای فیلتر searchable
-        global $wpdb;
+// بارگذاری داده‌ها برای فیلتر searchable
+global $wpdb;
         $members_table = $wpdb->prefix . 'sc_members';
         $courses_table = $wpdb->prefix . 'sc_courses';
 
@@ -43,231 +32,310 @@ if (!isset($player_list_table) || !($player_list_table instanceof Player_List_Ta
         $filter_skill_level = isset($_GET['filter_skill_level']) ? sanitize_text_field(wp_unslash($_GET['filter_skill_level'])) : '';
         $filter_identity = isset($_GET['filter_identity']) ? sanitize_text_field($_GET['filter_identity']) : 'all';
         $filter_insurance = isset($_GET['filter_insurance']) ? sanitize_text_field($_GET['filter_insurance']) : 'all';
+        $filter_player = isset($_GET['filter_player']) ? absint($_GET['filter_player']) : 0;
+
+        $active_filters_count = 0;
+        if ($filter_player > 0) {
+            $active_filters_count++;
+        }
+        if ($filter_course > 0) {
+            $active_filters_count++;
+        }
+        if ($filter_status !== 'all') {
+            $active_filters_count++;
+        }
+        if ($filter_profile !== 'all') {
+            $active_filters_count++;
+        }
+        if ($filter_member_type !== 'all') {
+            $active_filters_count++;
+        }
+        if ($filter_team !== '') {
+            $active_filters_count++;
+        }
+        if ($filter_skill_level !== '') {
+            $active_filters_count++;
+        }
+        if ($filter_identity !== 'all') {
+            $active_filters_count++;
+        }
+        if ($filter_insurance !== 'all') {
+            $active_filters_count++;
+        }
+        $filters_open = $active_filters_count > 0;
+
+        $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
+        if ($filter_player > 0) {
+            $export_url = add_query_arg('filter_player', $filter_player, $export_url);
+        }
+        if ($filter_course > 0) {
+            $export_url = add_query_arg('filter_course', $filter_course, $export_url);
+        }
+        if ($filter_status !== 'all') {
+            $export_url = add_query_arg('filter_status', $filter_status, $export_url);
+        }
+        if ($filter_profile !== 'all') {
+            $export_url = add_query_arg('filter_profile', $filter_profile, $export_url);
+        }
+        if ($filter_member_type !== 'all') {
+            $export_url = add_query_arg('filter_member_type', $filter_member_type, $export_url);
+        }
+        if ($filter_team !== '') {
+            $export_url = add_query_arg('filter_team', $filter_team, $export_url);
+        }
+        if ($filter_skill_level !== '') {
+            $export_url = add_query_arg('filter_skill_level', $filter_skill_level, $export_url);
+        }
+        if ($filter_identity !== 'all') {
+            $export_url = add_query_arg('filter_identity', $filter_identity, $export_url);
+        }
+        if ($filter_insurance !== 'all') {
+            $export_url = add_query_arg('filter_insurance', $filter_insurance, $export_url);
+        }
+        $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+
+        $selected_player_text = 'همه بازیکنان';
+        if ($filter_player > 0) {
+            foreach ($all_players as $p) {
+                if ((int) $p->id === $filter_player) {
+                    $selected_player_text = $p->first_name . ' ' . $p->last_name . ' - ' . $p->national_id;
+                    break;
+                }
+            }
+        }
         ?>
 
-        <!-- فرم فیلتر جدید -->
-        <form method="get" action="" class="form_fillter_list_player" >
-            <input type="hidden" name="page" value="sc-members">
-
-            <div class="sc-filter-grid">
-
-                <!-- جستجوی کاربر (searchable) -->
-                <div class="sc-filter-field">
-                    <label class="sc-filter-label">جستجوی بازیکن</label>
-                    <div class="sc-searchable-dropdown">
-                        <?php
-                        $selected_player_text = 'همه بازیکنان';
-                        $filter_player = isset($_GET['filter_player']) ? absint($_GET['filter_player']) : 0;
-                        if ($filter_player > 0) {
-                            foreach ($all_players as $p) {
-                                if ($p->id == $filter_player) {
-                                    $selected_player_text = $p->first_name . ' ' . $p->last_name . ' - ' . $p->national_id;
-                                    break;
-                                }
-                            }
-                        }
-                        ?>
-                        <input type="hidden" name="filter_player" id="filter_player" value="<?php echo esc_attr($filter_player); ?>">
-                        <div class="sc-dropdown-toggle">
-                            <span class="sc-dropdown-placeholder" <?php if ($filter_player) echo 'style="display:none"'; ?>>همه بازیکنان</span>
-                            <span class="sc-dropdown-selected" <?php if (!$filter_player) echo 'style="display:none"'; ?>><?php echo esc_html($selected_player_text); ?></span>
-                            <span class="sc-dropdown-arrow">▼</span>
-                        </div>
-                        <div class="sc-dropdown-menu">
-                            <div class="sc-dropdown-search">
-                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
-                            </div>
-                            <div class="sc-dropdown-options">
-                                <div class="sc-dropdown-option sc-visible" data-value="0" data-search="همه بازیکنان" onclick="scSelectMemberFilter(this,'0','همه بازیکنان')">همه بازیکنان</div>
-                                <?php
-                                $display_count = 0;
-                                $max_display = 15;
-                                foreach ($all_players as $player) :
-                                    $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
-                                    $display_count++;
-                                ?>
-                                    <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
-                                         data-value="<?php echo esc_attr($player->id); ?>"
-                                         data-search="<?php echo esc_attr(strtolower($player->first_name . ' ' . $player->last_name . ' ' . $player->national_id)); ?>"
-                                         onclick="scSelectMemberFilter(this,'<?php echo esc_js($player->id); ?>','<?php echo esc_js($player->first_name . ' ' . $player->last_name . ' - ' . $player->national_id); ?>')">
-                                        <?php echo esc_html($player->first_name . ' ' . $player->last_name . ' - ' . $player->national_id); ?>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
+        <div class="wrap sc-members-list-wrap">
+            <div class="sc-members-list-header">
+                <div class="sc-members-list-header-text">
+                    <h1 class="sc-members-list-title">لیست بازیکن‌ها</h1>
+                    <p class="sc-members-list-desc">برای مشاهده اکشن‌ها روی نام کاربر بروید (حذف، مشاهده، ویرایش).</p>
                 </div>
-
-                <!-- دوره -->
-                <div class="sc-filter-field">
-                    <label class="sc-filter-label" for="filter_course">دوره</label>
-                    <select name="filter_course" id="filter_course" class="sc-filter-control">
-                        <option value="0">همه دوره‌ها</option>
-                        <?php foreach ($courses as $course) : ?>
-                            <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
-                                <?php echo esc_html($course->title); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                <div class="sc-members-list-header-actions">
+                    <a href="<?php echo esc_url(admin_url('user-new.php')); ?>" class="page-title-action sc-members-list-add-btn">افزودن بازیکن</a>
+                    <a href="<?php echo esc_url($export_url); ?>" class="sc-members-list-export-btn">خروجی Excel</a>
                 </div>
-
-                <!-- وضعیت -->
-                <div class="sc-filter-field">
-                    <label class="sc-filter-label" for="filter_status">وضعیت</label>
-                    <select name="filter_status" id="filter_status" class="sc-filter-control">
-                        <option value="all" <?php selected($filter_status, 'all'); ?>>همه وضعیت‌ها</option>
-                        <option value="active" <?php selected($filter_status, 'active'); ?>>فعال</option>
-                        <option value="inactive" <?php selected($filter_status, 'inactive'); ?>>غیرفعال</option>
-                    </select>
-                </div>
-
-                <!-- تکمیل پروفایل -->
-                <div class="sc-filter-field">
-                    <label class="sc-filter-label" for="filter_profile">تکمیل پروفایل</label>
-                    <select name="filter_profile" id="filter_profile" class="sc-filter-control">
-                        <option value="all" <?php selected($filter_profile, 'all'); ?>>همه</option>
-                        <option value="completed" <?php selected($filter_profile, 'completed'); ?>>تکمیل شده</option>
-                        <option value="incomplete" <?php selected($filter_profile, 'incomplete'); ?>>ناقص</option>
-                    </select>
-                </div>
-
-                <!-- نوع بازیکن -->
-                <div class="sc-filter-field">
-                    <label class="sc-filter-label" for="filter_member_type">نوع بازیکن</label>
-                    <select name="filter_member_type" id="filter_member_type" class="sc-filter-control">
-                        <option value="all" <?php selected($filter_member_type, 'all'); ?>>همه انواع</option>
-                        <option value="normal" <?php selected($filter_member_type, 'normal'); ?>>عادی</option>
-                        <option value="team" <?php selected($filter_member_type, 'team'); ?>>تیم</option>
-                    </select>
-                </div>
-
-                <!-- تیم -->
-                <div class="sc-filter-field">
-                    <label class="sc-filter-label" for="filter_team">تیم</label>
-                    <select name="filter_team" id="filter_team" class="sc-filter-control">
-                        <option value="">همه تیم‌ها</option>
-                        <?php foreach ($team_options as $team_name) : ?>
-                            <option value="<?php echo esc_attr($team_name); ?>" <?php selected($filter_team, $team_name); ?>>
-                                <?php echo esc_html($team_name); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <!-- سطح -->
-                <div class="sc-filter-field">
-                    <label class="sc-filter-label" for="filter_skill_level">سطح</label>
-                    <select name="filter_skill_level" id="filter_skill_level" class="sc-filter-control">
-                        <option value="">همه سطح‌ها</option>
-                        <?php foreach ($level_options as $lvl) : ?>
-                            <option value="<?php echo esc_attr($lvl); ?>" <?php selected($filter_skill_level, $lvl); ?>>
-                                <?php echo esc_html($lvl); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <!-- وضعیت احراز هویت -->
-                <div class="sc-filter-field">
-                    <label class="sc-filter-label" for="filter_identity">وضعیت احراز</label>
-                    <select name="filter_identity" id="filter_identity" class="sc-filter-control">
-                        <option value="all" <?php selected($filter_identity, 'all'); ?>>همه</option>
-                        <option value="verified" <?php selected($filter_identity, 'verified'); ?>>تأیید شده</option>
-                        <option value="pending" <?php selected($filter_identity, 'pending'); ?>>در انتظار بررسی</option>
-                    </select>
-                </div>
-
-                <!-- وضعیت بیمه -->
-                <div class="sc-filter-field">
-                    <label class="sc-filter-label" for="filter_insurance">وضعیت بیمه</label>
-                    <select name="filter_insurance" id="filter_insurance" class="sc-filter-control">
-                        <option value="all" <?php selected($filter_insurance, 'all'); ?>>همه</option>
-                        <option value="active" <?php selected($filter_insurance, 'active'); ?>>بیمه فعال</option>
-                        <option value="expired" <?php selected($filter_insurance, 'expired'); ?>>بیمه منقضی</option>
-                        <option value="none" <?php selected($filter_insurance, 'none'); ?>>بدون بیمه</option>
-                    </select>
-                </div>
-
             </div>
 
-            <p class="submit">
-                <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
-                <a href="<?php echo admin_url('admin.php?page=sc-members'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-                <?php
-                $export_url = admin_url('admin.php?page=sc-members&sc_export=excel&export_type=members');
-                if ($filter_player > 0) $export_url = add_query_arg('filter_player', $filter_player, $export_url);
-                if ($filter_course > 0) $export_url = add_query_arg('filter_course', $filter_course, $export_url);
-                if ($filter_status !== 'all') $export_url = add_query_arg('filter_status', $filter_status, $export_url);
-                if ($filter_profile !== 'all') $export_url = add_query_arg('filter_profile', $filter_profile, $export_url);
-                if ($filter_member_type !== 'all') $export_url = add_query_arg('filter_member_type', $filter_member_type, $export_url);
-                if ($filter_team !== '') {
-                    $export_url = add_query_arg('filter_team', $filter_team, $export_url);
-                }
-                if ($filter_skill_level !== '') {
-                    $export_url = add_query_arg('filter_skill_level', $filter_skill_level, $export_url);
-                }
-                if ($filter_identity !== 'all') {
-                    $export_url = add_query_arg('filter_identity', $filter_identity, $export_url);
-                }
-                if ($filter_insurance !== 'all') {
-                    $export_url = add_query_arg('filter_insurance', $filter_insurance, $export_url);
-                }
-                $export_url = wp_nonce_url($export_url, 'sc_export_excel');
-                ?>
-                <a href="<?php echo esc_url($export_url); ?>" class="button button_export">📊 خروجی Excel</a>
-            </p>
-        </form>
+            <div class="sc-members-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+                <div class="sc-members-list-filters-toolbar">
+                    <button type="button"
+                            class="sc-members-list-filters-toggle"
+                            id="sc-members-filters-toggle"
+                            aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                            aria-controls="sc-members-filters-panel">
+                        <span class="sc-members-list-filters-toggle-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="sc-members-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                            <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                        </span>
+                        <?php if ($active_filters_count > 0) : ?>
+                            <span class="sc-members-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                        <?php endif; ?>
+                        <span class="sc-members-list-filters-chevron" aria-hidden="true"></span>
+                    </button>
+                    <?php if ($active_filters_count > 0) : ?>
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-members')); ?>" class="sc-members-list-filters-clear">پاک کردن فیلترها</a>
+                    <?php endif; ?>
+                </div>
 
-        <?php
-        echo '<div class="wrap">';
-            echo '<form method="get">';
-                echo '<input type="hidden" name="page" value="sc-members">';
-                $sc_members_preserve = [
-                    'filter_course'      => $filter_course,
-                    'filter_status'      => $filter_status,
-                    'filter_profile'     => $filter_profile,
-                    'filter_member_type' => $filter_member_type,
-                    'filter_team'        => $filter_team,
-                    'filter_skill_level' => $filter_skill_level,
-                    'filter_identity'    => $filter_identity,
-                    'filter_insurance'   => $filter_insurance,
-                ];
-                foreach ($sc_members_preserve as $fk => $fv) {
-                    if ($fk === 'filter_course' && (int) $fv <= 0) {
-                        continue;
-                    }
-                    if (in_array($fk, ['filter_status', 'filter_profile', 'filter_member_type', 'filter_identity', 'filter_insurance'], true) && ($fv === 'all' || $fv === '')) {
-                        continue;
-                    }
-                    if (($fk === 'filter_team' || $fk === 'filter_skill_level') && $fv === '') {
-                        continue;
-                    }
-                    echo '<input type="hidden" name="' . esc_attr($fk) . '" value="' . esc_attr((string) $fv) . '" />';
-                }
-                if (!empty($_GET['filter_player'])) {
-                    echo '<input type="hidden" name="filter_player" value="' . esc_attr((string) absint($_GET['filter_player'])) . '" />';
-                }
-                if (!empty($_GET['player_status']) && $_GET['player_status'] !== 'all') {
-                    echo '<input type="hidden" name="player_status" value="' . esc_attr(sanitize_text_field(wp_unslash($_GET['player_status']))) . '" />';
-                }
-                if (!empty($_GET['s'])) {
-                    echo '<input type="hidden" name="s" value="' . esc_attr(sanitize_text_field(wp_unslash($_GET['s']))) . '" />';
-                }
-                // حذف search_box قدیمی چون حالا داخل فیلتر داریم
-                $player_list_table->views();
-                $player_list_table->display();
-            echo '</form>';
-        echo '</div>';
-        ?>
+                <form method="get" action="" class="form_fillter_list_player sc-members-list-filters-panel" id="sc-members-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+                    <input type="hidden" name="page" value="sc-members">
 
-        <!-- اسکریپت برای searchable dropdown (اگر قبلاً لود نشده) -->
-        <script>
-        // تابع scSelectMemberFilter باید از قبل در admin.js یا مشابه لود شده باشد
-        // در صورت نیاز می‌توانید آن را اینجا هم تعریف کنید.
-        </script>
+                    <div class="sc-filter-grid">
+
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label">جستجوی بازیکن</label>
+                            <div class="sc-searchable-dropdown">
+                                <input type="hidden" name="filter_player" id="filter_player" value="<?php echo esc_attr($filter_player); ?>">
+                                <div class="sc-dropdown-toggle">
+                                    <span class="sc-dropdown-placeholder" <?php if ($filter_player) echo 'style="display:none"'; ?>>همه بازیکنان</span>
+                                    <span class="sc-dropdown-selected" <?php if (!$filter_player) echo 'style="display:none"'; ?>><?php echo esc_html($selected_player_text); ?></span>
+                                    <span class="sc-dropdown-arrow">▼</span>
+                                </div>
+                                <div class="sc-dropdown-menu">
+                                    <div class="sc-dropdown-search">
+                                        <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
+                                    </div>
+                                    <div class="sc-dropdown-options">
+                                        <div class="sc-dropdown-option sc-visible" data-value="0" data-search="همه بازیکنان" onclick="scSelectMemberFilter(this,'0','همه بازیکنان')">همه بازیکنان</div>
+                                        <?php
+                                        $display_count = 0;
+                                        $max_display = 15;
+                                        foreach ($all_players as $player) :
+                                            $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
+                                            $display_count++;
+                                        ?>
+                                            <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
+                                                 data-value="<?php echo esc_attr($player->id); ?>"
+                                                 data-search="<?php echo esc_attr(strtolower($player->first_name . ' ' . $player->last_name . ' ' . $player->national_id)); ?>"
+                                                 onclick="scSelectMemberFilter(this,'<?php echo esc_js($player->id); ?>','<?php echo esc_js($player->first_name . ' ' . $player->last_name . ' - ' . $player->national_id); ?>')">
+                                                <?php echo esc_html($player->first_name . ' ' . $player->last_name . ' - ' . $player->national_id); ?>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_course">دوره</label>
+                            <select name="filter_course" id="filter_course" class="sc-filter-control">
+                                <option value="0">همه دوره‌ها</option>
+                                <?php foreach ($courses as $course) : ?>
+                                    <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>>
+                                        <?php echo esc_html($course->title); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_status">وضعیت</label>
+                            <select name="filter_status" id="filter_status" class="sc-filter-control">
+                                <option value="all" <?php selected($filter_status, 'all'); ?>>همه وضعیت‌ها</option>
+                                <option value="active" <?php selected($filter_status, 'active'); ?>>فعال</option>
+                                <option value="inactive" <?php selected($filter_status, 'inactive'); ?>>غیرفعال</option>
+                            </select>
+                        </div>
+
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_profile">تکمیل پروفایل</label>
+                            <select name="filter_profile" id="filter_profile" class="sc-filter-control">
+                                <option value="all" <?php selected($filter_profile, 'all'); ?>>همه</option>
+                                <option value="completed" <?php selected($filter_profile, 'completed'); ?>>تکمیل شده</option>
+                                <option value="incomplete" <?php selected($filter_profile, 'incomplete'); ?>>ناقص</option>
+                            </select>
+                        </div>
+
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_member_type">نوع بازیکن</label>
+                            <select name="filter_member_type" id="filter_member_type" class="sc-filter-control">
+                                <option value="all" <?php selected($filter_member_type, 'all'); ?>>همه انواع</option>
+                                <option value="normal" <?php selected($filter_member_type, 'normal'); ?>>عادی</option>
+                                <option value="team" <?php selected($filter_member_type, 'team'); ?>>تیم</option>
+                            </select>
+                        </div>
+
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_team">تیم</label>
+                            <select name="filter_team" id="filter_team" class="sc-filter-control">
+                                <option value="">همه تیم‌ها</option>
+                                <?php foreach ($team_options as $team_name) : ?>
+                                    <option value="<?php echo esc_attr($team_name); ?>" <?php selected($filter_team, $team_name); ?>>
+                                        <?php echo esc_html($team_name); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_skill_level">سطح</label>
+                            <select name="filter_skill_level" id="filter_skill_level" class="sc-filter-control">
+                                <option value="">همه سطح‌ها</option>
+                                <?php foreach ($level_options as $lvl) : ?>
+                                    <option value="<?php echo esc_attr($lvl); ?>" <?php selected($filter_skill_level, $lvl); ?>>
+                                        <?php echo esc_html($lvl); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_identity">وضعیت احراز</label>
+                            <select name="filter_identity" id="filter_identity" class="sc-filter-control">
+                                <option value="all" <?php selected($filter_identity, 'all'); ?>>همه</option>
+                                <option value="verified" <?php selected($filter_identity, 'verified'); ?>>تأیید شده</option>
+                                <option value="pending" <?php selected($filter_identity, 'pending'); ?>>در انتظار بررسی</option>
+                            </select>
+                        </div>
+
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="filter_insurance">وضعیت بیمه</label>
+                            <select name="filter_insurance" id="filter_insurance" class="sc-filter-control">
+                                <option value="all" <?php selected($filter_insurance, 'all'); ?>>همه</option>
+                                <option value="active" <?php selected($filter_insurance, 'active'); ?>>بیمه فعال</option>
+                                <option value="expired" <?php selected($filter_insurance, 'expired'); ?>>بیمه منقضی</option>
+                                <option value="none" <?php selected($filter_insurance, 'none'); ?>>بدون بیمه</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div class="sc-members-list-filters-actions">
+                        <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-members')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="sc-members-list-table-card">
+                <form method="get">
+                    <input type="hidden" name="page" value="sc-members">
+                    <?php
+                    $sc_members_preserve = [
+                        'filter_course'      => $filter_course,
+                        'filter_status'      => $filter_status,
+                        'filter_profile'     => $filter_profile,
+                        'filter_member_type' => $filter_member_type,
+                        'filter_team'        => $filter_team,
+                        'filter_skill_level' => $filter_skill_level,
+                        'filter_identity'    => $filter_identity,
+                        'filter_insurance'   => $filter_insurance,
+                    ];
+                    foreach ($sc_members_preserve as $fk => $fv) {
+                        if ($fk === 'filter_course' && (int) $fv <= 0) {
+                            continue;
+                        }
+                        if (in_array($fk, ['filter_status', 'filter_profile', 'filter_member_type', 'filter_identity', 'filter_insurance'], true) && ($fv === 'all' || $fv === '')) {
+                            continue;
+                        }
+                        if (($fk === 'filter_team' || $fk === 'filter_skill_level') && $fv === '') {
+                            continue;
+                        }
+                        echo '<input type="hidden" name="' . esc_attr($fk) . '" value="' . esc_attr((string) $fv) . '" />';
+                    }
+                    if (!empty($_GET['filter_player'])) {
+                        echo '<input type="hidden" name="filter_player" value="' . esc_attr((string) absint($_GET['filter_player'])) . '" />';
+                    }
+                    if (!empty($_GET['player_status']) && $_GET['player_status'] !== 'all') {
+                        echo '<input type="hidden" name="player_status" value="' . esc_attr(sanitize_text_field(wp_unslash($_GET['player_status']))) . '" />';
+                    }
+                    if (!empty($_GET['s'])) {
+                        echo '<input type="hidden" name="s" value="' . esc_attr(sanitize_text_field(wp_unslash($_GET['s']))) . '" />';
+                    }
+                    $player_list_table->views();
+                    $player_list_table->display();
+                    ?>
+                </form>
+            </div>
+        </div>
 
         <script type="text/javascript">
         jQuery(document).ready(function ($) {
+            var $toggle = $('#sc-members-filters-toggle');
+            var $panel = $('#sc-members-filters-panel');
+            var $card = $toggle.closest('.sc-members-list-filters-card');
+            var $label = $toggle.find('.sc-members-list-filters-toggle-label');
+
+            $toggle.on('click', function () {
+                var isOpen = $card.hasClass('is-open');
+                if (isOpen) {
+                    $card.removeClass('is-open');
+                    $panel.attr('hidden', true);
+                    $toggle.attr('aria-expanded', 'false');
+                    $label.text($label.data('label-closed'));
+                } else {
+                    $card.addClass('is-open');
+                    $panel.removeAttr('hidden');
+                    $toggle.attr('aria-expanded', 'true');
+                    $label.text($label.data('label-open'));
+                }
+            });
+
             function scMembersBulkConfirm(e, actionSelector) {
                 var action = $(actionSelector).val();
                 if (action !== 'delete') {

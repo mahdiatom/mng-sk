@@ -47,19 +47,52 @@ class Coaches_List_Table extends WP_List_Table {
             admin_url('admin.php?page=sc-coaches&action=delete&coach=' . $item->id),
             'delete_coach_' . $item->id
         );
-        
+        $full_name = trim($item->first_name . ' ' . $item->last_name);
+        $photo = !empty($item->personal_photo) ? $item->personal_photo : '';
+        $phone = !empty($item->mobile_phone) ? $item->mobile_phone : '';
+
+        $initials = '';
+        if (!empty($item->first_name)) {
+            $initials .= mb_substr((string) $item->first_name, 0, 1);
+        }
+        if (!empty($item->last_name)) {
+            $initials .= mb_substr((string) $item->last_name, 0, 1);
+        }
+        if ($initials === '') {
+            $initials = 'م';
+        }
+
+        if ($photo) {
+            $avatar_html = '<span class="sc-member-avatar"><img src="' . esc_url($photo) . '" alt="" loading="lazy"></span>';
+        } else {
+            $avatar_html = '<span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true">' . esc_html($initials) . '</span>';
+        }
+
+        $meta_parts = [];
+        if ($phone !== '') {
+            $meta_parts[] = '<span class="sc-member-meta-item">' . esc_html($phone) . '</span>';
+        }
+        if (!empty($item->national_id)) {
+            $meta_parts[] = '<span class="sc-member-meta-item">' . esc_html($item->national_id) . '</span>';
+        }
+        $meta_html = !empty($meta_parts)
+            ? '<span class="sc-member-meta">' . implode('<span class="sc-member-meta-dot"></span>', $meta_parts) . '</span>'
+            : '';
+
         $actions = [
-            'edit' => '<a href="' . $edit_url . '">ویرایش</a>',
-            'delete' => '<a href="' . $delete_url . '" onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید؟\' });">حذف</a>',
+            'edit' => '<a href="' . esc_url($edit_url) . '">ویرایش</a>',
+            'delete' => '<a href="' . esc_url($delete_url) . '" onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید؟\' });">حذف</a>',
         ];
-        
-        return sprintf(
-            '<strong><a href="%s">%s %s</a></strong> %s',
-            $edit_url,
-            esc_html($item->first_name),
-            esc_html($item->last_name),
-            $this->row_actions($actions)
-        );
+
+        $name_block = '<span class="sc-member-identity">'
+            . $avatar_html
+            . '<span class="sc-member-identity-text">'
+            . '<a class="sc-member-name" href="' . esc_url($edit_url) . '">' . esc_html($full_name) . '</a>'
+            . $meta_html
+            . '</span>'
+            . '</span>';
+
+        return $name_block . $this->row_actions($actions);
     }
 
     public function column_default($item, $column_name) {
@@ -82,7 +115,9 @@ class Coaches_List_Table extends WP_List_Table {
                 ));
                 return $count ?: 0;
             case 'is_active':
-                return $item->is_active ? '<span style="color: green;">فعال</span>' : '<span style="color: red;">غیرفعال</span>';
+                return !empty($item->is_active)
+                    ? '<span class="sc-badge sc-badge--success">فعال</span>'
+                    : '<span class="sc-badge sc-badge--muted">غیرفعال</span>';
             default:
                 return print_r($item, true);
         }
@@ -235,19 +270,19 @@ class Coaches_List_Table extends WP_List_Table {
         $views = [
             'all' => sprintf(
                 '<a href="%s" class="%s">همه <span class="count">(%d)</span></a>',
-                admin_url('admin.php?page=sc-coaches'),
+                esc_url(admin_url('admin.php?page=sc-coaches')),
                 $current == 'all' ? 'current' : '',
                 $all
             ),
             'active' => sprintf(
                 '<a href="%s" class="%s">فعال <span class="count">(%d)</span></a>',
-                admin_url('admin.php?page=sc-coaches&status=active'),
+                esc_url(admin_url('admin.php?page=sc-coaches&status=active')),
                 $current == 'active' ? 'current' : '',
                 $active
             ),
             'inactive' => sprintf(
                 '<a href="%s" class="%s">غیرفعال <span class="count">(%d)</span></a>',
-                admin_url('admin.php?page=sc-coaches&status=inactive'),
+                esc_url(admin_url('admin.php?page=sc-coaches&status=inactive')),
                 $current == 'inactive' ? 'current' : '',
                 $inactive
             )

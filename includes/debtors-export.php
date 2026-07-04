@@ -17,6 +17,11 @@ function sc_export_debtors_to_excel() {
     // دریافت فیلترها
     $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
+    $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash((string) $_GET['filter_chapter'])) : '';
+    $filter_group_raw = isset($_GET['filter_group']) ? sanitize_text_field(wp_unslash((string) $_GET['filter_group'])) : '';
+    $filter_group = function_exists('sc_finance_normalize_group_filter')
+        ? sc_finance_normalize_group_filter($filter_course, $filter_group_raw)
+        : '';
     
     // ساخت WHERE clause
     $where_conditions = ['m.is_active = 1'];
@@ -26,10 +31,35 @@ function sc_export_debtors_to_excel() {
         $where_conditions[] = "m.id = %d";
         $where_values[] = $filter_member;
     }
-    
+
+    $mc_conditions = ["status = 'active'"];
+    $mc_values = [];
+    $needs_mc_filter = false;
+
     if ($filter_course > 0) {
-        $where_conditions[] = "m.id IN (SELECT member_id FROM $member_courses_table WHERE course_id = %d AND status = 'active')";
-        $where_values[] = $filter_course;
+        $mc_conditions[] = 'course_id = %d';
+        $mc_values[] = $filter_course;
+        $needs_mc_filter = true;
+    }
+    if ($filter_chapter !== '') {
+        $mc_conditions[] = 'chapter = %s';
+        $mc_values[] = $filter_chapter;
+        $needs_mc_filter = true;
+    }
+    if ($filter_group !== '') {
+        if ($filter_group === '__none__') {
+            $mc_conditions[] = "COALESCE(group_name, '') = ''";
+        } else {
+            $mc_conditions[] = 'group_name = %s';
+            $mc_values[] = $filter_group;
+        }
+        $needs_mc_filter = true;
+    }
+
+    if ($needs_mc_filter) {
+        $mc_where = implode(' AND ', $mc_conditions);
+        $where_conditions[] = "m.id IN (SELECT member_id FROM $member_courses_table WHERE $mc_where)";
+        $where_values = array_merge($where_values, $mc_values);
     }
     
     $where_clause = implode(' AND ', $where_conditions);
@@ -166,9 +196,3 @@ function sc_export_debtors_to_excel() {
     $writer->save('php://output');
     exit;
 }
-
-
-
-
-
-

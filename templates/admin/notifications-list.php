@@ -111,17 +111,8 @@ if (!empty($filter_date_from_shamsi) && function_exists('sc_shamsi_to_gregorian_
 if (!empty($filter_date_to_shamsi) && function_exists('sc_shamsi_to_gregorian_date')) {
     $filter_date_to = sc_shamsi_to_gregorian_date($filter_date_to_shamsi);
 }
-// فقط برای نمایش در فیلدها: وقتی کاربر تاریخی نفرستاده، امروز نشان بده (در فیلتر اعمال نمی‌شود)
-$today_shamsi_display = '';
-if (function_exists('sc_date_shamsi_date_only')) {
-    $today_shamsi_display = sc_date_shamsi_date_only(current_time('Y-m-d'));
-} elseif (function_exists('gregorian_to_jalali')) {
-    $today = new DateTime(current_time('Y-m-d'));
-    $jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
-    $today_shamsi_display = $jalali[0] . '/' . str_pad($jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($jalali[2], 2, '0', STR_PAD_LEFT);
-}
-$display_date_from_shamsi = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_display;
-$display_date_to_shamsi   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_display;
+$display_date_from_shamsi = $filter_date_from_shamsi;
+$display_date_to_shamsi   = $filter_date_to_shamsi;
 
 $where = ['1=1'];
 $where_values = [];
@@ -206,46 +197,88 @@ foreach ($notifications as $n) {
     }
 }
 
-$total_pages = ceil($total / $per_page);
-?>
-<div class="wrap sc-notifications-list-wrap<?php echo $is_coach ? ' sc-coach-panel-wrap' : ''; ?>">
-    <?php if ($is_coach) : ?>
-        <div class="sc-coach-panel-header">
-            <div class="sc-coach-panel-title-row">
-                <h1 class="sc-coach-panel-title">لیست اطلاعیه‌ها</h1>
-                <a href="<?php echo esc_url($add_url); ?>" class="button button-primary">افزودن اطلاعیه جدید</a>
-            </div>
-            <p class="sc-coach-panel-desc">اطلاعیه‌های ارسال‌شده توسط شما. می‌توانید ویرایش یا حذف کنید.</p>
-        </div>
-        </div>
-        
-    <?php else : ?>
-        <h1 class="wp-heading-inline">لیست اطلاعیه‌ها</h1>
-        <a href="<?php echo esc_url($add_url); ?>" class="page-title-action">افزودن اطلاعیه جدید</a>
-        <hr class="wp-header-end">
-    </div>
-    <?php endif; ?>
-    <?php if ($message) : ?>
-        <div class="wrap">
-        <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
-    <?php endif; ?>
+$total_pages = max(1, (int) ceil($total / $per_page));
 
-<div class="wrap">
-    <div class="sc-notifications-filters-wrap" style="margin: 15px 0;">
-        <form method="get" action="">
+$active_filters_count = 0;
+if ($search !== '') {
+    $active_filters_count++;
+}
+if (!$is_coach && $filter_creator_type !== 'all') {
+    $active_filters_count++;
+}
+if ($filter_target_type !== '') {
+    $active_filters_count++;
+}
+if ($filter_sms !== 'all') {
+    $active_filters_count++;
+}
+if ($filter_date_from_shamsi !== '' || $filter_date_to_shamsi !== '') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+
+$target_labels_map = [
+    'all' => 'همه اعضا',
+    'specific' => 'اشخاص خاص',
+    'course' => 'دوره خاص',
+    'debtors' => 'بدهکاران',
+    'event' => 'رویداد',
+    'wallet_negative' => 'موجودی منفی',
+    'phone' => 'شماره خاص',
+    'team' => 'تیم',
+];
+?>
+
+<?php if ($message) : ?>
+    <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible"><p><?php echo esc_html($message); ?></p></div>
+<?php endif; ?>
+
+<div class="wrap sc-notif-list-wrap<?php echo $is_coach ? ' sc-coach-panel-wrap' : ''; ?>">
+    <div class="sc-notif-list-header">
+        <div class="sc-notif-list-header-text">
+            <h1 class="sc-notif-list-title">لیست اطلاعیه‌ها</h1>
+            <p class="sc-notif-list-desc"><?php echo $is_coach ? 'اطلاعیه‌های ارسال‌شده توسط شما' : 'مدیریت اطلاعیه‌ها و پیامک‌های ارسال‌شده'; ?></p>
+        </div>
+        <div class="sc-notif-list-header-actions">
+            <a href="<?php echo esc_url($add_url); ?>" class="sc-notif-list-add-btn">افزودن اطلاعیه جدید</a>
+        </div>
+    </div>
+
+    <div class="sc-notif-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-notif-list-filters-toolbar">
+            <button type="button"
+                    class="sc-notif-list-filters-toggle"
+                    id="sc-notif-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-notif-filters-panel">
+                <span class="sc-notif-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-notif-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-notif-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-notif-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url($list_url); ?>" class="sc-notif-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+
+        <form method="get" action="" class="sc-notif-list-filters-panel" id="sc-notif-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
             <input type="hidden" name="page" value="<?php echo esc_attr($list_page); ?>">
 
-            <!-- ==================== FILTER BAR (مشابه تیکت) ==================== -->
-            <div class="sc-filter-grid" style="margin-bottom:12px; width:100%;">
-
-                <!-- جستجو -->
+            <div class="sc-filter-grid">
                 <div class="sc-filter-field">
                     <label class="sc-filter-label">جستجو</label>
-                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." class="sc-filter-control" style="width:100%;">
+                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." class="sc-filter-control">
                 </div>
 
                 <?php if (!$is_coach) : ?>
-                <!-- ثبت‌کننده -->
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_creator">ثبت‌کننده</label>
                     <select name="filter_creator" id="filter_creator" class="sc-filter-control">
@@ -256,8 +289,7 @@ $total_pages = ceil($total / $per_page);
                 </div>
                 <?php endif; ?>
 
-                <!-- نوع ارسال -->
-                <div class="sc-filter-field" style="min-width:160px;">
+                <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_target">نوع ارسال</label>
                     <select name="filter_target" id="filter_target" class="sc-filter-control">
                         <option value="" <?php selected($filter_target_type, ''); ?>>همه</option>
@@ -274,7 +306,6 @@ $total_pages = ceil($total / $per_page);
                     </select>
                 </div>
 
-                <!-- پیامک -->
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_sms">پیامک</label>
                     <select name="filter_sms" id="filter_sms" class="sc-filter-control">
@@ -284,137 +315,162 @@ $total_pages = ceil($total / $per_page);
                     </select>
                 </div>
 
-                <!-- بازه تاریخ (اندازه مناسب، سمت راست) -->
                 <div class="sc-filter-field sc-filter-date">
                     <label class="sc-filter-label">بازه تاریخ</label>
-                    <div class="sc-date-range">
-                        <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="از" readonly >
-                        <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="تا" readonly >
+                    <div class="sc-date-range sc-notif-date-range">
+                        <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($display_date_from_shamsi); ?>" placeholder="از تاریخ" readonly>
+                        <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($display_date_to_shamsi); ?>" placeholder="تا تاریخ" readonly>
                     </div>
                 </div>
-
-
             </div>
-            
-                <!-- دکمه فیلتر در سطر جدید، راست‌چین -->
-                <div >
-                    <input  type="submit" class="button sc_btn_filter button-primary" value="اعمال فیلتر " >
-                </div>
-            <!-- ==================== /FILTER BAR ==================== -->
 
+            <div class="sc-notif-list-filters-actions">
+                <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                <a href="<?php echo esc_url($list_url); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="sc-notif-list-table-card">
+        <div class="sc-notif-list-summary"><span><?php echo (int) $total; ?> اطلاعیه</span></div>
+        <form method="post" id="sc-notifications-bulk-form">
+            <?php wp_nonce_field('bulk_delete_notifications'); ?>
+            <div class="tablenav top sc-notif-bulk-nav">
+                <div class="alignleft actions bulkactions">
+                    <select name="bulk_action" id="bulk-action-selector">
+                        <option value="">عملیات دسته‌جمعی...</option>
+                        <option value="delete">حذف</option>
+                    </select>
+                    <input type="submit" name="bulk_delete" id="doaction" class="button action" value="اجرا">
+                </div>
+            </div>
+
+            <div class="sc-notif-table-scroll">
+                <table class="wp-list-table widefat striped sc-notif-table">
+                    <thead>
+                        <tr>
+                            <td class="manage-column column-cb check-column">
+                                <input type="checkbox" id="cb-select-all">
+                            </td>
+                            <th class="manage-column">ردیف</th>
+                            <th class="manage-column">عنوان</th>
+                            <th class="manage-column">ثبت‌کننده</th>
+                            <th class="manage-column">نوع ارسال</th>
+                            <th class="manage-column">تعداد مخاطب</th>
+                            <th class="manage-column">پیامک</th>
+                            <th class="manage-column">تاریخ</th>
+                            <th class="manage-column">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($notifications)) : ?>
+                            <tr><td colspan="9" class="sc-notif-empty">اطلاعیه‌ای یافت نشد.</td></tr>
+                        <?php else :
+                            $i = $offset + 1;
+                            foreach ($notifications as $n) :
+                                $target_label = $target_labels_map[$n->target_type] ?? $n->target_type;
+                                $creator_label = function_exists('sc_notification_creator_label') ? sc_notification_creator_label($n) : 'مدیر';
+                                $can_edit_delete = !$is_coach || ($current_coach_id > 0 && isset($n->created_by_type) && $n->created_by_type === 'coach' && (int) $n->created_by_entity_id === $current_coach_id);
+                                $edit_url = admin_url('admin.php?page=' . $add_page . '&edit=' . (int) $n->id);
+                                $delete_url = wp_nonce_url(admin_url('admin.php?page=' . $list_page . '&action=delete&id=' . (int) $n->id), 'delete_notification_' . (int) $n->id);
+                                $creator_badge = (isset($n->created_by_type) && $n->created_by_type === 'coach') ? 'sc-badge--purple' : 'sc-badge--soft';
+                        ?>
+                            <tr>
+                                <th scope="row" class="check-column">
+                                    <?php if ($can_edit_delete) : ?>
+                                        <input type="checkbox" name="notification_ids[]" value="<?php echo esc_attr($n->id); ?>" class="cb-notification">
+                                    <?php else : ?>
+                                        —
+                                    <?php endif; ?>
+                                </th>
+                                <td data-label="ردیف"><?php echo (int) $i++; ?></td>
+                                <td data-label="عنوان"><strong class="sc-notif-title"><?php echo esc_html($n->title); ?></strong></td>
+                                <td data-label="ثبت‌کننده"><span class="sc-badge <?php echo esc_attr($creator_badge); ?>"><?php echo esc_html($creator_label); ?></span></td>
+                                <td data-label="نوع ارسال"><span class="sc-badge sc-badge--soft"><?php echo esc_html($target_label); ?></span></td>
+                                <td data-label="تعداد مخاطب"><?php echo (int) $n->recipients_count; ?></td>
+                                <td data-label="پیامک">
+                                    <?php if (!empty($n->send_sms)) : ?>
+                                        <span class="sc-badge sc-badge--success">بله</span>
+                                    <?php else : ?>
+                                        <span class="sc-badge sc-badge--muted">خیر</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td data-label="تاریخ"><?php echo esc_html(function_exists('sc_date_shamsi') ? sc_date_shamsi($n->created_at, 'Y/m/d H:i') : $n->created_at); ?></td>
+                                <td data-label="عملیات" class="sc-notif-actions">
+                                    <?php if ($can_edit_delete) : ?>
+                                        <a href="<?php echo esc_url($edit_url); ?>">ویرایش</a>
+                                        <a href="<?php echo esc_url($delete_url); ?>" class="submitdelete" onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا از حذف اطمینان دارید؟' });">حذف</a>
+                                    <?php else : ?>
+                                        —
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <?php if ($total_pages > 1) : ?>
+                <div class="tablenav bottom sc_paginate">
+                    <div class="tablenav-pages">
+                        <?php
+                        $pagination_args = ['page' => $list_page];
+                        if ($filter_creator_type !== 'all') {
+                            $pagination_args['filter_creator'] = $filter_creator_type;
+                        }
+                        if ($filter_target_type !== '') {
+                            $pagination_args['filter_target'] = $filter_target_type;
+                        }
+                        if ($filter_sms !== 'all') {
+                            $pagination_args['filter_sms'] = $filter_sms;
+                        }
+                        if ($filter_date_from_shamsi !== '') {
+                            $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
+                        }
+                        if ($filter_date_to_shamsi !== '') {
+                            $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
+                        }
+                        if ($search !== '') {
+                            $pagination_args['s'] = $search;
+                        }
+                        echo paginate_links([
+                            'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
+                            'format' => '',
+                            'prev_text' => '‹',
+                            'next_text' => '›',
+                            'total' => $total_pages,
+                            'current' => $current_page,
+                            'add_args' => $pagination_args,
+                        ]);
+                        ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </form>
     </div>
 </div>
-   <div class="wrap">
-    <form method="post" id="sc-notifications-bulk-form">
-        <?php wp_nonce_field('bulk_delete_notifications'); ?>
-        <div class="tablenav top" style="margin: 15px 0;">
-            <div class="alignleft actions bulkactions">
-                <select name="bulk_action" id="bulk-action-selector">
-                    <option value="">عملیات دسته‌جمعی...</option>
-                    <option value="delete">حذف</option>
-                </select>
-                <input type="submit" name="bulk_delete" id="doaction" class="button action" value="اجرا">
-            </div>
-        </div>
-    <div class="sc-notifications-list-card<?php echo $is_coach ? ' sc-coach-panel-card' : ''; ?>">
-    <table class="wp-list-table widefat fixed striped sc-notifications-admin-table">
-        <thead>
-            <tr>
-                <td class="manage-column column-cb check-column" style="width: 2.2em;">
-                    <input type="checkbox" id="cb-select-all">
-                </td>
-                <th style="width:50px">ردیف</th>
-                <th style="width:120px">عنوان</th>
-                <th style="width:120px">ثبت‌کننده</th>
-                <th style="width:120px">نوع ارسال</th>
-                <th style="width:80px">تعداد مخاطب</th>
-                <th style="width:80px">پیامک</th>
-                <th style="width:120px">تاریخ</th>
-                <th style="width:120px">عملیات</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (empty($notifications)) : ?>
-                <tr><td colspan="9">اطلاعیه‌ای یافت نشد.</td></tr>
-            <?php else :
-                $i = $offset + 1;
-                foreach ($notifications as $n) :
-                    $target_labels = ['all' => 'همه', 'specific' => 'اشخاص خاص', 'course' => 'دوره خاص', 'debtors' => 'بدهکاران', 'event' => 'رویداد', 'wallet_negative' => 'موجودی منفی', 'phone' => 'شماره خاص', 'team' => ' تیم '];
-                    $target_label = $target_labels[$n->target_type] ?? $n->target_type;
-                    $creator_label = function_exists('sc_notification_creator_label') ? sc_notification_creator_label($n) : 'مدیر';
-                    $can_edit_delete = !$is_coach || ($current_coach_id > 0 && isset($n->created_by_type) && $n->created_by_type === 'coach' && (int)$n->created_by_entity_id === $current_coach_id);
-            ?>
-                <tr>
-                    <th scope="row" class="check-column">
-                        <?php if ($can_edit_delete) : ?>
-                            <input type="checkbox" name="notification_ids[]" value="<?php echo esc_attr($n->id); ?>" class="cb-notification">
-                        <?php else : ?>
-                            —
-                        <?php endif; ?>
-                    </th>
-                    <td><?php echo $i++; ?></td>
-                    <td><strong><?php echo esc_html($n->title); ?></strong></td>
-                    <td><?php echo esc_html($creator_label); ?></td>
-                    <td><?php echo esc_html($target_label); ?></td>
-                    <td><?php echo esc_html($n->recipients_count); ?></td>
-                    <td><?php echo $n->send_sms ? 'بله' : 'خیر'; ?></td>
-                    <td><?php echo esc_html(sc_date_shamsi($n->created_at, 'Y/m/d H:i')); ?></td>
-                    <td>
-                        <?php if ($can_edit_delete) : ?>
-                            <a href="<?php echo esc_url(admin_url('admin.php?page=' . $add_page . '&edit=' . $n->id)); ?>">ویرایش</a>
-                            |
-                            <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=' . $list_page . '&action=delete&id=' . $n->id), 'delete_notification_' . $n->id)); ?>" class="submitdelete" onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا از حذف اطمینان دارید؟' });">حذف</a>
-                        <?php else : ?>
-                            —
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; endif; ?>
-        </tbody>
-    </table>
-    </div>
 
-    <?php if ($total_pages > 1) : ?>
-        <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
-            <div class="tablenav-pages">
-                <?php
-                $pagination_args = ['page' => $list_page];
-                if ($filter_creator_type !== 'all') $pagination_args['filter_creator'] = $filter_creator_type;
-                if ($filter_target_type !== '') $pagination_args['filter_target'] = $filter_target_type;
-                if ($filter_sms !== 'all') $pagination_args['filter_sms'] = $filter_sms;
-                if (!empty($filter_date_from_shamsi)) $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
-                if (!empty($filter_date_to_shamsi)) $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
-                if (!empty($search)) $pagination_args['s'] = $search;
-                echo paginate_links([
-                    'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
-                    'format' => '',
-                    'prev_text' => '< قبلی ',
-                    'next_text' => ' بعدی >',
-                    'total' => $total_pages,
-                    'current' => $current_page,
-                    'add_args' => $pagination_args
-                ]);
-                ?>
-            </div>
-        </div>
-    <?php endif; ?>
-    </form>
-</div>
-
-<style>
-.sc-notifications-list-wrap .page-title-action { margin-right: 10px; }
-.sc-notifications-list-card { background: #fff; border: 1px solid #c3c4c7; border-radius: 8px; box-shadow: 0 1px 1px rgba(0,0,0,.04); margin-top: 15px; overflow: hidden; }
-.sc-notifications-admin-table { margin: 0 !important; border: none !important; }
-.sc-notifications-admin-table thead th { padding: 12px 14px; font-weight: 600; }
-.sc-notifications-admin-table tbody td { padding: 12px 14px; }
-.sc-notifications-admin-table .submitdelete { color: #b32d2e; }
-.sc-notifications-admin-table .submitdelete:hover { color: #d63638; }
-.sc-notifications-filters-wrap form label { font-weight: 500; margin-left: 4px; }
-.sc-notifications-filters-wrap .persian-date-input { cursor: pointer; }
-</style>
 <script>
 jQuery(function($) {
+    var $toggle = $('#sc-notif-filters-toggle');
+    var $panel = $('#sc-notif-filters-panel');
+    var $card = $toggle.closest('.sc-notif-list-filters-card');
+    var $label = $toggle.find('.sc-notif-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+
     $('#cb-select-all').on('change', function() {
         $('.cb-notification').prop('checked', this.checked);
     });

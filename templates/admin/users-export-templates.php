@@ -33,13 +33,20 @@ if (isset($_POST['sc_save_export_templates'])) {
 }
 ?>
 
-<div class="wrap sc-users-export-wrap">
-    <h1>تعریف قالب خروجی</h1>
-    <p class="description">این قالب‌ها در صفحه خروجی اطلاعات کاربران قابل انتخاب هستند.</p>
+<?php if ($notice) : ?>
+    <div class="notice notice-success is-dismissible"><p><?php echo esc_html($notice); ?></p></div>
+<?php endif; ?>
 
-    <?php if ($notice) : ?>
-        <div class="notice notice-success"><p><?php echo esc_html($notice); ?></p></div>
-    <?php endif; ?>
+<div class="wrap sc-users-export-wrap sc-cert-wrap sc-cert-templates-wrap">
+    <div class="sc-cert-header">
+        <div class="sc-cert-header-text">
+            <h1 class="sc-cert-title">تعریف قالب خروجی</h1>
+            <p class="sc-cert-desc">این قالب‌ها در صفحه خروجی اطلاعات کاربران قابل انتخاب هستند.</p>
+        </div>
+        <div class="sc-cert-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-users-info-export')); ?>" class="sc-cert-btn-primary">خروجی اطلاعات کاربران</a>
+        </div>
+    </div>
 
     <form method="post" id="sc-export-templates-form">
         <?php wp_nonce_field('sc_save_export_templates_nonce'); ?>
@@ -52,9 +59,9 @@ if (isset($_POST['sc_save_export_templates'])) {
         ?></script>
         <?php $first_template_key = !empty($templates) ? array_key_first($templates) : ''; ?>
         <div class="sc-template-manager-grid">
-            <div class="sc-users-export-card sc-templates-list-card">
+            <div class="sc-users-export-card sc-templates-list-card sc-cert-card">
                 <div class="sc-template-list-header">
-                    <h2>لیست قالب‌ها</h2>
+                    <h2 class="sc-cert-card-title">لیست قالب‌ها</h2>
                     <button type="button" id="sc-add-new-template" class="button button-primary">افزودن قالب</button>
                 </div>
                 <div id="sc-templates-list">
@@ -70,7 +77,7 @@ if (isset($_POST['sc_save_export_templates'])) {
                 </div>
             </div>
 
-            <div class="sc-users-export-card">
+            <div class="sc-users-export-card sc-cert-card">
                 <div id="sc-templates-container">
                     <?php foreach ($templates as $template) :
                         $layout = isset($template['layout']) && is_array($template['layout']) ? $template['layout'] : [];
@@ -263,7 +270,7 @@ if (isset($_POST['sc_save_export_templates'])) {
             </div>
         </div>
 
-        <p class="submit">
+        <p class="submit sc-cert-submit">
             <button type="submit" name="sc_save_export_templates" class="button button-primary">ذخیره قالب‌ها</button>
         </p>
     </form>

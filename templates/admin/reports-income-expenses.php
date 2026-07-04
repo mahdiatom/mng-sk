@@ -252,49 +252,100 @@ foreach ($months as $month_start) {
         ];
     }
 }
+$active_filters_count = 0;
+if (!empty($_GET['filter_date_from']) || !empty($_GET['filter_date_from_shamsi'])) {
+    $active_filters_count++;
+}
+if (!empty($_GET['filter_date_to']) || !empty($_GET['filter_date_to_shamsi'])) {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+$overview_clear_url = admin_url('admin.php?page=sc-reports-income-expenses&tab=overview');
 ?>
 
-<div class="sc-finance-panel postbox sc-finance-reports-filter-panel">
-    <div class="postbox-header"><h2>فیلتر بازه زمانی</h2></div>
-    <div class="inside">
-    <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1 sc-finance-reports-filter-form">
+<div class="sc-reports-list-filters-card sc-finance-reports-filter-panel sc-finance-overview-filters<?php echo $filters_open ? ' is-open' : ''; ?>">
+    <div class="sc-reports-list-filters-toolbar">
+        <button type="button"
+                class="sc-reports-list-filters-toggle"
+                id="sc-finance-overview-filters-toggle"
+                aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                aria-controls="sc-finance-overview-filters-panel">
+            <span class="sc-reports-list-filters-toggle-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <span class="sc-reports-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+            </span>
+            <?php if ($active_filters_count > 0) : ?>
+                <span class="sc-reports-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+            <?php endif; ?>
+            <span class="sc-reports-list-filters-chevron" aria-hidden="true"></span>
+        </button>
+        <?php if ($active_filters_count > 0) : ?>
+            <a href="<?php echo esc_url($overview_clear_url); ?>" class="sc-reports-list-filters-clear">پاک کردن فیلترها</a>
+        <?php endif; ?>
+    </div>
+    <form method="GET" action="" class="sc-reports-list-filters-panel sc-finance-reports-filter-form" id="sc-finance-overview-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
         <input type="hidden" name="page" value="sc-reports-income-expenses">
         <input type="hidden" name="tab" value="overview">
 
-        <div class="sc-filter-grid">
-            <div class="sc-filter-field sc-filter-date">
-                <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
-                <div class="sc-date-range">
-                    <input type="text"
-                           name="filter_date_from_shamsi"
-                           id="filter_date_from_shamsi"
-                           value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
-                           class="persian-date-input sc-filter-control"
-                           placeholder="از تاریخ (شمسی)"
-                           readonly>
-                    <input type="hidden" name="filter_date_from" id="filter_date_from"
-                           value="<?php echo esc_attr($filter_date_from); ?>">
-                    <input type="text"
-                           name="filter_date_to_shamsi"
-                           id="filter_date_to_shamsi"
-                           value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
-                           class="persian-date-input sc-filter-control"
-                           placeholder="تا تاریخ (شمسی)"
-                           readonly>
-                    <input type="hidden" name="filter_date_to" id="filter_date_to"
-                           value="<?php echo esc_attr($filter_date_to); ?>">
-                </div>
-                <p class="description sc-filter-help" style="margin-top: 8px; margin-bottom: 0;">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+        <div class="sc-filter-grid sc-finance-filter-grid">
+            <div class="sc-filter-field">
+                <label class="sc-filter-label">از تاریخ</label>
+                <input type="text"
+                       name="filter_date_from_shamsi"
+                       id="filter_date_from_shamsi"
+                       value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                       class="persian-date-input sc-filter-control"
+                       placeholder="از تاریخ (شمسی)"
+                       readonly>
+                <input type="hidden" name="filter_date_from" id="filter_date_from"
+                       value="<?php echo esc_attr($filter_date_from); ?>">
+            </div>
+            <div class="sc-filter-field">
+                <label class="sc-filter-label">تا تاریخ</label>
+                <input type="text"
+                       name="filter_date_to_shamsi"
+                       id="filter_date_to_shamsi"
+                       value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                       class="persian-date-input sc-filter-control"
+                       placeholder="تا تاریخ (شمسی)"
+                       readonly>
+                <input type="hidden" name="filter_date_to" id="filter_date_to"
+                       value="<?php echo esc_attr($filter_date_to); ?>">
             </div>
         </div>
 
-        <p class="submit">
+        <div class="sc-reports-list-filters-actions">
             <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
-            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-income-expenses&tab=overview')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-        </p>
+            <a href="<?php echo esc_url($overview_clear_url); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+        </div>
     </form>
-    </div>
 </div>
+<script type="text/javascript">
+jQuery(function ($) {
+    var $toggle = $('#sc-finance-overview-filters-toggle');
+    var $panel = $('#sc-finance-overview-filters-panel');
+    var $card = $toggle.closest('.sc-reports-list-filters-card');
+    var $label = $toggle.find('.sc-reports-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+});
+</script>
 
     <p class="description sc-finance-reports-info-note">
         <strong>کل درآمد</strong> برابر مجموع درآمد <strong>آکادمی</strong> (صورت‌حساب‌های دوره و رویداد با وضعیت پرداخت‌شده یا تأیید پرداخت، بر اساس تاریخ پرداخت)

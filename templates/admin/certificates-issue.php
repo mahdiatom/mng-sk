@@ -21,27 +21,35 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
 $templates = sc_certificates_get_saved_templates();
 ?>
 
-<div class="wrap sc-users-export-wrap">
-    <h1>صدور گواهینامه</h1>
-    <p class="description">فیلتر کاربران را انتخاب کنید و گواهینامه را برای همه افراد فیلترشده صادر کنید.</p>
+<?php if (isset($_GET['issued'])) : ?>
+    <div class="notice notice-success is-dismissible">
+        <p>
+            <?php
+            $issued = absint($_GET['issued']);
+            $sms_sent = isset($_GET['sms_sent']) ? absint($_GET['sms_sent']) : 0;
+            echo esc_html($issued . ' گواهینامه صادر شد. تعداد پیامک موفق: ' . $sms_sent);
+            ?>
+        </p>
+    </div>
+<?php endif; ?>
 
-    <?php if (isset($_GET['issued'])) : ?>
-        <div class="notice notice-success is-dismissible">
-            <p>
-                <?php
-                $issued = absint($_GET['issued']);
-                $sms_sent = isset($_GET['sms_sent']) ? absint($_GET['sms_sent']) : 0;
-                echo esc_html($issued . ' گواهینامه صادر شد. تعداد پیامک موفق: ' . $sms_sent);
-                ?>
-            </p>
+<div class="wrap sc-users-export-wrap sc-cert-wrap">
+    <div class="sc-cert-header">
+        <div class="sc-cert-header-text">
+            <h1 class="sc-cert-title">صدور گواهینامه</h1>
+            <p class="sc-cert-desc">فیلتر کاربران را انتخاب کنید و گواهینامه را برای همه افراد فیلترشده صادر کنید.</p>
         </div>
-    <?php endif; ?>
+        <div class="sc-cert-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-list')); ?>" class="sc-cert-btn-secondary">گواهینامه‌ها</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-certificates-templates')); ?>" class="sc-cert-btn-secondary">تعریف قالب</a>
+        </div>
+    </div>
 
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="sc-users-export-form">
         <?php wp_nonce_field('sc_issue_certificates_action', 'sc_issue_certificates_nonce'); ?>
         <input type="hidden" name="action" value="sc_issue_certificates">
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-cert-card">
             <h2>۱) انتخاب قالب گواهینامه</h2>
             <select name="template_key" required>
                 <option value="">انتخاب کنید</option>
@@ -52,7 +60,7 @@ $templates = sc_certificates_get_saved_templates();
             <p class="description">اگر قالبی ندارید ابتدا از منوی «تعریف قالب گواهینامه» ایجاد کنید.</p>
         </div>
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-cert-card">
             <h2>۲) فیلتر کاربران</h2>
 
             <div class="sc-row">
@@ -182,14 +190,14 @@ $templates = sc_certificates_get_saved_templates();
             </p>
         </div>
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-cert-card">
             <h2>۳) پیش نمایش کاربران</h2>
             <div id="sc-cert-preview-result" class="sc-bulk-preview-result back_table_list">
                 <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش کاربران فیلتر شده» کلیک کنید.</p>
             </div>
         </div>
 
-        <p class="submit">
+        <p class="submit sc-cert-submit">
             <button class="button button-primary" type="submit">تایید و ارسال گواهینامه</button>
         </p>
     </form>

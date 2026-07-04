@@ -189,103 +189,110 @@ $query = "SELECT w.*, c.first_name, c.last_name
 
 $query_values = array_merge($where_values, [$per_page, $offset]);
 $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
+
+$active_filters_count = 0;
+if ($filter_status !== 'all') {
+    $active_filters_count++;
+}
+if ($filter_coach > 0) {
+    $active_filters_count++;
+}
+if ($filter_date_from !== '' || $filter_date_to !== '') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+
+$export_url = admin_url('admin.php?page=sc-coach-management-withdrawals&sc_export=excel&export_type=coach_management_withdrawals');
+if ($filter_status !== 'all') {
+    $export_url = add_query_arg('filter_status', $filter_status, $export_url);
+}
+if ($filter_coach > 0) {
+    $export_url = add_query_arg('filter_coach', $filter_coach, $export_url);
+}
+if (!empty($filter_date_from_shamsi)) {
+    $export_url = add_query_arg('filter_date_from_shamsi', $filter_date_from_shamsi, $export_url);
+}
+if (!empty($filter_date_to_shamsi)) {
+    $export_url = add_query_arg('filter_date_to_shamsi', $filter_date_to_shamsi, $export_url);
+}
+$export_url = wp_nonce_url($export_url, 'sc_export_excel');
 ?>
 
-<div class="wrap">
-    <h1 class="wp-heading-inline">درخواست‌های برداشت مربیان</h1>
-    <hr class="wp-header-end">
-    
-    <?php if ($action_message): ?>
-        <div class=" notice-<?php echo $action_message_type; ?> is-dismissible">
-            <p><?php echo esc_html($action_message); ?></p>
-        </div>
-    <?php endif; ?>
+<?php if ($action_message) : ?>
+    <div class="notice notice-<?php echo esc_attr($action_message_type); ?> is-dismissible">
+        <p><?php echo esc_html($action_message); ?></p>
     </div>
-<div class="wrap">    
-    <!-- فیلترها (ساختار یکسان با حضور و غیاب / لیست بازیکنان) -->
-    <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
-        <input type="hidden" name="page" value="sc-coach-management-withdrawals">
+<?php endif; ?>
 
-        <div class="sc-filter-grid">
+<div class="wrap sc-cm-wrap">
+    <div class="sc-cm-header">
+        <div class="sc-cm-header-text">
+            <h1 class="sc-cm-title">درخواست‌های برداشت مربیان</h1>
+            <p class="sc-cm-desc">بررسی، تایید، رد و ثبت پرداخت درخواست‌های برداشت</p>
+        </div>
+        <div class="sc-cm-header-actions">
+            <a href="<?php echo esc_url($export_url); ?>" class="sc-cm-btn-secondary">خروجی Excel</a>
+        </div>
+    </div>
 
-            <!-- وضعیت -->
-            <div class="sc-filter-field">
-                <label class="sc-filter-label" for="filter_status">وضعیت</label>
-                <select name="filter_status" id="filter_status" class="sc-filter-control">
-                    <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
-                    <option value="pending" <?php selected($filter_status, 'pending'); ?>>در انتظار تایید</option>
-                    <option value="approved" <?php selected($filter_status, 'approved'); ?>>تایید شده (منتظر پرداخت)</option>
-                    <option value="rejected" <?php selected($filter_status, 'rejected'); ?>>رد شده</option>
-                    <option value="paid" <?php selected($filter_status, 'paid'); ?>>تایید و پرداخت شده</option>
-                </select>
-            </div>
+    <div class="sc-cm-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-cm-filters-toolbar">
+            <button type="button" class="sc-cm-filters-toggle" id="sc-cm-withdrawals-filters-toggle" aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>" aria-controls="sc-cm-withdrawals-filters-panel">
+                <span class="sc-cm-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </span>
+                <span class="sc-cm-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها"><?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?></span>
+                <?php if ($active_filters_count > 0) : ?><span class="sc-cm-filters-badge"><?php echo (int) $active_filters_count; ?></span><?php endif; ?>
+                <span class="sc-cm-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-management-withdrawals')); ?>" class="sc-cm-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
 
-            <!-- مربی -->
-            <div class="sc-filter-field">
-                <label class="sc-filter-label" for="filter_coach">مربی</label>
-                <select name="filter_coach" id="filter_coach" class="sc-filter-control">
-                    <option value="0">همه مربیان</option>
-                    <?php foreach ($coaches_for_filter as $c): ?>
-                        <option value="<?php echo esc_attr($c->id); ?>" <?php selected($filter_coach, $c->id); ?>>
-                            <?php echo esc_html($c->first_name . ' ' . $c->last_name); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <!-- بازه تاریخ (در انتها) -->
-            <div class="sc-filter-field sc-filter-date">
-                <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
-                <div class="sc-date-range">
-                    <input type="text"
-                           name="filter_date_from_shamsi"
-                           id="filter_date_from_shamsi"
-                           value="<?php echo esc_attr($display_date_from_shamsi_w); ?>"
-                           class="persian-date-input sc-filter-control sc-no-default-date"
-                           placeholder="از تاریخ" readonly>
-                    <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                    <input type="text"
-                           name="filter_date_to_shamsi"
-                           id="filter_date_to_shamsi"
-                           value="<?php echo esc_attr($display_date_to_shamsi_w); ?>"
-                           class="persian-date-input sc-filter-control sc-no-default-date"
-                           placeholder="تا تاریخ" readonly>
-                    <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+        <form method="GET" action="" class="sc-cm-filters-panel" id="sc-cm-withdrawals-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+            <input type="hidden" name="page" value="sc-coach-management-withdrawals">
+            <div class="sc-filter-grid">
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_status">وضعیت</label>
+                    <select name="filter_status" id="filter_status" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
+                        <option value="pending" <?php selected($filter_status, 'pending'); ?>>در انتظار تایید</option>
+                        <option value="approved" <?php selected($filter_status, 'approved'); ?>>تایید شده (منتظر پرداخت)</option>
+                        <option value="rejected" <?php selected($filter_status, 'rejected'); ?>>رد شده</option>
+                        <option value="paid" <?php selected($filter_status, 'paid'); ?>>تایید و پرداخت شده</option>
+                    </select>
+                </div>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_coach">مربی</label>
+                    <select name="filter_coach" id="filter_coach" class="sc-filter-control">
+                        <option value="0">همه مربیان</option>
+                        <?php foreach ($coaches_for_filter as $c) : ?>
+                            <option value="<?php echo esc_attr($c->id); ?>" <?php selected($filter_coach, $c->id); ?>><?php echo esc_html($c->first_name . ' ' . $c->last_name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="sc-filter-field sc-filter-date">
+                    <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
+                    <div class="sc-cm-date-range">
+                        <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" value="<?php echo esc_attr($display_date_from_shamsi_w); ?>" class="persian-date-input sc-filter-control sc-no-default-date" placeholder="از تاریخ" readonly>
+                        <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                        <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" value="<?php echo esc_attr($display_date_to_shamsi_w); ?>" class="persian-date-input sc-filter-control sc-no-default-date" placeholder="تا تاریخ" readonly>
+                        <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                    </div>
                 </div>
             </div>
+            <div class="sc-cm-filters-actions">
+                <button type="submit" class="button button-primary">اعمال فیلتر</button>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-management-withdrawals')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            </div>
+        </form>
+    </div>
 
-        </div>
-
-        <p class="submit">
-            <button type="submit" class="button button-primary">اعمال فیلتر</button>
-            <a href="<?php echo admin_url('admin.php?page=sc-coach-management-withdrawals'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-            <?php
-            // ساخت URL برای export Excel با حفظ فیلترها
-            $export_url = admin_url('admin.php?page=sc-coach-management-withdrawals&sc_export=excel&export_type=coach_management_withdrawals');
-            if ($filter_status !== 'all') {
-                $export_url = add_query_arg('filter_status', $filter_status, $export_url);
-            }
-            if ($filter_coach > 0) {
-                $export_url = add_query_arg('filter_coach', $filter_coach, $export_url);
-            }
-            if (!empty($filter_date_from_shamsi)) {
-                $export_url = add_query_arg('filter_date_from_shamsi', $filter_date_from_shamsi, $export_url);
-            }
-            if (!empty($filter_date_to_shamsi)) {
-                $export_url = add_query_arg('filter_date_to_shamsi', $filter_date_to_shamsi, $export_url);
-            }
-            $export_url = wp_nonce_url($export_url, 'sc_export_excel');
-            ?>
-            <a href="<?php echo esc_url($export_url); ?>" class="button button_export">📊 خروجی Excel</a>
-        </p>
-    </form>
-</div>
-
-<div class="wrap">
-    <!-- اکشن دسته‌جمعی و جدول -->
+    <div class="sc-cm-table-card">
     <form method="POST" action="" id="bulk-withdrawals-form">
         <?php wp_nonce_field('bulk_withdrawals', '_wpnonce_bulk'); ?>
-        <div class="tablenav top" style="margin: 15px 0;">
+        <div class="tablenav top sc-cm-bulk-nav">
             <div class="alignleft actions bulkactions">
                 <select name="bulk_action" id="bulk-action-select">
                     <option value="">عملیات دسته‌جمعی...</option>
@@ -293,13 +300,12 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
                     <option value="reject">رد</option>
                     <option value="mark_paid">پرداخت شده</option>
                 </select>
-                <button type="button" class="button action" id="bulk-apply-btn" style="margin-right: 5px;" >اعمال</button>
+                <button type="button" class="button action" id="bulk-apply-btn">اعمال</button>
             </div>
         </div>
 
-    <!-- جدول درخواست‌ها -->
-    <div class="sc-withdrawals-table-wrapper">
-    <table class="wp-list-table widefat fixed striped sc-withdrawals-table">
+    <div class="sc-cm-table-scroll">
+    <table class="wp-list-table widefat striped sc-cm-table sc-withdrawals-table">
         <thead>
             <tr>
                 <td class="check-column column-cb"><input type="checkbox" id="cb-select-all"></td>
@@ -313,70 +319,56 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
             </tr>
         </thead>
         <tbody>
-            <?php if (empty($requests)): ?>
+            <?php if (empty($requests)) : ?>
                 <tr>
-                    <td colspan="9" style="text-align: center; padding: 30px;">
-                        <p>هیچ درخواست برداشتی یافت نشد.</p>
-                    </td>
+                    <td colspan="8" class="sc-cm-empty">هیچ درخواست برداشتی یافت نشد.</td>
                 </tr>
-            <?php else: ?>
+            <?php else : ?>
                 <?php $row = $offset + 1; ?>
-                <?php foreach ($requests as $request): ?>
-                    <?php
+                <?php foreach ($requests as $request) :
                     $status_labels = [
-                        'pending' => ['label' => 'در انتظار تایید', 'color' => '#f0a000', 'bg' => '#fff8e1'],
-                        'approved' => ['label' => 'تایید شده (منتظر پرداخت)', 'color' => '#2271b1', 'bg' => '#e5f5fa'],
-                        'rejected' => ['label' => 'رد شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
-                        'paid' => ['label' => 'تایید و پرداخت شده', 'color' => '#00a32a', 'bg' => '#d4edda']
+                        'pending' => ['label' => 'در انتظار تایید', 'badge' => 'sc-badge--warning'],
+                        'approved' => ['label' => 'تایید شده (منتظر پرداخت)', 'badge' => 'sc-badge--purple'],
+                        'rejected' => ['label' => 'رد شده', 'badge' => 'sc-badge--danger'],
+                        'paid' => ['label' => 'تایید و پرداخت شده', 'badge' => 'sc-badge--success'],
                     ];
-                    $status_info = $status_labels[$request->status] ?? ['label' => $request->status, 'color' => '#666', 'bg' => '#f5f5f5'];
+                    $status_info = $status_labels[$request->status] ?? ['label' => $request->status, 'badge' => 'sc-badge--muted'];
                     ?>
                     <tr>
                         <th scope="row" class="check-column column-cb">
-                            <input type="checkbox" name="request_ids[]" value="<?php echo $request->id; ?>" class="cb-request">
+                            <input type="checkbox" name="request_ids[]" value="<?php echo (int) $request->id; ?>" class="cb-request">
                         </th>
-                        <td class="column-index"><?php echo $row++; ?></td>
-                        <td class="column-date"><?php echo sc_date_shamsi($request->created_at, 'Y/m/d H:i'); ?></td>
-                        <td class="column-coach"><strong><?php echo esc_html($request->first_name . ' ' . $request->last_name); ?></strong></td>
-                        <td class="column-amount"><strong><?php echo esc_html(sc_format_amount_display($request->amount)); ?> تومان</strong></td>
-                        <td class="column-status">
-                            <span style="padding: 5px 10px; border-radius: 4px; font-weight: bold; background-color: <?php echo $status_info['bg']; ?>; color: <?php echo $status_info['color']; ?>;">
-                                <?php echo $status_info['label']; ?>
-                            </span>
-                            
+                        <td data-label="ردیف" class="column-index"><?php echo (int) $row++; ?></td>
+                        <td data-label="تاریخ درخواست" class="column-date"><?php echo esc_html(sc_date_shamsi($request->created_at, 'Y/m/d H:i')); ?></td>
+                        <td data-label="مربی" class="column-coach"><strong><?php echo esc_html($request->first_name . ' ' . $request->last_name); ?></strong></td>
+                        <td data-label="مبلغ" class="column-amount"><strong class="sc-cm-amount"><?php echo esc_html(sc_format_amount_display($request->amount)); ?></strong> تومان</td>
+                        <td data-label="وضعیت" class="column-status">
+                            <span class="sc-badge <?php echo esc_attr($status_info['badge']); ?>"><?php echo esc_html($status_info['label']); ?></span>
                         </td>
-                        <td class="column-notes">
-                           <?php if ($request->status === 'rejected' && $request->rejection_reason): ?>
-                               <br><small class="small-tag" style="color: #d63638;">دلیل رد درخواست: <?php echo esc_html($request->rejection_reason); ?></small>
+                        <td data-label="یادداشت" class="column-notes">
+                            <?php if ($request->status === 'rejected' && $request->rejection_reason) : ?>
+                                <span class="sc-cm-note-danger">دلیل رد: <?php echo esc_html($request->rejection_reason); ?></span>
                             <?php endif; ?>
-                            <?php if ($request->status === 'paid' && $request->paid_at): ?>
-                                <br><small class="small-tag">پرداخت شده در: <?php echo sc_date_shamsi($request->paid_at, 'Y/m/d H:i'); ?></small>
-                            <?php endif; ?> 
-                            <br>
-                        <?php echo   esc_html( $request->notes ? 'یادداشت:' . $request->notes : ''); ?>
-                    </td>
-                        <td class="column-actions">
-                            <?php if ($request->status === 'pending'): ?>
-                                <!-- فقط برای در انتظار تایید: امکان تایید یا رد -->
-                                 <div class="btns_actions">
-                                <button type="button" class="button button-primary button-small sc-approve-btn"
-                                        data-request-id="<?php echo $request->id; ?>"
-                                        data-nonce="<?php echo esc_attr(wp_create_nonce('approve_withdrawal_' . $request->id)); ?>"
-                                        style="margin-left: 10px; width:50px;">تایید</button>
-                                
-                                <button type="button" class="button button-small reject-btn"
-                                        data-request-id="<?php echo $request->id; ?>"
-                                        style="width:50px;">رد</button>
-                                        </div>
-                            <?php elseif ($request->status === 'approved'): ?>
-                                <!-- برای تایید شده: فقط امکان پرداخت -->
-                                <button type="button" class="button button-small sc-mark-paid-btn"
-                                        data-request-id="<?php echo $request->id; ?>"
-                                        data-nonce="<?php echo esc_attr(wp_create_nonce('mark_paid_withdrawal_' . $request->id)); ?>"
-                                        style="margin-right: 10px; width:100px;">پرداخت شده</button>
-                            <?php else: ?>
-                                <!-- سایر وضعیت‌ها: بدون عملیات تکی -->
-                                <span style="color: #999;">-</span>
+                            <?php if ($request->status === 'paid' && $request->paid_at) : ?>
+                                <span class="sc-cm-meta">پرداخت شده در: <?php echo esc_html(sc_date_shamsi($request->paid_at, 'Y/m/d H:i')); ?></span>
+                            <?php endif; ?>
+                            <?php echo esc_html($request->notes ? 'یادداشت: ' . $request->notes : ''); ?>
+                        </td>
+                        <td data-label="عملیات" class="column-actions sc-cm-actions">
+                            <?php if ($request->status === 'pending') : ?>
+                                <div class="btns_actions">
+                                    <button type="button" class="sc-cm-action-primary sc-approve-btn"
+                                            data-request-id="<?php echo (int) $request->id; ?>"
+                                            data-nonce="<?php echo esc_attr(wp_create_nonce('approve_withdrawal_' . $request->id)); ?>">تایید</button>
+                                    <button type="button" class="sc-cm-action-danger reject-btn"
+                                            data-request-id="<?php echo (int) $request->id; ?>">رد</button>
+                                </div>
+                            <?php elseif ($request->status === 'approved') : ?>
+                                <button type="button" class="sc-cm-action-primary sc-mark-paid-btn"
+                                        data-request-id="<?php echo (int) $request->id; ?>"
+                                        data-nonce="<?php echo esc_attr(wp_create_nonce('mark_paid_withdrawal_' . $request->id)); ?>">پرداخت شده</button>
+                            <?php else : ?>
+                                <span class="sc-cm-muted">—</span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -387,29 +379,34 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
     </div>
 
     <?php if ($total_pages > 1) : ?>
-        <div class="tablenav bottom sc_paginate" style="margin-top: 15px;">
+        <div class="tablenav bottom sc-cm-pagination">
             <div class="tablenav-pages">
-                <p class="pagination-links">
-                    <?php
-                    $pagination_args = ['page' => 'sc-coach-management-withdrawals', 'filter_status' => $filter_status];
-                    if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
-                    if (!empty($filter_date_from_shamsi)) $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
-                    if (!empty($filter_date_to_shamsi)) $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
-                    echo paginate_links([
-                        'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
-                        'format' => '',
-                        'prev_text' => '&laquo; قبلی',
-                        'next_text' => 'بعدی &raquo;',
-                        'total' => $total_pages,
-                        'current' => $current_page,
-                        'add_args' => $pagination_args,
-                    ]);
-                    ?>
-                </p>
+                <?php
+                $pagination_args = ['page' => 'sc-coach-management-withdrawals', 'filter_status' => $filter_status];
+                if ($filter_coach > 0) {
+                    $pagination_args['filter_coach'] = $filter_coach;
+                }
+                if (!empty($filter_date_from_shamsi)) {
+                    $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
+                }
+                if (!empty($filter_date_to_shamsi)) {
+                    $pagination_args['filter_date_to_shamsi'] = $filter_date_to_shamsi;
+                }
+                echo paginate_links([
+                    'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
+                    'format' => '',
+                    'prev_text' => '‹',
+                    'next_text' => '›',
+                    'total' => $total_pages,
+                    'current' => $current_page,
+                    'add_args' => $pagination_args,
+                ]);
+                ?>
             </div>
         </div>
     <?php endif; ?>
     </form>
+    </div>
 </div>
 
 
@@ -482,6 +479,25 @@ $requests = $wpdb->get_results($wpdb->prepare($query, $query_values));
 
 <script>
 jQuery(document).ready(function($) {
+    var $toggle = $('#sc-cm-withdrawals-filters-toggle');
+    var $panel = $('#sc-cm-withdrawals-filters-panel');
+    var $card = $toggle.closest('.sc-cm-filters-card');
+    var $label = $toggle.find('.sc-cm-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+
     function showRejectModal(title, mode) {
         mode = mode || 'single';
         $('#reject-modal-title').text(title || 'رد درخواست برداشت');

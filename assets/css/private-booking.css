@@ -852,77 +852,498 @@
     font-size: 12px;
 }
 
-/* ===== ادمین ===== */
-.sc-private-admin-wrap.sc-users-export-wrap {
-    max-width: 1100px;
+/* ===== ادمین — لیست رزرو کلاس خصوصی (SaaS) ===== */
+body.toplevel_page_sc-private-booking-requests #wpcontent,
+body[class*="_page_sc-private-booking-requests"] #wpcontent {
+    background: #f4f2fa;
 }
 
-.sc-private-admin-wrap .sc-users-export-card {
-    padding: 20px 22px;
+.sc-private-regs-list-wrap {
+    margin-block: 16px 24px;
+    margin-inline-start: 0;
+    margin-inline-end: 20px;
+    padding: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: transparent !important;
 }
 
-.sc-private-admin-toolbar {
+.sc-private-regs-list-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.sc-private-regs-list-title {
+    margin: 0 0 6px;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #1e1b2e;
+}
+
+.sc-private-regs-list-desc {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.sc-private-regs-list-add-btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 42px;
+    padding: 8px 20px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+}
+
+.sc-private-regs-list-filters-card,
+.sc-private-regs-list-table-card {
+    margin-bottom: 16px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+}
+
+.sc-private-regs-list-table-card {
+    background: #fff;
+}
+
+.sc-private-regs-list-filters-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sc-private-regs-list-filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    padding: 8px 18px;
+    border: 1px solid rgba(109, 52, 255, 0.22);
+    border-radius: 999px;
+    background: #fff;
+    color: #4a1fb8;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sc-private-regs-list-filters-toggle-icon {
+    display: inline-flex;
+    color: #6d34ff;
+}
+
+.sc-private-regs-list-filters-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.sc-private-regs-list-filters-chevron {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid #6d34ff;
+    border-bottom: 2px solid #6d34ff;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+}
+
+.sc-private-regs-list-filters-card.is-open .sc-private-regs-list-filters-chevron {
+    transform: rotate(-135deg);
+    margin-top: 4px;
+}
+
+.sc-private-regs-list-filters-clear {
+    color: #6d34ff;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.sc-private-regs-list-filters-panel {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(109, 52, 255, 0.1);
+}
+
+.sc-private-regs-list-filters-panel[hidden] {
+    display: none !important;
+}
+
+.sc-private-regs-list-filters-panel .sc-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+.sc-private-regs-list-filters-panel .sc-filter-field {
+    width: 100%;
+    min-width: 0;
+}
+
+.sc-private-regs-list-filters-panel .sc-filter-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+.sc-private-regs-list-filters-panel .sc-filter-control,
+.sc-private-regs-list-filters-panel .sc-dropdown-toggle,
+.sc-private-regs-bulk-bar .sc-filter-control {
+    width: 100%;
+    max-width: 100%;
+    min-height: 42px;
+    height: 42px;
+    box-sizing: border-box;
+    border-radius: 12px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+.sc-private-regs-list-filters-panel .sc-searchable-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.sc-private-regs-list-filters-panel .sc-dropdown-toggle {
+    position: relative;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding-left: 28px;
+}
+
+.sc-private-regs-list-filters-panel .sc-dropdown-arrow {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.sc-private-regs-list-filters-panel .sc-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.14);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(74, 31, 184, 0.12);
+    overflow: hidden;
+}
+
+.sc-private-regs-list-filters-panel .sc-dropdown-search {
+    padding: 8px;
+    border-bottom: 1px solid #efeafc;
+    background: #faf9ff;
+}
+
+.sc-private-regs-list-filters-panel .sc-dropdown-search .sc-search-input {
+    width: 100%;
+    min-height: 36px;
+    box-sizing: border-box;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    padding: 6px 10px;
+}
+
+.sc-private-regs-list-filters-panel .sc-dropdown-options {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.sc-private-regs-list-filters-panel .sc-dropdown-option {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #1e1b2e;
+}
+
+.sc-private-regs-list-filters-panel .sc-dropdown-option:hover,
+.sc-private-regs-list-filters-panel .sc-dropdown-option.sc-selected {
+    background: rgba(109, 52, 255, 0.08);
+}
+
+.sc-private-regs-list-filters-panel .sc-dropdown-option.sc-hidden {
+    display: none;
+}
+
+.sc-private-regs-list-filters-panel .sc-dropdown-toggle:focus-within,
+.sc-private-regs-list-filters-panel .sc-filter-control:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+    outline: none;
+}
+
+.sc-private-regs-list-filters-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.sc-private-regs-list-filters-actions .button-primary,
+.sc-private-regs-bulk-bar .button-primary {
+    min-height: 42px;
+    padding: 0 22px;
+    border: none !important;
+    border-radius: 999px !important;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    font-weight: 700;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+}
+
+.sc-private-regs-list-filters-actions .delete_fillter {
+    min-height: 42px;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    color: #4b5563 !important;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.sc-private-regs-list-summary {
+    margin: 0 0 12px;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sc-private-regs-empty {
+    padding: 32px 16px;
+    text-align: center;
+    color: #9ca3af;
+}
+
+.sc-private-regs-bulk-bar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 16px;
+    margin: 0 0 14px;
+    padding: 12px 14px;
+    background: #faf9ff;
+    border: 1px solid #efeafc;
+    border-radius: 12px;
 }
 
-.sc-private-admin-toolbar .page-title-action {
-    border-radius: 8px;
-    font-weight: 600;
+.sc-private-regs-bulk-check-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-weight: 700;
+    color: #4b5563;
+    cursor: pointer;
+    user-select: none;
 }
 
-.sc-private-admin-filters {
-    background: #fff;
-    border: 1px solid #dcdcde;
-    border-radius: 10px;
-    padding: 16px 18px;
-    margin-bottom: 16px;
-}
-
-.sc-private-admin-table-card {
-    background: #fff;
-    border: 1px solid #dcdcde;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.sc-private-admin-table-card .wp-list-table {
-    border: none;
+.sc-private-regs-bulk-check-all input {
     margin: 0;
 }
 
-.sc-private-admin-table-card .wp-list-table thead th {
-    background: #f6f7f7;
+.sc-private-regs-bulk-bar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 320px;
+    justify-content: flex-end;
+}
+
+.sc-private-regs-bulk-select {
+    min-width: 160px;
+    width: auto !important;
+}
+
+.sc-private-regs-bulk-reason {
+    min-width: 200px;
+    flex: 1 1 200px;
+    max-width: 320px;
+    width: auto !important;
+}
+
+.sc-private-regs-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.sc-private-regs-table {
+    margin: 0;
+    min-width: 980px;
+    border: none !important;
+    box-shadow: none;
+}
+
+.sc-private-regs-table thead th {
+    padding: 12px 14px !important;
+    border-bottom: 1px solid #efeafc !important;
+    background: #faf9ff !important;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.sc-private-regs-table tbody td,
+.sc-private-regs-table tbody th {
+    padding: 14px !important;
+    border-bottom: 1px solid #f1eef8 !important;
+    vertical-align: middle;
+}
+
+.sc-private-regs-table tbody tr:hover {
+    background: #f5f2ff !important;
+}
+
+.sc-private-regs-id {
+    color: #4a1fb8;
     font-weight: 700;
 }
 
-.sc-private-admin-table-card .button-small {
-    border-radius: 8px;
-    font-weight: 600;
+.sc-private-regs-meta {
+    display: block;
+    margin-top: 3px;
+    color: #9ca3af;
+    font-size: 11px;
+    font-weight: 500;
 }
 
-.sc-private-admin-table-card .sc-private-invoice-btn {
+.sc-private-regs-muted {
+    color: #9ca3af;
+}
+
+.sc-private-regs-invoice-link {
+    color: #6d34ff;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.sc-private-regs-invoice-link:hover {
+    color: #4a1fb8;
+    text-decoration: underline;
+}
+
+.sc-private-regs-actions {
+    white-space: nowrap;
+}
+
+.sc-private-regs-action-primary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff !important;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(109, 52, 255, 0.24);
+}
+
+.sc-private-regs-action-link {
+    color: #6d34ff;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.sc-private-regs-action-link:hover {
+    color: #4a1fb8;
+    text-decoration: underline;
+}
+
+.sc-private-booking-reason-cell {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #9ca3af;
+    line-height: 1.4;
+}
+
+.sc-private-regs-pagination {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0 4px;
+    height: auto;
+    float: none;
+}
+
+.sc-private-regs-pagination .tablenav-pages {
+    float: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    height: auto;
+    margin: 0;
+}
+
+.sc-private-regs-pagination .page-numbers {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 30px;
-    padding: 4px 12px !important;
-    border-radius: 8px !important;
-    background: #f0f6fc !important;
-    border-color: #9ec2e6 !important;
-    color: #135e96 !important;
-    font-weight: 700 !important;
-    text-decoration: none !important;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
 }
 
-.sc-private-admin-table-card .sc-private-invoice-btn:hover {
-    background: #2271b1 !important;
-    border-color: #2271b1 !important;
-    color: #fff !important;
+.sc-private-regs-pagination a.page-numbers:hover {
+    background: rgba(109, 52, 255, 0.08);
+    border-color: rgba(109, 52, 255, 0.28);
+    color: #4a1fb8;
+}
+
+.sc-private-regs-pagination .page-numbers.current {
+    border-color: transparent;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(109, 52, 255, 0.28);
 }
 
 .sc-private-admin-reject-box {
@@ -993,77 +1414,6 @@
     box-shadow: 0 6px 18px rgba(239, 68, 68, 0.28);
 }
 
-.sc-private-bookings-bulk-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin: 0 0 16px;
-    padding: 14px 16px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid #dbe4ee;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-}
-
-.sc-private-bookings-bulk-check-all {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    font-weight: 700;
-    color: #334155;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-}
-
-.sc-private-bookings-bulk-check-all input {
-    margin: 0;
-}
-
-.sc-private-bookings-bulk-bar-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    flex: 1 1 320px;
-    justify-content: flex-end;
-}
-
-.sc-private-bookings-bulk-bar select,
-.sc-private-bookings-bulk-bar input[type="text"] {
-    min-height: 38px;
-    margin: 0;
-}
-
-.sc-private-bookings-bulk-select {
-    min-width: 170px;
-}
-
-.sc-private-bookings-bulk-reason {
-    min-width: 220px;
-    flex: 1 1 220px;
-    max-width: 360px;
-}
-
-.sc-private-bookings-bulk-submit {
-    min-height: 38px !important;
-    padding: 0 20px !important;
-    border-radius: 10px !important;
-    font-weight: 800 !important;
-    box-shadow: 0 2px 8px rgba(34, 113, 177, 0.18);
-}
-
-.sc-private-booking-reason-cell {
-    display: block;
-    margin-top: 4px;
-    font-size: 11px;
-    color: #64748b;
-    line-height: 1.4;
-}
-
 .sc-private-admin-member-picker .sc-searchable-dropdown {
     max-width: 420px;
 }
@@ -1088,5 +1438,91 @@
     .sc-private-sessions-table th,
     .sc-private-sessions-table td {
         padding: 10px 12px;
+    }
+
+    .sc-private-regs-list-wrap {
+        margin-block: 12px 20px;
+        margin-inline-start: 0;
+        margin-inline-end: 10px;
+    }
+
+    .sc-private-regs-list-filters-panel .sc-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-private-regs-bulk-bar-actions {
+        justify-content: stretch;
+    }
+
+    .sc-private-regs-bulk-select,
+    .sc-private-regs-bulk-reason {
+        width: 100% !important;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .sc-private-regs-table-scroll {
+        overflow: visible;
+    }
+
+    .sc-private-regs-table {
+        min-width: 0;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+    }
+
+    .sc-private-regs-table thead {
+        display: none;
+    }
+
+    .sc-private-regs-table tbody,
+    .sc-private-regs-table tr,
+    .sc-private-regs-table td,
+    .sc-private-regs-table th {
+        display: block;
+        width: 100% !important;
+    }
+
+    .sc-private-regs-table tr {
+        padding: 14px 14px 6px;
+        border-radius: 14px;
+        background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+        border: 1px solid rgba(109, 52, 255, 0.12);
+        box-shadow: 0 4px 14px rgba(74, 31, 184, 0.06);
+        box-sizing: border-box;
+    }
+
+    .sc-private-regs-table tbody td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0 !important;
+        border-bottom: 1px dashed #efeafc !important;
+    }
+
+    .sc-private-regs-table tbody td:last-child {
+        border-bottom: none !important;
+    }
+
+    .sc-private-regs-table tbody td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        max-width: 40%;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .sc-private-regs-table .check-column {
+        display: flex !important;
+        justify-content: flex-start;
+        padding-bottom: 10px !important;
+        border-bottom: 1px dashed #efeafc !important;
+    }
+
+    .sc-private-regs-table .check-column::before {
+        content: none;
     }
 }

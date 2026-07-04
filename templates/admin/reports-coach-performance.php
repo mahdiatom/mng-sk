@@ -204,16 +204,18 @@ if ($filter_coach_id > 0) {
 
 $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
 ?>
-<div class="wrap sc_setting_section">
-    <h1 class="wp-heading-inline">گزارشات باشگاه — عملکرد مربی</h1>
-    <hr class="wp-header-end">
+<div class="wrap sc-reports-list-wrap">
+    <div class="sc-reports-list-header">
+        <div class="sc-reports-list-header-text">
+            <h1 class="sc-reports-list-title">عملکرد مربی</h1>
+            <p class="sc-reports-list-desc">درآمد، بازیکنان فعال، کلاس خصوصی و روند ماهانه هر مربی.</p>
+        </div>
+    </div>
 
-    <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+    <div class="sc-reports-list-filters-card">
+    <form method="get" action="">
         <input type="hidden" name="page" value="sc-reports-coach-performance">
-
         <div class="sc-filter-grid">
-
-            <!-- مربی -->
             <div class="sc-filter-field">
                 <label class="sc-filter-label" for="filter_coach_id">مربی</label>
                 <select name="filter_coach_id" id="filter_coach_id" class="sc-filter-control">
@@ -225,132 +227,114 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
                     <?php endforeach; ?>
                 </select>
             </div>
-
-            <!-- بازه تاریخ (در انتها) -->
-            <div class="sc-filter-field sc-filter-date">
-                <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
-                <div class="sc-date-range">
-                    <input type="text"
-                           name="filter_date_from_shamsi"
-                           value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
-                           class="persian-date-input sc-filter-control"
-                           readonly>
-                    <input type="hidden" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                    <input type="text"
-                           name="filter_date_to_shamsi"
-                           value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
-                           class="persian-date-input sc-filter-control"
-                           readonly>
-                    <input type="hidden" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                </div>
+            <div class="sc-filter-field">
+                <label class="sc-filter-label">از تاریخ</label>
+                <input type="text" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" class="persian-date-input sc-filter-control" readonly>
+                <input type="hidden" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
             </div>
-
+            <div class="sc-filter-field">
+                <label class="sc-filter-label">تا تاریخ</label>
+                <input type="text" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" class="persian-date-input sc-filter-control" readonly>
+                <input type="hidden" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+            </div>
         </div>
-
-        <p class="submit">
+        <div class="sc-reports-list-filters-actions">
             <input type="submit" class="button button-primary" value="نمایش گزارش">
             <a href="<?php echo esc_url($page_url); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-        </p>
+        </div>
     </form>
+    </div>
 
     <?php if (!$filter_coach_id) : ?>
-        <div class="notice notice-info"><p>یک مربی و بازه تاریخ را انتخاب کنید.</p></div>
+        <div class="sc-reports-list-panel"><div class="sc-reports-empty">یک مربی و بازه تاریخ را انتخاب کنید.</div></div>
     <?php elseif (!$coach_row) : ?>
-        <div class="notice notice-error"><p>مربی یافت نشد.</p></div>
+        <div class="sc-reports-list-panel"><div class="sc-reports-empty">مربی یافت نشد.</div></div>
     <?php else : ?>
-        <p style="margin:12px 0;">
-            <strong><?php echo esc_html(trim($coach_row->first_name . ' ' . $coach_row->last_name)); ?></strong>
-            — بازه:
-            <?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_from) : $filter_date_from); ?>
-            تا
-            <?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_to) : $filter_date_to); ?>
-        </p>
-
-        <div class="sc-dashboard-stats">
-            <div class="sc-stat-box">
-                <h3>بازیکنان فعال فعلی</h3>
-                <div style="font-size: 24px; font-weight: bold;"><?php echo (int) $active_players_now; ?></div>
-                <p class="description" style="margin-top:8px;">ثبت‌نام فعال در دوره‌هایی که این مربی روی آن‌ها تعریف شده است.</p>
-            </div>
-            <div class="sc-stat-box">
-                <h3>درآمد مربی (دستمزد در بازه)</h3>
-                <div style="font-size: 22px; font-weight: bold; color: #2271b1;">
-                    <?php echo esc_html(number_format($coach_income_period, 0, '.', ',')); ?> تومان
-                </div>
-            </div>
-            <div class="sc-stat-box">
-                <h3>درآمد کل دوره‌ها (فاکتور در بازه)</h3>
-                <div style="font-size: 22px; font-weight: bold;">
-                    <?php echo esc_html(number_format($total_class_revenue_period, 0, '.', ',')); ?> تومان
-                </div>
-                <p class="description" style="margin-top:8px;">جمع مبالغ پرداخت‌شده صورت‌حساب دوره‌های این مربی.</p>
-            </div>
-            <div class="sc-stat-box">
-                <h3>سهم مجموعه (تخمینی)</h3>
-                <div style="font-size: 22px; font-weight: bold; color: <?php echo $club_share_period >= 0 ? '#00a32a' : '#d63638'; ?>;">
-                    <?php echo esc_html(number_format($club_share_period, 0, '.', ',')); ?> تومان
-                </div>
-                <p class="description" style="margin-top:8px;">درآمد کل دوره منهای دستمزد ثبت‌شده برای مربی در همین بازه.</p>
-            </div>
+        <div class="sc-reports-list-panel" style="margin-bottom:16px;">
+            <span class="sc-member-identity">
+                <span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true"><?php echo esc_html(mb_substr(trim($coach_row->first_name . ' ' . $coach_row->last_name), 0, 1)); ?></span>
+                <span class="sc-member-identity-text">
+                    <span class="sc-member-name"><?php echo esc_html(trim($coach_row->first_name . ' ' . $coach_row->last_name)); ?></span>
+                    <span class="sc-member-meta">
+                        <span class="sc-member-meta-item">
+                            <?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_from) : $filter_date_from); ?>
+                            تا
+                            <?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($filter_date_to) : $filter_date_to); ?>
+                        </span>
+                    </span>
+                </span>
+            </span>
         </div>
 
-        <div class="sc-dashboard-stats">
-            <div class="sc-stat-box">
-                <h3>کلاس خصوصی — درآمد</h3>
-                <div style="font-size: 22px; font-weight: bold; color: #00a32a;">
-                    <?php echo esc_html(number_format($private_revenue_period, 0, '.', ',')); ?> تومان
-                </div>
+        <div class="sc-reports-list-stats">
+            <div class="sc-reports-list-stat-card">
+                <div class="sc-reports-list-stat-label">بازیکنان فعال فعلی</div>
+                <div class="sc-reports-list-stat-value is-purple"><?php echo (int) $active_players_now; ?></div>
+                <p class="description">ثبت‌نام فعال در دوره‌هایی که این مربی روی آن‌ها تعریف شده است.</p>
             </div>
-            <div class="sc-stat-box">
-                <h3>کلاس خصوصی — تعداد جلسات</h3>
-                <div style="font-size: 24px; font-weight: bold;"><?php echo (int) $private_sessions_count; ?></div>
-                <p class="description" style="margin-top:8px;">جلسات ثبت‌شده در بازه (غیر لغو).</p>
+            <div class="sc-reports-list-stat-card">
+                <div class="sc-reports-list-stat-label">درآمد مربی (دستمزد در بازه)</div>
+                <div class="sc-reports-list-stat-value is-blue"><?php echo esc_html(number_format($coach_income_period, 0, '.', ',')); ?> تومان</div>
             </div>
-            <div class="sc-stat-box">
-                <h3>عملکرد مربی (دستمزد جلسه‌ای)</h3>
-                <div style="font-size: 14px; line-height: 1.7;">
-                    روزهای دارای رکورد دستمزد: <strong><?php echo (int) $salary_records_days; ?></strong><br>
-                    مجموع نفرات جلسه (سرشمار): <strong><?php echo (int) $salary_total_participants; ?></strong><br>
+            <div class="sc-reports-list-stat-card">
+                <div class="sc-reports-list-stat-label">درآمد کل دوره‌ها (فاکتور در بازه)</div>
+                <div class="sc-reports-list-stat-value"><?php echo esc_html(number_format($total_class_revenue_period, 0, '.', ',')); ?> تومان</div>
+                <p class="description">جمع مبالغ پرداخت‌شده صورت‌حساب دوره‌های این مربی.</p>
+            </div>
+            <div class="sc-reports-list-stat-card">
+                <div class="sc-reports-list-stat-label">سهم مجموعه (تخمینی)</div>
+                <div class="sc-reports-list-stat-value <?php echo $club_share_period >= 0 ? 'is-credit' : 'is-debit'; ?>"><?php echo esc_html(number_format($club_share_period, 0, '.', ',')); ?> تومان</div>
+                <p class="description">درآمد کل دوره منهای دستمزد ثبت‌شده برای مربی در همین بازه.</p>
+            </div>
+            <div class="sc-reports-list-stat-card">
+                <div class="sc-reports-list-stat-label">کلاس خصوصی — درآمد</div>
+                <div class="sc-reports-list-stat-value is-credit"><?php echo esc_html(number_format($private_revenue_period, 0, '.', ',')); ?> تومان</div>
+            </div>
+            <div class="sc-reports-list-stat-card">
+                <div class="sc-reports-list-stat-label">کلاس خصوصی — تعداد جلسات</div>
+                <div class="sc-reports-list-stat-value"><?php echo (int) $private_sessions_count; ?></div>
+                <p class="description">جلسات ثبت‌شده در بازه (غیر لغو).</p>
+            </div>
+            <div class="sc-reports-list-stat-card">
+                <div class="sc-reports-list-stat-label">عملکرد مربی (دستمزد جلسه‌ای)</div>
+                <div class="sc-reports-list-stat-value" style="font-size:13px;font-weight:600;line-height:1.7;">
+                    روزهای دارای رکورد: <strong><?php echo (int) $salary_records_days; ?></strong><br>
+                    مجموع نفرات جلسه: <strong><?php echo (int) $salary_total_participants; ?></strong><br>
                     میانگین نفر در جلسه: <strong><?php echo esc_html(number_format($salary_avg_participants, 1, '.', ',')); ?></strong>
                 </div>
             </div>
-            <div class="sc-stat-box">
-                <h3>ثبت حضور و غیاب</h3>
-                <div style="font-size: 24px; font-weight: bold;"><?php echo (int) $attendance_rows_period; ?></div>
-                <p class="description" style="margin-top:8px;">تعداد ردیف‌های حضور ثبت‌شده برای دوره‌های این مربی در بازه.</p>
+            <div class="sc-reports-list-stat-card">
+                <div class="sc-reports-list-stat-label">ثبت حضور و غیاب</div>
+                <div class="sc-reports-list-stat-value"><?php echo (int) $attendance_rows_period; ?></div>
+                <p class="description">تعداد ردیف‌های حضور ثبت‌شده برای دوره‌های این مربی در بازه.</p>
             </div>
         </div>
 
-        <div class="sc-stat-box" style="margin-top: 20px;">
-            <h2>نمودار ماهانه — تعداد دانشجویان فعال (منحنی)</h2>
-            <p class="description">تعداد بازیکنان فعال در پایان هر ماه در دوره‌های این مربی.</p>
-            <div style="max-width: 960px; margin-top: 16px;">
-                <canvas id="coachActiveMonthlyChart" style="max-height: 380px;"></canvas>
+        <div class="sc-reports-chart-grid">
+            <div class="sc-reports-chart-card">
+                <h2>نمودار ماهانه — تعداد دانشجویان فعال</h2>
+                <p class="description">تعداد بازیکنان فعال در پایان هر ماه در دوره‌های این مربی.</p>
+                <div class="sc-bi-chart-canvas"><canvas id="coachActiveMonthlyChart"></canvas></div>
             </div>
-        </div>
-
-        <div class="sc-stat-box" style="margin-top: 20px;">
-            <h2>نمودار ماهانه — عضو جدید و ریزش</h2>
-            <p class="description">ثبت‌نام جدید و بازیکنانی که از ابتدا تا پایان ماه دیگر فعال نیستند.</p>
-            <div style="max-width: 960px; margin-top: 16px;">
-                <canvas id="coachNewChurnChart" style="max-height: 380px;"></canvas>
+            <div class="sc-reports-chart-card">
+                <h2>نمودار ماهانه — عضو جدید و ریزش</h2>
+                <p class="description">ثبت‌نام جدید و بازیکنانی که از ابتدا تا پایان ماه دیگر فعال نیستند.</p>
+                <div class="sc-bi-chart-canvas"><canvas id="coachNewChurnChart"></canvas></div>
             </div>
-        </div>
-
-        <div class="chart_dashboard" style="display:flex;flex-wrap:wrap;gap:20px;margin-top:20px;">
-            <div class="sc-stat-box" style="flex:1;min-width:300px;">
+            <div class="sc-reports-chart-card">
                 <h2>درآمد مربی (ماهانه)</h2>
-                <canvas id="coachIncomeChart" style="max-height:340px;"></canvas>
+                <div class="sc-bi-chart-canvas"><canvas id="coachIncomeChart"></canvas></div>
             </div>
-            <div class="sc-stat-box" style="flex:1;min-width:300px;">
+            <div class="sc-reports-chart-card">
                 <h2>میانگین نفر جلسه (ماهانه)</h2>
-                <canvas id="coachAvgAttendanceChart" style="max-height:340px;"></canvas>
+                <div class="sc-bi-chart-canvas"><canvas id="coachAvgAttendanceChart"></canvas></div>
             </div>
         </div>
 
-        <div class="sc-stat-box" style="margin-top: 20px;">
-            <h2>جدول ماهانه</h2>
-            <table class="wp-list-table widefat fixed striped" style="max-width:900px;">
+        <div class="sc-reports-list-panel" style="margin-top:16px;">
+            <div class="sc-reports-list-panel-header"><h2>جدول ماهانه</h2></div>
+            <div class="sc-reports-list-table-card" style="margin:0;box-shadow:none;border:none;padding:0;">
+            <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
                         <th>ماه</th>
@@ -376,15 +360,17 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
                 <?php endforeach; endif; ?>
                 </tbody>
             </table>
+            </div>
         </div>
 
-        <div class="sc-stat-box" style="margin-top: 20px;">
-            <h2>خلاصه مالی دوره‌ها</h2>
-            <table class="wp-list-table widefat fixed striped" style="max-width: 720px;">
+        <div class="sc-reports-list-panel" style="margin-top:16px;">
+            <div class="sc-reports-list-panel-header"><h2>خلاصه مالی دوره‌ها</h2></div>
+            <div class="sc-reports-list-table-card" style="margin:0;box-shadow:none;border:none;padding:0;">
+            <table class="wp-list-table widefat fixed striped">
                 <tbody>
                     <tr>
                         <th scope="row">درآمد کل (فاکتورهای دوره در بازه)</th>
-                        <td><?php echo esc_html(number_format($total_class_revenue_period, 0, '.', ',')); ?> تومان</td>
+                        <td><span class="sc-reports-amount-credit"><?php echo esc_html(number_format($total_class_revenue_period, 0, '.', ',')); ?> تومان</span></td>
                     </tr>
                     <tr>
                         <th scope="row">درآمد مربی (دستمزد کیف پول در بازه)</th>
@@ -396,10 +382,11 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
                     </tr>
                     <tr>
                         <th scope="row">درآمد کلاس‌های خصوصی (جدا)</th>
-                        <td><?php echo esc_html(number_format($private_revenue_period, 0, '.', ',')); ?> تومان</td>
+                        <td><span class="sc-reports-amount-credit"><?php echo esc_html(number_format($private_revenue_period, 0, '.', ',')); ?> تومان</span></td>
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <script src="<?php echo esc_url(SC_ASSETS_URL . 'js/vendor/chart.min.js'); ?>"></script>
@@ -423,8 +410,8 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
                         datasets: [{
                             label: 'دانشجویان فعال',
                             data: monthly.map(function (r) { return parseInt(r.active, 10) || 0; }),
-                            borderColor: 'rgba(34, 113, 177, 1)',
-                            backgroundColor: 'rgba(34, 113, 177, 0.12)',
+                            borderColor: 'rgba(109, 52, 255, 1)',
+                            backgroundColor: 'rgba(109, 52, 255, 0.12)',
                             tension: 0.45,
                             fill: true,
                             pointRadius: 4
@@ -432,6 +419,7 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
                         scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
                         plugins: { legend: { position: 'top' } }
                     }
@@ -448,17 +436,18 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
                             {
                                 label: 'عضو جدید',
                                 data: monthly.map(function (r) { return parseInt(r.new, 10) || 0; }),
-                                backgroundColor: 'rgba(0, 163, 42, 0.7)'
+                                backgroundColor: 'rgba(22, 163, 74, 0.7)'
                             },
                             {
                                 label: 'ریزش',
                                 data: monthly.map(function (r) { return parseInt(r.churn, 10) || 0; }),
-                                backgroundColor: 'rgba(214, 54, 56, 0.7)'
+                                backgroundColor: 'rgba(220, 38, 38, 0.7)'
                             }
                         ]
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
                         scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
                         plugins: { legend: { position: 'top' } }
                     }
@@ -474,13 +463,13 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
                         datasets: [{
                             label: 'درآمد مربی (تومان)',
                             data: monthly.map(function (r) { return parseFloat(r.income) || 0; }),
-                            borderColor: 'rgba(0, 163, 42, 1)',
-                            backgroundColor: 'rgba(0, 163, 42, 0.1)',
+                            borderColor: 'rgba(109, 52, 255, 1)',
+                            backgroundColor: 'rgba(109, 52, 255, 0.1)',
                             tension: 0.35,
                             fill: true
                         }]
                     },
-                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
                 });
             }
 
@@ -493,13 +482,13 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
                         datasets: [{
                             label: 'میانگین نفر جلسه',
                             data: monthly.map(function (r) { return parseFloat(r.avg_attendance) || 0; }),
-                            borderColor: 'rgba(240, 160, 0, 1)',
-                            backgroundColor: 'rgba(240, 160, 0, 0.1)',
+                            borderColor: 'rgba(217, 119, 6, 1)',
+                            backgroundColor: 'rgba(217, 119, 6, 0.1)',
                             tension: 0.35,
                             fill: true
                         }]
                     },
-                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
                 });
             }
         });

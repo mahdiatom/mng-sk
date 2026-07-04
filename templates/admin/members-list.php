@@ -37,40 +37,42 @@ class Player_List_Table extends WP_List_Table {
 // }
 
 public function column_full_name($item) {
-        $full_name = $item['first_name'] . ' ' . $item['last_name'];
-        
-        // نمایش دوره‌های بازیکن
-        global $wpdb;
-        $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-        $courses_table = $wpdb->prefix . 'sc_courses';
+        $full_name = trim($item['first_name'] . ' ' . $item['last_name']);
+        $phone = !empty($item['player_phone']) ? $item['player_phone'] : '';
+        $photo = !empty($item['personal_photo']) ? $item['personal_photo'] : '';
 
-        $courses = $wpdb->get_results($wpdb->prepare(
-            "SELECT c.title FROM $courses_table c 
-             INNER JOIN $member_courses_table mc ON c.id = mc.course_id 
-             WHERE mc.member_id = %d 
-             AND mc.status = 'active' 
-             AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '')
-             AND c.deleted_at IS NULL 
-             AND c.is_active = 1
-             LIMIT 10",
-            $item['id']
-        ));
-
-        
-        $course_names = [];
-        if ($courses) {
-            foreach ($courses as $course) {
-                $course_names[] = $course->title;
-            }
+        $initials = '';
+        $fn = trim((string) ($item['first_name'] ?? ''));
+        $ln = trim((string) ($item['last_name'] ?? ''));
+        if ($fn !== '') {
+            $initials .= mb_substr($fn, 0, 1);
         }
-        //$courses_text = !empty($course_names) ? '<br><small class="courses_member_table" style="color: #666;">دوره‌ها: ' . implode(', ', $course_names) . '<br>' . '</small>' : '';
+        if ($ln !== '') {
+            $initials .= mb_substr($ln, 0, 1);
+        }
+        if ($initials === '') {
+            $initials = '؟';
+        }
 
-        // بررسی فعال بودن کیف پول (امکانات پرو + تنظیم کیف پول)
-        $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
-        $wallet_balance = $wallet_enabled ? sc_get_wallet_balance($item['id']) : 0;
+        if ($photo) {
+            $avatar_html = '<span class="sc-member-avatar"><img src="' . esc_url($photo) . '" alt="" loading="lazy"></span>';
+        } else {
+            $avatar_html = '<span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true">' . esc_html($initials) . '</span>';
+        }
+
+        $meta_parts = [];
+        if ($phone !== '') {
+            $meta_parts[] = '<span class="sc-member-meta-item">' . esc_html($phone) . '</span>';
+        }
+        if (!empty($item['national_id'])) {
+            $meta_parts[] = '<span class="sc-member-meta-item">' . esc_html($item['national_id']) . '</span>';
+        }
+        $meta_html = !empty($meta_parts)
+            ? '<span class="sc-member-meta">' . implode('<span class="sc-member-meta-dot"></span>', $meta_parts) . '</span>'
+            : '';
 
         $delete_url  = admin_url('admin.php?page=sc-members&action=delete&player_id=' . absint($item['id']));
-        $delete_name = trim($item['first_name'] . ' ' . $item['last_name']);
+        $delete_name = $full_name;
         $delete_msg  = $delete_name !== ''
             ? sprintf('آیا از حذف بازیکن «%s» اطمینان دارید؟ این عمل قابل بازگشت نیست.', $delete_name)
             : 'آیا از حذف این بازیکن اطمینان دارید؟ این عمل قابل بازگشت نیست.';
@@ -84,14 +86,16 @@ public function column_full_name($item) {
                 esc_js($delete_msg)
             ),
         ];
-        
-        // // اضافه کردن دکمه مدیریت کیف پول
-        // if ($wallet_enabled) {
-        //     $wallet_url = admin_url('admin.php?page=sc-wallet&filter_member=' . $item['id']);
-        //     $actions['wallet'] = '<a href="' . esc_url($wallet_url) . '" style="color: #28a745;">💰 کیف پول (' . sc_format_amount_display($wallet_balance) . ' تومان)</a>';
-        // }
 
-        return $full_name  . ' ' . $this->row_actions($actions);
+        $name_block = '<span class="sc-member-identity">'
+            . $avatar_html
+            . '<span class="sc-member-identity-text">'
+            . '<span class="sc-member-name">' . esc_html($full_name) . '</span>'
+            . $meta_html
+            . '</span>'
+            . '</span>';
+
+        return $name_block . $this->row_actions($actions);
     }
 
     public function column_cb($item) {
@@ -117,7 +121,7 @@ public function column_full_name($item) {
                 $insurance_expiry_date = isset($item['insurance_expiry_date_shamsi']) ? $item['insurance_expiry_date_shamsi'] : '';
                 
                 if (empty($insurance_expiry_date)) {
-                    return '<span style="color: #999;">-</span>';
+                    return '<span class="sc-badge sc-badge--muted">—</span>';
                 }
                 
                 // دریافت تاریخ امروز به شمسی
@@ -155,26 +159,30 @@ public function column_full_name($item) {
                     }
                     
                     if ($is_expired) {
-                        return '<span style="color: #d63638; font-weight: bold;">✗ منقضی</span>';
+                        return '<span class="sc-badge sc-badge--danger">منقضی</span>';
                     } else {
-                        return '<span style="color: #00a32a; font-weight: bold;">✓ فعال</span>';
+                        return '<span class="sc-badge sc-badge--success">فعال</span>';
                     }
                 }
                 
-                return '<span style="color: #999;">-</span>';
+                return '<span class="sc-badge sc-badge--muted">—</span>';
             case 'member_type':
                 $type = isset($item['member_type']) ? $item['member_type'] : 'normal';
-                return $type === 'team' ? 'بازیکن تیم' : 'بازیکن عادی';
+                return $type === 'team'
+                    ? '<span class="sc-badge sc-badge--purple">بازیکن تیم</span>'
+                    : '<span class="sc-badge sc-badge--soft">بازیکن عادی</span>';
             case 'profile_completed':
                 return !empty($item['profile_completed'])
-        ? '<span style="color:#00a32a;font-weight:bold;">✓ تکمیل شده</span>'
-        : '<span style="color:#d63638;font-weight:bold;">✗ ناقص</span>';
+                    ? '<span class="sc-badge sc-badge--success">تکمیل شده</span>'
+                    : '<span class="sc-badge sc-badge--danger">ناقص</span>';
             case 'identity_verified':
                 return !empty($item['identity_verified'])
-                    ? '<span style="display:inline-block;padding:2px 8px;border-radius:12px;background:#d1e7dd;color:#0f5132;font-weight:700;">تایید شده</span>'
-                    : '<span style="display:inline-block;padding:2px 8px;border-radius:12px;background:#f8d7da;color:#842029;font-weight:700;">در انتظار بررسی</span>';
+                    ? '<span class="sc-badge sc-badge--success">تایید شده</span>'
+                    : '<span class="sc-badge sc-badge--warning">در انتظار بررسی</span>';
             case 'is_active':
-                return $item['is_active'] ? "فعال" : "غیرفعال";
+                return !empty($item['is_active'])
+                    ? '<span class="sc-badge sc-badge--success">فعال</span>'
+                    : '<span class="sc-badge sc-badge--muted">غیرفعال</span>';
             default:
                 return "-";
         }
@@ -222,7 +230,7 @@ public function column_full_name($item) {
         return '<span style="color:#999;">-</span>';
     }
 
-    return '<strong>' . esc_html($team) . '</strong><br><small style="color:#666;">سطح: ' . esc_html($level) . '</small>';
+    return '<span class="sc-team-level"><strong>' . esc_html($team) . '</strong><small>سطح: ' . esc_html($level) . '</small></span>';
     }
 
 
@@ -324,11 +332,13 @@ public function column_full_name($item) {
         if (isset($_GET['s'])) {
             $url .= "&s=" . sanitize_text_field($_GET['s']);
         }
-        $view = sprintf("<a href='%s' class='%s'>%s</a>", $url, $class_view, $label);
-      
-            $view .= sprintf("<span class='count'>(%d)</span>", $count);
-        
-        return $view;
+        return sprintf(
+            "<a href='%s' class='%s'>%s <span class='count'>(%d)</span></a>",
+            esc_url($url),
+            esc_attr($class_view),
+            esc_html($label),
+            (int) $count
+        );
     }
 
     public function get_views() {

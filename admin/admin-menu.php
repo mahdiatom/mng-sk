@@ -1291,6 +1291,14 @@ function sc_register_admin_menu() {
         );
         add_submenu_page(
             'sc_orders',
+            'لیست محصولات',
+            'لیست محصولات',
+            'manage_woocommerce',
+            'sc-products',
+            'sc_custom_products'
+        );
+        add_submenu_page(
+            'sc_orders',
             ' کد تخفیف ',
             ' لیست کد تخفیف ' ,
             'manage_woocommerce',
@@ -1320,6 +1328,8 @@ function sc_register_admin_menu() {
         );
     }
 
+    add_action('admin_init', 'sc_redirect_legacy_product_list_page');
+
     /* ================= Load Hooks (همه حفظ شده) ================= */
 
     add_action('load-' . $add_member_sufix, 'callback_add_member_sufix');
@@ -1348,6 +1358,7 @@ function sc_register_admin_menu() {
     }
     if (function_exists('sc_is_pro_feature_shop_enabled') && sc_is_pro_feature_shop_enabled()) {
         add_action('load-toplevel_page_sc_orders', 'process_orders_table_data');
+        add_action('load-sc_orders_page_sc-products', 'process_products_table_data');
     }
 
     if (function_exists('sc_is_pro_feature_players_wallet_enabled') && sc_is_pro_feature_players_wallet_enabled() && isset($wallet_list_sufix)) {
@@ -1567,6 +1578,12 @@ function sc_set_invoices_screen_option($status, $option, $value) {
     if ('sms_report_per_page' === $option) {
         return max(1, min(500, (int) $value));
     }
+    if ('list_products_per_page' === $option) {
+        return max(1, min(200, (int) $value));
+    }
+    if ('list_orders_per_page' === $option) {
+        return max(1, min(200, (int) $value));
+    }
     return $status;
 }
 
@@ -1618,6 +1635,55 @@ function sc_custom_orders() {
     }
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'orders-list.php';
+}
+
+function sc_custom_products() {
+    if (!current_user_can('manage_woocommerce')) {
+        wp_die(esc_html__('شما به این صفحه دسترسی ندارید.', 'sportclub-manager'));
+    }
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'products-list.php';
+}
+
+/**
+ * هدایت لیست قدیمی ووکامرس محصولات به صفحه سفارشی باشگاه
+ */
+function sc_redirect_legacy_product_list_page() {
+    if (!function_exists('sc_is_pro_feature_shop_enabled') || !sc_is_pro_feature_shop_enabled()) {
+        return;
+    }
+    global $pagenow;
+    if ($pagenow !== 'edit.php' || !isset($_GET['post_type']) || $_GET['post_type'] !== 'product') {
+        return;
+    }
+    if (isset($_GET['action']) || isset($_GET['post']) || isset($_GET['ids'])) {
+        return;
+    }
+    if (!current_user_can('manage_woocommerce')) {
+        return;
+    }
+    wp_safe_redirect(admin_url('admin.php?page=sc-products'));
+    exit;
+}
+
+/**
+ * آماده‌سازی لیست محصولات ادمین (فیلترها و صفحه‌بندی)
+ */
+function process_products_table_data() {
+    if (!current_user_can('manage_woocommerce')) {
+        return;
+    }
+    add_screen_option('per_page', [
+        'default' => 20,
+        'option' => 'list_products_per_page',
+        'label' => 'تعداد محصولات در هر صفحه',
+    ]);
+    if (!class_exists('WP_List_Table')) {
+        require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
+    }
+    require_once SC_TEMPLATES_ADMIN_DIR . 'list_products.php';
+    $GLOBALS['products_list_table'] = new products_List_Table();
+    $GLOBALS['products_list_table']->prepare_items();
 }
 
 /**
@@ -2031,15 +2097,6 @@ function sc_admin_support_tickets_list_page() {
         $list_table->prepare_items();
     }
     ?>
-    <div class="wrap sc-support-admin-wrap">
-        <div class="sc-support-admin-list-header" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:1rem;">
-            <h1 class="wp-heading-inline" style="margin:0;">لیست تیکت‌های پشتیبانی</h1>
-            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-support-ticket-new')); ?>" class="sc-ticket-btn sc-ticket-btn-primary sc-ticket-btn-new">ارسال تیکت جدید</a>
-        </div>
-        </div>
-        <div class="wrap sc-support-admin-wrap">
-        <div class="sc-support-admin-list-card">
-
         <?php
         // Prepare current filter values
         $filter_status      = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
@@ -2049,11 +2106,30 @@ function sc_admin_support_tickets_list_page() {
         $scope_accountant   = function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only();
         $filter_department  = $scope_accountant ? 'accountant' : (isset($_GET['filter_department']) ? sanitize_text_field($_GET['filter_department']) : 'all');
 
-        $today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
-        $filter_date_from_sh = isset($_GET['filter_date_from_shamsi']) && $_GET['filter_date_from_shamsi'] !== '' ? sanitize_text_field($_GET['filter_date_from_shamsi']) : $today_shamsi;
-        $filter_date_to_sh   = isset($_GET['filter_date_to_shamsi']) && $_GET['filter_date_to_shamsi'] !== '' ? sanitize_text_field($_GET['filter_date_to_shamsi']) : $today_shamsi;
+        $filter_date_from_sh = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '';
+        $filter_date_to_sh   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '';
 
-        // Users with tickets for the dropdown
+        $active_filters_count = 0;
+        if ($search !== '') {
+            $active_filters_count++;
+        }
+        if ($filter_status !== 'all') {
+            $active_filters_count++;
+        }
+        if (!$scope_accountant && $filter_department !== 'all') {
+            $active_filters_count++;
+        }
+        if ($filter_created_by !== 'all') {
+            $active_filters_count++;
+        }
+        if ($filter_user_id > 0) {
+            $active_filters_count++;
+        }
+        if ($filter_date_from_sh !== '' || $filter_date_to_sh !== '') {
+            $active_filters_count++;
+        }
+        $filters_open = $active_filters_count > 0;
+
         global $wpdb;
         $t = $wpdb->prefix . 'sc_support_tickets';
         $m = $wpdb->prefix . 'sc_members';
@@ -2087,29 +2163,55 @@ function sc_admin_support_tickets_list_page() {
         $selected_user_text = 'همه کاربران';
         if ($filter_user_id) {
             foreach ($users_with_tickets as $u) {
-                if ((int)$u->user_id === $filter_user_id) {
+                if ((int) $u->user_id === $filter_user_id) {
                     $selected_user_text = trim($u->name) ?: 'کاربر #' . $u->user_id;
-                    if (!empty($u->national_id)) $selected_user_text .= ' - ' . $u->national_id;
+                    if (!empty($u->national_id)) {
+                        $selected_user_text .= ' - ' . $u->national_id;
+                    }
                     break;
                 }
             }
         }
         ?>
+    <div class="wrap sc-support-admin-wrap sc-ticket-list-wrap">
+        <div class="sc-ticket-list-header">
+            <div class="sc-ticket-list-header-text">
+                <h1 class="sc-ticket-list-title">لیست تیکت‌های پشتیبانی</h1>
+                <p class="sc-ticket-list-desc">مدیریت تیکت‌ها، فیلتر و پاسخ به درخواست‌های پشتیبانی</p>
+            </div>
+            <div class="sc-ticket-list-header-actions">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-support-ticket-new')); ?>" class="sc-ticket-list-add-btn">ارسال تیکت جدید</a>
+            </div>
+        </div>
 
         <form method="get" class="sc-support-filter-form">
             <input type="hidden" name="page" value="sc-support-tickets">
             <?php wp_nonce_field('bulk-tickets'); ?>
 
-            <!-- ==================== FILTER BAR ==================== -->
-            <div class="sc-filter-grid" style="margin-bottom:12px; width:100%;">
+        <div class="sc-ticket-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-ticket-list-filters-toolbar">
+            <button type="button" class="sc-ticket-list-filters-toggle" id="sc-ticket-filters-toggle" aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>" aria-controls="sc-ticket-filters-panel">
+                <span class="sc-ticket-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </span>
+                <span class="sc-ticket-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها"><?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?></span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-ticket-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-ticket-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-support-tickets')); ?>" class="sc-ticket-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+        <div class="sc-ticket-list-filters-panel" id="sc-ticket-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
 
-                <!-- جستجو -->
-                <div class="sc-filter-field" style="min-width: 260px; flex: 1 1 260px;">
+            <div class="sc-filter-grid">
+                <div class="sc-filter-field">
                     <label class="sc-filter-label">جستجو</label>
-                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در موضوع یا شناسه..." class="sc-filter-control" style="width:100%;">
+                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در موضوع یا شناسه..." class="sc-filter-control">
                 </div>
 
-                <!-- وضعیت -->
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_status">وضعیت</label>
                     <select name="filter_status" id="filter_status" class="sc-filter-control">
@@ -2121,7 +2223,6 @@ function sc_admin_support_tickets_list_page() {
                 </div>
 
                 <?php if (!$scope_accountant) : ?>
-                <!-- بخش -->
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_department">بخش</label>
                     <select name="filter_department" id="filter_department" class="sc-filter-control">
@@ -2134,7 +2235,6 @@ function sc_admin_support_tickets_list_page() {
                 </div>
                 <?php endif; ?>
 
-                <!-- ارسال‌کننده -->
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_created_by">ارسال‌کننده</label>
                     <select name="filter_created_by" id="filter_created_by" class="sc-filter-control">
@@ -2145,8 +2245,7 @@ function sc_admin_support_tickets_list_page() {
                     </select>
                 </div>
 
-                <!-- کاربر (جستجو مانند) -->
-                <div class="sc-filter-field" style="min-width:240px;">
+                <div class="sc-filter-field">
                     <label class="sc-filter-label">کاربر</label>
                     <div class="sc-searchable-dropdown">
                         <input type="hidden" name="filter_user_id" id="filter_user_id" value="<?php echo esc_attr($filter_user_id); ?>">
@@ -2177,33 +2276,50 @@ function sc_admin_support_tickets_list_page() {
                     </div>
                 </div>
 
-                <!-- بازه تاریخ (اندازه مناسب، سمت راست) -->
-                <div class="sc-filter-field" style="width: auto; min-width: 260px;">
+                <div class="sc-filter-field sc-filter-date">
                     <label class="sc-filter-label">بازه تاریخ</label>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($filter_date_from_sh); ?>" placeholder="از" readonly style="width:130px;">
-                        <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($filter_date_to_sh); ?>" placeholder="تا" readonly style="width:130px;">
+                    <div class="sc-date-range sc-ticket-date-range">
+                        <input type="text" name="filter_date_from_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($filter_date_from_sh); ?>" placeholder="از تاریخ" readonly>
+                        <input type="text" name="filter_date_to_shamsi" class="persian-date-input sc-no-default-date sc-filter-control" value="<?php echo esc_attr($filter_date_to_sh); ?>" placeholder="تا تاریخ" readonly>
                     </div>
                 </div>
-
-                <!-- دکمه فیلتر در سطر جدید، راست‌چین -->
-               
-
             </div>
 
-             <div style="margin-bottom: 30px;">
-                    <input type="submit" class="button button-primary" value=" اعمال فیلتر">
-                    <a href="<?php echo admin_url('admin.php?page=sc-support-tickets'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            <div class="sc-ticket-list-filters-actions">
+                <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-support-tickets')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            </div>
+        </div>
+        </div>
 
-                </div>
-                
-            <!-- ==================== /FILTER BAR ==================== -->
-
+        <div class="sc-ticket-list-table-card">
             <?php $list_table->views(); ?>
             <?php $list_table->display(); ?>
-        </form>
         </div>
+        </form>
     </div>
+    <script>
+    jQuery(function($){
+        var $toggle = $('#sc-ticket-filters-toggle');
+        var $panel = $('#sc-ticket-filters-panel');
+        var $card = $toggle.closest('.sc-ticket-list-filters-card');
+        var $label = $toggle.find('.sc-ticket-list-filters-toggle-label');
+        $toggle.on('click', function(){
+            var isOpen = $card.hasClass('is-open');
+            if (isOpen) {
+                $card.removeClass('is-open');
+                $panel.attr('hidden', true);
+                $toggle.attr('aria-expanded', 'false');
+                $label.text($label.data('label-closed'));
+            } else {
+                $card.addClass('is-open');
+                $panel.removeAttr('hidden');
+                $toggle.attr('aria-expanded', 'true');
+                $label.text($label.data('label-open'));
+            }
+        });
+    });
+    </script>
     <?php
 }
 
@@ -2254,9 +2370,12 @@ function sc_admin_coach_my_profile_page() {
             'coaching_level' => isset($_POST['coaching_level']) && $_POST['coaching_level'] !== '' ? sanitize_text_field($_POST['coaching_level']) : null,
             'coaching_experience' => isset($_POST['coaching_experience']) && $_POST['coaching_experience'] !== '' ? absint($_POST['coaching_experience']) : null,
             'sports_history' => isset($_POST['sports_history']) && trim($_POST['sports_history']) !== '' ? sanitize_textarea_field($_POST['sports_history']) : null,
+            'personal_photo' => (isset($_POST['personal_photo']) && trim((string) $_POST['personal_photo']) !== '')
+                ? esc_url_raw(wp_unslash($_POST['personal_photo']))
+                : null,
             'updated_at' => current_time('mysql'),
         ];
-        $format = ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s'];
+        $format = ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s'];
         $updated = $wpdb->update($coaches_table, $data, ['id' => $coach_id], $format, ['%d']);
         if ($updated !== false) {
             $coach_row = $wpdb->get_row($wpdb->prepare("SELECT user_id FROM $coaches_table WHERE id = %d", $coach_id));
@@ -5141,86 +5260,113 @@ function sc_ajax_get_registration_details() {
         }
     }
     $registration_phone = $is_guest_registration ? ($registration->guest_phone ?: $registration->player_phone) : ($registration->player_phone ?: '-');
+    $formatted_date = '-';
+    if (!empty($registration->created_at)) {
+        $date = new DateTime($registration->created_at);
+        $shamsi_date = gregorian_to_jalali(
+            (int) $date->format('Y'),
+            (int) $date->format('m'),
+            (int) $date->format('d')
+        );
+        $formatted_date = $shamsi_date[0] . '/' .
+            str_pad((string) $shamsi_date[1], 2, '0', STR_PAD_LEFT) . '/' .
+            str_pad((string) $shamsi_date[2], 2, '0', STR_PAD_LEFT);
+    }
+    $name_parts = preg_split('/\s+/u', (string) ($registration_name ?: ''));
+    $initials = '';
+    if (!empty($name_parts[0])) {
+        $initials .= mb_substr($name_parts[0], 0, 1);
+    }
+    if (!empty($name_parts[1])) {
+        $initials .= mb_substr($name_parts[1], 0, 1);
+    }
+    if ($initials === '') {
+        $initials = '؟';
+    }
     ?>
-    <h2 style="margin-top: 0;">اطلاعات ثبت‌نام</h2>
-    <table class="widefat" style="margin-top: 15px;">
-        <tr>
-            <th style="width: 150px; text-align: right;">نام رویداد:</th>
-            <td><?php echo esc_html($registration->event_name ?: '-'); ?></td>
-        </tr>
-        <tr>
-            <th style="text-align: right;">نام کاربر:</th>
-            <td>
-                <?php echo esc_html($registration_name ?: '-'); ?>
-                <?php if ($is_guest_registration) : ?>
-                    <span style="display:inline-block;margin-right:6px;padding:2px 8px;border-radius:12px;background:#fff1f0;color:#cf1322;font-size:11px;">مهمان</span>
-                <?php endif; ?>
-            </td>
-        </tr>
-        <tr>
-            <th style="text-align: right;">شماره تماس:</th>
-            <td><?php echo esc_html($registration_phone); ?></td>
-        </tr>
-        <tr>
-            <th style="text-align: right;">تاریخ ثبت‌نام:</th>
-            <td>
-                <?php
-                if (!empty($registration->created_at)) {
-                    $date = new DateTime($registration->created_at);
-                    $shamsi_date = gregorian_to_jalali(
-                        (int)$date->format('Y'),
-                        (int)$date->format('m'),
-                        (int)$date->format('d')
-                    );
-                    $formatted_date = $shamsi_date[0] . '/' . 
-                                     str_pad($shamsi_date[1], 2, '0', STR_PAD_LEFT) . '/' . 
-                                     str_pad($shamsi_date[2], 2, '0', STR_PAD_LEFT);
-                    echo esc_html($formatted_date);
-                } else {
-                    echo '-';
-                }
-                ?>
-            </td>
-        </tr>
-    </table>
-    
-    <?php if (!empty($event_fields)) : ?>
-        <h3 style="margin-top: 30px;">اطلاعات تکمیلی:</h3>
-        <table class="widefat" style="margin-top: 15px;">
-            <?php foreach ($event_fields as $field) : 
-                $field_id = $field->id;
-                $field_value = isset($field_data[$field_id]) ? $field_data[$field_id]['value'] : null;
-                $field_files = isset($files[$field_id]) ? $files[$field_id] : [];
-            ?>
-            <tr>
-                <th style="width: 200px; text-align: right; vertical-align: top;">
-                    <?php echo esc_html($field->field_name); ?>:
-                </th>
-                <td>
-                    <?php if ($field->field_type === 'file' && !empty($field_files)) : ?>
-                        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                            <?php foreach ($field_files as $file) : ?>
-                                <div style="border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-                                    <?php if (isset($file['type']) && strpos($file['type'], 'image/') === 0) : ?>
-                                        <img src="<?php echo esc_url($file['url']); ?>" alt="<?php echo esc_attr($file['name']); ?>" style="max-width: 200px; max-height: 200px; display: block; margin-bottom: 5px;">
-                                    <?php endif; ?>
-                                    <a href="<?php echo esc_url($file['url']); ?>" target="_blank" download style="display: block; color: #2271b1; text-decoration: none;">
-                                        <?php echo esc_html($file['name']); ?>
-                                    </a>
-                                    <?php if (isset($file['size'])) : ?>
-                                        <small style="color: #666;"><?php echo size_format($file['size']); ?></small>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else : ?>
-                        <?php echo esc_html($field_value ? $field_value : '-'); ?>
+    <div class="sc-reg-details">
+        <div class="sc-reg-details-profile">
+            <span class="sc-reg-details-avatar" aria-hidden="true"><?php echo esc_html($initials); ?></span>
+            <div class="sc-reg-details-profile-info">
+                <h3 class="sc-reg-details-profile-name">
+                    <?php echo esc_html($registration_name ?: 'بدون نام'); ?>
+                    <?php if ($is_guest_registration) : ?>
+                        <span class="sc-badge sc-badge--danger">مهمان</span>
                     <?php endif; ?>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        </table>
-    <?php endif; ?>
+                </h3>
+                <div class="sc-reg-details-profile-meta">
+                    <?php if (!empty($registration_phone) && $registration_phone !== '-') : ?>
+                        <span><?php echo esc_html($registration_phone); ?></span>
+                    <?php endif; ?>
+                    <span><?php echo esc_html($formatted_date); ?></span>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="sc-reg-details-section-title">اطلاعات ثبت‌نام</h3>
+        <div class="sc-reg-details-grid">
+            <div class="sc-reg-details-item">
+                <span class="sc-reg-details-label">نام رویداد</span>
+                <span class="sc-reg-details-value"><?php echo esc_html($registration->event_name ?: '-'); ?></span>
+            </div>
+            <div class="sc-reg-details-item">
+                <span class="sc-reg-details-label">نام کاربر</span>
+                <span class="sc-reg-details-value">
+                    <?php echo esc_html($registration_name ?: '-'); ?>
+                    <?php if ($is_guest_registration) : ?>
+                        <span class="sc-badge sc-badge--danger">مهمان</span>
+                    <?php endif; ?>
+                </span>
+            </div>
+            <div class="sc-reg-details-item">
+                <span class="sc-reg-details-label">شماره تماس</span>
+                <span class="sc-reg-details-value"><?php echo esc_html($registration_phone); ?></span>
+            </div>
+            <div class="sc-reg-details-item">
+                <span class="sc-reg-details-label">تاریخ ثبت‌نام</span>
+                <span class="sc-reg-details-value"><?php echo esc_html($formatted_date); ?></span>
+            </div>
+        </div>
+
+        <?php if (!empty($event_fields)) : ?>
+            <h3 class="sc-reg-details-section-title">اطلاعات تکمیلی</h3>
+            <div class="sc-reg-details-grid">
+                <?php foreach ($event_fields as $field) :
+                    $field_id = $field->id;
+                    $field_value = isset($field_data[$field_id]) ? $field_data[$field_id]['value'] : null;
+                    $field_files = isset($files[$field_id]) ? $files[$field_id] : [];
+                    $is_file_field = ($field->field_type === 'file' && !empty($field_files));
+                    ?>
+                    <div class="sc-reg-details-item<?php echo $is_file_field ? ' sc-reg-details-item--wide' : ''; ?>">
+                        <span class="sc-reg-details-label"><?php echo esc_html($field->field_name); ?></span>
+                        <div class="sc-reg-details-value">
+                            <?php if ($is_file_field) : ?>
+                                <div class="sc-reg-details-files">
+                                    <?php foreach ($field_files as $file) : ?>
+                                        <div class="sc-reg-details-file">
+                                            <?php if (isset($file['type']) && strpos($file['type'], 'image/') === 0) : ?>
+                                                <a href="<?php echo esc_url($file['url']); ?>" target="_blank" rel="noopener noreferrer" class="sc-reg-details-file-image">
+                                                    <img src="<?php echo esc_url($file['url']); ?>" alt="<?php echo esc_attr($file['name']); ?>">
+                                                </a>
+                                            <?php endif; ?>
+                                            <a href="<?php echo esc_url($file['url']); ?>" target="_blank" rel="noopener noreferrer" download class="sc-reg-details-file-link">
+                                                <?php echo esc_html($file['name']); ?>
+                                            </a>
+                                            <?php if (isset($file['size'])) : ?>
+                                                <small class="sc-reg-details-file-size"><?php echo esc_html(size_format($file['size'])); ?></small>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else : ?>
+                                <?php echo esc_html($field_value ? $field_value : '-'); ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
     <?php
     $html = ob_get_clean();
     
@@ -5387,6 +5533,9 @@ function callback_add_coach_sufix() {
             'coaching_level' => !empty($_POST['coaching_level']) ? sanitize_text_field($_POST['coaching_level']) : NULL,
             'coaching_experience' => !empty($_POST['coaching_experience']) ? intval($_POST['coaching_experience']) : NULL,
             'sports_history' => !empty($_POST['sports_history']) ? sanitize_textarea_field($_POST['sports_history']) : NULL,
+            'personal_photo' => (isset($_POST['personal_photo']) && trim((string) $_POST['personal_photo']) !== '')
+                ? esc_url_raw(wp_unslash($_POST['personal_photo']))
+                : null,
             'settlement_type' => (function () {
                 $allowed = ['fixed', 'percentage', 'both'];
                 $raw = !empty($_POST['settlement_type']) ? sanitize_text_field(wp_unslash($_POST['settlement_type'])) : 'fixed';
@@ -5431,7 +5580,7 @@ function callback_add_coach_sufix() {
                 $coaches_table,
                 $data,
                 ['id' => $coach_id],
-                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%d', '%s'],
+                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%f', '%d', '%d', '%s'],
                 ['%d']
             );
             
@@ -5454,7 +5603,7 @@ function callback_add_coach_sufix() {
             // افزودن جدید
             $data['created_at'] = current_time('mysql');
             
-            $inserted = $wpdb->insert($coaches_table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%d', '%s', '%s']);
+            $inserted = $wpdb->insert($coaches_table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%f', '%d', '%d', '%s', '%s']);
             
             if ($inserted !== false) {
                 $new_coach_id = $wpdb->insert_id;

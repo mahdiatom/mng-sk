@@ -160,6 +160,128 @@
 .sc-coach-panel-card .sc-ticket-new-form { padding: 20px 24px; }
 .sc-coach-panel-card .sc-ticket-new-form .form-table { margin-top: 0; }
 .sc-coach-panel-wrap .sc-coach-profile-card { max-width: none; width: 100%; }
+
+.sc-coach-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+  border: 1px solid rgba(109, 52, 255, 0.12);
+}
+
+.sc-coach-profile-avatar {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #ede9fe, #ddd6fe);
+  border: 3px solid #fff;
+  box-shadow: 0 4px 14px rgba(74, 31, 184, 0.14);
+}
+
+.sc-coach-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sc-coach-profile-avatar--initials {
+  color: #4a1fb8;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.sc-coach-profile-hero-text h2 {
+  margin: 0 0 6px;
+  color: #1e1b2e;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.sc-coach-profile-hero-text p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.sc-coach-players-wrap .sc-member-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sc-coach-players-wrap .sc-member-avatar {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(145deg, #ede9fe, #ddd6fe);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(74, 31, 184, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sc-coach-players-wrap .sc-member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sc-coach-players-wrap .sc-member-avatar--initials {
+  color: #4a1fb8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sc-coach-players-wrap .sc-member-identity-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sc-coach-players-wrap .sc-member-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e1b2e;
+  line-height: 1.35;
+}
+
+.sc-coach-players-wrap .sc-member-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.sc-coach-players-wrap .sc-member-meta-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #c4b5fd;
+  display: inline-block;
+}
+
+.sc-coach-players-wrap .row-actions a {
+  color: #6d34ff;
+  font-weight: 600;
+}
 .sc-coach-panel-title-row {
   display: flex;
   align-items: center;
@@ -183,9 +305,9 @@
 .sc-coach-players-wrap .sc-coach-players-search .search-box { margin: 0; float: none; }
 .sc-coach-players-wrap .sc-coach-panel-card { width: 100%; max-width: none; }
 
-/* === لیست جدول وردپرس در پنل مربی (به‌جز «بازیکن‌های من» که همان استایل هسته ادمین می‌ماند) === */
-.sc-coach-panel-wrap:not(.sc-coach-players-wrap) .wp-list-table.widefat { border-radius: var(--sc-panel-radius, 12px); overflow: hidden; border: 1px solid var(--sc-panel-border, #e2e8f0); box-shadow: var(--sc-panel-shadow); }
-.sc-coach-panel-wrap:not(.sc-coach-players-wrap) .tablenav { margin-top: 16px; }
+/* === لیست جدول وردپرس در پنل مربی (به‌جز لیست‌های هم‌سبک ادمین: بازیکن‌ها / تیکت / یادداشت) === */
+.sc-coach-panel-wrap:not(.sc-coach-players-wrap):not(.sc-ticket-list-wrap):not(.sc-pn-list-wrap) .wp-list-table.widefat { border-radius: var(--sc-panel-radius, 12px); overflow: hidden; border: 1px solid var(--sc-panel-border, #e2e8f0); box-shadow: var(--sc-panel-shadow); }
+.sc-coach-panel-wrap:not(.sc-coach-players-wrap):not(.sc-ticket-list-wrap):not(.sc-pn-list-wrap) .tablenav { margin-top: 16px; }
 .sc-coach-panel-wrap .search-box input[type="search"] { border-radius: 8px; border-color: var(--sc-panel-border); }
 .sc-coach-panel-wrap .search-box input[type="search"]:focus { border-color: var(--sc-panel-primary); }
 
@@ -297,12 +419,16 @@
           padding-top: 10px
 }
 }
-.wrap.sc-coach-panel-wrap .wp-list-table tr th,
-.wrap.sc-coach-panel-wrap .wp-list-table tr td {
+.wrap.sc-coach-panel-wrap:not(.sc-coach-players-wrap):not(.sc-ticket-list-wrap):not(.sc-pn-list-wrap) .wp-list-table tr th,
+.wrap.sc-coach-panel-wrap:not(.sc-coach-players-wrap):not(.sc-ticket-list-wrap):not(.sc-pn-list-wrap) .wp-list-table tr td {
   text-align: center;
 }
 .wrap.sc-coach-panel-wrap.sc-coach-players-wrap .wp-list-table tr th,
-.wrap.sc-coach-panel-wrap.sc-coach-players-wrap .wp-list-table tr td {
+.wrap.sc-coach-panel-wrap.sc-coach-players-wrap .wp-list-table tr td,
+.wrap.sc-coach-panel-wrap.sc-ticket-list-wrap .wp-list-table tr th,
+.wrap.sc-coach-panel-wrap.sc-ticket-list-wrap .wp-list-table tr td,
+.wrap.sc-coach-panel-wrap.sc-pn-list-wrap .wp-list-table tr th,
+.wrap.sc-coach-panel-wrap.sc-pn-list-wrap .wp-list-table tr td {
   text-align: inherit;
 }
 

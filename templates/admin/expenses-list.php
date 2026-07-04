@@ -238,112 +238,112 @@ if ($active_tab === 'categories') {
 }
 ?>
 
-<div class="wrap sc-expenses-page-header sc-finance-page-header">
-    <h1 class="wp-heading-inline">لیست هزینه‌ها</h1>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-expense')); ?>" class="page-title-action">ثبت هزینه جدید</a>
-    <hr class="wp-header-end">
-    <p class="sc-expenses-subtitle">هزینه‌های باشگاه را فیلتر، مشاهده و مدیریت کنید.</p>
-</div>
-<div class="wrap sc-expenses-page-body sc-finance-page-body">
-    <h2 class="nav-tab-wrapper sc-expenses-nav-tabs">
-        <a href="?page=sc-expenses&tab=list" class="nav-tab <?php echo $active_tab === 'list' ? 'nav-tab-active' : ''; ?>">
-            لیست هزینه‌ها
-        </a>
-        <a href="?page=sc-expenses&tab=categories" class="nav-tab <?php echo $active_tab === 'categories' ? 'nav-tab-active' : ''; ?>">
-            مدیریت دسته‌بندی‌ها
-        </a>
-    </h2>
+<?php
+$active_filters_count = 0;
+if ($active_tab === 'list') {
+    if (!empty($filter_category)) {
+        $active_filters_count++;
+    }
+    if (!empty($filter_date_from)) {
+        $active_filters_count++;
+    }
+    if (!empty($filter_date_to)) {
+        $active_filters_count++;
+    }
+    if (!empty($search)) {
+        $active_filters_count++;
+    }
+}
+$filters_open = $active_filters_count > 0;
+$export_url = admin_url('admin.php?page=sc-expenses&sc_export=excel&export_type=expenses');
+if ($active_tab === 'list') {
+    $export_url = add_query_arg('filter_category', $filter_category, $export_url);
+    if (!empty($filter_date_from)) {
+        $export_url = add_query_arg('filter_date_from', $filter_date_from, $export_url);
+    }
+    if (!empty($filter_date_to)) {
+        $export_url = add_query_arg('filter_date_to', $filter_date_to, $export_url);
+    }
+    if (!empty($search)) {
+        $export_url = add_query_arg('s', $search, $export_url);
+    }
+    $export_url = wp_nonce_url($export_url, 'sc_export_excel');
+}
+?>
+<div class="wrap sc-reports-list-wrap">
+    <div class="sc-reports-list-header">
+        <div class="sc-reports-list-header-text">
+            <h1 class="sc-reports-list-title">لیست هزینه‌ها</h1>
+            <p class="sc-reports-list-desc">هزینه‌های باشگاه را فیلتر، مشاهده و مدیریت کنید.</p>
+        </div>
+        <div class="sc-reports-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-expense')); ?>" class="sc-reports-list-add-btn">ثبت هزینه جدید</a>
+            <?php if ($active_tab === 'list') : ?>
+                <a href="<?php echo esc_url($export_url); ?>" class="sc-reports-list-export-btn">خروجی Excel</a>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <nav class="nav-tab-wrapper sc-reports-nav-tabs">
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-expenses&tab=list')); ?>" class="nav-tab <?php echo $active_tab === 'list' ? 'nav-tab-active' : ''; ?>">لیست هزینه‌ها</a>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-expenses&tab=categories')); ?>" class="nav-tab <?php echo $active_tab === 'categories' ? 'nav-tab-active' : ''; ?>">مدیریت دسته‌بندی‌ها</a>
+    </nav>
     
     <?php if ($active_tab === 'list') : ?>
-        <div class="sc-expenses-filter-panel sc-finance-panel postbox">
-            <div class="postbox-header"><h2>فیلتر هزینه‌ها</h2></div>
-            <div class="inside">
-        <form method="GET" action="" class="form_filter_general sc-expenses-filter-form">
-            <input type="hidden" name="page" value="sc-expenses">
-            <input type="hidden" name="tab" value="list">
-            
-            <table class="form-table sc_form-table sc-expenses-filter-table">
-                <tr class="sc-expenses-filter-row">
-                    <th scope="row">
-                        <label for="filter_category">دسته‌بندی</label>
-                    </th>
-                    <td>
-                        <select name="filter_category" id="filter_category">
+        <div class="sc-reports-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+            <div class="sc-reports-list-filters-toolbar">
+                <button type="button" class="sc-reports-list-filters-toggle" id="sc-expenses-filters-toggle" aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>" aria-controls="sc-expenses-filters-panel">
+                    <span class="sc-reports-list-filters-toggle-icon" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="sc-reports-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها"><?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?></span>
+                    <?php if ($active_filters_count > 0) : ?><span class="sc-reports-list-filters-badge"><?php echo (int) $active_filters_count; ?></span><?php endif; ?>
+                    <span class="sc-reports-list-filters-chevron" aria-hidden="true"></span>
+                </button>
+                <?php if ($active_filters_count > 0) : ?>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-expenses&tab=list')); ?>" class="sc-reports-list-filters-clear">پاک کردن فیلترها</a>
+                <?php endif; ?>
+            </div>
+            <form method="GET" action="" class="sc-reports-list-filters-panel" id="sc-expenses-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+                <input type="hidden" name="page" value="sc-expenses">
+                <input type="hidden" name="tab" value="list">
+                <div class="sc-filter-grid sc-expenses-filter-grid">
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label" for="filter_category">دسته‌بندی</label>
+                        <select name="filter_category" id="filter_category" class="sc-filter-control">
                             <option value="0">همه دسته‌بندی‌ها</option>
                             <?php foreach ($categories as $category) : ?>
-                                <option value="<?php echo esc_attr($category->id); ?>" <?php selected($filter_category, $category->id); ?>>
-                                    <?php echo esc_html($category->name); ?>
-                                </option>
+                                <option value="<?php echo esc_attr($category->id); ?>" <?php selected($filter_category, $category->id); ?>><?php echo esc_html($category->name); ?></option>
                             <?php endforeach; ?>
                         </select>
-                    </td>
-                </tr>
-                <tr class="sc-expenses-filter-row">
-                    <th scope="row">
-                        <label>بازه تاریخ (شمسی)</label>
-                    </th>
-                    <td>
-                        <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" 
-                               value="<?php echo esc_attr($filter_date_from_shamsi_default); ?>" 
-                               class="regular-text persian-date-input" 
-                               placeholder="از تاریخ (شمسی)" 
-                               readonly>
+                    </div>
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label">از تاریخ</label>
+                        <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi" value="<?php echo esc_attr($filter_date_from_shamsi_default); ?>" class="sc-filter-control persian-date-input" readonly>
                         <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                        <span>تا</span>
-                        <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" 
-                               value="<?php echo esc_attr($filter_date_to_shamsi_default); ?>" 
-                               class="regular-text persian-date-input" 
-                               placeholder="تا تاریخ (شمسی)" 
-                               readonly>
+                    </div>
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label">تا تاریخ</label>
+                        <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi" value="<?php echo esc_attr($filter_date_to_shamsi_default); ?>" class="sc-filter-control persian-date-input" readonly>
                         <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                        <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
-                    </td>
-                </tr>
-                <tr class="sc-expenses-filter-row">
-                    <th scope="row">
-                        <label for="s">جستجو</label>
-                    </th>
-                    <td>
-                        <input type="text" name="s" id="s" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در نام هزینه و توضیحات...">
-                    </td>
-                </tr>
-            </table>
-            
-            <p class="submit">
-                <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
-                <?php
-                // ساخت URL برای export Excel
-                $export_url = admin_url('admin.php?page=sc-expenses&sc_export=excel&export_type=expenses');
-                $export_url = add_query_arg('filter_category', isset($_GET['filter_category']) ? $_GET['filter_category'] : 0, $export_url);
-                if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
-                    $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
-                }
-                if (isset($_GET['filter_date_to']) && !empty($_GET['filter_date_to'])) {
-                    $export_url = add_query_arg('filter_date_to', $_GET['filter_date_to'], $export_url);
-                }
-                if (isset($_GET['s']) && !empty($_GET['s'])) {
-                    $export_url = add_query_arg('s', $_GET['s'], $export_url);
-                }
-                $export_url = wp_nonce_url($export_url, 'sc_export_excel');
-                ?>
-                <a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
-                    📊 خروجی Excel
-                </a>
-                <a href="<?php echo admin_url('admin.php?page=sc-expenses&tab=list'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-            </p>
-        </form>
-            </div>
+                    </div>
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label" for="s">جستجو</label>
+                        <input type="text" name="s" id="s" class="sc-filter-control" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در نام هزینه و توضیحات...">
+                    </div>
+                </div>
+                <div class="sc-reports-list-filters-actions">
+                    <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
+                    <a href="<?php echo esc_url($export_url); ?>" class="button button_export">خروجی Excel</a>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-expenses&tab=list')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                </div>
+            </form>
         </div>
         
-        <div class="sc-expenses-list-panel sc-finance-panel postbox">
-            <div class="postbox-header"><h2>لیست هزینه‌ها</h2></div>
-            <div class="inside">
+        <div class="sc-reports-list-table-card">
         <?php if (empty($expenses)) : ?>
-            <div class="notice notice-info">
-                <p>هیچ هزینه‌ای یافت نشد.</p>
-            </div>
+            <div class="sc-reports-empty">هیچ هزینه‌ای یافت نشد.</div>
         <?php else : ?>
-            <div class="back_attendance_list">
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
@@ -361,55 +361,68 @@ if ($active_tab === 'categories') {
                         $start_number = ($current_page - 1) * $per_page;
                         foreach ($expenses as $index => $expense) : 
                             $row_number = $start_number + $index + 1;
+                            $initials = $expense->name !== '' ? mb_substr($expense->name, 0, 1) : 'ه';
                         ?>
                             <tr>
-                                <td><?php echo $row_number; ?></td>
-                                <td><strong><?php echo esc_html($expense->name); ?></strong></td>
-                                <td><?php echo $expense->category_name ? esc_html($expense->category_name) : '-'; ?></td>
+                                <td><?php echo (int) $row_number; ?></td>
                                 <td>
-                                    <strong><?php echo esc_html($expense->expense_date_shamsi); ?></strong>
+                                    <span class="sc-member-identity">
+                                        <span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true"><?php echo esc_html($initials); ?></span>
+                                        <span class="sc-member-identity-text"><span class="sc-member-name"><?php echo esc_html($expense->name); ?></span></span>
+                                    </span>
                                 </td>
+                                <td><?php echo $expense->category_name ? '<span class="sc-badge sc-badge--soft">' . esc_html($expense->category_name) . '</span>' : '<span class="sc-badge sc-badge--muted">—</span>'; ?></td>
+                                <td><?php echo esc_html($expense->expense_date_shamsi); ?></td>
+                                <td><span class="sc-reports-amount-debit"><?php echo esc_html(number_format($expense->amount, 0, '.', ',')); ?> تومان</span></td>
+                                <td><?php echo $expense->description ? esc_html(wp_trim_words($expense->description, 20)) : '—'; ?></td>
                                 <td>
-                                    <strong style="color: #d63638;">
-                                        <?php echo number_format($expense->amount, 0, '.', ','); ?> تومان
-                                    </strong>
-                                </td>
-                                <td><?php echo $expense->description ? esc_html(wp_trim_words($expense->description, 20)) : '-'; ?></td>
-                                <td>
-                                    <a href="<?php echo admin_url('admin.php?page=sc-add-expense&expense_id=' . $expense->id); ?>" 
-                                       class="button button-small">ویرایش</a>
-                                    <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=sc-expenses&tab=list&action=delete&expense_id=' . $expense->id), 'delete_expense_' . $expense->id); ?>" 
-                                       class="button button-small" 
-                                       onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید که می‌خواهید این هزینه را حذف کنید؟' });"
-                                       style="background-color: #d63638; color: #fff; border-color: #d63638;">حذف</a>
+                                    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-expense&expense_id=' . $expense->id)); ?>" class="sc-reports-action-btn">ویرایش</a>
+                                    <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=sc-expenses&tab=list&action=delete&expense_id=' . $expense->id), 'delete_expense_' . $expense->id)); ?>" class="sc-reports-action-btn" style="color:#dc2626;border-color:#fecaca;" onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید که می‌خواهید این هزینه را حذف کنید؟' });">حذف</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-                
-                <!-- Pagination -->
                 <?php if ($total_pages > 1) : ?>
-                    <div class="tablenav bottom" style="margin-top: 20px;">
+                    <div class="tablenav bottom sc_paginate">
                         <div class="tablenav-pages">
                             <?php
-                            $page_links = paginate_links([
+                            echo paginate_links([
                                 'base' => add_query_arg(['paged' => '%#%', 'tab' => 'list']),
                                 'format' => '',
-                                'prev_text' => '&laquo;',
-                                'next_text' => '&raquo;',
+                                'prev_text' => '< قبلی ',
+                                'next_text' => ' بعدی >',
                                 'total' => $total_pages,
                                 'current' => $current_page
                             ]);
-                            echo $page_links;
                             ?>
                         </div>
                     </div>
                 <?php endif; ?>
-            </div>
         <?php endif; ?>
-            </div>
         </div>
+        <script type="text/javascript">
+        jQuery(function ($) {
+            var $toggle = $('#sc-expenses-filters-toggle');
+            var $panel = $('#sc-expenses-filters-panel');
+            var $card = $toggle.closest('.sc-reports-list-filters-card');
+            var $label = $toggle.find('.sc-reports-list-filters-toggle-label');
+            $toggle.on('click', function () {
+                var isOpen = $card.hasClass('is-open');
+                if (isOpen) {
+                    $card.removeClass('is-open');
+                    $panel.attr('hidden', true);
+                    $toggle.attr('aria-expanded', 'false');
+                    $label.text($label.data('label-closed'));
+                } else {
+                    $card.addClass('is-open');
+                    $panel.removeAttr('hidden');
+                    $toggle.attr('aria-expanded', 'true');
+                    $label.text($label.data('label-open'));
+                }
+            });
+        });
+        </script>
         
     <?php elseif ($active_tab === 'categories') : ?>
         <div class="sc-expenses-categories-wrap">
@@ -504,7 +517,6 @@ if ($active_tab === 'categories') {
                 <?php endif; ?>
                 </div>
             </div>
-        </div>
         </div>
     <?php endif; ?>
 </div>

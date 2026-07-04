@@ -66,6 +66,7 @@ require_once SC_INCLUDES_DIR . 'persian-datepicker-helper.php'; // Persian datep
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'user-profile-access.php'; // دسترسی user-edit/profile وردپرس
+require_once SC_INCLUDES_DIR . 'wp-content-list-admin.php'; // استایل لیست برگه‌ها و نوشته‌های وردپرس
 require_once SC_INCLUDES_DIR . 'roles.php';                // نقش‌ها و محدودیت دسترسی (همیشه، حتی بدون لایسنس)
 
 if (sc_is_license_active()) {

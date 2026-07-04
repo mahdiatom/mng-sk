@@ -85,18 +85,41 @@ public function column_order_number($item) {
         $member_name = $is_guest ? 'کاربر مهمان' : 'کاربر حذف شده';
     }
 
-    $name_html = esc_html($member_name);
+    $fn = trim((string) ($item['first_name'] ?? ''));
+    $ln = trim((string) ($item['last_name'] ?? ''));
     if ($is_guest) {
-        $name_html .= ' <span style="display:inline-block;margin-right:6px;padding:2px 8px;border-radius:12px;background:#fff1f0;color:#cf1322;font-size:11px;">مهمان</span>';
+        $fn = trim((string) ($item['guest_first_name'] ?? ''));
+        $ln = trim((string) ($item['guest_last_name'] ?? ''));
+    }
+    $initials = '';
+    if ($fn !== '') {
+        $initials .= mb_substr($fn, 0, 1);
+    }
+    if ($ln !== '') {
+        $initials .= mb_substr($ln, 0, 1);
+    }
+    if ($initials === '') {
+        $initials = mb_substr($member_name, 0, 1) ?: '؟';
     }
 
-    // اگر سفارش ووکامرس وجود ندارد
+    $photo = !empty($item['personal_photo']) ? $item['personal_photo'] : '';
+    if ($photo && !$is_guest) {
+        $avatar_html = '<span class="sc-member-avatar"><img src="' . esc_url($photo) . '" alt="" loading="lazy"></span>';
+    } else {
+        $avatar_html = '<span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true">' . esc_html($initials) . '</span>';
+    }
+
+    $meta = $is_guest ? '<span class="sc-badge sc-badge--danger">مهمان</span>' : '';
+    $name_inner = '<span class="sc-member-identity">'
+        . $avatar_html
+        . '<span class="sc-member-identity-text"><span class="sc-member-name">' . esc_html($member_name) . '</span>' . $meta . '</span>'
+        . '</span>';
+
     if (empty($item['woocommerce_order_id'])) {
-        return $name_html;
+        return $name_inner;
     }
 
     $order_id = absint($item['woocommerce_order_id']);
-
     $url = add_query_arg(
         [
             'page'   => 'wc-orders',
@@ -106,11 +129,7 @@ public function column_order_number($item) {
         admin_url('admin.php')
     );
 
-    return sprintf(
-        '<a href="%s" target="_blank"><strong>%s</strong></a>',
-        esc_url($url),
-        $name_html
-    );
+    return '<a href="' . esc_url($url) . '" target="_blank" style="text-decoration:none;">' . $name_inner . '</a>';
 }
     protected function get_primary_column_name() {
     return 'member_name';
@@ -134,25 +153,19 @@ public function column_order_number($item) {
             }
         }
         
-        // برچسب‌های وضعیت WooCommerce
         $status_labels = [
-            'pending' => ['label' => 'در انتظار پرداخت', 'color' => '#f0a000', 'bg' => '#fff8e1'],
-            'on-hold' => ['label' => 'در حال بررسی', 'color' => '#2271b1', 'bg' => '#e5f5fa'],
-            'processing' => ['label' => 'پرداخت شده', 'color' => '#00a32a', 'bg' => '#d4edda'],
-            'completed' => ['label' => 'تایید پرداخت', 'color' => '#00a32a', 'bg' => '#d4edda'],
-            'cancelled' => ['label' => 'لغو شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
-            'refunded' => ['label' => 'بازگشت شده', 'color' => '#d63638', 'bg' => '#ffeaea'],
-            'failed' => ['label' => 'ناموفق', 'color' => '#d63638', 'bg' => '#ffeaea']
+            'pending' => ['label' => 'در انتظار پرداخت', 'class' => 'sc-badge--warning'],
+            'on-hold' => ['label' => 'در حال بررسی', 'class' => 'sc-badge--purple'],
+            'processing' => ['label' => 'پرداخت شده', 'class' => 'sc-badge--success'],
+            'completed' => ['label' => 'تایید پرداخت', 'class' => 'sc-badge--success'],
+            'cancelled' => ['label' => 'لغو شده', 'class' => 'sc-badge--danger'],
+            'refunded' => ['label' => 'بازگشت شده', 'class' => 'sc-badge--danger'],
+            'failed' => ['label' => 'ناموفق', 'class' => 'sc-badge--danger']
         ];
-        
-        $status_info = isset($status_labels[$status]) ? $status_labels[$status] : ['label' => $status, 'color' => '#666', 'bg' => '#f5f5f5'];
-        
-        return sprintf(
-            '<span style="padding: 5px 10px; border-radius: 4px; font-weight: bold; background-color: %s; color: %s;">%s</span>',
-            esc_attr($status_info['bg']),
-            esc_attr($status_info['color']),
-            esc_html($status_info['label'])
-        );
+
+        $status_info = isset($status_labels[$status]) ? $status_labels[$status] : ['label' => $status, 'class' => 'sc-badge--muted'];
+
+        return '<span class="sc-badge ' . esc_attr($status_info['class']) . '">' . esc_html($status_info['label']) . '</span>';
     }
 
     public function column_created_at($item) {
@@ -804,6 +817,7 @@ if ($filter_status === 'penalty') {
                     m.first_name,
                     m.last_name,
                     m.player_phone,
+                    m.personal_photo,
                     c.title as course_title,
                     c.price as course_price,
                     e.name as event_name,

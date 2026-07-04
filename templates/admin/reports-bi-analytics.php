@@ -49,12 +49,29 @@ foreach ($branch_rows as $br) {
 
 $base_url = admin_url('admin.php?page=sc-reports-bi-analytics');
 $chart_configs = [];
-?>
-<div class="wrap sc_setting_section">
-    <h1 class="wp-heading-inline">گزارشات باشگاه — تحلیل و هوش تجاری</h1>
-    <hr class="wp-header-end">
 
-    <nav class="nav-tab-wrapper">
+$active_filters_count = 0;
+if (!empty($_GET['filter_date_from']) || !empty($_GET['filter_date_from_shamsi'])) {
+    $active_filters_count++;
+}
+if (!empty($_GET['filter_date_to']) || !empty($_GET['filter_date_to_shamsi'])) {
+    $active_filters_count++;
+}
+if ($tab === 'courses' && $course_metric !== 'enrolled' && !empty($_GET['course_metric'])) {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+$bi_clear_url = add_query_arg('tab', $tab, admin_url('admin.php?page=sc-reports-bi-analytics'));
+?>
+<div class="wrap sc-reports-list-wrap">
+    <div class="sc-reports-list-header">
+        <div class="sc-reports-list-header-text">
+            <h1 class="sc-reports-list-title">تحلیل و هوش تجاری</h1>
+            <p class="sc-reports-list-desc">نمای کلی باشگاه، درآمد شعب، عملکرد مربیان، محبوب‌ترین کلاس‌ها و روند تمدید و ریزش اعضا.</p>
+        </div>
+    </div>
+
+    <nav class="nav-tab-wrapper sc-reports-nav-tabs">
         <a href="<?php echo esc_url(add_query_arg('tab', 'overview', $base_url)); ?>" class="nav-tab <?php echo $tab === 'overview' ? 'nav-tab-active' : ''; ?>">نمای کلی</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'branches', $base_url)); ?>" class="nav-tab <?php echo $tab === 'branches' ? 'nav-tab-active' : ''; ?>">درآمد شعب</a>
         <a href="<?php echo esc_url(add_query_arg('tab', 'coaches', $base_url)); ?>" class="nav-tab <?php echo $tab === 'coaches' ? 'nav-tab-active' : ''; ?>">عملکرد مربیان</a>
@@ -62,7 +79,31 @@ $chart_configs = [];
         <a href="<?php echo esc_url(add_query_arg('tab', 'members', $base_url)); ?>" class="nav-tab <?php echo $tab === 'members' ? 'nav-tab-active' : ''; ?>">تمدید و ریزش اعضا</a>
     </nav>
 
-    <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1" style="margin-top:16px;">
+    <div class="sc-reports-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-reports-list-filters-toolbar">
+            <button type="button"
+                    class="sc-reports-list-filters-toggle"
+                    id="sc-reports-bi-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-reports-bi-filters-panel">
+                <span class="sc-reports-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-reports-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-reports-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-reports-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url($bi_clear_url); ?>" class="sc-reports-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+    <form method="get" action="" class="sc-reports-list-filters-panel" id="sc-reports-bi-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
         <input type="hidden" name="page" value="sc-reports-bi-analytics">
         <input type="hidden" name="tab" value="<?php echo esc_attr($tab); ?>">
         <?php if ($tab === 'courses') : ?>
@@ -70,43 +111,45 @@ $chart_configs = [];
         <?php endif; ?>
         <div class="sc-filter-grid">
             <div class="sc-filter-field sc-filter-date">
-                <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
-                <div class="sc-date-range">
-                    <input type="text" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" class="persian-date-input sc-filter-control" readonly>
-                    <input type="hidden" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                    <input type="text" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" class="persian-date-input sc-filter-control" readonly>
-                    <input type="hidden" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                </div>
+                <label class="sc-filter-label">از تاریخ</label>
+                <input type="text" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_date_from_shamsi); ?>" class="persian-date-input sc-filter-control" readonly>
+                <input type="hidden" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+            </div>
+            <div class="sc-filter-field sc-filter-date">
+                <label class="sc-filter-label">تا تاریخ</label>
+                <input type="text" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_date_to_shamsi); ?>" class="persian-date-input sc-filter-control" readonly>
+                <input type="hidden" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
             </div>
         </div>
-        <p class="submit">
+        <div class="sc-reports-list-filters-actions">
             <button type="submit" class="button button-primary">اعمال فیلتر</button>
-            <a href="<?php echo esc_url(add_query_arg('tab', $tab, admin_url('admin.php?page=sc-reports-bi-analytics'))); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-        </p>
+            <a href="<?php echo esc_url($bi_clear_url); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+        </div>
     </form>
+    </div>
 
-    <div class="tab-content" style="margin-top:20px;">
+    <div class="tab-content">
         <?php if ($tab === 'overview') : ?>
-            <div class="sc-dashboard-stats">
-                <div class="sc-stat-box"><h3>بازیکنان فعال (فعلی)</h3><div style="font-size:24px;font-weight:bold;"><?php echo (int) $today_active; ?></div></div>
-                <div class="sc-stat-box"><h3>عضو جدید در بازه</h3><div style="font-size:24px;font-weight:bold;color:#2271b1;"><?php echo (int) $period_new; ?></div></div>
-                <div class="sc-stat-box"><h3>ریزش در بازه</h3><div style="font-size:24px;font-weight:bold;color:#d63638;"><?php echo (int) $period_churn; ?></div></div>
-                <div class="sc-stat-box"><h3>تمدید پرداخت در بازه</h3><div style="font-size:24px;font-weight:bold;color:#00a32a;"><?php echo (int) $period_renew; ?></div></div>
-                <div class="sc-stat-box"><h3>میانگین نرخ تمدید ماهانه</h3><div style="font-size:24px;font-weight:bold;"><?php echo esc_html($avg_renewal); ?>%</div></div>
-                <div class="sc-stat-box"><h3>میانگین نرخ ریزش ماهانه</h3><div style="font-size:24px;font-weight:bold;"><?php echo esc_html($avg_churn); ?>%</div></div>
-                <div class="sc-stat-box"><h3>درآمد دوره‌ها (کل شعب)</h3><div style="font-size:20px;font-weight:bold;"><?php echo esc_html(number_format($total_branch_revenue, 0, '.', ',')); ?> تومان</div></div>
+            <div class="sc-reports-list-stats">
+                <div class="sc-reports-list-stat-card"><div class="sc-reports-list-stat-label">بازیکنان فعال (فعلی)</div><div class="sc-reports-list-stat-value is-purple"><?php echo (int) $today_active; ?></div></div>
+                <div class="sc-reports-list-stat-card"><div class="sc-reports-list-stat-label">عضو جدید در بازه</div><div class="sc-reports-list-stat-value is-blue"><?php echo (int) $period_new; ?></div></div>
+                <div class="sc-reports-list-stat-card"><div class="sc-reports-list-stat-label">ریزش در بازه</div><div class="sc-reports-list-stat-value is-debit"><?php echo (int) $period_churn; ?></div></div>
+                <div class="sc-reports-list-stat-card"><div class="sc-reports-list-stat-label">تمدید پرداخت در بازه</div><div class="sc-reports-list-stat-value is-credit"><?php echo (int) $period_renew; ?></div></div>
+                <div class="sc-reports-list-stat-card"><div class="sc-reports-list-stat-label">میانگین نرخ تمدید ماهانه</div><div class="sc-reports-list-stat-value"><?php echo esc_html($avg_renewal); ?>%</div></div>
+                <div class="sc-reports-list-stat-card"><div class="sc-reports-list-stat-label">میانگین نرخ ریزش ماهانه</div><div class="sc-reports-list-stat-value"><?php echo esc_html($avg_churn); ?>%</div></div>
+                <div class="sc-reports-list-stat-card"><div class="sc-reports-list-stat-label">درآمد دوره‌ها (کل شعب)</div><div class="sc-reports-list-stat-value"><?php echo esc_html(number_format($total_branch_revenue, 0, '.', ',')); ?> تومان</div></div>
             </div>
 
-            <div class="chart_dashboard" style="display:flex;flex-wrap:wrap;gap:20px;margin-top:20px;">
-                <div class="sc-stat-box sc-bi-chart-wrap" style="flex:1;min-width:320px;">
+            <div class="sc-reports-chart-grid">
+                <div class="sc-reports-chart-card sc-bi-chart-wrap">
                     <h2>روند بازیکنان فعال (ماهانه)</h2>
-                    <div class="sc-bi-chart-canvas" style="position:relative;min-height:300px;">
+                    <div class="sc-bi-chart-canvas">
                         <canvas id="biChartActiveTrend"></canvas>
                     </div>
                 </div>
-                <div class="sc-stat-box sc-bi-chart-wrap" style="flex:1;min-width:320px;">
+                <div class="sc-reports-chart-card sc-bi-chart-wrap">
                     <h2>عضو جدید vs ریزش</h2>
-                    <div class="sc-bi-chart-canvas" style="position:relative;min-height:300px;">
+                    <div class="sc-bi-chart-canvas">
                         <canvas id="biChartNewChurn"></canvas>
                     </div>
                 </div>
@@ -137,8 +180,9 @@ $chart_configs = [];
             ?>
 
         <?php elseif ($tab === 'branches') : ?>
-            <div class="sc-stat-box">
-                <h2>درآمد هر شعبه</h2>
+            <div class="sc-reports-list-panel">
+                <div class="sc-reports-list-panel-header"><h2>درآمد هر شعبه</h2></div>
+                <div class="sc-reports-list-table-card" style="margin:0;box-shadow:none;border:none;padding:0;">
                 <table class="wp-list-table widefat fixed striped">
                     <thead><tr><th>شعبه</th><th>تعداد فاکتور</th><th>درآمد (تومان)</th><th>سهم</th></tr></thead>
                     <tbody>
@@ -148,25 +192,26 @@ $chart_configs = [];
                         $share = $total_branch_revenue > 0 ? round(((float) $br->revenue / $total_branch_revenue) * 100, 1) : 0;
                     ?>
                         <tr>
-                            <td><?php echo esc_html($br->chapter); ?></td>
+                            <td><span class="sc-member-name"><?php echo esc_html($br->chapter); ?></span></td>
                             <td><?php echo (int) $br->invoice_count; ?></td>
-                            <td><?php echo esc_html(number_format((float) $br->revenue, 0, '.', ',')); ?></td>
-                            <td><?php echo esc_html($share); ?>%</td>
+                            <td><span class="sc-reports-amount-credit"><?php echo esc_html(number_format((float) $br->revenue, 0, '.', ',')); ?></span></td>
+                            <td><span class="sc-badge sc-badge--purple"><?php echo esc_html($share); ?>%</span></td>
                         </tr>
                     <?php endforeach; endif; ?>
                     </tbody>
                 </table>
+                </div>
             </div>
-            <div class="chart_dashboard" style="display:flex;flex-wrap:wrap;gap:20px;margin-top:20px;">
-                <div class="sc-stat-box sc-bi-chart-wrap" style="flex:1;min-width:300px;max-width:480px;">
+            <div class="sc-reports-chart-grid">
+                <div class="sc-reports-chart-card sc-bi-chart-wrap">
                     <h2>سهم درآمد شعب</h2>
-                    <div class="sc-bi-chart-canvas" style="position:relative;min-height:300px;">
+                    <div class="sc-bi-chart-canvas">
                         <canvas id="biChartBranchPie"></canvas>
                     </div>
                 </div>
-                <div class="sc-stat-box sc-bi-chart-wrap" style="flex:2;min-width:320px;">
+                <div class="sc-reports-chart-card sc-bi-chart-wrap">
                     <h2>روند ماهانه درآمد شعب</h2>
-                    <div class="sc-bi-chart-canvas" style="position:relative;min-height:300px;">
+                    <div class="sc-bi-chart-canvas">
                         <canvas id="biChartBranchLines"></canvas>
                     </div>
                 </div>
@@ -204,7 +249,8 @@ $chart_configs = [];
             ?>
 
         <?php elseif ($tab === 'coaches') : ?>
-            <p class="description">عضو = یک بازیکن در کل باشگاه. برای جزئیات هر مربی به صفحه «عملکرد مربی» بروید.</p>
+            <p class="sc-reports-note">عضو = یک بازیکن در کل باشگاه. برای جزئیات هر مربی به صفحه «عملکرد مربی» بروید.</p>
+            <div class="sc-reports-list-table-card">
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
@@ -228,21 +274,28 @@ $chart_configs = [];
                         'filter_date_from_shamsi' => $filter_date_from_shamsi,
                         'filter_date_to_shamsi' => $filter_date_to_shamsi,
                     ], admin_url('admin.php'));
+                    $coach_initials = $cs->name !== '' ? mb_substr($cs->name, 0, 1) : 'م';
                 ?>
                     <tr>
-                        <td><?php echo esc_html($cs->name); ?></td>
+                        <td>
+                            <span class="sc-member-identity">
+                                <span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true"><?php echo esc_html($coach_initials); ?></span>
+                                <span class="sc-member-identity-text"><span class="sc-member-name"><?php echo esc_html($cs->name); ?></span></span>
+                            </span>
+                        </td>
                         <td><?php echo (int) $cs->course_count; ?></td>
-                        <td><?php echo (int) $cs->active_now; ?></td>
-                        <td><?php echo esc_html(number_format((float) $cs->coach_income, 0, '.', ',')); ?></td>
+                        <td><span class="sc-badge sc-badge--purple"><?php echo (int) $cs->active_now; ?></span></td>
+                        <td><span class="sc-reports-amount-credit"><?php echo esc_html(number_format((float) $cs->coach_income, 0, '.', ',')); ?></span></td>
                         <td><?php echo esc_html(number_format((float) $cs->class_revenue, 0, '.', ',')); ?></td>
-                        <td><a class="button button-small" href="<?php echo esc_url($detail_url); ?>">گزارش کامل</a></td>
+                        <td><a class="sc-reports-action-btn" href="<?php echo esc_url($detail_url); ?>">گزارش کامل</a></td>
                     </tr>
                 <?php endforeach; endif; ?>
                 </tbody>
             </table>
-            <div class="sc-stat-box sc-bi-chart-wrap" style="margin-top:20px;">
+            </div>
+            <div class="sc-reports-chart-card sc-bi-chart-wrap" style="margin-top:16px;">
                 <h2>رتبه‌بندی — بازیکنان فعال تحت هر مربی</h2>
-                <div class="sc-bi-chart-canvas" style="position:relative;min-height:360px;">
+                <div class="sc-bi-chart-canvas" style="min-height:360px;">
                     <canvas id="biChartCoachRank"></canvas>
                 </div>
             </div>
@@ -287,16 +340,16 @@ $chart_configs = [];
             ?>
 
         <?php elseif ($tab === 'courses') : ?>
-            <p>
-                معیار:
-                <a href="<?php echo esc_url(add_query_arg(['tab' => 'courses', 'course_metric' => 'enrolled', 'filter_date_from' => $filter_date_from, 'filter_date_to' => $filter_date_to, 'filter_date_from_shamsi' => $filter_date_from_shamsi, 'filter_date_to_shamsi' => $filter_date_to_shamsi], $base_url)); ?>" class="<?php echo $course_metric === 'enrolled' ? 'button button-primary' : 'button'; ?>">ثبت‌نام فعال</a>
-                <a href="<?php echo esc_url(add_query_arg(['tab' => 'courses', 'course_metric' => 'revenue', 'filter_date_from' => $filter_date_from, 'filter_date_to' => $filter_date_to, 'filter_date_from_shamsi' => $filter_date_from_shamsi, 'filter_date_to_shamsi' => $filter_date_to_shamsi], $base_url)); ?>" class="<?php echo $course_metric === 'revenue' ? 'button button-primary' : 'button'; ?>">درآمد</a>
-                <a href="<?php echo esc_url(add_query_arg(['tab' => 'courses', 'course_metric' => 'attendance', 'filter_date_from' => $filter_date_from, 'filter_date_to' => $filter_date_to, 'filter_date_from_shamsi' => $filter_date_from_shamsi, 'filter_date_to_shamsi' => $filter_date_to_shamsi], $base_url)); ?>" class="<?php echo $course_metric === 'attendance' ? 'button button-primary' : 'button'; ?>">حضور</a>
-            </p>
-            <table class="wp-list-table widefat fixed striped">
+            <div class="sc-reports-metric-pills">
+                <a href="<?php echo esc_url(add_query_arg(['tab' => 'courses', 'course_metric' => 'enrolled', 'filter_date_from' => $filter_date_from, 'filter_date_to' => $filter_date_to, 'filter_date_from_shamsi' => $filter_date_from_shamsi, 'filter_date_to_shamsi' => $filter_date_to_shamsi], $base_url)); ?>" class="<?php echo $course_metric === 'enrolled' ? 'is-active' : ''; ?>">ثبت‌نام فعال</a>
+                <a href="<?php echo esc_url(add_query_arg(['tab' => 'courses', 'course_metric' => 'revenue', 'filter_date_from' => $filter_date_from, 'filter_date_to' => $filter_date_to, 'filter_date_from_shamsi' => $filter_date_from_shamsi, 'filter_date_to_shamsi' => $filter_date_to_shamsi], $base_url)); ?>" class="<?php echo $course_metric === 'revenue' ? 'is-active' : ''; ?>">درآمد</a>
+                <a href="<?php echo esc_url(add_query_arg(['tab' => 'courses', 'course_metric' => 'attendance', 'filter_date_from' => $filter_date_from, 'filter_date_to' => $filter_date_to, 'filter_date_from_shamsi' => $filter_date_from_shamsi, 'filter_date_to_shamsi' => $filter_date_to_shamsi], $base_url)); ?>" class="<?php echo $course_metric === 'attendance' ? 'is-active' : ''; ?>">حضور</a>
+            </div>
+            <div class="sc-reports-list-table-card">
+            <table class="wp-list-table widefat fixed striped sc-bi-courses-table">
                 <thead>
                     <tr>
-                        <th>رتبه</th>
+                        <th class="sc-bi-rank-col">رتبه</th>
                         <th>دوره</th>
                         <th>شعبه</th>
                         <th><?php echo $course_metric === 'revenue' ? 'درآمد (تومان)' : ($course_metric === 'attendance' ? 'تعداد حضور' : 'ثبت‌نام فعال'); ?></th>
@@ -305,19 +358,27 @@ $chart_configs = [];
                 <tbody>
                 <?php if (empty($popular_courses)) : ?>
                     <tr><td colspan="4">داده‌ای یافت نشد.</td></tr>
-                <?php else : $rank = 1; foreach ($popular_courses as $pc) : ?>
+                <?php else : $rank = 1; foreach ($popular_courses as $pc) :
+                    $course_initials = $pc->title !== '' ? mb_substr($pc->title, 0, 1) : 'د';
+                ?>
                     <tr>
-                        <td><?php echo (int) $rank++; ?></td>
-                        <td><?php echo esc_html($pc->title); ?></td>
-                        <td><?php echo esc_html($pc->chapter ?: '-'); ?></td>
-                        <td><?php echo $course_metric === 'revenue' ? esc_html(number_format((float) $pc->metric_value, 0, '.', ',')) : (int) $pc->metric_value; ?></td>
+                        <td class="sc-bi-rank-col"><span class="sc-bi-rank-num"><?php echo (int) $rank++; ?></span></td>
+                        <td>
+                            <span class="sc-member-identity">
+                                <span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true"><?php echo esc_html($course_initials); ?></span>
+                                <span class="sc-member-identity-text"><span class="sc-member-name"><?php echo esc_html($pc->title); ?></span></span>
+                            </span>
+                        </td>
+                        <td><?php echo esc_html($pc->chapter ?: '—'); ?></td>
+                        <td><?php echo $course_metric === 'revenue' ? '<span class="sc-reports-amount-credit">' . esc_html(number_format((float) $pc->metric_value, 0, '.', ',')) . '</span>' : (int) $pc->metric_value; ?></td>
                     </tr>
                 <?php endforeach; endif; ?>
                 </tbody>
             </table>
-            <div class="sc-stat-box sc-bi-chart-wrap" style="margin-top:20px;">
+            </div>
+            <div class="sc-reports-chart-card sc-bi-chart-wrap" style="margin-top:16px;">
                 <h2>نمودار محبوب‌ترین کلاس‌ها</h2>
-                <div class="sc-bi-chart-canvas" style="position:relative;min-height:<?php echo max(280, min(600, count($popular_courses) * 36)); ?>px;">
+                <div class="sc-bi-chart-canvas" style="min-height:<?php echo max(280, min(600, count($popular_courses) * 36)); ?>px;">
                     <canvas id="biChartCourses"></canvas>
                 </div>
             </div>
@@ -336,11 +397,12 @@ $chart_configs = [];
             ?>
 
         <?php elseif ($tab === 'members') : ?>
-            <p class="description">
+            <p class="sc-reports-note">
                 تعریف عضو: یک بازیکن در کل باشگاه.
                 <strong>نرخ تمدید</strong> = بازیکنانی که در آن ماه فاکتور پرداخت کردند و قبلاً هم پرداخت داشته‌اند ÷ بازیکنان فعال ابتدای ماه.
                 <strong>نرخ ریزش</strong> = بازیکنانی که ابتدای ماه فعال بودند ولی پایان ماه دیگر فعال نیستند ÷ بازیکنان فعال ابتدای ماه.
             </p>
+            <div class="sc-reports-list-table-card">
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
@@ -358,27 +420,28 @@ $chart_configs = [];
                     <tr><td colspan="7">داده‌ای یافت نشد.</td></tr>
                 <?php else : foreach ($club_monthly as $row) : ?>
                     <tr>
-                        <td><?php echo esc_html($row['month']); ?></td>
+                        <td><span class="sc-member-name"><?php echo esc_html($row['month']); ?></span></td>
                         <td><?php echo (int) $row['active']; ?></td>
-                        <td><?php echo (int) $row['new']; ?></td>
-                        <td><?php echo (int) $row['churn']; ?></td>
+                        <td><span class="sc-badge sc-badge--success"><?php echo (int) $row['new']; ?></span></td>
+                        <td><span class="sc-badge sc-badge--danger"><?php echo (int) $row['churn']; ?></span></td>
                         <td><?php echo (int) $row['renewed']; ?></td>
-                        <td><?php echo esc_html($row['renewal_rate']); ?>%</td>
-                        <td><?php echo esc_html($row['churn_rate']); ?>%</td>
+                        <td><span class="sc-reports-amount-credit"><?php echo esc_html($row['renewal_rate']); ?>%</span></td>
+                        <td><span class="sc-reports-amount-debit"><?php echo esc_html($row['churn_rate']); ?>%</span></td>
                     </tr>
                 <?php endforeach; endif; ?>
                 </tbody>
             </table>
-            <div class="chart_dashboard" style="display:flex;flex-wrap:wrap;gap:20px;margin-top:20px;">
-                <div class="sc-stat-box sc-bi-chart-wrap" style="flex:1;min-width:300px;">
+            </div>
+            <div class="sc-reports-chart-grid">
+                <div class="sc-reports-chart-card sc-bi-chart-wrap">
                     <h2>نرخ تمدید ماهانه (%)</h2>
-                    <div class="sc-bi-chart-canvas" style="position:relative;min-height:300px;">
+                    <div class="sc-bi-chart-canvas">
                         <canvas id="biChartRenewal"></canvas>
                     </div>
                 </div>
-                <div class="sc-stat-box sc-bi-chart-wrap" style="flex:1;min-width:300px;">
+                <div class="sc-reports-chart-card sc-bi-chart-wrap">
                     <h2>نرخ ریزش ماهانه (%)</h2>
-                    <div class="sc-bi-chart-canvas" style="position:relative;min-height:300px;">
+                    <div class="sc-bi-chart-canvas">
                         <canvas id="biChartChurnRate"></canvas>
                     </div>
                 </div>
@@ -503,3 +566,25 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <?php endif; ?>
+<script type="text/javascript">
+jQuery(function ($) {
+    var $toggle = $('#sc-reports-bi-filters-toggle');
+    var $panel = $('#sc-reports-bi-filters-panel');
+    var $card = $toggle.closest('.sc-reports-list-filters-card');
+    var $label = $toggle.find('.sc-reports-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+});
+</script>

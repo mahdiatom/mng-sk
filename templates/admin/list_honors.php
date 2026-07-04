@@ -431,21 +431,51 @@ if (isset($_GET['edit_honor'])) {
 
 $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
 
+$active_filters_count = 0;
+if ($filter_category !== 'all' && (int) $filter_category > 0) {
+    $active_filters_count++;
+}
+if ($filter_type !== 'all') {
+    $active_filters_count++;
+}
+if ($filter_status !== 'all') {
+    $active_filters_count++;
+}
+if (!empty($filter_user) && $filter_user !== '0') {
+    $active_filters_count++;
+}
+if ($search !== '') {
+    $active_filters_count++;
+}
+if ($filter_date_from !== '' || $filter_date_to !== '') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+
+$status_badge_map = [
+    'pending' => 'sc-badge--warning',
+    'approved' => 'sc-badge--success',
+    'rejected' => 'sc-badge--danger',
+];
+
 ?>
-<div class="wrap">
-    <h1 class="wp-heading-inline">لیست افتخارات</h1> 
+<?php if ($message) : ?>
+    <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
+        <p><?php echo esc_html($message); ?></p>
+    </div>
+<?php endif; ?>
 
-        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honor-categories')); ?>" class="page-title-action">دسته‌بندی افتخارات</a>
-        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-honor-for-member')); ?>" class="page-title-action" style="margin-top:10px;">افزودن افتخار برای بازیکن</a>
-
-    <hr class="wp-header-end">
- </div>
-    <div class="wrap">
-    <?php if ($message) : ?>
-        <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
-            <p><?php echo esc_html($message); ?></p>
+<div class="wrap sc-honors-list-wrap">
+    <div class="sc-honors-list-header">
+        <div class="sc-honors-list-header-text">
+            <h1 class="sc-honors-list-title">لیست افتخارات</h1>
+            <p class="sc-honors-list-desc">مدیریت افتخارات بازیکنان و مربیان</p>
         </div>
-    <?php endif; ?>
+        <div class="sc-honors-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honor-categories')); ?>" class="sc-honors-list-secondary-btn">دسته‌بندی افتخارات</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-honor-for-member')); ?>" class="sc-honors-list-add-btn">افزودن افتخار برای بازیکن</a>
+        </div>
+    </div>
 
     <?php if ($edit_honor) :
         $edit_player_name = '';
@@ -453,8 +483,8 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
             $edit_player_name = trim(($edit_honor->member_first_name ?? '') . ' ' . ($edit_honor->member_last_name ?? ''));
         }
     ?>
-        <div class="card" style="padding: 20px; margin-bottom: 20px; max-width: 900px;">
-            <h2>ویرایش افتخار</h2>
+        <div class="sc-honors-edit-card">
+            <h2 class="sc-honors-edit-title">ویرایش افتخار</h2>
             <?php if ($edit_player_name !== '') : ?>
                 <p><strong>بازیکن:</strong> <?php echo esc_html($edit_player_name); ?></p>
             <?php elseif (!empty($edit_honor->coach_id) && empty($edit_honor->member_id)) : ?>
@@ -529,17 +559,40 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
                     </tr>
                 </table>
 
-                <p class="submit">
+                <p class="submit sc-honors-edit-actions">
                     <button type="submit" name="update_honor" class="button button-primary">ذخیره تغییرات</button>
-                    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honors')); ?>" class="sc_button">انصراف</a>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honors')); ?>" class="button">انصراف</a>
                 </p>
             </form>
         </div>
     <?php endif; ?>
 
-<div class="filter_search_honors">
-    <!-- فیلترها (همان ساختار حضور و غیاب / لیست بازیکنان) -->
-    <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1 honors-filter-form">
+    <div class="sc-honors-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-honors-list-filters-toolbar">
+            <button type="button"
+                    class="sc-honors-list-filters-toggle"
+                    id="sc-honors-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-honors-filters-panel">
+                <span class="sc-honors-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-honors-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-honors-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-honors-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honors')); ?>" class="sc-honors-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+
+    <form method="get" action="" class="honors-filter-form sc-honors-list-filters-panel" id="sc-honors-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
         <input type="hidden" name="page" value="sc-honors">
 
         <div class="sc-filter-grid">
@@ -637,7 +690,7 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
 
             <div class="sc-filter-field sc-filter-date">
                 <label class="sc-filter-label">بازه تاریخ ثبت (شمسی)</label>
-                <div class="sc-date-range">
+                <div class="sc-honors-date-range">
                     <input type="text"
                            name="filter_date_from_shamsi"
                            id="honors_filter_date_from_shamsi"
@@ -658,22 +711,20 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
             </div>
         </div>
 
-        <p class="submit">
+        <div class="sc-honors-list-filters-actions">
             <input type="submit" class="button button-primary" value="اعمال فیلتر">
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honors')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-        </p>
+        </div>
     </form>
-</div>
+    </div>
 
-
-             </div>
-    <div class="wrap">
-    <!-- فرم حذف دسته‌جمعی و جدول -->
+    <div class="sc-honors-list-table-card">
+        <div class="sc-honors-list-summary"><span><?php echo (int) $total_items; ?> افتخار</span></div>
     <form method="post" id="honors-form">
         <?php wp_nonce_field('bulk_delete_honors'); ?>
         <input type="hidden" name="bulk_apply" value="1"><?php // JS form.submit() sends no submit-button name ?>
 
-        <div class="tablenav top">
+        <div class="tablenav top sc-honors-bulk-nav">
             <div class="alignleft actions bulkactions">
                 <select name="bulk_action" id="bulk-action-selector">
                     <option value="">عملیات دسته‌جمعی...</option>
@@ -684,14 +735,14 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
                 <input type="submit" id="doaction" class="button action" value="اجرا">
             </div>
         </div>
-            <div class="back_table_list">
-        <table class="wp-list-table widefat fixed striped">
+        <div class="sc-honors-table-scroll">
+        <table class="wp-list-table widefat striped sc-honors-table">
             <thead>
                 <tr>
                     <td class="manage-column column-cb check-column">
                         <input type="checkbox" id="cb-select-all">
                     </td>
-                    <th  class="manage-column">نام بازیکن/مربی</th>
+                    <th class="manage-column">نام بازیکن/مربی</th>
                     <th class="manage-column">مربی مرتبط</th>
                     <th class="manage-column">عنوان افتخار</th>
                     <th class="manage-column">دسته</th>
@@ -707,6 +758,7 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
                         <?php
                         // دریافت نام بازیکن یا مربی
                         $member_name = '-';
+                        $is_coach_honor = false;
                         if (!empty($honor->member_id)) {
                             $member = $wpdb->get_row($wpdb->prepare(
                                 "SELECT first_name, last_name FROM $members_table WHERE id = %d",
@@ -716,16 +768,17 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
                                 $member_name = esc_html($member->first_name . ' ' . $member->last_name);
                             }
                         } elseif (!empty($honor->coach_id)) {
+                            $is_coach_honor = true;
                             $coach = $wpdb->get_row($wpdb->prepare(
                                 "SELECT first_name, last_name FROM $coaches_table WHERE id = %d",
                                 $honor->coach_id
                             ));
                             if ($coach) {
-                                $member_name = esc_html($coach->first_name . ' ' . $coach->last_name) . ' <span style="color: #666;">(مربی)</span>';
+                                $member_name = esc_html($coach->first_name . ' ' . $coach->last_name);
                             }
                         }
 
-                        // مربی مرتبط با افتخار بازیکن (جدا از coach_id اصلی که ممکن است برای افتخار مربی باشد)
+                        // مربی مرتبط با افتخار بازیکن
                         $associated_coach_name = '-';
                         if (!empty($honor->member_id) && !empty($honor->coach_id)) {
                             $assoc_coach = $wpdb->get_row($wpdb->prepare(
@@ -736,7 +789,7 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
                                 $associated_coach_name = esc_html($assoc_coach->first_name . ' ' . $assoc_coach->last_name);
                             }
                         }
-                        
+
                         // دریافت نام دسته
                         $category_name = '-';
                         $category = $wpdb->get_row($wpdb->prepare(
@@ -746,8 +799,7 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
                         if ($category) {
                             $category_name = esc_html($category->name);
                         }
-                        
-                        // حذف تکی URL
+
                         $delete_url = wp_nonce_url(
                             admin_url('admin.php?page=sc-honors&action=delete&honor_id=' . $honor->id),
                             'delete_honor_' . $honor->id
@@ -763,36 +815,38 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
                         $edit_url = admin_url('admin.php?page=sc-honors&edit_honor=' . (int) $honor->id);
                         $status_key = isset($honor->status) ? $honor->status : 'pending';
                         $status_label = isset($honor_status_labels[$status_key]) ? $honor_status_labels[$status_key] : $honor_status_labels['pending'];
+                        $status_badge = isset($status_badge_map[$status_key]) ? $status_badge_map[$status_key] : 'sc-badge--warning';
                         ?>
                         <tr>
                             <th scope="row" class="check-column">
                                 <input type="checkbox" name="honor_ids[]" value="<?php echo esc_attr($honor->id); ?>">
                             </th>
-                            <td>
-                                <?php echo $member_name; ?>
+                            <td data-label="نام بازیکن/مربی">
+                                <strong><?php echo $member_name; ?></strong>
+                                <?php if ($is_coach_honor) : ?>
+                                    <span class="sc-badge sc-badge--soft">مربی</span>
+                                <?php endif; ?>
                                 <div class="row-actions">
-                                    <span class="edit">
-                                        <a href="<?php echo esc_url($edit_url); ?>">ویرایش</a> |
-                                    </span>
+                                    <span class="edit"><a href="<?php echo esc_url($edit_url); ?>">ویرایش</a> | </span>
                                     <?php if ($status_key !== 'approved') : ?>
-                                        <span class="edit">
-                                            <a href="<?php echo esc_url($approve_url); ?>">تایید</a> |
-                                        </span>
+                                        <span class="edit"><a href="<?php echo esc_url($approve_url); ?>">تایید</a> | </span>
                                     <?php endif; ?>
                                     <?php if ($status_key !== 'rejected') : ?>
-                                        <span class="edit">
-                                            <a href="<?php echo esc_url($reject_url); ?>">عدم تایید</a> |
-                                        </span>
+                                        <span class="edit"><a href="<?php echo esc_url($reject_url); ?>">عدم تایید</a> | </span>
                                     <?php endif; ?>
                                     <span class="delete">
                                         <a href="<?php echo esc_url($delete_url); ?>" onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟' })">حذف</a>
                                     </span>
                                 </div>
                             </td>
-                            <td><?php echo $associated_coach_name; ?></td>
-                            <td><strong><?php echo esc_html($honor->name); ?></strong></td>
-                            <td><?php echo $category_name; ?></td>
-                            <td class="sc-honor-description-cell">
+                            <td data-label="مربی مرتبط"><?php echo $associated_coach_name; ?></td>
+                            <td data-label="عنوان افتخار"><strong><?php echo esc_html($honor->name); ?></strong></td>
+                            <td data-label="دسته"><?php
+                                echo $category_name !== '-'
+                                    ? '<span class="sc-badge sc-badge--purple">' . $category_name . '</span>'
+                                    : '<span class="sc-honors-muted">—</span>';
+                            ?></td>
+                            <td data-label="توضیحات" class="sc-honor-description-cell">
                                 <?php
                                 if (function_exists('sc_render_honor_description_cell')) {
                                     sc_render_honor_description_cell($honor->description, 100);
@@ -801,30 +855,27 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
                                 }
                                 ?>
                             </td>
-                            <td>
+                            <td data-label="فایل">
                                 <?php if (!empty($honor->file_url)) : ?>
-                                    <a href="<?php echo esc_url($honor->file_url); ?>" target="_blank" style="color: #2271b1; text-decoration: none;">📎 دانلود</a>
+                                    <a href="<?php echo esc_url($honor->file_url); ?>" target="_blank" rel="noopener noreferrer" class="sc-honors-file-link">دانلود</a>
                                 <?php else : ?>
-                                    -
+                                    <span class="sc-honors-muted">—</span>
                                 <?php endif; ?>
                             </td>
-                            <td><?php echo esc_html($status_label); ?></td>
-                            <td><?php echo esc_html(sc_date_shamsi($honor->created_at, 'Y/m/d H:i')); ?></td>
+                            <td data-label="وضعیت"><span class="sc-badge <?php echo esc_attr($status_badge); ?>"><?php echo esc_html($status_label); ?></span></td>
+                            <td data-label="تاریخ ثبت"><?php echo esc_html(sc_date_shamsi($honor->created_at, 'Y/m/d H:i')); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else : ?>
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 20px;">
-                            هنوز افتخاری ثبت نشده است.
-                        </td>
+                        <td colspan="9" class="sc-honors-empty">هنوز افتخاری ثبت نشده است.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
         </table>
         </div>
-        <!-- Pagination (دقیقاً مثل حضور و غیاب) -->
         <?php if ($total_pages > 1) : ?>
-            <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
+            <div class="tablenav bottom sc-honors-pagination">
                 <div class="tablenav-pages">
                     <?php
                     $pagination_args = ['page' => 'sc-honors'];
@@ -855,39 +906,44 @@ $coaches_for_edit = $wpdb->get_results("SELECT id, first_name, last_name FROM $c
                     if ($filter_date_to !== '') {
                         $pagination_args['filter_date_to'] = $filter_date_to;
                     }
-                    $page_links = paginate_links([
+                    echo paginate_links([
                         'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
                         'format' => '',
-                        'prev_text' => '< قبلی ',
-                        'next_text' => ' بعدی >',
+                        'prev_text' => '‹',
+                        'next_text' => '›',
                         'total' => $total_pages,
                         'current' => $current_page,
-                        'add_args' => $pagination_args
+                        'add_args' => $pagination_args,
                     ]);
-                    echo $page_links;
                     ?>
                 </div>
             </div>
         <?php endif; ?>
     </form>
+    </div>
 </div>
-
-<style>
-.sc-honor-description-col,
-.sc-honor-description-cell {
-    max-width: 220px;
-    width: 220px;
-}
-.sc-honor-description {
-    display: block;
-    overflow: hidden;
-    word-break: break-word;
-    line-height: 1.6;
-}
-</style>
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
+    var $toggle = $('#sc-honors-filters-toggle');
+    var $panel = $('#sc-honors-filters-panel');
+    var $card = $toggle.closest('.sc-honors-list-filters-card');
+    var $label = $toggle.find('.sc-honors-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+
     // انتخاب/لغو انتخاب همه
     $('#cb-select-all').on('change', function() {
         $('input[name="honor_ids[]"]').prop('checked', $(this).prop('checked'));

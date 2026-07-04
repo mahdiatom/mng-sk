@@ -89,6 +89,19 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     <td><textarea name="sports_history" id="sports_history" rows="4" class="large-text"><?php echo esc_textarea($coach->sports_history); ?></textarea></td>
                 </tr>
                 <tr>
+                    <th><label for="personal_photo_txt">عکس پرسنلی</label></th>
+                    <td>
+                        <?php $coach_photo = !empty($coach->personal_photo) ? $coach->personal_photo : ''; ?>
+                        <input type="text" name="personal_photo" id="personal_photo_txt" class="regular-text" value="<?php echo esc_attr($coach_photo); ?>" placeholder="آدرس تصویر یا آپلود کنید">
+                        <button type="button" class="button-secondary sc-upload-btn" id="btn_personal_photo">انتخاب تصویر</button>
+                        <?php if ($coach_photo !== '') : ?>
+                            <div class="sc-image-preview img_photo_prev" style="margin-top: 10px;">
+                                <img src="<?php echo esc_url($coach_photo); ?>" alt="عکس پرسنلی" style="max-width: 160px; height: auto; border-radius: 10px;">
+                            </div>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
                     <th><label for="password">تغییر رمز عبور</label></th>
                     <td>
                         <input type="password" name="password" id="password" value="" class="regular-text" autocomplete="new-password">
@@ -104,6 +117,30 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
         </div>
     <?php else : ?>
         <div class="sc-coach-panel-card sc-coach-profile-card" style="padding: 24px;">
+            <div class="sc-coach-profile-hero">
+                <?php
+                $view_photo = !empty($coach->personal_photo) ? $coach->personal_photo : '';
+                $view_initials = '';
+                if (!empty($coach->first_name)) {
+                    $view_initials .= mb_substr((string) $coach->first_name, 0, 1);
+                }
+                if (!empty($coach->last_name)) {
+                    $view_initials .= mb_substr((string) $coach->last_name, 0, 1);
+                }
+                if ($view_initials === '') {
+                    $view_initials = 'م';
+                }
+                ?>
+                <?php if ($view_photo !== '') : ?>
+                    <span class="sc-coach-profile-avatar"><img src="<?php echo esc_url($view_photo); ?>" alt=""></span>
+                <?php else : ?>
+                    <span class="sc-coach-profile-avatar sc-coach-profile-avatar--initials" aria-hidden="true"><?php echo esc_html($view_initials); ?></span>
+                <?php endif; ?>
+                <div class="sc-coach-profile-hero-text">
+                    <h2><?php echo esc_html(trim($coach->first_name . ' ' . $coach->last_name)); ?></h2>
+                    <p><?php echo esc_html($coach->mobile_phone ?: $coach->national_id); ?></p>
+                </div>
+            </div>
             <table class="form-table table_list_info_coach">
                 <tr>
                     <th>نام</th>

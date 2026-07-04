@@ -146,106 +146,92 @@ if (isset($_GET['updated']) && $_GET['updated'] === '1') {
 $categories = $wpdb->get_results("SELECT * FROM $categories_table ORDER BY name ASC");
 
 ?>
-<div class="wrap">
-    <h1>دسته‌بندی افتخارات</h1>
+<?php if ($message) : ?>
+    <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
+        <p><?php echo esc_html($message); ?></p>
     </div>
-    <div class="wrap">
-    <?php if ($message) : ?>
-        <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
-            <p><?php echo esc_html($message); ?></p>
+<?php endif; ?>
+
+<div class="wrap sc-honor-cats-wrap">
+    <div class="sc-honor-cats-header">
+        <div class="sc-honor-cats-header-text">
+            <h1 class="sc-honor-cats-title">دسته‌بندی افتخارات</h1>
+            <p class="sc-honor-cats-desc">افزودن و مدیریت دسته‌های افتخارات</p>
         </div>
-    <?php endif; ?>
-    
-    <div class="sections_cat_honors">
-        <!-- فرم افزودن یا ویرایش دسته -->
-        <div class="postbox edit_cat_honors">
-            <div class="postbox-header">
-                <h2 class=""><?php echo $editing_category ? 'ویرایش دسته' : 'افزودن دسته جدید'; ?></h2>
-            </div>
-            <div class="inside" style="padding: 20px;">
-                <?php if ($editing_category) : ?>
-                    <form method="post">
-                        <?php wp_nonce_field('edit_honor_category'); ?>
-                        <input type="hidden" name="category_id" value="<?php echo esc_attr($editing_category->id); ?>">
-                        <table class="form-table">
-                            <tr>
-                                <th scope="row">
-                                    <label for="category_name">نام دسته <span style="color: red;">*</span></label>
-                                </th>
-                                <td>
-                                    <input type="text" id="category_name" name="category_name" class="regular-text" value="<?php echo esc_attr($editing_category->name); ?>" required>
-                                    <p class="description">نام دسته را ویرایش کنید</p>
-                                </td>
-                            </tr>
-                        </table>
-                        <p class="submit">
-                            <input type="submit" name="edit_category" class="button button-primary" value="ذخیره تغییرات">
-                            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honor-categories')); ?>" class="button">انصراف</a>
-                        </p>
-                    </form>
-                <?php else : ?>
-                    <form method="post">
-                        <?php wp_nonce_field('add_honor_category'); ?>
-                        <table class="form-table">
-                            <tr>
-                                <th scope="row">
-                                    <label for="category_name">نام دسته <span style="color: red;">*</span></label>
-                                </th>
-                                <td>
-                                    <input type="text" id="category_name" name="category_name" class="regular-text" required>
-                                    <p class="description">نام دسته را وارد کنید</p>
-                                </td>
-                            </tr>
-                        </table>
-                        <p class="submit">
-                            <input type="submit" name="add_category" class="button button-primary" value="افزودن دسته">
-                        </p>
-                    </form>
-                <?php endif; ?>
-            </div>
+        <div class="sc-honor-cats-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honors')); ?>" class="sc-honor-cats-back-btn">بازگشت به لیست افتخارات</a>
         </div>
-        
-        <!-- لیست دسته‌ها -->
-        <div class="postbox list_cat_honores">
-            <div class="postbox-header">
-                <h2 class="">لیست دسته‌ها</h2>
-            </div>
-            <div class="inside" style="padding: 20px;">
-                <?php if (!empty($categories)) : ?>
-                    <table class="wp-list-table widefat fixed striped">
+    </div>
+
+    <div class="sc-honor-cats-layout">
+        <div class="sc-honor-cats-form-card">
+            <h2 class="sc-honor-cats-card-title"><?php echo $editing_category ? 'ویرایش دسته' : 'افزودن دسته جدید'; ?></h2>
+            <?php if ($editing_category) : ?>
+                <form method="post" class="sc-honor-cats-form">
+                    <?php wp_nonce_field('edit_honor_category'); ?>
+                    <input type="hidden" name="category_id" value="<?php echo esc_attr($editing_category->id); ?>">
+                    <div class="sc-honor-cats-field">
+                        <label for="category_name">نام دسته <span class="sc-honor-cats-required">*</span></label>
+                        <input type="text" id="category_name" name="category_name" class="sc-honor-cats-input" value="<?php echo esc_attr($editing_category->name); ?>" required>
+                        <p class="sc-honor-cats-help">نام دسته را ویرایش کنید</p>
+                    </div>
+                    <div class="sc-honor-cats-form-actions">
+                        <input type="submit" name="edit_category" class="button button-primary" value="ذخیره تغییرات">
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honor-categories')); ?>" class="button">انصراف</a>
+                    </div>
+                </form>
+            <?php else : ?>
+                <form method="post" class="sc-honor-cats-form">
+                    <?php wp_nonce_field('add_honor_category'); ?>
+                    <div class="sc-honor-cats-field">
+                        <label for="category_name">نام دسته <span class="sc-honor-cats-required">*</span></label>
+                        <input type="text" id="category_name" name="category_name" class="sc-honor-cats-input" required>
+                        <p class="sc-honor-cats-help">نام دسته را وارد کنید</p>
+                    </div>
+                    <div class="sc-honor-cats-form-actions">
+                        <input type="submit" name="add_category" class="button button-primary" value="افزودن دسته">
+                    </div>
+                </form>
+            <?php endif; ?>
+        </div>
+
+        <div class="sc-honor-cats-list-card">
+            <h2 class="sc-honor-cats-card-title">لیست دسته‌ها</h2>
+            <?php if (!empty($categories)) : ?>
+                <div class="sc-honor-cats-table-scroll">
+                    <table class="wp-list-table widefat striped sc-honor-cats-table">
                         <thead>
                             <tr>
-                                <th style="width: 50px;">ردیف</th>
+                                <th>ردیف</th>
                                 <th>نام دسته</th>
-                                <th style="width: 150px;">عملیات</th>
+                                <th>عملیات</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($categories as $index => $category) : ?>
                                 <tr>
-                                    <td><?php echo $index + 1; ?></td>
-                                    <td><strong><?php echo esc_html($category->name); ?></strong></td>
-                                    <td>
-                                        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honor-categories&action=edit&category_id=' . $category->id)); ?>" 
-                                           class="button button-small">ویرایش</a>
+                                    <td data-label="ردیف"><?php echo (int) $index + 1; ?></td>
+                                    <td data-label="نام دسته"><strong><?php echo esc_html($category->name); ?></strong></td>
+                                    <td data-label="عملیات" class="sc-honor-cats-actions">
+                                        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-honor-categories&action=edit&category_id=' . $category->id)); ?>" class="sc-honor-cats-edit">ویرایش</a>
                                         <?php
                                         $delete_url = wp_nonce_url(
                                             admin_url('admin.php?page=sc-honor-categories&action=delete&category_id=' . $category->id),
                                             'delete_category_' . $category->id
                                         );
                                         ?>
-                                        <a href="<?php echo esc_url($delete_url); ?>" 
-                                           onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟' })" 
-                                           class="button button-small btn_delete_action_admin">حذف</a>
+                                        <a href="<?php echo esc_url($delete_url); ?>"
+                                           onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید؟' })"
+                                           class="sc-honor-cats-delete">حذف</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                <?php else : ?>
-                    <p>هیچ دسته‌ای ثبت نشده است.</p>
-                <?php endif; ?>
-            </div>
+                </div>
+            <?php else : ?>
+                <p class="sc-honor-cats-empty">هیچ دسته‌ای ثبت نشده است.</p>
+            <?php endif; ?>
         </div>
     </div>
 </div>

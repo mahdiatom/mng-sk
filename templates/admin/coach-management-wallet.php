@@ -84,12 +84,18 @@ if ($coach) {
 }
 ?>
 
-<div class="wrap sc-coach-wallet-manage-page-header sc-finance-page-header">
-    <h1 class="wp-heading-inline">مدیریت کیف پول مربیان</h1>
-    <hr class="wp-header-end">
-    <p class="sc-coach-wallet-manage-subtitle">مربی را انتخاب کنید و عملیات شارژ یا کسر را انجام دهید.</p>
+<div class="wrap sc-cm-wrap sc-coach-wallet-manage-page-header sc-finance-page-header">
+    <div class="sc-cm-header">
+        <div class="sc-cm-header-text">
+            <h1 class="sc-cm-title">مدیریت کیف پول مربیان</h1>
+            <p class="sc-cm-desc sc-coach-wallet-manage-subtitle">مربی را انتخاب کنید و عملیات شارژ یا کسر را انجام دهید.</p>
+        </div>
+        <div class="sc-cm-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-management')); ?>" class="sc-cm-btn-secondary">بازگشت به مدیریت مربیان</a>
+        </div>
+    </div>
 </div>
-<div class="wrap sc-coach-wallet-manage-page-body sc-finance-page-body">
+<div class="wrap sc-cm-wrap sc-coach-wallet-manage-page-body sc-finance-page-body">
     <?php if ($action_message) : ?>
         <div class="notice notice-<?php echo esc_attr($action_message_type); ?> is-dismissible">
             <p><?php echo esc_html($action_message); ?></p>

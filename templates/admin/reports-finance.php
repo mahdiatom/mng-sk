@@ -71,7 +71,7 @@ $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE delete
 $finance_course_groups_map = function_exists('sc_finance_course_groups_map_for_ui')
     ? sc_finance_course_groups_map_for_ui($courses)
     : [];
-$finance_tabs_with_group_filter = ['course_income', 'receivables', 'cashflow', 'ledger'];
+$finance_tabs_with_group_filter = ['course_income', 'coach_share', 'receivables', 'cashflow', 'ledger'];
 $chapters = $wpdb->get_results("SELECT name FROM $chapter_categories_table ORDER BY name ASC");
 $coaches = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY first_name ASC, last_name ASC");
 $store_tags = taxonomy_exists('product_tag') ? get_terms(['taxonomy' => 'product_tag', 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC']) : [];
@@ -90,6 +90,43 @@ $finance_result_titles = [
     'cashflow' => 'جریان نقدی',
     'ledger' => 'دفتر تراکنش‌ها',
 ];
+
+$active_filters_count = 0;
+if (!empty($_GET['filter_date_from']) || !empty($_GET['filter_date_from_shamsi'])) {
+    $active_filters_count++;
+}
+if (!empty($_GET['filter_date_to']) || !empty($_GET['filter_date_to_shamsi'])) {
+    $active_filters_count++;
+}
+if ($filter_course > 0) {
+    $active_filters_count++;
+}
+if ($filter_coach > 0) {
+    $active_filters_count++;
+}
+if ($filter_chapter !== '') {
+    $active_filters_count++;
+}
+if ($filter_group !== '') {
+    $active_filters_count++;
+}
+if ($filter_event_type !== '') {
+    $active_filters_count++;
+}
+if ($filter_store_tag > 0) {
+    $active_filters_count++;
+}
+if ($filter_store_cat > 0) {
+    $active_filters_count++;
+}
+if ($filter_ledger_type !== 'all') {
+    $active_filters_count++;
+}
+if ($filter_cashflow_type !== 'all') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+$finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
 ?>
 <div class="wrap sc-finance-reports-page-header sc-finance-page-header sc_setting_section">
     <h1 class="wp-heading-inline">گزارشات باشگاه - مالی و حسابداری</h1>
@@ -112,44 +149,50 @@ $finance_result_titles = [
         <?php if ($tab === 'overview') : ?>
             <?php include SC_TEMPLATES_ADMIN_DIR . 'reports-income-expenses.php'; ?>
         <?php else : ?>
-            <div class="sc-finance-panel postbox sc-finance-reports-filter-panel">
-                <div class="postbox-header"><h2>فیلتر گزارش</h2></div>
-                <div class="inside">
-            <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1 sc-finance-reports-filter-form">
+            <div class="sc-reports-list-filters-card sc-finance-reports-filter-panel<?php echo $filters_open ? ' is-open' : ''; ?>">
+                <div class="sc-reports-list-filters-toolbar">
+                    <button type="button"
+                            class="sc-reports-list-filters-toggle"
+                            id="sc-finance-reports-filters-toggle"
+                            aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                            aria-controls="sc-finance-reports-filters-panel">
+                        <span class="sc-reports-list-filters-toggle-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="sc-reports-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                            <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                        </span>
+                        <?php if ($active_filters_count > 0) : ?>
+                            <span class="sc-reports-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                        <?php endif; ?>
+                        <span class="sc-reports-list-filters-chevron" aria-hidden="true"></span>
+                    </button>
+                    <?php if ($active_filters_count > 0) : ?>
+                        <a href="<?php echo esc_url($finance_clear_url); ?>" class="sc-reports-list-filters-clear">پاک کردن فیلترها</a>
+                    <?php endif; ?>
+                </div>
+            <form method="GET" action="" class="sc-reports-list-filters-panel sc-finance-reports-filter-form" id="sc-finance-reports-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
                 <input type="hidden" name="page" value="sc-reports-income-expenses">
                 <input type="hidden" name="tab" value="<?php echo esc_attr($tab); ?>">
 
-                <div class="sc-filter-grid">
+                <div class="sc-filter-grid sc-finance-filter-grid">
                     <?php if (in_array($tab, ['course_income', 'coach_share', 'receivables', 'cashflow', 'ledger'], true)) : ?>
                         <div class="sc-filter-field">
                             <label class="sc-filter-label" for="filter_course">دوره</label>
                             <select name="filter_course" id="filter_course" class="sc-filter-control">
                                 <option value="0">همه دوره‌ها</option>
-                                <?php foreach ($courses as $course) : ?>
-                                    <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>><?php echo esc_html($course->title); ?></option>
+                                <?php foreach ($courses as $course) :
+                                    $has_groups = !empty($finance_course_groups_map[(int) $course->id]);
+                                    $course_label = $course->title . ($has_groups ? ' (دارای گروه)' : '');
+                                ?>
+                                    <option value="<?php echo esc_attr($course->id); ?>" <?php selected($filter_course, $course->id); ?>><?php echo esc_html($course_label); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                     <?php endif; ?>
-                    <?php if (in_array($tab, $finance_tabs_with_group_filter, true)) : ?>
-                        <div class="sc-filter-field sc-finance-group-field" id="sc-finance-group-field" style="<?php echo ($filter_course > 0 && isset($finance_course_groups_map[$filter_course])) ? '' : 'display:none;'; ?>">
-                            <label class="sc-filter-label" for="filter_group">گروه</label>
-                            <select name="filter_group" id="filter_group" class="sc-filter-control">
-                                <option value="">همه گروه‌ها</option>
-                                <option value="__none__" <?php selected($filter_group, '__none__'); ?>>بدون گروه</option>
-                                <?php
-                                if ($filter_course > 0 && !empty($finance_course_groups_map[$filter_course])) :
-                                    foreach ($finance_course_groups_map[$filter_course] as $gname) :
-                                        ?>
-                                        <option value="<?php echo esc_attr($gname); ?>" <?php selected($filter_group, $gname); ?>><?php echo esc_html($gname); ?></option>
-                                    <?php endforeach;
-                                endif;
-                                ?>
-                            </select>
-                            <p class="description sc-finance-group-help">پس از انتخاب دوره با گروه‌بندی فعال می‌شود.</p>
-                        </div>
-                    <?php endif; ?>
-                    <?php if ($tab === 'coach_share') : ?>
+                    <?php if (in_array($tab, ['course_income', 'coach_share'], true)) : ?>
                         <div class="sc-filter-field">
                             <label class="sc-filter-label" for="filter_coach">مربی</label>
                             <select name="filter_coach" id="filter_coach" class="sc-filter-control">
@@ -230,31 +273,49 @@ $finance_result_titles = [
                             </select>
                         </div>
                     <?php endif; ?>
-
-                    <div class="sc-filter-field sc-filter-date">
-                        <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
-                        <div class="sc-date-range">
-                            <input type="text"
-                                   name="filter_date_from_shamsi"
-                                   id="filter_date_from_shamsi"
-                                   value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
-                                   class="persian-date-input sc-filter-control"
-                                   readonly>
-                            <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                            <input type="text"
-                                   name="filter_date_to_shamsi"
-                                   id="filter_date_to_shamsi"
-                                   value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
-                                   class="persian-date-input sc-filter-control"
-                                   readonly>
-                            <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                    <?php if (in_array($tab, $finance_tabs_with_group_filter, true)) : ?>
+                        <div class="sc-filter-field sc-finance-group-field" id="sc-finance-group-field"<?php echo ($filter_course > 0 && isset($finance_course_groups_map[$filter_course])) ? '' : ' hidden'; ?>>
+                            <label class="sc-filter-label" for="filter_group">گروه</label>
+                            <select name="filter_group" id="filter_group" class="sc-filter-control">
+                                <option value="">همه گروه‌ها</option>
+                                <option value="__none__" <?php selected($filter_group, '__none__'); ?>>بدون گروه</option>
+                                <?php
+                                if ($filter_course > 0 && !empty($finance_course_groups_map[$filter_course])) :
+                                    foreach ($finance_course_groups_map[$filter_course] as $gname) :
+                                        ?>
+                                        <option value="<?php echo esc_attr($gname); ?>" <?php selected($filter_group, $gname); ?>><?php echo esc_html($gname); ?></option>
+                                    <?php endforeach;
+                                endif;
+                                ?>
+                            </select>
                         </div>
+                    <?php endif; ?>
+
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label">از تاریخ</label>
+                        <input type="text"
+                               name="filter_date_from_shamsi"
+                               id="filter_date_from_shamsi"
+                               value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                               class="persian-date-input sc-filter-control"
+                               readonly>
+                        <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                    </div>
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label">تا تاریخ</label>
+                        <input type="text"
+                               name="filter_date_to_shamsi"
+                               id="filter_date_to_shamsi"
+                               value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                               class="persian-date-input sc-filter-control"
+                               readonly>
+                        <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
                     </div>
                 </div>
 
-                <p class="submit">
+                <div class="sc-reports-list-filters-actions">
                     <button type="submit" class="button button-primary">اعمال فیلتر</button>
-                    <a href="<?php echo esc_url(add_query_arg('tab', $tab, admin_url('admin.php?page=sc-reports-income-expenses'))); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                    <a href="<?php echo esc_url($finance_clear_url); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
                     <?php
                     $export_map = [
                         'course_income' => 'finance_course_income',
@@ -278,9 +339,8 @@ $finance_result_titles = [
                     <?php if ($export_url !== '') : ?>
                         <a class="button button_export" href="<?php echo esc_url($export_url); ?>">خروجی اکسل</a>
                     <?php endif; ?>
-                </p>
-            </form>
                 </div>
+            </form>
             </div>
 
             <div class="sc-finance-panel postbox sc-finance-reports-data-panel">
@@ -289,29 +349,82 @@ $finance_result_titles = [
 
             <?php if ($tab === 'course_income') :
                 $invoices_table = $wpdb->prefix . 'sc_invoices';
+                $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
                 $where = ["i.status IN ('paid','completed','processing')", "i.payment_date IS NOT NULL", "DATE(i.payment_date) BETWEEN %s AND %s", "i.course_id > 0"];
                 $args = [$filter_date_from, $filter_date_to];
-                if ($filter_course > 0) { $where[] = "i.course_id = %d"; $args[] = $filter_course; }
-                if ($filter_chapter !== '') { $where[] = "c.chapter = %s"; $args[] = $filter_chapter; }
-                $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
-                    ? sc_finance_apply_invoice_group_filter($where, $args, $filter_course, $filter_group)
-                    : '';
-                $sql = "SELECT c.id, c.title, c.chapter, COUNT(i.id) AS paid_count, SUM(i.amount) AS income_total
-                        FROM $invoices_table i
-                        INNER JOIN $courses_table c ON c.id = i.course_id
-                        {$mc_join}
-                        WHERE " . implode(' AND ', $where) . "
-                        GROUP BY c.id, c.title, c.chapter
-                        ORDER BY income_total DESC";
+                $coach_join = '';
+                if ($filter_coach > 0) {
+                    $coach_join = $wpdb->prepare(
+                        " INNER JOIN $course_coaches_table cc ON cc.course_id = i.course_id AND cc.coach_id = %d ",
+                        $filter_coach
+                    );
+                }
+                if ($filter_course > 0) {
+                    $where[] = "i.course_id = %d";
+                    $args[] = $filter_course;
+                }
+                if ($filter_chapter !== '') {
+                    $where[] = "c.chapter = %s";
+                    $args[] = $filter_chapter;
+                }
+
+                $course_has_groups = ($filter_course > 0 && !empty($finance_course_groups_map[$filter_course]));
+                $mc_join = '';
+                if (function_exists('sc_finance_apply_invoice_group_filter')) {
+                    if ($filter_group !== '') {
+                        $mc_join = sc_finance_apply_invoice_group_filter($where, $args, $filter_course, $filter_group);
+                    } elseif ($course_has_groups && function_exists('sc_finance_invoice_member_course_join_sql')) {
+                        $mc_join = sc_finance_invoice_member_course_join_sql('i', 'mc');
+                    }
+                }
+
+                if ($course_has_groups) {
+                    $sql = "SELECT c.id, c.title, c.chapter,
+                                   COALESCE(NULLIF(TRIM(mc.group_name), ''), 'بدون گروه') AS group_name,
+                                   COUNT(i.id) AS paid_count,
+                                   SUM(i.amount) AS income_total
+                            FROM $invoices_table i
+                            INNER JOIN $courses_table c ON c.id = i.course_id
+                            {$coach_join}
+                            {$mc_join}
+                            WHERE " . implode(' AND ', $where) . "
+                            GROUP BY c.id, c.title, c.chapter, COALESCE(NULLIF(TRIM(mc.group_name), ''), 'بدون گروه')
+                            ORDER BY income_total DESC";
+                } else {
+                    $sql = "SELECT c.id, c.title, c.chapter, COUNT(i.id) AS paid_count, SUM(i.amount) AS income_total
+                            FROM $invoices_table i
+                            INNER JOIN $courses_table c ON c.id = i.course_id
+                            {$coach_join}
+                            {$mc_join}
+                            WHERE " . implode(' AND ', $where) . "
+                            GROUP BY c.id, c.title, c.chapter
+                            ORDER BY income_total DESC";
+                }
                 $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
                 ?>
                 <table class="wp-list-table widefat fixed striped sc-finance-reports-table">
-                    <thead><tr><th>دوره</th><th>شعبه</th><th>تعداد پرداخت</th><th>درآمد (تومان)</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>دوره</th>
+                            <?php if ($course_has_groups) : ?><th>گروه</th><?php endif; ?>
+                            <th>شعبه</th>
+                            <th>تعداد پرداخت</th>
+                            <th>درآمد (تومان)</th>
+                        </tr>
+                    </thead>
                     <tbody>
                     <?php if (!empty($rows)) : foreach ($rows as $r) : ?>
-                        <tr><td><?php echo esc_html($r->title); ?></td><td><?php echo esc_html($r->chapter ?: '-'); ?></td><td><?php echo (int) $r->paid_count; ?></td><td><?php echo esc_html(number_format((float) $r->income_total, 0, '.', ',')); ?></td></tr>
+                        <tr>
+                            <td><?php echo esc_html($r->title); ?></td>
+                            <?php if ($course_has_groups) : ?>
+                                <td><span class="sc-badge sc-badge--soft"><?php echo esc_html($r->group_name ?: 'بدون گروه'); ?></span></td>
+                            <?php endif; ?>
+                            <td><?php echo esc_html($r->chapter ?: '—'); ?></td>
+                            <td><?php echo (int) $r->paid_count; ?></td>
+                            <td><span class="sc-reports-amount-credit"><?php echo esc_html(number_format((float) $r->income_total, 0, '.', ',')); ?></span></td>
+                        </tr>
                     <?php endforeach; else : ?>
-                        <tr><td colspan="4">موردی یافت نشد.</td></tr>
+                        <tr><td colspan="<?php echo $course_has_groups ? 5 : 4; ?>">موردی یافت نشد.</td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
@@ -358,6 +471,9 @@ $finance_result_titles = [
                 $income_args = [$filter_date_from, $filter_date_to];
                 if ($filter_course > 0) { $income_where[] = "i.course_id = %d"; $income_args[] = $filter_course; }
                 if ($filter_chapter !== '') { $income_where[] = "c.chapter = %s"; $income_args[] = $filter_chapter; }
+                $income_mc_join = function_exists('sc_finance_apply_invoice_group_filter')
+                    ? sc_finance_apply_invoice_group_filter($income_where, $income_args, $filter_course, $filter_group)
+                    : '';
 
                 $sql = "SELECT coach_rows.coach_id, coach_rows.first_name, coach_rows.last_name,
                                SUM(coach_rows.coach_income) AS coach_income,
@@ -375,6 +491,7 @@ $finance_result_titles = [
                             SELECT i.course_id, SUM(i.amount) AS course_income
                             FROM $invoices_table i
                             INNER JOIN $courses_table c ON c.id = i.course_id
+                            {$income_mc_join}
                             WHERE " . implode(' AND ', $income_where) . "
                             GROUP BY i.course_id
                         ) course_income ON course_income.course_id = coach_rows.related_course_id
@@ -797,11 +914,11 @@ jQuery(function ($) {
         var groups = financeCourseGroups[courseId] || financeCourseGroups[String(courseId)] || [];
         $sel.find('option').not('[value=""], [value="__none__"]').remove();
         if (!courseId || !groups.length) {
-            $field.hide();
+            $field.attr('hidden', true);
             $sel.val('');
             return;
         }
-        $field.show();
+        $field.removeAttr('hidden');
         groups.forEach(function (name) {
             $sel.append($('<option></option>').val(name).text(name));
         });
@@ -817,6 +934,30 @@ jQuery(function ($) {
         refreshFinanceGroupField();
     });
     refreshFinanceGroupField();
+});
+</script>
+<?php endif; ?>
+<?php if ($tab !== 'overview') : ?>
+<script type="text/javascript">
+jQuery(function ($) {
+    var $toggle = $('#sc-finance-reports-filters-toggle');
+    var $panel = $('#sc-finance-reports-filters-panel');
+    var $card = $toggle.closest('.sc-reports-list-filters-card');
+    var $label = $toggle.find('.sc-reports-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
 });
 </script>
 <?php endif; ?>

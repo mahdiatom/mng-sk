@@ -1424,4 +1424,174 @@ applyFilter();
 
     }
 
+/**
+ * لیست برگه‌ها / نوشته‌های وردپرس — چیدمان مشابه لیست صورت‌حساب‌ها
+ */
+function scInitWpContentListAdminLayout() {
+    var $body = jQuery('body');
+    if (!$body.hasClass('sc-wp-content-list-page') || !$body.hasClass('edit-php')) {
+        return;
+    }
+
+    var $wrap = jQuery('#wpbody-content > .wrap').first();
+    if (!$wrap.length || $wrap.data('scWpContentListReady')) {
+        return;
+    }
+    $wrap.data('scWpContentListReady', 1);
+    $wrap.addClass('sc-reports-list-wrap sc-wp-content-list-wrap');
+
+    var isPage = $body.hasClass('post-type-page');
+    var desc = isPage
+        ? 'مدیریت برگه‌های سایت. برای ویرایش روی عنوان کلیک کنید.'
+        : 'مدیریت نوشته‌های سایت. برای ویرایش روی عنوان کلیک کنید.';
+
+    var $h1 = $wrap.children('h1.wp-heading-inline').first();
+    var $addBtn = $wrap.children('.page-title-action').first();
+    if ($h1.length && !$wrap.children('.sc-wp-content-list-header').length) {
+        var $header = jQuery('<div class="sc-wp-content-list-header sc-reports-list-header"></div>');
+        var $text = jQuery('<div class="sc-wp-content-list-header-text sc-reports-list-header-text"></div>');
+        $h1.removeClass('wp-heading-inline').addClass('sc-wp-content-list-title sc-reports-list-title');
+        $text.append($h1).append(
+            jQuery('<p class="sc-wp-content-list-desc sc-reports-list-desc"></p>').text(desc)
+        );
+        var $actions = jQuery('<div class="sc-wp-content-list-header-actions sc-reports-list-header-actions"></div>');
+        if ($addBtn.length) {
+            $addBtn.addClass('sc-wp-content-list-add-btn sc-reports-list-add-btn');
+            $actions.append($addBtn);
+        }
+        $header.append($text).append($actions);
+        $wrap.prepend($header);
+        $wrap.children('hr.wp-header-end').remove();
+    }
+
+    var $form = $wrap.find('#posts-filter').first();
+    if (!$form.length) {
+        return;
+    }
+
+    $form.addClass('sc-wp-content-list-table-card sc-reports-list-table-card');
+
+    var $subsub = $wrap.children('.subsubsub').first();
+    if ($subsub.length && !$form.children('.subsubsub').length) {
+        $form.prepend($subsub.detach());
+    }
+
+    if ($form.find('.sc-wp-content-list-filters-card').length) {
+        return;
+    }
+
+    var $searchBox = $form.find('p.search-box').first();
+    var $topNav = $form.find('.tablenav.top').first();
+    var $filterActions = $topNav.find('.alignleft.actions').not('.bulkactions').first();
+    var $searchInput = $searchBox.find('input[type="search"], input[name="s"]').first();
+    var $monthSelect = $filterActions.find('select[name="m"]').first();
+    var $catSelect = $filterActions.find('select[name="cat"]').first();
+    var hasFilters = ($searchInput.length && jQuery.trim($searchInput.val()) !== '')
+        || ($monthSelect.length && String($monthSelect.val()) !== '0')
+        || ($catSelect.length && String($catSelect.val()) !== '0');
+
+    if (!$searchBox.length && !$filterActions.length) {
+        return;
+    }
+
+    var $card = jQuery('<div class="sc-wp-content-list-filters-card sc-reports-list-filters-card"></div>');
+    if (hasFilters) {
+        $card.addClass('is-open');
+    }
+
+    var $toolbar = jQuery(
+        '<div class="sc-reports-list-filters-toolbar">'
+        + '<button type="button" class="sc-reports-list-filters-toggle" id="sc-wp-content-filters-toggle" aria-expanded="' + (hasFilters ? 'true' : 'false') + '" aria-controls="sc-wp-content-filters-panel">'
+        + '<span class="sc-reports-list-filters-toggle-icon" aria-hidden="true">'
+        + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+        + '<path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+        + '</svg></span>'
+        + '<span class="sc-reports-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">'
+        + (hasFilters ? 'بستن فیلترها' : 'مشاهده فیلترها')
+        + '</span>'
+        + '<span class="sc-reports-list-filters-chevron" aria-hidden="true"></span>'
+        + '</button></div>'
+    );
+
+    var $panel = jQuery('<div class="sc-reports-list-filters-panel sc-wp-content-list-filters-panel" id="sc-wp-content-filters-panel"></div>');
+    if (!hasFilters) {
+        $panel.attr('hidden', true);
+    }
+
+    var $grid = jQuery('<div class="sc-filter-grid sc-wp-content-filter-grid"></div>');
+
+    if ($searchInput.length) {
+        var $searchField = jQuery(
+            '<div class="sc-filter-field sc-wp-content-search-field">'
+            + '<label class="sc-filter-label" for="' + ($searchInput.attr('id') || 'post-search-input') + '">جستجو</label>'
+            + '</div>'
+        );
+        $searchInput.addClass('sc-filter-control');
+        $searchField.append($searchInput);
+        $grid.append($searchField);
+        $searchBox.remove();
+    }
+
+    if ($monthSelect.length) {
+        var $monthField = jQuery(
+            '<div class="sc-filter-field">'
+            + '<label class="sc-filter-label" for="' + ($monthSelect.attr('id') || 'filter-by-date') + '">ماه</label>'
+            + '</div>'
+        );
+        $monthSelect.addClass('sc-filter-control');
+        $monthField.append($monthSelect);
+        $grid.append($monthField);
+    }
+
+    if ($catSelect.length) {
+        var $catField = jQuery(
+            '<div class="sc-filter-field">'
+            + '<label class="sc-filter-label" for="' + ($catSelect.attr('id') || 'cat') + '">دسته‌بندی</label>'
+            + '</div>'
+        );
+        $catSelect.addClass('sc-filter-control');
+        $catField.append($catSelect);
+        $grid.append($catField);
+    }
+
+    $panel.append($grid);
+
+    var $filterBtn = $filterActions.find('input[type="submit"], button[type="submit"]').first();
+    var $actionsRow = jQuery('<div class="sc-reports-list-filters-actions"></div>');
+    if ($filterBtn.length) {
+        $filterBtn.addClass('button-primary').val('اعمال فیلتر');
+        $actionsRow.append($filterBtn);
+    } else {
+        $actionsRow.append(jQuery('<input type="submit" class="button button-primary" value="اعمال فیلتر">'));
+    }
+    $panel.append($actionsRow);
+
+    $card.append($toolbar).append($panel);
+    $form.prepend($card);
+
+    if ($filterActions.length) {
+        $filterActions.remove();
+    }
+
+    var $toggle = $card.find('#sc-wp-content-filters-toggle');
+    var $label = $toggle.find('.sc-reports-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+}
+
+jQuery(function () {
+    scInitWpContentListAdminLayout();
+});
 

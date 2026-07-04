@@ -37,8 +37,14 @@ class Events_List_Table extends WP_List_Table {
 
     public function column_name($item) {
         $name = $item['name'];
+        $type = isset($item['event_type']) ? (string) $item['event_type'] : 'event';
+        $type_label = $type === 'competition' ? 'مسابقه' : 'رویداد';
+        $initials = $name !== '' ? mb_substr($name, 0, 1) : 'ر';
+
+        $avatar = '<span class="sc-event-avatar" aria-hidden="true">' . esc_html($initials) . '</span>';
+        $meta_html = '<span class="sc-member-meta"><span class="sc-member-meta-item">' . esc_html($type_label) . '</span></span>';
+
         $actions = [];
-        
         if ($item['deleted_at']) {
             $restore_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=restore&event_id=' . $item['id']), 'restore_event_' . $item['id']);
             $delete_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=delete_permanent&event_id=' . $item['id']), 'delete_permanent_event_' . $item['id']);
@@ -51,7 +57,15 @@ class Events_List_Table extends WP_List_Table {
             $actions['trash'] = '<a href="' . esc_url($trash_url) . '">حذف</a>';
         }
 
-        return $name . ' ' . $this->row_actions($actions);
+        $name_block = '<span class="sc-member-identity">'
+            . $avatar
+            . '<span class="sc-member-identity-text">'
+            . '<span class="sc-member-name">' . esc_html($name) . '</span>'
+            . $meta_html
+            . '</span>'
+            . '</span>';
+
+        return $name_block . $this->row_actions($actions);
     }
 
     public function column_cb($item) {
@@ -79,20 +93,19 @@ class Events_List_Table extends WP_List_Table {
                 
                 return !empty($date_parts) ? implode('<br>', $date_parts) : '-';
             case 'price':
-
-                if (function_exists('wc_price')) {
-                    $price =  number_format($item['price'], 0, '.', ',');
-                if($price == 0 ){
-                    $price = 'رایگان';
+                $price_val = isset($item['price']) ? (float) $item['price'] : 0;
+                if ($price_val == 0) {
+                    return '<span class="sc-badge sc-badge--success">رایگان</span>';
                 }
-                return $price ;
-                } else {
-                    return number_format($item['price'], 0, '.', ',') . ' تومان';
-
-                }
-
+                $price_fmt = number_format($price_val, 0, '.', ',');
+                return esc_html($price_fmt) . ' تومان';
             case 'is_active':
-                return $item['is_active'] ? 'فعال' : 'غیرفعال';
+                if (!empty($item['deleted_at'])) {
+                    return '<span class="sc-badge sc-badge--muted">زباله‌دان</span>';
+                }
+                return !empty($item['is_active'])
+                    ? '<span class="sc-badge sc-badge--success">فعال</span>'
+                    : '<span class="sc-badge sc-badge--muted">غیرفعال</span>';
             default:
                 return "-";
         }
@@ -101,85 +114,10 @@ class Events_List_Table extends WP_List_Table {
     public function get_hidden_columns() {
         return get_hidden_columns(get_current_screen());
     }
-    
-public function extra_tablenav($which) {
-    if ($which == 'top') {
-        // دریافت فیلترهای GET
-        $selected_status = isset($_GET['event_status']) ? sanitize_text_field($_GET['event_status']) : 'all';
-        $selected_type   = isset($_GET['event_type']) ? sanitize_text_field($_GET['event_type']) : 'all';
-        $selected_fee    = isset($_GET['event_fee']) ? sanitize_text_field($_GET['event_fee']) : 'all';
-        // فقط برای نمایش: وقتی کاربر تاریخی نفرستاده امروز نشان بده (در فیلتر اعمال نمی‌شود)
-        $today_shamsi_display = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
-        $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) && $_GET['filter_date_from_shamsi'] !== ''
-            ? sanitize_text_field($_GET['filter_date_from_shamsi'])
-            : $today_shamsi_display;
-        $filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) && $_GET['filter_date_to_shamsi'] !== ''
-            ? sanitize_text_field($_GET['filter_date_to_shamsi'])
-            : $today_shamsi_display;
 
-        ?>
-        <div class="filter_event_list">
-
-    <div class="filter-field">
-        <label for="filter-event-status" class="screen-reader-text">فیلتر بر اساس وضعیت</label>
-        <select name="event_status" id="filter-event-status">
-            <option value="all" <?php selected($selected_status, 'all'); ?>>همه وضعیت‌ها</option>
-            <option value="active" <?php selected($selected_status, 'active'); ?>>فعال</option>
-            <option value="inactive" <?php selected($selected_status, 'inactive'); ?>>غیرفعال</option>
-        </select>
-    </div>
-
-    <div class="filter-field">
-        <label for="filter-event-type" class="screen-reader-text">فیلتر نوع</label>
-        <select name="event_type" id="filter-event-type">
-            <option value="all" <?php selected($selected_type, 'all'); ?>>همه نوع ها</option>
-            <option value="event" <?php selected($selected_type, 'event'); ?>>رویداد</option>
-            <option value="competition" <?php selected($selected_type, 'competition'); ?>>مسابقه</option>
-        </select>
-    </div>
-
-    <div class="filter-field">
-        <label for="filter-event-fee" class="screen-reader-text">فیلتر قیمت</label>
-        <select name="event_fee" id="filter-event-fee">
-            <option value="all" <?php selected($selected_fee, 'all'); ?>>همه قیمت ها</option>
-            <option value="free" <?php selected($selected_fee, 'free'); ?>>رایگان</option>
-        </select>
-    </div>
-
-    <div class="filter-field filter-date">
-        <label class="screen-reader-text">بازه تاریخ برگزاری</label>
-
-        <div class="date-range">
-            <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi"
-                   class="persian-date-input sc-no-default-date"
-                   value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="از">
-
-            <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi"
-                   class="persian-date-input sc-no-default-date"
-                   value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="تا">
-        </div>
-
-        <input type="hidden" name="filter_date_from" id="filter_date_from">
-        <input type="hidden" name="filter_date_to" id="filter_date_to">
-    </div>
-
-    <div class="filter-field filter-submit">
-        <?php submit_button('اعمال فیلتر ', 'primary', 'filter_action', false ); ?>
-        <a href="<?php echo admin_url('admin.php?page=sc-events') ?> " class="button delete_fillter" > 
-                    🧹 پاک کردن فیلترها
-                </a> 
-    </div>
-
-</div>
-
-
-        <?php
+    public function extra_tablenav($which) {
+        // فیلترها به قالب اصلی منتقل شدند.
     }
-}
-
-
-
-
 
     public function no_items() {
         if (isset($_GET['s'])) {
@@ -341,11 +279,13 @@ public function extra_tablenav($which) {
         if (isset($_GET['s'])) {
             $url .= "&s=" . sanitize_text_field($_GET['s']);
         }
-        $view = sprintf("<a href='%s' class='%s'>%s</a>", $url, $class_view, $label);
-        
-            $view .= sprintf("<span class='count'>(%d)</span>", $count);
-        
-        return $view;
+        return sprintf(
+            "<a href='%s' class='%s'>%s <span class='count'>(%d)</span></a>",
+            esc_url($url),
+            esc_attr($class_view),
+            esc_html($label),
+            (int) $count
+        );
     }
 
     public function get_views() {
@@ -458,57 +398,211 @@ public function extra_tablenav($which) {
 }
 ?>
 
-<div class="wrap">
-    <div class="event_header_list">
-        <h1 class="wp-heading-inline">لیست رویداد / مسابقه</h1>
-        <a href="<?php echo admin_url('admin.php?page=sc-add-event'); ?>" class="page-title-action">افزودن رویداد جدید</a>
-    </div>
-     </div>
-    <?php
-    // نمایش پیام‌های موفقیت/خطا
-    if (isset($_GET['sc_status'])) {
-        $status = sanitize_text_field($_GET['sc_status']);
-        switch ($status) {
-            case 'event_deleted':
-                echo '<div class="notice notice-success is-dismissible"><p>رویداد با موفقیت حذف شد.</p></div>';
-                break;
-            case 'event_restored':
-                echo '<div class="notice notice-success is-dismissible"><p>رویداد با موفقیت بازیابی شد.</p></div>';
-                break;
-            case 'event_bulk_deleted':
-                echo '<div class="notice notice-success is-dismissible"><p>رویدادهای انتخاب شده با موفقیت حذف شدند.</p></div>';
-                break;
-            case 'events_activated':
-                echo '<div class="notice notice-success is-dismissible"><p>رویدادهای انتخاب شده با موفقیت فعال شدند.</p></div>';
-                break;
-            case 'events_deactivated':
-                echo '<div class="notice notice-success is-dismissible"><p>رویدادهای انتخاب شده با موفقیت غیرفعال شدند.</p></div>';
-                break;
-        }
+<?php
+// نمایش پیام‌های موفقیت/خطا
+if (isset($_GET['sc_status'])) {
+    $status = sanitize_text_field($_GET['sc_status']);
+    switch ($status) {
+        case 'event_deleted':
+            echo '<div class="notice notice-success is-dismissible"><p>رویداد با موفقیت حذف شد.</p></div>';
+            break;
+        case 'event_restored':
+            echo '<div class="notice notice-success is-dismissible"><p>رویداد با موفقیت بازیابی شد.</p></div>';
+            break;
+        case 'event_bulk_deleted':
+            echo '<div class="notice notice-success is-dismissible"><p>رویدادهای انتخاب شده با موفقیت حذف شدند.</p></div>';
+            break;
+        case 'events_activated':
+            echo '<div class="notice notice-success is-dismissible"><p>رویدادهای انتخاب شده با موفقیت فعال شدند.</p></div>';
+            break;
+        case 'events_deactivated':
+            echo '<div class="notice notice-success is-dismissible"><p>رویدادهای انتخاب شده با موفقیت غیرفعال شدند.</p></div>';
+            break;
     }
-    
-    $events_list_table = new Events_List_Table();
-    $events_list_table->prepare_items();
-    
-    ?>
-    <div class="wrap">
-    <form method="get">
-        <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page']); ?>">
-        <?php $events_list_table->search_box('جستجو', 'search_id'); ?>
-    </form>
-    
-    <form method="get">
-        <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page']); ?>">
-        <?php
-        if (isset($_GET['event_status'])) {
-            echo '<input type="hidden" name="event_status" value="' . esc_attr($_GET['event_status']) . '">';
-        }
-        if (isset($_GET['s'])) {
-            echo '<input type="hidden" name="s" value="' . esc_attr($_GET['s']) . '">';
-        }
-        $events_list_table->views();
-        $events_list_table->display();
-        ?>
-    </form>
+}
+
+$events_list_table = new Events_List_Table();
+$events_list_table->prepare_items();
+
+$selected_status = isset($_GET['event_status']) ? sanitize_text_field(wp_unslash($_GET['event_status'])) : 'all';
+$selected_type   = isset($_GET['event_type']) ? sanitize_text_field(wp_unslash($_GET['event_type'])) : 'all';
+$selected_fee    = isset($_GET['event_fee']) ? sanitize_text_field(wp_unslash($_GET['event_fee'])) : 'all';
+$search_s        = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+$today_shamsi_display = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
+$filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) && $_GET['filter_date_from_shamsi'] !== ''
+    ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi']))
+    : $today_shamsi_display;
+$filter_date_to_shamsi = isset($_GET['filter_date_to_shamsi']) && $_GET['filter_date_to_shamsi'] !== ''
+    ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi']))
+    : $today_shamsi_display;
+$filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from'])) : '';
+$filter_date_to   = isset($_GET['filter_date_to']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to'])) : '';
+
+$active_filters_count = 0;
+if ($selected_type !== 'all' && $selected_type !== '') {
+    $active_filters_count++;
+}
+if ($selected_fee !== 'all' && $selected_fee !== '') {
+    $active_filters_count++;
+}
+if ($search_s !== '') {
+    $active_filters_count++;
+}
+if ($filter_date_from !== '' || $filter_date_to !== '') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+?>
+
+<div class="wrap sc-events-list-wrap">
+    <div class="sc-events-list-header">
+        <div class="sc-events-list-header-text">
+            <h1 class="sc-events-list-title">لیست رویداد / مسابقه</h1>
+            <p class="sc-events-list-desc">برای مشاهده اکشن‌ها روی نام رویداد بروید (ویرایش، حذف).</p>
+        </div>
+        <div class="sc-events-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-event')); ?>" class="page-title-action sc-events-list-add-btn">افزودن رویداد جدید</a>
+        </div>
+    </div>
+
+    <div class="sc-events-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-events-list-filters-toolbar">
+            <button type="button"
+                    class="sc-events-list-filters-toggle"
+                    id="sc-events-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-events-filters-panel">
+                <span class="sc-events-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-events-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-events-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-events-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-events')); ?>" class="sc-events-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+
+        <form method="get" class="sc-events-list-filters-panel" id="sc-events-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+            <input type="hidden" name="page" value="sc-events">
+
+            <div class="sc-filter-grid">
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="sc_events_list_search">جستجو</label>
+                    <input type="search" id="sc_events_list_search" name="s" value="<?php echo esc_attr($search_s); ?>" class="sc-filter-control" placeholder="نام یا توضیحات رویداد…">
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter-event-status">وضعیت</label>
+                    <select name="event_status" id="filter-event-status" class="sc-filter-control">
+                        <option value="all" <?php selected($selected_status, 'all'); ?>>همه وضعیت‌ها</option>
+                        <option value="active" <?php selected($selected_status, 'active'); ?>>فعال</option>
+                        <option value="inactive" <?php selected($selected_status, 'inactive'); ?>>غیرفعال</option>
+                    </select>
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter-event-type">نوع</label>
+                    <select name="event_type" id="filter-event-type" class="sc-filter-control">
+                        <option value="all" <?php selected($selected_type, 'all'); ?>>همه نوع‌ها</option>
+                        <option value="event" <?php selected($selected_type, 'event'); ?>>رویداد</option>
+                        <option value="competition" <?php selected($selected_type, 'competition'); ?>>مسابقه</option>
+                    </select>
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter-event-fee">قیمت</label>
+                    <select name="event_fee" id="filter-event-fee" class="sc-filter-control">
+                        <option value="all" <?php selected($selected_fee, 'all'); ?>>همه قیمت‌ها</option>
+                        <option value="free" <?php selected($selected_fee, 'free'); ?>>رایگان</option>
+                    </select>
+                </div>
+
+                <div class="sc-filter-field sc-filter-date">
+                    <label class="sc-filter-label">بازه تاریخ برگزاری</label>
+                    <div class="sc-events-date-range">
+                        <input type="text" name="filter_date_from_shamsi" id="filter_date_from_shamsi"
+                               class="persian-date-input sc-no-default-date sc-filter-control"
+                               value="<?php echo esc_attr($filter_date_from_shamsi); ?>" placeholder="از">
+                        <input type="text" name="filter_date_to_shamsi" id="filter_date_to_shamsi"
+                               class="persian-date-input sc-no-default-date sc-filter-control"
+                               value="<?php echo esc_attr($filter_date_to_shamsi); ?>" placeholder="تا">
+                    </div>
+                    <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+                    <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+                </div>
+            </div>
+
+            <div class="sc-events-list-filters-actions">
+                <input type="submit" name="filter_action" class="button button-primary" value="اعمال فیلتر">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-events')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="sc-events-list-table-card">
+        <form method="get">
+            <input type="hidden" name="page" value="sc-events">
+            <?php
+            if ($selected_status !== 'all' && $selected_status !== '') {
+                echo '<input type="hidden" name="event_status" value="' . esc_attr($selected_status) . '">';
+            }
+            if ($selected_type !== 'all' && $selected_type !== '') {
+                echo '<input type="hidden" name="event_type" value="' . esc_attr($selected_type) . '">';
+            }
+            if ($selected_fee !== 'all' && $selected_fee !== '') {
+                echo '<input type="hidden" name="event_fee" value="' . esc_attr($selected_fee) . '">';
+            }
+            if ($search_s !== '') {
+                echo '<input type="hidden" name="s" value="' . esc_attr($search_s) . '">';
+            }
+            if ($filter_date_from !== '') {
+                echo '<input type="hidden" name="filter_date_from" value="' . esc_attr($filter_date_from) . '">';
+            }
+            if ($filter_date_to !== '') {
+                echo '<input type="hidden" name="filter_date_to" value="' . esc_attr($filter_date_to) . '">';
+            }
+            if ($filter_date_from_shamsi !== '' && isset($_GET['filter_date_from_shamsi'])) {
+                echo '<input type="hidden" name="filter_date_from_shamsi" value="' . esc_attr($filter_date_from_shamsi) . '">';
+            }
+            if ($filter_date_to_shamsi !== '' && isset($_GET['filter_date_to_shamsi'])) {
+                echo '<input type="hidden" name="filter_date_to_shamsi" value="' . esc_attr($filter_date_to_shamsi) . '">';
+            }
+            $events_list_table->views();
+            $events_list_table->display();
+            ?>
+        </form>
+    </div>
 </div>
+
+<script type="text/javascript">
+jQuery(document).ready(function ($) {
+    var $toggle = $('#sc-events-filters-toggle');
+    var $panel = $('#sc-events-filters-panel');
+    var $card = $toggle.closest('.sc-events-list-filters-card');
+    var $label = $toggle.find('.sc-events-list-filters-toggle-label');
+
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+});
+</script>
 

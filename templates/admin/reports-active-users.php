@@ -163,15 +163,90 @@ $total_items = count($filtered_members);
 $total_pages = ceil($total_items / $per_page);
 $offset = ($current_page - 1) * $per_page;
 $members = array_slice($filtered_members, $offset, $per_page);
+
+$export_url = admin_url('admin.php?page=sc-reports-active-users&sc_export=excel&export_type=active_users');
+if ($filter_member > 0) {
+    $export_url = add_query_arg('filter_member', $filter_member, $export_url);
+}
+if ($filter_course > 0) {
+    $export_url = add_query_arg('filter_course', $filter_course, $export_url);
+}
+if ($filter_debt_status !== 'all') {
+    $export_url = add_query_arg('filter_debt_status', $filter_debt_status, $export_url);
+}
+if ($filter_insurance_status !== 'all') {
+    $export_url = add_query_arg('filter_insurance_status', $filter_insurance_status, $export_url);
+}
+if ($filter_profile_status !== 'all') {
+    $export_url = add_query_arg('filter_profile_status', $filter_profile_status, $export_url);
+}
+$export_url = wp_nonce_url($export_url, 'sc_export_excel');
+
+$selected_member_text = 'همه کاربران';
+if ($filter_member > 0) {
+    foreach ($all_members as $m) {
+        if ((int) $m->id === $filter_member) {
+            $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
+            break;
+        }
+    }
+}
+
+$active_filters_count = 0;
+if ($filter_member > 0) {
+    $active_filters_count++;
+}
+if ($filter_course > 0) {
+    $active_filters_count++;
+}
+if ($filter_debt_status !== 'all') {
+    $active_filters_count++;
+}
+if ($filter_insurance_status !== 'all') {
+    $active_filters_count++;
+}
+if ($filter_profile_status !== 'all') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
 ?>
 
-<div class="wrap">
-    <h1 class="wp-heading-inline">گزارشات باشگاه - کاربران فعال</h1>
-    <hr class="wp-header-end">
+<div class="wrap sc-reports-list-wrap">
+    <div class="sc-reports-list-header">
+        <div class="sc-reports-list-header-text">
+            <h1 class="sc-reports-list-title">کاربران فعال</h1>
+            <p class="sc-reports-list-desc">گزارش بازیکنان فعال باشگاه با وضعیت بدهی، بیمه و تکمیل پروفایل.</p>
+        </div>
+        <div class="sc-reports-list-header-actions">
+            <a href="<?php echo esc_url($export_url); ?>" class="sc-reports-list-export-btn">خروجی Excel</a>
+        </div>
     </div>
-    <div class="wrap">
-    <!-- فیلترها -->
-    <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+
+    <div class="sc-reports-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-reports-list-filters-toolbar">
+            <button type="button"
+                    class="sc-reports-list-filters-toggle"
+                    id="sc-reports-active-users-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-reports-active-users-filters-panel">
+                <span class="sc-reports-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-reports-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-reports-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-reports-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-active-users')); ?>" class="sc-reports-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+    <form method="GET" action="" class="sc-reports-list-filters-panel" id="sc-reports-active-users-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
         <input type="hidden" name="page" value="sc-reports-active-users">
         
 <div class="sc-filter-grid">
@@ -180,17 +255,6 @@ $members = array_slice($filtered_members, $offset, $per_page);
 <div class="sc-filter-field">
 <label class="sc-filter-label">کاربر</label>
 <div class="sc-searchable-dropdown">
-<?php 
-$selected_member_text = 'همه کاربران';
-if ($filter_member > 0) {
-    foreach ($all_members as $m) {
-        if ($m->id == $filter_member) {
-            $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
-            break;
-        }
-    }
-}
-?>
 <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
 <div class="sc-dropdown-toggle">
 <span class="sc-dropdown-placeholder" <?php if ($filter_member) echo 'style="display:none"'; ?>>همه کاربران</span>
@@ -274,43 +338,18 @@ foreach ($all_members as $member) :
 
 </div>
 
-<p class="submit">
+<div class="sc-reports-list-filters-actions">
 <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
-<?php
-// ساخت URL برای export Excel
-$export_url = admin_url('admin.php?page=sc-reports-active-users&sc_export=excel&export_type=active_users');
-if ($filter_member > 0) {
-    $export_url = add_query_arg('filter_member', $filter_member, $export_url);
-}
-if ($filter_course > 0) {
-    $export_url = add_query_arg('filter_course', $filter_course, $export_url);
-}
-if (isset($_GET['filter_debt_status']) && $_GET['filter_debt_status'] !== 'all') {
-    $export_url = add_query_arg('filter_debt_status', $_GET['filter_debt_status'], $export_url);
-}
-if (isset($_GET['filter_insurance_status']) && $_GET['filter_insurance_status'] !== 'all') {
-    $export_url = add_query_arg('filter_insurance_status', $_GET['filter_insurance_status'], $export_url);
-}
-if (isset($_GET['filter_profile_status']) && $_GET['filter_profile_status'] !== 'all') {
-    $export_url = add_query_arg('filter_profile_status', $_GET['filter_profile_status'], $export_url);
-}
-$export_url = wp_nonce_url($export_url, 'sc_export_excel');
-?>
-<a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
-📊 خروجی Excel
-</a>
-<a href="<?php echo admin_url('admin.php?page=sc-reports-active-users'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-</p>
+<a href="<?php echo esc_url($export_url); ?>" class="button button_export">خروجی Excel</a>
+<a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-active-users')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+</div>
 </form>
+</div>
     
-    <!-- لیست کاربران -->
+    <div class="sc-reports-list-table-card">
     <?php if (empty($members)) : ?>
-        <div class="notice notice-info">
-            <p>هیچ کاربر فعالی یافت نشد.</p>
-        </div>
+        <div class="sc-reports-empty">هیچ کاربر فعالی یافت نشد.</div>
     <?php else : ?>
-        
-        <div class="back_attendance_list">
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
@@ -328,78 +367,113 @@ $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                     $start_number = ($current_page - 1) * $per_page;
                     foreach ($members as $index => $member) : 
                         $row_number = $start_number + $index + 1;
-                        
-                        // دوره‌های فعال
+                        $full_name = trim($member->first_name . ' ' . $member->last_name);
+                        $photo = !empty($member->personal_photo) ? $member->personal_photo : '';
+                        $initials = '';
+                        if (!empty($member->first_name)) {
+                            $initials .= mb_substr((string) $member->first_name, 0, 1);
+                        }
+                        if (!empty($member->last_name)) {
+                            $initials .= mb_substr((string) $member->last_name, 0, 1);
+                        }
+                        if ($initials === '') {
+                            $initials = '؟';
+                        }
                         $course_names = [];
                         if (!empty($member->active_courses)) {
                             foreach ($member->active_courses as $course) {
                                 $course_names[] = $course->title;
                             }
                         }
-                        $courses_text = !empty($course_names) ? implode('، ', $course_names) : '-';
+                        $courses_text = !empty($course_names) ? implode('، ', $course_names) : '—';
                     ?>
-                        <tr style="background-color: <?php echo (debt_user( $member->id)[0]) ? '#c3191957' : '' ?> !important;">
-                            <td><?php echo $row_number; ?></td>
+                        <tr class="<?php echo $member->has_debt ? 'is-debt-row' : ''; ?>">
+                            <td><?php echo (int) $row_number; ?></td>
                             <td>
-                                <strong><?php echo esc_html($member->first_name . ' ' . $member->last_name); ?></strong>
+                                <span class="sc-member-identity">
+                                    <?php if ($photo) : ?>
+                                        <span class="sc-member-avatar"><img src="<?php echo esc_url($photo); ?>" alt="" loading="lazy"></span>
+                                    <?php else : ?>
+                                        <span class="sc-member-avatar sc-member-avatar--initials" aria-hidden="true"><?php echo esc_html($initials); ?></span>
+                                    <?php endif; ?>
+                                    <span class="sc-member-identity-text">
+                                        <span class="sc-member-name"><?php echo esc_html($full_name); ?></span>
+                                        <?php if (!empty($member->national_id)) : ?>
+                                            <span class="sc-member-meta"><span class="sc-member-meta-item"><?php echo esc_html($member->national_id); ?></span></span>
+                                        <?php endif; ?>
+                                    </span>
+                                </span>
                             </td>
                             <td><?php echo esc_html($courses_text); ?></td>
-                            <td><?php echo esc_html($member->player_phone ?: '-'); ?></td>
+                            <td><?php echo esc_html($member->player_phone ?: '—'); ?></td>
                             <td>
                                 <?php if ($member->has_debt) : ?>
-                                    <span style="color: #d63638; font-weight: bold;">
-                                        <?php echo number_format($member->debt_amount, 0, '.', ','); ?> تومان
-                                    </span>
+                                    <span class="sc-reports-amount-debit"><?php echo esc_html(number_format($member->debt_amount, 0, '.', ',')); ?> تومان</span>
                                 <?php else : ?>
-                                    <span style="color: #00a32a;">-</span>
+                                    <span class="sc-badge sc-badge--success">بدون بدهی</span>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <?php if ($member->profile_completed) : ?>
-                                    <span style="color: #00a32a; font-weight: bold;">✓ تکمیل</span>
+                                    <span class="sc-badge sc-badge--success">تکمیل</span>
                                 <?php else : ?>
-                                    <span style="color: #d63638; font-weight: bold;">✗ ناقص</span>
+                                    <span class="sc-badge sc-badge--danger">ناقص</span>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <?php if (!empty($member->insurance_expiry_date_shamsi)) : ?>
                                     <?php if ($member->insurance_active) : ?>
-                                        <span style="color: #00a32a; font-weight: bold;">✓ فعال</span>
+                                        <span class="sc-badge sc-badge--success">فعال</span>
                                     <?php else : ?>
-                                        <span style="color: #d63638; font-weight: bold;">✗ منقضی</span>
+                                        <span class="sc-badge sc-badge--danger">منقضی</span>
                                     <?php endif; ?>
                                 <?php else : ?>
-                                    <span style="color: #999;">-</span>
+                                    <span class="sc-badge sc-badge--muted">—</span>
                                 <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
-        </div>    
-            <!-- Pagination -->
             <?php if ($total_pages > 1) : ?>
-                <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
+                <div class="tablenav bottom sc_paginate">
                     <div class="tablenav-pages">
                         <?php
-                        $page_links = paginate_links([
+                        echo paginate_links([
                             'base' => add_query_arg(['paged' => '%#%']),
                             'format' => '',
                             'prev_text' => '< قبلی ',
-                            'next_text' => ' بعدی >' ,
+                            'next_text' => ' بعدی >',
                             'total' => $total_pages,
                             'current' => $current_page
                         ]);
-                        echo $page_links;
                         ?>
                     </div>
                 </div>
             <?php endif; ?>
-        </div>
     <?php endif; ?>
+    </div>
 </div>
-
-<style>
-
-</style>
+<script type="text/javascript">
+jQuery(function ($) {
+    var $toggle = $('#sc-reports-active-users-filters-toggle');
+    var $panel = $('#sc-reports-active-users-filters-panel');
+    var $card = $toggle.closest('.sc-reports-list-filters-card');
+    var $label = $toggle.find('.sc-reports-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+});
+</script>
 

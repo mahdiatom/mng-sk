@@ -23,15 +23,22 @@ $templates = sc_users_export_get_saved_templates();
 $field_labels = sc_users_export_get_field_labels();
 ?>
 
-<div class="wrap sc-users-export-wrap">
-    <h1>خروجی اطلاعات کاربران</h1>
-    <p class="description">فیلتر کاربران و فیلدهای خروجی را انتخاب کنید. در صورت انتخاب عکس پرسنلی، خروجی فقط PDF خواهد بود.</p>
+<div class="wrap sc-users-export-wrap sc-cert-wrap">
+    <div class="sc-cert-header">
+        <div class="sc-cert-header-text">
+            <h1 class="sc-cert-title">خروجی اطلاعات کاربران</h1>
+            <p class="sc-cert-desc">فیلتر کاربران و فیلدهای خروجی را انتخاب کنید. در صورت انتخاب عکس پرسنلی، خروجی فقط PDF خواهد بود.</p>
+        </div>
+        <div class="sc-cert-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-users-export-templates')); ?>" class="sc-cert-btn-secondary">تعریف قالب خروجی</a>
+        </div>
+    </div>
 
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="sc-users-export-form">
         <?php wp_nonce_field('sc_users_info_export_action', 'sc_users_info_export_nonce'); ?>
         <input type="hidden" name="action" value="sc_users_info_export">
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-cert-card">
             <h2>۱) انتخاب قالب (اختیاری)</h2>
             <select name="template_key" id="sc-template-key">
                 <option value="">بدون قالب</option>
@@ -50,7 +57,7 @@ $field_labels = sc_users_export_get_field_labels();
             </label>
         </div>
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-cert-card">
             <h2>۲) فیلتر کاربران</h2>
 
             <div class="sc-row">
@@ -180,14 +187,14 @@ $field_labels = sc_users_export_get_field_labels();
             </p>
         </div>
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-cert-card">
             <h2>۳) پیش نمایش کاربران</h2>
             <div id="sc-users-preview-result" class="sc-bulk-preview-result back_table_list">
                 <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش کاربران فیلتر شده» کلیک کنید.</p>
             </div>
         </div>
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-cert-card">
             <h2>۴) فیلدهای خروجی</h2>
             <div class="sc-fields-grid" id="sc-fields-grid">
                 <?php foreach ($field_labels as $key => $label) : ?>
@@ -201,7 +208,7 @@ $field_labels = sc_users_export_get_field_labels();
             <input type="hidden" id="sc-event-fields-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_users_export_get_event_fields')); ?>">
         </div>
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-cert-card">
             <h2>۵) خروجی</h2>
             <div class="sc-row">
                 <label for="sc-export-format">فرمت خروجی</label>
@@ -235,7 +242,7 @@ $field_labels = sc_users_export_get_field_labels();
             </div>
         </div>
 
-        <p class="submit">
+        <p class="submit sc-cert-submit">
             <button class="button button-primary" type="submit">ایجاد خروجی</button>
         </p>
     </form>

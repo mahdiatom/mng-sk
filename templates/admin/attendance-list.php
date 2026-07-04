@@ -841,29 +841,25 @@ if ($active_tab === 'overall') {
 
 ?>
 
-<div class="wrap sc-attendance-page-header">
-    <h1 class="wp-heading-inline">لیست حضور و غیاب</h1>
-    <a href="<?php echo admin_url('admin.php?page=sc-attendance-add'); ?>" class="page-title-action">ثبت حضور و غیاب</a>
-    <hr class="wp-header-end">
+<div class="wrap sc-attendance-page-header sc-att-list-header">
+    <div class="sc-att-list-header-inner">
+        <div class="sc-att-list-header-text">
+            <h1 class="sc-att-list-title">لیست حضور و غیاب</h1>
+            <p class="sc-att-list-desc">مشاهده و فیلتر حضور و غیاب در تب‌های جزئی، دوره‌ها، اشخاص و غایبین</p>
+        </div>
+        <div class="sc-att-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-add')); ?>" class="sc-att-btn-primary">ثبت حضور و غیاب</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-report')); ?>" class="sc-att-btn-secondary">گزارش حضور بازیکن</a>
+        </div>
+    </div>
 </div>
-<div class="wrap sc-attendance-page-body sc-attendance-list-body">
-    <!-- تب‌ها -->
-    <h2 class="nav-tab-wrapper">
-        <a href="?page=sc-attendance-list&tab=individual" class="nav-tab <?php echo $active_tab === 'individual' ? 'nav-tab-active' : ''; ?>">
-        حضور و غیاب جزئی
-    </a>
-        <a href="?page=sc-attendance-list&tab=grouped" class="nav-tab <?php echo $active_tab === 'grouped' ? 'nav-tab-active' : ''; ?>">
-         گزارش دوره‌ها 
-        </a>
-        <a href="?page=sc-attendance-list&tab=overall" class="nav-tab <?php echo $active_tab === 'overall' ? 'nav-tab-active' : ''; ?>">
-        گزارش اشخاص     
-    </a>
-    <a href="?page=sc-attendance-list&tab=absents" 
-            class="nav-tab <?php echo $active_tab === 'absents' ? 'nav-tab-active' : ''; ?>">
-        غایبین
-    </a>
-
-    </h2>
+<div class="wrap sc-attendance-page-body sc-attendance-list-body sc-att-list-body">
+    <nav class="sc-att-tabs nav-tab-wrapper" aria-label="تب‌های حضور و غیاب">
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list&tab=individual')); ?>" class="nav-tab <?php echo $active_tab === 'individual' ? 'nav-tab-active' : ''; ?>">حضور و غیاب جزئی</a>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list&tab=grouped')); ?>" class="nav-tab <?php echo $active_tab === 'grouped' ? 'nav-tab-active' : ''; ?>">گزارش دوره‌ها</a>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list&tab=overall')); ?>" class="nav-tab <?php echo $active_tab === 'overall' ? 'nav-tab-active' : ''; ?>">گزارش اشخاص</a>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list&tab=absents')); ?>" class="nav-tab <?php echo $active_tab === 'absents' ? 'nav-tab-active' : ''; ?>">غایبین</a>
+    </nav>
     
     <?php if ($active_tab === 'individual') : ?>
     <!-- تب 1: لیست حضور و غیاب کاربران -->

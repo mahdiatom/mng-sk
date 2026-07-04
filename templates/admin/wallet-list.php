@@ -20,9 +20,13 @@ $members = $wpdb->get_results(
 // تنظیم مقادیر تاریخ و مقدار پیش‌فرض شمسی (امروز) برای فیلتر بازه تاریخ
 $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
 $filter_date_to   = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
+$filter_member    = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+$filter_type      = isset($_GET['filter_type']) ? sanitize_text_field(wp_unslash($_GET['filter_type'])) : 'all';
+$filter_status    = isset($_GET['filter_status']) ? sanitize_text_field(wp_unslash($_GET['filter_status'])) : 'all';
+$search_value     = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
 
 $today        = new DateTime();
-$today_jalali = gregorian_to_jalali((int)$today->format('Y'), (int)$today->format('m'), (int)$today->format('d'));
+$today_jalali = gregorian_to_jalali((int) $today->format('Y'), (int) $today->format('m'), (int) $today->format('d'));
 
 $filter_date_from_shamsi_default = '';
 $filter_date_to_shamsi_default   = '';
@@ -42,124 +46,161 @@ if (empty($filter_date_to)) {
 } else {
     $filter_date_to_shamsi_default = sc_date_shamsi_date_only($filter_date_to);
 }
+
+$active_filters_count = 0;
+if ($filter_member > 0) {
+    $active_filters_count++;
+}
+if ($filter_type !== 'all' && $filter_type !== '') {
+    $active_filters_count++;
+}
+if ($filter_status !== 'all' && $filter_status !== '') {
+    $active_filters_count++;
+}
+if ($filter_date_from !== '') {
+    $active_filters_count++;
+}
+if ($filter_date_to !== '') {
+    $active_filters_count++;
+}
+if ($search_value !== '') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+
+$selected_member_text = 'همه کاربران';
+if ($filter_member > 0) {
+    foreach ($members as $m) {
+        if ((int) $m->id === $filter_member) {
+            $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
+            break;
+        }
+    }
+}
+
+// ساخت URL خروجی اکسل با درنظرگرفتن فیلترهای فعلی
+$export_url = admin_url('admin.php?page=sc-wallet&sc_export=excel&export_type=wallet_transactions');
+if ($filter_member > 0) {
+    $export_url = add_query_arg('filter_member', $filter_member, $export_url);
+}
+if ($filter_type !== 'all' && $filter_type !== '') {
+    $export_url = add_query_arg('filter_type', $filter_type, $export_url);
+}
+if ($filter_status !== 'all' && $filter_status !== '') {
+    $export_url = add_query_arg('filter_status', $filter_status, $export_url);
+}
+if ($filter_date_from !== '') {
+    $export_url = add_query_arg('filter_date_from', $filter_date_from, $export_url);
+}
+if ($filter_date_to !== '') {
+    $export_url = add_query_arg('filter_date_to', $filter_date_to, $export_url);
+}
+if ($search_value !== '') {
+    $export_url = add_query_arg('s', $search_value, $export_url);
+}
+$export_url = wp_nonce_url($export_url, 'sc_export_excel');
 ?>
 
-<div class="wrap">
-    <h1 class="wp-heading-inline">لیست تراکنش‌های کیف پول</h1>
-    <a href="<?php echo admin_url('admin.php?page=sc-wallet-charge'); ?>" class="page-title-action">شارژ کیف پول</a>
-    <a href="<?php echo admin_url('admin.php?page=sc-wallet-deduct'); ?>" class="page-title-action">کاهش کیف پول</a>
-    <hr class="wp-header-end">
-</div>
+<div class="wrap sc-wallet-list-wrap">
+    <div class="sc-wallet-list-header">
+        <div class="sc-wallet-list-header-text">
+            <h1 class="sc-wallet-list-title">لیست تراکنش‌های کیف پول</h1>
+            <p class="sc-wallet-list-desc">مشاهده و فیلتر همه تراکنش‌های شارژ، کاهش و پرداخت کیف پول بازیکنان.</p>
+        </div>
+        <div class="sc-wallet-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-wallet-charge')); ?>" class="sc-wallet-list-add-btn">شارژ کیف پول</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-wallet-deduct')); ?>" class="sc-wallet-list-export-btn">کاهش کیف پول</a>
+            <a href="<?php echo esc_url($export_url); ?>" class="sc-wallet-list-export-btn">خروجی Excel</a>
+        </div>
+    </div>
 
-<div class="wrap">
-    <?php
-    // داشبورد خلاصه کیف پول برای مدیر
-    if (function_exists('sc_get_wallet_admin_statistics')) :
+    <?php if (function_exists('sc_get_wallet_admin_statistics')) :
         $sc_wallet_stats = sc_get_wallet_admin_statistics();
     ?>
-        <div class="sc-wallet-admin-dashboard" style="margin-top: 20px; margin-bottom: 20px;">
-            <h2 style="margin: 0 0 15px 0; font-size: 18px;">خلاصه وضعیت کیف پول</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
-                <div style="background: #ffffff; border-radius: 6px; padding: 12px 14px; border-left: 4px solid #0073aa; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-                    <div style="font-size: 12px; color: #666; margin-bottom: 6px;">تعداد کاربران دارای تراکنش کیف پول</div>
-                    <div style="font-size: 20px; font-weight: 700; color: #0073aa;">
-                        <?php echo number_format( intval( $sc_wallet_stats['users_with_wallet'] ?? 0 ) ); ?>
-                    </div>
-                </div>
-
-                <div style="background: #ffffff; border-radius: 6px; padding: 12px 14px; border-left: 4px solid #46b450; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-                    <div style="font-size: 12px; color: #666; margin-bottom: 6px;">مجموع موجودی همه کیف پول‌ها</div>
-                    <div style="font-size: 20px; font-weight: 700; color: #46b450;">
-                        <?php echo esc_html(sc_format_amount_display(floatval($sc_wallet_stats['total_balance'] ?? 0))); ?> تومان
-                    </div>
-                </div>
-
-                <div style="background: #ffffff; border-radius: 6px; padding: 12px 14px; border-left: 4px solid #826eb4; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-                    <div style="font-size: 12px; color: #666; margin-bottom: 6px;">تعداد کل تراکنش‌های کیف پول</div>
-                    <div style="font-size: 20px; font-weight: 700; color: #826eb4;">
-                        <?php echo number_format( intval( $sc_wallet_stats['total_transactions'] ?? 0 ) ); ?>
-                    </div>
-                </div>
-
-                <div style="background: #ffffff; border-radius: 6px; padding: 12px 14px; border-left: 4px solid #d63638; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-                    <div style="font-size: 12px; color: #666; margin-bottom: 6px;">کاربران با موجودی منفی</div>
-                    <div style="font-size: 20px; font-weight: 700; color: #d63638;">
-                        <?php echo number_format( intval( $sc_wallet_stats['users_with_negative'] ?? 0 ) ); ?>
-                    </div>
-                </div>
-
-                <div style="background: #ffffff; border-radius: 6px; padding: 12px 14px; border-left: 4px solid #ffb900; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-                    <div style="font-size: 12px; color: #666; margin-bottom: 6px;">مجموع شارژ / مجموع پرداخت</div>
-                    <div style="font-size: 14px; font-weight: 600; color: #333; line-height: 1.6;">
-                        <span style="display: block; color: #46b450;">
-                            شارژ: <?php echo number_format( floatval( $sc_wallet_stats['total_charges'] ?? 0 ), 0, '.', ',' ); ?> تومان
-                        </span>
-                        <span style="display: block; color: #d63638;">
-                            پرداخت: <?php echo number_format( floatval( $sc_wallet_stats['total_payments'] ?? 0 ), 0, '.', ',' ); ?> تومان
-                        </span>
-                    </div>
+        <div class="sc-wallet-list-stats">
+            <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--blue">
+                <div class="sc-wallet-list-stat-label">کاربران دارای کیف پول</div>
+                <div class="sc-wallet-list-stat-value"><?php echo number_format(intval($sc_wallet_stats['users_with_wallet'] ?? 0)); ?></div>
+            </div>
+            <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--green">
+                <div class="sc-wallet-list-stat-label">مجموع موجودی‌ها</div>
+                <div class="sc-wallet-list-stat-value"><?php echo esc_html(sc_format_amount_display(floatval($sc_wallet_stats['total_balance'] ?? 0))); ?> <small>تومان</small></div>
+            </div>
+            <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--purple">
+                <div class="sc-wallet-list-stat-label">کل تراکنش‌ها</div>
+                <div class="sc-wallet-list-stat-value"><?php echo number_format(intval($sc_wallet_stats['total_transactions'] ?? 0)); ?></div>
+            </div>
+            <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--red">
+                <div class="sc-wallet-list-stat-label">موجودی منفی</div>
+                <div class="sc-wallet-list-stat-value"><?php echo number_format(intval($sc_wallet_stats['users_with_negative'] ?? 0)); ?></div>
+            </div>
+            <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--amber">
+                <div class="sc-wallet-list-stat-label">شارژ / پرداخت</div>
+                <div class="sc-wallet-list-stat-value sc-wallet-list-stat-value--split">
+                    <span class="is-credit">شارژ: <?php echo esc_html(sc_format_amount_display(floatval($sc_wallet_stats['total_charges'] ?? 0))); ?></span>
+                    <span class="is-debit">پرداخت: <?php echo esc_html(sc_format_amount_display(floatval($sc_wallet_stats['total_payments'] ?? 0))); ?></span>
                 </div>
             </div>
         </div>
     <?php endif; ?>
 
-    <!-- فیلترها -->
-    <div class="sc-wallet-filters" style="background: #f9f9f9; padding: 15px; margin: 20px 0; border: 1px solid #ddd; border-radius: 4px;">
-        <form method="GET" action="">
+    <div class="sc-wallet-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-wallet-list-filters-toolbar">
+            <button type="button"
+                    class="sc-wallet-list-filters-toggle"
+                    id="sc-wallet-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-wallet-filters-panel">
+                <span class="sc-wallet-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-wallet-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-wallet-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-wallet-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-wallet')); ?>" class="sc-wallet-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+
+        <form method="get" action="" class="sc-wallet-list-filters-panel" id="sc-wallet-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
             <input type="hidden" name="page" value="sc-wallet">
-            
-            <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
-                <div class="sc-filter-field" style="min-width: 200px; max-width: 300px;">
+
+            <div class="sc-filter-grid">
+                <div class="sc-filter-field">
                     <label class="sc-filter-label">بازیکن</label>
-                    
                     <div class="sc-searchable-dropdown">
-                        <?php
-                        $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
-                        $selected_member_text = 'همه کاربران';
-                        
-                        if ($filter_member > 0) {
-                            foreach ($members as $m) {
-                                if ($m->id == $filter_member) {
-                                    $selected_member_text = $m->first_name . ' ' . $m->last_name . ' - ' . $m->national_id;
-                                    break;
-                                }
-                            }
-                        }
-                        ?>
-                        
                         <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
-                        
                         <div class="sc-dropdown-toggle">
                             <span class="sc-dropdown-placeholder" <?php if ($filter_member) echo 'style="display:none"'; ?>>همه کاربران</span>
-                            <span class="sc-dropdown-selected" <?php if (!$filter_member) echo 'style="display:none"'; ?>>
-                                <?php echo esc_html($selected_member_text); ?>
-                            </span>
+                            <span class="sc-dropdown-selected" <?php if (!$filter_member) echo 'style="display:none"'; ?>><?php echo esc_html($selected_member_text); ?></span>
                             <span class="sc-dropdown-arrow">▼</span>
                         </div>
-                        
                         <div class="sc-dropdown-menu">
                             <div class="sc-dropdown-search">
                                 <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
                             </div>
-                            
                             <div class="sc-dropdown-options">
-                                <?php
-                                $display_count = 0;
-                                $max_display = 10;
-                                ?>
-                                
                                 <div class="sc-dropdown-option sc-visible"
                                      data-value="0"
                                      data-search="همه کاربران"
                                      onclick="scSelectMemberFilter(this,'0','همه کاربران')">
                                     همه کاربران
                                 </div>
-                                
-                                <?php foreach ($members as $member) :
+                                <?php
+                                $display_count = 0;
+                                $max_display = 10;
+                                foreach ($members as $member) :
                                     $display_class = ($display_count < $max_display) ? 'sc-visible' : 'sc-hidden';
                                     $display_count++;
                                 ?>
-                                    <div class="sc-dropdown-option <?php echo $display_class; ?>"
+                                    <div class="sc-dropdown-option <?php echo esc_attr($display_class); ?>"
                                          data-value="<?php echo esc_attr($member->id); ?>"
                                          data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
                                          onclick="scSelectMemberFilter(this,'<?php echo esc_js($member->id); ?>','<?php echo esc_js($member->first_name . ' ' . $member->last_name . ' - ' . $member->national_id); ?>')">
@@ -171,131 +212,123 @@ if (empty($filter_date_to)) {
                     </div>
                 </div>
 
-                <div>
-                    <label for="filter_type" style="display: block; margin-bottom: 5px; font-weight: 600;">نوع تراکنش:</label>
-                    <select name="filter_type" id="filter_type">
-                        <option value="all" <?php selected(isset($_GET['filter_type']) ? $_GET['filter_type'] : 'all', 'all'); ?>>همه</option>
-                        <option value="charge" <?php selected(isset($_GET['filter_type']) ? $_GET['filter_type'] : '', 'charge'); ?>>شارژ</option>
-                        <option value="deduct" <?php selected(isset($_GET['filter_type']) ? $_GET['filter_type'] : '', 'deduct'); ?>>کاهش</option>
-                        <option value="payment" <?php selected(isset($_GET['filter_type']) ? $_GET['filter_type'] : '', 'payment'); ?>>پرداخت</option>
-                        <option value="refund" <?php selected(isset($_GET['filter_type']) ? $_GET['filter_type'] : '', 'refund'); ?>>بازگشت وجه</option>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_type">نوع تراکنش</label>
+                    <select name="filter_type" id="filter_type" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_type, 'all'); ?>>همه</option>
+                        <option value="charge" <?php selected($filter_type, 'charge'); ?>>شارژ</option>
+                        <option value="deduct" <?php selected($filter_type, 'deduct'); ?>>کاهش</option>
+                        <option value="payment" <?php selected($filter_type, 'payment'); ?>>پرداخت</option>
+                        <option value="refund" <?php selected($filter_type, 'refund'); ?>>بازگشت وجه</option>
+                        <option value="session_fee" <?php selected($filter_type, 'session_fee'); ?>>کسر جلسه</option>
                     </select>
                 </div>
 
-                <div>
-                    <label for="filter_status" style="display: block; margin-bottom: 5px; font-weight: 600;">وضعیت:</label>
-                    <select name="filter_status" id="filter_status">
-                        <option value="all" <?php selected(isset($_GET['filter_status']) ? $_GET['filter_status'] : 'all', 'all'); ?>>همه</option>
-                        <option value="completed" <?php selected(isset($_GET['filter_status']) ? $_GET['filter_status'] : '', 'completed'); ?>>تکمیل شده</option>
-                        <option value="pending" <?php selected(isset($_GET['filter_status']) ? $_GET['filter_status'] : '', 'pending'); ?>>در انتظار</option>
-                        <option value="failed" <?php selected(isset($_GET['filter_status']) ? $_GET['filter_status'] : '', 'failed'); ?>>ناموفق</option>
-                        <option value="cancelled" <?php selected(isset($_GET['filter_status']) ? $_GET['filter_status'] : '', 'cancelled'); ?>>لغو شده</option>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_status">وضعیت</label>
+                    <select name="filter_status" id="filter_status" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_status, 'all'); ?>>همه</option>
+                        <option value="completed" <?php selected($filter_status, 'completed'); ?>>تکمیل شده</option>
+                        <option value="pending" <?php selected($filter_status, 'pending'); ?>>در انتظار</option>
+                        <option value="failed" <?php selected($filter_status, 'failed'); ?>>ناموفق</option>
+                        <option value="cancelled" <?php selected($filter_status, 'cancelled'); ?>>لغو شده</option>
                     </select>
                 </div>
 
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">بازه تاریخ</label>
-                    <div>
-                        <input type="text"
-                               name="filter_date_from_shamsi"
-                               id="filter_date_from_shamsi"
-                               value="<?php echo esc_attr($filter_date_from_shamsi_default); ?>"
-                               class="regular-text persian-date-input"
-                               placeholder="از تاریخ"
-                               style="padding: 5px; margin-left: 5px; width: 130px;"
-                               readonly>
-                        <input type="hidden"
-                               name="filter_date_from"
-                               id="filter_date_from"
-                               value="<?php echo esc_attr($filter_date_from); ?>">
-                        <span>تا</span>
-                        <input type="text"
-                               name="filter_date_to_shamsi"
-                               id="filter_date_to_shamsi"
-                               value="<?php echo esc_attr($filter_date_to_shamsi_default); ?>"
-                               class="regular-text persian-date-input"
-                               placeholder="تا تاریخ"
-                               style="padding: 5px; width: 130px;"
-                               readonly>
-                        <input type="hidden"
-                               name="filter_date_to"
-                               id="filter_date_to"
-                               value="<?php echo esc_attr($filter_date_to); ?>">
-                    </div>
-                </div>
-                <div class="search_box_wallet">
-                    <label for="s" style="display: block; margin-bottom: 5px; font-weight: 600;">جستجو:</label>
-                    <input type="text" name="s" id="s" value="<?php echo esc_attr(isset($_GET['s']) ? $_GET['s'] : ''); ?>" placeholder="جستجو در نام یا توضیحات ">
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_date_from_shamsi">از تاریخ</label>
+                    <input type="text"
+                           name="filter_date_from_shamsi"
+                           id="filter_date_from_shamsi"
+                           value="<?php echo esc_attr($filter_date_from_shamsi_default); ?>"
+                           class="sc-filter-control persian-date-input"
+                           placeholder="از تاریخ"
+                           readonly>
+                    <input type="hidden"
+                           name="filter_date_from"
+                           id="filter_date_from"
+                           value="<?php echo esc_attr($filter_date_from); ?>">
                 </div>
 
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_date_to_shamsi">تا تاریخ</label>
+                    <input type="text"
+                           name="filter_date_to_shamsi"
+                           id="filter_date_to_shamsi"
+                           value="<?php echo esc_attr($filter_date_to_shamsi_default); ?>"
+                           class="sc-filter-control persian-date-input"
+                           placeholder="تا تاریخ"
+                           readonly>
+                    <input type="hidden"
+                           name="filter_date_to"
+                           id="filter_date_to"
+                           value="<?php echo esc_attr($filter_date_to); ?>">
                 </div>
 
-                
-                
-                <div class="btns_list_wallet_trans">
-                    <input type="submit" class="button button-primary" value="اعمال فیلتر">
-                    <?php
-                    // ساخت URL خروجی اکسل با درنظرگرفتن فیلترهای فعلی
-                    $export_url = admin_url('admin.php?page=sc-wallet&sc_export=excel&export_type=wallet_transactions');
-                    
-                    if (isset($_GET['filter_member']) && absint($_GET['filter_member']) > 0) {
-                        $export_url = add_query_arg('filter_member', absint($_GET['filter_member']), $export_url);
-                    }
-                    if (isset($_GET['filter_type']) && $_GET['filter_type'] !== 'all') {
-                        $export_url = add_query_arg('filter_type', sanitize_text_field($_GET['filter_type']), $export_url);
-                    }
-                    if (isset($_GET['filter_status']) && $_GET['filter_status'] !== 'all') {
-                        $export_url = add_query_arg('filter_status', sanitize_text_field($_GET['filter_status']), $export_url);
-                    }
-                    if (isset($_GET['filter_date_from']) && $_GET['filter_date_from'] !== '') {
-                        $export_url = add_query_arg('filter_date_from', sanitize_text_field($_GET['filter_date_from']), $export_url);
-                    }
-                    if (isset($_GET['filter_date_to']) && $_GET['filter_date_to'] !== '') {
-                        $export_url = add_query_arg('filter_date_to', sanitize_text_field($_GET['filter_date_to']), $export_url);
-                    }
-                    if (isset($_GET['filter_amount_min_raw']) && $_GET['filter_amount_min_raw'] !== '') {
-                        $export_url = add_query_arg('filter_amount_min_raw', sanitize_text_field($_GET['filter_amount_min_raw']), $export_url);
-                    } elseif (isset($_GET['filter_amount_min']) && $_GET['filter_amount_min'] !== '') {
-                        $export_url = add_query_arg('filter_amount_min', sanitize_text_field($_GET['filter_amount_min']), $export_url);
-                    }
-                    if (isset($_GET['filter_amount_max_raw']) && $_GET['filter_amount_max_raw'] !== '') {
-                        $export_url = add_query_arg('filter_amount_max_raw', sanitize_text_field($_GET['filter_amount_max_raw']), $export_url);
-                    } elseif (isset($_GET['filter_amount_max']) && $_GET['filter_amount_max'] !== '') {
-                        $export_url = add_query_arg('filter_amount_max', sanitize_text_field($_GET['filter_amount_max']), $export_url);
-                    }
-                    if (isset($_GET['s']) && $_GET['s'] !== '') {
-                        $export_url = add_query_arg('s', sanitize_text_field($_GET['s']), $export_url);
-                    }
-                    
-                    $export_url = wp_nonce_url($export_url, 'sc_export_excel');
-                    ?>
-                    <a href="<?php echo esc_url($export_url); ?>" class="button button_export" >
-                        📊 خروجی Excel
-                    </a>
-                    <a href="<?php echo admin_url('admin.php?page=sc-wallet'); ?>" class="button delete_fillter">پاک کردن</a>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="s">جستجو</label>
+                    <input type="text" name="s" id="s" class="sc-filter-control" value="<?php echo esc_attr($search_value); ?>" placeholder="جستجو در نام یا توضیحات">
                 </div>
+            </div>
+
+            <div class="sc-wallet-list-filters-actions">
+                <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-wallet')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
             </div>
         </form>
     </div>
 
-    <!-- نمایش جدول -->
-     <div class="wrap">
-    <form method="GET">
-        <input type="hidden" name="page" value="sc-wallet">
-        <?php if (isset($_GET['filter_member'])) : ?>
-            <input type="hidden" name="filter_member" value="<?php echo esc_attr($_GET['filter_member']); ?>">
-        <?php endif; ?>
-        <?php if (isset($_GET['filter_type'])) : ?>
-            <input type="hidden" name="filter_type" value="<?php echo esc_attr($_GET['filter_type']); ?>">
-        <?php endif; ?>
-        <?php if (isset($_GET['filter_status'])) : ?>
-            <input type="hidden" name="filter_status" value="<?php echo esc_attr($_GET['filter_status']); ?>">
-        <?php endif; ?>
-        <?php if (isset($_GET['s'])) : ?>
-            <input type="hidden" name="s" value="<?php echo esc_attr($_GET['s']); ?>">
-        <?php endif; ?>
-        
-        <?php $wallet_transactions_list_table->display(); ?>
-    </form>
+    <div class="sc-wallet-list-table-card">
+        <form method="get">
+            <input type="hidden" name="page" value="sc-wallet">
+            <?php if ($filter_member > 0) : ?>
+                <input type="hidden" name="filter_member" value="<?php echo esc_attr($filter_member); ?>">
+            <?php endif; ?>
+            <?php if ($filter_type !== 'all' && $filter_type !== '') : ?>
+                <input type="hidden" name="filter_type" value="<?php echo esc_attr($filter_type); ?>">
+            <?php endif; ?>
+            <?php if ($filter_status !== 'all' && $filter_status !== '') : ?>
+                <input type="hidden" name="filter_status" value="<?php echo esc_attr($filter_status); ?>">
+            <?php endif; ?>
+            <?php if ($filter_date_from !== '') : ?>
+                <input type="hidden" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+            <?php endif; ?>
+            <?php if ($filter_date_to !== '') : ?>
+                <input type="hidden" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
+            <?php endif; ?>
+            <?php if ($search_value !== '') : ?>
+                <input type="hidden" name="s" value="<?php echo esc_attr($search_value); ?>">
+            <?php endif; ?>
+
+            <?php
+            if (isset($wallet_transactions_list_table) && $wallet_transactions_list_table instanceof Wallet_Transactions_List_Table) {
+                $wallet_transactions_list_table->display();
+            }
+            ?>
+        </form>
+    </div>
 </div>
-</div>
+
+<script type="text/javascript">
+jQuery(document).ready(function ($) {
+    var $toggle = $('#sc-wallet-filters-toggle');
+    var $panel = $('#sc-wallet-filters-panel');
+    var $card = $toggle.closest('.sc-wallet-list-filters-card');
+    var $label = $toggle.find('.sc-wallet-list-filters-toggle-label');
+
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+});
+</script>

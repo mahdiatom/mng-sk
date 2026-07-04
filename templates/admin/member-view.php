@@ -57,18 +57,68 @@ $player_image_fields = ['personal_photo', 'id_card_photo', 'sport_insurance_phot
 $player_textarea_fields = ['medical_condition', 'sports_history', 'additional_info'];
 $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fields, ['health_verified', 'info_verified']);
 
-?>
-<div class="wrap">
-    <h1 class="wp-heading-inline">مشاهده اطلاعات بازیکن</h1>
-    <a href="<?php echo (wc_current_user_has_role('coach')) ? esc_url(admin_url('admin.php?page=sc-coach-my-players')) : esc_url(admin_url('admin.php?page=sc-members')); ?>" class="page-title-action">← بازگشت به لیست بازیکنان</a>
-    <?php if( !wc_current_user_has_role('coach')){ ?>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-member&player_id=' . $player_id)); ?>" class="page-title-action">ویرایش</a>
-    <?php } ?>
-    <hr class="wp-header-end">
+$player_full_name = trim((string) ($player->first_name ?? '') . ' ' . (string) ($player->last_name ?? ''));
+$player_initials = '';
+if (!empty($player->first_name)) {
+    $player_initials .= mb_substr((string) $player->first_name, 0, 1);
+}
+if (!empty($player->last_name)) {
+    $player_initials .= mb_substr((string) $player->last_name, 0, 1);
+}
+if ($player_initials === '') {
+    $player_initials = '؟';
+}
+$back_url = (function_exists('wc_current_user_has_role') && wc_current_user_has_role('coach'))
+    ? admin_url('admin.php?page=sc-coach-my-players')
+    : admin_url('admin.php?page=sc-members');
 
-    <div class="sc-member-view-card info_user_player" >
-                
-        <table class="form-table" style="margin-top: 0;">
+?>
+<div class="wrap sc-member-view-wrap">
+    <div class="sc-member-view-header">
+        <div class="sc-member-view-header-text">
+            <h1 class="sc-member-view-title">مشاهده اطلاعات بازیکن</h1>
+            <p class="sc-member-view-desc">جزئیات پروفایل، دوره‌ها و لینک‌های کاربردی بازیکن</p>
+        </div>
+        <div class="sc-member-view-header-actions">
+            <a href="<?php echo esc_url($back_url); ?>" class="sc-member-view-back-btn">بازگشت به لیست</a>
+            <?php if (!function_exists('wc_current_user_has_role') || !wc_current_user_has_role('coach')) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-member&player_id=' . $player_id)); ?>" class="sc-member-view-edit-btn">ویرایش</a>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="sc-member-view-profile-card">
+        <div class="sc-member-view-profile-main">
+            <?php if (!empty($player->personal_photo)) : ?>
+                <span class="sc-member-view-avatar"><img src="<?php echo esc_url($player->personal_photo); ?>" alt=""></span>
+            <?php else : ?>
+                <span class="sc-member-view-avatar sc-member-view-avatar--initials" aria-hidden="true"><?php echo esc_html($player_initials); ?></span>
+            <?php endif; ?>
+            <div class="sc-member-view-profile-info">
+                <h2 class="sc-member-view-profile-name"><?php echo esc_html($player_full_name !== '' ? $player_full_name : 'بدون نام'); ?></h2>
+                <div class="sc-member-view-profile-meta">
+                    <?php if (!empty($player->player_phone)) : ?>
+                        <span><?php echo esc_html($player->player_phone); ?></span>
+                    <?php endif; ?>
+                    <?php if (!empty($player->national_id)) : ?>
+                        <span><?php echo esc_html($player->national_id); ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="sc-member-view-profile-badges">
+                    <span class="sc-badge <?php echo !empty($player->is_active) ? 'sc-badge--success' : 'sc-badge--muted'; ?>">
+                        <?php echo !empty($player->is_active) ? 'فعال' : 'غیرفعال'; ?>
+                    </span>
+                    <span class="sc-badge <?php echo ($player->member_type ?? '') === 'team' ? 'sc-badge--purple' : 'sc-badge--soft'; ?>">
+                        <?php echo ($player->member_type ?? '') === 'team' ? 'بازیکن تیم' : 'بازیکن عادی'; ?>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sc-member-view-card info_user_player">
+        <h2 class="sc-member-view-section-title">اطلاعات پایه</h2>
+        <table class="form-table sc-member-view-table">
             <tbody>
                 <?php foreach ($player_builtin_fields as $field_key => $field_meta) : ?>
                     <?php
@@ -78,7 +128,7 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
                     $field_label = $field_meta['label'] ?? $field_key;
                     ?>
                     <tr>
-                        <th<?php echo $field_key === 'first_name' ? ' style="width: 200px;"' : ''; ?>><?php echo esc_html($field_label); ?></th>
+                        <th><?php echo esc_html($field_label); ?></th>
                         <td><?php echo $field_key === 'first_name' || $field_key === 'last_name' ? '<strong>' . sc_player_info_format_builtin_view_value($player, $field_key) . '</strong>' : sc_player_info_format_builtin_view_value($player, $field_key); ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -88,16 +138,16 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
                 <tr>
                     <th>وضعیت</th>
                     <td>
-                        <span class="sc_status_course_player" style=" <?php echo $player->is_active ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'; ?>">
-                            <?php echo $player->is_active ? 'فعال' : 'غیرفعال'; ?>
+                        <span class="sc-badge <?php echo !empty($player->is_active) ? 'sc-badge--success' : 'sc-badge--danger'; ?>">
+                            <?php echo !empty($player->is_active) ? 'فعال' : 'غیرفعال'; ?>
                         </span>
                     </td>
                 </tr>
                 <tr>
                     <th>نوع عضو</th>
                     <td>
-                        <span style="display: inline-block; padding: 4px 12px; border-radius: 4px; background: #dbeafe; color: #1e40af; font-weight: 600;">
-                            <?php echo $player->member_type === 'team' ? 'بازیکن تیم' : 'بازیکن عادی'; ?>
+                        <span class="sc-badge <?php echo ($player->member_type ?? '') === 'team' ? 'sc-badge--purple' : 'sc-badge--soft'; ?>">
+                            <?php echo ($player->member_type ?? '') === 'team' ? 'بازیکن تیم' : 'بازیکن عادی'; ?>
                         </span>
                     </td>
                 </tr>
@@ -115,21 +165,18 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
                 <?php endif; ?>
                 <tr>
                     <th>غیرفعال کردن صورت حساب خودکار</th>
-                    <td><?php echo $player->disable_auto_invoice ? '<span style="color: #dc2626;">✓ بله</span>' : '<span style="color: #059669;">✗ خیر</span>'; ?></td>
+                    <td><?php echo !empty($player->disable_auto_invoice) ? '<span class="sc-badge sc-badge--danger">بله</span>' : '<span class="sc-badge sc-badge--success">خیر</span>'; ?></td>
                 </tr>
                 <tr>
                     <th>سطح بازیکن</th>
                     <td><?php echo esc_html($player->skill_level ?: 'تعیین نشده'); ?></td>
                 </tr>
-            <?php
-            if($player->team_player){
-            ?>
+            <?php if (!empty($player->team_player)) : ?>
                 <tr>
-                    <th>نام تیم </th>
-                    <td><?php echo esc_html($player->team_player ?: 'تعیین نشده'); ?></td>
+                    <th>نام تیم</th>
+                    <td><?php echo esc_html($player->team_player); ?></td>
                 </tr>
-
-                <?php } ?>
+            <?php endif; ?>
             </tbody>
         </table>
 
@@ -153,13 +200,13 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
         }
         ?>
         <?php if (!empty($visible_photo_fields) || $has_custom_doc_images) : ?>
-            <h2 style="margin-top: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">تصاویر</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 16px;">
+            <h2 class="sc-member-view-section-title">تصاویر</h2>
+            <div class="sc-member-view-photos">
                 <?php foreach ($visible_photo_fields as $image_field_key => $image_label) : ?>
-                    <div>
-                        <strong style="display: block; margin-bottom: 8px;"><?php echo esc_html($image_label); ?>:</strong>
-                        <a href="<?php echo esc_url($player->{$image_field_key}); ?>" target="_blank">
-                            <img src="<?php echo esc_url($player->{$image_field_key}); ?>" alt="<?php echo esc_attr($image_label); ?>" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
+                    <div class="sc-member-view-photo-item">
+                        <strong><?php echo esc_html($image_label); ?></strong>
+                        <a href="<?php echo esc_url($player->{$image_field_key}); ?>" target="_blank" rel="noopener noreferrer">
+                            <img src="<?php echo esc_url($player->{$image_field_key}); ?>" alt="<?php echo esc_attr($image_label); ?>">
                         </a>
                     </div>
                 <?php endforeach; ?>
@@ -170,10 +217,10 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
                         continue;
                     }
                     ?>
-                    <div>
-                        <strong style="display: block; margin-bottom: 8px;"><?php echo esc_html($doc_field['label'] ?? $doc_key); ?>:</strong>
-                        <a href="<?php echo esc_url($doc_url); ?>" target="_blank">
-                            <img src="<?php echo esc_url($doc_url); ?>" alt="<?php echo esc_attr($doc_field['label'] ?? $doc_key); ?>" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
+                    <div class="sc-member-view-photo-item">
+                        <strong><?php echo esc_html($doc_field['label'] ?? $doc_key); ?></strong>
+                        <a href="<?php echo esc_url($doc_url); ?>" target="_blank" rel="noopener noreferrer">
+                            <img src="<?php echo esc_url($doc_url); ?>" alt="<?php echo esc_attr($doc_field['label'] ?? $doc_key); ?>">
                         </a>
                     </div>
                 <?php endforeach; ?>
@@ -197,13 +244,13 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
         }
         ?>
         <?php if ($has_visible_text_fields || $has_visible_additional_custom) : ?>
-            <h2 style="margin-top: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">توضیحات</h2>
-            <table class="form-table" style="margin-top: 0;">
+            <h2 class="sc-member-view-section-title">توضیحات</h2>
+            <table class="form-table sc-member-view-table">
                 <tbody>
                     <?php foreach ($player_textarea_fields as $textarea_key) : ?>
                         <?php if (!sc_player_info_is_field_visible($textarea_key, $player_field_rules)) { continue; } ?>
                         <tr>
-                            <th style="width: 200px;"><?php echo esc_html($player_builtin_fields[$textarea_key]['label'] ?? $textarea_key); ?></th>
+                            <th><?php echo esc_html($player_builtin_fields[$textarea_key]['label'] ?? $textarea_key); ?></th>
                             <td><?php echo sc_player_info_format_builtin_view_value($player, $textarea_key); ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -213,75 +260,85 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
         <?php endif; ?>
 
         <?php if (!empty($player_courses)) : ?>
-            <h2 class="course_active_palyer">دوره‌های بازیکن</h2>
-            <table class="wp-list-table widefat fixed striped" style="margin-top: 16px;">
-                <thead>
-                    <tr>
-                        <th style="width: 120px;">نام دوره</th>
-                        <th style="width: 110px;">شعبه</th>
-                        <th style="width: 140px;">مربی</th>
-                        <th style="width: 120px;">قیمت</th>
-                        <th style="width: 120px;">وضعیت</th>
-                        <th style="width: 150px;">تاریخ ثبت‌نام</th>
-                        <th style="width: 150px;">جلسات دوره </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($player_courses as $pc) : 
-                        $flags = [];
-                        if (!empty($pc->course_status_flags)) {
-                            $flags = array_filter(array_map('trim', explode(',', $pc->course_status_flags)));
-                        }
-                        $status_label = $pc->status === 'active' ? 'فعال' : 'غیرفعال';
-                        if (in_array('paused', $flags)) $status_label .= ' (متوقف شده)';
-                        if (in_array('completed', $flags)) $status_label .= ' (تمام شده)';
-                        if (in_array('canceled', $flags)) $status_label .= ' (لغو شده)';
-                        $formatted_price = function_exists('wc_price') ? wc_price($pc->price) : number_format($pc->price, 0, '.', ',') . ' تومان';
-                    ?>
+            <h2 class="sc-member-view-section-title course_active_palyer">دوره‌های بازیکن</h2>
+            <div class="sc-member-view-table-scroll">
+                <table class="wp-list-table widefat striped sc-member-view-data-table sc-member-view-courses-table">
+                    <thead>
                         <tr>
-                            <td><strong><?php echo esc_html($pc->title); ?></strong></td>
-                            <td><?php
-                                $chapter_mv = isset($pc->chapter) ? trim((string) $pc->chapter) : '';
-                                echo $chapter_mv !== ''
-                                    ? esc_html($chapter_mv)
-                                    : '<span style="color:#646970;">—</span>';
-                            ?></td>
-                            <td><?php
-                                $coach_name_mv = trim((string) ($pc->coach_first_name ?? '') . ' ' . (string) ($pc->coach_last_name ?? ''));
-                                echo $coach_name_mv !== ''
-                                    ? esc_html($coach_name_mv)
-                                    : '<span style="color:#646970;">—</span>';
-                            ?></td>
-                            <td><?php echo $formatted_price; ?></td>
-                            <td>
-                                <span class="sc_status_course_player" style="<?php echo $pc->status === 'active' ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'; ?>">
-                                    <?php echo esc_html($status_label); ?>
-                                </span>
-                            </td>
-                            <td><?php echo esc_html($pc->enrolled_at ? sc_date_shamsi($pc->enrolled_at, 'Y/m/d') : '-'); ?></td>
-                            <td>
-                                <div class="total_sessions">
-                                    <span class="key">کل جلسات دوره : </span>
-                                    <span class="val"><?php echo (int) $pc->total_sessions; ?></span>
-                                </div>
-                                <div class="remaining_sessions">
-                                    <span class="key">جلسات باقی مانده : </span>
-                                    <span class="val"><?php echo (int) $pc->remaining_sessions; ?></span>
-                                </div>
-                            </td>
+                            <th>نام دوره</th>
+                            <th>شعبه</th>
+                            <th>مربی</th>
+                            <th>قیمت</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ ثبت‌نام</th>
+                            <th>جلسات دوره</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($player_courses as $pc) :
+                            $flags = [];
+                            if (!empty($pc->course_status_flags)) {
+                                $flags = array_filter(array_map('trim', explode(',', $pc->course_status_flags)));
+                            }
+                            $status_label = $pc->status === 'active' ? 'فعال' : 'غیرفعال';
+                            if (in_array('paused', $flags)) {
+                                $status_label .= ' (متوقف شده)';
+                            }
+                            if (in_array('completed', $flags)) {
+                                $status_label .= ' (تمام شده)';
+                            }
+                            if (in_array('canceled', $flags)) {
+                                $status_label .= ' (لغو شده)';
+                            }
+                            $formatted_price = function_exists('wc_price') ? wc_price($pc->price) : number_format($pc->price, 0, '.', ',') . ' تومان';
+                            $chapter_mv = isset($pc->chapter) ? trim((string) $pc->chapter) : '';
+                            $coach_name_mv = trim((string) ($pc->coach_first_name ?? '') . ' ' . (string) ($pc->coach_last_name ?? ''));
+                            ?>
+                            <tr>
+                                <td data-label="نام دوره"><strong><?php echo esc_html($pc->title); ?></strong></td>
+                                <td data-label="شعبه"><?php
+                                    echo $chapter_mv !== ''
+                                        ? esc_html($chapter_mv)
+                                        : '<span class="sc-member-view-muted">—</span>';
+                                ?></td>
+                                <td data-label="مربی"><?php
+                                    echo $coach_name_mv !== ''
+                                        ? esc_html($coach_name_mv)
+                                        : '<span class="sc-member-view-muted">—</span>';
+                                ?></td>
+                                <td data-label="قیمت"><?php echo $formatted_price; ?></td>
+                                <td data-label="وضعیت">
+                                    <span class="sc-badge <?php echo $pc->status === 'active' ? 'sc-badge--success' : 'sc-badge--danger'; ?>">
+                                        <?php echo esc_html($status_label); ?>
+                                    </span>
+                                </td>
+                                <td data-label="تاریخ ثبت‌نام"><?php echo esc_html($pc->enrolled_at ? sc_date_shamsi($pc->enrolled_at, 'Y/m/d') : '-'); ?></td>
+                                <td data-label="جلسات دوره">
+                                    <div class="sc-member-view-sessions">
+                                        <div class="total_sessions">
+                                            <span class="key">کل جلسات:</span>
+                                            <span class="val"><?php echo (int) $pc->total_sessions; ?></span>
+                                        </div>
+                                        <div class="remaining_sessions">
+                                            <span class="key">باقی‌مانده:</span>
+                                            <span class="val"><?php echo (int) $pc->remaining_sessions; ?></span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         <?php else : ?>
-            <h2 style="margin-top: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">دوره‌های بازیکن</h2>
-            <p style="margin-top: 16px; color: #646970;">این بازیکن در هیچ دوره‌ای ثبت‌نام نکرده است.</p>
+            <h2 class="sc-member-view-section-title">دوره‌های بازیکن</h2>
+            <p class="sc-member-view-empty">این بازیکن در هیچ دوره‌ای ثبت‌نام نکرده است.</p>
         <?php endif; ?>
         
         <?php
         if (!empty($honors_player)) : ?>
-            <h2 class="course_active_palyer">افتخارات بازیکن</h2>
-            <table class="wp-list-table widefat fixed striped" style="margin-top: 16px;">
+            <h2 class="sc-member-view-section-title course_active_palyer">افتخارات بازیکن</h2>
+            <table class="wp-list-table widefat fixed striped sc-member-view-data-table">
                 <thead>
                     <tr>
                         <th style="width: 120px;">عنوان</th>
@@ -308,8 +365,8 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
                 </tbody>
             </table>
         <?php else : ?>
-            <h2 style="margin-top: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">افتخارات بازیکن</h2>
-            <p style="margin-top: 16px; color: #646970;">این بازیکن تا کنون هیچ افتخاری ارسال نکرده است.</p>
+            <h2 class="sc-member-view-section-title">افتخارات بازیکن</h2>
+            <p class="sc-member-view-empty">این بازیکن تا کنون هیچ افتخاری ارسال نکرده است.</p>
         <?php endif; ?>
 
         <?php
@@ -367,16 +424,16 @@ $player_view_skip_fields = array_merge($player_image_fields, $player_textarea_fi
             ],
         ];
         ?>
-        <div style="margin-top: 36px;">
-            <h2 style="margin: 0 0 14px;">لینک های کاربردی بازیکن</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); gap: 14px;">
+        <div class="sc-member-view-links">
+            <h2 class="sc-member-view-section-title">لینک‌های کاربردی بازیکن</h2>
+            <div class="sc-member-view-links-grid">
                 <?php foreach ($quick_links as $quick_link) : ?>
-                    <a href="<?php echo esc_url($quick_link['url']); ?>" style="display: block; text-decoration: none; padding: 14px 16px; background: #fff; border: 1px solid #d9e1ea; border-radius: 10px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06); transition: all .2s ease;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-                            <strong style="color: #1d2327; font-size: 14px;"><?php echo esc_html($quick_link['label']); ?></strong>
-                            <span style="font-size: 18px;"><?php echo esc_html($quick_link['icon']); ?></span>
+                    <a href="<?php echo esc_url($quick_link['url']); ?>" class="sc-member-view-link-card">
+                        <div class="sc-member-view-link-card-top">
+                            <strong><?php echo esc_html($quick_link['label']); ?></strong>
+                            <span><?php echo esc_html($quick_link['icon']); ?></span>
                         </div>
-                        <p style="margin: 8px 0 0; color: #4b5563; font-size: 12px; line-height: 1.7;"><?php echo esc_html($quick_link['desc']); ?></p>
+                        <p><?php echo esc_html($quick_link['desc']); ?></p>
                     </a>
                 <?php endforeach; ?>
             </div>

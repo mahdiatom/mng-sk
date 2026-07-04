@@ -156,13 +156,72 @@ if ($entries_table_exists && $total_entries > 0) {
     $prepare_ent[] = $offset_ent;
     $entries = $wpdb->get_results($wpdb->prepare($list_ent_sql, $prepare_ent));
 }
+
+$active_filters_count = 0;
+if ($filter_date_from !== '') {
+    $active_filters_count++;
+}
+if ($filter_date_to !== '') {
+    $active_filters_count++;
+}
+if ($filter_context !== '') {
+    $active_filters_count++;
+}
+if ($filter_status !== '') {
+    $active_filters_count++;
+}
+if ($filter_log_level !== '') {
+    $active_filters_count++;
+}
+if ($filter_detail_search !== '') {
+    $active_filters_count++;
+}
+if (isset($_GET['per_page']) && absint($_GET['per_page']) > 0) {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
 ?>
 
-<div class="wrap">
-    <h1 class="wp-heading-inline">گزارشات باشگاه – گزارشات ارسال پیامک</h1>
-    <hr class="wp-header-end">
+<div class="wrap sc-reports-list-wrap">
+    <div class="sc-reports-list-header">
+        <div class="sc-reports-list-header-text">
+            <h1 class="sc-reports-list-title">گزارشات ارسال پیامک</h1>
+            <p class="sc-reports-list-desc">تاریخچه ارسال پیامک‌ها، وضعیت تحویل و لاگ تفصیلی سامانه.</p>
+        </div>
+        <div class="sc-reports-list-header-actions">
+            <form method="post" action="" onsubmit="return scConfirmInline(event, { type: 'warning', message: 'تمام لاگ‌های گزارش ارسال پیامک و لاگ تفصیلی پاک می‌شوند. مطمئن هستید؟' });">
+                <?php wp_nonce_field('sc_clear_sms_logs', '_wpnonce_clear_sms_logs'); ?>
+                <input type="hidden" name="sc_clear_sms_logs" value="1">
+                <button type="submit" class="sc-reports-danger-btn">پاکسازی تمام لاگ‌ها</button>
+            </form>
+        </div>
+    </div>
 
-    <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
+    <div class="sc-reports-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-reports-list-filters-toolbar">
+            <button type="button"
+                    class="sc-reports-list-filters-toggle"
+                    id="sc-reports-sms-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-reports-sms-filters-panel">
+                <span class="sc-reports-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-reports-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-reports-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-reports-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-sms-log')); ?>" class="sc-reports-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+    <form method="get" action="" class="sc-reports-list-filters-panel" id="sc-reports-sms-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
         <input type="hidden" name="page" value="sc-reports-sms-log">
 
         <div class="sc-filter-grid">
@@ -218,48 +277,32 @@ if ($entries_table_exists && $total_entries > 0) {
                 </select>
             </div>
 
-            <div class="sc-filter-field sc-filter-date">
-                <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
-                <div class="sc-date-range">
-                    <input type="text"
-                           name="date_from_shamsi"
-                           id="date_from_shamsi"
-                           value="<?php echo esc_attr($display_date_from); ?>"
-                           class="persian-date-input sc-filter-control sc-no-default-date"
-                           placeholder="از تاریخ"
-                           readonly>
-                    <input type="hidden" name="date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                    <input type="text"
-                           name="date_to_shamsi"
-                           id="date_to_shamsi"
-                           value="<?php echo esc_attr($display_date_to); ?>"
-                           class="persian-date-input sc-filter-control sc-no-default-date"
-                           placeholder="تا تاریخ"
-                           readonly>
-                    <input type="hidden" name="date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                </div>
+            <div class="sc-filter-field">
+                <label class="sc-filter-label">از تاریخ</label>
+                <input type="text" name="date_from_shamsi" id="date_from_shamsi" value="<?php echo esc_attr($display_date_from); ?>" class="persian-date-input sc-filter-control sc-no-default-date" placeholder="از تاریخ" readonly>
+                <input type="hidden" name="date_from" value="<?php echo esc_attr($filter_date_from); ?>">
+            </div>
+            <div class="sc-filter-field">
+                <label class="sc-filter-label">تا تاریخ</label>
+                <input type="text" name="date_to_shamsi" id="date_to_shamsi" value="<?php echo esc_attr($display_date_to); ?>" class="persian-date-input sc-filter-control sc-no-default-date" placeholder="تا تاریخ" readonly>
+                <input type="hidden" name="date_to" value="<?php echo esc_attr($filter_date_to); ?>">
             </div>
 
         </div>
 
-        <p class="submit">
+        <div class="sc-reports-list-filters-actions">
             <button type="submit" class="button button-primary">اعمال فیلتر</button>
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-reports-sms-log')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-        </p>
+        </div>
     </form>
+    </div>
 
-    <form method="post" action="" style="margin-bottom: 16px;" onsubmit="return scConfirmInline(event, { type: 'warning', message: 'تمام لاگ‌های گزارش ارسال پیامک و لاگ تفصیلی پاک می‌شوند. مطمئن هستید؟' });">
-        <?php wp_nonce_field('sc_clear_sms_logs', '_wpnonce_clear_sms_logs'); ?>
-        <input type="hidden" name="sc_clear_sms_logs" value="1">
-        <button type="submit" class="sc_button button-secondary">پاکسازی تمام لاگ‌های پیامک</button>
-    </form>
+    <p class="sc-reports-note">تعداد کل: <strong><?php echo number_format($total_items); ?></strong> رکورد</p>
 
-    <p style="color: #646970; margin-bottom: 12px;">تعداد کل: <strong><?php echo number_format($total_items); ?></strong> رکورد</p>
-
+    <div class="sc-reports-list-table-card">
     <?php if (empty($logs)) : ?>
-        <p>رکوردی یافت نشد.</p>
+        <div class="sc-reports-empty">رکوردی یافت نشد.</div>
     <?php else : ?>
-        <div class="back_list_log_admin" >
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -295,24 +338,24 @@ if ($entries_table_exists && $total_entries > 0) {
                         <td title="<?php echo esc_attr($log->message_text); ?>"><?php echo esc_html($msg_preview); ?></td>
                         <td>
                             <?php if ((int) $log->success === 1) : ?>
-                                <span style="color: #00a32a;">پذیرش توسط سامانه</span>
+                                <span class="sc-badge sc-badge--success">پذیرش توسط سامانه</span>
                             <?php else : ?>
-                                <span style="color: #d63638; font-weight: 600;">ناموفق</span>
+                                <span class="sc-badge sc-badge--danger">ناموفق</span>
                             <?php endif; ?>
                         </td>
                         <td class="sc-delivery-cell">
                             <?php if ($delivery_state !== '') : ?>
                                 <?php if (in_array($delivery_state, $delivery_failed_states, true)) : ?>
-                                    <span class="sc-delivery-state sc-delivery-fail" style="color: #d63638; font-weight: 600;" title="وضعیت واقعی از API سامانه"><?php echo esc_html($delivery_state); ?></span>
+                                    <span class="sc-badge sc-badge--danger sc-delivery-state sc-delivery-fail" title="وضعیت واقعی از API سامانه"><?php echo esc_html($delivery_state); ?></span>
                                 <?php elseif ($delivery_state === 'رسیده به گوشی') : ?>
-                                    <span class="sc-delivery-state sc-delivery-ok" style="color: #00a32a; font-weight: 600;"><?php echo esc_html($delivery_state); ?></span>
+                                    <span class="sc-badge sc-badge--success sc-delivery-state sc-delivery-ok"><?php echo esc_html($delivery_state); ?></span>
                                 <?php else : ?>
-                                    <span class="sc-delivery-state"><?php echo esc_html($delivery_state); ?></span>
+                                    <span class="sc-badge sc-badge--soft sc-delivery-state"><?php echo esc_html($delivery_state); ?></span>
                                 <?php endif; ?>
                             <?php elseif ($has_message_id) : ?>
-                                <button type="button" class="button button-small sc-check-delivery-btn" data-log-id="<?php echo (int) $log->id; ?>">بررسی تحویل</button>
+                                <button type="button" class="sc-reports-action-btn sc-check-delivery-btn" data-log-id="<?php echo (int) $log->id; ?>">بررسی تحویل</button>
                             <?php else : ?>
-                                —
+                                <span class="sc-badge sc-badge--muted">—</span>
                             <?php endif; ?>
                         </td>
                         <td>
@@ -334,9 +377,8 @@ if ($entries_table_exists && $total_entries > 0) {
                 ?>
             </tbody>
         </table>
-                </div>
         <?php if ($total_pages > 1) : ?>
-            <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
+            <div class="tablenav bottom sc_paginate">
                 <div class="tablenav-pages" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div class="displaying-num"><?php echo number_format($total_items); ?> مورد</div>
                     <div class="pagination-links">
@@ -363,8 +405,9 @@ if ($entries_table_exists && $total_entries > 0) {
             </div>
         <?php endif; ?>
     <?php endif; ?>
+    </div>
 
-    <p style="margin-top: 12px; font-size: 12px; color: #646970;">«وضعیت ارسال» یعنی پذیرش توسط سامانه؛ «وضعیت تحویل (واقعی)» از API سامانه (مثلاً لیست سیاه / رسیده به گوشی) با دکمه «بررسی تحویل» به‌روز می‌شود.</p>
+    <p class="sc-reports-note">«وضعیت ارسال» یعنی پذیرش توسط سامانه؛ «وضعیت تحویل (واقعی)» از API سامانه (مثلاً لیست سیاه / رسیده به گوشی) با دکمه «بررسی تحویل» به‌روز می‌شود.</p>
 
     <script>
     jQuery(function($) {
@@ -382,9 +425,8 @@ if ($entries_table_exists && $total_entries > 0) {
                     var state = r.data.delivery_state;
                     var fail = ['لیست سیاه', 'ناموفق', 'نرسیده به گوشی', 'نرسیده به مخابرات'].indexOf(state) >= 0;
                     var ok = state === 'رسیده به گوشی';
-                    var cls = fail ? 'sc-delivery-fail' : (ok ? 'sc-delivery-ok' : '');
-                    var style = fail ? 'color:#d63638;font-weight:600;' : (ok ? 'color:#00a32a;font-weight:600;' : '');
-                    $btn.closest('td').html('<span class="sc-delivery-state ' + cls + '" style="' + style + '">' + state + '</span>');
+                    var badge = fail ? 'sc-badge--danger' : (ok ? 'sc-badge--success' : 'sc-badge--soft');
+                    $btn.closest('td').html('<span class="sc-badge ' + badge + ' sc-delivery-state">' + state + '</span>');
                 } else {
                     alert(r.data && r.data.message ? r.data.message : 'خطا در دریافت وضعیت.');
                     $btn.prop('disabled', false).text('بررسی تحویل');
@@ -397,15 +439,15 @@ if ($entries_table_exists && $total_entries > 0) {
     });
     </script>
 
-    <hr style="margin: 32px 0 16px 0;" />
-
-    <h2 style="margin-bottom: 12px;">لاگ تفصیلی پیامک</h2>
-    <p style="color: #646970; margin-bottom: 12px;"> تعداد لاگ ها :  <strong><?php echo number_format($total_entries); ?></strong></p>
-
+    <div class="sc-reports-list-panel" style="margin-top:16px;">
+        <div class="sc-reports-list-panel-header">
+            <h2>لاگ تفصیلی پیامک</h2>
+            <span class="sc-badge sc-badge--soft"><?php echo number_format($total_entries); ?> مورد</span>
+        </div>
     <?php if (empty($entries)) : ?>
-        <p>ورودی لاگ تفصیلی یافت نشد. از همین لحظه هر بار که پیامکی ارسال یا لاگ شود، اینجا ثبت می‌شود.</p>
+        <div class="sc-reports-empty">ورودی لاگ تفصیلی یافت نشد. از همین لحظه هر بار که پیامکی ارسال یا لاگ شود، اینجا ثبت می‌شود.</div>
     <?php else : ?>
-        <div class="back_list_log_admin">
+        <div class="sc-reports-list-table-card" style="margin:0;box-shadow:none;border:none;padding:0;">
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -430,18 +472,18 @@ if ($entries_table_exists && $total_entries > 0) {
                     } else {
                         $data_display = '—';
                     }
-                    $level_style = [
-                        'DEBUG' => 'color:#646970;',
-                        'INFO'  => 'color:#2271b1;',
-                        'SUCCESS' => 'color:#00a32a; font-weight:600;',
-                        'ERROR' => 'color:#d63638; font-weight:600;',
+                    $level_badge = [
+                        'DEBUG' => 'sc-badge--muted',
+                        'INFO'  => 'sc-badge--purple',
+                        'SUCCESS' => 'sc-badge--success',
+                        'ERROR' => 'sc-badge--danger',
                     ];
-                    $level_css = isset($level_style[$ent->level]) ? $level_style[$ent->level] : '';
+                    $level_cls = isset($level_badge[$ent->level]) ? $level_badge[$ent->level] : 'sc-badge--soft';
                 ?>
                     <tr>
                         <td><?php echo (int) $row_ent; ?></td>
                         <td><?php echo esc_html($ent->created_at); ?></td>
-                        <td><span style="<?php echo esc_attr($level_css); ?>"><?php echo esc_html($ent->level); ?></span></td>
+                        <td><span class="sc-badge <?php echo esc_attr($level_cls); ?>"><?php echo esc_html($ent->level); ?></span></td>
                         <td><?php echo esc_html($ent->message); ?></td>
                         <td style="font-family: monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all;"><?php echo esc_html($data_display); ?></td>
                     </tr>
@@ -451,9 +493,9 @@ if ($entries_table_exists && $total_entries > 0) {
                 ?>
             </tbody>
         </table>
-                </div>
+        </div>
         <?php if ($total_pages_ent > 1) : ?>
-            <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
+            <div class="tablenav bottom sc_paginate">
                 <div class="tablenav-pages">
                     <p class="pagination-links">
                         <?php
@@ -479,4 +521,27 @@ if ($entries_table_exists && $total_entries > 0) {
             </div>
         <?php endif; ?>
     <?php endif; ?>
+    </div>
 </div>
+<script type="text/javascript">
+jQuery(function ($) {
+    var $toggle = $('#sc-reports-sms-filters-toggle');
+    var $panel = $('#sc-reports-sms-filters-panel');
+    var $card = $toggle.closest('.sc-reports-list-filters-card');
+    var $label = $toggle.find('.sc-reports-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+});
+</script>

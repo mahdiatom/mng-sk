@@ -292,14 +292,23 @@ function sc_export_finance_course_income_to_excel() {
     [$from, $to] = sc_finance_export_date_range();
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
+    $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
     $filter_group = function_exists('sc_finance_normalize_group_filter')
         ? sc_finance_normalize_group_filter($filter_course, isset($_GET['filter_group']) ? wp_unslash((string) $_GET['filter_group']) : '')
         : '';
 
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $courses_table = $wpdb->prefix . 'sc_courses';
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
     $where = ["i.status IN ('paid','completed','processing')", "i.payment_date IS NOT NULL", "DATE(i.payment_date) BETWEEN %s AND %s", "i.course_id > 0"];
     $args = [$from, $to];
+    $coach_join = '';
+    if ($filter_coach > 0) {
+        $coach_join = $wpdb->prepare(
+            " INNER JOIN $course_coaches_table cc ON cc.course_id = i.course_id AND cc.coach_id = %d ",
+            $filter_coach
+        );
+    }
     if ($filter_course > 0) {
         $where[] = "i.course_id = %d";
         $args[] = $filter_course;
@@ -308,39 +317,73 @@ function sc_export_finance_course_income_to_excel() {
         $where[] = "c.chapter = %s";
         $args[] = $filter_chapter;
     }
-    $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
-        ? sc_finance_apply_invoice_group_filter($where, $args, $filter_course, $filter_group)
-        : '';
-    $sql = "SELECT c.title, c.chapter, COUNT(i.id) AS paid_count, SUM(i.amount) AS income_total
-            FROM $invoices_table i
-            INNER JOIN $courses_table c ON c.id = i.course_id
-            {$mc_join}
-            WHERE " . implode(' AND ', $where) . "
-            GROUP BY c.id, c.title, c.chapter
-            ORDER BY income_total DESC";
+
+    $course_has_groups = false;
+    if ($filter_course > 0 && function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled($filter_course)) {
+        $names = function_exists('sc_get_course_group_names') ? sc_get_course_group_names($filter_course) : [];
+        $course_has_groups = !empty($names);
+    }
+
+    $mc_join = '';
+    if (function_exists('sc_finance_apply_invoice_group_filter')) {
+        if ($filter_group !== '') {
+            $mc_join = sc_finance_apply_invoice_group_filter($where, $args, $filter_course, $filter_group);
+        } elseif ($course_has_groups && function_exists('sc_finance_invoice_member_course_join_sql')) {
+            $mc_join = sc_finance_invoice_member_course_join_sql('i', 'mc');
+        }
+    }
+
+    if ($course_has_groups) {
+        $sql = "SELECT c.title, c.chapter,
+                       COALESCE(NULLIF(TRIM(mc.group_name), ''), 'بدون گروه') AS group_name,
+                       COUNT(i.id) AS paid_count, SUM(i.amount) AS income_total
+                FROM $invoices_table i
+                INNER JOIN $courses_table c ON c.id = i.course_id
+                {$coach_join}
+                {$mc_join}
+                WHERE " . implode(' AND ', $where) . "
+                GROUP BY c.id, c.title, c.chapter, COALESCE(NULLIF(TRIM(mc.group_name), ''), 'بدون گروه')
+                ORDER BY income_total DESC";
+    } else {
+        $sql = "SELECT c.title, c.chapter, COUNT(i.id) AS paid_count, SUM(i.amount) AS income_total
+                FROM $invoices_table i
+                INNER JOIN $courses_table c ON c.id = i.course_id
+                {$coach_join}
+                {$mc_join}
+                WHERE " . implode(' AND ', $where) . "
+                GROUP BY c.id, c.title, c.chapter
+                ORDER BY income_total DESC";
+    }
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
 
     $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('درآمد دوره‌ها');
     $sheet->setRightToLeft(true);
-    $headers = ['ردیف', 'دوره', 'شعبه', 'تعداد پرداخت', 'درآمد (تومان)'];
+    $headers = $course_has_groups
+        ? ['ردیف', 'دوره', 'گروه', 'شعبه', 'تعداد پرداخت', 'درآمد (تومان)']
+        : ['ردیف', 'دوره', 'شعبه', 'تعداد پرداخت', 'درآمد (تومان)'];
     foreach ($headers as $i => $h) {
         $sheet->setCellValueByColumnAndRow($i + 1, 1, $h);
     }
-    $sheet->getStyle('A1:E1')->applyFromArray(sc_get_excel_header_style());
+    $last_col = $course_has_groups ? 'F' : 'E';
+    $sheet->getStyle("A1:{$last_col}1")->applyFromArray(sc_get_excel_header_style());
     $r = 2;
     $i = 1;
     foreach ($rows as $row) {
-        $sheet->setCellValueByColumnAndRow(1, $r, $i++);
-        $sheet->setCellValueByColumnAndRow(2, $r, $row->title);
-        $sheet->setCellValueByColumnAndRow(3, $r, $row->chapter ?: '-');
-        $sheet->setCellValueByColumnAndRow(4, $r, (int) $row->paid_count);
-        $sheet->setCellValueByColumnAndRow(5, $r, number_format((float) $row->income_total, 0, '.', ','));
-        $sheet->getStyle("A{$r}:E{$r}")->applyFromArray(sc_get_excel_data_style());
+        $col = 1;
+        $sheet->setCellValueByColumnAndRow($col++, $r, $i++);
+        $sheet->setCellValueByColumnAndRow($col++, $r, $row->title);
+        if ($course_has_groups) {
+            $sheet->setCellValueByColumnAndRow($col++, $r, $row->group_name ?: 'بدون گروه');
+        }
+        $sheet->setCellValueByColumnAndRow($col++, $r, $row->chapter ?: '-');
+        $sheet->setCellValueByColumnAndRow($col++, $r, (int) $row->paid_count);
+        $sheet->setCellValueByColumnAndRow($col, $r, number_format((float) $row->income_total, 0, '.', ','));
+        $sheet->getStyle("A{$r}:{$last_col}{$r}")->applyFromArray(sc_get_excel_data_style());
         $r++;
     }
-    sc_auto_size_columns($sheet, 5);
+    sc_auto_size_columns($sheet, $course_has_groups ? 6 : 5);
     if (ob_get_level()) {
         ob_end_clean();
     }
@@ -425,6 +468,9 @@ function sc_export_finance_coach_share_to_excel() {
     $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
+    $filter_group = function_exists('sc_finance_normalize_group_filter')
+        ? sc_finance_normalize_group_filter($filter_course, isset($_GET['filter_group']) ? wp_unslash((string) $_GET['filter_group']) : '')
+        : '';
 
     $wallet_table = $wpdb->prefix . 'sc_coach_wallet_transactions';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
@@ -445,6 +491,9 @@ function sc_export_finance_coach_share_to_excel() {
     $income_args = [$from, $to];
     if ($filter_course > 0) { $income_where[] = "i.course_id = %d"; $income_args[] = $filter_course; }
     if ($filter_chapter !== '') { $income_where[] = "c.chapter = %s"; $income_args[] = $filter_chapter; }
+    $income_mc_join = function_exists('sc_finance_apply_invoice_group_filter')
+        ? sc_finance_apply_invoice_group_filter($income_where, $income_args, $filter_course, $filter_group)
+        : '';
 
     $sql = "SELECT coach_rows.first_name, coach_rows.last_name, SUM(coach_rows.coach_income) AS coach_income, SUM(COALESCE(course_income.course_income,0)) AS total_class_income
             FROM (
@@ -460,6 +509,7 @@ function sc_export_finance_coach_share_to_excel() {
                 SELECT i.course_id, SUM(i.amount) AS course_income
                 FROM $invoices_table i
                 INNER JOIN $courses_table c ON c.id = i.course_id
+                {$income_mc_join}
                 WHERE " . implode(' AND ', $income_where) . "
                 GROUP BY i.course_id
             ) course_income ON course_income.course_id = coach_rows.related_course_id

@@ -113,6 +113,20 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                 <td><textarea name="sports_history" id="sports_history" rows="4" class="large-text"><?php echo $coach ? esc_textarea($coach->sports_history) : ''; ?></textarea></td>
             </tr>
             <tr>
+                <th><label for="personal_photo_txt">عکس پرسنلی</label></th>
+                <td>
+                    <?php $coach_photo = ($coach && !empty($coach->personal_photo)) ? $coach->personal_photo : ''; ?>
+                    <input type="text" name="personal_photo" id="personal_photo_txt" class="regular-text" value="<?php echo esc_attr($coach_photo); ?>" placeholder="آدرس تصویر یا آپلود کنید">
+                    <button type="button" class="button-secondary sc-upload-btn" id="btn_personal_photo">انتخاب تصویر</button>
+                    <?php if ($coach_photo !== '') : ?>
+                        <div class="sc-image-preview img_photo_prev" style="margin-top: 10px;">
+                            <img src="<?php echo esc_url($coach_photo); ?>" alt="عکس پرسنلی" style="max-width: 160px; height: auto; border-radius: 10px;">
+                        </div>
+                    <?php endif; ?>
+                    <p class="description">این عکس در لیست مربیان نمایش داده می‌شود.</p>
+                </td>
+            </tr>
+            <tr>
                 <th><label for="is_private_enabled">کلاس خصوصی</label></th>
                 <td>
                     <label>

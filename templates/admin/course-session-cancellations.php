@@ -53,8 +53,6 @@ $today_shamsi_display = function_exists('sc_date_shamsi_date_only')
     ? sc_date_shamsi_date_only(current_time('Y-m-d'))
     : '';
 
-
-
 if (isset($_GET['action'], $_GET['id']) && $_GET['action'] === 'delete' && isset($_GET['_wpnonce'])) {
     $del_id = absint($_GET['id']);
     if ($del_id && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'sc_del_session_cancel_' . $del_id)) {
@@ -133,92 +131,91 @@ if ($is_coach_only) {
 }
 
 ?>
-<div class="wrap">
-    <h1>تعطیلی بازهٔ جلسه (حضور خودکار)</h1>
-    <p class="description"> با ثبت تاریخ و زمان دستگاه در تایم مشخص شده کار نمیکند ( مناسب برای زمان هایی که جلسه کلاس لغو شده و میخواهید برای بازیکنان غیبت خودکار لحاظ نشود .) </p>
-</div>
-<div class="wrap">
-    <h2 style="margin-top:24px;">افزودن رکورد جدید </h2>
-    <form method="post">
-        <?php wp_nonce_field('sc_session_cancel_nonce', 'sc_session_cancel_nonce'); ?>
-        <table class="form-table">
-            <tr>
-                <th><label for="course_id">دوره</label></th>
-                <td>
-                    <select name="course_id" id="course_id" required style="min-width:220px;">
+<div class="wrap sc-att-cancel-wrap">
+    <div class="sc-att-list-header-inner">
+        <div class="sc-att-list-header-text">
+            <h1 class="sc-att-list-title">تعطیلی بازهٔ جلسه</h1>
+            <p class="sc-att-list-desc">با ثبت تاریخ و زمان، دستگاه در تایم مشخص‌شده کار نمی‌کند (مناسب وقتی جلسه لغو شده و نمی‌خواهید غیبت خودکار لحاظ شود).</p>
+        </div>
+        <div class="sc-att-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list')); ?>" class="sc-att-btn-secondary">لیست حضور و غیاب</a>
+        </div>
+    </div>
+
+    <div class="sc-att-cancel-layout">
+        <div class="sc-att-cancel-form-card">
+            <h2 class="sc-att-card-title">افزودن رکورد جدید</h2>
+            <form method="post" class="sc-att-cancel-form">
+                <?php wp_nonce_field('sc_session_cancel_nonce', 'sc_session_cancel_nonce'); ?>
+                <div class="sc-att-report-field">
+                    <label class="sc-att-report-label" for="course_id">دوره</label>
+                    <select name="course_id" id="course_id" class="sc-att-report-input" required>
                         <option value="">— انتخاب —</option>
                         <?php foreach ($courses as $c) : ?>
                             <option value="<?php echo esc_attr((string) $c->id); ?>"><?php echo esc_html($c->title); ?></option>
                         <?php endforeach; ?>
                     </select>
-                </td>
-            </tr>
-            <tr>
-                <th><label for="session_date_shamsi">تاریخ جلسه (شمسی)</label></th>
-                <td>
-                    <input type="text" 
-                        name="session_date_shamsi" 
-                        id="session_date_shamsi" 
-                        class="persian-date-input"
-                        value="<?php echo esc_attr($today_shamsi_display); ?>" 
-                        placeholder="1403/09/15" 
-                        required 
-                        style="width:300px !important;" 
-                        readonly>
-                </td>
-            </tr>
-            <tr>
-                <th><label for="time_start">از ساعت</label></th>
-                <td><input style="width:300px !important;" type="time" name="time_start" id="time_start" required></td>
-            </tr>
-            <tr>
-                <th><label for="time_end">تا ساعت</label></th>
-                <td><input style="width:300px !important;" type="time" name="time_end" id="time_end" required></td>
-            </tr>
-            <tr>
-                <th><label  for="reason">دلیل (اختیاری)</label></th>
-                <td><input style="width:300px !important;" type="text" name="reason" id="reason" class="regular-text" maxlength="255"></td>
-            </tr>
-        </table>
-        <p><input type="submit" name="sc_save_session_cancel" class="button button-primary" value="ذخیره"></p>
-    </form>
-</div>
-<div class="wrap">
-    <div class="back_table_list">
-    <table class="wp-list-table widefat striped ">
-        <thead>
-            <tr>
-                <th>دوره</th>
-                <th>تاریخ (شمسی)</th>
-                <th>از</th>
-                <th>تا</th>
-                <th>دلیل</th>
-                <th>عملیات</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (empty($rows)) : ?>
-                <tr><td colspan="6">رکوردی نیست.</td></tr>
-            <?php else : ?>
-                <?php foreach ($rows as $r) : ?>
-                    <?php
-                    $sh = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($r->session_date) : $r->session_date;
-                    $del_url = wp_nonce_url(
-                        add_query_arg(['action' => 'delete', 'id' => $r->id], admin_url('admin.php?page=sc-attendance-session-cancellations')),
-                        'sc_del_session_cancel_' . $r->id
-                    );
-                    ?>
-                    <tr>
-                        <td><?php echo esc_html($r->course_title); ?></td>
-                        <td><?php echo esc_html($sh); ?></td>
-                        <td><?php echo esc_html(substr((string) $r->time_start, 0, 5)); ?></td>
-                        <td><?php echo esc_html(substr((string) $r->time_end, 0, 5)); ?></td>
-                        <td><?php echo esc_html($r->reason ?? ''); ?></td>
-                        <td><a href="<?php echo esc_url($del_url); ?>" class="button-link-delete" onclick="return scConfirmInline(event, { type: 'warning', message: 'حذف شود؟' });">حذف</a></td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+                </div>
+                <div class="sc-att-report-field">
+                    <label class="sc-att-report-label" for="session_date_shamsi">تاریخ جلسه (شمسی)</label>
+                    <input type="text" name="session_date_shamsi" id="session_date_shamsi" class="sc-att-report-input persian-date-input" value="<?php echo esc_attr($today_shamsi_display); ?>" placeholder="1403/09/15" required readonly>
+                </div>
+                <div class="sc-att-cancel-time-row">
+                    <div class="sc-att-report-field">
+                        <label class="sc-att-report-label" for="time_start">از ساعت</label>
+                        <input type="time" name="time_start" id="time_start" class="sc-att-report-input" required>
+                    </div>
+                    <div class="sc-att-report-field">
+                        <label class="sc-att-report-label" for="time_end">تا ساعت</label>
+                        <input type="time" name="time_end" id="time_end" class="sc-att-report-input" required>
+                    </div>
+                </div>
+                <div class="sc-att-report-field">
+                    <label class="sc-att-report-label" for="reason">دلیل (اختیاری)</label>
+                    <input type="text" name="reason" id="reason" class="sc-att-report-input" maxlength="255">
+                </div>
+                <button type="submit" name="sc_save_session_cancel" class="sc-att-btn-primary sc-att-report-submit">ذخیره</button>
+            </form>
+        </div>
+
+        <div class="sc-att-cancel-list-card">
+            <h2 class="sc-att-card-title">لیست تعطیلی‌ها</h2>
+            <div class="sc-att-table-scroll">
+                <table class="wp-list-table widefat striped sc-att-table">
+                    <thead>
+                        <tr>
+                            <th>دوره</th>
+                            <th>تاریخ (شمسی)</th>
+                            <th>از</th>
+                            <th>تا</th>
+                            <th>دلیل</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($rows)) : ?>
+                            <tr><td colspan="6" class="sc-att-empty">رکوردی نیست.</td></tr>
+                        <?php else : ?>
+                            <?php foreach ($rows as $r) :
+                                $sh = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($r->session_date) : $r->session_date;
+                                $del_url = wp_nonce_url(
+                                    add_query_arg(['action' => 'delete', 'id' => $r->id], admin_url('admin.php?page=sc-attendance-session-cancellations')),
+                                    'sc_del_session_cancel_' . $r->id
+                                );
+                                ?>
+                                <tr>
+                                    <td data-label="دوره"><strong><?php echo esc_html($r->course_title); ?></strong></td>
+                                    <td data-label="تاریخ"><?php echo esc_html($sh); ?></td>
+                                    <td data-label="از"><?php echo esc_html(substr((string) $r->time_start, 0, 5)); ?></td>
+                                    <td data-label="تا"><?php echo esc_html(substr((string) $r->time_end, 0, 5)); ?></td>
+                                    <td data-label="دلیل"><?php echo esc_html($r->reason ?? '—'); ?></td>
+                                    <td data-label="عملیات"><a href="<?php echo esc_url($del_url); ?>" class="sc-att-delete-link" onclick="return scConfirmInline(event, { type: 'warning', message: 'حذف شود؟' });">حذف</a></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
