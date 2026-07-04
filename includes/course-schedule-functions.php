@@ -314,3 +314,98 @@ function sc_get_member_weekly_schedule_matrix($member_id) {
 
     return ['days' => $labels, 'cells' => $cells];
 }
+
+/**
+ * برنامهٔ هفتگی مربی: فقط اسلات‌هایی که با انتساب شعبه/مربی او در دوره مطابقت دارند.
+ *
+ * @param int $coach_id
+ * @return array{days:array<int,string>,cells:array<int,array<int,array<string,mixed>>>}
+ */
+function sc_get_coach_weekly_schedule_matrix($coach_id) {
+    global $wpdb;
+    $coach_id = absint($coach_id);
+    $labels = sc_course_weekday_labels_ir();
+    $cells = [];
+    foreach (range(1, 7) as $d) {
+        $cells[$d] = [];
+    }
+    if (!$coach_id || !sc_course_weekly_schedule_table_ready()) {
+        return ['days' => $labels, 'cells' => $cells];
+    }
+
+    $cc = $wpdb->prefix . 'sc_course_coaches';
+    $c = $wpdb->prefix . 'sc_courses';
+    $sch = $wpdb->prefix . 'sc_course_weekly_schedule';
+
+    // فقط ردیف‌هایی که برای همین مربی (یا عمومی) و شعبهٔ انتساب اوست — نه همهٔ اسلات‌های دوره
+    $has_chapter_coach = function_exists('sc_course_schedule_has_chapter_coach_columns')
+        && sc_course_schedule_has_chapter_coach_columns();
+    $has_group_cols = function_exists('sc_course_schedule_has_group_columns')
+        && sc_course_schedule_has_group_columns();
+
+    $slot_filter = '';
+    if ($has_chapter_coach) {
+        $slot_filter = "
+          AND (s.coach_id IS NULL OR s.coach_id = 0 OR s.coach_id = %d)
+          AND (
+            s.chapter_name IS NULL OR s.chapter_name = ''
+            OR cc.chapter_name IS NULL OR cc.chapter_name = ''
+            OR s.chapter_name = cc.chapter_name
+          )";
+    }
+
+    $extra_select = '';
+    if ($has_chapter_coach) {
+        $extra_select .= ', s.chapter_name, s.coach_id AS slot_coach_id';
+    }
+    if ($has_group_cols) {
+        $extra_select .= ', s.schedule_uses_group, s.group_name';
+    }
+
+    $sql = "SELECT DISTINCT s.id AS schedule_id, s.weekday, s.time_start, s.time_end{$extra_select},
+                   c.id AS course_id, c.title AS course_title, c.course_type
+        FROM {$cc} cc
+        INNER JOIN {$c} c ON c.id = cc.course_id AND c.deleted_at IS NULL
+        INNER JOIN {$sch} s ON s.course_id = c.id
+        WHERE cc.coach_id = %d
+          {$slot_filter}
+        ORDER BY s.weekday ASC, s.time_start ASC, s.id ASC";
+
+    $rows = $has_chapter_coach
+        ? $wpdb->get_results($wpdb->prepare($sql, $coach_id, $coach_id))
+        : $wpdb->get_results($wpdb->prepare($sql, $coach_id));
+    $seen = [];
+    foreach ($rows as $r) {
+        $d = (int) $r->weekday;
+        if ($d < 1 || $d > 7) {
+            continue;
+        }
+        $sid = isset($r->schedule_id) ? (int) $r->schedule_id : 0;
+        $dedupe_key = $sid > 0 ? (string) $sid : ($d . '|' . $r->time_start . '|' . $r->time_end . '|' . $r->course_id);
+        if (isset($seen[$dedupe_key])) {
+            continue;
+        }
+        $seen[$dedupe_key] = true;
+
+        $chapter = (isset($r->chapter_name) && trim((string) $r->chapter_name) !== '')
+            ? trim((string) $r->chapter_name)
+            : '';
+        $group_name = (
+            function_exists('sc_course_schedule_has_group_columns') && sc_course_schedule_has_group_columns()
+            && !empty($r->schedule_uses_group) && !empty($r->group_name)
+        ) ? (string) $r->group_name : '';
+
+        $cells[$d][] = [
+            'schedule_id' => $sid,
+            'course_id' => (int) $r->course_id,
+            'title' => (string) $r->course_title,
+            'type' => ((string) $r->course_type === 'private') ? 'خصوصی/نیمه‌خصوصی' : 'گروهی',
+            'start' => substr((string) $r->time_start, 0, 5),
+            'end' => substr((string) $r->time_end, 0, 5),
+            'chapter' => $chapter,
+            'group_name' => $group_name,
+        ];
+    }
+
+    return ['days' => $labels, 'cells' => $cells];
+}

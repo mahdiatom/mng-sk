@@ -10,23 +10,22 @@ if ($coach_id <= 0) {
     wp_die('اطلاعات مربی یافت نشد.');
 }
 global $wpdb;
-$course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
 $courses_table = $wpdb->prefix . 'sc_courses';
-$slots_table = $wpdb->prefix . 'sc_course_weekly_schedule';
 $private_sessions_table = $wpdb->prefix . 'sc_private_booking_sessions';
 $members_table = $wpdb->prefix . 'sc_members';
-$weekday_labels = function_exists('sc_course_weekday_labels_ir') ? sc_course_weekday_labels_ir() : [];
 
-$weekly_rows = $wpdb->get_results($wpdb->prepare(
-    "SELECT c.id AS course_id, c.title AS course_title, c.course_type, s.weekday, s.time_start, s.time_end
-     FROM {$course_coaches_table} cc
-     INNER JOIN {$courses_table} c ON c.id = cc.course_id
-     INNER JOIN {$slots_table} s ON s.course_id = c.id
-     WHERE cc.coach_id = %d
-       AND c.deleted_at IS NULL
-     ORDER BY s.weekday ASC, s.time_start ASC",
-    $coach_id
-));
+$matrix = function_exists('sc_get_coach_weekly_schedule_matrix')
+    ? sc_get_coach_weekly_schedule_matrix($coach_id)
+    : ['days' => [], 'cells' => []];
+$ws_days = isset($matrix['days']) && is_array($matrix['days']) ? $matrix['days'] : [];
+$ws_cells = isset($matrix['cells']) && is_array($matrix['cells']) ? $matrix['cells'] : [];
+$ws_has_any = false;
+foreach (range(1, 7) as $day_num) {
+    if (!empty($ws_cells[$day_num])) {
+        $ws_has_any = true;
+        break;
+    }
+}
 
 $upcoming_private = $wpdb->get_results($wpdb->prepare(
     "SELECT ps.id, ps.course_id, ps.member_id, ps.session_date, ps.time_start, ps.time_end, ps.status,
@@ -42,34 +41,6 @@ $upcoming_private = $wpdb->get_results($wpdb->prepare(
     $coach_id,
     current_time('Y-m-d')
 ));
-
-$ws_days = [];
-foreach (range(1, 7) as $day_num) {
-    $ws_days[$day_num] = isset($weekday_labels[$day_num]) ? $weekday_labels[$day_num] : (string) $day_num;
-}
-$ws_cells = [];
-foreach (range(1, 7) as $day_num) {
-    $ws_cells[$day_num] = [];
-}
-foreach ($weekly_rows as $row) {
-    $weekday = (int) $row->weekday;
-    if ($weekday < 1 || $weekday > 7) {
-        continue;
-    }
-    $ws_cells[$weekday][] = [
-        'start' => substr((string) $row->time_start, 0, 5),
-        'end' => substr((string) $row->time_end, 0, 5),
-        'title' => (string) $row->course_title,
-        'type' => ((string) $row->course_type === 'private') ? 'خصوصی/نیمه‌خصوصی' : 'گروهی',
-    ];
-}
-$ws_has_any = false;
-foreach (range(1, 7) as $day_num) {
-    if (!empty($ws_cells[$day_num])) {
-        $ws_has_any = true;
-        break;
-    }
-}
 ?>
 <div class="wrap sc-coach-panel-wrap">
     <div class="sc-coach-panel-header">
@@ -106,6 +77,12 @@ foreach (range(1, 7) as $day_num) {
                                                     <?php echo esc_html($slot['start']); ?> – <?php echo esc_html($slot['end']); ?>
                                                 </div>
                                                 <div style="color:#333; line-height:1.4; margin-bottom:4px;"><?php echo esc_html($slot['title']); ?></div>
+                                                <?php if (!empty($slot['chapter'])) : ?>
+                                                    <div style="color:#555; font-size:12px; margin-bottom:4px;">شعبه: <?php echo esc_html($slot['chapter']); ?></div>
+                                                <?php endif; ?>
+                                                <?php if (!empty($slot['group_name'])) : ?>
+                                                    <div style="color:#555; font-size:12px; margin-bottom:4px;">گروه: <?php echo esc_html($slot['group_name']); ?></div>
+                                                <?php endif; ?>
                                                 <span style="display:inline-block; font-size:11px; color:#0a4b78; background:#dbeeff; padding:2px 8px; border-radius:999px;">
                                                     <?php echo esc_html($slot['type']); ?>
                                                 </span>

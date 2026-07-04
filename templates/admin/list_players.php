@@ -2,9 +2,12 @@
 
 if ( ! defined('ABSPATH') ) exit;
 //این فایل پاپ اپ برای اطلاعات بازیکن است که در صفحه لیست اعضا در اکشن می
-global $title ,$player_list_table;
- $playerListTable = new Player_List_Table();
-    $playerListTable->prepare_items();
+// جدول در procces_table_data (هوک load) آماده می‌شود؛ اینجا دوباره prepare نکنید (اکشن گروهی دوبار اجرا می‌شد)
+global $title, $player_list_table;
+if (!isset($player_list_table) || !($player_list_table instanceof Player_List_Table)) {
+    $player_list_table = new Player_List_Table();
+    $player_list_table->prepare_items();
+}
 
             ?>
             <div class="wrap">

@@ -415,7 +415,12 @@ public function column_full_name($item) {
 
         $orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
         $order = isset($_GET['order']) ? sanitize_text_field($_GET['order']) : 'DESC';
-        $order_clause = "ORDER BY $orderby $order";
+        $allowed_orderby = ['id', 'first_name', 'last_name', 'created_at', 'national_id', 'is_active', 'profile_completed', 'identity_verified'];
+        if (!in_array($orderby, $allowed_orderby, true)) {
+            $orderby = 'created_at';
+        }
+        $order = (strtoupper($order) === 'ASC') ? 'ASC' : 'DESC';
+        $order_clause = "ORDER BY `$orderby` $order";
 
         $where = " 1=1 ";
         
@@ -539,8 +544,14 @@ public function column_full_name($item) {
             );
         }
 
+        // COUNT جداگانه — SQL_CALC_FOUND_ROWS بعد از UPDATE پروفایل در حلقه زیر خراب می‌شد و total=1 می‌شد
+        $total_items = (int) $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE $where");
+
+        $per_page = absint($per_page);
+        $offset = absint($offset);
+        // $where از قبل با prepare ساخته شده؛ دوباره prepare نکنید (LIKEهای % خراب می‌شوند)
         $results = $wpdb->get_results(
-            "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            "SELECT * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
             ARRAY_A
         );
 
@@ -556,8 +567,9 @@ public function column_full_name($item) {
         }
 
         $this->set_pagination_args([
-            'total_items' => $wpdb->get_var("SELECT FOUND_ROWS()"),
-            'per_page' => $per_page
+            'total_items' => $total_items,
+            'per_page' => $per_page,
+            'total_pages' => $per_page > 0 ? (int) ceil($total_items / $per_page) : 1,
         ]);
 
         $this->_column_headers = [$this->get_columns(), $this->get_hidden_columns(), $this->get_sortable_columns()];

@@ -11850,3 +11850,14 @@ body[class*="_page_sc-reports-income-expenses"] .sc-finance-cell-expense {
     }
 }
 /* ─── پایان گزارشات مالی و حسابداری ─── */
+
+
+/* بخش پنهان سازی ایتم منو  */
+#collapse-menu{
+order: -1;
+
+}
+#adminmenu {
+    display: flex;
+    flex-direction: column;
+}
