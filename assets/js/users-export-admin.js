@@ -161,6 +161,9 @@ jQuery(function ($) {
 
         $btn.on('click', function () {
             $btn.prop('disabled', true);
+            if (window.scAudiencePreviewAdd) {
+                window.scAudiencePreviewAdd.reset('#sc-cert-preview-result');
+            }
             $result.html('<p class="description">در حال دریافت پیش نمایش...</p>');
 
             $.post((typeof ajaxurl !== 'undefined' ? ajaxurl : ''), buildCertificatesPreviewPayload())
@@ -169,6 +172,9 @@ jQuery(function ($) {
                         $result.html(res.data.html || '');
                         certificatesPreviewLoaded = true;
                         initCertificatesPreviewSelectionBindings();
+                        if (window.scAudiencePreviewAdd) {
+                            window.scAudiencePreviewAdd.show('#sc-cert-preview-result');
+                        }
                     } else {
                         $result.html('<p class="description">خطا در دریافت پیش نمایش.</p>');
                     }
@@ -241,6 +247,9 @@ jQuery(function ($) {
 
         $btn.on('click', function () {
             $btn.prop('disabled', true);
+            if (window.scAudiencePreviewAdd) {
+                window.scAudiencePreviewAdd.reset('#sc-users-preview-result');
+            }
             $result.html('<p class="description">در حال دریافت پیش نمایش...</p>');
 
             $.post((typeof ajaxurl !== 'undefined' ? ajaxurl : ''), buildUsersPreviewPayload())
@@ -249,6 +258,9 @@ jQuery(function ($) {
                         $result.html(res.data.html || '');
                         usersPreviewLoaded = true;
                         initUsersPreviewSelectionBindings();
+                        if (window.scAudiencePreviewAdd) {
+                            window.scAudiencePreviewAdd.show('#sc-users-preview-result');
+                        }
                     } else {
                         $result.html('<p class="description">خطا در دریافت پیش نمایش.</p>');
                     }
@@ -282,7 +294,11 @@ jQuery(function ($) {
         $toggle.on('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            $menu.slideToggle(150);
+            $menu.slideToggle(150, function () {
+                if (window.scAudienceDropdownStack) {
+                    window.scAudienceDropdownStack.sync($dropdown);
+                }
+            });
             setTimeout(function () {
                 $search.trigger('focus');
             }, 200);
@@ -310,7 +326,11 @@ jQuery(function ($) {
 
         $(document).on('click', function (e) {
             if (!$(e.target).closest('#sc-users-member-dropdown').length) {
-                $menu.slideUp(150);
+                $menu.slideUp(150, function () {
+                    if (window.scAudienceDropdownStack) {
+                        window.scAudienceDropdownStack.sync($dropdown);
+                    }
+                });
             }
         });
     }
@@ -327,7 +347,11 @@ jQuery(function ($) {
         $toggle.on('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            $menu.slideToggle(150);
+            $menu.slideToggle(150, function () {
+                if (window.scAudienceDropdownStack) {
+                    window.scAudienceDropdownStack.sync($dropdown);
+                }
+            });
             setTimeout(function () {
                 $search.trigger('focus');
             }, 200);
@@ -359,7 +383,11 @@ jQuery(function ($) {
 
         $(document).on('click', function (e) {
             if (!$(e.target).closest('#sc-exclude-member-dropdown').length) {
-                $menu.slideUp(150);
+                $menu.slideUp(150, function () {
+                    if (window.scAudienceDropdownStack) {
+                        window.scAudienceDropdownStack.sync($dropdown);
+                    }
+                });
             }
         });
     }
@@ -563,7 +591,11 @@ jQuery(function ($) {
                 loadEventFieldsForExport(getSelectedEventIds(), null);
             }
         });
-        $('#sc-target-type, #sc-member-type, #sc-course-ids, #sc-event-ids, #sc-team-names, #sc-level-names').on('change', function () {
+        $('#sc-target-type, #sc-member-type, #sc-event-ids, #sc-team-names, #sc-level-names').on('change', function () {
+            usersPreviewLoaded = false;
+            certificatesPreviewLoaded = false;
+        });
+        $(document).on('sc-audience-course-change', '.sc-audience-course-picker', function () {
             usersPreviewLoaded = false;
             certificatesPreviewLoaded = false;
         });
@@ -642,6 +674,17 @@ jQuery(function ($) {
 
         bindSearchableDropdown();
         bindExcludeDropdown();
+        $(document).on('sc-audience-preview-member-added', function (e, payload) {
+            if (!payload || !payload.mode) {
+                return;
+            }
+            if (payload.mode === 'cert') {
+                initCertificatesPreviewSelectionBindings();
+            }
+            if (payload.mode === 'users') {
+                initUsersPreviewSelectionBindings();
+            }
+        });
         initCertificatesPreview();
         initUsersPreview();
         toggleFilterBlocks();

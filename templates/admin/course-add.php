@@ -2,6 +2,7 @@
 if ( ! defined('ABSPATH') ) exit;
 $title = '';
 $description = '';
+$course_image = '';
 $price = '';
 $price_per_session = '';
 $capacity = '';
@@ -30,6 +31,7 @@ if (!isset($course_group_rows) || !is_array($course_group_rows)) {
 if ($course && isset($_GET['course_id'])) {
     $title = $course->title ?? '';
     $description = $course->description ?? '';
+    $course_image = $course->image ?? '';
     $price = $course->price ?? '';
     $price_per_session = $course->price_per_session ?? '';
     $capacity = $course->capacity ?? '';
@@ -197,6 +199,21 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                             <div class="sc-course-field sc-course-field--full">
                                 <label class="sc-course-field__label" for="description">توضیحات</label>
                                 <textarea name="description" id="description" rows="4" class="sc-course-input sc-course-textarea"><?php echo esc_textarea($description ?? ''); ?></textarea>
+                            </div>
+                            <div class="sc-course-field sc-course-field--full">
+                                <label class="sc-course-field__label" for="course_image_url">عکس دوره</label>
+                                <div class="sc-course-image-field">
+                                    <input type="url" name="image" id="course_image_url" value="<?php echo esc_attr($course_image); ?>" class="sc-course-input" placeholder="آدرس تصویر یا آپلود کنید">
+                                    <button type="button" class="button sc-course-upload-image-btn" id="btn_course_image">انتخاب تصویر</button>
+                                </div>
+                                <?php if (!empty($course_image)) : ?>
+                                    <div class="sc-course-image-preview img_photo_prev">
+                                        <img src="<?php echo esc_url($course_image); ?>" alt="عکس دوره">
+                                    </div>
+                                <?php else : ?>
+                                    <div class="sc-course-image-preview img_photo_prev" style="display:none;"></div>
+                                <?php endif; ?>
+                                <p class="sc-course-field__hint">این تصویر در لیست دوره‌ها کنار عنوان نمایش داده می‌شود.</p>
                             </div>
                         </div>
                     </div>

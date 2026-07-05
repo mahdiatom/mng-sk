@@ -202,12 +202,18 @@
             var $btn = $(this);
             var $result = $('#sc-private-notes-preview-result');
             $btn.prop('disabled', true);
+            if (window.scAudiencePreviewAdd) {
+                window.scAudiencePreviewAdd.reset('#sc-private-notes-preview-result');
+            }
             $result.html('<p class="description">در حال دریافت پیش نمایش...</p>');
             $.post((window.scPrivateNotesAdmin && scPrivateNotesAdmin.ajaxurl) ? scPrivateNotesAdmin.ajaxurl : ajaxurl, buildPayload())
                 .done(function (res) {
                     if (res && res.success && res.data) {
                         $result.html(res.data.html || '');
                         initPreviewSelectionBindings();
+                        if (window.scAudiencePreviewAdd) {
+                            window.scAudiencePreviewAdd.show('#sc-private-notes-preview-result');
+                        }
                     } else {
                         $result.html('<p class="description">خطا در دریافت پیش‌نمایش.</p>');
                     }
@@ -216,6 +222,12 @@
                     $result.html('<p class="description">خطا در ارتباط با سرور.</p>');
                 })
                 .always(function () { $btn.prop('disabled', false); });
+        });
+
+        $(document).on('sc-audience-preview-member-added', function (e, payload) {
+            if (payload && payload.mode === 'private') {
+                initPreviewSelectionBindings();
+            }
         });
     });
 })(jQuery);

@@ -373,7 +373,9 @@ function sc_certificates_preview_members_ajax() {
 
     $config = [
         'member_ids' => isset($_POST['member_ids']) ? array_map('absint', (array) $_POST['member_ids']) : [],
-        'course_ids' => isset($_POST['course_ids']) ? array_map('absint', (array) $_POST['course_ids']) : [],
+        'course_ids' => function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($_POST['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($_POST['course_ids'] ?? []))),
         'event_ids' => isset($_POST['event_ids']) ? array_map('absint', (array) $_POST['event_ids']) : [],
         'team_names' => isset($_POST['team_names']) ? array_map('sanitize_text_field', (array) $_POST['team_names']) : [],
         'level_names' => isset($_POST['level_names']) ? array_map('sanitize_text_field', (array) $_POST['level_names']) : [],
@@ -432,7 +434,10 @@ function sc_issue_certificates_handler() {
     $config = [
         'member_ids' => isset($_POST['member_ids']) ? array_map('absint', (array) $_POST['member_ids']) : [],
         'excluded_member_ids' => isset($_POST['excluded_member_ids']) ? array_map('absint', (array) $_POST['excluded_member_ids']) : [],
-        'course_ids' => isset($_POST['course_ids']) ? array_map('absint', (array) $_POST['course_ids']) : [],
+        'included_member_ids' => isset($_POST['included_member_ids']) ? array_map('absint', (array) $_POST['included_member_ids']) : [],
+        'course_ids' => function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($_POST['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($_POST['course_ids'] ?? []))),
         'event_ids' => isset($_POST['event_ids']) ? array_map('absint', (array) $_POST['event_ids']) : [],
         'team_names' => isset($_POST['team_names']) ? array_map('sanitize_text_field', (array) $_POST['team_names']) : [],
         'level_names' => isset($_POST['level_names']) ? array_map('sanitize_text_field', (array) $_POST['level_names']) : [],
@@ -445,6 +450,9 @@ function sc_issue_certificates_handler() {
     }
     $template = sc_certificates_normalize_template($templates[$template_key], $template_key);
     $members = sc_users_export_get_members($target_type, $config);
+    if (function_exists('sc_audience_apply_included_members_config')) {
+        $members = sc_audience_apply_included_members_config($members, $config);
+    }
     if (empty($members)) {
         wp_die('هیچ کاربری با فیلتر انتخابی پیدا نشد.');
     }

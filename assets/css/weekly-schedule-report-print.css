@@ -1,0 +1,222 @@
+@font-face {
+    font-family: IRANYekanXFaNum;
+    font-style: normal;
+    font-weight: normal;
+    src: url('../fonts/Woff/IRANYekanXFaNum-Regular.woff') format('woff'),
+         url('../fonts/Woff2/IRANYekanXFaNum-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: IRANYekanXFaNum;
+    font-style: normal;
+    font-weight: bold;
+    src: url('../fonts/Woff/IRANYekanXFaNum-Bold.woff') format('woff'),
+         url('../fonts/Woff2/IRANYekanXFaNum-Bold.woff2') format('woff2');
+}
+
+@page {
+    size: A4 portrait;
+    margin: 12mm 10mm;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body.sc-weekly-schedule-print-page {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+body.sc-weekly-schedule-print-page {
+    padding: 10mm;
+    direction: rtl;
+    font-family: "IRANYekanXFaNum", Tahoma, Arial, sans-serif;
+    background: #fff;
+    color: #111827;
+    font-size: 11px;
+    line-height: 1.45;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.sc-weekly-schedule-print-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.sc-weekly-schedule-print-title-wrap h1 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.sc-weekly-schedule-print-title-wrap p {
+    margin: 0;
+    font-size: 11px;
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.sc-weekly-schedule-print-meta {
+    margin-top: 4px !important;
+    font-size: 10px !important;
+    color: #6b7280 !important;
+}
+
+.sc-weekly-schedule-print-actions button {
+    border: 1px solid #2271b1;
+    background: #2271b1;
+    color: #fff;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.sc-weekly-schedule-print-empty,
+.sc-weekly-schedule-empty {
+    padding: 18px;
+    text-align: center;
+    color: #6b7280;
+    border: 1px dashed #d1d5db;
+    border-radius: 8px;
+}
+
+.sc-weekly-schedule-print-section {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+    margin-bottom: 16px;
+}
+
+.sc-weekly-schedule-print-section h2 {
+    margin: 0 0 8px;
+    padding: 6px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2937;
+    background: #f3f4f6;
+    border-radius: 6px;
+}
+
+.sc-weekly-schedule-list-table {
+    width: 100%;
+    max-width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 10px;
+}
+
+.sc-weekly-schedule-list-table th,
+.sc-weekly-schedule-list-table td {
+    border: 1px solid #d1d5db;
+    padding: 5px 6px;
+    vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+
+.sc-weekly-schedule-list-table thead th {
+    background: #2271b1;
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+    font-size: 10px;
+}
+
+.sc-weekly-schedule-list-table tbody tr:nth-child(even) td {
+    background: #f9fafb;
+}
+
+.sc-weekly-schedule-list-table .col-day {
+    width: 11%;
+    text-align: center;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.sc-weekly-schedule-list-table .col-time {
+    width: 14%;
+    text-align: center;
+    white-space: nowrap;
+    color: #1d4ed8;
+    font-weight: 700;
+}
+
+.sc-weekly-schedule-list-table .col-chapter {
+    width: 16%;
+}
+
+.sc-weekly-schedule-list-table .col-coach {
+    width: 22%;
+}
+
+.sc-weekly-schedule-list-table .col-group {
+    width: 18%;
+}
+
+.sc-weekly-schedule-list-table .col-type {
+    width: 19%;
+    text-align: center;
+    font-size: 9px;
+}
+
+.sc-weekly-schedule-list-table .col-title {
+    width: auto;
+}
+
+@media screen and (max-width: 782px) {
+    body.sc-weekly-schedule-print-page {
+        padding: 12px;
+    }
+
+    .sc-weekly-schedule-print-header {
+        flex-direction: column;
+    }
+}
+
+@media print {
+    html,
+    body.sc-weekly-schedule-print-page {
+        width: auto;
+        overflow: visible !important;
+    }
+
+    body.sc-weekly-schedule-print-page {
+        padding: 0;
+    }
+
+    .sc-weekly-schedule-print-actions {
+        display: none !important;
+    }
+
+    .sc-weekly-schedule-print-section {
+        margin-bottom: 12px;
+    }
+
+    .sc-weekly-schedule-print-section + .sc-weekly-schedule-print-section {
+        break-before: auto;
+        page-break-before: auto;
+    }
+
+    .sc-weekly-schedule-list-table {
+        font-size: 9px;
+    }
+
+    .sc-weekly-schedule-list-table th,
+    .sc-weekly-schedule-list-table td {
+        padding: 4px 5px;
+    }
+}

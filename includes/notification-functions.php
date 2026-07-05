@@ -118,43 +118,24 @@ function sc_get_notification_recipients($target_type, $target_config) {
         );
         $user_ids = array_map('intval', (array)$user_ids);
     } elseif ($target_type === 'course') {
-        // course_ids: array of course ids, send to active enrolled members
-        $course_ids = isset($target_config['course_ids']) ? array_map('absint', (array)$target_config['course_ids']) : [];
-        if (empty($course_ids)) return [];
-        $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
-        $user_ids = $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT m.user_id 
-             FROM $member_courses_table mc
-             INNER JOIN $members_table m ON mc.member_id = m.id
-             WHERE mc.course_id IN ($placeholders) 
-             AND mc.status = 'active'
-             AND m.user_id IS NOT NULL",
-            ...$course_ids
-        ));
-        $user_ids = array_map('intval', (array)$user_ids);
-    } elseif ($target_type === 'debtors') {
-        // بدهکاران: اعضایی که حداقل یک صورتحساب پرداخت‌نشده دارند
-        $invoices_table = $wpdb->prefix . 'sc_invoices';
-        $course_ids = isset($target_config['course_ids']) ? array_map('absint', (array)$target_config['course_ids']) : [];
-        if (!empty($course_ids)) {
-            $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
-            $user_ids = $wpdb->get_col($wpdb->prepare(
-                "SELECT DISTINCT m.user_id 
-                 FROM $invoices_table i
-                 INNER JOIN $members_table m ON i.member_id = m.id
-                 WHERE i.status = 'pending' AND m.user_id IS NOT NULL AND m.is_active = 1
-                 AND i.course_id IN ($placeholders)",
-                ...$course_ids
-            ));
-        } else {
-            $user_ids = $wpdb->get_col(
-                "SELECT DISTINCT m.user_id 
-                 FROM $invoices_table i
-                 INNER JOIN $members_table m ON i.member_id = m.id
-                 WHERE i.status = 'pending' AND m.user_id IS NOT NULL AND m.is_active = 1"
-            );
+        $course_values = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($target_config['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($target_config['course_ids'] ?? [])));
+        if (empty($course_values)) {
+            return [];
         }
-        $user_ids = array_map('intval', (array)$user_ids);
+        $user_ids = function_exists('sc_audience_get_active_member_user_ids_by_course_selections')
+            ? sc_audience_get_active_member_user_ids_by_course_selections($course_values)
+            : [];
+        $user_ids = array_map('intval', (array) $user_ids);
+    } elseif ($target_type === 'debtors') {
+        $course_values = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($target_config['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($target_config['course_ids'] ?? [])));
+        $user_ids = function_exists('sc_audience_get_debtor_user_ids_by_course_selections')
+            ? sc_audience_get_debtor_user_ids_by_course_selections($course_values)
+            : [];
+        $user_ids = array_map('intval', (array) $user_ids);
     } elseif ($target_type === 'event') {
         // رویداد: شرکت‌کنندگان یک یا چند رویداد؛ اختیاری: فقط اشخاص انتخاب‌شده
         $events_table = $wpdb->prefix . 'sc_events';
@@ -280,38 +261,46 @@ function sc_get_notification_recipients($target_type, $target_config) {
         // all - with user_type and course_scope
         $user_type = isset($target_config['user_type']) ? $target_config['user_type'] : 'all'; // all|player|coach
         $course_scope = isset($target_config['course_scope']) ? $target_config['course_scope'] : 'all'; // all|specific
-        $course_ids = isset($target_config['course_ids']) ? array_map('absint', (array)$target_config['course_ids']) : [];
+        $course_values = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($target_config['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($target_config['course_ids'] ?? [])));
 
-        if ($course_scope === 'specific' && !empty($course_ids)) {
-            $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
+        if ($course_scope === 'specific' && !empty($course_values)) {
+            $course_ids = function_exists('sc_audience_extract_course_ids')
+                ? sc_audience_extract_course_ids($course_values)
+                : array_filter(array_map('absint', $course_values));
             if ($user_type === 'player') {
-                $user_ids = $wpdb->get_col($wpdb->prepare(
-                    "SELECT DISTINCT m.user_id 
-                     FROM $member_courses_table mc
-                     INNER JOIN $members_table m ON mc.member_id = m.id
-                     WHERE mc.course_id IN ($placeholders) AND mc.status = 'active' AND m.user_id IS NOT NULL",
-                    ...$course_ids
-                ));
+                $user_ids = function_exists('sc_audience_get_active_member_user_ids_by_course_selections')
+                    ? sc_audience_get_active_member_user_ids_by_course_selections($course_values)
+                    : [];
             } elseif ($user_type === 'coach') {
-                $user_ids = $wpdb->get_col($wpdb->prepare(
-                    "SELECT DISTINCT c.user_id 
-                     FROM $course_coaches_table cc
-                     INNER JOIN $coaches_table c ON cc.coach_id = c.id
-                     WHERE cc.course_id IN ($placeholders) AND c.user_id IS NOT NULL",
-                    ...$course_ids
-                ));
+                if (empty($course_ids)) {
+                    $user_ids = [];
+                } else {
+                    $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
+                    $user_ids = $wpdb->get_col($wpdb->prepare(
+                        "SELECT DISTINCT c.user_id 
+                         FROM $course_coaches_table cc
+                         INNER JOIN $coaches_table c ON cc.coach_id = c.id
+                         WHERE cc.course_id IN ($placeholders) AND c.user_id IS NOT NULL",
+                        ...$course_ids
+                    ));
+                }
             } else {
-                $member_uids = $wpdb->get_col($wpdb->prepare(
-                    "SELECT DISTINCT m.user_id FROM $member_courses_table mc INNER JOIN $members_table m ON mc.member_id = m.id 
-                     WHERE mc.course_id IN ($placeholders) AND mc.status = 'active' AND m.user_id IS NOT NULL",
-                    ...$course_ids
-                ));
-                $coach_uids = $wpdb->get_col($wpdb->prepare(
-                    "SELECT DISTINCT c.user_id FROM $course_coaches_table cc INNER JOIN $coaches_table c ON cc.coach_id = c.id 
-                     WHERE cc.course_id IN ($placeholders) AND c.user_id IS NOT NULL",
-                    ...$course_ids
-                ));
-                $user_ids = array_unique(array_merge((array)$member_uids, (array)$coach_uids));
+                $member_uids = function_exists('sc_audience_get_active_member_user_ids_by_course_selections')
+                    ? sc_audience_get_active_member_user_ids_by_course_selections($course_values)
+                    : [];
+                if (!empty($course_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
+                    $coach_uids = $wpdb->get_col($wpdb->prepare(
+                        "SELECT DISTINCT c.user_id FROM $course_coaches_table cc INNER JOIN $coaches_table c ON cc.coach_id = c.id 
+                         WHERE cc.course_id IN ($placeholders) AND c.user_id IS NOT NULL",
+                        ...$course_ids
+                    ));
+                } else {
+                    $coach_uids = [];
+                }
+                $user_ids = array_unique(array_merge((array) $member_uids, (array) $coach_uids));
             }
         } else {
             if ($user_type === 'player') {
@@ -325,6 +314,10 @@ function sc_get_notification_recipients($target_type, $target_config) {
             }
         }
         $user_ids = array_map('intval', (array)$user_ids);
+    }
+
+    if (function_exists('sc_audience_merge_included_member_user_ids')) {
+        $user_ids = sc_audience_merge_included_member_user_ids((array) $user_ids, $target_config);
     }
 
     $exclude_recipient_ids = isset($target_config['exclude_recipient_ids']) ? (array)$target_config['exclude_recipient_ids'] : [];
@@ -999,7 +992,9 @@ function sc_ajax_notification_recipients_count() {
         $target_config['recipient_ids'] = array_filter(array_map('trim', explode(',', $target_config['recipient_ids'])));
     }
     if (isset($target_config['course_ids']) && is_string($target_config['course_ids'])) {
-        $target_config['course_ids'] = array_map('absint', array_filter(explode(',', $target_config['course_ids'])));
+        $target_config['course_ids'] = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request(explode(',', $target_config['course_ids']))
+            : array_map('absint', array_filter(explode(',', $target_config['course_ids'])));
     }
     if (isset($target_config['event_ids'])) {
         $target_config['event_ids'] = is_array($target_config['event_ids']) ? array_map('absint', $target_config['event_ids']) : array_map('absint', array_filter(explode(',', $target_config['event_ids'])));
@@ -1038,7 +1033,9 @@ function sc_ajax_notification_recipients_preview() {
         $target_config['recipient_ids'] = array_filter(array_map('trim', explode(',', $target_config['recipient_ids'])));
     }
     if (isset($target_config['course_ids']) && is_string($target_config['course_ids'])) {
-        $target_config['course_ids'] = array_map('absint', array_filter(explode(',', $target_config['course_ids'])));
+        $target_config['course_ids'] = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request(explode(',', $target_config['course_ids']))
+            : array_map('absint', array_filter(explode(',', $target_config['course_ids'])));
     }
     if (isset($target_config['event_ids']) && is_string($target_config['event_ids'])) {
         $target_config['event_ids'] = array_map('absint', array_filter(explode(',', $target_config['event_ids'])));

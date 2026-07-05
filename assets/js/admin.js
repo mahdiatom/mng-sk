@@ -112,23 +112,45 @@ function scSelectEventFilter(element, eventId, eventText) {
     jQuery(element).append('<span class="sc-option-check" style="float: left; color: #2271b1; font-weight: bold;">✓</span>');
 }
 
-// تابع انتخاب دوره در ثبت حضور و غیاب (مقدار می‌تواند course_id یا course_id|chapter باشد)
-function scSelectCourseAttendance(element, courseValue, courseText) {
-    var $dropdown = jQuery(element).closest('.sc-searchable-dropdown');
-    var $hiddenInput = $dropdown.find('input[type="hidden"]');
+// تابع انتخاب دوره در ثبت حضور و غیاب (data-value داخلی: course_id|chapter|group)
+function scAttendanceSplitCourseValue(courseValue) {
+    var val = String(courseValue || '');
+    if (!val) {
+        return { courseId: '', chapter: '', group: '' };
+    }
+    var parts = val.split('|');
+    return {
+        courseId: parts[0] || '',
+        chapter: parts[1] || '',
+        group: parts[2] || ''
+    };
+}
+
+function scAttendanceApplyCourseFields($dropdown, courseValue, courseText) {
+    var parts = scAttendanceSplitCourseValue(courseValue);
+    $dropdown.find('input[name="attendance_course_id"], #attendance_course_id').val(parts.courseId);
+    $dropdown.find('input[name="attendance_chapter"], #attendance_chapter').val(parts.chapter);
+    $dropdown.find('input[name="attendance_group"], #attendance_group').val(parts.group);
+    $dropdown.find('#attendance_course_option_value').val(courseValue || '');
+
     var $toggle = $dropdown.find('.sc-dropdown-toggle');
     var $placeholder = $toggle.find('.sc-dropdown-placeholder');
     var $selected = $toggle.find('.sc-dropdown-selected');
-    var $menu = $dropdown.find('.sc-dropdown-menu');
 
-    $hiddenInput.val(courseValue || '');
     if (!courseValue) {
         $placeholder.show();
-        $selected.hide();
+        $selected.hide().text('');
     } else {
         $placeholder.hide();
         $selected.text(courseText).show();
     }
+}
+
+function scSelectCourseAttendance(element, courseValue, courseText) {
+    var $dropdown = jQuery(element).closest('.sc-searchable-dropdown');
+    var $menu = $dropdown.find('.sc-dropdown-menu');
+
+    scAttendanceApplyCourseFields($dropdown, courseValue, courseText);
 
     $menu.slideUp(200);
 
@@ -212,11 +234,17 @@ jQuery(document).ready(function($) {
         $('.sc-dropdown-menu').slideUp(200);
         
         if (!isOpen) {
-            $menu.slideDown(200);
+            $menu.slideDown(200, function () {
+                if (window.scAudienceDropdownStack) {
+                    window.scAudienceDropdownStack.sync($menu.closest('.sc-searchable-dropdown, .sc-audience-course-picker'));
+                }
+            });
             // فوکوس به input جستجو
             setTimeout(function() {
                 $menu.find('.sc-search-input').focus();
             }, 250);
+        } else if (window.scAudienceDropdownStack) {
+            window.scAudienceDropdownStack.clear();
         }
     });
     
@@ -266,6 +294,9 @@ jQuery(document).ready(function($) {
     $(document).on('click', function(e) {
         if (!$(e.target).closest('.sc-searchable-dropdown').length) {
             $('.sc-dropdown-menu').slideUp(200);
+            if (window.scAudienceDropdownStack) {
+                window.scAudienceDropdownStack.clear();
+            }
         }
     });
 
@@ -298,16 +329,19 @@ jQuery(document).ready(function($) {
         e.stopPropagation();
     });
     
-    // نمایش مقدار انتخاب شده در صورت وجود (برای invoice-add)
+    // نمایش مقدار انتخاب شده در صورت وجود (برای invoice-add و ثبت حضور)
     $('.sc-searchable-dropdown').each(function() {
         var $dropdown = $(this);
-        var selectedValue = $dropdown.find('input[type="hidden"]').val();
+        var selectedValue = $dropdown.find('#attendance_course_option_value').val();
+        if (!selectedValue) {
+            selectedValue = $dropdown.find('input[type="hidden"]').first().val();
+        }
         if (selectedValue) {
             var $selectedOption = $dropdown.find('.sc-dropdown-option').filter(function() {
                 return String($(this).attr('data-value')) === String(selectedValue);
             }).first();
             if ($selectedOption.length) {
-                var selectedText = $selectedOption.text().replace('✓', '').trim();
+                var selectedText = $selectedOption.attr('data-label') || $selectedOption.text().replace('✓', '').trim();
                 $dropdown.find('.sc-dropdown-placeholder').hide();
                 $dropdown.find('.sc-dropdown-selected').text(selectedText).show();
             }
@@ -729,6 +763,41 @@ jQuery(document).ready(function($) {
     }
         scFormatPrice('#price', '#price_raw');
     }
+
+    $('#btn_course_image').on('click', function(e) {
+        e.preventDefault();
+        if (typeof wp === 'undefined' || !wp.media) {
+            return;
+        }
+        var inputField = $('#course_image_url');
+        var imageUploader = wp.media({
+            title: 'انتخاب عکس دوره',
+            button: {
+                text: 'استفاده از این عکس'
+            },
+            multiple: false
+        });
+
+        imageUploader.on('select', function() {
+            var attachment = imageUploader.state().get('selection').first().toJSON();
+            inputField.val(attachment.url);
+            var previewContainer = inputField.closest('.sc-course-field').find('.sc-course-image-preview');
+            if (previewContainer.length === 0) {
+                inputField.closest('.sc-course-field').append(
+                    '<div class="sc-course-image-preview img_photo_prev"><img src="' + attachment.url + '" alt="عکس دوره"></div>'
+                );
+            } else {
+                previewContainer.show();
+                if (previewContainer.find('img').length === 0) {
+                    previewContainer.append('<img src="' + attachment.url + '" alt="عکس دوره">');
+                } else {
+                    previewContainer.find('img').attr('src', attachment.url);
+                }
+            }
+        });
+
+        imageUploader.open();
+    });
 });
 
 // ============================================
@@ -1441,11 +1510,12 @@ function scInitWpContentListAdminLayout() {
     $wrap.addClass('sc-reports-list-wrap sc-wp-content-list-wrap');
 
     var isPage = $body.hasClass('post-type-page');
+    var listUrl = isPage ? 'edit.php?post_type=page' : 'edit.php';
     var desc = isPage
         ? 'مدیریت برگه‌های سایت. برای ویرایش روی عنوان کلیک کنید.'
         : 'مدیریت نوشته‌های سایت. برای ویرایش روی عنوان کلیک کنید.';
 
-    var $h1 = $wrap.children('h1.wp-heading-inline').first();
+    var $h1 = $wrap.children('h1.wp-heading-inline, h1').first();
     var $addBtn = $wrap.children('.page-title-action').first();
     if ($h1.length && !$wrap.children('.sc-wp-content-list-header').length) {
         var $header = jQuery('<div class="sc-wp-content-list-header sc-reports-list-header"></div>');
@@ -1469,14 +1539,16 @@ function scInitWpContentListAdminLayout() {
         return;
     }
 
-    $form.addClass('sc-wp-content-list-table-card sc-reports-list-table-card');
+    var formId = $form.attr('id') || 'posts-filter';
 
     var $subsub = $wrap.children('.subsubsub').first();
     if ($subsub.length && !$form.children('.subsubsub').length) {
         $form.prepend($subsub.detach());
     }
 
-    if ($form.find('.sc-wp-content-list-filters-card').length) {
+    $form.addClass('sc-wp-content-list-table-card sc-reports-list-table-card');
+
+    if ($wrap.find('.sc-wp-content-list-filters-card').length) {
         return;
     }
 
@@ -1486,9 +1558,19 @@ function scInitWpContentListAdminLayout() {
     var $searchInput = $searchBox.find('input[type="search"], input[name="s"]').first();
     var $monthSelect = $filterActions.find('select[name="m"]').first();
     var $catSelect = $filterActions.find('select[name="cat"]').first();
-    var hasFilters = ($searchInput.length && jQuery.trim($searchInput.val()) !== '')
-        || ($monthSelect.length && String($monthSelect.val()) !== '0')
-        || ($catSelect.length && String($catSelect.val()) !== '0');
+
+    var activeFiltersCount = 0;
+    if ($searchInput.length && jQuery.trim($searchInput.val()) !== '') {
+        activeFiltersCount++;
+    }
+    if ($monthSelect.length && String($monthSelect.val()) !== '0') {
+        activeFiltersCount++;
+    }
+    if ($catSelect.length && String($catSelect.val()) !== '0') {
+        activeFiltersCount++;
+    }
+
+    var hasFilters = activeFiltersCount > 0;
 
     if (!$searchBox.length && !$filterActions.length) {
         return;
@@ -1513,6 +1595,15 @@ function scInitWpContentListAdminLayout() {
         + '</button></div>'
     );
 
+    if (activeFiltersCount > 0) {
+        $toolbar.find('button').append(
+            jQuery('<span class="sc-reports-list-filters-badge"></span>').text(String(activeFiltersCount))
+        );
+        $toolbar.append(
+            jQuery('<a class="sc-reports-list-filters-clear" href="' + listUrl + '">پاک کردن فیلترها</a>')
+        );
+    }
+
     var $panel = jQuery('<div class="sc-reports-list-filters-panel sc-wp-content-list-filters-panel" id="sc-wp-content-filters-panel"></div>');
     if (!hasFilters) {
         $panel.attr('hidden', true);
@@ -1526,7 +1617,7 @@ function scInitWpContentListAdminLayout() {
             + '<label class="sc-filter-label" for="' + ($searchInput.attr('id') || 'post-search-input') + '">جستجو</label>'
             + '</div>'
         );
-        $searchInput.addClass('sc-filter-control');
+        $searchInput.addClass('sc-filter-control').attr('form', formId);
         $searchField.append($searchInput);
         $grid.append($searchField);
         $searchBox.remove();
@@ -1538,7 +1629,7 @@ function scInitWpContentListAdminLayout() {
             + '<label class="sc-filter-label" for="' + ($monthSelect.attr('id') || 'filter-by-date') + '">ماه</label>'
             + '</div>'
         );
-        $monthSelect.addClass('sc-filter-control');
+        $monthSelect.addClass('sc-filter-control').attr('form', formId);
         $monthField.append($monthSelect);
         $grid.append($monthField);
     }
@@ -1549,7 +1640,7 @@ function scInitWpContentListAdminLayout() {
             + '<label class="sc-filter-label" for="' + ($catSelect.attr('id') || 'cat') + '">دسته‌بندی</label>'
             + '</div>'
         );
-        $catSelect.addClass('sc-filter-control');
+        $catSelect.addClass('sc-filter-control').attr('form', formId);
         $catField.append($catSelect);
         $grid.append($catField);
     }
@@ -1559,15 +1650,17 @@ function scInitWpContentListAdminLayout() {
     var $filterBtn = $filterActions.find('input[type="submit"], button[type="submit"]').first();
     var $actionsRow = jQuery('<div class="sc-reports-list-filters-actions"></div>');
     if ($filterBtn.length) {
-        $filterBtn.addClass('button-primary').val('اعمال فیلتر');
+        $filterBtn.addClass('button-primary').val('اعمال فیلتر').attr('form', formId);
         $actionsRow.append($filterBtn);
     } else {
-        $actionsRow.append(jQuery('<input type="submit" class="button button-primary" value="اعمال فیلتر">'));
+        $actionsRow.append(
+            jQuery('<input type="submit" class="button button-primary" value="اعمال فیلتر">').attr('form', formId)
+        );
     }
     $panel.append($actionsRow);
 
     $card.append($toolbar).append($panel);
-    $form.prepend($card);
+    $form.before($card);
 
     if ($filterActions.length) {
         $filterActions.remove();
@@ -1591,7 +1684,383 @@ function scInitWpContentListAdminLayout() {
     });
 }
 
+/**
+ * صفحه پیوندهای یکتا — چیدمان مشابه لیست صورت‌حساب‌ها
+ */
+function scInitPermalinksAdminLayout() {
+    var $body = jQuery('body');
+    if (!$body.hasClass('sc-permalinks-admin-page')) {
+        return;
+    }
+
+    var $wrap = jQuery('#wpbody-content > .wrap').first();
+    if (!$wrap.length || $wrap.data('scPermalinksReady')) {
+        return;
+    }
+    $wrap.data('scPermalinksReady', 1);
+    $wrap.addClass('sc-reports-list-wrap sc-permalinks-wrap');
+
+    var $form = $wrap.find('form#form').first();
+    var $h1 = $wrap.children('h1').first();
+
+    if ($h1.length && !$wrap.children('.sc-reports-list-header').length) {
+        var $header = jQuery('<div class="sc-reports-list-header"></div>');
+        var $text = jQuery('<div class="sc-reports-list-header-text"></div>');
+        $h1.addClass('sc-reports-list-title');
+
+        var $intro = $form.length ? $form.children('p').not('.submit').not('.description').first() : jQuery();
+        $text.append($h1);
+        if ($intro.length) {
+            $intro.addClass('sc-reports-list-desc');
+            $text.append($intro);
+        } else {
+            $text.append(
+                jQuery('<p class="sc-reports-list-desc"></p>').text(
+                    'ساختار آدرس صفحات و نوشته‌های سایت را تنظیم کنید.'
+                )
+            );
+        }
+        $header.append($text);
+        $wrap.prepend($header);
+    }
+
+    $wrap.children('hr.wp-header-end').hide();
+
+    if ($form.length) {
+        if (!$form.parent().hasClass('sc-reports-list-table-card')) {
+            $form.wrap('<div class="sc-reports-list-table-card sc-permalinks-form-card"></div>');
+        }
+        $form.addClass('sc-permalinks-form');
+        $form.find('h2.title').addClass('sc-permalinks-section-title');
+        $form.find('p.submit').addClass('sc-permalinks-submit');
+        $form.find('.permalink-structure-optional-description').addClass('sc-permalinks-section-desc');
+    }
+
+    $wrap.children('form').not('#form').each(function () {
+        var $extraForm = jQuery(this);
+        if (!$extraForm.parent().hasClass('sc-reports-list-table-card')) {
+            $extraForm.wrap('<div class="sc-reports-list-table-card sc-permalinks-extra-card"></div>');
+        }
+    });
+}
+
+/**
+ * لیست کاربران وردپرس — چیدمان مشابه لیست بازیکن‌ها
+ */
+function scInitWpUsersListAdminLayout() {
+    var $body = jQuery('body');
+    if (!$body.hasClass('sc-wp-users-list-page') || !$body.hasClass('users-php')) {
+        return;
+    }
+
+    var $wrap = jQuery('#wpbody-content > .wrap').first();
+    if (!$wrap.length || $wrap.data('scWpUsersListReady')) {
+        return;
+    }
+    $wrap.data('scWpUsersListReady', 1);
+    $wrap.addClass('sc-members-list-wrap');
+
+    var $h1 = $wrap.children('h1.wp-heading-inline').first();
+    var $addBtn = $wrap.children('.page-title-action').first();
+    if ($h1.length && !$wrap.children('.sc-members-list-header').length) {
+        var $header = jQuery('<div class="sc-members-list-header"></div>');
+        var $text = jQuery('<div class="sc-members-list-header-text"></div>');
+        $h1.removeClass('wp-heading-inline').addClass('sc-members-list-title');
+        $text.append($h1).append(
+            jQuery('<p class="sc-members-list-desc"></p>').text(
+                'مدیریت کاربران سایت. برای ویرایش روی نام کاربر کلیک کنید.'
+            )
+        );
+        var $actions = jQuery('<div class="sc-members-list-header-actions"></div>');
+        if ($addBtn.length) {
+            $addBtn.addClass('sc-members-list-add-btn');
+            $actions.append($addBtn);
+        }
+        $header.append($text).append($actions);
+        $wrap.prepend($header);
+        $wrap.children('hr.wp-header-end').remove();
+    }
+
+    var $form = $wrap.find('#users-filter').first();
+    if (!$form.length) {
+        return;
+    }
+
+    $form.addClass('sc-members-list-table-card');
+
+    var $subsub = $wrap.children('.subsubsub').first();
+    if ($subsub.length && !$form.children('.subsubsub').length) {
+        $form.prepend($subsub.detach());
+    }
+
+    if ($form.find('.sc-members-list-filters-card').length) {
+        return;
+    }
+
+    var $searchBox = $form.find('p.search-box').first();
+    var $topNav = $form.find('.tablenav.top').first();
+    var $filterActions = $topNav.find('.alignleft.actions').not('.bulkactions').first();
+    var $searchInput = $searchBox.find('input[type="search"], input[name="s"]').first();
+    var $roleSelect = $filterActions.find('select[name="role"]').first();
+    var hasFilters = ($searchInput.length && jQuery.trim($searchInput.val()) !== '')
+        || ($roleSelect.length && String($roleSelect.val()) !== '');
+
+    if (!$searchBox.length && !$filterActions.length) {
+        return;
+    }
+
+    var $card = jQuery('<div class="sc-members-list-filters-card"></div>');
+    if (hasFilters) {
+        $card.addClass('is-open');
+    }
+
+    var $toolbar = jQuery(
+        '<div class="sc-members-list-filters-toolbar">'
+        + '<button type="button" class="sc-members-list-filters-toggle" id="sc-wp-users-filters-toggle" aria-expanded="' + (hasFilters ? 'true' : 'false') + '" aria-controls="sc-wp-users-filters-panel">'
+        + '<span class="sc-members-list-filters-toggle-icon" aria-hidden="true">'
+        + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+        + '<path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+        + '</svg></span>'
+        + '<span class="sc-members-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">'
+        + (hasFilters ? 'بستن فیلترها' : 'مشاهده فیلترها')
+        + '</span>'
+        + '<span class="sc-members-list-filters-chevron" aria-hidden="true"></span>'
+        + '</button></div>'
+    );
+
+    var $panel = jQuery('<div class="sc-members-list-filters-panel" id="sc-wp-users-filters-panel"></div>');
+    if (!hasFilters) {
+        $panel.attr('hidden', true);
+    }
+
+    var $grid = jQuery('<div class="sc-filter-grid"></div>');
+
+    if ($searchInput.length) {
+        var $searchField = jQuery(
+            '<div class="sc-filter-field">'
+            + '<label class="sc-filter-label" for="' + ($searchInput.attr('id') || 'user-search-input') + '">جستجو</label>'
+            + '</div>'
+        );
+        $searchInput.addClass('sc-filter-control');
+        $searchField.append($searchInput);
+        $grid.append($searchField);
+        $searchBox.remove();
+    }
+
+    if ($roleSelect.length) {
+        var $roleField = jQuery(
+            '<div class="sc-filter-field">'
+            + '<label class="sc-filter-label" for="' + ($roleSelect.attr('id') || 'filter-by-role') + '">نقش</label>'
+            + '</div>'
+        );
+        $roleSelect.addClass('sc-filter-control');
+        $roleField.append($roleSelect);
+        $grid.append($roleField);
+    }
+
+    $panel.append($grid);
+
+    var $filterBtn = $filterActions.find('input[type="submit"], button[type="submit"]').first();
+    var $actionsRow = jQuery('<div class="sc-members-list-filters-actions"></div>');
+    if ($filterBtn.length) {
+        $filterBtn.addClass('button-primary').val('اعمال فیلتر');
+        $actionsRow.append($filterBtn);
+    } else {
+        $actionsRow.append(jQuery('<input type="submit" class="button button-primary" value="اعمال فیلتر">'));
+    }
+    $panel.append($actionsRow);
+
+    $card.append($toolbar).append($panel);
+    $form.prepend($card);
+
+    if ($filterActions.length) {
+        $filterActions.remove();
+    }
+
+    var $toggle = $card.find('#sc-wp-users-filters-toggle');
+    var $label = $toggle.find('.sc-members-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+}
+
+/**
+ * ویرایش / افزودن کاربر وردپرس — چیدمان مشابه ویرایش بازیکن
+ */
+function scInitWpUserEditAdminLayout() {
+    var $body = jQuery('body');
+    if (!$body.hasClass('sc-wp-user-edit-page')) {
+        return;
+    }
+
+    var $wrap = jQuery('#wpbody-content > .wrap').first();
+    if (!$wrap.length || $wrap.data('scWpUserEditReady')) {
+        return;
+    }
+    $wrap.data('scWpUserEditReady', 1);
+    $wrap.addClass('sc-wp-user-edit-wrap');
+
+    var isNew = $body.hasClass('user-new-php');
+    var isProfile = $body.hasClass('profile-php');
+    var desc = isNew
+        ? 'اطلاعات کاربر جدید را وارد کنید و نقش مناسب را انتخاب کنید.'
+        : (isProfile
+            ? 'اطلاعات حساب کاربری خود را در این بخش ویرایش کنید.'
+            : 'اطلاعات کاربر را ویرایش کنید. پس از ذخیره تغییرات اعمال می‌شوند.');
+
+    var $h1 = $wrap.children('h1').first();
+    if ($h1.length && !$wrap.children('.sc-wp-user-edit-header').length) {
+        var $header = jQuery('<div class="sc-wp-user-edit-header"></div>');
+        var $text = jQuery('<div class="sc-wp-user-edit-header-text"></div>');
+        $h1.addClass('sc-wp-user-edit-title');
+        $text.append($h1).append(
+            jQuery('<p class="sc-wp-user-edit-desc"></p>').text(desc)
+        );
+        $header.append($text);
+        $wrap.prepend($header);
+        $wrap.children('hr.wp-header-end').hide();
+    }
+
+    jQuery('#your-profile, #createuser').each(function () {
+        jQuery(this).find('table.form-table').addClass('sc_form-table');
+    });
+
+    jQuery('#your-profile, #createuser').find('p.submit').addClass('sc-wp-user-edit-submit');
+}
+
+/**
+ * لیست حضور و غیاب — فیلتر تاشو در هر ۴ تب (مثل لیست صورت‌حساب‌ها)
+ */
+function scCountAttendanceListActiveFilters($form) {
+    var count = 0;
+    var $course = $form.find('[name="filter_course"]').first();
+    if ($course.length && parseInt($course.val(), 10) > 0) {
+        count++;
+    }
+    var $member = $form.find('[name="filter_member"]').first();
+    if ($member.length && parseInt($member.val(), 10) > 0) {
+        count++;
+    }
+    var $coach = $form.find('[name="filter_coach"]').first();
+    if ($coach.length && parseInt($coach.val(), 10) > 0) {
+        count++;
+    }
+    var $status = $form.find('[name="filter_status"]').first();
+    if ($status.length && String($status.val()) !== '' && String($status.val()) !== 'all') {
+        count++;
+    }
+    $form.find('input[name="filter_date_from"], input[name="filter_date_to"]').each(function () {
+        if (jQuery.trim(jQuery(this).val()) !== '') {
+            count++;
+        }
+    });
+    return count;
+}
+
+function scInitAttendanceListCollapsibleFilters() {
+    var $body = jQuery('body');
+    if (!$body.is('[class*="_page_sc-attendance-list"]') && !$body.hasClass('sc-attendance-add_page_sc-attendance-list')) {
+        return;
+    }
+
+    jQuery('.sc-attendance-list-body .form_fillter_attendance, [class*="_page_sc-attendance-list"] .form_fillter_attendance').each(function (formIndex) {
+        var $form = jQuery(this);
+        if ($form.data('scAttendanceFiltersReady') || $form.closest('.sc-attendance-list-filters-card').length) {
+            return;
+        }
+        $form.data('scAttendanceFiltersReady', 1);
+
+        var activeCount = scCountAttendanceListActiveFilters($form);
+        var hasFilters = activeCount > 0;
+        var tab = $form.find('input[name="tab"]').val() || ('tab' + formIndex);
+        var panelId = 'sc-attendance-filters-panel-' + tab;
+        var toggleId = 'sc-attendance-filters-toggle-' + tab;
+
+        var $card = jQuery('<div class="sc-attendance-list-filters-card sc-reports-list-filters-card"></div>');
+        if (hasFilters) {
+            $card.addClass('is-open');
+        }
+
+        var $toolbar = jQuery(
+            '<div class="sc-reports-list-filters-toolbar">'
+            + '<button type="button" class="sc-reports-list-filters-toggle" id="' + toggleId + '" aria-expanded="' + (hasFilters ? 'true' : 'false') + '" aria-controls="' + panelId + '">'
+            + '<span class="sc-reports-list-filters-toggle-icon" aria-hidden="true">'
+            + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+            + '<path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+            + '</svg></span>'
+            + '<span class="sc-reports-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">'
+            + (hasFilters ? 'بستن فیلترها' : 'مشاهده فیلترها')
+            + '</span>'
+            + '<span class="sc-reports-list-filters-chevron" aria-hidden="true"></span>'
+            + '</button></div>'
+        );
+
+        if (activeCount > 0) {
+            $toolbar.find('button').append(
+                jQuery('<span class="sc-reports-list-filters-badge"></span>').text(String(activeCount))
+            );
+        }
+
+        var $clearLink = $form.find('a.delete_fillter').first();
+        if ($clearLink.length && activeCount > 0) {
+            $toolbar.append(
+                $clearLink.clone().removeClass('button').addClass('sc-reports-list-filters-clear')
+            );
+        }
+
+        $form.addClass('sc-reports-list-filters-panel');
+        $form.attr('id', panelId);
+        if (!hasFilters) {
+            $form.attr('hidden', true);
+        }
+
+        var $submit = $form.find('p.submit').first();
+        if ($submit.length) {
+            $submit.addClass('sc-reports-list-filters-actions');
+            $submit.find('input[type="submit"]').addClass('button-primary');
+            if ($clearLink.length) {
+                $clearLink.remove();
+            }
+        }
+
+        $form.before($card);
+        $card.append($toolbar).append($form);
+
+        var $toggle = $card.find('#' + toggleId);
+        var $label = $toggle.find('.sc-reports-list-filters-toggle-label');
+        $toggle.on('click', function () {
+            var isOpen = $card.hasClass('is-open');
+            if (isOpen) {
+                $card.removeClass('is-open');
+                $form.attr('hidden', true);
+                $toggle.attr('aria-expanded', 'false');
+                $label.text($label.data('label-closed'));
+            } else {
+                $card.addClass('is-open');
+                $form.removeAttr('hidden');
+                $toggle.attr('aria-expanded', 'true');
+                $label.text($label.data('label-open'));
+            }
+        });
+    });
+}
+
 jQuery(function () {
     scInitWpContentListAdminLayout();
+    scInitPermalinksAdminLayout();
+    scInitWpUsersListAdminLayout();
+    scInitWpUserEditAdminLayout();
+    scInitAttendanceListCollapsibleFilters();
 });
 

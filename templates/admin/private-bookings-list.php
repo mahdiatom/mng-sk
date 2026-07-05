@@ -219,205 +219,303 @@ $status_options = [
     'excused' => 'غیبت مجاز',
     'rescheduled' => 'جابجا شده',
 ];
-?>
-<div class="wrap">
-    <style>
 
-    </style>
-    <h1 class="wp-heading-inline"><?php echo $is_coach_only ? 'کلاس‌های خصوصی من' : 'مدیریت کلاس‌های خصوصی'; ?></h1>
-    <hr class="wp-header-end">
+$active_filters_count = 0;
+if ($filter_course > 0) {
+    $active_filters_count++;
+}
+if ($filter_coach > 0) {
+    $active_filters_count++;
+}
+if ($filter_member > 0) {
+    $active_filters_count++;
+}
+if ($filter_status !== 'all') {
+    $active_filters_count++;
+}
+if ($filter_date_from !== '') {
+    $active_filters_count++;
+}
+if ($filter_date_to !== '') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+$clear_filters_url = admin_url('admin.php?page=' . rawurlencode($current_admin_page));
+$list_title = $is_coach_only ? 'کلاس‌های خصوصی من' : 'مدیریت کلاس‌های خصوصی';
+$list_desc = $is_coach_only
+    ? 'مشاهده و مدیریت جلسات کلاس خصوصی تحت نظر شما.'
+    : 'مشاهده، فیلتر و لغو جلسات کلاس‌های خصوصی باشگاه.';
+?>
+<div class="wrap sc-private-admin-wrap sc-private-regs-list-wrap">
     <?php settings_errors('sc_private_sessions'); ?>
-</div>
-<div class="wrap">
-    <form method="get" action="" class="form_fillter_attendance form_fillter_attendance_tab1" style="margin-top:12px;">
-        <input type="hidden" name="page" value="<?php echo esc_attr($current_admin_page); ?>">
-        <div class="sc-filter-grid">
-            <div class="sc-filter-field">
-                <label class="sc-filter-label" for="filter_course">دوره</label>
-                <select class="sc-filter-control" id="filter_course" name="filter_course">
-                    <option value="0">همه دوره‌ها</option>
-                    <?php foreach ($courses as $course) : ?>
-                        <option value="<?php echo esc_attr((int) $course->id); ?>" <?php selected($filter_course, (int) $course->id); ?>><?php echo esc_html($course->title); ?></option>
-                    <?php endforeach; ?>
-                </select>
+
+    <div class="sc-private-regs-list-header">
+        <div class="sc-private-regs-list-header-text">
+            <h1 class="sc-private-regs-list-title"><?php echo esc_html($list_title); ?></h1>
+            <p class="sc-private-regs-list-desc"><?php echo esc_html($list_desc); ?></p>
+        </div>
+        <?php if (!$is_coach_only) : ?>
+            <div class="sc-private-regs-list-header-actions">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-private-booking-requests')); ?>" class="sc-private-regs-list-add-btn">رزروهای کلاس خصوصی</a>
             </div>
-            <?php if ($can_manage_all) : ?>
+        <?php endif; ?>
+    </div>
+
+    <div class="sc-private-regs-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-private-regs-list-filters-toolbar">
+            <button type="button"
+                    class="sc-private-regs-list-filters-toggle"
+                    id="sc-private-classes-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-private-classes-filters-panel">
+                <span class="sc-private-regs-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-private-regs-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-private-regs-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-private-regs-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url($clear_filters_url); ?>" class="sc-private-regs-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+
+        <form method="get" action="" class="sc-private-regs-list-filters-panel" id="sc-private-classes-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+            <input type="hidden" name="page" value="<?php echo esc_attr($current_admin_page); ?>">
+            <div class="sc-filter-grid sc-private-classes-filter-grid">
                 <div class="sc-filter-field">
-                    <label class="sc-filter-label" for="filter_coach">مربی</label>
-                    <select class="sc-filter-control" id="filter_coach" name="filter_coach">
-                        <option value="0">همه مربیان</option>
-                        <?php foreach ($coaches as $coach) : ?>
-                            <option value="<?php echo esc_attr((int) $coach->id); ?>" <?php selected($filter_coach, (int) $coach->id); ?>><?php echo esc_html(trim($coach->first_name . ' ' . $coach->last_name)); ?></option>
+                    <label class="sc-filter-label" for="filter_course">دوره</label>
+                    <select class="sc-filter-control" id="filter_course" name="filter_course">
+                        <option value="0">همه دوره‌ها</option>
+                        <?php foreach ($courses as $course) : ?>
+                            <option value="<?php echo esc_attr((int) $course->id); ?>" <?php selected($filter_course, (int) $course->id); ?>><?php echo esc_html($course->title); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-            <?php endif; ?>
-            <div class="sc-filter-field">
-                <label class="sc-filter-label">بازیکن</label>
-                <div class="sc-searchable-dropdown">
-                    <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
-                    <div class="sc-dropdown-toggle">
-                        <span class="sc-dropdown-placeholder" <?php if ($filter_member) echo 'style="display:none"'; ?>>همه بازیکنان</span>
-                        <span class="sc-dropdown-selected" <?php if (!$filter_member) echo 'style="display:none"'; ?>>
-                            <?php echo esc_html($selected_member_text); ?>
-                        </span>
-                        <span class="sc-dropdown-arrow">▼</span>
-                    </div>
-                    <div class="sc-dropdown-menu">
-                        <div class="sc-dropdown-search">
-                            <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
-                        </div>
-                        <div class="sc-dropdown-options">
-                            <?php
-                            $member_display_count = 0;
-                            $member_max_display = 10;
-                            ?>
-                            <div class="sc-dropdown-option sc-visible"
-                                 data-value="0"
-                                 data-search="همه بازیکنان"
-                                 onclick="scSelectMemberFilter(this,'0','همه بازیکنان')">
-                                همه بازیکنان
-                            </div>
-                            <?php foreach ($members as $member) :
-                                $member_full_label = trim($member->first_name . ' ' . $member->last_name) . ' - ' . $member->national_id;
-                                $member_display_class = ($member_display_count < $member_max_display) ? 'sc-visible' : 'sc-hidden';
-                                $member_display_count++;
-                            ?>
-                                <div class="sc-dropdown-option <?php echo esc_attr($member_display_class); ?>"
-                                     data-value="<?php echo esc_attr((int) $member->id); ?>"
-                                     data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
-                                     onclick="scSelectMemberFilter(this,'<?php echo esc_js((int) $member->id); ?>','<?php echo esc_js($member_full_label); ?>')">
-                                    <?php echo esc_html($member_full_label); ?>
-                                </div>
+                <?php if ($can_manage_all) : ?>
+                    <div class="sc-filter-field">
+                        <label class="sc-filter-label" for="filter_coach">مربی</label>
+                        <select class="sc-filter-control" id="filter_coach" name="filter_coach">
+                            <option value="0">همه مربیان</option>
+                            <?php foreach ($coaches as $coach) : ?>
+                                <option value="<?php echo esc_attr((int) $coach->id); ?>" <?php selected($filter_coach, (int) $coach->id); ?>><?php echo esc_html(trim($coach->first_name . ' ' . $coach->last_name)); ?></option>
                             <?php endforeach; ?>
+                        </select>
+                    </div>
+                <?php endif; ?>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label">بازیکن</label>
+                    <div class="sc-searchable-dropdown">
+                        <input type="hidden" name="filter_member" id="filter_member" value="<?php echo esc_attr($filter_member); ?>">
+                        <div class="sc-dropdown-toggle">
+                            <span class="sc-dropdown-placeholder" <?php if ($filter_member) echo 'style="display:none"'; ?>>همه بازیکنان</span>
+                            <span class="sc-dropdown-selected" <?php if (!$filter_member) echo 'style="display:none"'; ?>>
+                                <?php echo esc_html($selected_member_text); ?>
+                            </span>
+                            <span class="sc-dropdown-arrow">▼</span>
+                        </div>
+                        <div class="sc-dropdown-menu">
+                            <div class="sc-dropdown-search">
+                                <input type="text" class="sc-search-input" placeholder="جستجوی نام، نام خانوادگی یا کد ملی...">
+                            </div>
+                            <div class="sc-dropdown-options">
+                                <?php
+                                $member_display_count = 0;
+                                $member_max_display = 10;
+                                ?>
+                                <div class="sc-dropdown-option sc-visible"
+                                     data-value="0"
+                                     data-search="همه بازیکنان"
+                                     onclick="scSelectMemberFilter(this,'0','همه بازیکنان')">
+                                    همه بازیکنان
+                                </div>
+                                <?php foreach ($members as $member) :
+                                    $member_full_label = trim($member->first_name . ' ' . $member->last_name) . ' - ' . $member->national_id;
+                                    $member_display_class = ($member_display_count < $member_max_display) ? 'sc-visible' : 'sc-hidden';
+                                    $member_display_count++;
+                                ?>
+                                    <div class="sc-dropdown-option <?php echo esc_attr($member_display_class); ?>"
+                                         data-value="<?php echo esc_attr((int) $member->id); ?>"
+                                         data-search="<?php echo esc_attr(strtolower($member->first_name . ' ' . $member->last_name . ' ' . $member->national_id)); ?>"
+                                         onclick="scSelectMemberFilter(this,'<?php echo esc_js((int) $member->id); ?>','<?php echo esc_js($member_full_label); ?>')">
+                                        <?php echo esc_html($member_full_label); ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="sc-filter-field">
-                <label class="sc-filter-label" for="filter_status">وضعیت</label>
-                <select class="sc-filter-control" id="filter_status" name="filter_status">
-                    <?php foreach ($status_options as $key => $label) : ?>
-                        <option value="<?php echo esc_attr($key); ?>" <?php selected($filter_status, $key); ?>><?php echo esc_html($label); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="sc-filter-field sc-filter-date">
-                <label class="sc-filter-label">بازه تاریخ</label>
-                <div class="sc-date-range">
-                    <input type="text" name="filter_date_from_shamsi" class="sc-filter-control persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_from_shamsi); ?>" readonly>
-                    <span class="sc-date-separator">تا</span>
-                    <input type="text" name="filter_date_to_shamsi" class="sc-filter-control persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_to_shamsi); ?>" readonly>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_status">وضعیت</label>
+                    <select class="sc-filter-control" id="filter_status" name="filter_status">
+                        <?php foreach ($status_options as $key => $label) : ?>
+                            <option value="<?php echo esc_attr($key); ?>" <?php selected($filter_status, $key); ?>><?php echo esc_html($label); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="sc-filter-field sc-filter-date">
+                    <label class="sc-filter-label">بازه تاریخ</label>
+                    <div class="sc-date-range">
+                        <input type="text" name="filter_date_from_shamsi" class="sc-filter-control persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_from_shamsi); ?>" readonly>
+                        <span class="sc-date-separator">تا</span>
+                        <input type="text" name="filter_date_to_shamsi" class="sc-filter-control persian-date-input sc-no-default-date" value="<?php echo esc_attr($display_date_to_shamsi); ?>" readonly>
+                    </div>
                 </div>
             </div>
-        </div>
-        <p class="submit">
-            <button type="submit" class="button button-primary">اعمال فیلتر</button>
-            <a class="sc_button delete_fillter" href="<?php echo esc_url(admin_url('admin.php?page=' . rawurlencode($current_admin_page))); ?>">پاک کردن فیلترها</a>
-        </p>
-    </form>
-</div>
-<div class="wrap">
-    <?php if (empty($rows)) : ?>
-        <div class="notice notice-info"><p>رکوردی یافت نشد.</p></div>
-    <?php else : ?>
-        <form method="post" action="">
-            <?php wp_nonce_field('sc_private_admin_sessions_actions'); ?>
-            <input type="hidden" name="sc_private_admin_action" value="cancel_selected">
-            <div style="margin: 12px 0;">
-                <button type="submit" class="button button-secondary" onclick="return scConfirmInline(event, { type: 'warning', message: 'جلسات انتخابی لغو شوند؟' });">لغو دسته‌جمعی جلسات انتخاب‌شده</button>
-            </div>
-        <div class="back_table_list" >
-            <table class="wp-list-table widefat striped " style="margin-top:12px;">
-                <thead>
-                    <tr>
-                        <th style="width:36px;"><input type="checkbox" id="sc-private-check-all"></th>
-                        <th>تاریخ</th>
-                        <th>ساعت</th>
-                        <th>دوره</th>
-                        <th>مربی</th>
-                        <th>بازیکن</th>
-                        <th>وضعیت</th>
-                        <?php if (!$is_coach_only) : ?>
-                            <th>رزرو</th>
-                            <th>صورت‌حساب</th>
-                        <?php endif; ?>
-                        <th>عملیات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($rows as $row) : ?>
-                        <?php
-                        $status_label = function_exists('sc_private_session_status_label') ? sc_private_session_status_label($row->status) : $row->status;
-                        $status_key = strtolower((string) $row->status);
-                        $status_class = 'sc-private-status sc-private-status-' . preg_replace('/[^a-z_]/', '', $status_key);
-                        $can_cancel_row = in_array((string) $row->status, $cancellable_statuses, true);
-                        ?>
-                        <tr>
-                            <td>
-                                <?php if ($can_cancel_row) : ?>
-                                    <input type="checkbox" class="sc-private-session-checkbox" name="session_ids[]" value="<?php echo esc_attr((int) $row->id); ?>">
-                                <?php endif; ?>
-                            </td>
-                            <td><?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($row->session_date) : $row->session_date); ?></td>
-                            <td><?php echo esc_html(substr((string) $row->time_start, 0, 5) . ' تا ' . substr((string) $row->time_end, 0, 5)); ?></td>
-                            <td><?php echo esc_html($row->course_title); ?></td>
-                            <td><?php echo esc_html(trim($row->coach_first_name . ' ' . $row->coach_last_name)); ?></td>
-                            <td><?php echo esc_html(trim($row->first_name . ' ' . $row->last_name)); ?></td>
-                            <td><span class="<?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
-                            <?php if (!$is_coach_only) : ?>
-                                <td>#<?php echo esc_html((string) $row->booking_id); ?></td>
-                                <td><?php echo !empty($row->invoice_id) ? '#' . esc_html((string) $row->invoice_id) : '-'; ?></td>
-                            <?php endif; ?>
-                            <td>
-                                <?php if ($can_cancel_row) : ?>
-                                    <button type="submit" class="button-link-delete sc_button" name="session_id" value="<?php echo esc_attr((int) $row->id); ?>" onclick="this.form.sc_private_admin_action.value='cancel_single'; return scConfirmInline(event, { type: 'warning', message: 'این جلسه لغو شود؟' });">لغو جلسه</button>
-                                <?php else : ?>
-                                    <span style="color:#888;">-</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="sc-private-regs-list-filters-actions">
+                <button type="submit" class="button button-primary">اعمال فیلتر</button>
+                <a class="button delete_fillter" href="<?php echo esc_url($clear_filters_url); ?>">پاک کردن فیلترها</a>
             </div>
         </form>
-        <script>
-            (function () {
-                var checkAll = document.getElementById('sc-private-check-all');
-                if (!checkAll) return;
-                checkAll.addEventListener('change', function () {
-                    var boxes = document.querySelectorAll('.sc-private-session-checkbox');
-                    for (var i = 0; i < boxes.length; i++) {
-                        boxes[i].checked = !!checkAll.checked;
-                    }
-                });
-            })();
-        </script>
-        <?php if ($total_pages > 1) : ?>
-            <div class="tablenav bottom sc_paginate" style="margin-top:12px;">
-                <div class="tablenav-pages">
-                    <?php
-                    echo paginate_links([
-                        'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
-                        'format' => '',
-                        'prev_text' => '< قبلی',
-                        'next_text' => 'بعدی >',
-                        'total' => $total_pages,
-                        'current' => $current_page,
-                        'add_args' => [
-                            'page' => $current_admin_page,
-                            'filter_course' => $filter_course,
-                            'filter_coach' => $filter_coach,
-                            'filter_member' => $filter_member,
-                            'filter_status' => $filter_status,
-                            'filter_date_from_shamsi' => $filter_date_from_shamsi,
-                            'filter_date_to_shamsi' => $filter_date_to_shamsi,
-                        ],
-                    ]);
-                    ?>
+    </div>
+
+    <div class="sc-private-regs-list-table-card">
+        <div class="sc-private-regs-list-summary"><span><?php echo (int) $total_items; ?> جلسه</span></div>
+
+        <?php if (empty($rows)) : ?>
+            <div class="sc-private-regs-empty"><p>رکوردی یافت نشد.</p></div>
+        <?php else : ?>
+            <form method="post" action="">
+                <?php wp_nonce_field('sc_private_admin_sessions_actions'); ?>
+                <input type="hidden" name="sc_private_admin_action" value="cancel_selected">
+
+                <div class="sc-private-regs-bulk-bar">
+                    <label class="sc-private-regs-bulk-check-all">
+                        <input type="checkbox" id="sc-private-check-all">
+                        <span>انتخاب همه</span>
+                    </label>
+                    <div class="sc-private-regs-bulk-bar-actions">
+                        <button type="submit" class="button button-primary" onclick="return scConfirmInline(event, { type: 'warning', message: 'جلسات انتخابی لغو شوند؟' });">لغو دسته‌جمعی</button>
+                    </div>
                 </div>
-            </div>
+
+                <div class="sc-private-regs-table-scroll">
+                    <table class="wp-list-table widefat striped sc-private-regs-table">
+                        <thead>
+                            <tr>
+                                <td class="check-column"><span class="screen-reader-text">انتخاب</span></td>
+                                <th>تاریخ</th>
+                                <th>ساعت</th>
+                                <th>دوره</th>
+                                <th>مربی</th>
+                                <th>بازیکن</th>
+                                <th>وضعیت</th>
+                                <?php if (!$is_coach_only) : ?>
+                                    <th>رزرو</th>
+                                    <th>صورت‌حساب</th>
+                                <?php endif; ?>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($rows as $row) : ?>
+                                <?php
+                                $status_label = function_exists('sc_private_session_status_label') ? sc_private_session_status_label($row->status) : $row->status;
+                                $status_key = strtolower((string) $row->status);
+                                $status_class = 'sc-private-status sc-private-status-' . preg_replace('/[^a-z_]/', '', $status_key);
+                                $can_cancel_row = in_array((string) $row->status, $cancellable_statuses, true);
+                                ?>
+                                <tr>
+                                    <th scope="row" class="check-column">
+                                        <?php if ($can_cancel_row) : ?>
+                                            <input type="checkbox" class="sc-private-session-checkbox" name="session_ids[]" value="<?php echo esc_attr((int) $row->id); ?>">
+                                        <?php endif; ?>
+                                    </th>
+                                    <td data-label="تاریخ"><?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($row->session_date) : $row->session_date); ?></td>
+                                    <td data-label="ساعت"><?php echo esc_html(substr((string) $row->time_start, 0, 5) . ' تا ' . substr((string) $row->time_end, 0, 5)); ?></td>
+                                    <td data-label="دوره"><strong><?php echo esc_html($row->course_title); ?></strong></td>
+                                    <td data-label="مربی"><?php echo esc_html(trim($row->coach_first_name . ' ' . $row->coach_last_name)); ?></td>
+                                    <td data-label="بازیکن"><?php echo esc_html(trim($row->first_name . ' ' . $row->last_name)); ?></td>
+                                    <td data-label="وضعیت"><span class="<?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
+                                    <?php if (!$is_coach_only) : ?>
+                                        <td data-label="رزرو">#<?php echo esc_html((string) $row->booking_id); ?></td>
+                                        <td data-label="صورت‌حساب">
+                                            <?php if (!empty($row->invoice_id)) : ?>
+                                                <a class="sc-private-regs-invoice-link" href="<?php echo esc_url(admin_url('admin.php?page=sc-invoices&invoice_id=' . (int) $row->invoice_id)); ?>">#<?php echo esc_html((string) $row->invoice_id); ?></a>
+                                            <?php else : ?>
+                                                <span class="sc-private-regs-muted">—</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    <?php endif; ?>
+                                    <td data-label="عملیات" class="sc-private-regs-actions">
+                                        <?php if ($can_cancel_row) : ?>
+                                            <button type="submit" class="sc-private-regs-action-link" name="session_id" value="<?php echo esc_attr((int) $row->id); ?>" onclick="this.form.sc_private_admin_action.value='cancel_single'; return scConfirmInline(event, { type: 'warning', message: 'این جلسه لغو شود؟' });">لغو جلسه</button>
+                                        <?php else : ?>
+                                            <span class="sc-private-regs-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+
+            <?php if ($total_pages > 1) : ?>
+                <div class="tablenav bottom sc-private-regs-pagination">
+                    <div class="tablenav-pages">
+                        <?php
+                        echo paginate_links([
+                            'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
+                            'format' => '',
+                            'prev_text' => '‹',
+                            'next_text' => '›',
+                            'total' => $total_pages,
+                            'current' => $current_page,
+                            'add_args' => [
+                                'page' => $current_admin_page,
+                                'filter_course' => $filter_course,
+                                'filter_coach' => $filter_coach,
+                                'filter_member' => $filter_member,
+                                'filter_status' => $filter_status,
+                                'filter_date_from_shamsi' => $filter_date_from_shamsi,
+                                'filter_date_to_shamsi' => $filter_date_to_shamsi,
+                            ],
+                        ]);
+                        ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         <?php endif; ?>
-    <?php endif; ?>
+    </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var toggle = document.getElementById('sc-private-classes-filters-toggle');
+    var panel = document.getElementById('sc-private-classes-filters-panel');
+    var card = toggle ? toggle.closest('.sc-private-regs-list-filters-card') : null;
+    var label = toggle ? toggle.querySelector('.sc-private-regs-list-filters-toggle-label') : null;
+
+    if (toggle && panel && card && label) {
+        toggle.addEventListener('click', function () {
+            var isOpen = card.classList.contains('is-open');
+            if (isOpen) {
+                card.classList.remove('is-open');
+                panel.setAttribute('hidden', 'hidden');
+                toggle.setAttribute('aria-expanded', 'false');
+                label.textContent = label.getAttribute('data-label-closed');
+            } else {
+                card.classList.add('is-open');
+                panel.removeAttribute('hidden');
+                toggle.setAttribute('aria-expanded', 'true');
+                label.textContent = label.getAttribute('data-label-open');
+            }
+        });
+    }
+
+    var checkAll = document.getElementById('sc-private-check-all');
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            document.querySelectorAll('.sc-private-session-checkbox').forEach(function (cb) {
+                cb.checked = checkAll.checked;
+            });
+        });
+    }
+});
+</script>

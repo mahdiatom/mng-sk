@@ -763,6 +763,9 @@
             var $btn = $(this);
             var $result = $('#sc-bulk-preview-result');
             $btn.prop('disabled', true);
+            if (window.scAudiencePreviewAdd) {
+                window.scAudiencePreviewAdd.reset('#sc-bulk-preview-result');
+            }
             $result.html('<p class="description">در حال دریافت پیش نمایش...</p>');
 
             $.post(
@@ -772,6 +775,9 @@
                 if (res && res.success && res.data) {
                     $result.html(res.data.html || '');
                     initPreviewSelectionBindings();
+                    if (window.scAudiencePreviewAdd) {
+                        window.scAudiencePreviewAdd.show('#sc-bulk-preview-result');
+                    }
                 } else {
                     $result.html('<p class="description">خطا در دریافت پیش نمایش.</p>');
                 }
@@ -780,6 +786,12 @@
             }).always(function () {
                 $btn.prop('disabled', false);
             });
+        });
+
+        $(document).on('sc-audience-preview-member-added', function (e, payload) {
+            if (payload && payload.mode === 'bulk') {
+                initPreviewSelectionBindings();
+            }
         });
 
         $('#sc-bulk-actions-form').on('submit', function (e) {

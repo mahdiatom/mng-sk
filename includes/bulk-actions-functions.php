@@ -49,19 +49,19 @@ function sc_bulk_actions_get_members($target_type, $config = array()) {
         $where[] = "m.id IN ($placeholders)";
         $params = array_merge($params, $ids);
     } elseif ($target_type === 'course') {
-        $course_ids = isset($config['course_ids']) && is_array($config['course_ids']) ? array_filter(array_map('absint', $config['course_ids'])) : array();
-        if (empty($course_ids)) {
+        $course_values = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($config['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($config['course_ids'] ?? [])));
+        if (empty($course_values)) {
             return array();
         }
-        $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
-        $where[] = "m.id IN (
-            SELECT DISTINCT mc.member_id
-            FROM $member_courses_table mc
-            WHERE mc.course_id IN ($placeholders)
-              AND mc.status = 'active'
-              AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
-        )";
-        $params = array_merge($params, $course_ids);
+        $subquery = function_exists('sc_audience_member_ids_by_course_subquery_sql')
+            ? sc_audience_member_ids_by_course_subquery_sql($course_values)
+            : null;
+        if ($subquery) {
+            $where[] = $subquery['sql'];
+            $params = array_merge($params, $subquery['args']);
+        }
     } elseif ($target_type === 'event') {
         $event_ids = isset($config['event_ids']) && is_array($config['event_ids']) ? array_filter(array_map('absint', $config['event_ids'])) : array();
         if (empty($event_ids)) {
@@ -126,7 +126,9 @@ function sc_bulk_actions_collect_filter_config($request) {
         'target_type' => $target_type,
         'config' => array(
             'member_ids' => isset($request['member_ids']) ? array_map('absint', (array) $request['member_ids']) : array(),
-            'course_ids' => isset($request['course_ids']) ? array_map('absint', (array) $request['course_ids']) : array(),
+            'course_ids' => function_exists('sc_audience_normalize_course_ids_from_request')
+                ? sc_audience_normalize_course_ids_from_request($request['course_ids'] ?? [])
+                : array_filter(array_map('absint', (array) ($request['course_ids'] ?? []))),
             'event_ids' => isset($request['event_ids']) ? array_map('absint', (array) $request['event_ids']) : array(),
             'team_names' => isset($request['team_names']) ? array_map('sanitize_text_field', (array) $request['team_names']) : array(),
             'level_names' => isset($request['level_names']) ? array_map('sanitize_text_field', (array) $request['level_names']) : array(),
@@ -396,6 +398,20 @@ function sc_bulk_actions_execute_handler() {
 
     $payload = sc_bulk_actions_collect_filter_config($_POST);
     $members = sc_bulk_actions_get_members($payload['target_type'], $payload['config']);
+    $excluded_member_ids = isset($_POST['excluded_member_ids']) ? array_filter(array_map('absint', (array) $_POST['excluded_member_ids'])) : array();
+    $included_member_ids = isset($_POST['included_member_ids']) ? array_filter(array_map('absint', (array) $_POST['included_member_ids'])) : array();
+    if (function_exists('sc_audience_apply_included_members_config')) {
+        $members = sc_audience_apply_included_members_config($members, [
+            'included_member_ids' => $included_member_ids,
+            'excluded_member_ids' => $excluded_member_ids,
+        ]);
+    } elseif (!empty($excluded_member_ids)) {
+        $member_ids = array_values(array_unique(array_map('absint', wp_list_pluck($members, 'id'))));
+        $member_ids = array_values(array_diff($member_ids, $excluded_member_ids));
+        $members = array_values(array_filter($members, static function ($member) use ($member_ids) {
+            return is_object($member) && in_array((int) $member->id, $member_ids, true);
+        }));
+    }
     $member_ids = array_values(array_unique(array_map('absint', wp_list_pluck($members, 'id'))));
 
     if (empty($member_ids)) {
@@ -404,14 +420,6 @@ function sc_bulk_actions_execute_handler() {
     }
 
     $action_key = isset($_POST['bulk_action_type']) ? sanitize_text_field(wp_unslash($_POST['bulk_action_type'])) : '';
-    $excluded_member_ids = isset($_POST['excluded_member_ids']) ? array_filter(array_map('absint', (array) $_POST['excluded_member_ids'])) : array();
-    if (!empty($excluded_member_ids)) {
-        $member_ids = array_values(array_diff($member_ids, $excluded_member_ids));
-    }
-    if (empty($member_ids)) {
-        wp_safe_redirect(add_query_arg(array('page' => 'sc-bulk-actions', 'sc_bulk_notice' => 'empty'), admin_url('admin.php')));
-        exit;
-    }
 
     $filtered_count = count($member_ids);
     global $wpdb;

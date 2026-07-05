@@ -65,7 +65,9 @@ $events_table  = $wpdb->prefix . 'sc_events';
 
 $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id, user_id FROM $members_table WHERE user_id IS NOT NULL AND is_active = 1 ORDER BY last_name, first_name");
 $coaches = $wpdb->get_results("SELECT id, first_name, last_name, national_id, user_id FROM $coaches_table WHERE user_id IS NOT NULL AND is_active = 1 ORDER BY last_name, first_name");
-$courses_list = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title");
+$courses_list = function_exists('sc_audience_get_courses_for_picker')
+    ? sc_audience_get_courses_for_picker(0)
+    : $wpdb->get_results("SELECT id, title, course_type, chapter AS chapter_name FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title");
 $events_list = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') AND is_active = 1 ORDER BY name");
 
 $saved = [];

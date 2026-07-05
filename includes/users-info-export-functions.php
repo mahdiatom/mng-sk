@@ -522,19 +522,19 @@ function sc_users_export_get_members($target_type, $config = []) {
         $where[] = "m.id IN ($placeholders)";
         $params = array_merge($params, $ids);
     } elseif ($target_type === 'course') {
-        $course_ids = isset($config['course_ids']) && is_array($config['course_ids']) ? array_filter(array_map('absint', $config['course_ids'])) : [];
-        if (empty($course_ids)) {
+        $course_values = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($config['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($config['course_ids'] ?? [])));
+        if (empty($course_values)) {
             return [];
         }
-        $placeholders = implode(',', array_fill(0, count($course_ids), '%d'));
-        $where[] = "m.id IN (
-            SELECT DISTINCT mc.member_id
-            FROM $member_courses_table mc
-            WHERE mc.status = 'active'
-              AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
-              AND mc.course_id IN ($placeholders)
-        )";
-        $params = array_merge($params, $course_ids);
+        $subquery = function_exists('sc_audience_member_ids_by_course_subquery_sql')
+            ? sc_audience_member_ids_by_course_subquery_sql($course_values)
+            : null;
+        if ($subquery) {
+            $where[] = $subquery['sql'];
+            $params = array_merge($params, $subquery['args']);
+        }
     } elseif ($target_type === 'event') {
         $event_ids = isset($config['event_ids']) && is_array($config['event_ids']) ? array_filter(array_map('absint', $config['event_ids'])) : [];
         if (empty($event_ids)) {
@@ -881,7 +881,9 @@ function sc_users_export_preview_members_ajax() {
 
     $config = [
         'member_ids' => isset($_POST['member_ids']) ? array_map('absint', (array) $_POST['member_ids']) : [],
-        'course_ids' => isset($_POST['course_ids']) ? array_map('absint', (array) $_POST['course_ids']) : [],
+        'course_ids' => function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($_POST['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($_POST['course_ids'] ?? []))),
         'event_ids' => isset($_POST['event_ids']) ? array_map('absint', (array) $_POST['event_ids']) : [],
         'team_names' => isset($_POST['team_names']) ? array_map('sanitize_text_field', (array) $_POST['team_names']) : [],
         'level_names' => isset($_POST['level_names']) ? array_map('sanitize_text_field', (array) $_POST['level_names']) : [],
@@ -960,7 +962,10 @@ function sc_users_info_export_handler() {
     $config = [
         'member_ids' => isset($_POST['member_ids']) ? array_map('absint', (array) $_POST['member_ids']) : [],
         'excluded_member_ids' => isset($_POST['excluded_member_ids']) ? array_map('absint', (array) $_POST['excluded_member_ids']) : [],
-        'course_ids' => isset($_POST['course_ids']) ? array_map('absint', (array) $_POST['course_ids']) : [],
+        'included_member_ids' => isset($_POST['included_member_ids']) ? array_map('absint', (array) $_POST['included_member_ids']) : [],
+        'course_ids' => function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($_POST['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($_POST['course_ids'] ?? []))),
         'event_ids' => isset($_POST['event_ids']) ? array_map('absint', (array) $_POST['event_ids']) : [],
         'team_names' => isset($_POST['team_names']) ? array_map('sanitize_text_field', (array) $_POST['team_names']) : [],
         'level_names' => isset($_POST['level_names']) ? array_map('sanitize_text_field', (array) $_POST['level_names']) : [],
@@ -992,6 +997,9 @@ function sc_users_info_export_handler() {
     }
 
     $subjects = sc_users_export_get_subjects($target_type, $config);
+    if (function_exists('sc_audience_apply_included_members_config')) {
+        $subjects = sc_audience_apply_included_members_config($subjects, $config);
+    }
     if (empty($subjects)) {
         wp_die('هیچ کاربری با این فیلترها پیدا نشد.');
     }

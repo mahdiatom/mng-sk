@@ -104,13 +104,35 @@ class products_List_Table extends WP_List_Table {
             $title = '(بدون عنوان)';
         }
 
-        $thumb = get_the_post_thumbnail($item['ID'], [32, 32]);
+        $thumb_id = get_post_thumbnail_id($item['ID']);
+        if ($thumb_id) {
+            $thumb_url = wp_get_attachment_image_url($thumb_id, [96, 96]);
+            if (!$thumb_url) {
+                $thumb_url = wp_get_attachment_image_url($thumb_id, 'thumbnail');
+            }
+            $thumb_html = '<span class="sc-shop-products-thumb"><img src="' . esc_url($thumb_url) . '" alt="" width="48" height="48" loading="lazy"></span>';
+        } else {
+            $initial = mb_substr($title, 0, 1) ?: '؟';
+            $thumb_html = '<span class="sc-shop-products-thumb sc-shop-products-thumb--placeholder" aria-hidden="true">' . esc_html($initial) . '</span>';
+        }
+
+        $sku = get_post_meta($item['ID'], '_sku', true);
+        $meta = $sku !== '' ? '<span class="sc-shop-products-meta">SKU: ' . esc_html($sku) . '</span>' : '';
+
+        $name_block = '<span class="sc-shop-products-row-identity">'
+            . $thumb_html
+            . '<span class="sc-shop-products-row-text">'
+            . '<span class="sc-shop-products-name">' . esc_html($title) . '</span>'
+            . $meta
+            . '</span>'
+            . '</span>';
+
         $actions = [
             'edit' => '<a href="' . esc_url($edit_url) . '">ویرایش</a>',
             'view' => '<a href="' . esc_url(get_permalink($item['ID'])) . '" target="_blank">مشاهده</a>',
         ];
 
-        return $thumb . '<strong><a class="row-title" href="' . esc_url($edit_url) . '">' . esc_html($title) . '</a></strong>' . $this->row_actions($actions);
+        return '<a href="' . esc_url($edit_url) . '" class="sc-shop-products-name-link">' . $name_block . '</a>' . $this->row_actions($actions);
     }
 
     public function column_sku($item) {
@@ -126,7 +148,7 @@ class products_List_Table extends WP_List_Table {
         if (!$product) {
             return '—';
         }
-        return '<span class="sc-product-price">' . wp_kses_post($product->get_price_html()) . '</span>';
+        return '<span class="sc-shop-products-price">' . wp_kses_post($product->get_price_html()) . '</span>';
     }
 
     public function column_stock($item) {
@@ -140,14 +162,16 @@ class products_List_Table extends WP_List_Table {
         if (!$product->managing_stock()) {
             $status = $product->get_stock_status();
             $labels = [
-                'instock' => 'موجود',
-                'outofstock' => 'ناموجود',
-                'onbackorder' => 'پیش‌سفارش',
+                'instock' => ['موجود', 'sc-shop-products-pill--success'],
+                'outofstock' => ['ناموجود', 'sc-shop-products-pill--danger'],
+                'onbackorder' => ['پیش‌سفارش', 'sc-shop-products-pill--warning'],
             ];
-            return esc_html($labels[$status] ?? $status);
+            $info = $labels[$status] ?? [$status, 'sc-shop-products-pill--muted'];
+            return '<span class="sc-shop-products-pill ' . esc_attr($info[1]) . '">' . esc_html($info[0]) . '</span>';
         }
         $qty = $product->get_stock_quantity();
-        return esc_html((string) $qty);
+        $class = ($qty !== null && (int) $qty <= 0) ? 'sc-shop-products-pill--danger' : 'sc-shop-products-pill--success';
+        return '<span class="sc-shop-products-pill ' . esc_attr($class) . '">' . esc_html((string) $qty) . '</span>';
     }
 
     public function column_categories($item) {
@@ -162,12 +186,13 @@ class products_List_Table extends WP_List_Table {
     public function column_product_status($item) {
         $status = get_post_status($item['ID']);
         $labels = [
-            'publish' => 'منتشر شده',
-            'draft' => 'پیش‌نویس',
-            'pending' => 'در انتظار',
-            'private' => 'خصوصی',
+            'publish' => ['منتشر شده', 'sc-shop-products-pill--success'],
+            'draft' => ['پیش‌نویس', 'sc-shop-products-pill--muted'],
+            'pending' => ['در انتظار', 'sc-shop-products-pill--warning'],
+            'private' => ['خصوصی', 'sc-shop-products-pill--purple'],
         ];
-        return esc_html($labels[$status] ?? $status);
+        $info = $labels[$status] ?? [$status, 'sc-shop-products-pill--muted'];
+        return '<span class="sc-shop-products-pill ' . esc_attr($info[1]) . '">' . esc_html($info[0]) . '</span>';
     }
 
     public function column_date($item) {

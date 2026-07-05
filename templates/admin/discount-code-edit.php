@@ -57,9 +57,11 @@ if ($discount_id && function_exists('sc_sc_discount_tables_ready') && sc_sc_disc
     }
 }
 
-$courses_all = $wpdb->get_results(
-    "SELECT id, title FROM {$wpdb->prefix}sc_courses WHERE deleted_at IS NULL ORDER BY title ASC"
-);
+$courses_all = function_exists('sc_audience_get_courses_for_picker')
+    ? sc_audience_get_courses_for_picker(0)
+    : $wpdb->get_results(
+        "SELECT id, title, course_type, chapter AS chapter_name FROM {$wpdb->prefix}sc_courses WHERE deleted_at IS NULL ORDER BY title ASC"
+    );
 $events_all = $wpdb->get_results(
     "SELECT id, name FROM {$wpdb->prefix}sc_events WHERE deleted_at IS NULL ORDER BY name ASC"
 );
@@ -272,14 +274,16 @@ if (!$row) {
                 <tr class="sc-discount-field-row">
                     <th scope="row"><label for="course_ids">محدودیت دوره‌ها</label></th>
                     <td>
-                        <select name="course_ids[]" id="course_ids" multiple size="8">
-                            <?php foreach ($courses_all as $c) : ?>
-                                <option value="<?php echo esc_attr((string) $c->id); ?>" <?php echo in_array((int) $c->id, array_map('intval', $sel_courses), true) ? 'selected' : ''; ?>>
-                                    <?php echo esc_html($c->title); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <p class="description">بدون انتخاب = همهٔ دوره‌ها (در صورت فعال بودن ثبت‌نام دوره).</p>
+                        <?php
+                        echo function_exists('sc_render_audience_course_picker')
+                            ? sc_render_audience_course_picker((array) $courses_all, array_map('strval', (array) $sel_courses), [
+                                'id' => 'sc-discount-course-picker',
+                                'name' => 'course_ids[]',
+                                'store_course_id_only' => true,
+                                'description' => 'بدون انتخاب = همهٔ دوره‌ها (در صورت فعال بودن ثبت‌نام دوره). انتخاب هر گروه، همان دوره را محدود می‌کند.',
+                            ])
+                            : '';
+                        ?>
                     </td>
                 </tr>
                 <tr class="sc-discount-field-row">
@@ -480,25 +484,29 @@ jQuery(function($){
         if (!e.target || !e.target.closest) return;
         var opt = e.target.closest('.sc-dropdown-option');
         if (!opt || !jQuery(opt).length) return;
-        e.preventDefault();
-        e.stopPropagation();
+        if (opt.classList.contains('sc-audience-course-option') || opt.closest('.sc-audience-course-picker')) {
+            return;
+        }
         var $opt = jQuery(opt);
         var val = $opt.data('value');
         var lbl = $opt.data('label') || $opt.text().trim();
         if (!val) return;
+        if (!$opt.closest('.sc-exclude-recipient-dropdown').length && !$opt.closest('.sc-notification-recipient-dropdown').length) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
         labelsMap[val] = lbl;
         if ($opt.closest('.sc-exclude-recipient-dropdown').length) {
             if (denyIds.indexOf(val) === -1) {
                 denyIds.push(val);
             }
             renderDenyList();
-        } else if ($opt.closest('.sc-notification-recipient-dropdown').length) {
+        } else {
             if (allowIds.indexOf(val) === -1) {
                 allowIds.push(val);
             }
             renderAllowList();
-        } else {
-            return;
         }
         var $menu = $opt.closest('.sc-dropdown-menu');
         $menu.slideUp(200);

@@ -910,6 +910,7 @@ if ( current_user_can('coach') ) {
             'sc-attendance-add',
             'sc-view-member',
             'sc-attendance-list',
+            'sc-attendance-session-cancellations',
             'sc-coach-honors',
             'sc-coach-notifications',
             'sc-coach-notifications-list',
@@ -1004,20 +1005,8 @@ if ( current_user_can('coach') ) {
             $path = $_GET['path'] ?? '';
             $uri = $_SERVER['REQUEST_URI'] ?? '';
             $post_type = $_GET['post_type'] ?? '';
-         
 
-        foreach ( $blocked_pages as $blocked ) {
-            if (
-                 (
-                strpos($page, $blocked) !== false ||
-                strpos($path, $blocked) !== false ||
-                strpos($post_type, $blocked) !== false ||
-                strpos($uri, $blocked) !== false
-             ) ||
-             (
-               is_admin() && !empty($page) && !in_array($page, $allowed_pages) 
-             )
-              ) {
+            if (is_admin() && $page !== '' && !in_array($page, $allowed_pages, true)) {
                 wp_die(
                     '
                     <div >
@@ -1027,7 +1016,24 @@ if ( current_user_can('coach') ) {
                     array('response' => 403)
                 );
             }
-        }
+
+            foreach ($blocked_pages as $blocked) {
+                if (
+                    strpos($page, $blocked) !== false ||
+                    strpos($path, $blocked) !== false ||
+                    strpos($post_type, $blocked) !== false ||
+                    strpos($uri, $blocked) !== false
+                ) {
+                    wp_die(
+                        '
+                    <div >
+                    <h2 style="text-align: left;">Access Denied</h2>
+                    <p style="text-align: left;">نقش شما مربی است - شما به این بخش دسترسی ندارید </p>',
+                        'خطای دسترسی',
+                        array('response' => 403)
+                    );
+                }
+            }
 }
 }
 

@@ -17,6 +17,14 @@
         return m || 'bot_only';
     }
 
+    function audienceCourseValues(pickerId) {
+        var $picker = $('#' + pickerId);
+        if (!$picker.length || typeof window.scAudienceCoursePickerGetValues !== 'function') {
+            return [];
+        }
+        return window.scAudienceCoursePickerGetValues($picker);
+    }
+
     function getTargetConfig() {
         var targetType = $('#target_type').val();
         var config = {};
@@ -25,20 +33,20 @@
             config.user_type = $('#user_type').val() || 'all';
             config.course_scope = $('#course_scope').val() || 'all';
             if (config.course_scope === 'specific') {
-                config.course_ids = ($('select[name="course_ids[]"]').val() || []).map(Number);
+                config.course_ids = audienceCourseValues('sc-bale-course-all-picker');
             }
         } else if (targetType === 'free_users') {
             config.user_type = 'player';
         } else if (targetType === 'specific') {
             config.recipient_ids = recipientIds;
         } else if (targetType === 'course') {
-            config.course_ids = ($('#course-ids-course').val() || []).map(Number);
+            config.course_ids = audienceCourseValues('course-ids-course-picker');
         } else if (targetType === 'team') {
             config.team_names = ($('#team-names-select').val() || []);
         } else if (targetType === 'level') {
             config.level_names = ($('#level-names-select').val() || []);
         } else if (targetType === 'debtors') {
-            config.course_ids = ($('#debtors-course-ids').val() || []).map(Number);
+            config.course_ids = audienceCourseValues('debtors-course-ids-picker');
         } else if (targetType === 'event') {
             config.event_ids = ($('#event-ids-select').val() || []).map(Number);
             config.recipient_ids = eventRecipientIds;
@@ -211,6 +219,9 @@
         }
 
         $btn.prop('disabled', true);
+        if (window.scAudiencePreviewAdd) {
+            window.scAudiencePreviewAdd.reset('#sc-bale-preview-result');
+        }
         $result.html('<p class="description">در حال دریافت پیش‌نمایش...</p>');
 
         $.post(ajaxUrl, {
@@ -232,6 +243,9 @@
                 previewLoaded = true;
                 updateLiveCounts(res.data);
                 initBalePreviewSelectionBindings();
+                if (window.scAudiencePreviewAdd) {
+                    window.scAudiencePreviewAdd.show('#sc-bale-preview-result');
+                }
             } else {
                 $result.html('<p class="description">خطا در دریافت پیش‌نمایش.</p>');
             }
@@ -323,7 +337,10 @@
             recalculatePreviewCounts();
         });
 
-        $(document).on('change', 'select[name="course_ids[]"], #debtors-course-ids, #event-ids-select, #team-names-select, #level-names-select, #team-level-team-select, #team-level-level-select', function () {
+        $(document).on('change', '#event-ids-select, #team-names-select, #level-names-select, #team-level-team-select, #team-level-level-select', function () {
+            previewLoaded = false;
+        });
+        $(document).on('sc-audience-course-change', '.sc-audience-course-picker', function () {
             previewLoaded = false;
         });
 
@@ -448,6 +465,19 @@
                 alert('با حالت ارسال فعلی، هیچ مخاطب انتخاب‌شده‌ای قابل ارسال نیست. حالت ارسال را تغییر دهید یا مخاطبین دیگری انتخاب کنید.');
                 return false;
             }
+        });
+
+        $(document).on('sc-audience-preview-member-added', function (e, payload) {
+            if (!payload || payload.mode !== 'bale' || !payload.memberId) {
+                return;
+            }
+            var rid = 'member_' + payload.memberId;
+            var name = $('#sc-bale-preview-add-options .sc-users-dropdown-option[data-id="' + payload.memberId + '"]').attr('data-name') || '';
+            if (rid && name) {
+                recipientLabels[rid] = name;
+            }
+            initBalePreviewSelectionBindings();
+            recalculatePreviewCounts();
         });
     });
 })(jQuery);

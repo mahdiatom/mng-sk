@@ -32,6 +32,14 @@ $filter_store_tag = isset($_GET['filter_store_tag']) ? absint($_GET['filter_stor
 $filter_store_cat = isset($_GET['filter_store_cat']) ? absint($_GET['filter_store_cat']) : 0;
 $filter_ledger_type = isset($_GET['filter_ledger_type']) ? sanitize_text_field($_GET['filter_ledger_type']) : 'all';
 $filter_cashflow_type = isset($_GET['filter_cashflow_type']) ? sanitize_text_field($_GET['filter_cashflow_type']) : 'all';
+$ledger_per_page = 100;
+$ledger_current_page = 1;
+if ($tab === 'ledger') {
+    if (isset($_GET['ledger_per_page'])) {
+        $ledger_per_page = max(1, min(500, absint($_GET['ledger_per_page'])));
+    }
+    $ledger_current_page = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+}
 
 $filter_date_from = '';
 $filter_date_to = '';
@@ -261,6 +269,14 @@ $finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
                                 <option value="expense" <?php selected($filter_ledger_type, 'expense'); ?>>خروجی</option>
                             </select>
                         </div>
+                        <div class="sc-filter-field">
+                            <label class="sc-filter-label" for="ledger_per_page">تعداد در هر صفحه</label>
+                            <select name="ledger_per_page" id="ledger_per_page" class="sc-filter-control">
+                                <?php foreach ([25, 50, 100, 200, 500] as $ledger_per_page_option) : ?>
+                                    <option value="<?php echo (int) $ledger_per_page_option; ?>" <?php selected($ledger_per_page, $ledger_per_page_option); ?>><?php echo (int) $ledger_per_page_option; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     <?php endif; ?>
                     <?php if ($tab === 'cashflow') : ?>
                         <div class="sc-filter-field">
@@ -327,7 +343,7 @@ $finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
                         'ledger' => 'finance_ledger',
                     ];
                     $export_url = isset($export_map[$tab]) ? admin_url('admin.php?page=sc-reports-income-expenses&tab=' . $tab . '&sc_export=excel&export_type=' . $export_map[$tab]) : '';
-                    foreach (['filter_date_from','filter_date_to','filter_date_from_shamsi','filter_date_to_shamsi','filter_course','filter_coach','filter_chapter','filter_group','filter_event_type','filter_store_tag','filter_store_cat','filter_ledger_type','filter_cashflow_type'] as $param) {
+                    foreach (['filter_date_from','filter_date_to','filter_date_from_shamsi','filter_date_to_shamsi','filter_course','filter_coach','filter_chapter','filter_group','filter_event_type','filter_store_tag','filter_store_cat','filter_ledger_type','filter_cashflow_type','ledger_per_page'] as $param) {
                         if (isset($_GET[$param]) && $_GET[$param] !== '') {
                             $export_url = add_query_arg($param, sanitize_text_field(wp_unslash($_GET[$param])), $export_url);
                         }
@@ -849,11 +865,27 @@ $finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
                 usort($ledger_rows, static function($a, $b) {
                     return strcmp((string) $b->tx_date, (string) $a->tx_date);
                 });
+                $ledger_total_items = count($ledger_rows);
+                $ledger_total_pages = max(1, (int) ceil($ledger_total_items / max(1, $ledger_per_page)));
+                if ($ledger_current_page > $ledger_total_pages) {
+                    $ledger_current_page = $ledger_total_pages;
+                }
+                $ledger_offset = ($ledger_current_page - 1) * $ledger_per_page;
+                $ledger_rows_page = array_slice($ledger_rows, $ledger_offset, $ledger_per_page);
+                $ledger_display_from = $ledger_total_items > 0 ? $ledger_offset + 1 : 0;
+                $ledger_display_to = min($ledger_offset + $ledger_per_page, $ledger_total_items);
                 ?>
+                <p class="description sc-finance-reports-info-note">
+                    <?php if ($ledger_total_items > 0) : ?>
+                        نمایش <?php echo esc_html(number_format_i18n($ledger_display_from)); ?> تا <?php echo esc_html(number_format_i18n($ledger_display_to)); ?> از <?php echo esc_html(number_format_i18n($ledger_total_items)); ?> تراکنش
+                    <?php else : ?>
+                        تراکنشی یافت نشد.
+                    <?php endif; ?>
+                </p>
                 <table class="wp-list-table widefat fixed striped sc-finance-reports-table">
                     <thead><tr><th>تاریخ</th><th>نوع</th><th>شرح</th><th>شخص</th><th>شعبه</th><th>مبلغ (تومان)</th></tr></thead>
                     <tbody>
-                    <?php if (!empty($ledger_rows)) : foreach ($ledger_rows as $r) : ?>
+                    <?php if (!empty($ledger_rows_page)) : foreach ($ledger_rows_page as $r) : ?>
                         <tr>
                             <td><?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($r->tx_date) : $r->tx_date); ?></td>
                             <td><?php echo esc_html($r->tx_type === 'income' ? 'ورودی' : 'خروجی'); ?></td>
@@ -867,6 +899,36 @@ $finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
                     <?php endif; ?>
                     </tbody>
                 </table>
+                <?php if ($ledger_total_pages > 1) : ?>
+                    <div class="tablenav bottom sc_paginate sc-finance-ledger-pagination">
+                        <div class="tablenav-pages" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <div class="displaying-num"><?php echo esc_html(number_format_i18n($ledger_total_items)); ?> مورد</div>
+                            <div class="pagination-links">
+                                <?php
+                                $ledger_pagination_args = [
+                                    'page' => 'sc-reports-income-expenses',
+                                    'tab' => 'ledger',
+                                    'ledger_per_page' => $ledger_per_page,
+                                ];
+                                foreach (['filter_date_from','filter_date_to','filter_date_from_shamsi','filter_date_to_shamsi','filter_course','filter_chapter','filter_group','filter_ledger_type'] as $ledger_param) {
+                                    if (isset($_GET[$ledger_param]) && $_GET[$ledger_param] !== '') {
+                                        $ledger_pagination_args[$ledger_param] = sanitize_text_field(wp_unslash($_GET[$ledger_param]));
+                                    }
+                                }
+                                echo paginate_links([
+                                    'base' => add_query_arg('paged', '%#%', admin_url('admin.php')),
+                                    'format' => '',
+                                    'prev_text' => '&laquo; قبلی',
+                                    'next_text' => 'بعدی &raquo;',
+                                    'total' => $ledger_total_pages,
+                                    'current' => $ledger_current_page,
+                                    'add_args' => $ledger_pagination_args,
+                                ]);
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
                 <?php
                 $income_sum = 0.0;
                 $expense_sum = 0.0;

@@ -71,7 +71,9 @@ function sc_bale_normalize_ajax_target_config($target_config) {
         $target_config['exclude_recipient_ids'] = array_filter(array_map('trim', explode(',', $target_config['exclude_recipient_ids'])));
     }
     if (isset($target_config['course_ids']) && is_string($target_config['course_ids'])) {
-        $target_config['course_ids'] = array_map('absint', array_filter(explode(',', $target_config['course_ids'])));
+        $target_config['course_ids'] = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request(explode(',', $target_config['course_ids']))
+            : array_map('absint', array_filter(explode(',', $target_config['course_ids'])));
     }
     if (isset($target_config['event_ids']) && is_string($target_config['event_ids'])) {
         $target_config['event_ids'] = array_map('absint', array_filter(explode(',', $target_config['event_ids'])));

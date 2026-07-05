@@ -224,7 +224,7 @@ $filters_open = $active_filters_count > 0;
     <form method="get" action="" class="sc-reports-list-filters-panel" id="sc-reports-sms-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
         <input type="hidden" name="page" value="sc-reports-sms-log">
 
-        <div class="sc-filter-grid">
+        <div class="sc-filter-grid sc-sms-log-filter-grid">
 
             <div class="sc-filter-field">
                 <label class="sc-filter-label" for="context">بخش</label>
@@ -277,14 +277,14 @@ $filters_open = $active_filters_count > 0;
                 </select>
             </div>
 
-            <div class="sc-filter-field">
-                <label class="sc-filter-label">از تاریخ</label>
-                <input type="text" name="date_from_shamsi" id="date_from_shamsi" value="<?php echo esc_attr($display_date_from); ?>" class="persian-date-input sc-filter-control sc-no-default-date" placeholder="از تاریخ" readonly>
+            <div class="sc-filter-field sc-filter-date">
+                <label class="sc-filter-label">بازه تاریخ</label>
+                <div class="sc-date-range">
+                    <input type="text" name="date_from_shamsi" id="date_from_shamsi" value="<?php echo esc_attr($display_date_from); ?>" class="persian-date-input sc-filter-control sc-no-default-date" placeholder="از تاریخ" readonly>
+                    <span class="sc-date-separator">تا</span>
+                    <input type="text" name="date_to_shamsi" id="date_to_shamsi" value="<?php echo esc_attr($display_date_to); ?>" class="persian-date-input sc-filter-control sc-no-default-date" placeholder="تا تاریخ" readonly>
+                </div>
                 <input type="hidden" name="date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-            </div>
-            <div class="sc-filter-field">
-                <label class="sc-filter-label">تا تاریخ</label>
-                <input type="text" name="date_to_shamsi" id="date_to_shamsi" value="<?php echo esc_attr($display_date_to); ?>" class="persian-date-input sc-filter-control sc-no-default-date" placeholder="تا تاریخ" readonly>
                 <input type="hidden" name="date_to" value="<?php echo esc_attr($filter_date_to); ?>">
             </div>
 

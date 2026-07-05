@@ -1158,6 +1158,15 @@ function sc_register_admin_menu() {
             'sc_admin_reports_debtors_page'
         );
 
+        add_submenu_page(
+            'sc-reports',
+            'برنامه هفتگی',
+            'برنامه هفتگی',
+            'sc_finance_reports_access',
+            'sc-reports-weekly-schedule',
+            'sc_admin_reports_weekly_schedule_page'
+        );
+
         if (function_exists('sc_is_pro_feature_sms_enabled') && sc_is_pro_feature_sms_enabled()) {
             add_submenu_page(
                 'sc-reports',
@@ -2714,6 +2723,11 @@ function sc_admin_reports_debtors_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'reports-debtors.php';
 }
 
+function sc_admin_reports_weekly_schedule_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-weekly-schedule.php';
+}
+
 function sc_admin_reports_sms_log_page() {
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'reports-sms-log.php';
@@ -2927,6 +2941,12 @@ function callback_add_invoice_sufix() {
         }
 
         $excluded_member_ids = isset($_POST['excluded_member_ids']) ? array_filter(array_map('absint', (array) $_POST['excluded_member_ids'])) : array();
+        $included_member_ids = isset($_POST['included_member_ids']) ? array_filter(array_map('absint', (array) $_POST['included_member_ids'])) : array();
+        if (function_exists('sc_audience_merge_included_member_ids')) {
+            $member_ids = sc_audience_merge_included_member_ids($member_ids, $included_member_ids);
+        } elseif (!empty($included_member_ids)) {
+            $member_ids = array_values(array_unique(array_merge($member_ids, $included_member_ids)));
+        }
         if (!empty($excluded_member_ids)) {
             $member_ids = array_values(array_diff($member_ids, $excluded_member_ids));
         }
@@ -3305,6 +3325,7 @@ function callback_add_course_sufix() {
         $data = [
             'title' => sanitize_text_field($_POST['title']),
             'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
+            'image' => !empty($_POST['image']) ? esc_url_raw(sanitize_text_field(wp_unslash($_POST['image']))) : null,
             'price' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_value,
             'price_per_session' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_per_session_value,
             'capacity' => ($is_private_course && $private_variable_coach_pricing) ? null : (!empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL),
@@ -3413,6 +3434,7 @@ function callback_add_course_sufix() {
             $insert_data = [
                 'title' => sanitize_text_field($_POST['title']),
                 'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
+                'image' => !empty($_POST['image']) ? esc_url_raw(sanitize_text_field(wp_unslash($_POST['image']))) : null,
                 'price' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_value,
                 'price_per_session' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_per_session_value,
                 'capacity' => ($is_private_course && $private_variable_coach_pricing) ? null : (!empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL),
@@ -4908,66 +4930,41 @@ function get_player_details(){
  */
 add_action('wp_ajax_get_course_active_users', 'get_course_active_users');
 function get_course_active_users() {
-    $course_id = intval($_POST['course_id']);
-    
+    if (!current_user_can('manage_options') && !current_user_can('club_coach')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+
+    $course_id = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
+
     if (!$course_id) {
         wp_send_json_error(['message' => 'شناسه دوره معتبر نیست.']);
-        return;
     }
-    
+
     global $wpdb;
-    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-    $members_table = $wpdb->prefix . 'sc_members';
-    $coaches_table = $wpdb->prefix . 'sc_coaches';
-    
-    // دریافت کاربران فعال دوره (status = 'active' و بدون هیچ flag)
-    $users = $wpdb->get_results($wpdb->prepare(
-        "SELECT m.id, m.first_name, m.last_name, m.national_id, m.player_phone, 
-                m.father_name, m.father_phone, m.created_at, mc.enrollment_date,
-                ch.first_name AS coach_first_name, ch.last_name AS coach_last_name
-         FROM $member_courses_table mc
-         INNER JOIN $members_table m ON mc.member_id = m.id
-         LEFT JOIN $coaches_table ch ON ch.id = mc.coach_id
-         WHERE mc.course_id = %d
-         AND mc.status = 'active'
-         AND (
-             mc.course_status_flags IS NULL
-             OR TRIM(mc.course_status_flags) = ''
-         )
-         ORDER BY m.last_name ASC, m.first_name ASC",
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $course = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, title FROM $courses_table WHERE id = %d LIMIT 1",
         $course_id
-    ), ARRAY_A);
-    
-    if (empty($users) || !is_array($users)) {
-        wp_send_json_success([
-            'users' => [],
-            'count' => 0,
-            'message' => 'هیچ کاربر فعالی در این دوره یافت نشد.'
-        ]);
-        return;
+    ));
+
+    if (!$course) {
+        wp_send_json_error(['message' => 'دوره یافت نشد.']);
     }
-    
-    // تبدیل تاریخ‌ها به شمسی
-    foreach ($users as &$user) {
-        if (!empty($user['enrollment_date'])) {
-            $user['enrollment_date_shamsi'] = sc_date_shamsi_date_only($user['enrollment_date']);
-        } else {
-            $user['enrollment_date_shamsi'] = '-';
-        }
-        if (!empty($user['created_at'])) {
-            $user['created_at_shamsi'] = sc_date_shamsi_date_only($user['created_at']);
-        } else {
-            $user['created_at_shamsi'] = '-';
-        }
-        $coach_name = trim((string) ($user['coach_first_name'] ?? '') . ' ' . (string) ($user['coach_last_name'] ?? ''));
-        $user['coach_name'] = $coach_name !== '' ? $coach_name : '-';
-    }
-    unset($user);
-    
+
+    $users = function_exists('sc_get_course_active_member_rows')
+        ? sc_get_course_active_member_rows($course_id)
+        : [];
+
+    $html = function_exists('sc_render_course_active_users_modal_html')
+        ? sc_render_course_active_users_modal_html($course_id, $users, (string) $course->title)
+        : '';
+
     wp_send_json_success([
         'users' => $users,
         'count' => count($users),
-        'course_id' => $course_id
+        'course_id' => $course_id,
+        'course_title' => (string) $course->title,
+        'html' => $html,
     ]);
 }
 

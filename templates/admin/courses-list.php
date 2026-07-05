@@ -192,138 +192,102 @@ jQuery(document).ready(function ($) {
 </script>
 
 <!-- Modal for Course Users -->
-<div id="scCourseUsersModal" class="sc-modal" >
-    <div class="sc-modal-content">
-        <div class="sc-modal-header">
+<div id="scCourseUsersModal" class="sc-modal sc-course-users-modal" style="display: none !important; visibility: hidden !important;">
+    <div class="sc-modal-content sc-course-users-modal-content">
+        <div class="sc-modal-header sc-course-users-modal-header">
             <h2 class="sc-modal-title">کاربران فعال دوره</h2>
-            <span class="sc-modal-close">&times;</span>
+            <span class="sc-modal-close" aria-label="بستن">&times;</span>
         </div>
-        <div class="sc-modal-body">
-            <div class="sc-modal-loading">
+        <div class="sc-modal-body sc-course-users-modal-body">
+            <div class="sc-modal-loading sc-course-users-loading">
                 <div class="sc-spinner"></div>
                 <p>در حال بارگذاری...</p>
             </div>
-            <div class="sc-modal-users-list" style="display: none;"></div>
+            <div class="sc-modal-content-body sc-course-users-content" style="display: none;"></div>
         </div>
     </div>
 </div>
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
-    $(document).on('click', '.view-course-users', function(e){
-        e.preventDefault();
-        e.stopPropagation();
-        
-        let courseId = $(this).data('id');
-        
-        if (!courseId) {
-            alert('خطا: شناسه دوره پیدا نشد');
-            return;
-        }
-        
-        let $modal = $('#scCourseUsersModal');
-        
-        if (!$modal.length) {
-            alert('خطا: المان Modal پیدا نشد');
-            return;
-        }
-        
-        let $loading = $modal.find('.sc-modal-loading');
-        let $usersList = $modal.find('.sc-modal-users-list');
-        
-        $loading.show();
-        $usersList.hide().empty();
-        
-        $modal.css({
-            'display': 'flex',
-            'visibility': 'visible'
-        }).addClass('show-modal');
-        
-        var ajaxUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
-        
-        $.ajax({
-            url: ajaxUrl,
-            type: 'POST',
-            data: {
-                action: 'get_course_active_users',
-                course_id: courseId
-            },
-            success: function(res){
-                $loading.hide();
-                
-                if(res.success && res.data){
-                    let users = res.data.users || [];
-                    let count = res.data.count || 0;
-                    
-                    if(users.length > 0){
-                        let courseId = res.data.course_id || courseId;
-                        let exportUrl = '<?php echo wp_nonce_url(admin_url('admin.php?page=sc-courses'), 'sc_export_excel'); ?>&sc_export=excel&export_type=course_users&course_id=' + courseId;
-                        
-                        let html = '<div class="sc-users-summary" style="margin-bottom: 20px; padding: 15px; background-color: #f0f6fc; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">';
-                        html += '<strong>تعداد کاربران فعال: ' + count + ' نفر</strong>';
-                        html += '<a href="' + exportUrl + '" class="button button-secondary button_export" >📊 خروجی Excel</a>';
-                        html += '</div>';
-                        html += '<div class="sc-users-table-container" style="max-height: 500px; overflow-y: auto;">';
-                        html += '<table class="wp-list-table widefat fixed striped"><thead><tr>';
-                        html += '<th style="width: 50px;">ردیف</th><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th>';
-                        html += '<th>شماره تماس</th><th>نام پدر</th><th>شماره تماس پدر</th><th>مربی</th><th>تاریخ ثبت‌نام</th>';
-                        html += '</tr></thead><tbody>';
-                        
-                        $.each(users, function(index, user){
-                            html += '<tr><td>' + (index + 1) + '</td>';
-                            html += '<td>' + (user.first_name || '-') + '</td>';
-                            html += '<td>' + (user.last_name || '-') + '</td>';
-                            html += '<td>' + (user.national_id || '-') + '</td>';
-                            html += '<td>' + (user.player_phone || '-') + '</td>';
-                            html += '<td>' + (user.father_name || '-') + '</td>';
-                            html += '<td>' + (user.father_phone || '-') + '</td>';
-                            html += '<td>' + (user.coach_name || '-') + '</td>';
-                            html += '<td>' + (user.enrollment_date_shamsi || user.enrollment_date || '-') + '</td></tr>';
-                        });
-                        
-                        html += '</tbody></table></div>';
-                        $usersList.html(html).fadeIn(300);
-                    } else {
-                        let errorMsg = res.data.message || 'هیچ کاربر فعالی در این دوره یافت نشد.';
-                        $usersList.html('<p style="text-align: center; padding: 40px; color: #666;">' + errorMsg + '</p>').fadeIn(300);
-                    }
-                } else {
-                    $usersList.html('<p style="text-align: center; padding: 40px; color: #666;">خطا در دریافت اطلاعات. لطفاً دوباره تلاش کنید.</p>').fadeIn(300);
-                }
-            },
-            error: function(xhr, status, error){
-                console.error('AJAX Error:', status, error);
-                console.error('Response Text:', xhr.responseText);
-                console.error('Status Code:', xhr.status);
-                $loading.hide();
-                $usersList.html('<p style="text-align: center; padding: 40px; color: #d63638;">خطا در دریافت اطلاعات. لطفاً دوباره تلاش کنید.</p><p style="text-align: center; color: #666; font-size: 12px;">خطا: ' + error + ' (Status: ' + xhr.status + ')</p>').fadeIn(300);
-            }
-        });
-    });
-    
-    $(document).on('click', '.sc-modal-close', function(e){
-        e.preventDefault();
-        e.stopPropagation();
-        let $modal = $('#scCourseUsersModal');
+    function scCloseCourseUsersModal() {
+        var $modal = $('#scCourseUsersModal');
         $modal.removeClass('show-modal');
         $modal.css({
             'display': 'none',
             'visibility': 'hidden'
         });
+    }
+
+    $(document).on('click', '.view-course-users', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var courseId = $(this).data('id');
+        if (!courseId) {
+            alert('خطا: شناسه دوره پیدا نشد');
+            return;
+        }
+
+        var $modal = $('#scCourseUsersModal');
+        var $loading = $modal.find('.sc-course-users-loading');
+        var $contentBody = $modal.find('.sc-course-users-content');
+
+        $loading.show();
+        $contentBody.hide().empty();
+
+        $modal.css({
+            'display': 'flex',
+            'visibility': 'visible'
+        }).addClass('show-modal');
+
+        $.ajax({
+            url: '<?php echo esc_url(admin_url('admin-ajax.php')); ?>',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                action: 'get_course_active_users',
+                course_id: courseId
+            },
+            success: function(res) {
+                $loading.hide();
+
+                if (res && res.success) {
+                    var title = (res.data && res.data.course_title) ? res.data.course_title : '';
+                    if (title) {
+                        $modal.find('.sc-modal-title').text('کاربران فعال — ' + title);
+                    }
+
+                    if (res.data && res.data.html) {
+                        $contentBody.html(res.data.html).fadeIn(300);
+                    } else {
+                        $contentBody.html('<div class="sc-course-users-empty"><p>هیچ کاربر فعالی در این دوره یافت نشد.</p></div>').fadeIn(300);
+                    }
+                } else {
+                    var errorMsg = (res && res.data && res.data.message) ? res.data.message : 'خطا در دریافت اطلاعات.';
+                    $contentBody.html('<div class="sc-course-users-empty sc-course-users-empty--error"><p>' + errorMsg + '</p></div>').fadeIn(300);
+                }
+            },
+            error: function(xhr, status, error) {
+                $loading.hide();
+                $contentBody.html('<div class="sc-course-users-empty sc-course-users-empty--error"><p>خطا در دریافت اطلاعات. لطفاً دوباره تلاش کنید.</p></div>').fadeIn(300);
+            }
+        });
     });
-    
-    $(document).on('click', '#scCourseUsersModal', function(e){
-        if($(e.target).is('#scCourseUsersModal')){
-            let $modal = $(this);
-            $modal.removeClass('show-modal');
-            $modal.css({
-                'display': 'none',
-                'visibility': 'hidden'
-            });
+
+    $(document).on('click', '#scCourseUsersModal .sc-modal-close', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        scCloseCourseUsersModal();
+    });
+
+    $(document).on('click', '#scCourseUsersModal', function(e) {
+        if ($(e.target).is('#scCourseUsersModal')) {
+            scCloseCourseUsersModal();
         }
     });
-    
-    $(document).on('click', '.sc-modal-content', function(e){
+
+    $(document).on('click', '#scCourseUsersModal .sc-modal-content', function(e) {
         e.stopPropagation();
     });
 });

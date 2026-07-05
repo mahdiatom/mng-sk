@@ -854,7 +854,10 @@
 
 /* ===== ادمین — لیست رزرو کلاس خصوصی (SaaS) ===== */
 body.toplevel_page_sc-private-booking-requests #wpcontent,
-body[class*="_page_sc-private-booking-requests"] #wpcontent {
+body[class*="_page_sc-private-booking-requests"] #wpcontent,
+body.toplevel_page_sc-private-bookings-list #wpcontent,
+body[class*="_page_sc-private-bookings-list"] #wpcontent,
+body[class*="_page_sc-coach-private-classes"] #wpcontent {
     background: #f4f2fa;
 }
 
@@ -997,6 +1000,44 @@ body[class*="_page_sc-private-booking-requests"] #wpcontent {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px 16px;
+}
+
+.sc-private-classes-filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sc-private-regs-list-filters-panel .sc-date-range {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: center;
+}
+
+.sc-private-regs-list-filters-panel .sc-date-separator {
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.sc-private-regs-list-filters-panel .sc-filter-date {
+    grid-column: span 1;
+}
+
+@media screen and (min-width: 1100px) {
+    .sc-private-classes-filter-grid .sc-filter-date {
+        grid-column: span 2;
+    }
+}
+
+.sc-private-regs-list-filters-toggle:hover {
+    background: rgba(109, 52, 255, 0.06);
+    border-color: rgba(109, 52, 255, 0.4);
+}
+
+.sc-private-regs-list-filters-clear:hover {
+    color: #4a1fb8;
+    text-decoration: underline;
 }
 
 .sc-private-regs-list-filters-panel .sc-filter-field {
@@ -1446,7 +1487,8 @@ body[class*="_page_sc-private-booking-requests"] #wpcontent {
         margin-inline-end: 10px;
     }
 
-    .sc-private-regs-list-filters-panel .sc-filter-grid {
+    .sc-private-regs-list-filters-panel .sc-filter-grid,
+    .sc-private-classes-filter-grid {
         grid-template-columns: 1fr;
     }
 

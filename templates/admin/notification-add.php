@@ -84,48 +84,52 @@ if (isset($_POST['save_notification']) && check_admin_referer('save_notification
         $target_config['user_type'] = isset($_POST['user_type']) ? sanitize_text_field($_POST['user_type']) : 'all';
         $target_config['course_scope'] = isset($_POST['course_scope']) ? sanitize_text_field($_POST['course_scope']) : 'all';
         if (!empty($_POST['course_ids']) && is_array($_POST['course_ids'])) {
-            $target_config['course_ids'] = array_map('absint', $_POST['course_ids']);
+            $target_config['course_ids'] = function_exists('sc_audience_normalize_course_ids_from_request')
+                ? sc_audience_normalize_course_ids_from_request($_POST['course_ids'])
+                : array_filter(array_map('absint', $_POST['course_ids']));
         }
     } elseif ($target_type === 'specific') {
         $rids = isset($_POST['recipient_ids_str']) ? sanitize_text_field($_POST['recipient_ids_str']) : '';
         $target_config['recipient_ids'] = $rids ? array_filter(array_map('trim', explode(',', $rids))) : [];
     } elseif ($target_type === 'free_users') {
         $target_config['user_type'] = 'player';
-    }
-     elseif ($target_type === 'team') {
-    $target_config['team_names'] = isset($_POST['team_names']) && is_array($_POST['team_names'])
-        ? array_map('sanitize_text_field', $_POST['team_names'])
-        : [];
-    }
-    if ($target_type !== 'specific' && $target_type !== 'phone') {
-        $excluded = isset($_POST['exclude_recipient_ids_str']) ? sanitize_text_field($_POST['exclude_recipient_ids_str']) : '';
-        $target_config['exclude_recipient_ids'] = $excluded ? array_filter(array_map('trim', explode(',', $excluded))) : [];
-    }
-     elseif ($target_type === 'level') {
-    $target_config['level_names'] = isset($_POST['level_names']) && is_array($_POST['level_names'])
-        ? array_map('sanitize_text_field', $_POST['level_names'])
-        : [];
-    }
-     elseif ($target_type === 'team_level') {
+    } elseif ($target_type === 'team') {
         $target_config['team_names'] = isset($_POST['team_names']) && is_array($_POST['team_names'])
             ? array_map('sanitize_text_field', $_POST['team_names'])
             : [];
-
+    } elseif ($target_type === 'level') {
         $target_config['level_names'] = isset($_POST['level_names']) && is_array($_POST['level_names'])
             ? array_map('sanitize_text_field', $_POST['level_names'])
             : [];
-    }
-
-    elseif ($target_type === 'course') {
-        $target_config['course_ids'] = isset($_POST['course_ids']) && is_array($_POST['course_ids']) ? array_map('absint', $_POST['course_ids']) : [];
+    } elseif ($target_type === 'team_level') {
+        $target_config['team_names'] = isset($_POST['team_names']) && is_array($_POST['team_names'])
+            ? array_map('sanitize_text_field', $_POST['team_names'])
+            : [];
+        $target_config['level_names'] = isset($_POST['level_names']) && is_array($_POST['level_names'])
+            ? array_map('sanitize_text_field', $_POST['level_names'])
+            : [];
+    } elseif ($target_type === 'course') {
+        $target_config['course_ids'] = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($_POST['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($_POST['course_ids'] ?? [])));
     } elseif ($target_type === 'debtors') {
-        $target_config['course_ids'] = isset($_POST['debtors_course_ids']) && is_array($_POST['debtors_course_ids']) ? array_map('absint', $_POST['debtors_course_ids']) : [];
+        $target_config['course_ids'] = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($_POST['debtors_course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($_POST['debtors_course_ids'] ?? [])));
     } elseif ($target_type === 'event') {
         $target_config['event_ids'] = isset($_POST['event_ids']) && is_array($_POST['event_ids']) ? array_map('absint', $_POST['event_ids']) : [];
         $rids = isset($_POST['event_recipient_ids_str']) ? sanitize_text_field($_POST['event_recipient_ids_str']) : '';
         $target_config['recipient_ids'] = $rids ? array_filter(array_map('trim', explode(',', $rids))) : [];
     }
     // wallet_negative: no config
+
+    if ($target_type !== 'specific' && $target_type !== 'phone') {
+        $excluded = isset($_POST['exclude_recipient_ids_str']) ? sanitize_text_field($_POST['exclude_recipient_ids_str']) : '';
+        $target_config['exclude_recipient_ids'] = $excluded ? array_filter(array_map('trim', explode(',', $excluded))) : [];
+    }
+    $target_config['included_member_ids'] = isset($_POST['included_member_ids'])
+        ? array_filter(array_map('absint', (array) $_POST['included_member_ids']))
+        : [];
 
     $attachment_ids = [];
     if (!empty($_POST['notification_attachment_ids']) && is_array($_POST['notification_attachment_ids'])) {
@@ -210,7 +214,7 @@ if ($is_coach && $current_coach_id > 0) {
     if (!empty($coach_course_ids)) {
         $placeholders = implode(',', array_fill(0, count($coach_course_ids), '%d'));
         $courses_list = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, title FROM $courses_table WHERE id IN ($placeholders) AND deleted_at IS NULL AND is_active = 1 ORDER BY title",
+            "SELECT id, title, course_type, chapter AS chapter_name FROM $courses_table WHERE id IN ($placeholders) AND deleted_at IS NULL AND is_active = 1 ORDER BY title",
             ...$coach_course_ids
         ));
         $members = $wpdb->get_results($wpdb->prepare(
@@ -229,7 +233,9 @@ if ($is_coach && $current_coach_id > 0) {
 } else {
     $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id, user_id FROM $members_table WHERE user_id IS NOT NULL AND is_active = 1 ORDER BY last_name, first_name");
     $coaches = $wpdb->get_results("SELECT id, first_name, last_name, national_id, user_id FROM $coaches_table WHERE user_id IS NOT NULL AND is_active = 1 ORDER BY last_name, first_name");
-    $courses_list = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title");
+    $courses_list = function_exists('sc_audience_get_courses_for_picker')
+        ? sc_audience_get_courses_for_picker(0)
+        : $wpdb->get_results("SELECT id, title, course_type, chapter AS chapter_name FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title");
     $events_table = $wpdb->prefix . 'sc_events';
     $events_list = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') AND is_active = 1 ORDER BY name");
 }
@@ -436,22 +442,30 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                     </p>
                     <p id="row-course-ids-all" class="course-ids-row" style="display:none;">
                         <strong>انتخاب دوره:</strong><br>
-                        <select name="course_ids[]" multiple size="6" style="min-width:300px;">
-                            <?php foreach ($courses_list as $c) : ?>
-                                <option value="<?php echo $c->id; ?>" <?php echo (isset($saved['course_ids']) && in_array($c->id, $saved['course_ids'])) ? 'selected' : ''; ?>><?php echo esc_html($c->title); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <br><small>Ctrl+Click برای انتخاب چند دوره</small>
+                        <?php
+                        $saved_course_ids_all = (isset($saved['course_scope']) && $saved['course_scope'] === 'specific')
+                            ? (array) ($saved['course_ids'] ?? [])
+                            : [];
+                        echo function_exists('sc_render_audience_course_picker')
+                            ? sc_render_audience_course_picker((array) $courses_list, $saved_course_ids_all, [
+                                'id' => 'sc-notification-course-all-picker',
+                                'name' => 'course_ids[]',
+                            ])
+                            : '';
+                        ?>
                     </p>
                     <?php else : ?>
                     <p>
                         <strong>انتخاب دوره (فقط دوره‌های خودتان):</strong><br>
-                        <select name="course_ids[]" multiple size="6" style="min-width:300px;">
-                            <?php foreach ($courses_list as $c) : ?>
-                                <option value="<?php echo $c->id; ?>" <?php echo (isset($saved['course_ids']) && in_array($c->id, (array)($saved['course_ids'] ?? []))) ? 'selected' : ''; ?>><?php echo esc_html($c->title); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <br><small>Ctrl+Click برای انتخاب چند دوره. ارسال به بازیکنان فعال آن دوره‌ها.</small>
+                        <?php
+                        echo function_exists('sc_render_audience_course_picker')
+                            ? sc_render_audience_course_picker((array) $courses_list, (array) ($saved['course_ids'] ?? []), [
+                                'id' => 'sc-notification-coach-course-picker',
+                                'name' => 'course_ids[]',
+                            ])
+                            : '';
+                        ?>
+                        <br><small>ارسال به بازیکنان فعال آن دوره‌ها.</small>
                     </p>
                     <input type="hidden" name="user_type" value="player">
                     <input type="hidden" name="course_scope" value="specific">
@@ -508,12 +522,15 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
             <tr id="row-target-course" class="target-row" style="display:none;">
                 <th scope="row">انتخاب دوره</th>
                 <td>
-                    <select name="course_ids[]" id="course-ids-course" multiple size="8" style="min-width:350px;">
-                        <?php foreach ($courses_list as $c) : ?>
-                            <option value="<?php echo $c->id; ?>" <?php echo (isset($saved['course_ids']) && in_array($c->id, (array)($saved['course_ids'] ?? []))) ? 'selected' : ''; ?>><?php echo esc_html($c->title); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <br><small>Ctrl+Click برای انتخاب چند دوره. ارسال به اعضای فعال دوره.</small>
+                    <?php
+                    echo function_exists('sc_render_audience_course_picker')
+                        ? sc_render_audience_course_picker((array) $courses_list, (array) ($saved['course_ids'] ?? []), [
+                            'id' => 'course-ids-course-picker',
+                            'name' => 'course_ids[]',
+                            'description' => 'ارسال به اعضای فعال دوره‌های انتخاب‌شده (با جزئیات گروه در صورت وجود).',
+                        ])
+                        : '';
+                    ?>
                 </td>
             </tr>
             <tr id="row-target-free_users" class="target-row" style="display:none;">
@@ -567,12 +584,15 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
                     <p><strong>محدوده:</strong> اگر دوره انتخاب نکنید، به همه اعضایی که حداقل یک صورتحساب پرداخت‌نشده دارند ارسال می‌شود.</p>
                     <p>
                         <strong>فیلتر بر اساس دوره (اختیاری):</strong><br>
-                        <select name="debtors_course_ids[]" id="debtors-course-ids" multiple size="6" style="min-width:300px;">
-                            <?php foreach ($courses_list as $c) : ?>
-                                <option value="<?php echo $c->id; ?>" <?php echo (isset($saved['course_ids']) && in_array($c->id, (array)($saved['course_ids'] ?? []))) ? 'selected' : ''; ?>><?php echo esc_html($c->title); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <br><small>خالی = همه بدهکاران. با انتخاب دوره فقط بدهکاران آن دوره‌ها.</small>
+                        <?php
+                        echo function_exists('sc_render_audience_course_picker')
+                            ? sc_render_audience_course_picker((array) $courses_list, (array) ($saved['course_ids'] ?? []), [
+                                'id' => 'debtors-course-ids-picker',
+                                'name' => 'debtors_course_ids[]',
+                                'description' => 'خالی = همه بدهکاران. با انتخاب دوره فقط بدهکاران همان دوره/گروه.',
+                            ])
+                            : '';
+                        ?>
                     </p>
                 </td>
             </tr>
@@ -704,6 +724,20 @@ $initial_target_type = $notification ? (isset($notification->target_type) ? $not
             <div id="sc-notification-preview-result" class="sc-bulk-preview-result back_table_list">
                 <p class="description">بعد از انتخاب فیلتر، روی «پیش نمایش مخاطبین» کلیک کنید.</p>
             </div>
+            <?php
+            if (function_exists('sc_audience_render_preview_add_members_block')) {
+                sc_audience_render_preview_add_members_block(
+                    function_exists('sc_audience_get_members_for_preview_add_picker') ? sc_audience_get_members_for_preview_add_picker() : $members,
+                    [
+                        'wrap_id' => 'sc-notification-preview-add-wrap',
+                        'dropdown_id' => 'sc-notification-preview-add-dropdown',
+                        'options_id' => 'sc-notification-preview-add-options',
+                        'hidden_inputs_id' => 'sc-notification-preview-add-inputs',
+                        'mode' => 'notif',
+                    ]
+                );
+            }
+            ?>
             </div>
         </div>
         </div>
@@ -774,6 +808,14 @@ jQuery(document).ready(function($) {
     $('#content').on('input', updateSmsCounter);
     updateSmsCounter();
 
+    function audienceCourseValues(pickerId) {
+        var $picker = $('#' + pickerId);
+        if (!$picker.length || typeof window.scAudienceCoursePickerGetValues !== 'function') {
+            return [];
+        }
+        return window.scAudienceCoursePickerGetValues($picker);
+    }
+
     function getTargetConfig() {
         var targetType = $('#target_type').val();
         var config = {};
@@ -781,14 +823,16 @@ jQuery(document).ready(function($) {
             config.user_type = $('#user_type').val() || 'all';
             config.course_scope = $('#course_scope').val() || 'all';
             if (config.course_scope === 'specific') {
-                config.course_ids = ($('select[name="course_ids[]"]').val() || []).map(Number);
+                config.course_ids = isCoach
+                    ? audienceCourseValues('sc-notification-coach-course-picker')
+                    : audienceCourseValues('sc-notification-course-all-picker');
             }
         } else if (targetType === 'free_users') {
             config.user_type = 'player';
         } else if (targetType === 'specific') {
             config.recipient_ids = recipientIds;
         } else if (targetType === 'course') {
-            config.course_ids = ($('#course-ids-course').val() || []).map(Number);
+            config.course_ids = audienceCourseValues('course-ids-course-picker');
         }
         else if (targetType === 'team') {
              config.team_names = ($('#team-names-select').val() || []);
@@ -797,7 +841,7 @@ jQuery(document).ready(function($) {
              config.level_names = ($('#level-names-select').val() || []);
         }
          else if (targetType === 'debtors') {
-            config.course_ids = ($('#debtors-course-ids').val() || []).map(Number);
+            config.course_ids = audienceCourseValues('debtors-course-ids-picker');
         } else if (targetType === 'event') {
             config.event_ids = ($('#event-ids-select').val() || []).map(Number);
             config.recipient_ids = eventRecipientIds;
@@ -939,6 +983,9 @@ jQuery(document).ready(function($) {
 
         $btn.on('click', function () {
             $btn.prop('disabled', true);
+            if (window.scAudiencePreviewAdd) {
+                window.scAudiencePreviewAdd.reset('#sc-notification-preview-result');
+            }
             $result.html('<p class="description">در حال دریافت پیش نمایش...</p>');
             $.post(ajaxUrl, buildNotificationPreviewPayload())
                 .done(function (res) {
@@ -946,6 +993,9 @@ jQuery(document).ready(function($) {
                         $result.html(res.data.html || '');
                         notificationPreviewLoaded = true;
                         initNotificationPreviewSelectionBindings();
+                        if (window.scAudiencePreviewAdd) {
+                            window.scAudiencePreviewAdd.show('#sc-notification-preview-result');
+                        }
                     } else {
                         $result.html('<p class="description">خطا در دریافت پیش نمایش.</p>');
                     }
@@ -963,11 +1013,17 @@ jQuery(document).ready(function($) {
         toggleTargetRows();
         if (!$('#send_sms').length || $('#send_sms').is(':checked')) updateSmsSummary();
     });
-    $(document).on('change', 
-    'select[name="course_ids[]"], #debtors-course-ids, #event-ids-select, #team-names-select, #level-names-select , #team-level-team-select, #team-level-level-select' , 
+    $(document).on('change',
+    '#event-ids-select, #team-names-select, #level-names-select , #team-level-team-select, #team-level-level-select',
         function() {
-            if (!$('#send_sms').length || $('#send_sms').is(':checked')) 
+            if (!$('#send_sms').length || $('#send_sms').is(':checked'))
                 updateSmsSummary();
+    });
+    $(document).on('sc-audience-course-change', '.sc-audience-course-picker', function() {
+        if (!$('#send_sms').length || $('#send_sms').is(':checked')) {
+            updateSmsSummary();
+        }
+        notificationPreviewLoaded = false;
     });
 
     var summaryDebounce;
@@ -1276,6 +1332,14 @@ jQuery(document).ready(function($) {
         notificationPreviewLoaded = false;
     });
     toggleTargetRows();
+    $(document).on('sc-audience-preview-member-added', function (e, payload) {
+        if (!payload || !payload.mode) {
+            return;
+        }
+        if (payload.mode === 'notif') {
+            initNotificationPreviewSelectionBindings();
+        }
+    });
     initNotificationPreview();
     if (!isCoach && ($('#target_type').val() === 'phone' || ($('#send_sms').length && $('#send_sms').is(':checked')))) updateSmsSummary();
 

@@ -117,6 +117,7 @@ $sql = "CREATE TABLE `$table_name` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `title` varchar(255) NOT NULL,
         `description` text DEFAULT NULL,
+        `image` varchar(255) DEFAULT NULL,
         `price` decimal(15,2) NOT NULL DEFAULT 0.00,
         `price_per_session` decimal(15,2) NOT NULL DEFAULT 0.00,
         `capacity` int(11) DEFAULT NULL,

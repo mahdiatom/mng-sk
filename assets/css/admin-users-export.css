@@ -320,6 +320,284 @@
     display: block;
 }
 
+/* Audience course picker (فیلتر مخاطبین — دوره با گروه) */
+.sc-audience-course-picker {
+    max-width: 520px;
+}
+
+.sc-audience-course-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 36px;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+}
+
+.sc-audience-course-tags-empty {
+    color: #646970;
+    font-size: 13px;
+}
+
+.sc-audience-course-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 4px 8px 4px 10px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1.4;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.sc-audience-course-tag__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 360px;
+}
+
+.sc-audience-course-tag__remove {
+    border: 0;
+    background: transparent;
+    color: #b32d2e;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+}
+
+.sc-audience-course-dropdown .sc-dropdown-toggle {
+    min-height: 38px;
+    border-radius: 6px;
+}
+
+.sc-audience-course-dropdown .sc-dropdown-menu {
+    max-width: 100%;
+}
+
+.sc-audience-course-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.sc-audience-course-option__label {
+    flex: 1;
+    min-width: 0;
+}
+
+.sc-audience-course-option__type {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #646970;
+    background: #f0f0f1;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.sc-audience-course-option.sc-audience-course-option--picked {
+    opacity: 0.55;
+}
+
+.sc-audience-course-picker__desc {
+    margin-top: 8px;
+}
+
+/* --- Audience filter dropdowns: جلوگیری از رفتن منو زیر بخش بعدی --- */
+.sc-bulk-panel--filter.postbox,
+.sc-notification-filter-panel,
+.sc-bale-filter-panel,
+.sc-invoice-panel--filter,
+.sc-private-note-filter-panel,
+.sc-users-export-wrap .sc-users-export-card,
+.sc-users-export-wrap .sc-cert-card,
+.sc-discount-add-panel--limits.postbox,
+.sc-discount-add-panel--basic.postbox {
+    overflow: visible !important;
+    position: relative;
+    z-index: 5;
+}
+
+.sc-bulk-panel--preview.postbox,
+.sc-notification-preview-panel,
+.sc-bale-preview-panel,
+.sc-invoice-panel--preview,
+.sc-private-note-filter-panel.postbox {
+    overflow: visible !important;
+    position: relative;
+    z-index: 5;
+}
+
+.sc-bulk-panel--preview .inside,
+.sc-notification-preview-panel .inside,
+.sc-bale-preview-panel .inside,
+.sc-invoice-panel--preview .inside,
+.sc-private-note-filter-panel .inside {
+    overflow: visible !important;
+}
+
+.sc-bulk-panel--preview.postbox,
+.sc-notification-preview-panel,
+.sc-bale-preview-panel,
+.sc-invoice-panel--preview,
+.sc-private-note-preview-result {
+    position: relative;
+    z-index: 5;
+}
+
+.sc-audience-preview-add-wrap {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    position: relative;
+    overflow: visible;
+}
+
+.sc-audience-preview-add-wrap .sc-audience-preview-add-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.sc-audience-preview-add-wrap .sc-audience-preview-add-dropdown,
+.sc-audience-preview-add-dropdown {
+    position: relative;
+    overflow: visible;
+    max-width: 420px;
+    z-index: 1;
+}
+
+.sc-bulk-panel--action.postbox,
+.sc-private-note-send-panel.postbox,
+.sc-notification-options-panel.postbox,
+.sc-invoice-panel--info.postbox,
+.sc-private-note-add-panel.postbox,
+.sc-cert-wrap > .submit.sc-cert-submit {
+    position: relative;
+    z-index: 2;
+}
+.sc-bulk-panel--action.postbox {
+    position: relative;
+    
+}
+
+.sc-audience-dropdown-active {
+    z-index: 50 !important;
+}
+
+.sc-users-export-wrap .sc-filter-block,
+.sc-bulk-panel--filter .sc-filter-block,
+.sc-bulk-panel--filter .sc-bulk-field-row,
+.sc-notification-filter-panel .target-row,
+.sc-notification-filter-panel .course-ids-row,
+.sc-bale-filter-panel .target-row,
+.sc-bale-filter-panel .course-ids-row,
+.sc-invoice-panel--filter .sc-filter-block,
+.sc-private-note-filter-panel .sc-filter-block,
+.sc-discount-add-panel--limits .sc-discount-field-row,
+.sc-audience-course-picker,
+.sc-users-export-wrap .sc-users-member-dropdown,
+.sc-notification-recipient-dropdown,
+.sc-exclude-recipient-dropdown,
+.sc-audience-preview-add-dropdown,
+.sc-audience-preview-add-wrap .sc-users-member-dropdown {
+    position: relative;
+    overflow: visible;
+}
+
+.sc-audience-course-picker .sc-audience-course-dropdown,
+.sc-users-export-wrap .sc-users-member-dropdown,
+.sc-searchable-dropdown.sc-notification-recipient-dropdown,
+.sc-searchable-dropdown.sc-exclude-recipient-dropdown,
+.sc-audience-preview-add-dropdown {
+    position: relative;
+    z-index: 1;
+}
+
+.sc-dropdown-open {
+    z-index: 60 !important;
+}
+
+.sc-audience-course-dropdown .sc-dropdown-menu,
+.sc-users-export-wrap .sc-users-dropdown-menu,
+.sc-audience-preview-add-dropdown .sc-users-dropdown-menu,
+.sc-notification-add-wrap .sc-dropdown-menu,
+.sc-bale-filter-panel .sc-dropdown-menu,
+.sc-bulk-actions-wrap .sc-dropdown-menu,
+.sc-finance-page-body .sc-dropdown-menu,
+.sc-discount-add-page-body .sc-dropdown-menu,
+.sc-private-notes-wrap .sc-audience-preview-add-dropdown .sc-users-dropdown-menu {
+    position: absolute !important;
+    top: calc(100% + 4px) !important;
+    right: 0;
+    left: 0;
+    z-index: 100050 !important;
+    background: #fff;
+    border: 1px solid #8c8f94;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    max-height: 320px;
+    overflow: hidden;
+}
+
+.sc-audience-course-dropdown .sc-dropdown-options,
+.sc-notification-add-wrap .sc-dropdown-options,
+.sc-bale-filter-panel .sc-dropdown-options,
+.sc-bulk-actions-wrap .sc-dropdown-options,
+.sc-audience-preview-add-dropdown .sc-users-dropdown-options {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+/* بازنویسی overflow:hidden صفحات admin.css هنگام باز بودن منوی افزودن به پیش‌نمایش */
+body[class*="_page_sc-bulk-actions"] .sc-bulk-panel--preview.postbox,
+body.toplevel_page_sc-bulk-actions .sc-bulk-panel--preview.postbox,
+body[class*="_page_sc-add-notification"] .sc-notification-preview-panel.postbox,
+body[class*="_page_sc-coach-add-notification"] .sc-notification-preview-panel.postbox,
+body.sc-notifications_page_sc-add-notification .sc-notification-preview-panel.postbox,
+body[class*="_page_sc-bale-bot"] .sc-bale-preview-panel.postbox,
+body[class*="_page_sc-add-invoice"] .sc-invoice-panel--preview.postbox,
+body[class*="_page_sc-add-private-note"] .sc-private-note-filter-panel.postbox,
+body[class*="_page_sc-coach-add-private-note"] .sc-private-note-filter-panel.postbox,
+body[class*="_page_sc-certificates"] .sc-users-export-wrap .sc-users-export-card.sc-cert-card,
+body.toplevel_page_sc-users-info-export .sc-users-export-wrap .sc-users-export-card.sc-cert-card,
+body[class*="_page_sc-users-info-export"] .sc-users-export-wrap .sc-users-export-card.sc-cert-card {
+    overflow: visible !important;
+}
+
+body[class*="_page_sc-bulk-actions"] .sc-bulk-panel--preview .inside,
+body[class*="_page_sc-add-notification"] .sc-notification-preview-panel .inside,
+body[class*="_page_sc-coach-add-notification"] .sc-notification-preview-panel .inside,
+body[class*="_page_sc-bale-bot"] .sc-bale-preview-panel .inside,
+body[class*="_page_sc-add-invoice"] .sc-invoice-panel--preview .inside,
+body[class*="_page_sc-add-private-note"] .sc-private-note-filter-panel .inside,
+body[class*="_page_sc-coach-add-private-note"] .sc-private-note-filter-panel .inside {
+    overflow: visible !important;
+}
+
+body[class*="_page_sc-bulk-actions"] .sc-bulk-panel--preview.sc-audience-dropdown-active,
+body[class*="_page_sc-add-notification"] .sc-notification-preview-panel.sc-audience-dropdown-active,
+body[class*="_page_sc-coach-add-notification"] .sc-notification-preview-panel.sc-audience-dropdown-active,
+body[class*="_page_sc-bale-bot"] .sc-bale-preview-panel.sc-audience-dropdown-active,
+body[class*="_page_sc-add-invoice"] .sc-invoice-panel--preview.sc-audience-dropdown-active,
+body[class*="_page_sc-add-private-note"] .sc-private-note-filter-panel.sc-audience-dropdown-active,
+body[class*="_page_sc-coach-add-private-note"] .sc-private-note-filter-panel.sc-audience-dropdown-active,
+body[class*="_page_sc-certificates"] .sc-users-export-wrap .sc-users-export-card.sc-audience-dropdown-active,
+body.toplevel_page_sc-users-info-export .sc-users-export-wrap .sc-users-export-card.sc-audience-dropdown-active,
+body[class*="_page_sc-users-info-export"] .sc-users-export-wrap .sc-users-export-card.sc-audience-dropdown-active,
+body[class*="_page_sc-add-discount-code"] .sc-discount-add-panel--limits.sc-audience-dropdown-active,
+body.sc-invoices_page_sc-add-discount-code .sc-discount-add-panel--limits.sc-audience-dropdown-active {
+    z-index: 50 !important;
+}
+
 @media (max-width: 782px) {
     .sc-users-export-wrap .sc-row {
         grid-template-columns: 1fr;

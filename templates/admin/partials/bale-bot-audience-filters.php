@@ -67,22 +67,30 @@ $levels_list = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY na
                     </p>
                     <p id="row-course-ids-all" class="course-ids-row" style="display:none;">
                         <strong>انتخاب دوره:</strong><br>
-                        <select name="course_ids[]" multiple size="6" style="min-width:300px;">
-                            <?php foreach ($courses_list as $c) : ?>
-                                <option value="<?php echo $c->id; ?>" <?php echo (isset($saved['course_ids']) && in_array($c->id, $saved['course_ids'])) ? 'selected' : ''; ?>><?php echo esc_html($c->title); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <br><small>Ctrl+Click برای انتخاب چند دوره</small>
+                        <?php
+                        $saved_course_ids_all = (isset($saved['course_scope']) && $saved['course_scope'] === 'specific')
+                            ? (array) ($saved['course_ids'] ?? [])
+                            : [];
+                        echo function_exists('sc_render_audience_course_picker')
+                            ? sc_render_audience_course_picker((array) $courses_list, $saved_course_ids_all, [
+                                'id' => 'sc-bale-course-all-picker',
+                                'name' => 'course_ids[]',
+                            ])
+                            : '';
+                        ?>
                     </p>
                     <?php else : ?>
                     <p>
                         <strong>انتخاب دوره (فقط دوره‌های خودتان):</strong><br>
-                        <select name="course_ids[]" multiple size="6" style="min-width:300px;">
-                            <?php foreach ($courses_list as $c) : ?>
-                                <option value="<?php echo $c->id; ?>" <?php echo (isset($saved['course_ids']) && in_array($c->id, (array)($saved['course_ids'] ?? []))) ? 'selected' : ''; ?>><?php echo esc_html($c->title); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <br><small>Ctrl+Click برای انتخاب چند دوره. ارسال به بازیکنان فعال آن دوره‌ها.</small>
+                        <?php
+                        echo function_exists('sc_render_audience_course_picker')
+                            ? sc_render_audience_course_picker((array) $courses_list, (array) ($saved['course_ids'] ?? []), [
+                                'id' => 'sc-bale-coach-course-picker',
+                                'name' => 'course_ids[]',
+                            ])
+                            : '';
+                        ?>
+                        <br><small>ارسال به بازیکنان فعال آن دوره‌ها.</small>
                     </p>
                     <input type="hidden" name="user_type" value="player">
                     <input type="hidden" name="course_scope" value="specific">
@@ -139,12 +147,15 @@ $levels_list = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY na
             <tr id="row-target-course" class="target-row" style="display:none;">
                 <th scope="row">انتخاب دوره</th>
                 <td>
-                    <select name="course_ids[]" id="course-ids-course" multiple size="8" style="min-width:350px;">
-                        <?php foreach ($courses_list as $c) : ?>
-                            <option value="<?php echo $c->id; ?>" <?php echo (isset($saved['course_ids']) && in_array($c->id, (array)($saved['course_ids'] ?? []))) ? 'selected' : ''; ?>><?php echo esc_html($c->title); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <br><small>Ctrl+Click برای انتخاب چند دوره. ارسال به اعضای فعال دوره.</small>
+                    <?php
+                    echo function_exists('sc_render_audience_course_picker')
+                        ? sc_render_audience_course_picker((array) $courses_list, (array) ($saved['course_ids'] ?? []), [
+                            'id' => 'course-ids-course-picker',
+                            'name' => 'course_ids[]',
+                            'description' => 'ارسال به اعضای فعال دوره‌های انتخاب‌شده (با جزئیات گروه در صورت وجود).',
+                        ])
+                        : '';
+                    ?>
                 </td>
             </tr>
             <tr id="row-target-free_users" class="target-row" style="display:none;">
@@ -198,12 +209,15 @@ $levels_list = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY na
                     <p><strong>محدوده:</strong> اگر دوره انتخاب نکنید، به همه اعضایی که حداقل یک صورتحساب پرداخت‌نشده دارند ارسال می‌شود.</p>
                     <p>
                         <strong>فیلتر بر اساس دوره (اختیاری):</strong><br>
-                        <select name="debtors_course_ids[]" id="debtors-course-ids" multiple size="6" style="min-width:300px;">
-                            <?php foreach ($courses_list as $c) : ?>
-                                <option value="<?php echo $c->id; ?>" <?php echo (isset($saved['course_ids']) && in_array($c->id, (array)($saved['course_ids'] ?? []))) ? 'selected' : ''; ?>><?php echo esc_html($c->title); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <br><small>خالی = همه بدهکاران. با انتخاب دوره فقط بدهکاران آن دوره‌ها.</small>
+                        <?php
+                        echo function_exists('sc_render_audience_course_picker')
+                            ? sc_render_audience_course_picker((array) $courses_list, (array) ($saved['course_ids'] ?? []), [
+                                'id' => 'debtors-course-ids-picker',
+                                'name' => 'debtors_course_ids[]',
+                                'description' => 'خالی = همه بدهکاران. با انتخاب دوره فقط بدهکاران همان دوره/گروه.',
+                            ])
+                            : '';
+                        ?>
                     </p>
                 </td>
             </tr>
@@ -329,6 +343,20 @@ $levels_list = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY na
                     <div id="sc-bale-preview-result" class="sc-bulk-preview-result back_table_list">
                         <p class="description">بعد از انتخاب فیلتر و حالت ارسال، روی «پیش‌نمایش مخاطبین» کلیک کنید.</p>
                     </div>
+                    <?php
+                    if (function_exists('sc_audience_render_preview_add_members_block')) {
+                        sc_audience_render_preview_add_members_block(
+                            sc_audience_get_members_for_preview_add_picker(),
+                            [
+                                'wrap_id' => 'sc-bale-preview-add-wrap',
+                                'dropdown_id' => 'sc-bale-preview-add-dropdown',
+                                'options_id' => 'sc-bale-preview-add-options',
+                                'hidden_inputs_id' => 'sc-bale-preview-add-inputs',
+                                'mode' => 'bale',
+                            ]
+                        );
+                    }
+                    ?>
                 </div>
             </div>
         </div>

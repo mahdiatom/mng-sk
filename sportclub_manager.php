@@ -74,6 +74,8 @@ require_once SC_INCLUDES_DIR . 'course-packages-functions.php'; // پکیج‌ه
 require_once SC_INCLUDES_DIR . 'course-schedule-functions.php'; // برنامه هفتگی کلاس دوره
 require_once SC_INCLUDES_DIR . 'course-chapter-coach-functions.php'; // شعبه و مربی دوره
 require_once SC_INCLUDES_DIR . 'course-groups-functions.php'; // گروه‌بندی داخل دوره
+require_once SC_INCLUDES_DIR . 'audience-course-functions.php'; // فیلتر مخاطبین — انتخاب دوره با گروه
+require_once SC_INCLUDES_DIR . 'audience-preview-add-functions.php'; // افزودن کاربر به پیش‌نمایش مخاطبین
 require_once SC_INCLUDES_DIR . 'discount-codes-functions.php'; // کدهای تخفیف صورت‌حساب
 require_once SC_INCLUDES_DIR . 'header-search-functions.php'; // جستجوی هدر (AJAX)
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
@@ -88,6 +90,7 @@ require_once SC_INCLUDES_DIR . 'debtors-export.php'; // Debtors export functions
 require_once SC_INCLUDES_DIR . 'active-users-export.php'; // Active users export functions
 require_once SC_INCLUDES_DIR . 'payments-export.php'; // Payments export functions
 require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export functions
+require_once SC_INCLUDES_DIR . 'weekly-schedule-report-export.php'; // Weekly schedule report PDF export
 require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settings
 require_once SC_INCLUDES_DIR . 'woocommerce-shop-wallet.php'; // Shop cart/checkout wallet payment
 require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
@@ -215,6 +218,24 @@ function sc_add_sessions_count_column() {
     
     if (empty($column_exists)) {
         $wpdb->query("ALTER TABLE $table_name ADD COLUMN `sessions_count` int(11) DEFAULT NULL AFTER `capacity`");
+    }
+}
+
+/**
+ * Add image column to courses table if not exists
+ */
+add_action('admin_init', 'sc_add_course_image_column');
+function sc_add_course_image_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_courses';
+
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'image'
+    ));
+
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `image` varchar(255) DEFAULT NULL AFTER `description`");
     }
 }
 
@@ -1683,7 +1704,46 @@ function sc_admin_enqueue_assets() {
 
     if (in_array($current_page, array('sc-users-info-export', 'sc-users-export-templates', 'sc-certificates-issue', 'sc-certificates-templates', 'sc-certificates-list'), true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
-        wp_enqueue_script('sc-users-export-admin-js', SC_ASSETS_URL . 'js/users-export-admin.js', array('jquery', 'sc-admin-js'), time(), true);
+        wp_enqueue_script('sc-audience-course-picker-js', SC_ASSETS_URL . 'js/audience-course-picker.js', array('jquery', 'sc-admin-js'), time(), true);
+        wp_enqueue_script('sc-audience-preview-add-js', SC_ASSETS_URL . 'js/audience-preview-add-members.js', array('jquery', 'sc-audience-course-picker-js'), time(), true);
+        wp_enqueue_script('sc-users-export-admin-js', SC_ASSETS_URL . 'js/users-export-admin.js', array('jquery', 'sc-admin-js', 'sc-audience-course-picker-js', 'sc-audience-preview-add-js'), time(), true);
+    }
+    $sc_audience_course_picker_pages = array(
+        'sc-add-notification',
+        'sc-coach-add-notification',
+        'sc-bale-bot-send',
+        'sc-bulk-actions',
+        'sc-add-invoice',
+        'sc-add-private-note',
+        'sc-coach-add-private-note',
+        'sc-discount-codes',
+        'sc-add-discount-code',
+    );
+    $sc_audience_preview_add_pages = array(
+        'sc-add-notification',
+        'sc-coach-add-notification',
+        'sc-bale-bot-send',
+        'sc-bulk-actions',
+        'sc-add-invoice',
+        'sc-add-private-note',
+        'sc-coach-add-private-note',
+    );
+    if (in_array($current_page, $sc_audience_course_picker_pages, true)) {
+        if (!wp_script_is('sc-audience-course-picker-js', 'enqueued')) {
+            wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+            wp_enqueue_script('sc-audience-course-picker-js', SC_ASSETS_URL . 'js/audience-course-picker.js', array('jquery', 'sc-admin-js'), time(), true);
+        }
+    }
+    if (in_array($current_page, $sc_audience_preview_add_pages, true)) {
+        if (!wp_script_is('sc-audience-preview-add-js', 'enqueued')) {
+            if (!wp_style_is('sc-users-export-admin-css', 'enqueued')) {
+                wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+            }
+            if (!wp_script_is('sc-audience-course-picker-js', 'enqueued')) {
+                wp_enqueue_script('sc-audience-course-picker-js', SC_ASSETS_URL . 'js/audience-course-picker.js', array('jquery', 'sc-admin-js'), time(), true);
+            }
+            wp_enqueue_script('sc-audience-preview-add-js', SC_ASSETS_URL . 'js/audience-preview-add-members.js', array('jquery', 'sc-audience-course-picker-js'), time(), true);
+        }
     }
     if (in_array($current_page, array('sc-add-notification', 'sc-coach-add-notification'), true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
@@ -1744,7 +1804,7 @@ function sc_admin_enqueue_assets() {
             'maxPreviewRows' => 200,
         ));
     }
-    if (in_array($current_page, array('sc-private-booking-requests', 'sc-private-booking-form'), true)) {
+    if (in_array($current_page, array('sc-private-booking-requests', 'sc-private-booking-form', 'sc-private-bookings-list', 'sc-coach-private-classes'), true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
         wp_enqueue_style('sc-private-booking-css', SC_ASSETS_URL . 'css/private-booking.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
         wp_enqueue_script('sc-private-booking-form-js', SC_ASSETS_URL . 'js/private-booking-form.js', array(), time(), true);

@@ -61,8 +61,10 @@ class Courses_List_Table extends WP_List_Table {
         $type = isset($item['course_type']) ? (string) $item['course_type'] : 'group';
         $type_label = $type === 'private' ? 'خصوصی' : 'گروهی';
 
-        $initials = $title !== '' ? mb_substr($title, 0, 1) : 'د';
-        $avatar = '<span class="sc-course-avatar" aria-hidden="true">' . esc_html($initials) . '</span>';
+        $course_image = isset($item['image']) ? trim((string) $item['image']) : '';
+        $avatar = function_exists('sc_render_course_avatar_html')
+            ? sc_render_course_avatar_html($title, $course_image)
+            : '<span class="sc-course-avatar sc-course-avatar--initials" aria-hidden="true">' . esc_html($title !== '' ? mb_substr($title, 0, 1) : 'د') . '</span>';
 
         $meta_parts = [];
         if ($chapter !== '') {

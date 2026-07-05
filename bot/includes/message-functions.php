@@ -168,7 +168,9 @@ function sc_bale_parse_target_config_from_post($post) {
         $target_config['user_type'] = isset($post['user_type']) ? sanitize_text_field(wp_unslash($post['user_type'])) : 'all';
         $target_config['course_scope'] = isset($post['course_scope']) ? sanitize_text_field(wp_unslash($post['course_scope'])) : 'all';
         if (!empty($post['course_ids']) && is_array($post['course_ids'])) {
-            $target_config['course_ids'] = array_map('absint', $post['course_ids']);
+            $target_config['course_ids'] = function_exists('sc_audience_normalize_course_ids_from_request')
+                ? sc_audience_normalize_course_ids_from_request($post['course_ids'])
+                : array_filter(array_map('absint', $post['course_ids']));
         }
     } elseif ($target_type === 'specific') {
         $rids = isset($post['recipient_ids_str']) ? sanitize_text_field(wp_unslash($post['recipient_ids_str'])) : '';
@@ -187,11 +189,13 @@ function sc_bale_parse_target_config_from_post($post) {
         $target_config['level_names'] = isset($post['level_names']) && is_array($post['level_names'])
             ? array_map('sanitize_text_field', wp_unslash($post['level_names'])) : [];
     } elseif ($target_type === 'course') {
-        $target_config['course_ids'] = isset($post['course_ids']) && is_array($post['course_ids'])
-            ? array_map('absint', $post['course_ids']) : [];
+        $target_config['course_ids'] = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($post['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($post['course_ids'] ?? [])));
     } elseif ($target_type === 'debtors') {
-        $target_config['course_ids'] = isset($post['debtors_course_ids']) && is_array($post['debtors_course_ids'])
-            ? array_map('absint', $post['debtors_course_ids']) : [];
+        $target_config['course_ids'] = function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($post['debtors_course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($post['debtors_course_ids'] ?? [])));
     } elseif ($target_type === 'event') {
         $target_config['event_ids'] = isset($post['event_ids']) && is_array($post['event_ids'])
             ? array_map('absint', $post['event_ids']) : [];
@@ -203,6 +207,10 @@ function sc_bale_parse_target_config_from_post($post) {
         $excluded = isset($post['exclude_recipient_ids_str']) ? sanitize_text_field(wp_unslash($post['exclude_recipient_ids_str'])) : '';
         $target_config['exclude_recipient_ids'] = $excluded ? array_filter(array_map('trim', explode(',', $excluded))) : [];
     }
+
+    $target_config['included_member_ids'] = isset($post['included_member_ids'])
+        ? array_filter(array_map('absint', (array) $post['included_member_ids']))
+        : [];
 
     return [$target_type, $target_config];
 }

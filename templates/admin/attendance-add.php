@@ -13,13 +13,50 @@ $members_table = $wpdb->prefix . 'sc_members';
 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
 $attendances_table = $wpdb->prefix . 'sc_attendances';
 
+// فیلتر «نمایش فرم» با POST + redirect (بدون course_id با کاراکتر | در URL)
+if (
+    isset($_POST['sc_attendance_filter'])
+    && check_admin_referer('sc_attendance_filter', 'sc_attendance_filter_nonce')
+) {
+    $filter_parts = function_exists('sc_attendance_get_selection_from_request')
+        ? sc_attendance_get_selection_from_request($_POST)
+        : ['course_id' => 0, 'chapter_name' => '', 'group_name' => ''];
+
+    $redirect_args = ['page' => 'sc-attendance-add'];
+
+    if ($filter_parts['course_id'] > 0) {
+        $redirect_args['attendance_course_id'] = $filter_parts['course_id'];
+        if ($filter_parts['chapter_name'] !== '') {
+            $redirect_args['attendance_chapter'] = $filter_parts['chapter_name'];
+        }
+        if ($filter_parts['group_name'] !== '') {
+            $redirect_args['attendance_group'] = $filter_parts['group_name'];
+        }
+    }
+
+    if (isset($_POST['filter_course_type']) && in_array($_POST['filter_course_type'], ['group', 'private'], true)) {
+        $redirect_args['filter_course_type'] = sanitize_text_field(wp_unslash($_POST['filter_course_type']));
+    }
+
+    if (isset($_POST['date_shamsi']) && $_POST['date_shamsi'] !== '') {
+        $redirect_args['date_shamsi'] = sanitize_text_field(wp_unslash($_POST['date_shamsi']));
+    }
+    if (isset($_POST['date']) && $_POST['date'] !== '') {
+        $redirect_args['date'] = sanitize_text_field(wp_unslash($_POST['date']));
+    }
+
+    wp_safe_redirect(add_query_arg($redirect_args, admin_url('admin.php')));
+    exit;
+}
+
     // پردازش فرم ثبت حضور و غیاب
 if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_nonce', 'sc_attendance_nonce')) {
     $salary_notices = [];
-    $course_selection = isset($_POST['course_id']) ? wp_unslash($_POST['course_id']) : '';
-    $selection_parts = function_exists('sc_attendance_course_selection_parts')
-        ? sc_attendance_course_selection_parts($course_selection)
-        : ['course_id' => absint($course_selection), 'chapter_name' => '', 'group_name' => ''];
+    $selection_parts = function_exists('sc_attendance_get_selection_from_request')
+        ? sc_attendance_get_selection_from_request($_POST)
+        : (function_exists('sc_attendance_course_selection_parts')
+            ? sc_attendance_course_selection_parts(isset($_POST['course_id']) ? wp_unslash($_POST['course_id']) : '')
+            : ['course_id' => absint($_POST['course_id'] ?? 0), 'chapter_name' => '', 'group_name' => '']);
     $course_id = (int) $selection_parts['course_id'];
     $chapter_name = (string) $selection_parts['chapter_name'];
     $group_name = (string) ($selection_parts['group_name'] ?? '');
@@ -34,6 +71,13 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
   
     if (!$course_id) {
         $message = 'لطفاً یک دوره را انتخاب کنید.';
+        $message_type = 'error';
+    } elseif (
+        function_exists('sc_course_has_grouping_enabled')
+        && sc_course_has_grouping_enabled($course_id)
+        && $group_name === ''
+    ) {
+        $message = 'برای دوره دارای گروه‌بندی، انتخاب گروه الزامی است.';
         $message_type = 'error';
     } elseif (!$attendance_date) {
         $message = 'لطفاً تاریخ را وارد کنید.';
@@ -93,7 +137,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                             'prepare_args' => [$current_coach_id_for_assignment],
                         ];
                     $group_filter = function_exists('sc_attendance_member_group_filter_sql')
-                        ? sc_attendance_member_group_filter_sql($group_name)
+                        ? sc_attendance_member_group_filter_sql($group_name, $course_id)
                         : ['sql' => '', 'args' => []];
 
                     $can_touch_sql = "SELECT COUNT(*) FROM $member_courses_table mc
@@ -360,18 +404,18 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
 }
 
     // دریافت دوره و شعبه انتخاب شده
-    $raw_course_selection = '';
-    if (isset($_GET['course_id']) && $_GET['course_id'] !== '') {
-        $raw_course_selection = wp_unslash($_GET['course_id']);
-    } elseif (isset($_POST['course_id']) && $_POST['course_id'] !== '') {
-        $raw_course_selection = wp_unslash($_POST['course_id']);
-    }
-    $selected_parts = function_exists('sc_attendance_course_selection_parts')
-        ? sc_attendance_course_selection_parts($raw_course_selection)
-        : ['course_id' => absint($raw_course_selection), 'chapter_name' => '', 'group_name' => ''];
-    $selected_course_id = (int) $selected_parts['course_id'];
-    $selected_chapter_name = (string) $selected_parts['chapter_name'];
-    $selected_group_name = (string) ($selected_parts['group_name'] ?? '');
+    $selection_parts = function_exists('sc_attendance_get_selection_from_request')
+        ? sc_attendance_get_selection_from_request()
+        : (function_exists('sc_attendance_course_selection_parts')
+            ? sc_attendance_course_selection_parts(
+                isset($_GET['course_id']) && $_GET['course_id'] !== ''
+                    ? wp_unslash($_GET['course_id'])
+                    : (isset($_POST['course_id']) ? wp_unslash($_POST['course_id']) : '')
+            )
+            : ['course_id' => 0, 'chapter_name' => '', 'group_name' => '']);
+    $selected_course_id = (int) $selection_parts['course_id'];
+    $selected_chapter_name = (string) $selection_parts['chapter_name'];
+    $selected_group_name = (string) ($selection_parts['group_name'] ?? '');
 
     $selected_course_type_filter = 'group';
     if (isset($_GET['filter_course_type']) && in_array($_GET['filter_course_type'], ['group', 'private'], true)) {
@@ -415,7 +459,7 @@ $existing_attendances = [];
 
 if ($selected_course_id) {
     $group_filter = function_exists('sc_attendance_member_group_filter_sql')
-        ? sc_attendance_member_group_filter_sql($selected_group_name)
+        ? sc_attendance_member_group_filter_sql($selected_group_name, $selected_course_id)
         : ['sql' => '', 'args' => []];
 
     // دریافت کاربران فعال دوره (برای مربی: خودش + بازیکنان بدون انتساب؛ نه بازیکنان مربی دیگر)
@@ -529,6 +573,13 @@ if ($selected_course_id) {
 $attendance_course_dropdown_options = function_exists('sc_attendance_build_course_dropdown_options')
     ? sc_attendance_build_course_dropdown_options($courses)
     : [];
+
+$attendance_group_required = $selected_course_id > 0
+    && function_exists('sc_course_has_grouping_enabled')
+    && sc_course_has_grouping_enabled($selected_course_id);
+$attendance_ungrouped_member_count = ($selected_course_id > 0 && function_exists('sc_attendance_count_members_without_group'))
+    ? sc_attendance_count_members_without_group($selected_course_id)
+    : 0;
 ?>
 
 <div class="wrap sc-attendance-page-header">
@@ -537,7 +588,8 @@ $attendance_course_dropdown_options = function_exists('sc_attendance_build_cours
     <hr class="wp-header-end">
 </div>
 <div class="wrap sc-attendance-page-body">
-    <form method="GET" action="" class="form_attendance_add sc-attendance-filter-panel" id="sc-attendance-filter-form">
+    <form method="POST" action="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-add')); ?>" class="form_attendance_add sc-attendance-filter-panel" id="sc-attendance-filter-form">
+        <?php wp_nonce_field('sc_attendance_filter', 'sc_attendance_filter_nonce'); ?>
         <input type="hidden" name="page" value="sc-attendance-add">
 
         <div class="sc-attendance-filter-grid">
@@ -558,7 +610,10 @@ $attendance_course_dropdown_options = function_exists('sc_attendance_build_cours
             <div class="sc-attendance-filter-field">
                 <label class="sc-attendance-filter-label" for="course_id">انتخاب دوره</label>
                 <div class="sc-searchable-dropdown sc-attendance-course-dropdown">
-                    <input type="hidden" name="course_id" id="course_id" value="<?php echo esc_attr($selected_course_value); ?>">
+                    <input type="hidden" name="attendance_course_id" id="attendance_course_id" value="<?php echo esc_attr($selected_course_id > 0 ? (string) $selected_course_id : ''); ?>">
+                    <input type="hidden" name="attendance_chapter" id="attendance_chapter" value="<?php echo esc_attr($selected_chapter_name); ?>">
+                    <input type="hidden" name="attendance_group" id="attendance_group" value="<?php echo esc_attr($selected_group_name); ?>">
+                    <input type="hidden" id="attendance_course_option_value" value="<?php echo esc_attr($selected_course_value); ?>">
 
                     <div class="sc-dropdown-toggle" tabindex="0" role="button" aria-haspopup="listbox">
                         <span class="sc-dropdown-placeholder" <?php echo $selected_course_value !== '' ? 'style="display:none"' : ''; ?>>جستجو و انتخاب دوره...</span>
@@ -617,7 +672,7 @@ $attendance_course_dropdown_options = function_exists('sc_attendance_build_cours
         </div>
 
         <p class="submit sc-attendance-filter-actions">
-            <input type="submit" name="filter" class="button button-primary" value="نمایش فرم">
+            <input type="submit" name="sc_attendance_filter" class="button button-primary" value="نمایش فرم">
         </p>
     </form>
     
@@ -625,9 +680,13 @@ $attendance_course_dropdown_options = function_exists('sc_attendance_build_cours
         $course = $wpdb->get_row($wpdb->prepare("SELECT * FROM $courses_table WHERE id = %d", $selected_course_id));
         
     ?>
-        <form method="POST" action="" class="sc-attendance-save-form">
+        <form method="POST" action="<?php echo esc_url(function_exists('sc_attendance_add_page_url')
+            ? sc_attendance_add_page_url($selected_course_id, $selected_date, $selected_chapter_name, $selected_group_name, isset($_GET['filter_course_type']) ? ['filter_course_type' => sanitize_text_field(wp_unslash($_GET['filter_course_type']))] : [])
+            : admin_url('admin.php?page=sc-attendance-add')); ?>" class="sc-attendance-save-form">
             <?php wp_nonce_field('sc_attendance_nonce', 'sc_attendance_nonce'); ?>
-            <input type="hidden" name="course_id" value="<?php echo esc_attr($selected_course_value); ?>">
+            <input type="hidden" name="attendance_course_id" value="<?php echo esc_attr((string) $selected_course_id); ?>">
+            <input type="hidden" name="attendance_chapter" value="<?php echo esc_attr($selected_chapter_name); ?>">
+            <input type="hidden" name="attendance_group" value="<?php echo esc_attr($selected_group_name); ?>">
             <input type="hidden" name="attendance_date" id="attendance_date_hidden_form" value="<?php echo esc_attr($selected_date); ?>">
             <input type="hidden" name="attendance_date_shamsi" id="attendance_date_shamsi_form" value="<?php echo esc_attr($selected_date_shamsi); ?>">
 
@@ -731,7 +790,25 @@ $attendance_course_dropdown_options = function_exists('sc_attendance_build_cours
         </form>
     <?php elseif ($selected_course_id && empty($active_members)) : ?>
         <div class="notice notice-info sc-attendance-empty-notice">
-            <p><?php echo $selected_chapter_name !== '' ? 'در این دوره و شعبه هیچ کاربر فعالی ثبت‌نام نشده است.' : 'در این دوره هیچ کاربر فعالی ثبت‌نام نشده است.'; ?></p>
+            <p>
+                <?php if ($attendance_group_required && $selected_group_name === '') : ?>
+                    این دوره دارای گروه‌بندی است. لطفاً یک گروه مشخص را از لیست دوره‌ها انتخاب کنید.
+                <?php elseif ($attendance_group_required && $selected_group_name !== '') : ?>
+                    در گروه «<?php echo esc_html($selected_group_name); ?>» هیچ بازیکن فعالی ثبت‌نام نشده است.
+                <?php elseif ($selected_chapter_name !== '') : ?>
+                    در این دوره و شعبه هیچ کاربر فعالی ثبت‌نام نشده است.
+                <?php else : ?>
+                    در این دوره هیچ کاربر فعالی ثبت‌نام نشده است.
+                <?php endif; ?>
+            </p>
+            <?php if ($attendance_ungrouped_member_count > 0) : ?>
+                <p>
+                    <?php echo esc_html(sprintf(
+                        'توجه: %d بازیکن فعال این دوره گروه مشخصی ندارند و در هیچ گروهی نمایش داده نمی‌شوند. از بخش ویرایش بازیکن، گروه آن‌ها را تعیین کنید.',
+                        $attendance_ungrouped_member_count
+                    )); ?>
+                </p>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>
@@ -762,9 +839,7 @@ jQuery(document).ready(function($) {
 
     function scAttendanceResetCourseDropdown() {
         var $dropdown = $('.sc-attendance-course-dropdown');
-        $dropdown.find('#course_id').val('');
-        $dropdown.find('.sc-dropdown-placeholder').show();
-        $dropdown.find('.sc-dropdown-selected').hide().text('');
+        scAttendanceApplyCourseFields($dropdown, '', '');
         $dropdown.find('.sc-option-check').remove();
         $dropdown.find('.sc-dropdown-option').removeClass('sc-selected').css('background', '');
     }
@@ -776,7 +851,7 @@ jQuery(document).ready(function($) {
         var $options = $dropdown.find('.sc-dropdown-option');
         var visibleCount = 0;
         var maxVisible = 10;
-        var currentVal = $dropdown.find('#course_id').val();
+        var currentVal = $dropdown.find('#attendance_course_option_value').val();
         var currentStillValid = false;
 
         $options.closest('.sc-dropdown-options').find('div:not(.sc-dropdown-option)').remove();
@@ -831,7 +906,7 @@ jQuery(document).ready(function($) {
     });
 
     $('#sc-attendance-filter-form').on('submit', function(e) {
-        var courseVal = $('#course_id').val();
+        var courseVal = $('#attendance_course_id').val();
         if (!courseVal) {
             e.preventDefault();
             if (typeof window.scConfirm === 'function') {

@@ -14,7 +14,9 @@ $team_table = $wpdb->prefix . 'sc_team_categories';
 $level_table = $wpdb->prefix . 'sc_level_categories';
 
 $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table ORDER BY last_name, first_name");
-$courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL ORDER BY title");
+$courses = function_exists('sc_audience_get_courses_for_picker')
+    ? sc_audience_get_courses_for_picker(0)
+    : $wpdb->get_results("SELECT id, title, course_type, chapter AS chapter_name FROM $courses_table WHERE deleted_at IS NULL ORDER BY title");
 $events = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') ORDER BY name");
 $teams = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name");
 $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
@@ -172,12 +174,15 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
             </div>
 
             <div class="sc-filter-block sc-bulk-field-row" id="sc-filter-course">
-                <label for="sc-course-ids">دوره‌ها</label>
-                <select name="course_ids[]" id="sc-course-ids" multiple size="7">
-                    <?php foreach ($courses as $course) : ?>
-                        <option value="<?php echo (int) $course->id; ?>"><?php echo esc_html($course->title); ?></option>
-                    <?php endforeach; ?>
-                </select>
+                <label>دوره‌ها</label>
+                <?php
+                echo function_exists('sc_render_audience_course_picker')
+                    ? sc_render_audience_course_picker((array) $courses, [], [
+                        'id' => 'sc-bulk-course-picker',
+                        'name' => 'course_ids[]',
+                    ])
+                    : '';
+                ?>
             </div>
 
             <div class="sc-filter-block sc-bulk-field-row" id="sc-filter-event">
@@ -221,6 +226,20 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
             <div id="sc-bulk-preview-result" class="sc-bulk-preview-result back_table_list">
                 <p class="description">بعد از انتخاب فیلتر، روی «پیش‌نمایش کاربران فیلترشده» کلیک کنید.</p>
             </div>
+            <?php
+            if (function_exists('sc_audience_render_preview_add_members_block')) {
+                sc_audience_render_preview_add_members_block(
+                    function_exists('sc_audience_get_members_for_preview_add_picker') ? sc_audience_get_members_for_preview_add_picker() : $members,
+                    [
+                        'wrap_id' => 'sc-bulk-preview-add-wrap',
+                        'dropdown_id' => 'sc-bulk-preview-add-dropdown',
+                        'options_id' => 'sc-bulk-preview-add-options',
+                        'hidden_inputs_id' => 'sc-bulk-preview-add-inputs',
+                        'mode' => 'bulk',
+                    ]
+                );
+            }
+            ?>
             </div>
         </div>
 

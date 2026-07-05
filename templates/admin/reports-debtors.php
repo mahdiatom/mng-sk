@@ -201,7 +201,7 @@ $filters_open = $active_filters_count > 0;
         </div>
         <form method="GET" action="" class="sc-reports-list-filters-panel" id="sc-reports-debtors-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
             <input type="hidden" name="page" value="sc-reports-debtors">
-            <div class="sc-filter-grid">
+            <div class="sc-filter-grid sc-debtors-filter-grid">
                 <div class="sc-filter-field">
                     <label class="sc-filter-label">کاربر</label>
                     <div class="sc-searchable-dropdown">

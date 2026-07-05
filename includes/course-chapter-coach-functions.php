@@ -809,6 +809,73 @@ function sc_attendance_course_selection_parts($raw) {
     ];
 }
 
+/**
+ * Read course/chapter/group from request using separate params (WAF-safe) or legacy pipe format.
+ *
+ * @param array<string,mixed>|null $source
+ * @return array{course_id:int,chapter_name:string,group_name:string}
+ */
+function sc_attendance_get_selection_from_request($source = null) {
+    $src = is_array($source) ? $source : $_REQUEST;
+
+    $course_id = isset($src['attendance_course_id']) ? absint($src['attendance_course_id']) : 0;
+    $chapter_name = isset($src['attendance_chapter'])
+        ? sanitize_text_field(wp_unslash((string) $src['attendance_chapter']))
+        : '';
+    $group_name = isset($src['attendance_group'])
+        ? sanitize_text_field(wp_unslash((string) $src['attendance_group']))
+        : '';
+
+    if ($course_id > 0) {
+        return [
+            'course_id' => $course_id,
+            'chapter_name' => $chapter_name,
+            'group_name' => $group_name,
+        ];
+    }
+
+    $raw = '';
+    if (isset($src['course_id']) && $src['course_id'] !== '') {
+        $raw = wp_unslash((string) $src['course_id']);
+    }
+
+    return sc_attendance_course_selection_parts($raw);
+}
+
+/**
+ * Admin URL for attendance-add without pipe-delimited course_id.
+ *
+ * @param array<string,mixed> $extra
+ */
+function sc_attendance_add_page_url($course_id, $date = '', $chapter_name = '', $group_name = '', $extra = []) {
+    $args = array_merge(['page' => 'sc-attendance-add'], is_array($extra) ? $extra : []);
+
+    $course_id = absint($course_id);
+    if ($course_id > 0) {
+        $args['attendance_course_id'] = $course_id;
+        $chapter_name = sanitize_text_field((string) $chapter_name);
+        $group_name = sanitize_text_field((string) $group_name);
+        if ($chapter_name !== '') {
+            $args['attendance_chapter'] = $chapter_name;
+        }
+        if ($group_name !== '') {
+            $args['attendance_group'] = $group_name;
+        }
+    }
+
+    if ($date !== '') {
+        $args['date'] = sanitize_text_field((string) $date);
+        if (function_exists('sc_date_shamsi_date_only')) {
+            $shamsi = sc_date_shamsi_date_only($date);
+            if ($shamsi !== '') {
+                $args['date_shamsi'] = $shamsi;
+            }
+        }
+    }
+
+    return add_query_arg($args, admin_url('admin.php'));
+}
+
 function sc_attendance_course_option_value($course_id, $chapter_name = '', $group_name = '') {
     $course_id = absint($course_id);
     $chapter_name = sanitize_text_field((string) $chapter_name);
@@ -838,18 +905,64 @@ function sc_attendance_course_option_label($title, $chapter_name = '', $group_na
 /**
  * SQL WHERE fragment for attendance member list by selected group.
  *
+ * @param string $selected_group_name
+ * @param int    $course_id
  * @return array{sql:string,args:array<int,mixed>}
  */
-function sc_attendance_member_group_filter_sql($selected_group_name) {
+function sc_attendance_member_group_filter_sql($selected_group_name, $course_id = 0) {
     $selected_group_name = sanitize_text_field((string) $selected_group_name);
-    if ($selected_group_name === '') {
-        return ['sql' => '', 'args' => []];
+    $course_id = absint($course_id);
+
+    $has_grouping = $course_id > 0
+        && function_exists('sc_course_has_grouping_enabled')
+        && sc_course_has_grouping_enabled($course_id);
+
+    if ($has_grouping) {
+        if ($selected_group_name === '') {
+            return ['sql' => ' AND 1=0', 'args' => []];
+        }
+
+        return [
+            'sql' => ' AND mc.group_name = %s',
+            'args' => [$selected_group_name],
+        ];
     }
 
-    return [
-        'sql' => " AND (COALESCE(mc.group_name, '') = '' OR mc.group_name = %s)",
-        'args' => [$selected_group_name],
-    ];
+    if ($selected_group_name !== '') {
+        return [
+            'sql' => ' AND mc.group_name = %s',
+            'args' => [$selected_group_name],
+        ];
+    }
+
+    return ['sql' => '', 'args' => []];
+}
+
+/**
+ * @param int $course_id
+ * @return int
+ */
+function sc_attendance_count_members_without_group($course_id) {
+    global $wpdb;
+    $course_id = absint($course_id);
+    if (!$course_id || !function_exists('sc_course_has_grouping_enabled') || !sc_course_has_grouping_enabled($course_id)) {
+        return 0;
+    }
+
+    $mc = $wpdb->prefix . 'sc_member_courses';
+
+    return (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM `$mc` mc
+         WHERE mc.course_id = %d
+           AND mc.status = 'active'
+           AND (mc.course_status_flags IS NULL OR mc.course_status_flags = ''
+                OR (mc.course_status_flags NOT LIKE %s AND mc.course_status_flags NOT LIKE %s AND mc.course_status_flags NOT LIKE %s))
+           AND COALESCE(mc.group_name, '') = ''",
+        $course_id,
+        '%paused%',
+        '%completed%',
+        '%canceled%'
+    ));
 }
 
 /**
@@ -1073,4 +1186,28 @@ function sc_ajax_get_course_enrollment_options() {
     }
 
     wp_send_json_success(sc_get_course_enrollment_branch_config($course_id));
+}
+
+/**
+ * HTML avatar for course title column (image or initials fallback).
+ *
+ * @param string $title
+ * @param string $image_url
+ * @return string
+ */
+function sc_render_course_avatar_html($title, $image_url = '') {
+    $title = trim((string) $title);
+    $image_url = trim((string) $image_url);
+
+    if ($image_url !== '') {
+        return '<span class="sc-course-avatar" aria-hidden="true">'
+            . '<img src="' . esc_url($image_url) . '" alt="">'
+            . '</span>';
+    }
+
+    $initials = $title !== '' ? mb_substr($title, 0, 1) : 'د';
+
+    return '<span class="sc-course-avatar sc-course-avatar--initials" aria-hidden="true">'
+        . esc_html($initials)
+        . '</span>';
 }

@@ -190,12 +190,13 @@ $clear_filters_url = admin_url('admin.php?page=sc-reports-activity-log');
                 </div>
 
                 <div class="sc-filter-field sc-filter-date">
-                    <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
+                    <label class="sc-filter-label">بازه تاریخ</label>
                     <div class="sc-date-range">
                         <input type="text" name="date_from_shamsi" id="date_from_shamsi"
                                value="<?php echo esc_attr($display_date_from); ?>"
                                class="persian-date-input sc-filter-control sc-no-default-date"
                                placeholder="از تاریخ" readonly>
+                        <span class="sc-date-separator">تا</span>
                         <input type="text" name="date_to_shamsi" id="date_to_shamsi"
                                value="<?php echo esc_attr($display_date_to); ?>"
                                class="persian-date-input sc-filter-control sc-no-default-date"

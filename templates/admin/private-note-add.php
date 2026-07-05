@@ -29,7 +29,9 @@ if (isset($_POST['sc_save_private_note']) && check_admin_referer('sc_save_privat
 
     $config = [
         'member_ids' => isset($_POST['member_ids']) ? array_map('absint', (array) $_POST['member_ids']) : [],
-        'course_ids' => isset($_POST['course_ids']) ? array_map('absint', (array) $_POST['course_ids']) : [],
+        'course_ids' => function_exists('sc_audience_normalize_course_ids_from_request')
+            ? sc_audience_normalize_course_ids_from_request($_POST['course_ids'] ?? [])
+            : array_filter(array_map('absint', (array) ($_POST['course_ids'] ?? []))),
         'event_ids' => isset($_POST['event_ids']) ? array_map('absint', (array) $_POST['event_ids']) : [],
         'team_names' => isset($_POST['team_names']) ? array_map('sanitize_text_field', (array) $_POST['team_names']) : [],
         'level_names' => isset($_POST['level_names']) ? array_map('sanitize_text_field', (array) $_POST['level_names']) : [],
@@ -54,6 +56,12 @@ if (isset($_POST['sc_save_private_note']) && check_admin_referer('sc_save_privat
         $member_ids = array_values(array_unique(array_map('absint', wp_list_pluck((array) $members, 'id'))));
     }
     $excluded_member_ids = isset($_POST['excluded_member_ids']) ? array_filter(array_map('absint', (array) $_POST['excluded_member_ids'])) : [];
+    $included_member_ids = isset($_POST['included_member_ids']) ? array_filter(array_map('absint', (array) $_POST['included_member_ids'])) : [];
+    if (function_exists('sc_audience_merge_included_member_ids')) {
+        $member_ids = sc_audience_merge_included_member_ids($member_ids, $included_member_ids);
+    } elseif (!empty($included_member_ids)) {
+        $member_ids = array_values(array_unique(array_merge($member_ids, $included_member_ids)));
+    }
     if (!empty($excluded_member_ids)) {
         $member_ids = array_values(array_diff($member_ids, $excluded_member_ids));
     }
@@ -91,16 +99,20 @@ if ($is_coach && function_exists('sc_support_get_coach_id_by_user_id')) {
     } else {
         $members = [];
     }
-    $courses = $coach_id > 0 ? $wpdb->get_results($wpdb->prepare(
-        "SELECT c.id, c.title FROM {$wpdb->prefix}sc_courses c
-         INNER JOIN {$wpdb->prefix}sc_course_coaches cc ON cc.course_id = c.id
-         WHERE cc.coach_id = %d AND c.deleted_at IS NULL AND c.is_active = 1 ORDER BY c.title",
-        $coach_id
-    )) : [];
+    $courses = function_exists('sc_audience_get_courses_for_picker')
+        ? sc_audience_get_courses_for_picker($coach_id)
+        : ($coach_id > 0 ? $wpdb->get_results($wpdb->prepare(
+            "SELECT c.id, c.title, c.course_type, c.chapter AS chapter_name FROM {$wpdb->prefix}sc_courses c
+             INNER JOIN {$wpdb->prefix}sc_course_coaches cc ON cc.course_id = c.id
+             WHERE cc.coach_id = %d AND c.deleted_at IS NULL AND c.is_active = 1 ORDER BY c.title",
+            $coach_id
+        )) : []);
     $events = [];
 } else {
     $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name, first_name");
-    $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title");
+    $courses = function_exists('sc_audience_get_courses_for_picker')
+        ? sc_audience_get_courses_for_picker(0)
+        : $wpdb->get_results("SELECT id, title, course_type, chapter AS chapter_name FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title");
     $events = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') AND is_active = 1 ORDER BY name");
 }
 $teams = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name");
@@ -233,12 +245,15 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
             </div>
 
             <div class="sc-filter-block sc-private-note-field-row" id="sc-filter-course">
-                <label for="sc-course-ids">دوره‌ها</label>
-                <select name="course_ids[]" id="sc-course-ids" multiple size="7">
-                    <?php foreach ((array) $courses as $c) : ?>
-                        <option value="<?php echo (int) $c->id; ?>"><?php echo esc_html($c->title); ?></option>
-                    <?php endforeach; ?>
-                </select>
+                <label>دوره‌ها</label>
+                <?php
+                echo function_exists('sc_render_audience_course_picker')
+                    ? sc_render_audience_course_picker((array) $courses, [], [
+                        'id' => 'sc-private-note-course-picker',
+                        'name' => 'course_ids[]',
+                    ])
+                    : '';
+                ?>
             </div>
             <?php if (!$is_coach) : ?>
             <div class="sc-filter-block sc-private-note-field-row" id="sc-filter-event">
@@ -272,6 +287,20 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
             <div id="sc-private-notes-preview-result" class="sc-bulk-preview-result sc-private-note-preview-result">
                 <p class="description">پس از انتخاب فیلتر، پیش‌نمایش کاربران را دریافت کنید.</p>
             </div>
+            <?php
+            if (function_exists('sc_audience_render_preview_add_members_block')) {
+                sc_audience_render_preview_add_members_block(
+                    function_exists('sc_audience_get_members_for_preview_add_picker') ? sc_audience_get_members_for_preview_add_picker() : $members,
+                    [
+                        'wrap_id' => 'sc-private-notes-preview-add-wrap',
+                        'dropdown_id' => 'sc-private-notes-preview-add-dropdown',
+                        'options_id' => 'sc-private-notes-preview-add-options',
+                        'hidden_inputs_id' => 'sc-private-notes-preview-add-inputs',
+                        'mode' => 'private',
+                    ]
+                );
+            }
+            ?>
             <div id="sc-private-notes-excluded-members-inputs"></div>
             </div>
         </div>

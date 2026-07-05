@@ -11,6 +11,7 @@ global $wpdb;
 $attendances_table = $wpdb->prefix . 'sc_attendances';
 $members_table = $wpdb->prefix . 'sc_members';
 $courses_table = $wpdb->prefix . 'sc_courses';
+$member_courses_table = $wpdb->prefix . 'sc_member_courses';
 if (!function_exists('sc_attendance_where_coach_member_scope_list')) {
     /**
      * شرط SQL برای محدود کردن ردیف‌های حضور به بازیکنان همین مربی یا بدون انتساب.
@@ -405,10 +406,13 @@ if ($active_tab === 'individual') {
     $query = "SELECT a.*, 
                      m.first_name, m.last_name, m.national_id,
                      c.title as course_title,
+                     mc.chapter as member_chapter,
+                     mc.group_name as member_group_name,
                      COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-') as recorded_by_name
               FROM $attendances_table a
               INNER JOIN $members_table m ON a.member_id = m.id
               INNER JOIN $courses_table c ON a.course_id = c.id
+              LEFT JOIN $member_courses_table mc ON mc.member_id = a.member_id AND mc.course_id = a.course_id AND mc.status = 'active'
               LEFT JOIN $coaches_table rec_coach ON rec_coach.user_id = a.user_id
               LEFT JOIN $users_table rec_user ON rec_user.ID = a.user_id
               WHERE $where_clause
@@ -641,10 +645,11 @@ if ($active_tab === 'grouped') {
     $where_clause = implode(' AND ', $where_conditions);
     $users_table = $wpdb->users;
 
-    // دریافت تعداد کل گروه‌ها برای pagination
-    $total_query = "SELECT COUNT(DISTINCT CONCAT(a.course_id, '-', a.attendance_date)) 
+    // دریافت تعداد کل گروه‌ها برای pagination (تفکیک بر اساس دوره + تاریخ + گروه داخلی)
+    $total_query = "SELECT COUNT(DISTINCT CONCAT(a.course_id, '-', a.attendance_date, '-', COALESCE(mc.group_name, ''))) 
                     FROM $attendances_table a
                     INNER JOIN $courses_table c ON a.course_id = c.id
+                    LEFT JOIN $member_courses_table mc ON mc.member_id = a.member_id AND mc.course_id = a.course_id AND mc.status = 'active'
                     WHERE $where_clause";
     if (!empty($where_values)) {
         $total_items = $wpdb->get_var($wpdb->prepare($total_query, $where_values));
@@ -662,6 +667,7 @@ if ($active_tab === 'grouped') {
     $query = "SELECT 
                 a.course_id,
                 a.attendance_date,
+                COALESCE(mc.group_name, '') AS member_group_name,
                 c.title as course_title,
                 COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present_count,
                 COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent_count,
@@ -669,11 +675,12 @@ if ($active_tab === 'grouped') {
                 GROUP_CONCAT(DISTINCT COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-') SEPARATOR '، ') as recorded_by_names
               FROM $attendances_table a
               INNER JOIN $courses_table c ON a.course_id = c.id
+              LEFT JOIN $member_courses_table mc ON mc.member_id = a.member_id AND mc.course_id = a.course_id AND mc.status = 'active'
               LEFT JOIN $coaches_table rec_coach ON rec_coach.user_id = a.user_id
               LEFT JOIN $users_table rec_user ON rec_user.ID = a.user_id
               WHERE $where_clause
-              GROUP BY a.course_id, a.attendance_date
-              ORDER BY a.attendance_date DESC, c.title ASC
+              GROUP BY a.course_id, a.attendance_date, COALESCE(mc.group_name, '')
+              ORDER BY a.attendance_date DESC, c.title ASC, member_group_name ASC
               LIMIT %d OFFSET %d";
 
     $query_values[] = $per_page;
@@ -1096,7 +1103,14 @@ $max_display = 10;
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="<?php echo admin_url('admin.php?page=sc-attendance-add&course_id=' . $attendance->course_id . '&date=' . $attendance->attendance_date); ?>" 
+                                    <a href="<?php echo esc_url(function_exists('sc_attendance_add_page_url')
+                                        ? sc_attendance_add_page_url(
+                                            $attendance->course_id,
+                                            $attendance->attendance_date,
+                                            isset($attendance->member_chapter) ? (string) $attendance->member_chapter : '',
+                                            isset($attendance->member_group_name) ? (string) $attendance->member_group_name : ''
+                                        )
+                                        : admin_url('admin.php?page=sc-attendance-add&attendance_course_id=' . (int) $attendance->course_id . '&date=' . rawurlencode($attendance->attendance_date))); ?>"
                                        class="button button-small">ویرایش</a>
                                     <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=sc-attendance-list&tab=individual&action=delete&attendance_id=' . $attendance->id), 'delete_attendance_' . $attendance->id); ?>" 
                                        class="button button-small button_delete_attendance" 
@@ -1582,6 +1596,7 @@ if ($filter_member > 0) {
                         <tr>
                             <th class="column-row">ردیف</th>
                             <th>دوره</th>
+                            <th>گروه</th>
                             <th>تاریخ</th>
                             <th>ثبت‌کننده</th>
                             <th> حاضر</th>
@@ -1599,6 +1614,7 @@ if ($filter_member > 0) {
                             <tr>
                                 <td><?php echo $row_number; ?></td>
                                 <td><strong><?php echo esc_html($group->course_title); ?></strong></td>
+                                <td><?php echo !empty($group->member_group_name) ? esc_html($group->member_group_name) : '—'; ?></td>
                                 <td>
                                     <strong><?php echo sc_date_shamsi_date_only($group->attendance_date); ?></strong>
                                     <br>
@@ -1618,7 +1634,14 @@ if ($filter_member > 0) {
                                     <?php echo esc_html($group->total_count); ?> نفر
                                 </td>
                                 <td>
-                                    <a href="<?php echo admin_url('admin.php?page=sc-attendance-add&course_id=' . $group->course_id . '&date=' . $group->attendance_date); ?>" 
+                                    <a href="<?php echo esc_url(function_exists('sc_attendance_add_page_url')
+                                        ? sc_attendance_add_page_url(
+                                            $group->course_id,
+                                            $group->attendance_date,
+                                            '',
+                                            isset($group->member_group_name) ? (string) $group->member_group_name : ''
+                                        )
+                                        : admin_url('admin.php?page=sc-attendance-add&attendance_course_id=' . (int) $group->course_id . '&date=' . rawurlencode($group->attendance_date))); ?>"
                                        class="button button-small">ویرایش</a>
                                     <?php
                                     // ساخت URL برای export Excel این روز
