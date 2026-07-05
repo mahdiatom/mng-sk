@@ -38,6 +38,7 @@ if (function_exists('wc_get_price_thousand_separator')) {
     $thousand_separator = wc_get_price_thousand_separator();
 }
 $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
+$sc_enroll_today_shamsi = function_exists('sc_get_today_shamsi') ? sc_get_today_shamsi() : '';
 ?>
 
 <div class="sc-enroll-course-page sc-account-list-page">
@@ -399,22 +400,56 @@ $sc_waitlist_ajax_nonce = wp_create_nonce('sc_course_capacity_waitlist');
         <input type="hidden" name="enrollment_chapter" id="sc-enrollment-chapter-field" value="">
         <input type="hidden" name="enrollment_coach_id" id="sc-enrollment-coach-field" value="0">
         <input type="hidden" name="enrollment_group" id="sc-enrollment-group-field" value="">
+        <input type="hidden" name="sc_enrollment_billing_mode" id="sc-enrollment-billing-mode-field" value="charge_remaining">
+        <input type="hidden" name="enrollment_start_ymd" id="sc-enrollment-start-ymd-field" value="">
 
         <div id="sc-enroll-global-checkout" class="sc-enroll-checkout-panel sc-enroll-panel" hidden>
             <div class="sc-enroll-panel-title sc-enroll-checkout-title">تکمیل ثبت‌نام</div>
-            <div class="sc-enroll-discount-row">
-                <label for="sc_invoice_discount_code" class="sc-enroll-field-label">کد تخفیف (اختیاری)</label>
-                <div class="sc-enroll-discount-actions">
-                    <input type="text" name="sc_invoice_discount_code" id="sc_invoice_discount_code" class="sc-invoices-filter-control sc-enroll-discount-input" autocomplete="off" placeholder="مثال: SUMMER1404">
-                    <button type="button" class="button sc-account-btn-compact sc-enroll-discount-preview-btn" id="sc-preview-discount-course"><?php esc_html_e('بررسی کد', 'sportclub-manager'); ?></button>
+            <div id="sc-enroll-billing-block" class="sc-enroll-billing-block" hidden>
+                <div id="sc-enroll-start-date-row" class="sc-enroll-start-date-row sc-enroll-field-wrap" hidden>
+                    <label for="sc-enrollment-start-shamsi" class="sc-enroll-field-label">تاریخ شروع حضور</label>
+                    <div class="sc-enroll-start-date-input-wrap">
+                        <input type="text"
+                               name="enrollment_start_shamsi"
+                               id="sc-enrollment-start-shamsi"
+                               class="sc-enroll-start-date-input persian-date-input"
+                               value="<?php echo esc_attr($sc_enroll_today_shamsi); ?>"
+                               placeholder="انتخاب تاریخ از تقویم"
+                               readonly
+                               autocomplete="off">
+                        <span class="sc-enroll-start-date-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2v3M16 2v3M4 9h16M5 5h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                    </div>
+                    <p class="sc-enroll-start-date-hint">از چه تاریخی می‌خواهید در دوره شرکت کنید؟ با انتخاب تاریخ، جلسات و مبلغ به‌روز می‌شود.</p>
                 </div>
-                <p class="sc-enroll-discount-hint">پس از انتخاب دوره و شعبه/مربی، می‌توانید کد را بررسی کنید.</p>
-                <div id="sc-discount-preview-course" class="sc-enroll-discount-preview" aria-live="polite"></div>
-            </div>
-            <div class="sc-enroll-submit-row">
-                <button type="submit" name="sc_enroll_course" class="button button-primary sc-enroll-submit-btn sc-account-btn-compact">
-                    ثبت نام و ایجاد صورت حساب
-                </button>
+                <div id="sc-enroll-billing-preview" class="sc-enroll-billing-preview" aria-live="polite" hidden></div>
+                <div id="sc-enroll-billing-choice" class="sc-enroll-billing-choice" hidden>
+                    <div class="sc-enroll-panel-title">نحوه محاسبه تا پایان ماه</div>
+                    <p class="sc-enroll-billing-choice-hint">تا پایان این ماه کمتر از ۲ جلسه باقی مانده. یکی از گزینه‌ها را انتخاب کنید:</p>
+                    <label class="sc-enroll-billing-option">
+                        <input type="radio" name="sc_enrollment_billing_mode_ui" value="charge_remaining" checked>
+                        <span>همین جلسه(های) باقی‌مانده محاسبه شود و از ماه بعد صورت‌حساب کامل صادر شود</span>
+                    </label>
+                    <label class="sc-enroll-billing-option">
+                        <input type="radio" name="sc_enrollment_billing_mode_ui" value="defer_to_next_month">
+                        <span>تا ماه بعد موکول شود و از آن تاریخ صورت‌حساب کامل صادر شود</span>
+                    </label>
+                </div>
+                <div class="sc-enroll-discount-row">
+                    <label for="sc_invoice_discount_code" class="sc-enroll-field-label">کد تخفیف (اختیاری)</label>
+                    <div class="sc-enroll-discount-actions">
+                        <input type="text" name="sc_invoice_discount_code" id="sc_invoice_discount_code" class="sc-invoices-filter-control sc-enroll-discount-input" autocomplete="off" placeholder="مثال: SUMMER1404">
+                        <button type="button" class="button sc-account-btn-compact sc-enroll-discount-preview-btn" id="sc-preview-discount-course"><?php esc_html_e('بررسی کد', 'sportclub-manager'); ?></button>
+                    </div>
+                    <p class="sc-enroll-discount-hint">پس از انتخاب دوره و شعبه/مربی، می‌توانید کد را بررسی کنید.</p>
+                    <div id="sc-discount-preview-course" class="sc-enroll-discount-preview" aria-live="polite"></div>
+                </div>
+                <div class="sc-enroll-submit-row">
+                    <button type="submit" name="sc_enroll_course" class="button button-primary sc-enroll-submit-btn sc-account-btn-compact">
+                        ثبت نام و ایجاد صورت حساب
+                    </button>
+                </div>
             </div>
         </div>
     </form>
@@ -500,6 +535,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedSessionsInput = document.getElementById('sc-enrollment-sessions-field');
     const nonce = '<?php echo esc_js(wp_create_nonce('sc_enroll_package')); ?>';
     const discountNonce = '<?php echo esc_js(wp_create_nonce('sc_discount_preview')); ?>';
+    const billingPreviewNonce = '<?php echo esc_js(wp_create_nonce('sc_enroll_billing_preview')); ?>';
+    const enrollTodayShamsi = '<?php echo esc_js($sc_enroll_today_shamsi); ?>';
     let selectedCourseId = 0;
     let branchConfigs = {};
     try {
@@ -509,6 +546,64 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     } catch (err) {
         branchConfigs = {};
+    }
+
+    function getChapterCoaches(cfg, chapterName) {
+        if (!cfg || !cfg.chapters || !cfg.chapters.length) {
+            return [];
+        }
+        var coaches = [];
+        cfg.chapters.forEach(function (ch) {
+            if (!chapterName || ch.name === chapterName) {
+                coaches = ch.coaches || [];
+            }
+        });
+        return coaches;
+    }
+
+    function getResolvedChapterName(cfg) {
+        if (!cfg || !cfg.chapters || !cfg.chapters.length) {
+            return '';
+        }
+        var chField = document.getElementById('sc-enrollment-chapter-field');
+        if (chField && chField.value) {
+            return chField.value;
+        }
+        if (cfg.chapters.length === 1) {
+            return cfg.chapters[0].name || '';
+        }
+        return '';
+    }
+
+    function isEnrollAssignmentComplete(courseId) {
+        var cfg = branchConfigs[courseId];
+        if (!cfg) {
+            return true;
+        }
+
+        var chapterName = getResolvedChapterName(cfg);
+        if (cfg.chapters && cfg.chapters.length > 1 && !chapterName) {
+            return false;
+        }
+
+        if (cfg.chapters && cfg.chapters.length > 0) {
+            var coaches = getChapterCoaches(cfg, chapterName);
+            if (coaches.length > 1) {
+                var coField = document.getElementById('sc-enrollment-coach-field');
+                if (!coField || parseInt(coField.value || '0', 10) <= 0) {
+                    return false;
+                }
+            }
+        }
+
+        if (cfg.groups && cfg.groups.player_can_select_group && cfg.groups.groups && cfg.groups.groups.length) {
+            var gField = document.getElementById('sc-enrollment-group-field');
+            if (cfg.groups.requires_group_choice && (!gField || !gField.value)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     function isEnrollCheckoutReady(courseId) {
@@ -526,20 +621,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
         }
-        var cfg = branchConfigs[courseId];
-        if (cfg && cfg.chapters && cfg.chapters.length) {
-            var chField = document.getElementById('sc-enrollment-chapter-field');
-            if (!chField || !chField.value) {
-                return false;
-            }
+        return isEnrollAssignmentComplete(courseId);
+    }
+
+    function hideEnrollBillingUi() {
+        var billingBlock = document.getElementById('sc-enroll-billing-block');
+        var previewBox = document.getElementById('sc-enroll-billing-preview');
+        var startDateRow = document.getElementById('sc-enroll-start-date-row');
+        var choiceBox = document.getElementById('sc-enroll-billing-choice');
+        if (billingBlock) {
+            billingBlock.hidden = true;
         }
-        if (cfg && cfg.groups && cfg.groups.player_can_select_group && cfg.groups.groups && cfg.groups.groups.length) {
-            var gField = document.getElementById('sc-enrollment-group-field');
-            if (cfg.groups.requires_group_choice && (!gField || !gField.value)) {
-                return false;
-            }
+        if (previewBox) {
+            previewBox.hidden = true;
+            previewBox.innerHTML = '';
+            previewBox.classList.remove('is-loading');
         }
-        return true;
+        if (startDateRow) {
+            startDateRow.hidden = true;
+        }
+        if (choiceBox) {
+            choiceBox.hidden = true;
+        }
+    }
+
+    function showEnrollBillingUi() {
+        var billingBlock = document.getElementById('sc-enroll-billing-block');
+        if (billingBlock) {
+            billingBlock.hidden = false;
+        }
     }
 
     function updateEnrollCheckoutPanel() {
@@ -549,26 +659,196 @@ document.addEventListener('DOMContentLoaded', function() {
         var checkedCourse = form.querySelector('input[name="course_id"]:checked');
         if (!checkedCourse) {
             checkoutPanel.hidden = true;
+            hideEnrollBillingUi();
             return;
         }
         var courseId = parseInt(checkedCourse.value || '0', 10);
-        if (!isEnrollCheckoutReady(courseId)) {
-            checkoutPanel.hidden = true;
-            return;
-        }
         var courseItem = document.getElementById('course_item_' + courseId);
         if (!courseItem) {
             checkoutPanel.hidden = true;
+            hideEnrollBillingUi();
             return;
         }
         var anchor = courseItem.querySelector('.sc-enroll-branch-coach-inner .sc-enroll-checkout-anchor')
             || courseItem.querySelector('.sc-enroll-checkout-anchor');
         if (!anchor) {
             checkoutPanel.hidden = true;
+            hideEnrollBillingUi();
             return;
         }
         anchor.appendChild(checkoutPanel);
+        if (!isEnrollCheckoutReady(courseId)) {
+            checkoutPanel.hidden = true;
+            hideEnrollBillingUi();
+            return;
+        }
         checkoutPanel.hidden = false;
+        showEnrollBillingUi();
+        fetchEnrollBillingPreview(courseId);
+    }
+
+    function resetEnrollStartDate() {
+        var startInput = document.getElementById('sc-enrollment-start-shamsi');
+        var startYmdField = document.getElementById('sc-enrollment-start-ymd-field');
+        if (startInput && enrollTodayShamsi) {
+            startInput.value = enrollTodayShamsi;
+        }
+        if (startYmdField) {
+            startYmdField.value = '';
+        }
+    }
+
+    function onEnrollStartDateChanged() {
+        var checkedCourse = form.querySelector('input[name="course_id"]:checked');
+        if (!checkedCourse) {
+            return;
+        }
+        var courseId = parseInt(checkedCourse.value || '0', 10);
+        if (enrollBillingPreviewTimer) {
+            clearTimeout(enrollBillingPreviewTimer);
+        }
+        if (!isEnrollCheckoutReady(courseId)) {
+            hideEnrollBillingUi();
+            return;
+        }
+        enrollBillingPreviewTimer = setTimeout(function () {
+            fetchEnrollBillingPreview(courseId);
+        }, 120);
+    }
+
+    var enrollBillingPreviewTimer = null;
+
+    function renderEnrollBillingPreviewContent(d) {
+        var previewBox = document.getElementById('sc-enroll-billing-preview');
+        var choiceBox = document.getElementById('sc-enroll-billing-choice');
+        var modeField = document.getElementById('sc-enrollment-billing-mode-field');
+        var startDateRow = document.getElementById('sc-enroll-start-date-row');
+        var startInput = document.getElementById('sc-enrollment-start-shamsi');
+        var startYmdField = document.getElementById('sc-enrollment-start-ymd-field');
+        if (!previewBox || !d) {
+            return;
+        }
+
+        if (startDateRow) {
+            startDateRow.hidden = !d.show_start_date_picker;
+        }
+        if (d.registration_shamsi && startInput && startInput.value !== d.registration_shamsi) {
+            startInput.value = d.registration_shamsi;
+        }
+        if (startYmdField && d.registration_ymd) {
+            startYmdField.value = d.registration_ymd;
+        }
+
+        var html = '';
+        if (d.start_date_error) {
+            html += '<div class="sc-enroll-billing-notice">' + d.start_date_error + '</div>';
+        }
+
+        if (d.mode === 'prorated') {
+            html += '<div class="sc-enroll-billing-summary">';
+            html += '<div class="sc-enroll-billing-summary-row"><span class="sc-enroll-billing-label">تاریخ شروع</span><strong class="sc-enroll-billing-value">' + (d.registration_shamsi || '—') + '</strong></div>';
+
+            if (d.billing_sessions && d.billing_sessions.length) {
+                html += '<div class="sc-enroll-billing-sessions-block">';
+                html += '<div class="sc-enroll-billing-sessions-title">جلسات محاسبه‌شده (' + d.billing_sessions.length + ')</div>';
+                html += '<ul class="sc-enroll-billing-sessions-list">';
+                d.billing_sessions.forEach(function (sess) {
+                    var dayLabel = sess.weekday_label || '';
+                    var dateLabel = sess.date_shamsi || '';
+                    var timeLabel = (sess.time_start && sess.time_end) ? (sess.time_start + ' تا ' + sess.time_end) : '';
+                    html += '<li class="sc-enroll-billing-session-item">';
+                    html += '<span class="sc-enroll-billing-session-day">' + dayLabel + '</span>';
+                    html += '<span class="sc-enroll-billing-session-date">' + dateLabel + '</span>';
+                    if (timeLabel) {
+                        html += '<span class="sc-enroll-billing-session-time">' + timeLabel + '</span>';
+                    }
+                    html += '</li>';
+                });
+                html += '</ul></div>';
+            } else {
+                html += '<div class="sc-enroll-billing-summary-row"><span class="sc-enroll-billing-label">تعداد جلسات تا پایان ماه</span><strong class="sc-enroll-billing-value sc-enroll-billing-sessions-count">' + (d.sessions_count != null ? d.sessions_count : 0) + ' جلسه</strong></div>';
+            }
+
+            html += '<div class="sc-enroll-billing-summary-row sc-enroll-billing-summary-amount"><span class="sc-enroll-billing-label">مبلغ قابل پرداخت</span><strong class="sc-enroll-billing-value sc-enroll-billing-amount">' + (d.amount_html || d.amount) + '</strong></div>';
+            html += '</div>';
+            previewBox.hidden = false;
+        } else if (d.amount_html || d.amount) {
+            html += '<div class="sc-enroll-billing-summary sc-enroll-billing-summary--full">';
+            html += '<div class="sc-enroll-billing-summary-row sc-enroll-billing-summary-amount"><span class="sc-enroll-billing-label">مبلغ ثبت‌نام</span><strong class="sc-enroll-billing-value sc-enroll-billing-amount">' + (d.amount_html || d.amount) + '</strong></div>';
+            html += '</div>';
+            previewBox.hidden = false;
+        } else {
+            previewBox.hidden = true;
+            previewBox.innerHTML = '';
+            if (choiceBox) {
+                choiceBox.hidden = true;
+            }
+            return;
+        }
+
+        previewBox.innerHTML = html;
+        previewBox.classList.toggle('is-loading', false);
+
+        if (choiceBox) {
+            choiceBox.hidden = !d.needs_short_session_choice;
+        }
+        if (modeField && !d.needs_short_session_choice) {
+            modeField.value = 'charge_remaining';
+        }
+    }
+
+    function fetchEnrollBillingPreview(courseId) {
+        var previewBox = document.getElementById('sc-enroll-billing-preview');
+        var startInput = document.getElementById('sc-enrollment-start-shamsi');
+        if (!previewBox || !courseId) {
+            return;
+        }
+        if (!isEnrollCheckoutReady(courseId)) {
+            hideEnrollBillingUi();
+            return;
+        }
+        showEnrollBillingUi();
+        var sessions = 0;
+        var courseItem = document.getElementById('course_item_' + courseId);
+        if (courseItem && courseItem.getAttribute('data-has-packages') === '1') {
+            var checkedPkg = form.querySelector('input[name="sc_pkg_course_' + courseId + '"]:checked');
+            sessions = checkedPkg ? parseInt(checkedPkg.value || '0', 10) : 0;
+        }
+        var chapterField = document.getElementById('sc-enrollment-chapter-field');
+        var coachField = document.getElementById('sc-enrollment-coach-field');
+        var groupField = document.getElementById('sc-enrollment-group-field');
+
+        previewBox.hidden = false;
+        previewBox.classList.add('is-loading');
+        previewBox.innerHTML = '<span class="sc-enroll-billing-loading">در حال محاسبه مبلغ و جلسات...</span>';
+
+        var params = new URLSearchParams();
+        params.append('action', 'sc_enroll_course_billing_preview');
+        params.append('nonce', billingPreviewNonce);
+        params.append('course_id', String(courseId));
+        params.append('enrollment_sessions', String(sessions));
+        params.append('enrollment_chapter', chapterField ? (chapterField.value || '') : '');
+        params.append('enrollment_coach_id', coachField ? (coachField.value || '0') : '0');
+        params.append('enrollment_group', groupField ? (groupField.value || '') : '');
+        params.append('enrollment_start_shamsi', startInput ? (startInput.value || '') : '');
+
+        fetch(ajaxUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+            body: params.toString()
+        }).then(function (res) { return res.json(); }).then(function (json) {
+            previewBox.classList.remove('is-loading');
+            if (!json || !json.success || !json.data) {
+                previewBox.innerHTML = '<span class="sc-enroll-billing-error">' + ((json && json.data && json.data.message) ? json.data.message : 'خطا در محاسبه') + '</span>';
+                previewBox.hidden = false;
+                return;
+            }
+            renderEnrollBillingPreviewContent(json.data);
+        }).catch(function () {
+            previewBox.classList.remove('is-loading');
+            previewBox.innerHTML = '<span class="sc-enroll-billing-error">خطا در ارتباط با سرور</span>';
+            previewBox.hidden = false;
+        });
     }
 
     function renderEnrollBranchCoach(courseId) {
@@ -814,9 +1094,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (selectedSessionsInput) {
                 selectedSessionsInput.value = '';
             }
+            resetEnrollStartDate();
             updateEnrollCheckoutPanel();
         });
     });
+
+    var startDateInput = document.getElementById('sc-enrollment-start-shamsi');
+    if (startDateInput) {
+        startDateInput.addEventListener('change', onEnrollStartDateChanged);
+    }
+    if (typeof jQuery !== 'undefined') {
+        jQuery(document).on('change scPersianDateSelected', '#sc-enrollment-start-shamsi', onEnrollStartDateChanged);
+    }
 
     document.querySelectorAll('.sc-enroll-pkg-radio').forEach(function (pkgRadio) {
         pkgRadio.addEventListener('change', function () {
@@ -862,6 +1151,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    document.querySelectorAll('input[name="sc_enrollment_billing_mode_ui"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            var modeField = document.getElementById('sc-enrollment-billing-mode-field');
+            if (modeField) {
+                modeField.value = radio.value || 'charge_remaining';
+            }
+        });
+    });
+
     form.addEventListener('submit', function (e) {
         const checkedCourse = form.querySelector('input[name="course_id"]:checked');
         if (!checkedCourse) {
@@ -892,6 +1190,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 alert('لطفاً گروه دوره را انتخاب کنید.');
                 return false;
+            }
+        }
+        var choiceBox = document.getElementById('sc-enroll-billing-choice');
+        if (choiceBox && !choiceBox.hidden) {
+            var modeUi = form.querySelector('input[name="sc_enrollment_billing_mode_ui"]:checked');
+            if (!modeUi) {
+                e.preventDefault();
+                alert('لطفاً نحوه محاسبه تا پایان ماه را انتخاب کنید.');
+                return false;
+            }
+            var modeField = document.getElementById('sc-enrollment-billing-mode-field');
+            if (modeField) {
+                modeField.value = modeUi.value;
             }
         }
         return true;

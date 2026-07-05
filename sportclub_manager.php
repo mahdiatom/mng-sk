@@ -78,6 +78,7 @@ require_once SC_INCLUDES_DIR . 'audience-course-functions.php'; // فیلتر م
 require_once SC_INCLUDES_DIR . 'audience-preview-add-functions.php'; // افزودن کاربر به پیش‌نمایش مخاطبین
 require_once SC_INCLUDES_DIR . 'discount-codes-functions.php'; // کدهای تخفیف صورت‌حساب
 require_once SC_INCLUDES_DIR . 'header-search-functions.php'; // جستجوی هدر (AJAX)
+require_once SC_INCLUDES_DIR . 'course-billing-functions.php'; // Course billing / proration (fixed_date)
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'invoices-bulk-background.php'; // پردازش پس‌زمینهٔ عملیات دسته‌جمعی صورت‌حساب‌ها
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions

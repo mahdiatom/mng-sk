@@ -81,61 +81,37 @@ function sc_is_fixed_invoice_time() {
 
 function sc_create_recurring_invoices() {
 
+    $invoice_mode = sc_get_invoice_mode();
 
+    if ($invoice_mode === 'sessions_threshold') {
+        return sc_create_threshold_invoices();
+    }
 
-$invoice_mode = sc_get_invoice_mode();
+    if ($invoice_mode === 'fixed_date') {
+        if (!sc_is_fixed_invoice_time()) {
+            return;
+        }
+        return sc_create_fixed_date_monthly_invoices();
+    }
 
-if ($invoice_mode === 'sessions_threshold') {
-    
-    return sc_create_threshold_invoices();
-}
-    if (!sc_is_fixed_invoice_time()) {
-    return;
-}
-
-sc_set_invoice_last_run();
-
-
-    // لاگ شروع اجرای cron
+    // حالت interval — اجرای دوره‌ای بر اساس فاصلهٔ زمانی
     error_log('SC Recurring Invoices: Cron job started at ' . current_time('mysql'));
-    
+
     if (!class_exists('WooCommerce')) {
         error_log('SC Recurring Invoices: WooCommerce is not active');
         return;
     }
-    
+
     global $wpdb;
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $courses_table = $wpdb->prefix . 'sc_courses';
     $members_table = $wpdb->prefix . 'sc_members';
-    
-   
- 
-
 
     $interval_minutes = sc_get_invoice_interval_minutes();
-    
+
     error_log("SC Recurring Invoices: Using MINUTE interval: $interval_minutes minutes");
-    //برای اعمال شرط برای ثبت  صورت حساب در تاریخ مشخص
-    $fixed_date_mode = (sc_get_invoice_mode() === 'fixed_date');
-    $where_month_lock = '';
 
-    if ($fixed_date_mode) {
-        $where_month_lock = "
-            AND NOT EXISTS (
-                SELECT 1 FROM $invoices_table i2
-                WHERE i2.member_course_id = mc.id
-                AND DATE_FORMAT(i2.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
-            )
-        ";
-    }
-    // دریافت تمام دوره‌های active که باید برای آن‌ها صورت حساب ایجاد شود
-    // فقط دوره‌هایی که آخرین صورت حساب آن‌ها (چه pending چه paid) بیشتر از interval_days روز از ایجاد آن گذشته باشد
-    // و flags (paused, completed, canceled) نداشته باشند
-
-
-    
     $active_courses = $wpdb->get_results($wpdb->prepare(
         "SELECT mc.*, c.price, c.title as course_title, m.user_id, m.disable_auto_invoice
          FROM $member_courses_table mc
@@ -145,9 +121,7 @@ sc_set_invoice_last_run();
          AND c.deleted_at IS NULL
          AND c.is_active = 1
          AND m.is_active = 1
-         $where_month_lock
          AND (
-             -- دوره‌هایی که flags ندارند یا flags آن‌ها paused, completed, canceled نیست
              mc.course_status_flags IS NULL
              OR mc.course_status_flags = ''
              OR (
@@ -157,37 +131,35 @@ sc_set_invoice_last_run();
              )
          )
          AND (
-             -- دوره‌هایی که هیچ صورت حسابی ندارند (اولین صورت حساب)
              NOT EXISTS (
-                 SELECT 1 FROM $invoices_table i 
+                 SELECT 1 FROM $invoices_table i
                  WHERE i.member_course_id = mc.id
              )
              OR
-             -- دوره‌هایی که آخرین صورت حساب آن‌ها (چه pending چه paid) بیشتر از interval_minutes دقیقه از ایجاد آن گذشته است
              EXISTS (
-                 SELECT 1 FROM $invoices_table i 
-                 WHERE i.member_course_id = mc.id 
+                 SELECT 1 FROM $invoices_table i
+                 WHERE i.member_course_id = mc.id
                  AND TIMESTAMPDIFF(MINUTE, i.created_at, NOW()) >= %d
                  AND i.created_at = (
-                     SELECT MAX(i2.created_at) 
-                     FROM $invoices_table i2 
+                     SELECT MAX(i2.created_at)
+                     FROM $invoices_table i2
                      WHERE i2.member_course_id = mc.id
                  )
              )
          )",
         $interval_minutes
     ));
-    
-    error_log("SC Recurring Invoices: Found " . count($active_courses) . " courses that need invoices");
-    
+
+    error_log('SC Recurring Invoices: Found ' . count($active_courses) . ' courses that need invoices');
+
     if (empty($active_courses)) {
         error_log('SC Recurring Invoices: No courses found that need invoices');
         return;
     }
-    
+
     $success_count = 0;
     $error_count = 0;
-    
+
     foreach ($active_courses as $member_course) {
         error_log("SC Recurring Invoices: Processing course - Member ID: {$member_course->member_id}, Course ID: {$member_course->course_id}, Course Title: {$member_course->course_title}");
         if (isset($member_course->disable_auto_invoice) && $member_course->disable_auto_invoice == 1) {
@@ -198,7 +170,6 @@ sc_set_invoice_last_run();
             error_log("SC Recurring Invoices: Member ID {$member_course->member_id} is team player. Skipping invoice.");
             continue;
         }
-        // ایجاد صورت حساب جدید (بدون چک کردن pending)
         $amount_for_invoice = function_exists('sc_get_course_billing_amount_for_member_course')
             ? sc_get_course_billing_amount_for_member_course((object) ['id' => $member_course->course_id, 'price' => $member_course->price, 'title' => $member_course->course_title], $member_course)
             : (float) $member_course->price;
@@ -213,13 +184,10 @@ sc_set_invoice_last_run();
             'system defalt',
             $fee_label
         );
-        
-        // بررسی نتیجه
+
         if ($invoice_result && isset($invoice_result['success']) && $invoice_result['success']) {
             $success_count++;
             error_log("SC Recurring Invoices: Invoice created successfully - Invoice ID: {$invoice_result['invoice_id']}, Order ID: {$invoice_result['order_id']}");
-
-            // ارسال SMS صورت حساب
             do_action('sc_invoice_created', $invoice_result['invoice_id']);
         } else {
             $error_count++;
@@ -227,8 +195,130 @@ sc_set_invoice_last_run();
             error_log("SC Recurring Invoices: Failed to create invoice - Member ID: {$member_course->member_id}, Course ID: {$member_course->course_id}, Error: $error_message");
         }
     }
-    
+
     error_log("SC Recurring Invoices: Cron job completed - Success: $success_count, Errors: $error_count");
+}
+
+/**
+ * صورتحساب ماهانهٔ دوره در حالت تاریخ ثابت (تقویم شمسی)
+ */
+function sc_create_fixed_date_monthly_invoices() {
+    error_log('SC Fixed-Date Invoices: Cron started at ' . current_time('mysql'));
+
+    if (!class_exists('WooCommerce')) {
+        error_log('SC Fixed-Date Invoices: WooCommerce is not active');
+        return;
+    }
+
+    global $wpdb;
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $members_table = $wpdb->prefix . 'sc_members';
+
+    $billing_period = function_exists('sc_get_current_jalali_billing_period_key')
+        ? sc_get_current_jalali_billing_period_key()
+        : '';
+    if ($billing_period === '') {
+        error_log('SC Fixed-Date Invoices: Could not resolve Jalali billing period');
+        return;
+    }
+
+    $status_where = "mc.status = 'active'";
+    if (function_exists('sc_member_courses_support_billing_deferred') && sc_member_courses_support_billing_deferred()) {
+        $status_where = "(mc.status = 'active' OR (mc.status = 'inactive' AND mc.billing_deferred = 1))";
+    }
+
+    $active_courses = $wpdb->get_results(
+        "SELECT mc.*, c.price, c.title AS course_title, c.sessions_count, c.price_per_session, m.user_id, m.disable_auto_invoice
+         FROM {$member_courses_table} mc
+         INNER JOIN {$courses_table} c ON mc.course_id = c.id
+         INNER JOIN {$members_table} m ON mc.member_id = m.id
+         WHERE {$status_where}
+         AND c.deleted_at IS NULL
+         AND c.is_active = 1
+         AND m.is_active = 1
+         AND (
+             mc.course_status_flags IS NULL
+             OR mc.course_status_flags = ''
+             OR (
+                 mc.course_status_flags NOT LIKE '%paused%'
+                 AND mc.course_status_flags NOT LIKE '%completed%'
+                 AND mc.course_status_flags NOT LIKE '%canceled%'
+             )
+         )"
+    );
+
+    error_log('SC Fixed-Date Invoices: Found ' . count($active_courses) . ' candidate enrollments for period ' . $billing_period);
+
+    $success_count = 0;
+    $error_count = 0;
+    $month_names = ['', 'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+    $period_label = $billing_period;
+    $pp = explode('-', $billing_period);
+    if (count($pp) === 2) {
+        $mi = (int) $pp[1];
+        if (isset($month_names[$mi])) {
+            $period_label = $month_names[$mi] . ' ' . $pp[0];
+        }
+    }
+
+    foreach ($active_courses as $member_course) {
+        if (function_exists('sc_should_create_monthly_invoice_for_member_course')
+            && !sc_should_create_monthly_invoice_for_member_course($member_course, $billing_period)) {
+            continue;
+        }
+
+        if (isset($member_course->disable_auto_invoice) && (int) $member_course->disable_auto_invoice === 1) {
+            continue;
+        }
+        if (function_exists('sc_is_member_team') && sc_is_member_team($member_course->member_id)) {
+            continue;
+        }
+
+        $course_obj = (object) [
+            'id' => (int) $member_course->course_id,
+            'price' => (float) $member_course->price,
+            'title' => (string) $member_course->course_title,
+            'sessions_count' => isset($member_course->sessions_count) ? (int) $member_course->sessions_count : 0,
+            'price_per_session' => isset($member_course->price_per_session) ? (float) $member_course->price_per_session : 0,
+        ];
+        $amount_for_invoice = function_exists('sc_get_course_billing_amount_for_member_course')
+            ? sc_get_course_billing_amount_for_member_course($course_obj, $member_course)
+            : (float) $member_course->price;
+        $fee_label = sprintf('صورت‌حساب ماهانه %s — %s', (string) $member_course->course_title, $period_label);
+
+        $billing_meta = [
+            'billing_period_shamsi' => $billing_period,
+            'billing_sessions_count' => !empty($member_course->enrollment_sessions)
+                ? (int) $member_course->enrollment_sessions
+                : (isset($member_course->sessions_count) ? (int) $member_course->sessions_count : 0),
+        ];
+
+        $invoice_result = sc_create_course_invoice(
+            $member_course->member_id,
+            $member_course->course_id,
+            $member_course->id,
+            $amount_for_invoice,
+            'monthly_regular',
+            $fee_label,
+            null,
+            $billing_meta
+        );
+
+        if ($invoice_result && !empty($invoice_result['success'])) {
+            $success_count++;
+            if (!empty($invoice_result['invoice_id'])) {
+                do_action('sc_invoice_created', (int) $invoice_result['invoice_id']);
+            }
+        } else {
+            $error_count++;
+            $error_message = isset($invoice_result['message']) ? $invoice_result['message'] : 'Unknown error';
+            error_log("SC Fixed-Date Invoices: Failed MC {$member_course->id}: {$error_message}");
+        }
+    }
+
+    sc_set_invoice_last_run();
+    error_log("SC Fixed-Date Invoices: Completed period {$billing_period} — Success: {$success_count}, Errors: {$error_count}");
 }
 
 /**
@@ -527,7 +617,7 @@ function sc_create_threshold_invoices() {
  * @param array<int,int|string> $course_ids شناسهٔ دوره‌های تیک‌خورده در فرم
  */
 function sc_maybe_create_initial_invoices_after_member_courses_save($member_id, $course_ids) {
-    if (!class_exists('WooCommerce') || !function_exists('sc_create_course_invoice')) {
+    if (!class_exists('WooCommerce') || !function_exists('sc_create_enrollment_invoice_for_member_course')) {
         return;
     }
     $member_id = absint($member_id);
@@ -562,7 +652,7 @@ function sc_maybe_create_initial_invoices_after_member_courses_save($member_id, 
             "SELECT mc.*, c.price, c.title AS course_title
              FROM {$mc_table} mc
              INNER JOIN {$courses_table} c ON c.id = mc.course_id
-             WHERE mc.member_id = %d AND mc.course_id = %d AND mc.status = 'active'
+             WHERE mc.member_id = %d AND mc.course_id = %d
              AND c.deleted_at IS NULL AND c.is_active = 1
              LIMIT 1",
             $member_id,
@@ -588,33 +678,32 @@ function sc_maybe_create_initial_invoices_after_member_courses_save($member_id, 
             continue;
         }
 
-        $amount = function_exists('sc_get_course_billing_amount_for_member_course')
-            ? sc_get_course_billing_amount_for_member_course(
-                (object) ['id' => (int) $row->course_id, 'price' => $row->price, 'title' => $row->course_title],
-                $row
-            )
-            : (float) $row->price;
-        $fee_label = function_exists('sc_course_enrollment_fee_label')
-            ? sc_course_enrollment_fee_label(
-                $row->course_title,
-                !empty($row->enrollment_sessions) ? (int) $row->enrollment_sessions : null
-            )
-            : ('ثبت نام دوره: ' . $row->course_title);
-
         $mode = function_exists('sc_get_invoice_mode') ? sc_get_invoice_mode() : 'interval';
-        $inv_type = ($mode === 'sessions_threshold') ? 'session_auto' : 'system defalt';
-
-        $res = sc_create_course_invoice(
-            $member_id,
-            $course_id,
-            (int) $row->id,
-            (float) $amount,
-            $inv_type,
-            $fee_label
-        );
-
-        if (is_array($res) && !empty($res['success'])) {
-            if ($mode === 'sessions_threshold') {
+        if ($mode === 'sessions_threshold') {
+            if (!function_exists('sc_create_course_invoice')) {
+                continue;
+            }
+            $amount = function_exists('sc_get_course_billing_amount_for_member_course')
+                ? sc_get_course_billing_amount_for_member_course(
+                    (object) ['id' => (int) $row->course_id, 'price' => $row->price, 'title' => $row->course_title],
+                    $row
+                )
+                : (float) $row->price;
+            $fee_label = function_exists('sc_course_enrollment_fee_label')
+                ? sc_course_enrollment_fee_label(
+                    $row->course_title,
+                    !empty($row->enrollment_sessions) ? (int) $row->enrollment_sessions : null
+                )
+                : ('ثبت نام دوره: ' . $row->course_title);
+            $res = sc_create_course_invoice(
+                $member_id,
+                $course_id,
+                (int) $row->id,
+                (float) $amount,
+                'session_auto',
+                $fee_label
+            );
+            if (is_array($res) && !empty($res['success'])) {
                 $wpdb->update(
                     $mc_table,
                     ['threshold_invoiced' => 1],
@@ -622,10 +711,19 @@ function sc_maybe_create_initial_invoices_after_member_courses_save($member_id, 
                     ['%d'],
                     ['%d']
                 );
+                if (!empty($res['invoice_id'])) {
+                    do_action('sc_invoice_created', (int) $res['invoice_id']);
+                }
             }
-            if (!empty($res['invoice_id'])) {
-                do_action('sc_invoice_created', (int) $res['invoice_id']);
-            }
+            continue;
+        }
+
+        $res = sc_create_enrollment_invoice_for_member_course($member_id, (int) $row->id, [
+            'short_sessions_mode' => 'charge_remaining',
+        ]);
+
+        if (is_array($res) && !empty($res['success']) && !empty($res['invoice_id'])) {
+            do_action('sc_invoice_created', (int) $res['invoice_id']);
         }
     }
 }

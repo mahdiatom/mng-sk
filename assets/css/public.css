@@ -9510,6 +9510,222 @@ border-radius: 10px;
     color: #6D34FF;
 }
 
+.sc-enroll-billing-block[hidden] {
+    display: none !important;
+}
+
+.sc-enroll-start-date-row {
+    margin-bottom: 16px;
+}
+
+.sc-enroll-start-date-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    min-height: 46px;
+    padding: 0 14px 0 44px;
+    background: #fff;
+    border: 1.5px solid #d8ccf5;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(109, 52, 255, 0.04);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.sc-enroll-start-date-input-wrap:hover {
+    border-color: #b9a3f0;
+    background: #fff;
+}
+
+.sc-enroll-start-date-input-wrap:focus-within {
+    border-color: #6D34FF;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12);
+}
+
+.sc-enroll-start-date-input {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    padding: 11px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+}
+
+.sc-enroll-start-date-input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.sc-enroll-start-date-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    color: #6D34FF;
+    pointer-events: none;
+}
+
+.sc-enroll-start-date-hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.sc-enroll-billing-preview {
+    margin: 14px 0 0;
+}
+
+.sc-enroll-billing-preview[hidden] {
+    display: none !important;
+}
+
+.sc-enroll-billing-preview.is-loading,
+.sc-enroll-billing-preview:not(:empty) {
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #e8e8f0;
+    border-radius: 12px;
+}
+
+.sc-enroll-billing-loading {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.sc-enroll-billing-error {
+    font-size: 13px;
+    color: #d63638;
+}
+
+.sc-enroll-billing-notice {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #856404;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+}
+
+.sc-enroll-billing-summary {
+    display: grid;
+    gap: 10px;
+}
+
+.sc-enroll-billing-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px dashed #ececf3;
+}
+
+.sc-enroll-billing-summary-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.sc-enroll-billing-label {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.sc-enroll-billing-value {
+    font-size: 14px;
+    color: #1e293b;
+    text-align: left;
+}
+
+.sc-enroll-billing-summary-amount .sc-enroll-billing-value,
+.sc-enroll-billing-amount {
+    font-size: 16px;
+    color: #6D34FF;
+}
+
+.sc-enroll-billing-sessions-count {
+    color: #0f766e;
+}
+
+.sc-enroll-billing-sessions-block {
+    margin: 4px 0 12px;
+    padding-top: 4px;
+}
+
+.sc-enroll-billing-sessions-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 8px;
+}
+
+.sc-enroll-billing-sessions-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.sc-enroll-billing-session-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px 12px;
+    align-items: center;
+    padding: 10px 12px;
+    background: #f8f5ff;
+    border: 1px solid #e8dff9;
+    border-radius: 10px;
+}
+
+.sc-enroll-billing-session-day {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 58px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #6D34FF;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.sc-enroll-billing-session-date {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.sc-enroll-billing-session-time {
+    font-size: 12px;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+    .sc-enroll-billing-session-item {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .sc-enroll-billing-session-time {
+        white-space: normal;
+    }
+}
+
 .sc-enroll-discount-actions {
     display: flex;
     flex-wrap: wrap;

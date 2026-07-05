@@ -264,7 +264,10 @@
             $input.val(formattedDate);
             $('.persian-calendar-popup').remove();
             $(document).off('click.persian-cal-close');
-            $input.trigger('change');
+            if ($input[0]) {
+                $input[0].dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            $input.trigger('change').trigger('scPersianDateSelected', [formattedDate]);
         });
         
         // تغییر سال

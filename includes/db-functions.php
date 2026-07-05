@@ -2213,6 +2213,38 @@ function sc_update_database() {
 
         update_option('sc_coach_salary_chapter_v1', '1');
     }
+
+    // ستون‌های صورتحساب دوره‌ای (دوره شمسی / تعداد جلسات)
+    if (get_option('sc_invoices_billing_columns_added', '0') !== '1') {
+        $inv_tbl = $wpdb->prefix . 'sc_invoices';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $inv_tbl)) === $inv_tbl) {
+            $c1 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$inv_tbl` LIKE %s", 'billing_period_shamsi'));
+            if (empty($c1)) {
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `billing_period_shamsi` varchar(10) DEFAULT NULL COMMENT 'دوره صورتحساب شمسی YYYY-MM' AFTER `type`");
+            }
+            $c2 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$inv_tbl` LIKE %s", 'billing_sessions_count'));
+            if (empty($c2)) {
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `billing_sessions_count` int(11) DEFAULT NULL COMMENT 'تعداد جلسات محاسبه‌شده' AFTER `billing_period_shamsi`");
+            }
+            $idx = $wpdb->get_results("SHOW INDEX FROM `$inv_tbl` WHERE Key_name = 'idx_mc_billing_period'");
+            if (empty($idx)) {
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD KEY `idx_mc_billing_period` (`member_course_id`, `billing_period_shamsi`, `type`)");
+            }
+        }
+        update_option('sc_invoices_billing_columns_added', '1');
+    }
+
+    // تأخیر صورتحساب اولیه تا ماه بعد (ثبت‌نام با جلسات کم)
+    if (get_option('sc_member_courses_billing_deferred_added', '0') !== '1') {
+        $mc_tbl = $wpdb->prefix . 'sc_member_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $mc_tbl)) === $mc_tbl) {
+            $c = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$mc_tbl` LIKE %s", 'billing_deferred'));
+            if (empty($c)) {
+                $wpdb->query("ALTER TABLE `$mc_tbl` ADD COLUMN `billing_deferred` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1=صورتحساب اولیه به ماه بعد موکول' AFTER `threshold_invoiced`");
+            }
+        }
+        update_option('sc_member_courses_billing_deferred_added', '1');
+    }
 }
 
 /**

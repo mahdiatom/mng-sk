@@ -1516,27 +1516,11 @@ function sc_handle_course_enrollment() {
 
     $has_pkg = function_exists('sc_course_has_packages') && sc_course_has_packages($course_id);
     $enrollment_sessions_sel = isset($_POST['enrollment_sessions']) ? absint($_POST['enrollment_sessions']) : 0;
-    $invoice_amount = floatval($course->price);
-    $fee_label = function_exists('sc_course_enrollment_fee_label')
-        ? sc_course_enrollment_fee_label($course->title, null)
-        : ('ثبت نام دوره: ' . $course->title);
-
-    if ($has_pkg) {
-        // اگر پکیج انتخاب شد همان ملاک قیمت/جلسه است؛ در غیر این صورت fallback به قیمت/تعداد جلسه خود دوره
-        if ($enrollment_sessions_sel > 0) {
-            if (!function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($course_id, $enrollment_sessions_sel)) {
-                wc_add_notice('پکیج انتخابی معتبر نیست.', 'error');
-                wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
-                exit;
-            }
-            $pkg = sc_get_course_package_by_sessions($course_id, $enrollment_sessions_sel);
-            $invoice_amount = floatval($pkg->price);
-            $fee_label = sc_course_enrollment_fee_label($course->title, (int) $pkg->sessions_count);
-        }
-    } elseif ($invoice_amount <= 0) {
-        wc_add_notice('قیمت این دوره ثبت نشده است. لطفاً با پشتیبانی تماس بگیرید.', 'error');
-        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
-        exit;
+    $short_sessions_mode = isset($_POST['sc_enrollment_billing_mode'])
+        ? sanitize_text_field(wp_unslash($_POST['sc_enrollment_billing_mode']))
+        : 'charge_remaining';
+    if (!in_array($short_sessions_mode, ['charge_remaining', 'defer_to_next_month'], true)) {
+        $short_sessions_mode = 'charge_remaining';
     }
 
     // بررسی ثبت‌نام قبلی — هر شعبه/مربی رکورد جداگانه دارد
@@ -1555,6 +1539,59 @@ function sc_handle_course_enrollment() {
         } else {
             wc_add_notice('شما قبلاً در این دوره با همین شعبه و مربی ثبت‌نام کرده‌اید و صورت حساب شما در حال پرداخت است. لطفاً ابتدا صورت حساب را پرداخت یا لغو کنید.', 'error');
         }
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+        exit;
+    }
+
+    $preview_mc = (object) [
+        'chapter' => $assignment_chapter,
+        'coach_id' => $assignment_coach_id,
+        'group_name' => $enrollment_group_name,
+        'enrollment_sessions' => ($has_pkg && $enrollment_sessions_sel) ? $enrollment_sessions_sel : null,
+    ];
+
+    $posted_start_shamsi = isset($_POST['enrollment_start_shamsi'])
+        ? sanitize_text_field(wp_unslash($_POST['enrollment_start_shamsi']))
+        : '';
+    $start_resolved = function_exists('sc_resolve_enrollment_start_ymd')
+        ? sc_resolve_enrollment_start_ymd($course, $posted_start_shamsi !== '' ? $posted_start_shamsi : null)
+        : ['ymd' => current_time('Y-m-d'), 'shamsi' => '', 'error' => ''];
+    if ($start_resolved['error'] !== '' && $start_resolved['ymd'] === '') {
+        wc_add_notice($start_resolved['error'], 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+        exit;
+    }
+    if ($start_resolved['error'] !== '') {
+        wc_add_notice($start_resolved['error'], 'notice');
+    }
+
+    $billing_preview = function_exists('sc_calculate_enrollment_billing_preview')
+        ? sc_calculate_enrollment_billing_preview($course, $preview_mc, $start_resolved['ymd'])
+        : ['amount' => (float) $course->price, 'needs_short_session_choice' => false, 'fee_label' => 'ثبت نام دوره: ' . $course->title];
+
+    if (!empty($billing_preview['needs_short_session_choice']) && !isset($_POST['sc_enrollment_billing_mode'])) {
+        wc_add_notice('تا پایان این ماه کمتر از ۲ جلسه باقی مانده. لطفاً نحوه محاسبه را انتخاب کنید.', 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+        exit;
+    }
+
+    $invoice_amount = (float) $billing_preview['amount'];
+    $fee_label = (string) $billing_preview['fee_label'];
+
+    if ($has_pkg) {
+        // اگر پکیج انتخاب شد همان ملاک قیمت/جلسه است؛ در غیر این صورت fallback به قیمت/تعداد جلسه خود دوره
+        if ($enrollment_sessions_sel > 0) {
+            if (!function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($course_id, $enrollment_sessions_sel)) {
+                wc_add_notice('پکیج انتخابی معتبر نیست.', 'error');
+                wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+                exit;
+            }
+            $pkg = sc_get_course_package_by_sessions($course_id, $enrollment_sessions_sel);
+            $invoice_amount = floatval($pkg->price);
+            $fee_label = sc_course_enrollment_fee_label($course->title, (int) $pkg->sessions_count);
+        }
+    } elseif ($invoice_amount <= 0 && empty($billing_preview['needs_short_session_choice'])) {
+        wc_add_notice('قیمت این دوره ثبت نشده است. لطفاً با پشتیبانی تماس بگیرید.', 'error');
         wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
         exit;
     }
@@ -1661,9 +1698,21 @@ function sc_handle_course_enrollment() {
             }
         }
 
-        $invoice_result = sc_create_course_invoice($player->id, $course_id, $member_course_id, $invoice_amount, '', $fee_label, $discount_meta);
+        $invoice_result = function_exists('sc_create_enrollment_invoice_for_member_course') && !$has_pkg
+            ? sc_create_enrollment_invoice_for_member_course($player->id, $member_course_id, [
+                'short_sessions_mode' => $short_sessions_mode,
+                'discount_meta' => $discount_meta,
+                'enrollment_start_shamsi' => $posted_start_shamsi !== '' ? $posted_start_shamsi : ($start_resolved['shamsi'] ?? ''),
+                'enrollment_start_ymd' => $start_resolved['ymd'] ?? '',
+            ])
+            : sc_create_course_invoice($player->id, $course_id, $member_course_id, $invoice_amount, '', $fee_label, $discount_meta);
 
         if ($invoice_result && isset($invoice_result['success']) && $invoice_result['success']) {
+            if (!empty($invoice_result['deferred'])) {
+                wc_add_notice(isset($invoice_result['message']) ? $invoice_result['message'] : 'ثبت‌نام انجام شد. صورت‌حساب در تاریخ صدور ماه بعد ایجاد می‌شود.', 'success');
+                wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+                exit;
+            }
             wc_add_notice('مرحله اول ثبت‌نام شما با موفقیت انجام شد جهت فعال شدن دوره لطفاً صورت حساب خود را پرداخت کنید .', 'success');
             wp_safe_redirect(wc_get_account_endpoint_url('sc-invoices'));
             exit;
@@ -1686,7 +1735,7 @@ function sc_handle_course_enrollment() {
 /**
  * Create invoice and WooCommerce order for course enrollment
  */
-function sc_create_course_invoice($member_id, $course_id, $member_course_id, $amount, $type = '', $fee_display_name = '', $discount_meta = null) {
+function sc_create_course_invoice($member_id, $course_id, $member_course_id, $amount, $type = '', $fee_display_name = '', $discount_meta = null, $billing_meta = null) {
     // بررسی فعال بودن WooCommerce
 
 
@@ -1918,6 +1967,17 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
         $invoice_fmt[] = '%f';
         $invoice_fmt[] = '%s';
         $invoice_fmt[] = '%s';
+    }
+
+    if (function_exists('sc_invoices_support_billing_columns') && sc_invoices_support_billing_columns() && is_array($billing_meta)) {
+        if (!empty($billing_meta['billing_period_shamsi'])) {
+            $invoice_row['billing_period_shamsi'] = sanitize_text_field((string) $billing_meta['billing_period_shamsi']);
+            $invoice_fmt[] = '%s';
+        }
+        if (array_key_exists('billing_sessions_count', $billing_meta)) {
+            $invoice_row['billing_sessions_count'] = (int) $billing_meta['billing_sessions_count'];
+            $invoice_fmt[] = '%d';
+        }
     }
 
     $invoice_inserted = $wpdb->insert($invoices_table, $invoice_row, $invoice_fmt);
