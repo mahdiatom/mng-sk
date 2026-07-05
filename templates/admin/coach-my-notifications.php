@@ -18,13 +18,14 @@ if ($view_id > 0) {
     if ($notification) {
         sc_mark_notification_read($view_id, $current_user_id);
         ?>
-        <div class="wrap sc-coach-notif-wrap">
-            <div class="sc-coach-notif-header">
-                <a href="<?php echo esc_url($base_url); ?>" class="sc-coach-notif-back">
-                    <span class="dashicons dashicons-arrow-right-alt"></span> بازگشت به لیست
-                </a>
-                <h1 class="sc-coach-notif-page-title">اطلاعیه‌های من</h1>
+        <div class="wrap sc-members-list-wrap">
+            <div class="sc-members-list-header">
+                <div class="sc-members-list-header-text">
+                    <a href="<?php echo esc_url($base_url); ?>" class="sc-members-list-filters-clear" style="display:inline-block;margin-bottom:8px;">بازگشت به لیست</a>
+                    <h1 class="sc-members-list-title">اطلاعیه‌های من</h1>
+                </div>
             </div>
+            <div class="sc-members-list-table-card" style="padding:24px;">
             <article class="sc-coach-notif-detail-card">
                 <header class="sc-coach-notif-detail-header">
                     <h2 class="sc-coach-notif-detail-title"><?php echo esc_html($notification->title); ?></h2>
@@ -51,6 +52,7 @@ if ($view_id > 0) {
                     </div>
                 <?php endif; ?>
             </article>
+            </div>
         </div>
         <?php
         return;
@@ -81,34 +83,75 @@ if ($search !== '') {
 }
 $count_all = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($current_user_id, false, false, '') : 0;
 $count_read = function_exists('sc_count_user_notifications') ? sc_count_user_notifications($current_user_id, false, true, '') : 0;
+
+$active_filters_count = 0;
+if ($filter !== 'all') {
+    $active_filters_count++;
+}
+if ($search !== '') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
 ?>
-<div class="wrap sc-coach-notif-wrap">
-    <div class="sc-coach-notif-header">
-        <h1 class="sc-coach-notif-page-title">اطلاعیه‌های من</h1>
-        <span class="sc-coach-notif-badge sc-coach-notif-badge-unread" <?php echo $unread_count > 0 ? '' : ' style="display:none;"'; ?>><?php echo (int) $unread_count; ?> خوانده نشده</span>
+<div class="wrap sc-members-list-wrap">
+    <div class="sc-members-list-header">
+        <div class="sc-members-list-header-text">
+            <h1 class="sc-members-list-title">اطلاعیه‌های من</h1>
+            <p class="sc-members-list-desc">اطلاعیه‌های دریافتی شما از باشگاه.</p>
+        </div>
+        <div class="sc-members-list-header-actions">
+            <?php if ($unread_count > 0) : ?>
+                <span class="sc-members-list-filters-badge sc-coach-notif-header-badge"><?php echo (int) $unread_count; ?> خوانده نشده</span>
+            <?php endif; ?>
+        </div>
     </div>
 
-    <!-- فیلتر و جستجو (ایجکسی) -->
-    <div class="sc-coach-notif-filters" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 20px;">
-        <ul class="sc-coach-notif-tabs" style="margin: 0; flex: 1;">
-            <li class="<?php echo $filter === 'all' ? 'active' : ''; ?>">
-                <a href="#" class="sc-coach-notif-tab" data-filter="all">همه <span class="sc-coach-notif-tab-count" data-count="all">(<?php echo (int) $count_all; ?>)</span></a>
-            </li>
-            <li class="<?php echo $filter === 'unread' ? 'active' : ''; ?>">
-                <a href="#" class="sc-coach-notif-tab" data-filter="unread">خوانده نشده <span class="sc-coach-notif-tab-count" data-count="unread">(<?php echo (int) $unread_count; ?>)</span></a>
-            </li>
-            <li class="<?php echo $filter === 'read' ? 'active' : ''; ?>">
-                <a href="#" class="sc-coach-notif-tab" data-filter="read">خوانده شده <span class="sc-coach-notif-tab-count" data-count="read">(<?php echo (int) $count_read; ?>)</span></a>
-            </li>
-        </ul>
-        <form id="sc-coach-notif-search-form" class="sc-coach-notif-search" style="display: flex; gap: 8px; align-items: center;">
-            <input type="hidden" name="filter" id="sc-coach-notif-filter-value" value="<?php echo esc_attr($filter); ?>">
-            <input type="search" name="s" id="sc-coach-notif-search-input" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." class="regular-text" style="width: 220px;">
-            <button type="submit" class="button">جستجو</button>
-        </form>
+    <div class="sc-members-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-members-list-filters-toolbar">
+            <button type="button"
+                    class="sc-members-list-filters-toggle"
+                    id="sc-coach-notif-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-coach-notif-filters-panel">
+                <span class="sc-members-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-members-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-members-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-members-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url($base_url); ?>" class="sc-members-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+
+        <div class="sc-members-list-filters-panel" id="sc-coach-notif-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+            <ul class="sc-coach-notif-tabs sc-members-notif-tabs" style="margin: 0 0 16px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px;">
+                <li class="<?php echo $filter === 'all' ? 'active' : ''; ?>">
+                    <a href="#" class="sc-coach-notif-tab sc-members-notif-tab" data-filter="all">همه <span class="sc-coach-notif-tab-count" data-count="all">(<?php echo (int) $count_all; ?>)</span></a>
+                </li>
+                <li class="<?php echo $filter === 'unread' ? 'active' : ''; ?>">
+                    <a href="#" class="sc-coach-notif-tab sc-members-notif-tab" data-filter="unread">خوانده نشده <span class="sc-coach-notif-tab-count" data-count="unread">(<?php echo (int) $unread_count; ?>)</span></a>
+                </li>
+                <li class="<?php echo $filter === 'read' ? 'active' : ''; ?>">
+                    <a href="#" class="sc-coach-notif-tab sc-members-notif-tab" data-filter="read">خوانده شده <span class="sc-coach-notif-tab-count" data-count="read">(<?php echo (int) $count_read; ?>)</span></a>
+                </li>
+            </ul>
+            <form id="sc-coach-notif-search-form" class="sc-coach-notif-search sc-members-notif-search" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <input type="hidden" name="filter" id="sc-coach-notif-filter-value" value="<?php echo esc_attr($filter); ?>">
+                <input type="search" name="s" id="sc-coach-notif-search-input" value="<?php echo esc_attr($search); ?>" placeholder="جستجو در عنوان و متن..." class="sc-filter-control" style="max-width:320px;">
+                <button type="submit" class="button button-primary">جستجو</button>
+            </form>
+        </div>
     </div>
 
-    <div id="sc-coach-notif-ajax-container">
+    <div class="sc-members-list-table-card" id="sc-coach-notif-ajax-container">
     <?php if (empty($notifications)) : ?>
         <div class="sc-coach-notif-empty">
             <span class="sc-coach-notif-empty-icon dashicons dashicons-bell"></span>
@@ -167,6 +210,25 @@ $count_read = function_exists('sc_count_user_notifications') ? sc_count_user_not
 
 <script>
 jQuery(document).ready(function($) {
+    var $toggle = $('#sc-coach-notif-filters-toggle');
+    var $panel = $('#sc-coach-notif-filters-panel');
+    var $card = $toggle.closest('.sc-members-list-filters-card');
+    var $label = $toggle.find('.sc-members-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+
     var baseUrl = '<?php echo esc_js($base_url); ?>';
     var ajaxUrl = '<?php echo esc_url(admin_url("admin-ajax.php")); ?>';
     var nonceMarkRead = '<?php echo esc_js(wp_create_nonce("sc_mark_notification_read")); ?>';
@@ -190,7 +252,7 @@ jQuery(document).ready(function($) {
         if (typeof counts.count_all !== 'undefined') $('.sc-coach-notif-tab-count[data-count="all"]').text('(' + counts.count_all + ')');
         if (typeof counts.count_unread !== 'undefined') {
             $('.sc-coach-notif-tab-count[data-count="unread"]').text('(' + counts.count_unread + ')');
-            var $badge = $('.sc-coach-notif-badge-unread');
+            var $badge = $('.sc-coach-notif-header-badge');
             if (counts.count_unread > 0) $badge.text(counts.count_unread + ' خوانده نشده').show(); else $badge.hide();
         }
         if (typeof counts.count_read !== 'undefined') $('.sc-coach-notif-tab-count[data-count="read"]').text('(' + counts.count_read + ')');
@@ -209,7 +271,7 @@ jQuery(document).ready(function($) {
         r++;
         $unreadSpan.text('(' + u + ')');
         $readSpan.text('(' + r + ')');
-        var $badge = $('.sc-coach-notif-badge-unread');
+        var $badge = $('.sc-coach-notif-header-badge');
         if (u > 0) $badge.text(u + ' خوانده نشده').show(); else $badge.hide();
     }
 

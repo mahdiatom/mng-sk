@@ -23,7 +23,7 @@
     var columnsCount = parseInt(payload.columns_count, 10) || 2;
     var template = payload.template && typeof payload.template === 'object' ? payload.template : null;
     var templateLayout = template && template.layout ? template.layout : {};
-    var imageFields = ['personal_photo', 'id_card_photo', 'sport_insurance_photo'];
+    var imageFields = ['personal_photo', 'id_card_photo', 'sport_insurance_photo', 'attendance_qr'];
     var layoutColumnsFromTemplate = template && template.layout_columns_count ? parseInt(template.layout_columns_count, 10) : 2;
     var contentColumnsCount = Math.max(1, Math.min(4, layoutColumnsFromTemplate || 2));
     var layoutColumns = templateLayout && templateLayout.columns && typeof templateLayout.columns === 'object'
@@ -149,6 +149,13 @@
                         '<div class="sc-photo-placeholder">' +
                         '  <span class="sc-photo-placeholder-icon" aria-hidden="true">👤</span>' +
                         '  <span class="sc-photo-placeholder-text">عکس ندارد</span>' +
+                        '</div>';
+                } else if (imgField === 'attendance_qr') {
+                    imageFieldEl.innerHTML =
+                        '<strong>' + escapeHtml(labels[imgField] || imgField) + ':</strong>' +
+                        '<div class="sc-photo-placeholder">' +
+                        '  <span class="sc-photo-placeholder-icon" aria-hidden="true">▦</span>' +
+                        '  <span class="sc-photo-placeholder-text">QR موجود نیست</span>' +
                         '</div>';
                 } else {
                     return;

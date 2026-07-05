@@ -25,7 +25,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 <a href="<?php echo esc_url(add_query_arg('edit', '1', $base_url)); ?>" class="sc_button button-primary">ویرایش اطلاعات من</a>
             <?php endif; ?>
         </div>
-        <p class="sc-coach-panel-desc"><?php echo $is_edit ? 'فیلدهای زیر را ویرایش کرده و ذخیره کنید. نوع تسویه، دوره‌ها و وضعیت فقط توسط مدیر قابل تغییر است.' : 'اطلاعات پروفایل شما. برای ویرایش روی دکمه بالا کلیک کنید.'; ?></p>
+        <p class="sc-coach-panel-desc"><?php echo $is_edit ? 'فیلدهای زیر را ویرایش کرده و ذخیره کنید. نوع تسویه، دوره‌ها، سطح مربی‌گری و وضعیت فقط توسط مدیر قابل تغییر است.' : 'اطلاعات پروفایل شما. برای ویرایش روی دکمه بالا کلیک کنید.'; ?></p>
     </div>
     <?php if ($sc_status === 'updated') : ?>
         <div class="notice notice-success is-dismissible"><p>اطلاعات با موفقیت به‌روزرسانی شد.</p></div>
@@ -69,15 +69,10 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     <td><input type="text" name="specialization" id="specialization" value="<?php echo esc_attr($coach->specialization); ?>" class="regular-text"></td>
                 </tr>
                 <tr>
-                    <th><label for="coaching_level">سطح مربی‌گری</label></th>
+                    <th>سطح مربی‌گری</th>
                     <td>
-                        <select name="coaching_level" id="coaching_level">
-                            <option value="">انتخاب کنید</option>
-                            <option value="مبتدی" <?php selected($coach->coaching_level, 'مبتدی'); ?>>مبتدی</option>
-                            <option value="متوسط" <?php selected($coach->coaching_level, 'متوسط'); ?>>متوسط</option>
-                            <option value="پیشرفته" <?php selected($coach->coaching_level, 'پیشرفته'); ?>>پیشرفته</option>
-                            <option value="استاد" <?php selected($coach->coaching_level, 'استاد'); ?>>استاد</option>
-                        </select>
+                        <?php echo esc_html($coach->coaching_level ?: '-'); ?>
+                        <p class="description">سطح مربی‌گری فقط توسط مدیر قابل تغییر است.</p>
                     </td>
                 </tr>
                 <tr>

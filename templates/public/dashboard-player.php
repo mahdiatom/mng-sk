@@ -285,6 +285,12 @@ $invoice_status_label = function ($status) {
     </h2>
     <p class="sc-dashboard-page-subtitle">خلاصه‌ای از وضعیت حساب کاربری، کارهای ناتمام و آخرین فعالیت‌های شما در باشگاه.</p>
 
+    <?php
+    if (function_exists('sc_attendance_qr_render_member_card')) {
+        sc_attendance_qr_render_member_card($member_id, 'public', 420);
+    }
+    ?>
+
     <div class="sc-dashboard-grid">
 
         <!-- ============ 1) کارهای ناتمام ============ -->

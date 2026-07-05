@@ -1529,6 +1529,15 @@ function sc_handle_course_enrollment() {
         : trim((string) ($assignment['chapter'] ?? ''));
     $assignment_coach_id = (int) ($assignment['coach_id'] ?? 0);
 
+    $slot_capacity_check = function_exists('sc_validate_enrollment_slot_capacity')
+        ? sc_validate_enrollment_slot_capacity($course_id, $assignment_chapter, $assignment_coach_id, $enrollment_group_name)
+        : true;
+    if (is_wp_error($slot_capacity_check)) {
+        wc_add_notice($slot_capacity_check->get_error_message(), 'error');
+        wp_safe_redirect(wc_get_account_endpoint_url('sc-enroll-course'));
+        exit;
+    }
+
     $blocking = function_exists('sc_find_blocking_member_course_enrollment')
         ? sc_find_blocking_member_course_enrollment($player->id, $course_id, $assignment_chapter, $assignment_coach_id)
         : null;
@@ -5105,6 +5114,7 @@ function sc_handle_documents_submission() {
             
             // به‌روزرسانی وضعیت تکمیل پروفایل
             sc_update_profile_completed_status($insert_id);
+            do_action('sc_member_created', (int) $insert_id);
             
             wc_add_notice('اطلاعات شما با موفقیت ثبت شد.', 'success');
             // ریدایرکت برای جلوگیری از ارسال مجدد فرم
@@ -5449,6 +5459,7 @@ function sc_ajax_submit_documents() {
     $inserted = $wpdb->insert($table_name, $data, $insert_format);
     if ($inserted !== false) {
         sc_update_profile_completed_status($wpdb->insert_id);
+        do_action('sc_member_created', (int) $wpdb->insert_id);
         wp_send_json_success(['message' => 'اطلاعات شما با موفقیت ثبت شد.']);
     }
     wp_send_json_error(['message' => 'خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.']);

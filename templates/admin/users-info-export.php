@@ -29,7 +29,7 @@ $field_labels = sc_users_export_get_field_labels();
     <h1 class="wp-heading-inline sc-notification-add-title">خروجی اطلاعات کاربران</h1>
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-users-export-templates')); ?>" class="page-title-action">تعریف قالب خروجی</a>
     <hr class="wp-header-end">
-    <p class="sc-users-export-subtitle">فیلتر کاربران و فیلدهای خروجی را انتخاب کنید. در صورت انتخاب عکس پرسنلی، خروجی فقط PDF خواهد بود.</p>
+    <p class="sc-users-export-subtitle">فیلتر کاربران و فیلدهای خروجی را انتخاب کنید. در صورت انتخاب عکس پرسنلی یا QR حضور و غیاب، خروجی فقط PDF خواهد بود.</p>
 </div>
 
 <div class="wrap sc-users-export-page-body sc-notification-add-wrap sc-users-export-wrap sc-cert-wrap">

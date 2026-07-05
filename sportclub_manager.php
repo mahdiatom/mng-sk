@@ -67,6 +67,7 @@ require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table cr
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
 require_once SC_INCLUDES_DIR . 'user-profile-access.php'; // دسترسی user-edit/profile وردپرس
 require_once SC_INCLUDES_DIR . 'wp-content-list-admin.php'; // استایل لیست برگه‌ها و نوشته‌های وردپرس
+require_once SC_INCLUDES_DIR . 'coach-panel-admin.php'; // استایل صفحات پنل مربی
 require_once SC_INCLUDES_DIR . 'roles.php';                // نقش‌ها و محدودیت دسترسی (همیشه، حتی بدون لایسنس)
 
 if (sc_is_license_active()) {
@@ -74,6 +75,7 @@ require_once SC_INCLUDES_DIR . 'course-packages-functions.php'; // پکیج‌ه
 require_once SC_INCLUDES_DIR . 'course-schedule-functions.php'; // برنامه هفتگی کلاس دوره
 require_once SC_INCLUDES_DIR . 'course-chapter-coach-functions.php'; // شعبه و مربی دوره
 require_once SC_INCLUDES_DIR . 'course-groups-functions.php'; // گروه‌بندی داخل دوره
+require_once SC_INCLUDES_DIR . 'course-granular-capacity-functions.php'; // ظرفیت تفکیک‌شده شعبه/مربی/گروه
 require_once SC_INCLUDES_DIR . 'audience-course-functions.php'; // فیلتر مخاطبین — انتخاب دوره با گروه
 require_once SC_INCLUDES_DIR . 'audience-preview-add-functions.php'; // افزودن کاربر به پیش‌نمایش مخاطبین
 require_once SC_INCLUDES_DIR . 'discount-codes-functions.php'; // کدهای تخفیف صورت‌حساب
@@ -118,6 +120,7 @@ require_once SC_INCLUDES_DIR . 'redirect.php'; // ورود و عضویت با پ
 require_once SC_INCLUDES_DIR . 'cleanup.php'; // حدف درخواست های خارجی  برای عملکرد بهتر‌
 require_once SC_INCLUDES_DIR . 'attendance_logs.php'; // ارتباط با api حضور غیاب برای لاگ دستگاه
 require_once SC_INCLUDES_DIR . 'attendance-auto.php'; // تطبیق لاگ دستگاه با حضور و غیاب (کرون)
+require_once SC_INCLUDES_DIR . 'attendance-qr-functions.php'; // QR حضور و غیاب
 require_once SC_INCLUDES_DIR . 'admin-dashboard-widgets.php'; // ابزارک‌های پیشخوان وردپرس برای مدیران
 
 // Include WooCommerce My Account integration
@@ -1401,6 +1404,8 @@ function sc_auto_create_member_on_user_register($user_id) {
             error_log('SC Auto-create Member Error: ' . $wpdb->last_error);
             error_log('SC Last Query: ' . $wpdb->last_query);
         }
+    } elseif ($wpdb->insert_id) {
+        do_action('sc_member_created', (int) $wpdb->insert_id);
     }
 }
 
@@ -1822,6 +1827,26 @@ function sc_admin_enqueue_assets() {
             'nonce' => wp_create_nonce('sc_private_notes_preview'),
         ));
     }
+    if ($current_page === 'sc-attendance-add' && function_exists('sc_attendance_qr_is_enabled') && sc_attendance_qr_is_enabled()) {
+        wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css'), time());
+        wp_enqueue_script('html5-qrcode', SC_ASSETS_URL . 'js/vendor/html5-qrcode.min.js', array(), '2.3.8', true);
+        wp_enqueue_script('sc-attendance-qr-scanner-js', SC_ASSETS_URL . 'js/attendance-qr-scanner.js', array('jquery', 'html5-qrcode'), time(), true);
+        wp_localize_script('sc-attendance-qr-scanner-js', 'scAttendanceQr', array(
+            'ajaxUrl'        => admin_url('admin-ajax.php'),
+            'nonce'          => wp_create_nonce('sc_attendance_qr_scan'),
+            'courseId'       => isset($_GET['attendance_course_id']) ? absint($_GET['attendance_course_id']) : 0,
+            'attendanceDate' => isset($_GET['date']) ? sanitize_text_field(wp_unslash($_GET['date'])) : '',
+            'chapterName'    => isset($_GET['attendance_chapter']) ? sanitize_text_field(wp_unslash($_GET['attendance_chapter'])) : '',
+            'groupName'      => isset($_GET['attendance_group']) ? sanitize_text_field(wp_unslash($_GET['attendance_group'])) : '',
+            'cooldownMs'     => function_exists('sc_attendance_qr_get_scan_cooldown_ms') ? sc_attendance_qr_get_scan_cooldown_ms() : 800,
+            'soundSuccess'   => sc_attendance_qr_get_sound_url('success'),
+            'soundError'     => sc_attendance_qr_get_sound_url('error'),
+            'soundDuplicate' => sc_attendance_qr_get_sound_url('duplicate'),
+        ));
+    }
+    if ($current_page === 'sc-view-member' && function_exists('sc_attendance_qr_should_show_member_card') && sc_attendance_qr_should_show_member_card('admin')) {
+        wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css'), time());
+    }
 }
 
 /**
@@ -1881,6 +1906,21 @@ function sc_public_enqueue_assets() {
         wp_enqueue_style('sc-survey-css', SC_ASSETS_URL . 'css/survey.css', array('sc-public-css'), time());
         wp_enqueue_style('sc-private-notes-css', SC_ASSETS_URL . 'css/private-notes.css', array('sc-public-css', 'sc-survey-css'), time());
         wp_enqueue_script('sc-survey-wizard-js', SC_ASSETS_URL . 'js/survey-wizard.js', array('jquery', 'sc-public-js', 'persian-datepicker-js'), time(), true);
+    }
+
+    $sc_is_dashboard = !is_admin()
+        && $sc_is_panel
+        && (
+            ($sc_req_uri !== '' && strpos($sc_req_uri, 'sc-dashboard') !== false)
+            || (is_object($wp) && isset($wp->query_vars['sc-dashboard']))
+            || get_query_var('sc_portal_tab', false) === 'sc-dashboard'
+            || (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url('sc-dashboard'))
+            || get_query_var('sc-dashboard', false) !== false
+            || (function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-dashboard'))
+        );
+    if ($sc_is_dashboard && function_exists('sc_attendance_qr_should_show_member_card') && sc_attendance_qr_should_show_member_card('public')) {
+        wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-public-css'), time());
+        wp_enqueue_script('sc-attendance-qr-public-js', SC_ASSETS_URL . 'js/attendance-qr-public.js', array(), time(), true);
     }
 
     if ( function_exists( 'sc_header_search_quick_links_for_overlay' ) ) {

@@ -151,11 +151,20 @@ function sc_get_course_enrollment_capacity_info($course_id) {
         'total_capacity' => null,
         'is_full' => false,
         'unlimited' => false,
+        'granular' => false,
     ];
 
     if (!$course_id) {
         $info['is_full'] = true;
         return $info;
+    }
+
+    if (function_exists('sc_course_uses_granular_capacity') && sc_course_uses_granular_capacity($course_id)) {
+        $info['granular'] = true;
+        $summary = function_exists('sc_get_course_granular_enrollment_capacity_summary')
+            ? sc_get_course_granular_enrollment_capacity_summary($course_id)
+            : ['show' => false, 'unlimited' => true, 'is_full' => false, 'remaining' => null, 'total_capacity' => null];
+        return array_merge($info, $summary);
     }
 
     $courses_table = $wpdb->prefix . 'sc_courses';
@@ -304,6 +313,10 @@ function sc_get_course_enrollment_branch_config($course_id) {
         'requires_chapter_choice' => count($chapter_items) > 1,
         'schedule' => $schedule_items,
         'groups' => function_exists('sc_get_course_groups_config') ? sc_get_course_groups_config($course_id) : ['has_grouping' => false, 'groups' => [], 'group_count' => 0],
+        'granular_capacity' => function_exists('sc_course_uses_granular_capacity') && sc_course_uses_granular_capacity($course_id),
+        'capacity_slots' => function_exists('sc_get_course_granular_capacity_slots_with_usage')
+            ? sc_get_course_granular_capacity_slots_with_usage($course_id)
+            : [],
     ];
 }
 

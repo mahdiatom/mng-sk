@@ -2376,7 +2376,6 @@ function sc_admin_coach_my_profile_page() {
             'mobile_phone' => $mobile_phone,
             'gender' => isset($_POST['gender']) && $_POST['gender'] !== '' ? sanitize_text_field($_POST['gender']) : null,
             'specialization' => isset($_POST['specialization']) && trim($_POST['specialization']) !== '' ? sanitize_text_field($_POST['specialization']) : null,
-            'coaching_level' => isset($_POST['coaching_level']) && $_POST['coaching_level'] !== '' ? sanitize_text_field($_POST['coaching_level']) : null,
             'coaching_experience' => isset($_POST['coaching_experience']) && $_POST['coaching_experience'] !== '' ? absint($_POST['coaching_experience']) : null,
             'sports_history' => isset($_POST['sports_history']) && trim($_POST['sports_history']) !== '' ? sanitize_textarea_field($_POST['sports_history']) : null,
             'personal_photo' => (isset($_POST['personal_photo']) && trim((string) $_POST['personal_photo']) !== '')
@@ -2384,7 +2383,7 @@ function sc_admin_coach_my_profile_page() {
                 : null,
             'updated_at' => current_time('mysql'),
         ];
-        $format = ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s'];
+        $format = ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s'];
         $updated = $wpdb->update($coaches_table, $data, ['id' => $coach_id], $format, ['%d']);
         if ($updated !== false) {
             $coach_row = $wpdb->get_row($wpdb->prepare("SELECT user_id FROM $coaches_table WHERE id = %d", $coach_id));
@@ -3138,6 +3137,7 @@ function sc_admin_add_course_page() {
     $course_group_rows = [];
     $has_grouping = 0;
     $player_can_select_group = 0;
+    $use_granular_capacity = 0;
     if (is_object($course) && !empty($course->id)) {
         if (function_exists('sc_course_has_grouping_enabled')) {
             $has_grouping = sc_course_has_grouping_enabled((int) $course->id) ? 1 : 0;
@@ -3154,8 +3154,14 @@ function sc_admin_add_course_page() {
                     'description' => isset($grow->description) ? (string) $grow->description : '',
                     'chapter_name' => isset($grow->chapter_name) ? (string) $grow->chapter_name : '',
                     'coach_id' => isset($grow->coach_id) ? (int) $grow->coach_id : 0,
+                    'capacity' => (isset($grow->capacity) && $grow->capacity !== null && $grow->capacity !== '') ? (int) $grow->capacity : '',
                 ];
             }
+        }
+        if (function_exists('sc_course_uses_granular_capacity')) {
+            $use_granular_capacity = sc_course_uses_granular_capacity((int) $course->id) ? 1 : 0;
+        } elseif (isset($course->use_granular_capacity)) {
+            $use_granular_capacity = (int) $course->use_granular_capacity;
         }
     }
     if (empty($course_group_rows)) {
@@ -3322,13 +3328,17 @@ function callback_add_course_sufix() {
             exit;
         }
 
+        $use_granular_capacity_flag = (!$is_private_course && !empty($_POST['use_granular_capacity'])) ? 1 : 0;
+
         $data = [
             'title' => sanitize_text_field($_POST['title']),
             'description' => isset($_POST['description']) && !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : NULL,
             'image' => !empty($_POST['image']) ? esc_url_raw(sanitize_text_field(wp_unslash($_POST['image']))) : null,
             'price' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_value,
             'price_per_session' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_per_session_value,
-            'capacity' => ($is_private_course && $private_variable_coach_pricing) ? null : (!empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL),
+            'capacity' => ($is_private_course && $private_variable_coach_pricing) || $use_granular_capacity_flag
+                ? null
+                : (!empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL),
             'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
             'start_date' => $start_date,
             'end_date' => $end_date,
@@ -3357,6 +3367,9 @@ function callback_add_course_sufix() {
         if (function_exists('sc_courses_player_can_select_group_column') && sc_courses_player_can_select_group_column()) {
             $data['player_can_select_group'] = $player_can_select_group_flag;
         }
+        if (function_exists('sc_courses_has_granular_capacity_column') && sc_courses_has_granular_capacity_column()) {
+            $data['use_granular_capacity'] = $use_granular_capacity_flag;
+        }
 
         $course_id = 0;
         if (!empty($_POST['course_id'])) {
@@ -3374,7 +3387,7 @@ function callback_add_course_sufix() {
                     $format[] = '%s';
                 } elseif (in_array($key, ['price', 'price_per_session'], true)) {
                     $format[] = '%f';
-                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active', 'private_variable_coach_pricing', 'has_grouping', 'player_can_select_group'], true)) {
+                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active', 'private_variable_coach_pricing', 'has_grouping', 'player_can_select_group', 'use_granular_capacity'], true)) {
                     $format[] = '%d';
                 } else {
                     $format[] = '%s';
@@ -3404,6 +3417,9 @@ function callback_add_course_sufix() {
                 }
                 if (function_exists('sc_save_course_groups_from_post')) {
                     sc_save_course_groups_from_post($course_id, (bool) $has_grouping_flag);
+                }
+                if (function_exists('sc_save_granular_capacities_from_post')) {
+                    sc_save_granular_capacities_from_post($course_id);
                 }
                 if (function_exists('sc_private_sync_branch_capacities_to_course_ceiling')) {
                     sc_private_sync_branch_capacities_to_course_ceiling($course_id);
@@ -3437,7 +3453,9 @@ function callback_add_course_sufix() {
                 'image' => !empty($_POST['image']) ? esc_url_raw(sanitize_text_field(wp_unslash($_POST['image']))) : null,
                 'price' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_value,
                 'price_per_session' => ($is_private_course && $private_variable_coach_pricing) ? 0 : $price_per_session_value,
-                'capacity' => ($is_private_course && $private_variable_coach_pricing) ? null : (!empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL),
+                'capacity' => ($is_private_course && $private_variable_coach_pricing) || $use_granular_capacity_flag
+                    ? null
+                    : (!empty($_POST['capacity']) ? intval($_POST['capacity']) : NULL),
                 'sessions_count' => !empty($_POST['sessions_count']) ? intval($_POST['sessions_count']) : NULL,
                 'start_date' => $start_date,
                 'end_date' => $end_date,
@@ -3458,6 +3476,9 @@ function callback_add_course_sufix() {
             if (function_exists('sc_courses_player_can_select_group_column') && sc_courses_player_can_select_group_column()) {
                 $insert_data['player_can_select_group'] = $player_can_select_group_flag;
             }
+            if (function_exists('sc_courses_has_granular_capacity_column') && sc_courses_has_granular_capacity_column()) {
+                $insert_data['use_granular_capacity'] = $use_granular_capacity_flag;
+            }
             
             $format = [];
             foreach ($insert_data as $key => $value) {
@@ -3465,7 +3486,7 @@ function callback_add_course_sufix() {
                     $format[] = '%s';
                 } elseif (in_array($key, ['price', 'price_per_session'], true)) {
                     $format[] = '%f';
-                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active', 'private_variable_coach_pricing', 'has_grouping', 'player_can_select_group'], true)) {
+                } elseif (in_array($key, ['capacity', 'sessions_count', 'restriction_enabled', 'is_active', 'private_variable_coach_pricing', 'has_grouping', 'player_can_select_group', 'use_granular_capacity'], true)) {
                     $format[] = '%d';
                 } else {
                     $format[] = '%s';
@@ -3494,6 +3515,9 @@ function callback_add_course_sufix() {
                 }
                 if (function_exists('sc_save_course_groups_from_post')) {
                     sc_save_course_groups_from_post($insert_id, (bool) $has_grouping_flag);
+                }
+                if (function_exists('sc_save_granular_capacities_from_post')) {
+                    sc_save_granular_capacities_from_post($insert_id);
                 }
                 if (function_exists('sc_private_sync_branch_capacities_to_course_ceiling')) {
                     sc_private_sync_branch_capacities_to_course_ceiling($insert_id);
@@ -3910,6 +3934,7 @@ function callback_add_member_sufix(){
 
             if ($inserted !== false) {
                 $insert_id = $wpdb->insert_id;
+                do_action('sc_member_created', (int) $insert_id);
                 
                 // ایجاد کاربر WordPress
                 $username = isset($_POST['username']) ? trim($_POST['username']) : '';

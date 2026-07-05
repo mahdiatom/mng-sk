@@ -131,98 +131,137 @@ $all_courses_for_filter = $wpdb->get_results(
      WHERE deleted_at IS NULL AND is_active = 1 
      ORDER BY title ASC"
 );
+
+$active_filters_count = 0;
+if ($filter_course > 0) {
+    $active_filters_count++;
+}
+if ($filter_type !== 'all') {
+    $active_filters_count++;
+}
+if (isset($_GET['filter_date_from_shamsi']) || isset($_GET['filter_date_to_shamsi'])
+    || isset($_GET['filter_date_from']) || isset($_GET['filter_date_to'])) {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
 ?>
 
-<div class="wrap sc-coach-panel-wrap">
-    <div class="sc-coach-panel-header">
-        <div class="sc-coach-panel-title-row ">
-            <h1 class="sc-coach-panel-title">لیست دستمزد</h1>
-            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button button-primary">مدیریت کیف پول</a>
+<div class="wrap sc-wallet-list-wrap sc-coach-wallet-list-page">
+    <div class="sc-wallet-list-header">
+        <div class="sc-wallet-list-header-text">
+            <h1 class="sc-wallet-list-title">لیست دستمزد</h1>
+            <p class="sc-wallet-list-desc">مشاهده و فیلتر رکوردهای دستمزد ثبت‌شده برای شما.</p>
+        </div>
+        <div class="sc-wallet-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="sc-wallet-list-add-btn">کیف پول</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-withdrawals')); ?>" class="sc-wallet-list-export-btn">درخواست برداشت</a>
         </div>
     </div>
+
+    <div class="sc-wallet-list-stats">
+        <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--green">
+            <div class="sc-wallet-list-stat-label">موجودی کیف پول</div>
+            <div class="sc-wallet-list-stat-value"><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> <small>تومان</small></div>
         </div>
-    <div class="wrap sc-coach-panel-wrap">
-    <!-- نمایش موجودی کیف پول (زیر تایتل) -->
-    <div class="sc-coach-wallet-balance-box info_balance_wallet_coach" style="padding: 15px; margin: 20px 0;">
-        <h3 style="margin: 0; font-size: 1rem;">💰 موجودی کیف پول: <strong><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان</strong></h3>
+        <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--purple">
+            <div class="sc-wallet-list-stat-label">مجموع دستمزد (فیلتر فعلی)</div>
+            <div class="sc-wallet-list-stat-value"><?php echo number_format($total_salary, 0, '.', ','); ?> <small>تومان</small></div>
+        </div>
+        <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--blue">
+            <div class="sc-wallet-list-stat-label">تعداد رکورد</div>
+            <div class="sc-wallet-list-stat-value"><?php echo $total_items > 0 ? sprintf('%d تا %d از %d', $offset + 1, min($offset + count($salary_records), $total_items), $total_items) : '۰'; ?></div>
+        </div>
     </div>
 
-    <!-- فیلترها -->
-    <div class="filter_search_logs">
-        <div class="wrap wrap_filter">
-            <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
-                <input type="hidden" name="page" value="sc-coach-salary">
+    <div class="sc-wallet-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-wallet-list-filters-toolbar">
+            <button type="button"
+                    class="sc-wallet-list-filters-toggle"
+                    id="sc-coach-salary-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-coach-salary-filters-panel">
+                <span class="sc-wallet-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-wallet-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-wallet-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-wallet-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-salary')); ?>" class="sc-wallet-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
 
-                <div class="sc-filter-grid">
+        <form method="GET" action="" class="sc-wallet-list-filters-panel" id="sc-coach-salary-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+            <input type="hidden" name="page" value="sc-coach-salary">
 
-                
-
-                    <!-- دوره -->
-                    <div class="sc-filter-field">
-                        <label class="sc-filter-label" for="filter_course">دوره</label>
-                        <select name="filter_course" id="filter_course" class="sc-filter-control">
-                            <option value="0">همه دوره‌ها</option>
-                            <?php foreach ($all_courses_for_filter as $course): ?>
-                                <option value="<?php echo (int) $course->id; ?>" <?php selected($filter_course, (int) $course->id); ?>>
-                                    <?php echo esc_html($course->title); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <!-- نوع دستمزد -->
-                    <div class="sc-filter-field">
-                        <label class="sc-filter-label" for="filter_type">نوع دستمزد</label>
-                        <select name="filter_type" id="filter_type" class="sc-filter-control">
-                            <option value="all" <?php selected($filter_type, 'all'); ?>>همه</option>
-                            <option value="percentage" <?php selected($filter_type, 'percentage'); ?>>درصدی</option>
-                            <option value="fixed" <?php selected($filter_type, 'fixed'); ?>>ثابت</option>
-                        </select>
-                    </div>
-
-
-                        <!-- بازه تاریخ -->
-                    <div class="sc-filter-field sc-filter-date">
-                        <label class="sc-filter-label">بازه تاریخ</label>
-                        <div class="sc-date-range">
-                            <input type="text"
-                                   name="filter_date_from_shamsi"
-                                   id="filter_date_from_shamsi"
-                                   value="<?php echo esc_attr($display_date_from_shamsi_salary); ?>"
-                                   class="persian-date-input sc-filter-control sc-no-default-date"
-                                   placeholder="از تاریخ"
-                                   readonly>
-                            <input type="text"
-                                   name="filter_date_to_shamsi"
-                                   id="filter_date_to_shamsi"
-                                   value="<?php echo esc_attr($display_date_to_shamsi_salary); ?>"
-                                   class="persian-date-input sc-filter-control sc-no-default-date"
-                                   placeholder="تا تاریخ"
-                                   readonly>
-                        </div>
-                        <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                        <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                    </div>
-
+            <div class="sc-filter-grid">
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_course">دوره</label>
+                    <select name="filter_course" id="filter_course" class="sc-filter-control">
+                        <option value="0">همه دوره‌ها</option>
+                        <?php foreach ($all_courses_for_filter as $course) : ?>
+                            <option value="<?php echo (int) $course->id; ?>" <?php selected($filter_course, (int) $course->id); ?>>
+                                <?php echo esc_html($course->title); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
-                <p class="submit">
-                    <input type="submit" class="button button-primary" value="اعمال فیلتر">
-                    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-salary')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-                </p>
-            </form>
-        </div>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_type">نوع دستمزد</label>
+                    <select name="filter_type" id="filter_type" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_type, 'all'); ?>>همه</option>
+                        <option value="percentage" <?php selected($filter_type, 'percentage'); ?>>درصدی</option>
+                        <option value="fixed" <?php selected($filter_type, 'fixed'); ?>>ثابت</option>
+                    </select>
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_date_from_shamsi">از تاریخ</label>
+                    <input type="text"
+                           name="filter_date_from_shamsi"
+                           id="filter_date_from_shamsi"
+                           value="<?php echo esc_attr($display_date_from_shamsi_salary); ?>"
+                           class="sc-filter-control persian-date-input"
+                           placeholder="از تاریخ"
+                           readonly>
+                    <input type="hidden"
+                           name="filter_date_from"
+                           id="filter_date_from"
+                           value="<?php echo esc_attr($filter_date_from); ?>">
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_date_to_shamsi">تا تاریخ</label>
+                    <input type="text"
+                           name="filter_date_to_shamsi"
+                           id="filter_date_to_shamsi"
+                           value="<?php echo esc_attr($display_date_to_shamsi_salary); ?>"
+                           class="sc-filter-control persian-date-input"
+                           placeholder="تا تاریخ"
+                           readonly>
+                    <input type="hidden"
+                           name="filter_date_to"
+                           id="filter_date_to"
+                           value="<?php echo esc_attr($filter_date_to); ?>">
+                </div>
+            </div>
+
+            <div class="sc-wallet-list-filters-actions">
+                <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-salary')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            </div>
+        </form>
     </div>
-    
-    <!-- خلاصه -->
-    <div class="sum_coach_salary">
-        <strong>مجموع دستمزد:</strong> <?php echo number_format($total_salary, 0, '.', ','); ?> تومان
-        <span style="margin-right: 30px;"></span>
-        <strong>تعداد رکورد:</strong> <?php echo $total_items > 0 ? sprintf('%d تا %d از %d', $offset + 1, min($offset + count($salary_records), $total_items), $total_items) : '۰'; ?>
-    </div>
- </div>
- <div class="wrap sc-coach-panel-wrap">   
-    <!-- جدول دستمزد -->
+
+    <div class="sc-wallet-list-table-card">
     <div class="sc-coach-salary-table-wrapper">
     <table class="wp-list-table widefat fixed striped sc-coach-salary-table">
         <thead>
@@ -255,7 +294,7 @@ $all_courses_for_filter = $wpdb->get_results(
                         <td class="column-index"><?php echo $row_number++; ?></td>
                         <td class="column-id"><code><?php echo esc_html($record->id ?? '-'); ?></code></td>
                         
-                        <td class="column-date"><?php echo sc_date_shamsi_date_only($record->attendance_date); ?></td>
+                        <td class="column-date"><span class="sc-wallet-date"><?php echo esc_html(sc_date_shamsi_date_only($record->attendance_date)); ?></span></td>
                         <td class="column-course">
                             <?php 
                             if ($record->course_id > 0) {
@@ -268,16 +307,22 @@ $all_courses_for_filter = $wpdb->get_results(
                         <td class="column-chapter"><?php echo !empty($record->chapter_name) ? esc_html($record->chapter_name) : '-'; ?></td>
                         <td class="column-type">
                             <?php if ($record->salary_type === 'percentage'): ?>
-                                <span style="color: #2271b1;">درصدی</span>
+                                <span class="sc-badge sc-badge--purple sc-wallet-type-badge">
+                                    <span class="sc-wallet-type-icon" aria-hidden="true">%</span>
+                                    درصدی
+                                </span>
                             <?php else: ?>
-                                <span style="color: #00a32a;">ثابت</span>
+                                <span class="sc-badge sc-badge--success sc-wallet-type-badge">
+                                    <span class="sc-wallet-type-icon" aria-hidden="true">↑</span>
+                                    ثابت
+                                </span>
                             <?php endif; ?>
                         </td>
                         <td class="column-attendance"><?php echo $record->attendance_count > 0 ? number_format($record->attendance_count) : '-'; ?></td>
                         <td class="column-price"><?php echo $record->price_per_session > 0 ? number_format($record->price_per_session, 0, '.', ',') . ' تومان' : '-'; ?></td>
                         <td class="column-revenue"><?php echo $record->total_revenue > 0 ? number_format($record->total_revenue, 0, '.', ',') . ' تومان' : '-'; ?></td>
                         <td class="column-percent"><?php echo $record->salary_percentage > 0 ? number_format($record->salary_percentage, 2) . '%' : '-'; ?></td>
-                        <td class="column-amount"><strong style="color: #00a32a;"><?php echo number_format($record->salary_amount, 0, '.', ','); ?> تومان</strong></td>
+                        <td class="column-amount"><span class="sc-wallet-amount is-credit">+ <?php echo esc_html(number_format($record->salary_amount, 0, '.', ',')); ?></span></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -289,6 +334,7 @@ $all_courses_for_filter = $wpdb->get_results(
             </tr>
         </tfoot>
     </table>
+    </div>
     </div>
 
     <?php if ($total_pages > 1) : ?>
@@ -402,7 +448,25 @@ $all_courses_for_filter = $wpdb->get_results(
 
 <script>
 jQuery(document).ready(function($) {
-    // تبدیل تاریخ شمسی به میلادی هنگام تغییر
+    var $toggle = $('#sc-coach-salary-filters-toggle');
+    var $panel = $('#sc-coach-salary-filters-panel');
+    var $card = $toggle.closest('.sc-wallet-list-filters-card');
+    var $label = $toggle.find('.sc-wallet-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+
     function updateGregorianDate($shamsiInput) {
         var shamsiValue = $shamsiInput.val();
         if (!shamsiValue) return;

@@ -139,6 +139,8 @@ function sc_auto_create_member_on_registration($user_id) {
             error_log('SC Auto Create Member Error: ' . $wpdb->last_error);
             error_log('SC Auto Create Member Query: ' . $wpdb->last_query);
         }
+    } elseif ($wpdb->insert_id && function_exists('sc_attendance_qr_ensure_member_hash')) {
+        do_action('sc_member_created', (int) $wpdb->insert_id);
     }
 }
 

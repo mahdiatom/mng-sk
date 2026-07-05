@@ -382,6 +382,10 @@ function sc_is_pro_feature_attendance_enabled() {
     return (int) sc_get_setting('pro_feature_attendance', '1') === 1;
 }
 
+function sc_is_pro_feature_attendance_qr_enabled() {
+    return (int) sc_get_setting('pro_feature_attendance_qr', '1') === 1;
+}
+
 function sc_is_pro_feature_courses_enabled() {
     return (int) sc_get_setting('pro_feature_courses', '1') === 1;
 }

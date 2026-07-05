@@ -173,177 +173,161 @@ $min_withdrawal = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
 // متغیرهای پیام (برای جلوگیری از خطای undefined)
 $withdrawal_message = '';
 $withdrawal_message_type = '';
+
+$active_filters_count = 0;
+if ($filter_type !== 'all') {
+    $active_filters_count++;
+}
+if ($filter_search !== '') {
+    $active_filters_count++;
+}
+if (isset($_GET['filter_date_from_shamsi']) || isset($_GET['filter_date_to_shamsi'])
+    || isset($_GET['filter_date_from']) || isset($_GET['filter_date_to'])) {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
 ?>
 
-<div class="wrap sc-coach-panel-wrap">
-    <div class="sc-coach-panel-header">
-        <div class="sc-coach-panel-title-row">
-            <h1 class="sc-coach-panel-title">کیف پول</h1>
-            <div class="sc-coach-panel-actions">
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-withdrawals')); ?>" class="sc_button">💸 درخواست برداشت</a>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-salary')); ?>" class="sc_button">📊 لیست دستمزد</a>
-            </div>
+<div class="wrap sc-wallet-list-wrap sc-coach-wallet-list-page">
+    <div class="sc-wallet-list-header">
+        <div class="sc-wallet-list-header-text">
+            <h1 class="sc-wallet-list-title">کیف پول</h1>
+            <p class="sc-wallet-list-desc">موجودی، خلاصه وضعیت و تاریخچه تراکنش‌های کیف پول شما.</p>
+        </div>
+        <div class="sc-wallet-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-withdrawals')); ?>" class="sc-wallet-list-add-btn">درخواست برداشت</a>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-salary')); ?>" class="sc-wallet-list-export-btn">لیست دستمزد</a>
         </div>
     </div>
-    </div>
-    <div class="wrap sc-coach-panel-wrap">
+
     <?php if ($withdrawal_message): ?>
         <div class="notice notice-<?php echo $withdrawal_message_type; ?> is-dismissible">
             <p><?php echo esc_html($withdrawal_message); ?></p>
         </div>
     <?php endif; ?>
-    
-    <!-- نمایش موجودی (زیر تایتل) -->
-    <div class="sc-coach-wallet-balance-box info_balance_wallet_coach" style="padding: 20px; margin: 20px 0;">
-        <div class="balance_wallet">
-        <h3>💰 موجودی کیف پول</h3>
-        <p style="margin: 0;">
-            <strong>
-                <?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> تومان
-            </strong>
-        </p>
+
+    <div class="sc-wallet-list-stats">
+        <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--green">
+            <div class="sc-wallet-list-stat-label">موجودی کیف پول</div>
+            <div class="sc-wallet-list-stat-value"><?php echo esc_html(sc_format_amount_display($wallet_balance)); ?> <small>تومان</small></div>
         </div>
-        <div class="details_wallet_coach">
+        <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--blue">
+            <div class="sc-wallet-list-stat-label">مجموع درآمد</div>
+            <div class="sc-wallet-list-stat-value"><?php echo esc_html(sc_format_amount_display($total_income)); ?> <small>تومان</small></div>
+        </div>
+        <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--purple">
+            <div class="sc-wallet-list-stat-label">مجموع پرداختی</div>
+            <div class="sc-wallet-list-stat-value"><?php echo esc_html(sc_format_amount_display($total_withdrawn)); ?> <small>تومان</small></div>
+        </div>
         <?php if ($wallet_debt > 0): ?>
-            <p >
-                بدهی کیف پول: <strong><?php echo esc_html(sc_format_amount_display($wallet_debt)); ?> تومان</strong>
-            </p>
+        <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--red">
+            <div class="sc-wallet-list-stat-label">بدهی کیف پول</div>
+            <div class="sc-wallet-list-stat-value"><?php echo esc_html(sc_format_amount_display($wallet_debt)); ?> <small>تومان</small></div>
+        </div>
         <?php endif; ?>
-        <?php if ($min_withdrawal > 0): ?>
-            <p >حداقل مبلغ برداشت: <strong><?php echo esc_html(sc_format_amount_display($min_withdrawal)); ?> تومان</strong></p>
-        <?php endif; ?>
+        <div class="sc-wallet-list-stat-card sc-wallet-list-stat-card--amber">
+            <div class="sc-wallet-list-stat-label">درخواست‌های برداشت</div>
+            <div class="sc-wallet-list-stat-value sc-wallet-list-stat-value--split">
+                <span class="is-credit">در انتظار: <?php echo (int) $count_pending; ?></span>
+                <span class="is-debit">رد شده: <?php echo (int) $count_rejected; ?></span>
+            </div>
         </div>
     </div>
-    
-    <!-- آمار و اطلاعات مفید -->
-    <div class="card" style="margin: 20px 0; max-width: 100%; padding: 20px;">
-        <h2 style="margin-top: 0;">📊 خلاصه وضعیت</h2>
-        <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 15px;">
-            <div style="flex: 1; min-width: 200px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-right: 4px solid #0ea5e9;">
-                <strong>مجموع درآمد شما</strong><br>
-                <span style="font-size: 20px; color: #0ea5e9; font-weight: bold;"><?php echo esc_html(sc_format_amount_display($total_income)); ?> تومان</span><br>
-                <small style="color: #666;">موجودی + پرداختی + منتظر پرداخت + در انتظار تایید</small>
-            </div>
-            <div style="flex: 1; min-width: 200px; padding: 15px; background: #f0fdf4; border-radius: 8px; border-right: 4px solid #22c55e;">
-                <strong>مجموع پرداختی به شما</strong><br>
-                <span style="font-size: 20px; color: #22c55e; font-weight: bold;"><?php echo esc_html(sc_format_amount_display($total_withdrawn)); ?> تومان</span><br>
-                <small style="color: #666;">درخواست‌های پرداخت شده</small>
-            </div>
-            <?php if ($wallet_debt > 0): ?>
-            <div style="flex: 1; min-width: 200px; padding: 15px; background: #fef2f2; border-radius: 8px; border-right: 4px solid #d63638;">
-                <strong>بدهی کیف پول</strong><br>
-                <span style="font-size: 20px; color: #d63638; font-weight: bold;"><?php echo esc_html(sc_format_amount_display($wallet_debt)); ?> تومان</span><br>
-                <small style="color: #666;">موجودی منفی</small>
-            </div>
-            <?php endif; ?>
-            <div style="flex: 1; min-width: 200px; padding: 15px; background: #fff7ed; border-radius: 8px; border-right: 4px solid #f97316;">
-                <strong>در انتظار تایید</strong><br>
-                <span style="font-size: 20px; color: #f97316; font-weight: bold;"><?php echo $count_pending; ?></span> درخواست<br>
-                <small style="color: #666;">منتظر بررسی مدیر</small>
-            </div>
-            <div style="flex: 1; min-width: 200px; padding: 15px; background: #eff6ff; border-radius: 8px; border-right: 4px solid #3b82f6;">
-                <strong>تایید شده (منتظر پرداخت)</strong><br>
-                <span style="font-size: 20px; color: #3b82f6; font-weight: bold;"><?php echo $count_approved; ?></span> درخواست<br>
-                <?php if ($sum_approved > 0): ?>
-                <small style="color: #666;">مبلغ: <?php echo esc_html(sc_format_amount_display($sum_approved)); ?> تومان</small>
+
+    <div class="sc-wallet-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-wallet-list-filters-toolbar">
+            <button type="button"
+                    class="sc-wallet-list-filters-toggle"
+                    id="sc-coach-wallet-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-coach-wallet-filters-panel">
+                <span class="sc-wallet-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-wallet-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-wallet-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
                 <?php endif; ?>
-            </div>
-            <div style="flex: 1; min-width: 200px; padding: 15px; background: #f0fdf4; border-radius: 8px; border-right: 4px solid #22c55e;">
-                <strong>پرداخت شده</strong><br>
-                <span style="font-size: 20px; color: #22c55e; font-weight: bold;"><?php echo $count_paid; ?></span> درخواست<br>
-                <small style="color: #666;">تسویه شده</small>
-            </div>
-            <div style="flex: 1; min-width: 200px; padding: 15px; background: #fef2f2; border-radius: 8px; border-right: 4px solid #ef4444;">
-                <strong>رد شده</strong><br>
-                <span style="font-size: 20px; color: #ef4444; font-weight: bold;"><?php echo $count_rejected; ?></span> درخواست<br>
-                <small style="color: #666;">توسط مدیر رد شده</small>
-            </div>
+                <span class="sc-wallet-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="sc-wallet-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
         </div>
+
+        <form method="GET" action="" class="sc-wallet-list-filters-panel" id="sc-coach-wallet-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+            <input type="hidden" name="page" value="sc-coach-wallet">
+
+            <div class="sc-filter-grid">
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_type">نوع تراکنش</label>
+                    <select name="filter_type" id="filter_type" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_type, 'all'); ?>>همه انواع</option>
+                        <option value="salary_percentage" <?php selected($filter_type, 'salary_percentage'); ?>>دستمزد درصدی</option>
+                        <option value="salary_fixed" <?php selected($filter_type, 'salary_fixed'); ?>>دستمزد ثابت</option>
+                        <option value="charge" <?php selected($filter_type, 'charge'); ?>>شارژ</option>
+                        <option value="deduct" <?php selected($filter_type, 'deduct'); ?>>کسر</option>
+                        <option value="withdrawal" <?php selected($filter_type, 'withdrawal'); ?>>برداشت</option>
+                    </select>
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_search">جستجو</label>
+                    <input type="search"
+                           name="filter_search"
+                           id="filter_search"
+                           value="<?php echo esc_attr($filter_search); ?>"
+                           class="sc-filter-control"
+                           placeholder="جستجو در توضیحات...">
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_date_from_shamsi">از تاریخ</label>
+                    <input type="text"
+                           name="filter_date_from_shamsi"
+                           id="filter_date_from_shamsi"
+                           value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
+                           class="sc-filter-control persian-date-input"
+                           placeholder="از تاریخ"
+                           readonly>
+                    <input type="hidden"
+                           name="filter_date_from"
+                           id="filter_date_from"
+                           value="<?php echo esc_attr($filter_date_from); ?>">
+                </div>
+
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_date_to_shamsi">تا تاریخ</label>
+                    <input type="text"
+                           name="filter_date_to_shamsi"
+                           id="filter_date_to_shamsi"
+                           value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
+                           class="sc-filter-control persian-date-input"
+                           placeholder="تا تاریخ"
+                           readonly>
+                    <input type="hidden"
+                           name="filter_date_to"
+                           id="filter_date_to"
+                           value="<?php echo esc_attr($filter_date_to); ?>">
+                </div>
+            </div>
+
+            <div class="sc-wallet-list-filters-actions">
+                <input type="submit" class="button button-primary" value="اعمال فیلتر">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+            </div>
+        </form>
     </div>
-    </div>
-     <div class="wrap sc-coach-panel-wrap">
 
-        <!-- فیلترها -->
-        <div class="filter_search_logs">
-            <div class="wrap wrap_filter">
-                <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
-                    <input type="hidden" name="page" value="sc-coach-wallet">
-
-                    <div class="sc-filter-grid">
-
-                     
-
-                        <!-- نوع تراکنش -->
-                        <div class="sc-filter-field">
-                            <label class="sc-filter-label" for="filter_type">نوع تراکنش</label>
-                            <select name="filter_type" id="filter_type" class="sc-filter-control">
-                                <option value="all" <?php selected($filter_type, 'all'); ?>>همه انواع</option>
-                                <option value="salary_percentage" <?php selected($filter_type, 'salary_percentage'); ?>>دستمزد درصدی</option>
-                                <option value="salary_fixed" <?php selected($filter_type, 'salary_fixed'); ?>>دستمزد ثابت</option>
-                                <option value="charge" <?php selected($filter_type, 'charge'); ?>>شارژ</option>
-                                <option value="deduct" <?php selected($filter_type, 'deduct'); ?>>کسر</option>
-                                <option value="withdrawal" <?php selected($filter_type, 'withdrawal'); ?>>برداشت</option>
-                            </select>
-                        </div>
-
-                        <!-- جستجو -->
-                        <div class="sc-filter-field">
-                            <label class="sc-filter-label" for="filter_search">جستجو</label>
-                            <input type="search"
-                                   name="filter_search"
-                                   id="filter_search"
-                                   value="<?php echo esc_attr($filter_search); ?>"
-                                   class="sc-filter-control"
-                                   placeholder="جستجو در توضیحات...">
-                        </div>
-
-
-                           <!-- بازه تاریخ -->
-                        <div class="sc-filter-field sc-filter-date">
-                            <label class="sc-filter-label">بازه تاریخ</label>
-                            <div class="sc-date-range">
-                                <input type="text"
-                                       name="filter_date_from_shamsi"
-                                       id="filter_date_from_shamsi"
-                                       value="<?php echo esc_attr($filter_date_from_shamsi); ?>"
-                                       class="persian-date-input sc-filter-control sc-no-default-date"
-                                       placeholder="از تاریخ"
-                                       readonly>
-                                <input type="text"
-                                       name="filter_date_to_shamsi"
-                                       id="filter_date_to_shamsi"
-                                       value="<?php echo esc_attr($filter_date_to_shamsi); ?>"
-                                       class="persian-date-input sc-filter-control sc-no-default-date"
-                                       placeholder="تا تاریخ"
-                                       readonly>
-                            </div>
-                            <input type="hidden" name="filter_date_from" id="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>">
-                            <input type="hidden" name="filter_date_to" id="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>">
-                        </div>
-
-                    </div>
-
-                    <p class="submit">
-                        <input type="submit" class="button button-primary" value="اعمال فیلتر">
-                        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-coach-wallet')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-                    </p>
-                </form>
-            </div>
-        </div>
-        </div>
-        
-        <div class="wrap sc-coach-panel-wrap">
-       
-    <!-- تراکنش‌های کیف پول -->
-    <div class="card" style="margin: 20px 0; max-width: 100%;">
-        <h2>تراکنش‌های کیف پول</h2>
-        </div>
-       
+    <div class="sc-wallet-list-table-card">
         <?php if (empty($transactions)): ?>
-            <p>هیچ تراکنشی ثبت نشده است.</p>
+            <p style="text-align:center;padding:32px 16px;color:#6b7280;margin:0;">هیچ تراکنشی ثبت نشده است.</p>
         <?php else: ?>
-            <div class="sc-wallet-transactions-table-wrapper">
-            <table class="wp-list-table widefat fixed striped sc-wallet-transactions-table">
+            <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
                         <th class="column-index">ردیف</th>
@@ -354,41 +338,74 @@ $withdrawal_message_type = '';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php 
+                    <?php
                     $start_number = ($current_page - 1) * $per_page;
-                    $row = 1;
                     $type_labels = [
                         'salary_percentage' => 'دستمزد درصدی',
                         'salary_fixed' => 'دستمزد ثابت',
                         'charge' => 'شارژ',
                         'deduct' => 'کسر',
-                        'withdrawal' => 'برداشت'
+                        'withdrawal' => 'برداشت',
                     ];
+                    $badge_map = [
+                        'salary_percentage' => 'sc-badge--success',
+                        'salary_fixed' => 'sc-badge--success',
+                        'charge' => 'sc-badge--success',
+                        'deduct' => 'sc-badge--danger',
+                        'withdrawal' => 'sc-badge--purple',
+                    ];
+                    $icon_map = [
+                        'salary_percentage' => '↑',
+                        'salary_fixed' => '↑',
+                        'charge' => '↑',
+                        'deduct' => '↓',
+                        'withdrawal' => '−',
+                    ];
+                    $credit_types = ['charge', 'salary_percentage', 'salary_fixed'];
                     ?>
                     <?php foreach ($transactions as $index => $transaction): ?>
-                        <?php $row_number = $start_number + $index + 1; ?>
+                        <?php
+                        $row_number = $start_number + $index + 1;
+                        $tx_type = $transaction->transaction_type ?? '';
+                        $type_label = $type_labels[$tx_type] ?? $tx_type;
+                        $badge_class = $badge_map[$tx_type] ?? 'sc-badge--muted';
+                        $type_icon = $icon_map[$tx_type] ?? '•';
+                        $is_credit = in_array($tx_type, $credit_types, true);
+                        $description = $transaction->description ?? '';
+                        $desc_display = $description === '' ? '—' : (mb_strlen($description) > 50 ? mb_substr($description, 0, 50) . '...' : $description);
+                        ?>
                         <tr>
-                            <td class="column-index"><?php echo $row_number; ?></td>
-                            <td class="column-date"><?php echo sc_date_shamsi($transaction->created_at, 'Y/m/d H:i'); ?></td>
-                            <td class="column-type"><?php echo $type_labels[$transaction->transaction_type] ?? $transaction->transaction_type; ?></td>
-                            <td class="column-amount">
-                                <?php if (in_array($transaction->transaction_type, ['charge', 'salary_percentage', 'salary_fixed'])): ?>
-                                    <span style="color: #00a32a;">+<?php echo esc_html(sc_format_amount_display($transaction->amount)); ?></span>
-                                <?php else: ?>
-                                    <span style="color: #d63638;"><?php echo esc_html(sc_format_amount_display(-$transaction->amount)); ?></span>
-                                <?php endif; ?>
-                                <small>تومان</small>
+                            <td class="column-index"><?php echo (int) $row_number; ?></td>
+                            <td class="column-date">
+                                <span class="sc-wallet-date"><?php echo esc_html(sc_date_shamsi($transaction->created_at, 'Y/m/d H:i')); ?></span>
                             </td>
-                            <td class="column-description"><?php echo esc_html($transaction->description ?: '-'); ?></td>
+                            <td class="column-type">
+                                <span class="sc-badge <?php echo esc_attr($badge_class); ?> sc-wallet-type-badge">
+                                    <span class="sc-wallet-type-icon" aria-hidden="true"><?php echo esc_html($type_icon); ?></span>
+                                    <?php echo esc_html($type_label); ?>
+                                </span>
+                            </td>
+                            <td class="column-amount">
+                                <?php if ($is_credit): ?>
+                                    <span class="sc-wallet-amount is-credit">+ <?php echo esc_html(sc_format_amount_display($transaction->amount)); ?></span>
+                                <?php else: ?>
+                                    <span class="sc-wallet-amount is-debit">− <?php echo esc_html(sc_format_amount_display($transaction->amount)); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="column-description">
+                                <?php if ($description === ''): ?>
+                                    <span class="sc-badge sc-badge--muted">—</span>
+                                <?php else: ?>
+                                    <span class="sc-wallet-desc" title="<?php echo esc_attr($description); ?>"><?php echo esc_html($desc_display); ?></span>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            </div>
-            
-            <!-- Pagination -->
+
             <?php if ($total_pages > 1) : ?>
-                <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
+                <div class="tablenav bottom sc_paginate">
                     <div class="tablenav-pages">
                         <?php
                         $pagination_args = ['page' => 'sc-coach-wallet'];
@@ -414,7 +431,28 @@ $withdrawal_message_type = '';
             <?php endif; ?>
         <?php endif; ?>
     </div>
-    
-   
 </div>
+
+<script type="text/javascript">
+jQuery(document).ready(function ($) {
+    var $toggle = $('#sc-coach-wallet-filters-toggle');
+    var $panel = $('#sc-coach-wallet-filters-panel');
+    var $card = $toggle.closest('.sc-wallet-list-filters-card');
+    var $label = $toggle.find('.sc-wallet-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+});
+</script>
 

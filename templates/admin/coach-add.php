@@ -95,10 +95,12 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                 <td>
                     <select name="coaching_level" id="coaching_level "   style="width: 350px;">
                         <option value="">انتخاب کنید</option>
-                        <option value="مبتدی" <?php selected($coach ? $coach->coaching_level : '', 'مبتدی'); ?>>مبتدی</option>
-                        <option value="متوسط" <?php selected($coach ? $coach->coaching_level : '', 'متوسط'); ?>>متوسط</option>
-                        <option value="پیشرفته" <?php selected($coach ? $coach->coaching_level : '', 'پیشرفته'); ?>>پیشرفته</option>
-                        <option value="استاد" <?php selected($coach ? $coach->coaching_level : '', 'استاد'); ?>>استاد</option>
+                        <?php
+                        $coaching_levels = function_exists('sc_get_coaching_level_options') ? sc_get_coaching_level_options() : [];
+                        foreach ($coaching_levels as $level_option) :
+                        ?>
+                            <option value="<?php echo esc_attr($level_option); ?>" <?php selected($coach ? $coach->coaching_level : '', $level_option); ?>><?php echo esc_html($level_option); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </td>
             </tr>

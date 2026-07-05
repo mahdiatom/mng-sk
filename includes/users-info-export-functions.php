@@ -166,7 +166,7 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
         }
     }
     foreach ($fields as $field_key) {
-        if (!isset($assigned[$field_key]) && $field_key !== 'personal_photo') {
+        if (!isset($assigned[$field_key]) && !in_array($field_key, ['personal_photo', 'attendance_qr'], true)) {
             $columns['column_1'][] = $field_key;
         }
     }
@@ -273,6 +273,7 @@ function sc_users_export_get_field_labels() {
         'personal_photo' => 'عکس پرسنلی',
         'id_card_photo' => 'عکس کارت ملی',
         'sport_insurance_photo' => 'عکس بیمه ورزشی',
+        'attendance_qr' => 'QR حضور و غیاب',
     ];
     if (function_exists('sc_get_player_info_custom_fields')) {
         $custom_fields = sc_get_player_info_custom_fields();
@@ -699,6 +700,15 @@ function sc_users_export_prepare_rows($members, $fields) {
                 case 'info_verified':
                     $row[$field] = !empty($member->{$field}) ? 'بله' : 'خیر';
                     break;
+                case 'attendance_qr':
+                    $row[$field] = '-';
+                    if (empty($member->is_guest_export) && function_exists('sc_attendance_qr_get_export_data_uri')) {
+                        $qr_data_uri = sc_attendance_qr_get_export_data_uri((int) $member->id, 320);
+                        if ($qr_data_uri !== '') {
+                            $row[$field] = $qr_data_uri;
+                        }
+                    }
+                    break;
                 default:
                     if (strpos($field, 'custom_') === 0) {
                         $custom_key = substr($field, 7);
@@ -1012,7 +1022,7 @@ function sc_users_info_export_handler() {
         'cards_per_page' => isset($_POST['cards_per_page']) ? absint($_POST['cards_per_page']) : (int) ($template['cards_per_page'] ?? 2),
     ];
 
-    $image_fields = ['personal_photo', 'id_card_photo', 'sport_insurance_photo'];
+    $image_fields = ['personal_photo', 'id_card_photo', 'sport_insurance_photo', 'attendance_qr'];
     if (!empty(array_intersect($fields, $image_fields))) {
         $format = 'pdf';
     }

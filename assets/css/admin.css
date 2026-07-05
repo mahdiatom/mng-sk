@@ -15661,6 +15661,7 @@ body[class*="_page_sc-add-discount-code"] .sc-discount-add-submit .button-primar
 
 /* ─── کیف پول (شارژ / کاهش بازیکن و مربی) — استایل مدرن ─── */
 body.toplevel_page_sc-wallet #wpcontent,
+body.sc-coach-wallet-list-page #wpcontent,
 body.sc-wallet_page_sc-wallet-charge #wpcontent,
 body.sc-wallet_page_sc-wallet-deduct #wpcontent,
 body.sc-wallet_page_sc-wallet-manage #wpcontent,
@@ -15673,7 +15674,36 @@ body[class*="_page_sc-coach-management-wallet"] #wpcontent {
 }
 
 /* ─── لیست تراکنش‌های کیف پول — هم‌سبک لیست بازیکن‌ها ─── */
+/* ─── کیف پول: اصلاح گرید فیلتر (جلوگیری از تداخل .sc-filter-grid عمومی) ─── */
+.sc-wallet-list-wrap .sc-wallet-list-filters-panel .sc-filter-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 14px 16px !important;
+    flex-wrap: unset !important;
+}
+
+.sc-wallet-list-wrap .sc-wallet-list-filters-panel .sc-filter-field {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+}
+
+@media screen and (max-width: 1100px) {
+    .sc-wallet-list-wrap .sc-wallet-list-filters-panel .sc-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media screen and (max-width: 782px) {
+    .sc-wallet-list-wrap .sc-wallet-list-filters-panel .sc-filter-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
 body.toplevel_page_sc-wallet .sc-wallet-list-wrap,
+body.sc-coach-wallet-list-page .sc-wallet-list-wrap,
+.wrap.sc-wallet-list-wrap.sc-coach-wallet-list-page,
 body[class*="_page_sc-wallet"]:not([class*="sc-wallet-charge"]):not([class*="sc-wallet-deduct"]):not([class*="sc-wallet-manage"]) .sc-wallet-list-wrap {
     margin-block: 16px 24px;
     margin-inline-start: 0;
@@ -15684,7 +15714,11 @@ body[class*="_page_sc-wallet"]:not([class*="sc-wallet-charge"]):not([class*="sc-
     background: transparent !important;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-header {
+body.toplevel_page_sc-wallet .sc-wallet-list-header,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-header,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -15693,7 +15727,11 @@ body.toplevel_page_sc-wallet .sc-wallet-list-header {
     margin-bottom: 18px;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-title {
+body.toplevel_page_sc-wallet .sc-wallet-list-title,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-title,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-title {
     margin: 0 0 6px;
     padding: 0;
     font-size: 1.55rem;
@@ -15702,14 +15740,22 @@ body.toplevel_page_sc-wallet .sc-wallet-list-title {
     line-height: 1.3;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-desc {
+body.toplevel_page_sc-wallet .sc-wallet-list-desc,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-desc,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-desc {
     margin: 0;
     color: #6b7280;
     font-size: 13px;
     line-height: 1.7;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-header-actions {
+body.toplevel_page_sc-wallet .sc-wallet-list-header-actions,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-header-actions,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-header-actions {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -15717,6 +15763,7 @@ body.toplevel_page_sc-wallet .sc-wallet-list-header-actions {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-add-btn,
+body.sc-coach-wallet-list-page .sc-wallet-list-add-btn,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-add-btn,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-add-btn {
     display: inline-flex;
@@ -15737,6 +15784,7 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-add-btn {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-add-btn:hover,
+body.sc-coach-wallet-list-page .sc-wallet-list-add-btn:hover,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-add-btn:hover,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-add-btn:hover {
     color: #fff !important;
@@ -15745,6 +15793,7 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-add-btn:hover {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-export-btn,
+body.sc-coach-wallet-list-page .sc-wallet-list-export-btn,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-export-btn,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-export-btn {
     display: inline-flex;
@@ -15764,6 +15813,7 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-export-btn {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-export-btn:hover,
+body.sc-coach-wallet-list-page .sc-wallet-list-export-btn:hover,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-export-btn:hover,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-export-btn:hover {
     background: rgba(109, 52, 255, 0.06);
@@ -15771,14 +15821,22 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-export-btn:hover {
     color: #4a1fb8;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-stats {
+body.toplevel_page_sc-wallet .sc-wallet-list-stats,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-stats,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     gap: 12px;
     margin-bottom: 16px;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-stat-card {
+body.toplevel_page_sc-wallet .sc-wallet-list-stat-card,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-card,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stat-card {
     padding: 14px 16px;
     border-radius: 16px;
     background: #fff;
@@ -15787,33 +15845,59 @@ body.toplevel_page_sc-wallet .sc-wallet-list-stat-card {
     border-inline-start: 4px solid #6d34ff;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-stat-card--blue { border-inline-start-color: #2563eb; }
-body.toplevel_page_sc-wallet .sc-wallet-list-stat-card--green { border-inline-start-color: #16a34a; }
-body.toplevel_page_sc-wallet .sc-wallet-list-stat-card--purple { border-inline-start-color: #6d34ff; }
-body.toplevel_page_sc-wallet .sc-wallet-list-stat-card--red { border-inline-start-color: #dc2626; }
-body.toplevel_page_sc-wallet .sc-wallet-list-stat-card--amber { border-inline-start-color: #d97706; }
+body.toplevel_page_sc-wallet .sc-wallet-list-stat-card--blue,
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stat-card--blue { border-inline-start-color: #2563eb; }
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-card--blue { border-inline-start-color: #2563eb; }
+body.toplevel_page_sc-wallet .sc-wallet-list-stat-card--green,
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stat-card--green { border-inline-start-color: #16a34a; }
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-card--green { border-inline-start-color: #16a34a; }
+body.toplevel_page_sc-wallet .sc-wallet-list-stat-card--purple,
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stat-card--purple { border-inline-start-color: #6d34ff; }
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-card--purple { border-inline-start-color: #6d34ff; }
+body.toplevel_page_sc-wallet .sc-wallet-list-stat-card--red,
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stat-card--red { border-inline-start-color: #dc2626; }
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-card--red { border-inline-start-color: #dc2626; }
+body.toplevel_page_sc-wallet .sc-wallet-list-stat-card--amber,
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stat-card--amber { border-inline-start-color: #d97706; }
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-card--amber { border-inline-start-color: #d97706; }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-stat-label {
+body.toplevel_page_sc-wallet .sc-wallet-list-stat-label,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-label,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stat-label {
     font-size: 12px;
     font-weight: 600;
     color: #6b7280;
     margin-bottom: 8px;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-stat-value {
+body.toplevel_page_sc-wallet .sc-wallet-list-stat-value,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-value,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stat-value {
     font-size: 1.25rem;
     font-weight: 800;
     color: #1e1b2e;
     line-height: 1.3;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-stat-value small {
+body.toplevel_page_sc-wallet .sc-wallet-list-stat-value small,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-value small,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stat-value small {
     font-size: 12px;
     font-weight: 600;
     color: #9ca3af;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-stat-value--split {
+body.toplevel_page_sc-wallet .sc-wallet-list-stat-value--split,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-value--split,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-stat-value--split {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -15821,10 +15905,16 @@ body.toplevel_page_sc-wallet .sc-wallet-list-stat-value--split {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-stat-value--split .is-credit { color: #16a34a; }
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-value--split .is-credit { color: #16a34a; }
 body.toplevel_page_sc-wallet .sc-wallet-list-stat-value--split .is-debit { color: #dc2626; }
+body.sc-coach-wallet-list-page .sc-wallet-list-stat-value--split .is-debit { color: #dc2626; }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-filters-card,
-body.toplevel_page_sc-wallet .sc-wallet-list-table-card {
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-card,
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-card,
+body.toplevel_page_sc-wallet .sc-wallet-list-table-card,
+body.sc-coach-wallet-list-page .sc-wallet-list-table-card,
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-table-card {
     margin-bottom: 16px;
     padding: 12px 16px;
     border-radius: 16px;
@@ -15834,13 +15924,21 @@ body.toplevel_page_sc-wallet .sc-wallet-list-table-card {
     box-sizing: border-box;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-table-card {
+body.toplevel_page_sc-wallet .sc-wallet-list-table-card,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-table-card,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-table-card {
     background: #fff;
     padding: 8px 8px 12px;
     overflow: hidden;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-toolbar {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-toolbar,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-toolbar,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -15848,7 +15946,11 @@ body.toplevel_page_sc-wallet .sc-wallet-list-filters-toolbar {
     flex-wrap: wrap;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-toggle {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-toggle,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-toggle,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-toggle {
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -15864,17 +15966,29 @@ body.toplevel_page_sc-wallet .sc-wallet-list-filters-toggle {
     box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-toggle:hover {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-toggle:hover,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-toggle:hover,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-toggle:hover {
     background: rgba(109, 52, 255, 0.06);
     border-color: rgba(109, 52, 255, 0.4);
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-toggle-icon {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-toggle-icon,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-toggle-icon,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-toggle-icon {
     display: inline-flex;
     color: #6d34ff;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-badge {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-badge,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-badge,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -15889,7 +16003,11 @@ body.toplevel_page_sc-wallet .sc-wallet-list-filters-badge {
     line-height: 1;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-chevron {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-chevron,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-chevron,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-chevron {
     width: 8px;
     height: 8px;
     margin-right: 2px;
@@ -15899,45 +16017,74 @@ body.toplevel_page_sc-wallet .sc-wallet-list-filters-chevron {
     transition: transform 0.2s ease;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-card.is-open .sc-wallet-list-filters-chevron {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-card.is-open .sc-wallet-list-filters-chevron,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-card.is-open .sc-wallet-list-filters-chevron,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-card.is-open .sc-wallet-list-filters-chevron {
     transform: rotate(-135deg);
     margin-top: 4px;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-clear {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-clear,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-clear,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-clear {
     color: #6d34ff;
     font-size: 13px;
     font-weight: 600;
     text-decoration: none;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-clear:hover {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-clear:hover,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-clear:hover,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-clear:hover {
     color: #4a1fb8;
     text-decoration: underline;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-panel {
     margin-top: 16px;
     padding-top: 16px;
     border-top: 1px solid rgba(109, 52, 255, 0.1);
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel[hidden] {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel[hidden],
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel[hidden],
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-panel[hidden] {
     display: none !important;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-grid {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-grid,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-grid,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px 16px;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-field {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-field,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-field,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-field {
     width: 100%;
     min-width: 0;
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-label,
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-label,
 body.sc-wallet_page_sc-wallet-manage .sc-filter-label,
 body[class*="_page_sc-wallet-manage"] .sc-filter-label {
     display: block;
@@ -15948,7 +16095,9 @@ body[class*="_page_sc-wallet-manage"] .sc-filter-label {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-control,
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-control,
 body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-dropdown-toggle,
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-dropdown-toggle,
 body.sc-wallet_page_sc-wallet-manage .sc-dropdown-toggle,
 body[class*="_page_sc-wallet-manage"] .sc-dropdown-toggle {
     width: 100%;
@@ -15966,7 +16115,9 @@ body[class*="_page_sc-wallet-manage"] .sc-dropdown-toggle {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-control:focus,
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-control:focus,
 body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-dropdown-toggle:focus-within,
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-dropdown-toggle:focus-within,
 body.sc-wallet_page_sc-wallet-manage .sc-dropdown-toggle:focus-within,
 body[class*="_page_sc-wallet-manage"] .sc-dropdown-toggle:focus-within {
     border-color: #6d34ff !important;
@@ -15975,12 +16126,14 @@ body[class*="_page_sc-wallet-manage"] .sc-dropdown-toggle:focus-within {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-searchable-dropdown,
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-searchable-dropdown,
 body.sc-wallet_page_sc-wallet-manage .sc-searchable-dropdown,
 body[class*="_page_sc-wallet-manage"] .sc-searchable-dropdown {
     width: 100%;
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-dropdown-menu,
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-dropdown-menu,
 body.sc-wallet_page_sc-wallet-manage .sc-dropdown-menu,
 body[class*="_page_sc-wallet-manage"] .sc-dropdown-menu {
     border-radius: 12px;
@@ -15990,7 +16143,11 @@ body[class*="_page_sc-wallet-manage"] .sc-dropdown-menu {
     z-index: 30;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-actions {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-actions,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-actions,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-actions {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -15998,7 +16155,11 @@ body.toplevel_page_sc-wallet .sc-wallet-list-filters-actions {
     margin-top: 8px;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-actions .button-primary {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-actions .button-primary,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-actions .button-primary,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-actions .button-primary {
     min-height: 42px;
     padding: 0 22px;
     border: none !important;
@@ -16009,7 +16170,11 @@ body.toplevel_page_sc-wallet .sc-wallet-list-filters-actions .button-primary {
     box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-filters-actions .delete_fillter {
+body.toplevel_page_sc-wallet .sc-wallet-list-filters-actions .delete_fillter,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-filters-actions .delete_fillter,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-actions .delete_fillter {
     min-height: 42px;
     padding: 0 18px;
     display: inline-flex;
@@ -16023,6 +16188,7 @@ body.toplevel_page_sc-wallet .sc-wallet-list-filters-actions .delete_fillter {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-table-card .tablenav,
+body.sc-coach-wallet-list-page .sc-wallet-list-table-card .tablenav,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-table-card .tablenav,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .tablenav {
     margin: 8px 8px 12px;
@@ -16031,6 +16197,7 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .tablenav {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-table-card .wp-list-table,
+body.sc-coach-wallet-list-page .sc-wallet-list-table-card .wp-list-table,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-table-card .wp-list-table,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .wp-list-table {
     border: none !important;
@@ -16040,6 +16207,7 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .wp-list-tabl
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-table-card .wp-list-table thead th,
+body.sc-coach-wallet-list-page .sc-wallet-list-table-card .wp-list-table thead th,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-table-card .wp-list-table thead th,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .wp-list-table thead th {
     padding: 12px 14px !important;
@@ -16051,24 +16219,28 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .wp-list-tabl
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-table-card .wp-list-table tbody tr,
+body.sc-coach-wallet-list-page .sc-wallet-list-table-card .wp-list-table tbody tr,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-table-card .wp-list-table tbody tr,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .wp-list-table tbody tr {
     background: #fff !important;
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-table-card .wp-list-table tbody tr:nth-child(even),
+body.sc-coach-wallet-list-page .sc-wallet-list-table-card .wp-list-table tbody tr:nth-child(even),
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-table-card .wp-list-table tbody tr:nth-child(even),
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .wp-list-table tbody tr:nth-child(even) {
     background: #fcfbff !important;
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-table-card .wp-list-table tbody tr:hover,
+body.sc-coach-wallet-list-page .sc-wallet-list-table-card .wp-list-table tbody tr:hover,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-table-card .wp-list-table tbody tr:hover,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .wp-list-table tbody tr:hover {
     background: #f5f2ff !important;
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-list-table-card .wp-list-table tbody td,
+body.sc-coach-wallet-list-page .sc-wallet-list-table-card .wp-list-table tbody td,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-table-card .wp-list-table tbody td,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .wp-list-table tbody td {
     padding: 14px !important;
@@ -16078,13 +16250,18 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-table-card .wp-list-tabl
     vertical-align: middle;
 }
 
-body.toplevel_page_sc-wallet .sc-wallet-list-table-card .row-actions a {
+body.toplevel_page_sc-wallet .sc-wallet-list-table-card .row-actions a,
+
+body.sc-coach-wallet-list-page .sc-wallet-list-table-card .row-actions a,
+
+.wrap.sc-coach-wallet-list-page .sc-wallet-list-table-card .row-actions a {
     color: #6d34ff;
     font-weight: 600;
 }
 
 /* هویت بازیکن / بج / مبلغ — مشترک لیست و مدیریت شارژ */
 body.toplevel_page_sc-wallet .sc-member-identity,
+body.sc-coach-wallet-list-page .sc-member-identity,
 body.sc-wallet_page_sc-wallet-manage .sc-member-identity,
 body[class*="_page_sc-wallet-manage"] .sc-member-identity,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-member-card,
@@ -16096,6 +16273,7 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-member-card {
 }
 
 body.toplevel_page_sc-wallet .sc-member-avatar,
+body.sc-coach-wallet-list-page .sc-member-avatar,
 body.sc-wallet_page_sc-wallet-manage .sc-member-avatar,
 body[class*="_page_sc-wallet-manage"] .sc-member-avatar {
     flex: 0 0 42px;
@@ -16112,6 +16290,7 @@ body[class*="_page_sc-wallet-manage"] .sc-member-avatar {
 }
 
 body.toplevel_page_sc-wallet .sc-member-avatar img,
+body.sc-coach-wallet-list-page .sc-member-avatar img,
 body.sc-wallet_page_sc-wallet-manage .sc-member-avatar img,
 body[class*="_page_sc-wallet-manage"] .sc-member-avatar img {
     width: 100%;
@@ -16121,6 +16300,7 @@ body[class*="_page_sc-wallet-manage"] .sc-member-avatar img {
 }
 
 body.toplevel_page_sc-wallet .sc-member-avatar--initials,
+body.sc-coach-wallet-list-page .sc-member-avatar--initials,
 body.sc-wallet_page_sc-wallet-manage .sc-member-avatar--initials,
 body[class*="_page_sc-wallet-manage"] .sc-member-avatar--initials {
     color: #4a1fb8;
@@ -16129,6 +16309,7 @@ body[class*="_page_sc-wallet-manage"] .sc-member-avatar--initials {
 }
 
 body.toplevel_page_sc-wallet .sc-member-identity-text,
+body.sc-coach-wallet-list-page .sc-member-identity-text,
 body.sc-wallet_page_sc-wallet-manage .sc-member-identity-text,
 body[class*="_page_sc-wallet-manage"] .sc-member-identity-text,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-member-info,
@@ -16140,6 +16321,7 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-member-info {
 }
 
 body.toplevel_page_sc-wallet .sc-member-name,
+body.sc-coach-wallet-list-page .sc-member-name,
 body.sc-wallet_page_sc-wallet-manage .sc-member-name,
 body[class*="_page_sc-wallet-manage"] .sc-member-name {
     font-size: 13px;
@@ -16150,6 +16332,7 @@ body[class*="_page_sc-wallet-manage"] .sc-member-name {
 }
 
 body.toplevel_page_sc-wallet .sc-member-meta,
+body.sc-coach-wallet-list-page .sc-member-meta,
 body.sc-wallet_page_sc-wallet-manage .sc-member-meta,
 body[class*="_page_sc-wallet-manage"] .sc-member-meta {
     display: flex;
@@ -16162,6 +16345,7 @@ body[class*="_page_sc-wallet-manage"] .sc-member-meta {
 }
 
 body.toplevel_page_sc-wallet .sc-member-meta-dot,
+body.sc-coach-wallet-list-page .sc-member-meta-dot,
 body.sc-wallet_page_sc-wallet-manage .sc-member-meta-dot,
 body[class*="_page_sc-wallet-manage"] .sc-member-meta-dot {
     width: 3px;
@@ -16172,6 +16356,7 @@ body[class*="_page_sc-wallet-manage"] .sc-member-meta-dot {
 }
 
 body.toplevel_page_sc-wallet .sc-badge,
+body.sc-coach-wallet-list-page .sc-badge,
 body.sc-wallet_page_sc-wallet-manage .sc-badge,
 body[class*="_page_sc-wallet-manage"] .sc-badge {
     display: inline-flex;
@@ -16188,6 +16373,7 @@ body[class*="_page_sc-wallet-manage"] .sc-badge {
 }
 
 body.toplevel_page_sc-wallet .sc-badge--success,
+body.sc-coach-wallet-list-page .sc-badge--success,
 body.sc-wallet_page_sc-wallet-manage .sc-badge--success,
 body[class*="_page_sc-wallet-manage"] .sc-badge--success {
     background: #dcfce7;
@@ -16195,6 +16381,7 @@ body[class*="_page_sc-wallet-manage"] .sc-badge--success {
 }
 
 body.toplevel_page_sc-wallet .sc-badge--danger,
+body.sc-coach-wallet-list-page .sc-badge--danger,
 body.sc-wallet_page_sc-wallet-manage .sc-badge--danger,
 body[class*="_page_sc-wallet-manage"] .sc-badge--danger {
     background: #fee2e2;
@@ -16202,6 +16389,7 @@ body[class*="_page_sc-wallet-manage"] .sc-badge--danger {
 }
 
 body.toplevel_page_sc-wallet .sc-badge--warning,
+body.sc-coach-wallet-list-page .sc-badge--warning,
 body.sc-wallet_page_sc-wallet-manage .sc-badge--warning,
 body[class*="_page_sc-wallet-manage"] .sc-badge--warning {
     background: #fef3c7;
@@ -16209,6 +16397,7 @@ body[class*="_page_sc-wallet-manage"] .sc-badge--warning {
 }
 
 body.toplevel_page_sc-wallet .sc-badge--purple,
+body.sc-coach-wallet-list-page .sc-badge--purple,
 body.sc-wallet_page_sc-wallet-manage .sc-badge--purple,
 body[class*="_page_sc-wallet-manage"] .sc-badge--purple {
     background: rgba(109, 52, 255, 0.12);
@@ -16216,6 +16405,7 @@ body[class*="_page_sc-wallet-manage"] .sc-badge--purple {
 }
 
 body.toplevel_page_sc-wallet .sc-badge--soft,
+body.sc-coach-wallet-list-page .sc-badge--soft,
 body.sc-wallet_page_sc-wallet-manage .sc-badge--soft,
 body[class*="_page_sc-wallet-manage"] .sc-badge--soft {
     background: #f3f4f6;
@@ -16223,6 +16413,7 @@ body[class*="_page_sc-wallet-manage"] .sc-badge--soft {
 }
 
 body.toplevel_page_sc-wallet .sc-badge--muted,
+body.sc-coach-wallet-list-page .sc-badge--muted,
 body.sc-wallet_page_sc-wallet-manage .sc-badge--muted,
 body[class*="_page_sc-wallet-manage"] .sc-badge--muted {
     background: #f3f4f6;
@@ -16230,6 +16421,7 @@ body[class*="_page_sc-wallet-manage"] .sc-badge--muted {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-type-icon,
+body.sc-coach-wallet-list-page .sc-wallet-type-icon,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-type-icon,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-type-icon {
     font-size: 12px;
@@ -16238,6 +16430,7 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-type-icon {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-amount,
+body.sc-coach-wallet-list-page .sc-wallet-amount,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-amount,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-amount {
     font-weight: 800;
@@ -16246,18 +16439,21 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-amount {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-amount.is-credit,
+body.sc-coach-wallet-list-page .sc-wallet-amount.is-credit,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-amount.is-credit,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-amount.is-credit {
     color: #16a34a;
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-amount.is-debit,
+body.sc-coach-wallet-list-page .sc-wallet-amount.is-debit,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-amount.is-debit,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-amount.is-debit {
     color: #dc2626;
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-balance,
+body.sc-coach-wallet-list-page .sc-wallet-balance,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-balance,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-balance {
     font-weight: 700;
@@ -16265,18 +16461,21 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-balance {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-balance.is-positive,
+body.sc-coach-wallet-list-page .sc-wallet-balance.is-positive,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-balance.is-positive,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-balance.is-positive {
     color: #16a34a;
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-balance.is-negative,
+body.sc-coach-wallet-list-page .sc-wallet-balance.is-negative,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-balance.is-negative,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-balance.is-negative {
     color: #dc2626;
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-tx-id,
+body.sc-coach-wallet-list-page .sc-wallet-tx-id,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-tx-id,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-tx-id {
     font-weight: 700;
@@ -16285,6 +16484,7 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-tx-id {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-date,
+body.sc-coach-wallet-list-page .sc-wallet-date,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-date,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-date {
     color: #6b7280;
@@ -16294,10 +16494,47 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-date {
 }
 
 body.toplevel_page_sc-wallet .sc-wallet-desc,
+body.sc-coach-wallet-list-page .sc-wallet-desc,
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-desc,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-desc {
     color: #4b5563;
     font-size: 12px;
+}
+
+/* پنل مربی: گرید فرم برداشت */
+body.sc-coach-wallet-list-page .sc-coach-withdrawal-form-card .sc-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+body.sc-coach-wallet-list-page .sc-coach-withdrawal-form-card .sc-filter-field {
+    width: 100%;
+    min-width: 0;
+}
+
+body.sc-coach-wallet-list-page .sc-coach-withdrawal-form-card .sc-filter-control {
+    width: 100%;
+    max-width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
+    border-radius: 12px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #1e1b2e;
+}
+
+body.sc-coach-wallet-list-page .sc-coach-withdrawal-form-card textarea.sc-filter-control {
+    height: auto;
+    min-height: 88px;
+}
+
+@media screen and (max-width: 782px) {
+    body.sc-coach-wallet-list-page .sc-coach-withdrawal-form-card .sc-filter-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-ref,
@@ -16514,7 +16751,9 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-member-dropdown .sc-dropdown-op
 }
 
 @media screen and (max-width: 1100px) {
-    body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-grid {
+    body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-grid,
+    body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-grid,
+    .wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -16528,6 +16767,7 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-member-dropdown .sc-dropdown-op
 
 @media screen and (max-width: 782px) {
     body.toplevel_page_sc-wallet .sc-wallet-list-wrap,
+    body.sc-coach-wallet-list-page .sc-wallet-list-wrap,
     body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-wrap,
     body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-wrap {
         margin-block: 12px 20px;
@@ -16535,17 +16775,23 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-member-dropdown .sc-dropdown-op
     }
 
     body.toplevel_page_sc-wallet .sc-wallet-list-header,
+    body.sc-coach-wallet-list-page .sc-wallet-list-header,
     body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-header,
     body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-header {
         flex-direction: column;
         align-items: stretch;
     }
 
-    body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-grid {
+    body.toplevel_page_sc-wallet .sc-wallet-list-filters-panel .sc-filter-grid,
+
+    body.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-grid,
+
+    .wrap.sc-coach-wallet-list-page .sc-wallet-list-filters-panel .sc-filter-grid {
         grid-template-columns: 1fr;
     }
 
     body.toplevel_page_sc-wallet .sc-wallet-list-header-actions,
+    body.sc-coach-wallet-list-page .sc-wallet-list-header-actions,
     body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-header-actions,
     body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-header-actions,
     body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-member-actions,
@@ -16554,7 +16800,9 @@ body[class*="_page_sc-wallet-manage"] .sc-wallet-member-dropdown .sc-dropdown-op
     }
 
     body.toplevel_page_sc-wallet .sc-wallet-list-add-btn,
+    body.sc-coach-wallet-list-page .sc-wallet-list-add-btn,
     body.toplevel_page_sc-wallet .sc-wallet-list-export-btn,
+    body.sc-coach-wallet-list-page .sc-wallet-list-export-btn,
     body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-add-btn,
     body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-export-btn,
     body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-add-btn,
@@ -25459,4 +25707,361 @@ body.sc-wp-user-edit-page.sc-wp-user-profile-restricted #your-profile .form-tabl
     border-radius: 999px;
 }
 /* ─── پایان گزارش برنامه هفتگی ─── */
+
+/* ─── پنل مربی: استایل مشترک با لیست بازیکنان ─── */
+body.sc-coach-members-list-page .sc-members-list-wrap {
+    margin-block: 16px 24px;
+    margin-inline-start: 0;
+    margin-inline-end: 20px;
+    padding: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: transparent !important;
+}
+
+body.sc-coach-members-list-page .sc-members-list-header,
+body.sc-coach-members-list-page .sc-wallet-list-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+body.sc-coach-members-list-page .sc-members-list-title,
+body.sc-coach-members-list-page .sc-wallet-list-title {
+    margin: 0 0 6px;
+    padding: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #1e1b2e;
+    line-height: 1.3;
+}
+
+body.sc-coach-members-list-page .sc-members-list-desc,
+body.sc-coach-members-list-page .sc-wallet-list-desc {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+body.sc-coach-members-list-page .sc-members-list-header-actions,
+body.sc-coach-members-list-page .sc-wallet-list-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+body.sc-coach-members-list-page .sc-members-list-export-btn,
+body.sc-coach-members-list-page .sc-wallet-list-add-btn,
+body.sc-coach-members-list-page .sc-wallet-list-export-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(109, 52, 255, 0.28);
+    background: #fff;
+    color: #4a1fb8;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+body.sc-coach-members-list-page .sc-wallet-list-add-btn {
+    border: none;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff !important;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-card,
+body.sc-coach-members-list-page .sc-members-list-table-card,
+body.sc-coach-members-list-page .sc-wallet-list-filters-card,
+body.sc-coach-members-list-page .sc-wallet-list-table-card {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+}
+
+body.sc-coach-members-list-page .sc-members-list-table-card,
+body.sc-coach-members-list-page .sc-wallet-list-table-card {
+    background: #fff;
+    padding: 8px 8px 12px;
+    overflow: hidden;
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-toolbar,
+body.sc-coach-members-list-page .sc-wallet-list-filters-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-toggle,
+body.sc-coach-members-list-page .sc-wallet-list-filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    padding: 8px 18px;
+    border: 1px solid rgba(109, 52, 255, 0.22);
+    border-radius: 999px;
+    background: #fff;
+    color: #4a1fb8;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-badge,
+body.sc-coach-members-list-page .sc-wallet-list-filters-badge,
+body.sc-coach-members-list-page .sc-coach-notif-header-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-chevron,
+body.sc-coach-members-list-page .sc-wallet-list-filters-chevron {
+    width: 8px;
+    height: 8px;
+    margin-right: 2px;
+    border-right: 2px solid #6d34ff;
+    border-bottom: 2px solid #6d34ff;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron,
+body.sc-coach-members-list-page .sc-wallet-list-filters-card.is-open .sc-wallet-list-filters-chevron {
+    transform: rotate(-135deg);
+    margin-top: 4px;
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-clear,
+body.sc-coach-members-list-page .sc-wallet-list-filters-clear {
+    color: #6d34ff;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-panel,
+body.sc-coach-members-list-page .sc-wallet-list-filters-panel {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(109, 52, 255, 0.1);
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-panel[hidden],
+body.sc-coach-members-list-page .sc-wallet-list-filters-panel[hidden] {
+    display: none !important;
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-panel .sc-filter-grid,
+body.sc-coach-members-list-page .sc-wallet-list-filters-panel .sc-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+body.sc-coach-members-list-page .sc-filter-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body.sc-coach-members-list-page .sc-filter-control {
+    width: 100%;
+    max-width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
+    border-radius: 12px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #1e1b2e;
+}
+
+body.sc-coach-members-list-page .sc-members-list-filters-actions .button-primary,
+body.sc-coach-members-list-page .sc-wallet-list-filters-actions .button-primary {
+    min-height: 42px;
+    padding: 0 22px;
+    border: none !important;
+    border-radius: 999px !important;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    font-weight: 700;
+}
+
+body.sc-coach-members-list-page .sc-members-list-table-card .wp-list-table thead th,
+body.sc-coach-members-list-page .sc-wallet-list-table-card .wp-list-table thead th {
+    padding: 12px 14px !important;
+    border-bottom: 1px solid #efeafc !important;
+    background: #faf9ff !important;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body.sc-coach-members-list-page .sc-members-list-table-card .wp-list-table tbody td,
+body.sc-coach-members-list-page .sc-wallet-list-table-card .wp-list-table tbody td {
+    padding: 14px !important;
+    border-bottom: 1px solid #f3f0ff;
+    vertical-align: middle;
+}
+
+body.sc-coach-members-list-page .sc-members-notif-tabs .sc-members-notif-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(109, 52, 255, 0.18);
+    background: #fff;
+    color: #4a1fb8;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+body.sc-coach-members-list-page .sc-members-notif-tabs li.active .sc-members-notif-tab {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    border-color: transparent;
+    color: #fff;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-item {
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    border-radius: 14px;
+    background: #fff;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-item.is-unread {
+    border-color: rgba(109, 52, 255, 0.28);
+    background: #fcfbff;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-item-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-item-title {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-item-title a {
+    color: #1e1b2e;
+    text-decoration: none;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-item-action {
+    margin-right: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(109, 52, 255, 0.08);
+    color: #4a1fb8;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-empty {
+    text-align: center;
+    padding: 40px 16px;
+    color: #6b7280;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    padding: 12px 8px 4px;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-pagination a,
+body.sc-coach-members-list-page .sc-coach-notif-pagination span.current {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(109, 52, 255, 0.14);
+    text-decoration: none;
+    color: #4a1fb8;
+    font-weight: 600;
+}
+
+body.sc-coach-members-list-page .sc-coach-notif-pagination span.current {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    border-color: transparent;
+}
+
+@media (max-width: 960px) {
+    body.sc-coach-members-list-page .sc-members-list-filters-panel .sc-filter-grid,
+    body.sc-coach-members-list-page .sc-wallet-list-filters-panel .sc-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    body.sc-coach-members-list-page .sc-members-list-filters-panel .sc-filter-grid,
+    body.sc-coach-members-list-page .sc-wallet-list-filters-panel .sc-filter-grid {
+        grid-template-columns: 1fr;
+    }
+}
 

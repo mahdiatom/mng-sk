@@ -116,6 +116,12 @@ $back_url = (function_exists('wc_current_user_has_role') && wc_current_user_has_
         </div>
     </div>
 
+    <?php
+    if (function_exists('sc_attendance_qr_render_member_card')) {
+        sc_attendance_qr_render_member_card($player_id, 'admin', 420);
+    }
+    ?>
+
     <div class="sc-member-view-card info_user_player">
         <h2 class="sc-member-view-section-title">اطلاعات پایه</h2>
         <table class="form-table sc-member-view-table">
@@ -440,3 +446,40 @@ $back_url = (function_exists('wc_current_user_has_role') && wc_current_user_has_
         </div>
     </div>
 </div>
+
+<script>
+jQuery(function($) {
+    $('.sc-regenerate-member-qr').on('click', function() {
+        var $btn = $(this);
+        var memberId = $btn.data('member-id');
+        var nonce = $btn.data('nonce');
+        if (!memberId || !nonce) return;
+        $btn.prop('disabled', true);
+        $.post(ajaxurl, {
+            action: 'sc_attendance_qr_regenerate',
+            member_id: memberId,
+            nonce: nonce
+        }).done(function(res) {
+            if (res && res.success && res.data) {
+                var img = $('.sc-attendance-qr-admin-preview img');
+                if (img.length && res.data.image_url) {
+                    img.attr('src', res.data.image_url + (res.data.image_url.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now());
+                } else if (img.length && res.data.data_uri) {
+                    img.attr('src', res.data.data_uri);
+                }
+                var dl = $('.sc-attendance-qr-admin-preview__actions a[download]');
+                if (dl.length && res.data.download_url) {
+                    dl.attr('href', res.data.download_url);
+                }
+                alert(res.data.message || 'QR جدید تولید شد.');
+            } else {
+                alert((res && res.data && res.data.message) ? res.data.message : 'خطا در تولید QR');
+            }
+        }).fail(function() {
+            alert('خطا در ارتباط با سرور');
+        }).always(function() {
+            $btn.prop('disabled', false);
+        });
+    });
+});
+</script>

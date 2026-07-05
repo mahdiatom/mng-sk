@@ -98,6 +98,15 @@ function sc_ensure_course_groups_schema() {
         if (empty($col)) {
             $wpdb->query("ALTER TABLE `$groups_table` ADD COLUMN `coach_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'مربی مرتبط' AFTER `chapter_name`");
         }
+        $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$groups_table` LIKE %s", 'capacity'));
+        if (empty($col)) {
+            $wpdb->query("ALTER TABLE `$groups_table` ADD COLUMN `capacity` int(11) DEFAULT NULL COMMENT 'ظرفیت این گروه' AFTER `coach_id`");
+        }
+    }
+
+    $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$courses_table` LIKE %s", 'use_granular_capacity'));
+    if (empty($col)) {
+        $wpdb->query("ALTER TABLE `$courses_table` ADD COLUMN `use_granular_capacity` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'ظرفیت جداگانه برای شعبه/مربی/گروه'");
     }
 }
 
@@ -480,7 +489,19 @@ function sc_get_course_groups_config($course_id) {
     $items = [];
 
     foreach (sc_get_course_groups($course_id) as $row) {
-        $items[] = sc_format_course_group_item($row);
+        $item = sc_format_course_group_item($row);
+        if (function_exists('sc_course_uses_granular_capacity') && sc_course_uses_granular_capacity($course_id)) {
+            $cap_info = sc_get_enrollment_slot_capacity_info(
+                $course_id,
+                $item['chapter_name'],
+                $item['coach_id'],
+                $item['name']
+            );
+            $item['capacity'] = $cap_info['total_capacity'];
+            $item['remaining'] = $cap_info['remaining'];
+            $item['is_full'] = !empty($cap_info['is_full']);
+        }
+        $items[] = $item;
     }
 
     $player_can_select = sc_course_player_can_select_group($course_id);
@@ -509,6 +530,7 @@ function sc_format_course_group_item($row) {
             'description' => isset($row['description']) ? (string) $row['description'] : '',
             'chapter_name' => isset($row['chapter_name']) ? (string) $row['chapter_name'] : '',
             'coach_id' => isset($row['coach_id']) ? absint($row['coach_id']) : 0,
+            'capacity' => (isset($row['capacity']) && $row['capacity'] !== null && $row['capacity'] !== '') ? (int) $row['capacity'] : null,
         ];
     }
 
@@ -517,6 +539,7 @@ function sc_format_course_group_item($row) {
         'description' => isset($row->description) ? (string) $row->description : '',
         'chapter_name' => isset($row->chapter_name) ? (string) $row->chapter_name : '',
         'coach_id' => isset($row->coach_id) ? absint($row->coach_id) : 0,
+        'capacity' => (isset($row->capacity) && $row->capacity !== null && $row->capacity !== '') ? (int) $row->capacity : null,
     ];
 }
 

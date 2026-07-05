@@ -712,6 +712,50 @@ $attendance_ungrouped_member_count = ($selected_course_id > 0 && function_exists
                     <?php endif; ?>
                 </div>
 
+                <?php
+                $sc_qr_enabled = function_exists('sc_attendance_qr_is_enabled') && sc_attendance_qr_is_enabled();
+                if ($sc_qr_enabled) :
+                ?>
+                <div class="sc-attendance-mode-switch" role="tablist" aria-label="روش ثبت حضور">
+                    <label class="sc-attendance-mode-switch__option">
+                        <input type="radio" name="sc_attendance_mode" value="list" checked>
+                        <span>لیست دستی</span>
+                    </label>
+                    <label class="sc-attendance-mode-switch__option">
+                        <input type="radio" name="sc_attendance_mode" value="qr">
+                        <span>اسکن QR</span>
+                    </label>
+                </div>
+
+                <div id="sc-attendance-mode-qr" class="sc-attendance-mode-panel" style="display:none;">
+                    <div id="sc-attendance-qr-panel" class="sc-attendance-qr-panel">
+                        <div class="sc-attendance-qr-panel__main">
+                            <div class="sc-attendance-qr-camera-wrap">
+                                <div id="sc-attendance-qr-reader" class="sc-attendance-qr-reader" aria-label="دوربین اسکن QR"></div>
+                                <div id="sc-attendance-qr-toast" class="sc-attendance-qr-toast" aria-live="polite">
+                                    <span class="sc-attendance-qr-toast__text">برای شروع، دکمه «شروع اسکن» را بزنید</span>
+                                </div>
+                            </div>
+                            <div class="sc-attendance-qr-actions">
+                                <button type="button" class="button button-primary button-large" id="sc-attendance-qr-start">شروع اسکن</button>
+                                <button type="button" class="button button-large" id="sc-attendance-qr-stop" disabled>توقف</button>
+                            </div>
+                            <p class="sc-attendance-qr-hint">دوربین عقب گوشی فعال می‌شود. پس از هر اسکن موفق، صدای تأیید پخش می‌شود و می‌توانید بازیکن بعدی را اسکن کنید.</p>
+                        </div>
+                        <aside class="sc-attendance-qr-sidebar">
+                            <div class="sc-attendance-qr-stat">
+                                <span class="sc-attendance-qr-stat__label">ثبت‌شده در این جلسه</span>
+                                <strong class="sc-attendance-qr-stat__value" id="sc-attendance-qr-count">0</strong>
+                            </div>
+                            <h3 class="sc-attendance-qr-log-title">آخرین اسکن‌ها</h3>
+                            <ul id="sc-attendance-qr-log" class="sc-attendance-qr-log"></ul>
+                        </aside>
+                    </div>
+                </div>
+
+                <div id="sc-attendance-mode-list" class="sc-attendance-mode-panel">
+                <?php endif; ?>
+
                 <div class="back_attendance_list sc-attendance-members-wrap">
                     <table class="wp-list-table widefat fixed striped sc-attendance-members-table">
                         <thead>
@@ -780,6 +824,10 @@ $attendance_ungrouped_member_count = ($selected_course_id > 0 && function_exists
                         </tbody>
                     </table>
                 </div>
+
+                <?php if ($sc_qr_enabled) : ?>
+                </div><!-- #sc-attendance-mode-list -->
+                <?php endif; ?>
 
                 <p class="submit sc-attendance-save-actions">
                     <button type="submit" name="sc_save_attendance" class="button button-primary button-large">

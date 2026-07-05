@@ -34,6 +34,12 @@ function sc_course_has_remaining_capacity_slots($course_id) {
     if ($course_id < 1) {
         return false;
     }
+
+    if (function_exists('sc_course_uses_granular_capacity') && sc_course_uses_granular_capacity($course_id)) {
+        return function_exists('sc_course_has_any_granular_enrollment_slot')
+            && sc_course_has_any_granular_enrollment_slot($course_id);
+    }
+
     $courses = $wpdb->prefix . 'sc_courses';
     $cap = $wpdb->get_var($wpdb->prepare("SELECT capacity FROM $courses WHERE id = %d LIMIT 1", $course_id));
     if (!$cap || (int) $cap < 1) {
@@ -87,12 +93,17 @@ function sc_course_capacity_waitlist_validate_subscribe($member_id, $course_id) 
         return new WP_Error('sc_wl_course', 'این دوره در دسترس نیست.');
     }
     if (empty($course->capacity) || (int) $course->capacity < 1) {
-        return new WP_Error('sc_wl_cap', 'این دوره محدودیت ظرفیت ندارد.');
-    }
-
-    $used = sc_count_course_capacity_slots_used($course_id);
-    if ($used < (int) $course->capacity) {
-        return new WP_Error('sc_wl_open', 'ظرفیت این دوره هنوز پر نشده است.');
+        if (!function_exists('sc_course_uses_granular_capacity') || !sc_course_uses_granular_capacity($course_id)) {
+            return new WP_Error('sc_wl_cap', 'این دوره محدودیت ظرفیت ندارد.');
+        }
+        if (function_exists('sc_course_has_any_granular_enrollment_slot') && sc_course_has_any_granular_enrollment_slot($course_id)) {
+            return new WP_Error('sc_wl_open', 'ظرفیت این دوره هنوز پر نشده است.');
+        }
+    } else {
+        $used = sc_count_course_capacity_slots_used($course_id);
+        if ($used < (int) $course->capacity) {
+            return new WP_Error('sc_wl_open', 'ظرفیت این دوره هنوز پر نشده است.');
+        }
     }
 
     $members_table = $wpdb->prefix . 'sc_members';
@@ -198,8 +209,12 @@ function sc_maybe_notify_course_capacity_waitlist($course_id) {
     }
 
     $courses_table = $wpdb->prefix . 'sc_courses';
-    $course = $wpdb->get_row($wpdb->prepare("SELECT id, title, capacity FROM $courses_table WHERE id = %d LIMIT 1", $course_id));
-    if (!$course || empty($course->capacity) || (int) $course->capacity < 1) {
+    $course = $wpdb->get_row($wpdb->prepare("SELECT id, title, capacity, use_granular_capacity FROM $courses_table WHERE id = %d LIMIT 1", $course_id));
+    if (!$course) {
+        return;
+    }
+    $is_granular = function_exists('sc_course_uses_granular_capacity') && sc_course_uses_granular_capacity($course_id);
+    if (!$is_granular && (empty($course->capacity) || (int) $course->capacity < 1)) {
         return;
     }
 

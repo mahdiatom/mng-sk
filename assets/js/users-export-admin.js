@@ -407,8 +407,10 @@ jQuery(function ($) {
         return selected;
     }
 
+    var exportImageFields = ['personal_photo', 'id_card_photo', 'sport_insurance_photo', 'attendance_qr'];
+
     function resolveTemplateLayout(fields) {
-        var filtered = fields.filter(function (f) { return f !== 'personal_photo'; });
+        var filtered = fields.filter(function (f) { return exportImageFields.indexOf(f) === -1; });
         var rightFields = [];
         var leftFields = [];
         if (currentTemplate && currentTemplate.layout) {
@@ -453,7 +455,8 @@ jQuery(function ($) {
             has_photo:
                 fields.indexOf('personal_photo') !== -1 ||
                 fields.indexOf('id_card_photo') !== -1 ||
-                fields.indexOf('sport_insurance_photo') !== -1
+                fields.indexOf('sport_insurance_photo') !== -1 ||
+                fields.indexOf('attendance_qr') !== -1
         };
     }
 
@@ -501,7 +504,8 @@ jQuery(function ($) {
         var hasPhoto =
             $('input[name="fields[]"][value="personal_photo"]').is(':checked') ||
             $('input[name="fields[]"][value="id_card_photo"]').is(':checked') ||
-            $('input[name="fields[]"][value="sport_insurance_photo"]').is(':checked');
+            $('input[name="fields[]"][value="sport_insurance_photo"]').is(':checked') ||
+            $('input[name="fields[]"][value="attendance_qr"]').is(':checked');
         var $format = $('#sc-export-format');
         if (hasPhoto) {
             $format.val('pdf');

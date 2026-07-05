@@ -247,6 +247,7 @@ function sc_create_members_table(){
             `team_player` varchar(100) DEFAULT NULL,
             `disable_auto_invoice` tinyint(1) DEFAULT 0,
             `member_type` varchar(20) NOT NULL DEFAULT 'normal' COMMENT 'normal=بازیکن عادی, team=بازیکن تیم',
+            `attendance_qr_hash` varchar(64) DEFAULT NULL COMMENT 'هش اختصاصی QR حضور و غیاب',
             `profile_completed` TINYINT(1) NOT NULL DEFAULT 0,
             `additional_info` text,
             `member_extra_fields` longtext DEFAULT NULL,
@@ -1422,6 +1423,20 @@ function sc_update_database() {
         update_option('sc_member_type_column_added', '1');
     }
 
+    // ستون هش QR حضور و غیاب
+    if (get_option('sc_attendance_qr_hash_column_added', '0') !== '1') {
+        $members_table = $wpdb->prefix . 'sc_members';
+        $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$members_table` LIKE %s", 'attendance_qr_hash'));
+        if (empty($col_exists)) {
+            $wpdb->query("ALTER TABLE `$members_table` ADD COLUMN `attendance_qr_hash` varchar(64) DEFAULT NULL COMMENT 'هش اختصاصی QR حضور و غیاب' AFTER `member_type`");
+        }
+        $idx_exists = $wpdb->get_results($wpdb->prepare("SHOW INDEX FROM `$members_table` WHERE Key_name = %s", 'idx_attendance_qr_hash'));
+        if (empty($idx_exists)) {
+            $wpdb->query("ALTER TABLE `$members_table` ADD UNIQUE KEY `idx_attendance_qr_hash` (`attendance_qr_hash`)");
+        }
+        update_option('sc_attendance_qr_hash_column_added', '1');
+    }
+
     // اضافه کردن ستون salary_percentage به جدول course_coaches (یک بار برای نصب‌های قبلی)
     if (get_option('sc_coach_salary_percentage_column_added', '0') !== '1') {
         $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
@@ -2142,8 +2157,32 @@ function sc_update_database() {
         update_option('sc_course_groups_v3', '1');
     }
 
+    if (get_option('sc_granular_capacity_v1', '0') !== '1') {
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $courses_table)) === $courses_table) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$courses_table` LIKE %s", 'use_granular_capacity'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$courses_table` ADD COLUMN `use_granular_capacity` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'ظرفیت جداگانه برای شعبه/مربی/گروه' AFTER `player_can_select_group`");
+            }
+        }
+
+        $groups_table = $wpdb->prefix . 'sc_course_groups';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $groups_table)) === $groups_table) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$groups_table` LIKE %s", 'capacity'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$groups_table` ADD COLUMN `capacity` int(11) DEFAULT NULL COMMENT 'ظرفیت این گروه' AFTER `coach_id`");
+            }
+        }
+
+        update_option('sc_granular_capacity_v1', '1');
+    }
+
     if (function_exists('sc_ensure_course_groups_schema')) {
         sc_ensure_course_groups_schema();
+    }
+
+    if (function_exists('sc_ensure_granular_capacity_schema')) {
+        sc_ensure_granular_capacity_schema();
     }
 
     if (function_exists('sc_private_ensure_booking_schema_columns')) {

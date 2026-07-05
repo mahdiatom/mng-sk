@@ -24,6 +24,15 @@ function sc_current_user_coach_id() {
 }
 
 /**
+ * سطوح مربی‌گری مجاز (توسط مدیر تنظیم می‌شود)
+ *
+ * @return string[]
+ */
+function sc_get_coaching_level_options() {
+    return ['استاد', 'ارشد', 'حرفه‌ای', 'نیمه حرفه‌ای', 'مبتدی'];
+}
+
+/**
  * برچسب ثبت‌کننده اطلاعیه برای نمایش در لیست (مدیر / مربی: نام)
  */
 function sc_notification_creator_label($notification) {

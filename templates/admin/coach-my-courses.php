@@ -25,25 +25,28 @@ $courses = $wpdb->get_results($wpdb->prepare(
     $coach_id
 ));
 ?>
-<div class="wrap sc-coach-panel-wrap">
-    <div class="sc-coach-panel-header">
-        <h1 class="sc-coach-panel-title">دوره‌های من</h1>
-        <p class="sc-coach-panel-desc">فقط دوره‌هایی که به شما اختصاص داده شده است  را میتوانید مشاهده کنید .</p>
+<div class="wrap sc-members-list-wrap">
+    <div class="sc-members-list-header">
+        <div class="sc-members-list-header-text">
+            <h1 class="sc-members-list-title">دوره‌های من</h1>
+            <p class="sc-members-list-desc">فقط دوره‌هایی که به شما اختصاص داده شده است را می‌توانید مشاهده کنید.</p>
+        </div>
     </div>
+
     <?php if (empty($courses)) : ?>
-        <div class="sc-coach-panel-empty">
-            <span class="sc-coach-panel-empty-icon dashicons dashicons-welcome-learn-more"></span>
-            <p class="sc-coach-panel-empty-text">شما به هیچ دوره‌ای اختصاص داده نشده‌اید.</p>
+        <div class="sc-members-list-table-card">
+            <p style="text-align:center;padding:40px 16px;color:#6b7280;margin:0;">شما به هیچ دوره‌ای اختصاص داده نشده‌اید.</p>
         </div>
     <?php else : ?>
-        <div class="sc-coach-panel-card">
+        <div class="sc-members-list-table-card">
             <table class="wp-list-table widefat fixed striped sc-coach-my-courses-table">
                 <thead>
                     <tr>
                         <th class="column-title">عنوان</th>
                         <th class="column-chapter">شعبه</th>
+                        <th class="column-groups">گروه‌بندی کلاس</th>
                         <th class="column-price">قیمت</th>
-                        <th class="column-price">نوع همکاری</th>
+                        <th class="column-cooperation">نوع همکاری</th>
                         <th class="column-salary_percentage">درصد همکاری</th>
                         <th class="column-status">وضعیت</th>
                     </tr>
@@ -52,14 +55,33 @@ $courses = $wpdb->get_results($wpdb->prepare(
                     <?php
                     $shamsi_start = function_exists('sc_date_shamsi_date_only');
                     foreach ($courses as $c) :
-                        $start_display = $c->start_date && $shamsi_start ? sc_date_shamsi_date_only($c->start_date) : ($c->start_date ? esc_html($c->start_date) : '-');
-                        $end_display   = $c->end_date && $shamsi_start ? sc_date_shamsi_date_only($c->end_date) : ($c->end_date ? esc_html($c->end_date) : '-');
+                        $group_labels = [];
+                        if (function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled((int) $c->id)) {
+                            if (function_exists('sc_get_course_groups_for_branch')) {
+                                foreach (sc_get_course_groups_for_branch((int) $c->id, (string) ($c->chapter_name ?? ''), $coach_id) as $gitem) {
+                                    if (!empty($gitem['name'])) {
+                                        $group_labels[] = $gitem['name'];
+                                    }
+                                }
+                            } elseif (function_exists('sc_get_course_groups')) {
+                                foreach (sc_get_course_groups((int) $c->id) as $grow) {
+                                    if (function_exists('sc_course_group_matches_branch') && !sc_course_group_matches_branch($grow, (string) ($c->chapter_name ?? ''), $coach_id)) {
+                                        continue;
+                                    }
+                                    if (!empty($grow->group_name)) {
+                                        $group_labels[] = (string) $grow->group_name;
+                                    }
+                                }
+                            }
+                        }
+                        $groups_display = !empty($group_labels) ? implode('، ', array_unique($group_labels)) : '-';
                     ?>
                         <tr>
                             <td class="column-title"><strong><?php echo esc_html($c->title); ?></strong></td>
                             <td class="column-chapter"><?php echo esc_html($c->chapter_name ?? '-'); ?></td>
-                            <td class="column-price"><?php echo $c->price ? number_format((float)$c->price, 0) : '-'; ?></td>
-                            <td class="column-salary_percentage"><?php
+                            <td class="column-groups"><?php echo esc_html($groups_display); ?></td>
+                            <td class="column-price"><?php echo $c->price ? number_format((float) $c->price, 0) : '-'; ?></td>
+                            <td class="column-cooperation"><?php
                                 if ($coach_settlement_type_g === 'both') {
                                     echo $c->salary_percentage > 0 ? 'ثابت + درصدی (جلسه)' : 'ثابت + درصدی';
                                 } elseif ($coach_settlement_type_g === 'percentage') {
@@ -68,7 +90,7 @@ $courses = $wpdb->get_results($wpdb->prepare(
                                     echo 'ثابت';
                                 }
                             ?></td>
-                            <td class="column-salary_percentage"><?php echo $c->salary_percentage >0 ? number_format((float)$c->salary_percentage, 0) : '__'; ?></td>
+                            <td class="column-salary_percentage"><?php echo $c->salary_percentage > 0 ? number_format((float) $c->salary_percentage, 0) : '__'; ?></td>
                             <td class="column-status"><?php echo $c->is_active ? 'فعال' : 'غیرفعال'; ?></td>
                         </tr>
                     <?php endforeach; ?>

@@ -24,6 +24,9 @@ if (!isset($has_grouping)) {
 if (!isset($player_can_select_group)) {
     $player_can_select_group = 0;
 }
+if (!isset($use_granular_capacity)) {
+    $use_granular_capacity = 0;
+}
 if (!isset($course_group_rows) || !is_array($course_group_rows)) {
     $course_group_rows = [];
 }
@@ -57,6 +60,11 @@ if ($course && isset($_GET['course_id'])) {
     } elseif (isset($course->player_can_select_group)) {
         $player_can_select_group = (int) $course->player_can_select_group;
     }
+    if (function_exists('sc_course_uses_granular_capacity') && !empty($course->id)) {
+        $use_granular_capacity = sc_course_uses_granular_capacity((int) $course->id) ? 1 : 0;
+    } elseif (isset($course->use_granular_capacity)) {
+        $use_granular_capacity = (int) $course->use_granular_capacity;
+    }
     if (empty($course_group_rows) && function_exists('sc_get_course_groups') && !empty($course->id)) {
         foreach (sc_get_course_groups((int) $course->id) as $grow) {
             $course_group_rows[] = [
@@ -64,6 +72,7 @@ if ($course && isset($_GET['course_id'])) {
                 'description' => isset($grow->description) ? (string) $grow->description : '',
                 'chapter_name' => isset($grow->chapter_name) ? (string) $grow->chapter_name : '',
                 'coach_id' => isset($grow->coach_id) ? (int) $grow->coach_id : 0,
+                'capacity' => isset($grow['capacity']) ? $grow['capacity'] : (isset($grow->capacity) && $grow->capacity !== null ? (int) $grow->capacity : ''),
             ];
         }
     }
@@ -77,7 +86,7 @@ if ($course && isset($_GET['course_id'])) {
     }
 }
 if (empty($course_group_rows)) {
-    $course_group_rows = [['name' => '', 'description' => '', 'chapter_name' => '', 'coach_id' => 0]];
+    $course_group_rows = [['name' => '', 'description' => '', 'chapter_name' => '', 'coach_id' => 0, 'capacity' => '']];
 }
 global $wpdb;
 $chapter_table = $wpdb->prefix . 'sc_chapter_categories';
@@ -264,7 +273,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                                 <input type="hidden" name="price_per_session_raw" id="price_per_session_raw" value="<?php echo esc_attr($price_per_session_display); ?>">
                                 <p id="sc-course-price-error" class="sc-course-field__error" style="display:none;"></p>
                             </div>
-                            <div class="sc-course-field sc-standard-pricing-field">
+                            <div class="sc-course-field sc-standard-pricing-field sc-course-global-capacity-field">
                                 <label class="sc-course-field__label" for="capacity">ظرفیت</label>
                                 <input name="capacity" type="number" id="capacity" value="<?php echo esc_attr($capacity ?? ''); ?>" class="sc-course-input" min="1">
                                 <p class="sc-course-field__hint">تعداد مجاز ثبت‌نام. در صورت خالی بودن، نامحدود خواهد بود.</p>
@@ -795,6 +804,45 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                     </div>
                 </section>
 
+                <section class="sc-course-panel sc-course-panel--granular-capacity sc-group-course-row" id="sc-granular-capacity-panel">
+                    <header class="sc-course-panel__header">
+                        <div class="sc-course-panel__intro">
+                            <div class="sc-course-panel__icon" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="sc-course-panel__title">ظرفیت تفکیک‌شده</h3>
+                                <p class="sc-course-panel__desc">پس از تعیین شعبه، مربی و گروه‌ها، ظرفیت هر بخش را جداگانه مشخص کنید.</p>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="sc-course-panel__body">
+                        <label class="sc-course-toggle-chip sc-course-toggle-chip--lg">
+                            <input type="checkbox" name="use_granular_capacity" id="use_granular_capacity" value="1" <?php checked($use_granular_capacity, 1); ?>>
+                            <span>ظرفیت هر شعبه، مربی و گروه را جداگانه مشخص می‌کنم</span>
+                        </label>
+                        <input type="hidden" name="granular_capacity_present" id="granular_capacity_present" value="<?php echo $use_granular_capacity ? '1' : '0'; ?>">
+                        <div id="sc-granular-capacity-box" class="sc-course-panel__sub" style="<?php echo $use_granular_capacity ? '' : 'display:none;'; ?>">
+                            <p class="sc-course-field__hint">ابتدا شعبه‌ها، مربی‌ها و در صورت نیاز گروه‌ها را در بخش‌های بالا تنظیم کنید. سپس برای هر ردیف ظرفیت مجاز ثبت‌نام را وارد کنید. خالی = نامحدود.</p>
+                            <div class="sc-course-table-wrap">
+                                <table class="sc-course-modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>نوع</th>
+                                            <th>گروه</th>
+                                            <th>شعبه</th>
+                                            <th>مربی</th>
+                                            <th>ظرفیت</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sc-granular-capacity-body"></tbody>
+                                </table>
+                            </div>
+                            <p id="sc-granular-capacity-empty" class="sc-course-field__hint" style="display:none;margin-top:10px;">هنوز شعبه/مربی یا گروهی برای تعیین ظرفیت وجود ندارد.</p>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="sc-course-panel sc-course-panel--status">
                     <div class="sc-course-panel__body sc-course-status-bar">
                         <div class="sc-course-status-bar__info">
@@ -824,6 +872,33 @@ var scCourseCoachLabels = <?php echo wp_json_encode($sc_coach_labels_for_js, JSO
 var scCourseCoachBranchMeta = <?php echo wp_json_encode($course_coach_branch_meta_map, JSON_UNESCAPED_UNICODE); ?>;
 var scScheduleChapterOptions = <?php echo wp_json_encode(array_values($schedule_chapter_options), JSON_UNESCAPED_UNICODE); ?>;
 var scCourseCoachAssignments = <?php echo wp_json_encode($course_coach_assignments_map, JSON_UNESCAPED_UNICODE); ?>;
+var scGranularGroupCapacitySaved = <?php
+    $granular_group_caps = [];
+    foreach ((array) $course_group_rows as $grow) {
+        $gn = isset($grow['name']) ? trim((string) $grow['name']) : '';
+        if ($gn !== '' && isset($grow['capacity']) && $grow['capacity'] !== '' && $grow['capacity'] !== null) {
+            $granular_group_caps[$gn] = (string) (int) $grow['capacity'];
+        }
+    }
+    echo wp_json_encode($granular_group_caps, JSON_UNESCAPED_UNICODE);
+?>;
+var scGranularBranchCapacitySaved = <?php
+    $granular_branch_caps = [];
+    if (!empty($course_coach_branch_meta_map) && is_array($course_coach_branch_meta_map)) {
+        foreach ($course_coach_branch_meta_map as $ch_name => $coaches) {
+            foreach ((array) $coaches as $co_id => $meta) {
+                if (!empty($meta['capacity'])) {
+                    if (!isset($granular_branch_caps[$ch_name])) {
+                        $granular_branch_caps[$ch_name] = [];
+                    }
+                    $granular_branch_caps[$ch_name][(int) $co_id] = (string) (int) $meta['capacity'];
+                }
+            }
+        }
+    }
+    echo wp_json_encode($granular_branch_caps, JSON_UNESCAPED_UNICODE);
+?>;
+window.scGranularCapacityMemory = { group: {}, branch: {} };
 jQuery(document).ready(function($) {
     // فرمت کردن فیلد قیمت کل دوره
     if ($('#price').length && $('#price_raw').length) {
@@ -1784,6 +1859,9 @@ jQuery(document).ready(function($) {
         });
         scSyncScheduleSelects();
         scSyncCoachBranchPricingTable();
+        if (typeof scSyncGranularCapacityTable === 'function') {
+            scSyncGranularCapacityTable();
+        }
     }
 
     // ابتدا شعبه/مربی همگام شود، بعد فیلدهای کلاس خصوصی (جلوگیری از پاک شدن قیمت/ظرفیت)
@@ -1801,7 +1879,165 @@ jQuery(document).ready(function($) {
     $(document).on('change', '.sc-course-coach-assign-cb', function () {
         scSyncScheduleSelects();
         scSyncCoachBranchPricingTable();
+        scSyncGranularCapacityTable();
     });
+
+    function scToggleGranularCapacityPanel() {
+        var isGroupCourse = ($('#course_type').val() || 'group') === 'group';
+        $('#sc-granular-capacity-panel').toggle(isGroupCourse);
+        var useGranular = isGroupCourse && $('#use_granular_capacity').is(':checked');
+        $('#sc-granular-capacity-box').toggle(useGranular);
+        $('#granular_capacity_present').val(useGranular ? '1' : '0');
+        $('.sc-course-global-capacity-field').toggle(isGroupCourse && !useGranular);
+        if (useGranular) {
+            scSyncGranularCapacityTable();
+        }
+    }
+
+    function scCollectGranularCapacityMemory() {
+        $('#sc-granular-capacity-body input[data-cap-type="group"]').each(function () {
+            var g = String($(this).attr('data-group-name') || '');
+            if (g) {
+                window.scGranularCapacityMemory.group[g] = $(this).val();
+            }
+        });
+        $('#sc-granular-capacity-body input[data-cap-type="branch"]').each(function () {
+            var ch = String($(this).attr('data-chapter') || '');
+            var co = String($(this).attr('data-coach-id') || '0');
+            if (!window.scGranularCapacityMemory.branch[ch]) {
+                window.scGranularCapacityMemory.branch[ch] = {};
+            }
+            window.scGranularCapacityMemory.branch[ch][co] = $(this).val();
+        });
+    }
+
+    function scGetGranularCapValue(type, chapter, coachId, groupName) {
+        if (type === 'group') {
+            if (window.scGranularCapacityMemory.group[groupName] !== undefined) {
+                return window.scGranularCapacityMemory.group[groupName];
+            }
+            if (scGranularGroupCapacitySaved[groupName] !== undefined) {
+                return scGranularGroupCapacitySaved[groupName];
+            }
+            return '';
+        }
+        if (window.scGranularCapacityMemory.branch[chapter] && window.scGranularCapacityMemory.branch[chapter][String(coachId)] !== undefined) {
+            return window.scGranularCapacityMemory.branch[chapter][String(coachId)];
+        }
+        if (scGranularBranchCapacitySaved[chapter] && scGranularBranchCapacitySaved[chapter][coachId] !== undefined) {
+            return scGranularBranchCapacitySaved[chapter][coachId];
+        }
+        return '';
+    }
+
+    function scBuildGranularCapacitySlots() {
+        var slots = [];
+        var hasGrouping = $('#has_grouping').is(':checked');
+
+        if (hasGrouping) {
+            $('.sc-course-group-row').each(function () {
+                var groupName = $.trim(String($(this).find('.sc-course-group-name').val() || ''));
+                if (!groupName) {
+                    return;
+                }
+                var chapter = String($(this).find('.sc-course-group-chapter-select').val() || '');
+                var coachId = parseInt($(this).find('.sc-course-group-coach-select').val() || '0', 10);
+                slots.push({
+                    type: 'group',
+                    groupName: groupName,
+                    chapter: chapter,
+                    coachId: coachId
+                });
+            });
+            if (slots.length) {
+                return slots;
+            }
+        }
+
+        $('.sc-course-chapter-coaches').each(function () {
+            var chapter = String($(this).attr('data-chapter') || '');
+            if (!chapter || !$('.sc-course-chapter-cb[value="' + chapter.replace(/"/g, '\\"') + '"]').is(':checked')) {
+                return;
+            }
+            $(this).find('.sc-course-coach-assign-cb:checked').each(function () {
+                var coachId = scReadCoachIdFromEl($(this).closest('label'));
+                if (!coachId) {
+                    return;
+                }
+                var label = $(this).closest('label').find('.sc-chapter-coach-pill__text').text() || ('مربی #' + coachId);
+                slots.push({
+                    type: 'branch',
+                    groupName: '',
+                    chapter: chapter,
+                    coachId: coachId,
+                    coachLabel: label
+                });
+            });
+        });
+
+        return slots;
+    }
+
+    function scSyncGranularCapacityTable() {
+        if (!$('#use_granular_capacity').is(':checked')) {
+            return;
+        }
+        scCollectGranularCapacityMemory();
+        var slots = scBuildGranularCapacitySlots();
+        var $body = $('#sc-granular-capacity-body');
+        $body.empty();
+
+        if (!slots.length) {
+            $('#sc-granular-capacity-empty').show();
+            return;
+        }
+        $('#sc-granular-capacity-empty').hide();
+
+        slots.forEach(function (slot) {
+            var capVal = scGetGranularCapValue(slot.type, slot.chapter, slot.coachId, slot.groupName);
+            var coachLabel = slot.coachLabel || (scCourseCoachLabels[slot.coachId] || (slot.coachId ? ('مربی #' + slot.coachId) : '—'));
+            var $tr = $('<tr></tr>');
+            $tr.append($('<td></td>').text(slot.type === 'group' ? 'گروه' : 'شعبه/مربی'));
+            $tr.append($('<td></td>').text(slot.groupName || '—'));
+            $tr.append($('<td></td>').text(slot.chapter || '—'));
+            $tr.append($('<td></td>').text(coachLabel));
+            var $inp = $('<input type="number" min="1" class="sc-course-input sc-course-input--sm">')
+                .val(capVal)
+                .attr('placeholder', 'نامحدود');
+            if (slot.type === 'group') {
+                $inp.attr({
+                    name: 'granular_group_capacity[' + slot.groupName + ']',
+                    'data-cap-type': 'group',
+                    'data-group-name': slot.groupName
+                });
+            } else {
+                $inp.attr({
+                    name: 'granular_branch_capacity[' + slot.chapter + '][' + slot.coachId + ']',
+                    'data-cap-type': 'branch',
+                    'data-chapter': slot.chapter,
+                    'data-coach-id': String(slot.coachId)
+                });
+            }
+            $tr.append($('<td></td>').append($inp));
+            $body.append($tr);
+        });
+    }
+
+    $('#use_granular_capacity').on('change', scToggleGranularCapacityPanel);
+    $('#course_type').on('change', function () {
+        scToggleGranularCapacityPanel();
+    });
+    $('#has_grouping').on('change', function () {
+        scSyncGranularCapacityTable();
+    });
+    $(document).on('change input', '.sc-course-group-name, .sc-course-group-chapter-select, .sc-course-group-coach-select', function () {
+        scSyncGranularCapacityTable();
+    });
+    $(document).on('click', '#sc-course-group-add, .sc-course-group-remove', function () {
+        setTimeout(scSyncGranularCapacityTable, 0);
+    });
+
+    scToggleGranularCapacityPanel();
 });
 </script>
 

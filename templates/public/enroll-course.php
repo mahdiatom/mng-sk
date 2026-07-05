@@ -276,7 +276,11 @@ $sc_enroll_today_shamsi = function_exists('sc_get_today_shamsi') ? sc_get_today_
                     
                     <?php if ($show_capacity) : ?>
                         <span class="sc-course-capacity <?php echo ($is_capacity_full && !$is_enrolled) ? 'full' : ''; ?>">
-                            <strong>ظرفیت باقی مانده:</strong> <?php echo esc_html($remaining); ?> نفر
+                            <strong><?php echo !empty($capacity_info['granular']) ? 'مجموع ظرفیت باقی‌مانده:' : 'ظرفیت باقی مانده:'; ?></strong> <?php echo esc_html($remaining); ?> نفر
+                        </span>
+                    <?php elseif (!empty($capacity_info['granular'])) : ?>
+                        <span class="sc-course-capacity sc-course-capacity--granular">
+                            <strong>ظرفیت:</strong> بر اساس شعبه/مربی/گروه انتخاب‌شده
                         </span>
                     <?php endif; ?>
                     
@@ -345,6 +349,7 @@ $sc_enroll_today_shamsi = function_exists('sc_get_today_shamsi') ? sc_get_today_
                     <div class="sc-enroll-chapter-wrap sc-enroll-field-wrap"></div>
                     <div class="sc-enroll-coach-wrap sc-enroll-field-wrap"></div>
                     <div class="sc-enroll-group-wrap sc-enroll-field-wrap"></div>
+                    <div class="sc-enroll-slot-capacity-wrap sc-enroll-field-wrap"></div>
                 </div>
                 <div class="sc-enroll-schedule-wrap"></div>
                 <div class="sc-enroll-checkout-anchor"></div>
@@ -561,6 +566,70 @@ document.addEventListener('DOMContentLoaded', function() {
         return coaches;
     }
 
+    function findGranularSlotCapacity(cfg, chapterName, coachId, groupName) {
+        if (!cfg || !cfg.granular_capacity || !cfg.capacity_slots || !cfg.capacity_slots.length) {
+            return null;
+        }
+        var chapter = chapterName || '';
+        coachId = parseInt(coachId || '0', 10);
+        groupName = groupName || '';
+        var match = null;
+        cfg.capacity_slots.forEach(function (slot) {
+            if (slot.type === 'group' && groupName && slot.group_name === groupName) {
+                match = slot;
+            }
+        });
+        if (!match && !groupName) {
+            cfg.capacity_slots.forEach(function (slot) {
+                if (slot.type !== 'group' && slot.chapter_name === chapter && parseInt(slot.coach_id || 0, 10) === coachId) {
+                    match = slot;
+                }
+            });
+        }
+        return match;
+    }
+
+    function renderEnrollSlotCapacityHint(panel, cfg) {
+        var wrap = panel ? panel.querySelector('.sc-enroll-slot-capacity-wrap') : null;
+        if (!wrap) {
+            return;
+        }
+        wrap.innerHTML = '';
+        if (!cfg || !cfg.granular_capacity) {
+            return;
+        }
+        var chField = document.getElementById('sc-enrollment-chapter-field');
+        var coField = document.getElementById('sc-enrollment-coach-field');
+        var grpField = document.getElementById('sc-enrollment-group-field');
+        var chapter = chField ? (chField.value || '') : '';
+        var coachId = coField ? parseInt(coField.value || '0', 10) : 0;
+        var groupName = grpField ? (grpField.value || '') : '';
+        if (!chapter && cfg.chapters && cfg.chapters.length === 1) {
+            chapter = cfg.chapters[0].name || '';
+        }
+        var slot = findGranularSlotCapacity(cfg, chapter, coachId, groupName);
+        if (!slot) {
+            return;
+        }
+        if (slot.unlimited) {
+            wrap.innerHTML = '<p class="sc-enroll-slot-capacity sc-enroll-slot-capacity--open">ظرفیت این بخش: نامحدود</p>';
+            return;
+        }
+        var remaining = typeof slot.remaining === 'number' ? slot.remaining : 0;
+        var cls = remaining <= 0 ? 'sc-enroll-slot-capacity sc-enroll-slot-capacity--full' : 'sc-enroll-slot-capacity sc-enroll-slot-capacity--open';
+        wrap.innerHTML = '<p class="' + cls + '">ظرفیت باقی‌مانده این انتخاب: ' + remaining + ' نفر</p>';
+    }
+
+    function formatGroupOptionLabel(g) {
+        var label = g.name || '';
+        if (typeof g.remaining === 'number' && g.remaining >= 0) {
+            label += ' (' + g.remaining + ' جای خالی)';
+        } else if (g.is_full) {
+            label += ' (ظرفیت تکمیل)';
+        }
+        return label;
+    }
+
     function getResolvedChapterName(cfg) {
         if (!cfg || !cfg.chapters || !cfg.chapters.length) {
             return '';
@@ -668,6 +737,10 @@ document.addEventListener('DOMContentLoaded', function() {
             checkoutPanel.hidden = true;
             hideEnrollBillingUi();
             return;
+        }
+        var branchPanel = courseItem.querySelector('.sc-enroll-branch-coach-inner');
+        if (branchPanel && branchConfigs[courseId]) {
+            renderEnrollSlotCapacityHint(branchPanel, branchConfigs[courseId]);
         }
         var anchor = courseItem.querySelector('.sc-enroll-branch-coach-inner .sc-enroll-checkout-anchor')
             || courseItem.querySelector('.sc-enroll-checkout-anchor');
@@ -983,7 +1056,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!g.name) {
                     return;
                 }
-                gHtml += '<option value="' + g.name + '">' + g.name + '</option>';
+                var disabled = g.is_full ? ' disabled' : '';
+                gHtml += '<option value="' + g.name + '"' + disabled + '>' + formatGroupOptionLabel(g) + '</option>';
             });
             gHtml += '</select></label>';
             gHtml += '<div class="sc-enroll-group-desc" style="margin-top:6px;font-size:13px;color:#555;"></div>';
@@ -1003,10 +1077,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         gDesc.textContent = desc;
                     }
                     renderSchedule(chField.value || '');
+                    renderEnrollSlotCapacityHint(panel, cfg);
                     updateEnrollCheckoutPanel();
                 });
             }
             renderSchedule(chField.value || '');
+            renderEnrollSlotCapacityHint(panel, cfg);
             updateEnrollCheckoutPanel();
         }
 
