@@ -195,6 +195,7 @@ $sql = "CREATE TABLE `$table_name` (
     `attendance_date` date NOT NULL,
     `status` enum('present','absent','excused') NOT NULL DEFAULT 'present',
     `user_id` bigint(20) unsigned DEFAULT NULL,
+    `record_method` varchar(20) NOT NULL DEFAULT 'manual' COMMENT 'manual|qr|api|auto_absent',
     `absence_sms_sent` tinyint(1) DEFAULT 0,
     `created_at` datetime NOT NULL,
     `updated_at` datetime NOT NULL,
@@ -204,12 +205,57 @@ $sql = "CREATE TABLE `$table_name` (
     KEY `idx_course_id` (`course_id`),
     KEY `idx_attendance_date` (`attendance_date`),
     KEY `idx_status` (`status`),
-    KEY `idx_user_id` (`user_id`)
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_record_method` (`record_method`)
     ) ENGINE=InnoDB $table_collation";
 
             require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
             dbDelta($sql);
     }
+
+/**
+ * برچسب روش ثبت حضور (مربی دستی / QR / ...)
+ *
+ * @param string $method
+ * @return string
+ */
+function sc_attendance_record_method_label($method) {
+    $labels = [
+        'manual'      => 'مربی (دستی)',
+        'qr'          => 'اسکن QR',
+        'api'         => 'دستگاه',
+        'auto_absent' => 'خودکار',
+    ];
+    $method = sanitize_key((string) $method);
+    return isset($labels[$method]) ? $labels[$method] : '—';
+}
+
+/**
+ * گزینه‌های فیلتر گزارش روش ثبت
+ *
+ * @return array<string,string>
+ */
+function sc_attendance_record_method_filter_options() {
+    return [
+        ''       => 'همه',
+        'manual' => 'مربی (دستی)',
+        'qr'     => 'اسکن QR',
+    ];
+}
+
+/**
+ * @param array $where_conditions
+ * @param array $where_values
+ * @param string $filter_record_method
+ */
+function sc_attendance_apply_record_method_filter(array &$where_conditions, array &$where_values, $filter_record_method) {
+    $filter_record_method = sanitize_key((string) $filter_record_method);
+    if ($filter_record_method === 'manual' || $filter_record_method === 'qr') {
+        $where_conditions[] = 'a.record_method = %s';
+        $where_values[] = $filter_record_method;
+    }
+}
+
     /**
  * Create members_table
  */

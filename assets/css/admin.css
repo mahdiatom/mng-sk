@@ -11121,6 +11121,40 @@ body[class*="_page_sc-attendance-add"] .sc-attendance-members-table {
     border: none !important;
     border-radius: 12px;
     overflow: hidden;
+    table-layout: fixed;
+    width: 100%;
+    min-width: 640px;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-members-table col.sc-att-col-row,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-table col.sc-att-col-row {
+    width: 52px;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-members-table col.sc-att-col-name,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-table col.sc-att-col-name {
+    width: 24%;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-members-table col.sc-att-col-debt,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-table col.sc-att-col-debt {
+    width: 17%;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-members-table col.sc-att-col-method,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-table col.sc-att-col-method {
+    width: 13%;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-members-table col.sc-att-col-status,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-table col.sc-att-col-status {
+    width: 38%;
+    min-width: 240px;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-members-table .sc-att-col-status,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-table .sc-att-col-status {
+    white-space: nowrap;
 }
 
 body.toplevel_page_sc-attendance-add .sc-attendance-members-table thead th,
@@ -11172,23 +11206,26 @@ body.toplevel_page_sc-attendance-add .sc-attendance-status-cell,
 body[class*="_page_sc-attendance-add"] .sc-attendance-status-cell {
     position: relative;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    min-width: 0;
 }
 
 body.toplevel_page_sc-attendance-add .sc-attendance-status-pill,
 body[class*="_page_sc-attendance-add"] .sc-attendance-status-pill {
     display: inline-flex !important;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     margin: 0 !important;
-    padding: 8px 14px !important;
+    padding: 7px 12px !important;
     border-radius: 999px !important;
     border: 1px solid #e8e5f5 !important;
     background: #fff !important;
     cursor: pointer;
     transition: all 0.15s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 body.toplevel_page_sc-attendance-add .sc-attendance-status-pill--present:has(input:checked),
@@ -11260,6 +11297,102 @@ body[class*="_page_sc-attendance-add"] .sc-attendance-save-actions .button-prima
     border-radius: 12px !important;
     font-weight: 800 !important;
     box-shadow: 0 10px 28px rgba(109, 52, 255, 0.32);
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-list-section,
+body[class*="_page_sc-attendance-add"] .sc-attendance-list-section {
+    margin-bottom: 24px;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-list-section__head,
+body[class*="_page_sc-attendance-add"] .sc-attendance-list-section__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-list-section__title,
+body[class*="_page_sc-attendance-add"] .sc-attendance-list-section__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e1b2e;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-list-section__count,
+body[class*="_page_sc-attendance-add"] .sc-attendance-list-section__count {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(109, 52, 255, 0.1);
+    color: #4a1fb8;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-list-section--recorded .sc-attendance-list-section__count,
+body[class*="_page_sc-attendance-add"] .sc-attendance-list-section--recorded .sc-attendance-list-section__count {
+    background: rgba(34, 197, 94, 0.12);
+    color: #15803d;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-list-section__desc,
+body[class*="_page_sc-attendance-add"] .sc-attendance-list-section__desc {
+    margin: 0 0 12px;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-list-empty,
+body[class*="_page_sc-attendance-add"] .sc-attendance-list-empty {
+    padding: 28px 16px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 13px;
+    border: 1px dashed #e5e7eb;
+    border-radius: 12px;
+    background: #fafafa;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-save-btn--new,
+body[class*="_page_sc-attendance-add"] .sc-attendance-save-btn--new {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none !important;
+    color: #fff !important;
+    box-shadow: 0 10px 28px rgba(109, 52, 255, 0.32);
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-save-btn--update,
+body[class*="_page_sc-attendance-add"] .sc-attendance-save-btn--update {
+    background: #fff !important;
+    border: 2px solid rgba(34, 197, 94, 0.45) !important;
+    color: #15803d !important;
+    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.12);
+    min-width: 210px;
+    height: 46px !important;
+    border-radius: 12px !important;
+    font-weight: 800 !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-save-btn--update:hover,
+body[class*="_page_sc-attendance-add"] .sc-attendance-save-btn--update:hover {
+    background: rgba(34, 197, 94, 0.08) !important;
+    color: #15803d !important;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-save-actions--pending,
+body[class*="_page_sc-attendance-add"] .sc-attendance-save-actions--pending,
+body.toplevel_page_sc-attendance-add .sc-attendance-save-actions--recorded,
+body[class*="_page_sc-attendance-add"] .sc-attendance-save-actions--recorded {
+    margin-top: 12px;
+    margin-bottom: 0;
+    padding-top: 0;
 }
 
 body.sc-attendance-add_page_sc-attendance-list .form_fillter_attendance,
@@ -23689,6 +23822,340 @@ body.sc-reports_page_sc-attendance-logs .sc-attendance-logs-wrap .sc-badge--mute
     }
 }
 /* ─── پایان لاگ تردد دستگاه ─── */
+
+/* ─── گزارش QR حضور — استایل لیست بازیکن‌ها ─── */
+body[class*="_page_sc-reports-attendance-qr"] #wpcontent,
+body.sc-reports_page_sc-reports-attendance-qr #wpcontent,
+body.sc-attendance-add_page_sc-reports-attendance-qr #wpcontent {
+    background: #f4f2fa;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap.sc-members-list-wrap,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap.sc-members-list-wrap,
+body.sc-attendance-add_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap.sc-members-list-wrap {
+    margin-block: 16px 24px;
+    margin-inline-start: 0;
+    margin-inline-end: 20px;
+    padding: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: transparent !important;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-header,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-title,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-title {
+    margin: 0 0 6px;
+    padding: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #1e1b2e;
+    line-height: 1.3;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-desc,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-desc {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-header-actions,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-export-btn,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-export-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(109, 52, 255, 0.28);
+    background: #fff;
+    color: #4a1fb8;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-card,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-card {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-toolbar,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-toggle,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    padding: 8px 18px;
+    border: 1px solid rgba(109, 52, 255, 0.22);
+    border-radius: 999px;
+    background: #fff;
+    color: #4a1fb8;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-toggle:hover,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-toggle:hover {
+    background: rgba(109, 52, 255, 0.06);
+    border-color: rgba(109, 52, 255, 0.4);
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-toggle-icon,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-toggle-icon {
+    display: inline-flex;
+    color: #6d34ff;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-badge,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-chevron,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-chevron {
+    width: 8px;
+    height: 8px;
+    margin-right: 2px;
+    border-right: 2px solid #6d34ff;
+    border-bottom: 2px solid #6d34ff;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron {
+    transform: rotate(-135deg);
+    margin-top: 4px;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-clear,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-clear {
+    color: #6d34ff;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-panel,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-panel {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(109, 52, 255, 0.1);
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-panel[hidden],
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-panel[hidden] {
+    display: none !important;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-filter-grid,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-filter-field,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-filter-field {
+    width: 100%;
+    min-width: 0;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-filter-label,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-filter-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-filter-control,
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-dropdown-toggle,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-filter-control,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-dropdown-toggle {
+    width: 100%;
+    max-width: 100%;
+    min-height: 42px;
+    height: 42px;
+    box-sizing: border-box;
+    border-radius: 12px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #1e1b2e;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-filter-control:focus,
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-dropdown-toggle:focus-within,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-filter-control:focus,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-dropdown-toggle:focus-within {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+    outline: none;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-searchable-dropdown,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-searchable-dropdown {
+    width: 100%;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-dropdown-menu,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-dropdown-menu {
+    border-radius: 12px;
+    border: 1px solid rgba(109, 52, 255, 0.14);
+    box-shadow: 0 12px 32px rgba(74, 31, 184, 0.12);
+    overflow: hidden;
+    z-index: 30;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-filter-date .sc-date-range,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-filter-date .sc-date-range {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-actions,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-actions .button-primary,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-actions .button-primary {
+    min-height: 42px;
+    padding: 0 22px;
+    border: none !important;
+    border-radius: 999px !important;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    font-weight: 700;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-table-card,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-table-card {
+    padding: 8px 8px 12px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+    overflow: auto;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-table thead th,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-table thead th {
+    background: #f8f6ff !important;
+    color: #4a1fb8 !important;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 2px solid rgba(109, 52, 255, 0.12) !important;
+    padding: 12px 14px !important;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-table tbody td,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-table tbody td {
+    padding: 12px 14px !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #f0eef8 !important;
+}
+
+body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-reports-empty,
+body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-reports-empty {
+    padding: 48px 20px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+@media screen and (max-width: 1100px) {
+    body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-filter-grid,
+    body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media screen and (max-width: 782px) {
+    body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap.sc-members-list-wrap,
+    body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap.sc-members-list-wrap {
+        margin-inline-end: 10px;
+    }
+
+    body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-filter-grid,
+    body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-filter-date .sc-date-range,
+    body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-filter-date .sc-date-range {
+        grid-template-columns: 1fr;
+    }
+
+    body[class*="_page_sc-reports-attendance-qr"] .sc-attendance-qr-report-wrap .sc-members-list-filters-actions .button-primary,
+    body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-members-list-filters-actions .button-primary {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+}
+/* ─── پایان گزارش QR حضور ─── */
 
 
 /* ─── لیست صورت‌حساب‌ها — فیلتر دو ستونه ۵۰٪ ─── */

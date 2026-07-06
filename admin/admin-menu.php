@@ -287,6 +287,15 @@ function sc_register_admin_menu() {
             'sc-attendance-session-cancellations',
             'sc_admin_attendance_session_cancellations_page'
         );
+
+        add_submenu_page(
+            'sc-attendance-add',
+            'گزارش ثبت QR',
+            'گزارش QR حضور',
+            'sc_manage_attendance_or_admin',
+            'sc-reports-attendance-qr',
+            'sc_admin_reports_attendance_qr_page'
+        );
     }
 
     /* ================= منوهای فقط مربی (نه مدیر کل و نه مدیر باشگاه): دستمزد، افتخارات، اطلاعیه، دوره‌های من، بازیکن‌های من، اطلاعات من، تیکت ================= */
@@ -1204,6 +1213,14 @@ function sc_register_admin_menu() {
                 'manage_options',
                 'sc-attendance-logs',
                 'sc_admin_attendance_logs'
+            );
+            add_submenu_page(
+                'sc-reports',
+                'گزارش ثبت QR',
+                'گزارش QR حضور',
+                'manage_options',
+                'sc-reports-attendance-qr',
+                'sc_admin_reports_attendance_qr_page'
             );
         }
     }
@@ -2526,6 +2543,14 @@ function sc_admin_attendance_logs() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'list_attendance_logs.php';
+}
+
+function sc_admin_reports_attendance_qr_page() {
+    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-attendance-qr.php';
 }
 
 function sc_admin_attendance_report_page() {

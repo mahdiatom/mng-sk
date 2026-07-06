@@ -77,16 +77,27 @@
     display: none !important;
 }
 
-.sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-camera-wrap {
+.sc-attendance-qr-panel.is-scanning-mobile .sc-attendance-qr-camera-wrap {
     min-height: min(72vh, 820px);
 }
 
-.sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-reader {
+.sc-attendance-qr-panel.is-scanning-mobile .sc-attendance-qr-reader {
     min-height: min(72vh, 820px);
 }
 
-.sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-reader video {
+.sc-attendance-qr-panel.is-scanning-mobile .sc-attendance-qr-reader video {
     min-height: min(72vh, 820px);
+}
+
+.sc-attendance-qr-panel.is-scanning-desktop .sc-attendance-qr-camera-wrap {
+    min-height: 320px;
+    max-width: 420px;
+}
+
+.sc-attendance-qr-panel.is-scanning-desktop .sc-attendance-qr-reader,
+.sc-attendance-qr-panel.is-scanning-desktop .sc-attendance-qr-reader video {
+    min-height: 320px;
+    max-height: 420px;
 }
 
 body.sc-attendance-qr-fullscreen {
@@ -296,7 +307,35 @@ body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active #sc-
 
 .sc-attendance-qr-log__item--success { border-right: 4px solid #1f9d55; }
 .sc-attendance-qr-log__item--error { border-right: 4px solid #d63638; }
-.sc-attendance-qr-log__item--duplicate { border-right: 4px solid #dba617; }
+.sc-attendance-record-method {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.sc-attendance-record-method--qr {
+    background: rgba(109, 52, 255, 0.12);
+    color: #4a1fb8;
+}
+
+.sc-attendance-record-method--manual {
+    background: rgba(0, 115, 170, 0.12);
+    color: #0073aa;
+}
+
+.sc-attendance-record-method--api,
+.sc-attendance-record-method--auto_absent {
+    background: rgba(100, 105, 112, 0.12);
+    color: #50575e;
+}
+
+.sc-attendance-record-method--empty {
+    color: #8c8f94;
+}
 
 .sc-attendance-qr-log__time {
     grid-column: 1;

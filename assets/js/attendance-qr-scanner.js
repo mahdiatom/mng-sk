@@ -262,14 +262,76 @@
         }
     }
 
+    function isMemberAlreadyPresent(memberId) {
+        return $('#sc-attendance-recorded-tbody tr[data-member-id="' + memberId + '"]').length > 0;
+    }
+
+    function renumberAttendanceTable($tbody) {
+        $tbody.find('tr.sc-attendance-member-row').each(function (i) {
+            $(this).find('td:first').text(i + 1);
+        });
+    }
+
+    function updateAttendanceListCounts() {
+        var pendingCount = $('#sc-attendance-pending-tbody tr.sc-attendance-member-row').length;
+        var recordedCount = $('#sc-attendance-recorded-tbody tr.sc-attendance-member-row').length;
+        $('#sc-attendance-pending-count').text(pendingCount + ' نفر');
+        $('#sc-attendance-recorded-count').text(recordedCount + ' نفر');
+
+        if (pendingCount > 0) {
+            $('#sc-attendance-pending-table').show();
+            $('#sc-attendance-pending-empty').hide();
+            $('#sc-attendance-save-pending-btn').prop('disabled', false);
+        } else {
+            $('#sc-attendance-pending-table').hide();
+            $('#sc-attendance-pending-empty').show();
+            $('#sc-attendance-save-pending-btn').prop('disabled', true);
+        }
+
+        if (recordedCount > 0) {
+            $('#sc-attendance-recorded-table').show();
+            $('#sc-attendance-recorded-empty').hide();
+            $('#sc-attendance-save-recorded-btn').prop('disabled', false);
+        } else {
+            $('#sc-attendance-recorded-table').hide();
+            $('#sc-attendance-recorded-empty').show();
+            $('#sc-attendance-save-recorded-btn').prop('disabled', true);
+        }
+    }
+
+    function moveMemberRowToRecorded($row) {
+        if (!$row || !$row.length) {
+            return;
+        }
+        if ($row.closest('#sc-attendance-recorded-tbody').length) {
+            return;
+        }
+        var memberId = $row.attr('data-member-id');
+        $row.attr('data-list-type', 'recorded');
+        $row.find('.sc-attendance-clear-btn').remove();
+        $row.find('input[type="radio"]').each(function () {
+            var val = $(this).val();
+            $(this).attr('name', 'attendance_recorded[' + memberId + ']');
+        });
+        $('#sc-attendance-recorded-tbody').append($row);
+        renumberAttendanceTable($('#sc-attendance-pending-tbody'));
+        renumberAttendanceTable($('#sc-attendance-recorded-tbody'));
+        updateAttendanceListCounts();
+    }
+
     function markMemberPresent(memberId) {
         if (!memberId) {
             return;
         }
-        var $radio = $('input[type="radio"][name="attendance[' + memberId + ']"][value="present"]');
+        var $row = $('tr.sc-attendance-member-row[data-member-id="' + memberId + '"]');
+        var $radio = $row.find('input[type="radio"][value="present"]');
         if ($radio.length) {
             $radio.prop('checked', true).trigger('change');
-            var $row = $radio.closest('tr');
+            $row.find('.sc-attendance-record-method')
+                .removeClass('sc-attendance-record-method--manual sc-attendance-record-method--empty')
+                .addClass('sc-attendance-record-method--qr')
+                .text('اسکن QR');
+            moveMemberRowToRecorded($row);
             $row.addClass('sc-attendance-member-row--qr-scanned');
             setTimeout(function () {
                 $row.removeClass('sc-attendance-member-row--qr-scanned');
@@ -311,9 +373,9 @@
         markHandled(payload, now);
 
         var localMember = lookupMember(payload);
-        if (localMember) {
+        if (localMember && !isMemberAlreadyPresent(localMember.id)) {
             applyInstantSuccess(localMember, 'ثبت شد ✓');
-        } else {
+        } else if (!localMember) {
             showToast('در حال ثبت...', 'info');
         }
 
@@ -338,13 +400,11 @@
                 if (code === 'duplicate') {
                     playSound('duplicate');
                     showToast(name + ' — قبلاً ثبت شده', 'duplicate');
-                    if (!localMember) {
-                        prependLog({ ok: true, duplicate: true, name: name, message: res.data.message });
-                    }
+                    prependLog({ ok: true, duplicate: true, name: name, message: res.data.message });
                     return;
                 }
 
-                if (!localMember) {
+                if (!localMember || !optimisticLogged[memberId]) {
                     applyInstantSuccess({ id: memberId, name: name }, res.data.message || 'ثبت شد ✓');
                 }
                 return;
@@ -371,8 +431,12 @@
     }
 
     function setScannerFullscreen(active) {
-        $('body').toggleClass('sc-attendance-qr-fullscreen', active);
-        $('#sc-attendance-qr-panel').toggleClass('is-scanning-active', active);
+        var mobile = isMobileDevice();
+        $('body').toggleClass('sc-attendance-qr-fullscreen', active && mobile);
+        $('#sc-attendance-qr-panel')
+            .toggleClass('is-scanning-active', active)
+            .toggleClass('is-scanning-mobile', active && mobile)
+            .toggleClass('is-scanning-desktop', active && !mobile);
     }
 
     function restartWithCameraPick(cameraPick) {

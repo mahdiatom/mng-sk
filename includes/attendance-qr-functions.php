@@ -1030,8 +1030,9 @@ function sc_attendance_qr_register_present(array $args) {
         }
 
         $update_data = [
-            'status'     => $status,
-            'updated_at' => current_time('mysql'),
+            'status'        => $status,
+            'record_method' => 'qr',
+            'updated_at'    => current_time('mysql'),
         ];
         if ($current_record && empty($current_record->user_id)) {
             $update_data['user_id'] = $current_user_id;
@@ -1039,7 +1040,11 @@ function sc_attendance_qr_register_present(array $args) {
         if ($current_record && $current_record->status === 'absent') {
             $update_data['absence_sms_sent'] = 0;
         }
-        $wpdb->update($attendances_table, $update_data, ['id' => $existing], ['%s', '%s', '%d'], ['%d']);
+        $update_formats = [];
+        foreach (array_keys($update_data) as $update_key) {
+            $update_formats[] = in_array($update_key, ['user_id', 'absence_sms_sent'], true) ? '%d' : '%s';
+        }
+        $wpdb->update($attendances_table, $update_data, ['id' => $existing], $update_formats, ['%d']);
 
         if (function_exists('sc_is_private_course') && $course_row && sc_is_private_course($course_row) && function_exists('sc_private_sync_session_with_attendance')) {
             sc_private_sync_session_with_attendance($member_id, $course_id, $attendance_date, $status);
@@ -1082,10 +1087,11 @@ function sc_attendance_qr_register_present(array $args) {
             'attendance_date'  => $attendance_date,
             'status'           => $status,
             'user_id'          => $current_user_id,
+            'record_method'    => 'qr',
             'created_at'       => current_time('mysql'),
             'updated_at'       => current_time('mysql'),
         ],
-        ['%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s']
+        ['%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s']
     );
 
     if (!$inserted) {

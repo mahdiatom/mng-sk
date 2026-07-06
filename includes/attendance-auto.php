@@ -311,11 +311,12 @@ function sc_attendance_auto_process_api_logs($limit = 100) {
                 'schedule_slot_id' => $slot_id,
                 'attendance_date' => $attendance_date,
                 'status' => 'present',
+                'record_method' => 'api',
                 'absence_sms_sent' => 0,
                 'created_at' => current_time('mysql'),
                 'updated_at' => current_time('mysql'),
             ],
-            ['%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s']
+            ['%d', '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s']
         );
         if (!$ins) {
             continue;
@@ -421,11 +422,12 @@ function sc_attendance_auto_mark_absents() {
                         'schedule_slot_id' => (int) $slot->schedule_slot_id,
                         'attendance_date' => $session_date,
                         'status' => 'absent',
+                        'record_method' => 'auto_absent',
                         'absence_sms_sent' => 0,
                         'created_at' => current_time('mysql'),
                         'updated_at' => current_time('mysql'),
                     ],
-                    ['%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s']
+                    ['%d', '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s']
                 );
                 if ($ins) {
                     $new_id = (int) $wpdb->insert_id;

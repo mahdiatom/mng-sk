@@ -884,6 +884,7 @@ function sc_export_attendance_to_excel() {
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
     $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
+    $filter_record_method = isset($_GET['filter_record_method']) ? sanitize_key(wp_unslash($_GET['filter_record_method'])) : '';
     $filter_date_from = isset($_GET['filter_date_from']) ? sanitize_text_field($_GET['filter_date_from']) : '';
     $filter_date_to = isset($_GET['filter_date_to']) ? sanitize_text_field($_GET['filter_date_to']) : '';
     $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';
@@ -914,6 +915,10 @@ function sc_export_attendance_to_excel() {
             $where_conditions[] = "a.user_id = %d";
             $where_values[] = $coach_user_id;
         }
+    }
+
+    if (function_exists('sc_attendance_apply_record_method_filter')) {
+        sc_attendance_apply_record_method_filter($where_conditions, $where_values, $filter_record_method);
     }
     
     if ($filter_date_from) {
@@ -969,6 +974,7 @@ function sc_export_attendance_to_excel() {
         'نام خانوادگی',
         'کد ملی',
         'ثبت‌کننده',
+        'روش ثبت',
         'وضعیت',
         'تاریخ ثبت'
     ];
@@ -981,7 +987,7 @@ function sc_export_attendance_to_excel() {
     
     // اعمال استایل به header
     $headerStyle = sc_get_excel_header_style();
-    $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
+    $sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
     
     // داده‌ها
     $row = 2;
@@ -1010,6 +1016,12 @@ function sc_export_attendance_to_excel() {
         
         // ثبت‌کننده
         $sheet->setCellValueByColumnAndRow($col++, $row, $attendance->recorded_by_name ?? '-');
+
+        // روش ثبت
+        $method_label = function_exists('sc_attendance_record_method_label')
+            ? sc_attendance_record_method_label($attendance->record_method ?? '')
+            : ($attendance->record_method ?? '—');
+        $sheet->setCellValueByColumnAndRow($col++, $row, $method_label);
         
         // وضعیت
         $status_label = $attendance->status === 'present' ? 'حاضر' : 'غایب';
@@ -1022,9 +1034,9 @@ function sc_export_attendance_to_excel() {
         $dataStyle = sc_get_excel_data_style();
         if ($row % 2 == 0) {
             $alternateStyle = sc_get_excel_alternate_row_style();
-            $sheet->getStyle("A$row:I$row")->applyFromArray(array_merge($dataStyle, $alternateStyle));
+            $sheet->getStyle("A$row:J$row")->applyFromArray(array_merge($dataStyle, $alternateStyle));
         } else {
-            $sheet->getStyle("A$row:I$row")->applyFromArray($dataStyle);
+            $sheet->getStyle("A$row:J$row")->applyFromArray($dataStyle);
         }
         
         $row++;

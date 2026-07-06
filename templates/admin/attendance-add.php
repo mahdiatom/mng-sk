@@ -50,8 +50,12 @@ if (
 }
 
     // پردازش فرم ثبت حضور و غیاب
-if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_nonce', 'sc_attendance_nonce')) {
+if (
+    (isset($_POST['sc_save_attendance_pending']) || isset($_POST['sc_save_attendance_recorded']))
+    && check_admin_referer('sc_attendance_nonce', 'sc_attendance_nonce')
+) {
     $salary_notices = [];
+    $is_recorded_batch = isset($_POST['sc_save_attendance_recorded']);
     $selection_parts = function_exists('sc_attendance_get_selection_from_request')
         ? sc_attendance_get_selection_from_request($_POST)
         : (function_exists('sc_attendance_course_selection_parts')
@@ -84,10 +88,16 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
         $message_type = 'error';
     } else {
         // دریافت لیست حضور/غیاب ارسالی
-        $attendances = isset($_POST['attendance']) ? $_POST['attendance'] : [];
+        if ($is_recorded_batch) {
+            $attendances = isset($_POST['attendance_recorded']) ? (array) $_POST['attendance_recorded'] : [];
+        } else {
+            $attendances = isset($_POST['attendance_pending']) ? (array) $_POST['attendance_pending'] : [];
+        }
         
         if (empty($attendances)) {
-            $message = 'هیچ اطلاعات حضور و غیابی ثبت نشد.';
+            $message = $is_recorded_batch
+                ? 'هیچ موردی برای بروزرسانی انتخاب نشده است.'
+                : 'هیچ موردی برای ثبت جدید انتخاب نشده است.';
             $message_type = 'error';
         } else {
             $courses_table = $wpdb->prefix . 'sc_courses';
@@ -124,6 +134,23 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     $status = 'excused';
                 }
                 if (!$member_id) {
+                    continue;
+                }
+
+                $existing_db_status = $wpdb->get_var($wpdb->prepare(
+                    "SELECT status FROM $attendances_table
+                     WHERE member_id = %d AND course_id = %d AND attendance_date = %s AND schedule_slot_id = 0
+                     LIMIT 1",
+                    $member_id,
+                    $course_id,
+                    $attendance_date
+                ));
+                $has_db_record = ($existing_db_status === 'present' || $existing_db_status === 'absent' || $existing_db_status === 'excused');
+
+                if ($is_recorded_batch && !$has_db_record) {
+                    continue;
+                }
+                if (!$is_recorded_batch && $has_db_record) {
                     continue;
                 }
 
@@ -239,6 +266,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     'attendance_date' => $attendance_date,
                     'status' => $status,
                     'user_id' => $current_user_id,
+                    'record_method' => 'manual',
                     'updated_at' => current_time('mysql')
                 );
 
@@ -268,6 +296,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
 
                     $update_data = array(
                             'status' => $status,
+                            'record_method' => 'manual',
                             'updated_at' => current_time('mysql')
                         );
 
@@ -280,11 +309,16 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                         $update_data['absence_sms_sent'] = 0;
                     }
 
+                    $update_formats = [];
+                    foreach (array_keys($update_data) as $update_key) {
+                        $update_formats[] = in_array($update_key, ['user_id', 'absence_sms_sent'], true) ? '%d' : '%s';
+                    }
+
                     $wpdb->update(
                         $attendances_table,
                         $update_data,
                         array('id' => $existing),
-                        array('%s', '%d', '%s'),
+                        $update_formats,
                         array('%d')
                     );
                     $updated_count++;
@@ -297,7 +331,7 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                     $inserted_id = $wpdb->insert(
                         $attendances_table,
                         $data,
-                        array('%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s')
+                        array('%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s')
                     );
 
                     if ($inserted_id) {
@@ -326,11 +360,14 @@ if (isset($_POST['sc_save_attendance']) && check_admin_referer('sc_attendance_no
                 if (function_exists('sc_log_activity')) {
                     sc_log_activity('updated', 'attendance', $course_id, 'حضور و غیاب دوره «' . $course_title . '» در تاریخ ' . $attendance_date_shamsi . ' ثبت شد (' . $saved_count . ' جدید، ' . $updated_count . ' به‌روزرسانی)', null, ['course_id' => $course_id, 'attendance_date' => $attendance_date, 'saved_count' => $saved_count, 'updated_count' => $updated_count]);
                 }
-                $message = sprintf(
-                    'حضور و غیاب با موفقیت ثبت شد. (%d مورد جدید، %d مورد بروزرسانی)',
-                    $saved_count,
-                    $updated_count
-                );
+                $message = $is_recorded_batch
+                    ? sprintf('بروزرسانی با موفقیت انجام شد. (%d مورد به‌روزرسانی)', $updated_count)
+                    : sprintf('ثبت جدید با موفقیت انجام شد. (%d مورد ثبت شد)', $saved_count);
+                if ($is_recorded_batch && $saved_count > 0) {
+                    $message = sprintf('بروزرسانی انجام شد. (%d مورد جدید، %d مورد به‌روزرسانی)', $saved_count, $updated_count);
+                } elseif (!$is_recorded_batch && $updated_count > 0) {
+                    $message = sprintf('ثبت انجام شد. (%d مورد جدید، %d مورد به‌روزرسانی)', $saved_count, $updated_count);
+                }
                 if (!empty($wallet_failed)) {
                     $message .= ' ثبت نشد (موجودی کیف پول ناکافی یا بیش از حد مجاز منفی): ' . implode('؛ ', array_map('esc_html', $wallet_failed));
                 }
@@ -456,6 +493,7 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
     // دریافت کاربران فعال دوره انتخاب شده
 $active_members = [];
 $existing_attendances = [];
+$existing_record_methods = [];
 
 if ($selected_course_id) {
     $group_filter = function_exists('sc_attendance_member_group_filter_sql')
@@ -522,7 +560,7 @@ if ($selected_course_id) {
         $placeholders = implode(',', array_fill(0, count($member_ids), '%d'));
         
         $existing_attendances_raw = $wpdb->get_results($wpdb->prepare(
-            "SELECT member_id, status 
+            "SELECT member_id, status, record_method 
              FROM $attendances_table 
              WHERE course_id = %d 
              AND attendance_date = %s 
@@ -530,16 +568,15 @@ if ($selected_course_id) {
             array_merge([$selected_course_id, $selected_date], $member_ids)
         ));
         
+        $existing_record_methods = [];
         foreach ($existing_attendances_raw as $att) {
             $existing_attendances[$att->member_id] = $att->status;
-           
+            $existing_record_methods[$att->member_id] = $att->record_method;
         }
     }
 }
 
 
-
-$is_update_mode = !empty($existing_attendances);
 
 $selected_course_value = '';
 $selected_course_label = '';
@@ -580,6 +617,89 @@ $attendance_group_required = $selected_course_id > 0
 $attendance_ungrouped_member_count = ($selected_course_id > 0 && function_exists('sc_attendance_count_members_without_group'))
     ? sc_attendance_count_members_without_group($selected_course_id)
     : 0;
+
+$pending_members = [];
+$recorded_members = [];
+foreach ($active_members as $member_item) {
+    $member_status = isset($existing_attendances[$member_item->id]) ? $existing_attendances[$member_item->id] : '';
+    if ($member_status === 'present' || $member_status === 'absent' || $member_status === 'excused') {
+        $recorded_members[] = $member_item;
+    } else {
+        $pending_members[] = $member_item;
+    }
+}
+
+if (!function_exists('sc_attendance_render_member_table_row')) {
+    /**
+     * @param object $member
+     * @param int    $row_num
+     * @param string $list_type pending|recorded
+     */
+    function sc_attendance_render_member_table_row($member, $row_num, $list_type, $existing_attendances, $existing_record_methods, $max_debt_for_attendance) {
+        $existing_status = isset($existing_attendances[$member->id]) ? $existing_attendances[$member->id] : '';
+        $existing_method = isset($existing_record_methods[$member->id]) ? $existing_record_methods[$member->id] : '';
+        $field_name = ($list_type === 'recorded') ? 'attendance_recorded' : 'attendance_pending';
+        $debt_user = debt_user($member->id)[0];
+        $row_class = 'sc-attendance-member-row';
+        if ($debt_user >= $max_debt_for_attendance && $max_debt_for_attendance > 0) {
+            $row_class .= ' sc-attendance-member-row--blocked';
+        } elseif ($debt_user > 0) {
+            $row_class .= ' sc-attendance-member-row--debt';
+        }
+        ?>
+        <tr class="<?php echo esc_attr($row_class); ?>" data-member-id="<?php echo esc_attr((string) $member->id); ?>" data-list-type="<?php echo esc_attr($list_type); ?>">
+            <td><?php echo (int) $row_num; ?></td>
+            <td class="sc-attendance-member-name"><?php echo esc_html($member->first_name . ' ' . $member->last_name); ?></td>
+            <td class="sc-attendance-member-debt">
+                <?php echo number_format($debt_user); ?> تومان
+                <?php if ($debt_user >= $max_debt_for_attendance && $max_debt_for_attendance > 0) : ?>
+                    <span class="sc-attendance-debt-alert">سقف موجودی — عدم ثبت رکورد</span>
+                <?php endif; ?>
+            </td>
+            <td class="sc-attendance-record-method-cell">
+                <?php if ($existing_status !== '') : ?>
+                    <span class="sc-attendance-record-method sc-attendance-record-method--<?php echo esc_attr($existing_method ?: 'manual'); ?>">
+                        <?php echo esc_html(function_exists('sc_attendance_record_method_label') ? sc_attendance_record_method_label($existing_method) : $existing_method); ?>
+                    </span>
+                <?php else : ?>
+                    <span class="sc-attendance-record-method sc-attendance-record-method--empty">—</span>
+                <?php endif; ?>
+            </td>
+            <td class="status_attendace_td sc-attendance-status-cell">
+                <?php if ($list_type === 'pending' && $existing_status === '') : ?>
+                <button type="button"
+                        class="button button-small sc-attendance-clear-btn"
+                        data-attendance-name="<?php echo esc_attr($field_name . '[' . $member->id . ']'); ?>"
+                        title="حذف انتخاب"
+                        aria-label="حذف انتخاب">
+                    <span class="dashicons dashicons-no-alt"></span>
+                </button>
+                <?php endif; ?>
+                <label class="tooltip-container sc-attendance-status-pill sc-attendance-status-pill--present">
+                    <input type="radio"
+                           name="<?php echo esc_attr($field_name . '[' . $member->id . ']'); ?>"
+                           value="present"
+                           <?php checked($existing_status, 'present'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?>>
+                    <?php if ($existing_status === 'excused') : ?>
+                        <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br>علت: حالت غیبت مجاز</span>
+                    <?php endif; ?>
+                    <span>حاضر</span>
+                </label>
+                <label class="tooltip-container sc-attendance-status-pill sc-attendance-status-pill--absent">
+                    <input type="radio"
+                           name="<?php echo esc_attr($field_name . '[' . $member->id . ']'); ?>"
+                           value="absent"
+                           <?php checked($existing_status, 'absent'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?>>
+                    <?php if ($existing_status === 'excused') : ?>
+                        <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br>علت: حالت غیبت مجاز</span>
+                    <?php endif; ?>
+                    <span>غایب</span>
+                </label>
+            </td>
+        </tr>
+        <?php
+    }
+}
 ?>
 
 <div class="wrap sc-attendance-page-header">
@@ -705,10 +825,11 @@ $attendance_ungrouped_member_count = ($selected_course_id > 0 && function_exists
                         ?>
                         <span class="name_course_attendance">(<?php echo sc_date_shamsi($selected_date, 'l j F Y'); ?>)</span>
                     </h2>
-                    <?php if ($is_update_mode) : ?>
-                        <span class="sc-attendance-mode-badge sc-attendance-mode-badge--update">در حال بروزرسانی رکورد موجود</span>
-                    <?php else : ?>
-                        <span class="sc-attendance-mode-badge sc-attendance-mode-badge--new">ثبت حضور و غیاب جدید</span>
+                    <?php if (!empty($recorded_members)) : ?>
+                        <span class="sc-attendance-mode-badge sc-attendance-mode-badge--update"><?php echo count($recorded_members); ?> مورد ثبت‌شده</span>
+                    <?php endif; ?>
+                    <?php if (!empty($pending_members)) : ?>
+                        <span class="sc-attendance-mode-badge sc-attendance-mode-badge--new"><?php echo count($pending_members); ?> مورد در انتظار ثبت</span>
                     <?php endif; ?>
                 </div>
 
@@ -767,84 +888,89 @@ $attendance_ungrouped_member_count = ($selected_course_id > 0 && function_exists
                 <div id="sc-attendance-mode-list" class="sc-attendance-mode-panel">
                 <?php endif; ?>
 
-                <div class="back_attendance_list sc-attendance-members-wrap">
-                    <table class="wp-list-table widefat fixed striped sc-attendance-members-table">
-                        <thead>
-                            <tr>
-                                <th class="column-row">ردیف</th>
-                                <th>نام و نام خانوادگی</th>
-                                <th>مبلغ بدهی</th>
-                                <th>وضعیت</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php
-                        $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0'));
-                        foreach ($active_members as $index => $member) :
-                            $debt_user = debt_user($member->id)[0];
-                            $existing_status = isset($existing_attendances[$member->id]) ? $existing_attendances[$member->id] : '';
-                            $row_class = 'sc-attendance-member-row';
-                            if ($debt_user >= $max_debt_for_attendance && $max_debt_for_attendance > 0) {
-                                $row_class .= ' sc-attendance-member-row--blocked';
-                            } elseif ($debt_user > 0) {
-                                $row_class .= ' sc-attendance-member-row--debt';
-                            }
-                        ?>
-                            <tr class="<?php echo esc_attr($row_class); ?>">
-                                <td><?php echo $index + 1; ?></td>
-                                <td class="sc-attendance-member-name"><?php echo esc_html($member->first_name . ' ' . $member->last_name); ?></td>
-                                <td class="sc-attendance-member-debt">
-                                    <?php echo number_format($debt_user); ?> تومان
-                                    <?php if ($debt_user >= $max_debt_for_attendance && $max_debt_for_attendance > 0) : ?>
-                                        <span class="sc-attendance-debt-alert">سقف موجودی — عدم ثبت رکورد</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="status_attendace_td sc-attendance-status-cell">
-                                    <?php if (empty($existing_status)) : ?>
-                                    <button type="button"
-                                            class="button button-small sc-attendance-clear-btn"
-                                            data-attendance-name="attendance[<?php echo esc_attr($member->id); ?>]"
-                                            title="حذف انتخاب"
-                                            aria-label="حذف انتخاب">
-                                        <span class="dashicons dashicons-no-alt"></span>
-                                    </button>
-                                    <?php endif; ?>
-                                    <label class="tooltip-container sc-attendance-status-pill sc-attendance-status-pill--present">
-                                        <input type="radio"
-                                               name="attendance[<?php echo esc_attr($member->id); ?>]"
-                                               value="present"
-                                               <?php checked($existing_status, 'present'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?>>
-                                        <?php if ($existing_status === 'excused') : ?>
-                                            <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br>علت: حالت غیبت مجاز</span>
-                                        <?php endif; ?>
-                                        <span>حاضر</span>
-                                    </label>
-                                    <label class="tooltip-container sc-attendance-status-pill sc-attendance-status-pill--absent">
-                                        <input type="radio"
-                                               name="attendance[<?php echo esc_attr($member->id); ?>]"
-                                               value="absent"
-                                               <?php checked($existing_status, 'absent'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?>>
-                                        <?php if ($existing_status === 'excused') : ?>
-                                            <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br>علت: حالت غیبت مجاز</span>
-                                        <?php endif; ?>
-                                        <span>غایب</span>
-                                    </label>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                <?php $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0')); ?>
+
+                <div class="sc-attendance-list-section sc-attendance-list-section--pending">
+                    <div class="sc-attendance-list-section__head">
+                        <h3 class="sc-attendance-list-section__title">در انتظار ثبت</h3>
+                        <span class="sc-attendance-list-section__count" id="sc-attendance-pending-count"><?php echo count($pending_members); ?> نفر</span>
+                    </div>
+                    <p class="sc-attendance-list-section__desc">بازیکنانی که هنوز وضعیت حاضر یا غایب برایشان ثبت نشده است.</p>
+                    <div class="back_attendance_list sc-attendance-members-wrap">
+                        <table class="wp-list-table widefat fixed striped sc-attendance-members-table sc-attendance-members-table--pending"<?php echo empty($pending_members) ? ' style="display:none"' : ''; ?> id="sc-attendance-pending-table">
+                            <colgroup>
+                                <col class="sc-att-col-row">
+                                <col class="sc-att-col-name">
+                                <col class="sc-att-col-debt">
+                                <col class="sc-att-col-method">
+                                <col class="sc-att-col-status">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th class="column-row sc-att-col-row">ردیف</th>
+                                    <th class="sc-att-col-name">نام و نام خانوادگی</th>
+                                    <th class="sc-att-col-debt">مبلغ بدهی</th>
+                                    <th class="sc-att-col-method">روش ثبت</th>
+                                    <th class="sc-att-col-status">وضعیت</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sc-attendance-pending-tbody">
+                            <?php foreach ($pending_members as $index => $member) :
+                                sc_attendance_render_member_table_row($member, $index + 1, 'pending', $existing_attendances, $existing_record_methods, $max_debt_for_attendance);
+                            endforeach; ?>
+                            </tbody>
+                        </table>
+                        <div class="sc-attendance-list-empty" id="sc-attendance-pending-empty"<?php echo empty($pending_members) ? '' : ' style="display:none"'; ?>>همه بازیکنان این جلسه ثبت شده‌اند.</div>
+                    </div>
+                    <p class="submit sc-attendance-save-actions sc-attendance-save-actions--pending">
+                        <button type="submit" name="sc_save_attendance_pending" class="button button-primary button-large sc-attendance-save-btn sc-attendance-save-btn--new" id="sc-attendance-save-pending-btn"<?php echo empty($pending_members) ? ' disabled' : ''; ?>>
+                            ثبت حضور و غیاب جدید
+                        </button>
+                    </p>
+                </div>
+
+                <div class="sc-attendance-list-section sc-attendance-list-section--recorded">
+                    <div class="sc-attendance-list-section__head">
+                        <h3 class="sc-attendance-list-section__title">ثبت‌شده — بروزرسانی</h3>
+                        <span class="sc-attendance-list-section__count" id="sc-attendance-recorded-count"><?php echo count($recorded_members); ?> نفر</span>
+                    </div>
+                    <p class="sc-attendance-list-section__desc">بازیکنانی که وضعیت حاضر یا غایب دارند؛ از جمله موارد ثبت‌شده با QR.</p>
+                    <div class="back_attendance_list sc-attendance-members-wrap">
+                        <table class="wp-list-table widefat fixed striped sc-attendance-members-table sc-attendance-members-table--recorded"<?php echo empty($recorded_members) ? ' style="display:none"' : ''; ?> id="sc-attendance-recorded-table">
+                            <colgroup>
+                                <col class="sc-att-col-row">
+                                <col class="sc-att-col-name">
+                                <col class="sc-att-col-debt">
+                                <col class="sc-att-col-method">
+                                <col class="sc-att-col-status">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th class="column-row sc-att-col-row">ردیف</th>
+                                    <th class="sc-att-col-name">نام و نام خانوادگی</th>
+                                    <th class="sc-att-col-debt">مبلغ بدهی</th>
+                                    <th class="sc-att-col-method">روش ثبت</th>
+                                    <th class="sc-att-col-status">وضعیت</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sc-attendance-recorded-tbody">
+                            <?php foreach ($recorded_members as $index => $member) :
+                                sc_attendance_render_member_table_row($member, $index + 1, 'recorded', $existing_attendances, $existing_record_methods, $max_debt_for_attendance);
+                            endforeach; ?>
+                            </tbody>
+                        </table>
+                        <div class="sc-attendance-list-empty" id="sc-attendance-recorded-empty"<?php echo empty($recorded_members) ? '' : ' style="display:none"'; ?>>هنوز موردی ثبت نشده است.</div>
+                    </div>
+                    <p class="submit sc-attendance-save-actions sc-attendance-save-actions--recorded">
+                        <button type="submit" name="sc_save_attendance_recorded" class="button button-large sc-attendance-save-btn sc-attendance-save-btn--update" id="sc-attendance-save-recorded-btn"<?php echo empty($recorded_members) ? ' disabled' : ''; ?>>
+                            بروزرسانی حضور و غیاب
+                        </button>
+                    </p>
                 </div>
 
                 <?php if ($sc_qr_enabled) : ?>
                 </div><!-- #sc-attendance-mode-list -->
                 <?php endif; ?>
-
-                <p class="submit sc-attendance-save-actions">
-                    <button type="submit" name="sc_save_attendance" class="button button-primary button-large">
-                        ذخیره حضور و غیاب
-                    </button>
-                </p>
             </div>
         </form>
     <?php elseif ($selected_course_id && empty($active_members)) : ?>

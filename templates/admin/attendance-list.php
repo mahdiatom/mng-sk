@@ -268,6 +268,7 @@ if ($active_tab === 'individual') {
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
     $filter_coach = (current_user_can('club_coach') || current_user_can('administrator')) && isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
+    $filter_record_method = isset($_GET['filter_record_method']) ? sanitize_key(wp_unslash($_GET['filter_record_method'])) : '';
     
     // پردازش فیلترهای تاریخ (شمسی به میلادی)
     $filter_date_from = '';
@@ -378,6 +379,10 @@ if ($active_tab === 'individual') {
         }
     }
 
+    if (function_exists('sc_attendance_apply_record_method_filter')) {
+        sc_attendance_apply_record_method_filter($where_conditions, $where_values, $filter_record_method);
+    }
+
     $where_clause = implode(' AND ', $where_conditions);
 
     // دریافت تعداد کل رکوردها برای pagination (با همان JOIN‌های کوئری اصلی)
@@ -439,6 +444,7 @@ if ($active_tab === 'absents') {
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
     $filter_coach = (current_user_can('club_coach') || current_user_can('administrator')) && isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
+    $filter_record_method = isset($_GET['filter_record_method']) ? sanitize_key(wp_unslash($_GET['filter_record_method'])) : '';
 
     // تاریخ
     $filter_date_from = '';
@@ -515,6 +521,10 @@ if ($active_tab === 'absents') {
         }
     }
 
+    if (function_exists('sc_attendance_apply_record_method_filter')) {
+        sc_attendance_apply_record_method_filter($where_conditions, $where_values, $filter_record_method);
+    }
+
     // فیلتر تاریخ
     if ($filter_date_from) {
         $where_conditions[] = "a.attendance_date >= %s";
@@ -554,6 +564,7 @@ if ($active_tab === 'grouped') {
     // دریافت فیلترها
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_coach = (current_user_can('club_coach') || current_user_can('administrator')) && isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
+    $filter_record_method = isset($_GET['filter_record_method']) ? sanitize_key(wp_unslash($_GET['filter_record_method'])) : '';
     // پردازش فیلترهای تاریخ (شمسی به میلادی)
     $filter_date_from = '';
     $filter_date_to = '';
@@ -642,6 +653,10 @@ if ($active_tab === 'grouped') {
         }
     }
 
+    if (function_exists('sc_attendance_apply_record_method_filter')) {
+        sc_attendance_apply_record_method_filter($where_conditions, $where_values, $filter_record_method);
+    }
+
     $where_clause = implode(' AND ', $where_conditions);
     $users_table = $wpdb->users;
 
@@ -702,6 +717,7 @@ if ($active_tab === 'overall') {
     $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
     $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
     $filter_coach = (current_user_can('club_coach') || current_user_can('administrator')) && isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
+    $filter_record_method = isset($_GET['filter_record_method']) ? sanitize_key(wp_unslash($_GET['filter_record_method'])) : '';
     
     // پردازش فیلترهای تاریخ (شمسی به میلادی)
     $filter_date_from = '';
@@ -784,6 +800,10 @@ if ($active_tab === 'overall') {
             $where_conditions[] = "a.user_id = %d";
             $where_values[] = $coach_user_id;
         }
+    }
+
+    if (function_exists('sc_attendance_apply_record_method_filter')) {
+        sc_attendance_apply_record_method_filter($where_conditions, $where_values, $filter_record_method);
     }
     
     if ($filter_date_from) {
@@ -966,6 +986,17 @@ $max_display = 10;
 </div>
 <?php endif; ?>
 
+<?php if (function_exists('sc_attendance_record_method_filter_options')) : ?>
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_record_method">روش ثبت</label>
+<select name="filter_record_method" id="filter_record_method" class="sc-filter-control">
+<?php foreach (sc_attendance_record_method_filter_options() as $method_value => $method_label) : ?>
+<option value="<?php echo esc_attr($method_value); ?>" <?php selected($filter_record_method ?? '', $method_value); ?>><?php echo esc_html($method_label); ?></option>
+<?php endforeach; ?>
+</select>
+</div>
+<?php endif; ?>
+
 <!-- وضعیت -->
 <div class="sc-filter-field">
 <label class="sc-filter-label" for="filter_status">وضعیت</label>
@@ -1022,6 +1053,9 @@ $max_display = 10;
                 if (!empty($coaches_list) && isset($_GET['filter_coach']) && $_GET['filter_coach'] > 0) {
                     $export_url = add_query_arg('filter_coach', $_GET['filter_coach'], $export_url);
                 }
+                if (!empty($_GET['filter_record_method'])) {
+                    $export_url = add_query_arg('filter_record_method', sanitize_key(wp_unslash($_GET['filter_record_method'])), $export_url);
+                }
                 if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
                     $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);
                 }
@@ -1057,6 +1091,7 @@ $max_display = 10;
                             <th>نام خانوادگی</th>
                             <th>شناسه بازیکن</th>
                             <th>ثبت‌کننده</th>
+                            <th>روش ثبت</th>
                             <th>وضعیت</th>
                             <th style="width: 150px;">عملیات</th>
                         </tr>
@@ -1091,6 +1126,7 @@ $max_display = 10;
                                 <td><?php echo esc_html($attendance->last_name); ?></td>
                                 <td><?php echo esc_html($attendance->member_id); ?></td>
                                 <td><?php echo esc_html($attendance->recorded_by_name ?? '-'); ?></td>
+                                <td><?php echo esc_html(function_exists('sc_attendance_record_method_label') ? sc_attendance_record_method_label($attendance->record_method ?? '') : ($attendance->record_method ?? '—')); ?></td>
                                 <td>
                                     <span style="
                                         padding: 5px 10px;
@@ -1150,6 +1186,7 @@ $max_display = 10;
                             <?php
                             $pagination_args = ['page' => 'sc-attendance-list', 'tab' => 'individual', 'filter_course' => $filter_course, 'filter_member' => $filter_member, 'filter_status' => $filter_status];
                             if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
+                            if (!empty($filter_record_method)) $pagination_args['filter_record_method'] = $filter_record_method;
                             if (!empty($filter_date_from)) $pagination_args['filter_date_from'] = $filter_date_from;
                             if (!empty($filter_date_to)) $pagination_args['filter_date_to'] = $filter_date_to;
                             if (!empty($filter_date_from_shamsi)) $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;
@@ -1183,6 +1220,7 @@ $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) 
 $filter_coach  = (current_user_can('club_coach') || current_user_can('administrator')) && isset($_GET['filter_coach']) 
                  ? absint($_GET['filter_coach']) 
                  : 0;
+$filter_record_method = isset($_GET['filter_record_method']) ? sanitize_key(wp_unslash($_GET['filter_record_method'])) : '';
 
 $filter_date_from = '';
 $filter_date_to   = '';
@@ -1254,6 +1292,10 @@ if ($filter_coach > 0) {
         $where_conditions[] = "a.user_id = %d";
         $where_values[] = $coach_user_id;
     }
+}
+
+if (function_exists('sc_attendance_apply_record_method_filter')) {
+    sc_attendance_apply_record_method_filter($where_conditions, $where_values, $filter_record_method);
 }
 
 if (!empty($filter_date_from)) {
@@ -1384,6 +1426,17 @@ if ($filter_member > 0) {
 <option value="<?php echo esc_attr($coach->id); ?>" <?php selected($filter_coach, $coach->id); ?>>
 <?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?>
 </option>
+<?php endforeach; ?>
+</select>
+</div>
+<?php endif; ?>
+
+<?php if (function_exists('sc_attendance_record_method_filter_options')) : ?>
+<div class="sc-filter-field">
+<label class="sc-filter-label" for="filter_record_method">روش ثبت</label>
+<select name="filter_record_method" id="filter_record_method" class="sc-filter-control">
+<?php foreach (sc_attendance_record_method_filter_options() as $method_value => $method_label) : ?>
+<option value="<?php echo esc_attr($method_value); ?>" <?php selected($filter_record_method ?? '', $method_value); ?>><?php echo esc_html($method_label); ?></option>
 <?php endforeach; ?>
 </select>
 </div>
@@ -1533,6 +1586,17 @@ if ($filter_member > 0) {
                 </div>
                 <?php endif; ?>
 
+                <?php if (function_exists('sc_attendance_record_method_filter_options')) : ?>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_record_method">روش ثبت</label>
+                    <select name="filter_record_method" id="filter_record_method" class="sc-filter-control">
+                        <?php foreach (sc_attendance_record_method_filter_options() as $method_value => $method_label) : ?>
+                            <option value="<?php echo esc_attr($method_value); ?>" <?php selected($filter_record_method ?? '', $method_value); ?>><?php echo esc_html($method_label); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
+
                 <div class="sc-filter-field sc-filter-date">
                     <label class="sc-filter-label">بازه تاریخ</label>
                     <?php
@@ -1652,6 +1716,9 @@ if ($filter_member > 0) {
                                     if (!empty($coaches_list) && $filter_coach > 0) {
                                         $export_url = add_query_arg('filter_coach', $filter_coach, $export_url);
                                     }
+                                    if (!empty($filter_record_method)) {
+                                        $export_url = add_query_arg('filter_record_method', $filter_record_method, $export_url);
+                                    }
                                     $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                                     ?>
                                     <a href="<?php echo esc_url($export_url); ?>" 
@@ -1672,6 +1739,7 @@ if ($filter_member > 0) {
                             <?php
                             $pagination_args = ['page' => 'sc-attendance-list', 'tab' => 'grouped', 'filter_course' => $filter_course];
                             if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
+                            if (!empty($filter_record_method)) $pagination_args['filter_record_method'] = $filter_record_method;
                             if (!empty($filter_date_from)) $pagination_args['filter_date_from'] = $filter_date_from;
                             if (!empty($filter_date_to)) $pagination_args['filter_date_to'] = $filter_date_to;
                             if (!empty($_GET['filter_date_from_shamsi_2'])) $pagination_args['filter_date_from_shamsi_2'] = $_GET['filter_date_from_shamsi_2'];
@@ -1720,6 +1788,17 @@ if ($filter_member > 0) {
                         <option value="0">همه</option>
                         <?php foreach ($coaches_list as $coach) : ?>
                             <option value="<?php echo esc_attr($coach->id); ?>" <?php selected($filter_coach ?? 0, $coach->id); ?>><?php echo esc_html($coach->first_name . ' ' . $coach->last_name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
+
+                <?php if (function_exists('sc_attendance_record_method_filter_options')) : ?>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_record_method">روش ثبت</label>
+                    <select name="filter_record_method" id="filter_record_method" class="sc-filter-control">
+                        <?php foreach (sc_attendance_record_method_filter_options() as $method_value => $method_label) : ?>
+                            <option value="<?php echo esc_attr($method_value); ?>" <?php selected($filter_record_method ?? '', $method_value); ?>><?php echo esc_html($method_label); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -1831,6 +1910,9 @@ if ($filter_member > 0) {
                 $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
                 if (!empty($coaches_list) && isset($_GET['filter_coach']) && $_GET['filter_coach'] > 0) {
                     $export_url = add_query_arg('filter_coach', $_GET['filter_coach'], $export_url);
+                }
+                if (!empty($_GET['filter_record_method'])) {
+                    $export_url = add_query_arg('filter_record_method', sanitize_key(wp_unslash($_GET['filter_record_method'])), $export_url);
                 }
                 if (isset($_GET['filter_date_from']) && !empty($_GET['filter_date_from'])) {
                     $export_url = add_query_arg('filter_date_from', $_GET['filter_date_from'], $export_url);

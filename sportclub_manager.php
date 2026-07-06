@@ -69,6 +69,7 @@ require_once SC_INCLUDES_DIR . 'user-profile-access.php'; // دسترسی user-e
 require_once SC_INCLUDES_DIR . 'wp-content-list-admin.php'; // استایل لیست برگه‌ها و نوشته‌های وردپرس
 require_once SC_INCLUDES_DIR . 'coach-panel-admin.php'; // استایل صفحات پنل مربی
 require_once SC_INCLUDES_DIR . 'roles.php';                // نقش‌ها و محدودیت دسترسی (همیشه، حتی بدون لایسنس)
+require_once SC_INCLUDES_DIR . 'block-external-trackers.php'; // بلاک stats.wp.com و amplitude.com
 
 if (sc_is_license_active()) {
 require_once SC_INCLUDES_DIR . 'course-packages-functions.php'; // پکیج‌های قیمت دوره
@@ -754,6 +755,31 @@ function sc_add_user_id_column_to_attendances() {
         $wpdb->query("ALTER TABLE $table_name ADD COLUMN `user_id` bigint(20) unsigned DEFAULT NULL AFTER `status`");
         $wpdb->query("ALTER TABLE $table_name ADD KEY `idx_user_id` (`user_id`)");
     }
+}
+
+/**
+ * Add record_method column to attendances table if not exists
+ */
+add_action('init', 'sc_add_record_method_column_to_attendances', 5);
+add_action('admin_init', 'sc_add_record_method_column_to_attendances');
+function sc_add_record_method_column_to_attendances() {
+    if (get_option('sc_attendances_record_method_migration_done')) {
+        return;
+    }
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_attendances';
+
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'record_method'
+    ));
+
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN `record_method` varchar(20) NOT NULL DEFAULT 'manual' COMMENT 'manual|qr|api|auto_absent' AFTER `user_id`");
+        $wpdb->query("ALTER TABLE $table_name ADD KEY `idx_record_method` (`record_method`)");
+    }
+
+    update_option('sc_attendances_record_method_migration_done', '1');
 }
 
 /**
