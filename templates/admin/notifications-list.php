@@ -1,6 +1,6 @@
 <?php
 if (!defined('ABSPATH')) exit;
-if (!current_user_can('manage_options') && !current_user_can('sc_view_coach_salary')) {
+if (!current_user_can('manage_options') && !current_user_can('sc_manage_notifications') && !current_user_can('sc_view_coach_salary')) {
     wp_die('دسترسی غیرمجاز.');
 }
 $is_coach = !empty($GLOBALS['sc_notification_is_coach']);

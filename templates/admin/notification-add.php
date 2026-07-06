@@ -1,6 +1,6 @@
 <?php
 if (!defined('ABSPATH')) exit;
-if (!current_user_can('manage_options') && !current_user_can('sc_view_coach_salary')) {
+if (!current_user_can('manage_options') && !current_user_can('sc_manage_notifications') && !current_user_can('sc_view_coach_salary')) {
     wp_die('دسترسی غیرمجاز.');
 }
 $is_coach = !empty($GLOBALS['sc_notification_is_coach']);
@@ -30,7 +30,7 @@ if ($edit_id) {
 }
 
 $sc_bulk_sms_report_data = null;
-if (!$is_coach && !$edit_id && isset($_GET['sc_bulk_sms_report']) && current_user_can('manage_options')) {
+if (!$is_coach && !$edit_id && isset($_GET['sc_bulk_sms_report']) && (current_user_can('manage_options') || current_user_can('sc_manage_notifications'))) {
     $rk = sanitize_text_field(wp_unslash($_GET['sc_bulk_sms_report']));
     if ($rk !== '') {
         $sc_bulk_sms_report_data = get_transient($rk);
@@ -252,7 +252,7 @@ $saved = $notification ? (array)json_decode($notification->target_config, true) 
 
 // اگر از لیست اعضا با «ارسال پیامک» دسته‌جمعی آمده، اعضای انتخاب‌شده را پیش‌پر کن و نوع ارسال = افراد خاص
 $preselected_member_ids = [];
-if (!empty($_GET['member_ids']) && !$edit_id && current_user_can('manage_options')) {
+if (!empty($_GET['member_ids']) && !$edit_id && (current_user_can('manage_options') || current_user_can('sc_manage_notifications'))) {
     $raw = is_array($_GET['member_ids']) ? $_GET['member_ids'] : explode(',', sanitize_text_field($_GET['member_ids']));
     $preselected_member_ids = array_filter(array_map('absint', $raw));
     if (!empty($preselected_member_ids)) {

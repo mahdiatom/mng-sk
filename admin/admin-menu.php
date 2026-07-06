@@ -38,7 +38,7 @@ function sc_register_admin_menu() {
         add_menu_page(
             'اطلاعیه‌ها و پیامک',
             'اطلاعیه‌ها و پیامک',
-            'manage_options',
+            'sc_manage_notifications',
             'sc-notifications',
             'sc_admin_notifications_list_page',
             'dashicons-email-alt',
@@ -48,7 +48,7 @@ function sc_register_admin_menu() {
             'sc-notifications',
             'لیست اطلاعیه‌ها',
             'لیست اطلاعیه‌ها',
-            'manage_options',
+            'sc_manage_notifications',
             'sc-notifications',
             'sc_admin_notifications_list_page'
         );
@@ -56,7 +56,7 @@ function sc_register_admin_menu() {
             'sc-notifications',
             'ارسال  اطلاعیه و پیامک',
             'افزودن اطلاعیه و پیامک',
-            'manage_options',
+            'sc_manage_notifications',
             'sc-add-notification',
             'sc_admin_add_notification_page'
 
@@ -1181,7 +1181,7 @@ function sc_register_admin_menu() {
                 'sc-reports',
                 'گزارشات ارسال پیامک',
                 'گزارشات ارسال پیامک',
-                'manage_options',
+                'sc_finance_reports_access',
                 'sc-reports-sms-log',
                 'sc_admin_reports_sms_log_page'
             );

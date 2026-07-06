@@ -17622,6 +17622,65 @@ body[class*="_page_sc_setting"] .sc-settings-tab-content > .form-table tr {
     box-shadow: 0 2px 8px rgba(74, 31, 184, 0.04);
 }
 
+body.toplevel_page_sc_setting .sc-settings-custom-code-grid,
+body[class*="_page_sc_setting"] .sc-settings-custom-code-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+body.toplevel_page_sc_setting .sc-settings-custom-code-panel,
+body[class*="_page_sc_setting"] .sc-settings-custom-code-panel {
+    padding: 16px 18px;
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.06);
+}
+
+body.toplevel_page_sc_setting .sc-settings-custom-code-panel__title,
+body[class*="_page_sc_setting"] .sc-settings-custom-code-panel__title {
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e1b2e;
+}
+
+body.toplevel_page_sc_setting .sc-settings-code-field,
+body[class*="_page_sc_setting"] .sc-settings-code-field {
+    display: block;
+    width: 100%;
+    min-height: 220px;
+    margin-top: 10px;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #1e1b2e;
+    color: #e5e7eb;
+    font-family: Consolas, Monaco, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    resize: vertical;
+    direction: ltr;
+    text-align: left;
+}
+
+body.toplevel_page_sc_setting .sc-settings-code-field:focus,
+body[class*="_page_sc_setting"] .sc-settings-code-field:focus {
+    border-color: #6d34ff;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.15);
+    outline: none;
+}
+
+@media screen and (max-width: 960px) {
+    body.toplevel_page_sc_setting .sc-settings-custom-code-grid,
+    body[class*="_page_sc_setting"] .sc-settings-custom-code-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 body.toplevel_page_sc_setting .sc-settings-tab-content > form > .form-table th,
 body.toplevel_page_sc_setting .sc-settings-tab-content > form > .form-table td,
 body.toplevel_page_sc_setting .sc-settings-tab-content > .form-table th,

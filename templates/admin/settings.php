@@ -775,6 +775,19 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات ربات بله ذخیره شد.</p></div>';
     }
+    elseif ($current_tab === 'custom_code') {
+        if (!current_user_can('manage_options')) {
+            wp_die('دسترسی غیرمجاز.');
+        }
+        sc_update_setting('custom_css_admin', sc_sanitize_custom_code_field($_POST['custom_css_admin'] ?? ''), 'custom_code');
+        sc_update_setting('custom_css_public', sc_sanitize_custom_code_field($_POST['custom_css_public'] ?? ''), 'custom_code');
+        sc_update_setting('custom_js_admin', sc_sanitize_custom_code_field($_POST['custom_js_admin'] ?? ''), 'custom_code');
+        sc_update_setting('custom_js_public', sc_sanitize_custom_code_field($_POST['custom_js_public'] ?? ''), 'custom_code');
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب کد سفارشی ذخیره شد', null, ['tab' => 'custom_code']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>کد سفارشی با موفقیت ذخیره شد.</p></div>';
+    }
     elseif ($current_tab === 'header_footer') {
     
 
@@ -1234,9 +1247,16 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
            class="nav-tab <?php echo $current_tab === 'classes' ? 'nav-tab-active' : ''; ?>">
             کلاس‌ها
         </a>
-             <?php } 
+             <?php } ?>
              
-             if ( in_array('administrator', wp_get_current_user()->roles) ) {
+        <?php if (current_user_can('manage_options')) : ?>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=custom_code'); ?>"
+           class="nav-tab <?php echo $current_tab === 'custom_code' ? 'nav-tab-active' : ''; ?>">
+            کد سفارشی
+        </a>
+        <?php endif; ?>
+
+             <?php if ( in_array('administrator', wp_get_current_user()->roles) ) {
 ?>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=pro_features'); ?>"
             class="nav-tab <?php echo $current_tab === 'pro_features' ? 'nav-tab-active' : ''; ?>">
@@ -1453,7 +1473,12 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                       <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات">
                                     </p>
                   </form>
-        <?php elseif ($current_tab === 'log') : ?>
+        <?php elseif ($current_tab === 'custom_code') :
+            if (!current_user_can('manage_options')) {
+                wp_die('دسترسی غیرمجاز.');
+            }
+            include SC_TEMPLATES_ADMIN_DIR . 'settings-tab-custom-code.php';
+        elseif ($current_tab === 'log') : ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
                 <h3>تنظیمات لاگ فعالیت</h3>

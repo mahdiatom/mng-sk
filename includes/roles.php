@@ -240,6 +240,35 @@ function sc_grant_shop_capabilities_to_accountant() {
 add_action('admin_init', 'sc_grant_shop_capabilities_to_accountant', 10);
 
 /**
+ * اعطای دسترسی اطلاعیه و پیامک به نقش حسابدار.
+ */
+function sc_grant_notifications_capabilities_to_accountant() {
+    $role = get_role('accountantt');
+    if (!$role) {
+        return;
+    }
+    if (!$role->has_cap('sc_manage_notifications')) {
+        $role->add_cap('sc_manage_notifications');
+    }
+}
+add_action('admin_init', 'sc_grant_notifications_capabilities_to_accountant', 10);
+
+add_filter('user_has_cap', 'sc_manage_notifications_cap', 10, 4);
+function sc_manage_notifications_cap($allcaps, $caps, $args, $user) {
+    foreach ($caps as $cap) {
+        if ($cap === 'sc_manage_notifications') {
+            if (
+                (!empty($allcaps['manage_options']) && $allcaps['manage_options']) ||
+                (!empty($allcaps['accountantt']) && $allcaps['accountantt'])
+            ) {
+                $allcaps['sc_manage_notifications'] = true;
+            }
+        }
+    }
+    return $allcaps;
+}
+
+/**
  * ===============================
  * ایجاد نقش - بررسی مدیر فروشگاه
  * ===============================
@@ -618,7 +647,8 @@ function club_add_woocommerce_capabilities_to_club_coach() {
                         $item[2] !== 'sc-invoices' && 
                         $item[2] !== 'sc-wallet' && 
                         $item[2] !== 'sc-reports' && 
-                        $item[2] !== 'sc-coach-management' && 
+                        $item[2] !== 'sc-notifications' &&
+                        $item[2] !== 'sc-coach-management' &&
                         $item[2] !== 'sc-ticket'&&
                         $item[2] !== 'sc-support-tickets' &&
                         $item[2] !== 'woocommerce'&&
@@ -679,7 +709,14 @@ function club_add_woocommerce_capabilities_to_club_coach() {
         if ( current_user_can('accountantt')) {
             $allowed_pages = [
                 'sc-attendance-list_report',
+                'sc-reports',
                 'sc-reports-income-expenses',
+                'sc-reports-bi-analytics',
+                'sc-reports-coach-performance',
+                'sc-reports-weekly-schedule',
+                'sc-reports-sms-log',
+                'sc-notifications',
+                'sc-add-notification',
                 'sc-add-expense',
                 'sc-expenses',
                 'sc-add-invoice',
