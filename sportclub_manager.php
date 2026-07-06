@@ -3,7 +3,7 @@
  * Plugin Name:       سامانه مدیریت باشگاه اتم کلاب
  * Plugin URI:        https://atomwp.ir
  * Description:       یک سیستم جامع برای مدیریت اعضا، دوره‌های ورزشی، پرداخت‌ها و حضور و غیاب باشگاه با قابلیت یکپارچگی کامل با ووکامرس.
- * Version:           1.4.16
+ * Version:           1.5.20
  * Author:            مهدی باباشاهی
  * Author URI:        https://atomwp.ir
  * License:           GPL2
@@ -1838,10 +1838,11 @@ function sc_admin_enqueue_assets() {
             'attendanceDate' => isset($_GET['date']) ? sanitize_text_field(wp_unslash($_GET['date'])) : '',
             'chapterName'    => isset($_GET['attendance_chapter']) ? sanitize_text_field(wp_unslash($_GET['attendance_chapter'])) : '',
             'groupName'      => isset($_GET['attendance_group']) ? sanitize_text_field(wp_unslash($_GET['attendance_group'])) : '',
-            'cooldownMs'     => function_exists('sc_attendance_qr_get_scan_cooldown_ms') ? sc_attendance_qr_get_scan_cooldown_ms() : 800,
-            'soundSuccess'   => sc_attendance_qr_get_sound_url('success'),
-            'soundError'     => sc_attendance_qr_get_sound_url('error'),
-            'soundDuplicate' => sc_attendance_qr_get_sound_url('duplicate'),
+            'cooldownMs'     => function_exists('sc_attendance_qr_get_scan_cooldown_ms') ? sc_attendance_qr_get_scan_cooldown_ms() : 300,
+            'soundSuccess'     => sc_attendance_qr_get_sound_url('success'),
+            'soundError'       => sc_attendance_qr_get_sound_url('error'),
+            'soundDuplicate'   => sc_attendance_qr_get_sound_url('duplicate'),
+            'soundNotInCourse' => sc_attendance_qr_get_sound_url('not_in_course'),
         ));
     }
     if ($current_page === 'sc-view-member' && function_exists('sc_attendance_qr_should_show_member_card') && sc_attendance_qr_should_show_member_card('admin')) {

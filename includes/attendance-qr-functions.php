@@ -23,6 +23,36 @@ function sc_attendance_qr_is_enabled() {
 }
 
 /**
+ * @param array $members
+ * @return array<string,array{id:int,name:string}>
+ */
+function sc_attendance_qr_build_member_lookup_map($members) {
+    $map = [];
+    if (!is_array($members)) {
+        return $map;
+    }
+    foreach ($members as $member) {
+        $id = is_object($member) ? (int) ($member->id ?? 0) : 0;
+        if (!$id) {
+            continue;
+        }
+        $hash = sc_attendance_qr_ensure_member_hash($id);
+        if (!$hash) {
+            continue;
+        }
+        $payload = sc_attendance_qr_format_payload($hash);
+        $name    = trim((string) ($member->first_name ?? '') . ' ' . (string) ($member->last_name ?? ''));
+        $entry   = [
+            'id'   => $id,
+            'name' => $name,
+        ];
+        $map[$payload] = $entry;
+        $map[$hash]    = $entry;
+    }
+    return $map;
+}
+
+/**
  * @return string
  */
 function sc_attendance_qr_generate_hash() {
@@ -171,18 +201,34 @@ function sc_attendance_qr_get_logo_size_percent() {
  * @return int
  */
 function sc_attendance_qr_get_scan_cooldown_ms() {
-    return max(300, min(5000, (int) sc_get_setting('attendance_qr_scan_cooldown_ms', '800')));
+    return max(300, min(5000, (int) sc_get_setting('attendance_qr_scan_cooldown_ms', '300')));
 }
 
 /**
- * @param string $type success|error|duplicate
+ * @param string $type success|error|duplicate|not_in_course
+ * @return string
+ */
+function sc_attendance_qr_sound_file_basename($type) {
+    $map = [
+        'success'       => 'qr-success',
+        'error'         => 'qr-error',
+        'duplicate'     => 'qr-duplicate',
+        'not_in_course' => 'qr-not-in-course',
+    ];
+    return isset($map[$type]) ? $map[$type] : 'qr-' . $type;
+}
+
+/**
+ * @param string $type success|error|duplicate|not_in_course
  * @return string
  */
 function sc_attendance_qr_get_sound_url($type) {
+    $basename = sc_attendance_qr_sound_file_basename($type);
     $defaults = [
-        'success'   => SC_ASSETS_URL . 'sounds/qr-success.mp3',
-        'error'     => SC_ASSETS_URL . 'sounds/qr-error.mp3',
-        'duplicate' => SC_ASSETS_URL . 'sounds/qr-duplicate.mp3',
+        'success'       => SC_ASSETS_URL . 'sounds/qr-success.mp3',
+        'error'         => SC_ASSETS_URL . 'sounds/qr-error.mp3',
+        'duplicate'     => SC_ASSETS_URL . 'sounds/qr-duplicate.mp3',
+        'not_in_course' => SC_ASSETS_URL . 'sounds/qr-not-in-course.mp3',
     ];
     $key = 'attendance_qr_sound_' . $type . '_url';
     $custom = trim((string) sc_get_setting($key, ''));
@@ -192,12 +238,12 @@ function sc_attendance_qr_get_sound_url($type) {
     if (!isset($defaults[$type])) {
         return '';
     }
-    $mp3_path = SC_ASSETS_DIR . 'sounds/qr-' . $type . '.mp3';
+    $mp3_path = SC_ASSETS_DIR . 'sounds/' . $basename . '.mp3';
     if (file_exists($mp3_path) && filesize($mp3_path) > 100) {
         return $defaults[$type];
     }
     $wav_url = str_replace('.mp3', '.wav', $defaults[$type]);
-    $wav_path = SC_ASSETS_DIR . 'sounds/qr-' . $type . '.wav';
+    $wav_path = SC_ASSETS_DIR . 'sounds/' . $basename . '.wav';
     if (file_exists($wav_path) && filesize($wav_path) > 100) {
         return $wav_url;
     }
@@ -1115,9 +1161,10 @@ function sc_attendance_qr_ensure_default_sounds() {
         wp_mkdir_p($dir);
     }
     $map = [
-        'qr-success.mp3'   => [880, 180, 0.35],
-        'qr-error.mp3'     => [220, 350, 0.40],
-        'qr-duplicate.mp3' => [660, 120, 0.35],
+        'qr-success.mp3'       => [880, 180, 0.35],
+        'qr-error.mp3'         => [220, 350, 0.40],
+        'qr-duplicate.mp3'     => [660, 120, 0.35],
+        'qr-not-in-course.mp3' => [440, 220, 0.38],
     ];
     foreach ($map as $file => $cfg) {
         $mp3_path = $dir . $file;

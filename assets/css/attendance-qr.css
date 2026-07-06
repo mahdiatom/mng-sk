@@ -68,7 +68,127 @@
 .sc-attendance-qr-reader video {
     width: 100% !important;
     height: auto !important;
+    max-height: none;
     object-fit: cover;
+}
+
+.sc-attendance-qr-reader #qr-shaded-region,
+.sc-attendance-qr-reader img[alt="Info icon"] {
+    display: none !important;
+}
+
+.sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-camera-wrap {
+    min-height: min(72vh, 820px);
+}
+
+.sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-reader {
+    min-height: min(72vh, 820px);
+}
+
+.sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-reader video {
+    min-height: min(72vh, 820px);
+}
+
+body.sc-attendance-qr-fullscreen {
+    overflow: hidden;
+}
+
+body.sc-attendance-qr-fullscreen #wpadminbar {
+    display: none;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    border: none;
+    grid-template-columns: 1fr;
+    background: #0f0d18;
+    box-shadow: none;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-panel__main {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-camera-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    border: none;
+    border-radius: 0;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-reader {
+    width: 100% !important;
+    min-height: 100%;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-reader video {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100%;
+    max-height: 100vh;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-actions {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    margin: 0;
+    z-index: 12;
+    justify-content: space-between;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-hint {
+    display: none;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-sidebar {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 12;
+    max-height: 34vh;
+    overflow: auto;
+    padding: 10px;
+    border-radius: 14px;
+    background: rgba(15, 13, 24, 0.82);
+    backdrop-filter: blur(8px);
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-stat,
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-log__item {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-log-title,
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-stat__label,
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-log__name {
+    color: #fff;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-stat__value {
+    color: #c4b5fd;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-log__msg,
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active .sc-attendance-qr-log__time {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.sc-attendance-qr-toast.is-info {
+    background: rgba(74, 31, 184, 0.88);
 }
 
 .sc-attendance-qr-toast {
@@ -97,12 +217,22 @@
 .sc-attendance-qr-toast.is-success { background: rgba(16, 122, 72, 0.92); }
 .sc-attendance-qr-toast.is-error { background: rgba(180, 35, 45, 0.92); }
 .sc-attendance-qr-toast.is-duplicate { background: rgba(180, 120, 20, 0.92); }
+.sc-attendance-qr-toast.is-not-in-course { background: rgba(140, 70, 160, 0.92); }
 
 .sc-attendance-qr-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 14px;
+}
+
+#sc-attendance-qr-switch:not(:disabled) {
+    border-color: rgba(109, 52, 255, 0.35);
+    color: #4a1fb8;
+}
+
+body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active #sc-attendance-qr-switch {
+    background: rgba(255, 255, 255, 0.92);
 }
 
 .sc-attendance-qr-hint {

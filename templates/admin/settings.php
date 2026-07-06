@@ -512,16 +512,18 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $attendance_qr_enabled = isset($_POST['attendance_qr_enabled']) ? 1 : 0;
         $attendance_qr_logo_url = isset($_POST['attendance_qr_logo_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_logo_url']))) : '';
         $attendance_qr_logo_size_percent = isset($_POST['attendance_qr_logo_size_percent']) ? max(12, min(30, absint($_POST['attendance_qr_logo_size_percent']))) : 22;
-        $attendance_qr_scan_cooldown_ms = isset($_POST['attendance_qr_scan_cooldown_ms']) ? max(300, min(5000, absint($_POST['attendance_qr_scan_cooldown_ms']))) : 800;
+        $attendance_qr_scan_cooldown_ms = isset($_POST['attendance_qr_scan_cooldown_ms']) ? max(300, min(5000, absint($_POST['attendance_qr_scan_cooldown_ms']))) : 300;
         $attendance_qr_show_dashboard = isset($_POST['attendance_qr_show_dashboard']) ? 1 : 0;
         $attendance_qr_sound_success_url = isset($_POST['attendance_qr_sound_success_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_success_url']))) : '';
         $attendance_qr_sound_error_url = isset($_POST['attendance_qr_sound_error_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_error_url']))) : '';
         $attendance_qr_sound_duplicate_url = isset($_POST['attendance_qr_sound_duplicate_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_duplicate_url']))) : '';
+        $attendance_qr_sound_not_in_course_url = isset($_POST['attendance_qr_sound_not_in_course_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_not_in_course_url']))) : '';
         if (function_exists('sc_attendance_qr_is_valid_sound_url')) {
             foreach ([
-                'attendance_qr_sound_success_url'   => &$attendance_qr_sound_success_url,
-                'attendance_qr_sound_error_url'     => &$attendance_qr_sound_error_url,
-                'attendance_qr_sound_duplicate_url' => &$attendance_qr_sound_duplicate_url,
+                'attendance_qr_sound_success_url'       => &$attendance_qr_sound_success_url,
+                'attendance_qr_sound_error_url'         => &$attendance_qr_sound_error_url,
+                'attendance_qr_sound_duplicate_url'     => &$attendance_qr_sound_duplicate_url,
+                'attendance_qr_sound_not_in_course_url' => &$attendance_qr_sound_not_in_course_url,
             ] as $label => &$sound_url) {
                 if ($sound_url !== '' && !sc_attendance_qr_is_valid_sound_url($sound_url)) {
                     $sound_url = '';
@@ -537,6 +539,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('attendance_qr_sound_success_url', $attendance_qr_sound_success_url, 'attendance');
         sc_update_setting('attendance_qr_sound_error_url', $attendance_qr_sound_error_url, 'attendance');
         sc_update_setting('attendance_qr_sound_duplicate_url', $attendance_qr_sound_duplicate_url, 'attendance');
+        sc_update_setting('attendance_qr_sound_not_in_course_url', $attendance_qr_sound_not_in_course_url, 'attendance');
 
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب حضور و غیاب ذخیره شد', null, ['tab' => 'attendance']);
@@ -3535,14 +3538,16 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 $attendance_qr_enabled = (int) sc_get_setting('attendance_qr_enabled', '1');
                 $attendance_qr_logo_url = (string) sc_get_setting('attendance_qr_logo_url', '');
                 $attendance_qr_logo_size_percent = (int) sc_get_setting('attendance_qr_logo_size_percent', '22');
-                $attendance_qr_scan_cooldown_ms = (int) sc_get_setting('attendance_qr_scan_cooldown_ms', '800');
+                $attendance_qr_scan_cooldown_ms = (int) sc_get_setting('attendance_qr_scan_cooldown_ms', '300');
                 $attendance_qr_show_dashboard = (int) sc_get_setting('attendance_qr_show_dashboard', '1');
                 $attendance_qr_sound_success_url = (string) sc_get_setting('attendance_qr_sound_success_url', '');
                 $attendance_qr_sound_error_url = (string) sc_get_setting('attendance_qr_sound_error_url', '');
                 $attendance_qr_sound_duplicate_url = (string) sc_get_setting('attendance_qr_sound_duplicate_url', '');
+                $attendance_qr_sound_not_in_course_url = (string) sc_get_setting('attendance_qr_sound_not_in_course_url', '');
                 $attendance_qr_default_sound_success = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('success') : '';
                 $attendance_qr_default_sound_error = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('error') : '';
                 $attendance_qr_default_sound_duplicate = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('duplicate') : '';
+                $attendance_qr_default_sound_not_in_course = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('not_in_course') : '';
                 ?>
 
                 <table class="form-table">
@@ -3692,7 +3697,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <th scope="row"><label for="attendance_qr_scan_cooldown_ms">فاصله بین اسکن‌ها (میلی‌ثانیه)</label></th>
                         <td>
                             <input type="number" name="attendance_qr_scan_cooldown_ms" id="attendance_qr_scan_cooldown_ms" value="<?php echo esc_attr($attendance_qr_scan_cooldown_ms); ?>" min="300" max="5000" step="100" class="small-text">
-                            <p class="description">فقط برای جلوگیری از ثبت تکراری همان QR در دوربین (پیش‌فرض: ۸۰۰). اسکن بازیکن بعدی بلافاصله انجام می‌شود.</p>
+                            <p class="description">فقط برای جلوگیری از ثبت تکراری همان QR در دوربین (پیش‌فرض: ۳۰۰). اسکن بازیکن بعدی بلافاصله انجام می‌شود.</p>
                         </td>
                     </tr>
                     <tr>
@@ -3731,9 +3736,21 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                             </div>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row">صدای عدم ثبت‌نام در دوره</th>
+                        <td>
+                            <div class="sc-lr-media-field">
+                                <input type="hidden" name="attendance_qr_sound_not_in_course_url" id="attendance_qr_sound_not_in_course_url" value="<?php echo esc_attr($attendance_qr_sound_not_in_course_url); ?>">
+                                <button type="button" class="button sc-qr-sound-upload" data-target="attendance_qr_sound_not_in_course_url" data-preview="attendance_qr_sound_not_in_course_preview">انتخاب فایل صوتی</button>
+                                <button type="button" class="button sc-qr-sound-remove" data-target="attendance_qr_sound_not_in_course_url" data-preview="attendance_qr_sound_not_in_course_preview" <?php echo $attendance_qr_sound_not_in_course_url === '' ? ' style="display:none;"' : ''; ?>>حذف</button>
+                                <p class="description">فرمت مجاز: MP3 — وقتی بازیکن در دوره/گروه انتخاب‌شده ثبت‌نام فعال ندارد پخش می‌شود.</p>
+                                <p class="description" id="attendance_qr_sound_not_in_course_preview"><?php echo $attendance_qr_sound_not_in_course_url !== '' ? esc_html($attendance_qr_sound_not_in_course_url) : 'پیش‌فرض: ' . esc_html($attendance_qr_default_sound_not_in_course); ?></p>
+                            </div>
+                        </td>
+                    </tr>
                 </table>
                 <?php else : ?>
-                <div class="notice notice-info inline" style="margin:12px 0 18px;"><p>برای استفاده از QR حضور و غیاب، گزینه «اسکن QR حضور و غیاب» را در تب <strong>امکانات پرو</strong> فعال کنید.</p></div>
+                <div class="notice notice-info inline" style="margin:12px 0 18px;"><p> جهت فعال سازی حضور و غیاب توسط qrcode با پشتیبانی سایت تماس بگیرید.</p></div>
                 <?php endif; ?>
 
                 <p class="submit">

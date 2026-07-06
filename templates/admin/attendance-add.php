@@ -714,6 +714,16 @@ $attendance_ungrouped_member_count = ($selected_course_id > 0 && function_exists
 
                 <?php
                 $sc_qr_enabled = function_exists('sc_attendance_qr_is_enabled') && sc_attendance_qr_is_enabled();
+                $sc_qr_member_map = ($sc_qr_enabled && !empty($active_members) && function_exists('sc_attendance_qr_build_member_lookup_map'))
+                    ? sc_attendance_qr_build_member_lookup_map($active_members)
+                    : [];
+                if ($sc_qr_enabled && !empty($sc_qr_member_map)) {
+                    wp_add_inline_script(
+                        'sc-attendance-qr-scanner-js',
+                        'window.scAttendanceQr = Object.assign(window.scAttendanceQr || {}, ' . wp_json_encode(['memberMap' => $sc_qr_member_map], JSON_UNESCAPED_UNICODE) . ');',
+                        'before'
+                    );
+                }
                 if ($sc_qr_enabled) :
                 ?>
                 <div class="sc-attendance-mode-switch" role="tablist" aria-label="روش ثبت حضور">
@@ -738,9 +748,10 @@ $attendance_ungrouped_member_count = ($selected_course_id > 0 && function_exists
                             </div>
                             <div class="sc-attendance-qr-actions">
                                 <button type="button" class="button button-primary button-large" id="sc-attendance-qr-start">شروع اسکن</button>
+                                <button type="button" class="button button-large" id="sc-attendance-qr-switch" disabled title="تغییر بین دوربین جلو و عقب">تغییر دوربین</button>
                                 <button type="button" class="button button-large" id="sc-attendance-qr-stop" disabled>توقف</button>
                             </div>
-                            <p class="sc-attendance-qr-hint">دوربین عقب گوشی فعال می‌شود. پس از هر اسکن موفق، صدای تأیید پخش می‌شود و می‌توانید بازیکن بعدی را اسکن کنید.</p>
+                            <p class="sc-attendance-qr-hint">پیش‌فرض دوربین عقب است. اگر تصویر اشتباه بود از دکمه «تغییر دوربین» استفاده کنید.</p>
                         </div>
                         <aside class="sc-attendance-qr-sidebar">
                             <div class="sc-attendance-qr-stat">
