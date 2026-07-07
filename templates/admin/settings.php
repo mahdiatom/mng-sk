@@ -485,8 +485,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     }
     elseif($current_tab === 'attendance'){
         $deduction_wallet_enabled = isset($_POST['deduction_wallet']) ? 1 : 0;
+        $attendance_debt_block_enabled = isset($_POST['attendance_debt_block_enabled']) ? 1 : 0;
    
-        $raw_neg_debt = isset($_POST['max_debt_for_attendance']) && $_POST['max_debt_for_attendance'] !== '' ? str_replace(',', '', $_POST['max_debt_for_attendance']) : (isset($_POST['max_debt_for_attendance']) ? $_POST['max_debt_for_attendance'] : '');
+        $raw_neg_debt = isset($_POST['max_debt_for_attendance_raw']) && $_POST['max_debt_for_attendance_raw'] !== '' ? str_replace(',', '', $_POST['max_debt_for_attendance_raw']) : (isset($_POST['max_debt_for_attendance']) ? str_replace(',', '', $_POST['max_debt_for_attendance']) : '');
         $max_debt_for_attendance = $raw_neg_debt !== '' ? floatval($raw_neg_debt) : 0;
         $user_alert_absence_limit = isset($_POST['user_alert_absence_limit']) ? max(1, absint($_POST['user_alert_absence_limit'])) : 3;
         $attendance_api_auto_enabled = isset($_POST['attendance_api_auto_enabled']) ? 1 : 0;
@@ -498,6 +499,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $attendance_absent_after_end_minutes = isset($_POST['attendance_absent_after_end_minutes']) ? max(0, absint($_POST['attendance_absent_after_end_minutes'])) : 15;
         $user_alert_absence_limit = isset($_POST['user_alert_absence_limit']) ? max(1, absint($_POST['user_alert_absence_limit'])) : 3;
         sc_update_setting('deduction_wallet_enabled' , $deduction_wallet_enabled , 'attendance');
+        sc_update_setting('attendance_debt_block_enabled', $attendance_debt_block_enabled, 'attendance');
         sc_update_setting('max_debt_for_attendance' , $max_debt_for_attendance , 'attendance');
         sc_update_setting('user_alert_absence_limit', (string) $user_alert_absence_limit, 'attendance');
         sc_update_setting('attendance_api_auto_enabled', $attendance_api_auto_enabled, 'attendance');
@@ -518,12 +520,16 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $attendance_qr_sound_error_url = isset($_POST['attendance_qr_sound_error_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_error_url']))) : '';
         $attendance_qr_sound_duplicate_url = isset($_POST['attendance_qr_sound_duplicate_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_duplicate_url']))) : '';
         $attendance_qr_sound_not_in_course_url = isset($_POST['attendance_qr_sound_not_in_course_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_not_in_course_url']))) : '';
+        $attendance_qr_sound_debt_warning_url = isset($_POST['attendance_qr_sound_debt_warning_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_debt_warning_url']))) : '';
+        $attendance_qr_sound_debt_blocked_url = isset($_POST['attendance_qr_sound_debt_blocked_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_debt_blocked_url']))) : '';
         if (function_exists('sc_attendance_qr_is_valid_sound_url')) {
             foreach ([
                 'attendance_qr_sound_success_url'       => &$attendance_qr_sound_success_url,
                 'attendance_qr_sound_error_url'         => &$attendance_qr_sound_error_url,
                 'attendance_qr_sound_duplicate_url'     => &$attendance_qr_sound_duplicate_url,
                 'attendance_qr_sound_not_in_course_url' => &$attendance_qr_sound_not_in_course_url,
+                'attendance_qr_sound_debt_warning_url'  => &$attendance_qr_sound_debt_warning_url,
+                'attendance_qr_sound_debt_blocked_url'  => &$attendance_qr_sound_debt_blocked_url,
             ] as $label => &$sound_url) {
                 if ($sound_url !== '' && !sc_attendance_qr_is_valid_sound_url($sound_url)) {
                     $sound_url = '';
@@ -540,6 +546,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('attendance_qr_sound_error_url', $attendance_qr_sound_error_url, 'attendance');
         sc_update_setting('attendance_qr_sound_duplicate_url', $attendance_qr_sound_duplicate_url, 'attendance');
         sc_update_setting('attendance_qr_sound_not_in_course_url', $attendance_qr_sound_not_in_course_url, 'attendance');
+        sc_update_setting('attendance_qr_sound_debt_warning_url', $attendance_qr_sound_debt_warning_url, 'attendance');
+        sc_update_setting('attendance_qr_sound_debt_blocked_url', $attendance_qr_sound_debt_blocked_url, 'attendance');
 
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب حضور و غیاب ذخیره شد', null, ['tab' => 'attendance']);
@@ -3550,6 +3558,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce');
                 $deduction_wallet_enabled = sc_get_setting('deduction_wallet_enabled'); 
+                $attendance_debt_block_enabled = (int) sc_get_setting('attendance_debt_block_enabled', '0');
                 $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0'));
                 $user_alert_absence_limit = (int) sc_get_setting('user_alert_absence_limit', '3');
                 $attendance_api_auto_enabled = (int) sc_get_setting('attendance_api_auto_enabled', '1');
@@ -3569,10 +3578,14 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 $attendance_qr_sound_error_url = (string) sc_get_setting('attendance_qr_sound_error_url', '');
                 $attendance_qr_sound_duplicate_url = (string) sc_get_setting('attendance_qr_sound_duplicate_url', '');
                 $attendance_qr_sound_not_in_course_url = (string) sc_get_setting('attendance_qr_sound_not_in_course_url', '');
+                $attendance_qr_sound_debt_warning_url = (string) sc_get_setting('attendance_qr_sound_debt_warning_url', '');
+                $attendance_qr_sound_debt_blocked_url = (string) sc_get_setting('attendance_qr_sound_debt_blocked_url', '');
                 $attendance_qr_default_sound_success = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('success') : '';
                 $attendance_qr_default_sound_error = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('error') : '';
                 $attendance_qr_default_sound_duplicate = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('duplicate') : '';
                 $attendance_qr_default_sound_not_in_course = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('not_in_course') : '';
+                $attendance_qr_default_sound_debt_warning = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('debt_warning') : '';
+                $attendance_qr_default_sound_debt_blocked = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('debt_blocked') : '';
                 ?>
 
                 <table class="form-table">
@@ -3646,6 +3659,16 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         </td>
                     </tr>
                     <tr>
+                        <th scope="row">عدم ثبت رکورد حضور و غیاب برای بدهی‌های بیش از حد</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="attendance_debt_block_enabled" value="1" <?php checked($attendance_debt_block_enabled, 1); ?>>
+                                اگر بدهی کل بازیکن به سقف زیر برسد یا از آن بیشتر شود، امکان ثبت حضور و غیاب نداشته باشد
+                            </label>
+                            <p class="description">این محدودیت مستقل از نوع بازیکن و فعال بودن کیف پول بررسی می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
                         <th scope="row">حداکثر بدهی منفی مجاز برای عدم ثبت حضور و غیاب</th>
                         <td>
                             <input type="text" 
@@ -3657,7 +3680,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                    inputmode="numeric" 
                                    placeholder="0">
                             <input type="hidden" name="max_debt_for_attendance_raw" id="max_debt_for_attendance_raw" value="<?php echo esc_attr($max_debt_for_attendance); ?>">
-                            <p class="description">در صورتی که بدهی کل کاربر بیشتر از این مبلغ باشد امکان ثبت رکورد حضور و غیاب برای آن کاربر امکان پذیر نمی باشد.</p>
+                            <p class="description">در صورت فعال بودن گزینه بالا، اگر بدهی کل کاربر برابر یا بیشتر از این مبلغ باشد امکان ثبت رکورد حضور و غیاب برای آن کاربر امکان‌پذیر نیست.</p>
                         </td>
                     </tr>
                     <tr>
@@ -3758,6 +3781,30 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                 <button type="button" class="button sc-qr-sound-remove" data-target="attendance_qr_sound_duplicate_url" data-preview="attendance_qr_sound_duplicate_preview" <?php echo $attendance_qr_sound_duplicate_url === '' ? ' style="display:none;"' : ''; ?>>حذف</button>
                                 <p class="description">فرمت مجاز: MP3 — هنگام ثبت تکراری پخش می‌شود.</p>
                                 <p class="description" id="attendance_qr_sound_duplicate_preview"><?php echo $attendance_qr_sound_duplicate_url !== '' ? esc_html($attendance_qr_sound_duplicate_url) : 'پیش‌فرض: ' . esc_html($attendance_qr_default_sound_duplicate); ?></p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">صدای هشدار بدهی پس از ثبت موفق</th>
+                        <td>
+                            <div class="sc-lr-media-field">
+                                <input type="hidden" name="attendance_qr_sound_debt_warning_url" id="attendance_qr_sound_debt_warning_url" value="<?php echo esc_attr($attendance_qr_sound_debt_warning_url); ?>">
+                                <button type="button" class="button sc-qr-sound-upload" data-target="attendance_qr_sound_debt_warning_url" data-preview="attendance_qr_sound_debt_warning_preview">انتخاب فایل صوتی</button>
+                                <button type="button" class="button sc-qr-sound-remove" data-target="attendance_qr_sound_debt_warning_url" data-preview="attendance_qr_sound_debt_warning_preview" <?php echo $attendance_qr_sound_debt_warning_url === '' ? ' style="display:none;"' : ''; ?>>حذف</button>
+                                <p class="description">فرمت مجاز: MP3 — وقتی حضور با QR ثبت می‌شود اما بازیکن بدهی دارد، بعد از صدای تایید پخش می‌شود.</p>
+                                <p class="description" id="attendance_qr_sound_debt_warning_preview"><?php echo $attendance_qr_sound_debt_warning_url !== '' ? esc_html($attendance_qr_sound_debt_warning_url) : 'پیش‌فرض: ' . esc_html($attendance_qr_default_sound_debt_warning); ?></p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">صدای بدهی بیش از حد و عدم ثبت</th>
+                        <td>
+                            <div class="sc-lr-media-field">
+                                <input type="hidden" name="attendance_qr_sound_debt_blocked_url" id="attendance_qr_sound_debt_blocked_url" value="<?php echo esc_attr($attendance_qr_sound_debt_blocked_url); ?>">
+                                <button type="button" class="button sc-qr-sound-upload" data-target="attendance_qr_sound_debt_blocked_url" data-preview="attendance_qr_sound_debt_blocked_preview">انتخاب فایل صوتی</button>
+                                <button type="button" class="button sc-qr-sound-remove" data-target="attendance_qr_sound_debt_blocked_url" data-preview="attendance_qr_sound_debt_blocked_preview" <?php echo $attendance_qr_sound_debt_blocked_url === '' ? ' style="display:none;"' : ''; ?>>حذف</button>
+                                <p class="description">فرمت مجاز: MP3 — وقتی بازیکن به دلیل بدهی بیش از حد امکان ثبت حضور ندارد پخش می‌شود.</p>
+                                <p class="description" id="attendance_qr_sound_debt_blocked_preview"><?php echo $attendance_qr_sound_debt_blocked_url !== '' ? esc_html($attendance_qr_sound_debt_blocked_url) : 'پیش‌فرض: ' . esc_html($attendance_qr_default_sound_debt_blocked); ?></p>
                             </div>
                         </td>
                     </tr>

@@ -294,6 +294,10 @@ function sc_attendance_auto_process_api_logs($limit = 100) {
         $price_per_session = $best['price_per_session'];
         $course_title = $best['course_title'];
 
+        if (function_exists('sc_attendance_member_debt_blocked') && sc_attendance_member_debt_blocked($member_id)) {
+            continue;
+        }
+
         $need_deduct = sc_is_member_team($member_id) && $price_per_session > 0
             && function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
         if ($need_deduct) {
@@ -404,6 +408,10 @@ function sc_attendance_auto_mark_absents() {
                 $course_title = (string) $slot->title;
                 $price_per_session = floatval($slot->price_per_session);
                 $attendance_date_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($session_date) : $session_date;
+
+                if (function_exists('sc_attendance_member_debt_blocked') && sc_attendance_member_debt_blocked($member_id)) {
+                    continue;
+                }
 
                 $need_deduct = sc_is_member_team($member_id) && $price_per_session > 0
                     && function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();

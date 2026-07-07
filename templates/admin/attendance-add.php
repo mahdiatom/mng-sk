@@ -112,6 +112,7 @@ if (
             $saved_count = 0;
             $updated_count = 0;
             $wallet_failed = array(); // لیست کاربرانی که به دلیل کیف پول ثبت نشدند
+            $debt_blocked = array(); // لیست کاربرانی که به دلیل بدهی بیش از حد ثبت نشدند
             $current_user_id = get_current_user_id();
             $current_is_coach_user = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach');
             $current_coach_id_for_assignment = 0;
@@ -134,6 +135,14 @@ if (
                     $status = 'excused';
                 }
                 if (!$member_id) {
+                    continue;
+                }
+                if (function_exists('sc_attendance_member_debt_blocked') && sc_attendance_member_debt_blocked($member_id)) {
+                    $member_name = $wpdb->get_var($wpdb->prepare(
+                        "SELECT CONCAT(first_name, ' ', last_name) FROM $members_table WHERE id = %d LIMIT 1",
+                        $member_id
+                    ));
+                    $debt_blocked[] = $member_name ? $member_name : 'شناسه ' . $member_id;
                     continue;
                 }
 
@@ -234,7 +243,7 @@ if (
                 if ($existing) {
 
                     $current_record = $wpdb->get_row($wpdb->prepare(
-                        "SELECT status, absence_sms_sent , user_id FROM $attendances_table WHERE id = %d",
+                        "SELECT status, absence_sms_sent , user_id, record_method FROM $attendances_table WHERE id = %d",
                         $existing
                     ));
                 }
@@ -296,9 +305,12 @@ if (
 
                     $update_data = array(
                             'status' => $status,
-                            'record_method' => 'manual',
                             'updated_at' => current_time('mysql')
                         );
+
+                    if (!$current_record || $current_record->record_method !== 'qr') {
+                        $update_data['record_method'] = 'manual';
+                    }
 
                         // فقط اگر ثبت‌کننده قبلاً مشخص نشده باشد مقدار بده
                         if (empty($current_record->user_id)) {
@@ -371,11 +383,17 @@ if (
                 if (!empty($wallet_failed)) {
                     $message .= ' ثبت نشد (موجودی کیف پول ناکافی یا بیش از حد مجاز منفی): ' . implode('؛ ', array_map('esc_html', $wallet_failed));
                 }
-                $message_type = !empty($wallet_failed) ? 'warning' : 'success';
+                if (!empty($debt_blocked)) {
+                    $message .= ' ثبت نشد (بدهی بیش از حد مجاز): ' . implode('؛ ', array_map('esc_html', $debt_blocked));
+                }
+                $message_type = (!empty($wallet_failed) || !empty($debt_blocked)) ? 'warning' : 'success';
             } else {
                 $message = 'خطا در ثبت حضور و غیاب.';
                 if (!empty($wallet_failed)) {
                     $message .= ' ' . implode('؛ ', array_map('esc_html', $wallet_failed));
+                }
+                if (!empty($debt_blocked)) {
+                    $message .= ' ثبت نشد (بدهی بیش از حد مجاز): ' . implode('؛ ', array_map('esc_html', $debt_blocked));
                 }
                 $message_type = 'error';
             }
@@ -640,8 +658,9 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
         $existing_method = isset($existing_record_methods[$member->id]) ? $existing_record_methods[$member->id] : '';
         $field_name = ($list_type === 'recorded') ? 'attendance_recorded' : 'attendance_pending';
         $debt_user = debt_user($member->id)[0];
+        $debt_blocked = function_exists('sc_attendance_member_debt_blocked') && sc_attendance_member_debt_blocked($member->id);
         $row_class = 'sc-attendance-member-row';
-        if ($debt_user >= $max_debt_for_attendance && $max_debt_for_attendance > 0) {
+        if ($debt_blocked) {
             $row_class .= ' sc-attendance-member-row--blocked';
         } elseif ($debt_user > 0) {
             $row_class .= ' sc-attendance-member-row--debt';
@@ -652,7 +671,7 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
             <td class="sc-attendance-member-name"><?php echo esc_html($member->first_name . ' ' . $member->last_name); ?></td>
             <td class="sc-attendance-member-debt">
                 <?php echo number_format($debt_user); ?> تومان
-                <?php if ($debt_user >= $max_debt_for_attendance && $max_debt_for_attendance > 0) : ?>
+                <?php if ($debt_blocked) : ?>
                     <span class="sc-attendance-debt-alert">سقف موجودی — عدم ثبت رکورد</span>
                 <?php endif; ?>
             </td>
@@ -679,9 +698,11 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
                     <input type="radio"
                            name="<?php echo esc_attr($field_name . '[' . $member->id . ']'); ?>"
                            value="present"
-                           <?php checked($existing_status, 'present'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?>>
+                           <?php checked($existing_status, 'present'); echo ($existing_status === 'excused' || $debt_blocked) ? 'disabled' : ''; ?>>
                     <?php if ($existing_status === 'excused') : ?>
                         <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br>علت: حالت غیبت مجاز</span>
+                    <?php elseif ($debt_blocked) : ?>
+                        <span class="tooltip_text_abset_acc">امکان ثبت وجود ندارد<br>علت: بدهی بیش از حد مجاز</span>
                     <?php endif; ?>
                     <span>حاضر</span>
                 </label>
@@ -689,9 +710,11 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
                     <input type="radio"
                            name="<?php echo esc_attr($field_name . '[' . $member->id . ']'); ?>"
                            value="absent"
-                           <?php checked($existing_status, 'absent'); echo ($existing_status === 'excused') ? 'disabled' : ''; ?>>
+                           <?php checked($existing_status, 'absent'); echo ($existing_status === 'excused' || $debt_blocked) ? 'disabled' : ''; ?>>
                     <?php if ($existing_status === 'excused') : ?>
                         <span class="tooltip_text_abset_acc">امکان ثبت تغییر وجود ندارد<br>علت: حالت غیبت مجاز</span>
+                    <?php elseif ($debt_blocked) : ?>
+                        <span class="tooltip_text_abset_acc">امکان ثبت وجود ندارد<br>علت: بدهی بیش از حد مجاز</span>
                     <?php endif; ?>
                     <span>غایب</span>
                 </label>

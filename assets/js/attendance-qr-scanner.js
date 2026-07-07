@@ -186,7 +186,9 @@
             success: 'soundSuccess',
             error: 'soundError',
             duplicate: 'soundDuplicate',
-            notInCourse: 'soundNotInCourse'
+            notInCourse: 'soundNotInCourse',
+            debtWarning: 'soundDebtWarning',
+            debtBlocked: 'soundDebtBlocked'
         };
         Object.keys(soundKeys).forEach(function (type) {
             var url = cfg[soundKeys[type]] || '';
@@ -351,9 +353,20 @@
         lastHandledAt = now || Date.now();
     }
 
-    function applyInstantSuccess(member, message) {
+    function playSoundSequence(types) {
+        (types || []).forEach(function (type, index) {
+            if (!type) {
+                return;
+            }
+            setTimeout(function () {
+                playSound(type);
+            }, index * 650);
+        });
+    }
+
+    function applyInstantSuccess(member, message, soundTypes) {
         markMemberPresent(member.id);
-        playSound('success');
+        playSoundSequence(soundTypes && soundTypes.length ? soundTypes : ['success']);
         showToast((member.name || 'بازیکن') + ' — ' + (message || 'ثبت شد ✓'), 'success');
         if (!optimisticLogged[member.id]) {
             prependLog({ ok: true, duplicate: false, name: member.name, message: message || 'ثبت فوری' });
@@ -373,11 +386,7 @@
         markHandled(payload, now);
 
         var localMember = lookupMember(payload);
-        if (localMember && !isMemberAlreadyPresent(localMember.id)) {
-            applyInstantSuccess(localMember, 'ثبت شد ✓');
-        } else if (!localMember) {
-            showToast('در حال ثبت...', 'info');
-        }
+        showToast('در حال ثبت...', 'info');
 
         $.post(cfg.ajaxUrl, {
             action: 'sc_attendance_qr_scan',
@@ -392,6 +401,7 @@
                 var code = res.data && res.data.code ? res.data.code : 'created';
                 var name = res.data && res.data.member_name ? res.data.member_name : (localMember ? localMember.name : '');
                 var memberId = res.data && res.data.member_id ? res.data.member_id : (localMember ? localMember.id : 0);
+                var hasDebt = !!(res.data && res.data.has_debt);
 
                 if (memberId && cfg.memberMap) {
                     cfg.memberMap[payload] = { id: memberId, name: name };
@@ -405,7 +415,11 @@
                 }
 
                 if (!localMember || !optimisticLogged[memberId]) {
-                    applyInstantSuccess({ id: memberId, name: name }, res.data.message || 'ثبت شد ✓');
+                    applyInstantSuccess(
+                        { id: memberId, name: name },
+                        res.data.message || 'ثبت شد ✓',
+                        hasDebt ? ['success', 'debtWarning'] : ['success']
+                    );
                 }
                 return;
             }
@@ -414,7 +428,10 @@
             var errMsg = (res && res.data && res.data.message) ? res.data.message : 'خطا در ثبت';
             var errName = (res && res.data && res.data.member_name) ? res.data.member_name : '';
 
-            if (errCode === 'not_in_course') {
+            if (errCode === 'debt_blocked') {
+                playSound('debtBlocked');
+                showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
+            } else if (errCode === 'not_in_course') {
                 playSound('notInCourse');
                 showToast((errName ? errName + ' — ' : '') + errMsg, 'not-in-course');
             } else {

@@ -353,7 +353,7 @@ function sc_deduct_wallet_session_fee($member_id, $amount, $course_title, $atten
     if (!$user_id) {
         return ['success' => false, 'message' => 'کاربر یافت نشد.'];
     }
-    if(debt_user($member_id)[0] > floatval(sc_get_setting('max_debt_for_attendance', '0'))){
+    if (function_exists('sc_attendance_member_debt_blocked') && sc_attendance_member_debt_blocked($member_id)) {
         return [
             'success' => false,
             'message' => 'عدم ثبت به علت بدهی بیشتر از سقف بدهی' 

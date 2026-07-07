@@ -109,6 +109,9 @@ $list_sql = "SELECT * FROM `$table` WHERE $where_sql ORDER BY created_at DESC LI
 $prepare_args[] = $per_page;
 $prepare_args[] = $offset;
 $logs = $wpdb->get_results($wpdb->prepare($list_sql, $prepare_args));
+if (!empty($logs)) {
+    $logs = sc_sms_log_refresh_delivery_states_for_list($logs);
+}
 
 // --- لاگ تفصیلی (sc_sms_log_entries) ---
 $table_entries = $wpdb->prefix . 'sc_sms_log_entries';
@@ -320,7 +323,6 @@ $filters_open = $active_filters_count > 0;
             <tbody>
                 <?php
                 $row = $offset + 1;
-                $delivery_failed_states = ['لیست سیاه', 'ناموفق', 'نرسیده به گوشی', 'نرسیده به مخابرات'];
                 foreach ($logs as $log) :
                     $msg_preview = $log->message_text;
                     if (mb_strlen($msg_preview) > 80) {
@@ -328,7 +330,7 @@ $filters_open = $active_filters_count > 0;
                     }
                     $context_label = isset($context_labels[$log->context]) ? $context_labels[$log->context] : $log->context;
                     $delivery_state = isset($log->delivery_state) ? $log->delivery_state : '';
-                    $has_message_id = !empty($log->message_id);
+                    $delivery_fetch_error = isset($log->delivery_fetch_error) ? $log->delivery_fetch_error : '';
                 ?>
                     <tr data-log-id="<?php echo (int) $log->id; ?>">
                         <td><?php echo (int) $row; ?></td>
@@ -344,19 +346,7 @@ $filters_open = $active_filters_count > 0;
                             <?php endif; ?>
                         </td>
                         <td class="sc-delivery-cell">
-                            <?php if ($delivery_state !== '') : ?>
-                                <?php if (in_array($delivery_state, $delivery_failed_states, true)) : ?>
-                                    <span class="sc-badge sc-badge--danger sc-delivery-state sc-delivery-fail" title="وضعیت واقعی از API سامانه"><?php echo esc_html($delivery_state); ?></span>
-                                <?php elseif ($delivery_state === 'رسیده به گوشی') : ?>
-                                    <span class="sc-badge sc-badge--success sc-delivery-state sc-delivery-ok"><?php echo esc_html($delivery_state); ?></span>
-                                <?php else : ?>
-                                    <span class="sc-badge sc-badge--soft sc-delivery-state"><?php echo esc_html($delivery_state); ?></span>
-                                <?php endif; ?>
-                            <?php elseif ($has_message_id) : ?>
-                                <button type="button" class="sc-reports-action-btn sc-check-delivery-btn" data-log-id="<?php echo (int) $log->id; ?>">بررسی تحویل</button>
-                            <?php else : ?>
-                                <span class="sc-badge sc-badge--muted">—</span>
-                            <?php endif; ?>
+                            <?php echo sc_render_sms_delivery_state_html($delivery_state, $delivery_fetch_error); ?>
                         </td>
                         <td>
                             <?php
@@ -407,37 +397,7 @@ $filters_open = $active_filters_count > 0;
     <?php endif; ?>
     </div>
 
-    <p class="sc-reports-note">«وضعیت ارسال» یعنی پذیرش توسط سامانه؛ «وضعیت تحویل (واقعی)» از API سامانه (مثلاً لیست سیاه / رسیده به گوشی) با دکمه «بررسی تحویل» به‌روز می‌شود.</p>
-
-    <script>
-    jQuery(function($) {
-        $(document).on('click', '.sc-check-delivery-btn', function() {
-            var $btn = $(this);
-            var logId = $btn.data('log-id');
-            if (!logId) return;
-            $btn.prop('disabled', true).text('در حال بررسی...');
-            $.post(ajaxurl, {
-                action: 'sc_check_sms_delivery_status',
-                log_id: logId,
-                _wpnonce: '<?php echo esc_js(wp_create_nonce('sc_check_sms_delivery')); ?>'
-            }).done(function(r) {
-                if (r.success && r.data && r.data.delivery_state !== undefined) {
-                    var state = r.data.delivery_state;
-                    var fail = ['لیست سیاه', 'ناموفق', 'نرسیده به گوشی', 'نرسیده به مخابرات'].indexOf(state) >= 0;
-                    var ok = state === 'رسیده به گوشی';
-                    var badge = fail ? 'sc-badge--danger' : (ok ? 'sc-badge--success' : 'sc-badge--soft');
-                    $btn.closest('td').html('<span class="sc-badge ' + badge + ' sc-delivery-state">' + state + '</span>');
-                } else {
-                    alert(r.data && r.data.message ? r.data.message : 'خطا در دریافت وضعیت.');
-                    $btn.prop('disabled', false).text('بررسی تحویل');
-                }
-            }).fail(function() {
-                alert('خطا در ارتباط با سرور.');
-                $btn.prop('disabled', false).text('بررسی تحویل');
-            });
-        });
-    });
-    </script>
+    <p class="sc-reports-note">«وضعیت ارسال» یعنی پذیرش توسط سامانه؛ «وضعیت تحویل (واقعی)» هنگام بارگذاری گزارش از API سامانه (مثلاً لیست سیاه / رسیده به گوشی) دریافت و نمایش داده می‌شود.</p>
 
     <div class="sc-reports-list-panel" style="margin-top:16px;">
         <div class="sc-reports-list-panel-header">

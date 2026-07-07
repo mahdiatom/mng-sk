@@ -205,25 +205,60 @@ function sc_sms_log_check_delivery_status($log_id) {
 }
 
 /**
- * AJAX: بررسی وضعیت تحویل یک رکورد لاگ پیامک
+ * وضعیت‌های ناموفق تحویل پیامک (برای نمایش badge)
+ *
+ * @return string[]
  */
-add_action('wp_ajax_sc_check_sms_delivery_status', 'sc_ajax_check_sms_delivery_status');
-function sc_ajax_check_sms_delivery_status() {
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+function sc_sms_delivery_failed_states() {
+    return ['لیست سیاه', 'ناموفق', 'نرسیده به گوشی', 'نرسیده به مخابرات'];
+}
+
+/**
+ * دریافت وضعیت تحویل از API برای رکوردهای بدون وضعیت ذخیره‌شده (هنگام بارگذاری گزارش)
+ *
+ * @param array $logs
+ * @return array
+ */
+function sc_sms_log_refresh_delivery_states_for_list($logs) {
+    if (empty($logs) || !is_array($logs)) {
+        return $logs;
     }
-    if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'sc_check_sms_delivery')) {
-        wp_send_json_error(['message' => 'خطای امنیتی.']);
+    foreach ($logs as $log) {
+        if (empty($log->message_id) || !empty($log->delivery_state)) {
+            continue;
+        }
+        $result = sc_sms_log_check_delivery_status((int) $log->id);
+        if (!empty($result['success'])) {
+            $log->delivery_state = $result['delivery_state'];
+        } else {
+            $log->delivery_fetch_error = $result['message'] ?? 'خطا در دریافت وضعیت';
+        }
     }
-    $log_id = isset($_POST['log_id']) ? absint($_POST['log_id']) : 0;
-    if ($log_id <= 0) {
-        wp_send_json_error(['message' => 'شناسه رکورد نامعتبر است.']);
+    return $logs;
+}
+
+/**
+ * HTML badge وضعیت تحویل پیامک
+ *
+ * @param string $delivery_state
+ * @param string $fetch_error
+ * @return string
+ */
+function sc_render_sms_delivery_state_html($delivery_state, $fetch_error = '') {
+    $delivery_state = (string) $delivery_state;
+    if ($delivery_state !== '') {
+        if (in_array($delivery_state, sc_sms_delivery_failed_states(), true)) {
+            return '<span class="sc-badge sc-badge--danger sc-delivery-state sc-delivery-fail" title="وضعیت واقعی از API سامانه">' . esc_html($delivery_state) . '</span>';
+        }
+        if ($delivery_state === 'رسیده به گوشی') {
+            return '<span class="sc-badge sc-badge--success sc-delivery-state sc-delivery-ok">' . esc_html($delivery_state) . '</span>';
+        }
+        return '<span class="sc-badge sc-badge--soft sc-delivery-state">' . esc_html($delivery_state) . '</span>';
     }
-    $result = sc_sms_log_check_delivery_status($log_id);
-    if (!empty($result['success'])) {
-        wp_send_json_success($result);
+    if ($fetch_error !== '') {
+        return '<span class="sc-badge sc-badge--muted sc-delivery-state" title="' . esc_attr($fetch_error) . '">نامشخص</span>';
     }
-    wp_send_json_error(['message' => $result['message'] ?? 'خطا در بررسی وضعیت.']);
+    return '<span class="sc-badge sc-badge--muted">—</span>';
 }
 
 /**

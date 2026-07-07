@@ -1870,6 +1870,8 @@ function sc_admin_enqueue_assets() {
             'soundError'       => sc_attendance_qr_get_sound_url('error'),
             'soundDuplicate'   => sc_attendance_qr_get_sound_url('duplicate'),
             'soundNotInCourse' => sc_attendance_qr_get_sound_url('not_in_course'),
+            'soundDebtWarning' => sc_attendance_qr_get_sound_url('debt_warning'),
+            'soundDebtBlocked' => sc_attendance_qr_get_sound_url('debt_blocked'),
         ));
     }
     if ($current_page === 'sc-view-member' && function_exists('sc_attendance_qr_should_show_member_card') && sc_attendance_qr_should_show_member_card('admin')) {

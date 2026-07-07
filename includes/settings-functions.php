@@ -823,6 +823,26 @@ function debt_user($id){
     return [$debt,$debt_count];
 }
 
+function sc_attendance_debt_block_enabled() {
+    return (int) sc_get_setting('attendance_debt_block_enabled', '0') === 1;
+}
+
+function sc_attendance_get_max_debt_for_attendance() {
+    return floatval(sc_get_setting('max_debt_for_attendance', '0'));
+}
+
+function sc_attendance_member_debt_blocked($member_id) {
+    $member_id = absint($member_id);
+    $max_debt = sc_attendance_get_max_debt_for_attendance();
+    if (!$member_id || !sc_attendance_debt_block_enabled() || $max_debt <= 0 || !function_exists('debt_user')) {
+        return false;
+    }
+
+    $debt_data = debt_user($member_id);
+    $debt = isset($debt_data[0]) ? floatval($debt_data[0]) : 0;
+    return $debt >= $max_debt;
+}
+
 
 // تغییر فرمت درست شماره تماس ها 
 

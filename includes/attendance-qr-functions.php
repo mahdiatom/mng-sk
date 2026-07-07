@@ -205,7 +205,7 @@ function sc_attendance_qr_get_scan_cooldown_ms() {
 }
 
 /**
- * @param string $type success|error|duplicate|not_in_course
+ * @param string $type success|error|duplicate|not_in_course|debt_warning|debt_blocked
  * @return string
  */
 function sc_attendance_qr_sound_file_basename($type) {
@@ -214,12 +214,14 @@ function sc_attendance_qr_sound_file_basename($type) {
         'error'         => 'qr-error',
         'duplicate'     => 'qr-duplicate',
         'not_in_course' => 'qr-not-in-course',
+        'debt_warning'  => 'qr-debt-warning',
+        'debt_blocked'  => 'qr-debt-blocked',
     ];
     return isset($map[$type]) ? $map[$type] : 'qr-' . $type;
 }
 
 /**
- * @param string $type success|error|duplicate|not_in_course
+ * @param string $type success|error|duplicate|not_in_course|debt_warning|debt_blocked
  * @return string
  */
 function sc_attendance_qr_get_sound_url($type) {
@@ -229,6 +231,8 @@ function sc_attendance_qr_get_sound_url($type) {
         'error'         => SC_ASSETS_URL . 'sounds/qr-error.mp3',
         'duplicate'     => SC_ASSETS_URL . 'sounds/qr-duplicate.mp3',
         'not_in_course' => SC_ASSETS_URL . 'sounds/qr-not-in-course.mp3',
+        'debt_warning'  => SC_ASSETS_URL . 'sounds/qr-debt-warning.mp3',
+        'debt_blocked'  => SC_ASSETS_URL . 'sounds/qr-debt-blocked.mp3',
     ];
     $key = 'attendance_qr_sound_' . $type . '_url';
     $custom = trim((string) sc_get_setting($key, ''));
@@ -894,18 +898,19 @@ function sc_attendance_qr_register_present(array $args) {
         return ['success' => false, 'code' => 'member_not_found', 'message' => 'بازیکن یافت نشد.'];
     }
     $member_name = trim($member->first_name . ' ' . $member->last_name);
+    $member_debt = 0;
+    if (function_exists('debt_user')) {
+        $debt_data = debt_user($member_id);
+        $member_debt = isset($debt_data[0]) ? floatval($debt_data[0]) : 0;
+    }
 
-    $max_debt = floatval(sc_get_setting('max_debt_for_attendance', '0'));
-    if ($max_debt > 0 && function_exists('debt_user')) {
-        $debt = debt_user($member_id)[0];
-        if ($debt >= $max_debt) {
-            return [
-                'success' => false,
-                'code'    => 'debt_blocked',
-                'message' => 'به دلیل بدهی بالاتر از سقف مجاز، ثبت حضور امکان‌پذیر نیست.',
-                'member_name' => $member_name,
-            ];
-        }
+    if (function_exists('sc_attendance_member_debt_blocked') && sc_attendance_member_debt_blocked($member_id)) {
+        return [
+            'success' => false,
+            'code'    => 'debt_blocked',
+            'message' => 'به دلیل بدهی بالاتر از سقف مجاز، ثبت حضور امکان‌پذیر نیست.',
+            'member_name' => $member_name,
+        ];
     }
 
     $current_coach_id = 0;
@@ -1018,6 +1023,8 @@ function sc_attendance_qr_register_present(array $args) {
                 'member_name' => $member_name,
                 'attendance_id' => $existing,
                 'is_new'      => false,
+                'has_debt'    => $member_debt > 0,
+                'debt_amount'  => $member_debt,
             ];
         }
         if ($current_record && $current_record->status === 'excused') {
@@ -1057,10 +1064,12 @@ function sc_attendance_qr_register_present(array $args) {
         return [
             'success'       => true,
             'code'          => 'updated',
-            'message'       => 'حضور با موفقیت ثبت شد.',
+            'message'       => $member_debt > 0 ? 'حضور ثبت شد؛ بازیکن بدهی دارد.' : 'حضور با موفقیت ثبت شد.',
             'member_name'   => $member_name,
             'attendance_id' => $existing,
             'is_new'        => false,
+            'has_debt'      => $member_debt > 0,
+            'debt_amount'    => $member_debt,
         ];
     }
 
@@ -1120,10 +1129,12 @@ function sc_attendance_qr_register_present(array $args) {
     return [
         'success'       => true,
         'code'          => 'created',
-        'message'       => 'حضور با موفقیت ثبت شد.',
+        'message'       => $member_debt > 0 ? 'حضور ثبت شد؛ بازیکن بدهی دارد.' : 'حضور با موفقیت ثبت شد.',
         'member_name'   => $member_name,
         'attendance_id' => $new_id,
         'is_new'        => true,
+        'has_debt'      => $member_debt > 0,
+        'debt_amount'    => $member_debt,
     ];
 }
 
@@ -1171,6 +1182,8 @@ function sc_attendance_qr_ensure_default_sounds() {
         'qr-error.mp3'         => [220, 350, 0.40],
         'qr-duplicate.mp3'     => [660, 120, 0.35],
         'qr-not-in-course.mp3' => [440, 220, 0.38],
+        'qr-debt-warning.mp3'  => [520, 180, 0.38],
+        'qr-debt-blocked.mp3'  => [180, 420, 0.42],
     ];
     foreach ($map as $file => $cfg) {
         $mp3_path = $dir . $file;
@@ -1261,6 +1274,8 @@ function sc_ajax_attendance_qr_scan() {
         'member_name' => $result['member_name'],
         'member_id'   => (int) $member->id,
         'is_new'      => !empty($result['is_new']),
+        'has_debt'    => !empty($result['has_debt']),
+        'debt_amount'  => isset($result['debt_amount']) ? floatval($result['debt_amount']) : 0,
     ]);
 }
 
