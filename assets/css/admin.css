@@ -24908,6 +24908,104 @@ body.sc_orders_page_sc-products .sc-shop-products-table-card .row-actions a {
         width: 100%;
     }
 }
+
+/* هم‌ترازسازی لیست محصولات با الگوی لیست کاربران */
+body[class*="_page_sc-products"] #wpcontent {
+    background: #f4f2fa;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-wrap {
+    margin-block: 16px 24px;
+    margin-inline-start: 0;
+    margin-inline-end: 20px;
+    padding: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: transparent !important;
+    font-family: inherit;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-filters-actions {
+    margin-top: 4px;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-table-card {
+    padding: 8px 8px 12px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-table-card .wp-list-table {
+    border: none !important;
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: none;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-table-card .wp-list-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-table-card .wp-list-table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-table-card .check-column {
+    width: 40px;
+    padding-right: 10px !important;
+    padding-left: 10px !important;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-table-card .check-column input {
+    margin: 0;
+    border-radius: 6px;
+    border-color: #d1d5db !important;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-table-card .row-actions {
+    margin-top: 6px;
+    padding: 0;
+    left: auto;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-table-card .row-actions span a {
+    color: #6d34ff;
+    font-weight: 600;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-table-card .row-actions .trash a {
+    color: #dc2626;
+}
+
+body[class*="_page_sc-products"] .sc-shop-products-table-card .row-actions .trash,
+body[class*="_page_sc-products"] .sc-shop-products-table-card .row-actions span {
+    color: #d1d5db;
+}
+
+@media screen and (max-width: 1100px) {
+    body[class*="_page_sc-products"] .sc-shop-products-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media screen and (max-width: 782px) {
+    body[class*="_page_sc-products"] .sc-shop-products-wrap {
+        margin-inline-end: 10px;
+    }
+
+    body[class*="_page_sc-products"] .sc-shop-products-filter-grid {
+        grid-template-columns: 1fr;
+    }
+}
 /* ─── پایان لیست محصولات ─── */
 
 /* ─── لیست هزینه‌ها — فیلتر دو ستونه ۵۰٪ ─── */

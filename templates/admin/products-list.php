@@ -80,14 +80,14 @@ if (!empty($_GET['s'])) {
 $filters_open = $active_filters_count > 0;
 ?>
 
-<div class="wrap sc-shop-products-wrap">
-    <div class="sc-shop-products-header">
-        <div class="sc-shop-products-header-text">
-            <h1 class="sc-shop-products-title">لیست محصولات</h1>
-            <p class="sc-shop-products-desc">مدیریت محصولات فروشگاه باشگاه. برای ویرایش روی نام محصول کلیک کنید.</p>
+<div class="wrap sc-shop-products-wrap sc-members-list-wrap">
+    <div class="sc-shop-products-header sc-members-list-header">
+        <div class="sc-shop-products-header-text sc-members-list-header-text">
+            <h1 class="sc-shop-products-title sc-members-list-title">لیست محصولات</h1>
+            <p class="sc-shop-products-desc sc-members-list-desc">مدیریت محصولات فروشگاه باشگاه. برای ویرایش روی نام محصول کلیک کنید.</p>
         </div>
-        <div class="sc-shop-products-header-actions">
-            <a href="<?php echo esc_url(admin_url('post-new.php?post_type=product')); ?>" class="sc-shop-products-add-btn">افزودن محصول</a>
+        <div class="sc-shop-products-header-actions sc-members-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('post-new.php?post_type=product')); ?>" class="sc-shop-products-add-btn sc-members-list-add-btn page-title-action">افزودن محصول</a>
         </div>
     </div>
 
@@ -95,32 +95,32 @@ $filters_open = $active_filters_count > 0;
         <div class="notice notice-success is-dismissible"><p>محصولات انتخاب‌شده به زباله‌دان منتقل شدند.</p></div>
     <?php endif; ?>
 
-    <div class="sc-shop-products-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
-        <div class="sc-shop-products-filters-toolbar">
+    <div class="sc-shop-products-filters-card sc-members-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-shop-products-filters-toolbar sc-members-list-filters-toolbar">
             <button type="button"
-                    class="sc-shop-products-filters-toggle"
+                    class="sc-shop-products-filters-toggle sc-members-list-filters-toggle"
                     id="sc-shop-products-filters-toggle"
                     aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
                     aria-controls="sc-shop-products-filters-panel">
-                <span class="sc-shop-products-filters-toggle-icon" aria-hidden="true">
+                <span class="sc-shop-products-filters-toggle-icon sc-members-list-filters-toggle-icon" aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </span>
-                <span class="sc-shop-products-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                <span class="sc-shop-products-filters-toggle-label sc-members-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
                     <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
                 </span>
                 <?php if ($active_filters_count > 0) : ?>
-                    <span class="sc-shop-products-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                    <span class="sc-shop-products-filters-badge sc-members-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
                 <?php endif; ?>
-                <span class="sc-shop-products-filters-chevron" aria-hidden="true"></span>
+                <span class="sc-shop-products-filters-chevron sc-members-list-filters-chevron" aria-hidden="true"></span>
             </button>
             <?php if ($active_filters_count > 0) : ?>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-products')); ?>" class="sc-shop-products-filters-clear">پاک کردن فیلترها</a>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-products')); ?>" class="sc-shop-products-filters-clear sc-members-list-filters-clear">پاک کردن فیلترها</a>
             <?php endif; ?>
         </div>
 
-        <form method="get" action="" class="sc-shop-products-filters-panel" id="sc-shop-products-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+        <form method="get" action="" class="sc-shop-products-filters-panel sc-members-list-filters-panel" id="sc-shop-products-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
             <input type="hidden" name="page" value="sc-products">
             <div class="sc-filter-grid sc-shop-products-filter-grid">
                 <div class="sc-filter-field">
@@ -209,14 +209,14 @@ $filters_open = $active_filters_count > 0;
                 </div>
             </div>
 
-            <div class="sc-shop-products-filters-actions">
+            <div class="sc-shop-products-filters-actions sc-members-list-filters-actions">
                 <input type="submit" class="button button-primary" value="اعمال فیلتر">
                 <a href="<?php echo esc_url(admin_url('admin.php?page=sc-products')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
             </div>
         </form>
     </div>
 
-    <div class="sc-shop-products-table-card">
+    <div class="sc-shop-products-table-card sc-members-list-table-card">
         <form method="get">
             <input type="hidden" name="page" value="sc-products">
             <?php
