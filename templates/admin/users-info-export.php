@@ -2,7 +2,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-if (!current_user_can('manage_options')) {
+if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
     wp_die('دسترسی غیرمجاز.');
 }
 
@@ -17,6 +17,14 @@ $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FRO
 $courses = function_exists('sc_audience_get_courses_for_picker')
     ? sc_audience_get_courses_for_picker(0)
     : $wpdb->get_results("SELECT id, title, course_type, chapter AS chapter_name FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title");
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+    if (function_exists('sc_secretary_get_branch_members_for_picker')) {
+        $members = sc_secretary_get_branch_members_for_picker();
+    }
+    if (function_exists('sc_secretary_get_branch_courses_for_attendance')) {
+        $courses = sc_secretary_get_branch_courses_for_attendance();
+    }
+}
 $events = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') AND is_active = 1 ORDER BY name");
 $teams = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name");
 $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");

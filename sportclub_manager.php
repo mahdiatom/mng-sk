@@ -70,6 +70,7 @@ require_once SC_INCLUDES_DIR . 'user-profile-access.php'; // دسترسی user-e
 require_once SC_INCLUDES_DIR . 'wp-content-list-admin.php'; // استایل لیست برگه‌ها و نوشته‌های وردپرس
 require_once SC_INCLUDES_DIR . 'coach-panel-admin.php'; // استایل صفحات پنل مربی
 require_once SC_INCLUDES_DIR . 'roles.php';                // نقش‌ها و محدودیت دسترسی (همیشه، حتی بدون لایسنس)
+require_once SC_INCLUDES_DIR . 'secretary-functions.php'; // نقش منشی شعبه
 require_once SC_INCLUDES_DIR . 'block-external-trackers.php'; // بلاک stats.wp.com و amplitude.com
 
 if (sc_is_license_active()) {
@@ -162,7 +163,8 @@ function sc_ajax_set_active_public_announcement() {
 register_activation_hook(__FILE__, 'sc_activate_plugin');
 register_activation_hook( __FILE__, 'club_create_club_coach_role' );
 register_activation_hook( __FILE__, 'club_create_system_manager_role' );
-register_activation_hook(__FILE__, 'sc_create_coach_role');
+register_activation_hook( __FILE__, 'sc_create_coach_role');
+register_activation_hook( __FILE__, 'sc_create_secretary_role');
 register_activation_hook(__FILE__, 'sc_update_database');
 register_deactivation_hook(__FILE__, 'sc_clear_recurring_invoices_cron');
 
@@ -2154,7 +2156,7 @@ add_action('wp_ajax_sc_attendance_report_player', 'sc_ajax_attendance_report_pla
 function sc_ajax_attendance_report_player() {
     check_ajax_referer('sc_attendance_report_player', 'nonce');
 
-    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_manage_attendance') || !sc_user_can_manage_attendance()) {
         wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
     }
 

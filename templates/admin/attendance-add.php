@@ -77,6 +77,12 @@ if (
         $message = 'لطفاً یک دوره را انتخاب کنید.';
         $message_type = 'error';
     } elseif (
+        function_exists('sc_secretary_can_access_attendance_course')
+        && !sc_secretary_can_access_attendance_course($course_id, $chapter_name)
+    ) {
+        $message = 'دوره انتخاب‌شده برای شعبه شما مجاز نیست.';
+        $message_type = 'error';
+    } elseif (
         function_exists('sc_course_has_grouping_enabled')
         && sc_course_has_grouping_enabled($course_id)
         && $group_name === ''
@@ -416,12 +422,15 @@ if (
 }
 
 // دریافت دوره‌های فعال
-// اگر کاربر مربی است، فقط دوره‌های مربی را نمایش بده
+// منشی: فقط دوره‌های شعبه(های) مجاز؛ مربی: فقط دوره‌های خودش
 $current_user_id = get_current_user_id();
 $current_user = wp_get_current_user();
 $current_coach_id = 0;
 
-if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+    && function_exists('sc_secretary_get_branch_courses_for_attendance')) {
+    $courses = sc_secretary_get_branch_courses_for_attendance();
+} elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
     // کاربر مربی است - فقط دوره‌های مربی را نمایش بده
     $coaches_table = $wpdb->prefix . 'sc_coaches';
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
@@ -472,6 +481,17 @@ if (current_user_can('coach') && !current_user_can('administrator') && !current_
     $selected_chapter_name = (string) $selection_parts['chapter_name'];
     $selected_group_name = (string) ($selection_parts['group_name'] ?? '');
 
+    if (
+        $selected_course_id > 0
+        && function_exists('sc_secretary_can_access_attendance_course')
+        && !sc_secretary_can_access_attendance_course($selected_course_id, $selected_chapter_name)
+    ) {
+        $selected_course_id = 0;
+        $selected_chapter_name = '';
+        $selected_group_name = '';
+        echo '<div class="notice notice-error is-dismissible"><p>دوره انتخاب‌شده برای شعبه شما مجاز نیست.</p></div>';
+    }
+
     $selected_course_type_filter = 'group';
     if (isset($_GET['filter_course_type']) && in_array($_GET['filter_course_type'], ['group', 'private'], true)) {
         $selected_course_type_filter = sanitize_text_field(wp_unslash($_GET['filter_course_type']));
@@ -519,7 +539,42 @@ if ($selected_course_id) {
         : ['sql' => '', 'args' => []];
 
     // دریافت کاربران فعال دوره (برای مربی: خودش + بازیکنان بدون انتساب؛ نه بازیکنان مربی دیگر)
-    if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+        && function_exists('sc_secretary_member_enrollment_match_sql')) {
+        $match = sc_secretary_member_enrollment_match_sql('mc');
+        if ($match['sql'] === '1=0') {
+            $active_members = [];
+        } else {
+            $chapter_sql = '';
+            $chapter_args = [];
+            if ($selected_chapter_name !== '') {
+                $chapter_sql = " AND (TRIM(IFNULL(mc.chapter, '')) = '' OR TRIM(mc.chapter) = %s)";
+                $chapter_args[] = $selected_chapter_name;
+            }
+            $members_sql = "SELECT m.id, m.first_name, m.last_name, m.national_id
+                 FROM $member_courses_table mc
+                 INNER JOIN $members_table m ON mc.member_id = m.id
+                 WHERE mc.course_id = %d
+                 AND {$match['sql']}
+                 {$chapter_sql}
+                 {$group_filter['sql']}
+                 AND mc.status = 'active'
+                 AND (
+                     mc.course_status_flags IS NULL
+                     OR mc.course_status_flags = ''
+                     OR (
+                         mc.course_status_flags NOT LIKE '%%paused%%'
+                         AND mc.course_status_flags NOT LIKE '%%completed%%'
+                         AND mc.course_status_flags NOT LIKE '%%canceled%%'
+                     )
+                 )
+                 ORDER BY m.last_name ASC, m.first_name ASC";
+            $active_members = $wpdb->get_results($wpdb->prepare(
+                $members_sql,
+                array_merge([$selected_course_id], $match['args'], $chapter_args, $group_filter['args'])
+            ));
+        }
+    } elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
         $member_scope = function_exists('sc_attendance_member_scope_sql')
             ? sc_attendance_member_scope_sql($selected_course_id, $current_coach_id, $selected_chapter_name)
             : [

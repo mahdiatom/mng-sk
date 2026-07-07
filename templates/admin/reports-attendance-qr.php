@@ -35,7 +35,19 @@ if (!function_exists('sc_attendance_where_coach_member_scope_list')) {
 
 $current_user_id = get_current_user_id();
 
-if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+    && function_exists('sc_secretary_get_branch_courses_for_attendance_filter')) {
+    $courses = sc_secretary_get_branch_courses_for_attendance_filter();
+    $pw = function_exists('sc_secretary_append_member_where')
+        ? sc_secretary_append_member_where('m.is_active = 1', 'm')
+        : 'm.is_active = 1';
+    $members = $wpdb->get_results(
+        "SELECT DISTINCT m.id, m.first_name, m.last_name, m.national_id
+         FROM $members_table m
+         WHERE {$pw}
+         ORDER BY m.last_name ASC, m.first_name ASC"
+    );
+} elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
     $coach = $wpdb->get_row($wpdb->prepare(
         "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
         $current_user_id

@@ -58,55 +58,64 @@ if (empty($filter_date_from) || empty($filter_date_to)) {
 
 // کل درآمد = آکادمی (دوره + رویداد، پرداخت‌شده / تأیید پرداخت) + فروشگاه (WC processing/completed)
 $academy_income_where = [
-    "status IN ('paid','completed','processing')",
-    'payment_date IS NOT NULL',
-    '(course_id > 0 OR (event_id IS NOT NULL AND event_id > 0))',
+    "i.status IN ('paid','completed','processing')",
+    'i.payment_date IS NOT NULL',
+    '(i.course_id > 0 OR (i.event_id IS NOT NULL AND i.event_id > 0))',
 ];
 $academy_income_values = [];
 if ($filter_date_from) {
-    $academy_income_where[] = 'DATE(payment_date) >= %s';
+    $academy_income_where[] = 'DATE(i.payment_date) >= %s';
     $academy_income_values[] = $filter_date_from;
 }
 if ($filter_date_to) {
-    $academy_income_where[] = 'DATE(payment_date) <= %s';
+    $academy_income_where[] = 'DATE(i.payment_date) <= %s';
     $academy_income_values[] = $filter_date_to;
+}
+if (function_exists('sc_secretary_merge_invoice_where')) {
+    sc_secretary_merge_invoice_where($academy_income_where, $academy_income_values, 'i');
 }
 $academy_where_sql = implode(' AND ', $academy_income_where);
 $total_academy_income = $academy_income_values
-    ? (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(amount), 0) FROM $invoices_table WHERE $academy_where_sql", $academy_income_values))
-    : (float) $wpdb->get_var("SELECT COALESCE(SUM(amount), 0) FROM $invoices_table WHERE $academy_where_sql");
+    ? (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(i.amount), 0) FROM $invoices_table i WHERE $academy_where_sql", $academy_income_values))
+    : (float) $wpdb->get_var("SELECT COALESCE(SUM(i.amount), 0) FROM $invoices_table i WHERE $academy_where_sql");
 
-$store_agg = function_exists('sc_finance_aggregate_store_orders_items')
-    ? sc_finance_aggregate_store_orders_items($filter_date_from, $filter_date_to, 0, 0)
-    : ['total' => 0.0, 'order_count' => 0, 'by_day' => []];
+$store_agg = ['total' => 0.0, 'order_count' => 0, 'by_day' => []];
+if (!function_exists('sc_secretary_finance_include_store_revenue') || sc_secretary_finance_include_store_revenue()) {
+    $store_agg = function_exists('sc_finance_aggregate_store_orders_items')
+        ? sc_finance_aggregate_store_orders_items($filter_date_from, $filter_date_to, 0, 0)
+        : ['total' => 0.0, 'order_count' => 0, 'by_day' => []];
+}
 $total_store_income_period = (float) ($store_agg['total'] ?? 0);
 $total_income = $total_academy_income + $total_store_income_period;
 
 $paid_academy_count = $academy_income_values
-    ? (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $invoices_table WHERE $academy_where_sql", $academy_income_values))
-    : (int) $wpdb->get_var("SELECT COUNT(*) FROM $invoices_table WHERE $academy_where_sql");
+    ? (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $invoices_table i WHERE $academy_where_sql", $academy_income_values))
+    : (int) $wpdb->get_var("SELECT COUNT(*) FROM $invoices_table i WHERE $academy_where_sql");
 $paid_invoices_count = $paid_academy_count + (int) ($store_agg['order_count'] ?? 0);
 
 // محاسبه کل هزینه‌ها
-$expenses_where_conditions = ["1=1"];
+$expenses_where_conditions = ['1=1'];
 $expenses_where_values = [];
 if ($filter_date_from) {
-    $expenses_where_conditions[] = "expense_date_gregorian >= %s";
+    $expenses_where_conditions[] = 'e.expense_date_gregorian >= %s';
     $expenses_where_values[] = $filter_date_from;
 }
 if ($filter_date_to) {
-    $expenses_where_conditions[] = "expense_date_gregorian <= %s";
+    $expenses_where_conditions[] = 'e.expense_date_gregorian <= %s';
     $expenses_where_values[] = $filter_date_to;
+}
+if (function_exists('sc_secretary_merge_expense_where')) {
+    sc_secretary_merge_expense_where($expenses_where_conditions, $expenses_where_values, 'e');
 }
 
 $expenses_where_clause = implode(' AND ', $expenses_where_conditions);
 if (!empty($expenses_where_values)) {
     $total_expenses_query = $wpdb->prepare(
-        "SELECT SUM(amount) as total FROM $expenses_table WHERE $expenses_where_clause",
+        "SELECT SUM(e.amount) as total FROM $expenses_table e WHERE $expenses_where_clause",
         $expenses_where_values
     );
 } else {
-    $total_expenses_query = "SELECT SUM(amount) as total FROM $expenses_table WHERE $expenses_where_clause";
+    $total_expenses_query = "SELECT SUM(e.amount) as total FROM $expenses_table e WHERE $expenses_where_clause";
 }
 $total_expenses_result = $wpdb->get_var($total_expenses_query);
 $total_expenses = $total_expenses_result ? floatval($total_expenses_result) : 0;
@@ -127,25 +136,38 @@ $prev_date_from->modify('-' . ($period_days - 1) . ' days');
 // درآمد دوره قبل (آکادمی + فروشگاه، همان منطق بازهٔ جاری)
 $prev_from_s = $prev_date_from->format('Y-m-d');
 $prev_to_s = $prev_date_to->format('Y-m-d');
+$prev_academy_where = [
+    "i.status IN ('paid','completed','processing')",
+    'i.payment_date IS NOT NULL',
+    '(i.course_id > 0 OR (i.event_id IS NOT NULL AND i.event_id > 0))',
+    'DATE(i.payment_date) >= %s',
+    'DATE(i.payment_date) <= %s',
+];
+$prev_academy_args = [$prev_from_s, $prev_to_s];
+if (function_exists('sc_secretary_merge_invoice_where')) {
+    sc_secretary_merge_invoice_where($prev_academy_where, $prev_academy_args, 'i');
+}
 $prev_academy_income = (float) $wpdb->get_var($wpdb->prepare(
-    "SELECT COALESCE(SUM(amount), 0) FROM $invoices_table
-     WHERE status IN ('paid','completed','processing')
-     AND payment_date IS NOT NULL
-     AND (course_id > 0 OR (event_id IS NOT NULL AND event_id > 0))
-     AND DATE(payment_date) >= %s AND DATE(payment_date) <= %s",
-    $prev_from_s,
-    $prev_to_s
+    "SELECT COALESCE(SUM(i.amount), 0) FROM $invoices_table i WHERE " . implode(' AND ', $prev_academy_where),
+    $prev_academy_args
 ));
-$prev_store_agg = function_exists('sc_finance_aggregate_store_orders_items')
-    ? sc_finance_aggregate_store_orders_items($prev_from_s, $prev_to_s, 0, 0)
-    : ['total' => 0.0];
+$prev_store_agg = ['total' => 0.0];
+if (!function_exists('sc_secretary_finance_include_store_revenue') || sc_secretary_finance_include_store_revenue()) {
+    $prev_store_agg = function_exists('sc_finance_aggregate_store_orders_items')
+        ? sc_finance_aggregate_store_orders_items($prev_from_s, $prev_to_s, 0, 0)
+        : ['total' => 0.0];
+}
 $prev_total_income = $prev_academy_income + (float) ($prev_store_agg['total'] ?? 0);
 
 // هزینه دوره قبل
+$prev_exp_where = ['e.expense_date_gregorian >= %s', 'e.expense_date_gregorian <= %s'];
+$prev_exp_args = [$prev_from_s, $prev_to_s];
+if (function_exists('sc_secretary_merge_expense_where')) {
+    sc_secretary_merge_expense_where($prev_exp_where, $prev_exp_args, 'e');
+}
 $prev_expenses_query = $wpdb->prepare(
-    "SELECT SUM(amount) as total FROM $expenses_table WHERE expense_date_gregorian >= %s AND expense_date_gregorian <= %s",
-    $prev_from_s,
-    $prev_to_s
+    "SELECT SUM(e.amount) as total FROM $expenses_table e WHERE " . implode(' AND ', $prev_exp_where),
+    $prev_exp_args
 );
 $prev_total_expenses_raw = $wpdb->get_var($prev_expenses_query);
 $prev_total_expenses = $prev_total_expenses_raw ? floatval($prev_total_expenses_raw) : 0;
@@ -207,15 +229,20 @@ foreach ($months as $month_start) {
     $month_name = sc_date_shamsi($month_start_str, 'Y/m');
     
     // درآمد ماه (آکادمی بر اساس تاریخ پرداخت + فروشگاه بر اساس تاریخ سفارش)
+    $month_income_where = [
+        "i.status IN ('paid','completed','processing')",
+        'i.payment_date IS NOT NULL',
+        '(i.course_id > 0 OR (i.event_id IS NOT NULL AND i.event_id > 0))',
+        'DATE(i.payment_date) >= %s',
+        'DATE(i.payment_date) <= %s',
+    ];
+    $month_income_args = [$month_start_str, $month_end_str];
+    if (function_exists('sc_secretary_merge_invoice_where')) {
+        sc_secretary_merge_invoice_where($month_income_where, $month_income_args, 'i');
+    }
     $month_income_query = $wpdb->prepare(
-        "SELECT COALESCE(SUM(amount), 0) FROM $invoices_table 
-         WHERE status IN ('paid','completed','processing')
-         AND payment_date IS NOT NULL
-         AND (course_id > 0 OR (event_id IS NOT NULL AND event_id > 0))
-         AND DATE(payment_date) >= %s 
-         AND DATE(payment_date) <= %s",
-        $month_start_str,
-        $month_end_str
+        "SELECT COALESCE(SUM(i.amount), 0) FROM $invoices_table i WHERE " . implode(' AND ', $month_income_where),
+        $month_income_args
     );
     $month_academy_income = (float) $wpdb->get_var($month_income_query);
     $month_store_income = 0.0;
@@ -228,12 +255,14 @@ foreach ($months as $month_start) {
     $month_income = $month_academy_income + $month_store_income;
     
     // هزینه ماه
+    $month_exp_where = ['e.expense_date_gregorian >= %s', 'e.expense_date_gregorian <= %s'];
+    $month_exp_args = [$month_start_str, $month_end_str];
+    if (function_exists('sc_secretary_merge_expense_where')) {
+        sc_secretary_merge_expense_where($month_exp_where, $month_exp_args, 'e');
+    }
     $month_expenses_query = $wpdb->prepare(
-        "SELECT SUM(amount) as total FROM $expenses_table 
-         WHERE expense_date_gregorian >= %s 
-         AND expense_date_gregorian <= %s",
-        $month_start_str,
-        $month_end_str
+        "SELECT SUM(e.amount) as total FROM $expenses_table e WHERE " . implode(' AND ', $month_exp_where),
+        $month_exp_args
     );
     $month_expenses_result = $wpdb->get_var($month_expenses_query);
     $month_expenses = $month_expenses_result ? floatval($month_expenses_result) : 0;

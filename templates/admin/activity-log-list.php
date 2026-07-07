@@ -2,7 +2,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-if (!current_user_can('manage_options')) {
+if (!current_user_can('manage_options') && !(function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only())) {
     wp_die('دسترسی غیرمجاز.');
 }
 sc_check_and_create_tables();

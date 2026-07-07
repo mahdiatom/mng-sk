@@ -164,11 +164,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'justify' && isset($_GET['atte
 
 
 // دریافت لیست دوره‌ها و اعضا برای فیلترها
-// اگر کاربر مربی است، فقط دوره‌های مربی را نمایش بده
+// منشی: فقط دوره‌های شعبه؛ مربی: فقط دوره‌های خودش
 $current_user_id = get_current_user_id();
 $current_user = wp_get_current_user();
 
-if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+    && function_exists('sc_secretary_get_branch_courses_for_attendance_filter')) {
+    $courses = sc_secretary_get_branch_courses_for_attendance_filter();
+} elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
     // کاربر مربی است - فقط دوره‌های مربی را نمایش بده
     $coaches_table = $wpdb->prefix . 'sc_coaches';
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
@@ -251,6 +254,15 @@ if ($coach_scope_members_list_id > 0) {
     } else {
         $members = [];
     }
+} elseif (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+    && function_exists('sc_secretary_append_member_where')) {
+    $pw = sc_secretary_append_member_where('m.is_active = 1', 'm');
+    $members = $wpdb->get_results(
+        "SELECT DISTINCT m.id, m.first_name, m.last_name, m.national_id
+         FROM $members_table m
+         WHERE {$pw}
+         ORDER BY m.last_name ASC, m.first_name ASC"
+    );
 } else {
     $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
 }
@@ -308,8 +320,9 @@ if ($active_tab === 'individual') {
     $where_conditions = ['1=1'];
     $where_values = [];
     
-    // اگر کاربر مربی است، فقط حضور و غیاب دوره‌های مربی را نمایش بده
-    if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    if (function_exists('sc_secretary_append_attendance_course_scope') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+        sc_secretary_append_attendance_course_scope($where_conditions, $where_values);
+    } elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
         $coaches_table = $wpdb->prefix . 'sc_coaches';
         $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
         
@@ -472,7 +485,9 @@ if ($active_tab === 'absents') {
     // *** نکته مهم: فقط غایبین ***
     $where_conditions[] = "a.status = 'absent'";
 
-    if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    if (function_exists('sc_secretary_append_attendance_course_scope') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+        sc_secretary_append_attendance_course_scope($where_conditions, $where_values);
+    } elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
         $course_coaches_table_abs = $wpdb->prefix . 'sc_course_coaches';
         $coach_abs = $wpdb->get_row($wpdb->prepare(
             "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
@@ -592,8 +607,9 @@ if ($active_tab === 'grouped') {
     $where_conditions = ['1=1'];
     $where_values = [];
     
-    // اگر کاربر مربی است، فقط حضور و غیاب دوره‌های مربی را نمایش بده
-    if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    if (function_exists('sc_secretary_append_attendance_course_scope') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+        sc_secretary_append_attendance_course_scope($where_conditions, $where_values);
+    } elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
         $coaches_table = $wpdb->prefix . 'sc_coaches';
         $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
         
@@ -746,8 +762,9 @@ if ($active_tab === 'overall') {
     $where_conditions = ['1=1'];
     $where_values = [];
     
-    // اگر کاربر مربی است، فقط حضور و غیاب دوره‌های مربی را نمایش بده
-    if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    if (function_exists('sc_secretary_append_attendance_course_scope') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+        sc_secretary_append_attendance_course_scope($where_conditions, $where_values);
+    } elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
         $coaches_table = $wpdb->prefix . 'sc_coaches';
         $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
         

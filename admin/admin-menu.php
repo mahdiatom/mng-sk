@@ -21,12 +21,14 @@ function sc_register_admin_menu() {
         return;
     }
 
+    $sc_staff_cap = function_exists('sc_admin_menu_cap') ? sc_admin_menu_cap() : 'manage_options';
+
     /* ================= Dashboard ================= */
 
     add_menu_page(
         'داشبورد مدیریت',
         'داشبورد مدیریت',
-        'manage_options',
+        $sc_staff_cap,
         'sc-dashboard',
         'sc_admin_dashboard_page',
         'dashicons-universal-access-alt',
@@ -96,7 +98,7 @@ function sc_register_admin_menu() {
     add_menu_page(
         'ربات بله',
         'ربات بله',
-        'manage_options',
+        $sc_staff_cap,
         'sc-bale-bot-messages',
         'sc_admin_bale_bot_messages_list_page',
         'dashicons-format-chat',
@@ -106,7 +108,7 @@ function sc_register_admin_menu() {
         'sc-bale-bot-messages',
         'لیست پیام‌های ربات',
         'لیست پیام‌ها',
-        'manage_options',
+        $sc_staff_cap,
         'sc-bale-bot-messages',
         'sc_admin_bale_bot_messages_list_page'
     );
@@ -114,7 +116,7 @@ function sc_register_admin_menu() {
         'sc-bale-bot-messages',
         'ارسال پیام ربات',
         'ارسال پیام',
-        'manage_options',
+        $sc_staff_cap,
         'sc-bale-bot-send',
         'sc_admin_bale_bot_send_page'
     );
@@ -123,7 +125,7 @@ function sc_register_admin_menu() {
         add_menu_page(
             'هشدارهای کاربر',
             'هشدارهای کاربر',
-            'manage_options',
+            $sc_staff_cap,
             'sc-user-alerts',
             'sc_admin_user_alerts_page',
             'dashicons-warning',
@@ -135,7 +137,7 @@ function sc_register_admin_menu() {
         add_menu_page(
             'خروجی اطلاعات کاربران',
             'خروجی اطلاعات کاربران',
-            'manage_options',
+            $sc_staff_cap,
             'sc-users-info-export',
             'sc_admin_users_info_export_page',
             'dashicons-media-spreadsheet',
@@ -145,7 +147,7 @@ function sc_register_admin_menu() {
             'sc-users-info-export',
             'خروجی اطلاعات کاربران',
             'خروجی اطلاعات کاربران',
-            'manage_options',
+            $sc_staff_cap,
             'sc-users-info-export',
             'sc_admin_users_info_export_page'
         );
@@ -153,7 +155,7 @@ function sc_register_admin_menu() {
             'sc-users-info-export',
             'تعریف قالب خروجی',
             'تعریف قالب خروجی',
-            'manage_options',
+            $sc_staff_cap,
             'sc-users-export-templates',
             'sc_admin_users_export_templates_page'
         );
@@ -163,7 +165,7 @@ function sc_register_admin_menu() {
         add_menu_page(
             'کار های دست جمعی',
             'کار های دست جمعی',
-            'manage_options',
+            $sc_staff_cap,
             'sc-bulk-actions',
             'sc_admin_bulk_actions_page',
             'dashicons-update',
@@ -212,7 +214,7 @@ function sc_register_admin_menu() {
     add_menu_page(
         'بازیکنان ',
         'بازیکنان',
-        'manage_options',
+        $sc_staff_cap,
         'sc-members',
         'sc_admin_members_list_page',
         'dashicons-groups',
@@ -225,7 +227,7 @@ function sc_register_admin_menu() {
         'sc-members',
         'لیست بازیکنان',
         'لیست بازیکنان',
-        'manage_options',
+        $sc_staff_cap,
         'sc-members',
         'sc_admin_members_list_page'
     );
@@ -235,7 +237,7 @@ function sc_register_admin_menu() {
         'sc-members',
         'افزودن بازیکن',
         'افزودن بازیکن',
-        'manage_options',
+        $sc_staff_cap,
         'sc-add-member',
         'sc_admin_add_member_page'
     );
@@ -244,10 +246,21 @@ function sc_register_admin_menu() {
         null, // hidden menu
         'مشاهده اطلاعات بازیکن',
         'مشاهده اطلاعات بازیکن',
-        'manage_options',
+        $sc_staff_cap,
         'sc-view-member',
         'sc_admin_view_member_page'
     );
+
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+        add_submenu_page(
+            'sc-members',
+            'اقدامات سریع',
+            'اقدامات سریع',
+            'sc_secretary_panel',
+            'sc-secretary-quick-actions',
+            'sc_admin_secretary_quick_actions_page'
+        );
+    }
 
 
     if (function_exists('sc_is_pro_feature_attendance_enabled') && sc_is_pro_feature_attendance_enabled()) {
@@ -811,7 +824,7 @@ function sc_register_admin_menu() {
         add_menu_page(
             'صورت حساب‌ها',
             'صورت حساب‌ها',
-            'manage_options',
+            $sc_staff_cap,
             'sc-invoices',
             'sc_admin_invoices_list_page',
             'dashicons-money-alt',
@@ -822,7 +835,7 @@ function sc_register_admin_menu() {
             'sc-invoices',
             'لیست صورت حساب‌ها',
             'لیست صورت حساب‌ها',
-            'manage_options',
+            $sc_staff_cap,
             'sc-invoices',
             'sc_admin_invoices_list_page'
         );
@@ -831,7 +844,7 @@ function sc_register_admin_menu() {
             'sc-invoices',
             'ایجاد صورت حساب',
             'ایجاد صورت حساب',
-            'manage_options',
+            $sc_staff_cap,
             'sc-add-invoice',
             'sc_admin_add_invoice_page'
         );
@@ -840,7 +853,7 @@ function sc_register_admin_menu() {
             'sc-invoices',
             'لیست هزینه‌ها',
             'لیست هزینه‌ها',
-            'manage_options',
+            $sc_staff_cap,
             'sc-expenses',
             'sc_admin_expenses_list_page'
         );
@@ -849,7 +862,7 @@ function sc_register_admin_menu() {
             'sc-invoices',
             'ثبت هزینه',
             'ثبت هزینه',
-            'manage_options',
+            $sc_staff_cap,
             'sc-add-expense',
             'sc_admin_add_expense_page'
         );
@@ -1124,7 +1137,7 @@ function sc_register_admin_menu() {
             'sc-reports',
             'کاربران فعال',
             'کاربران فعال',
-            'manage_options',
+            $sc_staff_cap,
             'sc-reports-active-users',
             'sc_admin_reports_active_users_page'
         );
@@ -1162,7 +1175,7 @@ function sc_register_admin_menu() {
             'sc-reports',
             'بدهکاران',
             'بدهکاران',
-            'manage_options',
+            $sc_staff_cap,
             'sc-reports-debtors',
             'sc_admin_reports_debtors_page'
         );
@@ -1192,7 +1205,7 @@ function sc_register_admin_menu() {
             'sc-reports',
             'لاگ فعالیت',
             'لاگ فعالیت',
-            'manage_options',
+            $sc_staff_cap,
             'sc-reports-activity-log',
             'sc_admin_activity_log_page'
         );
@@ -1629,6 +1642,11 @@ function sc_admin_dashboard_page() {
     sc_check_and_create_tables();
     
     include SC_TEMPLATES_ADMIN_DIR . 'dashboard.php';
+}
+
+function sc_admin_secretary_quick_actions_page() {
+    sc_check_and_create_tables();
+    include SC_PLUGIN_DIR . 'templates/secretary/quick-actions.php';
 }
 
 // کلاس خصوصی
@@ -2502,8 +2520,7 @@ function process_coaches_table_data() {
  * Attendance management pages
  */
 function sc_admin_attendance_add_page() {
-    // بررسی دسترسی (مربی یا مدیر)
-    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_manage_attendance') || !sc_user_can_manage_attendance()) {
         wp_die('شما دسترسی لازم را ندارید.');
     }
     
@@ -2514,8 +2531,7 @@ function sc_admin_attendance_add_page() {
 }
 
 function sc_admin_attendance_list_page() {
-    // بررسی دسترسی (مربی یا مدیر)
-    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_manage_attendance') || !sc_user_can_manage_attendance()) {
         wp_die('شما دسترسی لازم را ندارید.');
     }
     
@@ -2526,7 +2542,7 @@ function sc_admin_attendance_list_page() {
 }
 
 function sc_admin_attendance_session_cancellations_page() {
-    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_manage_attendance') || !sc_user_can_manage_attendance()) {
         wp_die('شما دسترسی لازم را ندارید.');
     }
     sc_check_and_create_tables();
@@ -2534,8 +2550,7 @@ function sc_admin_attendance_session_cancellations_page() {
 }
 
 function sc_admin_attendance_logs() {
-    // بررسی دسترسی (مربی یا مدیر)
-    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_manage_attendance') || !sc_user_can_manage_attendance()) {
         wp_die('شما دسترسی لازم را ندارید.');
     }
     
@@ -2546,7 +2561,7 @@ function sc_admin_attendance_logs() {
 }
 
 function sc_admin_reports_attendance_qr_page() {
-    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_manage_attendance') || !sc_user_can_manage_attendance()) {
         wp_die('شما دسترسی لازم را ندارید.');
     }
     sc_check_and_create_tables();
@@ -2554,7 +2569,7 @@ function sc_admin_reports_attendance_qr_page() {
 }
 
 function sc_admin_attendance_report_page() {
-    if (!current_user_can('sc_manage_attendance') && !current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_manage_attendance') || !sc_user_can_manage_attendance()) {
         wp_die('شما دسترسی لازم را ندارید.');
     }
     sc_check_and_create_tables();
@@ -2585,6 +2600,11 @@ function sc_manage_attendance_or_admin_cap($allcaps, $caps, $args, $user) {
                 $allcaps['sc_manage_attendance_or_admin'] = true;
                 break;
             }
+            elseif (!empty($allcaps['secretary']) && $allcaps['secretary']
+                && empty($allcaps['club_coach']) && empty($allcaps['system_manager']) && empty($allcaps['administrator'])) {
+                $allcaps['sc_manage_attendance_or_admin'] = true;
+                break;
+            }
         }
     }
     return $allcaps;
@@ -2601,7 +2621,8 @@ function sc_finance_reports_access_cap($allcaps, $caps, $args, $user) {
             if (
                 (!empty($allcaps['manage_options']) && $allcaps['manage_options']) ||
                 (!empty($allcaps['club_coach']) && $allcaps['club_coach']) ||
-                (!empty($allcaps['accountantt']) && $allcaps['accountantt'])
+                (!empty($allcaps['accountantt']) && $allcaps['accountantt']) ||
+                (!empty($allcaps['secretary']) && $allcaps['secretary'] && empty($allcaps['club_coach']) && empty($allcaps['system_manager']) && empty($allcaps['administrator']))
             ) {
                 $allcaps['sc_finance_reports_access'] = true;
             }
@@ -2839,6 +2860,13 @@ function callback_add_expense_sufix() {
         $expense_name = sanitize_text_field($_POST['expense_name']);
         $chapter = !empty($_POST['chapter']) ? sanitize_text_field($_POST['chapter']) : null;
         $category_id = !empty($_POST['category_id']) ? absint($_POST['category_id']) : NULL;
+
+        if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+            if (empty($chapter) || !function_exists('sc_secretary_chapter_in_scope') || !sc_secretary_chapter_in_scope($chapter)) {
+                wp_redirect(admin_url('admin.php?page=sc-add-expense&sc_status=expense_add_error'));
+                exit;
+            }
+        }
         
         // دریافت مبلغ (حذف کاماها در صورت وجود)
         $amount_value = '';
@@ -2877,6 +2905,10 @@ function callback_add_expense_sufix() {
         $description = !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
         
         $expense_id = isset($_POST['expense_id']) ? absint($_POST['expense_id']) : 0;
+
+        if ($expense_id > 0 && function_exists('sc_secretary_can_access_expense') && !sc_secretary_can_access_expense($expense_id)) {
+            wp_die('دسترسی غیرمجاز.');
+        }
         
         // ذخیره یا بروزرسانی هزینه
         $expense_data = [
@@ -2981,6 +3013,13 @@ function callback_add_invoice_sufix() {
         }
 
         $course_id = !empty($_POST['course_id']) ? absint($_POST['course_id']) : NULL;
+        if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && $course_id > 0 && function_exists('sc_secretary_finance_filter_courses_list')) {
+            $allowed_course = sc_secretary_finance_filter_courses_list([(object) ['id' => $course_id]]);
+            if (empty($allowed_course)) {
+                wp_redirect(admin_url('admin.php?page=sc-add-invoice&sc_status=invoice_add_error'));
+                exit;
+            }
+        }
         $expense_name = !empty($_POST['expense_name']) ? sanitize_text_field($_POST['expense_name']) : NULL;
         $invoice_description = !empty($_POST['invoice_description']) ? sanitize_textarea_field($_POST['invoice_description']) : NULL;
         if ($invoice_description !== null) {
@@ -4236,6 +4275,23 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
     global $wpdb;
     $table_name = $wpdb->prefix . 'sc_member_courses';
 
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && $member_id) {
+        $chapters = function_exists('sc_secretary_get_effective_chapters') ? sc_secretary_get_effective_chapters() : [];
+        if (!empty($chapters)) {
+            $placeholders = implode(', ', array_fill(0, count($chapters), '%s'));
+            $preserve_rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT course_id FROM {$table_name} WHERE member_id = %d AND (chapter IS NULL OR chapter = '' OR chapter NOT IN ({$placeholders}))",
+                array_merge([(int) $member_id], $chapters)
+            ));
+            foreach ((array) $preserve_rows as $prow) {
+                $cid = absint($prow->course_id);
+                if ($cid && !in_array($cid, array_map('absint', (array) $course_ids), true)) {
+                    $course_ids[] = $cid;
+                }
+            }
+        }
+    }
+
     $pre_counting_courses = [];
     if ($member_id) {
         $pre_counting_courses = $wpdb->get_col($wpdb->prepare(
@@ -4406,6 +4462,18 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
         foreach ($course_ids as $course_id) {
             $course_id = absint($course_id);
             if ($course_id) {
+                if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+                    $existing_scope_row = $wpdb->get_row($wpdb->prepare(
+                        "SELECT chapter FROM {$table_name} WHERE member_id = %d AND course_id = %d LIMIT 1",
+                        $member_id,
+                        $course_id
+                    ));
+                    if ($existing_scope_row && !empty($existing_scope_row->chapter)
+                        && function_exists('sc_secretary_chapter_in_scope')
+                        && !sc_secretary_chapter_in_scope((string) $existing_scope_row->chapter)) {
+                        continue;
+                    }
+                }
                 // دریافت flags از آرایه course_flags (اگر وجود داشته باشد)
                 $flags_array = isset($course_flags[$course_id]) && is_array($course_flags[$course_id])
                     ? $course_flags[$course_id]

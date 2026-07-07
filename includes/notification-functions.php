@@ -352,6 +352,10 @@ function sc_get_notification_recipients($target_type, $target_config) {
         }
     }
 
+    if (function_exists('sc_secretary_filter_notification_user_ids')) {
+        $user_ids = sc_secretary_filter_notification_user_ids((array) $user_ids);
+    }
+
     return array_unique(array_filter($user_ids));
 }
 

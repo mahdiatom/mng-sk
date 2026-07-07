@@ -487,6 +487,9 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 $courses = $wpdb->get_results(
                     "SELECT * FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
                 );
+                if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && function_exists('sc_secretary_get_branch_courses')) {
+                    $courses = sc_secretary_get_branch_courses();
+                }
                 
                 // دریافت دوره‌های فعلی بازیکن با وضعیت آن‌ها
                 $player_courses_active = [];

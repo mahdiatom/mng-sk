@@ -585,6 +585,10 @@ function sc_users_export_get_members($target_type, $config = []) {
         $params = array_merge($params, $excluded_ids);
     }
 
+    if (function_exists('sc_secretary_merge_member_where_parts')) {
+        sc_secretary_merge_member_where_parts($where, $params, 'm');
+    }
+
     $where_sql = implode(' AND ', $where);
     $query = "
         SELECT m.*
@@ -849,7 +853,7 @@ add_action('wp_ajax_sc_users_export_get_event_fields', 'sc_users_export_get_even
 
 function sc_users_export_get_event_fields_ajax() {
     check_ajax_referer('sc_users_export_get_event_fields', 'nonce');
-    if (!current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
         wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
     }
 
@@ -880,7 +884,7 @@ function sc_users_export_get_event_fields_ajax() {
 
 function sc_users_export_preview_members_ajax() {
     check_ajax_referer('sc_users_export_preview_members', 'nonce');
-    if (!current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
         wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
     }
 
@@ -958,7 +962,7 @@ function sc_users_export_preview_members_ajax() {
 }
 
 function sc_users_info_export_handler() {
-    if (!current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
         wp_die('دسترسی غیرمجاز.');
     }
     check_admin_referer('sc_users_info_export_action', 'sc_users_info_export_nonce');

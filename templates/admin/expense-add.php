@@ -13,11 +13,17 @@ $chapter_categories_table = $wpdb->prefix . 'sc_chapter_categories';
 // دریافت لیست دسته‌بندی‌ها
 $categories = $wpdb->get_results("SELECT id, name FROM $expense_categories_table ORDER BY name ASC");
 $chapters = $wpdb->get_results("SELECT name FROM $chapter_categories_table ORDER BY name ASC");
+if (function_exists('sc_secretary_filter_chapters_list')) {
+    $chapters = sc_secretary_filter_chapters_list($chapters);
+}
 
 // دریافت اطلاعات هزینه در صورت ویرایشexpense_add
 $expense = null;
 $expense_id = isset($_GET['expense_id']) ? absint($_GET['expense_id']) : 0;
 if ($expense_id > 0) {
+    if (function_exists('sc_secretary_can_access_expense') && !sc_secretary_can_access_expense($expense_id)) {
+        wp_die('دسترسی غیرمجاز.');
+    }
     $expenses_table = $wpdb->prefix . 'sc_expenses';
     $expense = $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM $expenses_table WHERE id = %d",

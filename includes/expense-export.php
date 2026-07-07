@@ -43,6 +43,10 @@ function sc_export_expenses_to_excel() {
         $where_values[] = $search_like;
         $where_values[] = $search_like;
     }
+
+    if (function_exists('sc_secretary_merge_expense_where')) {
+        sc_secretary_merge_expense_where($where_conditions, $where_values, 'e');
+    }
     
     $where_clause = implode(' AND ', $where_conditions);
     

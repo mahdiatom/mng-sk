@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (!current_user_can('sc_finance_reports_access') && !current_user_can('manage_options')) {
+if (!current_user_can('sc_finance_reports_access') && !current_user_can('manage_options') && !(function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only())) {
     wp_die('دسترسی غیرمجاز.');
 }
 
@@ -23,8 +23,27 @@ $bookings_table   = $wpdb->prefix . 'sc_private_course_bookings';
 $sessions_table   = $wpdb->prefix . 'sc_private_booking_sessions';
 
 $coaches = $wpdb->get_results("SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY first_name ASC, last_name ASC");
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && function_exists('sc_secretary_get_branch_coach_ids')) {
+    $branch_coach_ids = sc_secretary_get_branch_coach_ids();
+    if (empty($branch_coach_ids)) {
+        $coaches = [];
+    } else {
+        $holders = implode(',', array_fill(0, count($branch_coach_ids), '%d'));
+        $coaches = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, first_name, last_name FROM $coaches_table
+             WHERE is_active = 1 AND id IN ($holders)
+             ORDER BY first_name ASC, last_name ASC",
+            ...$branch_coach_ids
+        ));
+    }
+}
 
 $filter_coach_id = isset($_GET['filter_coach_id']) ? absint($_GET['filter_coach_id']) : 0;
+if ($filter_coach_id > 0 && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && function_exists('sc_secretary_get_branch_coach_ids')) {
+    if (!in_array($filter_coach_id, sc_secretary_get_branch_coach_ids(), true)) {
+        $filter_coach_id = 0;
+    }
+}
 
 $filter_date_from        = '';
 $filter_date_to          = '';
@@ -91,6 +110,9 @@ if ($filter_coach_id > 0) {
             $filter_coach_id
         ));
         $course_ids = array_map('absint', $course_ids ?: []);
+        if (function_exists('sc_secretary_filter_course_ids')) {
+            $course_ids = sc_secretary_filter_course_ids($course_ids);
+        }
 
         // بازیکنان فعال: ثبت‌نام فعال در دوره‌هایی که این مربی روی آن‌ها است.
         if (!empty($course_ids)) {
@@ -102,14 +124,24 @@ if ($filter_coach_id > 0) {
         }
 
         // درآمد مربی از کیف پول (دستمزد) در بازه.
+        $wallet_where = [
+            'coach_id = %d',
+            "status = 'completed'",
+            "transaction_type IN ('salary_percentage','salary_fixed')",
+            'DATE(created_at) >= %s',
+            'DATE(created_at) <= %s',
+        ];
+        $wallet_args = [$filter_coach_id, $filter_date_from, $filter_date_to];
+        if (function_exists('sc_secretary_merge_coach_wallet_course_scope')) {
+            sc_secretary_merge_coach_wallet_course_scope($wallet_where, $wallet_args);
+        } elseif (!empty($course_ids)) {
+            $wallet_where[] = 'related_course_id IN (' . implode(',', array_fill(0, count($course_ids), '%d')) . ')';
+            $wallet_args = array_merge($wallet_args, $course_ids);
+        }
         $coach_income_period = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(amount), 0) FROM $wallet_table
-             WHERE coach_id = %d AND status = 'completed'
-               AND transaction_type IN ('salary_percentage','salary_fixed')
-               AND DATE(created_at) >= %s AND DATE(created_at) <= %s",
-            $filter_coach_id,
-            $filter_date_from,
-            $filter_date_to
+            "SELECT COALESCE(SUM(amount), 0) FROM $wallet_table w
+             WHERE " . implode(' AND ', $wallet_where),
+            ...$wallet_args
         ));
 
         // درآمد کل دوره‌ها (فاکتورهای پرداخت‌شده) برای دوره‌های این مربی در بازه.
@@ -132,42 +164,60 @@ if ($filter_coach_id > 0) {
         $club_share_period = $total_class_revenue_period - $coach_income_period;
 
         // کلاس خصوصی: درآمد از رزروها و تعداد جلسات در بازه.
-        $private_revenue_period = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(i.amount), 0)
-             FROM $bookings_table b
-             INNER JOIN $invoices_table i ON i.id = b.invoice_id
-             INNER JOIN $courses_table c ON c.id = b.course_id AND c.course_type = 'private'
-             WHERE b.coach_id = %d
-               AND i.status IN ('paid','completed','processing')
-               AND i.payment_date IS NOT NULL
-               AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s",
-            $filter_coach_id,
-            $filter_date_from,
-            $filter_date_to
-        ));
+        $private_branch_sql = '';
+        $private_branch_args = [];
+        if (!empty($course_ids)) {
+            $private_branch_sql = ' AND b.course_id IN (' . implode(',', array_fill(0, count($course_ids), '%d')) . ')';
+            $private_branch_args = $course_ids;
+        } elseif (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+            $private_revenue_period = 0.0;
+            $private_sessions_count = 0;
+        }
+        if ($private_branch_sql !== '' || !(function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only())) {
+            $private_revenue_period = (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(i.amount), 0)
+                 FROM $bookings_table b
+                 INNER JOIN $invoices_table i ON i.id = b.invoice_id
+                 INNER JOIN $courses_table c ON c.id = b.course_id AND c.course_type = 'private'
+                 WHERE b.coach_id = %d
+                   AND i.status IN ('paid','completed','processing')
+                   AND i.payment_date IS NOT NULL
+                   AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
+                   {$private_branch_sql}",
+                array_merge([$filter_coach_id, $filter_date_from, $filter_date_to], $private_branch_args)
+            ));
 
-        $private_sessions_count = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $sessions_table ps
-             INNER JOIN $courses_table c ON c.id = ps.course_id AND c.course_type = 'private'
-             WHERE ps.coach_id = %d
-               AND ps.session_date >= %s AND ps.session_date <= %s
-               AND ps.status <> 'cancelled'",
-            $filter_coach_id,
-            $filter_date_from,
-            $filter_date_to
-        ));
+            $private_sessions_count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM $sessions_table ps
+                 INNER JOIN $courses_table c ON c.id = ps.course_id AND c.course_type = 'private'
+                 WHERE ps.coach_id = %d
+                   AND ps.session_date >= %s AND ps.session_date <= %s
+                   AND ps.status <> 'cancelled'
+                   {$private_branch_sql}",
+                array_merge([$filter_coach_id, $filter_date_from, $filter_date_to], $private_branch_args)
+            ));
+        }
 
         // عملکرد از رکوردهای دستمزد (تعداد روزهای ثبت‌شده، مجموع و میانگین نفرات جلسه).
+        $salary_where = [
+            'coach_id = %d',
+            'attendance_date >= %s',
+            'attendance_date <= %s',
+        ];
+        $salary_args = [$filter_coach_id, $filter_date_from, $filter_date_to];
+        if (function_exists('sc_secretary_merge_salary_course_scope')) {
+            sc_secretary_merge_salary_course_scope($salary_where, $salary_args);
+        } elseif (!empty($course_ids)) {
+            $salary_where[] = 'course_id IN (' . implode(',', array_fill(0, count($course_ids), '%d')) . ')';
+            $salary_args = array_merge($salary_args, $course_ids);
+        }
         $perf_row = $wpdb->get_row($wpdb->prepare(
             "SELECT COUNT(*) AS days_cnt,
                     COALESCE(SUM(attendance_count), 0) AS sum_heads,
                     COALESCE(AVG(attendance_count), 0) AS avg_heads
-             FROM $salary_table
-             WHERE coach_id = %d
-               AND attendance_date >= %s AND attendance_date <= %s",
-            $filter_coach_id,
-            $filter_date_from,
-            $filter_date_to
+             FROM $salary_table sr
+             WHERE " . implode(' AND ', $salary_where),
+            ...$salary_args
         ));
         if ($perf_row) {
             $salary_records_days       = (int) $perf_row->days_cnt;

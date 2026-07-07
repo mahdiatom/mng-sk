@@ -171,6 +171,8 @@ class Support_Tickets_List_Table extends WP_List_Table {
         $scope_accountant = function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only();
         if ($scope_accountant && function_exists('sc_support_apply_accountant_ticket_list_scope')) {
             sc_support_apply_accountant_ticket_list_scope($base, $params, '');
+        } elseif (function_exists('sc_support_apply_secretary_ticket_list_scope')) {
+            sc_support_apply_secretary_ticket_list_scope($base, $params, '');
         } elseif ($filter_department !== 'all') {
             $base[] = 'department = %s';
             $params[] = $filter_department;
@@ -275,6 +277,9 @@ class Support_Tickets_List_Table extends WP_List_Table {
         $scope_accountant = function_exists('sc_support_is_accountant_ticket_scope_only') && sc_support_is_accountant_ticket_scope_only();
         if ($scope_accountant && function_exists('sc_support_apply_accountant_ticket_list_scope')) {
             sc_support_apply_accountant_ticket_list_scope($where, $params, 't');
+        }
+        if (function_exists('sc_support_apply_secretary_ticket_list_scope')) {
+            sc_support_apply_secretary_ticket_list_scope($where, $params, 't');
         }
 
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : 'all';

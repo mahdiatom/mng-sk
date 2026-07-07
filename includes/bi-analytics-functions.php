@@ -214,20 +214,28 @@ function sc_bi_branch_revenue_rows($date_from, $date_to) {
     $invoices = $wpdb->prefix . 'sc_invoices';
     $courses  = $wpdb->prefix . 'sc_courses';
 
+    $where = [
+        "i.status IN ('paid','completed','processing')",
+        "i.payment_date IS NOT NULL",
+        "i.course_id > 0",
+        "DATE(i.payment_date) >= %s",
+        "DATE(i.payment_date) <= %s",
+    ];
+    $args = [$date_from, $date_to];
+    if (function_exists('sc_secretary_merge_invoice_where')) {
+        sc_secretary_merge_invoice_where($where, $args, 'i');
+    }
+
     return $wpdb->get_results($wpdb->prepare(
         "SELECT COALESCE(NULLIF(TRIM(c.chapter), ''), 'بدون شعبه') AS chapter,
                 COUNT(i.id) AS invoice_count,
                 COALESCE(SUM(i.amount), 0) AS revenue
          FROM $invoices i
          INNER JOIN $courses c ON c.id = i.course_id
-         WHERE i.status IN ('paid','completed','processing')
-           AND i.payment_date IS NOT NULL
-           AND i.course_id > 0
-           AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
+         WHERE " . implode(' AND ', $where) . "
          GROUP BY chapter
          ORDER BY revenue DESC",
-        $date_from,
-        $date_to
+        $args
     )) ?: [];
 }
 
@@ -243,18 +251,25 @@ function sc_bi_branch_monthly_revenue($date_from, $date_to) {
     $by_chapter = [];
 
     foreach (sc_bi_month_buckets($date_from, $date_to) as $bucket) {
+        $where = [
+            "i.status IN ('paid','completed','processing')",
+            "i.payment_date IS NOT NULL",
+            "i.course_id > 0",
+            "DATE(i.payment_date) >= %s",
+            "DATE(i.payment_date) <= %s",
+        ];
+        $args = [$bucket['start'], $bucket['end']];
+        if (function_exists('sc_secretary_merge_invoice_where')) {
+            sc_secretary_merge_invoice_where($where, $args, 'i');
+        }
         $branch_rows = $wpdb->get_results($wpdb->prepare(
             "SELECT COALESCE(NULLIF(TRIM(c.chapter), ''), 'بدون شعبه') AS chapter,
                     COALESCE(SUM(i.amount), 0) AS revenue
              FROM $invoices i
              INNER JOIN $courses c ON c.id = i.course_id
-             WHERE i.status IN ('paid','completed','processing')
-               AND i.payment_date IS NOT NULL
-               AND i.course_id > 0
-               AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
+             WHERE " . implode(' AND ', $where) . "
              GROUP BY chapter",
-            $bucket['start'],
-            $bucket['end']
+            $args
         )) ?: [];
 
         foreach ($branch_rows as $row) {
@@ -301,53 +316,73 @@ function sc_bi_popular_courses($date_from, $date_to, $metric = 'enrolled', $limi
     $limit    = max(1, min(50, (int) $limit));
 
     if ($metric === 'revenue') {
+        $where = [
+            "i.status IN ('paid','completed','processing')",
+            "i.payment_date IS NOT NULL",
+            "DATE(i.payment_date) >= %s",
+            "DATE(i.payment_date) <= %s",
+        ];
+        $args = [$date_from, $date_to];
+        if (function_exists('sc_secretary_merge_invoice_where')) {
+            sc_secretary_merge_invoice_where($where, $args, 'i');
+        }
+        $args[] = $limit;
         return $wpdb->get_results($wpdb->prepare(
             "SELECT c.id, c.title, c.chapter,
                     COUNT(i.id) AS metric_count,
                     COALESCE(SUM(i.amount), 0) AS metric_value
              FROM $invoices i
              INNER JOIN $courses c ON c.id = i.course_id AND c.deleted_at IS NULL
-             WHERE i.status IN ('paid','completed','processing')
-               AND i.payment_date IS NOT NULL
-               AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
+             WHERE " . implode(' AND ', $where) . "
              GROUP BY c.id, c.title, c.chapter
              ORDER BY metric_value DESC
              LIMIT %d",
-            $date_from,
-            $date_to,
-            $limit
+            $args
         )) ?: [];
     }
 
     if ($metric === 'attendance') {
+        $where = [
+            'a.attendance_date >= %s',
+            'a.attendance_date <= %s',
+            "a.status = 'present'",
+        ];
+        $args = [$date_from, $date_to];
+        if (function_exists('sc_secretary_merge_course_ids_where')) {
+            sc_secretary_merge_course_ids_where($where, $args, 'c.id');
+        }
+        $args[] = $limit;
         return $wpdb->get_results($wpdb->prepare(
             "SELECT c.id, c.title, c.chapter,
                     COUNT(a.id) AS metric_count,
                     COUNT(a.id) AS metric_value
              FROM $att a
              INNER JOIN $courses c ON c.id = a.course_id AND c.deleted_at IS NULL
-             WHERE a.attendance_date >= %s AND a.attendance_date <= %s
-               AND a.status = 'present'
+             WHERE " . implode(' AND ', $where) . "
              GROUP BY c.id, c.title, c.chapter
              ORDER BY metric_value DESC
              LIMIT %d",
-            $date_from,
-            $date_to,
-            $limit
+            $args
         )) ?: [];
     }
 
+    $where = ['c.deleted_at IS NULL', 'c.is_active = 1', "mc.status = 'active'"];
+    $params = [];
+    if (function_exists('sc_secretary_merge_course_ids_where')) {
+        sc_secretary_merge_course_ids_where($where, $params, 'c.id');
+    }
+    $params[] = $limit;
     return $wpdb->get_results($wpdb->prepare(
         "SELECT c.id, c.title, c.chapter,
                 COUNT(DISTINCT mc.member_id) AS metric_count,
                 COUNT(DISTINCT mc.member_id) AS metric_value
          FROM $courses c
          INNER JOIN $mc mc ON mc.course_id = c.id AND mc.status = 'active'
-         WHERE c.deleted_at IS NULL AND c.is_active = 1
+         WHERE " . implode(' AND ', $where) . "
          GROUP BY c.id, c.title, c.chapter
          ORDER BY metric_value DESC
          LIMIT %d",
-        $limit
+        $params
     )) ?: [];
 }
 
@@ -361,12 +396,28 @@ function sc_bi_coaches_summary($date_from, $date_to) {
     $coaches  = $wpdb->prefix . 'sc_coaches';
     $cc       = $wpdb->prefix . 'sc_course_coaches';
     $wallet   = $wpdb->prefix . 'sc_coach_wallet_transactions';
-    $courses  = $wpdb->prefix . 'sc_courses';
     $invoices = $wpdb->prefix . 'sc_invoices';
 
-    $coach_rows = $wpdb->get_results(
-        "SELECT id, first_name, last_name FROM $coaches WHERE is_active = 1 ORDER BY first_name, last_name"
-    ) ?: [];
+    $branch_coach_ids = null;
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && function_exists('sc_secretary_get_branch_coach_ids')) {
+        $branch_coach_ids = array_fill_keys(sc_secretary_get_branch_coach_ids(), true);
+    }
+
+    if ($branch_coach_ids !== null) {
+        if (empty($branch_coach_ids)) {
+            return [];
+        }
+        $coach_id_list = array_keys($branch_coach_ids);
+        $holders = implode(',', array_fill(0, count($coach_id_list), '%d'));
+        $coach_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, first_name, last_name FROM $coaches WHERE is_active = 1 AND id IN ($holders) ORDER BY first_name, last_name",
+            ...$coach_id_list
+        )) ?: [];
+    } else {
+        $coach_rows = $wpdb->get_results(
+            "SELECT id, first_name, last_name FROM $coaches WHERE is_active = 1 ORDER BY first_name, last_name"
+        ) ?: [];
+    }
 
     $summaries = [];
     foreach ($coach_rows as $coach) {
@@ -375,32 +426,52 @@ function sc_bi_coaches_summary($date_from, $date_to) {
             "SELECT DISTINCT course_id FROM $cc WHERE coach_id = %d",
             $coach_id
         )) ?: []);
+        if (function_exists('sc_secretary_filter_course_ids')) {
+            $course_ids = sc_secretary_filter_course_ids($course_ids);
+        }
+        if ($branch_coach_ids !== null && empty($course_ids)) {
+            continue;
+        }
 
         $active_now = !empty($course_ids)
             ? sc_bi_count_club_active_members_at_date($date_to, $course_ids)
             : 0;
 
+        $wallet_where = [
+            'coach_id = %d',
+            "status = 'completed'",
+            "transaction_type IN ('salary_percentage','salary_fixed')",
+            'DATE(created_at) >= %s',
+            'DATE(created_at) <= %s',
+        ];
+        $wallet_args = [$coach_id, $date_from, $date_to];
+        if (function_exists('sc_secretary_merge_coach_wallet_course_scope')) {
+            sc_secretary_merge_coach_wallet_course_scope($wallet_where, $wallet_args);
+        }
         $coach_income = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(amount), 0) FROM $wallet
-             WHERE coach_id = %d AND status = 'completed'
-               AND transaction_type IN ('salary_percentage','salary_fixed')
-               AND DATE(created_at) >= %s AND DATE(created_at) <= %s",
-            $coach_id,
-            $date_from,
-            $date_to
+            "SELECT COALESCE(SUM(amount), 0) FROM $wallet w
+             WHERE " . implode(' AND ', $wallet_where),
+            ...$wallet_args
         ));
 
         $class_revenue = 0.0;
         if (!empty($course_ids)) {
             $holders = implode(',', array_fill(0, count($course_ids), '%d'));
-            $args    = array_merge([$date_from, $date_to], $course_ids);
+            $invoice_where = [
+                "i.status IN ('paid','completed','processing')",
+                'i.payment_date IS NOT NULL',
+                'DATE(i.payment_date) >= %s',
+                'DATE(i.payment_date) <= %s',
+                "i.course_id IN ($holders)",
+            ];
+            $invoice_args = array_merge([$date_from, $date_to], $course_ids);
+            if (function_exists('sc_secretary_merge_invoice_where')) {
+                sc_secretary_merge_invoice_where($invoice_where, $invoice_args, 'i');
+            }
             $class_revenue = (float) $wpdb->get_var($wpdb->prepare(
                 "SELECT COALESCE(SUM(i.amount), 0) FROM $invoices i
-                 WHERE i.status IN ('paid','completed','processing')
-                   AND i.payment_date IS NOT NULL
-                   AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
-                   AND i.course_id IN ($holders)",
-                ...$args
+                 WHERE " . implode(' AND ', $invoice_where),
+                ...$invoice_args
             ));
         }
 
@@ -463,22 +534,44 @@ function sc_bi_coach_monthly_metrics($coach_id, array $course_ids, $date_from, $
             }
         }
 
+        $wallet_where = [
+            'coach_id = %d',
+            "status = 'completed'",
+            "transaction_type IN ('salary_percentage','salary_fixed')",
+            'DATE(created_at) >= %s',
+            'DATE(created_at) <= %s',
+        ];
+        $wallet_args = [(int) $coach_id, $ms, $me];
+        if (function_exists('sc_secretary_merge_coach_wallet_course_scope')) {
+            sc_secretary_merge_coach_wallet_course_scope($wallet_where, $wallet_args);
+        } elseif (!empty($course_ids)) {
+            $holders = implode(',', array_fill(0, count($course_ids), '%d'));
+            $wallet_where[] = "related_course_id IN ($holders)";
+            $wallet_args = array_merge($wallet_args, $course_ids);
+        }
         $income = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(amount), 0) FROM $wallet
-             WHERE coach_id = %d AND status = 'completed'
-               AND transaction_type IN ('salary_percentage','salary_fixed')
-               AND DATE(created_at) >= %s AND DATE(created_at) <= %s",
-            (int) $coach_id,
-            $ms,
-            $me
+            "SELECT COALESCE(SUM(amount), 0) FROM $wallet w
+             WHERE " . implode(' AND ', $wallet_where),
+            ...$wallet_args
         ));
 
+        $salary_where = [
+            'coach_id = %d',
+            'attendance_date >= %s',
+            'attendance_date <= %s',
+        ];
+        $salary_args = [(int) $coach_id, $ms, $me];
+        if (function_exists('sc_secretary_merge_salary_course_scope')) {
+            sc_secretary_merge_salary_course_scope($salary_where, $salary_args);
+        } elseif (!empty($course_ids)) {
+            $holders = implode(',', array_fill(0, count($course_ids), '%d'));
+            $salary_where[] = "course_id IN ($holders)";
+            $salary_args = array_merge($salary_args, $course_ids);
+        }
         $avg_attendance = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(AVG(attendance_count), 0) FROM $salary
-             WHERE coach_id = %d AND attendance_date >= %s AND attendance_date <= %s",
-            (int) $coach_id,
-            $ms,
-            $me
+            "SELECT COALESCE(AVG(attendance_count), 0) FROM $salary sr
+             WHERE " . implode(' AND ', $salary_where),
+            ...$salary_args
         ));
 
         $rows[] = [

@@ -19,6 +19,9 @@ $chapter_categories_table = $wpdb->prefix . 'sc_chapter_categories';
 $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
 $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash((string) $_GET['filter_chapter'])) : '';
+if (function_exists('sc_secretary_validate_report_chapter')) {
+    sc_secretary_validate_report_chapter($filter_chapter);
+}
 $filter_group_raw = isset($_GET['filter_group']) ? sanitize_text_field(wp_unslash((string) $_GET['filter_group'])) : '';
 $filter_group = function_exists('sc_finance_normalize_group_filter')
     ? sc_finance_normalize_group_filter($filter_course, $filter_group_raw)
@@ -27,14 +30,26 @@ $filter_group = function_exists('sc_finance_normalize_group_filter')
 // دریافت لیست دوره‌ها، شعبه‌ها و اعضا برای فیلترها
 $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC");
 $chapters = $wpdb->get_results("SELECT name FROM $chapter_categories_table ORDER BY name ASC");
+if (function_exists('sc_secretary_filter_chapters_list')) {
+    $chapters = sc_secretary_filter_chapters_list($chapters);
+}
+$all_members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+if (function_exists('sc_secretary_append_member_where') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+    $pw = sc_secretary_append_member_where('m.is_active = 1', 'm');
+    $all_members = $wpdb->get_results("SELECT m.id, m.first_name, m.last_name, m.national_id FROM {$members_table} m WHERE {$pw} ORDER BY m.last_name ASC, m.first_name ASC");
+}
+
 $debtors_course_groups_map = function_exists('sc_finance_course_groups_map_for_ui')
     ? sc_finance_course_groups_map_for_ui($courses)
     : [];
-$all_members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
 
 // ساخت WHERE clause برای دریافت اعضای بدهکار
 $where_conditions = ['m.is_active = 1'];
 $where_values = [];
+
+if (function_exists('sc_secretary_merge_member_where_parts')) {
+    sc_secretary_merge_member_where_parts($where_conditions, $where_values, 'm');
+}
 
 // فیلتر کاربر
 if ($filter_member > 0) {

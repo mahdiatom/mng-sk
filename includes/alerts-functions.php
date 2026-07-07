@@ -61,7 +61,11 @@ function sc_get_absence_limit_alerts() {
         $limit
     ));
 
-    return is_array($rows) ? $rows : [];
+    $rows = is_array($rows) ? $rows : [];
+    if (function_exists('sc_secretary_filter_alert_rows')) {
+        $rows = sc_secretary_filter_alert_rows($rows);
+    }
+    return $rows;
 }
 
 function sc_alert_notification_exists_today($alert_key, $target_type, $check_today_only = true) {
@@ -115,6 +119,9 @@ function sc_get_multiple_debt_alerts() {
         $result[] = $row;
     }
 
+    if (function_exists('sc_secretary_filter_alert_rows')) {
+        $result = sc_secretary_filter_alert_rows($result);
+    }
     return $result;
 }
 

@@ -15,7 +15,17 @@ global $wpdb;
         $courses_table = $wpdb->prefix . 'sc_courses';
 
         $all_players = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+        if (function_exists('sc_secretary_append_member_where') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+            $pw = sc_secretary_append_member_where('m.is_active = 1', 'm');
+            $all_players = $wpdb->get_results("SELECT m.id, m.first_name, m.last_name, m.national_id FROM {$members_table} m WHERE {$pw} ORDER BY m.last_name ASC, m.first_name ASC");
+        }
         $courses = $wpdb->get_results("SELECT id, title FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC");
+        if (function_exists('sc_secretary_get_branch_courses') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+            $branch_courses = sc_secretary_get_branch_courses();
+            $courses = array_map(static function ($c) {
+                return (object) ['id' => $c->id, 'title' => $c->title];
+            }, $branch_courses);
+        }
 
         $team_options = $wpdb->get_col(
             "SELECT DISTINCT team_player FROM $members_table WHERE team_player IS NOT NULL AND TRIM(team_player) <> '' ORDER BY team_player ASC"

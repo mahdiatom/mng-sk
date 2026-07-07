@@ -35,6 +35,10 @@ $coach_can_course = static function ($cid) use ($wpdb, $course_coaches_table, $i
     if (!$cid) {
         return false;
     }
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+        && function_exists('sc_secretary_can_access_attendance_course')) {
+        return sc_secretary_can_access_attendance_course($cid);
+    }
     if (!$is_coach_only) {
         return true;
     }
@@ -99,7 +103,22 @@ if (isset($_POST['sc_save_session_cancel']) && check_admin_referer('sc_session_c
     }
 }
 
-if ($is_coach_only) {
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+    && function_exists('sc_secretary_get_branch_courses_for_attendance_filter')) {
+    $courses = sc_secretary_get_branch_courses_for_attendance_filter();
+    $ids = array_values(array_unique(array_filter(array_map('absint', wp_list_pluck($courses, 'id')))));
+    if (empty($ids)) {
+        $rows = [];
+    } else {
+        $ids_in = implode(',', $ids);
+        $rows = $wpdb->get_results(
+            "SELECT x.*, c.title AS course_title FROM `{$table}` x
+             INNER JOIN `{$courses_table}` c ON c.id = x.course_id
+             WHERE x.course_id IN ({$ids_in})
+             ORDER BY x.session_date DESC, x.time_start DESC, x.id DESC LIMIT 200"
+        );
+    }
+} elseif ($is_coach_only) {
     $courses = $coach_id ? $wpdb->get_results($wpdb->prepare(
         "SELECT c.id, c.title FROM `{$courses_table}` c
          INNER JOIN `{$course_coaches_table}` cc ON cc.course_id = c.id

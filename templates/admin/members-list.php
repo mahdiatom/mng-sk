@@ -463,16 +463,36 @@ public function column_full_name($item) {
         if (isset($_GET['filter_course']) && !empty($_GET['filter_course'])) {
             $course_id = absint($_GET['filter_course']);
             $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-            $where .= $wpdb->prepare(
-                " AND id IN (
+            $course_filter_sql = " AND id IN (
+                    SELECT member_id
+                    FROM $member_courses_table mc_f
+                    WHERE mc_f.course_id = %d
+                      AND mc_f.status = 'active'
+                )";
+            $course_filter_args = [$course_id];
+            if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+                && function_exists('sc_secretary_member_enrollment_match_sql')) {
+                $match = sc_secretary_member_enrollment_match_sql('mc_f');
+                if ($match['sql'] !== '1=0') {
+                    $course_filter_sql = " AND id IN (
+                        SELECT member_id
+                        FROM $member_courses_table mc_f
+                        WHERE mc_f.course_id = %d
+                          AND mc_f.status = 'active'
+                          AND {$match['sql']}
+                    )";
+                    $course_filter_args = array_merge([$course_id], $match['args']);
+                }
+            } else {
+                $course_filter_sql = " AND id IN (
                     SELECT member_id
                     FROM $member_courses_table
                     WHERE course_id = %d
                       AND status = 'active'
                       AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')
-                )",
-                $course_id
-            );
+                )";
+            }
+            $where .= $wpdb->prepare($course_filter_sql, $course_filter_args);
         }
 
         // فیلتر نوع بازیکن
@@ -554,14 +574,36 @@ public function column_full_name($item) {
             );
         }
 
+        $members_from = $table_name . ' m';
+        $where_sql = preg_replace('/(?<!\.)\bid\b/', 'm.id', $where);
+        $where_sql = preg_replace('/\bis_active\b/', 'm.is_active', $where_sql);
+        $where_sql = preg_replace('/\bprofile_completed\b/', 'm.profile_completed', $where_sql);
+        $where_sql = preg_replace('/\bmember_type\b/', 'm.member_type', $where_sql);
+        $where_sql = preg_replace('/\bteam_player\b/', 'm.team_player', $where_sql);
+        $where_sql = preg_replace('/\bskill_level\b/', 'm.skill_level', $where_sql);
+        $where_sql = preg_replace('/\bidentity_verified\b/', 'm.identity_verified', $where_sql);
+        $where_sql = preg_replace('/\binsurance_expiry_date_shamsi\b/', 'm.insurance_expiry_date_shamsi', $where_sql);
+        $where_sql = preg_replace('/\bfirst_name\b/', 'm.first_name', $where_sql);
+        $where_sql = preg_replace('/\blast_name\b/', 'm.last_name', $where_sql);
+        $where_sql = preg_replace('/\bplayer_phone\b/', 'm.player_phone', $where_sql);
+        $where_sql = preg_replace('/\bbirth_date_shamsi\b/', 'm.birth_date_shamsi', $where_sql);
+        $where_sql = preg_replace('/\bbirth_date_gregorian\b/', 'm.birth_date_gregorian', $where_sql);
+        $where_sql = preg_replace('/\bcreated_at\b/', 'm.created_at', $where_sql);
+        $where_sql = preg_replace('/\bnational_id\b/', 'm.national_id', $where_sql);
+
+        if (function_exists('sc_secretary_append_member_where')) {
+            $where_sql = sc_secretary_append_member_where($where_sql, 'm');
+        }
+
         // COUNT جداگانه — SQL_CALC_FOUND_ROWS بعد از UPDATE پروفایل در حلقه زیر خراب می‌شد و total=1 می‌شد
-        $total_items = (int) $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE $where");
+        $total_items = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$members_from} WHERE {$where_sql}");
 
         $per_page = absint($per_page);
         $offset = absint($offset);
+        $order_clause = preg_replace('/`([^`]+)`/', 'm.`$1`', $order_clause);
         // $where از قبل با prepare ساخته شده؛ دوباره prepare نکنید (LIKEهای % خراب می‌شوند)
         $results = $wpdb->get_results(
-            "SELECT * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            "SELECT m.* FROM {$members_from} WHERE {$where_sql} {$order_clause} LIMIT $per_page OFFSET $offset",
             ARRAY_A
         );
 

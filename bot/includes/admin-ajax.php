@@ -86,7 +86,7 @@ function sc_bale_normalize_ajax_target_config($target_config) {
 
 function sc_ajax_bale_preview_recipients() {
     check_ajax_referer('sc_bale_admin_nonce', 'nonce');
-    if (!current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
         wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
     }
 

@@ -104,6 +104,10 @@ function sc_export_payments_to_excel() {
         $where_conditions[] = "DATE(i.created_at) <= %s";
         $where_values[] = $filter_date_to;
     }
+
+    if (function_exists('sc_secretary_merge_invoice_where')) {
+        sc_secretary_merge_invoice_where($where_conditions, $where_values, 'i');
+    }
     
     $where_clause = implode(' AND ', $where_conditions);
     
@@ -318,6 +322,13 @@ function sc_export_finance_course_income_to_excel() {
         $args[] = $filter_chapter;
     }
 
+    if (function_exists('sc_secretary_merge_finance_course_scope')) {
+        sc_secretary_merge_finance_course_scope($where, $args, 'i.course_id');
+    }
+    if (function_exists('sc_secretary_merge_invoice_where')) {
+        sc_secretary_merge_invoice_where($where, $args, 'i');
+    }
+
     $course_has_groups = false;
     if ($filter_course > 0 && function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled($filter_course)) {
         $names = function_exists('sc_get_course_group_names') ? sc_get_course_group_names($filter_course) : [];
@@ -417,6 +428,9 @@ function sc_export_finance_event_income_to_excel() {
         $where[] = "e.event_type = %s";
         $args[] = $filter_event_type;
     }
+    if (function_exists('sc_secretary_merge_event_chapter_where')) {
+        sc_secretary_merge_event_chapter_where($where, $args, 'e');
+    }
     $sql = "SELECT e.name, e.event_type, e.chapter, COUNT(i.id) AS paid_count, SUM(i.amount) AS income_total
             FROM $invoices_table i
             INNER JOIN $events_table e ON e.id = i.event_id
@@ -486,6 +500,17 @@ function sc_export_finance_coach_share_to_excel() {
         $salary_args[] = $filter_chapter;
         $salary_args[] = $filter_chapter;
     }
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && function_exists('sc_secretary_get_branch_courses_for_attendance_filter')) {
+        $branch_course_ids = array_map(static function ($row) {
+            return (int) $row->id;
+        }, sc_secretary_get_branch_courses_for_attendance_filter());
+        if (empty($branch_course_ids)) {
+            $salary_where[] = '1=0';
+        } else {
+            $salary_where[] = 'w.related_course_id IN (' . implode(',', array_fill(0, count($branch_course_ids), '%d')) . ')';
+            $salary_args = array_merge($salary_args, $branch_course_ids);
+        }
+    }
 
     $income_where = ["i.status IN ('paid','completed','processing')", "i.payment_date IS NOT NULL", "DATE(i.payment_date) BETWEEN %s AND %s", "i.course_id > 0"];
     $income_args = [$from, $to];
@@ -494,6 +519,9 @@ function sc_export_finance_coach_share_to_excel() {
     $income_mc_join = function_exists('sc_finance_apply_invoice_group_filter')
         ? sc_finance_apply_invoice_group_filter($income_where, $income_args, $filter_course, $filter_group)
         : '';
+    if (function_exists('sc_secretary_merge_invoice_where')) {
+        sc_secretary_merge_invoice_where($income_where, $income_args, 'i');
+    }
 
     $sql = "SELECT coach_rows.first_name, coach_rows.last_name, SUM(coach_rows.coach_income) AS coach_income, SUM(COALESCE(course_income.course_income,0)) AS total_class_income
             FROM (
@@ -595,6 +623,9 @@ function sc_export_finance_receivables_to_excel() {
     $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
         ? sc_finance_apply_invoice_group_filter($where, $args, $filter_course, $filter_group)
         : '';
+    if (function_exists('sc_secretary_merge_invoice_where')) {
+        sc_secretary_merge_invoice_where($where, $args, 'i');
+    }
     $sql = "SELECT i.member_id, i.created_at, i.amount, m.first_name, m.last_name, c.title AS course_title, c.chapter, 'invoice' AS debt_type
             FROM $invoices_table i
             LEFT JOIN $members_table m ON m.id = i.member_id
@@ -603,11 +634,20 @@ function sc_export_finance_receivables_to_excel() {
             WHERE " . implode(' AND ', $where) . "
             ORDER BY i.created_at DESC";
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
-    $wallet_rows = $wpdb->get_results("SELECT m.id AS member_id, MIN(w.created_at) AS created_at, ABS(MIN(w.balance_after)) AS amount, m.first_name, m.last_name
+    $wallet_where = ['1=1'];
+    $wallet_args = [];
+    if (function_exists('sc_secretary_merge_member_where_parts')) {
+        sc_secretary_merge_member_where_parts($wallet_where, $wallet_args, 'm');
+    }
+    $wallet_sql = "SELECT m.id AS member_id, MIN(w.created_at) AS created_at, ABS(MIN(w.balance_after)) AS amount, m.first_name, m.last_name
         FROM $wallet_table w
         INNER JOIN $members_table m ON m.id = w.member_id
+        WHERE " . implode(' AND ', $wallet_where) . "
         GROUP BY m.id, m.first_name, m.last_name
-        HAVING MIN(w.balance_after) < 0");
+        HAVING MIN(w.balance_after) < 0";
+    $wallet_rows = !empty($wallet_args)
+        ? $wpdb->get_results($wpdb->prepare($wallet_sql, $wallet_args))
+        : $wpdb->get_results($wallet_sql);
     if (empty($filter_group) && !empty($wallet_rows)) {
         foreach ($wallet_rows as $wallet_row) {
             $wallet_row->course_title = 'بدهی کیف پول';
@@ -657,6 +697,9 @@ function sc_export_finance_receivables_to_excel() {
  * Export finance store income tab.
  */
 function sc_export_finance_store_income_to_excel() {
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+        wp_die('دسترسی غیرمجاز.');
+    }
     sc_check_phpspreadsheet();
     [$from, $to] = sc_finance_export_date_range();
     $filter_store_tag = isset($_GET['filter_store_tag']) ? absint($_GET['filter_store_tag']) : 0;
@@ -802,6 +845,13 @@ function sc_export_finance_cashflow_to_excel() {
     } elseif ($filter_cashflow_type === 'event') {
         $where_in[] = 'i.event_id IS NOT NULL AND i.event_id > 0';
     }
+    if (function_exists('sc_secretary_merge_invoice_where')) {
+        sc_secretary_merge_invoice_where($where_in, $args_in, 'i');
+    }
+    if (function_exists('sc_secretary_merge_expense_where')) {
+        sc_secretary_merge_expense_where($where_out, $args_out, 'e');
+    }
+    $include_store_cashflow = !function_exists('sc_secretary_finance_include_store_revenue') || sc_secretary_finance_include_store_revenue();
     $cash_in_academy_raw = (float) $wpdb->get_var($wpdb->prepare(
         "SELECT COALESCE(SUM(i.amount),0) FROM $invoices_table i
          LEFT JOIN $courses_table c ON c.id = i.course_id
@@ -810,7 +860,7 @@ function sc_export_finance_cashflow_to_excel() {
          WHERE " . implode(' AND ', $where_in),
         $args_in
     ));
-    $cash_in_store_raw = sc_finance_sum_store_orders_items_total($from, $to, 0, 0);
+    $cash_in_store_raw = $include_store_cashflow ? sc_finance_sum_store_orders_items_total($from, $to, 0, 0) : 0.0;
     $cash_in = $cash_in_store_raw;
     if ($filter_cashflow_type === 'course' || $filter_cashflow_type === 'event') {
         $cash_in = $cash_in_academy_raw;
@@ -879,6 +929,9 @@ function sc_export_finance_ledger_to_excel() {
     $mc_join = function_exists('sc_finance_apply_invoice_group_filter')
         ? sc_finance_apply_invoice_group_filter($where_in, $args_in, $filter_course, $filter_group)
         : '';
+    if (function_exists('sc_secretary_merge_invoice_where')) {
+        sc_secretary_merge_invoice_where($where_in, $args_in, 'i');
+    }
     $income_rows = $wpdb->get_results($wpdb->prepare("SELECT DATE(i.payment_date) AS tx_date, 'income' AS tx_type, i.amount, CONCAT(m.first_name, ' ', m.last_name) AS person_name,
         CASE
             WHEN i.course_id > 0 THEN c.title
@@ -897,7 +950,8 @@ function sc_export_finance_ledger_to_excel() {
         {$mc_join}
         WHERE " . implode(' AND ', $where_in), $args_in));
     $store_income_rows = [];
-    if (function_exists('wc_get_orders')) {
+    $include_store_ledger = !function_exists('sc_secretary_finance_include_store_revenue') || sc_secretary_finance_include_store_revenue();
+    if ($include_store_ledger && function_exists('wc_get_orders')) {
         $orders = wc_get_orders([
             'status' => ['processing', 'completed'],
             'limit' => -1,
@@ -930,6 +984,9 @@ function sc_export_finance_ledger_to_excel() {
     if ($filter_chapter !== '') {
         $where_out[] = "e.chapter = %s";
         $args_out[] = $filter_chapter;
+    }
+    if (function_exists('sc_secretary_merge_expense_where')) {
+        sc_secretary_merge_expense_where($where_out, $args_out, 'e');
     }
     $expense_rows = $wpdb->get_results($wpdb->prepare("SELECT DATE(e.expense_date_gregorian) AS tx_date, 'expense' AS tx_type, e.amount, '' AS person_name, e.name AS ref_title, e.chapter
         FROM $expenses_table e

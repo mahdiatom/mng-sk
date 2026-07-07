@@ -47,15 +47,25 @@ function redirect_my_account_shop_to_shop() {
         exit;
     }
 
-    // ریدایرکت /my-account/ به صفحه ارسال مدارک فقط برای کاربرانی که لاگین هستند
+    // ریدایرکت /my-account/ به صفحه ارسال مدارک فقط برای بازیکنان (نه منشی و سایر نقش‌های staff)
     if ($current_url === $pattern_myaccount && is_user_logged_in()) {
+        if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+            wp_safe_redirect(function_exists('sc_secretary_admin_url') ? sc_secretary_admin_url() : admin_url('admin.php?page=sc-dashboard'));
+            exit;
+        }
+        $is_staff = current_user_can('club_coach') || current_user_can('system_manager') || current_user_can('coach')
+            || current_user_can('shop_manager') || current_user_can('accountantt') || current_user_can('administrator');
+        if ($is_staff) {
+            wp_safe_redirect(admin_url());
+            exit;
+        }
         $redirect_url2 = home_url('/my-account/sc-submit-documents/');
         wp_redirect($redirect_url2, 301);
         exit;
     }
 
     $pattern_main_page = home_url('');
-    $not_subscriber = (current_user_can('club_coach') || current_user_can('system_manager') || current_user_can('coach') || current_user_can('shop_manager') || current_user_can('accountantt') || current_user_can('administrator')) ? true : false;
+    $not_subscriber = (current_user_can('club_coach') || current_user_can('system_manager') || current_user_can('coach') || current_user_can('shop_manager') || current_user_can('accountantt') || current_user_can('secretary') || current_user_can('administrator')) ? true : false;
 
     if ($current_url === $pattern_main_page && is_user_logged_in() && !$not_subscriber) {
         $redirect_url3 = home_url('/my-account/sc-submit-documents/');

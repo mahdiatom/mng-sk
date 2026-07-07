@@ -426,6 +426,22 @@ function sc_weekly_schedule_report_parse_filters($source = null) {
         ? sc_finance_normalize_group_filter($filter_course, $filter_group_raw)
         : $filter_group_raw;
 
+    if (function_exists('sc_secretary_validate_report_chapter')) {
+        sc_secretary_validate_report_chapter($filter_chapter);
+    }
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+        if ($filter_course > 0 && function_exists('sc_secretary_get_branch_weekly_schedule_course_ids')) {
+            if (!in_array($filter_course, sc_secretary_get_branch_weekly_schedule_course_ids(), true)) {
+                $filter_course = 0;
+            }
+        }
+        if ($filter_coach > 0 && function_exists('sc_secretary_get_branch_weekly_schedule_coach_ids')) {
+            if (!in_array($filter_coach, sc_secretary_get_branch_weekly_schedule_coach_ids(), true)) {
+                $filter_coach = 0;
+            }
+        }
+    }
+
     return [
         'filter_course' => $filter_course,
         'filter_chapter' => $filter_chapter,
@@ -484,6 +500,10 @@ function sc_get_admin_weekly_schedule_report(array $filters) {
             )";
             $args[] = $filter_group;
         }
+    }
+
+    if (function_exists('sc_secretary_merge_weekly_schedule_chapter_scope')) {
+        sc_secretary_merge_weekly_schedule_chapter_scope($where, $args);
     }
 
     $extra_select = ', c.title AS course_title, c.course_type';

@@ -147,7 +147,19 @@ function sc_login_register_send_otp_sms($phone, $code) {
 /**
  * Get redirect URL after login (from settings or default)
  */
-function sc_login_register_redirect_url() {
+function sc_login_register_redirect_url($user_id = 0) {
+    $user_id = $user_id > 0 ? (int) $user_id : get_current_user_id();
+    if ($user_id > 0 && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only($user_id)) {
+        return function_exists('sc_secretary_admin_url') ? sc_secretary_admin_url() : admin_url('admin.php?page=sc-dashboard');
+    }
+    if ($user_id > 0) {
+        $staff_caps = ['administrator', 'club_coach', 'system_manager', 'coach', 'shop_manager', 'accountantt'];
+        foreach ($staff_caps as $cap) {
+            if (user_can($user_id, $cap)) {
+                return admin_url();
+            }
+        }
+    }
     $path = sc_get_setting('sc_login_redirect_path', 'my-account/sc-submit-documents/');
     $path = ltrim($path, '/');
     return home_url('/' . $path);
@@ -295,7 +307,7 @@ function sc_ajax_login_register_verify_otp() {
         wp_set_current_user($user->ID);
         wp_set_auth_cookie($user->ID, true);
         sc_login_register_clear_attempts($mobile);
-        wp_send_json_success(['redirect' => sc_login_register_redirect_url()]);
+        wp_send_json_success(['redirect' => sc_login_register_redirect_url((int) $user->ID)]);
     }
 
     $user = sc_get_user_by_phone($mobile);
@@ -306,7 +318,7 @@ function sc_ajax_login_register_verify_otp() {
     wp_set_current_user($user->ID);
     wp_set_auth_cookie($user->ID, true);
     sc_login_register_clear_attempts($mobile);
-    wp_send_json_success(['redirect' => sc_login_register_redirect_url()]);
+    wp_send_json_success(['redirect' => sc_login_register_redirect_url((int) $user->ID)]);
 }
 
 add_action('wp_ajax_sc_login_register_login_password', 'sc_ajax_login_register_login_password');
@@ -336,7 +348,7 @@ function sc_ajax_login_register_login_password() {
     wp_set_current_user($auth->ID);
     wp_set_auth_cookie($auth->ID, true);
     sc_login_register_clear_attempts($mobile);
-    wp_send_json_success(['redirect' => sc_login_register_redirect_url()]);
+    wp_send_json_success(['redirect' => sc_login_register_redirect_url((int) $user->ID)]);
 }
 
 add_action('wp_ajax_sc_login_register_register', 'sc_ajax_login_register_register');

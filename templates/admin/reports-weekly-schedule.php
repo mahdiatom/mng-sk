@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (!current_user_can('sc_finance_reports_access') && !current_user_can('manage_options')) {
+if (!current_user_can('sc_finance_reports_access') && !current_user_can('manage_options') && !(function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only())) {
     wp_die('دسترسی غیرمجاز.');
 }
 
@@ -32,10 +32,37 @@ $filter_group = (string) $filters['filter_group'];
 $courses = $wpdb->get_results(
     "SELECT id, title FROM {$courses_table} WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
 );
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && function_exists('sc_secretary_get_branch_weekly_schedule_course_ids')) {
+    $allowed_course_ids = array_fill_keys(sc_secretary_get_branch_weekly_schedule_course_ids(), true);
+    if (empty($allowed_course_ids)) {
+        $courses = [];
+    } else {
+        $courses = array_values(array_filter($courses, static function ($course) use ($allowed_course_ids) {
+            return isset($allowed_course_ids[(int) $course->id]);
+        }));
+    }
+}
 $chapters = $wpdb->get_results("SELECT name FROM {$chapters_table} ORDER BY name ASC");
+if (function_exists('sc_secretary_filter_chapters_list')) {
+    $chapters = sc_secretary_filter_chapters_list($chapters);
+}
 $coaches = $wpdb->get_results(
     "SELECT id, first_name, last_name FROM {$coaches_table} WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC"
 );
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && function_exists('sc_secretary_get_branch_weekly_schedule_coach_ids')) {
+    $allowed_coach_ids = sc_secretary_get_branch_weekly_schedule_coach_ids();
+    if (empty($allowed_coach_ids)) {
+        $coaches = [];
+    } else {
+        $holders = implode(',', array_fill(0, count($allowed_coach_ids), '%d'));
+        $coaches = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, first_name, last_name FROM {$coaches_table}
+             WHERE is_active = 1 AND id IN ($holders)
+             ORDER BY last_name ASC, first_name ASC",
+            ...$allowed_coach_ids
+        ));
+    }
+}
 $course_groups_map = function_exists('sc_finance_course_groups_map_for_ui')
     ? sc_finance_course_groups_map_for_ui($courses)
     : [];

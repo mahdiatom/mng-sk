@@ -1104,7 +1104,7 @@ add_action('wp_dashboard_setup', 'club_remove_all_dashboard_widgets', 999);
 
 function club_remove_all_dashboard_widgets() {
 
-    if ( ! (current_user_can('club_coach') || current_user_can('coach') || current_user_can('shop_manager') || current_user_can('accountantt')  )|| current_user_can('administrator')  ) {
+    if ( ! (current_user_can('club_coach') || current_user_can('coach') || current_user_can('shop_manager') || current_user_can('accountantt') || current_user_can('secretary') ) || current_user_can('administrator')  ) {
         return;
     }
 
@@ -1122,7 +1122,7 @@ add_action('init', 'club_cleanup_roles');
 function club_cleanup_roles() {
 
     $keep_roles = array_merge(
-        ['administrator', 'subscriber', 'coach', 'accountantt', 'shop_manager'],
+        ['administrator', 'subscriber', 'coach', 'accountantt', 'shop_manager', 'secretary'],
         sc_get_club_manager_role_slugs()
     );
 
@@ -1181,6 +1181,83 @@ function club_hide_wc_payment_menu_with_css() {
 
 
 
+
+/**
+ * ===============================
+ * منشی — مخفی کردن منوهای غیرمجاز
+ * ===============================
+ */
+add_action('admin_menu', 'club_hide_menus_for_secretary', 999);
+function club_hide_menus_for_secretary() {
+    if (!function_exists('sc_user_is_secretary_only') || !sc_user_is_secretary_only()) {
+        return;
+    }
+    global $menu;
+    if (!is_array($menu)) {
+        return;
+    }
+    $allowed = function_exists('sc_secretary_get_allowed_admin_pages')
+        ? sc_secretary_get_allowed_admin_pages()
+        : [];
+    foreach ($menu as $key => $item) {
+        if (!isset($item[2])) {
+            continue;
+        }
+        $slug = (string) $item[2];
+        if (!in_array($slug, $allowed, true)) {
+            sc_safe_remove_menu_page($slug);
+        }
+    }
+    sc_safe_remove_menu_page('plugins.php');
+    sc_safe_remove_menu_page('themes.php');
+    sc_safe_remove_menu_page('edit.php');
+    sc_safe_remove_menu_page('edit.php?post_type=page');
+    sc_safe_remove_menu_page('edit-comments.php');
+    sc_safe_remove_menu_page('options-general.php');
+    sc_safe_remove_menu_page('tools.php');
+    sc_safe_remove_menu_page('users.php');
+    sc_safe_remove_menu_page('elementor');
+    sc_safe_remove_menu_page('woocommerce');
+    sc_safe_remove_menu_page('wc-admin');
+    sc_safe_remove_menu_page('edit.php?post_type=product');
+    sc_safe_remove_menu_page('wc-settings');
+    sc_safe_remove_menu_page('sc-courses');
+    sc_safe_remove_menu_page('sc-coaches');
+    sc_safe_remove_menu_page('sc-events');
+    sc_safe_remove_menu_page('sc_setting');
+    sc_safe_remove_menu_page('sc-surveys');
+    sc_safe_remove_menu_page('sc-public-announcement');
+    sc_safe_remove_menu_page('sc-certificates-issue');
+    sc_safe_remove_menu_page('sc-wallet');
+    sc_safe_remove_menu_page('sc-coach-management');
+}
+
+/**
+ * ===============================
+ * منشی — جلوگیری از دسترسی مستقیم URL
+ * ===============================
+ */
+add_action('admin_init', 'club_block_restricted_pages_for_secretary');
+function club_block_restricted_pages_for_secretary() {
+    if (!function_exists('sc_user_is_secretary_only') || !sc_user_is_secretary_only()) {
+        return;
+    }
+    if (!isset($_GET['page'])) {
+        return;
+    }
+    $page = sanitize_text_field(wp_unslash((string) $_GET['page']));
+    $allowed = function_exists('sc_secretary_get_allowed_admin_pages')
+        ? sc_secretary_get_allowed_admin_pages()
+        : [];
+    if (in_array($page, $allowed, true)) {
+        return;
+    }
+    wp_die(
+        '<h2 style="text-align:left;">Access Denied</h2><p style="text-align:left;">شما به این بخش دسترسی ندارید.</p>',
+        'خطای دسترسی',
+        ['response' => 403]
+    );
+}
 
 //بستن دسترسی کلی بوفه و فروشگاه
 add_action('admin_init', 'close_acsses_shop');

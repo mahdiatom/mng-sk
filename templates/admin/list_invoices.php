@@ -571,6 +571,10 @@ public function column_order_number($item) {
             }
         }
         
+        if (function_exists('sc_secretary_merge_invoice_where')) {
+            sc_secretary_merge_invoice_where($where_conditions, $where_values, 'i');
+        }
+
         $where_clause = implode(' AND ', $where_conditions);
 
         $count_query = "SELECT COUNT(*) FROM $table_name i 

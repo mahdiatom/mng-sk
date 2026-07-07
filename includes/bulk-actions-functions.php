@@ -103,6 +103,10 @@ function sc_bulk_actions_get_members($target_type, $config = array()) {
         $params = array_merge($params, $team_names, $level_names);
     }
 
+    if (function_exists('sc_secretary_merge_member_where_parts')) {
+        sc_secretary_merge_member_where_parts($where, $params, 'm');
+    }
+
     $query = "
         SELECT m.id, m.first_name, m.last_name, m.national_id, m.member_type, m.team_player, m.skill_level, m.is_active
         FROM $members_table m
@@ -293,7 +297,7 @@ function sc_bulk_actions_finish_sms_redirect(array $success_lines, array $fail_l
 add_action('wp_ajax_sc_bulk_actions_preview', 'sc_bulk_actions_preview_ajax');
 function sc_bulk_actions_preview_ajax() {
     check_ajax_referer('sc_bulk_actions_preview', 'nonce');
-    if (!current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
         wp_send_json_error(array('message' => 'دسترسی غیرمجاز.'));
     }
 
@@ -341,7 +345,7 @@ function sc_bulk_actions_preview_ajax() {
 add_action('wp_ajax_sc_invoice_members_preview', 'sc_invoice_members_preview_ajax');
 function sc_invoice_members_preview_ajax() {
     check_ajax_referer('sc_invoice_members_preview', 'nonce');
-    if (!current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
         wp_send_json_error(array('message' => 'دسترسی غیرمجاز.'));
     }
 
@@ -391,7 +395,7 @@ function sc_invoice_members_preview_ajax() {
 
 add_action('admin_post_sc_bulk_actions_execute', 'sc_bulk_actions_execute_handler');
 function sc_bulk_actions_execute_handler() {
-    if (!current_user_can('manage_options')) {
+    if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
         wp_die('دسترسی غیرمجاز.');
     }
     check_admin_referer('sc_bulk_actions_execute_action', 'sc_bulk_actions_execute_nonce');

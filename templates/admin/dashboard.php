@@ -11,38 +11,104 @@ $members_table = $wpdb->prefix . 'sc_members';
 $courses_table = $wpdb->prefix . 'sc_courses';
 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
 
-// آمار کلی
-$total_members = $wpdb->get_var("SELECT COUNT(*) FROM $members_table");
-$active_members = $wpdb->get_var("SELECT COUNT(*) FROM $members_table WHERE is_active = 1");
-$inactive_members = $wpdb->get_var("SELECT COUNT(*) FROM $members_table WHERE is_active = 0");
+$sec_member_where = '';
+$sec_member_args = [];
+$sec_member_from = $members_table . ' m';
+if (function_exists('sc_secretary_member_scope_sql') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+    $sec_scope = sc_secretary_member_scope_sql('m');
+    if ($sec_scope['sql'] !== '') {
+        $sec_member_where = preg_replace('/^\s*AND\s+/i', '', trim($sec_scope['sql']));
+        $sec_member_args = $sec_scope['args'];
+    }
+}
+
+$count_members_sql = "SELECT COUNT(*) FROM {$sec_member_from}";
+if ($sec_member_where !== '') {
+    $count_members_sql = $wpdb->prepare("SELECT COUNT(*) FROM {$sec_member_from} WHERE {$sec_member_where}", $sec_member_args);
+}
+$total_members = (int) $wpdb->get_var($count_members_sql);
+
+$active_sql = "SELECT COUNT(*) FROM {$sec_member_from} WHERE m.is_active = 1";
+if ($sec_member_where !== '') {
+    $active_sql = $wpdb->prepare("SELECT COUNT(*) FROM {$sec_member_from} WHERE m.is_active = 1 AND {$sec_member_where}", $sec_member_args);
+}
+$active_members = (int) $wpdb->get_var($active_sql);
+
+$inactive_sql = "SELECT COUNT(*) FROM {$sec_member_from} WHERE m.is_active = 0";
+if ($sec_member_where !== '') {
+    $inactive_sql = $wpdb->prepare("SELECT COUNT(*) FROM {$sec_member_from} WHERE m.is_active = 0 AND {$sec_member_where}", $sec_member_args);
+}
+$inactive_members = (int) $wpdb->get_var($inactive_sql);
+
+$chapters_filter = function_exists('sc_secretary_get_effective_chapters') ? sc_secretary_get_effective_chapters() : [];
+$course_stats_join_extra = '';
+$course_stats_args = [];
+if (!empty($chapters_filter) && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+    $ph = implode(', ', array_fill(0, count($chapters_filter), '%s'));
+    $course_stats_join_extra = " AND (
+        TRIM(IFNULL(mc.chapter, '')) IN ({$ph})
+        OR (
+            TRIM(IFNULL(mc.chapter, '')) = ''
+            AND EXISTS (
+                SELECT 1 FROM {$wpdb->prefix}sc_course_chapters cc_d
+                WHERE cc_d.course_id = mc.course_id
+                  AND TRIM(cc_d.chapter_name) IN ({$ph})
+            )
+        )
+    )";
+    $course_stats_args = array_merge($chapters_filter, $chapters_filter);
+}
+
 $total_courses = $wpdb->get_var("SELECT COUNT(*) FROM $courses_table WHERE deleted_at IS NULL");
 $active_courses = $wpdb->get_var("SELECT COUNT(*) FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1");
-$total_enrollments = $wpdb->get_var("SELECT COUNT(*) FROM $member_courses_table WHERE status = 'active'");
+
+$enrollment_sql = "SELECT COUNT(*) FROM $member_courses_table mc WHERE mc.status = 'active'";
+if (!empty($chapters_filter) && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+    $match = function_exists('sc_secretary_member_enrollment_match_sql') ? sc_secretary_member_enrollment_match_sql('mc') : null;
+    if ($match && $match['sql'] !== '1=0') {
+        $enrollment_sql = "SELECT COUNT(*) FROM $member_courses_table mc WHERE mc.status = 'active' AND {$match['sql']}";
+        $total_enrollments = (int) $wpdb->get_var($wpdb->prepare($enrollment_sql, $match['args']));
+    } else {
+        $total_enrollments = 0;
+    }
+} else {
+    $total_enrollments = $wpdb->get_var($enrollment_sql);
+}
 
 // آمار بازیکنان بر اساس دوره
-$course_stats = $wpdb->get_results(
-    "SELECT c.id, c.title, COUNT(mc.member_id) as enrolled_count, c.capacity
+$course_stats_sql = "SELECT c.id, c.title, COUNT(mc.member_id) as enrolled_count, c.capacity
      FROM $courses_table c
      LEFT JOIN $member_courses_table mc
         ON c.id = mc.course_id
        AND mc.status = 'active'
        AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+       {$course_stats_join_extra}
      WHERE c.deleted_at IS NULL AND c.is_active = 1
      GROUP BY c.id
      ORDER BY enrolled_count DESC
-     LIMIT 10"
-);
+     LIMIT 10";
+$course_stats = !empty($course_stats_args)
+    ? $wpdb->get_results($wpdb->prepare($course_stats_sql, $course_stats_args))
+    : $wpdb->get_results($course_stats_sql);
 
 // آمار بازیکنان جدید در 6 ماه گذشته
 $monthly_stats = [];
 for ($i = 5; $i >= 0; $i--) {
     $month_start = date('Y-m-01', strtotime("-$i months"));
     $month_end = date('Y-m-t', strtotime("-$i months"));
-    $count = $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM $members_table WHERE created_at >= %s AND created_at <= %s",
-        $month_start . ' 00:00:00',
-        $month_end . ' 23:59:59'
-    ));
+    if ($sec_member_where !== '') {
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$sec_member_from}
+             WHERE m.created_at >= %s AND m.created_at <= %s AND {$sec_member_where}",
+            array_merge([$month_start . ' 00:00:00', $month_end . ' 23:59:59'], $sec_member_args)
+        ));
+    } else {
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $members_table WHERE created_at >= %s AND created_at <= %s",
+            $month_start . ' 00:00:00',
+            $month_end . ' 23:59:59'
+        ));
+    }
     $monthly_stats[] = [
         'month' => sc_date_shamsi(date('Y-m-01', strtotime("-$i months")), 'Y/m'),
         'count' => $count

@@ -13,7 +13,7 @@ add_action('admin_init', static function () {
     if (empty($_GET['sc_export_weekly_schedule_pdf'])) {
         return;
     }
-    if (!current_user_can('sc_finance_reports_access') && !current_user_can('manage_options')) {
+    if (!current_user_can('sc_finance_reports_access') && !current_user_can('manage_options') && !(function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only())) {
         wp_die('دسترسی غیرمجاز.');
     }
     check_admin_referer('sc_export_weekly_schedule_pdf');

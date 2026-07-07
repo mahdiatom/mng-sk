@@ -2,7 +2,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-if (!current_user_can('manage_options')) {
+if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
     wp_die('دسترسی غیرمجاز.');
 }
 
