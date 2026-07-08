@@ -1356,6 +1356,78 @@ function sc_create_member_qr_codes_table() {
     dbDelta($sql);
 }
 
+/**
+ * Staff QR codes table
+ */
+function sc_create_staff_qr_codes_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_staff_qr_codes';
+    $table_collation = $wpdb->get_charset_collate();
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `user_id` bigint(20) unsigned NOT NULL,
+        `hash` varchar(64) NOT NULL,
+        `short_code` char(7) NOT NULL,
+        `status` enum('active','inactive','disabled') NOT NULL DEFAULT 'active',
+        `created_at` datetime NOT NULL,
+        `created_by` bigint(20) unsigned NOT NULL DEFAULT 0,
+        `disabled_at` datetime DEFAULT NULL,
+        `disabled_by` bigint(20) unsigned DEFAULT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_staff_qr_hash` (`hash`),
+        UNIQUE KEY `idx_staff_qr_short` (`short_code`),
+        KEY `idx_staff_user_status` (`user_id`,`status`)
+    ) ENGINE=InnoDB $table_collation";
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+/**
+ * Tarddod sessions + records tables
+ */
+function sc_create_tarddod_tables() {
+    global $wpdb;
+    $table_collation = $wpdb->get_charset_collate();
+    $sessions = $wpdb->prefix . 'sc_tarddod_sessions';
+    $records = $wpdb->prefix . 'sc_tarddod_records';
+
+    $sql1 = "CREATE TABLE `$sessions` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `title` varchar(255) NOT NULL,
+        `description` text DEFAULT NULL,
+        `session_date` date NOT NULL,
+        `session_time` time DEFAULT NULL,
+        `location` varchar(255) DEFAULT NULL,
+        `notes` text DEFAULT NULL,
+        `status` enum('draft','open','closed') NOT NULL DEFAULT 'open',
+        `created_by` bigint(20) unsigned NOT NULL DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_session_date` (`session_date`),
+        KEY `idx_status` (`status`)
+    ) ENGINE=InnoDB $table_collation";
+
+    $sql2 = "CREATE TABLE `$records` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `session_id` bigint(20) unsigned NOT NULL,
+        `subject_type` enum('member','staff') NOT NULL,
+        `subject_id` bigint(20) unsigned NOT NULL,
+        `subject_name` varchar(255) NOT NULL DEFAULT '',
+        `record_method` varchar(20) NOT NULL DEFAULT 'qr',
+        `scanned_by` bigint(20) unsigned NOT NULL DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_session_subject` (`session_id`,`subject_type`,`subject_id`),
+        KEY `idx_session_id` (`session_id`),
+        KEY `idx_created_at` (`created_at`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql1);
+    dbDelta($sql2);
+}
+
 function sc_update_database() {
     global $wpdb;
 
@@ -1423,6 +1495,13 @@ function sc_update_database() {
         }
         if (function_exists('sc_create_member_qr_codes_table')) {
             sc_create_member_qr_codes_table();
+        }
+
+        if (function_exists('sc_create_staff_qr_codes_table')) {
+            sc_create_staff_qr_codes_table();
+        }
+        if (function_exists('sc_create_tarddod_tables')) {
+            sc_create_tarddod_tables();
         }
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
@@ -1533,6 +1612,20 @@ function sc_update_database() {
         if (function_exists('sc_attendance_qr_migrate_legacy_hashes')) {
             sc_attendance_qr_migrate_legacy_hashes();
         }
+    }
+
+    if (get_option('sc_staff_qr_codes_table_added', '0') !== '1') {
+        if (function_exists('sc_create_staff_qr_codes_table')) {
+            sc_create_staff_qr_codes_table();
+        }
+        update_option('sc_staff_qr_codes_table_added', '1');
+    }
+
+    if (get_option('sc_tarddod_tables_added', '0') !== '1') {
+        if (function_exists('sc_create_tarddod_tables')) {
+            sc_create_tarddod_tables();
+        }
+        update_option('sc_tarddod_tables_added', '1');
     }
 
     // اضافه کردن ستون salary_percentage به جدول course_coaches (یک بار برای نصب‌های قبلی)

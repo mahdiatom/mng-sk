@@ -127,6 +127,9 @@ require_once SC_INCLUDES_DIR . 'cleanup.php'; // حدف درخواست های خ
 require_once SC_INCLUDES_DIR . 'attendance_logs.php'; // ارتباط با api حضور غیاب برای لاگ دستگاه
 require_once SC_INCLUDES_DIR . 'attendance-auto.php'; // تطبیق لاگ دستگاه با حضور و غیاب (کرون)
 require_once SC_INCLUDES_DIR . 'attendance-qr-functions.php'; // QR حضور و غیاب
+require_once SC_INCLUDES_DIR . 'staff-qr-functions.php'; // QR پرسنل (مربی، منشی، مدیران)
+require_once SC_INCLUDES_DIR . 'tarddod-functions.php'; // ثبت تردد — جلسات و اسکن QR
+require_once SC_INCLUDES_DIR . 'members-list-ui-helpers.php'; // UI لیست و فیلتر (مشترک)
 require_once SC_INCLUDES_DIR . 'admin-dashboard-widgets.php'; // ابزارک‌های پیشخوان وردپرس برای مدیران
 
 // Include WooCommerce My Account integration
@@ -1891,6 +1894,40 @@ function sc_admin_enqueue_assets() {
         }
     }
     if ($current_page === 'sc-member-qr-codes') {
+        wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css'), time());
+    }
+    $sc_staff_qr_pages = array('sc-add-coach', 'sc-coach-my-profile', 'sc-dashboard');
+    if (in_array($current_page, $sc_staff_qr_pages, true)) {
+        wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css'), time());
+    }
+    $sc_tarddod_pages = array('sc-tarddod-register', 'sc-tarddod-records', 'sc-tarddod-sessions', 'sc-tarddod-session-add');
+    if (in_array($current_page, $sc_tarddod_pages, true)) {
+        wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+        wp_enqueue_style('sc-tarddod-list-css', SC_ASSETS_URL . 'css/admin-tarddod-list.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
+        wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css', 'sc-tarddod-list-css'), time());
+    }
+    if ($current_page === 'sc-tarddod-register') {
+        wp_enqueue_script('html5-qrcode', SC_ASSETS_URL . 'js/vendor/html5-qrcode.min.js', array(), '2.3.8', true);
+        wp_enqueue_script('sc-tarddod-scanner-js', SC_ASSETS_URL . 'js/tarddod-scanner.js', array('jquery', 'html5-qrcode'), time(), true);
+        $session_id = isset($_GET['session_id']) ? absint($_GET['session_id']) : 0;
+        $tarddod_member_map = function_exists('sc_attendance_qr_build_scan_lookup_map')
+            ? sc_attendance_qr_build_scan_lookup_map(['include_inactive_members' => true])
+            : [];
+        wp_localize_script('sc-tarddod-scanner-js', 'scTarddodQr', array(
+            'ajaxUrl'        => admin_url('admin-ajax.php'),
+            'nonce'          => wp_create_nonce('sc_tarddod_scan'),
+            'sessionId'      => $session_id,
+            'hashLength'     => defined('SC_ATTENDANCE_QR_HASH_LENGTH') ? (int) SC_ATTENDANCE_QR_HASH_LENGTH : 64,
+            'memberMap'      => $tarddod_member_map,
+            'cooldownMs'     => function_exists('sc_attendance_qr_get_scan_cooldown_ms') ? sc_attendance_qr_get_scan_cooldown_ms() : 300,
+            'soundSuccess'   => function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('success') : '',
+            'soundError'     => function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('error') : '',
+            'soundDuplicate' => function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('duplicate') : '',
+            'soundDisabled'  => function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('disabled') : '',
+        ));
+    }
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+    if ($screen && in_array($screen->id, array('profile', 'user-edit'), true)) {
         wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css'), time());
     }
 }

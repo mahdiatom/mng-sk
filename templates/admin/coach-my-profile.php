@@ -266,6 +266,13 @@ $coach_rules_accepted = !empty($coach->club_rules_accepted);
                     </a>
                 </div>
             <?php endif; ?>
+            <?php if (!empty($coach->user_id) && function_exists('sc_staff_qr_render_user_card')) : ?>
+                <div class="sc-coach-qr-panel" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #dcdcde;">
+                    <h3 style="margin-top:0;">QR تردد من</h3>
+                    <p class="description">این QR برای ثبت تردد شماست. امکان تغییر یا تولید مجدد توسط خودتان وجود ندارد.</p>
+                    <?php sc_staff_qr_render_user_card((int) $coach->user_id, 'coach-my-profile', 220); ?>
+                </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>

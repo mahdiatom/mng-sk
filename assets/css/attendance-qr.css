@@ -708,3 +708,8 @@ body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active #sc-
     background: transparent;
 }
 
+.sc-staff-qr-card.sc-member-view-qr-card {
+    max-width: 320px;
+    margin-top: 8px;
+}
+

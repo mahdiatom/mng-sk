@@ -120,6 +120,11 @@ for ($i = 5; $i >= 0; $i--) {
     <hr class="wp-header-end">
     <p class="sc-dashboard-subtitle">خلاصه وضعیت بازیکنان، دوره‌ها و روند ثبت‌نام در باشگاه.</p>
 </div>
+<?php if (function_exists('sc_staff_qr_render_panel_for_current_user')) : ?>
+<div class="wrap sc-club-dashboard-wrap sc-staff-qr-dashboard-slot">
+    <?php sc_staff_qr_render_panel_for_current_user('dashboard'); ?>
+</div>
+<?php endif; ?>
 <div class="wrap sc-dashboard-page-body sc-club-dashboard-wrap">
     <div class="sc-dashboard-panel postbox">
         <div class="postbox-header"><h2>آمار کلی</h2></div>

@@ -621,15 +621,79 @@ function sc_attendance_qr_build_member_lookup_map($members) {
         if (!$hash) {
             continue;
         }
-        $payload = sc_attendance_qr_format_payload($hash);
-        $name    = trim((string) ($member->first_name ?? '') . ' ' . (string) ($member->last_name ?? ''));
-        $entry   = [
-            'id'   => $id,
-            'name' => $name,
-        ];
-        $map[$payload] = $entry;
-        $map[$hash]    = $entry;
+        $name = trim((string) ($member->first_name ?? '') . ' ' . (string) ($member->last_name ?? ''));
+        sc_attendance_qr_scan_lookup_map_add($map, $hash, $id, $name);
     }
+    return $map;
+}
+
+/**
+ * @param array<string,array{id:int,name:string,type:string}> $map
+ * @param string $hash
+ * @param int    $member_id
+ * @param string $name
+ */
+function sc_attendance_qr_scan_lookup_map_add(array &$map, $hash, $member_id, $name) {
+    $hash = sc_attendance_qr_sanitize_hash($hash);
+    $member_id = absint($member_id);
+    if ($hash === '' || !$member_id) {
+        return;
+    }
+    $entry = [
+        'id'   => $member_id,
+        'name' => trim((string) $name),
+        'type' => 'member',
+    ];
+    $payload = sc_attendance_qr_format_payload($hash);
+    $map[$payload] = $entry;
+    $map[$hash] = $entry;
+    $map[strtoupper($hash)] = $entry;
+}
+
+/**
+ * نقشهٔ جستجوی سریع برای اسکن — همه QRهای ثبت‌شده (فعال و غیرفعال).
+ *
+ * @param array{include_inactive_members?:bool} $options
+ * @return array<string,array{id:int,name:string,type:string}>
+ */
+function sc_attendance_qr_build_scan_lookup_map(array $options = []) {
+    $include_inactive_members = !empty($options['include_inactive_members']);
+    $map = [];
+
+    sc_attendance_qr_ensure_db_ready();
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $member_filter = $include_inactive_members ? '1=1' : 'm.is_active = 1';
+
+    if (sc_attendance_qr_table_exists()) {
+        $qr_table = sc_attendance_qr_codes_table();
+        $rows = $wpdb->get_results(
+            "SELECT q.hash, m.id, m.first_name, m.last_name
+             FROM `$qr_table` q
+             INNER JOIN `$members_table` m ON m.id = q.member_id
+             WHERE $member_filter"
+        );
+        foreach ((array) $rows as $row) {
+            $name = trim((string) $row->first_name . ' ' . (string) $row->last_name);
+            sc_attendance_qr_scan_lookup_map_add($map, (string) $row->hash, (int) $row->id, $name);
+        }
+    }
+
+    $legacy_filter = "m.attendance_qr_hash IS NOT NULL AND m.attendance_qr_hash <> ''
+        AND CHAR_LENGTH(m.attendance_qr_hash) = " . SC_ATTENDANCE_QR_HASH_LENGTH;
+    if (!$include_inactive_members) {
+        $legacy_filter .= ' AND m.is_active = 1';
+    }
+    $legacy_rows = $wpdb->get_results(
+        "SELECT m.id, m.first_name, m.last_name, m.attendance_qr_hash AS hash
+         FROM `$members_table` m
+         WHERE $legacy_filter"
+    );
+    foreach ((array) $legacy_rows as $row) {
+        $name = trim((string) $row->first_name . ' ' . (string) $row->last_name);
+        sc_attendance_qr_scan_lookup_map_add($map, (string) $row->hash, (int) $row->id, $name);
+    }
+
     return $map;
 }
 
@@ -716,22 +780,43 @@ function sc_attendance_qr_get_member_by_hash($hash) {
 
 /**
  * @param string $hash
+ * @param array{allow_inactive_member?:bool,allow_inactive_qr?:bool} $options
  * @return array{member:object|null,qr:object|null,scan_code:string}
  */
-function sc_attendance_qr_resolve_scan_hash($hash) {
+function sc_attendance_qr_resolve_scan_hash($hash, $options = []) {
+    $allow_inactive_member = !empty($options['allow_inactive_member']);
+    $allow_inactive_qr = !empty($options['allow_inactive_qr']);
+
     $hash = sc_attendance_qr_sanitize_hash($hash);
     if ($hash === '') {
         return ['member' => null, 'qr' => null, 'scan_code' => 'invalid_qr'];
     }
 
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+
     $qr = sc_attendance_qr_get_by_hash($hash);
     if (!$qr) {
-        return ['member' => null, 'qr' => null, 'scan_code' => 'unknown_qr'];
+        $member = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM `$members_table` WHERE attendance_qr_hash = %s LIMIT 1",
+            $hash
+        ));
+        if (!$member) {
+            return ['member' => null, 'qr' => null, 'scan_code' => 'unknown_qr'];
+        }
+        if (function_exists('sc_attendance_qr_adopt_legacy_hash')) {
+            sc_attendance_qr_adopt_legacy_hash((int) $member->id, $hash, get_current_user_id());
+            $qr = sc_attendance_qr_get_by_hash($hash);
+        }
+        if (!$qr) {
+            if (!$allow_inactive_member && (int) $member->is_active !== 1) {
+                return ['member' => $member, 'qr' => null, 'scan_code' => 'unknown_qr'];
+            }
+            return ['member' => $member, 'qr' => null, 'scan_code' => 'ok'];
+        }
     }
 
     if ($qr->status === 'disabled') {
-        global $wpdb;
-        $members_table = $wpdb->prefix . 'sc_members';
         $member = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM `$members_table` WHERE id = %d LIMIT 1",
             (int) $qr->member_id
@@ -739,9 +824,7 @@ function sc_attendance_qr_resolve_scan_hash($hash) {
         return ['member' => $member, 'qr' => $qr, 'scan_code' => 'qr_disabled'];
     }
 
-    if ($qr->status === 'inactive') {
-        global $wpdb;
-        $members_table = $wpdb->prefix . 'sc_members';
+    if ($qr->status === 'inactive' && !$allow_inactive_qr) {
         $member = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM `$members_table` WHERE id = %d LIMIT 1",
             (int) $qr->member_id
@@ -749,12 +832,17 @@ function sc_attendance_qr_resolve_scan_hash($hash) {
         return ['member' => $member, 'qr' => $qr, 'scan_code' => 'qr_inactive'];
     }
 
-    global $wpdb;
-    $table = $wpdb->prefix . 'sc_members';
-    $member = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM `$table` WHERE id = %d AND is_active = 1 LIMIT 1",
-        (int) $qr->member_id
-    ));
+    if ($allow_inactive_member) {
+        $member = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM `$members_table` WHERE id = %d LIMIT 1",
+            (int) $qr->member_id
+        ));
+    } else {
+        $member = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM `$members_table` WHERE id = %d AND is_active = 1 LIMIT 1",
+            (int) $qr->member_id
+        ));
+    }
     if (!$member) {
         return ['member' => null, 'qr' => $qr, 'scan_code' => 'unknown_qr'];
     }

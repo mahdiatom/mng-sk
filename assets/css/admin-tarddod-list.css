@@ -1,0 +1,411 @@
+﻿/* ثبت تردد — UI لیست (همسان با لیست بازیکنان) */
+body.sc-members-list-ui-root .sc-members-list-wrap {
+    margin-block: 16px 24px;
+    margin-inline-start: 0;
+    margin-inline-end: 20px;
+    padding: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: transparent !important;
+}
+
+body.sc-members-list-ui-root .sc-members-list-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+body.sc-members-list-ui-root .sc-members-list-title {
+    margin: 0 0 6px;
+    padding: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #1e1b2e;
+    line-height: 1.3;
+}
+
+body.sc-members-list-ui-root .sc-members-list-desc {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+body.sc-members-list-ui-root .sc-members-list-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+body.sc-members-list-ui-root .sc-members-list-header-actions .button-primary,
+body.sc-members-list-ui-root .sc-members-list-add-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 8px 20px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 999px !important;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none !important;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+}
+
+body.sc-members-list-ui-root .sc-members-list-header-actions .button:not(.button-primary) {
+    min-height: 42px;
+    padding: 8px 18px;
+    border-radius: 999px !important;
+    border: 1px solid rgba(109, 52, 255, 0.28) !important;
+    background: #fff !important;
+    color: #4a1fb8 !important;
+    font-weight: 700;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-card {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    padding: 8px 18px;
+    border: 1px solid rgba(109, 52, 255, 0.22);
+    border-radius: 999px;
+    background: #fff;
+    color: #4a1fb8;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-chevron {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid #6d34ff;
+    border-bottom: 2px solid #6d34ff;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron {
+    transform: rotate(-135deg);
+    margin-top: 4px;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-clear {
+    color: #6d34ff;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-panel {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(109, 52, 255, 0.1);
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-panel[hidden] {
+    display: none !important;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-panel .sc-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-panel .sc-filter-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-panel .sc-filter-control {
+    width: 100%;
+    min-height: 42px;
+    border-radius: 12px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #1e1b2e;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-panel .sc-filter-control:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+    outline: none;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-actions .button-primary {
+    min-height: 42px;
+    padding: 0 22px;
+    border: none !important;
+    border-radius: 999px !important;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    font-weight: 700;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-actions .delete_fillter {
+    min-height: 42px;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    color: #4b5563 !important;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card {
+    padding: 8px 8px 12px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card > h2 {
+    margin: 12px 12px 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e1b2e;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card .tablenav {
+    margin: 8px 8px 12px;
+    height: auto;
+    padding: 0;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card .tablenav-pages a,
+body.sc-members-list-ui-root .sc-members-list-table-card .tablenav-pages .current-page {
+    border-radius: 8px !important;
+    border-color: #e5e7eb !important;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card .wp-list-table {
+    border: none !important;
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card .wp-list-table thead th {
+    padding: 12px 14px !important;
+    border-bottom: 1px solid #efeafc !important;
+    background: #faf9ff !important;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card .wp-list-table tbody tr {
+    background: #fff !important;
+    transition: background 0.15s ease;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card .wp-list-table tbody tr:nth-child(even) {
+    background: #fcfbff !important;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card .wp-list-table tbody tr:hover {
+    background: #f5f2ff !important;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card .wp-list-table tbody td {
+    padding: 14px 14px !important;
+    border-bottom: 1px solid #f1eef8 !important;
+    color: #374151;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card .wp-list-table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+body.sc-members-list-ui-root .sc-members-list-table-card .sc-reports-empty {
+    text-align: center;
+    padding: 28px 16px !important;
+    color: #6b7280;
+}
+
+body.sc-members-list-ui-root .sc-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+body.sc-members-list-ui-root .sc-badge--success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+body.sc-members-list-ui-root .sc-badge--purple {
+    background: rgba(109, 52, 255, 0.12);
+    color: #4a1fb8;
+}
+
+body.sc-members-list-ui-root .sc-badge--soft {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+body.sc-members-list-ui-root .sc-badge--muted {
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+body.sc-members-list-ui-root .sc-tarddod-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+body.sc-members-list-ui-root .sc-tarddod-table-actions .button-small {
+    border-radius: 999px !important;
+    font-weight: 600;
+}
+
+body.sc-members-list-ui-root .sc-tarddod-form-card {
+    padding: 20px 24px 8px;
+}
+
+body.sc-members-list-ui-root .sc-tarddod-form-card .form-table th {
+    width: 180px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body.sc-members-list-ui-root .sc-tarddod-form-card .regular-text,
+body.sc-members-list-ui-root .sc-tarddod-form-card .large-text,
+body.sc-members-list-ui-root .sc-tarddod-form-card select {
+    border-radius: 12px !important;
+    border-color: #e5e7eb !important;
+}
+
+body.sc-members-list-ui-root .sc-tarddod-form-card .submit .button-primary {
+    min-height: 42px;
+    padding: 0 24px;
+    border-radius: 999px !important;
+    border: none !important;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    font-weight: 700;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+}
+
+body.sc-members-list-ui-root .sc-tarddod-session-meta {
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(109, 52, 255, 0.06);
+    color: #4b5563;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-panel .sc-filter-field {
+    width: 100%;
+    min-width: 0;
+}
+
+body.sc-members-list-ui-root .sc-members-list-filters-panel .sc-filter-field--wide {
+    grid-column: 1 / -1;
+}
+
+body.sc-members-list-ui-root .sc-tarddod-qr-panel {
+    margin-bottom: 16px;
+}
+
+.sc-staff-qr-panel-wrap {
+    margin: 0 0 18px;
+    padding: 18px 20px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07);
+}
+
+.sc-staff-qr-panel-title {
+    margin: 0 0 8px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1e1b2e;
+}
+
+.sc-staff-qr-dashboard-slot {
+    margin-bottom: 12px;
+}
+
+@media (max-width: 960px) {
+    body.sc-members-list-ui-root .sc-members-list-filters-panel .sc-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    body.sc-members-list-ui-root .sc-members-list-filters-panel .sc-filter-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -339,6 +339,14 @@ $coach_rules_accepted = $coach ? !empty($coach->club_rules_accepted) : false;
             <?php endif; ?>
         </div>
         
+        <?php if ($user_id && function_exists('sc_staff_qr_render_user_card')) : ?>
+        <div class="sc-coach-qr-panel" style="margin: 24px 0; padding: 20px; background: #fff; border: 1px solid #dcdcde; border-radius: 12px;">
+            <h2 style="margin-top:0;">QR تردد مربی</h2>
+            <p class="description">QR اختصاصی این مربی برای ثبت تردد — فقط مشاهده (تغییر توسط مربی امکان‌پذیر نیست).</p>
+            <?php sc_staff_qr_render_user_card((int) $user_id, 'coach-edit', 240); ?>
+        </div>
+        <?php endif; ?>
+
         <p class="submit">
             <input type="submit" name="submit_coach" class="button button-primary" value="<?php echo $coach_id ? 'به‌روزرسانی' : 'ذخیره'; ?>">
         </p>

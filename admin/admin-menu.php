@@ -341,6 +341,48 @@ function sc_register_admin_menu() {
             'sc-reports-attendance-qr',
             'sc_admin_reports_attendance_qr_page'
         );
+
+        add_menu_page(
+            'ثبت تردد',
+            'ثبت تردد',
+            'sc_manage_tarddod',
+            'sc-tarddod-register',
+            'sc_admin_tarddod_register_page',
+            'dashicons-id-alt',
+            '18.5'
+        );
+        add_submenu_page(
+            'sc-tarddod-register',
+            'ثبت تردد (اسکن)',
+            'ثبت تردد',
+            'sc_manage_tarddod',
+            'sc-tarddod-register',
+            'sc_admin_tarddod_register_page'
+        );
+        add_submenu_page(
+            'sc-tarddod-register',
+            'لیست ترددها',
+            'لیست ترددها',
+            'sc_manage_tarddod',
+            'sc-tarddod-records',
+            'sc_admin_tarddod_records_page'
+        );
+        add_submenu_page(
+            'sc-tarddod-register',
+            'جلسات تردد',
+            'جلسات تردد',
+            'sc_manage_tarddod',
+            'sc-tarddod-sessions',
+            'sc_admin_tarddod_sessions_page'
+        );
+        add_submenu_page(
+            'sc-tarddod-register',
+            'افزودن جلسه',
+            'افزودن جلسه',
+            'sc_manage_tarddod',
+            'sc-tarddod-session-add',
+            'sc_admin_tarddod_session_add_page'
+        );
     }
 
     /* ================= منوهای فقط مربی (نه مدیر کل و نه مدیر باشگاه): دستمزد، افتخارات، اطلاعیه، دوره‌های من، بازیکن‌های من، اطلاعات من، تیکت ================= */
@@ -2660,6 +2702,50 @@ function sc_admin_member_qr_codes_page() {
     }
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'member-qr-codes-list.php';
+}
+
+function sc_admin_tarddod_register_page() {
+    if (!function_exists('sc_tarddod_user_can_manage') || !sc_tarddod_user_can_manage()) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    sc_check_and_create_tables();
+    if (function_exists('sc_tarddod_ensure_db_ready')) {
+        sc_tarddod_ensure_db_ready();
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'tarddod-register.php';
+}
+
+function sc_admin_tarddod_records_page() {
+    if (!function_exists('sc_tarddod_user_can_manage') || !sc_tarddod_user_can_manage()) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    sc_check_and_create_tables();
+    if (function_exists('sc_tarddod_ensure_db_ready')) {
+        sc_tarddod_ensure_db_ready();
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'tarddod-records-list.php';
+}
+
+function sc_admin_tarddod_sessions_page() {
+    if (!function_exists('sc_tarddod_user_can_manage') || !sc_tarddod_user_can_manage()) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    sc_check_and_create_tables();
+    if (function_exists('sc_tarddod_ensure_db_ready')) {
+        sc_tarddod_ensure_db_ready();
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'tarddod-sessions-list.php';
+}
+
+function sc_admin_tarddod_session_add_page() {
+    if (!function_exists('sc_tarddod_user_can_manage') || !sc_tarddod_user_can_manage()) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    sc_check_and_create_tables();
+    if (function_exists('sc_tarddod_ensure_db_ready')) {
+        sc_tarddod_ensure_db_ready();
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'tarddod-session-add.php';
 }
 
 function sc_admin_attendance_report_page() {

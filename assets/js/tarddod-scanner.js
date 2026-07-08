@@ -1,18 +1,18 @@
 (function ($) {
     'use strict';
 
-    var cfg = window.scAttendanceQr || {};
+    var cfg = window.scTarddodQr || {};
     var scanner = null;
     var inFlightHashes = {};
     var lastHandledHash = '';
     var lastHandledAt = 0;
     var sounds = {};
-    var optimisticLogged = {};
-    var cameraState = {
-        picks: [],
-        index: 0,
-        switching: false
-    };
+    var cameraState = { picks: [], index: 0, switching: false };
+    var lastPartialHintAt = 0;
+
+    function getHashLength() {
+        return parseInt(cfg.hashLength, 10) || 64;
+    }
 
     function getDuplicateCooldown() {
         return parseInt(cfg.cooldownMs, 10) || 300;
@@ -32,12 +32,8 @@
     }
 
     function cameraPickKey(pick) {
-        if (!pick) {
-            return '';
-        }
-        if (pick.mode === 'device') {
-            return 'device:' + pick.cameraId;
-        }
+        if (!pick) return '';
+        if (pick.mode === 'device') return 'device:' + pick.cameraId;
         return pick.mode;
     }
 
@@ -48,13 +44,9 @@
 
         function addPick(pick) {
             var key = cameraPickKey(pick);
-            if (!key || picks.some(function (p) { return cameraPickKey(p) === key; })) {
-                return;
-            }
+            if (!key || picks.some(function (p) { return cameraPickKey(p) === key; })) return;
             picks.push(pick);
-            if (pick.mode === 'device') {
-                usedIds[pick.cameraId] = true;
-            }
+            if (pick.mode === 'device') usedIds[pick.cameraId] = true;
         }
 
         if (!mobile) {
@@ -75,32 +67,22 @@
                 addPick({ mode: 'device', cameraId: camera.id, label: 'دوربین عقب' });
             }
         });
-
         addPick({ mode: 'environment', label: 'دوربین عقب' });
-
         (cameras || []).forEach(function (camera) {
             if (isFrontCameraLabel(camera.label)) {
                 addPick({ mode: 'device', cameraId: camera.id, label: 'دوربین جلو' });
             }
         });
-
         addPick({ mode: 'user', label: 'دوربین جلو' });
-
         (cameras || []).forEach(function (camera) {
             if (!usedIds[camera.id]) {
-                addPick({
-                    mode: 'device',
-                    cameraId: camera.id,
-                    label: camera.label ? camera.label : 'دوربین دیگر'
-                });
+                addPick({ mode: 'device', cameraId: camera.id, label: camera.label || 'دوربین دیگر' });
             }
         });
-
         if (!picks.length) {
             addPick({ mode: 'environment', label: 'دوربین عقب' });
             addPick({ mode: 'user', label: 'دوربین جلو' });
         }
-
         return picks;
     }
 
@@ -108,16 +90,9 @@
         var deviceRear = picks.findIndex(function (pick) {
             return pick.mode === 'device' && pick.label === 'دوربین عقب';
         });
-        if (deviceRear >= 0) {
-            return deviceRear;
-        }
-        var environment = picks.findIndex(function (pick) {
-            return pick.mode === 'environment';
-        });
-        if (environment >= 0) {
-            return environment;
-        }
-        return 0;
+        if (deviceRear >= 0) return deviceRear;
+        var environment = picks.findIndex(function (pick) { return pick.mode === 'environment'; });
+        return environment >= 0 ? environment : 0;
     }
 
     function findDefaultCameraIndex(picks) {
@@ -143,53 +118,28 @@
         var mobile = isMobileDevice();
         var config = {
             fps: mobile ? 10 : 15,
-            qrbox: function (viewfinderWidth, viewfinderHeight) {
+            qrbox: function (w, h) {
                 var ratio = mobile ? 0.88 : 0.85;
-                var edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * ratio);
+                var edge = Math.floor(Math.min(w, h) * ratio);
                 return { width: edge, height: edge };
             },
             aspectRatio: 1.0,
             disableFlip: true,
-            experimentalFeatures: {
-                useBarCodeDetectorIfSupported: false
-            },
+            experimentalFeatures: { useBarCodeDetectorIfSupported: false },
             videoConstraints: mobile
                 ? { width: { ideal: 640, max: 1280 }, height: { ideal: 480, max: 720 } }
                 : { width: { ideal: 960, max: 1280 }, height: { ideal: 720, max: 720 } }
         };
-
         if (cameraPick && (cameraPick.mode === 'environment' || cameraPick.mode === 'user')) {
             config.videoConstraints.facingMode = { ideal: cameraPick.mode };
         }
-
         return config;
     }
 
     function buildCameraConstraints(cameraPick) {
-        if (!cameraPick || cameraPick.mode === 'environment') {
-            return { facingMode: { ideal: 'environment' } };
-        }
-        if (cameraPick.mode === 'user') {
-            return { facingMode: { ideal: 'user' } };
-        }
+        if (!cameraPick || cameraPick.mode === 'environment') return { facingMode: { ideal: 'environment' } };
+        if (cameraPick.mode === 'user') return { facingMode: { ideal: 'user' } };
         return { deviceId: { exact: cameraPick.cameraId } };
-    }
-
-    function startScannerStream(cameraPick) {
-        var config = getScannerConfig(cameraPick);
-        return scanner.start(buildCameraConstraints(cameraPick), config, handleScan, function () {});
-    }
-
-    function createScannerInstance() {
-        var options = { verbose: false };
-        if (typeof Html5QrcodeSupportedFormats !== 'undefined') {
-            options.formatsToSupport = [Html5QrcodeSupportedFormats.QR_CODE];
-        }
-        return new Html5Qrcode('sc-attendance-qr-reader', options);
-    }
-
-    function setSwitchButtonState(active) {
-        $('#sc-attendance-qr-switch').prop('disabled', !active || cameraState.switching || cameraState.picks.length < 2);
     }
 
     function lookupMember(payload) {
@@ -207,30 +157,54 @@
         return null;
     }
 
+    function extractHashHex(payload) {
+        return (payload || '').replace(/^SC[12]:/i, '').replace(/[^a-fA-F0-9]/g, '');
+    }
+
+    function prepareScanPayload(raw) {
+        return (raw || '').trim();
+    }
+
+    function isCompletePlayerPayload(payload) {
+        if (/^SC2:/i.test(payload)) {
+            return extractHashHex(payload).length === getHashLength();
+        }
+        return extractHashHex(payload).length === getHashLength();
+    }
+
+    function startScannerStream(cameraPick) {
+        return scanner.start(buildCameraConstraints(cameraPick), getScannerConfig(cameraPick), handleScan, function () {});
+    }
+
+    function createScannerInstance() {
+        var options = { verbose: false };
+        if (typeof Html5QrcodeSupportedFormats !== 'undefined') {
+            options.formatsToSupport = [Html5QrcodeSupportedFormats.QR_CODE];
+        }
+        return new Html5Qrcode('sc-attendance-qr-reader', options);
+    }
+
+    function setSwitchButtonState(active) {
+        $('#sc-attendance-qr-switch').prop('disabled', !active || cameraState.switching || cameraState.picks.length < 2);
+    }
+
     function preloadSounds() {
         var soundKeys = {
             success: 'soundSuccess',
             error: 'soundError',
             duplicate: 'soundDuplicate',
-            notInCourse: 'soundNotInCourse',
-            debtWarning: 'soundDebtWarning',
-            debtBlocked: 'soundDebtBlocked',
             disabled: 'soundDisabled'
         };
         Object.keys(soundKeys).forEach(function (type) {
             var url = cfg[soundKeys[type]] || '';
-            if (!url) {
-                return;
-            }
+            if (!url) return;
             sounds[type] = new Audio(url);
             sounds[type].preload = 'auto';
         });
     }
 
     function playSound(type) {
-        if (!sounds[type]) {
-            return;
-        }
+        if (!sounds[type]) return;
         try {
             sounds[type].currentTime = 0;
             sounds[type].play().catch(function () {});
@@ -241,31 +215,51 @@
         Object.keys(sounds).forEach(function (key) {
             try {
                 var a = sounds[key];
-                if (!a) {
-                    return;
-                }
+                if (!a) return;
                 var vol = a.volume;
                 a.volume = 0;
                 a.play().then(function () {
                     a.pause();
                     a.currentTime = 0;
                     a.volume = vol;
-                }).catch(function () {
-                    a.volume = vol;
-                });
+                }).catch(function () { a.volume = vol; });
             } catch (e) {}
         });
     }
 
     function showToast(message, type) {
         var $box = $('#sc-attendance-qr-toast');
-        if (!$box.length) {
-            return;
-        }
-        $box.removeClass('is-success is-error is-duplicate is-not-in-course is-info')
+        if (!$box.length) return;
+        $box.removeClass('is-success is-error is-duplicate is-info')
             .addClass('is-visible is-' + (type || 'info'))
             .find('.sc-attendance-qr-toast__text')
             .text(message || '');
+    }
+
+    function subjectTypeLabel(type) {
+        return type === 'staff' ? 'پرسنل' : 'بازیکن';
+    }
+
+    function prependLog(item) {
+        var $log = $('#sc-attendance-qr-log');
+        if (!$log.length) return;
+        var time = new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        var cls = item.ok ? (item.duplicate ? 'duplicate' : 'success') : 'error';
+        var html = '<li class="sc-attendance-qr-log__item sc-attendance-qr-log__item--' + cls + '">' +
+            '<span class="sc-attendance-qr-log__time">' + time + '</span>' +
+            '<span class="sc-attendance-qr-log__name">' + (item.name || '—') + '</span>' +
+            '<span class="sc-attendance-qr-log__msg">' + (item.message || '') + '</span></li>';
+        $log.prepend(html);
+        if ($log.children().length > 15) $log.children().last().remove();
+    }
+
+    function appendTableRow(rec) {
+        var $tbody = $('#sc-tarddod-records-table tbody');
+        if (!$tbody.length || !rec) return;
+        var rowNum = $tbody.find('tr').length + 1;
+        var typeLabel = subjectTypeLabel(rec.subject_type || '');
+        var html = '<tr><td>' + rowNum + '</td><td>' + (rec.subject_name || '—') + '</td><td>' + typeLabel + '</td><td>' + (rec.created_at || '') + '</td></tr>';
+        $tbody.append(html);
     }
 
     function incrementScanCount() {
@@ -273,105 +267,8 @@
         $('#sc-attendance-qr-count').text(count + 1);
     }
 
-    function prependLog(item) {
-        var $log = $('#sc-attendance-qr-log');
-        if (!$log.length) {
-            return;
-        }
-        var time = new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        var cls = item.ok ? (item.duplicate ? 'duplicate' : 'success') : 'error';
-        var html = '<li class="sc-attendance-qr-log__item sc-attendance-qr-log__item--' + cls + '">' +
-            '<span class="sc-attendance-qr-log__time">' + time + '</span>' +
-            '<span class="sc-attendance-qr-log__name">' + (item.name || '—') + '</span>' +
-            '<span class="sc-attendance-qr-log__msg">' + (item.message || '') + '</span>' +
-            '</li>';
-        $log.prepend(html);
-        if ($log.children().length > 12) {
-            $log.children().last().remove();
-        }
-    }
-
-    function isMemberAlreadyPresent(memberId) {
-        return $('#sc-attendance-recorded-tbody tr[data-member-id="' + memberId + '"]').length > 0;
-    }
-
-    function renumberAttendanceTable($tbody) {
-        $tbody.find('tr.sc-attendance-member-row').each(function (i) {
-            $(this).find('td:first').text(i + 1);
-        });
-    }
-
-    function updateAttendanceListCounts() {
-        var pendingCount = $('#sc-attendance-pending-tbody tr.sc-attendance-member-row').length;
-        var recordedCount = $('#sc-attendance-recorded-tbody tr.sc-attendance-member-row').length;
-        $('#sc-attendance-pending-count').text(pendingCount + ' نفر');
-        $('#sc-attendance-recorded-count').text(recordedCount + ' نفر');
-
-        if (pendingCount > 0) {
-            $('#sc-attendance-pending-table').show();
-            $('#sc-attendance-pending-empty').hide();
-            $('#sc-attendance-save-pending-btn').prop('disabled', false);
-        } else {
-            $('#sc-attendance-pending-table').hide();
-            $('#sc-attendance-pending-empty').show();
-            $('#sc-attendance-save-pending-btn').prop('disabled', true);
-        }
-
-        if (recordedCount > 0) {
-            $('#sc-attendance-recorded-table').show();
-            $('#sc-attendance-recorded-empty').hide();
-            $('#sc-attendance-save-recorded-btn').prop('disabled', false);
-        } else {
-            $('#sc-attendance-recorded-table').hide();
-            $('#sc-attendance-recorded-empty').show();
-            $('#sc-attendance-save-recorded-btn').prop('disabled', true);
-        }
-    }
-
-    function moveMemberRowToRecorded($row) {
-        if (!$row || !$row.length) {
-            return;
-        }
-        if ($row.closest('#sc-attendance-recorded-tbody').length) {
-            return;
-        }
-        var memberId = $row.attr('data-member-id');
-        $row.attr('data-list-type', 'recorded');
-        $row.find('.sc-attendance-clear-btn').remove();
-        $row.find('input[type="radio"]').each(function () {
-            var val = $(this).val();
-            $(this).attr('name', 'attendance_recorded[' + memberId + ']');
-        });
-        $('#sc-attendance-recorded-tbody').append($row);
-        renumberAttendanceTable($('#sc-attendance-pending-tbody'));
-        renumberAttendanceTable($('#sc-attendance-recorded-tbody'));
-        updateAttendanceListCounts();
-    }
-
-    function markMemberPresent(memberId) {
-        if (!memberId) {
-            return;
-        }
-        var $row = $('tr.sc-attendance-member-row[data-member-id="' + memberId + '"]');
-        var $radio = $row.find('input[type="radio"][value="present"]');
-        if ($radio.length) {
-            $radio.prop('checked', true).trigger('change');
-            $row.find('.sc-attendance-record-method')
-                .removeClass('sc-attendance-record-method--manual sc-attendance-record-method--empty')
-                .addClass('sc-attendance-record-method--qr')
-                .text('اسکن QR');
-            moveMemberRowToRecorded($row);
-            $row.addClass('sc-attendance-member-row--qr-scanned');
-            setTimeout(function () {
-                $row.removeClass('sc-attendance-member-row--qr-scanned');
-            }, 1200);
-        }
-    }
-
     function shouldIgnoreScan(hash, now) {
-        if (inFlightHashes[hash]) {
-            return true;
-        }
+        if (inFlightHashes[hash]) return true;
         return hash === lastHandledHash && (now - lastHandledAt) < getDuplicateCooldown();
     }
 
@@ -380,32 +277,31 @@
         lastHandledAt = now || Date.now();
     }
 
-    function playSoundSequence(types) {
-        (types || []).forEach(function (type, index) {
-            if (!type) {
-                return;
-            }
-            setTimeout(function () {
-                playSound(type);
-            }, index * 650);
-        });
-    }
-
-    function applyInstantSuccess(member, message, soundTypes) {
-        markMemberPresent(member.id);
-        playSoundSequence(soundTypes && soundTypes.length ? soundTypes : ['success']);
-        showToast((member.name || 'بازیکن') + ' — ' + (message || 'ثبت شد ✓'), 'success');
-        if (!optimisticLogged[member.id]) {
-            prependLog({ ok: true, duplicate: false, name: member.name, message: message || 'ثبت فوری' });
-            incrementScanCount();
-            optimisticLogged[member.id] = true;
+    function getActiveSessionId() {
+        var selected = parseInt($('#sc-tarddod-session-select').val(), 10);
+        if (selected > 0) {
+            return selected;
         }
+        return parseInt(cfg.sessionId, 10) || 0;
     }
 
     function handleScan(decodedText) {
         var now = Date.now();
-        var payload = (decodedText || '').trim();
-        if (!payload || shouldIgnoreScan(payload, now)) {
+        var payload = prepareScanPayload(decodedText);
+        if (!payload) {
+            return;
+        }
+
+        var hashLen = extractHashHex(payload).length;
+        if (hashLen > 0 && hashLen < getHashLength()) {
+            if (now - lastPartialHintAt > 1800) {
+                showToast('در حال خواندن QR... کارت را ثابت و کامل جلوی دوربین بگیرید', 'info');
+                lastPartialHintAt = now;
+            }
+            return;
+        }
+
+        if (!isCompletePlayerPayload(payload) || shouldIgnoreScan(payload, now)) {
             return;
         }
 
@@ -413,68 +309,74 @@
         markHandled(payload, now);
 
         var localMember = lookupMember(payload);
+        var sessionId = getActiveSessionId();
+        if (!sessionId) {
+            playSound('error');
+            showToast('جلسه‌ای انتخاب نشده است.', 'error');
+            delete inFlightHashes[payload];
+            return;
+        }
+
         showToast('در حال ثبت...', 'info');
 
         $.post(cfg.ajaxUrl, {
-            action: 'sc_attendance_qr_scan',
+            action: 'sc_tarddod_scan',
             nonce: cfg.nonce,
-            qr_payload: payload,
-            course_id: cfg.courseId,
-            attendance_date: cfg.attendanceDate,
-            chapter_name: cfg.chapterName,
-            group_name: cfg.groupName
+            session_id: sessionId,
+            qr_payload: payload
         }).done(function (res) {
             if (res && res.success) {
                 var code = res.data && res.data.code ? res.data.code : 'created';
-                var name = res.data && res.data.member_name ? res.data.member_name : (localMember ? localMember.name : '');
-                var memberId = res.data && res.data.member_id ? res.data.member_id : (localMember ? localMember.id : 0);
-                var hasDebt = !!(res.data && res.data.has_debt);
-
-                if (memberId && cfg.memberMap) {
-                    cfg.memberMap[payload] = { id: memberId, name: name };
-                }
+                var name = res.data && res.data.subject_name ? res.data.subject_name : (localMember ? localMember.name : '');
+                var typeLabel = subjectTypeLabel(res.data && res.data.subject_type ? res.data.subject_type : 'member');
 
                 if (code === 'duplicate') {
                     playSound('duplicate');
                     showToast(name + ' — قبلاً ثبت شده', 'duplicate');
-                    prependLog({ ok: true, duplicate: true, name: name, message: res.data.message });
+                    prependLog({ ok: true, duplicate: true, name: name, message: typeLabel });
                     return;
                 }
 
-                if (!localMember || !optimisticLogged[memberId]) {
-                    applyInstantSuccess(
-                        { id: memberId, name: name },
-                        res.data.message || 'ثبت شد ✓',
-                        hasDebt ? ['success', 'debtWarning'] : ['success']
-                    );
-                }
+                playSound('success');
+                showToast(name + ' — تردد ثبت شد ✓', 'success');
+                prependLog({ ok: true, duplicate: false, name: name, message: typeLabel });
+                incrementScanCount();
+                appendTableRow({
+                    subject_name: name,
+                    subject_type: res.data.subject_type,
+                    created_at: new Date().toLocaleString('fa-IR')
+                });
                 return;
             }
 
             var errCode = (res && res.data && res.data.code) ? res.data.code : '';
             var errMsg = (res && res.data && res.data.message) ? res.data.message : 'خطا در ثبت';
-            var errName = (res && res.data && res.data.member_name) ? res.data.member_name : '';
+            var errName = (res && res.data && res.data.subject_name) ? res.data.subject_name : (localMember ? localMember.name : '');
 
-            if (errCode === 'debt_blocked') {
-                playSound('debtBlocked');
-                showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
-            } else if (errCode === 'qr_disabled') {
+            if (errCode === 'qr_disabled') {
                 playSound('disabled');
-                showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
-            } else if (errCode === 'qr_inactive') {
+            } else if (errCode === 'invalid_qr') {
                 playSound('error');
-                showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
-            } else if (errCode === 'not_in_course') {
-                playSound('notInCourse');
-                showToast((errName ? errName + ' — ' : '') + errMsg, 'not-in-course');
+                errMsg = errMsg || 'کد QR نامعتبر است. QR را کامل جلوی دوربین بگیرید.';
+            } else if (errCode === 'unknown_qr') {
+                playSound('error');
+                errMsg = errMsg || 'بازیکن مرتبط با این QR یافت نشد.';
+            } else if (errCode === 'session_closed' || errCode === 'session_draft') {
+                playSound('error');
             } else {
                 playSound('error');
-                showToast(errMsg, 'error');
             }
+
+            showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
             prependLog({ ok: false, name: errName, message: errMsg });
-        }).fail(function () {
+        }).fail(function (xhr) {
             playSound('error');
-            showToast('خطا در ارتباط با سرور', 'error');
+            var msg = 'خطا در ارتباط با سرور';
+            if (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+                msg = xhr.responseJSON.data.message;
+            }
+            showToast(msg, 'error');
+            prependLog({ ok: false, name: '', message: msg });
         }).always(function () {
             delete inFlightHashes[payload];
         });
@@ -490,10 +392,6 @@
     }
 
     function restartWithCameraPick(cameraPick) {
-        if (!scanner) {
-            return Promise.reject(new Error('اسکنر فعال نیست'));
-        }
-
         return scanner.stop().then(function () {
             scanner.clear();
             $('#sc-attendance-qr-reader').empty();
@@ -502,16 +400,11 @@
     }
 
     function switchCamera() {
-        if (!scanner || cameraState.switching || cameraState.picks.length < 2) {
-            return;
-        }
-
+        if (!scanner || cameraState.switching || cameraState.picks.length < 2) return;
         cameraState.switching = true;
         setSwitchButtonState(true);
-
         cameraState.index = (cameraState.index + 1) % cameraState.picks.length;
         var nextPick = getCurrentCameraPick();
-
         restartWithCameraPick(nextPick).then(function () {
             showToast(nextPick.label + ' فعال شد', 'info');
         }).catch(function (err) {
@@ -528,16 +421,12 @@
         cameraState.index = 0;
         cameraState.switching = false;
         setSwitchButtonState(false);
-
         if (!scanner) {
             $('#sc-attendance-qr-start').prop('disabled', false).text('شروع اسکن');
             $('#sc-attendance-qr-stop').prop('disabled', true);
             return;
         }
-
-        scanner.stop().then(function () {
-            scanner.clear();
-        }).catch(function () {});
+        scanner.stop().then(function () { scanner.clear(); }).catch(function () {});
         scanner = null;
         $('#sc-attendance-qr-reader').empty();
         $('#sc-attendance-qr-start').prop('disabled', false).text('شروع اسکن');
@@ -547,11 +436,9 @@
     function beginScannerStream(cameras) {
         cameraState.picks = buildCameraPicks(cameras);
         cameraState.index = findDefaultCameraIndex(cameraState.picks);
-
-        var initialPick = getCurrentCameraPick();
         var mobile = isMobileDevice();
 
-        return startScannerStream(initialPick).catch(function () {
+        return startScannerStream(getCurrentCameraPick()).catch(function () {
             if (!mobile) {
                 var userIdx = cameraState.picks.findIndex(function (pick) {
                     return pick.mode === 'user' || pick.label === 'وب‌کم';
@@ -560,9 +447,7 @@
                     cameraState.index = userIdx;
                     return startScannerStream(getCurrentCameraPick());
                 }
-                var deviceIdx = cameraState.picks.findIndex(function (pick) {
-                    return pick.mode === 'device';
-                });
+                var deviceIdx = cameraState.picks.findIndex(function (pick) { return pick.mode === 'device'; });
                 if (deviceIdx >= 0 && deviceIdx !== cameraState.index) {
                     cameraState.index = deviceIdx;
                     return startScannerStream(getCurrentCameraPick());
@@ -570,18 +455,14 @@
                 throw new Error('وب‌کم در دسترس نیست');
             }
 
-            var envIdx = cameraState.picks.findIndex(function (pick) {
-                return pick.mode === 'environment';
-            });
+            var envIdx = cameraState.picks.findIndex(function (pick) { return pick.mode === 'environment'; });
             if (envIdx >= 0 && envIdx !== cameraState.index) {
                 cameraState.index = envIdx;
                 return startScannerStream(getCurrentCameraPick());
             }
-            var userIdx = cameraState.picks.findIndex(function (pick) {
-                return pick.mode === 'user';
-            });
-            if (userIdx >= 0 && userIdx !== cameraState.index) {
-                cameraState.index = userIdx;
+            var frontIdx = cameraState.picks.findIndex(function (pick) { return pick.mode === 'user'; });
+            if (frontIdx >= 0 && frontIdx !== cameraState.index) {
+                cameraState.index = frontIdx;
                 return startScannerStream(getCurrentCameraPick());
             }
             throw new Error('دوربین عقب در دسترس نیست');
@@ -596,14 +477,16 @@
             showToast('کتابخانه اسکن بارگذاری نشده است.', 'error');
             return;
         }
+        if (!getActiveSessionId()) {
+            showToast('جلسه‌ای انتخاب نشده است.', 'error');
+            return;
+        }
         unlockAudio();
         setScannerFullscreen(true);
         $('#sc-attendance-qr-start').prop('disabled', true).text('در حال اسکن...');
         $('#sc-attendance-qr-stop').prop('disabled', false);
         setSwitchButtonState(false);
-
         scanner = createScannerInstance();
-
         Html5Qrcode.getCameras().then(function (cameras) {
             return beginScannerStream(cameras);
         }).catch(function (err) {
@@ -613,34 +496,11 @@
     }
 
     $(function () {
-        if (!$('#sc-attendance-qr-panel').length) {
-            return;
-        }
+        if (!$('.sc-tarddod-register-wrap #sc-attendance-qr-panel').length) return;
         preloadSounds();
-
-        $('input[name="sc_attendance_mode"]').on('change', function () {
-            var mode = $(this).val();
-            $('.sc-attendance-mode-panel').hide();
-            if (mode === 'qr') {
-                $('#sc-attendance-mode-qr').show();
-            } else {
-                stopScanner();
-                $('#sc-attendance-mode-list').show();
-            }
-        });
-
-        $('#sc-attendance-qr-start').on('click', function () {
-            startScanner();
-        });
-        $('#sc-attendance-qr-switch').on('click', function () {
-            switchCamera();
-        });
-        $('#sc-attendance-qr-stop').on('click', function () {
-            stopScanner();
-        });
-
-        $(window).on('beforeunload', function () {
-            stopScanner();
-        });
+        $('#sc-attendance-qr-start').on('click', startScanner);
+        $('#sc-attendance-qr-switch').on('click', switchCamera);
+        $('#sc-attendance-qr-stop').on('click', stopScanner);
+        $(window).on('beforeunload', stopScanner);
     });
 })(jQuery);
