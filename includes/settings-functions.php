@@ -464,7 +464,7 @@ function sc_is_player_info_lock_after_verification_enabled() {
  * Default message shown when player info editing is locked.
  */
 function sc_get_player_info_locked_message() {
-    return 'احراز هویت شما تأیید شده است. به دلیل تأیید اطلاعات، امکان ویرایش فیلدهای اطلاعات بازیکن وجود ندارد. در صورت نیاز به تغییر، با مدیریت باشگاه تماس بگیرید.';
+    return 'احراز هویت شما تأیید شده است. امکان ویرایش اطلاعات بازیکن وجود ندارد. اگر می‌خواهید اطلاعات ویرایش شود، به مدیریت پیام دهید تا اطلاعات شما توسط مدیریت تغییر داده شود.';
 }
 
 /**

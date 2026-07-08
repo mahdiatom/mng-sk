@@ -10,6 +10,26 @@
     }
 
     var ajaxurl = scDocuments.ajaxurl;
+    var isLocked = !!scDocuments.isLocked;
+    var lockedMessage = scDocuments.lockedMessage || 'امکان ویرایش اطلاعات وجود ندارد.';
+
+    if (isLocked) {
+        $form.find('input, select, textarea, button').not('[type="hidden"]').prop('disabled', true);
+        $form.find('.sc-btn-remove-image').hide();
+        $form.on('submit', function(e) {
+            e.preventDefault();
+            if (typeof wc_add_notice === 'function') {
+                wc_add_notice(lockedMessage, 'error');
+                if (typeof wc_refresh_notices === 'function') {
+                    wc_refresh_notices();
+                }
+            } else {
+                alert(lockedMessage);
+            }
+            return false;
+        });
+        return;
+    }
 
     // --- آپلود فوری عکس بلافاصله بعد از انتخاب فایل ---
     $form.find('input[type="file"][name="personal_photo"], input[type="file"][name="id_card_photo"], input[type="file"][name="sport_insurance_photo"]').on('change', function() {

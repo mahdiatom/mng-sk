@@ -35,6 +35,11 @@ $member_extra_fields = [];
 
 $player_builtin_rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
 $player_custom_fields = function_exists('sc_get_player_info_custom_fields') ? sc_get_player_info_custom_fields() : [];
+$player_info_editing_locked = function_exists('sc_player_info_is_editing_locked')
+    && sc_player_info_is_editing_locked();
+$player_info_locked_message = function_exists('sc_get_player_info_locked_message')
+    ? sc_get_player_info_locked_message()
+    : '';
 
 
 
@@ -266,11 +271,19 @@ if (!function_exists('sc_player_form_group_close')) {
     }
     ?>
     <div class="sc-panel-section__body">
-        <p class="sc-panel-alert sc-panel-alert--info">با هر بار تغییر اطلاعات، وضعیت احراز هویت شما در انتظار بررسی می‌شود و ممکن است به برخی بخش‌ها دسترسی نداشته باشید.</p>
+        <?php if ($player_info_editing_locked) : ?>
+            <p class="sc-panel-alert sc-panel-alert--warning"><?php echo esc_html($player_info_locked_message); ?>
+                <?php if (function_exists('wc_get_account_endpoint_url')) : ?>
+                    <a href="<?php echo esc_url(wc_get_account_endpoint_url('sc-support-tickets')); ?>">ارسال پیام به پشتیبانی</a>
+                <?php endif; ?>
+            </p>
+        <?php else : ?>
+            <p class="sc-panel-alert sc-panel-alert--info">با هر بار تغییر اطلاعات، وضعیت احراز هویت شما در انتظار بررسی می‌شود و ممکن است به برخی بخش‌ها دسترسی نداشته باشید.</p>
+        <?php endif; ?>
 <div class="sc-submit-documents-form">
     <?php wc_print_notices(); ?>
     
-    <form id="sc-documents-form" method="POST" enctype="multipart/form-data" class="woocommerce-form sc-player-admin-form">
+    <form id="sc-documents-form" method="POST" enctype="multipart/form-data" class="woocommerce-form sc-player-admin-form<?php echo $player_info_editing_locked ? ' sc-player-form--locked' : ''; ?>"<?php echo $player_info_editing_locked ? ' data-sc-locked="1"' : ''; ?>>
         <?php wp_nonce_field('sc_submit_documents', 'sc_documents_nonce'); ?>
         <input type="hidden" id="sc_player_builtin_rules_json" value="<?php echo esc_attr(wp_json_encode($player_builtin_rules)); ?>">
         <input type="hidden" name="personal_photo_url" id="personal_photo_url" value="<?php echo esc_attr($personal_photo); ?>">
@@ -429,11 +442,13 @@ if (!function_exists('sc_player_form_group_close')) {
             <?php sc_render_player_custom_fields_block($player_custom_fields, 'additional', $member_extra_fields, null, ['checkbox']); ?>
         <?php sc_player_form_group_close(); ?>
 
+        <?php if (!$player_info_editing_locked) : ?>
         <div class="sc-player-form-actions">
             <button type="submit" name="sc_submit_documents" class="button sc-panel-btn-primary sc-player-submit-btn" value="1">
                 <?php echo $player ? 'بروزرسانی اطلاعات' : 'ثبت اطلاعات'; ?>
             </button>
         </div>
+        <?php endif; ?>
     </form>
 </div>
     </div>
@@ -449,6 +464,25 @@ document.addEventListener('DOMContentLoaded', function() {
             if(targetInput) targetInput.value = '';
         });
     });
+});
+document.addEventListener('DOMContentLoaded', function() {
+    var lockedForm = document.getElementById('sc-documents-form');
+    if (lockedForm && lockedForm.getAttribute('data-sc-locked') === '1') {
+        lockedForm.querySelectorAll('input, select, textarea, button').forEach(function(el) {
+            if (el.type !== 'hidden') {
+                el.disabled = true;
+            }
+        });
+        lockedForm.querySelectorAll('.sc-btn-remove-image').forEach(function(btn) {
+            btn.style.display = 'none';
+        });
+        lockedForm.querySelectorAll('input[type="file"]').forEach(function(input) {
+            var wrap = input.closest('.sc-upload-field');
+            if (wrap) {
+                wrap.classList.add('sc-upload-field--disabled');
+            }
+        });
+    }
 });
 document.addEventListener('DOMContentLoaded', function() {
     var rulesInput = document.getElementById('sc_player_builtin_rules_json');

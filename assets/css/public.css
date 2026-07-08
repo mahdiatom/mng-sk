@@ -1954,6 +1954,18 @@ ease !important;
 .sc-submit-documents-form select , .sc-submit-documents-form  input{
     height: 45px;
 }
+.sc-submit-documents-form .sc-player-form--locked input:disabled,
+.sc-submit-documents-form .sc-player-form--locked select:disabled,
+.sc-submit-documents-form .sc-player-form--locked textarea:disabled {
+    background: #f3f4f6;
+    color: #6b7280;
+    cursor: not-allowed;
+    opacity: 1;
+}
+.sc-submit-documents-form .sc-upload-field--disabled {
+    pointer-events: none;
+    opacity: 0.65;
+}
 .sc-submit-documents-form  #gender{
         padding: 11px;
     border: 1px solid #ddd;

@@ -4827,6 +4827,10 @@ function sc_handle_documents_submission() {
         "SELECT * FROM $table_name WHERE user_id = %d LIMIT 1",
         $current_user_id
     ));
+    if (function_exists('sc_player_info_is_editing_locked') && sc_player_info_is_editing_locked($existing_for_validation)) {
+        wc_add_notice(function_exists('sc_get_player_info_locked_message') ? sc_get_player_info_locked_message() : 'امکان ویرایش اطلاعات وجود ندارد.', 'error');
+        return;
+    }
     $required_errors = sc_player_info_validate_required_fields($_POST, $_FILES, $existing_for_validation);
     if (!empty($required_errors)) {
         foreach ($required_errors as $err) {
@@ -5238,6 +5242,13 @@ function sc_ajax_upload_player_photo() {
     if (!isset($_POST['sc_documents_nonce']) || !wp_verify_nonce($_POST['sc_documents_nonce'], 'sc_submit_documents')) {
         wp_send_json_error(['message' => 'خطای امنیتی. لطفاً صفحه را رفرش کنید.']);
     }
+    $user_id = get_current_user_id();
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_members';
+    $member = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE user_id = %d LIMIT 1", $user_id));
+    if (function_exists('sc_player_info_is_editing_locked') && sc_player_info_is_editing_locked($member)) {
+        wp_send_json_error(['message' => function_exists('sc_get_player_info_locked_message') ? sc_get_player_info_locked_message() : 'امکان ویرایش اطلاعات وجود ندارد.']);
+    }
     $field_name = isset($_POST['field_name']) ? sanitize_text_field($_POST['field_name']) : '';
     $allowed = ['personal_photo', 'id_card_photo', 'sport_insurance_photo'];
     if (!in_array($field_name, $allowed, true)) {
@@ -5294,6 +5305,9 @@ function sc_ajax_submit_documents() {
     $table_name = $wpdb->prefix . 'sc_members';
 
     $existing_for_validation = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE user_id = %d LIMIT 1", $current_user_id));
+    if (function_exists('sc_player_info_is_editing_locked') && sc_player_info_is_editing_locked($existing_for_validation)) {
+        wp_send_json_error(['message' => function_exists('sc_get_player_info_locked_message') ? sc_get_player_info_locked_message() : 'امکان ویرایش اطلاعات وجود ندارد.']);
+    }
     $required_errors = sc_player_info_validate_required_fields($_POST, $_FILES, $existing_for_validation);
     if (!empty($required_errors)) {
         wp_send_json_error(['message' => implode(' | ', $required_errors)]);

@@ -2002,7 +2002,12 @@ function sc_public_enqueue_assets() {
 
     if ($sc_is_panel && function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-submit-documents')) {
         wp_enqueue_script('sc-submit-documents-js', SC_ASSETS_URL . 'js/submit-documents.js', array('jquery'), time(), true);
-        wp_localize_script('sc-submit-documents-js', 'scDocuments', array('ajaxurl' => admin_url('admin-ajax.php')));
+        $player_info_locked = function_exists('sc_player_info_is_editing_locked') && sc_player_info_is_editing_locked();
+        wp_localize_script('sc-submit-documents-js', 'scDocuments', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'isLocked' => $player_info_locked,
+            'lockedMessage' => function_exists('sc_get_player_info_locked_message') ? sc_get_player_info_locked_message() : '',
+        ));
     }
     if ($sc_is_panel) {
         wp_enqueue_script('sc-ticket-attachments', SC_ASSETS_URL . 'js/ticket-attachments.js', array('jquery'), time(), true);
