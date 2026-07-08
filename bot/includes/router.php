@@ -14,65 +14,45 @@ function bale_router($update) {
 
         if (strpos($text, '/start') === 0) {
             require_once SC_BOT_COMMANDS_DIR . 'start.php';
-            bale_cmd_start($chat_id);
 
             $parts = explode(' ', $text);
-            $token = isset($parts[1]) ? trim($parts[1]) : null;
+            $token = isset($parts[1]) ? trim($parts[1]) : '';
 
-            if ($token) {
-                global $wpdb;
-                $table = $wpdb->prefix . 'sc_members';
-                $member = $wpdb->get_row($wpdb->prepare(
-                    "SELECT user_id FROM $table WHERE bot_token = %s",
-                    $token
-                ));
-
-                if ($member) {
-                    $wpdb->update(
-                        $table,
-                        ['bot_id' => $chat_id, 'bot_token' => null],
-                        ['user_id' => $member->user_id]
-                    );
-                    bale_send_message($chat_id, 'حساب شما با موفقیت به سایت متصل شد.');
+            if ($token !== '') {
+                $user_id = sc_bot_find_user_by_token($token);
+                if ($user_id > 0) {
+                    sc_bot_link_chat_to_user($chat_id, $user_id);
+                    $ctx = sc_bot_resolve_user_context($chat_id);
+                    $role_label = sc_bot_get_role_label($ctx['active_role'] ?? 'player');
+                    bale_send_message($chat_id, "✅ حساب شما با موفقیت متصل شد.\nنقش فعال: {$role_label}");
+                    bale_cmd_start($chat_id, $ctx);
                 } else {
-                    bale_send_message($chat_id, '❌ توکن معتبر نیست.');
+                    bale_send_message($chat_id, '❌ توکن معتبر نیست یا منقضی شده. از سایت دوباره «اتصال به ربات» را بزنید.');
                 }
                 return;
             }
 
-            bale_send_message($chat_id, 'سلام! لطفاً از طریق سایت وارد شوید و روی «اتصال به ربات» بزنید.');
+            $ctx = sc_bot_resolve_user_context($chat_id);
+            bale_cmd_start($chat_id, $ctx);
             return;
         }
 
         if ($text === '/help') {
-            $member = sc_require_connected_user($chat_id);
-            if (!$member) {
+            $ctx = sc_bot_require_connected_context($chat_id);
+            if (!$ctx) {
                 return;
             }
             require_once SC_BOT_COMMANDS_DIR . 'help.php';
             return bale_cmd_help($chat_id);
         }
 
-        if ($text === 'اطلاعات من') {
-            $member = sc_require_connected_user($chat_id);
-            if (!$member) {
-                return;
-            }
-            return bale_cmd_profile($chat_id);
-        }
+        $ctx = sc_bot_resolve_user_context($chat_id);
+        $commands = bale_get_text_commands($ctx);
 
-        if ($text === 'خروج از حساب کاربری') {
-            $member = sc_require_connected_user($chat_id);
-            if (!$member) {
-                return;
-            }
-            return bale_present_logout_confirm($chat_id);
-        }
-
-        $commands = bale_get_text_commands();
         if (isset($commands[$text])) {
-            $member = sc_require_connected_user($chat_id);
-            if (!$member) {
+            if ($text !== '🔗 اتصال به حساب' && empty($ctx['connected'])) {
+                require_once SC_BOT_COMMANDS_DIR . 'staff.php';
+                bale_cmd_connect_prompt($chat_id);
                 return;
             }
             require_once SC_BOT_COMMANDS_DIR . $commands[$text]['file'];
@@ -82,12 +62,14 @@ function bale_router($update) {
             }
         }
 
-        $member = sc_require_connected_user($chat_id);
-        if (!$member) {
+        if (empty($ctx['connected'])) {
+            require_once SC_BOT_COMMANDS_DIR . 'staff.php';
+            bale_cmd_connect_prompt($chat_id);
             return;
         }
+
         require_once SC_BOT_COMMANDS_DIR . 'start.php';
-        bale_cmd_start($chat_id);
+        bale_cmd_start($chat_id, $ctx);
         return;
     }
 
@@ -101,14 +83,32 @@ function bale_router($update) {
             return;
         }
 
-        if (!sc_require_connected_user($chat_id)) {
-            if ($callback_id !== '') {
-                bale_answer_callback_query($callback_id, 'ابتدا حساب را متصل کنید.');
+        if (strpos($data, 'brole:') === 0) {
+            if (function_exists('bale_bot_route_role_callback') && bale_bot_route_role_callback($chat_id, $data, $callback_id)) {
+                return;
             }
-            return;
+        }
+
+        if ($data === 'blogout:yes' || $data === 'blogout:no' || strpos($data, 'binv:') === 0
+            || strpos($data, 'bcert:') === 0 || strpos($data, 'bwal:') === 0
+            || strpos($data, 'bnotif:') === 0 || strpos($data, 'bord:') === 0
+            || strpos($data, 'bnote:') === 0) {
+            if (!sc_bot_require_connected_context($chat_id)) {
+                if ($callback_id !== '') {
+                    bale_answer_callback_query($callback_id, 'ابتدا حساب را متصل کنید.');
+                }
+                return;
+            }
         }
 
         if (bale_bot_route_data_callback($chat_id, $data, $callback_id)) {
+            return;
+        }
+
+        if (!sc_bot_require_connected_context($chat_id)) {
+            if ($callback_id !== '') {
+                bale_answer_callback_query($callback_id, 'ابتدا حساب را متصل کنید.');
+            }
             return;
         }
 
@@ -126,44 +126,6 @@ function bale_router($update) {
 }
 
 function bale_cmd_profile($chat_id) {
-    $member = sc_get_member_by_chatid($chat_id);
-    if (!$member) {
-        bale_send_message($chat_id, 'اطلاعاتی برای شما پیدا نشد.');
-        return;
-    }
-
-    $labels = [
-        'full_name'                       => 'نام و نام خانوادگی',
-        'national_id'                     => 'کد ملی',
-        'player_phone'                    => 'شماره موبایل',
-        'birth_date_shamsi'               => 'تاریخ تولد (شمسی)',
-        'insurance_expiry_date_gregorian' => 'انقضای بیمه',
-        'is_active'                       => 'وضعیت فعال',
-        'profile_completed'               => 'تکمیل پروفایل',
-        'member_type'                     => 'نوع عضو',
-        'updated_at'                      => 'آخرین بروزرسانی',
-    ];
-
-    $message = "اطلاعات حساب شما:\n\n";
-    foreach ($member as $key => $value) {
-        if ($value === null || $value === '' || !isset($labels[$key])) {
-            continue;
-        }
-        if ($key === 'is_active') {
-            $value = ((int) $value === 1) ? 'فعال' : 'غیرفعال';
-        }
-        if ($key === 'profile_completed') {
-            $value = ((int) $value === 1) ? 'کامل' : 'ناقص';
-        }
-        if ($key === 'member_type') {
-            $value = ($value === 'normal') ? 'عادی' : 'تیم';
-        }
-        if (in_array($key, ['insurance_expiry_date_gregorian', 'updated_at'], true) && function_exists('sc_date_shamsi_date_only')) {
-            $value = sc_date_shamsi_date_only($value);
-        }
-        $message .= $labels[$key] . ' : ' . $value . "\n";
-    }
-
-    $buttons = [[bale_make_link_button('✏️ تغییر اطلاعات', '/my-account/sc-submit-documents/')]];
-    bale_send_message_with_buttons($chat_id, $message, $buttons);
+    require_once SC_BOT_COMMANDS_DIR . 'staff.php';
+    bale_cmd_profile_unified($chat_id);
 }

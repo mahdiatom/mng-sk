@@ -4,12 +4,27 @@ if (!defined('ABSPATH')) {
 }
 
 function sc_bot_require_ctx_or_exit($chat_id) {
-    $ctx = sc_bot_resolve_member($chat_id);
-    if ($ctx) {
-        return $ctx;
+    $ctx = sc_bot_resolve_user_context($chat_id);
+    if (!$ctx || empty($ctx['connected'])) {
+        sc_bot_require_connected_context($chat_id);
+        return false;
     }
-    sc_require_connected_user($chat_id);
-    return false;
+
+    if (($ctx['active_role'] ?? '') !== 'player') {
+        return [
+            'user_id'    => (int) $ctx['user_id'],
+            'member_id'  => (int) ($ctx['member_id'] ?? 0),
+            'full_name'  => (string) ($ctx['full_name'] ?? ''),
+            'chat_id'    => $chat_id,
+        ];
+    }
+
+    $member_ctx = sc_bot_resolve_member($chat_id);
+    if (!$member_ctx || empty($member_ctx['member_id'])) {
+        bale_send_message($chat_id, 'اطلاعات بازیکن یافت نشد.');
+        return false;
+    }
+    return $member_ctx;
 }
 
 function bale_present_dashboard($chat_id) {
@@ -615,9 +630,15 @@ function bale_bot_route_data_callback($chat_id, $data, $callback_query_id = '') 
 
     if ($data === 'blogout:yes') {
         $ok = sc_unlink_bot_account($chat_id);
-        bale_send_message($chat_id, $ok
-            ? '✅ حساب شما با موفقیت از ربات خارج شد.'
-            : 'شما قبلاً از حساب خارج شده‌اید یا حسابی متصل نیست.');
+        if ($ok) {
+            bale_send_message_with_keyboard(
+                $chat_id,
+                '✅ حساب شما با موفقیت از ربات خارج شد.',
+                bale_get_connect_keyboard()
+            );
+        } else {
+            bale_send_message($chat_id, 'شما قبلاً از حساب خارج شده‌اید یا حسابی متصل نیست.');
+        }
         return true;
     }
     if ($data === 'blogout:no') {

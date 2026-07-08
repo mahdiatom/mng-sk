@@ -49,33 +49,37 @@ function sc_bot_get_member_for_wp_user($user_id) {
  * @return array{user_id:int,member_id:int,full_name:string,chat_id:int|string}|false
  */
 function sc_bot_resolve_member($chat_id) {
-    $member = sc_get_member_by_chatid($chat_id);
-    if (!$member || empty($member->user_id)) {
+    $ctx = sc_bot_resolve_user_context($chat_id);
+    if (!$ctx || empty($ctx['connected'])) {
         return false;
     }
 
-    $user_id = (int) $member->user_id;
-    $player = sc_bot_get_member_for_wp_user($user_id);
-    $member_id = $player ? (int) $player->id : 0;
-
-    if ($member_id <= 0 && function_exists('sc_survey_get_member_id_for_user')) {
-        $member_id = (int) sc_survey_get_member_id_for_user($user_id);
+    if (($ctx['active_role'] ?? '') !== 'player' && empty($ctx['member_id'])) {
+        if (in_array('player', $ctx['available_roles'] ?? [], true)) {
+            $player = sc_bot_get_member_for_wp_user((int) $ctx['user_id']);
+            if ($player) {
+                $ctx['member_id'] = (int) $player->id;
+            }
+        }
     }
 
-    $full_name = '';
-    if ($player) {
-        $full_name = trim((string) (($player->first_name ?? '') . ' ' . ($player->last_name ?? '')));
-    }
-    if ($full_name === '') {
-        $full_name = trim((string) ($member->full_name ?? ''));
+    if (empty($ctx['member_id']) && ($ctx['active_role'] ?? '') === 'player') {
+        return false;
     }
 
     return [
-        'user_id'    => $user_id,
-        'member_id'  => $member_id,
-        'full_name'  => $full_name,
+        'user_id'    => (int) $ctx['user_id'],
+        'member_id'  => (int) ($ctx['member_id'] ?? 0),
+        'full_name'  => (string) ($ctx['full_name'] ?? ''),
         'chat_id'    => $chat_id,
+        'active_role' => (string) ($ctx['active_role'] ?? 'player'),
+        'coach_id'   => (int) ($ctx['coach_id'] ?? 0),
     ];
+}
+
+function sc_bot_admin_link_button($label, $page, $args = []) {
+    $url = add_query_arg(array_merge(['page' => $page], (array) $args), admin_url('admin.php'));
+    return [bale_make_link_button($label, $url)];
 }
 
 function sc_bot_format_amount($amount) {
@@ -638,3 +642,185 @@ function sc_bot_attendance_status_label($status) {
     ];
     return $map[$status] ?? $status;
 }
+
+/**
+ * @return array{sql:string,args:array<int,mixed>}
+ */
+function sc_bot_secretary_member_scope_sql($user_id, $member_alias = 'm') {
+    if (!function_exists('sc_user_is_secretary_only') || !sc_user_is_secretary_only($user_id)) {
+        return ['sql' => '', 'args' => []];
+    }
+
+    $chapters = get_user_meta((int) $user_id, defined('SC_SECRETARY_CHAPTERS_META') ? SC_SECRETARY_CHAPTERS_META : 'sc_secretary_chapters', true);
+    if (!is_array($chapters) || empty($chapters)) {
+        return ['sql' => ' AND 1=0', 'args' => []];
+    }
+
+    global $wpdb;
+    $mc = $wpdb->prefix . 'sc_member_courses';
+    $alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $member_alias);
+    $member_col = $alias !== '' ? "{$alias}.id" : "{$wpdb->prefix}sc_members.id";
+
+    $ph = implode(', ', array_fill(0, count($chapters), '%s'));
+    $sql = " AND EXISTS (
+        SELECT 1 FROM {$mc} mc_sc
+        WHERE mc_sc.member_id = {$member_col}
+          AND mc_sc.status = 'active'
+          AND (
+            TRIM(IFNULL(mc_sc.chapter, '')) IN ({$ph})
+            OR (
+              TRIM(IFNULL(mc_sc.chapter, '')) = ''
+              AND EXISTS (
+                SELECT 1 FROM {$wpdb->prefix}sc_course_chapters cc_d
+                WHERE cc_d.course_id = mc_sc.course_id
+                  AND TRIM(cc_d.chapter_name) IN ({$ph})
+              )
+            )
+          )
+    )";
+
+    return ['sql' => $sql, 'args' => array_merge($chapters, $chapters)];
+}
+
+function sc_bot_get_manager_dashboard_stats($user_id) {
+    global $wpdb;
+    $user_id = (int) $user_id;
+    $members = $wpdb->prefix . 'sc_members';
+    $invoices = $wpdb->prefix . 'sc_invoices';
+    $mc = $wpdb->prefix . 'sc_member_courses';
+
+    $is_secretary = sc_bot_user_is_secretary_only($user_id);
+    $scope = $is_secretary ? sc_bot_secretary_member_scope_sql($user_id, 'm') : ['sql' => '', 'args' => []];
+
+    $member_sql = "SELECT COUNT(*) FROM $members m WHERE m.is_active = 1";
+    if ($scope['sql'] !== '') {
+        $member_sql .= $scope['sql'];
+        $active_members = (int) $wpdb->get_var($wpdb->prepare($member_sql, $scope['args']));
+    } else {
+        $active_members = (int) $wpdb->get_var($member_sql);
+    }
+
+    $pending_invoices = (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM $invoices WHERE status IN ('pending', 'under_review', 'on-hold')"
+    );
+
+    $enrollment_sql = "SELECT COUNT(*) FROM $mc WHERE status = 'active'";
+    $active_enrollments = (int) $wpdb->get_var($enrollment_sql);
+
+    $pending_tickets = function_exists('sc_support_count_pending_reply_for_admin')
+        ? (int) sc_support_count_pending_reply_for_admin()
+        : 0;
+
+    $chapters_label = '';
+    if ($is_secretary) {
+        $chapters = get_user_meta($user_id, defined('SC_SECRETARY_CHAPTERS_META') ? SC_SECRETARY_CHAPTERS_META : 'sc_secretary_chapters', true);
+        if (is_array($chapters) && !empty($chapters)) {
+            $chapters_label = implode('، ', array_map('strval', $chapters));
+        }
+    }
+
+    return [
+        'active_members'     => $active_members,
+        'pending_invoices'   => $pending_invoices,
+        'active_enrollments' => $active_enrollments,
+        'pending_tickets'    => $pending_tickets,
+        'is_secretary'       => $is_secretary,
+        'chapters_label'     => $chapters_label,
+    ];
+}
+
+function sc_bot_get_coach_dashboard_stats($coach_id) {
+    global $wpdb;
+    $coach_id = (int) $coach_id;
+    if ($coach_id <= 0) {
+        return [];
+    }
+
+    $cc = $wpdb->prefix . 'sc_course_coaches';
+    $mc = $wpdb->prefix . 'sc_member_courses';
+    $courses = $wpdb->prefix . 'sc_courses';
+
+    $courses_count = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(DISTINCT c.id)
+         FROM $courses c
+         INNER JOIN $cc cc ON cc.course_id = c.id AND cc.coach_id = %d
+         WHERE c.deleted_at IS NULL",
+        $coach_id
+    ));
+
+    $players_count = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(DISTINCT mc.member_id)
+         FROM $mc mc
+         INNER JOIN $cc cc ON cc.course_id = mc.course_id AND cc.coach_id = %d
+         WHERE mc.status = 'active'",
+        $coach_id
+    ));
+
+    $pending_tickets = function_exists('sc_support_count_pending_reply_for_coach')
+        ? (int) sc_support_count_pending_reply_for_coach($coach_id)
+        : 0;
+
+    $wallet_balance = null;
+    if (function_exists('sc_get_coach_wallet_balance')
+        && function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled')
+        && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+        $wallet_balance = (float) sc_get_coach_wallet_balance($coach_id);
+    }
+
+    $cert_warning = '';
+    $coach = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}sc_coaches WHERE id = %d LIMIT 1",
+        $coach_id
+    ));
+    if ($coach && function_exists('sc_get_coach_certificate_expiry_notice_data')) {
+        $notice = sc_get_coach_certificate_expiry_notice_data($coach);
+        if (!empty($notice['show'])) {
+            $cert_warning = (string) ($notice['message'] ?? 'مدرک مربیگری نیاز به تمدید دارد.');
+        }
+    }
+
+    return [
+        'courses_count'    => $courses_count,
+        'players_count'    => $players_count,
+        'pending_tickets'  => $pending_tickets,
+        'wallet_balance'   => $wallet_balance,
+        'cert_warning'     => $cert_warning,
+    ];
+}
+
+function sc_bot_get_coach_courses_summary($coach_id, $limit = 6) {
+    global $wpdb;
+    $coach_id = (int) $coach_id;
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT c.title, cc.chapter_name, c.is_active
+         FROM {$wpdb->prefix}sc_courses c
+         INNER JOIN {$wpdb->prefix}sc_course_coaches cc ON cc.course_id = c.id AND cc.coach_id = %d
+         WHERE c.deleted_at IS NULL
+         ORDER BY c.title ASC
+         LIMIT %d",
+        $coach_id,
+        (int) $limit
+    ));
+}
+
+function sc_bot_get_coach_players_summary($coach_id, $limit = 5) {
+    global $wpdb;
+    $coach_id = (int) $coach_id;
+    $mc = $wpdb->prefix . 'sc_member_courses';
+    $members = $wpdb->prefix . 'sc_members';
+    $cc = $wpdb->prefix . 'sc_course_coaches';
+
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT DISTINCT m.first_name, m.last_name, c.title AS course_title
+         FROM $mc mc
+         INNER JOIN $members m ON m.id = mc.member_id
+         INNER JOIN {$wpdb->prefix}sc_courses c ON c.id = mc.course_id
+         INNER JOIN $cc cc ON cc.course_id = mc.course_id AND cc.coach_id = %d
+         WHERE mc.status = 'active'
+         ORDER BY mc.created_at DESC
+         LIMIT %d",
+        $coach_id,
+        (int) $limit
+    ));
+}
+

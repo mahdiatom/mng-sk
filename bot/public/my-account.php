@@ -16,9 +16,15 @@ add_filter('woocommerce_account_menu_items', 'sc_add_bot_menu_item');
 
 function sc_bot_endpoint_content() {
     $user_id = get_current_user_id();
+    $chat_id = get_user_meta($user_id, SC_BALE_CHAT_META, true);
+
+    if (sc_bot_user_is_manager($user_id) || sc_bot_get_coach_id_for_user($user_id) > 0 || sc_bot_user_is_secretary_only($user_id)) {
+        wp_safe_redirect(admin_url('admin.php?page=sc-bale-bot-connect'));
+        exit;
+    }
+
     global $wpdb;
     $table = $wpdb->prefix . 'sc_members';
-
     $member = $wpdb->get_row($wpdb->prepare(
         "SELECT bot_id, bot_token FROM $table WHERE user_id = %d",
         $user_id
@@ -38,10 +44,11 @@ function sc_bot_endpoint_content() {
         </p>
     <?php
 
-    if ($member && !empty($member->bot_id)) {
+    if ($chat_id || ($member && !empty($member->bot_id))) {
+        $display_id = $chat_id ?: $member->bot_id;
         echo '<div class="sc-bale-bot-connect__status sc-bale-bot-connect__status--ok">';
         echo '<p>✅ حساب شما به ربات متصل است.</p>';
-        echo '<p class="sc-bale-bot-connect__chat-id">شناسه چت: <code>' . esc_html($member->bot_id) . '</code></p>';
+        echo '<p class="sc-bale-bot-connect__chat-id">شناسه چت: <code>' . esc_html((string) $display_id) . '</code></p>';
         echo '</div>';
 
         echo '<form method="post" class="sc-bale-bot-connect__reset">';
@@ -52,21 +59,15 @@ function sc_bot_endpoint_content() {
         return;
     }
 
-    if (!$member || empty($member->bot_token)) {
-        $token = wp_generate_password(20, false);
-        $wpdb->update($table, ['bot_token' => $token], ['user_id' => $user_id]);
-    } else {
-        $token = $member->bot_token;
-    }
-
+    $token = sc_bot_get_or_create_connect_token($user_id);
+    $bale_link = sc_bot_get_bale_start_link($user_id);
     $bot_username = bale_get_bot_username();
-    $bale_link = 'https://ble.ir/' . rawurlencode($bot_username) . '?start=' . rawurlencode($token);
-    $miniapp_link = 'https://ble.ir/' . rawurlencode($bot_username) . '?startapp=connect';
+    $miniapp_link = $bot_username ? 'https://ble.ir/' . rawurlencode($bot_username) . '?startapp=connect' : '';
 
-    if ($bot_username) {
+    if ($bale_link) {
         echo '<div class="sc-bale-bot-connect__actions">';
         echo '<a class="button button-primary sc-bale-bot-connect__btn" href="' . esc_url($bale_link) . '" target="_blank" rel="noopener">اتصال به ربات</a>';
-        if (sc_bale_use_miniapp()) {
+        if (sc_bale_use_miniapp() && $miniapp_link) {
             echo '<a class="button sc-bale-bot-connect__btn sc-bale-bot-connect__btn--miniapp" href="' . esc_url($miniapp_link) . '" target="_blank" rel="noopener">اتصال از طریق مینی‌اپ</a>';
         }
         echo '</div>';

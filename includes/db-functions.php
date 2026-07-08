@@ -2415,6 +2415,37 @@ function sc_update_database() {
         }
         update_option('sc_member_courses_billing_deferred_added', '1');
     }
+
+    // فیلدهای نمایشی شعبه برای API عمومی
+    if (get_option('sc_chapter_categories_public_api_v1', '0') !== '1') {
+        $chapters_table = $wpdb->prefix . 'sc_chapter_categories';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $chapters_table)) === $chapters_table) {
+            $chapter_columns = [
+                'description' => "ADD COLUMN `description` text DEFAULT NULL COMMENT 'توضیحات شعبه' AFTER `name`",
+                'address' => "ADD COLUMN `address` text DEFAULT NULL COMMENT 'آدرس شعبه' AFTER `description`",
+                'phone' => "ADD COLUMN `phone` varchar(20) DEFAULT NULL COMMENT 'تلفن شعبه' AFTER `address`",
+                'latitude' => "ADD COLUMN `latitude` decimal(10,8) DEFAULT NULL COMMENT 'عرض جغرافیایی' AFTER `phone`",
+                'longitude' => "ADD COLUMN `longitude` decimal(11,8) DEFAULT NULL COMMENT 'طول جغرافیایی' AFTER `latitude`",
+                'image' => "ADD COLUMN `image` varchar(500) DEFAULT NULL COMMENT 'تصویر شعبه' AFTER `longitude`",
+                'sort_order' => "ADD COLUMN `sort_order` int(11) NOT NULL DEFAULT 0 COMMENT 'ترتیب نمایش' AFTER `image`",
+                'is_active' => "ADD COLUMN `is_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'فعال برای نمایش عمومی' AFTER `sort_order`",
+            ];
+            foreach ($chapter_columns as $col_name => $alter_sql) {
+                $col_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$chapters_table` LIKE %s", $col_name));
+                if (empty($col_exists)) {
+                    $wpdb->query("ALTER TABLE `$chapters_table` $alter_sql");
+                }
+            }
+            $idx_active = $wpdb->get_results($wpdb->prepare(
+                "SHOW INDEX FROM `$chapters_table` WHERE Key_name = %s",
+                'idx_is_active'
+            ));
+            if (empty($idx_active)) {
+                $wpdb->query("ALTER TABLE `$chapters_table` ADD KEY `idx_is_active` (`is_active`)");
+            }
+        }
+        update_option('sc_chapter_categories_public_api_v1', '1');
+    }
 }
 
 /**

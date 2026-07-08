@@ -96,23 +96,48 @@ function sc_bale_send_by_phone($phone, $text) {
 function sc_get_user_bale_chat_id($user_or_member_id) {
     global $wpdb;
 
+    $lookup_id = (int) $user_or_member_id;
+    if ($lookup_id <= 0) {
+        return null;
+    }
+
     $members_table = $wpdb->prefix . 'sc_members';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
-    $lookup_id = (int) $user_or_member_id;
+
+    $user_id = $lookup_id;
+    $member_user = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT user_id FROM $members_table WHERE id = %d LIMIT 1",
+        $lookup_id
+    ));
+    if ($member_user > 0) {
+        $user_id = $member_user;
+    } else {
+        $coach_user = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT user_id FROM $coaches_table WHERE id = %d LIMIT 1",
+            $lookup_id
+        ));
+        if ($coach_user > 0) {
+            $user_id = $coach_user;
+        }
+    }
+
+    $chat_id = get_user_meta($user_id, SC_BALE_CHAT_META, true);
+    if ($chat_id) {
+        return $chat_id;
+    }
 
     $chat_id = $wpdb->get_var($wpdb->prepare(
         "SELECT bot_id FROM $members_table WHERE id = %d OR user_id = %d LIMIT 1",
         $lookup_id,
         $lookup_id
     ));
-
     if ($chat_id) {
         return $chat_id;
     }
 
     $chat_id = $wpdb->get_var($wpdb->prepare(
         "SELECT bot_id FROM $coaches_table WHERE user_id = %d LIMIT 1",
-        $lookup_id
+        $user_id
     ));
 
     return $chat_id ? $chat_id : null;

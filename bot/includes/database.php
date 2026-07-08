@@ -14,6 +14,37 @@ function sc_add_bot_columns() {
     if (!in_array('bot_token', $columns, true)) {
         $wpdb->query("ALTER TABLE $table_members ADD bot_token VARCHAR(40) NULL");
     }
+
+    $table_coaches = $wpdb->prefix . 'sc_coaches';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_coaches)) === $table_coaches) {
+        $coach_columns = $wpdb->get_col("DESC $table_coaches", 0);
+        if (!in_array('bot_id', $coach_columns, true)) {
+            $wpdb->query("ALTER TABLE $table_coaches ADD bot_id BIGINT(10) NULL");
+        }
+        if (!in_array('bot_token', $coach_columns, true)) {
+            $wpdb->query("ALTER TABLE $table_coaches ADD bot_token VARCHAR(40) NULL");
+        }
+    }
+}
+
+function sc_migrate_bale_chat_to_user_meta() {
+    if (get_option('sc_bale_chat_user_meta_migrated', '0') === '1') {
+        return;
+    }
+
+    global $wpdb;
+    $members = $wpdb->prefix . 'sc_members';
+    $rows = $wpdb->get_results(
+        "SELECT user_id, bot_id FROM $members WHERE bot_id IS NOT NULL AND bot_id != '' AND user_id IS NOT NULL AND user_id > 0"
+    );
+    foreach ((array) $rows as $row) {
+        $uid = (int) $row->user_id;
+        if ($uid > 0 && !get_user_meta($uid, 'sc_bale_chat_id', true)) {
+            update_user_meta($uid, 'sc_bale_chat_id', (string) $row->bot_id);
+        }
+    }
+
+    update_option('sc_bale_chat_user_meta_migrated', '1');
 }
 
 function sc_create_bot_messages_table() {
@@ -70,6 +101,7 @@ function sc_add_send_bale_notification_column() {
 }
 
 add_action('admin_init', 'sc_add_bot_columns');
+add_action('admin_init', 'sc_migrate_bale_chat_to_user_meta');
 add_action('admin_init', 'sc_create_bot_messages_table');
 add_action('admin_init', 'sc_add_send_bale_notification_column');
 add_action('admin_init', 'sc_migrate_bale_legacy_options');

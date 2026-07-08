@@ -86,6 +86,7 @@ function sc_bale_mirror_sms_from_mobile($mobile, $message, $context = '') {
     if (function_exists('sc_get_setting') && function_exists('sc_clean_mobile_number')) {
         $admin_phone = sc_get_setting('sms_admin_phone', '');
         if ($admin_phone !== '' && sc_clean_mobile_number($mobile) === sc_clean_mobile_number($admin_phone)) {
+            sc_bale_notify_all_connected_staff($message);
             return;
         }
     }
