@@ -584,8 +584,15 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
                 echo '<div class="notice notice-success is-dismissible"><p>تنظیمات حضور و غیاب با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'player_info') {
-        $player_verification_required = isset($_POST['player_verification_required']) ? 1 : 0;
-        sc_update_setting('player_verification_required', $player_verification_required, 'player_info');
+        $allowed_verification_modes = ['off', 'all', 'team'];
+        $player_verification_mode = isset($_POST['player_verification_mode'])
+            ? sanitize_key(wp_unslash($_POST['player_verification_mode']))
+            : 'off';
+        if (!in_array($player_verification_mode, $allowed_verification_modes, true)) {
+            $player_verification_mode = 'off';
+        }
+        sc_update_setting('player_verification_mode', $player_verification_mode, 'player_info');
+        sc_update_setting('player_verification_required', $player_verification_mode !== 'off' ? 1 : 0, 'player_info');
         $player_lock_info_after_verification = isset($_POST['player_lock_info_after_verification']) ? 1 : 0;
         sc_update_setting('player_lock_info_after_verification', $player_lock_info_after_verification, 'player_info');
         $builtin_fields = function_exists('sc_get_player_info_builtin_fields') ? sc_get_player_info_builtin_fields() : [];
@@ -636,6 +643,13 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('coach_fixed_salary_settlement_day', $coach_fixed_salary_settlement_day, 'coach_salary');
         sc_update_setting('coach_info_page_id', $coach_info_page_id, 'coach_salary');
         sc_update_setting('calc_couch_salary', $calc_couch_salary, 'coach_salary');
+        $assistant_salary_payout_mode = isset($_POST['assistant_salary_payout_mode'])
+            ? sanitize_text_field(wp_unslash($_POST['assistant_salary_payout_mode']))
+            : 'direct';
+        if (!in_array($assistant_salary_payout_mode, ['direct', 'via_primary'], true)) {
+            $assistant_salary_payout_mode = 'direct';
+        }
+        sc_update_setting('assistant_salary_payout_mode', $assistant_salary_payout_mode, 'coach_salary');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب دستمزد مربی ذخیره شد', null, ['tab' => 'coach_salary']);
         }
@@ -4015,7 +4029,9 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
 
         <?php endif; 
         if ($current_tab === 'player_info') :
-            $player_verification_required = (int) sc_get_setting('player_verification_required', '0');
+            $player_verification_mode = function_exists('sc_get_player_verification_mode')
+                ? sc_get_player_verification_mode()
+                : (((int) sc_get_setting('player_verification_required', '0') === 1) ? 'team' : 'off');
             $player_lock_info_after_verification = (int) sc_get_setting('player_lock_info_after_verification', '0');
             $player_sections = function_exists('sc_get_player_info_sections') ? sc_get_player_info_sections() : [];
             $player_builtin_fields = function_exists('sc_get_player_info_builtin_fields') ? sc_get_player_info_builtin_fields() : [];
@@ -4031,13 +4047,34 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                     <div class="inside">
                 <table class="form-table sc-player-info-form-table">
                     <tr>
-                        <th scope="row">اجبار احراز هویت بازیکن</th>
+                        <th scope="row">اجبار احراز هویت</th>
                         <td>
-                            <label class="switch">
-                                <input type="checkbox" name="player_verification_required" value="1" <?php checked($player_verification_required, 1); ?>>
-                                <span class="slider round"></span>
-                            </label>
-                            <p class="description">در صورت فعال بودن، فقط «بازیکن تیم» تا زمان تایید احراز هویت به بخش «اطلاعات بازیکن» محدود می‌شود. «بازیکن عادی» بدون تکمیل احراز هویت به تمام بخش‌ها دسترسی دارد.</p>
+                            <div class="sc-verification-mode-radios" role="radiogroup" aria-label="حالت اجبار احراز هویت">
+                                <label class="sc-verification-mode-option">
+                                    <input type="radio" name="player_verification_mode" value="off" <?php checked($player_verification_mode, 'off'); ?>>
+                                    <span class="sc-verification-mode-card">
+                                        <span class="sc-verification-mode-card__badge">غیرفعال</span>
+                                        <span class="sc-verification-mode-card__title">بدون محدودیت</span>
+                                        <span class="sc-verification-mode-card__desc">همه کاربران بدون نیاز به احراز هویت به تمام بخش‌های پنل دسترسی دارند.</span>
+                                    </span>
+                                </label>
+                                <label class="sc-verification-mode-option">
+                                    <input type="radio" name="player_verification_mode" value="all" <?php checked($player_verification_mode, 'all'); ?>>
+                                    <span class="sc-verification-mode-card">
+                                        <span class="sc-verification-mode-card__badge sc-verification-mode-card__badge--all">همه کاربران</span>
+                                        <span class="sc-verification-mode-card__title">اجبار برای همه</span>
+                                        <span class="sc-verification-mode-card__desc">تا زمان تأیید احراز هویت توسط باشگاه، فقط بخش «اطلاعات بازیکن» در دسترس است و سایر بخش‌ها قفل می‌مانند.</span>
+                                    </span>
+                                </label>
+                                <label class="sc-verification-mode-option">
+                                    <input type="radio" name="player_verification_mode" value="team" <?php checked($player_verification_mode, 'team'); ?>>
+                                    <span class="sc-verification-mode-card">
+                                        <span class="sc-verification-mode-card__badge sc-verification-mode-card__badge--team">فقط بازیکن تیم</span>
+                                        <span class="sc-verification-mode-card__title">اجبار مشروط به تیم</span>
+                                        <span class="sc-verification-mode-card__desc">فقط «بازیکن تیم» تا تأیید احراز هویت محدود می‌شود. «بازیکن عادی» بدون احراز هویت به تمام بخش‌ها دسترسی دارد.</span>
+                                    </span>
+                                </label>
+                            </div>
                         </td>
                     </tr>
                     <tr>
@@ -4413,6 +4450,27 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
 
                             </td>
                     </tr>
+                    <tr>
+                        <th scope="row">نحوه واریز سهم کمک‌مربی</th>
+                        <td>
+                            <?php
+                            $assistant_salary_payout_mode = function_exists('sc_get_assistant_salary_payout_mode')
+                                ? sc_get_assistant_salary_payout_mode()
+                                : (string) sc_get_setting('assistant_salary_payout_mode', 'direct');
+                            ?>
+                            <fieldset>
+                                <label style="display:block;margin-bottom:8px;">
+                                    <input type="radio" name="assistant_salary_payout_mode" value="direct" <?php checked($assistant_salary_payout_mode, 'direct'); ?>>
+                                    <strong>واریز مستقیم:</strong> سهم کمک‌مربی مستقیم به کیف پول خودش واریز می‌شود و فقط مبلغ خالص به مربی اصلی می‌رسد.
+                                </label>
+                                <label style="display:block;">
+                                    <input type="radio" name="assistant_salary_payout_mode" value="via_primary" <?php checked($assistant_salary_payout_mode, 'via_primary'); ?>>
+                                    <strong>از طریق مربی اصلی:</strong> کل سهم ابتدا به کیف پول مربی اصلی واریز می‌شود، سپس سهم کمک‌مربی از او کسر و به کیف پول کمک‌مربی منتقل می‌شود.
+                                </label>
+                            </fieldset>
+                            <p class="description">اگر برای یک کلاس کمک‌مربی تعریف نشده باشد، کل دستمزد فقط به مربی اصلی واریز می‌شود. کمک‌مربی امکان ثبت حضور و غیاب ندارد.</p>
+                        </td>
+                    </tr>
                 </table>
                 
                 <p class="submit">
@@ -4424,6 +4482,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 <h3>اطلاعات</h3>
                 <ul>
                     <li><strong>دستمزد درصدی:</strong> در زمان ثبت حضور و غیاب، به صورت خودکار محاسبه و به کیف پول مربی واریز می‌شود.</li>
+                    <li><strong>کمک‌مربی:</strong> در فرم دوره می‌توان برای هر مربی اصلی در هر شعبه، کمک‌مربی و درصد سهم او از دستمزد مربی اصلی تعریف کرد. اگر کمک‌مربی نباشد، کل مبلغ به مربی اصلی می‌رسد.</li>
                     <li><strong>دستمزد ثابت:</strong> در روز مشخص‌شده در تنظیمات (یا آخر ماه در صورت خالی بودن) به صورت خودکار به کیف پول مربی واریز می‌شود.</li>
                     <li><strong>درخواست برداشت:</strong> مربی می‌تواند از کیف پول خود درخواست برداشت کند که نیاز به تایید مدیر دارد.</li>
                     <li><strong>مدیریت کیف پول:</strong> مدیر می‌تواند به صورت دستی کیف پول مربی را شارژ یا برداشت کند.</li>

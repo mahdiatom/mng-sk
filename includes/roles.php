@@ -1221,9 +1221,7 @@ function club_hide_menus_for_secretary() {
     sc_safe_remove_menu_page('wc-admin');
     sc_safe_remove_menu_page('edit.php?post_type=product');
     sc_safe_remove_menu_page('wc-settings');
-    sc_safe_remove_menu_page('sc-courses');
     sc_safe_remove_menu_page('sc-coaches');
-    sc_safe_remove_menu_page('sc-events');
     sc_safe_remove_menu_page('sc_setting');
     sc_safe_remove_menu_page('sc-surveys');
     sc_safe_remove_menu_page('sc-public-announcement');

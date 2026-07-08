@@ -3499,6 +3499,35 @@ width: fit-content;
     background: rgba(109, 52, 255, 0.1);
 }
 
+.sc-course-add-wrap .sc-course-assistants-box {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(109, 52, 255, 0.15);
+}
+
+.sc-course-add-wrap .sc-course-assistant-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.sc-course-add-wrap .sc-course-assistant-card {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px 12px;
+    align-items: end;
+    padding: 12px 14px;
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.sc-course-add-wrap .sc-course-assistant-actions {
+    display: flex;
+    align-items: flex-end;
+}
+
 .sc-course-add-wrap .sc-course-table-wrap {
     overflow-x: auto;
     border-radius: 12px;
@@ -18266,6 +18295,113 @@ body[class*="_page_sc_setting"] .sc-player-info-settings-wrap .sc-player-info-fo
     font-size: 12px;
     font-weight: 800;
     color: #4a1fb8;
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-radios,
+body[class*="_page_sc_setting"] .sc-verification-mode-radios {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 4px;
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-option,
+body[class*="_page_sc_setting"] .sc-verification-mode-option {
+    position: relative;
+    display: block;
+    margin: 0;
+    cursor: pointer;
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-option input,
+body[class*="_page_sc_setting"] .sc-verification-mode-option input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-card,
+body[class*="_page_sc_setting"] .sc-verification-mode-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 100%;
+    padding: 16px;
+    border-radius: 14px;
+    border: 2px solid rgba(109, 52, 255, 0.12);
+    background: #fff;
+    box-shadow: 0 4px 18px rgba(74, 31, 184, 0.05);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-option:hover .sc-verification-mode-card,
+body[class*="_page_sc_setting"] .sc-verification-mode-option:hover .sc-verification-mode-card {
+    border-color: rgba(109, 52, 255, 0.28);
+    box-shadow: 0 8px 24px rgba(74, 31, 184, 0.1);
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-option input:checked + .sc-verification-mode-card,
+body[class*="_page_sc_setting"] .sc-verification-mode-option input:checked + .sc-verification-mode-card {
+    border-color: #6d34ff;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f5ff 100%);
+    box-shadow: 0 10px 28px rgba(109, 52, 255, 0.18);
+    transform: translateY(-1px);
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-card__badge,
+body[class*="_page_sc_setting"] .sc-verification-mode-card__badge {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #6b7280;
+    background: #f3f4f6;
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-card__badge--all,
+body[class*="_page_sc_setting"] .sc-verification-mode-card__badge--all {
+    color: #1d4ed8;
+    background: rgba(59, 130, 246, 0.12);
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-card__badge--team,
+body[class*="_page_sc_setting"] .sc-verification-mode-card__badge--team {
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.14);
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-option input:checked + .sc-verification-mode-card .sc-verification-mode-card__badge,
+body[class*="_page_sc_setting"] .sc-verification-mode-option input:checked + .sc-verification-mode-card .sc-verification-mode-card__badge {
+    color: #fff;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-card__title,
+body[class*="_page_sc_setting"] .sc-verification-mode-card__title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e1b2e;
+    line-height: 1.4;
+}
+
+body.toplevel_page_sc_setting .sc-verification-mode-card__desc,
+body[class*="_page_sc_setting"] .sc-verification-mode-card__desc {
+    font-size: 12px;
+    line-height: 1.7;
+    color: #6b7280;
+}
+
+@media (max-width: 1100px) {
+    body.toplevel_page_sc_setting .sc-verification-mode-radios,
+    body[class*="_page_sc_setting"] .sc-verification-mode-radios {
+        grid-template-columns: 1fr;
+    }
 }
 
 body.toplevel_page_sc_setting .sc-player-info-section-title,

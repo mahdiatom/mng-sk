@@ -45,16 +45,19 @@ class Events_List_Table extends WP_List_Table {
         $meta_html = '<span class="sc-member-meta"><span class="sc-member-meta-item">' . esc_html($type_label) . '</span></span>';
 
         $actions = [];
-        if ($item['deleted_at']) {
-            $restore_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=restore&event_id=' . $item['id']), 'restore_event_' . $item['id']);
-            $delete_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=delete_permanent&event_id=' . $item['id']), 'delete_permanent_event_' . $item['id']);
-            $actions['restore'] = '<a href="' . esc_url($restore_url) . '">بازیابی</a>';
-            $actions['delete'] = '<a href="' . esc_url($delete_url) . '" onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید؟ این عمل قابل بازگشت نیست.\' })">حذف دائمی</a>';
-        } else {
-            $edit_url = admin_url('admin.php?page=sc-add-event&event_id=' . $item['id']);
-            $trash_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=trash&event_id=' . $item['id']), 'trash_event_' . $item['id']);
-            $actions['edit'] = '<a href="' . esc_url($edit_url) . '">ویرایش</a>';
-            $actions['trash'] = '<a href="' . esc_url($trash_url) . '">حذف</a>';
+        $readonly = function_exists('sc_secretary_is_readonly_course_event_lists') && sc_secretary_is_readonly_course_event_lists();
+        if (!$readonly) {
+            if ($item['deleted_at']) {
+                $restore_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=restore&event_id=' . $item['id']), 'restore_event_' . $item['id']);
+                $delete_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=delete_permanent&event_id=' . $item['id']), 'delete_permanent_event_' . $item['id']);
+                $actions['restore'] = '<a href="' . esc_url($restore_url) . '">بازیابی</a>';
+                $actions['delete'] = '<a href="' . esc_url($delete_url) . '" onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید؟ این عمل قابل بازگشت نیست.\' })">حذف دائمی</a>';
+            } else {
+                $edit_url = admin_url('admin.php?page=sc-add-event&event_id=' . $item['id']);
+                $trash_url = wp_nonce_url(admin_url('admin.php?page=sc-events&action=trash&event_id=' . $item['id']), 'trash_event_' . $item['id']);
+                $actions['edit'] = '<a href="' . esc_url($edit_url) . '">ویرایش</a>';
+                $actions['trash'] = '<a href="' . esc_url($trash_url) . '">حذف</a>';
+            }
         }
 
         $name_block = '<span class="sc-member-identity">'
@@ -138,6 +141,9 @@ class Events_List_Table extends WP_List_Table {
     }
 
     public function get_bulk_actions() {
+        if (function_exists('sc_secretary_is_readonly_course_event_lists') && sc_secretary_is_readonly_course_event_lists()) {
+            return [];
+        }
         $actions = [];
         if (isset($_GET['event_status']) && $_GET['event_status'] == 'trash') {
             $actions['restore'] = 'بازیابی';
@@ -153,6 +159,9 @@ class Events_List_Table extends WP_List_Table {
         return 'name';
     }
     public function process_bulk_action() {
+        if (function_exists('sc_secretary_is_readonly_course_event_lists') && sc_secretary_is_readonly_course_event_lists()) {
+            return;
+        }
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_events';
 
@@ -293,11 +302,15 @@ class Events_List_Table extends WP_List_Table {
     $table_name = $wpdb->prefix . 'sc_events';
     
     $event_status = isset($_GET['event_status']) ? sanitize_text_field($_GET['event_status']) : 'all';
-    
-    $count_all = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL");
-    $count_active = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL AND is_active = 1");
-    $count_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL AND is_active = 0");
-    $count_trash = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NOT NULL");
+
+    $scope_base = '1=1';
+    if (function_exists('sc_secretary_append_event_list_where')) {
+        $scope_base = sc_secretary_append_event_list_where($scope_base, 'e');
+    }
+    $count_all = (int) $wpdb->get_var("SELECT COUNT(*) FROM $table_name e WHERE {$scope_base} AND e.deleted_at IS NULL");
+    $count_active = (int) $wpdb->get_var("SELECT COUNT(*) FROM $table_name e WHERE {$scope_base} AND e.deleted_at IS NULL AND e.is_active = 1");
+    $count_inactive = (int) $wpdb->get_var("SELECT COUNT(*) FROM $table_name e WHERE {$scope_base} AND e.deleted_at IS NULL AND e.is_active = 0");
+    $count_trash = (int) $wpdb->get_var("SELECT COUNT(*) FROM $table_name e WHERE {$scope_base} AND e.deleted_at IS NOT NULL");
 
     $views = [
         'all' => $this->view_create('all', 'همه', admin_url('admin.php?page=sc-events&event_status=all'), $count_all, $event_status === 'all'),
@@ -377,13 +390,12 @@ class Events_List_Table extends WP_List_Table {
             $where .= $wpdb->prepare(" AND holding_date_gregorian <= %s", $filter_date_to);
         }
 
-
-
-
-
+        if (function_exists('sc_secretary_append_event_list_where')) {
+            $where = sc_secretary_append_event_list_where($where, 'e');
+        }
 
         $results = $wpdb->get_results(
-            "SELECT SQL_CALC_FOUND_ROWS * FROM $table_name WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
+            "SELECT SQL_CALC_FOUND_ROWS e.* FROM $table_name e WHERE $where $order_clause LIMIT $per_page OFFSET $offset",
             ARRAY_A
         );
 
@@ -424,6 +436,8 @@ if (isset($_GET['sc_status'])) {
 $events_list_table = new Events_List_Table();
 $events_list_table->prepare_items();
 
+$is_secretary_readonly = function_exists('sc_secretary_is_readonly_course_event_lists') && sc_secretary_is_readonly_course_event_lists();
+
 $selected_status = isset($_GET['event_status']) ? sanitize_text_field(wp_unslash($_GET['event_status'])) : 'all';
 $selected_type   = isset($_GET['event_type']) ? sanitize_text_field(wp_unslash($_GET['event_type'])) : 'all';
 $selected_fee    = isset($_GET['event_fee']) ? sanitize_text_field(wp_unslash($_GET['event_fee'])) : 'all';
@@ -458,11 +472,13 @@ $filters_open = $active_filters_count > 0;
     <div class="sc-events-list-header">
         <div class="sc-events-list-header-text">
             <h1 class="sc-events-list-title">لیست رویداد / مسابقه</h1>
-            <p class="sc-events-list-desc">برای مشاهده اکشن‌ها روی نام رویداد بروید (ویرایش، حذف).</p>
+            <p class="sc-events-list-desc"><?php echo $is_secretary_readonly ? 'رویدادهای شعبه(های) مجاز شما — فقط مشاهده.' : 'برای مشاهده اکشن‌ها روی نام رویداد بروید (ویرایش، حذف).'; ?></p>
         </div>
+        <?php if (!$is_secretary_readonly) : ?>
         <div class="sc-events-list-header-actions">
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-event')); ?>" class="page-title-action sc-events-list-add-btn">افزودن رویداد جدید</a>
         </div>
+        <?php endif; ?>
     </div>
 
     <div class="sc-events-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">

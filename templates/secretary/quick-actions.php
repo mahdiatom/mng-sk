@@ -3,11 +3,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (!function_exists('sc_user_is_secretary_only') || !sc_user_is_secretary_only()) {
+if (!function_exists('sc_user_can_quick_actions') || !sc_user_can_quick_actions()) {
     wp_die('دسترسی ندارید.', 'خطای دسترسی', ['response' => 403]);
 }
 
-$chapters = function_exists('sc_secretary_get_effective_chapters') ? sc_secretary_get_effective_chapters() : [];
+$is_branch_scoped = function_exists('sc_quick_actions_is_branch_scoped') && sc_quick_actions_is_branch_scoped();
+$chapters = function_exists('sc_quick_actions_get_chapters') ? sc_quick_actions_get_chapters() : [];
 $filter_chapter = function_exists('sc_secretary_get_filter_chapter') ? sc_secretary_get_filter_chapter() : 'all';
 $default_chapter = ($filter_chapter !== 'all') ? $filter_chapter : (isset($chapters[0]) ? $chapters[0] : '');
 $courses = function_exists('sc_secretary_get_quick_action_courses')
@@ -44,7 +45,7 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
     <div class="sc-members-list-header">
         <div class="sc-members-list-header-text">
             <h1 class="sc-members-list-title">اقدامات سریع</h1>
-            <p class="sc-members-list-desc">ثبت‌نام بازیکن در دوره و صدور صورت‌حساب برای شعبه(های) مجاز شما. در افزودن به دوره، همه بازیکنان سایت قابل جستجو هستند؛ فقط دوره‌هایی با برنامه هفتگی فعال برای شعبه نمایش داده می‌شوند.</p>
+            <p class="sc-members-list-desc"><?php if ($is_branch_scoped) : ?>ثبت‌نام بازیکن در دوره و صدور صورت‌حساب برای شعبه(های) مجاز شما. در افزودن به دوره، همه بازیکنان سایت قابل جستجو هستند؛ فقط دوره‌هایی با برنامه هفتگی فعال برای شعبه نمایش داده می‌شوند.<?php else : ?>ثبت‌نام بازیکن در دوره و صدور صورت‌حساب — دسترسی به همه شعب و دوره‌های فعال.<?php endif; ?></p>
         </div>
     </div>
 
@@ -77,7 +78,7 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
                             <option value="<?php echo esc_attr($ch); ?>" <?php selected($default_chapter, $ch); ?>><?php echo esc_html($ch); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <p class="description">با تغییر شعبه، لیست دوره‌ها بر اساس برنامه هفتگی همان شعبه به‌روز می‌شود.</p>
+                    <p class="description"><?php echo $is_branch_scoped ? 'با تغییر شعبه، لیست دوره‌ها بر اساس برنامه هفتگی همان شعبه به‌روز می‌شود.' : 'با تغییر شعبه، لیست دوره‌های فعال همان شعبه به‌روز می‌شود.'; ?></p>
                 </td>
             </tr>
             <tr>

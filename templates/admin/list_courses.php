@@ -74,16 +74,24 @@ class Courses_List_Table extends WP_List_Table {
         $meta_html = '<span class="sc-member-meta">' . implode('<span class="sc-member-meta-dot"></span>', $meta_parts) . '</span>';
 
         $actions = [];
-        if ($item['deleted_at']) {
-            $actions['restore'] = '<a href="' . admin_url('admin.php?page=sc-courses&action=restore&course_id=') . $item['id'] . '">بازیابی</a>';
-            $actions['delete'] = '<a href="' . admin_url('admin.php?page=sc-courses&action=delete_permanent&course_id=') . $item['id'] . '" onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید؟ این عمل قابل بازگشت نیست.\' })">حذف دائمی</a>';
-        } else {
-            $actions['edit'] = '<a href="' . admin_url('admin.php?page=sc-add-course&course_id=') . $item['id'] . '">ویرایش</a>';
+        $readonly = function_exists('sc_secretary_is_readonly_course_event_lists') && sc_secretary_is_readonly_course_event_lists();
+        if (!$readonly) {
+            if ($item['deleted_at']) {
+                $actions['restore'] = '<a href="' . admin_url('admin.php?page=sc-courses&action=restore&course_id=') . $item['id'] . '">بازیابی</a>';
+                $actions['delete'] = '<a href="' . admin_url('admin.php?page=sc-courses&action=delete_permanent&course_id=') . $item['id'] . '" onclick="return scConfirmInline(event, { type: \'warning\', message: \'آیا مطمئن هستید؟ این عمل قابل بازگشت نیست.\' })">حذف دائمی</a>';
+            } else {
+                $actions['edit'] = '<a href="' . admin_url('admin.php?page=sc-add-course&course_id=') . $item['id'] . '">ویرایش</a>';
+                $actions['view_users'] = sprintf(
+                    '<a href="#" class="view-course-users" data-id="%s">مشاهده کاربران</a>',
+                    esc_attr($item['id'])
+                );
+                $actions['trash'] = '<a href="' . admin_url('admin.php?page=sc-courses&action=trash&course_id=') . $item['id'] . '">حذف</a>';
+            }
+        } elseif (!$item['deleted_at']) {
             $actions['view_users'] = sprintf(
                 '<a href="#" class="view-course-users" data-id="%s">مشاهده کاربران</a>',
                 esc_attr($item['id'])
             );
-            $actions['trash'] = '<a href="' . admin_url('admin.php?page=sc-courses&action=trash&course_id=') . $item['id'] . '">حذف</a>';
         }
 
         $title_block = '<span class="sc-member-identity">'
@@ -278,6 +286,9 @@ class Courses_List_Table extends WP_List_Table {
     }
 
     public function get_bulk_actions() {
+        if (function_exists('sc_secretary_is_readonly_course_event_lists') && sc_secretary_is_readonly_course_event_lists()) {
+            return [];
+        }
         $actions = [];
         if (isset($_GET['course_status']) && $_GET['course_status'] == 'trash') {
             $actions['restore'] = 'بازیابی';
@@ -291,6 +302,9 @@ class Courses_List_Table extends WP_List_Table {
     }
 
     public function process_bulk_action() {
+        if (function_exists('sc_secretary_is_readonly_course_event_lists') && sc_secretary_is_readonly_course_event_lists()) {
+            return;
+        }
         global $wpdb;
         $table_name = $wpdb->prefix . 'sc_courses';
 
@@ -437,11 +451,28 @@ class Courses_List_Table extends WP_List_Table {
         
         // دریافت فیلتر فعال
         $course_status = isset($_GET['course_status']) ? sanitize_text_field($_GET['course_status']) : 'all';
-        
-        $count_all = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL");
-        $count_active = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL AND is_active = 1");
-        $count_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NULL AND is_active = 0");
-        $count_trash = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE deleted_at IS NOT NULL");
+
+        $scope_where = '1=1';
+        $scope_args = [];
+        if (function_exists('sc_secretary_merge_course_list_where')) {
+            $where_parts = ['1=1'];
+            sc_secretary_merge_course_list_where($where_parts, $scope_args);
+            $scope_where = implode(' AND ', $where_parts);
+        }
+        $count_sql_base = "SELECT COUNT(*) FROM $table_name c WHERE {$scope_where} AND c.deleted_at IS NULL";
+        $count_all = !empty($scope_args)
+            ? (int) $wpdb->get_var($wpdb->prepare($count_sql_base, $scope_args))
+            : (int) $wpdb->get_var($count_sql_base);
+        $count_active = !empty($scope_args)
+            ? (int) $wpdb->get_var($wpdb->prepare($count_sql_base . ' AND c.is_active = 1', $scope_args))
+            : (int) $wpdb->get_var($count_sql_base . ' AND c.is_active = 1');
+        $count_inactive = !empty($scope_args)
+            ? (int) $wpdb->get_var($wpdb->prepare($count_sql_base . ' AND c.is_active = 0', $scope_args))
+            : (int) $wpdb->get_var($count_sql_base . ' AND c.is_active = 0');
+        $count_trash_sql = "SELECT COUNT(*) FROM $table_name c WHERE {$scope_where} AND c.deleted_at IS NOT NULL";
+        $count_trash = !empty($scope_args)
+            ? (int) $wpdb->get_var($wpdb->prepare($count_trash_sql, $scope_args))
+            : (int) $wpdb->get_var($count_trash_sql);
 
         $views = [
             'all' => $this->view_create(
@@ -512,6 +543,7 @@ class Courses_List_Table extends WP_List_Table {
         $order_clause = 'ORDER BY c.' . $orderby . ' ' . $order;
 
         $where = '1=1';
+        $prepare_args = [];
         $course_status = isset($_GET['course_status']) ? sanitize_text_field(wp_unslash($_GET['course_status'])) : 'all';
 
         if ($course_status === 'trash') {
@@ -528,17 +560,21 @@ class Courses_List_Table extends WP_List_Table {
 
         if (isset($_GET['s']) && $_GET['s'] !== '') {
             $search = '%' . $wpdb->esc_like(sanitize_text_field(wp_unslash($_GET['s']))) . '%';
-            $where .= $wpdb->prepare(' AND (c.title LIKE %s OR c.description LIKE %s)', $search, $search);
+            $where .= ' AND (c.title LIKE %s OR c.description LIKE %s)';
+            $prepare_args[] = $search;
+            $prepare_args[] = $search;
         }
 
         $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
         if ($filter_chapter !== '') {
-            $where .= $wpdb->prepare(' AND c.chapter = %s', $filter_chapter);
+            $where .= ' AND c.chapter = %s';
+            $prepare_args[] = $filter_chapter;
         }
 
         $filter_course_type = isset($_GET['filter_course_type']) ? sanitize_text_field(wp_unslash($_GET['filter_course_type'])) : 'all';
         if ($filter_course_type === 'group' || $filter_course_type === 'private') {
-            $where .= $wpdb->prepare(' AND c.course_type = %s', $filter_course_type);
+            $where .= ' AND c.course_type = %s';
+            $prepare_args[] = $filter_course_type;
         }
 
         $filter_capacity_status = isset($_GET['filter_capacity_status']) ? sanitize_text_field(wp_unslash($_GET['filter_capacity_status'])) : 'all';
@@ -556,9 +592,17 @@ class Courses_List_Table extends WP_List_Table {
             ) < c.capacity)";
         }
 
+        if (function_exists('sc_secretary_merge_course_list_where')) {
+            $where_parts = [$where];
+            sc_secretary_merge_course_list_where($where_parts, $prepare_args);
+            $where = implode(' AND ', $where_parts);
+        }
+
         $sql = "SELECT SQL_CALC_FOUND_ROWS c.* FROM `$table_name` c WHERE $where $order_clause LIMIT %d OFFSET %d";
+        $prepare_args[] = $per_page;
+        $prepare_args[] = $offset;
         $results = $wpdb->get_results(
-            $wpdb->prepare($sql, $per_page, $offset),
+            $wpdb->prepare($sql, $prepare_args),
             ARRAY_A
         );
 

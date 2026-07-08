@@ -1379,6 +1379,9 @@ function sc_update_database() {
         sc_create_event_registrations_table();
         sc_create_coaches_table();
         sc_create_course_coaches_table();
+        if (function_exists('sc_create_course_assistant_coaches_table')) {
+            sc_create_course_assistant_coaches_table();
+        }
         sc_create_wallet_transactions_table();
         sc_create_coach_wallet_transactions_table();
         sc_create_coach_salary_records_table();
@@ -2414,6 +2417,14 @@ function sc_update_database() {
             }
         }
         update_option('sc_member_courses_billing_deferred_added', '1');
+    }
+
+    // جدول کمک‌مربی‌های دوره
+    if (get_option('sc_course_assistant_coaches_table_v1', '0') !== '1') {
+        if (function_exists('sc_create_course_assistant_coaches_table')) {
+            sc_create_course_assistant_coaches_table();
+        }
+        update_option('sc_course_assistant_coaches_table_v1', '1');
     }
 
     // فیلدهای نمایشی شعبه برای API عمومی

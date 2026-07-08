@@ -381,7 +381,10 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
         $status = 'error';
 
         if (!empty($calc_result['success'])) {
-            if (isset($calc_result['difference']) && abs((float) $calc_result['difference']) >= 0.01) {
+            if (isset($calc_result['deposited_amount']) && (float) $calc_result['deposited_amount'] > 0) {
+                $deposited_amount = (float) $calc_result['deposited_amount'];
+                $status = 'calculated';
+            } elseif (isset($calc_result['difference']) && abs((float) $calc_result['difference']) >= 0.01) {
                 $difference = (float) $calc_result['difference'];
                 if ($difference > 0) {
                     $deposited_amount = $difference;
@@ -407,9 +410,40 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
             'coach_name' => $coach_name,
             'status' => $status,
             'salary_amount' => (float) ($calc_result['salary_amount'] ?? 0),
+            'gross_salary_amount' => (float) ($calc_result['gross_salary_amount'] ?? ($calc_result['salary_amount'] ?? 0)),
+            'assistant_total' => (float) ($calc_result['assistant_total'] ?? 0),
             'deposited_amount' => $deposited_amount,
             'message' => (string) ($calc_result['message'] ?? ''),
         ];
+
+        // نوتیف/نتیجه کمک‌مربی‌ها
+        if (!empty($calc_result['assistants']) && is_array($calc_result['assistants'])) {
+            foreach ($calc_result['assistants'] as $ar) {
+                $a_id = (int) ($ar['coach_id'] ?? 0);
+                $a_res = isset($ar['result']) && is_array($ar['result']) ? $ar['result'] : [];
+                $a_dep = (float) ($a_res['deposited_amount'] ?? 0);
+                $a_name = '';
+                if ($a_id > 0) {
+                    $a_row = $wpdb->get_row($wpdb->prepare(
+                        "SELECT first_name, last_name FROM $coaches_table WHERE id = %d LIMIT 1",
+                        $a_id
+                    ));
+                    if ($a_row) {
+                        $a_name = trim((string) $a_row->first_name . ' ' . (string) $a_row->last_name);
+                    }
+                }
+                $results['coaches'][] = [
+                    'coach_id' => $a_id,
+                    'chapter_name' => $chapter_name,
+                    'coach_name' => $a_name !== '' ? ($a_name . ' (کمک‌مربی)') : 'کمک‌مربی',
+                    'status' => $a_dep > 0 ? 'calculated' : ((!empty($a_res['success']) && ($a_res['message'] ?? '') === 'مبلغ تغییر نکرده') ? 'no_change' : 'zero_amount'),
+                    'salary_amount' => (float) ($ar['amount'] ?? ($a_res['salary_amount'] ?? 0)),
+                    'deposited_amount' => $a_dep,
+                    'message' => (string) ($a_res['message'] ?? ''),
+                    'is_assistant' => true,
+                ];
+            }
+        }
     }
 
     return $results;
@@ -563,16 +597,223 @@ function sc_process_coach_salary_attendance_notifications($course_id, $attendanc
 }
 
 /**
- * Calculate and add percentage salary for coach (per course + branch).
- * محاسبه و افزودن دستمزد درصدی مربی
+ * Upsert یک رکورد دستمزد درصدی و همگام‌سازی اختلاف با کیف پول.
  *
- * @param string $chapter_name شعبه (برای دوره‌های چندشعبه)
+ * @param int    $coach_id
+ * @param int    $course_id
+ * @param string $attendance_date
+ * @param string $chapter_name
+ * @param int    $attendance_count
+ * @param float  $price_per_session
+ * @param float  $total_revenue
+ * @param float  $salary_percentage
+ * @param float  $salary_amount
+ * @param string $description_prefix
+ * @return array{success:bool,message:string,salary_amount:float,difference?:float,transaction_id?:int,deposited_amount?:float}
  */
-function sc_calculate_coach_percentage_salary($coach_id, $course_id, $attendance_date, $attendance_count, $price_per_session, $chapter_name = '') {
+function sc_upsert_coach_percentage_salary_record(
+    $coach_id,
+    $course_id,
+    $attendance_date,
+    $chapter_name,
+    $attendance_count,
+    $price_per_session,
+    $total_revenue,
+    $salary_percentage,
+    $salary_amount,
+    $description_prefix = 'دستمزد درصدی'
+) {
+    global $wpdb;
+
     $coach_id = absint($coach_id);
     $course_id = absint($course_id);
     $attendance_date = sanitize_text_field((string) $attendance_date);
     $chapter_name = sanitize_text_field((string) $chapter_name);
+    $attendance_count = (int) $attendance_count;
+    $price_per_session = (float) $price_per_session;
+    $total_revenue = (float) $total_revenue;
+    $salary_percentage = (float) $salary_percentage;
+    $salary_amount = max(0, (float) $salary_amount);
+
+    if (!$coach_id || !$course_id || $attendance_date === '') {
+        return ['success' => false, 'message' => 'پارامترهای نامعتبر', 'salary_amount' => 0];
+    }
+
+    $salary_records_table = $wpdb->prefix . 'sc_coach_salary_records';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $course_title = (string) $wpdb->get_var($wpdb->prepare("SELECT title FROM $courses_table WHERE id = %d", $course_id));
+    $branch_label = $chapter_name !== '' ? (' - شعبه: ' . $chapter_name) : '';
+
+    $existing_record = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $salary_records_table
+         WHERE coach_id = %d AND course_id = %d AND chapter_name = %s AND attendance_date = %s LIMIT 1",
+        $coach_id,
+        $course_id,
+        $chapter_name,
+        $attendance_date
+    ));
+
+    if ($existing_record) {
+        $old_record = $wpdb->get_row($wpdb->prepare(
+            "SELECT salary_amount FROM $salary_records_table WHERE id = %d",
+            $existing_record
+        ));
+        $old_amount = floatval($old_record ? $old_record->salary_amount : 0);
+        $difference = $salary_amount - $old_amount;
+
+        $wpdb->update(
+            $salary_records_table,
+            [
+                'attendance_count' => $attendance_count,
+                'price_per_session' => $price_per_session,
+                'total_revenue' => $total_revenue,
+                'salary_percentage' => $salary_percentage,
+                'salary_amount' => $salary_amount,
+                'updated_at' => current_time('mysql'),
+            ],
+            ['id' => $existing_record],
+            ['%d', '%f', '%f', '%f', '%f', '%s'],
+            ['%d']
+        );
+
+        if (abs($difference) < 0.01) {
+            return [
+                'success' => true,
+                'message' => 'مبلغ تغییر نکرده',
+                'salary_amount' => $salary_amount,
+                'difference' => 0,
+                'deposited_amount' => 0,
+            ];
+        }
+
+        if ($difference > 0) {
+            $description = sprintf(
+                'بروزرسانی %s - دوره: %s%s - تاریخ: %s - افزایش: %s تومان',
+                $description_prefix,
+                $course_title,
+                $branch_label,
+                sc_date_shamsi_date_only($attendance_date),
+                number_format($difference, 0, '.', ',')
+            );
+            sc_add_coach_wallet_transaction(
+                $coach_id,
+                'salary_percentage',
+                $difference,
+                $description,
+                [
+                    'course_id' => $course_id,
+                    'attendance_date' => $attendance_date,
+                    'salary_record_id' => (int) $existing_record,
+                ]
+            );
+        } else {
+            $description = sprintf(
+                'بروزرسانی %s - دوره: %s%s - تاریخ: %s - کاهش: %s تومان',
+                $description_prefix,
+                $course_title,
+                $branch_label,
+                sc_date_shamsi_date_only($attendance_date),
+                number_format(abs($difference), 0, '.', ',')
+            );
+            sc_deduct_coach_wallet($coach_id, abs($difference), $description);
+        }
+
+        return [
+            'success' => true,
+            'message' => 'دستمزد بروزرسانی شد',
+            'salary_amount' => $salary_amount,
+            'difference' => $difference,
+            'deposited_amount' => max(0, $difference),
+        ];
+    }
+
+    if ($salary_amount <= 0) {
+        return [
+            'success' => true,
+            'message' => 'دستمزد قابل پرداختی وجود ندارد',
+            'salary_amount' => 0,
+            'deposited_amount' => 0,
+        ];
+    }
+
+    $description = sprintf(
+        '%s - دوره: %s%s - تاریخ: %s - تعداد شرکت‌کنندگان: %d',
+        $description_prefix,
+        $course_title,
+        $branch_label,
+        sc_date_shamsi_date_only($attendance_date),
+        $attendance_count
+    );
+
+    $transaction_result = sc_add_coach_wallet_transaction(
+        $coach_id,
+        'salary_percentage',
+        $salary_amount,
+        $description,
+        [
+            'course_id' => $course_id,
+            'attendance_date' => $attendance_date,
+        ]
+    );
+
+    if (empty($transaction_result['success'])) {
+        return ['success' => false, 'message' => 'خطا در افزودن به کیف پول', 'salary_amount' => 0];
+    }
+
+    $salary_insert = $wpdb->insert(
+        $salary_records_table,
+        [
+            'coach_id' => $coach_id,
+            'course_id' => $course_id,
+            'chapter_name' => $chapter_name,
+            'attendance_date' => $attendance_date,
+            'attendance_count' => $attendance_count,
+            'price_per_session' => $price_per_session,
+            'total_revenue' => $total_revenue,
+            'salary_percentage' => $salary_percentage,
+            'salary_amount' => $salary_amount,
+            'salary_type' => 'percentage',
+            'wallet_transaction_id' => $transaction_result['transaction_id'],
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql'),
+        ],
+        ['%d', '%d', '%s', '%s', '%d', '%f', '%f', '%f', '%f', '%s', '%d', '%s', '%s']
+    );
+
+    if ($salary_insert) {
+        $wallet_table = $wpdb->prefix . 'sc_coach_wallet_transactions';
+        $wpdb->update(
+            $wallet_table,
+            ['related_salary_record_id' => (int) $wpdb->insert_id],
+            ['id' => $transaction_result['transaction_id']],
+            ['%d'],
+            ['%d']
+        );
+    }
+
+    return [
+        'success' => true,
+        'message' => 'دستمزد با موفقیت محاسبه و واریز شد',
+        'salary_amount' => $salary_amount,
+        'transaction_id' => $transaction_result['transaction_id'],
+        'deposited_amount' => $salary_amount,
+        'difference' => $salary_amount,
+    ];
+}
+
+/**
+ * Calculate and add percentage salary for coach (per course + branch).
+ * محاسبه و افزودن دستمزد درصدی مربی (+ سهم کمک‌مربی در صورت تعریف)
+ *
+ * @param string $chapter_name شعبه (برای دوره‌های چندشعبه)
+ * @param string $group_name   گروه (اختیاری؛ برای فیلتر کمک‌مربی)
+ */
+function sc_calculate_coach_percentage_salary($coach_id, $course_id, $attendance_date, $attendance_count, $price_per_session, $chapter_name = '', $group_name = '') {
+    $coach_id = absint($coach_id);
+    $course_id = absint($course_id);
+    $attendance_date = sanitize_text_field((string) $attendance_date);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    $group_name = sanitize_text_field((string) $group_name);
     $attendance_count = (int) $attendance_count;
     $price_per_session = (float) $price_per_session;
 
@@ -582,7 +823,6 @@ function sc_calculate_coach_percentage_salary($coach_id, $course_id, $attendance
 
     global $wpdb;
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-    $salary_records_table = $wpdb->prefix . 'sc_coach_salary_records';
 
     if ($chapter_name !== '') {
         $course_coach = $wpdb->get_row($wpdb->prepare(
@@ -607,157 +847,193 @@ function sc_calculate_coach_percentage_salary($coach_id, $course_id, $attendance
 
     $salary_percentage = floatval($course_coach->salary_percentage);
     $total_revenue = $attendance_count * $price_per_session;
-    $salary_amount = ($total_revenue * $salary_percentage) / 100;
+    $gross_salary = ($total_revenue * $salary_percentage) / 100;
 
-    $existing_record = $wpdb->get_var($wpdb->prepare(
-        "SELECT id FROM $salary_records_table
-         WHERE coach_id = %d AND course_id = %d AND chapter_name = %s AND attendance_date = %s LIMIT 1",
+    $assistants = [];
+    if ($chapter_name !== '' && function_exists('sc_get_assistants_for_primary_coach')) {
+        $assistants = sc_get_assistants_for_primary_coach($course_id, $coach_id, $chapter_name, $group_name);
+    }
+
+    $split = function_exists('sc_split_primary_salary_with_assistants')
+        ? sc_split_primary_salary_with_assistants($gross_salary, $assistants)
+        : ['primary_net' => $gross_salary, 'assistants' => []];
+
+    $payout_mode = function_exists('sc_get_assistant_salary_payout_mode')
+        ? sc_get_assistant_salary_payout_mode()
+        : 'direct';
+
+    $assistant_total = 0.0;
+    foreach ($split['assistants'] as $a) {
+        $assistant_total += (float) $a['amount'];
+    }
+
+    // مبلغی که در رکورد مربی اصلی ذخیره می‌شود
+    $primary_record_amount = ($payout_mode === 'via_primary')
+        ? $gross_salary
+        : (float) $split['primary_net'];
+
+    $primary_desc = empty($split['assistants'])
+        ? 'دستمزد درصدی'
+        : ($payout_mode === 'via_primary'
+            ? 'دستمزد درصدی (ناخالص قبل از سهم کمک‌مربی)'
+            : 'دستمزد درصدی (خالص پس از سهم کمک‌مربی)');
+
+    $primary_result = sc_upsert_coach_percentage_salary_record(
         $coach_id,
         $course_id,
+        $attendance_date,
         $chapter_name,
-        $attendance_date
-    ));
+        $attendance_count,
+        $price_per_session,
+        $total_revenue,
+        $salary_percentage,
+        $primary_record_amount,
+        $primary_desc
+    );
+
+    if (empty($primary_result['success'])) {
+        return $primary_result;
+    }
 
     $courses_table = $wpdb->prefix . 'sc_courses';
     $course_title = (string) $wpdb->get_var($wpdb->prepare("SELECT title FROM $courses_table WHERE id = %d", $course_id));
     $branch_label = $chapter_name !== '' ? (' - شعبه: ' . $chapter_name) : '';
+    $assistant_results = [];
+    $assistant_deposited = 0.0;
 
-    if ($existing_record) {
-        $old_record = $wpdb->get_row($wpdb->prepare(
-            "SELECT salary_amount, wallet_transaction_id FROM $salary_records_table WHERE id = %d",
-            $existing_record
-        ));
+    foreach ($split['assistants'] as $a) {
+        $assistant_id = (int) $a['coach_id'];
+        $assistant_amount = (float) $a['amount'];
+        $assistant_pct = (float) $a['share_percentage'];
+        $assistant_name = (string) ($a['name'] ?? '');
 
-        $old_amount = floatval($old_record->salary_amount);
-        $difference = $salary_amount - $old_amount;
-
-        if (abs($difference) < 0.01) {
-            return ['success' => true, 'message' => 'مبلغ تغییر نکرده', 'salary_amount' => $salary_amount];
-        }
-
-        $wpdb->update(
-            $salary_records_table,
-            [
-                'attendance_count' => $attendance_count,
-                'price_per_session' => $price_per_session,
-                'total_revenue' => $total_revenue,
-                'salary_percentage' => $salary_percentage,
-                'salary_amount' => $salary_amount,
-                'updated_at' => current_time('mysql'),
-            ],
-            ['id' => $existing_record],
-            ['%d', '%f', '%f', '%f', '%f', '%s'],
-            ['%d']
+        // درصد ذخیره‌شده برای کمک‌مربی = درصد از سهم مربی اصلی (نه از کل درآمد کلاس)
+        $assistant_result = sc_upsert_coach_percentage_salary_record(
+            $assistant_id,
+            $course_id,
+            $attendance_date,
+            $chapter_name,
+            $attendance_count,
+            $price_per_session,
+            $gross_salary,
+            $assistant_pct,
+            $assistant_amount,
+            'دستمزد کمک‌مربی (سهم از مربی اصلی' . ($assistant_name !== '' ? ': ' . $assistant_name : '') . ')'
         );
 
-        if (abs($difference) >= 0.01) {
-            if ($difference > 0) {
-                $description = sprintf(
-                    'بروزرسانی دستمزد درصدی - دوره: %s%s - تاریخ: %s - افزایش: %s تومان',
-                    $course_title,
-                    $branch_label,
-                    sc_date_shamsi_date_only($attendance_date),
-                    number_format($difference, 0, '.', ',')
-                );
+        if ($payout_mode === 'via_primary' && $assistant_amount > 0 && !empty($assistant_result['success'])) {
+            // در حالت via_primary کل ناخالص قبلاً به مربی اصلی رفته؛ سهم کمک‌مربی را از او کم کن
+            // فقط وقتی مبلغ کمک‌مربی افزایش یافته / اولین واریز است، کسر متناسب انجام می‌شود
+            $assistant_diff = isset($assistant_result['difference'])
+                ? (float) $assistant_result['difference']
+                : (float) ($assistant_result['deposited_amount'] ?? 0);
 
-                sc_add_coach_wallet_transaction(
-                    $coach_id,
-                    'salary_percentage',
-                    $difference,
-                    $description,
-                    [
-                        'course_id' => $course_id,
-                        'attendance_date' => $attendance_date,
-                        'salary_record_id' => $existing_record,
-                    ]
-                );
-            } else {
-                $description = sprintf(
-                    'بروزرسانی دستمزد درصدی - دوره: %s%s - تاریخ: %s - کاهش: %s تومان',
-                    $course_title,
-                    $branch_label,
-                    sc_date_shamsi_date_only($attendance_date),
-                    number_format(abs($difference), 0, '.', ',')
-                );
-
-                sc_deduct_coach_wallet($coach_id, abs($difference), $description);
+            if (abs($assistant_diff) >= 0.01) {
+                if ($assistant_diff > 0) {
+                    $deduct_desc = sprintf(
+                        'انتقال سهم کمک‌مربی به %s - دوره: %s%s - تاریخ: %s - مبلغ: %s تومان',
+                        $assistant_name !== '' ? $assistant_name : ('#' . $assistant_id),
+                        $course_title,
+                        $branch_label,
+                        sc_date_shamsi_date_only($attendance_date),
+                        number_format($assistant_diff, 0, '.', ',')
+                    );
+                    sc_deduct_coach_wallet($coach_id, $assistant_diff, $deduct_desc);
+                } else {
+                    // کاهش سهم کمک‌مربی → برگشت به مربی اصلی
+                    $refund_desc = sprintf(
+                        'برگشت کاهش سهم کمک‌مربی %s - دوره: %s%s - تاریخ: %s - مبلغ: %s تومان',
+                        $assistant_name !== '' ? $assistant_name : ('#' . $assistant_id),
+                        $course_title,
+                        $branch_label,
+                        sc_date_shamsi_date_only($attendance_date),
+                        number_format(abs($assistant_diff), 0, '.', ',')
+                    );
+                    sc_add_coach_wallet_transaction(
+                        $coach_id,
+                        'salary_percentage',
+                        abs($assistant_diff),
+                        $refund_desc,
+                        [
+                            'course_id' => $course_id,
+                            'attendance_date' => $attendance_date,
+                        ]
+                    );
+                }
             }
         }
 
-        return [
-            'success' => true,
-            'message' => 'دستمزد بروزرسانی شد',
-            'salary_amount' => $salary_amount,
-            'difference' => $difference,
+        $assistant_results[] = [
+            'coach_id' => $assistant_id,
+            'amount' => $assistant_amount,
+            'result' => $assistant_result,
         ];
+        $assistant_deposited += (float) ($assistant_result['deposited_amount'] ?? 0);
     }
 
-    if ($salary_amount <= 0) {
-        return ['success' => true, 'message' => 'دستمزد قابل پرداختی وجود ندارد', 'salary_amount' => 0];
+    // صفر کردن رکورد کمک‌مربی‌هایی که دیگر در لیست نیستند (حذف شده‌اند)
+    if (function_exists('sc_course_assistant_coaches_table_ready') && sc_course_assistant_coaches_table_ready() && $chapter_name !== '') {
+        $salary_records_table = $wpdb->prefix . 'sc_coach_salary_records';
+        $active_assistant_ids = array_map(static function ($a) {
+            return (int) $a['coach_id'];
+        }, $split['assistants']);
+
+        $prev_assistant_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, coach_id, salary_amount FROM $salary_records_table
+             WHERE course_id = %d AND chapter_name = %s AND attendance_date = %s
+               AND coach_id != %d AND salary_type = 'percentage' AND salary_amount > 0",
+            $course_id,
+            $chapter_name,
+            $attendance_date,
+            $coach_id
+        ));
+
+        foreach ((array) $prev_assistant_rows as $prev) {
+            $prev_coach_id = (int) $prev->coach_id;
+            if (in_array($prev_coach_id, $active_assistant_ids, true)) {
+                continue;
+            }
+            // فقط اگر این مربی واقعاً کمک‌مربی این کلاس بوده (نه مربی اصلی شعبه دیگر)
+            if (function_exists('sc_coach_is_assistant_only_for_course_chapter')
+                && !sc_coach_is_assistant_only_for_course_chapter($course_id, $prev_coach_id, $chapter_name)) {
+                continue;
+            }
+            sc_upsert_coach_percentage_salary_record(
+                $prev_coach_id,
+                $course_id,
+                $attendance_date,
+                $chapter_name,
+                $attendance_count,
+                $price_per_session,
+                0,
+                0,
+                0,
+                'حذف سهم کمک‌مربی'
+            );
+        }
     }
 
-    $description = sprintf(
-        'دستمزد درصدی - دوره: %s%s - تاریخ: %s - تعداد شرکت‌کنندگان: %d',
-        $course_title,
-        $branch_label,
-        sc_date_shamsi_date_only($attendance_date),
-        $attendance_count
-    );
-
-    $transaction_result = sc_add_coach_wallet_transaction(
-        $coach_id,
-        'salary_percentage',
-        $salary_amount,
-        $description,
-        [
-            'course_id' => $course_id,
-            'attendance_date' => $attendance_date,
-        ]
-    );
-
-    if (!$transaction_result['success']) {
-        return ['success' => false, 'message' => 'خطا در افزودن به کیف پول'];
-    }
-
-    $salary_data = [
-        'coach_id' => $coach_id,
-        'course_id' => $course_id,
-        'chapter_name' => $chapter_name,
-        'attendance_date' => $attendance_date,
-        'attendance_count' => $attendance_count,
-        'price_per_session' => $price_per_session,
-        'total_revenue' => $total_revenue,
-        'salary_percentage' => $salary_percentage,
-        'salary_amount' => $salary_amount,
-        'salary_type' => 'percentage',
-        'wallet_transaction_id' => $transaction_result['transaction_id'],
-        'created_at' => current_time('mysql'),
-        'updated_at' => current_time('mysql'),
-    ];
-
-    $salary_insert = $wpdb->insert(
-        $salary_records_table,
-        $salary_data,
-        ['%d', '%d', '%s', '%s', '%d', '%f', '%f', '%f', '%f', '%s', '%d', '%s', '%s']
-    );
-
-    if ($salary_insert) {
-        $salary_record_id = $wpdb->insert_id;
-        $wallet_table = $wpdb->prefix . 'sc_coach_wallet_transactions';
-        $wpdb->update(
-            $wallet_table,
-            ['related_salary_record_id' => $salary_record_id],
-            ['id' => $transaction_result['transaction_id']],
-            ['%d'],
-            ['%d']
-        );
+    $primary_deposited = (float) ($primary_result['deposited_amount'] ?? 0);
+    if ($payout_mode === 'via_primary') {
+        // در via_primary، deposited مربی اصلی = ناخالص منهای سهم‌های منتقل‌شده
+        $primary_net_deposited = max(0, $primary_deposited - $assistant_deposited);
+    } else {
+        $primary_net_deposited = $primary_deposited;
     }
 
     return [
         'success' => true,
-        'message' => 'دستمزد با موفقیت محاسبه و واریز شد',
-        'salary_amount' => $salary_amount,
-        'transaction_id' => $transaction_result['transaction_id'],
+        'message' => empty($split['assistants'])
+            ? (string) ($primary_result['message'] ?? 'دستمزد محاسبه شد')
+            : 'دستمزد مربی اصلی و کمک‌مربی‌ها محاسبه شد',
+        'salary_amount' => (float) $split['primary_net'],
+        'gross_salary_amount' => $gross_salary,
+        'assistant_total' => $assistant_total,
+        'payout_mode' => $payout_mode,
+        'difference' => isset($primary_result['difference']) ? (float) $primary_result['difference'] : null,
+        'transaction_id' => $primary_result['transaction_id'] ?? null,
+        'deposited_amount' => $primary_net_deposited,
+        'assistants' => $assistant_results,
     ];
 }
 

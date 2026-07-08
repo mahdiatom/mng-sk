@@ -106,6 +106,14 @@ if (
     } elseif (
         $current_is_coach_user
         && $current_coach_id_for_assignment > 0
+        && function_exists('sc_coach_is_assistant_only_for_course_chapter')
+        && sc_coach_is_assistant_only_for_course_chapter($course_id, $current_coach_id_for_assignment, $chapter_name)
+    ) {
+        $message = 'کمک‌مربی امکان ثبت حضور و غیاب ندارد. فقط مربی اصلی می‌تواند حضور و غیاب را ثبت کند.';
+        $message_type = 'error';
+    } elseif (
+        $current_is_coach_user
+        && $current_coach_id_for_assignment > 0
         && function_exists('sc_validate_coach_attendance_date_access')
     ) {
         $coach_date_access = sc_validate_coach_attendance_date_access(
@@ -459,7 +467,7 @@ if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
     if ($coach) {
         $coach_id = $coach->id;
         $current_coach_id = $coach_id;
-        // دریافت دوره‌های مربی به تفکیک شعبه
+        // دریافت دوره‌های مربی اصلی (کمک‌مربی در لیست حضور و غیاب نمی‌آید)
         $courses = $wpdb->get_results($wpdb->prepare(
             "SELECT c.id, c.title, c.course_type, cc.chapter_name
              FROM $courses_table c
@@ -557,7 +565,17 @@ $coach_attendance_access = [
     ],
 ];
 
-if ($is_coach_attendance_user && $selected_course_id > 0 && $selected_date !== '' && function_exists('sc_validate_coach_attendance_date_access')) {
+if ($is_coach_attendance_user && $selected_course_id > 0
+    && function_exists('sc_coach_is_assistant_only_for_course_chapter')
+    && sc_coach_is_assistant_only_for_course_chapter($selected_course_id, $current_coach_id, $selected_chapter_name)
+) {
+    $coach_attendance_access = [
+        'allowed' => false,
+        'code' => 'assistant_no_attendance',
+        'message' => 'کمک‌مربی امکان ثبت حضور و غیاب ندارد. فقط مربی اصلی می‌تواند حضور و غیاب را ثبت کند.',
+        'config' => $coach_attendance_access['config'],
+    ];
+} elseif ($is_coach_attendance_user && $selected_course_id > 0 && $selected_date !== '' && function_exists('sc_validate_coach_attendance_date_access')) {
     $coach_attendance_access = sc_validate_coach_attendance_date_access(
         $current_coach_id,
         $selected_course_id,

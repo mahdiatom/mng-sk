@@ -7,6 +7,8 @@ if (!defined('ABSPATH')) {
 // بررسی و ایجاد جداول
 sc_check_and_create_tables();
 
+$is_secretary_event_regs = function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only();
+
 global $wpdb;
 $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
 $events_table = $wpdb->prefix . 'sc_events';
@@ -119,8 +121,25 @@ $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
 $offset = ($current_page - 1) * $per_page;
 
 // دریافت لیست رویدادها و اعضا برای فیلترها
-$all_events = $wpdb->get_results("SELECT id, name, event_type, holding_date_shamsi, holding_date_gregorian FROM $events_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY name ASC");
-$all_members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+$event_where_parts = ['deleted_at IS NULL', 'is_active = 1'];
+$event_where_values = [];
+if (function_exists('sc_secretary_merge_event_chapter_where')) {
+    sc_secretary_merge_event_chapter_where($event_where_parts, $event_where_values, 'e');
+}
+$event_where_sql = implode(' AND ', $event_where_parts);
+if (!empty($event_where_values)) {
+    $all_events = $wpdb->get_results($wpdb->prepare(
+        "SELECT id, name, event_type, holding_date_shamsi, holding_date_gregorian FROM $events_table e WHERE {$event_where_sql} ORDER BY name ASC",
+        $event_where_values
+    ));
+} else {
+    $all_events = $wpdb->get_results("SELECT id, name, event_type, holding_date_shamsi, holding_date_gregorian FROM $events_table e WHERE {$event_where_sql} ORDER BY name ASC");
+}
+if (function_exists('sc_secretary_get_branch_members_for_picker') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+    $all_members = sc_secretary_get_branch_members_for_picker();
+} else {
+    $all_members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC");
+}
 
 // ساخت WHERE clause
 $where_conditions = [];
@@ -172,6 +191,10 @@ if (!empty($filter_date_from) && !empty($filter_date_to)) {
     $where_conditions[] = "r.created_at BETWEEN %s AND %s";
     $where_values[] = $filter_date_from . ' 00:00:00';
     $where_values[] = $filter_date_to . ' 23:59:59';
+}
+
+if (function_exists('sc_secretary_merge_event_registration_where')) {
+    sc_secretary_merge_event_registration_where($where_conditions, $where_values, 'r', 'e');
 }
 
 $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
@@ -306,11 +329,13 @@ $export_url = wp_nonce_url($export_url, 'sc_export_excel');
     <div class="sc-event-regs-list-header">
         <div class="sc-event-regs-list-header-text">
             <h1 class="sc-event-regs-list-title">ثبت‌نامی‌های رویداد</h1>
-            <p class="sc-event-regs-list-desc">برای مشاهده درست حتماً بازه تاریخی را در ابتدا وارد کنید.</p>
+            <p class="sc-event-regs-list-desc"><?php echo $is_secretary_event_regs ? 'ثبت‌نامی بازیکنان شعبه شما و رویدادهای شعبه(های) مجاز.' : 'برای مشاهده درست حتماً بازه تاریخی را در ابتدا وارد کنید.'; ?></p>
         </div>
+        <?php if (!$is_secretary_event_regs) : ?>
         <div class="sc-event-regs-list-header-actions">
             <a href="<?php echo esc_url($export_url); ?>" class="sc-event-regs-list-export-btn">خروجی Excel</a>
         </div>
+        <?php endif; ?>
     </div>
 
     <div class="sc-event-regs-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
@@ -652,9 +677,11 @@ $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                     <td data-label="تاریخ ثبت‌نام"><?php echo esc_html($created_date); ?></td>
                     <td data-label="عملیات" class="sc-event-regs-actions">
                         <a href="#" class="sc-view-registration-details" data-registration-id="<?php echo esc_attr($registration_id); ?>">مشاهده جزئیات</a>
+                        <?php if (!$is_secretary_event_regs) : ?>
                         <a href="<?php echo esc_url($delete_url); ?>"
                            class="sc-event-regs-delete"
                            onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید که می‌خواهید این ثبت‌نام را حذف کنید؟' });">حذف</a>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>

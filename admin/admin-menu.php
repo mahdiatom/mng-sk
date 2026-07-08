@@ -272,12 +272,12 @@ function sc_register_admin_menu() {
         );
     }
 
-    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+    if (function_exists('sc_user_can_quick_actions') && sc_user_can_quick_actions()) {
         add_submenu_page(
             'sc-members',
             'اقدامات سریع',
             'اقدامات سریع',
-            'sc_secretary_panel',
+            $sc_staff_cap,
             'sc-secretary-quick-actions',
             'sc_admin_secretary_quick_actions_page'
         );
@@ -607,7 +607,7 @@ function sc_register_admin_menu() {
         add_menu_page(
             'دوره‌ها',
             'دوره‌ها',
-            'manage_options',
+            $sc_staff_cap,
             'sc-courses',
             'sc_admin_courses_list_page',
             'dashicons-welcome-learn-more',
@@ -618,7 +618,7 @@ function sc_register_admin_menu() {
             'sc-courses',
             'لیست دوره‌ها',
             'لیست دوره‌ها',
-            'manage_options',
+            $sc_staff_cap,
             'sc-courses',
             'sc_admin_courses_list_page'
         );
@@ -733,7 +733,7 @@ function sc_register_admin_menu() {
         add_menu_page(
             'رویدادها',
             'رویدادها ',
-            'manage_options',
+            $sc_staff_cap,
             'sc-events',
             'sc_admin_events_list_page',
             'dashicons-calendar-alt',
@@ -744,7 +744,7 @@ function sc_register_admin_menu() {
             'sc-events',
             'لیست رویداد ',
             'لیست رویداد ',
-            'manage_options',
+            $sc_staff_cap,
             'sc-events',
             'sc_admin_events_list_page'
         );
@@ -762,7 +762,7 @@ function sc_register_admin_menu() {
             'sc-events',
             'ثبت‌نامی‌های رویداد',
             'ثبت‌نامی‌های رویداد',
-            'manage_options',
+            $sc_staff_cap,
             'sc-event-registrations',
             'sc_admin_event_registrations_list_page'
         );
@@ -1097,7 +1097,7 @@ function sc_register_admin_menu() {
     add_submenu_page(
         'sc_setting',
         'تنظیمات مربی',
-        '',
+        'تنظیمات مربی',
         'manage_options',
         'admin.php?page=sc_setting&tab=coach_salary'
     );
@@ -3573,6 +3573,9 @@ function callback_add_course_sufix() {
                 if (function_exists('sc_save_course_coach_assignments_from_post')) {
                     sc_save_course_coach_assignments_from_post($course_id, $posted_chapters);
                 }
+                if (function_exists('sc_save_course_assistant_coaches_from_post')) {
+                    sc_save_course_assistant_coaches_from_post($course_id, $posted_chapters);
+                }
                 if (function_exists('sc_save_course_groups_from_post')) {
                     sc_save_course_groups_from_post($course_id, (bool) $has_grouping_flag);
                 }
@@ -3670,6 +3673,9 @@ function callback_add_course_sufix() {
                 }
                 if (function_exists('sc_save_course_coach_assignments_from_post')) {
                     sc_save_course_coach_assignments_from_post($insert_id, $posted_chapters);
+                }
+                if (function_exists('sc_save_course_assistant_coaches_from_post')) {
+                    sc_save_course_assistant_coaches_from_post($insert_id, $posted_chapters);
                 }
                 if (function_exists('sc_save_course_groups_from_post')) {
                     sc_save_course_groups_from_post($insert_id, (bool) $has_grouping_flag);

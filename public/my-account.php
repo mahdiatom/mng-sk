@@ -725,13 +725,13 @@ function sc_get_current_member_for_account_user() {
 
 /**
  * Check if verification gate is active for current user.
- * Only team players (بازیکن تیم) are restricted; normal players keep full access.
  */
 function sc_is_member_verification_gate_enabled_for_user($player = null) {
     if (current_user_can('manage_options')) {
         return false;
     }
-    if (!function_exists('sc_is_player_verification_required') || !sc_is_player_verification_required()) {
+    $mode = function_exists('sc_get_player_verification_mode') ? sc_get_player_verification_mode() : 'off';
+    if ($mode === 'off') {
         return false;
     }
     if (!$player) {
@@ -739,6 +739,9 @@ function sc_is_member_verification_gate_enabled_for_user($player = null) {
     }
     if (!$player || (int) ($player->identity_verified ?? 0) === 1) {
         return false;
+    }
+    if ($mode === 'all') {
+        return true;
     }
     if (function_exists('sc_is_member_team')) {
         return sc_is_member_team((int) $player->id);
@@ -771,7 +774,7 @@ function sc_render_member_verification_required_message() {
 }
 
 /**
- * Banner above My Account menu for team players awaiting identity verification.
+ * Banner above My Account menu for users awaiting identity verification.
  */
 function sc_render_member_verification_gate_banner() {
     if (!is_user_logged_in() || current_user_can('manage_options')) {

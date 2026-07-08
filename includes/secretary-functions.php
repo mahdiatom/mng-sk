@@ -70,6 +70,44 @@ function sc_user_can_manage_secretaries($user_id = 0) {
 }
 
 /**
+ * دسترسی به صفحه و AJAX اقدامات سریع (منشی، مدیر باشگاه، مدیر سامانه، مدیرکل).
+ *
+ * @param int $user_id
+ */
+function sc_user_can_quick_actions($user_id = 0) {
+    $user_id = $user_id > 0 ? (int) $user_id : get_current_user_id();
+    if ($user_id <= 0) {
+        return false;
+    }
+    if (sc_user_is_secretary_only($user_id)) {
+        return true;
+    }
+    return sc_user_can_manage_secretaries($user_id);
+}
+
+/**
+ * آیا لیست دوره/شعبه در اقدامات سریع به شعبه منشی محدود شود؟
+ */
+function sc_quick_actions_is_branch_scoped() {
+    return sc_user_is_secretary_only();
+}
+
+/**
+ * شعبه‌های قابل انتخاب در اقدامات سریع.
+ *
+ * @return string[]
+ */
+function sc_quick_actions_get_chapters() {
+    if (sc_quick_actions_is_branch_scoped()) {
+        return sc_secretary_get_effective_chapters();
+    }
+    if (sc_user_can_manage_secretaries()) {
+        return sc_secretary_get_all_chapter_names();
+    }
+    return [];
+}
+
+/**
  * @return string[]
  */
 function sc_secretary_get_allowed_admin_pages() {
@@ -108,6 +146,9 @@ function sc_secretary_get_allowed_admin_pages() {
         'sc-users-info-export',
         'sc-users-export-templates',
         'sc-secretary-quick-actions',
+        'sc-courses',
+        'sc-events',
+        'sc-event-registrations',
         'index.php',
         'profile.php',
     ];
@@ -1443,6 +1484,26 @@ function sc_secretary_get_quick_action_courses($chapter = '') {
     global $wpdb;
     $courses_table = $wpdb->prefix . 'sc_courses';
     $chapters_table = $wpdb->prefix . 'sc_course_chapters';
+
+    if (!sc_quick_actions_is_branch_scoped() && sc_user_can_manage_secretaries()) {
+        $chapters = $chapter !== '' ? [$chapter] : sc_secretary_get_all_chapter_names();
+        if (empty($chapters)) {
+            $rows = $wpdb->get_results(
+                "SELECT * FROM {$courses_table} WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title ASC"
+            );
+            return is_array($rows) ? $rows : [];
+        }
+        $placeholders = implode(', ', array_fill(0, count($chapters), '%s'));
+        $sql = "SELECT DISTINCT c.*
+                FROM {$courses_table} c
+                INNER JOIN {$chapters_table} cc ON cc.course_id = c.id
+                WHERE c.deleted_at IS NULL AND c.is_active = 1
+                  AND TRIM(cc.chapter_name) IN ({$placeholders})
+                ORDER BY c.title ASC";
+        $rows = $wpdb->get_results($wpdb->prepare($sql, $chapters));
+        return is_array($rows) ? $rows : [];
+    }
+
     $chapters = $chapter !== '' ? [$chapter] : sc_secretary_get_effective_chapters();
     if (empty($chapters)) {
         return [];
@@ -1590,7 +1651,7 @@ function sc_secretary_validate_quick_enroll($args) {
     $messages = [];
     $sound = 'error';
 
-    if (!sc_user_is_secretary_only() && !sc_user_can_manage_secretaries()) {
+    if (!sc_user_can_quick_actions()) {
         return ['ok' => false, 'messages' => [['type' => 'error', 'text' => 'دسترسی ندارید.']], 'sound' => 'error'];
     }
 
@@ -1745,7 +1806,7 @@ function sc_secretary_validate_quick_enroll($args) {
  * @return array{success:bool,message:string,member_id?:int,invoice_id?:int,member_course_id?:int}
  */
 function sc_secretary_quick_enroll($args) {
-    if (!sc_user_is_secretary_only() && !sc_user_can_manage_secretaries()) {
+    if (!sc_user_can_quick_actions()) {
         return ['success' => false, 'message' => 'دسترسی ندارید.'];
     }
 
@@ -1871,7 +1932,7 @@ function sc_secretary_quick_enroll($args) {
  * @return array{success:bool,message:string,member_id?:int}
  */
 function sc_secretary_quick_register_and_enroll($args) {
-    if (!sc_user_is_secretary_only() && !sc_user_can_manage_secretaries()) {
+    if (!sc_user_can_quick_actions()) {
         return ['success' => false, 'message' => 'دسترسی ندارید.'];
     }
 
@@ -1943,7 +2004,7 @@ function sc_secretary_quick_register_and_enroll($args) {
 add_action('wp_ajax_sc_secretary_validate_enroll', 'sc_ajax_secretary_validate_enroll');
 function sc_ajax_secretary_validate_enroll() {
     check_ajax_referer('sc_secretary_quick_actions', 'nonce');
-    if (!sc_user_is_secretary_only() && !sc_user_can_manage_secretaries()) {
+    if (!sc_user_can_quick_actions()) {
         wp_send_json_error(['message' => 'دسترسی ندارید.']);
     }
     $tab = isset($_POST['tab']) ? sanitize_text_field(wp_unslash($_POST['tab'])) : 'existing';
@@ -1966,7 +2027,7 @@ function sc_ajax_secretary_validate_enroll() {
 add_action('wp_ajax_sc_secretary_quick_action_courses', 'sc_ajax_secretary_quick_action_courses');
 function sc_ajax_secretary_quick_action_courses() {
     check_ajax_referer('sc_secretary_quick_actions', 'nonce');
-    if (!sc_user_is_secretary_only() && !sc_user_can_manage_secretaries()) {
+    if (!sc_user_can_quick_actions()) {
         wp_send_json_error(['message' => 'دسترسی ندارید.']);
     }
     $chapter = isset($_GET['chapter']) ? sanitize_text_field(wp_unslash($_GET['chapter'])) : '';
@@ -1981,7 +2042,7 @@ function sc_ajax_secretary_quick_action_courses() {
 add_action('wp_ajax_sc_secretary_quick_enroll', 'sc_ajax_secretary_quick_enroll');
 function sc_ajax_secretary_quick_enroll() {
     check_ajax_referer('sc_secretary_quick_actions', 'nonce');
-    if (!sc_user_is_secretary_only() && !sc_user_can_manage_secretaries()) {
+    if (!sc_user_can_quick_actions()) {
         wp_send_json_error(['message' => 'دسترسی ندارید.']);
     }
     $result = sc_secretary_quick_enroll([
@@ -2001,7 +2062,7 @@ function sc_ajax_secretary_quick_enroll() {
 add_action('wp_ajax_sc_secretary_quick_register', 'sc_ajax_secretary_quick_register');
 function sc_ajax_secretary_quick_register() {
     check_ajax_referer('sc_secretary_quick_actions', 'nonce');
-    if (!sc_user_is_secretary_only() && !sc_user_can_manage_secretaries()) {
+    if (!sc_user_can_quick_actions()) {
         wp_send_json_error(['message' => 'دسترسی ندارید.']);
     }
     $result = sc_secretary_quick_register_and_enroll([
@@ -2021,7 +2082,7 @@ function sc_ajax_secretary_quick_register() {
 add_action('wp_ajax_sc_secretary_search_members', 'sc_ajax_secretary_search_members');
 function sc_ajax_secretary_search_members() {
     check_ajax_referer('sc_secretary_quick_actions', 'nonce');
-    if (!sc_user_is_secretary_only() && !sc_user_can_manage_secretaries()) {
+    if (!sc_user_can_quick_actions()) {
         wp_send_json_error(['message' => 'دسترسی ندارید.']);
     }
     $q = isset($_REQUEST['q']) ? sanitize_text_field(wp_unslash($_REQUEST['q'])) : '';
@@ -2157,6 +2218,128 @@ function sc_secretary_merge_event_chapter_where(array &$where_conditions, array 
         $where_conditions[] = $part;
         $where_values = array_merge($where_values, $scope['args']);
     }
+}
+
+/**
+ * محدوده ثبت‌نامی رویداد برای منشی: رویدادهای شعبه + بازیکنان شعبه.
+ *
+ * @return array{sql:string,args:array<int,mixed>}
+ */
+function sc_secretary_event_registration_scope_sql($reg_alias = 'r', $event_alias = 'e') {
+    if (!sc_user_is_secretary_only()) {
+        return ['sql' => '', 'args' => []];
+    }
+    $chapters = sc_secretary_get_effective_chapters();
+    if (empty($chapters)) {
+        return ['sql' => ' AND 1=0', 'args' => []];
+    }
+    global $wpdb;
+    $reg_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $reg_alias) ?: 'r';
+    $event_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $event_alias) ?: 'e';
+    $mc = $wpdb->prefix . 'sc_member_courses';
+    $placeholders = implode(', ', array_fill(0, count($chapters), '%s'));
+    $member_match = sc_secretary_member_enrollment_match_sql('mc_er');
+    $sql = " AND (
+        TRIM(IFNULL({$event_alias}.chapter, '')) IN ({$placeholders})
+        OR (
+            {$reg_alias}.member_id IS NOT NULL
+            AND {$reg_alias}.member_id > 0
+            AND EXISTS (
+                SELECT 1 FROM {$mc} mc_er
+                WHERE mc_er.member_id = {$reg_alias}.member_id
+                  AND mc_er.status = 'active'
+                  AND {$member_match['sql']}
+            )
+        )
+    )";
+    return [
+        'sql' => $sql,
+        'args' => array_merge($chapters, $member_match['args']),
+    ];
+}
+
+/**
+ * @param array<int,string> $where_conditions
+ * @param array<int,mixed> $where_values
+ */
+function sc_secretary_merge_event_registration_where(array &$where_conditions, array &$where_values, $reg_alias = 'r', $event_alias = 'e') {
+    if (!sc_user_is_secretary_only()) {
+        return;
+    }
+    $scope = sc_secretary_event_registration_scope_sql($reg_alias, $event_alias);
+    if ($scope['sql'] === '') {
+        return;
+    }
+    $part = preg_replace('/^\s*AND\s+/i', '', trim($scope['sql']));
+    if ($part !== '') {
+        $where_conditions[] = $part;
+        $where_values = array_merge($where_values, $scope['args']);
+    }
+}
+
+/**
+ * شناسه دوره‌های قابل مشاهده منشی در لیست دوره‌ها.
+ *
+ * @return int[]
+ */
+function sc_secretary_get_branch_course_ids_for_list() {
+    if (!function_exists('sc_secretary_get_branch_courses')) {
+        return [];
+    }
+    $ids = [];
+    foreach (sc_secretary_get_branch_courses() as $row) {
+        $ids[] = (int) $row->id;
+    }
+    return array_values(array_unique(array_filter($ids)));
+}
+
+/**
+ * @param array<int,string> $where_parts
+ * @param array<int,mixed> $prepare_args
+ */
+function sc_secretary_merge_course_list_where(array &$where_parts, array &$prepare_args) {
+    if (!sc_user_is_secretary_only()) {
+        return;
+    }
+    $ids = sc_secretary_get_branch_course_ids_for_list();
+    if (empty($ids)) {
+        $where_parts[] = '1=0';
+        return;
+    }
+    $holders = implode(',', array_fill(0, count($ids), '%d'));
+    $where_parts[] = "c.id IN ({$holders})";
+    foreach ($ids as $id) {
+        $prepare_args[] = $id;
+    }
+}
+
+/**
+ * آیا منشی فقط مشاهده (بدون ویرایش/حذف) در لیست دوره/رویداد است؟
+ */
+function sc_secretary_is_readonly_course_event_lists() {
+    return sc_user_is_secretary_only();
+}
+
+/**
+ * افزودن محدوده شعبه به WHERE لیست رویدادها.
+ */
+function sc_secretary_append_event_list_where($where, $event_alias = 'e') {
+    if (!sc_user_is_secretary_only()) {
+        return $where;
+    }
+    global $wpdb;
+    $scope = sc_secretary_event_chapter_scope_sql($event_alias);
+    if ($scope['sql'] === '') {
+        return $where;
+    }
+    $part = preg_replace('/^\s*AND\s+/i', '', trim($scope['sql']));
+    if ($part === '') {
+        return $where;
+    }
+    if (!empty($scope['args'])) {
+        return $where . ' AND ' . $wpdb->prepare($part, $scope['args']);
+    }
+    return $where . ' AND ' . $part;
 }
 
 /**
@@ -2397,4 +2580,13 @@ function sc_secretary_guard_member_edit() {
             'این بازیکن متعلق به شعبه(های) شما نیست؛ منشی فقط بازیکنان شعبه خودش را می‌تواند ویرایش کند.'
         );
     }
+}
+
+add_action('admin_menu', 'sc_secretary_trim_course_event_menus', 1000);
+function sc_secretary_trim_course_event_menus() {
+    if (!sc_user_is_secretary_only()) {
+        return;
+    }
+    remove_submenu_page('sc-courses', 'sc-add-course');
+    remove_submenu_page('sc-events', 'sc-add-event');
 }

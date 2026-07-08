@@ -447,10 +447,25 @@ function sc_can_show_players_wallet() {
 }
 
 /**
+ * Player verification gate mode: off | all | team
+ */
+function sc_get_player_verification_mode() {
+    $mode = sanitize_key((string) sc_get_setting('player_verification_mode', ''));
+    $allowed = ['off', 'all', 'team'];
+    if (in_array($mode, $allowed, true)) {
+        return $mode;
+    }
+    if ((int) sc_get_setting('player_verification_required', '0') === 1) {
+        return 'team';
+    }
+    return 'off';
+}
+
+/**
  * Check if player verification is required before accessing account sections
  */
 function sc_is_player_verification_required() {
-    return (int) sc_get_setting('player_verification_required', '0') === 1;
+    return sc_get_player_verification_mode() !== 'off';
 }
 
 /**

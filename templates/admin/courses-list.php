@@ -6,6 +6,13 @@ global $courses_list_table, $wpdb;
 
 $chapter_table = $wpdb->prefix . 'sc_chapter_categories';
 $chapters_filter = $wpdb->get_results("SELECT `name` FROM `$chapter_table` ORDER BY id ASC");
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && function_exists('sc_secretary_get_effective_chapters')) {
+    $allowed_chapters = sc_secretary_get_effective_chapters();
+    $chapters_filter = array_values(array_filter((array) $chapters_filter, static function ($row) use ($allowed_chapters) {
+        return isset($row->name) && in_array((string) $row->name, $allowed_chapters, true);
+    }));
+}
+$is_secretary_readonly = function_exists('sc_secretary_is_readonly_course_event_lists') && sc_secretary_is_readonly_course_event_lists();
 
 $filter_chapter = isset($_GET['filter_chapter']) ? sanitize_text_field(wp_unslash($_GET['filter_chapter'])) : '';
 $filter_course_type = isset($_GET['filter_course_type']) ? sanitize_text_field(wp_unslash($_GET['filter_course_type'])) : 'all';
@@ -34,11 +41,13 @@ $form_action = admin_url('admin.php');
     <div class="sc-courses-list-header">
         <div class="sc-courses-list-header-text">
             <h1 class="sc-courses-list-title">لیست دوره‌ها</h1>
-            <p class="sc-courses-list-desc">برای مشاهده اکشن‌ها روی عنوان دوره بروید (ویرایش، کاربران، حذف).</p>
+            <p class="sc-courses-list-desc"><?php echo $is_secretary_readonly ? 'دوره‌های شعبه(های) مجاز شما — فقط مشاهده.' : 'برای مشاهده اکشن‌ها روی عنوان دوره بروید (ویرایش، کاربران، حذف).'; ?></p>
         </div>
+        <?php if (!$is_secretary_readonly) : ?>
         <div class="sc-courses-list-header-actions">
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-course')); ?>" class="page-title-action sc-courses-list-add-btn">افزودن دوره</a>
         </div>
+        <?php endif; ?>
     </div>
 
     <div class="sc-courses-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">

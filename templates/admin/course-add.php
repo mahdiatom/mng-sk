@@ -111,6 +111,9 @@ $course_coach_assignments_map = (!empty($course->id) && function_exists('sc_get_
 $course_coach_branch_meta_map = (!empty($course->id) && function_exists('sc_get_course_coach_branch_meta_map'))
     ? sc_get_course_coach_branch_meta_map((int) $course->id)
     : [];
+$course_assistant_rows = (!empty($course->id) && function_exists('sc_get_course_assistant_coaches'))
+    ? sc_get_course_assistant_coaches((int) $course->id)
+    : [];
 $private_session_options = [];
 if (!empty($course->id) && $course_type === 'private' && $private_variable_coach_pricing && !empty($course_packages)) {
     foreach ($course_packages as $pkg) {
@@ -464,6 +467,94 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                                 </div>
                             <?php endforeach; ?>
                             <p class="sc-course-field__hint">با ذخیره دوره، این انتخاب در «دوره‌های» همان مربی هم به‌صورت خودکار فعال/غیرفعال می‌شود.</p>
+                        </div>
+
+                        <div id="sc-course-assistants-box" class="sc-course-assistants-box">
+                            <input type="hidden" name="course_assistant_assign_present" value="1">
+                            <h4 class="sc-course-subtitle">کمک‌مربی‌ها (اختیاری)</h4>
+                            <p class="sc-course-field__hint">
+                                اگر کلاس کمک‌مربی دارد، اینجا تعریف کنید. درصد سهم از <strong>دستمزد مربی اصلی</strong> کم می‌شود.
+                                اگر ردیفی نگذارید، کل دستمزد فقط به مربی اصلی می‌رسد. کمک‌مربی امکان ثبت حضور و غیاب ندارد.
+                            </p>
+                            <div id="sc-course-assistants-tbody" class="sc-course-assistant-list">
+                                <?php
+                                if (empty($course_assistant_rows)) {
+                                    $course_assistant_rows = [];
+                                }
+                                $ai = 0;
+                                foreach ($course_assistant_rows as $arow) :
+                                    $a_chapter = isset($arow->chapter_name) ? (string) $arow->chapter_name : '';
+                                    $a_group = isset($arow->group_name) ? (string) $arow->group_name : '';
+                                    $a_primary = isset($arow->primary_coach_id) ? (int) $arow->primary_coach_id : 0;
+                                    $a_assistant = isset($arow->assistant_coach_id) ? (int) $arow->assistant_coach_id : 0;
+                                    $a_share = isset($arow->share_percentage) ? (float) $arow->share_percentage : 0;
+                                    $primary_ids_for_ch = $sc_schedule_coach_ids_for_chapter($a_chapter);
+                                    ?>
+                                    <article class="sc-course-assistant-card sc-course-assistant-row" data-index="<?php echo (int) $ai; ?>">
+                                        <div class="sc-course-field">
+                                            <label class="sc-course-field__label">شعبه</label>
+                                            <select name="course_assistant_row[<?php echo (int) $ai; ?>][chapter_name]" class="sc-course-input sc-assistant-chapter-select">
+                                                <option value="">انتخاب شعبه</option>
+                                                <?php foreach ($schedule_chapter_options as $sch_ch) : ?>
+                                                    <option value="<?php echo esc_attr($sch_ch); ?>" <?php selected($a_chapter, $sch_ch); ?>><?php echo esc_html($sch_ch); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="sc-course-field">
+                                            <label class="sc-course-field__label">مربی اصلی</label>
+                                            <select name="course_assistant_row[<?php echo (int) $ai; ?>][primary_coach_id]" class="sc-course-input sc-assistant-primary-select">
+                                                <option value="0">انتخاب مربی اصلی</option>
+                                                <?php foreach ($primary_ids_for_ch as $pid) :
+                                                    if (!isset($sc_coach_labels_for_js[$pid])) {
+                                                        continue;
+                                                    }
+                                                    ?>
+                                                    <option value="<?php echo (int) $pid; ?>" <?php selected($a_primary, (int) $pid); ?>><?php echo esc_html($sc_coach_labels_for_js[$pid]); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="sc-course-field">
+                                            <label class="sc-course-field__label">کمک‌مربی</label>
+                                            <select name="course_assistant_row[<?php echo (int) $ai; ?>][assistant_coach_id]" class="sc-course-input sc-assistant-coach-select">
+                                                <option value="0">انتخاب کمک‌مربی</option>
+                                                <?php foreach ($all_active_coaches as $aco) :
+                                                    $aid = (int) $aco->id;
+                                                    // کمک‌مربی نباید مربی اصلی همان شعبه باشد
+                                                    if ($a_chapter !== '' && isset($course_coach_assignments_map[$a_chapter][$aid])) {
+                                                        continue;
+                                                    }
+                                                    $alabel = isset($sc_coach_labels_for_js[$aid]) ? $sc_coach_labels_for_js[$aid] : ('مربی #' . $aid);
+                                                    ?>
+                                                    <option value="<?php echo (int) $aid; ?>" <?php selected($a_assistant, $aid); ?>><?php echo esc_html($alabel); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="sc-course-field">
+                                            <label class="sc-course-field__label">گروه (اختیاری)</label>
+                                            <input type="text" class="sc-course-input sc-assistant-group-input"
+                                                   name="course_assistant_row[<?php echo (int) $ai; ?>][group_name]"
+                                                   value="<?php echo esc_attr($a_group); ?>"
+                                                   placeholder="خالی = همه گروه‌ها">
+                                        </div>
+                                        <div class="sc-course-field">
+                                            <label class="sc-course-field__label">درصد از سهم مربی اصلی</label>
+                                            <input type="number" min="0" max="100" step="0.01" class="sc-course-input sc-course-input--sm"
+                                                   name="course_assistant_row[<?php echo (int) $ai; ?>][share_percentage]"
+                                                   value="<?php echo $a_share > 0 ? esc_attr($a_share) : ''; ?>"
+                                                   placeholder="مثلاً ۲۵">
+                                        </div>
+                                        <div class="sc-course-field sc-course-assistant-actions">
+                                            <button type="button" class="button sc-remove-assistant-row">حذف</button>
+                                        </div>
+                                    </article>
+                                    <?php
+                                    $ai++;
+                                endforeach;
+                                ?>
+                            </div>
+                            <p style="margin-top:10px;">
+                                <button type="button" class="button" id="sc-add-assistant-row">+ افزودن کمک‌مربی</button>
+                            </p>
                         </div>
 
                         <div id="sc-coach-branch-pricing-wrap" class="sc-course-panel__sub sc-private-course-row" style="margin-top:4px;<?php echo ($course_type === 'private') ? '' : 'display:none;'; ?>">
@@ -2038,6 +2129,132 @@ jQuery(document).ready(function($) {
     });
 
     scToggleGranularCapacityPanel();
+
+    // ——— کمک‌مربی‌ها ———
+    function scBuildAssistantChapterOptions(selected) {
+        var html = '<option value="">انتخاب شعبه</option>';
+        scGetSelectedChapters().forEach(function (ch) {
+            html += '<option value="' + $('<div>').text(ch).html() + '"' + (ch === selected ? ' selected' : '') + '>' + $('<div>').text(ch).html() + '</option>';
+        });
+        return html;
+    }
+
+    function scBuildAssistantPrimaryOptions(chapterName, selectedId) {
+        var html = '<option value="0">انتخاب مربی اصلی</option>';
+        scGetCoachesForChapter(chapterName || '').forEach(function (c) {
+            html += '<option value="' + c.id + '"' + (String(c.id) === String(selectedId) ? ' selected' : '') + '>' + $('<div>').text(c.label).html() + '</option>';
+        });
+        return html;
+    }
+
+    function scBuildAssistantCoachOptions(chapterName, selectedId, primaryId) {
+        var html = '<option value="0">انتخاب کمک‌مربی</option>';
+        var primaryIds = {};
+        scGetCoachesForChapter(chapterName || '').forEach(function (c) {
+            primaryIds[String(c.id)] = true;
+        });
+        Object.keys(scCourseCoachLabels || {}).forEach(function (id) {
+            if (primaryIds[String(id)]) {
+                return;
+            }
+            if (primaryId && String(id) === String(primaryId)) {
+                return;
+            }
+            html += '<option value="' + id + '"' + (String(id) === String(selectedId) ? ' selected' : '') + '>' + $('<div>').text(scCourseCoachLabels[id]).html() + '</option>';
+        });
+        return html;
+    }
+
+    function scReindexAssistantRows() {
+        $('#sc-course-assistants-tbody .sc-course-assistant-row').each(function (idx) {
+            $(this).attr('data-index', idx);
+            $(this).find('[name^="course_assistant_row["]').each(function () {
+                var n = $(this).attr('name');
+                if (!n) {
+                    return;
+                }
+                $(this).attr('name', n.replace(/course_assistant_row\[\d+\]/, 'course_assistant_row[' + idx + ']'));
+            });
+        });
+    }
+
+    function scSyncAssistantRowSelects($row) {
+        if (!$row || !$row.length) {
+            return;
+        }
+        var chapter = String($row.find('.sc-assistant-chapter-select').val() || '');
+        var primaryId = String($row.find('.sc-assistant-primary-select').val() || '0');
+        var assistantId = String($row.find('.sc-assistant-coach-select').val() || '0');
+
+        $row.find('.sc-assistant-chapter-select').html(scBuildAssistantChapterOptions(chapter));
+        if (chapter) {
+            $row.find('.sc-assistant-chapter-select').val(chapter);
+        }
+
+        $row.find('.sc-assistant-primary-select').html(scBuildAssistantPrimaryOptions(chapter, primaryId));
+        primaryId = String($row.find('.sc-assistant-primary-select').val() || '0');
+
+        $row.find('.sc-assistant-coach-select').html(scBuildAssistantCoachOptions(chapter, assistantId, primaryId));
+    }
+
+    function scSyncAllAssistantRows() {
+        $('#sc-course-assistants-tbody .sc-course-assistant-row').each(function () {
+            scSyncAssistantRowSelects($(this));
+        });
+    }
+
+    function scAddAssistantRow() {
+        var idx = $('#sc-course-assistants-tbody .sc-course-assistant-row').length;
+        var chapters = scGetSelectedChapters();
+        var firstCh = chapters.length ? chapters[0] : '';
+        var html =
+            '<article class="sc-course-assistant-card sc-course-assistant-row" data-index="' + idx + '">' +
+            '<div class="sc-course-field"><label class="sc-course-field__label">شعبه</label>' +
+            '<select name="course_assistant_row[' + idx + '][chapter_name]" class="sc-course-input sc-assistant-chapter-select">' +
+            scBuildAssistantChapterOptions(firstCh) + '</select></div>' +
+            '<div class="sc-course-field"><label class="sc-course-field__label">مربی اصلی</label>' +
+            '<select name="course_assistant_row[' + idx + '][primary_coach_id]" class="sc-course-input sc-assistant-primary-select">' +
+            scBuildAssistantPrimaryOptions(firstCh, 0) + '</select></div>' +
+            '<div class="sc-course-field"><label class="sc-course-field__label">کمک‌مربی</label>' +
+            '<select name="course_assistant_row[' + idx + '][assistant_coach_id]" class="sc-course-input sc-assistant-coach-select">' +
+            scBuildAssistantCoachOptions(firstCh, 0, 0) + '</select></div>' +
+            '<div class="sc-course-field"><label class="sc-course-field__label">گروه (اختیاری)</label>' +
+            '<input type="text" class="sc-course-input sc-assistant-group-input" name="course_assistant_row[' + idx + '][group_name]" value="" placeholder="خالی = همه گروه‌ها"></div>' +
+            '<div class="sc-course-field"><label class="sc-course-field__label">درصد از سهم مربی اصلی</label>' +
+            '<input type="number" min="0" max="100" step="0.01" class="sc-course-input sc-course-input--sm" name="course_assistant_row[' + idx + '][share_percentage]" value="" placeholder="مثلاً ۲۵"></div>' +
+            '<div class="sc-course-field sc-course-assistant-actions"><button type="button" class="button sc-remove-assistant-row">حذف</button></div>' +
+            '</article>';
+        $('#sc-course-assistants-tbody').append(html);
+    }
+
+    $('#sc-add-assistant-row').on('click', function (e) {
+        e.preventDefault();
+        scAddAssistantRow();
+    });
+
+    $(document).on('click', '.sc-remove-assistant-row', function (e) {
+        e.preventDefault();
+        $(this).closest('.sc-course-assistant-row').remove();
+        scReindexAssistantRows();
+    });
+
+    $(document).on('change', '.sc-assistant-chapter-select', function () {
+        scSyncAssistantRowSelects($(this).closest('.sc-course-assistant-row'));
+    });
+
+    $(document).on('change', '.sc-assistant-primary-select', function () {
+        var $row = $(this).closest('.sc-course-assistant-row');
+        var chapter = String($row.find('.sc-assistant-chapter-select').val() || '');
+        var primaryId = String($(this).val() || '0');
+        var assistantId = String($row.find('.sc-assistant-coach-select').val() || '0');
+        $row.find('.sc-assistant-coach-select').html(scBuildAssistantCoachOptions(chapter, assistantId, primaryId));
+    });
+
+    $(document).on('change', '.sc-course-chapter-cb, .sc-course-coach-assign-cb', function () {
+        setTimeout(scSyncAllAssistantRows, 0);
+    });
+
+    scSyncAllAssistantRows();
 });
 </script>
 
