@@ -671,7 +671,17 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب افتخارات ذخیره شد', null, ['tab' => 'honors']);
         }
-        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات افتخارات با موفقیت ذخیره شد.</p></div>';
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات API افتخارات با موفقیت ذخیره شد.</p></div>';
+    }
+    elseif ($current_tab === 'public_api') {
+        $public_api_key = isset($_POST['public_api_key']) ? sanitize_text_field(wp_unslash($_POST['public_api_key'])) : '';
+        $public_api_system_url = isset($_POST['public_api_system_url']) ? esc_url_raw(wp_unslash($_POST['public_api_system_url'])) : '';
+        sc_update_setting('public_api_key', $public_api_key, 'public_api');
+        sc_update_setting('public_api_system_url', $public_api_system_url, 'public_api');
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات API عمومی ذخیره شد', null, ['tab' => 'public_api']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات API عمومی با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'pro_features') {
     $pro_feature_notifications = isset($_POST['pro_feature_notifications']) ? (int) $_POST['pro_feature_notifications'] : 0;
@@ -1259,6 +1269,10 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=honors'); ?>"
            class="nav-tab <?php echo $current_tab === 'honors' ? 'nav-tab-active' : ''; ?>">
             افتخارات
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=public_api'); ?>"
+           class="nav-tab <?php echo $current_tab === 'public_api' ? 'nav-tab-active' : ''; ?>">
+            API عمومی
         </a>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=bale_bot'); ?>"
            class="nav-tab <?php echo $current_tab === 'bale_bot' ? 'nav-tab-active' : ''; ?>">
@@ -4561,6 +4575,71 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 </table>
                 <p class="submit">
                     <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات افتخارات">
+                </p>
+            </form>
+        <?php endif;
+        if ($current_tab === 'public_api') :
+            $public_api_key_value = function_exists('sc_get_public_api_key') ? sc_get_public_api_key() : trim((string) sc_get_setting('public_api_key', ''));
+            $public_api_system_url_value = trim((string) sc_get_setting('public_api_system_url', ''));
+            $public_api_base = rest_url('sportclub/v1/public/');
+        ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                <h2>API عمومی باشگاه (برای سایت اصلی)</h2>
+                <p class="description">با این API می‌توانید اطلاعات نمایشی باشگاه (دوره‌ها، رویدادها، مربیان، بازیکنان، شعبه‌ها، برنامه هفتگی و تقویم) را در سایت اصلی نمایش دهید. برای ثبت‌نام و قیمت‌ها، لینک‌های سامانه در پاسخ API قرار می‌گیرد.</p>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="public_api_key">کلید API عمومی</label></th>
+                        <td>
+                            <input type="text" name="public_api_key" id="public_api_key" value="<?php echo esc_attr($public_api_key_value); ?>" class="regular-text" dir="ltr" autocomplete="off" placeholder="یک کلید امن وارد کنید">
+                            <p class="description">در هدر <code>X-API-Key</code> یا <code>Authorization: Bearer</code> یا پارامتر <code>api_key</code> ارسال شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="public_api_system_url">آدرس سامانه ثبت‌نام</label></th>
+                        <td>
+                            <input type="url" name="public_api_system_url" id="public_api_system_url" value="<?php echo esc_attr($public_api_system_url_value); ?>" class="regular-text" dir="ltr" placeholder="<?php echo esc_attr(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : home_url('/my-account/')); ?>">
+                            <p class="description">برای لینک ثبت‌نام دوره و رویداد در پاسخ API. اگر خالی باشد از حساب کاربری ووکامرس استفاده می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">آدرس پایه API</th>
+                        <td><code dir="ltr"><?php echo esc_html($public_api_base); ?></code></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Endpointها</th>
+                        <td>
+                            <div style="direction:ltr;text-align:left;font-family:monospace;font-size:12px;line-height:1.8;">
+                                <div><strong>meta</strong> — <?php echo esc_html($public_api_base . 'meta'); ?></div>
+                                <div><strong>branches</strong> — <?php echo esc_html($public_api_base . 'branches'); ?></div>
+                                <div><strong>courses/group</strong> — <?php echo esc_html($public_api_base . 'courses/group'); ?></div>
+                                <div><strong>courses/private</strong> — <?php echo esc_html($public_api_base . 'courses/private'); ?></div>
+                                <div><strong>events</strong> — <?php echo esc_html($public_api_base . 'events'); ?></div>
+                                <div><strong>coaches</strong> — <?php echo esc_html($public_api_base . 'coaches'); ?></div>
+                                <div><strong>players</strong> — <?php echo esc_html($public_api_base . 'players'); ?></div>
+                                <div><strong>honors</strong> — <?php echo esc_html($public_api_base . 'honors'); ?></div>
+                                <div><strong>honor-categories</strong> — <?php echo esc_html($public_api_base . 'honor-categories'); ?></div>
+                                <div><strong>lookups</strong> — <?php echo esc_html($public_api_base . 'lookups'); ?></div>
+                                <div><strong>schedules/weekly</strong> — <?php echo esc_html($public_api_base . 'schedules/weekly'); ?></div>
+                                <div><strong>calendar</strong> — <?php echo esc_html($public_api_base . 'calendar'); ?> ?from_shamsi=1404/07/01&amp;to_shamsi=1404/07/30</div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">فیلترهای مهم</th>
+                        <td>
+                            <p class="description" style="margin:0;">
+                                بازیکنان: <code>has_honors=yes|no</code>، <code>member_type</code>، <code>team</code>، <code>skill_level</code><br>
+                                دوره‌ها: <code>chapter</code>، <code>coach_id</code>، <code>search</code><br>
+                                رویدادها: <code>status=upcoming|past|all</code>، <code>event_type=event|competition</code><br>
+                                برنامه هفتگی: <code>course_type=all|group|private</code>، <code>course_id</code>، <code>chapter</code>، <code>coach_id</code><br>
+                                همه لیست‌ها: <code>page</code>، <code>per_page</code> (حداکثر ۱۰۰)
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات API عمومی">
                 </p>
             </form>
         <?php endif;

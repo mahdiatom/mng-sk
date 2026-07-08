@@ -116,6 +116,7 @@ require_once SC_INCLUDES_DIR . 'support-ticket-functions.php'; // Support ticket
 require_once SC_INCLUDES_DIR . 'private-notes-functions.php'; // Private notes CRUD, attachments
 require_once SC_INCLUDES_DIR . 'honor-attachments-functions.php'; // Honor attachments (AJAX upload)
 require_once SC_INCLUDES_DIR . 'honors-api-functions.php'; // REST API افتخارات (خروجی برای سایت‌های خارجی)
+require_once SC_INCLUDES_DIR . 'api/public-api-functions.php'; // REST API عمومی باشگاه (سایت اصلی)
 require_once SC_INCLUDES_DIR . 'private-classes-functions.php'; // Private classes (My Account booking + admin/coach management)
 require_once SC_INCLUDES_DIR . 'activity-log-functions.php';   // Activity log (admin actions)
 require_once SC_INCLUDES_DIR . 'login-register-functions.php'; // ورود و عضویت با پیامک و رمز
