@@ -51,6 +51,26 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
         $attendance_id
     ));
 
+    if ($row && current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+        $coach_row = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}sc_coaches WHERE user_id = %d LIMIT 1",
+            get_current_user_id()
+        ));
+        $coach_id_for_edit = $coach_row ? (int) $coach_row->id : 0;
+        if ($coach_id_for_edit > 0 && function_exists('sc_validate_coach_attendance_date_access')) {
+            $access = sc_validate_coach_attendance_date_access($coach_id_for_edit, (int) $row->course_id, (string) $row->attendance_date);
+            if (empty($access['allowed'])) {
+                echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($access['message']) . '</p></div>';
+                $row = null;
+                $deleted = false;
+            }
+        }
+    }
+
+    if (isset($deleted) && $deleted === false) {
+        // دسترسی مربی برای ویرایش این تاریخ بسته شده است
+    } else {
+
 
 
 
@@ -101,6 +121,7 @@ if ($row && ($row->status === 'present' || $row->status === 'absent')) {
     } else {
         echo '<div class="notice notice-error is-dismissible"><p>خطا در حذف حضور و غیاب.</p></div>';
     }
+    }
 }
 
 // --- بخش جدید: پردازش مجاز کردن غیبت ---
@@ -114,6 +135,21 @@ if (isset($_GET['action']) && $_GET['action'] === 'justify' && isset($_GET['atte
         "SELECT id, member_id, course_id, attendance_date  ,status FROM $attendances_table WHERE id = %d LIMIT 1",
         $attendance_id
     ));
+
+    if ($row && current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+        $coach_row = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}sc_coaches WHERE user_id = %d LIMIT 1",
+            get_current_user_id()
+        ));
+        $coach_id_for_justify = $coach_row ? (int) $coach_row->id : 0;
+        if ($coach_id_for_justify > 0 && function_exists('sc_validate_coach_attendance_date_access')) {
+            $access = sc_validate_coach_attendance_date_access($coach_id_for_justify, (int) $row->course_id, (string) $row->attendance_date);
+            if (empty($access['allowed'])) {
+                echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($access['message']) . '</p></div>';
+                $row = null;
+            }
+        }
+    }
 
     // فقط اگر وضعیت "غایب" باشد عملیات انجام شود
     if ($row && $row->status === 'absent') {

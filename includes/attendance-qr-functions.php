@@ -8,6 +8,587 @@ if (!defined('ABSPATH')) {
 
 define('SC_ATTENDANCE_QR_PREFIX', 'SC1:');
 define('SC_ATTENDANCE_QR_HASH_LENGTH', 64);
+define('SC_ATTENDANCE_QR_SHORT_CODE_LENGTH', 7);
+define('SC_ATTENDANCE_QR_OTP_EXPIRY', 120);
+define('SC_ATTENDANCE_QR_OTP_MAX_ATTEMPTS', 5);
+
+/**
+ * @return string
+ */
+function sc_attendance_qr_codes_table() {
+    global $wpdb;
+    return $wpdb->prefix . 'sc_member_qr_codes';
+}
+
+/**
+ * @param int $user_id
+ * @return bool
+ */
+function sc_attendance_qr_user_can_manage_codes($user_id = 0) {
+    $user_id = $user_id ?: get_current_user_id();
+    if (user_can($user_id, 'manage_options')) {
+        return true;
+    }
+    if (function_exists('sc_user_has_club_manager_role')) {
+        return sc_user_has_club_manager_role($user_id);
+    }
+    return false;
+}
+
+/**
+ * @return bool
+ */
+function sc_attendance_qr_table_exists() {
+    global $wpdb;
+    $table = sc_attendance_qr_codes_table();
+    $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+    return is_string($found) && $found === $table;
+}
+
+/**
+ * @return int
+ */
+function sc_attendance_qr_get_max_codes_per_member() {
+    return max(1, min(50, (int) sc_get_setting('attendance_qr_max_codes_per_member', '20')));
+}
+
+/**
+ * @return string
+ */
+function sc_attendance_qr_short_code_charset() {
+    return 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+}
+
+/**
+ * @return string
+ */
+function sc_attendance_qr_generate_short_code() {
+    if (!sc_attendance_qr_table_exists()) {
+        sc_attendance_qr_ensure_db_ready();
+    }
+    global $wpdb;
+    $table = sc_attendance_qr_codes_table();
+    $charset = sc_attendance_qr_short_code_charset();
+    $len = strlen($charset);
+    $max = SC_ATTENDANCE_QR_SHORT_CODE_LENGTH;
+
+    do {
+        $code = '';
+        for ($i = 0; $i < $max; $i++) {
+            $code .= $charset[wp_rand(0, $len - 1)];
+        }
+        $exists = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM `$table` WHERE short_code = %s",
+            $code
+        ));
+    } while ($exists > 0);
+
+    return $code;
+}
+
+/**
+ * @param string $hash
+ * @return object|null
+ */
+function sc_attendance_qr_get_by_hash($hash) {
+    $hash = sc_attendance_qr_sanitize_hash($hash);
+    if ($hash === '') {
+        return null;
+    }
+    sc_attendance_qr_ensure_db_ready();
+    global $wpdb;
+    $table = sc_attendance_qr_codes_table();
+    return $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM `$table` WHERE hash = %s LIMIT 1",
+        $hash
+    ));
+}
+
+/**
+ * @param int $member_id
+ * @return object|null
+ */
+function sc_attendance_qr_get_active_code($member_id) {
+    $member_id = absint($member_id);
+    if (!$member_id) {
+        return null;
+    }
+    sc_attendance_qr_ensure_db_ready();
+    global $wpdb;
+    $table = sc_attendance_qr_codes_table();
+    return $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM `$table` WHERE member_id = %d AND status = 'active' ORDER BY id DESC LIMIT 1",
+        $member_id
+    ));
+}
+
+/**
+ * @param int $qr_id
+ * @return object|null
+ */
+function sc_attendance_qr_get_code_by_id($qr_id) {
+    $qr_id = absint($qr_id);
+    if (!$qr_id) {
+        return null;
+    }
+    sc_attendance_qr_ensure_db_ready();
+    global $wpdb;
+    $table = sc_attendance_qr_codes_table();
+    return $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM `$table` WHERE id = %d LIMIT 1",
+        $qr_id
+    ));
+}
+
+/**
+ * @param int $member_id
+ * @return object[]
+ */
+function sc_attendance_qr_get_codes_for_member($member_id) {
+    $member_id = absint($member_id);
+    if (!$member_id) {
+        return [];
+    }
+    if (!sc_attendance_qr_ensure_db_ready() || !sc_attendance_qr_table_exists()) {
+        return [];
+    }
+    global $wpdb;
+    $table = sc_attendance_qr_codes_table();
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM `$table` WHERE member_id = %d ORDER BY (status = 'active') DESC, id DESC",
+        $member_id
+    ));
+    return is_array($rows) ? $rows : [];
+}
+
+/**
+ * @param int    $member_id
+ * @param string $hash
+ * @param int    $user_id
+ * @param string $status
+ * @return object|false
+ */
+function sc_attendance_qr_insert_code_record($member_id, $hash, $user_id = 0, $status = 'active') {
+    if (!sc_attendance_qr_ensure_db_ready()) {
+        return false;
+    }
+    global $wpdb;
+    $table = sc_attendance_qr_codes_table();
+    $now = current_time('mysql');
+    $short_code = sc_attendance_qr_generate_short_code();
+    $inserted = $wpdb->insert(
+        $table,
+        [
+            'member_id'   => absint($member_id),
+            'hash'        => $hash,
+            'short_code'  => $short_code,
+            'status'      => in_array($status, ['active', 'inactive', 'disabled'], true) ? $status : 'inactive',
+            'created_at'  => $now,
+            'created_by'  => absint($user_id),
+        ],
+        ['%d', '%s', '%s', '%s', '%s', '%d']
+    );
+    if (!$inserted) {
+        return false;
+    }
+    return sc_attendance_qr_get_code_by_id((int) $wpdb->insert_id);
+}
+
+/**
+ * @param int $member_id
+ * @return string|false
+ */
+function sc_attendance_qr_get_legacy_member_hash($member_id) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_members';
+    $hash = $wpdb->get_var($wpdb->prepare(
+        "SELECT attendance_qr_hash FROM `$table` WHERE id = %d LIMIT 1",
+        absint($member_id)
+    ));
+    if (!is_string($hash)) {
+        return false;
+    }
+    $hash = trim($hash);
+    if (strlen($hash) !== SC_ATTENDANCE_QR_HASH_LENGTH) {
+        return false;
+    }
+    return $hash;
+}
+
+/**
+ * @param int    $member_id
+ * @param string $hash
+ * @param int    $user_id
+ * @return string|false
+ */
+function sc_attendance_qr_adopt_legacy_hash($member_id, $hash, $user_id = 0) {
+    $member_id = absint($member_id);
+    $hash = sc_attendance_qr_sanitize_hash($hash);
+    if (!$member_id || $hash === '') {
+        return false;
+    }
+    if (!sc_attendance_qr_ensure_db_ready()) {
+        return false;
+    }
+
+    $existing = sc_attendance_qr_get_by_hash($hash);
+    if ($existing) {
+        if ((int) $existing->member_id === $member_id && $existing->status === 'active') {
+            sc_attendance_qr_sync_member_hash_column($member_id, $hash);
+            return $hash;
+        }
+        if ((int) $existing->member_id === $member_id && $existing->status !== 'active') {
+            sc_attendance_qr_set_active((int) $existing->id, $member_id, $user_id);
+            return $hash;
+        }
+    }
+
+    $record = sc_attendance_qr_insert_code_record($member_id, $hash, $user_id, 'active');
+    if (!$record) {
+        return false;
+    }
+    sc_attendance_qr_sync_member_hash_column($member_id, $hash);
+    return $hash;
+}
+
+/**
+ * @param int $member_id
+ * @param string $hash
+ */
+function sc_attendance_qr_sync_member_hash_column($member_id, $hash) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_members';
+    $wpdb->update(
+        $table,
+        [
+            'attendance_qr_hash' => $hash,
+            'updated_at'         => current_time('mysql'),
+        ],
+        ['id' => absint($member_id)],
+        ['%s', '%s'],
+        ['%d']
+    );
+}
+
+/**
+ * مهاجرت هش‌های قدیمی به جدول جدید
+ */
+function sc_attendance_qr_migrate_legacy_hashes() {
+    if (get_option('sc_member_qr_codes_migrated', '0') === '1') {
+        return;
+    }
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $qr_table = sc_attendance_qr_codes_table();
+    $rows = $wpdb->get_results(
+        "SELECT id, attendance_qr_hash FROM `$members_table`
+         WHERE attendance_qr_hash IS NOT NULL AND attendance_qr_hash <> ''
+         AND CHAR_LENGTH(attendance_qr_hash) = " . SC_ATTENDANCE_QR_HASH_LENGTH
+    );
+    foreach ($rows as $row) {
+        $hash = trim((string) $row->attendance_qr_hash);
+        if ($hash === '') {
+            continue;
+        }
+        $exists = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM `$qr_table` WHERE hash = %s",
+            $hash
+        ));
+        if ($exists > 0) {
+            continue;
+        }
+        sc_attendance_qr_insert_code_record((int) $row->id, $hash, 0, 'active');
+    }
+    update_option('sc_member_qr_codes_migrated', '1');
+}
+
+/**
+ * @param int $member_id
+ * @param int $user_id
+ * @param bool $set_active
+ * @return object|false
+ */
+function sc_attendance_qr_create_code($member_id, $user_id = 0, $set_active = true) {
+    $member_id = absint($member_id);
+    if (!$member_id) {
+        return false;
+    }
+    sc_attendance_qr_ensure_db_ready();
+
+    $existing_count = count(sc_attendance_qr_get_codes_for_member($member_id));
+    if ($existing_count >= sc_attendance_qr_get_max_codes_per_member()) {
+        return false;
+    }
+
+    do {
+        $hash = hash('sha256', wp_generate_password(48, true, true) . wp_salt('auth') . microtime(true) . wp_rand());
+        $hash = substr($hash, 0, SC_ATTENDANCE_QR_HASH_LENGTH);
+    } while (sc_attendance_qr_get_by_hash($hash));
+
+    $status = $set_active ? 'active' : 'inactive';
+    $record = sc_attendance_qr_insert_code_record($member_id, $hash, $user_id, $status);
+    if (!$record) {
+        return false;
+    }
+
+    if ($set_active) {
+        sc_attendance_qr_set_active((int) $record->id, $member_id, $user_id);
+        $record = sc_attendance_qr_get_code_by_id((int) $record->id);
+    }
+
+    return $record ?: false;
+}
+
+/**
+ * @param int $qr_id
+ * @param int $member_id
+ * @param int $user_id
+ * @return bool
+ */
+function sc_attendance_qr_set_active($qr_id, $member_id, $user_id = 0) {
+    $qr_id = absint($qr_id);
+    $member_id = absint($member_id);
+    if (!$qr_id || !$member_id) {
+        return false;
+    }
+    sc_attendance_qr_ensure_db_ready();
+    global $wpdb;
+    $table = sc_attendance_qr_codes_table();
+
+    $target = sc_attendance_qr_get_code_by_id($qr_id);
+    if (!$target || (int) $target->member_id !== $member_id) {
+        return false;
+    }
+    if ($target->status === 'disabled') {
+        return false;
+    }
+
+    $wpdb->query($wpdb->prepare(
+        "UPDATE `$table` SET status = 'inactive' WHERE member_id = %d AND status = 'active' AND id <> %d",
+        $member_id,
+        $qr_id
+    ));
+    $wpdb->update(
+        $table,
+        ['status' => 'active'],
+        ['id' => $qr_id],
+        ['%s'],
+        ['%d']
+    );
+
+    sc_attendance_qr_sync_member_hash_column($member_id, $target->hash);
+    sc_attendance_qr_clear_member_cache($member_id);
+    return true;
+}
+
+/**
+ * @param int  $qr_id
+ * @param bool $disabled
+ * @param int  $user_id
+ * @return bool
+ */
+function sc_attendance_qr_set_disabled($qr_id, $disabled, $user_id = 0) {
+    $qr_id = absint($qr_id);
+    if (!$qr_id) {
+        return false;
+    }
+    sc_attendance_qr_ensure_db_ready();
+    global $wpdb;
+    $table = sc_attendance_qr_codes_table();
+    $record = sc_attendance_qr_get_code_by_id($qr_id);
+    if (!$record) {
+        return false;
+    }
+
+    if ($disabled) {
+        $was_active = $record->status === 'active';
+        $wpdb->update(
+            $table,
+            [
+                'status'      => 'disabled',
+                'disabled_at' => current_time('mysql'),
+                'disabled_by' => absint($user_id),
+            ],
+            ['id' => $qr_id],
+            ['%s', '%s', '%d'],
+            ['%d']
+        );
+        if ($was_active) {
+            $members_table = $wpdb->prefix . 'sc_members';
+            $wpdb->update(
+                $members_table,
+                ['attendance_qr_hash' => null, 'updated_at' => current_time('mysql')],
+                ['id' => (int) $record->member_id],
+                ['%s', '%s'],
+                ['%d']
+            );
+            $next = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM `$table` WHERE member_id = %d AND status = 'inactive' ORDER BY id DESC LIMIT 1",
+                (int) $record->member_id
+            ));
+            if ($next) {
+                sc_attendance_qr_set_active((int) $next->id, (int) $record->member_id, $user_id);
+            }
+        }
+    } else {
+        $wpdb->update(
+            $table,
+            [
+                'status'      => 'inactive',
+                'disabled_at' => null,
+                'disabled_by' => null,
+            ],
+            ['id' => $qr_id],
+            ['%s', '%s', '%s'],
+            ['%d']
+        );
+    }
+
+    sc_attendance_qr_clear_member_cache((int) $record->member_id);
+    return true;
+}
+
+/**
+ * @param int $qr_id
+ * @param int $user_id
+ * @return bool
+ */
+function sc_attendance_qr_enable_disabled_code($qr_id, $user_id = 0) {
+    $qr_id = absint($qr_id);
+    if (!$qr_id) {
+        return false;
+    }
+    global $wpdb;
+    $table = sc_attendance_qr_codes_table();
+    $record = sc_attendance_qr_get_code_by_id($qr_id);
+    if (!$record || $record->status !== 'disabled') {
+        return false;
+    }
+    $wpdb->update(
+        $table,
+        [
+            'status'      => 'inactive',
+            'disabled_at' => null,
+            'disabled_by' => null,
+        ],
+        ['id' => $qr_id],
+        ['%s', '%s', '%s'],
+        ['%d']
+    );
+    sc_attendance_qr_clear_member_cache((int) $record->member_id);
+    return true;
+}
+
+/**
+ * @param object $qr_record
+ * @return array{id:int,member_id:int,hash:string,short_code:string,status:string,image_url:string,download_url:string,created_at:string,is_active:bool}
+ */
+function sc_attendance_qr_format_code_for_ui($qr_record) {
+    if (!$qr_record) {
+        return [];
+    }
+    $member_id = (int) $qr_record->member_id;
+    $qr_id = (int) $qr_record->id;
+    return [
+        'id'           => $qr_id,
+        'member_id'    => $member_id,
+        'hash'         => (string) $qr_record->hash,
+        'short_code'   => (string) $qr_record->short_code,
+        'status'       => (string) $qr_record->status,
+        'image_url'    => sc_attendance_qr_get_image_url_for_code($qr_record, 200),
+        'download_url' => sc_attendance_qr_get_download_url_for_code($qr_record, 420),
+        'created_at'   => (string) $qr_record->created_at,
+        'is_active'    => $qr_record->status === 'active',
+    ];
+}
+
+/**
+ * @return string
+ */
+function sc_attendance_qr_get_regenerate_otp_phone() {
+    $phone = trim((string) sc_get_setting('attendance_qr_regenerate_otp_phone', ''));
+    if ($phone !== '' && function_exists('sc_login_register_normalize_phone')) {
+        return sc_login_register_normalize_phone($phone);
+    }
+    return $phone;
+}
+
+/**
+ * @param int $user_id
+ * @return array{success:bool,message:string,masked_phone?:string}
+ */
+function sc_attendance_qr_request_regenerate_otp($user_id = 0) {
+    $user_id = absint($user_id ?: get_current_user_id());
+    if (!$user_id || !sc_attendance_qr_user_can_manage_codes($user_id)) {
+        return ['success' => false, 'message' => 'دسترسی ندارید.'];
+    }
+
+    $phone = sc_attendance_qr_get_regenerate_otp_phone();
+    if ($phone === '') {
+        return ['success' => false, 'message' => 'شماره دریافت OTP در تنظیمات QR تنظیم نشده است.'];
+    }
+
+    $rate_key = 'sc_qr_otp_rate_' . $user_id;
+    if (get_transient($rate_key)) {
+        return ['success' => false, 'message' => 'لطفاً چند ثانیه صبر کنید و دوباره تلاش کنید.'];
+    }
+    set_transient($rate_key, '1', 30);
+
+    $code = (string) wp_rand(100000, 999999);
+    $pattern = trim((string) sc_get_setting('attendance_qr_regenerate_otp_pattern', ''));
+    if ($pattern === '') {
+        $pattern = trim((string) sc_get_setting('sc_login_otp_pattern', ''));
+    }
+
+    $sent = false;
+    if ($pattern !== '' && function_exists('sc_send_pattern_sms')) {
+        $sent = (bool) sc_send_pattern_sms($phone, $pattern, ['Code' => $code]);
+    } elseif (function_exists('sc_login_register_send_otp_sms')) {
+        $sent = (bool) sc_login_register_send_otp_sms($phone, $code);
+    }
+
+    if (!$sent) {
+        return ['success' => false, 'message' => 'ارسال پیامک با خطا مواجه شد.'];
+    }
+
+    set_transient('sc_qr_regenerate_otp_' . $user_id, [
+        'code'    => $code,
+        'attempts'=> 0,
+        'phone'   => $phone,
+    ], SC_ATTENDANCE_QR_OTP_EXPIRY);
+
+    $masked = strlen($phone) >= 4 ? str_repeat('*', max(0, strlen($phone) - 4)) . substr($phone, -4) : $phone;
+    return ['success' => true, 'message' => 'کد تأیید ارسال شد.', 'masked_phone' => $masked];
+}
+
+/**
+ * @param int    $user_id
+ * @param string $otp_code
+ * @return bool
+ */
+function sc_attendance_qr_verify_regenerate_otp($user_id, $otp_code) {
+    $user_id = absint($user_id);
+    $otp_code = trim((string) $otp_code);
+    if (!$user_id || $otp_code === '') {
+        return false;
+    }
+    $key = 'sc_qr_regenerate_otp_' . $user_id;
+    $data = get_transient($key);
+    if (!is_array($data) || empty($data['code'])) {
+        return false;
+    }
+    $data['attempts'] = isset($data['attempts']) ? (int) $data['attempts'] + 1 : 1;
+    if ($data['attempts'] > SC_ATTENDANCE_QR_OTP_MAX_ATTEMPTS) {
+        delete_transient($key);
+        return false;
+    }
+    set_transient($key, $data, SC_ATTENDANCE_QR_OTP_EXPIRY);
+    if (!hash_equals((string) $data['code'], $otp_code)) {
+        return false;
+    }
+    delete_transient($key);
+    return true;
+}
 
 /**
  * @return bool
@@ -59,7 +640,7 @@ function sc_attendance_qr_generate_hash() {
     do {
         $hash = hash('sha256', wp_generate_password(48, true, true) . wp_salt('auth') . microtime(true) . wp_rand());
         $hash = substr($hash, 0, SC_ATTENDANCE_QR_HASH_LENGTH);
-    } while (sc_attendance_qr_get_member_by_hash($hash));
+    } while (sc_attendance_qr_get_by_hash($hash));
 
     return $hash;
 }
@@ -75,48 +656,38 @@ function sc_attendance_qr_ensure_member_hash($member_id, $force = false) {
         return false;
     }
 
-    sc_attendance_qr_ensure_db_ready();
+    if (!sc_attendance_qr_ensure_db_ready()) {
+        $legacy = sc_attendance_qr_get_legacy_member_hash($member_id);
+        return $legacy ?: false;
+    }
 
-    global $wpdb;
-    $table = $wpdb->prefix . 'sc_members';
-    $existing = $wpdb->get_var($wpdb->prepare(
-        "SELECT attendance_qr_hash FROM `$table` WHERE id = %d LIMIT 1",
-        $member_id
-    ));
+    $active = sc_attendance_qr_get_active_code($member_id);
+    if (!$force && $active && is_string($active->hash) && strlen(trim($active->hash)) === SC_ATTENDANCE_QR_HASH_LENGTH) {
+        sc_attendance_qr_sync_member_hash_column($member_id, trim($active->hash));
+        return trim($active->hash);
+    }
 
-    if (!$force && is_string($existing) && strlen(trim($existing)) === SC_ATTENDANCE_QR_HASH_LENGTH) {
-        return trim($existing);
+    if (!$force) {
+        $legacy = sc_attendance_qr_get_legacy_member_hash($member_id);
+        if ($legacy) {
+            $adopted = sc_attendance_qr_adopt_legacy_hash($member_id, $legacy, get_current_user_id());
+            if ($adopted) {
+                return $adopted;
+            }
+        }
     }
 
     if ($force) {
         sc_attendance_qr_clear_member_cache($member_id);
     }
 
-    $hash = sc_attendance_qr_generate_hash();
-    $updated = $wpdb->update(
-        $table,
-        [
-            'attendance_qr_hash' => $hash,
-            'updated_at'         => current_time('mysql'),
-        ],
-        ['id' => $member_id],
-        ['%s', '%s'],
-        ['%d']
-    );
-
-    if ($updated === false) {
-        return false;
+    $record = sc_attendance_qr_create_code($member_id, get_current_user_id(), true);
+    if (!$record || empty($record->hash)) {
+        $legacy = sc_attendance_qr_get_legacy_member_hash($member_id);
+        return $legacy ?: false;
     }
 
-    $saved = $wpdb->get_var($wpdb->prepare(
-        "SELECT attendance_qr_hash FROM `$table` WHERE id = %d LIMIT 1",
-        $member_id
-    ));
-    if (is_string($saved) && strlen(trim($saved)) === SC_ATTENDANCE_QR_HASH_LENGTH) {
-        return trim($saved);
-    }
-
-    return false;
+    return trim((string) $record->hash);
 }
 
 /**
@@ -129,13 +700,66 @@ function sc_attendance_qr_get_member_by_hash($hash) {
         return null;
     }
 
+    $qr = sc_attendance_qr_get_by_hash($hash);
+    if (!$qr || $qr->status !== 'active') {
+        return null;
+    }
+
     global $wpdb;
     $table = $wpdb->prefix . 'sc_members';
 
     return $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM `$table` WHERE attendance_qr_hash = %s AND is_active = 1 LIMIT 1",
-        $hash
+        "SELECT * FROM `$table` WHERE id = %d AND is_active = 1 LIMIT 1",
+        (int) $qr->member_id
     ));
+}
+
+/**
+ * @param string $hash
+ * @return array{member:object|null,qr:object|null,scan_code:string}
+ */
+function sc_attendance_qr_resolve_scan_hash($hash) {
+    $hash = sc_attendance_qr_sanitize_hash($hash);
+    if ($hash === '') {
+        return ['member' => null, 'qr' => null, 'scan_code' => 'invalid_qr'];
+    }
+
+    $qr = sc_attendance_qr_get_by_hash($hash);
+    if (!$qr) {
+        return ['member' => null, 'qr' => null, 'scan_code' => 'unknown_qr'];
+    }
+
+    if ($qr->status === 'disabled') {
+        global $wpdb;
+        $members_table = $wpdb->prefix . 'sc_members';
+        $member = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM `$members_table` WHERE id = %d LIMIT 1",
+            (int) $qr->member_id
+        ));
+        return ['member' => $member, 'qr' => $qr, 'scan_code' => 'qr_disabled'];
+    }
+
+    if ($qr->status === 'inactive') {
+        global $wpdb;
+        $members_table = $wpdb->prefix . 'sc_members';
+        $member = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM `$members_table` WHERE id = %d LIMIT 1",
+            (int) $qr->member_id
+        ));
+        return ['member' => $member, 'qr' => $qr, 'scan_code' => 'qr_inactive'];
+    }
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_members';
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM `$table` WHERE id = %d AND is_active = 1 LIMIT 1",
+        (int) $qr->member_id
+    ));
+    if (!$member) {
+        return ['member' => null, 'qr' => $qr, 'scan_code' => 'unknown_qr'];
+    }
+
+    return ['member' => $member, 'qr' => $qr, 'scan_code' => 'ok'];
 }
 
 /**
@@ -205,7 +829,7 @@ function sc_attendance_qr_get_scan_cooldown_ms() {
 }
 
 /**
- * @param string $type success|error|duplicate|not_in_course|debt_warning|debt_blocked
+ * @param string $type success|error|duplicate|not_in_course|debt_warning|debt_blocked|disabled
  * @return string
  */
 function sc_attendance_qr_sound_file_basename($type) {
@@ -216,12 +840,13 @@ function sc_attendance_qr_sound_file_basename($type) {
         'not_in_course' => 'qr-not-in-course',
         'debt_warning'  => 'qr-debt-warning',
         'debt_blocked'  => 'qr-debt-blocked',
+        'disabled'      => 'qr-disabled',
     ];
     return isset($map[$type]) ? $map[$type] : 'qr-' . $type;
 }
 
 /**
- * @param string $type success|error|duplicate|not_in_course|debt_warning|debt_blocked
+ * @param string $type success|error|duplicate|not_in_course|debt_warning|debt_blocked|disabled
  * @return string
  */
 function sc_attendance_qr_get_sound_url($type) {
@@ -233,6 +858,7 @@ function sc_attendance_qr_get_sound_url($type) {
         'not_in_course' => SC_ASSETS_URL . 'sounds/qr-not-in-course.mp3',
         'debt_warning'  => SC_ASSETS_URL . 'sounds/qr-debt-warning.mp3',
         'debt_blocked'  => SC_ASSETS_URL . 'sounds/qr-debt-blocked.mp3',
+        'disabled'      => SC_ASSETS_URL . 'sounds/qr-disabled.mp3',
     ];
     $key = 'attendance_qr_sound_' . $type . '_url';
     $custom = trim((string) sc_get_setting($key, ''));
@@ -338,13 +964,42 @@ function sc_attendance_qr_should_show_member_card($context = 'public') {
  * @return bool
  */
 function sc_attendance_qr_ensure_db_ready() {
-    if (get_option('sc_attendance_qr_hash_column_added', '0') === '1') {
+    static $running = false;
+    if ($running) {
+        return sc_attendance_qr_table_exists();
+    }
+
+    $hash_column_ready = get_option('sc_attendance_qr_hash_column_added', '0') === '1';
+    $table_ready = get_option('sc_member_qr_codes_table_added', '0') === '1' && sc_attendance_qr_table_exists();
+    if ($hash_column_ready && $table_ready) {
         return true;
     }
+
+    $running = true;
+
     if (function_exists('sc_update_database')) {
         sc_update_database();
     }
-    return get_option('sc_attendance_qr_hash_column_added', '0') === '1';
+
+    if (!sc_attendance_qr_table_exists() && function_exists('sc_create_member_qr_codes_table')) {
+        sc_create_member_qr_codes_table();
+        update_option('sc_member_qr_codes_table_added', '1');
+    }
+
+    if (sc_attendance_qr_table_exists()
+        && get_option('sc_member_qr_codes_migrated', '0') !== '1'
+        && function_exists('sc_attendance_qr_migrate_legacy_hashes')) {
+        sc_attendance_qr_migrate_legacy_hashes();
+    }
+
+    if (sc_attendance_qr_table_exists()) {
+        update_option('sc_member_qr_codes_table_added', '1');
+    }
+
+    $running = false;
+
+    return get_option('sc_attendance_qr_hash_column_added', '0') === '1'
+        && sc_attendance_qr_table_exists();
 }
 
 /**
@@ -389,7 +1044,10 @@ function sc_attendance_qr_get_member_card_data($member_id, $size = 420) {
         'member_name'   => '',
         'image_url'     => '',
         'download_url'  => '',
+        'short_code'    => '',
         'error'         => '',
+        'codes'         => [],
+        'can_manage'    => sc_attendance_qr_user_can_manage_codes(),
     ];
 
     if (!$member_id) {
@@ -423,8 +1081,20 @@ function sc_attendance_qr_get_member_card_data($member_id, $size = 420) {
         return $card;
     }
 
-    $card['image_url']    = sc_attendance_qr_get_image_url($member_id, $size);
-    $card['download_url'] = sc_attendance_qr_get_download_url($member_id, max($size, 420));
+    $active = sc_attendance_qr_get_active_code($member_id);
+    if ($active) {
+        $card['short_code'] = (string) $active->short_code;
+        $card['image_url']    = sc_attendance_qr_get_image_url_for_code($active, $size);
+        $card['download_url'] = sc_attendance_qr_get_download_url_for_code($active, max($size, 420));
+    } else {
+        $card['image_url']    = sc_attendance_qr_get_image_url($member_id, $size);
+        $card['download_url'] = sc_attendance_qr_get_download_url($member_id, max($size, 420));
+    }
+
+    foreach (sc_attendance_qr_get_codes_for_member($member_id) as $code_row) {
+        $card['codes'][] = sc_attendance_qr_format_code_for_ui($code_row);
+    }
+
     return $card;
 }
 
@@ -441,15 +1111,41 @@ function sc_attendance_qr_get_cache_base_dir() {
 }
 
 /**
+ * @param object|string $code_or_hash QR row or hash string
+ * @param int           $size
+ * @return string
+ */
+function sc_attendance_qr_get_cache_file_path_for_hash($hash, $size = 420) {
+    $hash = sc_attendance_qr_sanitize_hash($hash);
+    $size = max(200, min(800, absint($size)));
+    if ($hash === '') {
+        return '';
+    }
+
+    $cache_key = md5(
+        $hash . '|'
+        . (string) sc_attendance_qr_get_logo_url() . '|'
+        . (string) sc_attendance_qr_get_logo_size_percent() . '|'
+        . $size
+    );
+
+    return sc_attendance_qr_get_cache_base_dir() . substr($hash, 0, 12) . '-' . $cache_key . '.png';
+}
+
+/**
  * @param int $member_id
  * @param int $size
  * @return string
  */
 function sc_attendance_qr_get_cache_file_path($member_id, $size = 420) {
     $member_id = absint($member_id);
-    $size      = max(200, min(800, absint($size)));
     if (!$member_id) {
         return '';
+    }
+
+    $active = sc_attendance_qr_get_active_code($member_id);
+    if ($active && !empty($active->hash)) {
+        return sc_attendance_qr_get_cache_file_path_for_hash($active->hash, $size);
     }
 
     global $wpdb;
@@ -462,14 +1158,7 @@ function sc_attendance_qr_get_cache_file_path($member_id, $size = 420) {
         return '';
     }
 
-    $cache_key = md5(
-        trim($hash) . '|'
-        . (string) sc_attendance_qr_get_logo_url() . '|'
-        . (string) sc_attendance_qr_get_logo_size_percent() . '|'
-        . $size
-    );
-
-    return sc_attendance_qr_get_cache_base_dir() . $member_id . '-' . $cache_key . '.png';
+    return sc_attendance_qr_get_cache_file_path_for_hash(trim($hash), $size);
 }
 
 /**
@@ -481,13 +1170,27 @@ function sc_attendance_qr_clear_member_cache($member_id) {
         return;
     }
     $dir  = sc_attendance_qr_get_cache_base_dir();
-    $glob = glob($dir . $member_id . '-*.png');
-    if (!is_array($glob)) {
-        return;
+    foreach (sc_attendance_qr_get_codes_for_member($member_id) as $code_row) {
+        if (empty($code_row->hash)) {
+            continue;
+        }
+        $prefix = substr(sc_attendance_qr_sanitize_hash($code_row->hash), 0, 12);
+        $glob = glob($dir . $prefix . '-*.png');
+        if (!is_array($glob)) {
+            continue;
+        }
+        foreach ($glob as $file) {
+            if (is_file($file)) {
+                @unlink($file);
+            }
+        }
     }
-    foreach ($glob as $file) {
-        if (is_file($file)) {
-            @unlink($file);
+    $glob_legacy = glob($dir . $member_id . '-*.png');
+    if (is_array($glob_legacy)) {
+        foreach ($glob_legacy as $file) {
+            if (is_file($file)) {
+                @unlink($file);
+            }
         }
     }
 }
@@ -579,27 +1282,27 @@ function sc_attendance_qr_render_member_card($member_id, $context = 'public', $s
 }
 
 /**
- * @param int $member_id
- * @param int $size
+ * @param string $hash
+ * @param int    $size
  * @return string|false PNG binary
  */
-function sc_attendance_qr_render_png_binary($member_id, $size = 420) {
+function sc_attendance_qr_render_png_binary_for_hash($hash, $size = 420) {
     if (!function_exists('imagecreatetruecolor')) {
         return false;
     }
 
+    $hash = sc_attendance_qr_sanitize_hash($hash);
+    if ($hash === '') {
+        return false;
+    }
+
     $size = max(200, min(800, absint($size)));
-    $cache_path = sc_attendance_qr_get_cache_file_path($member_id, $size);
+    $cache_path = sc_attendance_qr_get_cache_file_path_for_hash($hash, $size);
     if ($cache_path !== '' && is_file($cache_path) && filesize($cache_path) > 100) {
         $cached = @file_get_contents($cache_path);
         if ($cached) {
             return $cached;
         }
-    }
-
-    $hash = sc_attendance_qr_ensure_member_hash($member_id);
-    if (!$hash) {
-        return false;
     }
 
     $payload = sc_attendance_qr_format_payload($hash);
@@ -609,7 +1312,6 @@ function sc_attendance_qr_render_png_binary($member_id, $size = 420) {
 
     sc_attendance_qr_prepare_library();
 
-    // phpqrcode با outfile=false هدر Content-Type: image/png می‌فرستد و کل صفحه HTML را خراب می‌کند.
     $tmp_file = wp_tempnam('sc-attendance-qr-');
     if (!$tmp_file) {
         return false;
@@ -680,6 +1382,24 @@ function sc_attendance_qr_render_png_binary($member_id, $size = 420) {
     }
 
     return $png ?: false;
+}
+
+/**
+ * @param int $member_id
+ * @param int $size
+ * @return string|false PNG binary
+ */
+function sc_attendance_qr_render_png_binary($member_id, $size = 420) {
+    $active = sc_attendance_qr_get_active_code(absint($member_id));
+    if ($active && !empty($active->hash)) {
+        return sc_attendance_qr_render_png_binary_for_hash($active->hash, $size);
+    }
+
+    $hash = sc_attendance_qr_ensure_member_hash($member_id);
+    if (!$hash) {
+        return false;
+    }
+    return sc_attendance_qr_render_png_binary_for_hash($hash, $size);
 }
 
 /**
@@ -777,6 +1497,74 @@ function sc_attendance_qr_get_data_uri($member_id, $size = 420) {
 }
 
 /**
+ * @param object $code_row
+ * @param int    $size
+ * @return string
+ */
+function sc_attendance_qr_get_image_url_for_code($code_row, $size = 280) {
+    if (!$code_row || empty($code_row->hash)) {
+        return '';
+    }
+    $qr_id = (int) ($code_row->id ?? 0);
+    $size  = max(200, min(800, absint($size)));
+    $hash  = sc_attendance_qr_sanitize_hash($code_row->hash);
+    $version = substr(md5(
+        $hash . '|'
+        . (string) sc_attendance_qr_get_logo_url() . '|'
+        . (string) sc_attendance_qr_get_logo_size_percent() . '|'
+        . $size
+    ), 0, 8);
+
+    $args = [
+        'action' => 'sc_attendance_qr_image',
+        'qr_id'  => $qr_id,
+        'size'   => $size,
+        'nonce'  => wp_create_nonce('sc_attendance_qr_image_qr_' . $qr_id),
+        'v'      => $version,
+    ];
+    if (!$qr_id) {
+        unset($args['qr_id']);
+        $args['member_id'] = (int) ($code_row->member_id ?? 0);
+        $args['nonce'] = wp_create_nonce('sc_attendance_qr_image_' . $args['member_id']);
+    }
+    return add_query_arg($args, admin_url('admin-ajax.php'));
+}
+
+/**
+ * @param object $code_row
+ * @param int    $size
+ * @return string
+ */
+function sc_attendance_qr_get_download_url_for_code($code_row, $size = 420) {
+    if (!$code_row || empty($code_row->hash)) {
+        return '';
+    }
+    $qr_id = (int) ($code_row->id ?? 0);
+    $size  = max(200, min(800, absint($size)));
+    $hash  = sc_attendance_qr_sanitize_hash($code_row->hash);
+    $version = substr(md5(
+        $hash . '|'
+        . (string) sc_attendance_qr_get_logo_url() . '|'
+        . (string) sc_attendance_qr_get_logo_size_percent() . '|'
+        . $size
+    ), 0, 8);
+
+    $args = [
+        'action' => 'sc_attendance_qr_download',
+        'qr_id'  => $qr_id,
+        'size'   => $size,
+        'nonce'  => wp_create_nonce('sc_attendance_qr_download_qr_' . $qr_id),
+        'v'      => $version,
+    ];
+    if (!$qr_id) {
+        unset($args['qr_id']);
+        $args['member_id'] = (int) ($code_row->member_id ?? 0);
+        $args['nonce'] = wp_create_nonce('sc_attendance_qr_download_' . $args['member_id']);
+    }
+    return add_query_arg($args, admin_url('admin-ajax.php'));
+}
+
+/**
  * @param int $member_id
  * @param int $size
  * @return string
@@ -784,7 +1572,11 @@ function sc_attendance_qr_get_data_uri($member_id, $size = 420) {
 function sc_attendance_qr_get_image_url($member_id, $size = 280) {
     $member_id = absint($member_id);
     $size      = max(200, min(800, absint($size)));
-    $hash      = sc_attendance_qr_ensure_member_hash($member_id);
+    $active = sc_attendance_qr_get_active_code($member_id);
+    if ($active) {
+        return sc_attendance_qr_get_image_url_for_code($active, $size);
+    }
+    $hash = sc_attendance_qr_ensure_member_hash($member_id);
     $version   = substr(md5(
         (string) $hash . '|'
         . (string) sc_attendance_qr_get_logo_url() . '|'
@@ -808,6 +1600,10 @@ function sc_attendance_qr_get_image_url($member_id, $size = 280) {
  */
 function sc_attendance_qr_get_download_url($member_id, $size = 420) {
     $member_id = absint($member_id);
+    $active = sc_attendance_qr_get_active_code($member_id);
+    if ($active) {
+        return sc_attendance_qr_get_download_url_for_code($active, $size);
+    }
     $size      = max(200, min(800, absint($size)));
     $hash      = sc_attendance_qr_ensure_member_hash($member_id);
     $version   = substr(md5(
@@ -924,6 +1720,24 @@ function sc_attendance_qr_register_present(array $args) {
     }
 
     if ($current_coach_id > 0) {
+        if (function_exists('sc_validate_coach_attendance_date_access')) {
+            $coach_date_access = sc_validate_coach_attendance_date_access(
+                $current_coach_id,
+                $course_id,
+                $attendance_date,
+                $chapter_name,
+                $group_name
+            );
+            if (empty($coach_date_access['allowed'])) {
+                return [
+                    'success' => false,
+                    'code'    => isset($coach_date_access['code']) ? (string) $coach_date_access['code'] : 'attendance_locked',
+                    'message' => isset($coach_date_access['message']) ? (string) $coach_date_access['message'] : 'در این تاریخ امکان ثبت حضور و غیاب برای مربی وجود ندارد.',
+                    'member_name' => $member_name,
+                ];
+            }
+        }
+
         $member_scope = function_exists('sc_attendance_member_scope_sql')
             ? sc_attendance_member_scope_sql($course_id, $current_coach_id, $chapter_name)
             : [
@@ -1184,6 +1998,7 @@ function sc_attendance_qr_ensure_default_sounds() {
         'qr-not-in-course.mp3' => [440, 220, 0.38],
         'qr-debt-warning.mp3'  => [520, 180, 0.38],
         'qr-debt-blocked.mp3'  => [180, 420, 0.42],
+        'qr-disabled.mp3'      => [300, 280, 0.40],
     ];
     foreach ($map as $file => $cfg) {
         $mp3_path = $dir . $file;
@@ -1226,6 +2041,88 @@ function sc_attendance_qr_on_member_created($member_id) {
     sc_attendance_qr_ensure_member_hash(absint($member_id));
 }
 
+/**
+ * @param int $member_id
+ * @return string
+ */
+function sc_attendance_qr_get_member_short_code($member_id) {
+    $active = sc_attendance_qr_get_active_code(absint($member_id));
+    return $active ? (string) $active->short_code : '';
+}
+
+/**
+ * @param int $member_id
+ * @return string
+ */
+function sc_attendance_qr_get_member_all_codes_text($member_id) {
+    $labels = [
+        'active'   => 'فعال',
+        'inactive' => 'غیرفعال',
+        'disabled' => 'غیرفعال موقت',
+    ];
+    $parts = [];
+    foreach (sc_attendance_qr_get_codes_for_member($member_id) as $row) {
+        $status = isset($labels[$row->status]) ? $labels[$row->status] : $row->status;
+        $parts[] = $row->short_code . ' (' . $status . ')';
+    }
+    return implode('، ', $parts);
+}
+
+/**
+ * @param array $args search, status, member_id, paged, per_page
+ * @return array{items:object[],total:int}
+ */
+function sc_attendance_qr_query_all_codes(array $args = []) {
+    sc_attendance_qr_ensure_db_ready();
+    global $wpdb;
+    $qr_table = sc_attendance_qr_codes_table();
+    $members_table = $wpdb->prefix . 'sc_members';
+
+    $search = trim((string) ($args['search'] ?? ''));
+    $status = sanitize_text_field((string) ($args['status'] ?? ''));
+    $member_id = absint($args['member_id'] ?? 0);
+    $paged = max(1, absint($args['paged'] ?? 1));
+    $per_page = max(10, min(100, absint($args['per_page'] ?? 25)));
+    $offset = ($paged - 1) * $per_page;
+
+    $where = ['1=1'];
+    $prepare = [];
+
+    if ($member_id > 0) {
+        $where[] = 'q.member_id = %d';
+        $prepare[] = $member_id;
+    }
+    if ($status !== '' && in_array($status, ['active', 'inactive', 'disabled'], true)) {
+        $where[] = 'q.status = %s';
+        $prepare[] = $status;
+    }
+    if ($search !== '') {
+        $like = '%' . $wpdb->esc_like($search) . '%';
+        $where[] = '(q.short_code LIKE %s OR m.first_name LIKE %s OR m.last_name LIKE %s OR CONCAT(m.first_name, " ", m.last_name) LIKE %s)';
+        $prepare[] = $like;
+        $prepare[] = $like;
+        $prepare[] = $like;
+        $prepare[] = $like;
+    }
+
+    $where_sql = implode(' AND ', $where);
+    $count_sql = "SELECT COUNT(*) FROM `$qr_table` q INNER JOIN `$members_table` m ON m.id = q.member_id WHERE $where_sql";
+    $list_sql = "SELECT q.*, m.first_name, m.last_name FROM `$qr_table` q INNER JOIN `$members_table` m ON m.id = q.member_id WHERE $where_sql ORDER BY q.id DESC LIMIT %d OFFSET %d";
+
+    if (!empty($prepare)) {
+        $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $prepare));
+        $items = $wpdb->get_results($wpdb->prepare($list_sql, array_merge($prepare, [$per_page, $offset])));
+    } else {
+        $total = (int) $wpdb->get_var($count_sql);
+        $items = $wpdb->get_results($wpdb->prepare($list_sql, $per_page, $offset));
+    }
+
+    return [
+        'items' => is_array($items) ? $items : [],
+        'total' => $total,
+    ];
+}
+
 add_action('wp_ajax_sc_attendance_qr_scan', 'sc_ajax_attendance_qr_scan');
 function sc_ajax_attendance_qr_scan() {
     check_ajax_referer('sc_attendance_qr_scan', 'nonce');
@@ -1242,11 +2139,32 @@ function sc_ajax_attendance_qr_scan() {
         wp_send_json_error(['message' => 'کد QR نامعتبر است.', 'code' => 'invalid_qr']);
     }
 
-    $member = sc_attendance_qr_get_member_by_hash($hash);
-    if (!$member) {
+    $resolved = sc_attendance_qr_resolve_scan_hash($hash);
+    if ($resolved['scan_code'] === 'qr_disabled') {
+        $member_name = $resolved['member']
+            ? trim((string) $resolved['member']->first_name . ' ' . (string) $resolved['member']->last_name)
+            : '';
+        wp_send_json_error([
+            'message'     => 'این QR موقتاً غیرفعال است.',
+            'code'        => 'qr_disabled',
+            'member_name' => $member_name,
+        ]);
+    }
+    if ($resolved['scan_code'] === 'qr_inactive') {
+        $member_name = $resolved['member']
+            ? trim((string) $resolved['member']->first_name . ' ' . (string) $resolved['member']->last_name)
+            : '';
+        wp_send_json_error([
+            'message'     => 'این QR دیگر فعال نیست.',
+            'code'        => 'qr_inactive',
+            'member_name' => $member_name,
+        ]);
+    }
+    if ($resolved['scan_code'] !== 'ok' || !$resolved['member']) {
         wp_send_json_error(['message' => 'بازیکن مرتبط با این QR یافت نشد.', 'code' => 'unknown_qr']);
     }
 
+    $member = $resolved['member'];
     $course_id = absint($_POST['course_id'] ?? 0);
     $attendance_date = sanitize_text_field(wp_unslash($_POST['attendance_date'] ?? ''));
     $chapter_name = sanitize_text_field(wp_unslash($_POST['chapter_name'] ?? ''));
@@ -1283,11 +2201,12 @@ add_action('wp_ajax_sc_attendance_qr_image', 'sc_ajax_attendance_qr_image');
 add_action('wp_ajax_sc_attendance_qr_download', 'sc_ajax_attendance_qr_download');
 
 /**
- * @param int    $member_id
- * @param int    $size
- * @param string $disposition inline|attachment
+ * @param int         $member_id
+ * @param int         $size
+ * @param string      $disposition inline|attachment
+ * @param object|null $code_row
  */
-function sc_attendance_qr_output_png_response($member_id, $size = 420, $disposition = 'inline') {
+function sc_attendance_qr_output_png_response($member_id, $size = 420, $disposition = 'inline', $code_row = null) {
     $member_id = absint($member_id);
     if (!$member_id || !sc_attendance_qr_user_can_view_member_qr(get_current_user_id(), $member_id)) {
         status_header(403);
@@ -1295,20 +2214,27 @@ function sc_attendance_qr_output_png_response($member_id, $size = 420, $disposit
     }
 
     $size = max(200, min(800, absint($size)));
-    $cache_path = sc_attendance_qr_get_cache_file_path($member_id, $size);
-    if ($cache_path !== '' && is_file($cache_path) && filesize($cache_path) > 100) {
-        sc_attendance_qr_send_png_file($cache_path, $disposition, $member_id);
+    if (!$code_row) {
+        $code_row = sc_attendance_qr_get_active_code($member_id);
     }
 
-    $png = sc_attendance_qr_render_png_binary($member_id, $size);
+    if ($code_row && !empty($code_row->hash)) {
+        $cache_path = sc_attendance_qr_get_cache_file_path_for_hash($code_row->hash, $size);
+        if ($cache_path !== '' && is_file($cache_path) && filesize($cache_path) > 100) {
+            sc_attendance_qr_send_png_file($cache_path, $disposition, $member_id);
+        }
+        $png = sc_attendance_qr_render_png_binary_for_hash($code_row->hash, $size);
+    } else {
+        $cache_path = sc_attendance_qr_get_cache_file_path($member_id, $size);
+        if ($cache_path !== '' && is_file($cache_path) && filesize($cache_path) > 100) {
+            sc_attendance_qr_send_png_file($cache_path, $disposition, $member_id);
+        }
+        $png = sc_attendance_qr_render_png_binary($member_id, $size);
+    }
+
     if (!$png) {
         status_header(500);
         exit;
-    }
-
-    $cache_path = sc_attendance_qr_get_cache_file_path($member_id, $size);
-    if ($cache_path !== '' && is_file($cache_path) && filesize($cache_path) > 100) {
-        sc_attendance_qr_send_png_file($cache_path, $disposition, $member_id);
     }
 
     header('Content-Type: image/png');
@@ -1325,6 +2251,20 @@ function sc_attendance_qr_output_png_response($member_id, $size = 420, $disposit
 }
 
 function sc_ajax_attendance_qr_image() {
+    $qr_id = absint($_GET['qr_id'] ?? 0);
+    if ($qr_id > 0) {
+        if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'] ?? '')), 'sc_attendance_qr_image_qr_' . $qr_id)) {
+            status_header(403);
+            exit;
+        }
+        $code_row = sc_attendance_qr_get_code_by_id($qr_id);
+        if (!$code_row) {
+            status_header(404);
+            exit;
+        }
+        sc_attendance_qr_output_png_response((int) $code_row->member_id, absint($_GET['size'] ?? 420), 'inline', $code_row);
+    }
+
     $member_id = absint($_GET['member_id'] ?? 0);
     if (!$member_id || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'] ?? '')), 'sc_attendance_qr_image_' . $member_id)) {
         status_header(403);
@@ -1334,6 +2274,20 @@ function sc_ajax_attendance_qr_image() {
 }
 
 function sc_ajax_attendance_qr_download() {
+    $qr_id = absint($_GET['qr_id'] ?? 0);
+    if ($qr_id > 0) {
+        if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'] ?? '')), 'sc_attendance_qr_download_qr_' . $qr_id)) {
+            status_header(403);
+            exit;
+        }
+        $code_row = sc_attendance_qr_get_code_by_id($qr_id);
+        if (!$code_row) {
+            status_header(404);
+            exit;
+        }
+        sc_attendance_qr_output_png_response((int) $code_row->member_id, absint($_GET['size'] ?? 420), 'attachment', $code_row);
+    }
+
     $member_id = absint($_GET['member_id'] ?? 0);
     if (!$member_id || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'] ?? '')), 'sc_attendance_qr_download_' . $member_id)) {
         status_header(403);
@@ -1342,24 +2296,112 @@ function sc_ajax_attendance_qr_download() {
     sc_attendance_qr_output_png_response($member_id, absint($_GET['size'] ?? 420), 'attachment');
 }
 
+add_action('wp_ajax_sc_attendance_qr_request_regenerate_otp', 'sc_ajax_attendance_qr_request_regenerate_otp');
+function sc_ajax_attendance_qr_request_regenerate_otp() {
+    check_ajax_referer('sc_attendance_qr_admin', 'nonce');
+    $result = sc_attendance_qr_request_regenerate_otp(get_current_user_id());
+    if (empty($result['success'])) {
+        wp_send_json_error(['message' => $result['message']]);
+    }
+    wp_send_json_success([
+        'message'      => $result['message'],
+        'masked_phone' => $result['masked_phone'] ?? '',
+    ]);
+}
+
 add_action('wp_ajax_sc_attendance_qr_regenerate', 'sc_ajax_attendance_qr_regenerate');
 function sc_ajax_attendance_qr_regenerate() {
     check_ajax_referer('sc_attendance_qr_regenerate', 'nonce');
     $member_id = absint($_POST['member_id'] ?? 0);
+    $otp_code = sanitize_text_field(wp_unslash($_POST['otp_code'] ?? ''));
     if (!$member_id) {
         wp_send_json_error(['message' => 'شناسه نامعتبر.']);
     }
-    if (!current_user_can('manage_options') && !sc_attendance_qr_user_can_view_member_qr(get_current_user_id(), $member_id)) {
+    if (!sc_attendance_qr_user_can_manage_codes()) {
         wp_send_json_error(['message' => 'دسترسی ندارید.']);
     }
-    $hash = sc_attendance_qr_ensure_member_hash($member_id, true);
-    if (!$hash) {
-        wp_send_json_error(['message' => 'خطا در تولید QR جدید.']);
+    if (!sc_attendance_qr_verify_regenerate_otp(get_current_user_id(), $otp_code)) {
+        wp_send_json_error(['message' => 'کد تأیید نامعتبر یا منقضی شده است.']);
+    }
+
+    $record = sc_attendance_qr_create_code($member_id, get_current_user_id(), true);
+    if (!$record) {
+        wp_send_json_error(['message' => 'خطا در تولید QR جدید. ممکن است سقف تعداد QR پر شده باشد.']);
+    }
+
+    $card = sc_attendance_qr_get_member_card_data($member_id, 420);
+    wp_send_json_success([
+        'message'      => 'کد QR جدید تولید و فعال شد.',
+        'image_url'    => $card['image_url'] ?? sc_attendance_qr_get_image_url($member_id),
+        'download_url' => $card['download_url'] ?? sc_attendance_qr_get_download_url($member_id),
+        'short_code'   => (string) $record->short_code,
+        'codes'        => $card['codes'] ?? [],
+    ]);
+}
+
+add_action('wp_ajax_sc_attendance_qr_set_active', 'sc_ajax_attendance_qr_set_active');
+function sc_ajax_attendance_qr_set_active() {
+    check_ajax_referer('sc_attendance_qr_admin', 'nonce');
+    if (!sc_attendance_qr_user_can_manage_codes()) {
+        wp_send_json_error(['message' => 'دسترسی ندارید.']);
+    }
+    $qr_id = absint($_POST['qr_id'] ?? 0);
+    $member_id = absint($_POST['member_id'] ?? 0);
+    if (!$qr_id || !$member_id) {
+        wp_send_json_error(['message' => 'اطلاعات ناقص است.']);
+    }
+    if (!sc_attendance_qr_set_active($qr_id, $member_id, get_current_user_id())) {
+        wp_send_json_error(['message' => 'امکان فعال‌سازی این QR وجود ندارد.']);
     }
     wp_send_json_success([
-        'message'      => 'کد QR جدید تولید شد.',
-        'image_url'    => sc_attendance_qr_get_image_url($member_id),
-        'download_url' => sc_attendance_qr_get_download_url($member_id),
-        'data_uri'     => sc_attendance_qr_get_data_uri($member_id, 420),
+        'message' => 'QR فعال شد.',
+        'codes'   => array_map('sc_attendance_qr_format_code_for_ui', sc_attendance_qr_get_codes_for_member($member_id)),
+        'card'    => sc_attendance_qr_get_member_card_data($member_id, 420),
+    ]);
+}
+
+add_action('wp_ajax_sc_attendance_qr_toggle_disabled', 'sc_ajax_attendance_qr_toggle_disabled');
+function sc_ajax_attendance_qr_toggle_disabled() {
+    check_ajax_referer('sc_attendance_qr_admin', 'nonce');
+    if (!sc_attendance_qr_user_can_manage_codes()) {
+        wp_send_json_error(['message' => 'دسترسی ندارید.']);
+    }
+    $qr_id = absint($_POST['qr_id'] ?? 0);
+    $member_id = absint($_POST['member_id'] ?? 0);
+    $action = sanitize_text_field(wp_unslash($_POST['toggle_action'] ?? ''));
+    if (!$qr_id || !$member_id) {
+        wp_send_json_error(['message' => 'اطلاعات ناقص است.']);
+    }
+
+    $ok = false;
+    if ($action === 'disable') {
+        $ok = sc_attendance_qr_set_disabled($qr_id, true, get_current_user_id());
+    } elseif ($action === 'enable') {
+        $ok = sc_attendance_qr_enable_disabled_code($qr_id, get_current_user_id());
+    } else {
+        wp_send_json_error(['message' => 'عملیات نامعتبر.']);
+    }
+
+    if (!$ok) {
+        wp_send_json_error(['message' => 'عملیات انجام نشد.']);
+    }
+
+    wp_send_json_success([
+        'message' => $action === 'disable' ? 'QR موقتاً غیرفعال شد.' : 'QR از حالت غیرفعال خارج شد.',
+        'codes'   => array_map('sc_attendance_qr_format_code_for_ui', sc_attendance_qr_get_codes_for_member($member_id)),
+        'card'    => sc_attendance_qr_get_member_card_data($member_id, 420),
+    ]);
+}
+
+add_action('wp_ajax_sc_attendance_qr_list', 'sc_ajax_attendance_qr_list');
+function sc_ajax_attendance_qr_list() {
+    check_ajax_referer('sc_attendance_qr_admin', 'nonce');
+    $member_id = absint($_POST['member_id'] ?? $_GET['member_id'] ?? 0);
+    if (!$member_id || !sc_attendance_qr_user_can_view_member_qr(get_current_user_id(), $member_id)) {
+        wp_send_json_error(['message' => 'دسترسی ندارید.']);
+    }
+    wp_send_json_success([
+        'codes' => array_map('sc_attendance_qr_format_code_for_ui', sc_attendance_qr_get_codes_for_member($member_id)),
+        'can_manage' => sc_attendance_qr_user_can_manage_codes(),
     ]);
 }

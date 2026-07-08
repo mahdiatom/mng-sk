@@ -274,6 +274,8 @@ function sc_users_export_get_field_labels() {
         'id_card_photo' => 'عکس کارت ملی',
         'sport_insurance_photo' => 'عکس بیمه ورزشی',
         'attendance_qr' => 'QR حضور و غیاب',
+        'attendance_qr_short_code' => 'کد QR (۷ حرف)',
+        'attendance_qr_all_codes' => 'همه کدهای QR',
     ];
     if (function_exists('sc_get_player_info_custom_fields')) {
         $custom_fields = sc_get_player_info_custom_fields();
@@ -711,6 +713,22 @@ function sc_users_export_prepare_rows($members, $fields) {
                         if ($qr_data_uri !== '') {
                             $row[$field] = $qr_data_uri;
                         }
+                    }
+                    break;
+                case 'attendance_qr_short_code':
+                    $row[$field] = function_exists('sc_attendance_qr_get_member_short_code')
+                        ? sc_attendance_qr_get_member_short_code((int) $member->id)
+                        : '-';
+                    if ($row[$field] === '') {
+                        $row[$field] = '-';
+                    }
+                    break;
+                case 'attendance_qr_all_codes':
+                    $row[$field] = function_exists('sc_attendance_qr_get_member_all_codes_text')
+                        ? sc_attendance_qr_get_member_all_codes_text((int) $member->id)
+                        : '-';
+                    if ($row[$field] === '') {
+                        $row[$field] = '-';
                     }
                     break;
                 default:

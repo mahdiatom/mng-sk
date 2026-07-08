@@ -968,11 +968,16 @@ function sc_support_send_sms_on_new_ticket($ticket) {
     if ($enabled !== 1) {
         return;
     }
-    $template = sc_get_sms_setting('sms_ticket_new_recipient_template');
-    $template = str_replace(['{ticket_id}', '{subject}'], [$ticket->id, $ticket->subject], $template);
+    $template_raw = sc_get_sms_setting('sms_ticket_new_recipient_template');
+    $template = str_replace(['{ticket_id}', '{subject}'], [$ticket->id, $ticket->subject], $template_raw);
     if (strpos($template, '%s') !== false) {
         $template = sprintf($template, $ticket->id, $ticket->subject);
     }
+    $pattern_code = (int) sc_get_sms_setting('sms_ticket_new_recipient_pattern');
+    $pattern_params = [
+        'TicketId' => (string) $ticket->id,
+        'Subject' => (string) $ticket->subject,
+    ];
     $mobile = null;
     $created_by = isset($ticket->created_by_type) ? $ticket->created_by_type : 'user';
     if ($created_by !== 'user' && !empty($ticket->user_id) && (int) $ticket->user_id > 0) {
@@ -998,7 +1003,7 @@ function sc_support_send_sms_on_new_ticket($ticket) {
         $mobile = get_user_meta((int) $ticket->coach_id, 'billing_phone', true);
     }
     if ($mobile && function_exists('sc_send_sms')) {
-        sc_send_sms($mobile, $template, false, null, [], 'ticket_new');
+        sc_send_sms($mobile, $template, $pattern_code > 0, $pattern_code > 0 ? $pattern_code : null, $pattern_params, 'ticket_new');
     }
 }
 
@@ -1010,11 +1015,16 @@ function sc_support_send_sms_on_new_message($ticket, $sender_type, $sender_id) {
     if ($enabled !== 1) {
         return;
     }
-    $template = sc_get_sms_setting('sms_ticket_reply_template');
-    $template = str_replace(['{ticket_id}', '{subject}'], [$ticket->id, $ticket->subject], $template);
+    $template_raw = sc_get_sms_setting('sms_ticket_reply_template');
+    $template = str_replace(['{ticket_id}', '{subject}'], [$ticket->id, $ticket->subject], $template_raw);
     if (strpos($template, '%s') !== false) {
         $template = sprintf($template, $ticket->id);
     }
+    $pattern_code = (int) sc_get_sms_setting('sms_ticket_reply_pattern');
+    $pattern_params = [
+        'TicketId' => (string) $ticket->id,
+        'Subject' => (string) $ticket->subject,
+    ];
     $mobile = null;
     if ($sender_type === 'user') {
         if ($ticket->department === 'manager' || $ticket->department === 'site_support') {
@@ -1057,7 +1067,7 @@ function sc_support_send_sms_on_new_message($ticket, $sender_type, $sender_id) {
         }
     }
     if ($mobile && function_exists('sc_send_sms')) {
-        sc_send_sms($mobile, $template, false, null, [], 'ticket_reply');
+        sc_send_sms($mobile, $template, $pattern_code > 0, $pattern_code > 0 ? $pattern_code : null, $pattern_params, 'ticket_reply');
     }
 
 }

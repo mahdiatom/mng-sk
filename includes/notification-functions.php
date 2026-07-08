@@ -29,7 +29,7 @@ function sc_current_user_coach_id() {
  * @return string[]
  */
 function sc_get_coaching_level_options() {
-    return ['استاد', 'ارشد', 'حرفه‌ای', 'نیمه حرفه‌ای', 'مبتدی'];
+    return ['استاد', 'ارشد', 'حرفه‌ای', 'نیمه حرفه‌ای', 'مبتدی', 'کارآموز'];
 }
 
 /**

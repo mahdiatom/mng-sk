@@ -109,6 +109,7 @@ require_once SC_INCLUDES_DIR . 'alerts-functions.php'; // User alerts (admin)
 require_once SC_INCLUDES_DIR . 'wallet-functions.php'; // Wallet functions
 require_once SC_INCLUDES_DIR . 'coach-wallet-functions.php'; // Coach wallet functions
 require_once SC_INCLUDES_DIR . 'coach-salary-cron.php'; // Coach salary cron jobs
+require_once SC_INCLUDES_DIR . 'coach-certificate-functions.php'; // Coach certificate expiry helpers and SMS
 require_once SC_INCLUDES_DIR . 'birthday-sms-cron.php'; // Birthday SMS daily cron
 require_once SC_INCLUDES_DIR . 'insurance-expiry-sms-cron.php'; // Insurance expiry SMS daily cron
 require_once SC_INCLUDES_DIR . 'support-ticket-functions.php'; // Support ticket CRUD, SMS, attachments
@@ -1874,9 +1875,20 @@ function sc_admin_enqueue_assets() {
             'soundNotInCourse' => sc_attendance_qr_get_sound_url('not_in_course'),
             'soundDebtWarning' => sc_attendance_qr_get_sound_url('debt_warning'),
             'soundDebtBlocked' => sc_attendance_qr_get_sound_url('debt_blocked'),
+            'soundDisabled'    => sc_attendance_qr_get_sound_url('disabled'),
         ));
     }
     if ($current_page === 'sc-view-member' && function_exists('sc_attendance_qr_should_show_member_card') && sc_attendance_qr_should_show_member_card('admin')) {
+        wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css'), time());
+        if (function_exists('sc_attendance_qr_user_can_manage_codes') && sc_attendance_qr_user_can_manage_codes()) {
+            wp_enqueue_script('sc-attendance-qr-admin-js', SC_ASSETS_URL . 'js/attendance-qr-admin.js', array('jquery'), time(), true);
+            wp_localize_script('sc-attendance-qr-admin-js', 'scAttendanceQrAdmin', array(
+                'ajaxUrl'    => admin_url('admin-ajax.php'),
+                'adminNonce' => wp_create_nonce('sc_attendance_qr_admin'),
+            ));
+        }
+    }
+    if ($current_page === 'sc-member-qr-codes') {
         wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css'), time());
     }
 }

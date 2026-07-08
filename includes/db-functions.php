@@ -513,6 +513,11 @@ function sc_create_coaches_table() {
         `coaching_experience` int(11) DEFAULT NULL,
         `sports_history` text DEFAULT NULL,
         `personal_photo` varchar(500) DEFAULT NULL COMMENT 'عکس پرسنلی مربی',
+        `coaching_certificate_photo` varchar(500) DEFAULT NULL COMMENT 'عکس مدرک مربیگری',
+        `coaching_certificate_expiry_date_shamsi` varchar(10) DEFAULT NULL COMMENT 'تاریخ انقضای مدرک مربیگری (شمسی)',
+        `coaching_certificate_expiry_date_gregorian` date DEFAULT NULL COMMENT 'تاریخ انقضای مدرک مربیگری (میلادی)',
+        `club_rules_accepted` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'تایید قوانین و مقررات باشگاه توسط مربی',
+        `club_rules_accepted_at` datetime DEFAULT NULL COMMENT 'زمان تایید قوانین و مقررات باشگاه',
         `settlement_type` varchar(20) DEFAULT 'fixed',
         `settlement_amount` decimal(15,2) DEFAULT 0.00,
         `is_active` tinyint(1) DEFAULT 1,
@@ -1321,6 +1326,36 @@ function sc_create_course_packages_table() {
     dbDelta($sql);
 }
 
+/**
+ * Create member QR codes table (multiple QR per player)
+ */
+function sc_create_member_qr_codes_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_member_qr_codes';
+    $table_collation = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه بازیکن',
+        `hash` varchar(64) NOT NULL COMMENT 'هش QR',
+        `short_code` char(7) NOT NULL COMMENT 'کد ۷ حرفی نمایشی',
+        `status` enum('active','inactive','disabled') NOT NULL DEFAULT 'inactive' COMMENT 'وضعیت QR',
+        `created_at` datetime NOT NULL,
+        `created_by` bigint(20) unsigned NOT NULL DEFAULT 0,
+        `disabled_at` datetime DEFAULT NULL,
+        `disabled_by` bigint(20) unsigned DEFAULT NULL,
+        `notes` text DEFAULT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_qr_hash` (`hash`),
+        UNIQUE KEY `idx_qr_short_code` (`short_code`),
+        KEY `idx_member_status` (`member_id`,`status`),
+        KEY `idx_member_id` (`member_id`)
+    ) ENGINE=InnoDB $table_collation";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
 function sc_update_database() {
     global $wpdb;
 
@@ -1382,6 +1417,9 @@ function sc_update_database() {
         }
         if (function_exists('sc_create_course_chapters_table')) {
             sc_create_course_chapters_table();
+        }
+        if (function_exists('sc_create_member_qr_codes_table')) {
+            sc_create_member_qr_codes_table();
         }
 
         // --- ستون‌های جدید (در صورت اضافه شدن بعد از نسخه قبل) ---
@@ -1483,6 +1521,17 @@ function sc_update_database() {
         update_option('sc_attendance_qr_hash_column_added', '1');
     }
 
+    // جدول چند QR per بازیکن
+    if (get_option('sc_member_qr_codes_table_added', '0') !== '1') {
+        if (function_exists('sc_create_member_qr_codes_table')) {
+            sc_create_member_qr_codes_table();
+        }
+        update_option('sc_member_qr_codes_table_added', '1');
+        if (function_exists('sc_attendance_qr_migrate_legacy_hashes')) {
+            sc_attendance_qr_migrate_legacy_hashes();
+        }
+    }
+
     // اضافه کردن ستون salary_percentage به جدول course_coaches (یک بار برای نصب‌های قبلی)
     if (get_option('sc_coach_salary_percentage_column_added', '0') !== '1') {
         $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
@@ -1511,6 +1560,42 @@ function sc_update_database() {
             $wpdb->query("ALTER TABLE `$coaches_table_photo` ADD COLUMN `personal_photo` varchar(500) DEFAULT NULL COMMENT 'عکس پرسنلی مربی' AFTER `sports_history`");
         }
         update_option('sc_coaches_personal_photo_column_added', '1');
+    }
+
+    // ستون‌های مدرک مربی‌گری برای مربیان
+    if (get_option('sc_coaches_certificate_fields_added', '0') !== '1') {
+        $coaches_table_certificate = $wpdb->prefix . 'sc_coaches';
+        $certificate_photo_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$coaches_table_certificate` LIKE %s", 'coaching_certificate_photo'));
+        if (empty($certificate_photo_exists)) {
+            $wpdb->query("ALTER TABLE `$coaches_table_certificate` ADD COLUMN `coaching_certificate_photo` varchar(500) DEFAULT NULL COMMENT 'عکس مدرک مربیگری' AFTER `personal_photo`");
+        }
+
+        $certificate_expiry_shamsi_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$coaches_table_certificate` LIKE %s", 'coaching_certificate_expiry_date_shamsi'));
+        if (empty($certificate_expiry_shamsi_exists)) {
+            $wpdb->query("ALTER TABLE `$coaches_table_certificate` ADD COLUMN `coaching_certificate_expiry_date_shamsi` varchar(10) DEFAULT NULL COMMENT 'تاریخ انقضای مدرک مربیگری (شمسی)' AFTER `coaching_certificate_photo`");
+        }
+
+        $certificate_expiry_gregorian_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$coaches_table_certificate` LIKE %s", 'coaching_certificate_expiry_date_gregorian'));
+        if (empty($certificate_expiry_gregorian_exists)) {
+            $wpdb->query("ALTER TABLE `$coaches_table_certificate` ADD COLUMN `coaching_certificate_expiry_date_gregorian` date DEFAULT NULL COMMENT 'تاریخ انقضای مدرک مربیگری (میلادی)' AFTER `coaching_certificate_expiry_date_shamsi`");
+        }
+
+        update_option('sc_coaches_certificate_fields_added', '1');
+    }
+
+    if (get_option('sc_coaches_club_rules_fields_added', '0') !== '1') {
+        $coaches_table_rules = $wpdb->prefix . 'sc_coaches';
+        $rules_accepted_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$coaches_table_rules` LIKE %s", 'club_rules_accepted'));
+        if (empty($rules_accepted_exists)) {
+            $wpdb->query("ALTER TABLE `$coaches_table_rules` ADD COLUMN `club_rules_accepted` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'تایید قوانین و مقررات باشگاه توسط مربی' AFTER `coaching_certificate_expiry_date_gregorian`");
+        }
+
+        $rules_accepted_at_exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$coaches_table_rules` LIKE %s", 'club_rules_accepted_at'));
+        if (empty($rules_accepted_at_exists)) {
+            $wpdb->query("ALTER TABLE `$coaches_table_rules` ADD COLUMN `club_rules_accepted_at` datetime DEFAULT NULL COMMENT 'زمان تایید قوانین و مقررات باشگاه' AFTER `club_rules_accepted`");
+        }
+
+        update_option('sc_coaches_club_rules_fields_added', '1');
     }
 
     // اضافه کردن ستون file_url به جدول honors (یک بار برای نصب‌های قبلی)

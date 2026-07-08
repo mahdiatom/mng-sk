@@ -16,6 +16,14 @@ if (!$coach) {
 $is_edit = isset($_GET['edit']) && $_GET['edit'] === '1';
 $base_url = admin_url('admin.php?page=sc-coach-my-profile');
 $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status']) : '';
+$coach_certificate_photo = !empty($coach->coaching_certificate_photo) ? $coach->coaching_certificate_photo : '';
+$coach_certificate_expiry = !empty($coach->coaching_certificate_expiry_date_shamsi) ? $coach->coaching_certificate_expiry_date_shamsi : (function_exists('sc_get_today_shamsi') ? sc_get_today_shamsi() : '');
+$coach_certificate_notice = function_exists('sc_get_coach_certificate_expiry_notice_data')
+    ? sc_get_coach_certificate_expiry_notice_data($coach)
+    : [];
+$coach_info_page = function_exists('sc_get_coach_info_page_post') ? sc_get_coach_info_page_post() : null;
+$coach_info_page_html = function_exists('sc_get_coach_info_page_content_html') ? sc_get_coach_info_page_content_html() : '';
+$coach_rules_accepted = !empty($coach->club_rules_accepted);
 ?>
 <div class="wrap sc-coach-panel-wrap">
     <div class="sc-coach-panel-header">
@@ -31,6 +39,11 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
         <div class="notice notice-success is-dismissible"><p>اطلاعات با موفقیت به‌روزرسانی شد.</p></div>
     <?php elseif ($sc_status === 'error') : ?>
         <div class="notice notice-error is-dismissible"><p>خطا در ذخیره. لطفاً فیلدهای اجباری را پر کنید.</p></div>
+    <?php endif; ?>
+    <?php if (!empty($coach_certificate_notice['message'])) : ?>
+        <div class="notice <?php echo ($coach_certificate_notice['status'] ?? '') === 'expired' ? 'notice-error' : 'notice-warning'; ?>">
+            <p><?php echo esc_html($coach_certificate_notice['message']); ?></p>
+        </div>
     <?php endif; ?>
 
     <?php if ($is_edit) : ?>
@@ -97,6 +110,31 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     </td>
                 </tr>
                 <tr>
+                    <th><label for="coaching_certificate_photo_txt">عکس مدرک مربیگری</label></th>
+                    <td>
+                        <input type="text" name="coaching_certificate_photo" id="coaching_certificate_photo_txt" class="regular-text" value="<?php echo esc_attr($coach_certificate_photo); ?>" placeholder="آدرس تصویر یا آپلود کنید">
+                        <button type="button" class="button-secondary sc-upload-btn" id="btn_coaching_certificate_photo">انتخاب تصویر</button>
+                        <?php if ($coach_certificate_photo !== '') : ?>
+                            <div class="sc-image-preview img_photo_prev" style="margin-top: 10px;">
+                                <img src="<?php echo esc_url($coach_certificate_photo); ?>" alt="عکس مدرک مربیگری" style="max-width: 160px; height: auto; border-radius: 10px;">
+                            </div>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="coaching_certificate_expiry_date_shamsi">تاریخ انقضای مدرک مربیگری</label></th>
+                    <td>
+                        <input type="text"
+                               name="coaching_certificate_expiry_date_shamsi"
+                               id="coaching_certificate_expiry_date_shamsi"
+                               value="<?php echo esc_attr($coach_certificate_expiry); ?>"
+                               class="regular-text persian-date-input"
+                               placeholder="مثلاً 1405/12/29"
+                               readonly>
+                        <p class="description">برای یادآوری انقضا و هشدارهای مربوط به مدرک مربیگری استفاده می‌شود.</p>
+                    </td>
+                </tr>
+                <tr>
                     <th><label for="password">تغییر رمز عبور</label></th>
                     <td>
                         <input type="password" name="password" id="password" value="" class="regular-text" autocomplete="new-password">
@@ -104,6 +142,29 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     </td>
                 </tr>
             </table>
+            <?php if ($coach_info_page_html !== '') : ?>
+                <div class="sc-coach-info-page-box" style="margin: 24px 0; padding: 18px 20px; border: 1px solid #dcdcde; border-radius: 12px; background: #fff; font-family: IRANYekanXFaNum, Tahoma, sans-serif; line-height: 2;">
+                    <h3 style="margin-top: 0;"><?php echo esc_html($coach_info_page ? $coach_info_page->post_title : 'توضیحات تکمیلی'); ?></h3>
+                    <div class="sc-coach-info-page-box__content">
+                        <?php echo wp_kses_post($coach_info_page_html); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+            <div style="margin: 18px 0 8px; padding: 14px 16px; background: #fff; border: 1px solid #dcdcde; border-radius: 10px;">
+                <?php if ($coach_rules_accepted) : ?>
+                    <label style="display:flex; gap:8px; align-items:center;">
+                        <input type="checkbox" checked disabled>
+                        <span>قوانین و مقررات باشگاه قبلاً توسط شما تایید شده است.</span>
+                    </label>
+                    <input type="hidden" name="club_rules_accepted" value="1">
+                <?php else : ?>
+                    <label style="display:flex; gap:8px; align-items:center;">
+                        <input type="checkbox" name="club_rules_accepted" value="1" required>
+                        <span>تایید قوانین و مقررات باشگاه</span>
+                    </label>
+                    <p class="description" style="margin:8px 0 0;">این تایید فقط یک بار ثبت می‌شود و بعد از آن دیگر قابل تغییر نیست.</p>
+                <?php endif; ?>
+            </div>
             <p class="submit">
                 <input type="submit" name="submit_coach_profile" class="button button-primary" value="ذخیره تغییرات">
                 <a href="<?php echo esc_url($base_url); ?>" class="button">انصراف</a>
@@ -174,10 +235,37 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     <td><?php echo $coach->sports_history ? nl2br(esc_html($coach->sports_history)) : '-'; ?></td>
                 </tr>
                 <tr>
+                    <th>تاریخ انقضای مدرک مربیگری</th>
+                    <td>
+                        <?php echo esc_html($coach_certificate_expiry ?: '-'); ?>
+                        <?php if (!empty($coach_certificate_notice['status'])) : ?>
+                            <span class="sc-badge <?php echo ($coach_certificate_notice['status'] === 'expired' || $coach_certificate_notice['status'] === 'today') ? 'sc-badge--danger' : 'sc-badge--soft'; ?>" style="margin-right:8px;">
+                                <?php
+                                if ($coach_certificate_notice['status'] === 'expired') {
+                                    echo 'منقضی شده';
+                                } elseif ($coach_certificate_notice['status'] === 'today') {
+                                    echo 'امروز';
+                                } else {
+                                    echo 'نزدیک به انقضا';
+                                }
+                                ?>
+                            </span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
                     <th>وضعیت</th>
                     <td><?php echo $coach->is_active ? 'فعال' : 'غیرفعال'; ?></td>
                 </tr>
             </table>
+            <?php if ($coach_certificate_photo !== '') : ?>
+                <div style="margin-top: 24px;">
+                    <h3 style="margin-bottom: 12px;">مدرک مربیگری</h3>
+                    <a href="<?php echo esc_url($coach_certificate_photo); ?>" target="_blank" rel="noopener noreferrer">
+                        <img src="<?php echo esc_url($coach_certificate_photo); ?>" alt="عکس مدرک مربیگری" style="max-width: 220px; height: auto; border-radius: 12px; border: 1px solid #dcdcde;">
+                    </a>
+                </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>

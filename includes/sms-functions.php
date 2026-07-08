@@ -718,6 +718,11 @@ function sc_get_sms_settings_defaults() {
         'sms_insurance_expiry',
         'کاربر گرامی %user_name%، بیمه شما تا %expiry_date% اعتبار دارد.'
     ));
+    $defaults = array_merge($defaults, $pair(
+        'sms_coach_certificate_expiry',
+        'مربی گرامی %user_name%، تاریخ انقضای مدرک مربیگری شما %expiry_date% است. لطفاً برای تمدید آن اقدام کنید.',
+        'یادآوری مدیر: مدرک مربیگری %coach_name% در تاریخ %expiry_date% منقضی می‌شود.'
+    ));
     $defaults = array_merge($defaults, $user_only(
         'sms_identity_verified',
         'کاربر گرامی %user_name%، احراز هویت شما تأیید شد.'
@@ -780,8 +785,10 @@ function sc_get_sms_settings_defaults() {
 
     $defaults['sms_ticket_new_recipient_enabled'] = '0';
     $defaults['sms_ticket_new_recipient_template'] = 'تیکت جدید #{ticket_id} - موضوع: {subject}';
+    $defaults['sms_ticket_new_recipient_pattern'] = '';
     $defaults['sms_ticket_reply_enabled'] = '0';
     $defaults['sms_ticket_reply_template'] = 'پاسخ جدید به تیکت #{ticket_id}. لطفاً پنل خود را بررسی کنید.';
+    $defaults['sms_ticket_reply_pattern'] = '';
 
     return $defaults;
 }

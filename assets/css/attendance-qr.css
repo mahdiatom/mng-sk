@@ -545,3 +545,166 @@ body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active #sc-
         display: none !important;
     }
 }
+
+/* ─── مدیریت چند QR (ادمین) ─── */
+.sc-attendance-qr-short-code {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: #f0f0f1;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #1d2327;
+}
+
+.sc-attendance-qr-short-code--public {
+    background: rgba(109, 52, 255, 0.12);
+    color: #4a1fb8;
+}
+
+.sc-attendance-qr-short-code--table {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+}
+
+.sc-attendance-qr-admin-preview__visual {
+    text-align: center;
+}
+
+.sc-attendance-qr-codes-list {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #dcdcde;
+}
+
+.sc-attendance-qr-codes-list__title {
+    margin: 0 0 12px;
+    font-size: 14px;
+}
+
+.sc-attendance-qr-codes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.sc-attendance-qr-code-item {
+    border: 1px solid #dcdcde;
+    border-radius: 10px;
+    padding: 10px;
+    background: #fff;
+}
+
+.sc-attendance-qr-code-item--disabled {
+    opacity: 0.85;
+    background: #fcf0f1;
+}
+
+.sc-attendance-qr-code-item img {
+    display: block;
+    margin: 0 auto 8px;
+    border-radius: 6px;
+}
+
+.sc-attendance-qr-code-item__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.sc-attendance-qr-code-item__status {
+    font-size: 12px;
+    color: #646970;
+}
+
+.sc-attendance-qr-code-item__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.sc-qr-status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.sc-qr-status-badge--active {
+    background: #edfaef;
+    color: #007017;
+}
+
+.sc-qr-status-badge--inactive {
+    background: #f0f0f1;
+    color: #50575e;
+}
+
+.sc-qr-status-badge--disabled {
+    background: #fcf0f1;
+    color: #b32d2e;
+}
+
+.sc-qr-otp-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sc-qr-otp-modal[hidden] {
+    display: none !important;
+}
+
+.sc-qr-otp-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.sc-qr-otp-modal__dialog {
+    position: relative;
+    z-index: 1;
+    width: min(420px, calc(100vw - 32px));
+    padding: 20px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+
+.sc-qr-otp-modal__dialog h3 {
+    margin: 0 0 8px;
+}
+
+.sc-qr-otp-modal__hint,
+.sc-qr-otp-modal__phone {
+    margin: 0 0 12px;
+    color: #646970;
+}
+
+.sc-qr-otp-modal__input {
+    width: 100%;
+    margin-bottom: 14px;
+    text-align: center;
+    font-size: 20px;
+    letter-spacing: 0.2em;
+}
+
+.sc-qr-otp-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.sc-member-qr-codes-wrap .sc-member-qr-codes-table code {
+    background: transparent;
+}
+

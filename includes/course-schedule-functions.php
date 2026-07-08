@@ -411,6 +411,216 @@ function sc_get_coach_weekly_schedule_matrix($coach_id) {
 }
 
 /**
+ * @return int
+ */
+function sc_attendance_coach_edit_deadline_days() {
+    return max(0, min(30, (int) sc_get_setting('attendance_coach_edit_deadline_days', '3')));
+}
+
+/**
+ * @param int[] $weekday_ids
+ * @return string
+ */
+function sc_format_ir_weekday_list($weekday_ids) {
+    $labels = function_exists('sc_course_weekday_labels_ir') ? sc_course_weekday_labels_ir() : [];
+    $items = [];
+    foreach (array_values(array_unique(array_map('absint', (array) $weekday_ids))) as $weekday_id) {
+        if (isset($labels[$weekday_id])) {
+            $items[] = $labels[$weekday_id];
+        }
+    }
+    return implode('، ', $items);
+}
+
+/**
+ * روزهای مجاز ثبت حضور برای مربی در یک دوره/شعبه/گروه.
+ *
+ * @param int    $coach_id
+ * @param int    $course_id
+ * @param string $chapter_name
+ * @param string $group_name
+ * @return int[]
+ */
+function sc_get_coach_attendance_allowed_weekdays($coach_id, $course_id, $chapter_name = '', $group_name = '') {
+    global $wpdb;
+    $coach_id = absint($coach_id);
+    $course_id = absint($course_id);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    $group_name = sanitize_text_field((string) $group_name);
+
+    if (!$coach_id || !$course_id || !function_exists('sc_course_weekly_schedule_table_ready') || !sc_course_weekly_schedule_table_ready()) {
+        return [];
+    }
+
+    $cc = $wpdb->prefix . 'sc_course_coaches';
+    $sch = $wpdb->prefix . 'sc_course_weekly_schedule';
+    $has_chapter_coach = function_exists('sc_course_schedule_has_chapter_coach_columns') && sc_course_schedule_has_chapter_coach_columns();
+    $has_group_cols = function_exists('sc_course_schedule_has_group_columns') && sc_course_schedule_has_group_columns();
+
+    $where = [
+        'cc.coach_id = %d',
+        'cc.course_id = %d',
+    ];
+    $args = [$coach_id, $course_id];
+
+    if ($chapter_name !== '') {
+        $where[] = "(cc.chapter_name = %s OR cc.chapter_name = '' OR cc.chapter_name IS NULL)";
+        $args[] = $chapter_name;
+    }
+
+    if ($has_chapter_coach) {
+        $where[] = '(s.coach_id IS NULL OR s.coach_id = 0 OR s.coach_id = %d)';
+        $args[] = $coach_id;
+        if ($chapter_name !== '') {
+            $where[] = "(s.chapter_name = %s OR s.chapter_name = '' OR s.chapter_name IS NULL)";
+            $args[] = $chapter_name;
+        }
+    }
+
+    if ($has_group_cols && $group_name !== '') {
+        $where[] = "(
+            COALESCE(s.schedule_uses_group, 0) = 0
+            OR COALESCE(s.group_name, '') = ''
+            OR s.group_name = %s
+        )";
+        $args[] = $group_name;
+    }
+
+    $rows = $wpdb->get_col($wpdb->prepare(
+        "SELECT DISTINCT s.weekday
+         FROM {$cc} cc
+         INNER JOIN {$sch} s ON s.course_id = cc.course_id
+         WHERE " . implode(' AND ', $where) . "
+         ORDER BY s.weekday ASC",
+        $args
+    ));
+
+    $weekdays = array_values(array_unique(array_filter(array_map('absint', (array) $rows), static function ($weekday) {
+        return $weekday >= 1 && $weekday <= 7;
+    })));
+    sort($weekdays);
+    return $weekdays;
+}
+
+/**
+ * @param int    $coach_id
+ * @param int    $course_id
+ * @param string $chapter_name
+ * @param string $group_name
+ * @return array{allowed_weekdays:int[],min_date:string,max_date:string,deadline_days:int,allowed_weekdays_text:string}
+ */
+function sc_get_coach_attendance_date_picker_config($coach_id, $course_id, $chapter_name = '', $group_name = '') {
+    $deadline_days = sc_attendance_coach_edit_deadline_days();
+    $allowed_weekdays = sc_get_coach_attendance_allowed_weekdays($coach_id, $course_id, $chapter_name, $group_name);
+
+    $tz = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('Asia/Tehran');
+    $today = new DateTime('today', $tz);
+    $min_date = clone $today;
+    if ($deadline_days > 0) {
+        $min_date->modify('-' . $deadline_days . ' days');
+    }
+
+    return [
+        'allowed_weekdays' => $allowed_weekdays,
+        'min_date' => $min_date->format('Y-m-d'),
+        'max_date' => $today->format('Y-m-d'),
+        'deadline_days' => $deadline_days,
+        'allowed_weekdays_text' => sc_format_ir_weekday_list($allowed_weekdays),
+    ];
+}
+
+/**
+ * اعتبارسنجی دسترسی مربی برای ثبت حضور در تاریخ انتخابی.
+ *
+ * @param int    $coach_id
+ * @param int    $course_id
+ * @param string $attendance_date
+ * @param string $chapter_name
+ * @param string $group_name
+ * @return array{allowed:bool,code:string,message:string,config:array<string,mixed>}
+ */
+function sc_validate_coach_attendance_date_access($coach_id, $course_id, $attendance_date, $chapter_name = '', $group_name = '') {
+    $coach_id = absint($coach_id);
+    $course_id = absint($course_id);
+    $attendance_date = sanitize_text_field((string) $attendance_date);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    $group_name = sanitize_text_field((string) $group_name);
+
+    $config = sc_get_coach_attendance_date_picker_config($coach_id, $course_id, $chapter_name, $group_name);
+    if (!$coach_id || !$course_id || $attendance_date === '') {
+        return [
+            'allowed' => false,
+            'code' => 'invalid_request',
+            'message' => 'اطلاعات لازم برای بررسی تاریخ حضور و غیاب کامل نیست.',
+            'config' => $config,
+        ];
+    }
+
+    try {
+        $tz = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('Asia/Tehran');
+        $selected = new DateTime($attendance_date, $tz);
+        $today = new DateTime('today', $tz);
+    } catch (Exception $e) {
+        return [
+            'allowed' => false,
+            'code' => 'invalid_date',
+            'message' => 'تاریخ انتخاب‌شده معتبر نیست.',
+            'config' => $config,
+        ];
+    }
+
+    $selected_ymd = $selected->format('Y-m-d');
+    $today_ymd = $today->format('Y-m-d');
+    if ($selected_ymd > $today_ymd) {
+        return [
+            'allowed' => false,
+            'code' => 'future_date',
+            'message' => 'مربی فقط می‌تواند حضور و غیاب روزهای گذشته یا امروز را ثبت کند.',
+            'config' => $config,
+        ];
+    }
+
+    $days_diff = (int) $selected->diff($today)->format('%a');
+    if ($days_diff > (int) $config['deadline_days']) {
+        return [
+            'allowed' => false,
+            'code' => 'deadline_passed',
+            'message' => sprintf('مهلت ثبت حضور و غیاب برای مربی %d روز است و مهلت این تاریخ به پایان رسیده است.', (int) $config['deadline_days']),
+            'config' => $config,
+        ];
+    }
+
+    $allowed_weekdays = isset($config['allowed_weekdays']) && is_array($config['allowed_weekdays']) ? $config['allowed_weekdays'] : [];
+    if (empty($allowed_weekdays)) {
+        return [
+            'allowed' => false,
+            'code' => 'no_schedule',
+            'message' => 'برای این دوره برنامه هفتگی معتبری برای این مربی ثبت نشده است.',
+            'config' => $config,
+        ];
+    }
+
+    $selected_weekday = function_exists('sc_course_ir_weekday_from_gregorian_ymd')
+        ? (int) sc_course_ir_weekday_from_gregorian_ymd($attendance_date)
+        : 0;
+    if ($selected_weekday < 1 || !in_array($selected_weekday, $allowed_weekdays, true)) {
+        return [
+            'allowed' => false,
+            'code' => 'no_class_on_day',
+            'message' => sprintf('مربی فقط در روزهای کلاس خود می‌تواند حضور و غیاب ثبت کند. روزهای مجاز: %s', $config['allowed_weekdays_text'] !== '' ? $config['allowed_weekdays_text'] : 'تعریف نشده'),
+            'config' => $config,
+        ];
+    }
+
+    return [
+        'allowed' => true,
+        'code' => 'ok',
+        'message' => '',
+        'config' => $config,
+    ];
+}
+
+/**
  * فیلترهای گزارش برنامه هفتگی ادمین
  *
  * @param array|null $source

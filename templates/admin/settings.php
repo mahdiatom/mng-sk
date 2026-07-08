@@ -328,6 +328,20 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_insurance_expiry_user_template', $sms_insurance_expiry_user_template, 'sms');
         sc_update_setting('sms_insurance_expiry_user_pattern', $sms_insurance_expiry_user_pattern, 'sms');
 
+        // Coach certificate expiry SMS Settings
+        $sms_coach_certificate_expiry_user_enabled = isset($_POST['sms_coach_certificate_expiry_user_enabled']) ? 1 : 0;
+        $sms_coach_certificate_expiry_user_template = isset($_POST['sms_coach_certificate_expiry_user_template']) ? wp_kses($_POST['sms_coach_certificate_expiry_user_template'], array()) : '';
+        $sms_coach_certificate_expiry_user_pattern = isset($_POST['sms_coach_certificate_expiry_user_pattern']) ? absint($_POST['sms_coach_certificate_expiry_user_pattern']) : '';
+        $sms_coach_certificate_expiry_admin_enabled = isset($_POST['sms_coach_certificate_expiry_admin_enabled']) ? 1 : 0;
+        $sms_coach_certificate_expiry_admin_template = isset($_POST['sms_coach_certificate_expiry_admin_template']) ? wp_kses($_POST['sms_coach_certificate_expiry_admin_template'], array()) : '';
+        $sms_coach_certificate_expiry_admin_pattern = isset($_POST['sms_coach_certificate_expiry_admin_pattern']) ? absint($_POST['sms_coach_certificate_expiry_admin_pattern']) : '';
+        sc_update_setting('sms_coach_certificate_expiry_user_enabled', $sms_coach_certificate_expiry_user_enabled, 'sms');
+        sc_update_setting('sms_coach_certificate_expiry_user_template', $sms_coach_certificate_expiry_user_template, 'sms');
+        sc_update_setting('sms_coach_certificate_expiry_user_pattern', $sms_coach_certificate_expiry_user_pattern, 'sms');
+        sc_update_setting('sms_coach_certificate_expiry_admin_enabled', $sms_coach_certificate_expiry_admin_enabled, 'sms');
+        sc_update_setting('sms_coach_certificate_expiry_admin_template', $sms_coach_certificate_expiry_admin_template, 'sms');
+        sc_update_setting('sms_coach_certificate_expiry_admin_pattern', $sms_coach_certificate_expiry_admin_pattern, 'sms');
+
         // Identity verification approved SMS settings
         $sms_identity_verified_user_enabled = isset($_POST['sms_identity_verified_user_enabled']) ? 1 : 0;
         $sms_identity_verified_user_template = isset($_POST['sms_identity_verified_user_template']) ? wp_kses($_POST['sms_identity_verified_user_template'], array()) : '';
@@ -401,12 +415,16 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         // Support ticket SMS
         $sms_ticket_new_recipient_enabled = isset($_POST['sms_ticket_new_recipient_enabled']) ? 1 : 0;
         $sms_ticket_new_recipient_template = isset($_POST['sms_ticket_new_recipient_template']) ? wp_kses_post($_POST['sms_ticket_new_recipient_template']) : '';
+        $sms_ticket_new_recipient_pattern = isset($_POST['sms_ticket_new_recipient_pattern']) ? absint($_POST['sms_ticket_new_recipient_pattern']) : 0;
         $sms_ticket_reply_enabled = isset($_POST['sms_ticket_reply_enabled']) ? 1 : 0;
         $sms_ticket_reply_template = isset($_POST['sms_ticket_reply_template']) ? wp_kses_post($_POST['sms_ticket_reply_template']) : '';
+        $sms_ticket_reply_pattern = isset($_POST['sms_ticket_reply_pattern']) ? absint($_POST['sms_ticket_reply_pattern']) : 0;
         sc_update_setting('sms_ticket_new_recipient_enabled', $sms_ticket_new_recipient_enabled, 'sms');
         sc_update_setting('sms_ticket_new_recipient_template', $sms_ticket_new_recipient_template, 'sms');
+        sc_update_setting('sms_ticket_new_recipient_pattern', $sms_ticket_new_recipient_pattern, 'sms');
         sc_update_setting('sms_ticket_reply_enabled', $sms_ticket_reply_enabled, 'sms');
         sc_update_setting('sms_ticket_reply_template', $sms_ticket_reply_template, 'sms');
+        sc_update_setting('sms_ticket_reply_pattern', $sms_ticket_reply_pattern, 'sms');
 
         // Private classes cancellation SMS settings (stored in classes group)
         $private_class_sms_user_cancel_to_coach_enabled = isset($_POST['private_class_sms_user_cancel_to_coach_enabled']) ? 1 : 0;
@@ -490,6 +508,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $raw_neg_debt = isset($_POST['max_debt_for_attendance_raw']) && $_POST['max_debt_for_attendance_raw'] !== '' ? str_replace(',', '', $_POST['max_debt_for_attendance_raw']) : (isset($_POST['max_debt_for_attendance']) ? str_replace(',', '', $_POST['max_debt_for_attendance']) : '');
         $max_debt_for_attendance = $raw_neg_debt !== '' ? floatval($raw_neg_debt) : 0;
         $user_alert_absence_limit = isset($_POST['user_alert_absence_limit']) ? max(1, absint($_POST['user_alert_absence_limit'])) : 3;
+        $attendance_coach_edit_deadline_days = isset($_POST['attendance_coach_edit_deadline_days']) ? max(0, min(30, absint($_POST['attendance_coach_edit_deadline_days']))) : 3;
         $attendance_api_auto_enabled = isset($_POST['attendance_api_auto_enabled']) ? 1 : 0;
         $attendance_api_base_url = isset($_POST['attendance_api_base_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_api_base_url']))) : '';
         $attendance_api_key = isset($_POST['attendance_api_key']) ? sanitize_text_field(wp_unslash($_POST['attendance_api_key'])) : '';
@@ -502,6 +521,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('attendance_debt_block_enabled', $attendance_debt_block_enabled, 'attendance');
         sc_update_setting('max_debt_for_attendance' , $max_debt_for_attendance , 'attendance');
         sc_update_setting('user_alert_absence_limit', (string) $user_alert_absence_limit, 'attendance');
+        sc_update_setting('attendance_coach_edit_deadline_days', (string) $attendance_coach_edit_deadline_days, 'attendance');
         sc_update_setting('attendance_api_auto_enabled', $attendance_api_auto_enabled, 'attendance');
         sc_update_setting('attendance_api_base_url', $attendance_api_base_url, 'attendance');
         sc_update_setting('attendance_api_key', $attendance_api_key, 'attendance');
@@ -522,6 +542,10 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $attendance_qr_sound_not_in_course_url = isset($_POST['attendance_qr_sound_not_in_course_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_not_in_course_url']))) : '';
         $attendance_qr_sound_debt_warning_url = isset($_POST['attendance_qr_sound_debt_warning_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_debt_warning_url']))) : '';
         $attendance_qr_sound_debt_blocked_url = isset($_POST['attendance_qr_sound_debt_blocked_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_debt_blocked_url']))) : '';
+        $attendance_qr_sound_disabled_url = isset($_POST['attendance_qr_sound_disabled_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['attendance_qr_sound_disabled_url']))) : '';
+        $attendance_qr_regenerate_otp_phone = isset($_POST['attendance_qr_regenerate_otp_phone']) ? sanitize_text_field(wp_unslash($_POST['attendance_qr_regenerate_otp_phone'])) : '';
+        $attendance_qr_regenerate_otp_pattern = isset($_POST['attendance_qr_regenerate_otp_pattern']) ? sanitize_text_field(wp_unslash($_POST['attendance_qr_regenerate_otp_pattern'])) : '';
+        $attendance_qr_max_codes_per_member = isset($_POST['attendance_qr_max_codes_per_member']) ? max(1, min(50, absint($_POST['attendance_qr_max_codes_per_member']))) : 20;
         if (function_exists('sc_attendance_qr_is_valid_sound_url')) {
             foreach ([
                 'attendance_qr_sound_success_url'       => &$attendance_qr_sound_success_url,
@@ -530,6 +554,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
                 'attendance_qr_sound_not_in_course_url' => &$attendance_qr_sound_not_in_course_url,
                 'attendance_qr_sound_debt_warning_url'  => &$attendance_qr_sound_debt_warning_url,
                 'attendance_qr_sound_debt_blocked_url'  => &$attendance_qr_sound_debt_blocked_url,
+                'attendance_qr_sound_disabled_url'      => &$attendance_qr_sound_disabled_url,
             ] as $label => &$sound_url) {
                 if ($sound_url !== '' && !sc_attendance_qr_is_valid_sound_url($sound_url)) {
                     $sound_url = '';
@@ -548,6 +573,10 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('attendance_qr_sound_not_in_course_url', $attendance_qr_sound_not_in_course_url, 'attendance');
         sc_update_setting('attendance_qr_sound_debt_warning_url', $attendance_qr_sound_debt_warning_url, 'attendance');
         sc_update_setting('attendance_qr_sound_debt_blocked_url', $attendance_qr_sound_debt_blocked_url, 'attendance');
+        sc_update_setting('attendance_qr_sound_disabled_url', $attendance_qr_sound_disabled_url, 'attendance');
+        sc_update_setting('attendance_qr_regenerate_otp_phone', $attendance_qr_regenerate_otp_phone, 'attendance');
+        sc_update_setting('attendance_qr_regenerate_otp_pattern', $attendance_qr_regenerate_otp_pattern, 'attendance');
+        sc_update_setting('attendance_qr_max_codes_per_member', (string) $attendance_qr_max_codes_per_member, 'attendance');
 
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب حضور و غیاب ذخیره شد', null, ['tab' => 'attendance']);
@@ -597,6 +626,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         $coach_max_negative_balance = $raw_neg !== '' ? floatval($raw_neg) : 0;
         $calc_couch_salary = isset($_POST['calc_couch_salary']) ? 1 : 0;
         $coach_fixed_salary_settlement_day = isset($_POST['coach_fixed_salary_settlement_day']) ? absint($_POST['coach_fixed_salary_settlement_day']) : 0;
+        $coach_info_page_id = isset($_POST['coach_info_page_id']) ? absint($_POST['coach_info_page_id']) : 0;
         if ($coach_fixed_salary_settlement_day > 31) {
             $coach_fixed_salary_settlement_day = 0;
         }
@@ -604,6 +634,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('coach_min_withdrawal_amount', $coach_min_withdrawal_amount, 'coach_salary');
         sc_update_setting('coach_max_negative_balance', $coach_max_negative_balance, 'coach_salary');
         sc_update_setting('coach_fixed_salary_settlement_day', $coach_fixed_salary_settlement_day, 'coach_salary');
+        sc_update_setting('coach_info_page_id', $coach_info_page_id, 'coach_salary');
         sc_update_setting('calc_couch_salary', $calc_couch_salary, 'coach_salary');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب دستمزد مربی ذخیره شد', null, ['tab' => 'coach_salary']);
@@ -1021,6 +1052,12 @@ $sms_birthday_user_pattern = sc_get_sms_setting('sms_birthday_user_pattern');
 $sms_insurance_expiry_user_enabled = (int) sc_get_sms_setting('sms_insurance_expiry_user_enabled');
 $sms_insurance_expiry_user_template = sc_get_sms_setting('sms_insurance_expiry_user_template');
 $sms_insurance_expiry_user_pattern = sc_get_sms_setting('sms_insurance_expiry_user_pattern');
+$sms_coach_certificate_expiry_user_enabled = (int) sc_get_sms_setting('sms_coach_certificate_expiry_user_enabled');
+$sms_coach_certificate_expiry_user_template = sc_get_sms_setting('sms_coach_certificate_expiry_user_template');
+$sms_coach_certificate_expiry_user_pattern = sc_get_sms_setting('sms_coach_certificate_expiry_user_pattern');
+$sms_coach_certificate_expiry_admin_enabled = (int) sc_get_sms_setting('sms_coach_certificate_expiry_admin_enabled');
+$sms_coach_certificate_expiry_admin_template = sc_get_sms_setting('sms_coach_certificate_expiry_admin_template');
+$sms_coach_certificate_expiry_admin_pattern = sc_get_sms_setting('sms_coach_certificate_expiry_admin_pattern');
 
 // Identity verification approved SMS settings
 $sms_identity_verified_user_enabled = (int) sc_get_sms_setting('sms_identity_verified_user_enabled');
@@ -1059,6 +1096,12 @@ $sms_wallet_charge_success_user_pattern = sc_get_sms_setting('sms_wallet_charge_
 $sms_wallet_payment_user_enabled = (int) sc_get_sms_setting('sms_wallet_payment_user_enabled');
 $sms_wallet_payment_user_template = sc_get_sms_setting('sms_wallet_payment_user_template');
 $sms_wallet_payment_user_pattern = sc_get_sms_setting('sms_wallet_payment_user_pattern');
+$sms_ticket_new_recipient_enabled = (int) sc_get_sms_setting('sms_ticket_new_recipient_enabled');
+$sms_ticket_new_recipient_template = sc_get_sms_setting('sms_ticket_new_recipient_template');
+$sms_ticket_new_recipient_pattern = (int) sc_get_sms_setting('sms_ticket_new_recipient_pattern');
+$sms_ticket_reply_enabled = (int) sc_get_sms_setting('sms_ticket_reply_enabled');
+$sms_ticket_reply_template = sc_get_sms_setting('sms_ticket_reply_template');
+$sms_ticket_reply_pattern = (int) sc_get_sms_setting('sms_ticket_reply_pattern');
 
 // Support ticket SMS
 $sms_ticket_new_recipient_enabled = (int) sc_get_sms_setting('sms_ticket_new_recipient_enabled');
@@ -1251,7 +1294,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
      
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=coach_salary'); ?>"
            class="nav-tab <?php echo $current_tab === 'coach_salary' ? 'nav-tab-active' : ''; ?>">
-            دستمزد مربی
+            تنظیمات مربی
         </a>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=classes'); ?>"
            class="nav-tab <?php echo $current_tab === 'classes' ? 'nav-tab-active' : ''; ?>">
@@ -2089,6 +2132,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="absence-alert"> پیامک هشدار غیبت</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="birthday"> پیامک تولد</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="insurance"> پیامک انقضای بیمه</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="coach-certificate"> پیامک انقضای مدرک مربی</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="identity"> پیامک تایید احراز هویت</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="certificate"> پیامک صدور گواهینامه</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="wallet"> پیامک کیف پول</label>
@@ -3012,6 +3056,69 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 </table>
 
                 </div>
+                <div class="sc-sms-message-section" data-section="coach-certificate">
+                <h3>پیامک انقضای مدرک مربیگری</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">پیامک یادآوری به مربی</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_coach_certificate_expiry_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_coach_certificate_expiry_user_enabled, 1); ?>>
+                                فعال کردن ارسال خودکار پیامک انقضای مدرک برای مربی
+                            </label>
+                            <p class="description">هر روز به مربیانی که <strong>امروز</strong> یا <strong>۱۰ روز دیگر</strong> تاریخ انقضای مدرک مربیگری‌شان است، پیامک ارسال می‌شود.</p>
+                            <br><br>
+                            <textarea name="sms_coach_certificate_expiry_user_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک به مربی"><?php echo esc_textarea($sms_coach_certificate_expiry_user_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده: نام مربی = %user_name% | تاریخ انقضا = %expiry_date% | تعداد روز مانده = %days_remaining%<br>
+                                در صورت خالی بودن، متن پیش‌فرض استفاده می‌شود.
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_coach_certificate_expiry_user_pattern"
+                                   value="<?php echo esc_attr($sms_coach_certificate_expiry_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">پیامک یادآوری به مدیر</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_coach_certificate_expiry_admin_enabled"
+                                       value="1"
+                                       <?php checked($sms_coach_certificate_expiry_admin_enabled, 1); ?>>
+                                فعال کردن ارسال خودکار پیامک انقضای مدرک برای مدیر
+                            </label>
+                            <p class="description">در صورت فعال بودن، همزمان با هشدار مربی یک پیامک نیز به شماره مدیر ثبت‌شده در تنظیمات پیامک ارسال می‌شود.</p>
+                            <br><br>
+                            <textarea name="sms_coach_certificate_expiry_admin_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک به مدیر"><?php echo esc_textarea($sms_coach_certificate_expiry_admin_template); ?></textarea>
+                            <p class="description">
+                                متغیرهای قابل استفاده: نام مربی = %coach_name% | تاریخ انقضا = %expiry_date% | تعداد روز مانده = %days_remaining%
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_coach_certificate_expiry_admin_pattern"
+                                   value="<?php echo esc_attr($sms_coach_certificate_expiry_admin_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                </table>
+
+                </div>
                 <div class="sc-sms-message-section" data-section="identity">
                 <h3>پیامک تایید احراز هویت</h3>
                 <table class="form-table">
@@ -3413,6 +3520,13 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                       class="large-text"
                                       placeholder="متن پیامک"><?php echo esc_textarea($sms_ticket_new_recipient_template); ?></textarea>
                             <p class="description">متغیرها: {ticket_id} ، {subject}</p>
+                            <br>
+                            <input type="number"
+                                   name="sms_ticket_new_recipient_pattern"
+                                   value="<?php echo esc_attr($sms_ticket_new_recipient_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir. برای پترن می‌توانید متغیرهای <code>TicketId</code> و <code>Subject</code> را در پنل پیامک استفاده کنید.</p>
                         </td>
                     </tr>
                     <tr>
@@ -3431,6 +3545,13 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                       class="large-text"
                                       placeholder="متن پیامک"><?php echo esc_textarea($sms_ticket_reply_template); ?></textarea>
                             <p class="description">متغیرها: {ticket_id} ، {subject}</p>
+                            <br>
+                            <input type="number"
+                                   name="sms_ticket_reply_pattern"
+                                   value="<?php echo esc_attr($sms_ticket_reply_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir. برای پترن می‌توانید متغیرهای <code>TicketId</code> و <code>Subject</code> را در پنل پیامک استفاده کنید.</p>
                         </td>
                     </tr>
                 </table>
@@ -3562,6 +3683,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 $deduction_wallet_enabled = sc_get_setting('deduction_wallet_enabled'); 
                 $attendance_debt_block_enabled = (int) sc_get_setting('attendance_debt_block_enabled', '0');
                 $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0'));
+                $attendance_coach_edit_deadline_days = (int) sc_get_setting('attendance_coach_edit_deadline_days', '3');
                 $user_alert_absence_limit = (int) sc_get_setting('user_alert_absence_limit', '3');
                 $attendance_api_auto_enabled = (int) sc_get_setting('attendance_api_auto_enabled', '1');
                 $attendance_api_base_url = (string) sc_get_setting('attendance_api_base_url', 'https://api.hozoran.ir');
@@ -3582,12 +3704,17 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 $attendance_qr_sound_not_in_course_url = (string) sc_get_setting('attendance_qr_sound_not_in_course_url', '');
                 $attendance_qr_sound_debt_warning_url = (string) sc_get_setting('attendance_qr_sound_debt_warning_url', '');
                 $attendance_qr_sound_debt_blocked_url = (string) sc_get_setting('attendance_qr_sound_debt_blocked_url', '');
+                $attendance_qr_sound_disabled_url = (string) sc_get_setting('attendance_qr_sound_disabled_url', '');
+                $attendance_qr_regenerate_otp_phone = (string) sc_get_setting('attendance_qr_regenerate_otp_phone', '');
+                $attendance_qr_regenerate_otp_pattern = (string) sc_get_setting('attendance_qr_regenerate_otp_pattern', '');
+                $attendance_qr_max_codes_per_member = (int) sc_get_setting('attendance_qr_max_codes_per_member', '20');
                 $attendance_qr_default_sound_success = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('success') : '';
                 $attendance_qr_default_sound_error = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('error') : '';
                 $attendance_qr_default_sound_duplicate = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('duplicate') : '';
                 $attendance_qr_default_sound_not_in_course = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('not_in_course') : '';
                 $attendance_qr_default_sound_debt_warning = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('debt_warning') : '';
                 $attendance_qr_default_sound_debt_blocked = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('debt_blocked') : '';
+                $attendance_qr_default_sound_disabled = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('disabled') : '';
                 ?>
 
                 <table class="form-table">
@@ -3641,6 +3768,13 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <td>
                             <input type="number" name="attendance_absent_after_end_minutes" value="<?php echo esc_attr($attendance_absent_after_end_minutes); ?>" min="0" max="240" class="small-text">
                             <p class="description">بعد از گذشت این مدت از <strong>پایان ساعت کلاس</strong>، برای اعضای فعال بدون رکورد حضور برای همان اسلات، غیبت ثبت می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">مهلت ثبت حضور و غیاب برای مربی</th>
+                        <td>
+                            <input type="number" name="attendance_coach_edit_deadline_days" value="<?php echo esc_attr($attendance_coach_edit_deadline_days); ?>" min="0" max="30" class="small-text">
+                            <p class="description">فقط برای مربی: مربی تنها در روزهای دارای کلاس خودش می‌تواند حضور و غیاب ثبت کند و فقط تا این تعداد روز بعد از تاریخ کلاس فرصت دارد. مقدار ۰ یعنی فقط همان روز کلاس.</p>
                         </td>
                     </tr>
                     <tr>
@@ -3820,6 +3954,39 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                 <p class="description">فرمت مجاز: MP3 — وقتی بازیکن در دوره/گروه انتخاب‌شده ثبت‌نام فعال ندارد پخش می‌شود.</p>
                                 <p class="description" id="attendance_qr_sound_not_in_course_preview"><?php echo $attendance_qr_sound_not_in_course_url !== '' ? esc_html($attendance_qr_sound_not_in_course_url) : 'پیش‌فرض: ' . esc_html($attendance_qr_default_sound_not_in_course); ?></p>
                             </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">صدای QR غیرفعال موقت</th>
+                        <td>
+                            <div class="sc-lr-media-field">
+                                <input type="hidden" name="attendance_qr_sound_disabled_url" id="attendance_qr_sound_disabled_url" value="<?php echo esc_attr($attendance_qr_sound_disabled_url); ?>">
+                                <button type="button" class="button sc-qr-sound-upload" data-target="attendance_qr_sound_disabled_url" data-preview="attendance_qr_sound_disabled_preview">انتخاب فایل صوتی</button>
+                                <button type="button" class="button sc-qr-sound-remove" data-target="attendance_qr_sound_disabled_url" data-preview="attendance_qr_sound_disabled_preview" <?php echo $attendance_qr_sound_disabled_url === '' ? ' style="display:none;"' : ''; ?>>حذف</button>
+                                <p class="description">فرمت مجاز: MP3 — هنگام اسکن QR موقتاً غیرفعال‌شده پخش می‌شود.</p>
+                                <p class="description" id="attendance_qr_sound_disabled_preview"><?php echo $attendance_qr_sound_disabled_url !== '' ? esc_html($attendance_qr_sound_disabled_url) : 'پیش‌فرض: ' . esc_html($attendance_qr_default_sound_disabled); ?></p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="attendance_qr_regenerate_otp_phone">شماره OTP تولید QR جدید</label></th>
+                        <td>
+                            <input type="text" name="attendance_qr_regenerate_otp_phone" id="attendance_qr_regenerate_otp_phone" value="<?php echo esc_attr($attendance_qr_regenerate_otp_phone); ?>" class="regular-text" dir="ltr" placeholder="09123456789">
+                            <p class="description">کد تأیید تولید QR جدید به این شماره ارسال می‌شود (فقط مدیر باشگاه/مدیر سامانه).</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="attendance_qr_regenerate_otp_pattern">کد پترن SMS OTP</label></th>
+                        <td>
+                            <input type="text" name="attendance_qr_regenerate_otp_pattern" id="attendance_qr_regenerate_otp_pattern" value="<?php echo esc_attr($attendance_qr_regenerate_otp_pattern); ?>" class="regular-text" dir="ltr" placeholder="خالی = پترن OTP ورود">
+                            <p class="description">پارامتر پترن: <code>Code</code>. اگر خالی باشد از پترن OTP ورود/ثبت‌نام استفاده می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="attendance_qr_max_codes_per_member">حداکثر QR per بازیکن</label></th>
+                        <td>
+                            <input type="number" name="attendance_qr_max_codes_per_member" id="attendance_qr_max_codes_per_member" value="<?php echo esc_attr((string) $attendance_qr_max_codes_per_member); ?>" min="1" max="50" class="small-text">
+                            <p class="description">پیش‌فرض: ۲۰ — پس از رسیدن به سقف، تولید QR جدید ممکن نیست.</p>
                         </td>
                     </tr>
                 </table>
@@ -4112,6 +4279,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
             $coach_min_withdrawal_amount = floatval(sc_get_setting('coach_min_withdrawal_amount', '0'));
             $coach_max_negative_balance = floatval(sc_get_setting('coach_max_negative_balance', '0'));
             $coach_fixed_salary_settlement_day = (int) sc_get_setting('coach_fixed_salary_settlement_day', '0');
+            $coach_info_page_id = (int) sc_get_setting('coach_info_page_id', '0');
             // محاسبه تاریخ میلادی معادل برای ماه جاری و ۲ ماه بعد
             $settlement_gregorian_list = [];
             if ($coach_fixed_salary_settlement_day > 0 && function_exists('gregorian_to_jalali') && function_exists('jalali_to_gregorian')) {
@@ -4196,6 +4364,28 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         </td>
 
                       
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="coach_info_page_id">برگه توضیحات اطلاعات مربی</label>
+                        </th>
+                        <td>
+                            <?php
+                            wp_dropdown_pages([
+                                'name' => 'coach_info_page_id',
+                                'id' => 'coach_info_page_id',
+                                'selected' => $coach_info_page_id,
+                                'show_option_none' => 'بدون برگه',
+                                'option_none_value' => '0',
+                            ]);
+                            ?>
+                            <p class="description">محتوای این برگه در فرم اطلاعات مربی، پایین فیلدها و قبل از دکمه ذخیره نمایش داده می‌شود.</p>
+                            <?php if ($coach_info_page_id > 0) : ?>
+                                <p class="description">
+                                    <a href="<?php echo esc_url(get_permalink($coach_info_page_id)); ?>" target="_blank" rel="noopener noreferrer">مشاهده برگه انتخاب‌شده</a>
+                                </p>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                     <tr>                  
                       <th scope="row">محاسبه دستمزد مربی بر اساس  بازیکنان حاضر در کلاس</th>

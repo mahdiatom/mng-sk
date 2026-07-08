@@ -35,6 +35,15 @@ $all_courses = $wpdb->get_results(
 
 $user_id = $coach ? $coach->user_id : null;
 $wp_user = $user_id ? get_userdata($user_id) : null;
+$coach_photo = ($coach && !empty($coach->personal_photo)) ? $coach->personal_photo : '';
+$coach_certificate_photo = ($coach && !empty($coach->coaching_certificate_photo)) ? $coach->coaching_certificate_photo : '';
+$coach_certificate_expiry = ($coach && !empty($coach->coaching_certificate_expiry_date_shamsi)) ? $coach->coaching_certificate_expiry_date_shamsi : (function_exists('sc_get_today_shamsi') ? sc_get_today_shamsi() : '');
+$coach_certificate_notice = ($coach && function_exists('sc_get_coach_certificate_expiry_notice_data'))
+    ? sc_get_coach_certificate_expiry_notice_data($coach)
+    : [];
+$coach_info_page = function_exists('sc_get_coach_info_page_post') ? sc_get_coach_info_page_post() : null;
+$coach_info_page_html = function_exists('sc_get_coach_info_page_content_html') ? sc_get_coach_info_page_content_html() : '';
+$coach_rules_accepted = $coach ? !empty($coach->club_rules_accepted) : false;
 ?>
 
 <div class="wrap sc-coach-edit-header">
@@ -49,6 +58,11 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
     <?php endif; ?>
 </div>
 <div class="wrap sc-coach-edit-wrap">
+    <?php if (!empty($coach_certificate_notice['message'])) : ?>
+        <div class="notice <?php echo ($coach_certificate_notice['status'] ?? '') === 'expired' ? 'notice-error' : 'notice-warning'; ?>">
+            <p><?php echo esc_html($coach_certificate_notice['message']); ?></p>
+        </div>
+    <?php endif; ?>
     <form method="post" action="" id="coach-form" class="sc-coach-edit-form">
         <?php wp_nonce_field('sc_add_coach', 'sc_coach_nonce'); ?>
         <input type="hidden" name="coach_id" value="<?php echo $coach_id; ?>">
@@ -117,7 +131,6 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
             <tr>
                 <th><label for="personal_photo_txt">عکس پرسنلی</label></th>
                 <td>
-                    <?php $coach_photo = ($coach && !empty($coach->personal_photo)) ? $coach->personal_photo : ''; ?>
                     <input type="text" name="personal_photo" id="personal_photo_txt" class="regular-text" value="<?php echo esc_attr($coach_photo); ?>" placeholder="آدرس تصویر یا آپلود کنید">
                     <button type="button" class="button-secondary sc-upload-btn" id="btn_personal_photo">انتخاب تصویر</button>
                     <?php if ($coach_photo !== '') : ?>
@@ -126,6 +139,32 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                         </div>
                     <?php endif; ?>
                     <p class="description">این عکس در لیست مربیان نمایش داده می‌شود.</p>
+                </td>
+            </tr>
+            <tr>
+                <th><label for="coaching_certificate_photo_txt">عکس مدرک مربیگری</label></th>
+                <td>
+                    <input type="text" name="coaching_certificate_photo" id="coaching_certificate_photo_txt" class="regular-text" value="<?php echo esc_attr($coach_certificate_photo); ?>" placeholder="آدرس تصویر یا آپلود کنید">
+                    <button type="button" class="button-secondary sc-upload-btn" id="btn_coaching_certificate_photo">انتخاب تصویر</button>
+                    <?php if ($coach_certificate_photo !== '') : ?>
+                        <div class="sc-image-preview img_photo_prev" style="margin-top: 10px;">
+                            <img src="<?php echo esc_url($coach_certificate_photo); ?>" alt="عکس مدرک مربیگری" style="max-width: 160px; height: auto; border-radius: 10px;">
+                        </div>
+                    <?php endif; ?>
+                    <p class="description">تصویر یا اسکن مدرک مربیگری مربی را در این بخش ذخیره کنید.</p>
+                </td>
+            </tr>
+            <tr>
+                <th><label for="coaching_certificate_expiry_date_shamsi">تاریخ انقضای مدرک مربیگری</label></th>
+                <td>
+                    <input type="text"
+                           name="coaching_certificate_expiry_date_shamsi"
+                           id="coaching_certificate_expiry_date_shamsi"
+                           value="<?php echo esc_attr($coach_certificate_expiry); ?>"
+                           class="regular-text persian-date-input"
+                           placeholder="مثلاً 1405/12/29"
+                           readonly>
+                    <p class="description">این تاریخ برای هشدار سیستمی و پیامک یادآوری مدرک مربیگری استفاده می‌شود.</p>
                 </td>
             </tr>
             <tr>
@@ -272,6 +311,33 @@ $wp_user = $user_id ? get_userdata($user_id) : null;
                 </td>
             </tr>
         </table>
+
+        <?php if ($coach_info_page_html !== '') : ?>
+            <div class="sc-coach-info-page-box" style="margin: 24px 0; padding: 18px 20px; border: 1px solid #dcdcde; border-radius: 12px; background: #fff; font-family: IRANYekanXFaNum, Tahoma, sans-serif; line-height: 2;">
+                <h3 style="margin-top: 0;">
+                    <?php echo esc_html($coach_info_page ? $coach_info_page->post_title : 'توضیحات تکمیلی'); ?>
+                </h3>
+                <div class="sc-coach-info-page-box__content">
+                    <?php echo wp_kses_post($coach_info_page_html); ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <div style="margin: 18px 0 8px; padding: 14px 16px; background: #fff; border: 1px solid #dcdcde; border-radius: 10px;">
+            <?php if ($coach_rules_accepted) : ?>
+                <label style="display:flex; gap:8px; align-items:center;">
+                    <input type="checkbox" checked disabled>
+                    <span>قوانین و مقررات باشگاه قبلاً توسط این مربی تایید شده است.</span>
+                </label>
+                <input type="hidden" name="club_rules_accepted" value="1">
+            <?php else : ?>
+                <label style="display:flex; gap:8px; align-items:center;">
+                    <input type="checkbox" name="club_rules_accepted" value="1" required>
+                    <span>تایید قوانین و مقررات باشگاه</span>
+                </label>
+                <p class="description" style="margin:8px 0 0;">این تایید فقط یک بار انجام می‌شود و بعد از ثبت دیگر قابل تغییر نیست.</p>
+            <?php endif; ?>
+        </div>
         
         <p class="submit">
             <input type="submit" name="submit_coach" class="button button-primary" value="<?php echo $coach_id ? 'به‌روزرسانی' : 'ذخیره'; ?>">

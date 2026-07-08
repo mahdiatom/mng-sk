@@ -283,6 +283,17 @@ function sc_register_admin_menu() {
         );
     }
 
+    if (function_exists('sc_user_has_club_manager_role') && (sc_user_has_club_manager_role() || current_user_can('manage_options'))) {
+        add_submenu_page(
+            'sc-members',
+            'مدیریت کدهای QR',
+            'کدهای QR',
+            'read',
+            'sc-member-qr-codes',
+            'sc_admin_member_qr_codes_page'
+        );
+    }
+
 
     if (function_exists('sc_is_pro_feature_attendance_enabled') && sc_is_pro_feature_attendance_enabled()) {
         add_menu_page(
@@ -1085,8 +1096,8 @@ function sc_register_admin_menu() {
 
     add_submenu_page(
         'sc_setting',
-        'دستمزد مربی',
-        'دستمزد مربی',
+        'تنظیمات مربی',
+        '',
         'manage_options',
         'admin.php?page=sc_setting&tab=coach_salary'
     );
@@ -2443,9 +2454,22 @@ function sc_admin_coach_my_profile_page() {
         $last_name = isset($_POST['last_name']) ? trim(sanitize_text_field($_POST['last_name'])) : '';
         $national_id = isset($_POST['national_id']) ? trim(sanitize_text_field($_POST['national_id'])) : '';
         $mobile_phone = isset($_POST['mobile_phone']) ? trim(sanitize_text_field($_POST['mobile_phone'])) : '';
+        $existing_coach = $wpdb->get_row($wpdb->prepare("SELECT club_rules_accepted FROM $coaches_table WHERE id = %d", $coach_id));
+        $club_rules_already_accepted = $existing_coach ? (int) $existing_coach->club_rules_accepted === 1 : false;
         if (empty($first_name) || empty($last_name) || empty($national_id) || empty($mobile_phone)) {
             wp_safe_redirect(add_query_arg('sc_status', 'error', $redirect_url));
             exit;
+        }
+        if (!$club_rules_already_accepted && empty($_POST['club_rules_accepted'])) {
+            wp_safe_redirect(add_query_arg('sc_status', 'error', $redirect_url));
+            exit;
+        }
+        $coaching_certificate_expiry_date_shamsi = isset($_POST['coaching_certificate_expiry_date_shamsi']) && trim((string) $_POST['coaching_certificate_expiry_date_shamsi']) !== ''
+            ? sanitize_text_field(wp_unslash($_POST['coaching_certificate_expiry_date_shamsi']))
+            : null;
+        $coaching_certificate_expiry_date_gregorian = null;
+        if ($coaching_certificate_expiry_date_shamsi && function_exists('sc_shamsi_to_gregorian_date')) {
+            $coaching_certificate_expiry_date_gregorian = sc_shamsi_to_gregorian_date($coaching_certificate_expiry_date_shamsi);
         }
         $data = [
             'first_name' => $first_name,
@@ -2459,9 +2483,28 @@ function sc_admin_coach_my_profile_page() {
             'personal_photo' => (isset($_POST['personal_photo']) && trim((string) $_POST['personal_photo']) !== '')
                 ? esc_url_raw(wp_unslash($_POST['personal_photo']))
                 : null,
+            'coaching_certificate_photo' => (isset($_POST['coaching_certificate_photo']) && trim((string) $_POST['coaching_certificate_photo']) !== '')
+                ? esc_url_raw(wp_unslash($_POST['coaching_certificate_photo']))
+                : null,
+            'coaching_certificate_expiry_date_shamsi' => $coaching_certificate_expiry_date_shamsi,
+            'coaching_certificate_expiry_date_gregorian' => $coaching_certificate_expiry_date_gregorian,
+            'club_rules_accepted' => $club_rules_already_accepted ? 1 : 1,
+            'club_rules_accepted_at' => $club_rules_already_accepted ? null : current_time('mysql'),
             'updated_at' => current_time('mysql'),
         ];
-        $format = ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s'];
+        if ($club_rules_already_accepted) {
+            $data['club_rules_accepted_at'] = $wpdb->get_var($wpdb->prepare("SELECT club_rules_accepted_at FROM $coaches_table WHERE id = %d", $coach_id));
+        }
+        $format = [];
+        foreach ($data as $field_key => $field_value) {
+            if (in_array($field_key, ['coaching_experience', 'club_rules_accepted', 'is_active', 'is_private_enabled', 'user_id'], true)) {
+                $format[] = '%d';
+            } elseif ($field_key === 'settlement_amount') {
+                $format[] = '%f';
+            } else {
+                $format[] = '%s';
+            }
+        }
         $updated = $wpdb->update($coaches_table, $data, ['id' => $coach_id], $format, ['%d']);
         if ($updated !== false) {
             $coach_row = $wpdb->get_row($wpdb->prepare("SELECT user_id FROM $coaches_table WHERE id = %d", $coach_id));
@@ -2609,6 +2652,14 @@ function sc_admin_reports_attendance_qr_page() {
     }
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'reports-attendance-qr.php';
+}
+
+function sc_admin_member_qr_codes_page() {
+    if (!function_exists('sc_attendance_qr_user_can_manage_codes') || !sc_attendance_qr_user_can_manage_codes()) {
+        wp_die('شما دسترسی لازم را ندارید.');
+    }
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'member-qr-codes-list.php';
 }
 
 function sc_admin_attendance_report_page() {
@@ -5714,6 +5765,19 @@ function callback_add_coach_sufix() {
             wp_redirect(admin_url('admin.php?page=sc-add-coach&sc_status=coach_add_error&error=duplicate_national_id'));
             exit;
         }
+
+        $existing_coach_rules = null;
+        if ($coach_id > 0) {
+            $existing_coach_rules = $wpdb->get_row($wpdb->prepare(
+                "SELECT club_rules_accepted, club_rules_accepted_at FROM $coaches_table WHERE id = %d",
+                $coach_id
+            ));
+        }
+        $club_rules_already_accepted = $existing_coach_rules ? (int) $existing_coach_rules->club_rules_accepted === 1 : false;
+        if (!$club_rules_already_accepted && empty($_POST['club_rules_accepted'])) {
+            wp_redirect(admin_url('admin.php?page=sc-add-coach&sc_status=coach_add_error&error=club_rules_required' . ($coach_id ? '&coach_id=' . $coach_id : '')));
+            exit;
+        }
         
         // آماده‌سازی داده‌ها
         $data = [
@@ -5729,6 +5793,17 @@ function callback_add_coach_sufix() {
             'personal_photo' => (isset($_POST['personal_photo']) && trim((string) $_POST['personal_photo']) !== '')
                 ? esc_url_raw(wp_unslash($_POST['personal_photo']))
                 : null,
+            'coaching_certificate_photo' => (isset($_POST['coaching_certificate_photo']) && trim((string) $_POST['coaching_certificate_photo']) !== '')
+                ? esc_url_raw(wp_unslash($_POST['coaching_certificate_photo']))
+                : null,
+            'coaching_certificate_expiry_date_shamsi' => (isset($_POST['coaching_certificate_expiry_date_shamsi']) && trim((string) $_POST['coaching_certificate_expiry_date_shamsi']) !== '')
+                ? sanitize_text_field(wp_unslash($_POST['coaching_certificate_expiry_date_shamsi']))
+                : null,
+            'coaching_certificate_expiry_date_gregorian' => null,
+            'club_rules_accepted' => 1,
+            'club_rules_accepted_at' => $club_rules_already_accepted
+                ? ($existing_coach_rules->club_rules_accepted_at ?? null)
+                : current_time('mysql'),
             'settlement_type' => (function () {
                 $allowed = ['fixed', 'percentage', 'both'];
                 $raw = !empty($_POST['settlement_type']) ? sanitize_text_field(wp_unslash($_POST['settlement_type'])) : 'fixed';
@@ -5739,6 +5814,9 @@ function callback_add_coach_sufix() {
             'is_private_enabled' => isset($_POST['is_private_enabled']) ? 1 : 0,
             'updated_at' => current_time('mysql')
         ];
+        if (!empty($data['coaching_certificate_expiry_date_shamsi']) && function_exists('sc_shamsi_to_gregorian_date')) {
+            $data['coaching_certificate_expiry_date_gregorian'] = sc_shamsi_to_gregorian_date($data['coaching_certificate_expiry_date_shamsi']);
+        }
         
         // مدیریت کاربر WordPress
         $username = !empty($_POST['username']) ? sanitize_user($_POST['username']) : '';
@@ -5773,7 +5851,7 @@ function callback_add_coach_sufix() {
                 $coaches_table,
                 $data,
                 ['id' => $coach_id],
-                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%f', '%d', '%d', '%s'],
+                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%d', '%s'],
                 ['%d']
             );
             
@@ -5795,8 +5873,18 @@ function callback_add_coach_sufix() {
         } else {
             // افزودن جدید
             $data['created_at'] = current_time('mysql');
-            
-            $inserted = $wpdb->insert($coaches_table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%f', '%d', '%d', '%s', '%s']);
+            $insert_format = [];
+            foreach ($data as $field_key => $field_value) {
+                if (in_array($field_key, ['coaching_experience', 'club_rules_accepted', 'is_active', 'is_private_enabled', 'user_id'], true)) {
+                    $insert_format[] = '%d';
+                } elseif ($field_key === 'settlement_amount') {
+                    $insert_format[] = '%f';
+                } else {
+                    $insert_format[] = '%s';
+                }
+            }
+
+            $inserted = $wpdb->insert($coaches_table, $data, $insert_format);
             
             if ($inserted !== false) {
                 $new_coach_id = $wpdb->insert_id;

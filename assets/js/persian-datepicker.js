@@ -80,6 +80,36 @@
         var today = new Date();
         return gregorianToJalali(today.getFullYear(), today.getMonth() + 1, today.getDate());
     }
+
+    function parseAllowedWeekdaysAttr(value) {
+        if (!value) {
+            return [];
+        }
+        return String(value)
+            .split(',')
+            .map(function(item) { return parseInt(item, 10); })
+            .filter(function(item) { return item >= 1 && item <= 7; });
+    }
+
+    function compareGregorianDateStrings(a, b) {
+        if (!a || !b) {
+            return 0;
+        }
+        if (a === b) {
+            return 0;
+        }
+        return a < b ? -1 : 1;
+    }
+
+    function buildInputRestrictions($input) {
+        return {
+            coachRestricted: String($input.attr('data-coach-date-restricted') || '') === '1',
+            allowedWeekdays: parseAllowedWeekdaysAttr($input.attr('data-allowed-ir-weekdays')),
+            minGregorian: $input.attr('data-min-gregorian') || '',
+            maxGregorian: $input.attr('data-max-gregorian') || '',
+            restrictMessage: $input.attr('data-restrict-message') || 'این تاریخ مجاز نیست.'
+        };
+    }
     
     // ایجاد تقویم
     function initPersianDatePicker() {
@@ -136,7 +166,8 @@
         }
         
         // ایجاد HTML تقویم
-        var calendarHTML = createCalendarHTML(selectedYear, selectedMonth, selectedDay);
+        var restrictions = buildInputRestrictions($input);
+        var calendarHTML = createCalendarHTML(selectedYear, selectedMonth, selectedDay, restrictions);
         
         // ایجاد popup
         var $popup = $('<div class="persian-calendar-popup"></div>');
@@ -165,7 +196,7 @@
         $('body').append($popup);
         
         // بایند رویدادها
-        bindCalendarEvents($popup, $input, selectedYear, selectedMonth, selectedDay);
+        bindCalendarEvents($popup, $input, selectedYear, selectedMonth, selectedDay, restrictions);
         
         // بستن با کلیک خارج
         setTimeout(function() {
@@ -179,9 +210,10 @@
     }
     
     // ایجاد HTML تقویم
-    function createCalendarHTML(year, month, selectedDay) {
+    function createCalendarHTML(year, month, selectedDay, restrictions) {
         var daysInMonth = getDaysInMonth(year, month);
         var monthName = monthNames[month];
+        restrictions = restrictions || {};
         
         // پیدا کردن اولین روز هفته
         var firstDayGregorian = jalaliToGregorian(year, month, 0);
@@ -238,14 +270,26 @@
         
         // روزهای ماه
         for (var day = 1; day <= daysInMonth; day++) {
-            var isSelected = (day == selectedDay);
+            var gregorian = jalaliToGregorian(year, month, day);
+            var gregorianStr = gregorian[0] + '-' + (gregorian[1] < 10 ? '0' + gregorian[1] : gregorian[1]) + '-' + (gregorian[2] < 10 ? '0' + gregorian[2] : gregorian[2]);
+            var dayWeekday = (((new Date(gregorian[0], gregorian[1] - 1, gregorian[2])).getDay()) + 1) % 7 + 1;
+            var allowedWeekdays = Array.isArray(restrictions.allowedWeekdays) ? restrictions.allowedWeekdays : [];
+            var weekdayAllowed = restrictions.coachRestricted
+                ? (allowedWeekdays.indexOf(dayWeekday) !== -1)
+                : (allowedWeekdays.length === 0 || allowedWeekdays.indexOf(dayWeekday) !== -1);
+            var minAllowed = !restrictions.minGregorian || compareGregorianDateStrings(gregorianStr, restrictions.minGregorian) >= 0;
+            var maxAllowed = !restrictions.maxGregorian || compareGregorianDateStrings(gregorianStr, restrictions.maxGregorian) <= 0;
+            var isAllowed = weekdayAllowed && minAllowed && maxAllowed;
+            var isSelected = (day == selectedDay) && isAllowed;
             var dayStyle = 'text-align: center; padding: 10px; cursor: pointer; border-radius: 4px; font-size: 14px; transition: all 0.2s;';
             if (isSelected) {
                 dayStyle += 'background: #2271b1; color: #fff; font-weight: bold;';
+            } else if (!isAllowed) {
+                dayStyle += 'background: #f3f4f6; color: #9aa0a6; cursor: not-allowed; opacity: 0.85;';
             } else {
-                dayStyle += 'background: #f9f9f9; color: #333;';
+                dayStyle += 'background: #eefaf0; color: #1f5130; border: 1px solid #b9e2c2;';
             }
-            html += '<div class="calendar-day" data-day="' + day + '" style="' + dayStyle + '">' + day + '</div>';
+            html += '<div class="calendar-day' + (isAllowed ? '' : ' calendar-day-disabled') + '" data-day="' + day + '" data-gregorian="' + gregorianStr + '" data-allowed="' + (isAllowed ? '1' : '0') + '" style="' + dayStyle + '">' + day + '</div>';
         }
         
         html += '</div>';
@@ -254,9 +298,24 @@
     }
     
     // بایند رویدادها
-    function bindCalendarEvents($popup, $input, year, month, selectedDay) {
+    function bindCalendarEvents($popup, $input, year, month, selectedDay, restrictions) {
         // کلیک روی روز
         $popup.find('.calendar-day').on('click', function() {
+            if ($(this).attr('data-allowed') !== '1') {
+                var restrictMessage = (restrictions && restrictions.restrictMessage) ? restrictions.restrictMessage : 'این تاریخ مجاز نیست.';
+                if (typeof window.scConfirm === 'function') {
+                    window.scConfirm({
+                        type: 'warning',
+                        title: 'تاریخ نامعتبر',
+                        message: restrictMessage,
+                        confirmText: 'باشه',
+                        cancelText: ''
+                    });
+                } else {
+                    alert(restrictMessage);
+                }
+                return;
+            }
             var day = parseInt($(this).data('day'));
             var formattedDate = year + '/' + 
                               (month < 10 ? '0' + month : month) + '/' + 
@@ -276,8 +335,8 @@
             var newYear = parseInt($(this).val());
             var newMonth = parseInt($popup.find('.calendar-month-select').val());
             var currentDay = selectedDay || 1;
-            $popup.html(createCalendarHTML(newYear, newMonth, currentDay));
-            bindCalendarEvents($popup, $input, newYear, newMonth, currentDay);
+            $popup.html(createCalendarHTML(newYear, newMonth, currentDay, restrictions));
+            bindCalendarEvents($popup, $input, newYear, newMonth, currentDay, restrictions);
         });
         
         // تغییر ماه
@@ -291,8 +350,8 @@
             if (currentDay > daysInNewMonth) {
                 currentDay = daysInNewMonth;
             }
-            $popup.html(createCalendarHTML(newYear, newMonth, currentDay));
-            bindCalendarEvents($popup, $input, newYear, newMonth, currentDay);
+            $popup.html(createCalendarHTML(newYear, newMonth, currentDay, restrictions));
+            bindCalendarEvents($popup, $input, newYear, newMonth, currentDay, restrictions);
         });
         
         // دکمه ماه قبل
@@ -308,8 +367,8 @@
             if (currentDay > daysInNewMonth) {
                 currentDay = daysInNewMonth;
             }
-            $popup.html(createCalendarHTML(year, month, currentDay));
-            bindCalendarEvents($popup, $input, year, month, currentDay);
+            $popup.html(createCalendarHTML(year, month, currentDay, restrictions));
+            bindCalendarEvents($popup, $input, year, month, currentDay, restrictions);
         });
         
         // دکمه ماه بعد
@@ -325,20 +384,26 @@
             if (currentDay > daysInNewMonth) {
                 currentDay = daysInNewMonth;
             }
-            $popup.html(createCalendarHTML(year, month, currentDay));
-            bindCalendarEvents($popup, $input, year, month, currentDay);
+            $popup.html(createCalendarHTML(year, month, currentDay, restrictions));
+            bindCalendarEvents($popup, $input, year, month, currentDay, restrictions);
         });
         
         // هاور روی روزها
         $popup.find('.calendar-day').hover(
             function() {
+                if ($(this).attr('data-allowed') !== '1') {
+                    return;
+                }
                 if (!$(this).hasClass('selected')) {
                     $(this).css('background', '#e5f5fa');
                 }
             },
             function() {
+                if ($(this).attr('data-allowed') !== '1') {
+                    return;
+                }
                 if (!$(this).hasClass('selected')) {
-                    $(this).css('background', '#f9f9f9');
+                    $(this).css('background', '#eefaf0');
                 }
             }
         );

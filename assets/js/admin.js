@@ -1088,6 +1088,33 @@ jQuery(document).ready(function($) {
         imageUploader.open();
     });
 
+    $('#btn_coaching_certificate_photo').on('click', function(e) {
+        e.preventDefault();
+        var inputField = $('#coaching_certificate_photo_txt');
+
+        var imageUploader = wp.media({
+            title: 'انتخاب عکس مدرک مربیگری',
+            button: {
+                text: 'استفاده از این تصویر'
+            },
+            multiple: false
+        });
+
+        imageUploader.on('select', function() {
+            var attachment = imageUploader.state().get('selection').first().toJSON();
+            inputField.val(attachment.url);
+
+            var previewContainer = inputField.closest('td').find('.sc-image-preview');
+            if (previewContainer.length === 0) {
+                inputField.after('<div class="sc-image-preview" style="margin-top: 10px;"><img src="' + attachment.url + '" alt="عکس مدرک مربیگری" style="max-width: 300px; height: auto; border: 1px solid #ddd; border-radius: 4px;"></div>');
+            } else {
+                previewContainer.find('img').attr('src', attachment.url);
+            }
+        });
+
+        imageUploader.open();
+    });
+
     $(document).on('click', '.sc-player-custom-upload-btn', function(e) {
         e.preventDefault();
         var inputField = $($(this).data('target'));

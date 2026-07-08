@@ -72,6 +72,17 @@ if (
     } elseif (isset($_POST['attendance_date']) && !empty($_POST['attendance_date'])) {
         $attendance_date = sanitize_text_field($_POST['attendance_date']);
     }
+
+    $current_user_id = get_current_user_id();
+    $current_is_coach_user = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach');
+    $current_coach_id_for_assignment = 0;
+    if ($current_is_coach_user) {
+        $coaches_table = $wpdb->prefix . 'sc_coaches';
+        $current_coach_id_for_assignment = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
+            $current_user_id
+        ));
+    }
   
     if (!$course_id) {
         $message = 'لطفاً یک دوره را انتخاب کنید.';
@@ -92,6 +103,22 @@ if (
     } elseif (!$attendance_date) {
         $message = 'لطفاً تاریخ را وارد کنید.';
         $message_type = 'error';
+    } elseif (
+        $current_is_coach_user
+        && $current_coach_id_for_assignment > 0
+        && function_exists('sc_validate_coach_attendance_date_access')
+    ) {
+        $coach_date_access = sc_validate_coach_attendance_date_access(
+            $current_coach_id_for_assignment,
+            $course_id,
+            $attendance_date,
+            $chapter_name,
+            $group_name
+        );
+        if (empty($coach_date_access['allowed'])) {
+            $message = isset($coach_date_access['message']) ? (string) $coach_date_access['message'] : 'در این تاریخ امکان ثبت حضور و غیاب برای مربی وجود ندارد.';
+            $message_type = 'error';
+        }
     } else {
         // دریافت لیست حضور/غیاب ارسالی
         if ($is_recorded_batch) {
@@ -119,18 +146,6 @@ if (
             $updated_count = 0;
             $wallet_failed = array(); // لیست کاربرانی که به دلیل کیف پول ثبت نشدند
             $debt_blocked = array(); // لیست کاربرانی که به دلیل بدهی بیش از حد ثبت نشدند
-            $current_user_id = get_current_user_id();
-            $current_is_coach_user = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach');
-            $current_coach_id_for_assignment = 0;
-
-            if ($current_is_coach_user) {
-                $coaches_table = $wpdb->prefix . 'sc_coaches';
-                $current_coach_id_for_assignment = (int) $wpdb->get_var($wpdb->prepare(
-                    "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
-                    $current_user_id
-                ));
-            }
-
             foreach ($attendances as $member_id => $status) {
                 $member_id = absint($member_id);
                 if($status === 'present'){
@@ -528,12 +543,36 @@ if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
         $selected_date = sc_shamsi_to_gregorian_date($selected_date_shamsi);
     }
 
+$is_coach_attendance_user = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach') && $current_coach_id > 0;
+$coach_attendance_access = [
+    'allowed' => true,
+    'code' => 'ok',
+    'message' => '',
+    'config' => [
+        'allowed_weekdays' => [],
+        'allowed_weekdays_text' => '',
+        'min_date' => '',
+        'max_date' => '',
+        'deadline_days' => 0,
+    ],
+];
+
+if ($is_coach_attendance_user && $selected_course_id > 0 && $selected_date !== '' && function_exists('sc_validate_coach_attendance_date_access')) {
+    $coach_attendance_access = sc_validate_coach_attendance_date_access(
+        $current_coach_id,
+        $selected_course_id,
+        $selected_date,
+        $selected_chapter_name,
+        $selected_group_name
+    );
+}
+
     // دریافت کاربران فعال دوره انتخاب شده
 $active_members = [];
 $existing_attendances = [];
 $existing_record_methods = [];
 
-if ($selected_course_id) {
+if ($selected_course_id && !empty($coach_attendance_access['allowed'])) {
     $group_filter = function_exists('sc_attendance_member_group_filter_sql')
         ? sc_attendance_member_group_filter_sql($selected_group_name, $selected_course_id)
         : ['sql' => '', 'args' => []];
@@ -683,6 +722,42 @@ if ($selected_course_id) {
 $attendance_course_dropdown_options = function_exists('sc_attendance_build_course_dropdown_options')
     ? sc_attendance_build_course_dropdown_options($courses)
     : [];
+$coach_attendance_rules_map = [];
+if ($is_coach_attendance_user && function_exists('sc_attendance_course_selection_parts') && function_exists('sc_get_coach_attendance_date_picker_config')) {
+    foreach ($attendance_course_dropdown_options as $attendance_course_option) {
+        $option_value = isset($attendance_course_option['value']) ? (string) $attendance_course_option['value'] : '';
+        if ($option_value === '') {
+            continue;
+        }
+        $option_parts = sc_attendance_course_selection_parts($option_value);
+        $coach_attendance_rules_map[$option_value] = sc_get_coach_attendance_date_picker_config(
+            $current_coach_id,
+            (int) ($option_parts['course_id'] ?? 0),
+            (string) ($option_parts['chapter_name'] ?? ''),
+            (string) ($option_parts['group_name'] ?? '')
+        );
+    }
+}
+
+$coach_attendance_config = isset($coach_attendance_access['config']) && is_array($coach_attendance_access['config'])
+    ? $coach_attendance_access['config']
+    : ['allowed_weekdays' => [], 'allowed_weekdays_text' => '', 'min_date' => '', 'max_date' => '', 'deadline_days' => 0];
+$coach_attendance_weekdays_csv = !empty($coach_attendance_config['allowed_weekdays']) && is_array($coach_attendance_config['allowed_weekdays'])
+    ? implode(',', array_map('absint', $coach_attendance_config['allowed_weekdays']))
+    : '';
+$coach_attendance_deadline_days = isset($coach_attendance_config['deadline_days']) ? (int) $coach_attendance_config['deadline_days'] : 0;
+$coach_attendance_help_text = '';
+if ($is_coach_attendance_user) {
+    $coach_attendance_help_text = 'مربی فقط در روزهای کلاس خود می‌تواند حضور و غیاب ثبت کند.';
+    if ($coach_attendance_deadline_days > 0) {
+        $coach_attendance_help_text .= ' مهلت ثبت برای هر کلاس ' . $coach_attendance_deadline_days . ' روز بعد از تاریخ کلاس است.';
+    } else {
+        $coach_attendance_help_text .= ' مهلت ثبت فقط در همان روز کلاس است.';
+    }
+    if (!empty($coach_attendance_config['allowed_weekdays_text'])) {
+        $coach_attendance_help_text .= ' روزهای کلاس این انتخاب: ' . $coach_attendance_config['allowed_weekdays_text'];
+    }
+}
 
 $attendance_group_required = $selected_course_id > 0
     && function_exists('sc_course_has_grouping_enabled')
@@ -863,9 +938,14 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
                        class="regular-text persian-date-input sc-attendance-date-input"
                        placeholder="تاریخ (شمسی)"
                        required
+                       data-coach-date-restricted="<?php echo esc_attr($is_coach_attendance_user ? '1' : '0'); ?>"
+                       data-allowed-ir-weekdays="<?php echo esc_attr($coach_attendance_weekdays_csv); ?>"
+                       data-min-gregorian="<?php echo esc_attr($is_coach_attendance_user ? (string) ($coach_attendance_config['min_date'] ?? '') : ''); ?>"
+                       data-max-gregorian="<?php echo esc_attr($is_coach_attendance_user ? (string) ($coach_attendance_config['max_date'] ?? '') : ''); ?>"
+                       data-restrict-message="<?php echo esc_attr($is_coach_attendance_user ? 'این تاریخ برای ثبت حضور و غیاب مربی مجاز نیست.' : ''); ?>"
                        readonly>
                 <input type="hidden" name="date" id="attendance_date_hidden" value="<?php echo esc_attr($selected_date); ?>">
-                <p class="description">برای انتخاب تاریخ، روی فیلد کلیک کنید</p>
+                <p class="description" id="sc-attendance-date-help"><?php echo esc_html($is_coach_attendance_user ? $coach_attendance_help_text : 'برای انتخاب تاریخ، روی فیلد کلیک کنید'); ?></p>
             </div>
         </div>
 
@@ -873,6 +953,10 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
             <input type="submit" name="sc_attendance_filter" class="button button-primary" value="نمایش فرم">
         </p>
     </form>
+
+    <?php if ($selected_course_id && !empty($coach_attendance_access['message']) && empty($coach_attendance_access['allowed'])) : ?>
+        <div class="notice notice-warning"><p><?php echo esc_html($coach_attendance_access['message']); ?></p></div>
+    <?php endif; ?>
     
     <?php if ($selected_course_id && !empty($active_members)) : 
         $course = $wpdb->get_row($wpdb->prepare("SELECT * FROM $courses_table WHERE id = %d", $selected_course_id));
@@ -1051,7 +1135,7 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
                 <?php endif; ?>
             </div>
         </form>
-    <?php elseif ($selected_course_id && empty($active_members)) : ?>
+    <?php elseif ($selected_course_id && empty($active_members) && !empty($coach_attendance_access['allowed'])) : ?>
         <div class="notice notice-info sc-attendance-empty-notice">
             <p>
                 <?php if ($attendance_group_required && $selected_group_name === '') : ?>
@@ -1077,6 +1161,8 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
 </div>
 
 <script>
+window.scAttendanceCoachDateRules = <?php echo wp_json_encode($coach_attendance_rules_map, JSON_UNESCAPED_UNICODE); ?>;
+
 document.addEventListener('click', function (event) {
     const clearBtn = event.target.closest('.sc-attendance-clear-btn');
     if (!clearBtn) {
@@ -1095,6 +1181,50 @@ document.addEventListener('click', function (event) {
 });
 
 jQuery(document).ready(function($) {
+    function scAttendanceApplyCoachDateRules(optionValue) {
+        var rulesMap = window.scAttendanceCoachDateRules || {};
+        var rules = (optionValue && rulesMap[optionValue]) ? rulesMap[optionValue] : null;
+        var $dateInput = $('#attendance_date');
+        var $help = $('#sc-attendance-date-help');
+
+        if (!$dateInput.length) {
+            return;
+        }
+
+        if (!rules) {
+            $dateInput.attr('data-coach-date-restricted', '1');
+            $dateInput.attr('data-allowed-ir-weekdays', '');
+            $dateInput.attr('data-min-gregorian', '');
+            $dateInput.attr('data-max-gregorian', '');
+            $dateInput.attr('data-restrict-message', '');
+            if ($help.length && $dateInput.data('coachMode') === 1) {
+                $help.text('ابتدا دوره را انتخاب کنید تا فقط روزهای مجاز برای مربی نمایش داده شود.');
+            }
+            return;
+        }
+
+        var weekdays = Array.isArray(rules.allowed_weekdays) ? rules.allowed_weekdays.join(',') : '';
+        $dateInput.attr('data-coach-date-restricted', '1');
+        $dateInput.attr('data-allowed-ir-weekdays', weekdays);
+        $dateInput.attr('data-min-gregorian', rules.min_date || '');
+        $dateInput.attr('data-max-gregorian', rules.max_date || '');
+        $dateInput.attr('data-restrict-message', 'این تاریخ برای ثبت حضور و غیاب مربی مجاز نیست.');
+        $dateInput.data('coachMode', 1);
+
+        if ($help.length) {
+            var helpText = 'مربی فقط در روزهای کلاس خود می‌تواند حضور و غیاب ثبت کند.';
+            if (parseInt(rules.deadline_days || 0, 10) > 0) {
+                helpText += ' مهلت ثبت: ' + rules.deadline_days + ' روز بعد از کلاس.';
+            } else {
+                helpText += ' مهلت ثبت فقط همان روز کلاس است.';
+            }
+            if (rules.allowed_weekdays_text) {
+                helpText += ' روزهای کلاس: ' + rules.allowed_weekdays_text;
+            }
+            $help.text(helpText);
+        }
+    }
+
     function scAttendanceGetSelectedCourseType() {
         var $checked = $('input[name="filter_course_type"]:checked');
         return $checked.length ? $checked.val() : 'group';
@@ -1105,6 +1235,7 @@ jQuery(document).ready(function($) {
         scAttendanceApplyCourseFields($dropdown, '', '');
         $dropdown.find('.sc-option-check').remove();
         $dropdown.find('.sc-dropdown-option').removeClass('sc-selected').css('background', '');
+        scAttendanceApplyCoachDateRules('');
     }
 
     function scAttendanceSyncCourseDropdown(searchTerm) {
@@ -1157,6 +1288,7 @@ jQuery(document).ready(function($) {
     }
 
     scAttendanceSyncCourseDropdown($('.sc-attendance-course-search').val() || '');
+    scAttendanceApplyCoachDateRules($('#attendance_course_option_value').val() || '');
 
     $('input[name="filter_course_type"]').on('change', function() {
         $('.sc-attendance-course-search').val('');
@@ -1166,6 +1298,13 @@ jQuery(document).ready(function($) {
 
     $('.sc-attendance-course-search').on('input', function() {
         scAttendanceSyncCourseDropdown($(this).val() || '');
+    });
+
+    $(document).on('click', '.sc-attendance-course-dropdown .sc-dropdown-option', function() {
+        var optionValue = $(this).attr('data-value') || '';
+        setTimeout(function() {
+            scAttendanceApplyCoachDateRules(optionValue);
+        }, 0);
     });
 
     $('#sc-attendance-filter-form').on('submit', function(e) {

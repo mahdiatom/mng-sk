@@ -188,7 +188,8 @@
             duplicate: 'soundDuplicate',
             notInCourse: 'soundNotInCourse',
             debtWarning: 'soundDebtWarning',
-            debtBlocked: 'soundDebtBlocked'
+            debtBlocked: 'soundDebtBlocked',
+            disabled: 'soundDisabled'
         };
         Object.keys(soundKeys).forEach(function (type) {
             var url = cfg[soundKeys[type]] || '';
@@ -430,6 +431,12 @@
 
             if (errCode === 'debt_blocked') {
                 playSound('debtBlocked');
+                showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
+            } else if (errCode === 'qr_disabled') {
+                playSound('disabled');
+                showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
+            } else if (errCode === 'qr_inactive') {
+                playSound('error');
                 showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
             } else if (errCode === 'not_in_course') {
                 playSound('notInCourse');
