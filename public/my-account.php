@@ -4728,6 +4728,10 @@ function sc_player_info_validate_required_fields($post, $files, $existing_member
             if ($posted_url === '' && !$has_existing && !$has_new_file) {
                 $errors[] = sprintf('فیلد «%s» اجباری است.', $label);
             }
+        } elseif ($type === 'checkbox') {
+            if (empty($post['player_custom_fields_checkbox'][$key])) {
+                $errors[] = sprintf('فیلد «%s» اجباری است.', $label);
+            }
         } else {
             $val = isset($post['player_custom_fields'][$key]) ? trim(wp_unslash($post['player_custom_fields'][$key])) : '';
             if ($val === '' && empty($existing_extra[$key])) {
@@ -4778,6 +4782,8 @@ function sc_player_info_extract_custom_values($post, $files, $user_id, $existing
                     $values[$key] = $uploaded[$key];
                 }
             }
+        } elseif ($type === 'checkbox') {
+            $values[$key] = !empty($post['player_custom_fields_checkbox'][$key]) ? 1 : 0;
         } else {
             $values[$key] = isset($post['player_custom_fields'][$key]) ? sanitize_text_field(wp_unslash($post['player_custom_fields'][$key])) : '';
         }

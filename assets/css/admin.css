@@ -18391,8 +18391,10 @@ body[class*="_page_sc_setting"] .sc-player-custom-field-row select {
 
 body.toplevel_page_sc_setting .sc-player-custom-field-row--flags,
 body.toplevel_page_sc_setting .sc-player-custom-field-row--options,
+body.toplevel_page_sc_setting .sc-player-custom-field-row--checkbox-text,
 body[class*="_page_sc_setting"] .sc-player-custom-field-row--flags,
-body[class*="_page_sc_setting"] .sc-player-custom-field-row--options {
+body[class*="_page_sc_setting"] .sc-player-custom-field-row--options,
+body[class*="_page_sc_setting"] .sc-player-custom-field-row--checkbox-text {
     grid-column: 1 / -1;
 }
 

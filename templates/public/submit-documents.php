@@ -146,9 +146,15 @@ if (empty($player_phone) && $billing_phone) {
 
 <?php
 if (!function_exists('sc_render_player_custom_fields_block')) {
-    function sc_render_player_custom_fields_block($fields, $section, $values = []) {
+    function sc_render_player_custom_fields_block($fields, $section, $values = [], $only_types = null, $exclude_types = []) {
         if (empty($fields) || !is_array($fields)) {
             return;
+        }
+        if ($only_types !== null && !is_array($only_types)) {
+            $only_types = [$only_types];
+        }
+        if (!is_array($exclude_types)) {
+            $exclude_types = [];
         }
         foreach ($fields as $field) {
             if (!is_array($field) || ($field['section'] ?? '') !== $section || empty($field['visible'])) {
@@ -159,11 +165,27 @@ if (!function_exists('sc_render_player_custom_fields_block')) {
                 continue;
             }
             $type = $field['type'] ?? 'text';
+            if ($only_types !== null && !in_array($type, $only_types, true)) {
+                continue;
+            }
+            if (!empty($exclude_types) && in_array($type, $exclude_types, true)) {
+                continue;
+            }
             $label = $field['label'] ?? $key;
             $is_required = !empty($field['required']);
             $required_attr = $is_required ? ' required' : '';
             $required_mark = $is_required ? ' <span class="required">*</span>' : '';
             $current_val = $values[$key] ?? ($type === 'multiselect' ? [] : '');
+            if ($type === 'checkbox') {
+                $checked = (int) $current_val === 1;
+                $checkbox_text = isset($field['checkbox_text']) ? trim((string) $field['checkbox_text']) : '';
+                echo '<div class="sc-player-field-card sc-player-field-card--full sc-player-field-card--checkbox sc-custom-type-checkbox">';
+                echo '<label class="sc-player-checkbox-pill">';
+                echo '<input type="checkbox" name="player_custom_fields_checkbox[' . esc_attr($key) . ']" id="sc_custom_' . esc_attr($key) . '" value="1"' . checked($checked, true, false) . $required_attr . '>';
+                echo '<span>' . esc_html($checkbox_text !== '' ? $checkbox_text : 'تأیید') . $required_mark . '</span>';
+                echo '</label></div>';
+                continue;
+            }
             $full_class = ($type === 'image' || $type === 'multiselect') ? ' sc-player-field-card--full' : '';
             echo '<div class="sc-player-field-card' . esc_attr($full_class) . ' sc-custom-type-' . esc_attr($type) . '">';
             echo '<label class="sc-player-field-card__label" for="sc_custom_' . esc_attr($key) . '">' . esc_html($label) . $required_mark . '</label>';
@@ -370,6 +392,7 @@ if (!function_exists('sc_player_form_group_close')) {
                     <span>تأیید می‌کنم اطلاعات فوق را به‌درستی پر کرده‌ام</span>
                 </label>
             </div>
+            <?php sc_render_player_custom_fields_block($player_custom_fields, 'additional', $member_extra_fields, ['checkbox']); ?>
             <?php if (current_user_can('manage_options')) : ?>
                 <?php sc_player_field_card_open('سطح شما'); ?>
                     <input class="regular-text" type="text" name="skill_level" id="skill_level" value="<?php echo esc_attr($skill_level); ?>">
@@ -403,7 +426,7 @@ if (!function_exists('sc_player_form_group_close')) {
                     </span>
                 </div>
             </div>
-            <?php sc_render_player_custom_fields_block($player_custom_fields, 'additional', $member_extra_fields); ?>
+            <?php sc_render_player_custom_fields_block($player_custom_fields, 'additional', $member_extra_fields, null, ['checkbox']); ?>
         <?php sc_player_form_group_close(); ?>
 
         <div class="sc-player-form-actions">

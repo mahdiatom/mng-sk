@@ -545,6 +545,7 @@ function sc_sanitize_player_info_custom_fields_input($raw_fields) {
         $required = !empty($row['required']) ? 1 : 0;
         $visible = isset($row['visible']) ? (int) !empty($row['visible']) : 0;
         $options_raw = isset($row['options']) ? wp_unslash($row['options']) : '';
+        $checkbox_text = isset($row['checkbox_text']) ? sanitize_text_field(wp_unslash($row['checkbox_text'])) : '';
 
         if ($label === '') {
             continue;
@@ -552,7 +553,7 @@ function sc_sanitize_player_info_custom_fields_input($raw_fields) {
         if ($field_key === '') {
             $field_key = sanitize_key('field_' . substr(md5($label . wp_rand()), 0, 10));
         }
-        if (!in_array($type, ['text', 'image', 'multiselect'], true)) {
+        if (!in_array($type, ['text', 'image', 'multiselect', 'checkbox'], true)) {
             $type = 'text';
         }
         if (!in_array($section, ['personal', 'contact', 'documents', 'additional'], true)) {
@@ -576,6 +577,7 @@ function sc_sanitize_player_info_custom_fields_input($raw_fields) {
             'required' => $required,
             'visible' => $visible,
             'options' => $options,
+            'checkbox_text' => $checkbox_text,
         ];
     }
 
@@ -713,6 +715,11 @@ function sc_render_admin_player_custom_fields_rows($custom_fields, $section, $va
                 echo '<option value="' . esc_attr($option) . '" ' . selected(in_array($option, $selected, true), true, false) . '>' . esc_html($option) . '</option>';
             }
             echo '</select>';
+        } elseif ($type === 'checkbox') {
+            $checked = (int) $current_val === 1;
+            $checkbox_text = isset($field['checkbox_text']) ? trim((string) $field['checkbox_text']) : '';
+            echo '<label><input type="checkbox" name="player_custom_fields_checkbox[' . esc_attr($key) . ']" id="sc_admin_custom_' . esc_attr($key) . '" value="1"' . checked($checked, true, false) . $required_attr . '>';
+            echo ' ' . esc_html($checkbox_text !== '' ? $checkbox_text : 'بله') . '</label>';
         } else {
             $text_value = is_string($current_val) ? $current_val : '';
             echo '<input type="text" name="player_custom_fields[' . esc_attr($key) . ']" id="sc_admin_custom_' . esc_attr($key) . '" value="' . esc_attr($text_value) . '" class="regular-text"' . $required_attr . '>';
@@ -759,6 +766,10 @@ function sc_render_admin_player_custom_fields_view_rows($custom_fields, $section
         } elseif ($type === 'multiselect') {
             $selected = is_array($current_val) ? array_filter(array_map('strval', $current_val)) : [];
             echo $selected ? esc_html(implode('، ', $selected)) : '-';
+        } elseif ($type === 'checkbox') {
+            echo (int) $current_val === 1
+                ? '<span style="color:#059669;">✓ بله</span>'
+                : '<span style="color:#dc2626;">✗ خیر</span>';
         } else {
             $text_value = is_string($current_val) ? trim($current_val) : '';
             echo $text_value !== '' ? esc_html($text_value) : '-';

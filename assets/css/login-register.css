@@ -382,7 +382,9 @@ max-height: 97px;
     display: block;
     font-weight: 700;
 }
-
+.sc-lr-user-pick:hover .sc-lr-user-pick-name{
+    color: #000 !important;
+}
 .sc-lr-user-pick-meta {
     display: block;
     margin-top: 4px;

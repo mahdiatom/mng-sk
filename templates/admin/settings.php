@@ -3936,7 +3936,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <button type="button" class="button button-secondary" id="sc-add-player-custom-field-btn">+ افزودن فیلد</button>
                     </div>
                     <div class="inside">
-                <p class="description sc-player-info-panel-desc">نوع‌های مجاز: متن، عکس و چندانتخابی — فیلدهای سفارشی در فرم اطلاعات بازیکن نمایش داده می‌شوند.</p>
+                <p class="description sc-player-info-panel-desc">نوع‌های مجاز: متن، عکس، چندانتخابی و چک‌باکس — فیلدهای سفارشی در فرم اطلاعات بازیکن نمایش داده می‌شوند.</p>
                 <div id="sc-player-custom-fields-container" class="sc-player-custom-fields-container">
                     <?php foreach ($player_custom_fields as $idx => $custom_field) : ?>
                         <div class="sc-player-custom-field-item" data-index="<?php echo (int) $idx; ?>">
@@ -3968,12 +3968,18 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                         <option value="text" <?php selected(($custom_field['type'] ?? 'text'), 'text'); ?>>متن</option>
                                         <option value="image" <?php selected(($custom_field['type'] ?? ''), 'image'); ?>>عکس</option>
                                         <option value="multiselect" <?php selected(($custom_field['type'] ?? ''), 'multiselect'); ?>>چند انتخابی</option>
+                                        <option value="checkbox" <?php selected(($custom_field['type'] ?? ''), 'checkbox'); ?>>چک‌باکس</option>
                                     </select>
                                 </div>
                                 <div class="sc-player-custom-field-row sc-player-custom-field-row--options" style="<?php echo (($custom_field['type'] ?? '') === 'multiselect') ? '' : 'display:none;'; ?>">
                                     <label>گزینه‌ها</label>
                                     <input type="text" class="regular-text sc-player-custom-options" name="player_custom_fields[<?php echo (int) $idx; ?>][options]" value="<?php echo esc_attr(!empty($custom_field['options']) && is_array($custom_field['options']) ? implode(', ', $custom_field['options']) : ''); ?>" placeholder="گزینه۱, گزینه۲, گزینه۳">
                                     <p class="description">برای نوع چندانتخابی — با ویرگول جدا کنید</p>
+                                </div>
+                                <div class="sc-player-custom-field-row sc-player-custom-field-row--checkbox-text" style="<?php echo (($custom_field['type'] ?? '') === 'checkbox') ? '' : 'display:none;'; ?>">
+                                    <label>متن چک‌باکس</label>
+                                    <input type="text" class="regular-text sc-player-custom-checkbox-text" name="player_custom_fields[<?php echo (int) $idx; ?>][checkbox_text]" value="<?php echo esc_attr($custom_field['checkbox_text'] ?? ''); ?>" placeholder="مثلاً: تأیید می‌کنم اطلاعات فوق را به‌درستی پر کرده‌ام">
+                                    <p class="description">این متن فقط در فرم کاربر عادی نمایش داده می‌شود — «عنوان فیلد» فقط برای مدیر است.</p>
                                 </div>
                                 <div class="sc-player-custom-field-row sc-player-custom-field-row--flags">
                                     <label>تنظیمات</label>
@@ -4026,11 +4032,19 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 $(document).on('change', '.sc-player-custom-type', function() {
                     var $row = $(this).closest('.sc-player-custom-field-item');
                     var $opts = $row.find('.sc-player-custom-field-row--options');
-                    if ($(this).val() === 'multiselect') {
+                    var $checkboxText = $row.find('.sc-player-custom-field-row--checkbox-text');
+                    var type = $(this).val();
+                    if (type === 'multiselect') {
                         $opts.show();
                     } else {
                         $opts.hide();
                         $row.find('.sc-player-custom-options').val('');
+                    }
+                    if (type === 'checkbox') {
+                        $checkboxText.show();
+                    } else {
+                        $checkboxText.hide();
+                        $row.find('.sc-player-custom-checkbox-text').val('');
                     }
                 });
 
@@ -4052,11 +4066,14 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         '<select name="player_custom_fields[' + idx + '][section]" class="sc-player-custom-section">' + sectionOptions() + '</select></div>' +
                         '<div class="sc-player-custom-field-row"><label>نوع فیلد</label>' +
                         '<select name="player_custom_fields[' + idx + '][type]" class="sc-player-custom-type">' +
-                        '<option value="text">متن</option><option value="image">عکس</option><option value="multiselect">چند انتخابی</option>' +
+                        '<option value="text">متن</option><option value="image">عکس</option><option value="multiselect">چند انتخابی</option><option value="checkbox">چک‌باکس</option>' +
                         '</select></div>' +
                         '<div class="sc-player-custom-field-row sc-player-custom-field-row--options" style="display:none;"><label>گزینه‌ها</label>' +
                         '<input type="text" class="regular-text sc-player-custom-options" name="player_custom_fields[' + idx + '][options]" placeholder="گزینه۱, گزینه۲, گزینه۳">' +
                         '<p class="description">برای نوع چندانتخابی — با ویرگول جدا کنید</p></div>' +
+                        '<div class="sc-player-custom-field-row sc-player-custom-field-row--checkbox-text" style="display:none;"><label>متن چک‌باکس</label>' +
+                        '<input type="text" class="regular-text sc-player-custom-checkbox-text" name="player_custom_fields[' + idx + '][checkbox_text]" placeholder="مثلاً: تأیید می‌کنم اطلاعات فوق را به‌درستی پر کرده‌ام">' +
+                        '<p class="description">این متن فقط در فرم کاربر عادی نمایش داده می‌شود — «عنوان فیلد» فقط برای مدیر است.</p></div>' +
                         '<div class="sc-player-custom-field-row sc-player-custom-field-row--flags"><label>تنظیمات</label>' +
                         '<div class="sc-player-custom-flags">' +
                         '<label class="sc-player-custom-flag"><input type="checkbox" name="player_custom_fields[' + idx + '][required]" value="1"> اجباری</label>' +

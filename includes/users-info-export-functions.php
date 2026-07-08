@@ -723,6 +723,13 @@ function sc_users_export_prepare_rows($members, $fields) {
                         $val = $extra[$custom_key] ?? '';
                         if (is_array($val)) {
                             $val = implode('، ', array_map('strval', $val));
+                        } elseif (function_exists('sc_get_player_info_custom_fields')) {
+                            foreach (sc_get_player_info_custom_fields() as $cf) {
+                                if (($cf['key'] ?? '') === $custom_key && ($cf['type'] ?? '') === 'checkbox') {
+                                    $val = (int) $val === 1 ? 'بله' : 'خیر';
+                                    break;
+                                }
+                            }
                         }
                         $row[$field] = $val !== '' ? $val : '-';
                     } else {
