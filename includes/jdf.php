@@ -446,15 +446,19 @@ if (!function_exists('sc_get_shamsi_week_birthdays_snapshot')) {
         $today_md = $today_shamsi !== '' ? substr($today_shamsi, 5) : '';
 
         $members_table = $wpdb->prefix . 'sc_members';
-        $rows = $wpdb->get_results(
-            "SELECT id, first_name, last_name, player_phone, birth_date_shamsi, birth_date_gregorian
-             FROM $members_table
-             WHERE is_active = 1
+        $where = sc_dw_members_where(
+            "m.is_active = 1
                AND (
-                   (birth_date_shamsi IS NOT NULL AND birth_date_shamsi <> '' AND birth_date_shamsi <> '0000-00-00')
-                   OR (birth_date_gregorian IS NOT NULL AND birth_date_gregorian <> '' AND birth_date_gregorian <> '0000-00-00')
-               )
-             ORDER BY first_name ASC, last_name ASC"
+                   (m.birth_date_shamsi IS NOT NULL AND m.birth_date_shamsi <> '' AND m.birth_date_shamsi <> '0000-00-00')
+                   OR (m.birth_date_gregorian IS NOT NULL AND m.birth_date_gregorian <> '' AND m.birth_date_gregorian <> '0000-00-00')
+               )",
+            'm'
+        );
+        $rows = $wpdb->get_results(
+            "SELECT m.id, m.first_name, m.last_name, m.player_phone, m.birth_date_shamsi, m.birth_date_gregorian
+             FROM {$members_table} m
+             WHERE {$where}
+             ORDER BY m.first_name ASC, m.last_name ASC"
         );
 
         $matches = [];

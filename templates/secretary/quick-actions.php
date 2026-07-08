@@ -8,9 +8,18 @@ if (!function_exists('sc_user_is_secretary_only') || !sc_user_is_secretary_only(
 }
 
 $chapters = function_exists('sc_secretary_get_effective_chapters') ? sc_secretary_get_effective_chapters() : [];
-$courses = function_exists('sc_secretary_get_branch_courses') ? sc_secretary_get_branch_courses() : [];
 $filter_chapter = function_exists('sc_secretary_get_filter_chapter') ? sc_secretary_get_filter_chapter() : 'all';
 $default_chapter = ($filter_chapter !== 'all') ? $filter_chapter : (isset($chapters[0]) ? $chapters[0] : '');
+$courses = function_exists('sc_secretary_get_quick_action_courses')
+    ? sc_secretary_get_quick_action_courses($default_chapter)
+    : (function_exists('sc_secretary_get_branch_courses') ? sc_secretary_get_branch_courses() : []);
+
+$sounds = [];
+if (function_exists('sc_attendance_qr_get_sound_url')) {
+    foreach (['success', 'error', 'debt_warning'] as $sound_type) {
+        $sounds[$sound_type] = sc_attendance_qr_get_sound_url($sound_type);
+    }
+}
 
 wp_enqueue_script(
     'sc-secretary-quick-actions',
@@ -24,13 +33,18 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
     'nonce' => wp_create_nonce('sc_secretary_quick_actions'),
     'chapters' => $chapters,
     'defaultChapter' => $default_chapter,
+    'sounds' => $sounds,
+    'labels' => [
+        'check' => 'بررسی اطلاعات',
+        'confirm' => 'تایید و ثبت در دوره',
+    ],
 ]);
 ?>
 <div class="wrap sc-members-list-wrap sc-secretary-quick-actions-wrap">
     <div class="sc-members-list-header">
         <div class="sc-members-list-header-text">
             <h1 class="sc-members-list-title">اقدامات سریع</h1>
-            <p class="sc-members-list-desc">ثبت‌نام بازیکن در دوره و صدور صورت‌حساب برای شعبه(های) مجاز شما. در افزودن به دوره، همه بازیکنان سایت قابل جستجو هستند.</p>
+            <p class="sc-members-list-desc">ثبت‌نام بازیکن در دوره و صدور صورت‌حساب برای شعبه(های) مجاز شما. در افزودن به دوره، همه بازیکنان سایت قابل جستجو هستند؛ فقط دوره‌هایی با برنامه هفتگی فعال برای شعبه نمایش داده می‌شوند.</p>
         </div>
     </div>
 
@@ -42,14 +56,16 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
     <div id="sc-qa-existing" class="sc-secretary-qa-panel sc-members-list-table-card">
         <div class="sc-secretary-qa-panel-head">
             <h2>افزودن بازیکن موجود به دوره</h2>
-            <p>بازیکن را جستجو کنید (از هر شعبه)، سپس دوره و شعبه مقصد را انتخاب کنید.</p>
+            <p>نام، موبایل یا کد ملی را جستجو کنید و بازیکن را از لیست انتخاب کنید، سپس شعبه و دوره را مشخص کنید.</p>
         </div>
         <table class="form-table sc-secretary-qa-form-table">
             <tr>
-                <th scope="row"><label for="sc_qa_member_search">بازیکن</label></th>
+                <th scope="row"><label for="sc_qa_member_search">جستجوی بازیکن</label></th>
                 <td>
-                    <input type="text" id="sc_qa_member_search" class="regular-text sc-secretary-qa-control" placeholder="جستجو نام، موبایل یا کد ملی..." autocomplete="off" />
+                    <input type="text" id="sc_qa_member_search" class="regular-text sc-secretary-qa-control" placeholder="نام، موبایل یا کد ملی را تایپ کنید..." autocomplete="off" />
                     <input type="hidden" id="sc_qa_member_id" value="" />
+                    <p class="description">حداقل ۱ کاراکتر تایپ کنید؛ سپس روی نام بازیکن در لیست کلیک کنید.</p>
+                    <div id="sc_qa_member_selected" class="sc-qa-member-selected" style="display:none;"></div>
                     <div id="sc_qa_member_results" class="sc-qa-search-results"></div>
                 </td>
             </tr>
@@ -61,6 +77,7 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
                             <option value="<?php echo esc_attr($ch); ?>" <?php selected($default_chapter, $ch); ?>><?php echo esc_html($ch); ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <p class="description">با تغییر شعبه، لیست دوره‌ها بر اساس برنامه هفتگی همان شعبه به‌روز می‌شود.</p>
                 </td>
             </tr>
             <tr>
@@ -86,8 +103,10 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
             </tr>
         </table>
         <div class="sc-secretary-qa-actions">
-            <button type="button" class="button button-primary" id="sc_qa_existing_submit">ثبت در دوره</button>
+            <button type="button" class="button button-primary sc-qa-submit" id="sc_qa_existing_submit">بررسی اطلاعات</button>
+            <p class="description sc-qa-submit-hint">ابتدا «بررسی اطلاعات» را بزنید؛ پس از تأیید، دکمه به «تایید و ثبت در دوره» تغییر می‌کند.</p>
         </div>
+        <div id="sc_qa_existing_validation" class="sc-qa-validation" aria-live="polite" style="display:none;"></div>
         <div id="sc_qa_existing_message" class="sc-qa-message" aria-live="polite"></div>
     </div>
 
@@ -142,8 +161,10 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
             </tr>
         </table>
         <div class="sc-secretary-qa-actions">
-            <button type="button" class="button button-primary" id="sc_qa_new_submit">ثبت‌نام و فعال‌سازی</button>
+            <button type="button" class="button button-primary sc-qa-submit" id="sc_qa_new_submit">بررسی اطلاعات</button>
+            <p class="description sc-qa-submit-hint">ابتدا بررسی کنید، سپس در صورت موفقیت ثبت نهایی را تأیید کنید.</p>
         </div>
+        <div id="sc_qa_new_validation" class="sc-qa-validation" aria-live="polite" style="display:none;"></div>
         <div id="sc_qa_new_message" class="sc-qa-message" aria-live="polite"></div>
     </div>
 </div>
@@ -196,6 +217,42 @@ body[class*="_page_sc-secretary-quick-actions"] .sc-secretary-qa-actions {
     padding-top: 12px;
     border-top: 1px solid #f3f4f6;
 }
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit-hint {
+    margin: 8px 0 0;
+    color: #6b7280;
+    font-size: 12px;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit.is-checking {
+    opacity: 0.85;
+    cursor: wait;
+    position: relative;
+    padding-right: 28px;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit.is-checking::after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border: 2px solid rgba(255,255,255,0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: sc-qa-spin 0.7s linear infinite;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit.is-ready {
+    background: #047857 !important;
+    border-color: #047857 !important;
+    box-shadow: 0 0 0 2px rgba(4, 120, 87, 0.15);
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit.is-error-flash {
+    background: #b32d2e !important;
+    border-color: #b32d2e !important;
+}
+@keyframes sc-qa-spin {
+    to { transform: rotate(360deg); }
+}
 body[class*="_page_sc-secretary-quick-actions"] .sc-qa-search-results {
     position: relative;
     max-width: 420px;
@@ -219,10 +276,75 @@ body[class*="_page_sc-secretary-quick-actions"] .sc-qa-search-results li {
 body[class*="_page_sc-secretary-quick-actions"] .sc-qa-search-results li:hover {
     background: #f8fafc;
 }
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-search-hint,
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-search-empty {
+    margin: 6px 0 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-search-error {
+    margin: 6px 0 0;
+    color: #b32d2e;
+    font-weight: 600;
+    font-size: 13px;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-member-selected {
+    margin-top: 8px;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-selected-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 10px;
+    color: #065f46;
+    font-size: 13px;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-clear-member {
+    border: none;
+    background: transparent;
+    color: #047857;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-validation {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-validation-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-validation-item {
+    padding: 6px 0 6px 22px;
+    position: relative;
+    font-size: 13px;
+    line-height: 1.6;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-validation-item::before {
+    content: '•';
+    position: absolute;
+    right: 0;
+    font-weight: 700;
+}
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-validation-item--success { color: #047857; }
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-validation-item--error { color: #b32d2e; font-weight: 700; }
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-validation-item--warning { color: #b45309; }
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-validation-item--info { color: #1d4ed8; }
 body[class*="_page_sc-secretary-quick-actions"] .sc-qa-message {
     margin-top: 12px;
     font-weight: 600;
 }
 body[class*="_page_sc-secretary-quick-actions"] .sc-qa-message.is-error { color: #b32d2e; }
 body[class*="_page_sc-secretary-quick-actions"] .sc-qa-message.is-success { color: #00a32a; }
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-message.is-info { color: #1d4ed8; }
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-message.is-warning { color: #b45309; }
 </style>

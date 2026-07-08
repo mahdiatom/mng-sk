@@ -18,6 +18,9 @@ function sc_admin_dashboard_widgets_user_can() {
     if (!is_user_logged_in()) {
         return false;
     }
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+        return true;
+    }
     $allowed_roles = array_merge(['administrator'], function_exists('sc_get_club_manager_role_slugs') ? sc_get_club_manager_role_slugs() : ['club_coach']);
     $user          = wp_get_current_user();
     if (!$user || empty($user->roles)) {
@@ -29,6 +32,95 @@ function sc_admin_dashboard_widgets_user_can() {
 }
 
 /**
+ * آیا ابزارک‌های پیشخوان باید به شعبه منشی محدود شوند؟
+ */
+function sc_dw_should_scope_to_secretary_branch() {
+    return function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only();
+}
+
+/**
+ * شناسه ابزارک‌های مجاز برای منشی (با لینک به صفحات مجاز پنل).
+ *
+ * @return string[]
+ */
+function sc_dw_secretary_widget_ids() {
+    $ids = [
+        'sc_dw_unverified_members',
+        'sc_dw_open_tickets',
+        'sc_dw_expired_insurance',
+        'sc_dw_week_birthdays',
+        'sc_dw_unassigned_coach_members',
+        'sc_dw_recent_notifications',
+        'sc_dw_branch_courses',
+        'sc_dw_pending_invoices',
+    ];
+    if (function_exists('sc_is_pro_feature_user_alerts_enabled') && sc_is_pro_feature_user_alerts_enabled()) {
+        $ids[] = 'sc_dw_absence_alerts';
+    }
+    if (function_exists('sc_is_pro_feature_honors_enabled') && sc_is_pro_feature_honors_enabled()) {
+        $ids[] = 'sc_dw_pending_honors';
+    }
+    return apply_filters('sc_dw_secretary_widget_ids', $ids);
+}
+
+/**
+ * @param string $widget_id
+ */
+function sc_dw_widget_allowed_for_current_user($widget_id) {
+    if (!sc_admin_dashboard_widgets_user_can()) {
+        return false;
+    }
+    if (!sc_dw_should_scope_to_secretary_branch()) {
+        return true;
+    }
+    return in_array((string) $widget_id, sc_dw_secretary_widget_ids(), true);
+}
+
+/**
+ * @param string $base_where
+ * @param string $member_alias
+ * @return string
+ */
+function sc_dw_members_where($base_where = '1=1', $member_alias = 'm') {
+    if (function_exists('sc_secretary_append_member_where') && sc_dw_should_scope_to_secretary_branch()) {
+        return sc_secretary_append_member_where($base_where, $member_alias);
+    }
+    return $base_where;
+}
+
+/**
+ * @param string $mc_alias
+ * @return array{sql:string,args:array<int,mixed>}
+ */
+function sc_dw_secretary_mc_chapter_scope($mc_alias = 'mc') {
+    if (!sc_dw_should_scope_to_secretary_branch() || !function_exists('sc_secretary_member_enrollment_match_sql')) {
+        return ['sql' => '', 'args' => []];
+    }
+    $match = sc_secretary_member_enrollment_match_sql($mc_alias);
+    if ($match['sql'] === '1=0') {
+        return ['sql' => ' AND 1=0', 'args' => []];
+    }
+    return ['sql' => ' AND ' . $match['sql'], 'args' => $match['args']];
+}
+
+/**
+ * @param string $base_sql
+ * @param array<int,mixed> $args
+ * @param string $member_alias
+ * @return string
+ */
+function sc_dw_append_member_scope_sql($base_sql, array $args = [], $member_alias = 'm') {
+    global $wpdb;
+    if (!sc_dw_should_scope_to_secretary_branch() || !function_exists('sc_secretary_member_scope_sql')) {
+        return empty($args) ? $base_sql : $wpdb->prepare($base_sql, $args);
+    }
+    $scope = sc_secretary_member_scope_sql($member_alias);
+    $sql = $base_sql . $scope['sql'];
+    $all_args = array_merge($args, $scope['args']);
+    return !empty($all_args) ? $wpdb->prepare($sql, $all_args) : $sql;
+}
+
+/**
  * ثبت همهٔ ابزارک‌های پیشخوان.
  */
 add_action('wp_dashboard_setup', 'sc_register_admin_dashboard_widgets', 1000);
@@ -37,25 +129,32 @@ function sc_register_admin_dashboard_widgets() {
         return;
     }
 
+    $register = static function ($id, $title, $callback) {
+        if (!sc_dw_widget_allowed_for_current_user($id)) {
+            return;
+        }
+        wp_add_dashboard_widget($id, $title, $callback);
+    };
+
     // 1) کاربران احراز هویت نشده
-    wp_add_dashboard_widget(
+    $register(
         'sc_dw_unverified_members',
-        'کاربران احراز هویت نشده',
+        sc_dw_should_scope_to_secretary_branch() ? 'کاربران احراز هویت نشده (شعبه شما)' : 'کاربران احراز هویت نشده',
         'sc_dw_render_unverified_members'
     );
 
     // 2) تیکت‌های باز (در انتظار پاسخ)
     if (function_exists('sc_is_pro_feature_support_tickets_enabled') && sc_is_pro_feature_support_tickets_enabled()) {
-        wp_add_dashboard_widget(
+        $register(
             'sc_dw_open_tickets',
-            'تیکت‌های باز',
+            sc_dw_should_scope_to_secretary_branch() ? 'تیکت‌های باز (شعبه شما)' : 'تیکت‌های باز',
             'sc_dw_render_open_tickets'
         );
     }
 
     // 3) سفارش‌های فروشگاه (همان لیست sc_orders — منتظر ارسال)
-    if (class_exists('WooCommerce')) {
-        wp_add_dashboard_widget(
+    if (class_exists('WooCommerce') && !sc_dw_should_scope_to_secretary_branch()) {
+        $register(
             'sc_dw_wc_processing_orders',
             'سفارش‌های فروشگاه (منتظر ارسال)',
             'sc_dw_render_wc_processing_orders'
@@ -64,46 +163,50 @@ function sc_register_admin_dashboard_widgets() {
 
     // 4) افتخارات تایید نشده
     if (function_exists('sc_is_pro_feature_honors_enabled') && sc_is_pro_feature_honors_enabled()) {
-        wp_add_dashboard_widget(
+        $register(
             'sc_dw_pending_honors',
-            'افتخارات در انتظار تایید',
+            sc_dw_should_scope_to_secretary_branch() ? 'افتخارات در انتظار تایید (شعبه شما)' : 'افتخارات در انتظار تایید',
             'sc_dw_render_pending_honors'
         );
     }
 
     // 5) بیمه‌های منقضی شده
-    wp_add_dashboard_widget(
+    $register(
         'sc_dw_expired_insurance',
-        'بیمه‌های منقضی شده',
+        sc_dw_should_scope_to_secretary_branch() ? 'بیمه‌های منقضی شده (شعبه شما)' : 'بیمه‌های منقضی شده',
         'sc_dw_render_expired_insurance'
     );
 
     // 6) هشدارهای غیبت بیش از حد
     if (function_exists('sc_is_pro_feature_user_alerts_enabled') && sc_is_pro_feature_user_alerts_enabled()) {
-        wp_add_dashboard_widget(
+        $register(
             'sc_dw_absence_alerts',
-            'هشدار غیبت بیش از حد کاربران',
+            sc_dw_should_scope_to_secretary_branch() ? 'هشدار غیبت (شعبه شما)' : 'هشدار غیبت بیش از حد کاربران',
             'sc_dw_render_absence_alerts'
         );
     }
 
     // 7) درخواست‌های برداشت مربی‌ها در انتظار تایید
-    wp_add_dashboard_widget(
-        'sc_dw_coach_withdrawals',
-        'درخواست‌های برداشت مربی‌ها',
-        'sc_dw_render_coach_withdrawals'
-    );
+    if (!sc_dw_should_scope_to_secretary_branch()) {
+        $register(
+            'sc_dw_coach_withdrawals',
+            'درخواست‌های برداشت مربی‌ها',
+            'sc_dw_render_coach_withdrawals'
+        );
+    }
 
     // 8) آمار کدهای تخفیف استفاده شده
-    wp_add_dashboard_widget(
-        'sc_dw_discount_codes_usage',
-        'کدهای تخفیف استفاده شده',
-        'sc_dw_render_discount_codes_usage'
-    );
+    if (!sc_dw_should_scope_to_secretary_branch()) {
+        $register(
+            'sc_dw_discount_codes_usage',
+            'کدهای تخفیف استفاده شده',
+            'sc_dw_render_discount_codes_usage'
+        );
+    }
 
     // 9) نظرسنجی‌های فعال
-    if (function_exists('sc_is_pro_feature_surveys_enabled') && sc_is_pro_feature_surveys_enabled()) {
-        wp_add_dashboard_widget(
+    if (function_exists('sc_is_pro_feature_surveys_enabled') && sc_is_pro_feature_surveys_enabled() && !sc_dw_should_scope_to_secretary_branch()) {
+        $register(
             'sc_dw_active_surveys',
             'نظرسنجی‌های فعال',
             'sc_dw_render_active_surveys'
@@ -111,22 +214,22 @@ function sc_register_admin_dashboard_widgets() {
     }
 
     // 10) تولدهای هفته (شمسی)
-    wp_add_dashboard_widget(
+    $register(
         'sc_dw_week_birthdays',
-        'تولدهای این هفته',
+        sc_dw_should_scope_to_secretary_branch() ? 'تولدهای این هفته (شعبه شما)' : 'تولدهای این هفته',
         'sc_dw_render_week_birthdays'
     );
 
     // 11) کاربران بدون مربی تخصیص یافته
-    wp_add_dashboard_widget(
+    $register(
         'sc_dw_unassigned_coach_members',
-        'کاربران بدون مربی تخصیص یافته',
+        sc_dw_should_scope_to_secretary_branch() ? 'بازیکنان بدون مربی (شعبه شما)' : 'کاربران بدون مربی تخصیص یافته',
         'sc_dw_render_unassigned_coach_members'
     );
 
     // 12) کلاس خصوصی — حالت ۲: درخواست‌های رزرو در انتظار بررسی
-    if (function_exists('sc_is_private_booking_admin_approval_mode') && sc_is_private_booking_admin_approval_mode()) {
-        wp_add_dashboard_widget(
+    if (function_exists('sc_is_private_booking_admin_approval_mode') && sc_is_private_booking_admin_approval_mode() && !sc_dw_should_scope_to_secretary_branch()) {
+        $register(
             'sc_dw_private_booking_requests',
             'درخواست‌های رزرو کلاس خصوصی',
             'sc_dw_render_private_booking_requests'
@@ -134,11 +237,42 @@ function sc_register_admin_dashboard_widgets() {
     }
 
     // 13) کلاس خصوصی — حالت ۱: ثبت‌نام‌های اخیر
-    if (!function_exists('sc_is_private_booking_admin_approval_mode') || !sc_is_private_booking_admin_approval_mode()) {
-        wp_add_dashboard_widget(
+    if ((!function_exists('sc_is_private_booking_admin_approval_mode') || !sc_is_private_booking_admin_approval_mode()) && !sc_dw_should_scope_to_secretary_branch()) {
+        $register(
             'sc_dw_private_class_registrations',
             'ثبت‌نام‌های کلاس خصوصی',
             'sc_dw_render_private_class_registrations'
+        );
+    }
+
+    // 14) اطلاعیه‌های اخیر (منشی: مخاطبان شعبه)
+    if (function_exists('sc_is_pro_feature_notifications_enabled') ? sc_is_pro_feature_notifications_enabled() : true) {
+        $register(
+            'sc_dw_recent_notifications',
+            sc_dw_should_scope_to_secretary_branch() ? 'اطلاعیه‌های اخیر (شعبه شما)' : 'اطلاعیه‌های اخیر',
+            'sc_dw_render_recent_notifications'
+        );
+    }
+
+    // 15) دوره‌های فعال شعبه
+    $register(
+        'sc_dw_branch_courses',
+        sc_dw_should_scope_to_secretary_branch() ? 'دوره‌های شعبه شما' : 'دوره‌های فعال باشگاه',
+        'sc_dw_render_branch_courses'
+    );
+
+    // 16) فاکتورهای در انتظار پرداخت
+    $register(
+        'sc_dw_pending_invoices',
+        sc_dw_should_scope_to_secretary_branch() ? 'فاکتورهای در انتظار (شعبه شما)' : 'فاکتورهای در انتظار پرداخت',
+        'sc_dw_render_pending_invoices'
+    );
+
+    if (sc_dw_should_scope_to_secretary_branch()) {
+        wp_add_dashboard_widget(
+            'sc_dw_secretary_scope',
+            'پیشخوان منشی — محدوده شعبه',
+            'sc_dw_render_secretary_scope_note'
         );
     }
 }
@@ -273,18 +407,18 @@ function sc_dw_render_unverified_members() {
     global $wpdb;
     $members_table = $wpdb->prefix . 'sc_members';
 
+    $where = sc_dw_members_where('m.is_active = 1 AND (m.identity_verified = 0 OR m.identity_verified IS NULL)', 'm');
+
     $rows = $wpdb->get_results(
-        "SELECT id, first_name, last_name, player_phone, national_id, created_at
-         FROM $members_table
-         WHERE is_active = 1
-           AND (identity_verified = 0 OR identity_verified IS NULL)
-         ORDER BY created_at DESC
+        "SELECT m.id, m.first_name, m.last_name, m.player_phone, m.national_id, m.created_at
+         FROM {$members_table} m
+         WHERE {$where}
+         ORDER BY m.created_at DESC
          LIMIT 5"
     );
 
     $total = (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM $members_table
-         WHERE is_active = 1 AND (identity_verified = 0 OR identity_verified IS NULL)"
+        "SELECT COUNT(*) FROM {$members_table} m WHERE {$where}"
     );
 
     $list_url = sc_dw_admin_url(['page' => 'sc-members', 'filter_identity' => 'pending']);
@@ -349,19 +483,41 @@ function sc_dw_render_open_tickets() {
             ? (int) sc_support_count_pending_assigned_accountant_tickets($uid)
             : 0;
     } else {
-        $rows = $wpdb->get_results(
-            "SELECT t.id, t.subject, t.status, t.department, t.updated_at, t.user_id,
-                    u.display_name
-             FROM $tickets_table t
-             LEFT JOIN $users_table u ON u.ID = t.user_id
-             WHERE t.status = 'pending_reply'
-             ORDER BY t.updated_at DESC
-             LIMIT 5"
-        );
+        $members_table = $wpdb->prefix . 'sc_members';
+        if (sc_dw_should_scope_to_secretary_branch()) {
+            $scope = function_exists('sc_secretary_member_scope_sql') ? sc_secretary_member_scope_sql('m') : ['sql' => '', 'args' => []];
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT t.id, t.subject, t.status, t.department, t.updated_at, t.user_id,
+                        u.display_name
+                 FROM {$tickets_table} t
+                 INNER JOIN {$members_table} m ON m.user_id = t.user_id
+                 LEFT JOIN {$users_table} u ON u.ID = t.user_id
+                 WHERE t.status = 'pending_reply'{$scope['sql']}
+                 ORDER BY t.updated_at DESC
+                 LIMIT 5",
+                $scope['args']
+            ));
+            $total_sql = "SELECT COUNT(*) FROM {$tickets_table} t
+                 INNER JOIN {$members_table} m ON m.user_id = t.user_id
+                 WHERE t.status = 'pending_reply'{$scope['sql']}";
+            $total = !empty($scope['args'])
+                ? (int) $wpdb->get_var($wpdb->prepare($total_sql, $scope['args']))
+                : (int) $wpdb->get_var($total_sql);
+        } else {
+            $rows = $wpdb->get_results(
+                "SELECT t.id, t.subject, t.status, t.department, t.updated_at, t.user_id,
+                        u.display_name
+                 FROM $tickets_table t
+                 LEFT JOIN $users_table u ON u.ID = t.user_id
+                 WHERE t.status = 'pending_reply'
+                 ORDER BY t.updated_at DESC
+                 LIMIT 5"
+            );
 
-        $total = function_exists('sc_support_count_pending_reply_for_admin')
-            ? (int) sc_support_count_pending_reply_for_admin()
-            : (int) $wpdb->get_var("SELECT COUNT(*) FROM $tickets_table WHERE status = 'pending_reply'");
+            $total = function_exists('sc_support_count_pending_reply_for_admin')
+                ? (int) sc_support_count_pending_reply_for_admin()
+                : (int) $wpdb->get_var("SELECT COUNT(*) FROM $tickets_table WHERE status = 'pending_reply'");
+        }
     }
 
     $list_url = sc_dw_admin_url(['page' => 'sc-support-tickets', 'filter_status' => 'pending_reply']);
@@ -501,21 +657,49 @@ function sc_dw_render_pending_honors() {
     $members_table = $wpdb->prefix . 'sc_members';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
 
-    $rows = $wpdb->get_results(
-        "SELECT h.id, h.name, h.status, h.created_at, h.member_id, h.coach_id,
-                m.first_name AS m_first, m.last_name AS m_last,
-                co.first_name AS c_first, co.last_name AS c_last
-         FROM $honors_table h
-         LEFT JOIN $members_table m ON m.id = h.member_id
-         LEFT JOIN $coaches_table co ON co.id = h.coach_id
-         WHERE h.status = 'pending'
-         ORDER BY h.created_at DESC
-         LIMIT 5"
-    );
+    if (sc_dw_should_scope_to_secretary_branch()) {
+        $member_where = sc_dw_members_where('1=1', 'hm');
+        $rows = $wpdb->get_results(
+            "SELECT h.id, h.name, h.status, h.created_at, h.member_id, h.coach_id,
+                    m.first_name AS m_first, m.last_name AS m_last,
+                    co.first_name AS c_first, co.last_name AS c_last
+             FROM {$honors_table} h
+             LEFT JOIN {$members_table} hm ON hm.id = h.member_id
+             LEFT JOIN {$members_table} m ON m.id = h.member_id
+             LEFT JOIN {$coaches_table} co ON co.id = h.coach_id
+             WHERE h.status = 'pending'
+               AND h.member_id > 0
+               AND {$member_where}
+             ORDER BY h.created_at DESC
+             LIMIT 5"
+        );
+        $total = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$honors_table} h
+             LEFT JOIN {$members_table} hm ON hm.id = h.member_id
+             WHERE h.status = 'pending'
+               AND h.member_id > 0
+               AND {$member_where}"
+        );
+    } else {
+        $rows = $wpdb->get_results(
+            "SELECT h.id, h.name, h.status, h.created_at, h.member_id, h.coach_id,
+                    m.first_name AS m_first, m.last_name AS m_last,
+                    co.first_name AS c_first, co.last_name AS c_last
+             FROM $honors_table h
+             LEFT JOIN $members_table m ON m.id = h.member_id
+             LEFT JOIN $coaches_table co ON co.id = h.coach_id
+             WHERE h.status = 'pending'
+             ORDER BY h.created_at DESC
+             LIMIT 5"
+        );
 
-    $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM $honors_table WHERE status = 'pending'");
+        $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM $honors_table WHERE status = 'pending'");
+    }
 
     $list_url = sc_dw_admin_url(['page' => 'sc-honors', 'filter_status' => 'pending']);
+    if (sc_dw_should_scope_to_secretary_branch()) {
+        $list_url = sc_dw_admin_url(['page' => 'sc-members']);
+    }
 
     echo '<div class="sc-dw-card sc-dw-card-purple">';
     echo '<div class="sc-dw-card-head">';
@@ -568,24 +752,27 @@ function sc_dw_render_expired_insurance() {
         return;
     }
 
+    $where_base = sc_dw_members_where(
+        "m.is_active = 1
+           AND m.insurance_expiry_date_shamsi IS NOT NULL
+           AND m.insurance_expiry_date_shamsi <> ''",
+        'm'
+    );
+
     $rows = $wpdb->get_results($wpdb->prepare(
-        "SELECT id, first_name, last_name, player_phone, insurance_expiry_date_shamsi
-         FROM $members_table
-         WHERE is_active = 1
-           AND insurance_expiry_date_shamsi IS NOT NULL
-           AND insurance_expiry_date_shamsi <> ''
-           AND insurance_expiry_date_shamsi < %s
-         ORDER BY insurance_expiry_date_shamsi DESC
+        "SELECT m.id, m.first_name, m.last_name, m.player_phone, m.insurance_expiry_date_shamsi
+         FROM {$members_table} m
+         WHERE {$where_base}
+           AND m.insurance_expiry_date_shamsi < %s
+         ORDER BY m.insurance_expiry_date_shamsi DESC
          LIMIT 5",
         $today_shamsi
     ));
 
     $total = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM $members_table
-         WHERE is_active = 1
-           AND insurance_expiry_date_shamsi IS NOT NULL
-           AND insurance_expiry_date_shamsi <> ''
-           AND insurance_expiry_date_shamsi < %s",
+        "SELECT COUNT(*) FROM {$members_table} m
+         WHERE {$where_base}
+           AND m.insurance_expiry_date_shamsi < %s",
         $today_shamsi
     ));
 
@@ -658,17 +845,36 @@ function sc_dw_render_absence_alerts() {
         }
     }
 
-    $total_unread = (int) sc_get_admin_system_alert_notifications($current_user_id, [
-        'kind'       => 'absence_limit',
-        'status'     => 'unread',
-        'count_only' => true,
-    ]);
-    $total_all = (int) sc_get_admin_system_alert_notifications($current_user_id, [
-        'kind'       => 'absence_limit',
-        'count_only' => true,
-    ]);
+    if (sc_dw_should_scope_to_secretary_branch()) {
+        $rows = array_values(array_filter($rows, static function ($row) {
+            $cfg = [];
+            if (!empty($row->target_config)) {
+                $cfg = json_decode((string) $row->target_config, true);
+            }
+            $member_id = is_array($cfg) && !empty($cfg['member_id']) ? (int) $cfg['member_id'] : 0;
+            if ($member_id < 1) {
+                return false;
+            }
+            return function_exists('sc_secretary_can_access_member') && sc_secretary_can_access_member($member_id);
+        }));
+        $total_unread = count(array_filter($rows, static function ($row) {
+            return empty($row->is_read);
+        }));
+        $total_all = count($rows);
+        $rows = array_slice($rows, 0, 5);
+    } else {
+        $total_unread = (int) sc_get_admin_system_alert_notifications($current_user_id, [
+            'kind'       => 'absence_limit',
+            'status'     => 'unread',
+            'count_only' => true,
+        ]);
+        $total_all = (int) sc_get_admin_system_alert_notifications($current_user_id, [
+            'kind'       => 'absence_limit',
+            'count_only' => true,
+        ]);
+    }
 
-    $list_url = sc_dw_admin_url(['page' => 'sc-user-alerts', 'filter_kind' => 'absence_limit']);
+    $list_url = sc_dw_admin_url(['page' => sc_dw_should_scope_to_secretary_branch() ? 'sc-members' : 'sc-user-alerts', 'filter_kind' => 'absence_limit']);
     $limit    = function_exists('sc_get_user_alert_absence_limit') ? sc_get_user_alert_absence_limit() : 3;
 
     echo '<div class="sc-dw-card sc-dw-card-orange">';
@@ -1054,38 +1260,43 @@ function sc_dw_render_unassigned_coach_members() {
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $courses_table        = $wpdb->prefix . 'sc_courses';
 
-    // تعداد کل بازیکنان متمایز که حداقل یک دوره فعال بدون مربی دارند
-    $total = (int) $wpdb->get_var(
-        "SELECT COUNT(DISTINCT m.id)
-         FROM $member_courses_table mc
-         INNER JOIN $members_table m ON m.id = mc.member_id
+    $member_where = sc_dw_members_where('m.is_active = 1', 'm');
+    $mc_scope = sc_dw_secretary_mc_chapter_scope('mc');
+    $mc_scope_sql = $mc_scope['sql'];
+    $mc_scope_args = $mc_scope['args'];
+
+    $total_sql = "SELECT COUNT(DISTINCT m.id)
+         FROM {$member_courses_table} mc
+         INNER JOIN {$members_table} m ON m.id = mc.member_id
          WHERE mc.status = 'active'
            AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
            AND (mc.coach_id IS NULL OR mc.coach_id = 0)
-           AND m.is_active = 1"
-    );
+           AND {$member_where}{$mc_scope_sql}";
+    $total = !empty($mc_scope_args)
+        ? (int) $wpdb->get_var($wpdb->prepare($total_sql, $mc_scope_args))
+        : (int) $wpdb->get_var($total_sql);
 
-    // دریافت ۵ بازیکن اخیر (با یک نمونه دوره)
-    $rows = $wpdb->get_results(
-        "SELECT m.id, m.first_name, m.last_name, m.player_phone, m.created_at,
+    $list_sql = "SELECT m.id, m.first_name, m.last_name, m.player_phone, m.created_at,
                 c.title AS course_title,
-                (SELECT COUNT(*) FROM $member_courses_table mc2
+                (SELECT COUNT(*) FROM {$member_courses_table} mc2
                  WHERE mc2.member_id = m.id
                    AND mc2.status = 'active'
                    AND (mc2.course_status_flags IS NULL OR TRIM(mc2.course_status_flags) = '')
                    AND (mc2.coach_id IS NULL OR mc2.coach_id = 0)
                 ) AS unassigned_count
-         FROM $member_courses_table mc
-         INNER JOIN $members_table m ON m.id = mc.member_id
-         LEFT JOIN $courses_table c ON c.id = mc.course_id
+         FROM {$member_courses_table} mc
+         INNER JOIN {$members_table} m ON m.id = mc.member_id
+         LEFT JOIN {$courses_table} c ON c.id = mc.course_id
          WHERE mc.status = 'active'
            AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
            AND (mc.coach_id IS NULL OR mc.coach_id = 0)
-           AND m.is_active = 1
+           AND {$member_where}{$mc_scope_sql}
          GROUP BY m.id
          ORDER BY m.created_at DESC
-         LIMIT 5"
-    );
+         LIMIT 5";
+    $rows = !empty($mc_scope_args)
+        ? $wpdb->get_results($wpdb->prepare($list_sql, $mc_scope_args))
+        : $wpdb->get_results($list_sql);
 
     $list_url = sc_dw_admin_url(['page' => 'sc-members']);
 
@@ -1184,6 +1395,232 @@ function sc_dw_render_private_booking_requests() {
         }
         echo '</ul>';
     }
+    echo '</div>';
+}
+
+/* ====================================================================
+ * 14) اطلاعیه‌های اخیر
+ * ================================================================= */
+function sc_dw_render_recent_notifications() {
+    global $wpdb;
+    $notifications_table = $wpdb->prefix . 'sc_notifications';
+    $recipients_table = $wpdb->prefix . 'sc_notification_recipients';
+    $members_table = $wpdb->prefix . 'sc_members';
+    $current_user_id = get_current_user_id();
+
+    if (sc_dw_should_scope_to_secretary_branch() && function_exists('sc_secretary_member_scope_sql')) {
+        $scope = sc_secretary_member_scope_sql('m');
+        $exists_sql = "EXISTS (
+            SELECT 1 FROM {$recipients_table} r
+            INNER JOIN {$members_table} m ON m.user_id = r.user_id
+            WHERE r.notification_id = n.id{$scope['sql']}
+        )";
+        $list_sql = "SELECT DISTINCT n.id, n.title, n.created_at, n.notification_type, n.send_sms, n.send_bale
+                       FROM {$notifications_table} n
+                       WHERE (n.created_by_user_id = %d OR {$exists_sql})
+                       ORDER BY n.created_at DESC
+                       LIMIT 5";
+        $list_args = array_merge([$current_user_id], $scope['args']);
+        $rows = $wpdb->get_results($wpdb->prepare($list_sql, $list_args));
+
+        $count_sql = "SELECT COUNT(DISTINCT n.id)
+                      FROM {$notifications_table} n
+                      WHERE (n.created_by_user_id = %d OR {$exists_sql})";
+        $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $list_args));
+    } else {
+        $rows = $wpdb->get_results(
+            "SELECT id, title, created_at, notification_type, send_sms, send_bale
+             FROM {$notifications_table}
+             ORDER BY created_at DESC
+             LIMIT 5"
+        );
+        $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$notifications_table}");
+    }
+
+    $list_url = sc_dw_admin_url(['page' => 'sc-notifications']);
+
+    echo '<div class="sc-dw-card sc-dw-card-blue">';
+    echo '<div class="sc-dw-card-head">';
+    echo '<span class="sc-dw-badge sc-dw-badge-blue">' . esc_html(number_format_i18n($total)) . ' اطلاعیه</span>';
+    echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
+    echo '</div>';
+
+    if (empty($rows)) {
+        sc_dw_render_empty('اطلاعیه‌ای ثبت نشده است.');
+    } else {
+        echo '<ul class="sc-dw-list">';
+        foreach ($rows as $row) {
+            $created = function_exists('sc_date_shamsi') ? sc_date_shamsi($row->created_at, 'Y/m/d - H:i') : $row->created_at;
+            $channels = [];
+            if (!empty($row->send_sms)) {
+                $channels[] = 'پیامک';
+            }
+            if (!empty($row->send_bale)) {
+                $channels[] = 'بله';
+            }
+            $channel_label = !empty($channels) ? implode(' + ', $channels) : 'پنل';
+            echo '<li class="sc-dw-list-item">';
+            echo '<a class="sc-dw-list-link" href="' . esc_url($list_url) . '">';
+            echo '<div class="sc-dw-list-main">';
+            echo '<div class="sc-dw-list-title">📢 ' . esc_html($row->title) . '</div>';
+            echo '<div class="sc-dw-list-meta">🕒 ' . esc_html($created) . ' <span class="sc-dw-sep">|</span> ' . esc_html($channel_label) . '</div>';
+            echo '</div>';
+            echo '</a>';
+            echo '</li>';
+        }
+        echo '</ul>';
+    }
+    echo '</div>';
+}
+
+/* ====================================================================
+ * 15) دوره‌های شعبه / باشگاه
+ * ================================================================= */
+function sc_dw_render_branch_courses() {
+    global $wpdb;
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+
+    if (sc_dw_should_scope_to_secretary_branch() && function_exists('sc_secretary_get_quick_action_courses')) {
+        $filter = function_exists('sc_secretary_get_filter_chapter') ? sc_secretary_get_filter_chapter() : 'all';
+        $chapter = ($filter !== 'all') ? $filter : '';
+        $courses = sc_secretary_get_quick_action_courses($chapter);
+    } else {
+        $courses_table = $wpdb->prefix . 'sc_courses';
+        $courses = $wpdb->get_results(
+            "SELECT id, title FROM {$courses_table}
+             WHERE deleted_at IS NULL AND is_active = 1
+             ORDER BY title ASC
+             LIMIT 8"
+        );
+    }
+
+    $list_url = sc_dw_admin_url(['page' => sc_dw_should_scope_to_secretary_branch() ? 'sc-reports-weekly-schedule' : 'sc-courses']);
+    $mc_scope = sc_dw_secretary_mc_chapter_scope('mc');
+
+    echo '<div class="sc-dw-card sc-dw-card-green">';
+    echo '<div class="sc-dw-card-head">';
+    echo '<span class="sc-dw-badge sc-dw-badge-green">' . esc_html(number_format_i18n(count((array) $courses))) . ' دوره</span>';
+    echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">برنامه هفتگی</a>';
+    echo '</div>';
+
+    if (empty($courses)) {
+        sc_dw_render_empty('دوره‌ای با برنامه فعال برای شعبه شما یافت نشد.');
+    } else {
+        echo '<ul class="sc-dw-list">';
+        foreach ((array) $courses as $course) {
+            $course_id = (int) $course->id;
+            $count_sql = "SELECT COUNT(DISTINCT mc.member_id)
+                          FROM {$member_courses_table} mc
+                          WHERE mc.course_id = %d
+                            AND mc.status = 'active'
+                            AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = ''){$mc_scope['sql']}";
+            $count_args = array_merge([$course_id], $mc_scope['args']);
+            $active_count = !empty($mc_scope['args'])
+                ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $count_args))
+                : (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(DISTINCT member_id) FROM {$member_courses_table}
+                     WHERE course_id = %d AND status = 'active'
+                       AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')",
+                    $course_id
+                ));
+            echo '<li class="sc-dw-list-item">';
+            echo '<div class="sc-dw-list-link" style="cursor:default;">';
+            echo '<div class="sc-dw-list-main">';
+            echo '<div class="sc-dw-list-title">📘 ' . esc_html($course->title) . '</div>';
+            echo '<div class="sc-dw-list-meta">👥 ' . esc_html(number_format_i18n($active_count)) . ' بازیکن فعال</div>';
+            echo '</div>';
+            echo '<span class="sc-dw-status sc-dw-status-success">فعال</span>';
+            echo '</div>';
+            echo '</li>';
+        }
+        echo '</ul>';
+    }
+    echo '</div>';
+}
+
+/* ====================================================================
+ * 16) فاکتورهای در انتظار پرداخت
+ * ================================================================= */
+function sc_dw_render_pending_invoices() {
+    global $wpdb;
+    $inv_table = $wpdb->prefix . 'sc_invoices';
+    $members_table = $wpdb->prefix . 'sc_members';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+
+    $where = ["i.status IN ('pending', 'under_review')"];
+    $args = [];
+    if (function_exists('sc_secretary_merge_invoice_where') && sc_dw_should_scope_to_secretary_branch()) {
+        sc_secretary_merge_invoice_where($where, $args, 'i');
+    }
+    $where_sql = implode(' AND ', $where);
+
+    $list_sql = "SELECT i.id, i.amount, i.status, i.created_at, i.member_id,
+                        m.first_name, m.last_name, m.player_phone, c.title AS course_title
+                 FROM {$inv_table} i
+                 LEFT JOIN {$members_table} m ON m.id = i.member_id
+                 LEFT JOIN {$courses_table} c ON c.id = i.course_id
+                 WHERE {$where_sql}
+                 ORDER BY i.created_at DESC
+                 LIMIT 5";
+    $rows = !empty($args) ? $wpdb->get_results($wpdb->prepare($list_sql, $args)) : $wpdb->get_results($list_sql);
+
+    $count_sql = "SELECT COUNT(*) FROM {$inv_table} i WHERE {$where_sql}";
+    $total = !empty($args) ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $args)) : (int) $wpdb->get_var($count_sql);
+
+    $list_url = sc_dw_admin_url(['page' => 'sc-invoices', 'filter_status' => 'pending']);
+
+    echo '<div class="sc-dw-card sc-dw-card-orange">';
+    echo '<div class="sc-dw-card-head">';
+    echo '<span class="sc-dw-badge sc-dw-badge-orange">' . esc_html(number_format_i18n($total)) . ' فاکتور در انتظار</span>';
+    echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">مشاهده همه</a>';
+    echo '</div>';
+
+    if (empty($rows)) {
+        sc_dw_render_empty('✅ فاکتور در انتظار پرداختی وجود ندارد.', true);
+    } else {
+        echo '<ul class="sc-dw-list">';
+        foreach ($rows as $row) {
+            $name = sc_dw_member_display_name($row);
+            $amount_fmt = function_exists('sc_format_amount_display') ? sc_format_amount_display($row->amount) : number_format((float) $row->amount);
+            $created = function_exists('sc_date_shamsi') ? sc_date_shamsi($row->created_at, 'Y/m/d - H:i') : $row->created_at;
+            $course = !empty($row->course_title) ? $row->course_title : '—';
+            echo '<li class="sc-dw-list-item">';
+            echo '<a class="sc-dw-list-link" href="' . esc_url($list_url) . '">';
+            echo '<div class="sc-dw-list-main">';
+            echo '<div class="sc-dw-list-title">#' . esc_html((string) $row->id) . ' — ' . esc_html($name) . ' — ' . esc_html($amount_fmt) . ' تومان</div>';
+            echo '<div class="sc-dw-list-meta">📘 ' . esc_html($course) . ' <span class="sc-dw-sep">|</span> 🕒 ' . esc_html($created) . '</div>';
+            echo '</div>';
+            echo '<span class="sc-dw-status sc-dw-status-warning">در انتظار</span>';
+            echo '</a>';
+            echo '</li>';
+        }
+        echo '</ul>';
+    }
+    echo '</div>';
+}
+
+/* ====================================================================
+ * یادداشت محدوده شعبه برای منشی
+ * ================================================================= */
+function sc_dw_render_secretary_scope_note() {
+    if (!sc_dw_should_scope_to_secretary_branch()) {
+        sc_dw_render_empty('—');
+        return;
+    }
+    $chapters = function_exists('sc_secretary_get_effective_chapters') ? sc_secretary_get_effective_chapters() : [];
+    $filter = function_exists('sc_secretary_get_filter_chapter') ? sc_secretary_get_filter_chapter() : 'all';
+    $label = ($filter !== 'all' && $filter !== '') ? $filter : implode('، ', $chapters);
+    if ($label === '') {
+        $label = 'تعیین نشده';
+    }
+    echo '<div class="sc-dw-card sc-dw-card-blue">';
+    echo '<p style="margin:0 0 10px;line-height:1.8;">ابزارک‌های پیشخوان فقط داده‌های مربوط به <strong>شعبه(های) مجاز شما</strong> را نشان می‌دهند.</p>';
+    echo '<div class="sc-dw-stat-row">شعبه فعال: <strong>' . esc_html($label) . '</strong></div>';
+    if ($filter === 'all' && count($chapters) > 1) {
+        echo '<p class="description" style="margin:10px 0 0;">برای محدود کردن به یک شعبه، از فیلتر شعبه در بالای صفحات باشگاه استفاده کنید.</p>';
+    }
+    echo '<p style="margin:12px 0 0;"><a class="button button-secondary" href="' . esc_url(sc_dw_admin_url(['page' => 'sc-members'])) . '">لیست بازیکنان شعبه</a> ';
+    echo '<a class="button button-secondary" href="' . esc_url(sc_dw_admin_url(['page' => 'sc-secretary-quick-actions'])) . '">اقدامات سریع</a></p>';
     echo '</div>';
 }
 
