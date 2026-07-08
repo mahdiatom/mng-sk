@@ -454,6 +454,39 @@ function sc_is_player_verification_required() {
 }
 
 /**
+ * Check if player info editing is locked after identity verification.
+ */
+function sc_is_player_info_lock_after_verification_enabled() {
+    return (int) sc_get_setting('player_lock_info_after_verification', '0') === 1;
+}
+
+/**
+ * Default message shown when player info editing is locked.
+ */
+function sc_get_player_info_locked_message() {
+    return 'احراز هویت شما تأیید شده است. به دلیل تأیید اطلاعات، امکان ویرایش فیلدهای اطلاعات بازیکن وجود ندارد. در صورت نیاز به تغییر، با مدیریت باشگاه تماس بگیرید.';
+}
+
+/**
+ * Whether the current (or given) member's player info form should be read-only.
+ */
+function sc_player_info_is_editing_locked($member = null) {
+    if (!sc_is_player_info_lock_after_verification_enabled()) {
+        return false;
+    }
+    if (current_user_can('manage_options')) {
+        return false;
+    }
+    if ($member === null && function_exists('sc_get_current_member_for_account_user')) {
+        $member = sc_get_current_member_for_account_user();
+    }
+    if (!$member || !is_object($member)) {
+        return false;
+    }
+    return (int) ($member->identity_verified ?? 0) === 1;
+}
+
+/**
  * Player info: section labels used in settings and forms.
  */
 function sc_get_player_info_sections() {

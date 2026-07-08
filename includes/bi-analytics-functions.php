@@ -103,10 +103,31 @@ function sc_bi_get_active_member_ids_at_date($date_ymd, array $course_ids = []) 
     ];
     $params = [$date_ymd, $date_ymd];
 
+    if (empty($course_ids)
+        && function_exists('sc_user_is_secretary_only')
+        && sc_user_is_secretary_only()
+        && function_exists('sc_secretary_get_branch_course_ids')
+    ) {
+        $course_ids = sc_secretary_get_branch_course_ids();
+        if (empty($course_ids)) {
+            return [];
+        }
+    }
+
     if (!empty($course_ids)) {
         $holders = implode(',', array_fill(0, count($course_ids), '%d'));
         $where[] = "mc.course_id IN ($holders)";
         $params  = array_merge($params, $course_ids);
+    }
+
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+        && function_exists('sc_secretary_member_enrollment_match_sql')) {
+        $match = sc_secretary_member_enrollment_match_sql('mc');
+        if ($match['sql'] === '1=0') {
+            return [];
+        }
+        $where[] = $match['sql'];
+        $params = array_merge($params, $match['args']);
     }
 
     $sql = "SELECT DISTINCT mc.member_id
@@ -145,18 +166,43 @@ function sc_bi_club_monthly_member_metrics($date_from, $date_to) {
         $active_count = count($active_end);
 
         // New club members: first enrollment ever falls in this month.
-        $new_count = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM (
-                SELECT mc.member_id,
-                       MIN(DATE(COALESCE(NULLIF(mc.enrollment_date, '0000-00-00'), DATE(mc.created_at)))) AS first_enroll
-                FROM $mc mc
-                INNER JOIN $members m ON m.id = mc.member_id
-                GROUP BY mc.member_id
-                HAVING first_enroll >= %s AND first_enroll <= %s
-             ) t",
-            $ms,
-            $me
-        ));
+        $new_where = ['1=1'];
+        $new_args = [$ms, $me];
+        if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+            && function_exists('sc_secretary_member_enrollment_match_sql')) {
+            $match = sc_secretary_member_enrollment_match_sql('mc');
+            if ($match['sql'] === '1=0') {
+                $new_count = 0;
+            } else {
+                $new_where[] = $match['sql'];
+                $new_args = array_merge($match['args'], $new_args);
+                $new_count = (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM (
+                        SELECT mc.member_id,
+                               MIN(DATE(COALESCE(NULLIF(mc.enrollment_date, '0000-00-00'), DATE(mc.created_at)))) AS first_enroll
+                        FROM $mc mc
+                        INNER JOIN $members m ON m.id = mc.member_id
+                        WHERE " . implode(' AND ', $new_where) . "
+                        GROUP BY mc.member_id
+                        HAVING first_enroll >= %s AND first_enroll <= %s
+                     ) t",
+                    ...$new_args
+                ));
+            }
+        } else {
+            $new_count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM (
+                    SELECT mc.member_id,
+                           MIN(DATE(COALESCE(NULLIF(mc.enrollment_date, '0000-00-00'), DATE(mc.created_at)))) AS first_enroll
+                    FROM $mc mc
+                    INNER JOIN $members m ON m.id = mc.member_id
+                    GROUP BY mc.member_id
+                    HAVING first_enroll >= %s AND first_enroll <= %s
+                 ) t",
+                $ms,
+                $me
+            ));
+        }
 
         $start_set = array_flip($active_start);
         $end_set   = array_flip($active_end);
@@ -168,22 +214,28 @@ function sc_bi_club_monthly_member_metrics($date_from, $date_to) {
         }
 
         // Renewed: paid invoice in month where member had a prior paid invoice before month start.
-        $renewed = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(DISTINCT i.member_id)
-             FROM $invoices i
-             WHERE i.status IN ('paid','completed','processing')
-               AND i.payment_date IS NOT NULL
-               AND DATE(i.payment_date) >= %s AND DATE(i.payment_date) <= %s
-               AND EXISTS (
+        $renew_where = [
+            "i.status IN ('paid','completed','processing')",
+            'i.payment_date IS NOT NULL',
+            'DATE(i.payment_date) >= %s',
+            'DATE(i.payment_date) <= %s',
+            "EXISTS (
                    SELECT 1 FROM $invoices i2
                    WHERE i2.member_id = i.member_id
                      AND i2.status IN ('paid','completed','processing')
                      AND i2.payment_date IS NOT NULL
                      AND DATE(i2.payment_date) < %s
                )",
-            $ms,
-            $me,
-            $ms
+        ];
+        $renew_args = [$ms, $me, $ms];
+        if (function_exists('sc_secretary_merge_invoice_where')) {
+            sc_secretary_merge_invoice_where($renew_where, $renew_args, 'i');
+        }
+        $renewed = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT i.member_id)
+             FROM $invoices i
+             WHERE " . implode(' AND ', $renew_where),
+            ...$renew_args
         ));
 
         $eligible_renewal = count($active_start);
@@ -323,6 +375,9 @@ function sc_bi_popular_courses($date_from, $date_to, $metric = 'enrolled', $limi
             "DATE(i.payment_date) <= %s",
         ];
         $args = [$date_from, $date_to];
+        if (function_exists('sc_secretary_merge_finance_course_scope')) {
+            sc_secretary_merge_finance_course_scope($where, $args, 'i.course_id');
+        }
         if (function_exists('sc_secretary_merge_invoice_where')) {
             sc_secretary_merge_invoice_where($where, $args, 'i');
         }
@@ -370,6 +425,15 @@ function sc_bi_popular_courses($date_from, $date_to, $metric = 'enrolled', $limi
     $params = [];
     if (function_exists('sc_secretary_merge_course_ids_where')) {
         sc_secretary_merge_course_ids_where($where, $params, 'c.id');
+    }
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+        && function_exists('sc_secretary_member_enrollment_match_sql')) {
+        $match = sc_secretary_member_enrollment_match_sql('mc');
+        if ($match['sql'] === '1=0') {
+            return [];
+        }
+        $where[] = $match['sql'];
+        $params = array_merge($params, $match['args']);
     }
     $params[] = $limit;
     return $wpdb->get_results($wpdb->prepare(

@@ -241,15 +241,36 @@ function sc_register_admin_menu() {
         'sc-add-member',
         'sc_admin_add_member_page'
     );
-
-    add_submenu_page(
-        null, // hidden menu
-        'مشاهده اطلاعات بازیکن',
-        'مشاهده اطلاعات بازیکن',
-        $sc_staff_cap,
-        'sc-view-member',
-        'sc_admin_view_member_page'
-    );
+    // منشی نباید دکمه/برچسب منوی «افزودن بازیکن» را ببیند، ولی صفحه ویرایش (با player_id) باید کار کند.
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+        remove_submenu_page('sc-members', 'sc-add-member');
+        // صفحه مخفی برای ویرایش بازیکن شعبه (بدون نمایش در منو)
+        add_submenu_page(
+            null,
+            'ویرایش بازیکن',
+            'ویرایش بازیکن',
+            'sc_secretary_panel',
+            'sc-add-member',
+            'sc_admin_add_member_page'
+        );
+        add_submenu_page(
+            null,
+            'مشاهده اطلاعات بازیکن',
+            'مشاهده اطلاعات بازیکن',
+            'sc_secretary_panel',
+            'sc-view-member',
+            'sc_admin_view_member_page'
+        );
+    } else {
+        add_submenu_page(
+            null, // hidden menu
+            'مشاهده اطلاعات بازیکن',
+            'مشاهده اطلاعات بازیکن',
+            $sc_staff_cap,
+            'sc-view-member',
+            'sc_admin_view_member_page'
+        );
+    }
 
     if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
         add_submenu_page(
@@ -1759,6 +1780,28 @@ function sc_admin_view_member_page() {
 function sc_admin_add_member_page() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
+
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+        $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
+        if ($player_id < 1) {
+            if (function_exists('sc_secretary_die_access_denied')) {
+                sc_secretary_die_access_denied(
+                    'افزودن بازیکن',
+                    'منشی اجازه ایجاد بازیکن جدید از این صفحه را ندارد. برای ویرایش، از لیست بازیکنان شعبه خودتان اقدام کنید.'
+                );
+            }
+            wp_die('دسترسی غیرمجاز.');
+        }
+        if (function_exists('sc_secretary_can_access_member') && !sc_secretary_can_access_member($player_id)) {
+            if (function_exists('sc_secretary_die_access_denied')) {
+                sc_secretary_die_access_denied(
+                    'ویرایش بازیکن',
+                    'این بازیکن متعلق به شعبه(های) شما نیست؛ منشی فقط بازیکنان شعبه خودش را می‌تواند ویرایش کند.'
+                );
+            }
+            wp_die('دسترسی غیرمجاز.');
+        }
+    }
     
     global $wpdb ;
             $table_name = $wpdb->prefix . 'sc_members';
@@ -3615,10 +3658,22 @@ function callback_add_member_sufix(){
     if(isset($_GET['page']) && $_GET['page'] == 'sc-add-member' && isset($_POST['submit_player']) && isset($_GET['player_id']) && !empty($_GET['player_id'])) {
        // بررسی و ایجاد جداول در صورت عدم وجود
        sc_check_and_create_tables();
+
+       $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
+       if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+           if ($player_id < 1 || (function_exists('sc_secretary_can_access_member') && !sc_secretary_can_access_member($player_id))) {
+               if (function_exists('sc_secretary_die_access_denied')) {
+                   sc_secretary_die_access_denied(
+                       'ذخیره ویرایش بازیکن',
+                       'به‌خاطر نقش منشی فقط می‌توانید بازیکنان شعبه خودتان را ویرایش کنید.'
+                   );
+               }
+               wp_die('دسترسی غیرمجاز.');
+           }
+       }
            
        global $wpdb;
        $table_name = $wpdb->prefix . 'sc_members';
-       $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
        $existing_for_validation = $player_id
            ? $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d LIMIT 1", $player_id))
            : null;

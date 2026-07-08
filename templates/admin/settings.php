@@ -557,6 +557,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     elseif ($current_tab === 'player_info') {
         $player_verification_required = isset($_POST['player_verification_required']) ? 1 : 0;
         sc_update_setting('player_verification_required', $player_verification_required, 'player_info');
+        $player_lock_info_after_verification = isset($_POST['player_lock_info_after_verification']) ? 1 : 0;
+        sc_update_setting('player_lock_info_after_verification', $player_lock_info_after_verification, 'player_info');
         $builtin_fields = function_exists('sc_get_player_info_builtin_fields') ? sc_get_player_info_builtin_fields() : [];
         $incoming_rules = isset($_POST['player_field_rules']) && is_array($_POST['player_field_rules']) ? $_POST['player_field_rules'] : [];
         $saved_rules = [];
@@ -3833,6 +3835,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
         <?php endif; 
         if ($current_tab === 'player_info') :
             $player_verification_required = (int) sc_get_setting('player_verification_required', '0');
+            $player_lock_info_after_verification = (int) sc_get_setting('player_lock_info_after_verification', '0');
             $player_sections = function_exists('sc_get_player_info_sections') ? sc_get_player_info_sections() : [];
             $player_builtin_fields = function_exists('sc_get_player_info_builtin_fields') ? sc_get_player_info_builtin_fields() : [];
             $player_field_rules = function_exists('sc_get_player_info_field_rules') ? sc_get_player_info_field_rules() : [];
@@ -3854,6 +3857,16 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                 <span class="slider round"></span>
                             </label>
                             <p class="description">در صورت فعال بودن، فقط «بازیکن تیم» تا زمان تایید احراز هویت به بخش «اطلاعات بازیکن» محدود می‌شود. «بازیکن عادی» بدون تکمیل احراز هویت به تمام بخش‌ها دسترسی دارد.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">عدم تغییر اطلاعات بعد از احراز هویت</th>
+                        <td>
+                            <label class="switch">
+                                <input type="checkbox" name="player_lock_info_after_verification" value="1" <?php checked($player_lock_info_after_verification, 1); ?>>
+                                <span class="slider round"></span>
+                            </label>
+                            <p class="description">در صورت فعال بودن، پس از تأیید احراز هویت بازیکن توسط باشگاه، تمامی فیلدهای «اطلاعات بازیکن» در پنل کاربری غیرقابل ویرایش می‌شوند و پیام راهنما نمایش داده می‌شود.</p>
                         </td>
                     </tr>
                 </table>

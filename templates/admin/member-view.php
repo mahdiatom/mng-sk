@@ -1,13 +1,26 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-if (!current_user_can('manage_options')) {
-    wp_die('دسترسی غیرمجاز.');
-}
-
 $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
 if ($player_id <= 0) {
     wp_die('شناسه بازیکن معتبر نیست.');
+}
+
+$can_view_member = current_user_can('manage_options')
+    || (function_exists('sc_user_can_staff_admin_panel') && sc_user_can_staff_admin_panel());
+if (!$can_view_member) {
+    if (function_exists('sc_secretary_die_access_denied')) {
+        sc_secretary_die_access_denied('مشاهده اطلاعات بازیکن');
+    }
+    wp_die('دسترسی غیرمجاز.');
+}
+
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
+    && function_exists('sc_secretary_can_access_member') && !sc_secretary_can_access_member($player_id)) {
+    if (function_exists('sc_secretary_die_access_denied')) {
+        sc_secretary_die_access_denied('مشاهده این بازیکن', 'این بازیکن متعلق به شعبه(های) شما نیست؛ با نقش منشی فقط بازیکنان شعبه خودتان را می‌توانید ببینید.');
+    }
+    wp_die('شما به این بازیکن دسترسی ندارید.', 'خطای دسترسی', ['response' => 403]);
 }
 
 global $wpdb;

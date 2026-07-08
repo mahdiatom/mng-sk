@@ -122,7 +122,9 @@ global $wpdb;
                     <p class="sc-members-list-desc">برای مشاهده اکشن‌ها روی نام کاربر بروید (حذف، مشاهده، ویرایش).</p>
                 </div>
                 <div class="sc-members-list-header-actions">
-                    <a href="<?php echo esc_url(admin_url('user-new.php')); ?>" class="page-title-action sc-members-list-add-btn">افزودن بازیکن</a>
+                    <?php if (!(function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only())) : ?>
+                        <a href="<?php echo esc_url(admin_url('user-new.php')); ?>" class="page-title-action sc-members-list-add-btn">افزودن بازیکن</a>
+                    <?php endif; ?>
                     <a href="<?php echo esc_url($export_url); ?>" class="sc-members-list-export-btn">خروجی Excel</a>
                 </div>
             </div>

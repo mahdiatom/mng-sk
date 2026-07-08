@@ -80,12 +80,14 @@ public function column_full_name($item) {
         $actions = [
             'view' => '<a href="' . admin_url('admin.php?page=sc-view-member&player_id=') . $item['id'] . '">مشاهده</a>',
             'edit' => '<a href="' . admin_url('admin.php?page=sc-add-member&player_id=') . $item['id'] . '">ویرایش</a>',
-            'delete' => sprintf(
+        ];
+        if (!(function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only())) {
+            $actions['delete'] = sprintf(
                 '<a href="%s" onclick="return scConfirmInline(event, { type: \'danger\', message: \'%s\' });">حذف</a>',
                 esc_url($delete_url),
                 esc_js($delete_msg)
-            ),
-        ];
+            );
+        }
 
         $name_block = '<span class="sc-member-identity">'
             . $avatar_html
@@ -349,16 +351,22 @@ public function column_full_name($item) {
         if (isset($_GET['s']) && !empty($_GET['s'])) {
             $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';
             $where .= $wpdb->prepare(
-                " AND (first_name LIKE %s OR last_name LIKE %s OR player_phone LIKE %s OR birth_date_shamsi LIKE %s OR birth_date_gregorian LIKE %s)",
+                " AND (m.first_name LIKE %s OR m.last_name LIKE %s OR m.player_phone LIKE %s OR m.birth_date_shamsi LIKE %s OR m.birth_date_gregorian LIKE %s)",
                 $search, $search, $search, $search, $search
             );
         }
 
-        $count_all = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE $where");
-        $count_active = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_active = 1");
-        $count_inactive = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_active = 0");
-        $count_normal = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE (COALESCE(member_type, 'normal') = 'normal')");
-        $count_team = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE (COALESCE(member_type, 'normal') = 'team')");
+        // برای منشی: شمارنده‌ها فقط بازیکنان شعبه(های) خودش
+        if (function_exists('sc_secretary_append_member_where')) {
+            $where = sc_secretary_append_member_where($where, 'm');
+        }
+        $from_sql = "{$table_name} m";
+
+        $count_all = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$from_sql} WHERE {$where}");
+        $count_active = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$from_sql} WHERE {$where} AND m.is_active = 1");
+        $count_inactive = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$from_sql} WHERE {$where} AND m.is_active = 0");
+        $count_normal = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$from_sql} WHERE {$where} AND (COALESCE(m.member_type, 'normal') = 'normal')");
+        $count_team = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$from_sql} WHERE {$where} AND (COALESCE(m.member_type, 'normal') = 'team')");
 
         $base_member_type = (isset($_GET['filter_member_type']) && in_array($_GET['filter_member_type'], ['normal', 'team'])) ? $_GET['filter_member_type'] : '';
         $url_active = admin_url('admin.php?page=sc-members&player_status=active');

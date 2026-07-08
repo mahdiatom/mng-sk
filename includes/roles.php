@@ -1252,9 +1252,19 @@ function club_block_restricted_pages_for_secretary() {
     if (in_array($page, $allowed, true)) {
         return;
     }
+    if (function_exists('sc_secretary_die_access_denied')) {
+        sc_secretary_die_access_denied(
+            'ورود به صفحه «' . $page . '»',
+            'نقش شما منشی شعبه است و این بخش خارج از دسترسی منشی قرار دارد. فقط منوها و صفحات مرتبط با شعبه خودتان برای شما باز هستند.'
+        );
+    }
     wp_die(
-        '<h2 style="text-align:left;">Access Denied</h2><p style="text-align:left;">شما به این بخش دسترسی ندارید.</p>',
-        'خطای دسترسی',
+        '<div style="max-width:640px;margin:40px auto;padding:24px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;direction:rtl;text-align:right;">'
+        . '<h2 style="margin:0 0 8px;color:#b91c1c;">دسترسی مجاز نیست</h2>'
+        . '<p style="margin:0;line-height:1.9;">به‌خاطر نقش <strong>منشی</strong>، به این بخش دسترسی ندارید.</p>'
+        . '<p style="margin:12px 0 0;"><a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=sc-members')) . '">بازگشت به لیست بازیکنان</a></p>'
+        . '</div>',
+        'محدودیت دسترسی منشی',
         ['response' => 403]
     );
 }

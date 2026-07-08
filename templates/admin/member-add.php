@@ -565,8 +565,9 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         if (function_exists('sc_get_course_enrollment_branch_config')) {
                             $member_branch_configs[(int) $course->id] = sc_get_course_enrollment_branch_config((int) $course->id);
                         }
-                        $capacity_text = $course->capacity ? "($enrolled/{$course->capacity})" : "(نامحدود)";
-                        $capacity_warning = ($course->capacity && $enrolled >= $course->capacity) ? ' style="color: #d63638; font-weight: bold;"' : '';
+                        $capacity = isset($course->capacity) ? (int) $course->capacity : 0;
+                        $capacity_text = $capacity > 0 ? "($enrolled/{$capacity})" : "(نامحدود)";
+                        $capacity_warning = ($capacity > 0 && $enrolled >= $capacity) ? ' style="color: #d63638; font-weight: bold;"' : '';
                         
                         echo '<div style="padding: 15px; margin-bottom: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">';
                         echo '<div style="display: flex; align-items: flex-start; gap: 15px;">';

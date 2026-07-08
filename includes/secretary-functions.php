@@ -891,13 +891,38 @@ function sc_secretary_get_branch_courses() {
     $courses_table = $wpdb->prefix . 'sc_courses';
     $chapters_table = $wpdb->prefix . 'sc_course_chapters';
     $placeholders = implode(', ', array_fill(0, count($chapters), '%s'));
-    $sql = "SELECT DISTINCT c.id, c.title, c.price
+    $sql = "SELECT DISTINCT c.*
             FROM {$courses_table} c
             INNER JOIN {$chapters_table} cc ON cc.course_id = c.id
             WHERE c.deleted_at IS NULL AND c.is_active = 1
-              AND cc.chapter_name IN ({$placeholders})
+              AND TRIM(cc.chapter_name) IN ({$placeholders})
             ORDER BY c.title ASC";
-    return $wpdb->get_results($wpdb->prepare($sql, $chapters));
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $chapters));
+
+    $legacy_sql = "SELECT c.*
+            FROM {$courses_table} c
+            WHERE c.deleted_at IS NULL AND c.is_active = 1
+              AND TRIM(IFNULL(c.chapter, '')) IN ({$placeholders})
+              AND NOT EXISTS (SELECT 1 FROM {$chapters_table} cc WHERE cc.course_id = c.id)
+            ORDER BY c.title ASC";
+    $legacy = $wpdb->get_results($wpdb->prepare($legacy_sql, $chapters));
+
+    if (empty($legacy)) {
+        return is_array($rows) ? $rows : [];
+    }
+    $merged = is_array($rows) ? $rows : [];
+    $seen = [];
+    foreach ($merged as $row) {
+        $seen[(int) $row->id] = true;
+    }
+    foreach ($legacy as $row) {
+        $id = (int) $row->id;
+        if (!isset($seen[$id])) {
+            $merged[] = $row;
+            $seen[$id] = true;
+        }
+    }
+    return $merged;
 }
 
 /**
@@ -1122,12 +1147,15 @@ function sc_secretary_user_form_fields($user) {
         return;
     }
     $selected = [];
+    $is_secretary = false;
     if ($user instanceof WP_User) {
         $selected = sc_get_secretary_chapters($user->ID);
+        $is_secretary = in_array('secretary', (array) $user->roles, true);
     }
     $chapters = sc_secretary_get_all_chapter_names();
     ?>
-    <table class="form-table sc-secretary-chapters-row" id="sc-secretary-chapters-wrap" style="display:none;">
+    <h2>دسترسی منشی / شعبه‌ها</h2>
+    <table class="form-table sc-secretary-chapters-row" id="sc-secretary-chapters-wrap"<?php echo $is_secretary ? '' : ' style="display:none;"'; ?>>
         <tr>
             <th><label for="sc_secretary_chapters">شعبه‌های منشی</label></th>
             <td>
@@ -1139,7 +1167,7 @@ function sc_secretary_user_form_fields($user) {
                             <option value="<?php echo esc_attr($ch); ?>" <?php selected(in_array($ch, $selected, true)); ?>><?php echo esc_html($ch); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <p class="description">برای نقش منشی، یک یا چند شعبه انتخاب کنید (Ctrl+کلیک).</p>
+                    <p class="description">برای نقش منشی، یک یا چند شعبه انتخاب یا تغییر دهید (Ctrl+کلیک). در ویرایش کاربر هم می‌توانید شعبه‌ها را تغییر دهید.</p>
                 <?php endif; ?>
             </td>
         </tr>
@@ -1232,9 +1260,7 @@ function sc_secretary_quick_enroll($args) {
     if (!sc_secretary_chapter_in_scope($chapter)) {
         return ['success' => false, 'message' => 'شعبه انتخاب‌شده مجاز نیست.'];
     }
-    if (!sc_secretary_can_access_member($member_id)) {
-        return ['success' => false, 'message' => 'به این بازیکن دسترسی ندارید.'];
-    }
+    // بازیکن می‌تواند از شعبه دیگر باشد؛ شرط مهم این است که دوره و شعبه مقصد متعلق به منشی باشد.
 
     global $wpdb;
     $chapters_table = $wpdb->prefix . 'sc_course_chapters';
@@ -1438,8 +1464,8 @@ function sc_ajax_secretary_search_members() {
     $q = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
     global $wpdb;
     $members_table = $wpdb->prefix . 'sc_members';
+    // در اقدامات سریع، منشی باید بتواند همه بازیکنان سایت را پیدا کند (حتی از شعبه دیگر).
     $where = '1=1';
-    $where = sc_secretary_append_member_where($where, 'm');
     $args = [];
     if ($q !== '') {
         $like = '%' . $wpdb->esc_like($q) . '%';
@@ -1709,17 +1735,68 @@ function sc_secretary_enqueue_user_role_script_admin($hook) {
     sc_secretary_enqueue_user_role_script();
 }
 
-/** محدودیت دسترسی به صفحات sc-add-member برای منشی */
+/**
+ * پیام خطای دسترسی مخصوص نقش منشی.
+ *
+ * @param string $action_label
+ * @param string $detail
+ */
+function sc_secretary_die_access_denied($action_label = '', $detail = '') {
+    $title = 'محدودیت دسترسی منشی';
+    $action_html = $action_label !== ''
+        ? '<p style="margin:8px 0 0;color:#4b5563;">عملیات: <strong>' . esc_html($action_label) . '</strong></p>'
+        : '';
+    $detail_html = $detail !== ''
+        ? '<p style="margin:10px 0 0;color:#6b7280;line-height:1.8;">' . esc_html($detail) . '</p>'
+        : '<p style="margin:10px 0 0;color:#6b7280;line-height:1.8;">نقش شما «منشی شعبه» است و فقط به اطلاعات مربوط به شعبه(های) اختصاص‌یافته‌تان دسترسی دارید.</p>';
+    $back_url = admin_url('admin.php?page=sc-members');
+    wp_die(
+        '<div style="max-width:640px;margin:40px auto;padding:24px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,.06);font-family:tahoma,arial,sans-serif;direction:rtl;text-align:right;">'
+        . '<h2 style="margin:0 0 8px;color:#b91c1c;font-size:20px;">دسترسی مجاز نیست</h2>'
+        . '<p style="margin:0;color:#111827;line-height:1.9;">به‌خاطر نقش <strong>منشی</strong>، به این بخش/بازیکن دسترسی ندارید.</p>'
+        . $action_html
+        . $detail_html
+        . '<p style="margin:18px 0 0;"><a class="button button-primary" href="' . esc_url($back_url) . '">بازگشت به لیست بازیکنان شعبه</a></p>'
+        . '</div>',
+        $title,
+        ['response' => 403]
+    );
+}
+
+/** محدودیت دسترسی به صفحات مشاهده/ویرایش بازیکن برای منشی */
 add_action('load-sc-members_page_sc-add-member', 'sc_secretary_guard_member_edit', 1);
+add_action('load-admin_page_sc-add-member', 'sc_secretary_guard_member_edit', 1);
 add_action('load-sc-members_page_sc-view-member', 'sc_secretary_guard_member_view', 1);
+add_action('load-admin_page_sc-view-member', 'sc_secretary_guard_member_view', 1);
+add_action('admin_init', 'sc_secretary_guard_member_pages_on_admin_init', 5);
+
+function sc_secretary_guard_member_pages_on_admin_init() {
+    if (!sc_user_is_secretary_only() || empty($_GET['page'])) {
+        return;
+    }
+    $page = sanitize_text_field(wp_unslash((string) $_GET['page']));
+    if ($page === 'sc-view-member') {
+        sc_secretary_guard_member_view();
+        return;
+    }
+    if ($page === 'sc-add-member') {
+        sc_secretary_guard_member_edit();
+    }
+}
 
 function sc_secretary_guard_member_view() {
     if (!sc_user_is_secretary_only()) {
         return;
     }
     $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
-    if ($player_id > 0 && !sc_secretary_can_access_member($player_id)) {
-        wp_die('شما به این بازیکن دسترسی ندارید.', 'خطای دسترسی', ['response' => 403]);
+    if ($player_id < 1) {
+        sc_secretary_die_access_denied('مشاهده بازیکن', 'برای مشاهده باید از لیست بازیکنان شعبه خودتان یک بازیکن را انتخاب کنید.');
+    }
+    if (!sc_secretary_can_access_member($player_id)) {
+        sc_secretary_die_access_denied(
+            'مشاهده بازیکن',
+            'این بازیکن در شعبه(های) شما ثبت‌نام فعال ندارد؛ منشی فقط بازیکنان شعبه خودش را می‌تواند ببیند.'
+        );
     }
 }
 
@@ -1728,7 +1805,16 @@ function sc_secretary_guard_member_edit() {
         return;
     }
     $player_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
-    if ($player_id > 0 && !sc_secretary_can_access_member($player_id)) {
-        wp_die('شما به این بازیکن دسترسی ندارید.', 'خطای دسترسی', ['response' => 403]);
+    if ($player_id < 1) {
+        sc_secretary_die_access_denied(
+            'افزودن/ویرایش بازیکن',
+            'منشی اجازه ایجاد بازیکن جدید از این صفحه را ندارد. برای ویرایش، از لیست بازیکنان شعبه خودتان روی «ویرایش» کلیک کنید.'
+        );
+    }
+    if (!sc_secretary_can_access_member($player_id)) {
+        sc_secretary_die_access_denied(
+            'ویرایش بازیکن',
+            'این بازیکن متعلق به شعبه(های) شما نیست؛ منشی فقط بازیکنان شعبه خودش را می‌تواند ویرایش کند.'
+        );
     }
 }

@@ -33,6 +33,9 @@ $popular_courses    = sc_bi_popular_courses($filter_date_from, $filter_date_to, 
 $coach_summaries    = sc_bi_coaches_summary($filter_date_from, $filter_date_to);
 
 $today_active = sc_bi_count_club_active_members_at_date($filter_date_to);
+if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && function_exists('sc_secretary_get_branch_course_ids')) {
+    $today_active = sc_bi_count_club_active_members_at_date($filter_date_to, sc_secretary_get_branch_course_ids());
+}
 $period_new   = array_sum(array_column($club_monthly, 'new'));
 $period_churn = array_sum(array_column($club_monthly, 'churn'));
 $period_renew = array_sum(array_column($club_monthly, 'renewed'));
