@@ -294,6 +294,8 @@ jQuery(document).ready(function($) {
         });
 
         scFocusCourseRadioNoScroll($radio[0]);
+        // prop() does not fire native change — enroll-course UI depends on it for branch/coach/checkout.
+        $radio.trigger('change');
     });
 
     $('.sc-course-accordion-item input[name="course_id"]').on('change', function() {

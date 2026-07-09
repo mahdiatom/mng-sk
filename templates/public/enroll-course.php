@@ -1163,15 +1163,22 @@ document.addEventListener('DOMContentLoaded', function() {
         renderEnrollGroupField();
     }
 
+    function onEnrollCourseSelected(radio) {
+        if (!radio || !radio.checked) {
+            return;
+        }
+        selectedCourseId = parseInt(radio.value || '0', 10);
+        renderEnrollBranchCoach(selectedCourseId);
+        if (selectedSessionsInput) {
+            selectedSessionsInput.value = '';
+        }
+        resetEnrollStartDate();
+        updateEnrollCheckoutPanel();
+    }
+
     document.querySelectorAll('.sc-course-radio').forEach(function (radio) {
         radio.addEventListener('change', function () {
-            selectedCourseId = parseInt(this.value || '0', 10);
-            renderEnrollBranchCoach(selectedCourseId);
-            if (selectedSessionsInput) {
-                selectedSessionsInput.value = '';
-            }
-            resetEnrollStartDate();
-            updateEnrollCheckoutPanel();
+            onEnrollCourseSelected(this);
         });
     });
 

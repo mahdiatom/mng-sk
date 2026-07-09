@@ -1223,7 +1223,7 @@ font-family: IRANYekanXFaNum !important ;
 color: #000 !important;
 }
 .woocommerce-account #content{
-    padding: 50px  30px !important;
+    padding: 0 0 20px 0px !important;
 }
 .wp-block-woocommerce-checkout-actions-block .e19lxcc00 {
 display: none;
