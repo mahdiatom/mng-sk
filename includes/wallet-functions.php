@@ -452,7 +452,9 @@ function sc_pay_invoice_from_wallet($invoice_id, $amount = null) {
     }
     
     // محاسبه مبلغ قابل پرداخت
-    $total_amount = floatval($invoice->amount) + floatval($invoice->penalty_amount ?? 0);
+    $total_amount = function_exists('sc_invoice_get_total_payable')
+        ? sc_invoice_get_total_payable($invoice)
+        : (floatval($invoice->amount) + floatval($invoice->penalty_amount ?? 0));
     $pay_amount = $amount !== null ? floatval($amount) : $total_amount;
     
     if ($pay_amount <= 0 || $pay_amount > $total_amount) {

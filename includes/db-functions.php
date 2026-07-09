@@ -2512,6 +2512,32 @@ function sc_update_database() {
         update_option('sc_member_courses_billing_deferred_added', '1');
     }
 
+    if (get_option('sc_invoices_tax_column_added', '0') !== '1') {
+        $inv_tbl = $wpdb->prefix . 'sc_invoices';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $inv_tbl)) === $inv_tbl) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$inv_tbl` LIKE %s", 'tax_amount'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$inv_tbl` ADD COLUMN `tax_amount` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'مالیات و ارزش افزوده' AFTER `penalty_amount`");
+            }
+        }
+        update_option('sc_invoices_tax_column_added', '1');
+    }
+
+    if (get_option('sc_members_registration_fee_columns_added', '0') !== '1') {
+        $members_tbl = $wpdb->prefix . 'sc_members';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $members_tbl)) === $members_tbl) {
+            $c1 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$members_tbl` LIKE %s", 'registration_fee_paid'));
+            if (empty($c1)) {
+                $wpdb->query("ALTER TABLE `$members_tbl` ADD COLUMN `registration_fee_paid` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'پرداخت هزینه ثبت‌نام' AFTER `is_active`");
+            }
+            $c2 = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$members_tbl` LIKE %s", 'registration_fee_invoice_id'));
+            if (empty($c2)) {
+                $wpdb->query("ALTER TABLE `$members_tbl` ADD COLUMN `registration_fee_invoice_id` bigint(20) unsigned DEFAULT NULL COMMENT 'فاکتور هزینه ثبت‌نام' AFTER `registration_fee_paid`");
+            }
+        }
+        update_option('sc_members_registration_fee_columns_added', '1');
+    }
+
     // جدول کمک‌مربی‌های دوره
     if (get_option('sc_course_assistant_coaches_table_v1', '0') !== '1') {
         if (function_exists('sc_create_course_assistant_coaches_table')) {

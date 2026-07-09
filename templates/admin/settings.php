@@ -65,6 +65,29 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات جریمه با موفقیت ذخیره شد.</p></div>';
     }
+    elseif ($current_tab === 'billing_fees') {
+        sc_update_setting('tax_fee_enabled', isset($_POST['tax_fee_enabled']) ? 1 : 0, 'billing_fees');
+        sc_update_setting('tax_fee_mode', isset($_POST['tax_fee_mode']) && $_POST['tax_fee_mode'] === 'fixed' ? 'fixed' : 'percent', 'billing_fees');
+        sc_update_setting('tax_fee_value', max(0, floatval($_POST['tax_fee_value'] ?? 0)), 'billing_fees');
+        sc_update_setting('tax_fee_title', sanitize_text_field(wp_unslash($_POST['tax_fee_title'] ?? '')), 'billing_fees');
+        sc_update_setting('tax_fee_description', sanitize_textarea_field(wp_unslash($_POST['tax_fee_description'] ?? '')), 'billing_fees');
+        sc_update_setting('tax_fee_apply_course', isset($_POST['tax_fee_apply_course']) ? 1 : 0, 'billing_fees');
+        sc_update_setting('tax_fee_apply_event', isset($_POST['tax_fee_apply_event']) ? 1 : 0, 'billing_fees');
+        sc_update_setting('tax_fee_apply_wallet', isset($_POST['tax_fee_apply_wallet']) ? 1 : 0, 'billing_fees');
+        sc_update_setting('tax_fee_apply_shop', isset($_POST['tax_fee_apply_shop']) ? 1 : 0, 'billing_fees');
+        sc_update_setting('tax_fee_show_pay_breakdown', isset($_POST['tax_fee_show_pay_breakdown']) ? 1 : 0, 'billing_fees');
+        sc_update_setting('registration_fee_enabled', isset($_POST['registration_fee_enabled']) ? 1 : 0, 'billing_fees');
+        sc_update_setting('registration_fee_title', sanitize_text_field(wp_unslash($_POST['registration_fee_title'] ?? '')), 'billing_fees');
+        $reg_raw = isset($_POST['registration_fee_amount_raw']) && $_POST['registration_fee_amount_raw'] !== ''
+            ? $_POST['registration_fee_amount_raw']
+            : ($_POST['registration_fee_amount'] ?? '');
+        sc_update_setting('registration_fee_amount', max(0, floatval(str_replace(',', '', (string) $reg_raw))), 'billing_fees');
+        sc_update_setting('registration_fee_description', sanitize_textarea_field(wp_unslash($_POST['registration_fee_description'] ?? '')), 'billing_fees');
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات مالیات و هزینه ثبت‌نام ذخیره شد', null, ['tab' => 'billing_fees']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات مالیات و هزینه ثبت‌نام ذخیره شد.</p></div>';
+    }
     elseif ($current_tab === 'invoice') {
     $pro_create_invoice_player_team = isset($_POST['pro_create_invoice_player_team']) ? 1 : 0;
      sc_update_setting('pro_create_invoice_player_team' , $pro_create_invoice_player_team , 'invoice' );   
@@ -1264,6 +1287,10 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
            class="nav-tab <?php echo $current_tab === 'invoice' ? 'nav-tab-active' : ''; ?>">
             صورتحساب
         </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=billing_fees'); ?>"
+           class="nav-tab <?php echo $current_tab === 'billing_fees' ? 'nav-tab-active' : ''; ?>">
+            مالیات و عضویت
+        </a>
         <?php
         if(sc_is_pro_feature_sms_enabled()){ ?>
 
@@ -1424,7 +1451,9 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 </p>
             </form>
 
-    <?php elseif ($current_tab === 'invoice') : 
+        <?php elseif ($current_tab === 'billing_fees') :
+            include SC_TEMPLATES_ADMIN_DIR . 'settings-tab-billing-fees.php';
+        elseif ($current_tab === 'invoice') :
            
             $invoice_day_of_month = (int) sc_get_invoice_day_of_month();
             $invoice_settlement_gregorian_list = [];

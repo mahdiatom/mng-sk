@@ -128,6 +128,18 @@ function sc_ensure_shop_invoice_for_order($order_id, $member_id = null) {
         return 0;
     }
 
+    $tax_amount = 0.0;
+    if (function_exists('sc_get_tax_fee_title')) {
+        $tax_title = sc_get_tax_fee_title();
+        foreach ($order->get_fees() as $fee) {
+            if ((string) $fee->get_name() === $tax_title) {
+                $tax_amount = round(floatval($fee->get_total()), 2);
+                break;
+            }
+        }
+    }
+    $base_amount = max(0, round($amount - $tax_amount, 2));
+
     $status = in_array($order->get_status(), ['pending', 'on-hold', 'failed'], true) ? 'pending' : 'pending';
     if ($order->is_paid()) {
         $status = 'paid';
@@ -138,7 +150,7 @@ function sc_ensure_shop_invoice_for_order($order_id, $member_id = null) {
         'course_id' => 0,
         'member_course_id' => null,
         'woocommerce_order_id' => $order_id,
-        'amount' => $amount,
+        'amount' => $base_amount,
         'expense_name' => sc_get_shop_order_expense_name($order),
         'type' => 'shop',
         'penalty_amount' => 0.00,
@@ -149,8 +161,13 @@ function sc_ensure_shop_invoice_for_order($order_id, $member_id = null) {
     ];
     $invoice_fmt = ['%d', '%d', '%d', '%d', '%f', '%s', '%s', '%f', '%d', '%s', '%s', '%s'];
 
+    if (function_exists('sc_invoices_support_tax_column') && sc_invoices_support_tax_column()) {
+        $invoice_row['tax_amount'] = $tax_amount;
+        $invoice_fmt[] = '%f';
+    }
+
     if (function_exists('sc_invoices_support_discount_columns') && sc_invoices_support_discount_columns()) {
-        $invoice_row['subtotal_amount'] = $amount;
+        $invoice_row['subtotal_amount'] = $base_amount;
         $invoice_row['discount_amount'] = 0;
         $invoice_row['discount_code_id'] = null;
         $invoice_row['discount_code'] = null;

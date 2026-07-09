@@ -106,7 +106,9 @@ $get_certificate = isset($_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
     <?php else : ?>
         <div class="sc-invoices-list">
             <?php foreach ($invoices as $invoice) :
-                $total_amount = (float) $invoice->amount + (float) ($invoice->penalty_amount ?? 0);
+                $total_amount = function_exists('sc_invoice_get_total_payable')
+                    ? sc_invoice_get_total_payable($invoice)
+                    : ((float) $invoice->amount + (float) ($invoice->penalty_amount ?? 0));
 
                 if (function_exists('wc_price')) {
                     $formatted_price = wc_price($invoice->amount);

@@ -529,6 +529,9 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-faq'] = ' سوالات متداول ';
 
     $player = sc_get_current_member_for_account_user();
+    if (function_exists('sc_is_registration_fee_gate_active_for_user') && sc_is_registration_fee_gate_active_for_user($player)) {
+        return ['customer-logout' => 'خروج از حساب کاربری'];
+    }
     if (sc_is_member_verification_gate_enabled_for_user($player)) {
         $allowed_when_unverified = ['sc-submit-documents', 'my-orders', 'shop', 'customer-logout'];
         foreach (array_keys($items) as $item_key) {
@@ -968,6 +971,20 @@ function sc_check_user_active_status() {
         </div>
         <?php
         return false;
+    }
+
+    // هزینه ثبت‌نام (عضویت) — قبل از سایر گیت‌ها
+    if (function_exists('sc_is_registration_fee_gate_active_for_user') && sc_is_registration_fee_gate_active_for_user($player)) {
+        $current_endpoint = '';
+        if (function_exists('WC') && WC() && isset(WC()->query)) {
+            $current_endpoint = (string) WC()->query->get_current_endpoint();
+        }
+        if ($current_endpoint === '' || (function_exists('sc_is_registration_fee_locked_endpoint') && sc_is_registration_fee_locked_endpoint($current_endpoint))) {
+            if (function_exists('sc_render_registration_fee_required_message')) {
+                sc_render_registration_fee_required_message();
+            }
+            return false;
+        }
     }
 
     // اگر احراز هویت اجباری است و کاربر تایید نشده، فقط تب اطلاعات بازیکن در دسترس است
@@ -1916,6 +1933,11 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
         $disc_fee->set_total(-$discount_amt);
         $order->add_item($disc_fee);
     }
+
+    $tax_amount = 0.0;
+    if (function_exists('sc_invoice_fees_apply_tax_to_order')) {
+        $tax_amount = sc_invoice_fees_apply_tax_to_order($order, $net_total, 'course');
+    }
     
     // تنظیم وضعیت سفارش به pending
     $order->set_status('pending', 'سفارش ایجاد شده از طریق ثبت‌نام در دوره');
@@ -1969,6 +1991,11 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
         'type' => $type,
     ];
     $invoice_fmt = ['%d', '%d', '%d', '%d', '%f', '%f', '%d', '%s', '%s', '%s', '%s'];
+
+    if (function_exists('sc_invoices_support_tax_column') && sc_invoices_support_tax_column()) {
+        $invoice_row['tax_amount'] = $tax_amount;
+        $invoice_fmt[] = '%f';
+    }
 
     if (function_exists('sc_invoices_support_discount_columns') && sc_invoices_support_discount_columns()) {
         $invoice_row['subtotal_amount'] = $subtotal;
@@ -2646,6 +2673,24 @@ function sc_create_woocommerce_order_for_invoice($invoice_id, $member_id, $cours
         $fee->set_tax_status('none');
         $fee->set_total($expense_amount);
         $order->add_item($fee);
+    }
+
+    $tax_context = 'other';
+    $tax_base = floatval($amount);
+    if ($invoice) {
+        $tax_context = function_exists('sc_invoice_fees_detect_context')
+            ? sc_invoice_fees_detect_context($invoice)
+            : 'other';
+        if ($inv_disc > 0 && $inv_sub !== null && $inv_sub > 0) {
+            $tax_base = floatval($inv_sub) - floatval($inv_disc);
+        }
+    } elseif ($course_id > 0) {
+        $tax_context = 'course';
+    } elseif (!empty($expense_name) && $expense_name === 'شارژ کیف پول') {
+        $tax_context = 'wallet';
+    }
+    if (function_exists('sc_invoice_fees_apply_tax_to_order')) {
+        sc_invoice_fees_apply_tax_to_order($order, max(0, $tax_base), $tax_context, (int) $invoice_id);
     }
     
     // تنظیم وضعیت سفارش به pending
@@ -4553,6 +4598,12 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
             $payment_date = current_time('mysql');
             $was_already_paid = in_array($invoice->status, ['processing', 'completed', 'paid'], true);
             
+            // هزینه ثبت‌نام (عضویت)
+            if (!empty($invoice->type) && $invoice->type === 'registration_fee' && !empty($invoice->member_id)
+                && function_exists('sc_mark_registration_fee_paid')) {
+                sc_mark_registration_fee_paid((int) $invoice->member_id, (int) $invoice->id);
+            }
+
             // بررسی اینکه آیا این صورت حساب برای شارژ کیف پول است
             if (!empty($invoice->expense_name) && $invoice->expense_name === 'شارژ کیف پول' && $invoice->course_id == 0 && empty($invoice->member_course_id)) {
                 // شارژ کیف پول بعد از پرداخت موفق

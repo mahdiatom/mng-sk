@@ -124,7 +124,47 @@ $section_title = $item_type === 'event' ? 'اطلاعات رویداد' : ($item
                             <?php endforeach; ?>
                         <?php endif; ?>
 
-                        <?php if ($totals && isset($totals['order_total'])) : ?>
+                        <?php
+                        $show_breakdown = function_exists('sc_tax_fee_show_payment_breakdown') && sc_tax_fee_show_payment_breakdown();
+                        $price_breakdown = ($show_breakdown && function_exists('sc_get_order_pay_price_breakdown'))
+                            ? sc_get_order_pay_price_breakdown($order)
+                            : null;
+                        ?>
+                        <?php if ($price_breakdown) : ?>
+                            <div class="sc-order-pay-totals sc-order-pay-totals--breakdown">
+                                <?php if ($price_breakdown['subtotal'] > 0) : ?>
+                                    <div class="sc-order-pay-total-row sc-order-pay-total-row--subtotal">
+                                        <span>مبلغ</span>
+                                        <span><?php echo wp_kses_post(wc_price($price_breakdown['subtotal'])); ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($price_breakdown['discount'] > 0) : ?>
+                                    <div class="sc-order-pay-total-row sc-order-pay-total-row--discount">
+                                        <span>تخفیف</span>
+                                        <span><?php echo wp_kses_post(wc_price(-$price_breakdown['discount'])); ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($price_breakdown['tax_amount'] > 0) : ?>
+                                    <div class="sc-order-pay-total-row sc-order-pay-total-row--tax">
+                                        <span><?php echo esc_html($price_breakdown['tax_label']); ?></span>
+                                        <span><?php echo wp_kses_post(wc_price($price_breakdown['tax_amount'])); ?></span>
+                                    </div>
+                                    <?php if ($price_breakdown['tax_description'] !== '') : ?>
+                                        <p class="sc-order-pay-tax-desc"><?php echo esc_html($price_breakdown['tax_description']); ?></p>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <?php if ($price_breakdown['penalty'] > 0) : ?>
+                                    <div class="sc-order-pay-total-row sc-order-pay-total-row--penalty">
+                                        <span>جریمه تأخیر</span>
+                                        <span><?php echo wp_kses_post(wc_price($price_breakdown['penalty'])); ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <div class="sc-order-pay-total-row sc-order-pay-total-row--grand">
+                                    <span>جمع کل</span>
+                                    <span><?php echo wp_kses_post(wc_price($price_breakdown['total'])); ?></span>
+                                </div>
+                            </div>
+                        <?php elseif ($totals && isset($totals['order_total'])) : ?>
                             <?php $grand_total = $totals['order_total']; ?>
                             <div class="sc-order-pay-totals">
                                 <div class="sc-order-pay-total-row sc-order-pay-total-row--grand">

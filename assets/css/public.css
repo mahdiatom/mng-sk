@@ -5266,12 +5266,21 @@ ul.woocommerce-error a{
 .woocommerce-order-overview li:nth-child(4) {
     animation-delay: 0.4s;
 }
-.boxs_do_after_pay {
+.boxs_do_after_pay{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 20px;
+    padding-top: 10px;
+}
+@media screen and (max-width: 900px) {
+    .boxs_do_after_pay {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     gap: 20px;
     padding-top: 10px;
+}
 }
 .boxs_do_after_pay div{
     border: 1px solid #fafafa;
@@ -10201,6 +10210,33 @@ border-radius: 10px;
     font-weight: 800;
     color: #6D34FF;
     border-top: 2px solid #6D34FF;
+}
+
+.sc-order-pay-totals--breakdown .sc-order-pay-total-row--subtotal {
+    font-weight: 600;
+    color: #334155;
+}
+
+.sc-order-pay-total-row--tax {
+    color: #0f766e;
+}
+
+.sc-order-pay-total-row--discount {
+    color: #16a34a;
+}
+
+.sc-order-pay-total-row--penalty {
+    color: #dc2626;
+}
+
+.sc-order-pay-tax-desc {
+    margin: 0;
+    padding: 0 16px 10px;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.6;
+    border-top: none;
+    background: #fafbff;
 }
 
 .sc-order-pay-gateways {

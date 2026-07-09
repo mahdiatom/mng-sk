@@ -238,7 +238,9 @@ public function column_order_number($item) {
     }
 
     public function column_total_amount($item) {
-        $total = (float)$item['amount'] + (float)($item['penalty_amount'] ?? 0);
+        $total = function_exists('sc_invoice_get_total_payable')
+            ? sc_invoice_get_total_payable((object) $item)
+            : ((float) $item['amount'] + (float) ($item['penalty_amount'] ?? 0));
         
         if (function_exists('wc_price')) {
             return wc_price($total);
@@ -814,6 +816,7 @@ if ($filter_status === 'penalty') {
                     i.amount,
                     i.expense_name,
                     i.penalty_amount,
+                    i.tax_amount,
                     i.status,
                     i.payment_date,
                     i.created_at,
