@@ -54,7 +54,7 @@ body.sc-users-export-print-page {
 
 body.sc-users-export-print-page,
 body.sc-users-export-print-page * {
-    font-family: var(--sc-export-font-family, "IRANYekanXFaNum", Tahoma, Arial, sans-serif);
+    font-family: var(--sc-export-font-family, "IRANYekanXFaNum", Tahoma, Arial, sans-serif) !important;
 }
 
 .sc-print-header {
@@ -98,11 +98,12 @@ body.sc-users-export-print-page * {
     overflow: hidden;
     position: relative;
     isolation: isolate;
+    box-sizing: border-box;
 }
 
 .sc-card-field {
     margin-bottom: 7px;
-    font-size: 13px;
+    font-size: var(--sc-export-font-size, 13px);
     line-height: 1.7;
 }
 
@@ -168,13 +169,30 @@ body.sc-users-export-print-page * {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 6px 12px;
-    padding-top: 25px;
+    padding-top: 0;
 }
 
 .sc-card-col {
     display: grid;
-    gap: 25px;
+    gap: 8px;
     align-content: start;
+}
+
+.sc-image-style-rounded {
+    border-radius: 10px !important;
+}
+
+.sc-image-style-circle {
+    border-radius: 50% !important;
+}
+
+.sc-card-inline-image--personal_photo .sc-image-style-circle,
+.sc-card-inline-image--personal_photo img.sc-image-style-circle {
+    width: 100%;
+    max-width: 150px;
+    height: 150px;
+    max-height: 150px;
+    object-fit: cover;
 }
 
 .sc-card-content .sc-card-field {
@@ -201,9 +219,17 @@ body.sc-users-export-print-page * {
     border-radius: 6px;
 }
 
-.sc-card-inline-image strong {
-    display: block;
-    margin-bottom: 4px;
+.sc-card-inline-image strong,
+.sc-card-inline-image .sc-card-field-label,
+.sc-field-no-label > .sc-card-field-label,
+.sc-export-field[data-field="attendance_qr"] > .sc-card-field-label,
+.sc-export-field[data-field="attendance_qr_short_code"] > .sc-card-field-label,
+.sc-export-field[data-field="attendance_qr_all_codes"] > .sc-card-field-label,
+.sc-export-field--personal_photo > .sc-card-field-label,
+.sc-export-field--id_card_photo > .sc-card-field-label,
+.sc-export-field--sport_insurance_photo > .sc-card-field-label,
+.sc-export-field--attendance_qr > .sc-card-field-label {
+    display: none !important;
 }
 
 .sc-card-inline-image--id_card_photo img,
@@ -321,4 +347,23 @@ body[data-columns="4"] {
     .sc-print-actions {
         display: none;
     }
+}
+
+body.sc-users-export-cards-zip-page .sc-print-grid {
+    grid-template-columns: 1fr;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+body.sc-users-export-cards-zip-page .sc-card {
+    margin-bottom: 24px;
+}
+
+.sc-cards-zip-progress {
+    font-size: 14px;
+    color: #1d2327;
+    padding: 8px 12px;
+    background: #f0f6fc;
+    border: 1px solid #c3d9f0;
+    border-radius: 6px;
 }

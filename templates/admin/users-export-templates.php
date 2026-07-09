@@ -16,25 +16,33 @@ $export_events = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (d
 
 if (isset($_POST['sc_save_export_templates'])) {
     check_admin_referer('sc_save_export_templates_nonce');
-    $posted_templates = isset($_POST['templates']) && is_array($_POST['templates']) ? $_POST['templates'] : [];
+    $posted_templates = isset($_POST['templates']) && is_array($_POST['templates']) ? wp_unslash($_POST['templates']) : [];
 
-    $new_templates = [];
-    foreach ($posted_templates as $template) {
-        if (!is_array($template)) {
-            continue;
+    if (empty($posted_templates)) {
+        $notice = 'خطا در ذخیره: داده‌ای از فرم دریافت نشد. اگر قالب‌های زیادی دارید، محدودیت max_input_vars سرور را بررسی کنید.';
+    } else {
+        $new_templates = [];
+        foreach ($posted_templates as $template) {
+            if (!is_array($template)) {
+                continue;
+            }
+            $normalized = sc_users_export_normalize_template($template, isset($template['key']) ? $template['key'] : '');
+            $new_templates[$normalized['key']] = $normalized;
         }
-        $normalized = sc_users_export_normalize_template($template, isset($template['key']) ? $template['key'] : '');
-        $new_templates[$normalized['key']] = $normalized;
-    }
 
-    sc_users_export_save_templates($new_templates);
-    $templates = sc_users_export_get_saved_templates();
-    $notice = 'تنظیمات قالب با موفقیت ذخیره شد.';
+        if (empty($new_templates)) {
+            $notice = 'خطا در ذخیره: هیچ قالب معتبری پردازش نشد.';
+        } else {
+            sc_users_export_save_templates($new_templates);
+            $templates = sc_users_export_get_saved_templates();
+            $notice = 'تنظیمات قالب با موفقیت ذخیره شد.';
+        }
+    }
 }
 ?>
 
 <?php if ($notice) : ?>
-    <div class="notice notice-success is-dismissible"><p><?php echo esc_html($notice); ?></p></div>
+    <div class="notice <?php echo strpos($notice, 'خطا') === 0 ? 'notice-error' : 'notice-success'; ?> is-dismissible"><p><?php echo esc_html($notice); ?></p></div>
 <?php endif; ?>
 
 <div class="wrap sc-users-export-wrap sc-cert-wrap sc-cert-templates-wrap">
@@ -48,10 +56,15 @@ if (isset($_POST['sc_save_export_templates'])) {
         </div>
     </div>
 
-    <form method="post" id="sc-export-templates-form">
+    <form method="post" id="sc-export-templates-form" action="<?php echo esc_url(admin_url('admin.php?page=sc-users-export-templates')); ?>">
         <?php wp_nonce_field('sc_save_export_templates_nonce'); ?>
         <div id="sc-template-field-labels" data-fields="<?php echo esc_attr(wp_json_encode($field_labels)); ?>"></div>
         <input type="hidden" id="sc-template-event-fields-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_users_export_get_event_fields')); ?>">
+        <input type="hidden" id="sc-export-template-preview-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_users_export_template_preview')); ?>">
+        <input type="hidden" id="sc-export-template-save-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_save_export_templates_nonce')); ?>">
+        <script type="application/json" id="sc-export-card-size-presets"><?php
+        echo wp_json_encode(sc_users_export_get_card_size_presets(), JSON_UNESCAPED_UNICODE);
+        ?></script>
         <script type="application/json" id="sc-export-events-data"><?php
         echo wp_json_encode(array_map(static function ($ev) {
             return ['id' => (int) $ev->id, 'name' => (string) $ev->name];
@@ -142,6 +155,7 @@ if (isset($_POST['sc_save_export_templates'])) {
                                     <option value="A5" <?php selected(($template['page_size'] ?? 'A4'), 'A5'); ?>>A5</option>
                                 </select>
                             </div>
+                            <?php include SC_TEMPLATES_DIR . 'admin/partials/users-export-template-extra-settings.php'; ?>
                             <div class="sc-row">
                                 <label>تعداد کارت در صفحه</label>
                                 <select name="templates[<?php echo esc_attr($template['key']); ?>][cards_per_page]">
@@ -184,7 +198,7 @@ if (isset($_POST['sc_save_export_templates'])) {
                             <div class="sc-row">
                                 <label>فونت خروجی</label>
                                 <?php $ff = (string) ($template['content_font_family'] ?? 'IRANYekanXFaNum'); ?>
-                                <select name="templates[<?php echo esc_attr($template['key']); ?>][content_font_family]">
+                                <select class="sc-content-font-family-select" name="templates[<?php echo esc_attr($template['key']); ?>][content_font_family]">
                                     <option value="IRANYekanXFaNum" <?php selected($ff, 'IRANYekanXFaNum'); ?>>IRANYekanXFaNum</option>
                                     <option value="Vazir" <?php selected($ff, 'Vazir'); ?>>Vazir</option>
                                     <option value="Shabnam" <?php selected($ff, 'Shabnam'); ?>>Shabnam</option>
@@ -192,6 +206,12 @@ if (isset($_POST['sc_save_export_templates'])) {
                                     <option value="Tahoma" <?php selected($ff, 'Tahoma'); ?>>Tahoma</option>
                                     <option value="Arial" <?php selected($ff, 'Arial'); ?>>Arial</option>
                                 </select>
+                            </div>
+                            <div class="sc-row">
+                                <label class="sc-inline-check">
+                                    <input type="checkbox" class="sc-show-field-labels-input" name="templates[<?php echo esc_attr($template['key']); ?>][show_field_labels]" value="1" <?php checked(!isset($template['show_field_labels']) || !empty($template['show_field_labels'])); ?>>
+                                    نمایش عنوان فیلدها (مثل «نام و نام خانوادگی:»)
+                                </label>
                             </div>
                             <div class="sc-row">
                                 <label class="sc-inline-check">
@@ -264,6 +284,7 @@ if (isset($_POST['sc_save_export_templates'])) {
                                     <?php endfor; ?>
                                 </div>
                             </div>
+                            <?php include SC_TEMPLATES_DIR . 'admin/partials/users-export-template-preview.php'; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>

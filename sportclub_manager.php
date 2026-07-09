@@ -1746,9 +1746,17 @@ function sc_admin_enqueue_assets() {
 
     if (in_array($current_page, array('sc-users-info-export', 'sc-users-export-templates', 'sc-certificates-issue', 'sc-certificates-templates', 'sc-certificates-list'), true)) {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+        wp_enqueue_style('sc-users-export-print-css', SC_ASSETS_URL . 'css/users-export-print.css', array('sc-users-export-admin-css'), time());
         wp_enqueue_script('sc-audience-course-picker-js', SC_ASSETS_URL . 'js/audience-course-picker.js', array('jquery', 'sc-admin-js'), time(), true);
         wp_enqueue_script('sc-audience-preview-add-js', SC_ASSETS_URL . 'js/audience-preview-add-members.js', array('jquery', 'sc-audience-course-picker-js'), time(), true);
         wp_enqueue_script('sc-users-export-admin-js', SC_ASSETS_URL . 'js/users-export-admin.js', array('jquery', 'sc-admin-js', 'sc-audience-course-picker-js', 'sc-audience-preview-add-js'), time(), true);
+        if ($current_page === 'sc-users-export-templates') {
+            wp_localize_script('sc-users-export-admin-js', 'scUsersExportTemplates', array(
+                'ajaxurl' => admin_url('admin-ajax.php'),
+                'saveNonce' => wp_create_nonce('sc_save_export_templates_nonce'),
+                'previewNonce' => wp_create_nonce('sc_users_export_template_preview'),
+            ));
+        }
     }
     $sc_audience_course_picker_pages = array(
         'sc-add-notification',

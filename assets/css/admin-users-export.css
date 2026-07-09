@@ -609,3 +609,220 @@ body.sc-invoices_page_sc-add-discount-code .sc-discount-add-panel--limits.sc-aud
         grid-template-columns: 1fr;
     }
 }
+
+.sc-users-export-wrap .sc-padding-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.sc-users-export-wrap .sc-padding-item small {
+    display: block;
+    margin-bottom: 4px;
+    color: #666;
+}
+
+.sc-users-export-wrap .sc-padding-item input,
+.sc-users-export-wrap .sc-padding-item select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.sc-users-export-wrap .sc-column-paddings-section {
+    margin: 12px 0;
+}
+
+.sc-users-export-wrap .sc-column-padding-group {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 10px;
+    background: #fafafa;
+}
+
+.sc-users-export-wrap .sc-column-padding-group h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+}
+
+.sc-users-export-wrap .sc-column-settings-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sc-users-export-wrap .sc-column-width-item {
+    grid-column: 1 / -1;
+}
+
+.sc-users-export-wrap .sc-export-template-preview-row {
+    margin-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 14px;
+}
+
+.sc-users-export-wrap .sc-export-template-preview-member-picker {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.sc-users-export-wrap .sc-export-preview-member-search {
+    width: 100%;
+    max-width: 420px;
+}
+
+.sc-users-export-wrap .sc-export-preview-member-results {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 4px);
+    right: 0;
+    left: 0;
+    max-width: 420px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    max-height: 220px;
+    overflow: auto;
+}
+
+.sc-users-export-wrap .sc-export-preview-member-option {
+    display: block;
+    width: 100%;
+    text-align: right;
+    border: 0;
+    background: transparent;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.sc-users-export-wrap .sc-export-preview-member-option:hover {
+    background: #f0f6fc;
+}
+
+.sc-users-export-wrap .sc-export-preview-member-empty {
+    padding: 10px 12px;
+    color: #666;
+    font-size: 13px;
+}
+
+.sc-users-export-wrap .sc-export-preview-member-selected {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 13px;
+}
+
+.sc-users-export-wrap .sc-export-template-preview-box {
+    border: 1px dashed #8c8f94;
+    border-radius: 10px;
+    background: #f3f4f6;
+    padding: 16px;
+    overflow: auto;
+}
+
+.sc-users-export-wrap .sc-export-template-preview-scale {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 120px;
+}
+
+.sc-users-export-wrap .sc-export-template-preview-card-host {
+    --sc-export-font-family: "IRANYekanXFaNum", Tahoma, Arial, sans-serif;
+}
+
+.sc-users-export-wrap .sc-export-template-preview-card-host,
+.sc-users-export-wrap .sc-export-template-preview-card-host * {
+    font-family: var(--sc-export-font-family, "IRANYekanXFaNum", Tahoma, Arial, sans-serif) !important;
+}
+
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-card,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-card-field,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-card-field-label,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-card-field-value {
+    font-size: var(--sc-export-font-size, 13px) !important;
+}
+
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-card {
+    margin: 0 auto;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-card-inline-image .sc-card-field-label,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-field-no-label > .sc-card-field-label,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-export-field[data-field="attendance_qr"] > .sc-card-field-label,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-export-field[data-field="attendance_qr_short_code"] > .sc-card-field-label,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-export-field[data-field="attendance_qr_all_codes"] > .sc-card-field-label,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-export-field--personal_photo > .sc-card-field-label,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-export-field--id_card_photo > .sc-card-field-label,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-export-field--sport_insurance_photo > .sc-card-field-label,
+.sc-users-export-wrap .sc-export-template-preview-card-host .sc-export-field--attendance_qr > .sc-card-field-label {
+    display: none !important;
+}
+
+.sc-users-export-wrap .sc-image-size-group {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 10px;
+    background: #fff;
+}
+
+.sc-users-export-wrap .sc-image-size-group h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+}
+
+.sc-users-export-wrap .sc-image-size-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sc-users-export-wrap .sc-export-template-html-preview {
+    margin-top: 12px;
+}
+
+.sc-users-export-wrap .sc-export-template-html-preview label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.sc-users-export-wrap .sc-export-template-html-code,
+.sc-users-export-wrap .sc-export-custom-css-input {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    font-family: Consolas, Monaco, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    direction: ltr;
+    text-align: left;
+}
+
+.sc-users-export-wrap .sc-pvc-options {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #dcdcde;
+}
+
+.sc-users-export-wrap .sc-pvc-options label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.sc-users-export-wrap .sc-pvc-options .sc-notification-select {
+    max-width: 360px;
+}
+
+@media (max-width: 782px) {
+    .sc-users-export-wrap .sc-padding-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-users-export-wrap .sc-column-settings-grid {
+        grid-template-columns: 1fr;
+    }
+}

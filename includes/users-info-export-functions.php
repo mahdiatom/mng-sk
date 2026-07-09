@@ -32,7 +32,167 @@ function sc_users_export_get_default_templates() {
             'image_only_mode' => 0,
             'card_footer_text' => '',
             'content_font_family' => 'IRANYekanXFaNum',
+            'card_size_preset' => 'id_card',
+            'card_width_cm' => 8.5,
+            'card_height_cm' => 5.4,
+            'card_padding_top' => 3,
+            'card_padding_right' => 3,
+            'card_padding_bottom' => 3,
+            'card_padding_left' => 3,
+            'column_paddings' => [],
+            'column_widths' => [],
+            'image_style' => 'rounded',
+            'content_font_size' => 13,
+            'image_sizes' => [],
+            'custom_css' => '',
+            'show_field_labels' => 1,
         ],
+    ];
+}
+
+/**
+ * @return array<string, array{width: int, height: int}>
+ */
+function sc_users_export_get_default_image_sizes() {
+    return [
+        'personal_photo' => ['width' => 150, 'height' => 190],
+        'id_card_photo' => ['width' => 260, 'height' => 150],
+        'sport_insurance_photo' => ['width' => 260, 'height' => 150],
+        'attendance_qr' => ['width' => 180, 'height' => 180],
+    ];
+}
+
+/**
+ * @param array<string, mixed> $raw
+ * @return array<string, array{width: int, height: int}>
+ */
+function sc_users_export_normalize_image_sizes($raw) {
+    $defaults = sc_users_export_get_default_image_sizes();
+    $raw = is_array($raw) ? $raw : [];
+    $out = [];
+    foreach ($defaults as $field_key => $default_size) {
+        $entry = isset($raw[$field_key]) && is_array($raw[$field_key]) ? $raw[$field_key] : [];
+        $out[$field_key] = [
+            'width' => isset($entry['width']) ? max(20, min(600, (int) wp_unslash($entry['width']))) : (int) $default_size['width'],
+            'height' => isset($entry['height']) ? max(20, min(600, (int) wp_unslash($entry['height']))) : (int) $default_size['height'],
+        ];
+    }
+    return $out;
+}
+
+function sc_users_export_sanitize_custom_css($css) {
+    $css = (string) wp_unslash($css);
+    $css = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $css);
+    $css = preg_replace('/@import\b[^;]+;/i', '', $css);
+    $css = str_replace(['</style>', '<style'], '', $css);
+    return trim($css);
+}
+
+/**
+ * @return array<string, array{label: string, width: float|null, height: float|null}>
+ */
+function sc_users_export_get_card_size_presets() {
+    return [
+        'id_card' => ['label' => 'کارت شناسایی (۸.۵ × ۵.۴ سانتی‌متر)', 'width' => 8.5, 'height' => 5.4],
+        'id_card_small' => ['label' => 'کارت کوچک (۸.۵ × ۴.۵ سانتی‌متر)', 'width' => 8.5, 'height' => 4.5],
+        'business_card' => ['label' => 'کارت ویزیت (۹ × ۵ سانتی‌متر)', 'width' => 9.0, 'height' => 5.0],
+        'credit_card' => ['label' => 'کارت اعتباری ISO (۸.۶ × ۵.۴ سانتی‌متر)', 'width' => 8.56, 'height' => 5.398],
+        'a7' => ['label' => 'A7 (۷.۴ × ۱۰.۵ سانتی‌متر)', 'width' => 7.4, 'height' => 10.5],
+        'custom' => ['label' => 'سفارشی', 'width' => null, 'height' => null],
+    ];
+}
+
+/**
+ * @param array<string, mixed> $raw
+ * @return array{top: float, right: float, bottom: float, left: float}
+ */
+function sc_users_export_normalize_padding_box($raw, $defaults = []) {
+    $defaults = wp_parse_args($defaults, ['top' => 0, 'right' => 0, 'bottom' => 0, 'left' => 0]);
+    if (!is_array($raw)) {
+        $raw = [];
+    }
+    $out = [];
+    foreach (['top', 'right', 'bottom', 'left'] as $side) {
+        $value = isset($raw[$side]) ? (float) wp_unslash($raw[$side]) : (float) $defaults[$side];
+        $out[$side] = max(0, min(50, $value));
+    }
+    return $out;
+}
+
+/**
+ * @param array<string, mixed> $raw
+ * @return array<string, array{top: float, right: float, bottom: float, left: float}>
+ */
+function sc_users_export_normalize_column_paddings($raw, $columns_count = 2) {
+    $columns_count = max(1, min(4, (int) $columns_count));
+    $raw = is_array($raw) ? $raw : [];
+    $out = [];
+    for ($i = 1; $i <= $columns_count; $i++) {
+        $col_key = 'column_' . $i;
+        $out[$col_key] = sc_users_export_normalize_padding_box($raw[$col_key] ?? []);
+    }
+    return $out;
+}
+
+/**
+ * @param array<string, mixed> $raw
+ * @return array<string, float>
+ */
+function sc_users_export_normalize_column_widths($raw, $columns_count = 2) {
+    $columns_count = max(1, min(4, (int) $columns_count));
+    $raw = is_array($raw) ? $raw : [];
+    $default_each = round(100 / $columns_count, 2);
+    $out = [];
+    for ($i = 1; $i <= $columns_count; $i++) {
+        $col_key = 'column_' . $i;
+        $value = isset($raw[$col_key]) ? (float) wp_unslash($raw[$col_key]) : $default_each;
+        $out[$col_key] = max(5, min(95, $value));
+    }
+    return $out;
+}
+
+/**
+ * @param array<string, float> $column_widths
+ */
+function sc_users_export_build_layout_grid_template_columns($column_widths, $columns_count = 2) {
+    $columns_count = max(1, min(4, (int) $columns_count));
+    $parts = [];
+    $total = 0.0;
+    for ($i = 1; $i <= $columns_count; $i++) {
+        $col_key = 'column_' . $i;
+        $weight = isset($column_widths[$col_key]) ? (float) $column_widths[$col_key] : round(100 / $columns_count, 2);
+        if ($weight <= 0) {
+            $weight = round(100 / $columns_count, 2);
+        }
+        $parts[] = $weight;
+        $total += $weight;
+    }
+    if ($total <= 0) {
+        return 'repeat(' . $columns_count . ', minmax(0, 1fr))';
+    }
+    $css_parts = [];
+    foreach ($parts as $weight) {
+        $css_parts[] = 'minmax(0, ' . $weight . 'fr)';
+    }
+    return implode(' ', $css_parts);
+}
+
+/**
+ * @param array<string, mixed> $template
+ * @return array{width: float, height: float}
+ */
+function sc_users_export_resolve_card_dimensions($template) {
+    $presets = sc_users_export_get_card_size_presets();
+    $preset = isset($template['card_size_preset']) ? sanitize_key($template['card_size_preset']) : 'id_card';
+    if ($preset !== 'custom' && isset($presets[$preset]) && $presets[$preset]['width'] !== null) {
+        return [
+            'width' => (float) $presets[$preset]['width'],
+            'height' => (float) $presets[$preset]['height'],
+        ];
+    }
+    return [
+        'width' => isset($template['card_width_cm']) ? max(1, min(30, (float) $template['card_width_cm'])) : 8.5,
+        'height' => isset($template['card_height_cm']) ? max(1, min(30, (float) $template['card_height_cm'])) : 5.4,
     ];
 }
 
@@ -44,7 +204,15 @@ function sc_users_export_get_saved_templates() {
     if (!is_array($saved)) {
         return sc_users_export_get_default_templates();
     }
-    return $saved;
+    $normalized = [];
+    foreach ($saved as $template_key => $template) {
+        if (!is_array($template)) {
+            continue;
+        }
+        $normalized_template = sc_users_export_normalize_template($template, is_string($template_key) ? $template_key : '');
+        $normalized[$normalized_template['key']] = $normalized_template;
+    }
+    return !empty($normalized) ? $normalized : sc_users_export_get_default_templates();
 }
 
 function sc_users_export_save_templates($templates) {
@@ -193,6 +361,24 @@ function sc_users_export_normalize_template($template, $fallback_key = '') {
         'content_font_family' => (isset($template['content_font_family']) && in_array(wp_unslash($template['content_font_family']), ['IRANYekanXFaNum', 'Vazir', 'Shabnam', 'Morabba', 'Tahoma', 'Arial'], true))
             ? wp_unslash($template['content_font_family'])
             : 'IRANYekanXFaNum',
+        'card_size_preset' => (isset($template['card_size_preset']) && array_key_exists(sanitize_key($template['card_size_preset']), sc_users_export_get_card_size_presets()))
+            ? sanitize_key($template['card_size_preset'])
+            : 'id_card',
+        'card_width_cm' => isset($template['card_width_cm']) ? max(1, min(30, (float) wp_unslash($template['card_width_cm']))) : 8.5,
+        'card_height_cm' => isset($template['card_height_cm']) ? max(1, min(30, (float) wp_unslash($template['card_height_cm']))) : 5.4,
+        'card_padding_top' => isset($template['card_padding_top']) ? max(0, min(50, (float) wp_unslash($template['card_padding_top']))) : 3,
+        'card_padding_right' => isset($template['card_padding_right']) ? max(0, min(50, (float) wp_unslash($template['card_padding_right']))) : 3,
+        'card_padding_bottom' => isset($template['card_padding_bottom']) ? max(0, min(50, (float) wp_unslash($template['card_padding_bottom']))) : 3,
+        'card_padding_left' => isset($template['card_padding_left']) ? max(0, min(50, (float) wp_unslash($template['card_padding_left']))) : 3,
+        'column_paddings' => sc_users_export_normalize_column_paddings($template['column_paddings'] ?? [], $layout_columns_count),
+        'column_widths' => sc_users_export_normalize_column_widths($template['column_widths'] ?? [], $layout_columns_count),
+        'image_style' => (isset($template['image_style']) && in_array($template['image_style'], ['circle', 'rounded'], true))
+            ? $template['image_style']
+            : 'rounded',
+        'content_font_size' => isset($template['content_font_size']) ? max(8, min(32, (int) wp_unslash($template['content_font_size']))) : 13,
+        'image_sizes' => sc_users_export_normalize_image_sizes($template['image_sizes'] ?? []),
+        'custom_css' => isset($template['custom_css']) ? sc_users_export_sanitize_custom_css($template['custom_css']) : '',
+        'show_field_labels' => array_key_exists('show_field_labels', $template) ? (!empty($template['show_field_labels']) ? 1 : 0) : 1,
     ];
 }
 
@@ -766,15 +952,186 @@ function sc_users_export_filename() {
 }
 
 /**
- * پاک‌سازی بافر خروجی قبل از ارسال فایل دانلود (جلوگیری از آلوده شدن Excel/PDF با Warning).
+ * خروجی کارت PVC — فقط مدیر کل (manage_options).
  */
-function sc_users_export_discard_output_buffers() {
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+function sc_user_can_users_export_pvc($user_id = 0) {
+    return user_can($user_id ? (int) $user_id : 0, 'manage_options');
 }
 
-function sc_users_export_to_excel($rows, $fields, $labels = null) {
+/**
+ * @return string[]
+ */
+function sc_users_export_get_image_field_keys() {
+    return ['personal_photo', 'id_card_photo', 'sport_insurance_photo', 'attendance_qr'];
+}
+
+/**
+ * @return string[]
+ */
+function sc_users_export_get_phone_field_keys() {
+    return ['player_phone', 'father_phone', 'mother_phone', 'landline_phone'];
+}
+
+/**
+ * @return string[]
+ */
+function sc_users_export_get_pvc_image_name_field_options($fields, $labels = null) {
+    if (!is_array($labels)) {
+        $labels = sc_users_export_get_field_labels();
+    }
+    $image_fields = sc_users_export_get_image_field_keys();
+    $phone_fields = sc_users_export_get_phone_field_keys();
+    $options = [];
+    foreach ((array) $fields as $field) {
+        if (!isset($labels[$field]) || in_array($field, $image_fields, true)) {
+            continue;
+        }
+        if (in_array($field, $phone_fields, true)) {
+            continue;
+        }
+        $options[$field] = $labels[$field];
+    }
+    foreach ((array) $fields as $field) {
+        if (!isset($labels[$field]) || in_array($field, $image_fields, true)) {
+            continue;
+        }
+        if (!in_array($field, $phone_fields, true)) {
+            continue;
+        }
+        $options[$field] = $labels[$field];
+    }
+    return $options;
+}
+
+function sc_users_export_normalize_phone_digits($value) {
+    $digits = preg_replace('/\D+/', '', (string) $value);
+    return $digits !== '' ? $digits : '';
+}
+
+function sc_users_export_sanitize_pvc_filename($name) {
+    $name = trim((string) $name);
+    $name = str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], ' ', $name);
+    $name = preg_replace('/\s+/u', ' ', $name);
+    $name = trim($name, " \t\n\r\0\x0B.");
+    if ($name === '') {
+        $name = 'user';
+    }
+    if (function_exists('mb_substr')) {
+        return mb_substr($name, 0, 180);
+    }
+    return substr($name, 0, 180);
+}
+
+/**
+ * @param array<string, mixed> $row
+ * @param string[] $fields
+ */
+function sc_users_export_build_pvc_image_basename($row, $name_field, $fields = []) {
+    $phone_fields = sc_users_export_get_phone_field_keys();
+    $name_field = sanitize_key((string) $name_field);
+
+    if ($name_field === 'full_name') {
+        $full_name = trim((string) ($row['full_name'] ?? ''));
+        if ($full_name === '' || $full_name === '-') {
+            $full_name = '';
+        }
+        $phone = '';
+        if (in_array('player_phone', $fields, true)) {
+            $phone = sc_users_export_normalize_phone_digits($row['player_phone'] ?? '');
+        }
+        if ($full_name !== '' && $phone !== '') {
+            return sc_users_export_sanitize_pvc_filename($full_name . ' ' . $phone);
+        }
+        if ($full_name !== '') {
+            return sc_users_export_sanitize_pvc_filename($full_name);
+        }
+        if ($phone !== '') {
+            return sc_users_export_sanitize_pvc_filename($phone);
+        }
+        return 'user';
+    }
+
+    if (in_array($name_field, $phone_fields, true)) {
+        $digits = sc_users_export_normalize_phone_digits($row[$name_field] ?? '');
+        return $digits !== '' ? sc_users_export_sanitize_pvc_filename($digits) : 'user';
+    }
+
+    $value = isset($row[$name_field]) ? trim((string) $row[$name_field]) : '';
+    if ($value === '' || $value === '-') {
+        if (!empty($row['member_id']) && $row['member_id'] !== '-') {
+            return sc_users_export_sanitize_pvc_filename((string) $row['member_id']);
+        }
+        return 'user';
+    }
+    return sc_users_export_sanitize_pvc_filename($value);
+}
+
+/**
+ * @return array{content: string, extension: string}|null
+ */
+function sc_users_export_load_image_binary($source) {
+    $source = trim((string) $source);
+    if ($source === '' || $source === '-') {
+        return null;
+    }
+
+    if (strpos($source, 'data:image') === 0) {
+        if (preg_match('#^data:image/(\w+);base64,(.+)$#i', $source, $matches)) {
+            $ext = strtolower($matches[1]);
+            if ($ext === 'jpeg') {
+                $ext = 'jpg';
+            }
+            $content = base64_decode($matches[2], true);
+            if ($content !== false && $content !== '') {
+                return ['content' => $content, 'extension' => $ext !== '' ? $ext : 'png'];
+            }
+        }
+        return null;
+    }
+
+    if (strpos($source, 'http://') === 0 || strpos($source, 'https://') === 0) {
+        $upload = wp_get_upload_dir();
+        if (!empty($upload['baseurl']) && !empty($upload['basedir']) && strpos($source, $upload['baseurl']) === 0) {
+            $local_path = $upload['basedir'] . substr($source, strlen($upload['baseurl']));
+            if (is_readable($local_path)) {
+                $content = file_get_contents($local_path);
+                if ($content !== false && $content !== '') {
+                    $ext = strtolower(pathinfo($local_path, PATHINFO_EXTENSION));
+                    return ['content' => $content, 'extension' => $ext !== '' ? $ext : 'jpg'];
+                }
+            }
+        }
+        $response = wp_remote_get($source, ['timeout' => 25]);
+        if (!is_wp_error($response) && (int) wp_remote_retrieve_response_code($response) === 200) {
+            $content = wp_remote_retrieve_body($response);
+            if ($content !== '') {
+                $ext = strtolower(pathinfo(parse_url($source, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+                if ($ext === 'jpeg') {
+                    $ext = 'jpg';
+                }
+                return ['content' => $content, 'extension' => $ext !== '' ? $ext : 'jpg'];
+            }
+        }
+    }
+
+    if (is_readable($source)) {
+        $content = file_get_contents($source);
+        if ($content !== false && $content !== '') {
+            $ext = strtolower(pathinfo($source, PATHINFO_EXTENSION));
+            return ['content' => $content, 'extension' => $ext !== '' ? $ext : 'jpg'];
+        }
+    }
+
+    return null;
+}
+
+/**
+ * @param array<int, array<string, mixed>> $rows
+ * @param string[] $fields
+ * @param array<string, string>|null $labels
+ * @param string|null $save_path
+ */
+function sc_users_export_to_excel($rows, $fields, $labels = null, $save_path = null) {
     if (!function_exists('sc_check_phpspreadsheet')) {
         wp_die('کتابخانه Excel در دسترس نیست.');
     }
@@ -823,17 +1180,154 @@ function sc_users_export_to_excel($rows, $fields, $labels = null) {
         sc_auto_size_columns($sheet, count($fields) + 1);
     }
 
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    if ($save_path) {
+        $writer->save($save_path);
+        return $save_path;
+    }
+
     sc_users_export_discard_output_buffers();
 
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment;filename="' . sc_users_export_filename() . '.xlsx"');
     header('Cache-Control: max-age=0');
-    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
     $writer->save('php://output');
     exit;
 }
 
-function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = '', $template = null, $labels = null) {
+/**
+ * @param array<int, array<string, mixed>> $rows
+ * @param string[] $fields
+ * @param array<string, string>|null $labels
+ * @param array<string, mixed> $options
+ */
+function sc_users_export_to_pvc_zip($rows, $fields, $labels = null, $options = []) {
+    if (!function_exists('sc_check_phpspreadsheet')) {
+        wp_die('کتابخانه Excel در دسترس نیست.');
+    }
+    if (!class_exists('ZipArchive')) {
+        wp_die('افزونه ZipArchive در PHP فعال نیست.');
+    }
+
+    $image_fields = sc_users_export_get_image_field_keys();
+    $selected_image_fields = array_values(array_intersect($fields, $image_fields));
+    if (empty($selected_image_fields)) {
+        wp_die('برای خروجی کارت PVC حداقل یک فیلد تصویری انتخاب کنید.');
+    }
+
+    $name_field = isset($options['image_name_field']) ? sanitize_key((string) $options['image_name_field']) : 'full_name';
+    $excel_fields = array_values(array_diff($fields, $image_fields));
+    if (empty($excel_fields)) {
+        wp_die('برای خروجی کارت PVC حداقل یک فیلد متنی علاوه بر تصویر انتخاب کنید.');
+    }
+
+    $name_options = sc_users_export_get_pvc_image_name_field_options($fields, $labels);
+    if (!isset($name_options[$name_field])) {
+        $name_field = isset($name_options['full_name']) ? 'full_name' : array_key_first($name_options);
+    }
+
+    $suffix_map = [
+        'personal_photo' => '',
+        'id_card_photo' => '_id_card',
+        'sport_insurance_photo' => '_insurance',
+        'attendance_qr' => '_qr',
+    ];
+
+    $temp_dir = trailingslashit(get_temp_dir()) . 'sc_pvc_' . wp_generate_password(12, false, false);
+    if (!wp_mkdir_p($temp_dir)) {
+        wp_die('امکان ساخت پوشه موقت وجود ندارد.');
+    }
+    $images_dir = trailingslashit($temp_dir) . 'images';
+    if (!wp_mkdir_p($images_dir)) {
+        sc_users_export_cleanup_temp_dir($temp_dir);
+        wp_die('امکان ساخت پوشه تصاویر وجود ندارد.');
+    }
+
+    $excel_filename = sc_users_export_filename() . '.xlsx';
+    $excel_path = trailingslashit($temp_dir) . $excel_filename;
+    sc_users_export_to_excel($rows, $excel_fields, $labels, $excel_path);
+
+    $used_names = [];
+    foreach ($rows as $row) {
+        $basename = sc_users_export_build_pvc_image_basename($row, (string) $name_field, $fields);
+        foreach ($selected_image_fields as $image_field) {
+            $source = $row[$image_field] ?? '';
+            $binary = sc_users_export_load_image_binary($source);
+            if (!$binary) {
+                continue;
+            }
+            $suffix = $suffix_map[$image_field] ?? ('_' . $image_field);
+            $candidate = $basename . $suffix;
+            $unique = $candidate;
+            $counter = 2;
+            while (isset($used_names[$unique])) {
+                $unique = $candidate . '_' . $counter;
+                $counter++;
+            }
+            $used_names[$unique] = true;
+            $ext = $binary['extension'] !== '' ? $binary['extension'] : 'jpg';
+            $file_path = $images_dir . '/' . $unique . '.' . $ext;
+            file_put_contents($file_path, $binary['content']);
+        }
+    }
+
+    $zip_filename = sc_users_export_filename() . '_PVC.zip';
+    $zip_path = trailingslashit($temp_dir) . $zip_filename;
+    $zip = new ZipArchive();
+    if ($zip->open($zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        sc_users_export_cleanup_temp_dir($temp_dir);
+        wp_die('امکان ساخت فایل ZIP وجود ندارد.');
+    }
+    $zip->addFile($excel_path, $excel_filename);
+    $image_files = glob($images_dir . '/*');
+    if (is_array($image_files)) {
+        foreach ($image_files as $image_file) {
+            if (!is_file($image_file)) {
+                continue;
+            }
+            $zip->addFile($image_file, 'images/' . basename($image_file));
+        }
+    }
+    $zip->close();
+
+    sc_users_export_discard_output_buffers();
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment;filename="' . $zip_filename . '"');
+    header('Content-Length: ' . filesize($zip_path));
+    header('Cache-Control: max-age=0');
+    readfile($zip_path);
+    sc_users_export_cleanup_temp_dir($temp_dir);
+    exit;
+}
+
+function sc_users_export_cleanup_temp_dir($dir) {
+    $dir = trailingslashit((string) $dir);
+    if ($dir === '' || !is_dir($dir)) {
+        return;
+    }
+    $items = glob($dir . '*');
+    if (is_array($items)) {
+        foreach ($items as $item) {
+            if (is_dir($item)) {
+                sc_users_export_cleanup_temp_dir($item);
+            } elseif (is_file($item)) {
+                @unlink($item);
+            }
+        }
+    }
+    @rmdir(rtrim($dir, '/\\'));
+}
+
+/**
+ * پاک‌سازی بافر خروجی قبل از ارسال فایل دانلود (جلوگیری از آلوده شدن Excel/PDF با Warning).
+ */
+function sc_users_export_discard_output_buffers() {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+}
+
+function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = '', $template = null, $labels = null, $options = []) {
     sc_users_export_discard_output_buffers();
     if (!is_array($labels)) {
         $labels = sc_users_export_get_field_labels();
@@ -841,6 +1335,7 @@ function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = 
     $page_size = isset($layout['page_size']) && in_array($layout['page_size'], ['A4', 'A5'], true) ? $layout['page_size'] : 'A4';
     $cards_per_page = isset($layout['cards_per_page']) ? max(1, min(6, (int) $layout['cards_per_page'])) : 2;
     $export_title = $title !== '' ? $title : 'خروجی اطلاعات کاربران';
+    $export_mode = isset($options['export_mode']) && $options['export_mode'] === 'cards_zip' ? 'cards_zip' : 'pdf';
 
     $print_data = [
         'title' => $export_title,
@@ -851,6 +1346,8 @@ function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = 
         'fields' => $fields,
         'labels' => $labels,
         'template' => is_array($template) ? $template : null,
+        'export_mode' => $export_mode,
+        'zip_filename' => $export_mode === 'cards_zip' ? sc_users_export_filename() . '_cards' : '',
     ];
 
     ?>
@@ -860,11 +1357,17 @@ function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?php echo esc_html($export_title); ?></title>
-        <link rel="stylesheet" href="<?php echo esc_url(SC_ASSETS_URL . 'css/admin.css'); ?>">
         <link rel="stylesheet" href="<?php echo esc_url(SC_ASSETS_URL . 'css/users-export-print.css'); ?>">
+        <?php if (is_array($template) && !empty($template['custom_css'])) : ?>
+            <style id="sc-users-export-custom-css"><?php echo esc_html($template['custom_css']); ?></style>
+        <?php endif; ?>
+        <?php if ($export_mode === 'cards_zip') : ?>
+            <script src="<?php echo esc_url(SC_ASSETS_URL . 'js/vendor/html2canvas.min.js'); ?>"></script>
+            <script src="<?php echo esc_url(SC_ASSETS_URL . 'js/vendor/jszip.min.js'); ?>"></script>
+        <?php endif; ?>
     </head>
-    <body class="sc-users-export-print-page">
-        <div id="sc-users-export-print-root" data-print="<?php echo esc_attr(wp_json_encode($print_data)); ?>"></div>
+    <body class="sc-users-export-print-page<?php echo $export_mode === 'cards_zip' ? ' sc-users-export-cards-zip-page' : ''; ?>">
+        <div id="sc-users-export-print-root" data-print="<?php echo esc_attr(wp_json_encode($print_data, JSON_UNESCAPED_UNICODE)); ?>"></div>
         <script src="<?php echo esc_url(SC_ASSETS_URL . 'js/users-export-print.js'); ?>"></script>
     </body>
     </html>
@@ -875,6 +1378,53 @@ function sc_users_export_render_pdf_page($rows, $fields, $layout = [], $title = 
 add_action('admin_post_sc_users_info_export', 'sc_users_info_export_handler');
 add_action('wp_ajax_sc_users_export_preview_members', 'sc_users_export_preview_members_ajax');
 add_action('wp_ajax_sc_users_export_get_event_fields', 'sc_users_export_get_event_fields_ajax');
+add_action('wp_ajax_sc_users_export_template_search_member', 'sc_users_export_template_search_member_ajax');
+add_action('wp_ajax_sc_users_export_template_preview_data', 'sc_users_export_template_preview_data_ajax');
+add_action('wp_ajax_sc_users_export_save_templates', 'sc_users_export_save_templates_ajax');
+
+function sc_users_export_save_templates_ajax() {
+    check_ajax_referer('sc_save_export_templates_nonce', 'nonce');
+    if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+
+    $posted_templates = [];
+    if (!empty($_POST['templates_json'])) {
+        $decoded = json_decode(wp_unslash((string) $_POST['templates_json']), true);
+        if (is_array($decoded)) {
+            $posted_templates = $decoded;
+        }
+    } elseif (isset($_POST['form'])) {
+        $parsed = [];
+        parse_str(wp_unslash((string) $_POST['form']), $parsed);
+        if (isset($parsed['templates']) && is_array($parsed['templates'])) {
+            $posted_templates = $parsed['templates'];
+        }
+    }
+
+    if (empty($posted_templates)) {
+        wp_send_json_error(['message' => 'داده‌ای برای ذخیره دریافت نشد.']);
+    }
+
+    $new_templates = [];
+    foreach ($posted_templates as $template) {
+        if (!is_array($template)) {
+            continue;
+        }
+        $normalized = sc_users_export_normalize_template($template, isset($template['key']) ? $template['key'] : '');
+        $new_templates[$normalized['key']] = $normalized;
+    }
+
+    if (empty($new_templates)) {
+        wp_send_json_error(['message' => 'هیچ قالب معتبری پردازش نشد.']);
+    }
+
+    sc_users_export_save_templates($new_templates);
+    wp_send_json_success([
+        'message' => 'تنظیمات قالب با موفقیت ذخیره شد.',
+        'templates' => sc_users_export_get_saved_templates(),
+    ]);
+}
 
 function sc_users_export_get_event_fields_ajax() {
     check_ajax_referer('sc_users_export_get_event_fields', 'nonce');
@@ -986,6 +1536,125 @@ function sc_users_export_preview_members_ajax() {
     ]);
 }
 
+function sc_users_export_template_search_member_ajax() {
+    check_ajax_referer('sc_users_export_template_preview', 'nonce');
+    if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+
+    $q = isset($_REQUEST['q']) ? sanitize_text_field(wp_unslash($_REQUEST['q'])) : '';
+    if ($q === '') {
+        wp_send_json_success(['items' => []]);
+    }
+
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $digits = preg_replace('/\D/', '', $q);
+    $like = '%' . $wpdb->esc_like($q) . '%';
+    $where = ['(m.deleted_at IS NULL OR m.deleted_at = "0000-00-00 00:00:00")'];
+    $where[] = '(m.first_name LIKE %s OR m.last_name LIKE %s OR CONCAT(m.first_name, " ", m.last_name) LIKE %s OR m.player_phone LIKE %s OR m.national_id LIKE %s)';
+    $args = [$like, $like, $like, $like, $like];
+    if ($digits !== '' && $digits !== $q) {
+        $digits_like = '%' . $wpdb->esc_like($digits) . '%';
+        $where[] = '(REPLACE(REPLACE(m.player_phone, "-", ""), " ", "") LIKE %s OR m.national_id LIKE %s)';
+        $args[] = $digits_like;
+        $args[] = $digits_like;
+    }
+    if (function_exists('sc_secretary_merge_member_where_parts')) {
+        sc_secretary_merge_member_where_parts($where, $args, 'm');
+    }
+    $where_sql = implode(' AND ', $where);
+    $sql = "SELECT m.id, m.first_name, m.last_name, m.player_phone, m.national_id
+            FROM {$members_table} m
+            WHERE {$where_sql}
+            ORDER BY m.last_name ASC, m.first_name ASC
+            LIMIT 20";
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
+    $items = [];
+    foreach ((array) $rows as $row) {
+        $name = trim((string) $row->first_name . ' ' . (string) $row->last_name);
+        $label = $name !== '' ? $name : ('کاربر #' . (int) $row->id);
+        if (!empty($row->player_phone)) {
+            $label .= ' — ' . $row->player_phone;
+        }
+        if (!empty($row->national_id)) {
+            $label .= ' (کد ملی: ' . $row->national_id . ')';
+        }
+        $items[] = [
+            'id' => (int) $row->id,
+            'label' => $label,
+        ];
+    }
+    wp_send_json_success(['items' => $items]);
+}
+
+function sc_users_export_template_preview_data_ajax() {
+    check_ajax_referer('sc_users_export_template_preview', 'nonce');
+    if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+
+    $member_id = isset($_POST['member_id']) ? absint($_POST['member_id']) : 0;
+    if ($member_id <= 0) {
+        wp_send_json_error(['message' => 'کاربر انتخاب نشده است.']);
+    }
+
+    $posted_fields = isset($_POST['fields']) ? array_map('sanitize_text_field', (array) $_POST['fields']) : [];
+    $event_id = isset($_POST['event_id']) ? absint($_POST['event_id']) : 0;
+    $event_ids = $event_id > 0 ? [$event_id] : [];
+    $field_labels = sc_users_export_merge_field_labels($event_ids);
+    $fields = array_values(array_intersect($posted_fields, array_keys($field_labels)));
+    if (empty($fields)) {
+        $fields = ['full_name', 'player_phone'];
+    }
+
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $member = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$members_table} WHERE id = %d", $member_id));
+    if (!$member) {
+        wp_send_json_error(['message' => 'کاربر یافت نشد.']);
+    }
+
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
+    $events_table = $wpdb->prefix . 'sc_events';
+
+    $courses = $wpdb->get_col($wpdb->prepare(
+        "SELECT c.title
+         FROM $member_courses_table mc
+         INNER JOIN $courses_table c ON c.id = mc.course_id
+         WHERE mc.member_id = %d
+           AND mc.status = 'active'
+           AND (mc.course_status_flags IS NULL OR TRIM(mc.course_status_flags) = '')
+           AND c.deleted_at IS NULL
+         ORDER BY c.title ASC",
+        $member_id
+    ));
+    $member->active_courses = !empty($courses) ? implode('، ', $courses) : '-';
+
+    $events = $wpdb->get_col($wpdb->prepare(
+        "SELECT DISTINCT e.name
+         FROM $event_registrations_table er
+         INNER JOIN $events_table e ON e.id = er.event_id
+         WHERE er.member_id = %d
+           AND (e.deleted_at IS NULL OR e.deleted_at = '0000-00-00 00:00:00')
+         ORDER BY e.name ASC",
+        $member_id
+    ));
+    $member->active_events = !empty($events) ? implode('، ', $events) : '-';
+
+    $rows = sc_users_export_prepare_rows([$member], $fields);
+    $row = !empty($rows[0]) ? $rows[0] : [];
+
+    wp_send_json_success([
+        'row' => $row,
+        'fields' => $fields,
+        'labels' => $field_labels,
+        'member_label' => trim((string) $member->first_name . ' ' . (string) $member->last_name),
+    ]);
+}
+
 function sc_users_info_export_handler() {
     if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
         wp_die('دسترسی غیرمجاز.');
@@ -1045,14 +1714,30 @@ function sc_users_info_export_handler() {
 
     $rows = sc_users_export_prepare_rows($subjects, $fields);
     sc_users_export_discard_output_buffers();
+
+    $pvc_export = !empty($_POST['pvc_export']);
+    if ($pvc_export) {
+        if (!sc_user_can_users_export_pvc()) {
+            wp_die('خروجی کارت PVC فقط برای مدیر کل سامانه فعال است.');
+        }
+        $pvc_name_field = isset($_POST['pvc_image_name_field']) ? sanitize_key(wp_unslash($_POST['pvc_image_name_field'])) : 'full_name';
+        sc_users_export_to_pvc_zip($rows, $fields, $field_labels, [
+            'image_name_field' => $pvc_name_field,
+        ]);
+        return;
+    }
+
     $format = isset($_POST['export_format']) ? sanitize_text_field(wp_unslash($_POST['export_format'])) : 'pdf';
+    if (!in_array($format, ['pdf', 'excel', 'cards_zip'], true)) {
+        $format = 'pdf';
+    }
     $layout = [
         'page_size' => isset($_POST['page_size']) ? sanitize_text_field(wp_unslash($_POST['page_size'])) : ($template['page_size'] ?? 'A4'),
         'cards_per_page' => isset($_POST['cards_per_page']) ? absint($_POST['cards_per_page']) : (int) ($template['cards_per_page'] ?? 2),
     ];
 
     $image_fields = ['personal_photo', 'id_card_photo', 'sport_insurance_photo', 'attendance_qr'];
-    if (!empty(array_intersect($fields, $image_fields))) {
+    if (!empty(array_intersect($fields, $image_fields)) && $format !== 'cards_zip') {
         $format = 'pdf';
     }
 
@@ -1062,5 +1747,9 @@ function sc_users_info_export_handler() {
     }
 
     $title = $template && !empty($template['title']) ? $template['title'] : 'خروجی اطلاعات کاربران';
+    if ($format === 'cards_zip') {
+        sc_users_export_render_pdf_page($rows, $fields, $layout, $title, $template, $field_labels, ['export_mode' => 'cards_zip']);
+        return;
+    }
     sc_users_export_render_pdf_page($rows, $fields, $layout, $title, $template, $field_labels);
 }

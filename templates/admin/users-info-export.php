@@ -31,13 +31,14 @@ $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
 
 $templates = sc_users_export_get_saved_templates();
 $field_labels = sc_users_export_get_field_labels();
+$can_pvc_export = function_exists('sc_user_can_users_export_pvc') && sc_user_can_users_export_pvc();
 ?>
 
 <div class="wrap sc-users-export-page-header sc-notification-add-wrap sc-users-export-wrap sc-cert-wrap">
     <h1 class="wp-heading-inline sc-notification-add-title">خروجی اطلاعات کاربران</h1>
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc-users-export-templates')); ?>" class="page-title-action">تعریف قالب خروجی</a>
     <hr class="wp-header-end">
-    <p class="sc-users-export-subtitle">فیلتر کاربران و فیلدهای خروجی را انتخاب کنید. در صورت انتخاب عکس پرسنلی یا QR حضور و غیاب، خروجی فقط PDF خواهد بود.</p>
+    <p class="sc-users-export-subtitle">فیلتر کاربران و فیلدهای خروجی را انتخاب کنید. در صورت انتخاب فیلد تصویری، خروجی PDF یا ZIP تصاویر کارت در دسترس است.</p>
 </div>
 
 <div class="wrap sc-users-export-page-body sc-notification-add-wrap sc-users-export-wrap sc-cert-wrap">
@@ -288,7 +289,9 @@ $field_labels = sc_users_export_get_field_labels();
                             <select name="export_format" id="sc-export-format" class="sc-notification-select">
                                 <option value="pdf">PDF</option>
                                 <option value="excel">Excel</option>
+                                <option value="cards_zip">ZIP تصاویر کارت‌ها (PNG)</option>
                             </select>
+                            <p class="description">در حالت ZIP، هر کارت به‌صورت یک فایل PNG جداگانه درون فایل فشرده قرار می‌گیرد.</p>
                         </td>
                     </tr>
                     <tr>
@@ -310,6 +313,23 @@ $field_labels = sc_users_export_get_field_labels();
                             </select>
                         </td>
                     </tr>
+                    <?php if ($can_pvc_export) : ?>
+                    <tr class="sc-pvc-export-row">
+                        <th scope="row">خروجی کارت PVC</th>
+                        <td>
+                            <label class="sc-inline-check">
+                                <input type="checkbox" name="pvc_export" id="sc-pvc-export" value="1">
+                                حالت کارت PVC (فایل ZIP شامل اکسل + پوشه تصاویر)
+                            </label>
+                            <p class="description">فقط برای مدیر کل — فیلدهای متنی در اکسل و تصاویر انتخاب‌شده در پوشه <code>images</code> قرار می‌گیرند.</p>
+                            <div id="sc-pvc-options" class="sc-pvc-options" style="display:none;">
+                                <label for="sc-pvc-image-name-field">نام‌گذاری فایل عکس بر اساس</label>
+                                <select name="pvc_image_name_field" id="sc-pvc-image-name-field" class="sc-notification-select"></select>
+                                <p class="description">اگر «نام و نام خانوادگی» انتخاب شود: <code>نام خانوادگی + شماره همراه</code> — اگر «شماره همراه» انتخاب شود: فقط شماره (مثلاً <code>09038412995</code>).</p>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
                     </tbody>
                 </table>
 
@@ -321,6 +341,7 @@ $field_labels = sc_users_export_get_field_labels();
             </div>
         </div>
 
+        <script type="application/json" id="sc-export-field-labels-data"><?php echo wp_json_encode($field_labels, JSON_UNESCAPED_UNICODE); ?></script>
         <p class="submit sc-notification-add-submit sc-users-export-submit sc-cert-submit">
             <button class="button button-primary" type="submit">ایجاد خروجی</button>
         </p>
