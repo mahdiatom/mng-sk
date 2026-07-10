@@ -801,19 +801,22 @@ body.sc-invoices_page_sc-add-discount-code .sc-discount-add-panel--limits.sc-aud
     text-align: left;
 }
 
-.sc-users-export-wrap .sc-pvc-options {
+.sc-users-export-wrap .sc-pvc-options,
+.sc-users-export-wrap .sc-excel-images-options {
     margin-top: 10px;
     padding-top: 10px;
     border-top: 1px dashed #dcdcde;
 }
 
-.sc-users-export-wrap .sc-pvc-options label {
+.sc-users-export-wrap .sc-pvc-options label,
+.sc-users-export-wrap .sc-excel-images-options label {
     display: block;
     margin-bottom: 6px;
     font-weight: 600;
 }
 
-.sc-users-export-wrap .sc-pvc-options .sc-notification-select {
+.sc-users-export-wrap .sc-pvc-options .sc-notification-select,
+.sc-users-export-wrap .sc-excel-images-options .sc-notification-select {
     max-width: 360px;
 }
 

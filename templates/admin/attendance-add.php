@@ -74,7 +74,7 @@ if (
     }
 
     $current_user_id = get_current_user_id();
-    $current_is_coach_user = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach');
+    $current_is_coach_user = function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance();
     $current_coach_id_for_assignment = 0;
     if ($current_is_coach_user) {
         $coaches_table = $wpdb->prefix . 'sc_coaches';
@@ -453,7 +453,7 @@ $current_coach_id = 0;
 if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
     && function_exists('sc_secretary_get_branch_courses_for_attendance')) {
     $courses = sc_secretary_get_branch_courses_for_attendance();
-} elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+} elseif (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
     // کاربر مربی است - فقط دوره‌های مربی را نمایش بده
     $coaches_table = $wpdb->prefix . 'sc_coaches';
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
@@ -551,7 +551,7 @@ if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
         $selected_date = sc_shamsi_to_gregorian_date($selected_date_shamsi);
     }
 
-$is_coach_attendance_user = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach') && $current_coach_id > 0;
+$is_coach_attendance_user = function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance() && $current_coach_id > 0;
 $coach_attendance_access = [
     'allowed' => true,
     'code' => 'ok',
@@ -631,7 +631,7 @@ if ($selected_course_id && !empty($coach_attendance_access['allowed'])) {
                 array_merge([$selected_course_id], $match['args'], $chapter_args, $group_filter['args'])
             ));
         }
-    } elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    } elseif (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
         $member_scope = function_exists('sc_attendance_member_scope_sql')
             ? sc_attendance_member_scope_sql($selected_course_id, $current_coach_id, $selected_chapter_name)
             : [
@@ -1180,6 +1180,7 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
 
 <script>
 window.scAttendanceCoachDateRules = <?php echo wp_json_encode($coach_attendance_rules_map, JSON_UNESCAPED_UNICODE); ?>;
+window.scAttendanceCoachDateRestrictEnabled = <?php echo $is_coach_attendance_user ? 'true' : 'false'; ?>;
 
 document.addEventListener('click', function (event) {
     const clearBtn = event.target.closest('.sc-attendance-clear-btn');
@@ -1200,6 +1201,10 @@ document.addEventListener('click', function (event) {
 
 jQuery(document).ready(function($) {
     function scAttendanceApplyCoachDateRules(optionValue) {
+        if (!window.scAttendanceCoachDateRestrictEnabled) {
+            return;
+        }
+
         var rulesMap = window.scAttendanceCoachDateRules || {};
         var rules = (optionValue && rulesMap[optionValue]) ? rulesMap[optionValue] : null;
         var $dateInput = $('#attendance_date');
@@ -1214,8 +1219,8 @@ jQuery(document).ready(function($) {
             $dateInput.attr('data-allowed-ir-weekdays', '');
             $dateInput.attr('data-min-gregorian', '');
             $dateInput.attr('data-max-gregorian', '');
-            $dateInput.attr('data-restrict-message', '');
-            if ($help.length && $dateInput.data('coachMode') === 1) {
+            $dateInput.attr('data-restrict-message', 'این تاریخ برای ثبت حضور و غیاب مربی مجاز نیست.');
+            if ($help.length) {
                 $help.text('ابتدا دوره را انتخاب کنید تا فقط روزهای مجاز برای مربی نمایش داده شود.');
             }
             return;

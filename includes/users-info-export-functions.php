@@ -952,10 +952,43 @@ function sc_users_export_filename() {
 }
 
 /**
- * خروجی کارت PVC — فقط مدیر کل (manage_options).
+ * خروجی‌های ZIP ویژه (PVC، ترکیب اکسل و فایل) — فقط مدیر کل (manage_options).
  */
 function sc_user_can_users_export_pvc($user_id = 0) {
-    return user_can($user_id ? (int) $user_id : 0, 'manage_options');
+    $user_id = $user_id > 0 ? (int) $user_id : get_current_user_id();
+    if ($user_id <= 0) {
+        return false;
+    }
+    return user_can($user_id, 'manage_options');
+}
+
+/**
+ * @return array<string, string>
+ */
+function sc_users_export_get_image_field_folder_labels($labels = null) {
+    if (!is_array($labels)) {
+        $labels = sc_users_export_get_field_labels();
+    }
+    $folders = [];
+    foreach (sc_users_export_get_image_field_keys() as $field_key) {
+        $label = isset($labels[$field_key]) ? (string) $labels[$field_key] : $field_key;
+        $folders[$field_key] = sc_users_export_sanitize_zip_folder_name($label);
+    }
+    return $folders;
+}
+
+function sc_users_export_sanitize_zip_folder_name($name) {
+    $name = trim((string) $name);
+    $name = str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], ' ', $name);
+    $name = preg_replace('/\s+/u', ' ', $name);
+    $name = trim($name, " \t\n\r\0\x0B.");
+    if ($name === '') {
+        return 'images';
+    }
+    if (function_exists('mb_substr')) {
+        return mb_substr($name, 0, 80);
+    }
+    return substr($name, 0, 80);
 }
 
 /**
@@ -1020,6 +1053,43 @@ function sc_users_export_sanitize_pvc_filename($name) {
         return mb_substr($name, 0, 180);
     }
     return substr($name, 0, 180);
+}
+
+/**
+ * همان مقداری که در سلول اکسل نوشته می‌شود.
+ *
+ * @param array<string, mixed> $row
+ */
+function sc_users_export_get_excel_cell_display_value($row, $field) {
+    $field = sanitize_key((string) $field);
+    if ($field === '' || !isset($row[$field])) {
+        return '-';
+    }
+    return (string) $row[$field];
+}
+
+/**
+ * نام فایل از مقدار اکسل — فقط کاراکترهای غیرمجاز سیستم‌فایل حذف می‌شوند.
+ */
+function sc_users_export_sanitize_excel_filename($name) {
+    $name = (string) $name;
+    $name = str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], '', $name);
+    $name = rtrim($name, " \t\n\r\0\x0B.");
+    if ($name === '') {
+        return 'user';
+    }
+    if (function_exists('mb_substr')) {
+        return mb_substr($name, 0, 180);
+    }
+    return substr($name, 0, 180);
+}
+
+/**
+ * @param array<string, mixed> $row
+ */
+function sc_users_export_build_excel_image_basename($row, $name_field) {
+    $value = sc_users_export_get_excel_cell_display_value($row, $name_field);
+    return sc_users_export_sanitize_excel_filename($value);
 }
 
 /**
@@ -1288,6 +1358,126 @@ function sc_users_export_to_pvc_zip($rows, $fields, $labels = null, $options = [
             $zip->addFile($image_file, 'images/' . basename($image_file));
         }
     }
+    $zip->close();
+
+    sc_users_export_discard_output_buffers();
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment;filename="' . $zip_filename . '"');
+    header('Content-Length: ' . filesize($zip_path));
+    header('Cache-Control: max-age=0');
+    readfile($zip_path);
+    sc_users_export_cleanup_temp_dir($temp_dir);
+    exit;
+}
+
+/**
+ * ترکیب اکسل و فایل — اکسل فیلدهای متنی + ZIP با پوشه جدا برای هر نوع تصویر.
+ *
+ * @param array<int, array<string, mixed>> $rows
+ * @param string[] $fields
+ * @param array<string, string>|null $labels
+ * @param array<string, mixed> $options
+ */
+function sc_users_export_to_excel_images_zip($rows, $fields, $labels = null, $options = []) {
+    if (!function_exists('sc_check_phpspreadsheet')) {
+        wp_die('کتابخانه Excel در دسترس نیست.');
+    }
+    if (!class_exists('ZipArchive')) {
+        wp_die('افزونه ZipArchive در PHP فعال نیست.');
+    }
+
+    $image_fields = sc_users_export_get_image_field_keys();
+    $selected_image_fields = array_values(array_intersect($fields, $image_fields));
+    if (empty($selected_image_fields)) {
+        wp_die('برای خروجی ترکیب اکسل و فایل حداقل یک فیلد تصویری انتخاب کنید.');
+    }
+
+    $name_field = isset($options['image_name_field']) ? sanitize_key((string) $options['image_name_field']) : 'full_name';
+    $excel_fields = array_values(array_diff($fields, $image_fields));
+    if (empty($excel_fields)) {
+        wp_die('برای خروجی ترکیب اکسل و فایل حداقل یک فیلد متنی علاوه بر تصویر انتخاب کنید.');
+    }
+
+    if (!is_array($labels)) {
+        $labels = sc_users_export_get_field_labels();
+    }
+
+    $name_options = sc_users_export_get_pvc_image_name_field_options($fields, $labels);
+    if (!isset($name_options[$name_field])) {
+        $name_field = isset($name_options['full_name']) ? 'full_name' : array_key_first($name_options);
+    }
+
+    $folder_labels = sc_users_export_get_image_field_folder_labels($labels);
+
+    $temp_dir = trailingslashit(get_temp_dir()) . 'sc_excel_img_' . wp_generate_password(12, false, false);
+    if (!wp_mkdir_p($temp_dir)) {
+        wp_die('امکان ساخت پوشه موقت وجود ندارد.');
+    }
+
+    $excel_filename = sc_users_export_filename() . '.xlsx';
+    $excel_path = trailingslashit($temp_dir) . $excel_filename;
+    sc_users_export_to_excel($rows, $excel_fields, $labels, $excel_path);
+
+    $used_names = [];
+    foreach ($selected_image_fields as $image_field) {
+        $used_names[$image_field] = [];
+    }
+
+    foreach ($rows as $row) {
+        $basename = sc_users_export_build_excel_image_basename($row, (string) $name_field);
+        foreach ($selected_image_fields as $image_field) {
+            $source = $row[$image_field] ?? '';
+            $binary = sc_users_export_load_image_binary($source);
+            if (!$binary) {
+                continue;
+            }
+            $folder_name = $folder_labels[$image_field] ?? sc_users_export_sanitize_zip_folder_name($image_field);
+            $folder_path = trailingslashit($temp_dir) . $folder_name;
+            if (!wp_mkdir_p($folder_path)) {
+                continue;
+            }
+            $candidate = $basename;
+            $unique = $candidate;
+            $counter = 2;
+            while (isset($used_names[$image_field][$unique])) {
+                $unique = $candidate . '_' . $counter;
+                $counter++;
+            }
+            $used_names[$image_field][$unique] = true;
+            $ext = $binary['extension'] !== '' ? $binary['extension'] : 'jpg';
+            $file_path = $folder_path . '/' . $unique . '.' . $ext;
+            file_put_contents($file_path, $binary['content']);
+        }
+    }
+
+    $zip_filename = sc_users_export_filename() . '_excel-files.zip';
+    $zip_path = trailingslashit($temp_dir) . $zip_filename;
+    $zip = new ZipArchive();
+    if ($zip->open($zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        sc_users_export_cleanup_temp_dir($temp_dir);
+        wp_die('امکان ساخت فایل ZIP وجود ندارد.');
+    }
+
+    $zip->addFile($excel_path, $excel_filename);
+
+    foreach ($selected_image_fields as $image_field) {
+        $folder_name = $folder_labels[$image_field] ?? sc_users_export_sanitize_zip_folder_name($image_field);
+        $folder_path = trailingslashit($temp_dir) . $folder_name;
+        if (!is_dir($folder_path)) {
+            continue;
+        }
+        $image_files = glob($folder_path . '/*');
+        if (!is_array($image_files)) {
+            continue;
+        }
+        foreach ($image_files as $image_file) {
+            if (!is_file($image_file)) {
+                continue;
+            }
+            $zip->addFile($image_file, $folder_name . '/' . basename($image_file));
+        }
+    }
+
     $zip->close();
 
     sc_users_export_discard_output_buffers();
@@ -1727,7 +1917,19 @@ function sc_users_info_export_handler() {
         return;
     }
 
+    $excel_images_export = !empty($_POST['excel_images_export']);
     $format = isset($_POST['export_format']) ? sanitize_text_field(wp_unslash($_POST['export_format'])) : 'pdf';
+    if ($format === 'excel_images' || $excel_images_export) {
+        if (!sc_user_can_users_export_pvc()) {
+            wp_die('خروجی ترکیب اکسل و فایل فقط برای مدیر کل سامانه فعال است.');
+        }
+        $excel_images_name_field = isset($_POST['excel_images_name_field']) ? sanitize_key(wp_unslash($_POST['excel_images_name_field'])) : 'full_name';
+        sc_users_export_to_excel_images_zip($rows, $fields, $field_labels, [
+            'image_name_field' => $excel_images_name_field,
+        ]);
+        return;
+    }
+
     if (!in_array($format, ['pdf', 'excel', 'cards_zip'], true)) {
         $format = 'pdf';
     }

@@ -51,7 +51,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['atten
         $attendance_id
     ));
 
-    if ($row && current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    if ($row && function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
         $coach_row = $wpdb->get_row($wpdb->prepare(
             "SELECT id FROM {$wpdb->prefix}sc_coaches WHERE user_id = %d LIMIT 1",
             get_current_user_id()
@@ -136,7 +136,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'justify' && isset($_GET['atte
         $attendance_id
     ));
 
-    if ($row && current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    if ($row && function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
         $coach_row = $wpdb->get_row($wpdb->prepare(
             "SELECT id FROM {$wpdb->prefix}sc_coaches WHERE user_id = %d LIMIT 1",
             get_current_user_id()
@@ -207,7 +207,7 @@ $current_user = wp_get_current_user();
 if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
     && function_exists('sc_secretary_get_branch_courses_for_attendance_filter')) {
     $courses = sc_secretary_get_branch_courses_for_attendance_filter();
-} elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+} elseif (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
     // کاربر مربی است - فقط دوره‌های مربی را نمایش بده
     $coaches_table = $wpdb->prefix . 'sc_coaches';
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
@@ -241,7 +241,7 @@ if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
 }
 
 $coach_scope_members_list_id = 0;
-if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+if (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
     $_cm_coach_row = $wpdb->get_row($wpdb->prepare(
         "SELECT id FROM {$wpdb->prefix}sc_coaches WHERE user_id = %d LIMIT 1",
         $current_user_id
@@ -358,7 +358,7 @@ if ($active_tab === 'individual') {
     
     if (function_exists('sc_secretary_append_attendance_course_scope') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
         sc_secretary_append_attendance_course_scope($where_conditions, $where_values);
-    } elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    } elseif (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
         $coaches_table = $wpdb->prefix . 'sc_coaches';
         $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
         
@@ -523,7 +523,7 @@ if ($active_tab === 'absents') {
 
     if (function_exists('sc_secretary_append_attendance_course_scope') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
         sc_secretary_append_attendance_course_scope($where_conditions, $where_values);
-    } elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    } elseif (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
         $course_coaches_table_abs = $wpdb->prefix . 'sc_course_coaches';
         $coach_abs = $wpdb->get_row($wpdb->prepare(
             "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",
@@ -645,7 +645,7 @@ if ($active_tab === 'grouped') {
     
     if (function_exists('sc_secretary_append_attendance_course_scope') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
         sc_secretary_append_attendance_course_scope($where_conditions, $where_values);
-    } elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    } elseif (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
         $coaches_table = $wpdb->prefix . 'sc_coaches';
         $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
         
@@ -800,7 +800,7 @@ if ($active_tab === 'overall') {
     
     if (function_exists('sc_secretary_append_attendance_course_scope') && function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
         sc_secretary_append_attendance_course_scope($where_conditions, $where_values);
-    } elseif (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+    } elseif (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
         $coaches_table = $wpdb->prefix . 'sc_coaches';
         $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
         
@@ -1300,7 +1300,7 @@ $display_date_to_shamsi   = $filter_date_to_shamsi ?: $today_shamsi;
 $where_conditions = ["1=1"];
 $where_values = [];
 
-if (current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach')) {
+if (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
     $course_coaches_table_abs_tab4 = $wpdb->prefix . 'sc_course_coaches';
     $coach_abs_tab4 = $wpdb->get_row($wpdb->prepare(
         "SELECT id FROM $coaches_table WHERE user_id = %d LIMIT 1",

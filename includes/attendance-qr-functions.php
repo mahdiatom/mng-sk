@@ -1798,7 +1798,7 @@ function sc_attendance_qr_register_present(array $args) {
     }
 
     $current_coach_id = 0;
-    $current_is_coach = current_user_can('coach') && !current_user_can('administrator') && !current_user_can('club_coach');
+    $current_is_coach = function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance();
     if ($current_is_coach) {
         $coaches_table = $wpdb->prefix . 'sc_coaches';
         $current_coach_id = (int) $wpdb->get_var($wpdb->prepare(

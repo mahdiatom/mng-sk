@@ -411,6 +411,30 @@ function sc_get_coach_weekly_schedule_matrix($coach_id) {
 }
 
 /**
+ * آیا محدودیت تاریخ حضور و غیاب (روز کلاس + مهلت) فقط برای این کاربر اعمال شود؟
+ * فقط نقش مربی خالص — نه مدیر کل، مدیر باشگاه، مدیر سامانه، منشی.
+ *
+ * @param int $user_id
+ * @return bool
+ */
+function sc_user_is_coach_only_for_attendance($user_id = 0) {
+    $user_id = $user_id > 0 ? (int) $user_id : get_current_user_id();
+    if ($user_id <= 0) {
+        return false;
+    }
+    if (user_can($user_id, 'administrator')) {
+        return false;
+    }
+    if (function_exists('sc_user_has_club_manager_role') && sc_user_has_club_manager_role($user_id)) {
+        return false;
+    }
+    if (function_exists('sc_user_is_secretary') && sc_user_is_secretary($user_id)) {
+        return false;
+    }
+    return user_can($user_id, 'coach');
+}
+
+/**
  * @return int
  */
 function sc_attendance_coach_edit_deadline_days() {

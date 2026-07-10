@@ -428,9 +428,17 @@ jQuery(function ($) {
         return $('#sc-pvc-export').length && $('#sc-pvc-export').is(':checked');
     }
 
-    function refreshPvcImageNameOptions() {
-        var $select = $('#sc-pvc-image-name-field');
-        if (!$select.length) {
+    function isExcelImagesExportEnabled() {
+        var $format = $('#sc-export-format');
+        return $format.length && $format.val() === 'excel_images';
+    }
+
+    function isAdminZipExportEnabled() {
+        return isPvcExportEnabled() || isExcelImagesExportEnabled();
+    }
+
+    function refreshAdminZipImageNameOptions($select) {
+        if (!$select || !$select.length) {
             return;
         }
         var selectedFields = getSelectedExportFields();
@@ -471,14 +479,36 @@ jQuery(function ($) {
         }
     }
 
-    function togglePvcExportUi() {
-        var enabled = isPvcExportEnabled();
-        $('#sc-pvc-options').toggle(enabled);
-        $('.sc-users-export-output-panel tr').not('.sc-pvc-export-row').toggle(!enabled);
-        $('#sc-template-preview').toggle(!enabled);
-        if (enabled) {
+    function refreshPvcImageNameOptions() {
+        refreshAdminZipImageNameOptions($('#sc-pvc-image-name-field'));
+    }
+
+    function refreshExcelImagesNameOptions() {
+        refreshAdminZipImageNameOptions($('#sc-excel-images-name-field'));
+    }
+
+    function toggleAdminZipExportUi() {
+        var pvcEnabled = isPvcExportEnabled();
+        var excelImagesEnabled = isExcelImagesExportEnabled();
+        $('#sc-pvc-options').toggle(pvcEnabled);
+        $('#sc-excel-images-options').toggle(excelImagesEnabled);
+        $('#sc-export-format-desc-default').toggle(!excelImagesEnabled);
+        $('#sc-export-format-desc-excel-images').toggle(excelImagesEnabled);
+        var adminZipEnabled = pvcEnabled || excelImagesEnabled;
+        $('.sc-users-export-output-panel tr')
+            .not('.sc-pvc-export-row, .sc-export-format-row')
+            .toggle(!adminZipEnabled);
+        $('#sc-template-preview').toggle(!adminZipEnabled);
+        if (pvcEnabled) {
             refreshPvcImageNameOptions();
         }
+        if (excelImagesEnabled) {
+            refreshExcelImagesNameOptions();
+        }
+    }
+
+    function togglePvcExportUi() {
+        toggleAdminZipExportUi();
     }
 
     function resolveTemplateLayout(fields) {
@@ -582,16 +612,28 @@ jQuery(function ($) {
             $('input[name="fields[]"][value="sport_insurance_photo"]').is(':checked') ||
             $('input[name="fields[]"][value="attendance_qr"]').is(':checked');
         var $format = $('#sc-export-format');
+        var current = $format.val();
+        var $excelImagesOption = $format.find('option[value="excel_images"]');
         if (hasPhoto) {
-            if ($format.val() === 'excel') {
+            if (current === 'excel') {
                 $format.val('pdf');
             }
             $format.find('option[value="excel"]').prop('disabled', true);
             $format.find('option[value="cards_zip"]').prop('disabled', false);
+            if ($excelImagesOption.length) {
+                $excelImagesOption.prop('disabled', false);
+            }
         } else {
             $format.find('option[value="excel"]').prop('disabled', false);
             $format.find('option[value="cards_zip"]').prop('disabled', false);
+            if ($excelImagesOption.length) {
+                $excelImagesOption.prop('disabled', true);
+                if (current === 'excel_images') {
+                    $format.val('excel');
+                }
+            }
         }
+        toggleAdminZipExportUi();
     }
 
     function loadEventFieldsForExport(eventIds, selectedFields) {
@@ -619,6 +661,7 @@ jQuery(function ($) {
             }
             enforceFormatRules();
             refreshPvcImageNameOptions();
+            refreshExcelImagesNameOptions();
             updatePreview();
         });
     }
@@ -686,10 +729,20 @@ jQuery(function ($) {
         $('input[name="fields[]"]').on('change', function () {
             enforceFormatRules();
             refreshPvcImageNameOptions();
+            refreshExcelImagesNameOptions();
             updatePreview();
         });
         $('#sc-pvc-export').on('change', function () {
-            togglePvcExportUi();
+            if ($(this).is(':checked') && $('#sc-export-format').val() === 'excel_images') {
+                $('#sc-export-format').val('pdf');
+            }
+            toggleAdminZipExportUi();
+            enforceFormatRules();
+        });
+        $('#sc-export-format').on('change', function () {
+            if ($(this).val() === 'excel_images') {
+                $('#sc-pvc-export').prop('checked', false);
+            }
             enforceFormatRules();
         });
         $('#sc-page-size, #sc-cards-per-page').on('change', updatePreview);
@@ -775,6 +828,23 @@ jQuery(function ($) {
                 return false;
             }
         }
+        if (isExcelImagesExportEnabled()) {
+            var selectedFieldsExcel = getSelectedExportFields();
+            var hasImageFieldExcel = selectedFieldsExcel.some(function (field) {
+                return exportImageFields.indexOf(field) !== -1;
+            });
+            var hasTextFieldExcel = selectedFieldsExcel.some(function (field) {
+                return exportImageFields.indexOf(field) === -1;
+            });
+            if (!hasImageFieldExcel) {
+                alert('برای خروجی ترکیب اکسل و فایل حداقل یک فیلد تصویری انتخاب کنید.');
+                return false;
+            }
+            if (!hasTextFieldExcel) {
+                alert('برای خروجی ترکیب اکسل و فایل حداقل یک فیلد متنی علاوه بر تصویر انتخاب کنید.');
+                return false;
+            }
+        }
         return true;
     });
 
@@ -799,7 +869,8 @@ jQuery(function ($) {
         updatePreview();
         enforceFormatRules();
         refreshPvcImageNameOptions();
-        togglePvcExportUi();
+        refreshExcelImagesNameOptions();
+        toggleAdminZipExportUi();
     }
 
     // --------------------------

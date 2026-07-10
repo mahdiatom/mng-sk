@@ -283,15 +283,24 @@ $can_pvc_export = function_exists('sc_user_can_users_export_pvc') && sc_user_can
             <div class="inside">
                 <table class="form-table sc-notification-form-table sc-users-export-form-table" role="presentation">
                     <tbody>
-                    <tr>
+                    <tr class="sc-export-format-row">
                         <th scope="row"><label for="sc-export-format">فرمت خروجی</label></th>
                         <td>
                             <select name="export_format" id="sc-export-format" class="sc-notification-select">
                                 <option value="pdf">PDF</option>
                                 <option value="excel">Excel</option>
                                 <option value="cards_zip">ZIP تصاویر کارت‌ها (PNG)</option>
+                                <?php if ($can_pvc_export) : ?>
+                                <option value="excel_images">ترکیب اکسل و فایل</option>
+                                <?php endif; ?>
                             </select>
-                            <p class="description">در حالت ZIP، هر کارت به‌صورت یک فایل PNG جداگانه درون فایل فشرده قرار می‌گیرد.</p>
+                            <p class="description" id="sc-export-format-desc-default">در حالت ZIP تصاویر کارت‌ها، هر کارت به‌صورت یک فایل PNG جداگانه درون فایل فشرده قرار می‌گیرد.</p>
+                            <p class="description" id="sc-export-format-desc-excel-images" style="display:none;">فقط برای مدیر کل — فیلدهای متنی در فایل اکسل و هر نوع تصویر در پوشه مخصوص خود (مثلاً عکس کارت ملی، QR و ...).</p>
+                            <div id="sc-excel-images-options" class="sc-excel-images-options" style="display:none;">
+                                <label for="sc-excel-images-name-field">نام‌گذاری فایل‌های تصویر بر اساس</label>
+                                <select name="excel_images_name_field" id="sc-excel-images-name-field" class="sc-notification-select"></select>
+                                <p class="description">دقیقاً همان مقداری که در ستون مربوطه در فایل اکسل نوشته می‌شود — بدون پیشوند یا پسوند اضافه.</p>
+                            </div>
                         </td>
                     </tr>
                     <tr>
