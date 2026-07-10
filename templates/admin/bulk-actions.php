@@ -123,6 +123,11 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 <select name="target_type" id="sc-target-type">
                     <option value="all">همه کاربران</option>
                     <option value="free_users">کاربران آزاد (بدون هیچ دوره تا امروز)</option>
+                    <option value="identity_verified">کاربران احراز شده</option>
+                    <option value="identity_unverified">کاربران احراز نشده</option>
+                    <?php if (function_exists('sc_is_registration_fee_enabled') && sc_is_registration_fee_enabled()) : ?>
+                    <option value="registration_fee_unpaid">کاربران بدون پرداخت عضویت</option>
+                    <?php endif; ?>
                     <option value="specific">انتخاب کاربران خاص (جستجو)</option>
                     <option value="course">بر اساس دوره</option>
                     <option value="event">بر اساس رویداد</option>
@@ -263,6 +268,10 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                     <option value="activate_members">فعال کردن کاربر</option>
                     <option value="deactivate_members">غیرفعال کردن کاربر</option>
                     <option value="verify_identity">تایید احراز هویت</option>
+                    <option value="unverify_identity">لغو احراز هویت</option>
+                    <?php if (function_exists('sc_is_registration_fee_enabled') && sc_is_registration_fee_enabled()) : ?>
+                    <option value="mark_registration_fee_paid">پرداخت حق عضویت</option>
+                    <?php endif; ?>
                     <option value="send_sms_redirect">ارسال پیامک (رفتن به اطلاعیه)</option>
                     <option value="enable_auto_invoice">فعال کردن صورت حساب خودکار</option>
                     <option value="disable_auto_invoice">غیرفعال کردن صورت حساب خودکار</option>

@@ -101,6 +101,15 @@ function sc_bulk_actions_get_members($target_type, $config = array()) {
         $where[] = "m.team_player IN ($team_placeholders)";
         $where[] = "m.skill_level IN ($level_placeholders)";
         $params = array_merge($params, $team_names, $level_names);
+    } elseif ($target_type === 'identity_verified') {
+        $where[] = 'm.identity_verified = 1';
+    } elseif ($target_type === 'identity_unverified') {
+        $where[] = '(m.identity_verified = 0 OR m.identity_verified IS NULL)';
+    } elseif ($target_type === 'registration_fee_unpaid') {
+        if (!function_exists('sc_is_registration_fee_enabled') || !sc_is_registration_fee_enabled()) {
+            return array();
+        }
+        $where[] = '(m.registration_fee_paid = 0 OR m.registration_fee_paid IS NULL)';
     }
 
     if (function_exists('sc_secretary_merge_member_where_parts')) {
@@ -165,6 +174,8 @@ function sc_bulk_actions_action_title($action_key) {
         'activate_members'       => 'فعال کردن کاربر',
         'deactivate_members'     => 'غیرفعال کردن کاربر',
         'verify_identity'        => 'تأیید احراز هویت',
+        'unverify_identity'      => 'لغو احراز هویت',
+        'mark_registration_fee_paid' => 'پرداخت حق عضویت',
         'send_sms_redirect'      => 'انتخاب برای ارسال پیامک',
         'enable_auto_invoice'    => 'فعال کردن صورت‌حساب خودکار',
         'disable_auto_invoice'   => 'غیرفعال کردن صورت‌حساب خودکار',
@@ -534,6 +545,81 @@ function sc_bulk_actions_execute_handler() {
             }
         }
         sc_bulk_actions_finish_with_report('verify_identity', $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'unverify_identity') {
+        $success_lines = array();
+        $fail_lines = array();
+        foreach ($member_ids as $member_id) {
+            $label = sc_bulk_actions_member_label($member_id);
+            $cur = $wpdb->get_row($wpdb->prepare("SELECT id, identity_verified FROM {$members_table} WHERE id = %d LIMIT 1", $member_id));
+            if (!$cur) {
+                $fail_lines[] = $label . ' — در پایگاه داده یافت نشد.';
+                continue;
+            }
+            if ((int) $cur->identity_verified !== 1) {
+                $success_lines[] = $label . ' — احراز هویت از قبل لغو شده بود (تغییری اعمال نشد).';
+                continue;
+            }
+            $res = $wpdb->update(
+                $members_table,
+                array('identity_verified' => 0, 'updated_at' => current_time('mysql')),
+                array('id' => $member_id),
+                array('%d', '%s'),
+                array('%d')
+            );
+            if ($res === false) {
+                $fail_lines[] = $label . ' — خطای پایگاه داده هنگام لغو احراز هویت.';
+            } else {
+                $success_lines[] = $label . ' — احراز هویت لغو شد.';
+            }
+        }
+        sc_bulk_actions_finish_with_report('unverify_identity', $success_lines, $fail_lines, $filtered_count);
+    }
+
+    if ($action_key === 'mark_registration_fee_paid') {
+        $success_lines = array();
+        $fail_lines = array();
+        if (!function_exists('sc_is_registration_fee_enabled') || !sc_is_registration_fee_enabled()) {
+            sc_bulk_actions_finish_with_report(
+                'mark_registration_fee_paid',
+                array(),
+                array(array('line' => 'حق عضویت در تنظیمات باشگاه فعال نیست.')),
+                $filtered_count
+            );
+        }
+        if (!function_exists('sc_admin_mark_member_registration_fee_paid')) {
+            sc_bulk_actions_finish_with_report(
+                'mark_registration_fee_paid',
+                array(),
+                array(array('line' => 'تابع ثبت پرداخت حق عضویت در دسترس نیست.')),
+                $filtered_count
+            );
+        }
+        foreach ($member_ids as $member_id) {
+            $label = sc_bulk_actions_member_label($member_id);
+            $cur = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, registration_fee_paid FROM {$members_table} WHERE id = %d LIMIT 1",
+                $member_id
+            ));
+            if (!$cur) {
+                $fail_lines[] = $label . ' — در پایگاه داده یافت نشد.';
+                continue;
+            }
+            if ((int) ($cur->registration_fee_paid ?? 0) === 1) {
+                $success_lines[] = $label . ' — حق عضویت از قبل پرداخت شده بود.';
+                // همچنان فاکتورهای pending را پاک کن
+                sc_admin_mark_member_registration_fee_paid($member_id);
+                continue;
+            }
+            $ok = sc_admin_mark_member_registration_fee_paid($member_id);
+            if ($ok) {
+                $success_lines[] = $label . ' — پرداخت حق عضویت ثبت شد؛ پیام حق عضویت دیگر نمایش داده نمی‌شود.';
+            } else {
+                $fail_lines[] = $label . ' — ثبت پرداخت حق عضویت ناموفق بود.';
+            }
+        }
+        sc_bulk_actions_finish_with_report('mark_registration_fee_paid', $success_lines, $fail_lines, $filtered_count);
     }
 
     if ($action_key === 'enable_auto_invoice' || $action_key === 'disable_auto_invoice') {

@@ -94,6 +94,7 @@ require_once SC_INCLUDES_DIR . 'users-info-export-functions.php'; // Users info 
 require_once SC_INCLUDES_DIR . 'bulk-actions-functions.php'; // Bulk actions on filtered members
 require_once SC_INCLUDES_DIR . 'certificates-functions.php'; // Certificates templates and issue
 require_once SC_INCLUDES_DIR . 'expense-export.php'; // Expense export functions
+require_once SC_INCLUDES_DIR . 'income-export.php'; // Income export functions
 require_once SC_INCLUDES_DIR . 'debtors-export.php'; // Debtors export functions
 require_once SC_INCLUDES_DIR . 'active-users-export.php'; // Active users export functions
 require_once SC_INCLUDES_DIR . 'payments-export.php'; // Payments export functions
@@ -982,6 +983,8 @@ function sc_check_and_create_tables() {
     $attendances_table = $wpdb->prefix . 'sc_attendances';
     $expense_categories_table = $wpdb->prefix . 'sc_expense_categories';
     $expenses_table = $wpdb->prefix . 'sc_expenses';
+    $income_categories_table = $wpdb->prefix . 'sc_income_categories';
+    $incomes_table = $wpdb->prefix . 'sc_incomes';
     $events_table = $wpdb->prefix . 'sc_events';
     $event_fields_table = $wpdb->prefix . 'sc_event_fields';
     $event_registrations_table = $wpdb->prefix . 'sc_event_registrations';
@@ -1019,6 +1022,8 @@ function sc_check_and_create_tables() {
     $attendances_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $attendances_table)) == $attendances_table;
     $expense_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expense_categories_table)) == $expense_categories_table;
     $expenses_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $expenses_table)) == $expenses_table;
+    $income_categories_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $income_categories_table)) == $income_categories_table;
+    $incomes_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $incomes_table)) == $incomes_table;
     $events_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $events_table)) == $events_table;
     $event_fields_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_fields_table)) == $event_fields_table;
     $event_registrations_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $event_registrations_table)) == $event_registrations_table;
@@ -1071,6 +1076,12 @@ function sc_check_and_create_tables() {
     }
     if (!$expenses_exists && function_exists('sc_create_expenses_table')) {
         sc_create_expenses_table();
+    }
+    if (!$income_categories_exists && function_exists('sc_create_income_categories_table')) {
+        sc_create_income_categories_table();
+    }
+    if (!$incomes_exists && function_exists('sc_create_incomes_table')) {
+        sc_create_incomes_table();
     }
     if (!$events_exists && function_exists('sc_create_events_table')) {
         sc_create_events_table();

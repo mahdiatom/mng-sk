@@ -476,7 +476,11 @@ function sc_users_export_get_field_labels() {
 }
 
 function sc_users_export_get_allowed_target_types() {
-    return ['all', 'free_users', 'specific', 'course', 'event', 'team', 'level', 'team_level'];
+    $types = ['all', 'free_users', 'specific', 'course', 'event', 'team', 'level', 'team_level', 'identity_verified', 'identity_unverified'];
+    if (function_exists('sc_is_registration_fee_enabled') && sc_is_registration_fee_enabled()) {
+        $types[] = 'registration_fee_unpaid';
+    }
+    return $types;
 }
 
 /**
@@ -763,6 +767,15 @@ function sc_users_export_get_members($target_type, $config = []) {
         $where[] = "m.team_player IN ($team_placeholders)";
         $where[] = "m.skill_level IN ($level_placeholders)";
         $params = array_merge($params, $team_names, $level_names);
+    } elseif ($target_type === 'identity_verified') {
+        $where[] = 'm.identity_verified = 1';
+    } elseif ($target_type === 'identity_unverified') {
+        $where[] = '(m.identity_verified = 0 OR m.identity_verified IS NULL)';
+    } elseif ($target_type === 'registration_fee_unpaid') {
+        if (!function_exists('sc_is_registration_fee_enabled') || !sc_is_registration_fee_enabled()) {
+            return [];
+        }
+        $where[] = '(m.registration_fee_paid = 0 OR m.registration_fee_paid IS NULL)';
     } else {
         // all: no extra where
     }

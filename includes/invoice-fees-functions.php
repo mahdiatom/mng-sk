@@ -350,6 +350,64 @@ function sc_mark_registration_fee_paid($member_id, $invoice_id = 0) {
     );
 }
 
+/**
+ * ثبت دستی پرداخت حق عضویت توسط ادمین: فلگ عضو + لغو فاکتورهای در انتظار (توقف پیام/یادآوری).
+ *
+ * @param int $member_id
+ * @return bool true اگر تازه پرداخت ثبت شد، false اگر از قبل پرداخت شده یا نامعتبر
+ */
+function sc_admin_mark_member_registration_fee_paid($member_id) {
+    $member_id = absint($member_id);
+    if (!$member_id || !sc_members_support_registration_fee_columns()) {
+        return false;
+    }
+
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, registration_fee_paid, registration_fee_invoice_id FROM `$members_table` WHERE id = %d LIMIT 1",
+        $member_id
+    ));
+    if (!$member) {
+        return false;
+    }
+
+    $already_paid = ((int) ($member->registration_fee_paid ?? 0) === 1);
+    if (!$already_paid) {
+        sc_mark_registration_fee_paid($member_id, (int) ($member->registration_fee_invoice_id ?? 0));
+    }
+
+    $pending = $wpdb->get_results($wpdb->prepare(
+        "SELECT id, woocommerce_order_id FROM `$invoices_table`
+         WHERE member_id = %d AND type = 'registration_fee' AND status = 'pending'",
+        $member_id
+    ));
+    if (!empty($pending)) {
+        foreach ($pending as $inv) {
+            $wpdb->update(
+                $invoices_table,
+                [
+                    'status'     => 'cancelled',
+                    'updated_at' => current_time('mysql'),
+                ],
+                ['id' => (int) $inv->id],
+                ['%s', '%s'],
+                ['%d']
+            );
+            if (!empty($inv->woocommerce_order_id) && function_exists('wc_get_order')) {
+                $order = wc_get_order((int) $inv->woocommerce_order_id);
+                if ($order && is_a($order, 'WC_Order') && $order->has_status(['pending', 'on-hold', 'failed'])) {
+                    $order->update_status('cancelled', 'لغو به‌خاطر ثبت دستی پرداخت حق عضویت توسط ادمین.');
+                }
+            }
+        }
+    }
+
+    return !$already_paid;
+}
+
 function sc_is_registration_fee_gate_active_for_user($player = null) {
     if (!is_user_logged_in() || current_user_can('manage_options')) {
         return false;

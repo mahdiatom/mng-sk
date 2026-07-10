@@ -226,6 +226,12 @@ $target_labels_map = [
     'wallet_negative' => 'موجودی منفی',
     'phone' => 'شماره خاص',
     'team' => 'تیم',
+    'free_users' => 'کاربران آزاد',
+    'identity_verified' => 'احراز شده',
+    'identity_unverified' => 'احراز نشده',
+    'registration_fee_unpaid' => 'بدون پرداخت عضویت',
+    'level' => 'سطح',
+    'team_level' => 'تیم + سطح',
 ];
 ?>
 

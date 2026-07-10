@@ -941,6 +941,24 @@ function sc_register_admin_menu() {
             'sc_admin_add_expense_page'
         );
 
+        $list_incomes_sufix = add_submenu_page(
+            'sc-invoices',
+            'لیست درآمدها',
+            'لیست درآمدها',
+            $sc_staff_cap,
+            'sc-incomes',
+            'sc_admin_incomes_list_page'
+        );
+
+        $add_income_sufix = add_submenu_page(
+            'sc-invoices',
+            'ثبت درآمد',
+            'ثبت درآمد',
+            $sc_staff_cap,
+            'sc-add-income',
+            'sc_admin_add_income_page'
+        );
+
         add_submenu_page(
             'sc-invoices',
             'کدهای تخفیف',
@@ -1313,15 +1331,15 @@ function sc_register_admin_menu() {
     }
 
     if (function_exists('sc_is_pro_feature_permalinks_enabled') && sc_is_pro_feature_permalinks_enabled()) {
-        add_menu_page(
-            'پیوند های یکتا',
-            'پیوند های یکتا',
-            'manage_options',
-            'options-permalink.php',
-            '',
-            'dashicons-admin-links',
-            60
-        );
+        // add_menu_page(
+        //     'پیوند های یکتا',
+        //     'پیوند های یکتا',
+        //     'manage_options',
+        //     'options-permalink.php',
+        //     '',
+        //     'dashicons-admin-links',
+        //     60
+        // );
     }
 
  /* ================= cate_team and level ================= */
@@ -1481,6 +1499,9 @@ function sc_register_admin_menu() {
     if (!empty($add_expense_sufix)) {
         add_action('load-' . $add_expense_sufix, 'callback_add_expense_sufix');
     }
+    if (!empty($add_income_sufix)) {
+        add_action('load-' . $add_income_sufix, 'callback_add_income_sufix');
+    }
     if (function_exists('sc_is_pro_feature_coaches_enabled') && sc_is_pro_feature_coaches_enabled() && isset($add_coach_sufix, $list_coaches_sufix)) {
         add_action('load-' . $add_coach_sufix, 'callback_add_coach_sufix');
         add_action('load-' . $list_coaches_sufix, 'process_coaches_table_data');
@@ -1619,6 +1640,9 @@ function sc_handle_excel_export() {
 
         case 'expenses':
             sc_export_expenses_to_excel();
+            break;
+        case 'incomes':
+            sc_export_incomes_to_excel();
             break;
         case 'debtors':
             sc_export_debtors_to_excel();
@@ -2990,6 +3014,16 @@ function sc_admin_expenses_list_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'expenses-list.php';
 }
 
+function sc_admin_add_income_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'income-add.php';
+}
+
+function sc_admin_incomes_list_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'incomes-list.php';
+}
+
 function sc_admin_add_event_page() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
@@ -3138,6 +3172,124 @@ function callback_add_expense_sufix() {
                 exit;
             }
         }
+    }
+}
+
+/**
+ * Process income creation/update form
+ */
+function callback_add_income_sufix() {
+    if (isset($_GET['page']) && $_GET['page'] == 'sc-add-income' && isset($_POST['submit_income'])) {
+        if (!isset($_POST['sc_income_nonce']) || !wp_verify_nonce($_POST['sc_income_nonce'], 'sc_add_income')) {
+            wp_die('خطای امنیتی. لطفاً دوباره تلاش کنید.');
+        }
+
+        sc_check_and_create_tables();
+
+        global $wpdb;
+        $incomes_table = $wpdb->prefix . 'sc_incomes';
+
+        if (empty($_POST['income_name'])) {
+            wp_redirect(admin_url('admin.php?page=sc-add-income&sc_status=income_add_error'));
+            exit;
+        }
+
+        $income_name = sanitize_text_field($_POST['income_name']);
+        $chapter = !empty($_POST['chapter']) ? sanitize_text_field($_POST['chapter']) : '';
+        $category_id = !empty($_POST['category_id']) ? absint($_POST['category_id']) : null;
+
+        if ($chapter === '') {
+            wp_redirect(admin_url('admin.php?page=sc-add-income&sc_status=income_add_error'));
+            exit;
+        }
+
+        if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
+            if (!function_exists('sc_secretary_chapter_in_scope') || !sc_secretary_chapter_in_scope($chapter)) {
+                wp_redirect(admin_url('admin.php?page=sc-add-income&sc_status=income_add_error'));
+                exit;
+            }
+        }
+
+        $amount_value = '';
+        if (!empty($_POST['amount_raw'])) {
+            $amount_value = sanitize_text_field($_POST['amount_raw']);
+        } elseif (!empty($_POST['amount'])) {
+            $amount_value = preg_replace('/[^0-9.]/', '', sanitize_text_field($_POST['amount']));
+        }
+        $amount = !empty($amount_value) && is_numeric($amount_value) ? floatval($amount_value) : 0;
+
+        if ($amount <= 0) {
+            wp_redirect(admin_url('admin.php?page=sc-add-income&sc_status=income_add_error'));
+            exit;
+        }
+
+        $income_date_shamsi = !empty($_POST['income_date_shamsi']) ? sanitize_text_field($_POST['income_date_shamsi']) : '';
+        $income_date_gregorian = null;
+
+        if (!empty($income_date_shamsi)) {
+            $income_date_gregorian = sc_shamsi_to_gregorian_date($income_date_shamsi);
+        } elseif (!empty($_POST['income_date_gregorian'])) {
+            $income_date_gregorian = sanitize_text_field($_POST['income_date_gregorian']);
+        }
+
+        if (!$income_date_gregorian) {
+            $income_date_gregorian = current_time('Y-m-d');
+            $today = new DateTime();
+            $today_jalali = gregorian_to_jalali((int) $today->format('Y'), (int) $today->format('m'), (int) $today->format('d'));
+            $income_date_shamsi = $today_jalali[0] . '/' .
+                str_pad($today_jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
+                str_pad($today_jalali[2], 2, '0', STR_PAD_LEFT);
+        }
+
+        $description = !empty($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
+        $income_id = isset($_POST['income_id']) ? absint($_POST['income_id']) : 0;
+
+        if ($income_id > 0 && function_exists('sc_secretary_can_access_income') && !sc_secretary_can_access_income($income_id)) {
+            wp_die('دسترسی غیرمجاز.');
+        }
+
+        $income_data = [
+            'name' => $income_name,
+            'chapter' => $chapter,
+            'category_id' => $category_id,
+            'income_date_shamsi' => $income_date_shamsi,
+            'income_date_gregorian' => $income_date_gregorian,
+            'amount' => $amount,
+            'description' => $description,
+            'updated_at' => current_time('mysql'),
+        ];
+
+        if ($income_id > 0) {
+            $updated = $wpdb->update(
+                $incomes_table,
+                $income_data,
+                ['id' => $income_id],
+                ['%s', '%s', '%d', '%s', '%s', '%f', '%s', '%s'],
+                ['%d']
+            );
+
+            if ($updated !== false) {
+                wp_redirect(admin_url('admin.php?page=sc-add-income&income_id=' . $income_id . '&sc_status=income_updated'));
+                exit;
+            }
+            wp_redirect(admin_url('admin.php?page=sc-add-income&income_id=' . $income_id . '&sc_status=income_update_error'));
+            exit;
+        }
+
+        $income_data['created_at'] = current_time('mysql');
+        $inserted = $wpdb->insert(
+            $incomes_table,
+            $income_data,
+            ['%s', '%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s']
+        );
+
+        if ($inserted !== false) {
+            $income_id = $wpdb->insert_id;
+            wp_redirect(admin_url('admin.php?page=sc-add-income&income_id=' . $income_id . '&sc_status=income_add_true'));
+            exit;
+        }
+        wp_redirect(admin_url('admin.php?page=sc-add-income&sc_status=income_add_error'));
+        exit;
     }
 }
 
@@ -5162,6 +5314,18 @@ function sc_sprot_notices(){
         if($status == 'expense_add_error' ){
             $type='success';
             $messege="خطا در ثبت هزینه - فیلد های ورودی را چک کنید.";
+        }
+        if($status == 'income_add_true' ){
+            $type='success';
+            $messege="درآمد با موفقیت ثبت شد";
+        }
+        if($status == 'income_updated' ){
+            $type='success';
+            $messege="درآمد با موفقیت بروزرسانی شد";
+        }
+        if($status == 'income_add_error' || $status == 'income_update_error'){
+            $type='error';
+            $messege="خطا در ثبت درآمد - فیلدهای ورودی (از جمله شعبه) را چک کنید.";
         }
         // Coach messages
         if($status == 'coach_add_true'){

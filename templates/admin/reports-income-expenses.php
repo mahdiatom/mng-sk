@@ -86,7 +86,27 @@ if (!function_exists('sc_secretary_finance_include_store_revenue') || sc_secreta
         : ['total' => 0.0, 'order_count' => 0, 'by_day' => []];
 }
 $total_store_income_period = (float) ($store_agg['total'] ?? 0);
-$total_income = $total_academy_income + $total_store_income_period;
+
+$manual_income_where = ['1=1'];
+$manual_income_values = [];
+if ($filter_date_from) {
+    $manual_income_where[] = 'mi.income_date_gregorian >= %s';
+    $manual_income_values[] = $filter_date_from;
+}
+if ($filter_date_to) {
+    $manual_income_where[] = 'mi.income_date_gregorian <= %s';
+    $manual_income_values[] = $filter_date_to;
+}
+if (function_exists('sc_secretary_merge_income_where')) {
+    sc_secretary_merge_income_where($manual_income_where, $manual_income_values, 'mi');
+}
+$manual_income_sql = implode(' AND ', $manual_income_where);
+$incomes_table = $wpdb->prefix . 'sc_incomes';
+$total_manual_income = $manual_income_values
+    ? (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(mi.amount), 0) FROM $incomes_table mi WHERE $manual_income_sql", $manual_income_values))
+    : (float) $wpdb->get_var("SELECT COALESCE(SUM(mi.amount), 0) FROM $incomes_table mi WHERE $manual_income_sql");
+
+$total_income = $total_academy_income + $total_store_income_period + $total_manual_income;
 
 $paid_academy_count = $academy_income_values
     ? (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $invoices_table i WHERE $academy_where_sql", $academy_income_values))
@@ -158,6 +178,17 @@ if (!function_exists('sc_secretary_finance_include_store_revenue') || sc_secreta
         : ['total' => 0.0];
 }
 $prev_total_income = $prev_academy_income + (float) ($prev_store_agg['total'] ?? 0);
+
+$prev_manual_where = ['mi.income_date_gregorian >= %s', 'mi.income_date_gregorian <= %s'];
+$prev_manual_args = [$prev_from_s, $prev_to_s];
+if (function_exists('sc_secretary_merge_income_where')) {
+    sc_secretary_merge_income_where($prev_manual_where, $prev_manual_args, 'mi');
+}
+$prev_manual_income = (float) $wpdb->get_var($wpdb->prepare(
+    "SELECT COALESCE(SUM(mi.amount), 0) FROM {$wpdb->prefix}sc_incomes mi WHERE " . implode(' AND ', $prev_manual_where),
+    $prev_manual_args
+));
+$prev_total_income += $prev_manual_income;
 
 // هزینه دوره قبل
 $prev_exp_where = ['e.expense_date_gregorian >= %s', 'e.expense_date_gregorian <= %s'];
@@ -253,6 +284,17 @@ foreach ($months as $month_start) {
         }
     }
     $month_income = $month_academy_income + $month_store_income;
+
+    $month_manual_where = ['mi.income_date_gregorian >= %s', 'mi.income_date_gregorian <= %s'];
+    $month_manual_args = [$month_start_str, $month_end_str];
+    if (function_exists('sc_secretary_merge_income_where')) {
+        sc_secretary_merge_income_where($month_manual_where, $month_manual_args, 'mi');
+    }
+    $month_manual_income = (float) $wpdb->get_var($wpdb->prepare(
+        "SELECT COALESCE(SUM(mi.amount), 0) FROM $incomes_table mi WHERE " . implode(' AND ', $month_manual_where),
+        $month_manual_args
+    ));
+    $month_income += $month_manual_income;
     
     // هزینه ماه
     $month_exp_where = ['e.expense_date_gregorian >= %s', 'e.expense_date_gregorian <= %s'];

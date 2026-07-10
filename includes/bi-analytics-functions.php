@@ -265,6 +265,7 @@ function sc_bi_branch_revenue_rows($date_from, $date_to) {
     global $wpdb;
     $invoices = $wpdb->prefix . 'sc_invoices';
     $courses  = $wpdb->prefix . 'sc_courses';
+    $incomes  = $wpdb->prefix . 'sc_incomes';
 
     $where = [
         "i.status IN ('paid','completed','processing')",
@@ -278,7 +279,7 @@ function sc_bi_branch_revenue_rows($date_from, $date_to) {
         sc_secretary_merge_invoice_where($where, $args, 'i');
     }
 
-    return $wpdb->get_results($wpdb->prepare(
+    $invoice_rows = $wpdb->get_results($wpdb->prepare(
         "SELECT COALESCE(NULLIF(TRIM(c.chapter), ''), 'بدون شعبه') AS chapter,
                 COUNT(i.id) AS invoice_count,
                 COALESCE(SUM(i.amount), 0) AS revenue
@@ -289,6 +290,45 @@ function sc_bi_branch_revenue_rows($date_from, $date_to) {
          ORDER BY revenue DESC",
         $args
     )) ?: [];
+
+    $manual_where = [
+        'mi.income_date_gregorian IS NOT NULL',
+        'DATE(mi.income_date_gregorian) >= %s',
+        'DATE(mi.income_date_gregorian) <= %s',
+    ];
+    $manual_args = [$date_from, $date_to];
+    if (function_exists('sc_secretary_merge_income_where')) {
+        sc_secretary_merge_income_where($manual_where, $manual_args, 'mi');
+    }
+    $manual_rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT COALESCE(NULLIF(TRIM(mi.chapter), ''), 'بدون شعبه') AS chapter,
+                COUNT(mi.id) AS invoice_count,
+                COALESCE(SUM(mi.amount), 0) AS revenue
+         FROM $incomes mi
+         WHERE " . implode(' AND ', $manual_where) . "
+         GROUP BY chapter",
+        $manual_args
+    )) ?: [];
+
+    $merged = [];
+    foreach (array_merge($invoice_rows, $manual_rows) as $row) {
+        $ch = (string) $row->chapter;
+        if (!isset($merged[$ch])) {
+            $merged[$ch] = (object) [
+                'chapter' => $ch,
+                'invoice_count' => 0,
+                'revenue' => 0.0,
+            ];
+        }
+        $merged[$ch]->invoice_count += (int) $row->invoice_count;
+        $merged[$ch]->revenue += (float) $row->revenue;
+    }
+
+    $out = array_values($merged);
+    usort($out, static function ($a, $b) {
+        return $b->revenue <=> $a->revenue;
+    });
+    return $out;
 }
 
 /**
@@ -300,6 +340,7 @@ function sc_bi_branch_monthly_revenue($date_from, $date_to) {
     global $wpdb;
     $invoices = $wpdb->prefix . 'sc_invoices';
     $courses  = $wpdb->prefix . 'sc_courses';
+    $incomes  = $wpdb->prefix . 'sc_incomes';
     $by_chapter = [];
 
     foreach (sc_bi_month_buckets($date_from, $date_to) as $bucket) {
@@ -324,14 +365,40 @@ function sc_bi_branch_monthly_revenue($date_from, $date_to) {
             $args
         )) ?: [];
 
-        foreach ($branch_rows as $row) {
+        $manual_where = [
+            'mi.income_date_gregorian IS NOT NULL',
+            'DATE(mi.income_date_gregorian) >= %s',
+            'DATE(mi.income_date_gregorian) <= %s',
+        ];
+        $manual_args = [$bucket['start'], $bucket['end']];
+        if (function_exists('sc_secretary_merge_income_where')) {
+            sc_secretary_merge_income_where($manual_where, $manual_args, 'mi');
+        }
+        $manual_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT COALESCE(NULLIF(TRIM(mi.chapter), ''), 'بدون شعبه') AS chapter,
+                    COALESCE(SUM(mi.amount), 0) AS revenue
+             FROM $incomes mi
+             WHERE " . implode(' AND ', $manual_where) . "
+             GROUP BY chapter",
+            $manual_args
+        )) ?: [];
+
+        $month_map = [];
+        foreach (array_merge($branch_rows, $manual_rows) as $row) {
             $ch = (string) $row->chapter;
+            if (!isset($month_map[$ch])) {
+                $month_map[$ch] = 0.0;
+            }
+            $month_map[$ch] += (float) $row->revenue;
+        }
+
+        foreach ($month_map as $ch => $revenue) {
             if (!isset($by_chapter[$ch])) {
                 $by_chapter[$ch] = [];
             }
             $by_chapter[$ch][] = [
                 'month'   => $bucket['label'],
-                'revenue' => (float) $row->revenue,
+                'revenue' => $revenue,
             ];
         }
     }

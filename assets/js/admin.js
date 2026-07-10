@@ -891,6 +891,16 @@ jQuery(document).ready(function($) {
             }
         }
     });
+
+    $('#income_date_shamsi').on('change', function() {
+        var shamsiDate = $(this).val();
+        if (shamsiDate && shamsiDate.includes('/')) {
+            var gregorianDate = convertShamsiToGregorian(shamsiDate);
+            if (gregorianDate) {
+                $('#income_date_gregorian').val(gregorianDate);
+            }
+        }
+    });
 });
 
 // ============================================

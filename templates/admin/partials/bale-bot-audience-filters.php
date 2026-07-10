@@ -23,6 +23,11 @@ $levels_list = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY na
                     <select name="target_type" id="target_type" class="sc-notification-select" style="min-width: 200px;">
                         <option value="all" <?php selected($initial_target_type, 'all'); ?>>همه</option>
                         <option value="free_users" <?php selected($initial_target_type, 'free_users'); ?>>کاربران آزاد (بدون هیچ دوره)</option>
+                        <option value="identity_verified" <?php selected($initial_target_type, 'identity_verified'); ?>>کاربران احراز شده</option>
+                        <option value="identity_unverified" <?php selected($initial_target_type, 'identity_unverified'); ?>>کاربران احراز نشده</option>
+                        <?php if (function_exists('sc_is_registration_fee_enabled') && sc_is_registration_fee_enabled()) : ?>
+                        <option value="registration_fee_unpaid" <?php selected($initial_target_type, 'registration_fee_unpaid'); ?>>کاربران بدون پرداخت عضویت</option>
+                        <?php endif; ?>
                         <option value="specific" <?php selected($initial_target_type, 'specific'); ?>>ارسال به مخاطبین خاص</option>
                         <option value="course" <?php selected($initial_target_type, 'course'); ?>>ارسال به مخاطبین دوره </option>
                         <?php if (!$is_coach) : ?>

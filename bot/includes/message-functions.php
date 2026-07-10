@@ -178,6 +178,8 @@ function sc_bale_parse_target_config_from_post($post) {
         $target_config['recipient_ids'] = $rids ? array_filter(array_map('trim', explode(',', $rids))) : [];
     } elseif ($target_type === 'free_users') {
         $target_config['user_type'] = 'player';
+    } elseif ($target_type === 'identity_verified' || $target_type === 'identity_unverified' || $target_type === 'registration_fee_unpaid') {
+        $target_config['user_type'] = 'player';
     } elseif ($target_type === 'team') {
         $target_config['team_names'] = isset($post['team_names']) && is_array($post['team_names'])
             ? array_map('sanitize_text_field', wp_unslash($post['team_names'])) : [];

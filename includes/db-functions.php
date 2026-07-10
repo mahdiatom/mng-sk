@@ -380,6 +380,58 @@ function sc_create_expenses_table() {
 }
 
 /**
+ * Create income categories table
+ */
+function sc_create_income_categories_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_income_categories';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(100) NOT NULL,
+        `description` text DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_name` (`name`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
+ * Create incomes (manual club income) table
+ */
+function sc_create_incomes_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_incomes';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        `chapter` varchar(255) NOT NULL COMMENT 'شعبه',
+        `category_id` bigint(20) unsigned DEFAULT NULL,
+        `income_date_shamsi` varchar(10) DEFAULT NULL,
+        `income_date_gregorian` date DEFAULT NULL,
+        `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+        `description` text DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_chapter` (`chapter`),
+        KEY `idx_category_id` (`category_id`),
+        KEY `idx_income_date_gregorian` (`income_date_gregorian`),
+        KEY `idx_created_at` (`created_at`)
+    ) $charset_collate";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+/**
  * Create events table
  */
 function sc_create_events_table() {
@@ -1446,6 +1498,8 @@ function sc_update_database() {
         sc_create_members_table();
         sc_create_expense_categories_table();
         sc_create_expenses_table();
+        sc_create_income_categories_table();
+        sc_create_incomes_table();
         sc_create_events_table();
         sc_create_event_fields_table();
         sc_create_event_registrations_table();

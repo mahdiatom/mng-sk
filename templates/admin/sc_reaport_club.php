@@ -127,6 +127,10 @@ if (!empty($income_where_values)) {
 $total_income_result = $wpdb->get_var($total_income_query);
 $total_income = $total_income_result ? floatval($total_income_result) : 0;
 
+$incomes_table = $wpdb->prefix . 'sc_incomes';
+$manual_income_total = (float) $wpdb->get_var("SELECT COALESCE(SUM(amount), 0) FROM $incomes_table");
+$total_income += $manual_income_total;
+
 // محاسبه تعداد صورت حساب‌های پرداخت شده
 if (!empty($income_where_values)) {
     $paid_invoices_count_query = $wpdb->prepare(

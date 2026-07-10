@@ -188,6 +188,36 @@ function sc_get_notification_recipients($target_type, $target_config) {
              AND (SELECT COALESCE(SUM(CASE WHEN wt.transaction_type IN ('charge','refund') THEN wt.amount WHEN wt.transaction_type IN ('payment','deduct','session_fee') THEN -wt.amount ELSE 0 END), 0) FROM $transactions_table wt WHERE wt.member_id = m.id AND wt.status = 'completed') < 0"
         );
         $user_ids = array_map('intval', array_filter((array)$user_ids));
+    } elseif ($target_type === 'identity_verified') {
+        $user_ids = $wpdb->get_col(
+            "SELECT DISTINCT m.user_id
+             FROM $members_table m
+             WHERE m.is_active = 1
+             AND m.user_id IS NOT NULL
+             AND m.identity_verified = 1"
+        );
+        $user_ids = array_map('intval', (array) $user_ids);
+    } elseif ($target_type === 'identity_unverified') {
+        $user_ids = $wpdb->get_col(
+            "SELECT DISTINCT m.user_id
+             FROM $members_table m
+             WHERE m.is_active = 1
+             AND m.user_id IS NOT NULL
+             AND (m.identity_verified = 0 OR m.identity_verified IS NULL)"
+        );
+        $user_ids = array_map('intval', (array) $user_ids);
+    } elseif ($target_type === 'registration_fee_unpaid') {
+        if (!function_exists('sc_is_registration_fee_enabled') || !sc_is_registration_fee_enabled()) {
+            return [];
+        }
+        $user_ids = $wpdb->get_col(
+            "SELECT DISTINCT m.user_id
+             FROM $members_table m
+             WHERE m.is_active = 1
+             AND m.user_id IS NOT NULL
+             AND (m.registration_fee_paid = 0 OR m.registration_fee_paid IS NULL)"
+        );
+        $user_ids = array_map('intval', (array) $user_ids);
     } elseif ($target_type === 'team') {
        // team_names: array of team names
         $team_names = isset($target_config['team_names']) 

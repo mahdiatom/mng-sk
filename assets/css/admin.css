@@ -14559,13 +14559,13 @@ body[class*="_page_sc-coach-add-private-note"] .sc-private-note-form .descriptio
 
 /* ─── صفحات مالی (صورت‌حساب، هزینه، کد تخفیف) — استایل مدرن ─── */
 body.sc-invoices_page_sc-add-invoice #wpcontent,
-body.sc-invoices_page_sc-add-expense #wpcontent,
-body.sc-invoices_page_sc-expenses #wpcontent,
+body.sc-invoices_page_sc-add-expense #wpcontent, body.sc-invoices_page_sc-add-income #wpcontent,
+body.sc-invoices_page_sc-expenses #wpcontent, body.sc-invoices_page_sc-incomes #wpcontent,
 body.sc-invoices_page_sc-discount-codes #wpcontent,
 body.sc-invoices_page_sc-add-discount-code #wpcontent,
 body[class*="_page_sc-add-invoice"] #wpcontent,
-body[class*="_page_sc-add-expense"] #wpcontent,
-body[class*="_page_sc-expenses"] #wpcontent,
+body[class*="_page_sc-add-expense"] #wpcontent, body[class*="_page_sc-add-income"] #wpcontent,
+body[class*="_page_sc-expenses"] #wpcontent, body[class*="_page_sc-incomes"] #wpcontent,
 body[class*="_page_sc-discount-codes"] #wpcontent,
 body[class*="_page_sc-add-discount-code"] #wpcontent {
     background: #ece9f5;
@@ -14573,20 +14573,20 @@ body[class*="_page_sc-add-discount-code"] #wpcontent {
 
 body.sc-invoices_page_sc-add-invoice .sc-finance-page-header.wrap,
 body.sc-invoices_page_sc-add-invoice .sc-finance-page-body.wrap,
-body.sc-invoices_page_sc-add-expense .sc-finance-page-header.wrap,
-body.sc-invoices_page_sc-add-expense .sc-finance-page-body.wrap,
-body.sc-invoices_page_sc-expenses .sc-finance-page-header.wrap,
-body.sc-invoices_page_sc-expenses .sc-finance-page-body.wrap,
+body.sc-invoices_page_sc-add-expense .sc-finance-page-header.wrap, body.sc-invoices_page_sc-add-income .sc-finance-page-header.wrap,
+body.sc-invoices_page_sc-add-expense .sc-finance-page-body.wrap, body.sc-invoices_page_sc-add-income .sc-finance-page-body.wrap,
+body.sc-invoices_page_sc-expenses .sc-finance-page-header.wrap, body.sc-invoices_page_sc-incomes .sc-finance-page-header.wrap,
+body.sc-invoices_page_sc-expenses .sc-finance-page-body.wrap, body.sc-invoices_page_sc-incomes .sc-finance-page-body.wrap,
 body.sc-invoices_page_sc-discount-codes .sc-finance-page-header.wrap,
 body.sc-invoices_page_sc-discount-codes .sc-finance-page-body.wrap,
 body.sc-invoices_page_sc-add-discount-code .sc-finance-page-header.wrap,
 body.sc-invoices_page_sc-add-discount-code .sc-finance-page-body.wrap,
 body[class*="_page_sc-add-invoice"] .sc-finance-page-header.wrap,
 body[class*="_page_sc-add-invoice"] .sc-finance-page-body.wrap,
-body[class*="_page_sc-add-expense"] .sc-finance-page-header.wrap,
-body[class*="_page_sc-add-expense"] .sc-finance-page-body.wrap,
-body[class*="_page_sc-expenses"] .sc-finance-page-header.wrap,
-body[class*="_page_sc-expenses"] .sc-finance-page-body.wrap,
+body[class*="_page_sc-add-expense"] .sc-finance-page-header.wrap, body[class*="_page_sc-add-income"] .sc-finance-page-header.wrap,
+body[class*="_page_sc-add-expense"] .sc-finance-page-body.wrap, body[class*="_page_sc-add-income"] .sc-finance-page-body.wrap,
+body[class*="_page_sc-expenses"] .sc-finance-page-header.wrap, body[class*="_page_sc-incomes"] .sc-finance-page-header.wrap,
+body[class*="_page_sc-expenses"] .sc-finance-page-body.wrap, body[class*="_page_sc-incomes"] .sc-finance-page-body.wrap,
 body[class*="_page_sc-discount-codes"] .sc-finance-page-header.wrap,
 body[class*="_page_sc-discount-codes"] .sc-finance-page-body.wrap,
 body[class*="_page_sc-add-discount-code"] .sc-finance-page-header.wrap,
@@ -14600,13 +14600,13 @@ body[class*="_page_sc-add-discount-code"] .sc-finance-page-body.wrap {
 }
 
 body.sc-invoices_page_sc-add-invoice .sc-finance-page-header > h1,
-body.sc-invoices_page_sc-add-expense .sc-finance-page-header > h1,
-body.sc-invoices_page_sc-expenses .sc-finance-page-header > h1,
+body.sc-invoices_page_sc-add-expense .sc-finance-page-header > h1, body.sc-invoices_page_sc-add-income .sc-finance-page-header > h1,
+body.sc-invoices_page_sc-expenses .sc-finance-page-header > h1, body.sc-invoices_page_sc-incomes .sc-finance-page-header > h1,
 body.sc-invoices_page_sc-discount-codes .sc-finance-page-header > h1,
 body.sc-invoices_page_sc-add-discount-code .sc-finance-page-header > h1,
 body[class*="_page_sc-add-invoice"] .sc-finance-page-header > h1,
-body[class*="_page_sc-add-expense"] .sc-finance-page-header > h1,
-body[class*="_page_sc-expenses"] .sc-finance-page-header > h1,
+body[class*="_page_sc-add-expense"] .sc-finance-page-header > h1, body[class*="_page_sc-add-income"] .sc-finance-page-header > h1,
+body[class*="_page_sc-expenses"] .sc-finance-page-header > h1, body[class*="_page_sc-incomes"] .sc-finance-page-header > h1,
 body[class*="_page_sc-discount-codes"] .sc-finance-page-header > h1,
 body[class*="_page_sc-add-discount-code"] .sc-finance-page-header > h1 {
     color: #1e1b2e;
@@ -14614,13 +14614,13 @@ body[class*="_page_sc-add-discount-code"] .sc-finance-page-header > h1 {
 }
 
 body.sc-invoices_page_sc-add-invoice .sc-finance-page-header .page-title-action,
-body.sc-invoices_page_sc-add-expense .sc-finance-page-header .page-title-action,
-body.sc-invoices_page_sc-expenses .sc-finance-page-header .page-title-action,
+body.sc-invoices_page_sc-add-expense .sc-finance-page-header .page-title-action, body.sc-invoices_page_sc-add-income .sc-finance-page-header .page-title-action,
+body.sc-invoices_page_sc-expenses .sc-finance-page-header .page-title-action, body.sc-invoices_page_sc-incomes .sc-finance-page-header .page-title-action,
 body.sc-invoices_page_sc-discount-codes .sc-finance-page-header .page-title-action,
 body.sc-invoices_page_sc-add-discount-code .sc-finance-page-header .page-title-action,
 body[class*="_page_sc-add-invoice"] .sc-finance-page-header .page-title-action,
-body[class*="_page_sc-add-expense"] .sc-finance-page-header .page-title-action,
-body[class*="_page_sc-expenses"] .sc-finance-page-header .page-title-action,
+body[class*="_page_sc-add-expense"] .sc-finance-page-header .page-title-action, body[class*="_page_sc-add-income"] .sc-finance-page-header .page-title-action,
+body[class*="_page_sc-expenses"] .sc-finance-page-header .page-title-action, body[class*="_page_sc-incomes"] .sc-finance-page-header .page-title-action,
 body[class*="_page_sc-discount-codes"] .sc-finance-page-header .page-title-action,
 body[class*="_page_sc-add-discount-code"] .sc-finance-page-header .page-title-action {
     border-radius: 10px !important;
@@ -14631,13 +14631,13 @@ body[class*="_page_sc-add-discount-code"] .sc-finance-page-header .page-title-ac
 }
 
 body.sc-invoices_page_sc-add-invoice .sc-finance-page-header .page-title-action:hover,
-body.sc-invoices_page_sc-add-expense .sc-finance-page-header .page-title-action:hover,
-body.sc-invoices_page_sc-expenses .sc-finance-page-header .page-title-action:hover,
+body.sc-invoices_page_sc-add-expense .sc-finance-page-header .page-title-action:hover, body.sc-invoices_page_sc-add-income .sc-finance-page-header .page-title-action:hover,
+body.sc-invoices_page_sc-expenses .sc-finance-page-header .page-title-action:hover, body.sc-invoices_page_sc-incomes .sc-finance-page-header .page-title-action:hover,
 body.sc-invoices_page_sc-discount-codes .sc-finance-page-header .page-title-action:hover,
 body.sc-invoices_page_sc-add-discount-code .sc-finance-page-header .page-title-action:hover,
 body[class*="_page_sc-add-invoice"] .sc-finance-page-header .page-title-action:hover,
-body[class*="_page_sc-add-expense"] .sc-finance-page-header .page-title-action:hover,
-body[class*="_page_sc-expenses"] .sc-finance-page-header .page-title-action:hover,
+body[class*="_page_sc-add-expense"] .sc-finance-page-header .page-title-action:hover, body[class*="_page_sc-add-income"] .sc-finance-page-header .page-title-action:hover,
+body[class*="_page_sc-expenses"] .sc-finance-page-header .page-title-action:hover, body[class*="_page_sc-incomes"] .sc-finance-page-header .page-title-action:hover,
 body[class*="_page_sc-discount-codes"] .sc-finance-page-header .page-title-action:hover,
 body[class*="_page_sc-add-discount-code"] .sc-finance-page-header .page-title-action:hover {
     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
@@ -14646,13 +14646,13 @@ body[class*="_page_sc-add-discount-code"] .sc-finance-page-header .page-title-ac
 }
 
 body.sc-invoices_page_sc-add-invoice .sc-invoice-add-subtitle,
-body.sc-invoices_page_sc-add-expense .sc-expense-add-subtitle,
-body.sc-invoices_page_sc-expenses .sc-expenses-subtitle,
+body.sc-invoices_page_sc-add-expense .sc-expense-add-subtitle, body.sc-invoices_page_sc-add-income .sc-expense-add-subtitle,
+body.sc-invoices_page_sc-expenses .sc-expenses-subtitle, body.sc-invoices_page_sc-incomes .sc-expenses-subtitle,
 body.sc-invoices_page_sc-discount-codes .sc-discount-codes-subtitle,
 body.sc-invoices_page_sc-add-discount-code .sc-discount-add-subtitle,
 body[class*="_page_sc-add-invoice"] .sc-invoice-add-subtitle,
-body[class*="_page_sc-add-expense"] .sc-expense-add-subtitle,
-body[class*="_page_sc-expenses"] .sc-expenses-subtitle,
+body[class*="_page_sc-add-expense"] .sc-expense-add-subtitle, body[class*="_page_sc-add-income"] .sc-expense-add-subtitle,
+body[class*="_page_sc-expenses"] .sc-expenses-subtitle, body[class*="_page_sc-incomes"] .sc-expenses-subtitle,
 body[class*="_page_sc-discount-codes"] .sc-discount-codes-subtitle,
 body[class*="_page_sc-add-discount-code"] .sc-discount-add-subtitle {
     margin: 10px 0 0;
@@ -14663,13 +14663,13 @@ body[class*="_page_sc-add-discount-code"] .sc-discount-add-subtitle {
 }
 
 body.sc-invoices_page_sc-add-invoice .sc-finance-panel.postbox,
-body.sc-invoices_page_sc-add-expense .sc-finance-panel.postbox,
-body.sc-invoices_page_sc-expenses .sc-finance-panel.postbox,
+body.sc-invoices_page_sc-add-expense .sc-finance-panel.postbox, body.sc-invoices_page_sc-add-income .sc-finance-panel.postbox,
+body.sc-invoices_page_sc-expenses .sc-finance-panel.postbox, body.sc-invoices_page_sc-incomes .sc-finance-panel.postbox,
 body.sc-invoices_page_sc-discount-codes .sc-finance-panel.postbox,
 body.sc-invoices_page_sc-add-discount-code .sc-finance-panel.postbox,
 body[class*="_page_sc-add-invoice"] .sc-finance-panel.postbox,
-body[class*="_page_sc-add-expense"] .sc-finance-panel.postbox,
-body[class*="_page_sc-expenses"] .sc-finance-panel.postbox,
+body[class*="_page_sc-add-expense"] .sc-finance-panel.postbox, body[class*="_page_sc-add-income"] .sc-finance-panel.postbox,
+body[class*="_page_sc-expenses"] .sc-finance-panel.postbox, body[class*="_page_sc-incomes"] .sc-finance-panel.postbox,
 body[class*="_page_sc-discount-codes"] .sc-finance-panel.postbox,
 body[class*="_page_sc-add-discount-code"] .sc-finance-panel.postbox {
     margin: 0 0 16px;
@@ -14687,13 +14687,13 @@ body[class*="_page_sc-add-discount-code"] .sc-discount-add-panel--limits.sc-fina
 }
 
 body.sc-invoices_page_sc-add-invoice .sc-finance-panel .postbox-header,
-body.sc-invoices_page_sc-add-expense .sc-finance-panel .postbox-header,
-body.sc-invoices_page_sc-expenses .sc-finance-panel .postbox-header,
+body.sc-invoices_page_sc-add-expense .sc-finance-panel .postbox-header, body.sc-invoices_page_sc-add-income .sc-finance-panel .postbox-header,
+body.sc-invoices_page_sc-expenses .sc-finance-panel .postbox-header, body.sc-invoices_page_sc-incomes .sc-finance-panel .postbox-header,
 body.sc-invoices_page_sc-discount-codes .sc-finance-panel .postbox-header,
 body.sc-invoices_page_sc-add-discount-code .sc-finance-panel .postbox-header,
 body[class*="_page_sc-add-invoice"] .sc-finance-panel .postbox-header,
-body[class*="_page_sc-add-expense"] .sc-finance-panel .postbox-header,
-body[class*="_page_sc-expenses"] .sc-finance-panel .postbox-header,
+body[class*="_page_sc-add-expense"] .sc-finance-panel .postbox-header, body[class*="_page_sc-add-income"] .sc-finance-panel .postbox-header,
+body[class*="_page_sc-expenses"] .sc-finance-panel .postbox-header, body[class*="_page_sc-incomes"] .sc-finance-panel .postbox-header,
 body[class*="_page_sc-discount-codes"] .sc-finance-panel .postbox-header,
 body[class*="_page_sc-add-discount-code"] .sc-finance-panel .postbox-header {
     background: transparent !important;
@@ -14703,13 +14703,13 @@ body[class*="_page_sc-add-discount-code"] .sc-finance-panel .postbox-header {
 }
 
 body.sc-invoices_page_sc-add-invoice .sc-finance-panel .postbox-header h2,
-body.sc-invoices_page_sc-add-expense .sc-finance-panel .postbox-header h2,
-body.sc-invoices_page_sc-expenses .sc-finance-panel .postbox-header h2,
+body.sc-invoices_page_sc-add-expense .sc-finance-panel .postbox-header h2, body.sc-invoices_page_sc-add-income .sc-finance-panel .postbox-header h2,
+body.sc-invoices_page_sc-expenses .sc-finance-panel .postbox-header h2, body.sc-invoices_page_sc-incomes .sc-finance-panel .postbox-header h2,
 body.sc-invoices_page_sc-discount-codes .sc-finance-panel .postbox-header h2,
 body.sc-invoices_page_sc-add-discount-code .sc-finance-panel .postbox-header h2,
 body[class*="_page_sc-add-invoice"] .sc-finance-panel .postbox-header h2,
-body[class*="_page_sc-add-expense"] .sc-finance-panel .postbox-header h2,
-body[class*="_page_sc-expenses"] .sc-finance-panel .postbox-header h2,
+body[class*="_page_sc-add-expense"] .sc-finance-panel .postbox-header h2, body[class*="_page_sc-add-income"] .sc-finance-panel .postbox-header h2,
+body[class*="_page_sc-expenses"] .sc-finance-panel .postbox-header h2, body[class*="_page_sc-incomes"] .sc-finance-panel .postbox-header h2,
 body[class*="_page_sc-discount-codes"] .sc-finance-panel .postbox-header h2,
 body[class*="_page_sc-add-discount-code"] .sc-finance-panel .postbox-header h2 {
     margin: 0 !important;
@@ -14720,13 +14720,13 @@ body[class*="_page_sc-add-discount-code"] .sc-finance-panel .postbox-header h2 {
 }
 
 body.sc-invoices_page_sc-add-invoice .sc-finance-panel .inside,
-body.sc-invoices_page_sc-add-expense .sc-finance-panel .inside,
-body.sc-invoices_page_sc-expenses .sc-finance-panel .inside,
+body.sc-invoices_page_sc-add-expense .sc-finance-panel .inside, body.sc-invoices_page_sc-add-income .sc-finance-panel .inside,
+body.sc-invoices_page_sc-expenses .sc-finance-panel .inside, body.sc-invoices_page_sc-incomes .sc-finance-panel .inside,
 body.sc-invoices_page_sc-discount-codes .sc-finance-panel .inside,
 body.sc-invoices_page_sc-add-discount-code .sc-finance-panel .inside,
 body[class*="_page_sc-add-invoice"] .sc-finance-panel .inside,
-body[class*="_page_sc-add-expense"] .sc-finance-panel .inside,
-body[class*="_page_sc-expenses"] .sc-finance-panel .inside,
+body[class*="_page_sc-add-expense"] .sc-finance-panel .inside, body[class*="_page_sc-add-income"] .sc-finance-panel .inside,
+body[class*="_page_sc-expenses"] .sc-finance-panel .inside, body[class*="_page_sc-incomes"] .sc-finance-panel .inside,
 body[class*="_page_sc-discount-codes"] .sc-finance-panel .inside,
 body[class*="_page_sc-add-discount-code"] .sc-finance-panel .inside {
     padding: 18px 20px 20px !important;
@@ -14734,13 +14734,13 @@ body[class*="_page_sc-add-discount-code"] .sc-finance-panel .inside {
 }
 
 body.sc-invoices_page_sc-add-invoice .notice,
-body.sc-invoices_page_sc-add-expense .notice,
-body.sc-invoices_page_sc-expenses .notice,
+body.sc-invoices_page_sc-add-expense .notice, body.sc-invoices_page_sc-add-income .notice,
+body.sc-invoices_page_sc-expenses .notice, body.sc-invoices_page_sc-incomes .notice,
 body.sc-invoices_page_sc-discount-codes .notice,
 body.sc-invoices_page_sc-add-discount-code .notice,
 body[class*="_page_sc-add-invoice"] .notice,
-body[class*="_page_sc-add-expense"] .notice,
-body[class*="_page_sc-expenses"] .notice,
+body[class*="_page_sc-add-expense"] .notice, body[class*="_page_sc-add-income"] .notice,
+body[class*="_page_sc-expenses"] .notice, body[class*="_page_sc-incomes"] .notice,
 body[class*="_page_sc-discount-codes"] .notice,
 body[class*="_page_sc-add-discount-code"] .notice {
     border-radius: 10px;
@@ -15454,21 +15454,21 @@ body[class*="_page_sc-users-info-export"] .sc-notification-select {
 }
 
 /* ثبت هزینه */
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form-table {
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table, body.sc-invoices_page_sc-add-income .sc-expense-add-form-table,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form-table , body[class*="_page_sc-add-income"] .sc-expense-add-form-table {
     display: block;
     margin: 0;
     width: 100%;
 }
 
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table tbody,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form-table tbody {
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table tbody, body.sc-invoices_page_sc-add-income .sc-expense-add-form-table tbody,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form-table tbody , body[class*="_page_sc-add-income"] .sc-expense-add-form-table tbody {
     display: grid;
     gap: 14px;
 }
 
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table tr,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form-table tr {
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table tr, body.sc-invoices_page_sc-add-income .sc-expense-add-form-table tr,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form-table tr , body[class*="_page_sc-add-income"] .sc-expense-add-form-table tr {
     display: block;
     margin: 0;
     padding: 14px 16px;
@@ -15478,34 +15478,34 @@ body[class*="_page_sc-add-expense"] .sc-expense-add-form-table tr {
     box-shadow: 0 2px 8px rgba(74, 31, 184, 0.04);
 }
 
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table th,
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table td,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form-table th,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form-table td {
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table th, body.sc-invoices_page_sc-add-income .sc-expense-add-form-table th,
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table td, body.sc-invoices_page_sc-add-income .sc-expense-add-form-table td,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form-table th, body[class*="_page_sc-add-income"] .sc-expense-add-form-table th,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form-table td , body[class*="_page_sc-add-income"] .sc-expense-add-form-table td {
     display: block;
     width: 100% !important;
     padding: 0 !important;
 }
 
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table th,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form-table th {
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table th, body.sc-invoices_page_sc-add-income .sc-expense-add-form-table th,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form-table th , body[class*="_page_sc-add-income"] .sc-expense-add-form-table th {
     margin-bottom: 8px;
     font-size: 12px;
     font-weight: 800;
     color: #4a1fb8;
 }
 
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table .required,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form-table .required {
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table .required, body.sc-invoices_page_sc-add-income .sc-expense-add-form-table .required,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form-table .required , body[class*="_page_sc-add-income"] .sc-expense-add-form-table .required {
     color: #dc2626;
 }
 
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form input.regular-text,
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form select,
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form textarea,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form input.regular-text,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form select,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form textarea {
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form input.regular-text, body.sc-invoices_page_sc-add-income .sc-expense-add-form input.regular-text,
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form select, body.sc-invoices_page_sc-add-income .sc-expense-add-form select,
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form textarea, body.sc-invoices_page_sc-add-income .sc-expense-add-form textarea,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form input.regular-text, body[class*="_page_sc-add-income"] .sc-expense-add-form input.regular-text,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form select, body[class*="_page_sc-add-income"] .sc-expense-add-form select,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form textarea , body[class*="_page_sc-add-income"] .sc-expense-add-form textarea {
     box-sizing: border-box;
     width: 100% !important;
     max-width: 100% !important;
@@ -15517,14 +15517,14 @@ body[class*="_page_sc-add-expense"] .sc-expense-add-form textarea {
     font-size: 14px;
 }
 
-body.sc-invoices_page_sc-add-expense .sc-expense-add-form textarea,
-body[class*="_page_sc-add-expense"] .sc-expense-add-form textarea {
+body.sc-invoices_page_sc-add-expense .sc-expense-add-form textarea, body.sc-invoices_page_sc-add-income .sc-expense-add-form textarea,
+body[class*="_page_sc-add-expense"] .sc-expense-add-form textarea , body[class*="_page_sc-add-income"] .sc-expense-add-form textarea {
     min-height: 120px;
     resize: vertical;
 }
 
-body.sc-invoices_page_sc-add-expense .sc-expense-add-submit .button-primary,
-body[class*="_page_sc-add-expense"] .sc-expense-add-submit .button-primary {
+body.sc-invoices_page_sc-add-expense .sc-expense-add-submit .button-primary, body.sc-invoices_page_sc-add-income .sc-expense-add-submit .button-primary,
+body[class*="_page_sc-add-expense"] .sc-expense-add-submit .button-primary , body[class*="_page_sc-add-income"] .sc-expense-add-submit .button-primary {
     min-width: 160px !important;
     height: 44px !important;
     font-weight: 700 !important;
@@ -15535,54 +15535,54 @@ body[class*="_page_sc-add-expense"] .sc-expense-add-submit .button-primary {
 }
 
 @media screen and (min-width: 1100px) {
-    body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table tbody,
-    body[class*="_page_sc-add-expense"] .sc-expense-add-form-table tbody {
+    body.sc-invoices_page_sc-add-expense .sc-expense-add-form-table tbody, body.sc-invoices_page_sc-add-income .sc-expense-add-form-table tbody,
+    body[class*="_page_sc-add-expense"] .sc-expense-add-form-table tbody , body[class*="_page_sc-add-income"] .sc-expense-add-form-table tbody {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    body.sc-invoices_page_sc-add-expense .sc-expense-field-row--full,
-    body[class*="_page_sc-add-expense"] .sc-expense-field-row--full {
+    body.sc-invoices_page_sc-add-expense .sc-expense-field-row--full, body.sc-invoices_page_sc-add-income .sc-expense-field-row--full,
+    body[class*="_page_sc-add-expense"] .sc-expense-field-row--full , body[class*="_page_sc-add-income"] .sc-expense-field-row--full {
         grid-column: 1 / -1;
     }
 }
 
 /* لیست هزینه‌ها */
-body.sc-invoices_page_sc-expenses .sc-expenses-nav-tabs,
-body[class*="_page_sc-expenses"] .sc-expenses-nav-tabs {
+body.sc-invoices_page_sc-expenses .sc-expenses-nav-tabs, body.sc-invoices_page_sc-incomes .sc-expenses-nav-tabs,
+body[class*="_page_sc-expenses"] .sc-expenses-nav-tabs , body[class*="_page_sc-incomes"] .sc-expenses-nav-tabs {
     margin-bottom: 16px;
     border-bottom: 1px solid rgba(109, 52, 255, 0.15);
 }
 
-body.sc-invoices_page_sc-expenses .sc-expenses-nav-tabs .nav-tab,
-body[class*="_page_sc-expenses"] .sc-expenses-nav-tabs .nav-tab {
+body.sc-invoices_page_sc-expenses .sc-expenses-nav-tabs .nav-tab, body.sc-invoices_page_sc-incomes .sc-expenses-nav-tabs .nav-tab,
+body[class*="_page_sc-expenses"] .sc-expenses-nav-tabs .nav-tab , body[class*="_page_sc-incomes"] .sc-expenses-nav-tabs .nav-tab {
     border-radius: 10px 10px 0 0;
     border-color: rgba(109, 52, 255, 0.12);
     color: #4a1fb8;
     font-weight: 600;
 }
 
-body.sc-invoices_page_sc-expenses .sc-expenses-nav-tabs .nav-tab-active,
-body[class*="_page_sc-expenses"] .sc-expenses-nav-tabs .nav-tab-active {
+body.sc-invoices_page_sc-expenses .sc-expenses-nav-tabs .nav-tab-active, body.sc-invoices_page_sc-incomes .sc-expenses-nav-tabs .nav-tab-active,
+body[class*="_page_sc-expenses"] .sc-expenses-nav-tabs .nav-tab-active , body[class*="_page_sc-incomes"] .sc-expenses-nav-tabs .nav-tab-active {
     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     color: #fff !important;
     border-color: transparent !important;
 }
 
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-table,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-table {
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-table, body.sc-invoices_page_sc-incomes .sc-expenses-filter-table,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-table , body[class*="_page_sc-incomes"] .sc-expenses-filter-table {
     display: block;
     margin: 0;
     width: 100%;
 }
 
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-table tbody,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-table tbody {
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-table tbody, body.sc-invoices_page_sc-incomes .sc-expenses-filter-table tbody,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-table tbody , body[class*="_page_sc-incomes"] .sc-expenses-filter-table tbody {
     display: grid;
     gap: 14px;
 }
 
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-row,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-row {
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-row, body.sc-invoices_page_sc-incomes .sc-expenses-filter-row,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-row , body[class*="_page_sc-incomes"] .sc-expenses-filter-row {
     display: block;
     margin: 0;
     padding: 14px 16px;
@@ -15591,27 +15591,27 @@ body[class*="_page_sc-expenses"] .sc-expenses-filter-row {
     border-radius: 12px;
 }
 
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-row th,
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-row td,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-row th,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-row td {
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-row th, body.sc-invoices_page_sc-incomes .sc-expenses-filter-row th,
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-row td, body.sc-invoices_page_sc-incomes .sc-expenses-filter-row td,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-row th, body[class*="_page_sc-incomes"] .sc-expenses-filter-row th,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-row td , body[class*="_page_sc-incomes"] .sc-expenses-filter-row td {
     display: block;
     width: 100% !important;
     padding: 0 !important;
 }
 
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-row th,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-row th {
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-row th, body.sc-invoices_page_sc-incomes .sc-expenses-filter-row th,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-row th , body[class*="_page_sc-incomes"] .sc-expenses-filter-row th {
     margin-bottom: 8px;
     font-size: 12px;
     font-weight: 800;
     color: #4a1fb8;
 }
 
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-form select,
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-form input.regular-text,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-form select,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-form input.regular-text {
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-form select, body.sc-invoices_page_sc-incomes .sc-expenses-filter-form select,
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-form input.regular-text, body.sc-invoices_page_sc-incomes .sc-expenses-filter-form input.regular-text,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-form select, body[class*="_page_sc-incomes"] .sc-expenses-filter-form select,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-form input.regular-text , body[class*="_page_sc-incomes"] .sc-expenses-filter-form input.regular-text {
     box-sizing: border-box;
     width: 100% !important;
     max-width: 100% !important;
@@ -15622,8 +15622,8 @@ body[class*="_page_sc-expenses"] .sc-expenses-filter-form input.regular-text {
     background: #fff !important;
 }
 
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-form .submit .button-primary,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-form .submit .button-primary {
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-form .submit .button-primary, body.sc-invoices_page_sc-incomes .sc-expenses-filter-form .submit .button-primary,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-form .submit .button-primary , body[class*="_page_sc-incomes"] .sc-expenses-filter-form .submit .button-primary {
     border-radius: 10px !important;
     border: none !important;
     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
@@ -15631,42 +15631,42 @@ body[class*="_page_sc-expenses"] .sc-expenses-filter-form .submit .button-primar
     min-height: 40px;
 }
 
-body.sc-invoices_page_sc-expenses .back_attendance_list,
-body.sc-invoices_page_sc-expenses .sc-expenses-categories-wrap,
-body[class*="_page_sc-expenses"] .back_attendance_list,
-body[class*="_page_sc-expenses"] .sc-expenses-categories-wrap {
+body.sc-invoices_page_sc-expenses .back_attendance_list, body.sc-invoices_page_sc-incomes .back_attendance_list,
+body.sc-invoices_page_sc-expenses .sc-expenses-categories-wrap, body.sc-invoices_page_sc-incomes .sc-expenses-categories-wrap,
+body[class*="_page_sc-expenses"] .back_attendance_list, body[class*="_page_sc-incomes"] .back_attendance_list,
+body[class*="_page_sc-expenses"] .sc-expenses-categories-wrap , body[class*="_page_sc-incomes"] .sc-expenses-categories-wrap {
     background: transparent;
     border: none;
     box-shadow: none;
     padding: 0;
 }
 
-body.sc-invoices_page_sc-expenses .wp-list-table thead th,
-body[class*="_page_sc-expenses"] .wp-list-table thead th {
+body.sc-invoices_page_sc-expenses .wp-list-table thead th, body.sc-invoices_page_sc-incomes .wp-list-table thead th,
+body[class*="_page_sc-expenses"] .wp-list-table thead th , body[class*="_page_sc-incomes"] .wp-list-table thead th {
     background: rgba(109, 52, 255, 0.08) !important;
     color: #4a1fb8;
     font-weight: 700;
 }
 
-body.sc-invoices_page_sc-expenses .admin_category,
-body[class*="_page_sc-expenses"] .admin_category {
+body.sc-invoices_page_sc-expenses .admin_category, body.sc-invoices_page_sc-incomes .admin_category,
+body[class*="_page_sc-expenses"] .admin_category , body[class*="_page_sc-incomes"] .admin_category {
     display: grid;
     gap: 16px;
 }
 
 @media screen and (min-width: 1100px) {
-    body.sc-invoices_page_sc-expenses .sc-expenses-filter-table tbody,
-    body[class*="_page_sc-expenses"] .sc-expenses-filter-table tbody {
+    body.sc-invoices_page_sc-expenses .sc-expenses-filter-table tbody, body.sc-invoices_page_sc-incomes .sc-expenses-filter-table tbody,
+    body[class*="_page_sc-expenses"] .sc-expenses-filter-table tbody , body[class*="_page_sc-incomes"] .sc-expenses-filter-table tbody {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    body.sc-invoices_page_sc-expenses .sc-expenses-filter-row:last-child,
-    body[class*="_page_sc-expenses"] .sc-expenses-filter-row:last-child {
+    body.sc-invoices_page_sc-expenses .sc-expenses-filter-row:last-child, body.sc-invoices_page_sc-incomes .sc-expenses-filter-row:last-child,
+    body[class*="_page_sc-expenses"] .sc-expenses-filter-row:last-child , body[class*="_page_sc-incomes"] .sc-expenses-filter-row:last-child {
         grid-column: 1 / -1;
     }
 
-    body.sc-invoices_page_sc-expenses .admin_category,
-    body[class*="_page_sc-expenses"] .admin_category {
+    body.sc-invoices_page_sc-expenses .admin_category, body.sc-invoices_page_sc-incomes .admin_category,
+    body[class*="_page_sc-expenses"] .admin_category , body[class*="_page_sc-incomes"] .admin_category {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -19176,7 +19176,7 @@ body.sc-reports_page_sc-attendance-logs #wpcontent,
 body[class*="_page_sc-attendance-logs"] #wpcontent,
 body.toplevel_page_sc-invoices #wpcontent, body.toplevel_page_sc_orders #wpcontent,
 body.sc_orders_page_sc-products #wpcontent,
-body[class*="_page_sc-expenses"] #wpcontent,
+body[class*="_page_sc-expenses"] #wpcontent, body[class*="_page_sc-incomes"] #wpcontent,
 body[class*="_page_sc-discount-codes"] #wpcontent,
 body.sc-permalinks-admin-page.options-permalink-php #wpcontent {
     background: #f4f2fa;
@@ -19207,7 +19207,7 @@ body.sc-permalinks-admin-page.options-permalink-php .sc-reports-list-wrap {
     background: transparent !important;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-header, body.toplevel_page_sc-invoices .sc-reports-list-header, body.toplevel_page_sc_orders .sc-reports-list-header, body[class*="_page_sc-expenses"] .sc-reports-list-header, body[class*="_page_sc-discount-codes"] .sc-reports-list-header,
+body[class*="_page_sc-reports"] .sc-reports-list-header, body.toplevel_page_sc-invoices .sc-reports-list-header, body.toplevel_page_sc_orders .sc-reports-list-header, body[class*="_page_sc-expenses"] .sc-reports-list-header, body[class*="_page_sc-incomes"] .sc-reports-list-header, body[class*="_page_sc-discount-codes"] .sc-reports-list-header,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-header,
 body.sc-permalinks-admin-page.options-permalink-php .sc-reports-list-header {
     display: flex;
@@ -19218,7 +19218,7 @@ body.sc-permalinks-admin-page.options-permalink-php .sc-reports-list-header {
     margin-bottom: 18px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-title, body.toplevel_page_sc-invoices .sc-reports-list-title, body.toplevel_page_sc_orders .sc-reports-list-title, body[class*="_page_sc-expenses"] .sc-reports-list-title, body[class*="_page_sc-discount-codes"] .sc-reports-list-title,
+body[class*="_page_sc-reports"] .sc-reports-list-title, body.toplevel_page_sc-invoices .sc-reports-list-title, body.toplevel_page_sc_orders .sc-reports-list-title, body[class*="_page_sc-expenses"] .sc-reports-list-title, body[class*="_page_sc-incomes"] .sc-reports-list-title, body[class*="_page_sc-discount-codes"] .sc-reports-list-title,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-title,
 body.sc-permalinks-admin-page.options-permalink-php .sc-reports-list-title {
     margin: 0 0 6px;
@@ -19229,7 +19229,7 @@ body.sc-permalinks-admin-page.options-permalink-php .sc-reports-list-title {
     line-height: 1.3;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-desc, body.toplevel_page_sc-invoices .sc-reports-list-desc, body.toplevel_page_sc_orders .sc-reports-list-desc, body[class*="_page_sc-expenses"] .sc-reports-list-desc, body[class*="_page_sc-discount-codes"] .sc-reports-list-desc,
+body[class*="_page_sc-reports"] .sc-reports-list-desc, body.toplevel_page_sc-invoices .sc-reports-list-desc, body.toplevel_page_sc_orders .sc-reports-list-desc, body[class*="_page_sc-expenses"] .sc-reports-list-desc, body[class*="_page_sc-incomes"] .sc-reports-list-desc, body[class*="_page_sc-discount-codes"] .sc-reports-list-desc,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-desc,
 body.sc-permalinks-admin-page.options-permalink-php .sc-reports-list-desc {
     margin: 0;
@@ -19238,7 +19238,7 @@ body.sc-permalinks-admin-page.options-permalink-php .sc-reports-list-desc {
     line-height: 1.7;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-header-actions, body.toplevel_page_sc-invoices .sc-reports-list-header-actions, body.toplevel_page_sc_orders .sc-reports-list-header-actions, body[class*="_page_sc-expenses"] .sc-reports-list-header-actions, body[class*="_page_sc-discount-codes"] .sc-reports-list-header-actions,
+body[class*="_page_sc-reports"] .sc-reports-list-header-actions, body.toplevel_page_sc-invoices .sc-reports-list-header-actions, body.toplevel_page_sc_orders .sc-reports-list-header-actions, body[class*="_page_sc-expenses"] .sc-reports-list-header-actions, body[class*="_page_sc-incomes"] .sc-reports-list-header-actions, body[class*="_page_sc-discount-codes"] .sc-reports-list-header-actions,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-header-actions {
     display: flex;
     align-items: center;
@@ -19246,7 +19246,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-header-actions {
     flex-wrap: wrap;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-add-btn, body.toplevel_page_sc-invoices .sc-reports-list-add-btn, body.toplevel_page_sc_orders .sc-reports-list-add-btn, body[class*="_page_sc-expenses"] .sc-reports-list-add-btn, body[class*="_page_sc-discount-codes"] .sc-reports-list-add-btn,
+body[class*="_page_sc-reports"] .sc-reports-list-add-btn, body.toplevel_page_sc-invoices .sc-reports-list-add-btn, body.toplevel_page_sc_orders .sc-reports-list-add-btn, body[class*="_page_sc-expenses"] .sc-reports-list-add-btn, body[class*="_page_sc-incomes"] .sc-reports-list-add-btn, body[class*="_page_sc-discount-codes"] .sc-reports-list-add-btn,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-add-btn {
     display: inline-flex;
     align-items: center;
@@ -19264,7 +19264,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-add-btn {
     cursor: pointer;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-export-btn, body.toplevel_page_sc-invoices .sc-reports-list-export-btn, body.toplevel_page_sc_orders .sc-reports-list-export-btn, body[class*="_page_sc-expenses"] .sc-reports-list-export-btn, body[class*="_page_sc-discount-codes"] .sc-reports-list-export-btn,
+body[class*="_page_sc-reports"] .sc-reports-list-export-btn, body.toplevel_page_sc-invoices .sc-reports-list-export-btn, body.toplevel_page_sc_orders .sc-reports-list-export-btn, body[class*="_page_sc-expenses"] .sc-reports-list-export-btn, body[class*="_page_sc-incomes"] .sc-reports-list-export-btn, body[class*="_page_sc-discount-codes"] .sc-reports-list-export-btn,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-export-btn {
     display: inline-flex;
     align-items: center;
@@ -19281,15 +19281,15 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-export-btn {
     box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-export-btn:hover, body.toplevel_page_sc-invoices .sc-reports-list-export-btn:hover, body.toplevel_page_sc_orders .sc-reports-list-export-btn:hover, body[class*="_page_sc-expenses"] .sc-reports-list-export-btn:hover, body[class*="_page_sc-discount-codes"] .sc-reports-list-export-btn:hover,
+body[class*="_page_sc-reports"] .sc-reports-list-export-btn:hover, body.toplevel_page_sc-invoices .sc-reports-list-export-btn:hover, body.toplevel_page_sc_orders .sc-reports-list-export-btn:hover, body[class*="_page_sc-expenses"] .sc-reports-list-export-btn:hover, body[class*="_page_sc-incomes"] .sc-reports-list-export-btn:hover, body[class*="_page_sc-discount-codes"] .sc-reports-list-export-btn:hover,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-export-btn:hover {
     background: rgba(109, 52, 255, 0.06);
     color: #4a1fb8;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-card, body.toplevel_page_sc-invoices .sc-reports-list-filters-card, body.toplevel_page_sc_orders .sc-reports-list-filters-card, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-card, body.toplevel_page_sc-invoices .sc-reports-list-filters-card, body.toplevel_page_sc_orders .sc-reports-list-filters-card, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card,
-body[class*="_page_sc-reports"] .sc-reports-list-panel, body.toplevel_page_sc-invoices .sc-reports-list-panel, body.toplevel_page_sc_orders .sc-reports-list-panel, body[class*="_page_sc-expenses"] .sc-reports-list-panel, body[class*="_page_sc-discount-codes"] .sc-reports-list-panel,
+body[class*="_page_sc-reports"] .sc-reports-list-panel, body.toplevel_page_sc-invoices .sc-reports-list-panel, body.toplevel_page_sc_orders .sc-reports-list-panel, body[class*="_page_sc-expenses"] .sc-reports-list-panel, body[class*="_page_sc-incomes"] .sc-reports-list-panel, body[class*="_page_sc-discount-codes"] .sc-reports-list-panel,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-panel {
     margin-bottom: 16px;
     padding: 12px 16px;
@@ -19301,7 +19301,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-panel {
 }
 
 /* نوار «مشاهده فیلترها» — هم‌سبک لیست بازیکن‌ها */
-body[class*="_page_sc-reports"] .sc-reports-list-filters-toolbar, body.toplevel_page_sc-invoices .sc-reports-list-filters-toolbar, body.toplevel_page_sc_orders .sc-reports-list-filters-toolbar, body[class*="_page_sc-expenses"] .sc-reports-list-filters-toolbar, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-toolbar,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-toolbar, body.toplevel_page_sc-invoices .sc-reports-list-filters-toolbar, body.toplevel_page_sc_orders .sc-reports-list-filters-toolbar, body[class*="_page_sc-expenses"] .sc-reports-list-filters-toolbar, body[class*="_page_sc-incomes"] .sc-reports-list-filters-toolbar, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-toolbar,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-toolbar {
     display: flex;
     align-items: center;
@@ -19310,7 +19310,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-toolbar {
     flex-wrap: wrap;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-toggle, body.toplevel_page_sc-invoices .sc-reports-list-filters-toggle, body.toplevel_page_sc_orders .sc-reports-list-filters-toggle, body[class*="_page_sc-expenses"] .sc-reports-list-filters-toggle, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-toggle,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-toggle, body.toplevel_page_sc-invoices .sc-reports-list-filters-toggle, body.toplevel_page_sc_orders .sc-reports-list-filters-toggle, body[class*="_page_sc-expenses"] .sc-reports-list-filters-toggle, body[class*="_page_sc-incomes"] .sc-reports-list-filters-toggle, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-toggle,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-toggle {
     display: inline-flex;
     align-items: center;
@@ -19327,19 +19327,19 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-toggle {
     box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-toggle:hover, body.toplevel_page_sc-invoices .sc-reports-list-filters-toggle:hover, body.toplevel_page_sc_orders .sc-reports-list-filters-toggle:hover, body[class*="_page_sc-expenses"] .sc-reports-list-filters-toggle:hover, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-toggle:hover,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-toggle:hover, body.toplevel_page_sc-invoices .sc-reports-list-filters-toggle:hover, body.toplevel_page_sc_orders .sc-reports-list-filters-toggle:hover, body[class*="_page_sc-expenses"] .sc-reports-list-filters-toggle:hover, body[class*="_page_sc-incomes"] .sc-reports-list-filters-toggle:hover, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-toggle:hover,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-toggle:hover {
     background: rgba(109, 52, 255, 0.06);
     border-color: rgba(109, 52, 255, 0.4);
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-toggle-icon, body.toplevel_page_sc-invoices .sc-reports-list-filters-toggle-icon, body.toplevel_page_sc_orders .sc-reports-list-filters-toggle-icon, body[class*="_page_sc-expenses"] .sc-reports-list-filters-toggle-icon, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-toggle-icon,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-toggle-icon, body.toplevel_page_sc-invoices .sc-reports-list-filters-toggle-icon, body.toplevel_page_sc_orders .sc-reports-list-filters-toggle-icon, body[class*="_page_sc-expenses"] .sc-reports-list-filters-toggle-icon, body[class*="_page_sc-incomes"] .sc-reports-list-filters-toggle-icon, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-toggle-icon,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-toggle-icon {
     display: inline-flex;
     color: #6d34ff;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-badge, body.toplevel_page_sc-invoices .sc-reports-list-filters-badge, body.toplevel_page_sc_orders .sc-reports-list-filters-badge, body[class*="_page_sc-expenses"] .sc-reports-list-filters-badge, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-badge,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-badge, body.toplevel_page_sc-invoices .sc-reports-list-filters-badge, body.toplevel_page_sc_orders .sc-reports-list-filters-badge, body[class*="_page_sc-expenses"] .sc-reports-list-filters-badge, body[class*="_page_sc-incomes"] .sc-reports-list-filters-badge, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-badge,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-badge {
     display: inline-flex;
     align-items: center;
@@ -19355,7 +19355,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-badge {
     line-height: 1;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-chevron, body.toplevel_page_sc-invoices .sc-reports-list-filters-chevron, body.toplevel_page_sc_orders .sc-reports-list-filters-chevron, body[class*="_page_sc-expenses"] .sc-reports-list-filters-chevron, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-chevron,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-chevron, body.toplevel_page_sc-invoices .sc-reports-list-filters-chevron, body.toplevel_page_sc_orders .sc-reports-list-filters-chevron, body[class*="_page_sc-expenses"] .sc-reports-list-filters-chevron, body[class*="_page_sc-incomes"] .sc-reports-list-filters-chevron, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-chevron,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-chevron {
     width: 8px;
     height: 8px;
@@ -19366,13 +19366,13 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-chevron {
     transition: transform 0.2s ease;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron, body.toplevel_page_sc-invoices .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron, body.toplevel_page_sc_orders .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron, body.toplevel_page_sc-invoices .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron, body.toplevel_page_sc_orders .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card.is-open .sc-reports-list-filters-chevron {
     transform: rotate(-135deg);
     margin-top: 4px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-clear, body.toplevel_page_sc-invoices .sc-reports-list-filters-clear, body.toplevel_page_sc_orders .sc-reports-list-filters-clear, body[class*="_page_sc-expenses"] .sc-reports-list-filters-clear, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-clear,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-clear, body.toplevel_page_sc-invoices .sc-reports-list-filters-clear, body.toplevel_page_sc_orders .sc-reports-list-filters-clear, body[class*="_page_sc-expenses"] .sc-reports-list-filters-clear, body[class*="_page_sc-incomes"] .sc-reports-list-filters-clear, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-clear,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-clear {
     color: #6d34ff;
     font-size: 13px;
@@ -19380,20 +19380,20 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-clear {
     text-decoration: none;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-clear:hover, body.toplevel_page_sc-invoices .sc-reports-list-filters-clear:hover, body.toplevel_page_sc_orders .sc-reports-list-filters-clear:hover, body[class*="_page_sc-expenses"] .sc-reports-list-filters-clear:hover, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-clear:hover,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-clear:hover, body.toplevel_page_sc-invoices .sc-reports-list-filters-clear:hover, body.toplevel_page_sc_orders .sc-reports-list-filters-clear:hover, body[class*="_page_sc-expenses"] .sc-reports-list-filters-clear:hover, body[class*="_page_sc-incomes"] .sc-reports-list-filters-clear:hover, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-clear:hover,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-clear:hover {
     color: #4a1fb8;
     text-decoration: underline;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-panel, body.toplevel_page_sc-invoices .sc-reports-list-filters-panel, body.toplevel_page_sc_orders .sc-reports-list-filters-panel, body[class*="_page_sc-expenses"] .sc-reports-list-filters-panel, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-panel,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-panel, body.toplevel_page_sc-invoices .sc-reports-list-filters-panel, body.toplevel_page_sc_orders .sc-reports-list-filters-panel, body[class*="_page_sc-expenses"] .sc-reports-list-filters-panel, body[class*="_page_sc-incomes"] .sc-reports-list-filters-panel, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-panel,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-panel {
     margin-top: 16px;
     padding-top: 16px;
     border-top: 1px solid rgba(109, 52, 255, 0.1);
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-panel[hidden], body.toplevel_page_sc-invoices .sc-reports-list-filters-panel[hidden], body.toplevel_page_sc_orders .sc-reports-list-filters-panel[hidden], body[class*="_page_sc-expenses"] .sc-reports-list-filters-panel[hidden], body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-panel[hidden],
+body[class*="_page_sc-reports"] .sc-reports-list-filters-panel[hidden], body.toplevel_page_sc-invoices .sc-reports-list-filters-panel[hidden], body.toplevel_page_sc_orders .sc-reports-list-filters-panel[hidden], body[class*="_page_sc-expenses"] .sc-reports-list-filters-panel[hidden], body[class*="_page_sc-incomes"] .sc-reports-list-filters-panel[hidden], body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-panel[hidden],
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-panel[hidden] {
     display: none !important;
 }
@@ -19418,7 +19418,7 @@ body.sc-reports_page_sc-reports-bi-analytics .sc-bi-rank-col .sc-bi-rank-num {
     font-variant-numeric: tabular-nums;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card, body.toplevel_page_sc-invoices .sc-reports-list-table-card, body.toplevel_page_sc_orders .sc-reports-list-table-card, body[class*="_page_sc-expenses"] .sc-reports-list-table-card, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card,
+body[class*="_page_sc-reports"] .sc-reports-list-table-card, body.toplevel_page_sc-invoices .sc-reports-list-table-card, body.toplevel_page_sc_orders .sc-reports-list-table-card, body[class*="_page_sc-expenses"] .sc-reports-list-table-card, body[class*="_page_sc-incomes"] .sc-reports-list-table-card, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-table-card,
 body.sc-permalinks-admin-page.options-permalink-php .sc-reports-list-table-card {
     margin-bottom: 16px;
@@ -19431,14 +19431,14 @@ body.sc-permalinks-admin-page.options-permalink-php .sc-reports-list-table-card 
     overflow: hidden;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-filter-grid, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-filter-grid, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-filter-grid, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-filter-grid, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-filter-grid,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-filter-grid, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-filter-grid, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-filter-grid, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-filter-grid, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-filter-grid, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-filter-grid,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-filter-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px 16px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-filter-label, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-filter-label, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-filter-label, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-filter-label, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-filter-label,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-filter-label, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-filter-label, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-filter-label, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-filter-label, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-filter-label, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-filter-label,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-filter-label {
     display: block;
     margin-bottom: 8px;
@@ -19447,8 +19447,8 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-filter
     color: #4b5563;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-filter-control, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-filter-control, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-filter-control, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-filter-control, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-filter-control,
-body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-dropdown-toggle, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-dropdown-toggle, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-dropdown-toggle, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-dropdown-toggle, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-dropdown-toggle,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-filter-control, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-filter-control, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-filter-control, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-filter-control, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-filter-control, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-filter-control,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-dropdown-toggle, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-dropdown-toggle, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-dropdown-toggle, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-dropdown-toggle, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-dropdown-toggle, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-dropdown-toggle,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-filter-control,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-dropdown-toggle {
     width: 100%;
@@ -19462,8 +19462,8 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-dropdo
     font-size: 13px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-filter-control:focus, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-filter-control:focus, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-filter-control:focus, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-filter-control:focus, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-filter-control:focus,
-body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-filter-control:focus, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-filter-control:focus, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-filter-control:focus, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-filter-control:focus, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-filter-control:focus, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-filter-control:focus,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-filter-control:focus,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-dropdown-toggle:focus-within {
     border-color: #6d34ff !important;
@@ -19472,14 +19472,14 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-dropdo
 }
 
 body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-searchable-dropdown,
-body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-searchable-dropdown, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-searchable-dropdown, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-searchable-dropdown,
+body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-searchable-dropdown, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-searchable-dropdown, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-searchable-dropdown, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-searchable-dropdown,
 body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-searchable-dropdown,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-searchable-dropdown {
     width: 100%;
 }
 
 body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-dropdown-menu,
-body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-dropdown-menu, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-dropdown-menu, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-dropdown-menu,
+body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-dropdown-menu, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-dropdown-menu, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-dropdown-menu, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-dropdown-menu,
 body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-dropdown-menu,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-dropdown-menu {
     border-radius: 12px;
@@ -19491,8 +19491,8 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-dropdo
 
 body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-dropdown-option:hover,
 body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-dropdown-option.sc-selected,
-body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-dropdown-option:hover, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-dropdown-option:hover, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-dropdown-option.sc-selected, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-dropdown-option.sc-selected, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-dropdown-option:hover,
-body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-dropdown-option.sc-selected,
+body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-dropdown-option:hover, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-dropdown-option:hover, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-dropdown-option.sc-selected, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-dropdown-option.sc-selected, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-dropdown-option:hover, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-dropdown-option:hover,
+body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-dropdown-option.sc-selected, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-dropdown-option.sc-selected,
 body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-dropdown-option:hover,
 body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-dropdown-option.sc-selected,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-dropdown-option:hover,
@@ -19500,7 +19500,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-dropdo
     background: rgba(109, 52, 255, 0.08);
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-actions, body.toplevel_page_sc-invoices .sc-reports-list-filters-actions, body.toplevel_page_sc_orders .sc-reports-list-filters-actions, body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-actions,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-actions, body.toplevel_page_sc-invoices .sc-reports-list-filters-actions, body.toplevel_page_sc_orders .sc-reports-list-filters-actions, body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions, body[class*="_page_sc-incomes"] .sc-reports-list-filters-actions, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-actions,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-actions {
     display: flex;
     align-items: center;
@@ -19509,7 +19509,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-actions {
     margin-top: 14px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-actions .button-primary, body.toplevel_page_sc-invoices .sc-reports-list-filters-actions .button-primary, body.toplevel_page_sc_orders .sc-reports-list-filters-actions .button-primary, body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .button-primary, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-actions .button-primary,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-actions .button-primary, body.toplevel_page_sc-invoices .sc-reports-list-filters-actions .button-primary, body.toplevel_page_sc_orders .sc-reports-list-filters-actions .button-primary, body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .button-primary, body[class*="_page_sc-incomes"] .sc-reports-list-filters-actions .button-primary, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-actions .button-primary,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-actions .button-primary {
     min-height: 42px;
     padding: 0 22px;
@@ -19521,8 +19521,8 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-actions .button
     box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-actions .delete_fillter, body.toplevel_page_sc-invoices .sc-reports-list-filters-actions .delete_fillter, body.toplevel_page_sc_orders .sc-reports-list-filters-actions .delete_fillter, body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .delete_fillter, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-actions .delete_fillter,
-body[class*="_page_sc-reports"] .sc-reports-list-filters-actions .button_export, body.toplevel_page_sc-invoices .sc-reports-list-filters-actions .button_export, body.toplevel_page_sc_orders .sc-reports-list-filters-actions .button_export, body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .button_export, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-actions .button_export,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-actions .delete_fillter, body.toplevel_page_sc-invoices .sc-reports-list-filters-actions .delete_fillter, body.toplevel_page_sc_orders .sc-reports-list-filters-actions .delete_fillter, body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .delete_fillter, body[class*="_page_sc-incomes"] .sc-reports-list-filters-actions .delete_fillter, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-actions .delete_fillter,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-actions .button_export, body.toplevel_page_sc-invoices .sc-reports-list-filters-actions .button_export, body.toplevel_page_sc_orders .sc-reports-list-filters-actions .button_export, body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .button_export, body[class*="_page_sc-incomes"] .sc-reports-list-filters-actions .button_export, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-actions .button_export,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-actions .delete_fillter,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-actions .button_export {
     min-height: 42px;
@@ -19537,13 +19537,13 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-actions .button
     text-decoration: none;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-filters-actions .button_export, body.toplevel_page_sc-invoices .sc-reports-list-filters-actions .button_export, body.toplevel_page_sc_orders .sc-reports-list-filters-actions .button_export, body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .button_export, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-actions .button_export,
+body[class*="_page_sc-reports"] .sc-reports-list-filters-actions .button_export, body.toplevel_page_sc-invoices .sc-reports-list-filters-actions .button_export, body.toplevel_page_sc_orders .sc-reports-list-filters-actions .button_export, body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .button_export, body[class*="_page_sc-incomes"] .sc-reports-list-filters-actions .button_export, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-actions .button_export,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-actions .button_export {
     border-color: rgba(109, 52, 255, 0.28) !important;
     color: #4a1fb8 !important;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-stats, body.toplevel_page_sc-invoices .sc-reports-list-stats, body.toplevel_page_sc_orders .sc-reports-list-stats, body[class*="_page_sc-expenses"] .sc-reports-list-stats, body[class*="_page_sc-discount-codes"] .sc-reports-list-stats,
+body[class*="_page_sc-reports"] .sc-reports-list-stats, body.toplevel_page_sc-invoices .sc-reports-list-stats, body.toplevel_page_sc_orders .sc-reports-list-stats, body[class*="_page_sc-expenses"] .sc-reports-list-stats, body[class*="_page_sc-incomes"] .sc-reports-list-stats, body[class*="_page_sc-discount-codes"] .sc-reports-list-stats,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -19551,7 +19551,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-stats {
     margin-bottom: 16px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-stat-card, body.toplevel_page_sc-invoices .sc-reports-list-stat-card, body.toplevel_page_sc_orders .sc-reports-list-stat-card, body[class*="_page_sc-expenses"] .sc-reports-list-stat-card, body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-card,
+body[class*="_page_sc-reports"] .sc-reports-list-stat-card, body.toplevel_page_sc-invoices .sc-reports-list-stat-card, body.toplevel_page_sc_orders .sc-reports-list-stat-card, body[class*="_page_sc-expenses"] .sc-reports-list-stat-card, body[class*="_page_sc-incomes"] .sc-reports-list-stat-card, body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-card,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-stat-card {
     padding: 14px 16px;
     border-radius: 16px;
@@ -19561,34 +19561,34 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-stat-card {
     border-inline-start: 4px solid #6d34ff;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-stat-label , body.toplevel_page_sc-invoices .sc-reports-list-stat-label, body.toplevel_page_sc_orders .sc-reports-list-stat-label, body[class*="_page_sc-expenses"] .sc-reports-list-stat-label , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-label {
+body[class*="_page_sc-reports"] .sc-reports-list-stat-label , body.toplevel_page_sc-invoices .sc-reports-list-stat-label, body.toplevel_page_sc_orders .sc-reports-list-stat-label, body[class*="_page_sc-expenses"] .sc-reports-list-stat-label , body[class*="_page_sc-incomes"] .sc-reports-list-stat-label , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-label {
     font-size: 12px;
     font-weight: 600;
     color: #6b7280;
     margin-bottom: 8px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-stat-value , body.toplevel_page_sc-invoices .sc-reports-list-stat-value, body.toplevel_page_sc_orders .sc-reports-list-stat-value, body[class*="_page_sc-expenses"] .sc-reports-list-stat-value , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-value {
+body[class*="_page_sc-reports"] .sc-reports-list-stat-value , body.toplevel_page_sc-invoices .sc-reports-list-stat-value, body.toplevel_page_sc_orders .sc-reports-list-stat-value, body[class*="_page_sc-expenses"] .sc-reports-list-stat-value , body[class*="_page_sc-incomes"] .sc-reports-list-stat-value , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-value {
     font-size: 1.2rem;
     font-weight: 800;
     color: #1e1b2e;
     line-height: 1.3;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-stat-value.is-credit , body.toplevel_page_sc-invoices .sc-reports-list-stat-value.is-credit, body.toplevel_page_sc_orders .sc-reports-list-stat-value.is-credit, body[class*="_page_sc-expenses"] .sc-reports-list-stat-value.is-credit , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-value.is-credit { color: #16a34a; }
-body[class*="_page_sc-reports"] .sc-reports-list-stat-value.is-debit , body.toplevel_page_sc-invoices .sc-reports-list-stat-value.is-debit, body.toplevel_page_sc_orders .sc-reports-list-stat-value.is-debit, body[class*="_page_sc-expenses"] .sc-reports-list-stat-value.is-debit , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-value.is-debit { color: #dc2626; }
-body[class*="_page_sc-reports"] .sc-reports-list-stat-value.is-purple , body.toplevel_page_sc-invoices .sc-reports-list-stat-value.is-purple, body.toplevel_page_sc_orders .sc-reports-list-stat-value.is-purple, body[class*="_page_sc-expenses"] .sc-reports-list-stat-value.is-purple , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-value.is-purple { color: #6d34ff; }
-body[class*="_page_sc-reports"] .sc-reports-list-stat-value.is-blue , body.toplevel_page_sc-invoices .sc-reports-list-stat-value.is-blue, body.toplevel_page_sc_orders .sc-reports-list-stat-value.is-blue, body[class*="_page_sc-expenses"] .sc-reports-list-stat-value.is-blue , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-value.is-blue { color: #2563eb; }
+body[class*="_page_sc-reports"] .sc-reports-list-stat-value.is-credit , body.toplevel_page_sc-invoices .sc-reports-list-stat-value.is-credit, body.toplevel_page_sc_orders .sc-reports-list-stat-value.is-credit, body[class*="_page_sc-expenses"] .sc-reports-list-stat-value.is-credit , body[class*="_page_sc-incomes"] .sc-reports-list-stat-value.is-credit , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-value.is-credit { color: #16a34a; }
+body[class*="_page_sc-reports"] .sc-reports-list-stat-value.is-debit , body.toplevel_page_sc-invoices .sc-reports-list-stat-value.is-debit, body.toplevel_page_sc_orders .sc-reports-list-stat-value.is-debit, body[class*="_page_sc-expenses"] .sc-reports-list-stat-value.is-debit , body[class*="_page_sc-incomes"] .sc-reports-list-stat-value.is-debit , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-value.is-debit { color: #dc2626; }
+body[class*="_page_sc-reports"] .sc-reports-list-stat-value.is-purple , body.toplevel_page_sc-invoices .sc-reports-list-stat-value.is-purple, body.toplevel_page_sc_orders .sc-reports-list-stat-value.is-purple, body[class*="_page_sc-expenses"] .sc-reports-list-stat-value.is-purple , body[class*="_page_sc-incomes"] .sc-reports-list-stat-value.is-purple , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-value.is-purple { color: #6d34ff; }
+body[class*="_page_sc-reports"] .sc-reports-list-stat-value.is-blue , body.toplevel_page_sc-invoices .sc-reports-list-stat-value.is-blue, body.toplevel_page_sc_orders .sc-reports-list-stat-value.is-blue, body[class*="_page_sc-expenses"] .sc-reports-list-stat-value.is-blue , body[class*="_page_sc-incomes"] .sc-reports-list-stat-value.is-blue , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-value.is-blue { color: #2563eb; }
 
-body[class*="_page_sc-reports"] .sc-reports-list-stat-card .description, body.toplevel_page_sc-invoices .sc-reports-list-stat-card, body.toplevel_page_sc_orders .sc-reports-list-stat-card, body[class*="_page_sc-expenses"] .sc-reports-list-stat-card .description, body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-card .description,
-body[class*="_page_sc-reports"] .sc-reports-list-stat-card p.description , body.toplevel_page_sc-invoices .sc-reports-list-stat-card, body.toplevel_page_sc_orders .sc-reports-list-stat-card, body[class*="_page_sc-expenses"] .sc-reports-list-stat-card p.description , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-card p.description {
+body[class*="_page_sc-reports"] .sc-reports-list-stat-card .description, body.toplevel_page_sc-invoices .sc-reports-list-stat-card, body.toplevel_page_sc_orders .sc-reports-list-stat-card, body[class*="_page_sc-expenses"] .sc-reports-list-stat-card .description, body[class*="_page_sc-incomes"] .sc-reports-list-stat-card .description, body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-card .description,
+body[class*="_page_sc-reports"] .sc-reports-list-stat-card p.description , body.toplevel_page_sc-invoices .sc-reports-list-stat-card, body.toplevel_page_sc_orders .sc-reports-list-stat-card, body[class*="_page_sc-expenses"] .sc-reports-list-stat-card p.description , body[class*="_page_sc-incomes"] .sc-reports-list-stat-card p.description , body[class*="_page_sc-discount-codes"] .sc-reports-list-stat-card p.description {
     margin: 8px 0 0;
     font-size: 11px;
     color: #9ca3af;
     line-height: 1.5;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-nav-tabs , body.toplevel_page_sc-invoices .sc-reports-nav-tabs, body.toplevel_page_sc_orders .sc-reports-nav-tabs, body[class*="_page_sc-expenses"] .sc-reports-nav-tabs , body[class*="_page_sc-discount-codes"] .sc-reports-nav-tabs {
+body[class*="_page_sc-reports"] .sc-reports-nav-tabs , body.toplevel_page_sc-invoices .sc-reports-nav-tabs, body.toplevel_page_sc_orders .sc-reports-nav-tabs, body[class*="_page_sc-expenses"] .sc-reports-nav-tabs , body[class*="_page_sc-incomes"] .sc-reports-nav-tabs , body[class*="_page_sc-discount-codes"] .sc-reports-nav-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -19597,7 +19597,7 @@ body[class*="_page_sc-reports"] .sc-reports-nav-tabs , body.toplevel_page_sc-inv
     border: none;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-nav-tabs .nav-tab , body.toplevel_page_sc-invoices .sc-reports-nav-tabs, body.toplevel_page_sc_orders .sc-reports-nav-tabs, body[class*="_page_sc-expenses"] .sc-reports-nav-tabs .nav-tab , body[class*="_page_sc-discount-codes"] .sc-reports-nav-tabs .nav-tab {
+body[class*="_page_sc-reports"] .sc-reports-nav-tabs .nav-tab , body.toplevel_page_sc-invoices .sc-reports-nav-tabs, body.toplevel_page_sc_orders .sc-reports-nav-tabs, body[class*="_page_sc-expenses"] .sc-reports-nav-tabs .nav-tab , body[class*="_page_sc-incomes"] .sc-reports-nav-tabs .nav-tab , body[class*="_page_sc-discount-codes"] .sc-reports-nav-tabs .nav-tab {
     float: none;
     margin: 0;
     padding: 8px 14px;
@@ -19611,20 +19611,20 @@ body[class*="_page_sc-reports"] .sc-reports-nav-tabs .nav-tab , body.toplevel_pa
     line-height: 1.4;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-nav-tabs .nav-tab:hover , body.toplevel_page_sc-invoices .sc-reports-nav-tabs, body.toplevel_page_sc_orders .sc-reports-nav-tabs, body[class*="_page_sc-expenses"] .sc-reports-nav-tabs .nav-tab:hover , body[class*="_page_sc-discount-codes"] .sc-reports-nav-tabs .nav-tab:hover {
+body[class*="_page_sc-reports"] .sc-reports-nav-tabs .nav-tab:hover , body.toplevel_page_sc-invoices .sc-reports-nav-tabs, body.toplevel_page_sc_orders .sc-reports-nav-tabs, body[class*="_page_sc-expenses"] .sc-reports-nav-tabs .nav-tab:hover , body[class*="_page_sc-incomes"] .sc-reports-nav-tabs .nav-tab:hover , body[class*="_page_sc-discount-codes"] .sc-reports-nav-tabs .nav-tab:hover {
     background: rgba(109, 52, 255, 0.1);
     color: #4a1fb8;
     border-color: rgba(109, 52, 255, 0.18);
 }
 
-body[class*="_page_sc-reports"] .sc-reports-nav-tabs .nav-tab-active , body.toplevel_page_sc-invoices .sc-reports-nav-tabs, body.toplevel_page_sc_orders .sc-reports-nav-tabs, body[class*="_page_sc-expenses"] .sc-reports-nav-tabs .nav-tab-active , body[class*="_page_sc-discount-codes"] .sc-reports-nav-tabs .nav-tab-active {
+body[class*="_page_sc-reports"] .sc-reports-nav-tabs .nav-tab-active , body.toplevel_page_sc-invoices .sc-reports-nav-tabs, body.toplevel_page_sc_orders .sc-reports-nav-tabs, body[class*="_page_sc-expenses"] .sc-reports-nav-tabs .nav-tab-active , body[class*="_page_sc-incomes"] .sc-reports-nav-tabs .nav-tab-active , body[class*="_page_sc-discount-codes"] .sc-reports-nav-tabs .nav-tab-active {
     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
     color: #fff !important;
     border-color: transparent !important;
     box-shadow: 0 4px 14px rgba(109, 52, 255, 0.25);
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-panel-header, body.toplevel_page_sc-invoices .sc-reports-list-panel-header, body.toplevel_page_sc_orders .sc-reports-list-panel-header, body[class*="_page_sc-expenses"] .sc-reports-list-panel-header, body[class*="_page_sc-discount-codes"] .sc-reports-list-panel-header,
+body[class*="_page_sc-reports"] .sc-reports-list-panel-header, body.toplevel_page_sc-invoices .sc-reports-list-panel-header, body.toplevel_page_sc_orders .sc-reports-list-panel-header, body[class*="_page_sc-expenses"] .sc-reports-list-panel-header, body[class*="_page_sc-incomes"] .sc-reports-list-panel-header, body[class*="_page_sc-discount-codes"] .sc-reports-list-panel-header,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-panel-header {
     display: flex;
     align-items: center;
@@ -19636,7 +19636,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-panel-header {
     border-bottom: 1px dashed rgba(109, 52, 255, 0.18);
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-panel-header h2, body.toplevel_page_sc-invoices .sc-reports-list-panel-header, body.toplevel_page_sc_orders .sc-reports-list-panel-header, body[class*="_page_sc-expenses"] .sc-reports-list-panel-header h2, body[class*="_page_sc-discount-codes"] .sc-reports-list-panel-header h2,
+body[class*="_page_sc-reports"] .sc-reports-list-panel-header h2, body.toplevel_page_sc-invoices .sc-reports-list-panel-header, body.toplevel_page_sc_orders .sc-reports-list-panel-header, body[class*="_page_sc-expenses"] .sc-reports-list-panel-header h2, body[class*="_page_sc-incomes"] .sc-reports-list-panel-header h2, body[class*="_page_sc-discount-codes"] .sc-reports-list-panel-header h2,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-panel-header h2 {
     margin: 0;
     padding: 0;
@@ -19645,17 +19645,17 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-panel-header h2 {
     color: #1e1b2e;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table,
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table, body[class*="_page_sc-incomes"] .sc-reports-list-table-card .wp-list-table, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-table-card .wp-list-table,
-body[class*="_page_sc-reports"] .sc-reports-list-panel .wp-list-table , body.toplevel_page_sc-invoices .sc-reports-list-panel, body.toplevel_page_sc_orders .sc-reports-list-panel, body[class*="_page_sc-expenses"] .sc-reports-list-panel .wp-list-table , body[class*="_page_sc-discount-codes"] .sc-reports-list-panel .wp-list-table {
+body[class*="_page_sc-reports"] .sc-reports-list-panel .wp-list-table , body.toplevel_page_sc-invoices .sc-reports-list-panel, body.toplevel_page_sc_orders .sc-reports-list-panel, body[class*="_page_sc-expenses"] .sc-reports-list-panel .wp-list-table , body[class*="_page_sc-incomes"] .sc-reports-list-panel .wp-list-table , body[class*="_page_sc-discount-codes"] .sc-reports-list-panel .wp-list-table {
     border: none !important;
     box-shadow: none;
     background: transparent;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table thead th, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table thead th, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table thead th,
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table thead th, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table thead th, body[class*="_page_sc-incomes"] .sc-reports-list-table-card .wp-list-table thead th, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table thead th,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-table-card .wp-list-table thead th,
-body[class*="_page_sc-reports"] .sc-reports-list-panel .wp-list-table thead th , body.toplevel_page_sc-invoices .sc-reports-list-panel, body.toplevel_page_sc_orders .sc-reports-list-panel, body[class*="_page_sc-expenses"] .sc-reports-list-panel .wp-list-table thead th , body[class*="_page_sc-discount-codes"] .sc-reports-list-panel .wp-list-table thead th {
+body[class*="_page_sc-reports"] .sc-reports-list-panel .wp-list-table thead th , body.toplevel_page_sc-invoices .sc-reports-list-panel, body.toplevel_page_sc_orders .sc-reports-list-panel, body[class*="_page_sc-expenses"] .sc-reports-list-panel .wp-list-table thead th , body[class*="_page_sc-incomes"] .sc-reports-list-panel .wp-list-table thead th , body[class*="_page_sc-discount-codes"] .sc-reports-list-panel .wp-list-table thead th {
     padding: 12px 14px !important;
     border-bottom: 1px solid #efeafc !important;
     background: #faf9ff !important;
@@ -19664,10 +19664,10 @@ body[class*="_page_sc-reports"] .sc-reports-list-panel .wp-list-table thead th ,
     font-weight: 700;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody td, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody td, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody td,
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody td, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody td, body[class*="_page_sc-incomes"] .sc-reports-list-table-card .wp-list-table tbody td, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody td,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-table-card .wp-list-table tbody td,
-body[class*="_page_sc-reports"] .sc-reports-list-panel .wp-list-table tbody td, body.toplevel_page_sc-invoices .sc-reports-list-panel, body.toplevel_page_sc_orders .sc-reports-list-panel, body[class*="_page_sc-expenses"] .sc-reports-list-panel .wp-list-table tbody td, body[class*="_page_sc-discount-codes"] .sc-reports-list-panel .wp-list-table tbody td,
-body[class*="_page_sc-reports"] .sc-reports-list-panel .wp-list-table tbody th , body.toplevel_page_sc-invoices .sc-reports-list-panel, body.toplevel_page_sc_orders .sc-reports-list-panel, body[class*="_page_sc-expenses"] .sc-reports-list-panel .wp-list-table tbody th , body[class*="_page_sc-discount-codes"] .sc-reports-list-panel .wp-list-table tbody th {
+body[class*="_page_sc-reports"] .sc-reports-list-panel .wp-list-table tbody td, body.toplevel_page_sc-invoices .sc-reports-list-panel, body.toplevel_page_sc_orders .sc-reports-list-panel, body[class*="_page_sc-expenses"] .sc-reports-list-panel .wp-list-table tbody td, body[class*="_page_sc-incomes"] .sc-reports-list-panel .wp-list-table tbody td, body[class*="_page_sc-discount-codes"] .sc-reports-list-panel .wp-list-table tbody td,
+body[class*="_page_sc-reports"] .sc-reports-list-panel .wp-list-table tbody th , body.toplevel_page_sc-invoices .sc-reports-list-panel, body.toplevel_page_sc_orders .sc-reports-list-panel, body[class*="_page_sc-expenses"] .sc-reports-list-panel .wp-list-table tbody th , body[class*="_page_sc-incomes"] .sc-reports-list-panel .wp-list-table tbody th , body[class*="_page_sc-discount-codes"] .sc-reports-list-panel .wp-list-table tbody th {
     padding: 14px !important;
     border-bottom: 1px solid #f1eef8 !important;
     color: #374151;
@@ -19675,31 +19675,31 @@ body[class*="_page_sc-reports"] .sc-reports-list-panel .wp-list-table tbody th ,
     vertical-align: middle;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr,
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr, body[class*="_page_sc-incomes"] .sc-reports-list-table-card .wp-list-table tbody tr, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-table-card .wp-list-table tbody tr {
     background: #fff !important;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr:nth-child(even), body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr:nth-child(even), body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr:nth-child(even),
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr:nth-child(even), body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr:nth-child(even), body[class*="_page_sc-incomes"] .sc-reports-list-table-card .wp-list-table tbody tr:nth-child(even), body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr:nth-child(even),
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-table-card .wp-list-table tbody tr:nth-child(even) {
     background: #fcfbff !important;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr:hover, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr:hover, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr:hover,
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr:hover, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr:hover, body[class*="_page_sc-incomes"] .sc-reports-list-table-card .wp-list-table tbody tr:hover, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr:hover,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-table-card .wp-list-table tbody tr:hover {
     background: #f5f2ff !important;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row,
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:nth-child(even) , body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:nth-child(even) , body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:nth-child(even) {
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row, body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row, body[class*="_page_sc-incomes"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row,
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:nth-child(even) , body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:nth-child(even) , body[class*="_page_sc-incomes"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:nth-child(even) , body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:nth-child(even) {
     background: #fef2f2 !important;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:hover , body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:hover , body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:hover {
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:hover , body.toplevel_page_sc-invoices .sc-reports-list-table-card.wp-list-table, body.toplevel_page_sc_orders .sc-reports-list-table-card.wp-list-table, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:hover , body[class*="_page_sc-incomes"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:hover , body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .wp-list-table tbody tr.is-debt-row:hover {
     background: #fee2e2 !important;
 }
 
-body[class*="_page_sc-reports"] .sc-member-identity, body.toplevel_page_sc-invoices .sc-member-identity, body.toplevel_page_sc_orders .sc-member-identity, body[class*="_page_sc-expenses"] .sc-member-identity, body[class*="_page_sc-discount-codes"] .sc-member-identity,
+body[class*="_page_sc-reports"] .sc-member-identity, body.toplevel_page_sc-invoices .sc-member-identity, body.toplevel_page_sc_orders .sc-member-identity, body[class*="_page_sc-expenses"] .sc-member-identity, body[class*="_page_sc-incomes"] .sc-member-identity, body[class*="_page_sc-discount-codes"] .sc-member-identity,
 body[class*="_page_sc-attendance-logs"] .sc-member-identity {
     display: flex;
     align-items: center;
@@ -19707,7 +19707,7 @@ body[class*="_page_sc-attendance-logs"] .sc-member-identity {
     min-width: 0;
 }
 
-body[class*="_page_sc-reports"] .sc-member-avatar, body.toplevel_page_sc-invoices .sc-member-avatar, body.toplevel_page_sc_orders .sc-member-avatar, body[class*="_page_sc-expenses"] .sc-member-avatar, body[class*="_page_sc-discount-codes"] .sc-member-avatar,
+body[class*="_page_sc-reports"] .sc-member-avatar, body.toplevel_page_sc-invoices .sc-member-avatar, body.toplevel_page_sc_orders .sc-member-avatar, body[class*="_page_sc-expenses"] .sc-member-avatar, body[class*="_page_sc-incomes"] .sc-member-avatar, body[class*="_page_sc-discount-codes"] .sc-member-avatar,
 body[class*="_page_sc-attendance-logs"] .sc-member-avatar {
     flex: 0 0 42px;
     width: 42px;
@@ -19727,7 +19727,7 @@ body[class*="_page_sc-attendance-logs"] .sc-member-avatar {
 
 body[class*="_page_sc-reports"] .sc-member-avatar img,
 body.toplevel_page_sc-invoices .sc-member-avatar img, body.toplevel_page_sc_orders .sc-member-avatar img,
-body[class*="_page_sc-expenses"] .sc-member-avatar img,
+body[class*="_page_sc-expenses"] .sc-member-avatar img, body[class*="_page_sc-incomes"] .sc-member-avatar img,
 body[class*="_page_sc-discount-codes"] .sc-member-avatar img,
 body[class*="_page_sc-attendance-logs"] .sc-member-avatar img {
     width: 100%;
@@ -19736,7 +19736,7 @@ body[class*="_page_sc-attendance-logs"] .sc-member-avatar img {
     display: block;
 }
 
-body[class*="_page_sc-reports"] .sc-member-identity-text, body.toplevel_page_sc-invoices .sc-member-identity-text, body.toplevel_page_sc_orders .sc-member-identity-text, body[class*="_page_sc-expenses"] .sc-member-identity-text, body[class*="_page_sc-discount-codes"] .sc-member-identity-text,
+body[class*="_page_sc-reports"] .sc-member-identity-text, body.toplevel_page_sc-invoices .sc-member-identity-text, body.toplevel_page_sc_orders .sc-member-identity-text, body[class*="_page_sc-expenses"] .sc-member-identity-text, body[class*="_page_sc-incomes"] .sc-member-identity-text, body[class*="_page_sc-discount-codes"] .sc-member-identity-text,
 body[class*="_page_sc-attendance-logs"] .sc-member-identity-text {
     display: flex;
     flex-direction: column;
@@ -19744,7 +19744,7 @@ body[class*="_page_sc-attendance-logs"] .sc-member-identity-text {
     min-width: 0;
 }
 
-body[class*="_page_sc-reports"] .sc-member-name, body.toplevel_page_sc-invoices .sc-member-name, body.toplevel_page_sc_orders .sc-member-name, body[class*="_page_sc-expenses"] .sc-member-name, body[class*="_page_sc-discount-codes"] .sc-member-name,
+body[class*="_page_sc-reports"] .sc-member-name, body.toplevel_page_sc-invoices .sc-member-name, body.toplevel_page_sc_orders .sc-member-name, body[class*="_page_sc-expenses"] .sc-member-name, body[class*="_page_sc-incomes"] .sc-member-name, body[class*="_page_sc-discount-codes"] .sc-member-name,
 body[class*="_page_sc-attendance-logs"] .sc-member-name {
     font-size: 13px;
     font-weight: 700;
@@ -19753,7 +19753,7 @@ body[class*="_page_sc-attendance-logs"] .sc-member-name {
     text-decoration: none;
 }
 
-body[class*="_page_sc-reports"] .sc-member-meta, body.toplevel_page_sc-invoices .sc-member-meta, body.toplevel_page_sc_orders .sc-member-meta, body[class*="_page_sc-expenses"] .sc-member-meta, body[class*="_page_sc-discount-codes"] .sc-member-meta,
+body[class*="_page_sc-reports"] .sc-member-meta, body.toplevel_page_sc-invoices .sc-member-meta, body.toplevel_page_sc_orders .sc-member-meta, body[class*="_page_sc-expenses"] .sc-member-meta, body[class*="_page_sc-incomes"] .sc-member-meta, body[class*="_page_sc-discount-codes"] .sc-member-meta,
 body[class*="_page_sc-attendance-logs"] .sc-member-meta {
     display: flex;
     align-items: center;
@@ -19764,7 +19764,7 @@ body[class*="_page_sc-attendance-logs"] .sc-member-meta {
     font-weight: 500;
 }
 
-body[class*="_page_sc-reports"] .sc-member-meta-dot, body.toplevel_page_sc-invoices .sc-member-meta-dot, body.toplevel_page_sc_orders .sc-member-meta-dot, body[class*="_page_sc-expenses"] .sc-member-meta-dot, body[class*="_page_sc-discount-codes"] .sc-member-meta-dot,
+body[class*="_page_sc-reports"] .sc-member-meta-dot, body.toplevel_page_sc-invoices .sc-member-meta-dot, body.toplevel_page_sc_orders .sc-member-meta-dot, body[class*="_page_sc-expenses"] .sc-member-meta-dot, body[class*="_page_sc-incomes"] .sc-member-meta-dot, body[class*="_page_sc-discount-codes"] .sc-member-meta-dot,
 body[class*="_page_sc-attendance-logs"] .sc-member-meta-dot {
     width: 3px;
     height: 3px;
@@ -19773,7 +19773,7 @@ body[class*="_page_sc-attendance-logs"] .sc-member-meta-dot {
     display: inline-block;
 }
 
-body[class*="_page_sc-reports"] .sc-badge, body.toplevel_page_sc-invoices .sc-badge, body.toplevel_page_sc_orders .sc-badge, body[class*="_page_sc-expenses"] .sc-badge, body[class*="_page_sc-discount-codes"] .sc-badge,
+body[class*="_page_sc-reports"] .sc-badge, body.toplevel_page_sc-invoices .sc-badge, body.toplevel_page_sc_orders .sc-badge, body[class*="_page_sc-expenses"] .sc-badge, body[class*="_page_sc-incomes"] .sc-badge, body[class*="_page_sc-discount-codes"] .sc-badge,
 body[class*="_page_sc-attendance-logs"] .sc-badge {
     display: inline-flex;
     align-items: center;
@@ -19787,39 +19787,39 @@ body[class*="_page_sc-attendance-logs"] .sc-badge {
     white-space: nowrap;
 }
 
-body[class*="_page_sc-reports"] .sc-badge--success, body.toplevel_page_sc-invoices .sc-badge--success, body.toplevel_page_sc_orders .sc-badge--success, body[class*="_page_sc-expenses"] .sc-badge--success, body[class*="_page_sc-discount-codes"] .sc-badge--success,
+body[class*="_page_sc-reports"] .sc-badge--success, body.toplevel_page_sc-invoices .sc-badge--success, body.toplevel_page_sc_orders .sc-badge--success, body[class*="_page_sc-expenses"] .sc-badge--success, body[class*="_page_sc-incomes"] .sc-badge--success, body[class*="_page_sc-discount-codes"] .sc-badge--success,
 body[class*="_page_sc-attendance-logs"] .sc-badge--success { background: #dcfce7; color: #166534; }
-body[class*="_page_sc-reports"] .sc-badge--danger, body.toplevel_page_sc-invoices .sc-badge--danger, body.toplevel_page_sc_orders .sc-badge--danger, body[class*="_page_sc-expenses"] .sc-badge--danger, body[class*="_page_sc-discount-codes"] .sc-badge--danger,
+body[class*="_page_sc-reports"] .sc-badge--danger, body.toplevel_page_sc-invoices .sc-badge--danger, body.toplevel_page_sc_orders .sc-badge--danger, body[class*="_page_sc-expenses"] .sc-badge--danger, body[class*="_page_sc-incomes"] .sc-badge--danger, body[class*="_page_sc-discount-codes"] .sc-badge--danger,
 body[class*="_page_sc-attendance-logs"] .sc-badge--danger { background: #fee2e2; color: #991b1b; }
-body[class*="_page_sc-reports"] .sc-badge--warning, body.toplevel_page_sc-invoices .sc-badge--warning, body.toplevel_page_sc_orders .sc-badge--warning, body[class*="_page_sc-expenses"] .sc-badge--warning, body[class*="_page_sc-discount-codes"] .sc-badge--warning,
+body[class*="_page_sc-reports"] .sc-badge--warning, body.toplevel_page_sc-invoices .sc-badge--warning, body.toplevel_page_sc_orders .sc-badge--warning, body[class*="_page_sc-expenses"] .sc-badge--warning, body[class*="_page_sc-incomes"] .sc-badge--warning, body[class*="_page_sc-discount-codes"] .sc-badge--warning,
 body[class*="_page_sc-attendance-logs"] .sc-badge--warning { background: #fef3c7; color: #92400e; }
-body[class*="_page_sc-reports"] .sc-badge--purple, body.toplevel_page_sc-invoices .sc-badge--purple, body.toplevel_page_sc_orders .sc-badge--purple, body[class*="_page_sc-expenses"] .sc-badge--purple, body[class*="_page_sc-discount-codes"] .sc-badge--purple,
+body[class*="_page_sc-reports"] .sc-badge--purple, body.toplevel_page_sc-invoices .sc-badge--purple, body.toplevel_page_sc_orders .sc-badge--purple, body[class*="_page_sc-expenses"] .sc-badge--purple, body[class*="_page_sc-incomes"] .sc-badge--purple, body[class*="_page_sc-discount-codes"] .sc-badge--purple,
 body[class*="_page_sc-attendance-logs"] .sc-badge--purple { background: rgba(109, 52, 255, 0.12); color: #4a1fb8; }
-body[class*="_page_sc-reports"] .sc-badge--soft, body.toplevel_page_sc-invoices .sc-badge--soft, body.toplevel_page_sc_orders .sc-badge--soft, body[class*="_page_sc-expenses"] .sc-badge--soft, body[class*="_page_sc-discount-codes"] .sc-badge--soft,
+body[class*="_page_sc-reports"] .sc-badge--soft, body.toplevel_page_sc-invoices .sc-badge--soft, body.toplevel_page_sc_orders .sc-badge--soft, body[class*="_page_sc-expenses"] .sc-badge--soft, body[class*="_page_sc-incomes"] .sc-badge--soft, body[class*="_page_sc-discount-codes"] .sc-badge--soft,
 body[class*="_page_sc-attendance-logs"] .sc-badge--soft { background: #f3f4f6; color: #4b5563; }
-body[class*="_page_sc-reports"] .sc-badge--muted, body.toplevel_page_sc-invoices .sc-badge--muted, body.toplevel_page_sc_orders .sc-badge--muted, body[class*="_page_sc-expenses"] .sc-badge--muted, body[class*="_page_sc-discount-codes"] .sc-badge--muted,
+body[class*="_page_sc-reports"] .sc-badge--muted, body.toplevel_page_sc-invoices .sc-badge--muted, body.toplevel_page_sc_orders .sc-badge--muted, body[class*="_page_sc-expenses"] .sc-badge--muted, body[class*="_page_sc-incomes"] .sc-badge--muted, body[class*="_page_sc-discount-codes"] .sc-badge--muted,
 body[class*="_page_sc-attendance-logs"] .sc-badge--muted { background: #f3f4f6; color: #9ca3af; }
 
-body[class*="_page_sc-reports"] .sc-wallet-amount.is-debit, body.toplevel_page_sc-invoices .sc-wallet-amount.is-debit, body.toplevel_page_sc_orders .sc-wallet-amount.is-debit, body[class*="_page_sc-expenses"] .sc-wallet-amount.is-debit, body[class*="_page_sc-discount-codes"] .sc-wallet-amount.is-debit,
-body[class*="_page_sc-reports"] .sc-reports-amount-debit , body.toplevel_page_sc-invoices .sc-reports-amount-debit, body.toplevel_page_sc_orders .sc-reports-amount-debit, body[class*="_page_sc-expenses"] .sc-reports-amount-debit , body[class*="_page_sc-discount-codes"] .sc-reports-amount-debit {
+body[class*="_page_sc-reports"] .sc-wallet-amount.is-debit, body.toplevel_page_sc-invoices .sc-wallet-amount.is-debit, body.toplevel_page_sc_orders .sc-wallet-amount.is-debit, body[class*="_page_sc-expenses"] .sc-wallet-amount.is-debit, body[class*="_page_sc-incomes"] .sc-wallet-amount.is-debit, body[class*="_page_sc-discount-codes"] .sc-wallet-amount.is-debit,
+body[class*="_page_sc-reports"] .sc-reports-amount-debit , body.toplevel_page_sc-invoices .sc-reports-amount-debit, body.toplevel_page_sc_orders .sc-reports-amount-debit, body[class*="_page_sc-expenses"] .sc-reports-amount-debit , body[class*="_page_sc-incomes"] .sc-reports-amount-debit , body[class*="_page_sc-discount-codes"] .sc-reports-amount-debit {
     color: #dc2626;
     font-weight: 800;
 }
 
-body[class*="_page_sc-reports"] .sc-wallet-amount.is-credit, body.toplevel_page_sc-invoices .sc-wallet-amount.is-credit, body.toplevel_page_sc_orders .sc-wallet-amount.is-credit, body[class*="_page_sc-expenses"] .sc-wallet-amount.is-credit, body[class*="_page_sc-discount-codes"] .sc-wallet-amount.is-credit,
-body[class*="_page_sc-reports"] .sc-reports-amount-credit , body.toplevel_page_sc-invoices .sc-reports-amount-credit, body.toplevel_page_sc_orders .sc-reports-amount-credit, body[class*="_page_sc-expenses"] .sc-reports-amount-credit , body[class*="_page_sc-discount-codes"] .sc-reports-amount-credit {
+body[class*="_page_sc-reports"] .sc-wallet-amount.is-credit, body.toplevel_page_sc-invoices .sc-wallet-amount.is-credit, body.toplevel_page_sc_orders .sc-wallet-amount.is-credit, body[class*="_page_sc-expenses"] .sc-wallet-amount.is-credit, body[class*="_page_sc-incomes"] .sc-wallet-amount.is-credit, body[class*="_page_sc-discount-codes"] .sc-wallet-amount.is-credit,
+body[class*="_page_sc-reports"] .sc-reports-amount-credit , body.toplevel_page_sc-invoices .sc-reports-amount-credit, body.toplevel_page_sc_orders .sc-reports-amount-credit, body[class*="_page_sc-expenses"] .sc-reports-amount-credit , body[class*="_page_sc-incomes"] .sc-reports-amount-credit , body[class*="_page_sc-discount-codes"] .sc-reports-amount-credit {
     color: #16a34a;
     font-weight: 800;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-metric-pills , body.toplevel_page_sc-invoices .sc-reports-metric-pills, body.toplevel_page_sc_orders .sc-reports-metric-pills, body[class*="_page_sc-expenses"] .sc-reports-metric-pills , body[class*="_page_sc-discount-codes"] .sc-reports-metric-pills {
+body[class*="_page_sc-reports"] .sc-reports-metric-pills , body.toplevel_page_sc-invoices .sc-reports-metric-pills, body.toplevel_page_sc_orders .sc-reports-metric-pills, body[class*="_page_sc-expenses"] .sc-reports-metric-pills , body[class*="_page_sc-incomes"] .sc-reports-metric-pills , body[class*="_page_sc-discount-codes"] .sc-reports-metric-pills {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 14px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-metric-pills a , body.toplevel_page_sc-invoices .sc-reports-metric-pills, body.toplevel_page_sc_orders .sc-reports-metric-pills, body[class*="_page_sc-expenses"] .sc-reports-metric-pills a , body[class*="_page_sc-discount-codes"] .sc-reports-metric-pills a {
+body[class*="_page_sc-reports"] .sc-reports-metric-pills a , body.toplevel_page_sc-invoices .sc-reports-metric-pills, body.toplevel_page_sc_orders .sc-reports-metric-pills, body[class*="_page_sc-expenses"] .sc-reports-metric-pills a , body[class*="_page_sc-incomes"] .sc-reports-metric-pills a , body[class*="_page_sc-discount-codes"] .sc-reports-metric-pills a {
     display: inline-flex;
     align-items: center;
     min-height: 36px;
@@ -19833,20 +19833,20 @@ body[class*="_page_sc-reports"] .sc-reports-metric-pills a , body.toplevel_page_
     text-decoration: none;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-metric-pills a.is-active , body.toplevel_page_sc-invoices .sc-reports-metric-pills, body.toplevel_page_sc_orders .sc-reports-metric-pills, body[class*="_page_sc-expenses"] .sc-reports-metric-pills a.is-active , body[class*="_page_sc-discount-codes"] .sc-reports-metric-pills a.is-active {
+body[class*="_page_sc-reports"] .sc-reports-metric-pills a.is-active , body.toplevel_page_sc-invoices .sc-reports-metric-pills, body.toplevel_page_sc_orders .sc-reports-metric-pills, body[class*="_page_sc-expenses"] .sc-reports-metric-pills a.is-active , body[class*="_page_sc-incomes"] .sc-reports-metric-pills a.is-active , body[class*="_page_sc-discount-codes"] .sc-reports-metric-pills a.is-active {
     background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
     color: #fff;
     border-color: transparent;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-chart-grid , body.toplevel_page_sc-invoices .sc-reports-chart-grid, body.toplevel_page_sc_orders .sc-reports-chart-grid, body[class*="_page_sc-expenses"] .sc-reports-chart-grid , body[class*="_page_sc-discount-codes"] .sc-reports-chart-grid {
+body[class*="_page_sc-reports"] .sc-reports-chart-grid , body.toplevel_page_sc-invoices .sc-reports-chart-grid, body.toplevel_page_sc_orders .sc-reports-chart-grid, body[class*="_page_sc-expenses"] .sc-reports-chart-grid , body[class*="_page_sc-incomes"] .sc-reports-chart-grid , body[class*="_page_sc-discount-codes"] .sc-reports-chart-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     margin-top: 16px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-chart-card , body.toplevel_page_sc-invoices .sc-reports-chart-card, body.toplevel_page_sc_orders .sc-reports-chart-card, body[class*="_page_sc-expenses"] .sc-reports-chart-card , body[class*="_page_sc-discount-codes"] .sc-reports-chart-card {
+body[class*="_page_sc-reports"] .sc-reports-chart-card , body.toplevel_page_sc-invoices .sc-reports-chart-card, body.toplevel_page_sc_orders .sc-reports-chart-card, body[class*="_page_sc-expenses"] .sc-reports-chart-card , body[class*="_page_sc-incomes"] .sc-reports-chart-card , body[class*="_page_sc-discount-codes"] .sc-reports-chart-card {
     padding: 16px;
     border-radius: 16px;
     background: #fff;
@@ -19854,25 +19854,25 @@ body[class*="_page_sc-reports"] .sc-reports-chart-card , body.toplevel_page_sc-i
     box-shadow: 0 8px 28px rgba(74, 31, 184, 0.06);
 }
 
-body[class*="_page_sc-reports"] .sc-reports-chart-card h2 , body.toplevel_page_sc-invoices .sc-reports-chart-card, body.toplevel_page_sc_orders .sc-reports-chart-card, body[class*="_page_sc-expenses"] .sc-reports-chart-card h2 , body[class*="_page_sc-discount-codes"] .sc-reports-chart-card h2 {
+body[class*="_page_sc-reports"] .sc-reports-chart-card h2 , body.toplevel_page_sc-invoices .sc-reports-chart-card, body.toplevel_page_sc_orders .sc-reports-chart-card, body[class*="_page_sc-expenses"] .sc-reports-chart-card h2 , body[class*="_page_sc-incomes"] .sc-reports-chart-card h2 , body[class*="_page_sc-discount-codes"] .sc-reports-chart-card h2 {
     margin: 0 0 12px;
     font-size: 15px;
     font-weight: 700;
     color: #1e1b2e;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-chart-card .description , body.toplevel_page_sc-invoices .sc-reports-chart-card, body.toplevel_page_sc_orders .sc-reports-chart-card, body[class*="_page_sc-expenses"] .sc-reports-chart-card .description , body[class*="_page_sc-discount-codes"] .sc-reports-chart-card .description {
+body[class*="_page_sc-reports"] .sc-reports-chart-card .description , body.toplevel_page_sc-invoices .sc-reports-chart-card, body.toplevel_page_sc_orders .sc-reports-chart-card, body[class*="_page_sc-expenses"] .sc-reports-chart-card .description , body[class*="_page_sc-incomes"] .sc-reports-chart-card .description , body[class*="_page_sc-discount-codes"] .sc-reports-chart-card .description {
     margin: 0 0 12px;
     color: #9ca3af;
     font-size: 12px;
 }
 
-body[class*="_page_sc-reports"] .sc-bi-chart-canvas , body.toplevel_page_sc-invoices .sc-bi-chart-canvas, body.toplevel_page_sc_orders .sc-bi-chart-canvas, body[class*="_page_sc-expenses"] .sc-bi-chart-canvas , body[class*="_page_sc-discount-codes"] .sc-bi-chart-canvas {
+body[class*="_page_sc-reports"] .sc-bi-chart-canvas , body.toplevel_page_sc-invoices .sc-bi-chart-canvas, body.toplevel_page_sc_orders .sc-bi-chart-canvas, body[class*="_page_sc-expenses"] .sc-bi-chart-canvas , body[class*="_page_sc-incomes"] .sc-bi-chart-canvas , body[class*="_page_sc-discount-codes"] .sc-bi-chart-canvas {
     position: relative;
     min-height: 280px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-action-btn, body.toplevel_page_sc-invoices .sc-reports-action-btn, body.toplevel_page_sc_orders .sc-reports-action-btn, body[class*="_page_sc-expenses"] .sc-reports-action-btn, body[class*="_page_sc-discount-codes"] .sc-reports-action-btn,
+body[class*="_page_sc-reports"] .sc-reports-action-btn, body.toplevel_page_sc-invoices .sc-reports-action-btn, body.toplevel_page_sc_orders .sc-reports-action-btn, body[class*="_page_sc-expenses"] .sc-reports-action-btn, body[class*="_page_sc-incomes"] .sc-reports-action-btn, body[class*="_page_sc-discount-codes"] .sc-reports-action-btn,
 body[class*="_page_sc-attendance-logs"] .sc-reports-action-btn {
     display: inline-flex;
     align-items: center;
@@ -19888,7 +19888,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-action-btn {
     text-decoration: none;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-empty, body.toplevel_page_sc-invoices .sc-reports-empty, body.toplevel_page_sc_orders .sc-reports-empty, body[class*="_page_sc-expenses"] .sc-reports-empty, body[class*="_page_sc-discount-codes"] .sc-reports-empty,
+body[class*="_page_sc-reports"] .sc-reports-empty, body.toplevel_page_sc-invoices .sc-reports-empty, body.toplevel_page_sc_orders .sc-reports-empty, body[class*="_page_sc-expenses"] .sc-reports-empty, body[class*="_page_sc-incomes"] .sc-reports-empty, body[class*="_page_sc-discount-codes"] .sc-reports-empty,
 body[class*="_page_sc-attendance-logs"] .sc-reports-empty {
     padding: 28px 16px;
     text-align: center;
@@ -19896,27 +19896,27 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-empty {
     font-size: 13px;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .tablenav, body.toplevel_page_sc-invoices .sc-reports-list-table-card.tablenav, body.toplevel_page_sc_orders .sc-reports-list-table-card.tablenav, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .tablenav,
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .tablenav, body.toplevel_page_sc-invoices .sc-reports-list-table-card.tablenav, body.toplevel_page_sc_orders .sc-reports-list-table-card.tablenav, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav, body[class*="_page_sc-incomes"] .sc-reports-list-table-card .tablenav, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .tablenav,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-table-card .tablenav,
-body[class*="_page_sc-reports"] .sc-reports-list-wrap .tablenav.sc_paginate, body.toplevel_page_sc-invoices .sc-reports-list-wrap.tablenav.sc_paginate, body.toplevel_page_sc_orders .sc-reports-list-wrap.tablenav.sc_paginate, body[class*="_page_sc-expenses"] .sc-reports-list-wrap .tablenav.sc_paginate, body[class*="_page_sc-discount-codes"] .sc-reports-list-wrap .tablenav.sc_paginate,
+body[class*="_page_sc-reports"] .sc-reports-list-wrap .tablenav.sc_paginate, body.toplevel_page_sc-invoices .sc-reports-list-wrap.tablenav.sc_paginate, body.toplevel_page_sc_orders .sc-reports-list-wrap.tablenav.sc_paginate, body[class*="_page_sc-expenses"] .sc-reports-list-wrap .tablenav.sc_paginate, body[class*="_page_sc-incomes"] .sc-reports-list-wrap .tablenav.sc_paginate, body[class*="_page_sc-discount-codes"] .sc-reports-list-wrap .tablenav.sc_paginate,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-wrap .tablenav.sc_paginate {
     margin: 8px 8px 4px;
     height: auto;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .tablenav-pages a, body.toplevel_page_sc-invoices .sc-reports-list-table-card.tablenav-pages, body.toplevel_page_sc_orders .sc-reports-list-table-card.tablenav-pages, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages a, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .tablenav-pages a,
-body[class*="_page_sc-reports"] .sc-reports-list-table-card .tablenav-pages .current, body.toplevel_page_sc-invoices .sc-reports-list-table-card.tablenav-pages, body.toplevel_page_sc_orders .sc-reports-list-table-card.tablenav-pages, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages .current, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .tablenav-pages .current,
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .tablenav-pages a, body.toplevel_page_sc-invoices .sc-reports-list-table-card.tablenav-pages, body.toplevel_page_sc_orders .sc-reports-list-table-card.tablenav-pages, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages a, body[class*="_page_sc-incomes"] .sc-reports-list-table-card .tablenav-pages a, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .tablenav-pages a,
+body[class*="_page_sc-reports"] .sc-reports-list-table-card .tablenav-pages .current, body.toplevel_page_sc-invoices .sc-reports-list-table-card.tablenav-pages, body.toplevel_page_sc_orders .sc-reports-list-table-card.tablenav-pages, body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages .current, body[class*="_page_sc-incomes"] .sc-reports-list-table-card .tablenav-pages .current, body[class*="_page_sc-discount-codes"] .sc-reports-list-table-card .tablenav-pages .current,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-table-card .tablenav-pages a,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-table-card .tablenav-pages .current,
-body[class*="_page_sc-reports"] .sc-reports-list-wrap .tablenav-pages a, body.toplevel_page_sc-invoices .sc-reports-list-wrap.tablenav-pages, body.toplevel_page_sc_orders .sc-reports-list-wrap.tablenav-pages, body[class*="_page_sc-expenses"] .sc-reports-list-wrap .tablenav-pages a, body[class*="_page_sc-discount-codes"] .sc-reports-list-wrap .tablenav-pages a,
-body[class*="_page_sc-reports"] .sc-reports-list-wrap .tablenav-pages .current, body.toplevel_page_sc-invoices .sc-reports-list-wrap.tablenav-pages, body.toplevel_page_sc_orders .sc-reports-list-wrap.tablenav-pages, body[class*="_page_sc-expenses"] .sc-reports-list-wrap .tablenav-pages .current, body[class*="_page_sc-discount-codes"] .sc-reports-list-wrap .tablenav-pages .current,
+body[class*="_page_sc-reports"] .sc-reports-list-wrap .tablenav-pages a, body.toplevel_page_sc-invoices .sc-reports-list-wrap.tablenav-pages, body.toplevel_page_sc_orders .sc-reports-list-wrap.tablenav-pages, body[class*="_page_sc-expenses"] .sc-reports-list-wrap .tablenav-pages a, body[class*="_page_sc-incomes"] .sc-reports-list-wrap .tablenav-pages a, body[class*="_page_sc-discount-codes"] .sc-reports-list-wrap .tablenav-pages a,
+body[class*="_page_sc-reports"] .sc-reports-list-wrap .tablenav-pages .current, body.toplevel_page_sc-invoices .sc-reports-list-wrap.tablenav-pages, body.toplevel_page_sc_orders .sc-reports-list-wrap.tablenav-pages, body[class*="_page_sc-expenses"] .sc-reports-list-wrap .tablenav-pages .current, body[class*="_page_sc-incomes"] .sc-reports-list-wrap .tablenav-pages .current, body[class*="_page_sc-discount-codes"] .sc-reports-list-wrap .tablenav-pages .current,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-wrap .tablenav-pages a,
 body[class*="_page_sc-attendance-logs"] .sc-reports-list-wrap .tablenav-pages .current {
     border-radius: 8px !important;
     border-color: #e5e7eb !important;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-note, body.toplevel_page_sc-invoices .sc-reports-note, body.toplevel_page_sc_orders .sc-reports-note, body[class*="_page_sc-expenses"] .sc-reports-note, body[class*="_page_sc-discount-codes"] .sc-reports-note,
+body[class*="_page_sc-reports"] .sc-reports-note, body.toplevel_page_sc-invoices .sc-reports-note, body.toplevel_page_sc_orders .sc-reports-note, body[class*="_page_sc-expenses"] .sc-reports-note, body[class*="_page_sc-incomes"] .sc-reports-note, body[class*="_page_sc-discount-codes"] .sc-reports-note,
 body[class*="_page_sc-attendance-logs"] .sc-reports-note {
     margin: 0 0 12px;
     font-size: 12px;
@@ -19952,7 +19952,7 @@ body[class*="_page_sc-attendance-logs"] .sc-reports-list-panel.sc-attendance-log
     display: none;
 }
 
-body[class*="_page_sc-reports"] .sc-reports-danger-btn , body.toplevel_page_sc-invoices .sc-reports-danger-btn, body.toplevel_page_sc_orders .sc-reports-danger-btn, body[class*="_page_sc-expenses"] .sc-reports-danger-btn , body[class*="_page_sc-discount-codes"] .sc-reports-danger-btn {
+body[class*="_page_sc-reports"] .sc-reports-danger-btn , body.toplevel_page_sc-invoices .sc-reports-danger-btn, body.toplevel_page_sc_orders .sc-reports-danger-btn, body[class*="_page_sc-expenses"] .sc-reports-danger-btn , body[class*="_page_sc-incomes"] .sc-reports-danger-btn , body[class*="_page_sc-discount-codes"] .sc-reports-danger-btn {
     display: inline-flex;
     align-items: center;
     min-height: 42px;
@@ -19967,20 +19967,20 @@ body[class*="_page_sc-reports"] .sc-reports-danger-btn , body.toplevel_page_sc-i
 }
 
 @media screen and (max-width: 1100px) {
-    body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-filter-grid, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-filter-grid, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-filter-grid, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-filter-grid, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-filter-grid,
+    body[class*="_page_sc-reports"] .sc-reports-list-filters-card .sc-filter-grid, body.toplevel_page_sc-invoices .sc-reports-list-filters-card .sc-filter-grid, body.toplevel_page_sc_orders .sc-reports-list-filters-card .sc-filter-grid, body[class*="_page_sc-expenses"] .sc-reports-list-filters-card .sc-filter-grid, body[class*="_page_sc-incomes"] .sc-reports-list-filters-card .sc-filter-grid, body[class*="_page_sc-discount-codes"] .sc-reports-list-filters-card .sc-filter-grid,
     body[class*="_page_sc-attendance-logs"] .sc-reports-list-filters-card .sc-filter-grid,
-    body[class*="_page_sc-reports"] .sc-reports-chart-grid , body.toplevel_page_sc-invoices .sc-reports-chart-grid, body.toplevel_page_sc_orders .sc-reports-chart-grid, body[class*="_page_sc-expenses"] .sc-reports-chart-grid , body[class*="_page_sc-discount-codes"] .sc-reports-chart-grid {
+    body[class*="_page_sc-reports"] .sc-reports-chart-grid , body.toplevel_page_sc-invoices .sc-reports-chart-grid, body.toplevel_page_sc_orders .sc-reports-chart-grid, body[class*="_page_sc-expenses"] .sc-reports-chart-grid , body[class*="_page_sc-incomes"] .sc-reports-chart-grid , body[class*="_page_sc-discount-codes"] .sc-reports-chart-grid {
         grid-template-columns: 1fr;
     }
 }
 
 @media screen and (max-width: 782px) {
-    body[class*="_page_sc-reports"] .sc-reports-list-wrap, body.toplevel_page_sc-invoices .sc-reports-list-wrap, body.toplevel_page_sc_orders .sc-reports-list-wrap, body[class*="_page_sc-expenses"] .sc-reports-list-wrap, body[class*="_page_sc-discount-codes"] .sc-reports-list-wrap,
+    body[class*="_page_sc-reports"] .sc-reports-list-wrap, body.toplevel_page_sc-invoices .sc-reports-list-wrap, body.toplevel_page_sc_orders .sc-reports-list-wrap, body[class*="_page_sc-expenses"] .sc-reports-list-wrap, body[class*="_page_sc-incomes"] .sc-reports-list-wrap, body[class*="_page_sc-discount-codes"] .sc-reports-list-wrap,
     body[class*="_page_sc-attendance-logs"] .sc-reports-list-wrap {
         margin-inline-end: 10px;
     }
 
-    body[class*="_page_sc-reports"] .sc-reports-list-header, body.toplevel_page_sc-invoices .sc-reports-list-header, body.toplevel_page_sc_orders .sc-reports-list-header, body[class*="_page_sc-expenses"] .sc-reports-list-header, body[class*="_page_sc-discount-codes"] .sc-reports-list-header,
+    body[class*="_page_sc-reports"] .sc-reports-list-header, body.toplevel_page_sc-invoices .sc-reports-list-header, body.toplevel_page_sc_orders .sc-reports-list-header, body[class*="_page_sc-expenses"] .sc-reports-list-header, body[class*="_page_sc-incomes"] .sc-reports-list-header, body[class*="_page_sc-discount-codes"] .sc-reports-list-header,
     body[class*="_page_sc-attendance-logs"] .sc-reports-list-header {
         flex-direction: column;
         align-items: stretch;
@@ -25148,8 +25148,8 @@ body[class*="_page_sc-products"] .sc-shop-products-table-card .row-actions span 
 
 /* ─── لیست هزینه‌ها — فیلتر دو ستونه ۵۰٪ ─── */
 body.toplevel_page_sc-expenses .sc-expenses-filter-grid,
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-grid {
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid, body.sc-invoices_page_sc-incomes .sc-expenses-filter-grid,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-grid , body[class*="_page_sc-incomes"] .sc-expenses-filter-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px 14px;
@@ -25157,8 +25157,8 @@ body[class*="_page_sc-expenses"] .sc-expenses-filter-grid {
 }
 
 body.toplevel_page_sc-expenses .sc-expenses-filter-grid .sc-filter-field,
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid .sc-filter-field,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-grid .sc-filter-field {
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid .sc-filter-field, body.sc-invoices_page_sc-incomes .sc-expenses-filter-grid .sc-filter-field,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-grid .sc-filter-field , body[class*="_page_sc-incomes"] .sc-expenses-filter-grid .sc-filter-field {
     width: 100%;
     min-width: 0;
     margin: 0;
@@ -25167,10 +25167,10 @@ body[class*="_page_sc-expenses"] .sc-expenses-filter-grid .sc-filter-field {
 
 body.toplevel_page_sc-expenses .sc-expenses-filter-grid .sc-filter-control,
 body.toplevel_page_sc-expenses .sc-expenses-filter-grid .persian-date-input,
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid .sc-filter-control,
-body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid .persian-date-input,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-grid .sc-filter-control,
-body[class*="_page_sc-expenses"] .sc-expenses-filter-grid .persian-date-input {
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid .sc-filter-control, body.sc-invoices_page_sc-incomes .sc-expenses-filter-grid .sc-filter-control,
+body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid .persian-date-input, body.sc-invoices_page_sc-incomes .sc-expenses-filter-grid .persian-date-input,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-grid .sc-filter-control, body[class*="_page_sc-incomes"] .sc-expenses-filter-grid .sc-filter-control,
+body[class*="_page_sc-expenses"] .sc-expenses-filter-grid .persian-date-input , body[class*="_page_sc-incomes"] .sc-expenses-filter-grid .persian-date-input {
     width: 100%;
     max-width: 100%;
     min-height: 42px;
@@ -25179,8 +25179,8 @@ body[class*="_page_sc-expenses"] .sc-expenses-filter-grid .persian-date-input {
 }
 
 body.toplevel_page_sc-expenses .sc-reports-list-table-card .sc_paginate,
-body.sc-invoices_page_sc-expenses .sc-reports-list-table-card .sc_paginate,
-body[class*="_page_sc-expenses"] .sc-reports-list-table-card .sc_paginate {
+body.sc-invoices_page_sc-expenses .sc-reports-list-table-card .sc_paginate, body.sc-invoices_page_sc-incomes .sc-reports-list-table-card .sc_paginate,
+body[class*="_page_sc-expenses"] .sc-reports-list-table-card .sc_paginate , body[class*="_page_sc-incomes"] .sc-reports-list-table-card .sc_paginate {
     display: flex;
     justify-content: center;
     margin: 12px 0 4px;
@@ -25190,18 +25190,18 @@ body[class*="_page_sc-expenses"] .sc-reports-list-table-card .sc_paginate {
 
 body.toplevel_page_sc-expenses .sc-reports-list-table-card .tablenav-pages a,
 body.toplevel_page_sc-expenses .sc-reports-list-table-card .tablenav-pages span,
-body.sc-invoices_page_sc-expenses .sc-reports-list-table-card .tablenav-pages a,
-body.sc-invoices_page_sc-expenses .sc-reports-list-table-card .tablenav-pages span,
-body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages a,
-body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages span {
+body.sc-invoices_page_sc-expenses .sc-reports-list-table-card .tablenav-pages a, body.sc-invoices_page_sc-incomes .sc-reports-list-table-card .tablenav-pages a,
+body.sc-invoices_page_sc-expenses .sc-reports-list-table-card .tablenav-pages span, body.sc-invoices_page_sc-incomes .sc-reports-list-table-card .tablenav-pages span,
+body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages a, body[class*="_page_sc-incomes"] .sc-reports-list-table-card .tablenav-pages a,
+body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages span , body[class*="_page_sc-incomes"] .sc-reports-list-table-card .tablenav-pages span {
     font-size: 14px !important;
     padding: 6px 10px !important;
     border-radius: 8px !important;
 }
 
 body.toplevel_page_sc-expenses .sc-reports-list-table-card .tablenav-pages span.current,
-body.sc-invoices_page_sc-expenses .sc-reports-list-table-card .tablenav-pages span.current,
-body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages span.current {
+body.sc-invoices_page_sc-expenses .sc-reports-list-table-card .tablenav-pages span.current, body.sc-invoices_page_sc-incomes .sc-reports-list-table-card .tablenav-pages span.current,
+body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages span.current , body[class*="_page_sc-incomes"] .sc-reports-list-table-card .tablenav-pages span.current {
     color: #4a1fb8;
     background: #fff;
     border: 1px solid rgba(109, 52, 255, 0.35);
@@ -25209,28 +25209,28 @@ body[class*="_page_sc-expenses"] .sc-reports-list-table-card .tablenav-pages spa
 
 @media screen and (max-width: 1100px) {
     body.toplevel_page_sc-expenses .sc-expenses-filter-grid,
-    body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid,
-    body[class*="_page_sc-expenses"] .sc-expenses-filter-grid {
+    body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid, body.sc-invoices_page_sc-incomes .sc-expenses-filter-grid,
+    body[class*="_page_sc-expenses"] .sc-expenses-filter-grid , body[class*="_page_sc-incomes"] .sc-expenses-filter-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media screen and (max-width: 782px) {
     body.toplevel_page_sc-expenses .sc-expenses-filter-grid,
-    body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid,
-    body[class*="_page_sc-expenses"] .sc-expenses-filter-grid {
+    body.sc-invoices_page_sc-expenses .sc-expenses-filter-grid, body.sc-invoices_page_sc-incomes .sc-expenses-filter-grid,
+    body[class*="_page_sc-expenses"] .sc-expenses-filter-grid , body[class*="_page_sc-incomes"] .sc-expenses-filter-grid {
         grid-template-columns: 1fr;
     }
 
     body.toplevel_page_sc-expenses .sc-reports-list-filters-actions .button-primary,
     body.toplevel_page_sc-expenses .sc-reports-list-filters-actions .delete_fillter,
     body.toplevel_page_sc-expenses .sc-reports-list-filters-actions .button_export,
-    body.sc-invoices_page_sc-expenses .sc-reports-list-filters-actions .button-primary,
-    body.sc-invoices_page_sc-expenses .sc-reports-list-filters-actions .delete_fillter,
-    body.sc-invoices_page_sc-expenses .sc-reports-list-filters-actions .button_export,
-    body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .button-primary,
-    body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .delete_fillter,
-    body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .button_export {
+    body.sc-invoices_page_sc-expenses .sc-reports-list-filters-actions .button-primary, body.sc-invoices_page_sc-incomes .sc-reports-list-filters-actions .button-primary,
+    body.sc-invoices_page_sc-expenses .sc-reports-list-filters-actions .delete_fillter, body.sc-invoices_page_sc-incomes .sc-reports-list-filters-actions .delete_fillter,
+    body.sc-invoices_page_sc-expenses .sc-reports-list-filters-actions .button_export, body.sc-invoices_page_sc-incomes .sc-reports-list-filters-actions .button_export,
+    body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .button-primary, body[class*="_page_sc-incomes"] .sc-reports-list-filters-actions .button-primary,
+    body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .delete_fillter, body[class*="_page_sc-incomes"] .sc-reports-list-filters-actions .delete_fillter,
+    body[class*="_page_sc-expenses"] .sc-reports-list-filters-actions .button_export , body[class*="_page_sc-incomes"] .sc-reports-list-filters-actions .button_export {
         width: 100%;
         justify-content: center;
         text-align: center;

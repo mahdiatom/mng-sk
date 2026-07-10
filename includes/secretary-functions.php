@@ -134,6 +134,8 @@ function sc_secretary_get_allowed_admin_pages() {
         'wc-orders',
         'sc-expenses',
         'sc-add-expense',
+        'sc-incomes',
+        'sc-add-income',
         'sc-reports',
         'sc-reports-active-users',
         'sc-reports-income-expenses',
@@ -719,6 +721,26 @@ function sc_secretary_can_access_expense($expense_id) {
     $chapter = (string) $wpdb->get_var($wpdb->prepare(
         "SELECT chapter FROM {$table} WHERE id = %d LIMIT 1",
         $expense_id
+    ));
+    return $chapter !== '' && sc_secretary_chapter_in_scope($chapter);
+}
+
+/**
+ * @param int $income_id
+ */
+function sc_secretary_can_access_income($income_id) {
+    if (!sc_user_is_secretary_only()) {
+        return true;
+    }
+    $income_id = absint($income_id);
+    if ($income_id < 1) {
+        return true;
+    }
+    global $wpdb;
+    $table = $wpdb->prefix . 'sc_incomes';
+    $chapter = (string) $wpdb->get_var($wpdb->prepare(
+        "SELECT chapter FROM {$table} WHERE id = %d LIMIT 1",
+        $income_id
     ));
     return $chapter !== '' && sc_secretary_chapter_in_scope($chapter);
 }
@@ -2171,6 +2193,26 @@ function sc_secretary_merge_expense_where(array &$where_conditions, array &$wher
     if (!sc_user_is_secretary_only()) {
         return;
     }
+    $scope = sc_secretary_expense_chapter_scope_sql($alias);
+    if ($scope['sql'] === '') {
+        return;
+    }
+    $part = preg_replace('/^\s*AND\s+/i', '', trim($scope['sql']));
+    if ($part !== '') {
+        $where_conditions[] = $part;
+        $where_values = array_merge($where_values, $scope['args']);
+    }
+}
+
+/**
+ * @param array<int,string> $where_conditions
+ * @param array<int,mixed> $where_values
+ */
+function sc_secretary_merge_income_where(array &$where_conditions, array &$where_values, $alias = 'i') {
+    if (!sc_user_is_secretary_only()) {
+        return;
+    }
+    // Same chapter column pattern as expenses.
     $scope = sc_secretary_expense_chapter_scope_sql($alias);
     if ($scope['sql'] === '') {
         return;

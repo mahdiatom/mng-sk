@@ -29,6 +29,9 @@ if ($filter_date_to_shamsi !== '' && function_exists('sc_shamsi_to_gregorian_dat
 $target_labels = [
     'all'             => 'همه',
     'free_users'      => 'کاربران آزاد',
+    'identity_verified' => 'احراز شده',
+    'identity_unverified' => 'احراز نشده',
+    'registration_fee_unpaid' => 'بدون پرداخت عضویت',
     'specific'        => 'مخاطبین خاص',
     'course'          => 'دوره',
     'debtors'         => 'بدهکاران',
