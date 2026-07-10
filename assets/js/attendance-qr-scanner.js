@@ -413,6 +413,10 @@
         markHandled(payload, now);
 
         var localMember = lookupMember(payload);
+        var rawFrame = '';
+        if (cfg.snapshotEnabled && window.scQrScanSnapshot) {
+            rawFrame = window.scQrScanSnapshot.captureFrame('sc-attendance-qr-reader', 720) || '';
+        }
         showToast('در حال ثبت...', 'info');
 
         $.post(cfg.ajaxUrl, {
@@ -429,6 +433,8 @@
                 var name = res.data && res.data.member_name ? res.data.member_name : (localMember ? localMember.name : '');
                 var memberId = res.data && res.data.member_id ? res.data.member_id : (localMember ? localMember.id : 0);
                 var hasDebt = !!(res.data && res.data.has_debt);
+                var attendanceId = res.data && res.data.attendance_id ? parseInt(res.data.attendance_id, 10) : 0;
+                var courseTitle = (res.data && res.data.course_title) ? res.data.course_title : (cfg.courseTitle || '');
 
                 if (memberId && cfg.memberMap) {
                     cfg.memberMap[payload] = { id: memberId, name: name };
@@ -439,6 +445,24 @@
                     showToast(name + ' — قبلاً ثبت شده', 'duplicate');
                     prependLog({ ok: true, duplicate: true, name: name, message: res.data.message });
                     return;
+                }
+
+                if (cfg.snapshotEnabled && rawFrame && attendanceId && window.scQrScanSnapshot && (code === 'created' || code === 'updated')) {
+                    var lines = [
+                        name || 'بازیکن',
+                        courseTitle ? ('دوره: ' + courseTitle) : '',
+                        window.scQrScanSnapshot.nowLabelFa()
+                    ];
+                    window.scQrScanSnapshot.applyOverlay(rawFrame, lines, 0.72).then(function (photo) {
+                        if (!photo) return;
+                        window.scQrScanSnapshot.uploadSnapshot({
+                            ajaxUrl: cfg.ajaxUrl,
+                            nonce: cfg.nonce,
+                            context: 'attendance',
+                            recordId: attendanceId,
+                            photoData: photo
+                        });
+                    });
                 }
 
                 if (!localMember || !optimisticLogged[memberId]) {

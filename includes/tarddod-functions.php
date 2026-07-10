@@ -417,6 +417,8 @@ function sc_tarddod_register_scan($session_id, $payload, $scanner_user_id = 0) {
             'message'      => 'قبلاً در این جلسه ثبت شده است.',
             'subject_name' => $resolved['subject_name'],
             'is_new'       => false,
+            'record_id'    => 0,
+            'session_title'=> $session->title ?? '',
         ];
     }
 
@@ -445,6 +447,9 @@ function sc_tarddod_register_scan($session_id, $payload, $scanner_user_id = 0) {
         'subject_type' => $resolved['subject_type'],
         'subject_id'   => $resolved['subject_id'],
         'is_new'       => true,
+        'record_id'    => (int) $wpdb->insert_id,
+        'session_title'=> $session->title ?? '',
+        'snapshot'     => function_exists('sc_qr_scan_photo_is_enabled') && sc_qr_scan_photo_is_enabled(),
     ];
 }
 

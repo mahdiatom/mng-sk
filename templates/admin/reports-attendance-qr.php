@@ -438,6 +438,7 @@ $clear_url = admin_url('admin.php?page=sc-reports-attendance-qr');
                         <th>دوره</th>
                         <th>ثبت‌کننده</th>
                         <th>وضعیت</th>
+                        <th>عکس اسکن</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -496,6 +497,21 @@ $clear_url = admin_url('admin.php?page=sc-reports-attendance-qr');
                             <td>
                                 <span class="sc-badge <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span>
                                 <span class="sc-attendance-record-method sc-attendance-record-method--qr" style="margin-inline-start:6px;">QR</span>
+                            </td>
+                            <td>
+                                <?php
+                                $scan_url = '';
+                                if (!empty($row->scan_photo) && function_exists('sc_qr_scan_photo_url_from_relative')) {
+                                    $scan_url = sc_qr_scan_photo_url_from_relative($row->scan_photo);
+                                }
+                                if ($scan_url) :
+                                    ?>
+                                    <a href="<?php echo esc_url($scan_url); ?>" target="_blank" rel="noopener noreferrer" class="sc-qr-scan-thumb-link">
+                                        <img src="<?php echo esc_url($scan_url); ?>" alt="عکس اسکن" class="sc-qr-scan-thumb" loading="lazy" width="64" height="48">
+                                    </a>
+                                <?php else : ?>
+                                    <span style="color:#9ca3af;">—</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

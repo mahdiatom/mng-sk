@@ -868,21 +868,8 @@ function sc_export_finance_cashflow_to_excel() {
         $cash_in = $cash_in_academy_raw + $cash_in_store_raw;
     }
 
-    $incomes_table = $wpdb->prefix . 'sc_incomes';
-    $where_manual_in = ["mi.income_date_gregorian IS NOT NULL", "DATE(mi.income_date_gregorian) BETWEEN %s AND %s"];
-    $args_manual_in = [$from, $to];
-    if ($filter_chapter !== '') {
-        $where_manual_in[] = 'mi.chapter = %s';
-        $args_manual_in[] = $filter_chapter;
-    }
-    if (function_exists('sc_secretary_merge_income_where')) {
-        sc_secretary_merge_income_where($where_manual_in, $args_manual_in, 'mi');
-    }
-    if ($filter_cashflow_type === 'all') {
-        $cash_in += (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(mi.amount),0) FROM $incomes_table mi WHERE " . implode(' AND ', $where_manual_in),
-            $args_manual_in
-        ));
+    if ($filter_cashflow_type === 'all' && function_exists('sc_finance_sum_manual_incomes')) {
+        $cash_in += sc_finance_sum_manual_incomes($from, $to, $filter_chapter);
     }
 
     $cash_out = (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(e.amount),0) FROM $expenses_table e WHERE " . implode(' AND ', $where_out), $args_out));
@@ -1010,22 +997,9 @@ function sc_export_finance_ledger_to_excel() {
         FROM $expenses_table e
         WHERE " . implode(' AND ', $where_out), $args_out));
 
-    $incomes_table = $wpdb->prefix . 'sc_incomes';
-    $where_manual = ["mi.income_date_gregorian IS NOT NULL", "DATE(mi.income_date_gregorian) BETWEEN %s AND %s"];
-    $args_manual = [$from, $to];
-    if ($filter_chapter !== '') {
-        $where_manual[] = 'mi.chapter = %s';
-        $args_manual[] = $filter_chapter;
-    }
-    if (function_exists('sc_secretary_merge_income_where')) {
-        sc_secretary_merge_income_where($where_manual, $args_manual, 'mi');
-    }
-    $manual_income_rows = $wpdb->get_results($wpdb->prepare(
-        "SELECT DATE(mi.income_date_gregorian) AS tx_date, 'income' AS tx_type, mi.amount, '' AS person_name, mi.name AS ref_title, mi.chapter
-         FROM $incomes_table mi
-         WHERE " . implode(' AND ', $where_manual),
-        $args_manual
-    ));
+    $manual_income_rows = function_exists('sc_finance_manual_income_ledger_rows')
+        ? sc_finance_manual_income_ledger_rows($from, $to, $filter_chapter)
+        : [];
 
     if ($filter_ledger_type === 'income') {
         $expense_rows = [];

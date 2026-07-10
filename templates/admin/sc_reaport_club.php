@@ -127,9 +127,10 @@ if (!empty($income_where_values)) {
 $total_income_result = $wpdb->get_var($total_income_query);
 $total_income = $total_income_result ? floatval($total_income_result) : 0;
 
-$incomes_table = $wpdb->prefix . 'sc_incomes';
-$manual_income_total = (float) $wpdb->get_var("SELECT COALESCE(SUM(amount), 0) FROM $incomes_table");
-$total_income += $manual_income_total;
+$total_manual_income = function_exists('sc_finance_sum_manual_incomes')
+    ? sc_finance_sum_manual_incomes('', '', '')
+    : 0.0;
+$total_income += $total_manual_income;
 
 // محاسبه تعداد صورت حساب‌های پرداخت شده
 if (!empty($income_where_values)) {

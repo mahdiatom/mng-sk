@@ -107,8 +107,8 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
             <button type="button" class="button button-primary sc-qa-submit" id="sc_qa_existing_submit">بررسی اطلاعات</button>
             <p class="description sc-qa-submit-hint">ابتدا «بررسی اطلاعات» را بزنید؛ پس از تأیید، دکمه به «تایید و ثبت در دوره» تغییر می‌کند.</p>
         </div>
-        <div id="sc_qa_existing_validation" class="sc-qa-validation" aria-live="polite" style="display:none;"></div>
         <div id="sc_qa_existing_message" class="sc-qa-message" aria-live="polite"></div>
+        <div id="sc_qa_existing_validation" class="sc-qa-validation" aria-live="polite" style="display:none;"></div>
     </div>
 
     <div id="sc-qa-new" class="sc-secretary-qa-panel sc-members-list-table-card" style="display:none;">

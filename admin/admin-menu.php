@@ -1430,6 +1430,14 @@ function sc_register_admin_menu() {
         );
         add_submenu_page(
             'sc_orders',
+            'استعلام موجودی',
+            'استعلام موجودی',
+            'manage_woocommerce',
+            'sc-product-stock-inquiry',
+            'sc_product_stock_inquiry_page'
+        );
+        add_submenu_page(
+            'sc_orders',
             ' کد تخفیف ',
             ' لیست کد تخفیف ' ,
             'manage_woocommerce',
@@ -1785,6 +1793,20 @@ function sc_custom_products() {
     }
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'products-list.php';
+}
+
+/**
+ * استعلام موجودی محصول در شعبه‌ها
+ */
+function sc_product_stock_inquiry_page() {
+    if (!current_user_can('manage_woocommerce')) {
+        wp_die(esc_html__('شما به این صفحه دسترسی ندارید.', 'sportclub-manager'));
+    }
+    sc_check_and_create_tables();
+    if (function_exists('sc_product_branch_stock_ensure_table')) {
+        sc_product_branch_stock_ensure_table();
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'product-stock-inquiry.php';
 }
 
 /**

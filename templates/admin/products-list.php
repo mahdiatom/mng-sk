@@ -87,6 +87,7 @@ $filters_open = $active_filters_count > 0;
             <p class="sc-shop-products-desc sc-members-list-desc">مدیریت محصولات فروشگاه باشگاه. برای ویرایش روی نام محصول کلیک کنید.</p>
         </div>
         <div class="sc-shop-products-header-actions sc-members-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-product-stock-inquiry')); ?>" class="sc-shop-products-add-btn sc-members-list-add-btn page-title-action" style="background:#fff;color:#4a1fb8!important;border:1px solid rgba(109,52,255,.22);box-shadow:none;">استعلام موجودی</a>
             <a href="<?php echo esc_url(admin_url('post-new.php?post_type=product')); ?>" class="sc-shop-products-add-btn sc-members-list-add-btn page-title-action">افزودن محصول</a>
         </div>
     </div>

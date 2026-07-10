@@ -600,6 +600,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('attendance_qr_regenerate_otp_phone', $attendance_qr_regenerate_otp_phone, 'attendance');
         sc_update_setting('attendance_qr_regenerate_otp_pattern', $attendance_qr_regenerate_otp_pattern, 'attendance');
         sc_update_setting('attendance_qr_max_codes_per_member', (string) $attendance_qr_max_codes_per_member, 'attendance');
+        sc_update_setting('qr_scan_photo_enabled', isset($_POST['qr_scan_photo_enabled']) ? 1 : 0, 'attendance');
+        sc_update_setting('qr_scan_photo_retention_days', (string) max(1, min(60, absint($_POST['qr_scan_photo_retention_days'] ?? 30))), 'attendance');
 
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب حضور و غیاب ذخیره شد', null, ['tab' => 'attendance']);
@@ -3765,6 +3767,14 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 $attendance_qr_regenerate_otp_phone = (string) sc_get_setting('attendance_qr_regenerate_otp_phone', '');
                 $attendance_qr_regenerate_otp_pattern = (string) sc_get_setting('attendance_qr_regenerate_otp_pattern', '');
                 $attendance_qr_max_codes_per_member = (int) sc_get_setting('attendance_qr_max_codes_per_member', '20');
+                $qr_scan_photo_enabled = (int) sc_get_setting('qr_scan_photo_enabled', '0');
+                $qr_scan_photo_retention_days = (int) sc_get_setting('qr_scan_photo_retention_days', '30');
+                if ($qr_scan_photo_retention_days < 1) {
+                    $qr_scan_photo_retention_days = 30;
+                }
+                if ($qr_scan_photo_retention_days > 60) {
+                    $qr_scan_photo_retention_days = 60;
+                }
                 $attendance_qr_default_sound_success = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('success') : '';
                 $attendance_qr_default_sound_error = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('error') : '';
                 $attendance_qr_default_sound_duplicate = function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('duplicate') : '';
@@ -3909,6 +3919,23 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                 <input type="checkbox" name="attendance_qr_show_dashboard" value="1" <?php checked($attendance_qr_show_dashboard, 1); ?>>
                                 کارت QR در پیشخوان کاربر نمایش داده شود
                             </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">عکس لحظه اسکن</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="qr_scan_photo_enabled" value="1" <?php checked($qr_scan_photo_enabled, 1); ?>>
+                                هنگام ثبت موفق QR (حضور و غیاب و تردد) از دوربین اسکن عکس گرفته شود
+                            </label>
+                            <p class="description">روی عکس نام، تاریخ/ساعت و دوره/جلسه نوشته می‌شود و در گزارش QR / لیست تردد نمایش داده می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="qr_scan_photo_retention_days">نگهداری عکس (روز)</label></th>
+                        <td>
+                            <input type="number" name="qr_scan_photo_retention_days" id="qr_scan_photo_retention_days" value="<?php echo esc_attr($qr_scan_photo_retention_days); ?>" min="1" max="60" class="small-text">
+                            <p class="description">حداکثر ۶۰ روز (۲ ماه). عکس‌های قدیمی‌تر روزانه حذف می‌شوند.</p>
                         </td>
                     </tr>
                     <tr>

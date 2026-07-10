@@ -102,6 +102,7 @@ require_once SC_INCLUDES_DIR . 'course-users-export.php'; // Course users export
 require_once SC_INCLUDES_DIR . 'weekly-schedule-report-export.php'; // Weekly schedule report PDF export
 require_once SC_INCLUDES_DIR . 'woocommerce-settings.php'; // WooCommerce settings
 require_once SC_INCLUDES_DIR . 'woocommerce-shop-wallet.php'; // Shop cart/checkout wallet payment
+require_once SC_INCLUDES_DIR . 'product-branch-stock-functions.php'; // موجودی محصول به تفکیک شعبه + استعلام
 require_once SC_INCLUDES_DIR . 'user-registration.php'; // User registration handler
 require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions
 require_once SC_INCLUDES_DIR . 'notification-functions.php'; // Notification & SMS broadcast
@@ -129,6 +130,7 @@ require_once SC_INCLUDES_DIR . 'cleanup.php'; // حدف درخواست های خ
 require_once SC_INCLUDES_DIR . 'attendance_logs.php'; // ارتباط با api حضور غیاب برای لاگ دستگاه
 require_once SC_INCLUDES_DIR . 'attendance-auto.php'; // تطبیق لاگ دستگاه با حضور و غیاب (کرون)
 require_once SC_INCLUDES_DIR . 'attendance-qr-functions.php'; // QR حضور و غیاب
+require_once SC_INCLUDES_DIR . 'qr-scan-snapshot-functions.php'; // عکس لحظه اسکن QR
 require_once SC_INCLUDES_DIR . 'staff-qr-functions.php'; // QR پرسنل (مربی، منشی، مدیران)
 require_once SC_INCLUDES_DIR . 'tarddod-functions.php'; // ثبت تردد — جلسات و اسکن QR
 require_once SC_INCLUDES_DIR . 'members-list-ui-helpers.php'; // UI لیست و فیلتر (مشترک)
@@ -1164,6 +1166,11 @@ function sc_check_and_create_tables() {
     if (!$private_booking_sessions_exists && function_exists('sc_create_private_booking_sessions_table')) {
         sc_create_private_booking_sessions_table();
     }
+    $product_branch_stock_table = $wpdb->prefix . 'sc_product_branch_stock';
+    $product_branch_stock_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $product_branch_stock_table)) == $product_branch_stock_table;
+    if (!$product_branch_stock_exists && function_exists('sc_create_product_branch_stock_table')) {
+        sc_create_product_branch_stock_table();
+    }
     
     // اجرای به‌روزرسانی‌های دیتابیس
     if (function_exists('sc_update_database')) {
@@ -1885,15 +1892,27 @@ function sc_admin_enqueue_assets() {
     if ($current_page === 'sc-attendance-add' && function_exists('sc_attendance_qr_is_enabled') && sc_attendance_qr_is_enabled()) {
         wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css'), time());
         wp_enqueue_script('html5-qrcode', SC_ASSETS_URL . 'js/vendor/html5-qrcode.min.js', array(), '2.3.8', true);
-        wp_enqueue_script('sc-attendance-qr-scanner-js', SC_ASSETS_URL . 'js/attendance-qr-scanner.js', array('jquery', 'html5-qrcode'), time(), true);
+        wp_enqueue_script('sc-qr-scan-snapshot-js', SC_ASSETS_URL . 'js/qr-scan-snapshot.js', array(), time(), true);
+        wp_enqueue_script('sc-attendance-qr-scanner-js', SC_ASSETS_URL . 'js/attendance-qr-scanner.js', array('jquery', 'html5-qrcode', 'sc-qr-scan-snapshot-js'), time(), true);
+        $course_id_loc = isset($_GET['attendance_course_id']) ? absint($_GET['attendance_course_id']) : 0;
+        $course_title_loc = '';
+        if ($course_id_loc) {
+            global $wpdb;
+            $course_title_loc = (string) $wpdb->get_var($wpdb->prepare(
+                "SELECT title FROM {$wpdb->prefix}sc_courses WHERE id = %d LIMIT 1",
+                $course_id_loc
+            ));
+        }
         wp_localize_script('sc-attendance-qr-scanner-js', 'scAttendanceQr', array(
             'ajaxUrl'        => admin_url('admin-ajax.php'),
             'nonce'          => wp_create_nonce('sc_attendance_qr_scan'),
-            'courseId'       => isset($_GET['attendance_course_id']) ? absint($_GET['attendance_course_id']) : 0,
+            'courseId'       => $course_id_loc,
+            'courseTitle'    => $course_title_loc,
             'attendanceDate' => isset($_GET['date']) ? sanitize_text_field(wp_unslash($_GET['date'])) : '',
             'chapterName'    => isset($_GET['attendance_chapter']) ? sanitize_text_field(wp_unslash($_GET['attendance_chapter'])) : '',
             'groupName'      => isset($_GET['attendance_group']) ? sanitize_text_field(wp_unslash($_GET['attendance_group'])) : '',
             'cooldownMs'     => function_exists('sc_attendance_qr_get_scan_cooldown_ms') ? sc_attendance_qr_get_scan_cooldown_ms() : 300,
+            'snapshotEnabled'=> function_exists('sc_qr_scan_photo_is_enabled') && sc_qr_scan_photo_is_enabled(),
             'soundSuccess'     => sc_attendance_qr_get_sound_url('success'),
             'soundError'       => sc_attendance_qr_get_sound_url('error'),
             'soundDuplicate'   => sc_attendance_qr_get_sound_url('duplicate'),
@@ -1928,8 +1947,14 @@ function sc_admin_enqueue_assets() {
     }
     if ($current_page === 'sc-tarddod-register') {
         wp_enqueue_script('html5-qrcode', SC_ASSETS_URL . 'js/vendor/html5-qrcode.min.js', array(), '2.3.8', true);
-        wp_enqueue_script('sc-tarddod-scanner-js', SC_ASSETS_URL . 'js/tarddod-scanner.js', array('jquery', 'html5-qrcode'), time(), true);
+        wp_enqueue_script('sc-qr-scan-snapshot-js', SC_ASSETS_URL . 'js/qr-scan-snapshot.js', array(), time(), true);
+        wp_enqueue_script('sc-tarddod-scanner-js', SC_ASSETS_URL . 'js/tarddod-scanner.js', array('jquery', 'html5-qrcode', 'sc-qr-scan-snapshot-js'), time(), true);
         $session_id = isset($_GET['session_id']) ? absint($_GET['session_id']) : 0;
+        $session_title = '';
+        if ($session_id && function_exists('sc_tarddod_get_session')) {
+            $sess = sc_tarddod_get_session($session_id);
+            $session_title = $sess ? (string) ($sess->title ?? '') : '';
+        }
         $tarddod_member_map = function_exists('sc_attendance_qr_build_scan_lookup_map')
             ? sc_attendance_qr_build_scan_lookup_map(['include_inactive_members' => true])
             : [];
@@ -1937,9 +1962,11 @@ function sc_admin_enqueue_assets() {
             'ajaxUrl'        => admin_url('admin-ajax.php'),
             'nonce'          => wp_create_nonce('sc_tarddod_scan'),
             'sessionId'      => $session_id,
+            'sessionTitle'   => $session_title,
             'hashLength'     => defined('SC_ATTENDANCE_QR_HASH_LENGTH') ? (int) SC_ATTENDANCE_QR_HASH_LENGTH : 64,
             'memberMap'      => $tarddod_member_map,
             'cooldownMs'     => function_exists('sc_attendance_qr_get_scan_cooldown_ms') ? sc_attendance_qr_get_scan_cooldown_ms() : 300,
+            'snapshotEnabled'=> function_exists('sc_qr_scan_photo_is_enabled') && sc_qr_scan_photo_is_enabled(),
             'soundSuccess'   => function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('success') : '',
             'soundError'     => function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('error') : '',
             'soundDuplicate' => function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('duplicate') : '',

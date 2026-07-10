@@ -87,24 +87,10 @@ if (!function_exists('sc_secretary_finance_include_store_revenue') || sc_secreta
 }
 $total_store_income_period = (float) ($store_agg['total'] ?? 0);
 
-$manual_income_where = ['1=1'];
-$manual_income_values = [];
-if ($filter_date_from) {
-    $manual_income_where[] = 'mi.income_date_gregorian >= %s';
-    $manual_income_values[] = $filter_date_from;
-}
-if ($filter_date_to) {
-    $manual_income_where[] = 'mi.income_date_gregorian <= %s';
-    $manual_income_values[] = $filter_date_to;
-}
-if (function_exists('sc_secretary_merge_income_where')) {
-    sc_secretary_merge_income_where($manual_income_where, $manual_income_values, 'mi');
-}
-$manual_income_sql = implode(' AND ', $manual_income_where);
-$incomes_table = $wpdb->prefix . 'sc_incomes';
-$total_manual_income = $manual_income_values
-    ? (float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(mi.amount), 0) FROM $incomes_table mi WHERE $manual_income_sql", $manual_income_values))
-    : (float) $wpdb->get_var("SELECT COALESCE(SUM(mi.amount), 0) FROM $incomes_table mi WHERE $manual_income_sql");
+$overview_chapter = isset($filter_chapter) ? (string) $filter_chapter : '';
+$total_manual_income = function_exists('sc_finance_sum_manual_incomes')
+    ? sc_finance_sum_manual_incomes($filter_date_from, $filter_date_to, $overview_chapter)
+    : 0.0;
 
 $total_income = $total_academy_income + $total_store_income_period + $total_manual_income;
 
@@ -178,16 +164,9 @@ if (!function_exists('sc_secretary_finance_include_store_revenue') || sc_secreta
         : ['total' => 0.0];
 }
 $prev_total_income = $prev_academy_income + (float) ($prev_store_agg['total'] ?? 0);
-
-$prev_manual_where = ['mi.income_date_gregorian >= %s', 'mi.income_date_gregorian <= %s'];
-$prev_manual_args = [$prev_from_s, $prev_to_s];
-if (function_exists('sc_secretary_merge_income_where')) {
-    sc_secretary_merge_income_where($prev_manual_where, $prev_manual_args, 'mi');
-}
-$prev_manual_income = (float) $wpdb->get_var($wpdb->prepare(
-    "SELECT COALESCE(SUM(mi.amount), 0) FROM {$wpdb->prefix}sc_incomes mi WHERE " . implode(' AND ', $prev_manual_where),
-    $prev_manual_args
-));
+$prev_manual_income = function_exists('sc_finance_sum_manual_incomes')
+    ? sc_finance_sum_manual_incomes($prev_from_s, $prev_to_s, $overview_chapter)
+    : 0.0;
 $prev_total_income += $prev_manual_income;
 
 // هزینه دوره قبل
@@ -285,15 +264,9 @@ foreach ($months as $month_start) {
     }
     $month_income = $month_academy_income + $month_store_income;
 
-    $month_manual_where = ['mi.income_date_gregorian >= %s', 'mi.income_date_gregorian <= %s'];
-    $month_manual_args = [$month_start_str, $month_end_str];
-    if (function_exists('sc_secretary_merge_income_where')) {
-        sc_secretary_merge_income_where($month_manual_where, $month_manual_args, 'mi');
-    }
-    $month_manual_income = (float) $wpdb->get_var($wpdb->prepare(
-        "SELECT COALESCE(SUM(mi.amount), 0) FROM $incomes_table mi WHERE " . implode(' AND ', $month_manual_where),
-        $month_manual_args
-    ));
+    $month_manual_income = function_exists('sc_finance_sum_manual_incomes')
+        ? sc_finance_sum_manual_incomes($month_start_str, $month_end_str, $overview_chapter)
+        : 0.0;
     $month_income += $month_manual_income;
     
     // هزینه ماه
@@ -419,9 +392,9 @@ jQuery(function ($) {
 </script>
 
     <p class="description sc-finance-reports-info-note">
-        <strong>کل درآمد</strong> برابر مجموع درآمد <strong>آکادمی</strong> (صورت‌حساب‌های دوره و رویداد با وضعیت پرداخت‌شده یا تأیید پرداخت، بر اساس تاریخ پرداخت)
-        و <strong>فروشگاه</strong> (سفارش‌های پرداخت‌شده یا تأییدشده در ووکامرس، بر اساس تاریخ ثبت سفارش) در بازهٔ انتخابی است.
-        جعبهٔ آماری پایین، تعداد صورت‌حساب‌های آکادمی مطابق همین قواعد به‌اضافهٔ تعداد سفارش‌های فروشگاه را نشان می‌دهد.
+        <strong>کل درآمد</strong> برابر مجموع درآمد <strong>آکادمی</strong> (صورت‌حساب‌های دوره و رویداد پرداخت‌شده)،
+        <strong>فروشگاه</strong> (سفارش‌های ووکامرس)،
+        و <strong>درآمدهای ثبت‌شده دستی</strong> (منوی صورت‌حساب‌ها ← ثبت درآمد) در بازهٔ انتخابی است.
     </p>
     
     <div class="sc-dashboard-stats sc-finance-reports-stats">
@@ -429,6 +402,11 @@ jQuery(function ($) {
             <h3>کل درآمد</h3>
             <div class="sc-finance-stat-value">
                 <?php echo number_format($total_income, 0, '.', ','); ?> تومان
+            </div>
+            <div class="sc-finance-stat-meta" style="margin-top:8px;font-size:12px;opacity:.85;line-height:1.6;">
+                آکادمی: <?php echo esc_html(number_format($total_academy_income, 0, '.', ',')); ?>
+                + فروشگاه: <?php echo esc_html(number_format($total_store_income_period, 0, '.', ',')); ?>
+                + ثبت دستی: <?php echo esc_html(number_format($total_manual_income, 0, '.', ',')); ?>
             </div>
             <div class="sc-finance-stat-trend <?php echo $income_change >= 0 ? 'is-positive' : 'is-negative'; ?>">
                 <?php if ($income_change != 0) : ?>

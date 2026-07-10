@@ -49,21 +49,26 @@ $toggle_id = 'sc-tarddod-records-filters-toggle';
 
     <div class="sc-members-list-table-card">
         <table class="wp-list-table widefat fixed striped sc-tarddod-records-table">
-            <thead>
+                <thead>
                 <tr>
                     <th>جلسه</th>
                     <th>نام</th>
                     <th>نوع</th>
                     <th>تاریخ جلسه</th>
                     <th>زمان ثبت</th>
+                    <th>عکس اسکن</th>
                 </tr>
-            </thead>
+                </thead>
             <tbody>
             <?php if (empty($items)) : ?>
-                <tr><td colspan="5" class="sc-reports-empty">رکوردی یافت نشد.</td></tr>
+                <tr><td colspan="6" class="sc-reports-empty">رکوردی یافت نشد.</td></tr>
             <?php else : foreach ($items as $row) :
                 $sd = $row->session_date && function_exists('sc_date_shamsi') ? sc_date_shamsi($row->session_date, 'Y/m/d') : ($row->session_date ?? '—');
                 $type_badge = ($row->subject_type ?? '') === 'staff' ? 'sc-badge--purple' : 'sc-badge--soft';
+                $scan_url = '';
+                if (!empty($row->scan_photo) && function_exists('sc_qr_scan_photo_url_from_relative')) {
+                    $scan_url = sc_qr_scan_photo_url_from_relative($row->scan_photo);
+                }
                 ?>
                 <tr>
                     <td>
@@ -76,6 +81,15 @@ $toggle_id = 'sc-tarddod-records-filters-toggle';
                     <td><span class="sc-badge <?php echo esc_attr($type_badge); ?>"><?php echo esc_html(sc_tarddod_subject_type_label($row->subject_type)); ?></span></td>
                     <td><?php echo esc_html($sd); ?></td>
                     <td><?php echo esc_html($row->created_at); ?></td>
+                    <td>
+                        <?php if ($scan_url) : ?>
+                            <a href="<?php echo esc_url($scan_url); ?>" target="_blank" rel="noopener noreferrer">
+                                <img src="<?php echo esc_url($scan_url); ?>" alt="عکس اسکن" style="width:64px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" loading="lazy">
+                            </a>
+                        <?php else : ?>
+                            <span style="color:#9ca3af;">—</span>
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; endif; ?>
             </tbody>

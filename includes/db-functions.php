@@ -196,6 +196,7 @@ $sql = "CREATE TABLE `$table_name` (
     `status` enum('present','absent','excused') NOT NULL DEFAULT 'present',
     `user_id` bigint(20) unsigned DEFAULT NULL,
     `record_method` varchar(20) NOT NULL DEFAULT 'manual' COMMENT 'manual|qr|api|auto_absent',
+    `scan_photo` varchar(255) DEFAULT NULL COMMENT 'عکس لحظه اسکن QR',
     `absence_sms_sent` tinyint(1) DEFAULT 0,
     `created_at` datetime NOT NULL,
     `updated_at` datetime NOT NULL,
@@ -1467,6 +1468,7 @@ function sc_create_tarddod_tables() {
         `subject_id` bigint(20) unsigned NOT NULL,
         `subject_name` varchar(255) NOT NULL DEFAULT '',
         `record_method` varchar(20) NOT NULL DEFAULT 'qr',
+        `scan_photo` varchar(255) DEFAULT NULL COMMENT 'عکس لحظه اسکن QR',
         `scanned_by` bigint(20) unsigned NOT NULL DEFAULT 0,
         `created_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
@@ -1546,6 +1548,9 @@ function sc_update_database() {
         }
         if (function_exists('sc_create_course_chapters_table')) {
             sc_create_course_chapters_table();
+        }
+        if (function_exists('sc_create_product_branch_stock_table')) {
+            sc_create_product_branch_stock_table();
         }
         if (function_exists('sc_create_member_qr_codes_table')) {
             sc_create_member_qr_codes_table();
@@ -2592,6 +2597,24 @@ function sc_update_database() {
         update_option('sc_members_registration_fee_columns_added', '1');
     }
 
+    if (get_option('sc_qr_scan_photo_columns_added', '0') !== '1') {
+        $att = $wpdb->prefix . 'sc_attendances';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $att)) === $att) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$att` LIKE %s", 'scan_photo'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$att` ADD COLUMN `scan_photo` varchar(255) DEFAULT NULL COMMENT 'عکس لحظه اسکن QR' AFTER `record_method`");
+            }
+        }
+        $tard = $wpdb->prefix . 'sc_tarddod_records';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $tard)) === $tard) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$tard` LIKE %s", 'scan_photo'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$tard` ADD COLUMN `scan_photo` varchar(255) DEFAULT NULL COMMENT 'عکس لحظه اسکن QR' AFTER `record_method`");
+            }
+        }
+        update_option('sc_qr_scan_photo_columns_added', '1');
+    }
+
     // جدول کمک‌مربی‌های دوره
     if (get_option('sc_course_assistant_coaches_table_v1', '0') !== '1') {
         if (function_exists('sc_create_course_assistant_coaches_table')) {
@@ -2629,6 +2652,14 @@ function sc_update_database() {
             }
         }
         update_option('sc_chapter_categories_public_api_v1', '1');
+    }
+
+    // موجودی محصول به تفکیک شعبه
+    if (get_option('sc_product_branch_stock_v1', '0') !== '1') {
+        if (function_exists('sc_create_product_branch_stock_table')) {
+            sc_create_product_branch_stock_table();
+        }
+        update_option('sc_product_branch_stock_v1', '1');
     }
 }
 
@@ -2948,6 +2979,34 @@ function sc_create_course_chapters_table() {
         KEY `idx_course_id` (`course_id`),
         KEY `idx_chapter_name` (`chapter_name`)
     ) ENGINE=InnoDB $table_collation";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+/**
+ * موجودی محصولات فروشگاه به تفکیک شعبه
+ * product_id = محصول ساده یا variation؛ parent_id = والد (۰ برای ساده)
+ */
+function sc_create_product_branch_stock_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_product_branch_stock';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `product_id` bigint(20) unsigned NOT NULL COMMENT 'ID محصول ساده یا variation',
+        `parent_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'ID والد برای variation',
+        `chapter_name` varchar(255) NOT NULL,
+        `qty` int(11) NOT NULL DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uniq_product_chapter` (`product_id`, `chapter_name`),
+        KEY `idx_product_id` (`product_id`),
+        KEY `idx_parent_id` (`parent_id`),
+        KEY `idx_chapter_name` (`chapter_name`)
+    ) ENGINE=InnoDB $charset_collate";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     dbDelta($sql);

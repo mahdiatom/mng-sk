@@ -778,3 +778,113 @@ function my_convert_comment_date_to_jalali($date, $format, $comment){
 
     return "تاریخ ثبت نظر : " . $jalali_date;
 }
+
+/**
+ * آیا صفحه ویرایش سفارش ووکامرس است؟ (کلاسیک یا HPOS)
+ */
+function sc_is_wc_order_edit_admin_screen() {
+    if (!is_admin()) {
+        return false;
+    }
+
+    // HPOS edit
+    if (isset($_GET['page'], $_GET['action']) && $_GET['page'] === 'wc-orders' && $_GET['action'] === 'edit') {
+        return true;
+    }
+
+    // کلاسیک: post.php?post=ID&action=edit
+    $pagenow = isset($GLOBALS['pagenow']) ? (string) $GLOBALS['pagenow'] : '';
+    if ($pagenow === 'post.php' && isset($_GET['post'], $_GET['action']) && $_GET['action'] === 'edit') {
+        $post_id = absint($_GET['post']);
+        if ($post_id && get_post_type($post_id) === 'shop_order') {
+            return true;
+        }
+    }
+
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+    if ($screen) {
+        if ($screen->base === 'post' && isset($screen->post_type) && $screen->post_type === 'shop_order') {
+            return true;
+        }
+        // HPOS: فقط حالت ویرایش، نه لیست
+        if ($screen->id === 'woocommerce_page_wc-orders' && isset($_GET['action']) && $_GET['action'] === 'edit') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * نمایش تاریخ‌های صفحه ویرایش سفارش به شمسی (از طریق date_i18n)
+ */
+add_filter('date_i18n', 'sc_wc_order_edit_date_i18n_shamsi', 20, 4);
+function sc_wc_order_edit_date_i18n_shamsi($date, $format, $timestamp, $gmt) {
+    if (!sc_is_wc_order_edit_admin_screen()) {
+        return $date;
+    }
+    if (empty($timestamp) || !is_numeric($timestamp) || !function_exists('jdate')) {
+        return $date;
+    }
+    $timestamp = (int) $timestamp;
+    $format = (string) $format;
+
+    // فیلد تاریخ سفارش: Y-m-d → شمسی با اسلش برای تقویم افزونه
+    if ($format === 'Y-m-d') {
+        return jdate('Y/m/d', $timestamp);
+    }
+
+    return jdate($format, $timestamp);
+}
+
+/**
+ * الگوی HTML فیلد تاریخ سفارش برای فرمت شمسی
+ */
+add_filter('woocommerce_date_input_html_pattern', 'sc_wc_order_date_input_shamsi_pattern');
+function sc_wc_order_date_input_shamsi_pattern($pattern) {
+    if (!sc_is_wc_order_edit_admin_screen()) {
+        return $pattern;
+    }
+    return '[0-9]{4}/(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])';
+}
+
+/**
+ * قبل از ذخیره سفارش: تاریخ شمسی فیلد order_date را به میلادی برگردان
+ */
+add_action('woocommerce_process_shop_order_meta', 'sc_wc_order_convert_shamsi_date_before_save', 1, 2);
+function sc_wc_order_convert_shamsi_date_before_save($order_id, $order = null) {
+    if (empty($_POST['order_date']) || !function_exists('sc_shamsi_to_gregorian_date')) {
+        return;
+    }
+    $raw = sanitize_text_field(wp_unslash((string) $_POST['order_date']));
+    $raw = str_replace('-', '/', $raw);
+    if (!preg_match('#^(\d{4})/(\d{1,2})/(\d{1,2})$#', $raw, $m)) {
+        return;
+    }
+    $year = (int) $m[1];
+    // سال شمسی معمولاً زیر ۱۹۰۰؛ میلادی رایج را دست نزن
+    if ($year < 1200 || $year >= 1900) {
+        return;
+    }
+    $gregorian = sc_shamsi_to_gregorian_date(sprintf('%04d/%02d/%02d', $year, (int) $m[2], (int) $m[3]));
+    if ($gregorian !== '') {
+        $_POST['order_date'] = $gregorian;
+    }
+}
+
+/**
+ * اسکریپت: تقویم شمسی روی فیلد تاریخ سفارش + جلوگیری از datepicker میلادی ووکامرس
+ */
+add_action('admin_enqueue_scripts', 'sc_wc_order_edit_shamsi_assets', 30);
+function sc_wc_order_edit_shamsi_assets() {
+    if (!sc_is_wc_order_edit_admin_screen()) {
+        return;
+    }
+    wp_enqueue_script(
+        'sc-wc-order-shamsi-dates',
+        SC_ASSETS_URL . 'js/wc-order-shamsi-dates.js',
+        ['jquery', 'persian-datepicker-js'],
+        defined('SC_PLUGIN_VERSION') ? SC_PLUGIN_VERSION : '1.0',
+        true
+    );
+}

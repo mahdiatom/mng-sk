@@ -277,12 +277,24 @@
         lastHandledAt = now || Date.now();
     }
 
-    function getActiveSessionId() {
-        var selected = parseInt($('#sc-tarddod-session-select').val(), 10);
-        if (selected > 0) {
-            return selected;
+    function getActiveSessionMeta() {
+        var $sel = $('#sc-tarddod-session-select');
+        var selected = parseInt($sel.val(), 10) || 0;
+        var title = cfg.sessionTitle || '';
+        if ($sel.length && selected > 0) {
+            var optText = $sel.find('option:selected').text() || '';
+            if (optText) {
+                title = optText.split('—')[0].trim() || optText.trim();
+            }
         }
-        return parseInt(cfg.sessionId, 10) || 0;
+        return {
+            id: selected > 0 ? selected : (parseInt(cfg.sessionId, 10) || 0),
+            title: title
+        };
+    }
+
+    function getActiveSessionId() {
+        return getActiveSessionMeta().id;
     }
 
     function handleScan(decodedText) {
@@ -309,7 +321,8 @@
         markHandled(payload, now);
 
         var localMember = lookupMember(payload);
-        var sessionId = getActiveSessionId();
+        var sessionMeta = getActiveSessionMeta();
+        var sessionId = sessionMeta.id;
         if (!sessionId) {
             playSound('error');
             showToast('جلسه‌ای انتخاب نشده است.', 'error');
@@ -318,6 +331,11 @@
         }
 
         showToast('در حال ثبت...', 'info');
+
+        var rawFrame = '';
+        if (cfg.snapshotEnabled && window.scQrScanSnapshot) {
+            rawFrame = window.scQrScanSnapshot.captureFrame('sc-attendance-qr-reader', 720) || '';
+        }
 
         $.post(cfg.ajaxUrl, {
             action: 'sc_tarddod_scan',
@@ -329,12 +347,33 @@
                 var code = res.data && res.data.code ? res.data.code : 'created';
                 var name = res.data && res.data.subject_name ? res.data.subject_name : (localMember ? localMember.name : '');
                 var typeLabel = subjectTypeLabel(res.data && res.data.subject_type ? res.data.subject_type : 'member');
+                var recordId = res.data && res.data.record_id ? parseInt(res.data.record_id, 10) : 0;
+                var sessionTitle = (res.data && res.data.session_title) ? res.data.session_title : sessionMeta.title;
 
                 if (code === 'duplicate') {
                     playSound('duplicate');
                     showToast(name + ' — قبلاً ثبت شده', 'duplicate');
                     prependLog({ ok: true, duplicate: true, name: name, message: typeLabel });
                     return;
+                }
+
+                if (cfg.snapshotEnabled && rawFrame && recordId && window.scQrScanSnapshot && code === 'created') {
+                    var lines = [
+                        name || 'فرد',
+                        sessionTitle ? ('جلسه: ' + sessionTitle) : '',
+                        typeLabel,
+                        window.scQrScanSnapshot.nowLabelFa()
+                    ];
+                    window.scQrScanSnapshot.applyOverlay(rawFrame, lines, 0.72).then(function (photo) {
+                        if (!photo) return;
+                        window.scQrScanSnapshot.uploadSnapshot({
+                            ajaxUrl: cfg.ajaxUrl,
+                            nonce: cfg.nonce,
+                            context: 'tarddod',
+                            recordId: recordId,
+                            photoData: photo
+                        });
+                    });
                 }
 
                 playSound('success');

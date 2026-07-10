@@ -826,22 +826,9 @@ $finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
                     $cash_in = $cash_in_academy_raw + $cash_in_store_raw;
                 }
 
-                $incomes_table = $wpdb->prefix . 'sc_incomes';
-                $where_manual_in = ["mi.income_date_gregorian IS NOT NULL", "DATE(mi.income_date_gregorian) BETWEEN %s AND %s"];
-                $args_manual_in = [$filter_date_from, $filter_date_to];
-                if ($filter_chapter !== '') {
-                    $where_manual_in[] = 'mi.chapter = %s';
-                    $args_manual_in[] = $filter_chapter;
-                }
-                if (function_exists('sc_secretary_merge_income_where')) {
-                    sc_secretary_merge_income_where($where_manual_in, $args_manual_in, 'mi');
-                }
                 $cash_in_manual = 0.0;
-                if ($filter_cashflow_type === 'all') {
-                    $cash_in_manual = (float) $wpdb->get_var($wpdb->prepare(
-                        "SELECT COALESCE(SUM(mi.amount),0) FROM $incomes_table mi WHERE " . implode(' AND ', $where_manual_in),
-                        $args_manual_in
-                    ));
+                if ($filter_cashflow_type === 'all' && function_exists('sc_finance_sum_manual_incomes')) {
+                    $cash_in_manual = sc_finance_sum_manual_incomes($filter_date_from, $filter_date_to, $filter_chapter);
                     $cash_in += $cash_in_manual;
                 }
 
@@ -849,7 +836,10 @@ $finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
                 $net_cashflow = $cash_in - $cash_out;
                 ?>
                 <p class="description sc-finance-reports-info-note">
-                    ورودی نقدی بر اساس نوع انتخابی (همه/دوره/رویداد/فروشگاه) محاسبه می‌شود؛ فیلتر دوره و شعبه فقط روی داده‌های آکادمی اثر دارد.
+                    ورودی نقدی در حالت «همه» شامل آکادمی + فروشگاه + درآمدهای ثبت‌شده دستی است.
+                    <?php if ($cash_in_manual > 0) : ?>
+                        (سهم ثبت دستی در این بازه: <?php echo esc_html(number_format($cash_in_manual, 0, '.', ',')); ?> تومان)
+                    <?php endif; ?>
                 </p>
                 <div class="sc-dashboard-stats sc-finance-reports-stats">
                     <div class="sc-stat-box"><h3>ورودی نقدی</h3><div><?php echo esc_html(number_format($cash_in, 0, '.', ',')); ?></div></div>
@@ -942,22 +932,11 @@ $finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
                     FROM $expenses_table e
                     WHERE " . implode(' AND ', $where_out), $args_out));
 
-                $incomes_table = $wpdb->prefix . 'sc_incomes';
-                $where_manual = ["mi.income_date_gregorian IS NOT NULL", "DATE(mi.income_date_gregorian) BETWEEN %s AND %s"];
-                $args_manual = [$filter_date_from, $filter_date_to];
-                if ($filter_chapter !== '') {
-                    $where_manual[] = 'mi.chapter = %s';
-                    $args_manual[] = $filter_chapter;
-                }
-                if (function_exists('sc_secretary_merge_income_where')) {
-                    sc_secretary_merge_income_where($where_manual, $args_manual, 'mi');
-                }
-                $manual_income_rows = $wpdb->get_results($wpdb->prepare(
-                    "SELECT DATE(mi.income_date_gregorian) AS tx_date, 'income' AS tx_type, mi.amount, '' AS person_name, mi.name AS ref_title, mi.chapter
-                     FROM $incomes_table mi
-                     WHERE " . implode(' AND ', $where_manual),
-                    $args_manual
-                ));
+                // درآمدهای ثبت‌شده دستی همیشه در دفتر تراکنش به‌عنوان ورودی می‌آیند
+                // (حتی وقتی فیلتر دوره فعال است؛ فقط فیلتر شعبه/تاریخ روی آن‌ها اعمال می‌شود)
+                $manual_income_rows = function_exists('sc_finance_manual_income_ledger_rows')
+                    ? sc_finance_manual_income_ledger_rows($filter_date_from, $filter_date_to, $filter_chapter)
+                    : [];
 
                 if ($filter_ledger_type === 'income') {
                     $expense_rows = [];
@@ -965,6 +944,9 @@ $finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
                     $income_rows = [];
                     $store_income_rows = [];
                     $manual_income_rows = [];
+                } elseif ($filter_course > 0) {
+                    // با فیلتر دوره، سفارش‌های فروشگاه مرتبط نیستند؛ درآمد دستی حفظ می‌شود
+                    $store_income_rows = [];
                 }
                 $ledger_rows = array_merge($income_rows ?: [], $store_income_rows ?: [], $manual_income_rows ?: [], $expense_rows ?: []);
                 usort($ledger_rows, static function($a, $b) {
@@ -983,6 +965,7 @@ $finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
                 <p class="description sc-finance-reports-info-note">
                     <?php if ($ledger_total_items > 0) : ?>
                         نمایش <?php echo esc_html(number_format_i18n($ledger_display_from)); ?> تا <?php echo esc_html(number_format_i18n($ledger_display_to)); ?> از <?php echo esc_html(number_format_i18n($ledger_total_items)); ?> تراکنش
+                        — شامل صورت‌حساب‌ها، فروشگاه، <strong>درآمدهای ثبت‌شده دستی</strong> و هزینه‌ها.
                     <?php else : ?>
                         تراکنشی یافت نشد.
                     <?php endif; ?>
@@ -993,7 +976,14 @@ $finance_clear_url = add_query_arg('tab', $tab, $base_tab_url);
                     <?php if (!empty($ledger_rows_page)) : foreach ($ledger_rows_page as $r) : ?>
                         <tr>
                             <td><?php echo esc_html(function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($r->tx_date) : $r->tx_date); ?></td>
-                            <td><?php echo esc_html($r->tx_type === 'income' ? 'ورودی' : 'خروجی'); ?></td>
+                            <td><?php
+                                if ($r->tx_type === 'income') {
+                                    $is_manual = isset($r->income_source) && $r->income_source === 'manual_income';
+                                    echo esc_html($is_manual ? 'ورودی (ثبت درآمد)' : 'ورودی');
+                                } else {
+                                    echo 'خروجی';
+                                }
+                            ?></td>
                             <td><?php echo esc_html($r->ref_title ?: '-'); ?></td>
                             <td><?php echo esc_html($r->person_name ?: '-'); ?></td>
                             <td><?php echo esc_html($r->chapter ?: '-'); ?></td>

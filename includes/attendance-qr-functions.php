@@ -1924,6 +1924,7 @@ function sc_attendance_qr_register_present(array $args) {
                 'message'     => 'قبلاً به عنوان حاضر ثبت شده است.',
                 'member_name' => $member_name,
                 'attendance_id' => $existing,
+                'course_title' => $course_title,
                 'is_new'      => false,
                 'has_debt'    => $member_debt > 0,
                 'debt_amount'  => $member_debt,
@@ -1969,6 +1970,7 @@ function sc_attendance_qr_register_present(array $args) {
             'message'       => $member_debt > 0 ? 'حضور ثبت شد؛ بازیکن بدهی دارد.' : 'حضور با موفقیت ثبت شد.',
             'member_name'   => $member_name,
             'attendance_id' => $existing,
+            'course_title'  => $course_title,
             'is_new'        => false,
             'has_debt'      => $member_debt > 0,
             'debt_amount'    => $member_debt,
@@ -2034,6 +2036,7 @@ function sc_attendance_qr_register_present(array $args) {
         'message'       => $member_debt > 0 ? 'حضور ثبت شد؛ بازیکن بدهی دارد.' : 'حضور با موفقیت ثبت شد.',
         'member_name'   => $member_name,
         'attendance_id' => $new_id,
+        'course_title'  => $course_title,
         'is_new'        => true,
         'has_debt'      => $member_debt > 0,
         'debt_amount'    => $member_debt,
@@ -2275,13 +2278,16 @@ function sc_ajax_attendance_qr_scan() {
     }
 
     wp_send_json_success([
-        'message'     => $result['message'],
-        'code'        => $result['code'],
-        'member_name' => $result['member_name'],
-        'member_id'   => (int) $member->id,
-        'is_new'      => !empty($result['is_new']),
-        'has_debt'    => !empty($result['has_debt']),
-        'debt_amount'  => isset($result['debt_amount']) ? floatval($result['debt_amount']) : 0,
+        'message'       => $result['message'],
+        'code'          => $result['code'],
+        'member_name'   => $result['member_name'],
+        'member_id'     => (int) $member->id,
+        'attendance_id' => isset($result['attendance_id']) ? (int) $result['attendance_id'] : 0,
+        'course_title'  => isset($result['course_title']) ? $result['course_title'] : '',
+        'is_new'        => !empty($result['is_new']),
+        'has_debt'      => !empty($result['has_debt']),
+        'debt_amount'   => isset($result['debt_amount']) ? floatval($result['debt_amount']) : 0,
+        'snapshot'      => function_exists('sc_qr_scan_photo_is_enabled') && sc_qr_scan_photo_is_enabled(),
     ]);
 }
 

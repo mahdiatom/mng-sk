@@ -1,9 +1,122 @@
 <?php
 /**
- * Export Incomes to Excel
+ * Export Incomes to Excel + finance helpers for manual incomes
  */
 if (!defined('ABSPATH')) {
     exit;
+}
+
+/**
+ * Ensure incomes tables exist.
+ */
+function sc_finance_ensure_incomes_tables() {
+    global $wpdb;
+    $incomes = $wpdb->prefix . 'sc_incomes';
+    $cats = $wpdb->prefix . 'sc_income_categories';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $incomes)) !== $incomes) {
+        if (function_exists('sc_create_incomes_table')) {
+            sc_create_incomes_table();
+        }
+    }
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $cats)) !== $cats) {
+        if (function_exists('sc_create_income_categories_table')) {
+            sc_create_income_categories_table();
+        }
+    }
+}
+
+/**
+ * Sum of manually registered club incomes in date range.
+ *
+ * @param string $date_from Y-m-d
+ * @param string $date_to   Y-m-d
+ * @param string $chapter   Optional chapter filter
+ * @return float
+ */
+function sc_finance_sum_manual_incomes($date_from, $date_to, $chapter = '') {
+    global $wpdb;
+    sc_finance_ensure_incomes_tables();
+    $table = $wpdb->prefix . 'sc_incomes';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+        return 0.0;
+    }
+
+    $where = ['mi.income_date_gregorian IS NOT NULL'];
+    $args = [];
+    if ($date_from !== '') {
+        $where[] = 'DATE(mi.income_date_gregorian) >= %s';
+        $args[] = $date_from;
+    }
+    if ($date_to !== '') {
+        $where[] = 'DATE(mi.income_date_gregorian) <= %s';
+        $args[] = $date_to;
+    }
+    if ($chapter !== '') {
+        $where[] = 'mi.chapter = %s';
+        $args[] = $chapter;
+    }
+    if (function_exists('sc_secretary_merge_income_where')) {
+        sc_secretary_merge_income_where($where, $args, 'mi');
+    }
+
+    $sql = 'SELECT COALESCE(SUM(mi.amount), 0) FROM `' . $table . '` mi WHERE ' . implode(' AND ', $where);
+    if (!empty($args)) {
+        return (float) $wpdb->get_var($wpdb->prepare($sql, $args));
+    }
+    return (float) $wpdb->get_var($sql);
+}
+
+/**
+ * Ledger rows for manually registered incomes (tx_type = income).
+ *
+ * @param string $date_from
+ * @param string $date_to
+ * @param string $chapter
+ * @return object[]
+ */
+function sc_finance_manual_income_ledger_rows($date_from, $date_to, $chapter = '') {
+    global $wpdb;
+    sc_finance_ensure_incomes_tables();
+    $table = $wpdb->prefix . 'sc_incomes';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+        return [];
+    }
+
+    $where = ['mi.income_date_gregorian IS NOT NULL'];
+    $args = [];
+    if ($date_from !== '') {
+        $where[] = 'DATE(mi.income_date_gregorian) >= %s';
+        $args[] = $date_from;
+    }
+    if ($date_to !== '') {
+        $where[] = 'DATE(mi.income_date_gregorian) <= %s';
+        $args[] = $date_to;
+    }
+    if ($chapter !== '') {
+        $where[] = 'mi.chapter = %s';
+        $args[] = $chapter;
+    }
+    if (function_exists('sc_secretary_merge_income_where')) {
+        sc_secretary_merge_income_where($where, $args, 'mi');
+    }
+
+    $sql = "SELECT DATE(mi.income_date_gregorian) AS tx_date,
+                   'income' AS tx_type,
+                   mi.amount,
+                   '' AS person_name,
+                   CONCAT('ثبت درآمد: ', mi.name) AS ref_title,
+                   mi.chapter,
+                   'manual_income' AS income_source
+            FROM `{$table}` mi
+            WHERE " . implode(' AND ', $where) . '
+            ORDER BY mi.income_date_gregorian DESC, mi.id DESC';
+
+    if (!empty($args)) {
+        $rows = $wpdb->get_results($wpdb->prepare($sql, $args));
+    } else {
+        $rows = $wpdb->get_results($sql);
+    }
+    return is_array($rows) ? $rows : [];
 }
 
 function sc_export_incomes_to_excel() {

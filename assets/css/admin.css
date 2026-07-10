@@ -1,4 +1,4 @@
-
+﻿
 
 @font-face {
 	font-family: IRANYekanXFaNum;
@@ -24352,6 +24352,18 @@ body.sc-reports_page_sc-reports-attendance-qr .sc-attendance-qr-report-wrap .sc-
         text-align: center;
     }
 }
+
+.sc-qr-scan-thumb {
+    width: 64px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    display: block;
+}
+.sc-qr-scan-thumb-link {
+    display: inline-block;
+}
 /* ─── پایان گزارش QR حضور ─── */
 
 
@@ -26827,3 +26839,58 @@ body.sc-coach-members-list-page .sc-coach-notif-pagination span.current {
     }
 }
 
+/* ─── موجودی شعبه‌ای محصول + استعلام ─── */
+.sc-pbs-admin {
+    margin: 8px 0 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f8f7ff;
+    border: 1px solid rgba(109, 52, 255, 0.12);
+}
+.sc-pbs-admin.is-disabled .sc-pbs-admin-rows {
+    opacity: 0.55;
+}
+.sc-pbs-admin-intro {
+    margin: 0 0 10px !important;
+}
+.sc-pbs-admin-table {
+    border-radius: 10px;
+    overflow: hidden;
+}
+.sc-pbs-admin-table th,
+.sc-pbs-admin-table td {
+    padding: 8px 10px !important;
+    vertical-align: middle;
+}
+.sc-pbs-admin-table .sc-pbs-qty {
+    width: 90px;
+    max-width: 100%;
+    border-radius: 8px;
+}
+.sc-pbs-variation-wrap {
+    clear: both;
+    margin-top: 12px !important;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(109, 52, 255, 0.18);
+}
+.sc-pbs-chapter-list {
+    margin: 0;
+    padding: 0 18px;
+    columns: 2;
+}
+.sc-pbs-chapter-list li {
+    margin: 0 0 6px;
+    font-weight: 600;
+    color: #1e1b2e;
+}
+#woocommerce-product-data ul.wc-tabs li.sc_branch_stock_options a::before {
+    content: "\f338";
+}
+#sc_qa_existing_validation .sc-qa-validation-list li{
+    padding-right:10px;
+}
+/* برای شعبه بندی فروشگاه  */
+.wc-metaboxes-wrapper .wc-metabox table td input {
+    float: right;
+    width: fit-content !important;
+}
