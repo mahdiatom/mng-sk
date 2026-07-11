@@ -183,13 +183,13 @@ $accountants = function_exists('sc_support_get_accountant_users') ? sc_support_g
                     <label for="reply_message">پاسخ شما</label>
                     <textarea name="reply_message" id="reply_message" rows="4" required placeholder="متن پاسخ خود را بنویسید..."></textarea>
                 </p>
-                <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="reply_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>">
+                <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="reply_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>" data-max-size-mb="1">
                     <label>پیوست (اختیاری)</label>
                     <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
                         <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,.svg,.tiff,.tif,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple>
                         <span class="sc-file-upload-icon">📎</span>
                         <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
-                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت‌های مجاز: تصویر (jpg, png, gif, webp, bmp, ico, svg, tiff, heic و...)، PDF، ورد، اکسل، ZIP و RAR</span>
+                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۱ مگابایت. فرمت‌های مجاز: تصویر (jpg, png, gif, webp, bmp, ico, svg, tiff, heic و...)، PDF، ورد، اکسل، ZIP و RAR</span>
                     </div>
                     <div class="sc-ticket-upload-progress-wrap" style="display:none;">
                         <div class="sc-upload-progress sc-ticket-upload-progress">
@@ -215,13 +215,13 @@ $accountants = function_exists('sc_support_get_accountant_users') ? sc_support_g
                 <input type="hidden" name="sc_ticket_action" value="reply">
                 <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket->id; ?>">
                 <p class="sc-ticket-field"><textarea name="reply_message" rows="3" placeholder="متن پاسخ برای باز کردن تیکت..."></textarea></p>
-                <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="reply_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>">
+                <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="reply_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>" data-max-size-mb="1">
                     <label>پیوست (اختیاری)</label>
                     <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
                         <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,.svg,.tiff,.tif,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple>
                         <span class="sc-file-upload-icon">📎</span>
                         <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
-                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت‌های مجاز: تصویر، PDF، ورد، اکسل، ZIP و RAR</span>
+                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۱ مگابایت. فرمت‌های مجاز: تصویر، PDF، ورد، اکسل، ZIP و RAR</span>
                     </div>
                     <div class="sc-ticket-upload-progress-wrap" style="display:none;"><div class="sc-upload-progress sc-ticket-upload-progress"><div class="sc-upload-bar"></div><span class="sc-upload-text"></span></div></div>
                     <div class="sc-ticket-uploaded-list"></div>
@@ -328,13 +328,13 @@ $accountants = function_exists('sc_support_get_accountant_users') ? sc_support_g
                     <textarea name="ticket_message" id="ticket_message" rows="5" required placeholder="متن پیام خود را بنویسید..."></textarea>
                 </p>
 
-                <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="ticket_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>" data-nonce-key="sc_ticket_upload_nonce">
+                <div class="sc-ticket-field sc-ticket-attachment-zone" data-input-name="ticket_attachment_ids" data-nonce="<?php echo esc_attr(wp_create_nonce('sc_ticket_upload_attachment')); ?>" data-nonce-key="sc_ticket_upload_nonce" data-max-size-mb="1">
                     <label>پیوست (اختیاری)</label>
                     <div class="sc-file-upload-area sc-ticket-upload-area" tabindex="0">
                         <input type="file" class="sc-ticket-file-input-hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,.svg,.tiff,.tif,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple>
                         <span class="sc-file-upload-icon">📎</span>
                         <span class="sc-file-upload-text">فایل را اینجا رها کنید یا کلیک کنید</span>
-                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۵ مگابایت. فرمت‌های مجاز: تصویر (jpg, png, gif, webp, bmp, ico, svg, tiff, heic و...)، PDF، ورد، اکسل، ZIP و RAR</span>
+                        <span class="sc-file-upload-hint">حداکثر ۵ فایل، هر کدام ۱ مگابایت. فرمت‌های مجاز: تصویر (jpg, png, gif, webp, bmp, ico, svg, tiff, heic و...)، PDF، ورد، اکسل، ZIP و RAR</span>
                     </div>
                     <div class="sc-ticket-upload-progress-wrap" style="display:none;">
                         <div class="sc-upload-progress sc-ticket-upload-progress">

@@ -47,8 +47,8 @@
         }
 
         var file = input.files[0];
-        if (file.size > 5 * 1024 * 1024) {
-            alert('حجم فایل بیش از ۵ مگابایت است.');
+        if (file.size > 1 * 1024 * 1024) {
+            alert('حجم فایل بیش از ۱ مگابایت است.');
             input.value = '';
             return;
         }

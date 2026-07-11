@@ -347,7 +347,7 @@ if (!function_exists('sc_player_form_group_close')) {
         <?php sc_player_form_group_close(); ?>
         
         <?php sc_player_form_group_open('مدارک و تصاویر', 'docs'); ?>
-            <p class="sc-player-form-group__hint">حداکثر حجم هر فایل: ۵ مگابایت — فرمت‌های مجاز: JPG, PNG, GIF, WEBP</p>
+            <p class="sc-player-form-group__hint">حداکثر حجم هر فایل: ۱ مگابایت — فرمت‌های مجاز: JPG, PNG, GIF, WEBP</p>
             <div class="sc-player-photos-grid">
                 <?php sc_player_field_card_open('عکس پرسنلی', false, 'sc-player-field-card--photo'); ?>
                     <div class="sc-upload-field sc-player-upload-field">

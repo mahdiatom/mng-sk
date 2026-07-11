@@ -5204,7 +5204,7 @@ function sc_handle_secure_file_upload($user_id, $files_data = null, $is_custom_f
     
     $uploaded_files = [];
     $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    $max_file_size = 5 * 1024 * 1024; // 5MB
+    $max_file_size = 1 * 1024 * 1024; // 1MB
     
     $file_fields = [];
     if ($files_data === null) {
@@ -5240,7 +5240,7 @@ function sc_handle_secure_file_upload($user_id, $files_data = null, $is_custom_f
         // بررسی اندازه فایل
         if ($file['size'] > $max_file_size) {
             if (!$is_custom_field) {
-                wc_add_notice("حجم فایل $field_label بیش از 5 مگابایت است.", 'error');
+                wc_add_notice("حجم فایل $field_label بیش از 1 مگابایت است.", 'error');
             }
             continue;
         }
@@ -5317,12 +5317,12 @@ function sc_ajax_upload_player_photo() {
     }
     $file = $_FILES[$field_name];
     $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    $max_size = 5 * 1024 * 1024;
+    $max_size = 1 * 1024 * 1024;
     if (!in_array($file['type'], $allowed_types, true)) {
         wp_send_json_error(['message' => 'فقط تصاویر (JPG, PNG, GIF, WEBP) مجاز است.']);
     }
     if ($file['size'] > $max_size) {
-        wp_send_json_error(['message' => 'حداکثر حجم هر فایل ۵ مگابایت است.']);
+        wp_send_json_error(['message' => 'حداکثر حجم هر فایل ۱ مگابایت است.']);
     }
     $image_info = @getimagesize($file['tmp_name']);
     if ($image_info === false) {

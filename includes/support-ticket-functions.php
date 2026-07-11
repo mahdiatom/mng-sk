@@ -170,6 +170,25 @@ function sc_support_allowed_extensions_list() {
     return array_unique($exts);
 }
 
+/**
+ * Max upload size for ticket attachments.
+ * Public player tickets are limited to 1MB; staff ticket panels keep the previous 5MB limit.
+ */
+function sc_support_attachment_max_size_bytes($user_id = 0) {
+    $user_id = $user_id > 0 ? (int) $user_id : get_current_user_id();
+    $staff_caps = ['administrator', SC_CAP_CLUB_SUPPORT_TICKETS, 'coach'];
+    foreach ($staff_caps as $cap) {
+        if ($user_id > 0 && user_can($user_id, $cap)) {
+            return 5 * 1024 * 1024;
+        }
+    }
+    return 1 * 1024 * 1024;
+}
+
+function sc_support_attachment_max_size_mb($user_id = 0) {
+    return (int) max(1, round(sc_support_attachment_max_size_bytes($user_id) / (1024 * 1024)));
+}
+
 /** Get member_id from WordPress user_id */
 function sc_support_get_member_id_by_user_id($user_id) {
     global $wpdb;
@@ -762,7 +781,7 @@ function sc_support_handle_attachments($files_key = 'ticket_attachments') {
     $actual_key = !empty($_FILES[$files_key]) ? $files_key : $files_key . '[]';
     $allowed = sc_support_allowed_mime_types();
     $allowed_ext = array_keys($allowed);
-    $max_size = 5 * 1024 * 1024; // 5MB per file
+    $max_size = sc_support_attachment_max_size_bytes(); // Public users: 1MB, staff: 5MB
     $max_files = 5;
     $ids = [];
     $names = $_FILES[$actual_key]['name'];
@@ -910,9 +929,10 @@ function sc_ajax_upload_ticket_attachment() {
     $allowed = sc_support_allowed_mime_types();
     $allowed_ext_flat = function_exists('sc_support_allowed_extensions_list') ? sc_support_allowed_extensions_list() : array_keys($allowed);
     $allowed_ext_keys = array_keys($allowed);
-    $max_size = 5 * 1024 * 1024; // 5MB
+    $max_size = sc_support_attachment_max_size_bytes();
+    $max_size_mb = sc_support_attachment_max_size_mb();
     if (isset($file['size']) && $file['size'] > $max_size) {
-        wp_send_json_error(['message' => 'حجم فایل «' . basename($file['name']) . '» بیش از ۵ مگابایت است.']);
+        wp_send_json_error(['message' => 'حجم فایل «' . basename($file['name']) . '» بیش از ' . $max_size_mb . ' مگابایت است.']);
     }
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     $ext_allowed = false;

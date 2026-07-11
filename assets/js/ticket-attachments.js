@@ -6,7 +6,7 @@
     'use strict';
 
     var DEFAULT_MAX_FILES = 5;
-    var DEFAULT_MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    var DEFAULT_MAX_SIZE = 5 * 1024 * 1024; // 5MB for staff panels; public pages can override with data-max-size-mb
     var DEFAULT_ALLOWED_EXT = ['jpg', 'jpeg', 'jpe', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif', 'heic', 'heif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
 
     function getExt(name) {
@@ -125,7 +125,7 @@
                 if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
                     msg = xhr.responseJSON.data.message;
                 } else if (xhr.status === 413) {
-                    msg = 'حجم فایل بیش از حد مجاز است (حداکثر ۵ مگابایت).';
+                    msg = 'حجم فایل بیش از حد مجاز است (حداکثر ' + (maxSizeMb > 0 ? maxSizeMb : 5) + ' مگابایت).';
                 } else if (xhr.status === 0) {
                     msg = 'اتصال برقرار نشد. اتصال اینترنت را بررسی کنید.';
                 }

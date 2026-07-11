@@ -9,9 +9,9 @@ jQuery(document).ready(function($) {
         if (input.files && input.files[0]) {
             var reader = new FileReader();
             
-            // بررسی اندازه فایل (5MB)
-            if (input.files[0].size > 5 * 1024 * 1024) {
-                alert('حجم فایل بیش از 5 مگابایت است.');
+            // بررسی اندازه فایل (1MB)
+            if (input.files[0].size > 1 * 1024 * 1024) {
+                alert('حجم فایل بیش از 1 مگابایت است.');
                 $(this).val('');
                 return;
             }
