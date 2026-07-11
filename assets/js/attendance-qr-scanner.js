@@ -413,95 +413,95 @@
         markHandled(payload, now);
 
         var localMember = lookupMember(payload);
-        var rawFrame = '';
-        if (cfg.snapshotEnabled && window.scQrScanSnapshot) {
-            rawFrame = window.scQrScanSnapshot.captureFrame('sc-attendance-qr-reader', 720) || '';
-        }
         showToast('در حال ثبت...', 'info');
 
-        $.post(cfg.ajaxUrl, {
-            action: 'sc_attendance_qr_scan',
-            nonce: cfg.nonce,
-            qr_payload: payload,
-            course_id: cfg.courseId,
-            attendance_date: cfg.attendanceDate,
-            chapter_name: cfg.chapterName,
-            group_name: cfg.groupName
-        }).done(function (res) {
-            if (res && res.success) {
-                var code = res.data && res.data.code ? res.data.code : 'created';
-                var name = res.data && res.data.member_name ? res.data.member_name : (localMember ? localMember.name : '');
-                var memberId = res.data && res.data.member_id ? res.data.member_id : (localMember ? localMember.id : 0);
-                var hasDebt = !!(res.data && res.data.has_debt);
-                var attendanceId = res.data && res.data.attendance_id ? parseInt(res.data.attendance_id, 10) : 0;
-                var courseTitle = (res.data && res.data.course_title) ? res.data.course_title : (cfg.courseTitle || '');
+        var linesPreview = [
+            localMember && localMember.name ? localMember.name : 'بازیکن',
+            cfg.courseTitle ? ('دوره: ' + cfg.courseTitle) : '',
+            window.scQrScanSnapshot ? window.scQrScanSnapshot.nowLabelFa() : ''
+        ];
 
-                if (memberId && cfg.memberMap) {
-                    cfg.memberMap[payload] = { id: memberId, name: name };
-                }
+        function postScan(photos) {
+            photos = photos || { rear: '', front: '' };
+            $.post(cfg.ajaxUrl, {
+                action: 'sc_attendance_qr_scan',
+                nonce: cfg.nonce,
+                qr_payload: payload,
+                course_id: cfg.courseId,
+                attendance_date: cfg.attendanceDate,
+                chapter_name: cfg.chapterName,
+                group_name: cfg.groupName,
+                photo_data: photos.rear || '',
+                photo_data_front: photos.front || ''
+            }).done(function (res) {
+                if (res && res.success) {
+                    var code = res.data && res.data.code ? res.data.code : 'created';
+                    var name = res.data && res.data.member_name ? res.data.member_name : (localMember ? localMember.name : '');
+                    var memberId = res.data && res.data.member_id ? res.data.member_id : (localMember ? localMember.id : 0);
+                    var hasDebt = !!(res.data && res.data.has_debt);
 
-                if (code === 'duplicate') {
-                    playSound('duplicate');
-                    showToast(name + ' — قبلاً ثبت شده', 'duplicate');
-                    prependLog({ ok: true, duplicate: true, name: name, message: res.data.message });
+                    if (memberId && cfg.memberMap) {
+                        cfg.memberMap[payload] = { id: memberId, name: name };
+                    }
+
+                    if (code === 'duplicate') {
+                        playSound('duplicate');
+                        showToast(name + ' — قبلاً ثبت شده', 'duplicate');
+                        prependLog({ ok: true, duplicate: true, name: name, message: res.data.message });
+                        return;
+                    }
+
+                    if (!localMember || !optimisticLogged[memberId]) {
+                        applyInstantSuccess(
+                            { id: memberId, name: name },
+                            res.data.message || 'ثبت شد ✓',
+                            hasDebt ? ['success', 'debtWarning'] : ['success']
+                        );
+                    }
                     return;
                 }
 
-                if (cfg.snapshotEnabled && rawFrame && attendanceId && window.scQrScanSnapshot && (code === 'created' || code === 'updated')) {
-                    var lines = [
-                        name || 'بازیکن',
-                        courseTitle ? ('دوره: ' + courseTitle) : '',
-                        window.scQrScanSnapshot.nowLabelFa()
-                    ];
-                    window.scQrScanSnapshot.applyOverlay(rawFrame, lines, 0.72).then(function (photo) {
-                        if (!photo) return;
-                        window.scQrScanSnapshot.uploadSnapshot({
-                            ajaxUrl: cfg.ajaxUrl,
-                            nonce: cfg.nonce,
-                            context: 'attendance',
-                            recordId: attendanceId,
-                            photoData: photo
-                        });
-                    });
+                var errCode = (res && res.data && res.data.code) ? res.data.code : '';
+                var errMsg = (res && res.data && res.data.message) ? res.data.message : 'خطا در ثبت';
+                var errName = (res && res.data && res.data.member_name) ? res.data.member_name : '';
+
+                if (errCode === 'debt_blocked') {
+                    playSound('debtBlocked');
+                    showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
+                } else if (errCode === 'qr_disabled') {
+                    playSound('disabled');
+                    showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
+                } else if (errCode === 'qr_inactive') {
+                    playSound('error');
+                    showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
+                } else if (errCode === 'not_in_course') {
+                    playSound('notInCourse');
+                    showToast((errName ? errName + ' — ' : '') + errMsg, 'not-in-course');
+                } else {
+                    playSound('error');
+                    showToast(errMsg, 'error');
                 }
-
-                if (!localMember || !optimisticLogged[memberId]) {
-                    applyInstantSuccess(
-                        { id: memberId, name: name },
-                        res.data.message || 'ثبت شد ✓',
-                        hasDebt ? ['success', 'debtWarning'] : ['success']
-                    );
-                }
-                return;
-            }
-
-            var errCode = (res && res.data && res.data.code) ? res.data.code : '';
-            var errMsg = (res && res.data && res.data.message) ? res.data.message : 'خطا در ثبت';
-            var errName = (res && res.data && res.data.member_name) ? res.data.member_name : '';
-
-            if (errCode === 'debt_blocked') {
-                playSound('debtBlocked');
-                showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
-            } else if (errCode === 'qr_disabled') {
-                playSound('disabled');
-                showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
-            } else if (errCode === 'qr_inactive') {
+                prependLog({ ok: false, name: errName, message: errMsg });
+            }).fail(function () {
                 playSound('error');
-                showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
-            } else if (errCode === 'not_in_course') {
-                playSound('notInCourse');
-                showToast((errName ? errName + ' — ' : '') + errMsg, 'not-in-course');
-            } else {
-                playSound('error');
-                showToast(errMsg, 'error');
-            }
-            prependLog({ ok: false, name: errName, message: errMsg });
-        }).fail(function () {
-            playSound('error');
-            showToast('خطا در ارتباط با سرور', 'error');
-        }).always(function () {
-            delete inFlightHashes[payload];
-        });
+                showToast('خطا در ارتباط با سرور', 'error');
+            }).always(function () {
+                delete inFlightHashes[payload];
+            });
+        }
+
+        if (cfg.snapshotEnabled && window.scQrScanSnapshot) {
+            window.scQrScanSnapshot.prepareScanPhotos({
+                readerId: 'sc-attendance-qr-reader',
+                lines: linesPreview,
+                captureFront: !!cfg.snapshotFrontEnabled,
+                maxWidth: 720
+            }).then(postScan).catch(function () {
+                postScan({ rear: '', front: '' });
+            });
+        } else {
+            postScan({ rear: '', front: '' });
+        }
     }
 
     function setScannerFullscreen(active) {

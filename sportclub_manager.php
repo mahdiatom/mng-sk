@@ -3,7 +3,7 @@
  * Plugin Name:       سامانه مدیریت باشگاه اتم کلاب
  * Plugin URI:        https://atomwp.ir
  * Description:       یک سیستم جامع برای مدیریت اعضا، دوره‌های ورزشی، پرداخت‌ها و حضور و غیاب باشگاه با قابلیت یکپارچگی کامل با ووکامرس.
- * Version:           1.5.20
+ * Version:           1.5.21
  * Author:            مهدی باباشاهی
  * Author URI:        https://atomwp.ir
  * License:           GPL2
@@ -1893,6 +1893,9 @@ function sc_admin_enqueue_assets() {
         wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css'), time());
         wp_enqueue_script('html5-qrcode', SC_ASSETS_URL . 'js/vendor/html5-qrcode.min.js', array(), '2.3.8', true);
         wp_enqueue_script('sc-qr-scan-snapshot-js', SC_ASSETS_URL . 'js/qr-scan-snapshot.js', array(), time(), true);
+        wp_localize_script('sc-qr-scan-snapshot-js', 'scQrScanSnapshotConfig', array(
+            'vazirFontUrl' => SC_ASSETS_URL . 'fonts/Woff2/Vazir.woff2',
+        ));
         wp_enqueue_script('sc-attendance-qr-scanner-js', SC_ASSETS_URL . 'js/attendance-qr-scanner.js', array('jquery', 'html5-qrcode', 'sc-qr-scan-snapshot-js'), time(), true);
         $course_id_loc = isset($_GET['attendance_course_id']) ? absint($_GET['attendance_course_id']) : 0;
         $course_title_loc = '';
@@ -1913,6 +1916,7 @@ function sc_admin_enqueue_assets() {
             'groupName'      => isset($_GET['attendance_group']) ? sanitize_text_field(wp_unslash($_GET['attendance_group'])) : '',
             'cooldownMs'     => function_exists('sc_attendance_qr_get_scan_cooldown_ms') ? sc_attendance_qr_get_scan_cooldown_ms() : 300,
             'snapshotEnabled'=> function_exists('sc_qr_scan_photo_is_enabled') && sc_qr_scan_photo_is_enabled(),
+            'snapshotFrontEnabled' => function_exists('sc_qr_scan_photo_front_is_enabled') && sc_qr_scan_photo_front_is_enabled(),
             'soundSuccess'     => sc_attendance_qr_get_sound_url('success'),
             'soundError'       => sc_attendance_qr_get_sound_url('error'),
             'soundDuplicate'   => sc_attendance_qr_get_sound_url('duplicate'),
@@ -1948,6 +1952,9 @@ function sc_admin_enqueue_assets() {
     if ($current_page === 'sc-tarddod-register') {
         wp_enqueue_script('html5-qrcode', SC_ASSETS_URL . 'js/vendor/html5-qrcode.min.js', array(), '2.3.8', true);
         wp_enqueue_script('sc-qr-scan-snapshot-js', SC_ASSETS_URL . 'js/qr-scan-snapshot.js', array(), time(), true);
+        wp_localize_script('sc-qr-scan-snapshot-js', 'scQrScanSnapshotConfig', array(
+            'vazirFontUrl' => SC_ASSETS_URL . 'fonts/Woff2/Vazir.woff2',
+        ));
         wp_enqueue_script('sc-tarddod-scanner-js', SC_ASSETS_URL . 'js/tarddod-scanner.js', array('jquery', 'html5-qrcode', 'sc-qr-scan-snapshot-js'), time(), true);
         $session_id = isset($_GET['session_id']) ? absint($_GET['session_id']) : 0;
         $session_title = '';
@@ -1967,6 +1974,7 @@ function sc_admin_enqueue_assets() {
             'memberMap'      => $tarddod_member_map,
             'cooldownMs'     => function_exists('sc_attendance_qr_get_scan_cooldown_ms') ? sc_attendance_qr_get_scan_cooldown_ms() : 300,
             'snapshotEnabled'=> function_exists('sc_qr_scan_photo_is_enabled') && sc_qr_scan_photo_is_enabled(),
+            'snapshotFrontEnabled' => function_exists('sc_qr_scan_photo_front_is_enabled') && sc_qr_scan_photo_front_is_enabled(),
             'soundSuccess'   => function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('success') : '',
             'soundError'     => function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('error') : '',
             'soundDuplicate' => function_exists('sc_attendance_qr_get_sound_url') ? sc_attendance_qr_get_sound_url('duplicate') : '',

@@ -601,6 +601,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('attendance_qr_regenerate_otp_pattern', $attendance_qr_regenerate_otp_pattern, 'attendance');
         sc_update_setting('attendance_qr_max_codes_per_member', (string) $attendance_qr_max_codes_per_member, 'attendance');
         sc_update_setting('qr_scan_photo_enabled', isset($_POST['qr_scan_photo_enabled']) ? 1 : 0, 'attendance');
+        sc_update_setting('qr_scan_photo_front_enabled', isset($_POST['qr_scan_photo_front_enabled']) ? 1 : 0, 'attendance');
         sc_update_setting('qr_scan_photo_retention_days', (string) max(1, min(60, absint($_POST['qr_scan_photo_retention_days'] ?? 30))), 'attendance');
 
         if (function_exists('sc_log_activity')) {
@@ -3768,6 +3769,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 $attendance_qr_regenerate_otp_pattern = (string) sc_get_setting('attendance_qr_regenerate_otp_pattern', '');
                 $attendance_qr_max_codes_per_member = (int) sc_get_setting('attendance_qr_max_codes_per_member', '20');
                 $qr_scan_photo_enabled = (int) sc_get_setting('qr_scan_photo_enabled', '0');
+                $qr_scan_photo_front_enabled = (int) sc_get_setting('qr_scan_photo_front_enabled', '0');
                 $qr_scan_photo_retention_days = (int) sc_get_setting('qr_scan_photo_retention_days', '30');
                 if ($qr_scan_photo_retention_days < 1) {
                     $qr_scan_photo_retention_days = 30;
@@ -3929,6 +3931,16 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                 هنگام ثبت موفق QR (حضور و غیاب و تردد) از دوربین اسکن عکس گرفته شود
                             </label>
                             <p class="description">روی عکس نام، تاریخ/ساعت و دوره/جلسه نوشته می‌شود و در گزارش QR / لیست تردد نمایش داده می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">عکس دوربین جلو</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="qr_scan_photo_front_enabled" value="1" <?php checked($qr_scan_photo_front_enabled, 1); ?> <?php disabled($qr_scan_photo_enabled, 0); ?>>
+                                همزمان با اسکن (دوربین عقب)، از دوربین جلو هم عکس گرفته و هر دو ذخیره شود
+                            </label>
+                            <p class="description">فقط وقتی «عکس لحظه اسکن» فعال باشد کار می‌کند. روی بعضی گوشی‌ها ممکن است دوربین جلو در حین اسکن در دسترس نباشد؛ در آن صورت فقط عکس اسکن ذخیره می‌شود.</p>
                         </td>
                     </tr>
                     <tr>

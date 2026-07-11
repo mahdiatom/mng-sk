@@ -69,6 +69,7 @@ wp_localize_script('sc-product-stock-inquiry', 'scProductStockInquiry', [
             </p>
         </div>
         <div class="sc-members-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-warehouse')); ?>" class="sc-pbs-link-btn">انبار</a>
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc_orders')); ?>" class="sc-pbs-link-btn">لیست سفارشات</a>
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-products')); ?>" class="sc-pbs-link-btn">لیست محصولات</a>
         </div>

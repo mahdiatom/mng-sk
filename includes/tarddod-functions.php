@@ -469,6 +469,13 @@ function sc_ajax_tarddod_scan() {
             'subject_name' => $result['subject_name'] ?? '',
         ]);
     }
+    $record_id = isset($result['record_id']) ? (int) $result['record_id'] : 0;
+    if ($record_id && ($result['code'] ?? '') === 'created'
+        && function_exists('sc_qr_scan_photo_handle_post_for_record')) {
+        $photos = sc_qr_scan_photo_handle_post_for_record('tarddod', $record_id);
+        $result['photo_url'] = $photos['rear_url'];
+        $result['photo_front_url'] = $photos['front_url'];
+    }
     wp_send_json_success($result);
 }
 

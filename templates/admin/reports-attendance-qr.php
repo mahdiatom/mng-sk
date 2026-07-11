@@ -500,18 +500,15 @@ $clear_url = admin_url('admin.php?page=sc-reports-attendance-qr');
                             </td>
                             <td>
                                 <?php
-                                $scan_url = '';
-                                if (!empty($row->scan_photo) && function_exists('sc_qr_scan_photo_url_from_relative')) {
-                                    $scan_url = sc_qr_scan_photo_url_from_relative($row->scan_photo);
+                                if (function_exists('sc_qr_scan_photo_render_cell')) {
+                                    sc_qr_scan_photo_render_cell(
+                                        $row->scan_photo ?? '',
+                                        $row->scan_photo_front ?? ''
+                                    );
+                                } else {
+                                    echo '<span style="color:#9ca3af;">—</span>';
                                 }
-                                if ($scan_url) :
-                                    ?>
-                                    <a href="<?php echo esc_url($scan_url); ?>" target="_blank" rel="noopener noreferrer" class="sc-qr-scan-thumb-link">
-                                        <img src="<?php echo esc_url($scan_url); ?>" alt="عکس اسکن" class="sc-qr-scan-thumb" loading="lazy" width="64" height="48">
-                                    </a>
-                                <?php else : ?>
-                                    <span style="color:#9ca3af;">—</span>
-                                <?php endif; ?>
+                                ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

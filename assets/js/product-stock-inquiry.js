@@ -136,10 +136,10 @@
         maxQty = Math.max(1, parseInt(maxQty, 10) || 1);
         var $branches = $('#sc_pbs_branches').empty();
         if (!branches || !branches.length) {
-            $branches.prop('hidden', true);
+            $branches.prop('hidden', true).attr('hidden', true).hide();
             return;
         }
-        $branches.prop('hidden', false);
+        $branches.prop('hidden', false).removeAttr('hidden').show();
         branches.forEach(function (b) {
             var qty = parseInt(b.qty, 10) || 0;
             var pct = Math.min(100, Math.round((qty / maxQty) * 100));
@@ -190,9 +190,9 @@
         var branches = data.branches || [];
         var maxQty = Math.max(1, parseInt(data.max_qty, 10) || 1);
 
-        $('#sc_pbs_inquiry_loading').prop('hidden', true);
-        $('#sc_pbs_inquiry_placeholder').prop('hidden', true);
-        $('#sc_pbs_inquiry_panel').prop('hidden', false);
+        $('#sc_pbs_inquiry_loading').prop('hidden', true).attr('hidden', true).hide();
+        $('#sc_pbs_inquiry_placeholder').prop('hidden', true).attr('hidden', true).hide();
+        $('#sc_pbs_inquiry_panel').prop('hidden', false).removeAttr('hidden').show();
 
         var $thumb = $('#sc_pbs_inquiry_thumb').empty();
         if (product.thumb) {
@@ -219,16 +219,16 @@
 
         var $empty = $('#sc_pbs_inquiry_empty');
         if (!product.has_branch_config || !branches.length) {
-            $('#sc_pbs_branches').prop('hidden', true).empty();
-            $empty.prop('hidden', false).text(labels.noBranches || 'برای این محصول موجودی شعبه‌ای تعریف نشده است.');
-            $('#sc_pbs_actions').prop('hidden', true);
+            $('#sc_pbs_branches').prop('hidden', true).attr('hidden', true).hide().empty();
+            $empty.prop('hidden', false).removeAttr('hidden').show().text(labels.noBranches || 'برای این محصول موجودی شعبه‌ای تعریف نشده است.');
+            $('#sc_pbs_actions').prop('hidden', true).attr('hidden', true).hide();
             return;
         }
 
-        $empty.prop('hidden', true);
+        $empty.prop('hidden', true).attr('hidden', true).hide();
         renderBranchRows(branches, maxQty);
         fillChapterSelects(data);
-        $('#sc_pbs_actions').prop('hidden', false);
+        $('#sc_pbs_actions').prop('hidden', false).removeAttr('hidden').show();
         showMsg($('#sc_pbs_tr_msg'), '', true);
         showMsg($('#sc_pbs_ord_msg'), '', true);
         if (typeof window.initPersianDatePicker === 'function') {
@@ -240,12 +240,12 @@
         selectedId = productId;
         currentData = null;
         hideResults();
-        $('#sc_pbs_inquiry_placeholder').prop('hidden', true);
-        $('#sc_pbs_inquiry_panel').prop('hidden', false);
-        $('#sc_pbs_inquiry_empty').prop('hidden', true);
-        $('#sc_pbs_branches').prop('hidden', true).empty();
-        $('#sc_pbs_actions').prop('hidden', true);
-        $('#sc_pbs_inquiry_loading').prop('hidden', false);
+        $('#sc_pbs_inquiry_placeholder').prop('hidden', true).attr('hidden', true).hide();
+        $('#sc_pbs_inquiry_panel').prop('hidden', false).removeAttr('hidden').show();
+        $('#sc_pbs_inquiry_empty').prop('hidden', true).attr('hidden', true).hide();
+        $('#sc_pbs_branches').prop('hidden', true).attr('hidden', true).hide().empty();
+        $('#sc_pbs_actions').prop('hidden', true).attr('hidden', true).hide();
+        $('#sc_pbs_inquiry_loading').prop('hidden', false).removeAttr('hidden').show();
         $('#sc_pbs_inquiry_name').text(meta && meta.label ? meta.label : (labels.loading || '…'));
         $('#sc_pbs_inquiry_sub').empty();
         $('#sc_pbs_inquiry_price').empty();
@@ -261,15 +261,15 @@
             product_id: productId
         }).done(function (res) {
             if (!res || !res.success) {
-                $('#sc_pbs_inquiry_loading').prop('hidden', true);
-                $('#sc_pbs_inquiry_empty').prop('hidden', false)
+                $('#sc_pbs_inquiry_loading').prop('hidden', true).attr('hidden', true).hide();
+                $('#sc_pbs_inquiry_empty').prop('hidden', false).removeAttr('hidden').show()
                     .text((res && res.data && res.data.message) || labels.error || 'خطا');
                 return;
             }
             renderInquiry(res.data || {});
         }).fail(function () {
-            $('#sc_pbs_inquiry_loading').prop('hidden', true);
-            $('#sc_pbs_inquiry_empty').prop('hidden', false).text(labels.error || 'خطا');
+            $('#sc_pbs_inquiry_loading').prop('hidden', true).attr('hidden', true).hide();
+            $('#sc_pbs_inquiry_empty').prop('hidden', false).removeAttr('hidden').show().text(labels.error || 'خطا');
         });
     }
 

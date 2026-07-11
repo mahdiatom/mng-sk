@@ -26,7 +26,7 @@ function sc_create_course_assistant_coaches_table() {
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `course_id` bigint(20) unsigned NOT NULL,
         `chapter_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه',
-        `group_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'گروه (خالی = همه گروه‌های مربی اصلی)',
+        `group_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'گروه (اجباری در صورت گروه‌بندی؛ هر گروه کمک‌مربی/درصد جدا)',
         `primary_coach_id` bigint(20) unsigned NOT NULL COMMENT 'مربی اصلی',
         `assistant_coach_id` bigint(20) unsigned NOT NULL COMMENT 'کمک‌مربی',
         `share_percentage` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT 'درصد از سهم مربی اصلی',
@@ -96,7 +96,7 @@ function sc_get_course_assistant_coaches($course_id) {
  * @param int    $course_id
  * @param int    $primary_coach_id
  * @param string $chapter_name
- * @param string $group_name خالی = همه ردیف‌های بدون گروه + ردیف‌های گروه خالی
+ * @param string $group_name خالی = فقط ردیف‌های بدون گروه؛ مقداردار = فقط همان گروه
  * @return array<int, object>
  */
 function sc_get_assistants_for_primary_coach($course_id, $primary_coach_id, $chapter_name, $group_name = '') {
@@ -113,7 +113,7 @@ function sc_get_assistants_for_primary_coach($course_id, $primary_coach_id, $cha
     $t = sc_course_assistant_coaches_table();
     $coaches = $wpdb->prefix . 'sc_coaches';
 
-    // ردیف‌های بدون گروه برای کل کلاس مربی اصلی؛ اگر group مشخص باشد ردیف همان گروه هم اضافه می‌شود
+    // تطبیق دقیق گروه: هر گروه کمک‌مربی و درصد جدا دارد
     if ($group_name !== '') {
         $rows = $wpdb->get_results($wpdb->prepare(
             "SELECT a.*, c.first_name, c.last_name, c.settlement_type, c.is_active
@@ -122,10 +122,10 @@ function sc_get_assistants_for_primary_coach($course_id, $primary_coach_id, $cha
              WHERE a.course_id = %d
                AND a.primary_coach_id = %d
                AND a.chapter_name = %s
-               AND (a.group_name = '' OR a.group_name = %s)
+               AND a.group_name = %s
                AND a.share_percentage > 0
                AND c.is_active = 1
-             ORDER BY a.group_name ASC, a.id ASC",
+             ORDER BY a.id ASC",
             $course_id,
             $primary_coach_id,
             $chapter_name,
@@ -237,6 +237,15 @@ function sc_save_course_assistant_coaches_from_post($course_id, array $allowed_c
         ? sc_get_course_coach_assignments_map($course_id)
         : [];
 
+    $has_grouping = function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled($course_id);
+    $valid_group_names = [];
+    if ($has_grouping && function_exists('sc_get_course_group_names')) {
+        $valid_group_names = sc_get_course_group_names($course_id);
+        if (empty($valid_group_names)) {
+            $has_grouping = false;
+        }
+    }
+
     $now = current_time('mysql');
     $seen = [];
 
@@ -261,6 +270,15 @@ function sc_save_course_assistant_coaches_from_post($course_id, array $allowed_c
         }
         if ($share > 100) {
             $share = 100;
+        }
+
+        // اگر دوره گروه‌بندی دارد، گروه برای کمک‌مربی اجباری است
+        if ($has_grouping) {
+            if ($group_name === '' || !in_array($group_name, $valid_group_names, true)) {
+                continue;
+            }
+        } else {
+            $group_name = '';
         }
 
         // کمک‌مربی فقط برای مربی اصلی تعریف‌شده در همان شعبه

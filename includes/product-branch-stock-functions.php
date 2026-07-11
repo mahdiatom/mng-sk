@@ -1596,3 +1596,152 @@ function sc_ajax_product_stock_instant_order() {
     }
     wp_send_json_success($result);
 }
+
+/**
+ * لیست محصولات انبار با موجودی شعبه‌ها
+ *
+ * @param array{search?:string,page?:int,per_page?:int,allowed_chapters?:string[]|null} $args
+ * @return array{items:array<int,array>,total:int}
+ */
+function sc_warehouse_get_product_stock_items($args = []) {
+    if (!function_exists('wc_get_products') || !function_exists('wc_get_product')) {
+        return ['items' => [], 'total' => 0];
+    }
+
+    $search = trim((string) ($args['search'] ?? ''));
+    $page = max(1, (int) ($args['page'] ?? 1));
+    $per_page = max(1, min(100, (int) ($args['per_page'] ?? 20)));
+    $allowed = $args['allowed_chapters'] ?? null;
+
+    $query_args = [
+        'status' => ['publish', 'private'],
+        'limit' => -1,
+        'orderby' => 'title',
+        'order' => 'ASC',
+        'return' => 'ids',
+        'type' => ['simple', 'variable'],
+    ];
+    if ($search !== '') {
+        $query_args['s'] = $search;
+    }
+
+    $parent_ids = wc_get_products($query_args);
+    if (!is_array($parent_ids)) {
+        $parent_ids = [];
+    }
+
+    // SKU search supplement
+    if ($search !== '' && function_exists('wc_get_product_id_by_sku')) {
+        $sku_id = wc_get_product_id_by_sku($search);
+        if ($sku_id) {
+            $p = wc_get_product($sku_id);
+            if ($p) {
+                $pid = $p->is_type('variation') ? (int) $p->get_parent_id() : (int) $sku_id;
+                if ($pid && !in_array($pid, $parent_ids, true)) {
+                    $parent_ids[] = $pid;
+                }
+            }
+        }
+    }
+
+    $flat = [];
+    foreach ($parent_ids as $pid) {
+        $product = wc_get_product((int) $pid);
+        if (!$product) {
+            continue;
+        }
+        if ($product->is_type('variable')) {
+            foreach ($product->get_children() as $vid) {
+                $variation = wc_get_product((int) $vid);
+                if (!$variation) {
+                    continue;
+                }
+                if ($search !== '') {
+                    $label = $product->get_name() . ' ' . $variation->get_name() . ' ' . $variation->get_sku();
+                    if (function_exists('mb_stripos')) {
+                        if (mb_stripos($label, $search) === false && mb_stripos($product->get_name(), $search) === false) {
+                            // keep if parent matched via WC search
+                        }
+                    }
+                }
+                $flat[] = sc_warehouse_format_stock_row($variation, $product, $allowed);
+            }
+        } else {
+            $flat[] = sc_warehouse_format_stock_row($product, null, $allowed);
+        }
+    }
+
+    $total = count($flat);
+    $offset = ($page - 1) * $per_page;
+    $slice = array_slice($flat, $offset, $per_page);
+
+    return [
+        'items' => $slice,
+        'total' => $total,
+    ];
+}
+
+/**
+ * @param WC_Product $product
+ * @param WC_Product|null $parent
+ * @param string[]|null $allowed_chapters
+ * @return array<string,mixed>
+ */
+function sc_warehouse_format_stock_row($product, $parent = null, $allowed_chapters = null) {
+    $product_id = (int) $product->get_id();
+    $map = function_exists('sc_get_product_branch_stock_map') ? sc_get_product_branch_stock_map($product_id) : [];
+    $price_html = $product->get_price_html();
+
+    $name = $product->get_name();
+    $type_label = 'ساده';
+    if ($product->is_type('variation')) {
+        $type_label = 'متغیر';
+        if ($parent) {
+            $attrs = function_exists('wc_get_formatted_variation')
+                ? wc_get_formatted_variation($product, true, false, true)
+                : '';
+            $name = $parent->get_name() . ($attrs ? ' — ' . $attrs : '');
+        }
+    }
+
+    $branches = [];
+    $max_qty = 0;
+    $total_qty = 0;
+    foreach ($map as $chapter => $qty) {
+        if (is_array($allowed_chapters) && !in_array($chapter, $allowed_chapters, true)) {
+            continue;
+        }
+        $qty = (int) $qty;
+        $total_qty += $qty;
+        if ($qty > $max_qty) {
+            $max_qty = $qty;
+        }
+        $branches[] = [
+            'chapter' => $chapter,
+            'qty' => $qty,
+            'price_html' => $price_html,
+        ];
+    }
+
+    $thumb_id = $product->get_image_id();
+    if (!$thumb_id && $parent) {
+        $thumb_id = $parent->get_image_id();
+    }
+
+    $edit_id = $product->is_type('variation') ? (int) $product->get_parent_id() : $product_id;
+
+    return [
+        'id' => $product_id,
+        'name' => $name,
+        'sku' => (string) $product->get_sku(),
+        'type' => $product->get_type(),
+        'type_label' => $type_label,
+        'price_html' => $price_html,
+        'thumb' => $thumb_id ? (string) wp_get_attachment_image_url($thumb_id, 'thumbnail') : '',
+        'edit_url' => get_edit_post_link($edit_id, 'raw'),
+        'branches' => $branches,
+        'total_qty' => $total_qty,
+        'max_qty' => $max_qty,
+        'has_branch_config' => !empty($map),
+    ];
+}

@@ -44,6 +44,12 @@ $coach_certificate_notice = ($coach && function_exists('sc_get_coach_certificate
 $coach_info_page = function_exists('sc_get_coach_info_page_post') ? sc_get_coach_info_page_post() : null;
 $coach_info_page_html = function_exists('sc_get_coach_info_page_content_html') ? sc_get_coach_info_page_content_html() : '';
 $coach_rules_accepted = $coach ? !empty($coach->club_rules_accepted) : false;
+$coach_settlement_type = $coach ? (string) ($coach->settlement_type ?? '') : 'fixed';
+$coach_settlement_type_valid = in_array($coach_settlement_type, ['fixed', 'percentage', 'both'], true);
+if (!$coach_settlement_type_valid) {
+    // مقدار خراب (مثلاً 0.000000 به‌خاطر باگ فرمت ذخیره) — هیچ گزینه‌ای از قبل انتخاب نشود تا کاربر دوباره انتخاب کند
+    $coach_settlement_type = '';
+}
 ?>
 
 <div class="wrap sc-coach-edit-header">
@@ -61,6 +67,11 @@ $coach_rules_accepted = $coach ? !empty($coach->club_rules_accepted) : false;
     <?php if (!empty($coach_certificate_notice['message'])) : ?>
         <div class="notice <?php echo ($coach_certificate_notice['status'] ?? '') === 'expired' ? 'notice-error' : 'notice-warning'; ?>">
             <p><?php echo esc_html($coach_certificate_notice['message']); ?></p>
+        </div>
+    <?php endif; ?>
+    <?php if ($coach && !$coach_settlement_type_valid) : ?>
+        <div class="notice notice-error">
+            <p>نوع تسویه این مربی در دیتابیس خراب است (مقدار فعلی: <code><?php echo esc_html((string) ($coach->settlement_type ?? '')); ?></code>). لطفاً دوباره «درصدی» یا گزینه مناسب را انتخاب و ذخیره کنید.</p>
         </div>
     <?php endif; ?>
     <form method="post" action="" id="coach-form" class="sc-coach-edit-form">
@@ -182,22 +193,22 @@ $coach_rules_accepted = $coach ? !empty($coach->club_rules_accepted) : false;
                 <td>
                     <div class="sc-coach-settlement-radios">
                         <label class="sc-coach-settlement-option">
-                            <input type="radio" name="settlement_type" value="fixed" id="settlement_type_fixed" <?php checked($coach ? $coach->settlement_type : 'fixed', 'fixed'); ?>>
+                            <input type="radio" name="settlement_type" value="fixed" id="settlement_type_fixed" <?php checked($coach_settlement_type, 'fixed'); ?> required>
                             <span>ثابت</span>
                         </label>
                         <label class="sc-coach-settlement-option">
-                            <input type="radio" name="settlement_type" value="percentage" id="settlement_type_percentage" <?php checked($coach ? $coach->settlement_type : '', 'percentage'); ?>>
+                            <input type="radio" name="settlement_type" value="percentage" id="settlement_type_percentage" <?php checked($coach_settlement_type, 'percentage'); ?>>
                             <span>درصدی</span>
                         </label>
                         <label class="sc-coach-settlement-option">
-                            <input type="radio" name="settlement_type" value="both" id="settlement_type_both" <?php checked($coach ? $coach->settlement_type : '', 'both'); ?>>
+                            <input type="radio" name="settlement_type" value="both" id="settlement_type_both" <?php checked($coach_settlement_type, 'both'); ?>>
                             <span>ثابت و درصدی</span>
                         </label>
                     </div>
                 </td>
             </tr>
             
-            <tr id="settlement_amount_row" style="<?php echo ($coach && $coach->settlement_type === 'percentage') ? 'display: none;' : ''; ?>">
+            <tr id="settlement_amount_row" style="<?php echo ($coach_settlement_type === 'percentage') ? 'display: none;' : ''; ?>">
                 <th><label for="settlement_amount">مقدار تسویه ثابت ماهیانه (تومان)</label></th>
                 <td>
                     <input type="text"

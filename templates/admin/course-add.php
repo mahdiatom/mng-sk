@@ -475,6 +475,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                             <p class="sc-course-field__hint">
                                 اگر کلاس کمک‌مربی دارد، اینجا تعریف کنید. درصد سهم از <strong>دستمزد مربی اصلی</strong> کم می‌شود.
                                 اگر ردیفی نگذارید، کل دستمزد فقط به مربی اصلی می‌رسد. کمک‌مربی امکان ثبت حضور و غیاب ندارد.
+                                در صورت فعال بودن گروه‌بندی، برای هر گروه باید ردیف جدا (با کمک‌مربی و درصد مخصوص همان گروه) تعریف شود.
                             </p>
                             <div id="sc-course-assistants-tbody" class="sc-course-assistant-list">
                                 <?php
@@ -529,12 +530,40 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
-                                        <div class="sc-course-field">
-                                            <label class="sc-course-field__label">گروه (اختیاری)</label>
-                                            <input type="text" class="sc-course-input sc-assistant-group-input"
-                                                   name="course_assistant_row[<?php echo (int) $ai; ?>][group_name]"
-                                                   value="<?php echo esc_attr($a_group); ?>"
-                                                   placeholder="خالی = همه گروه‌ها">
+                                        <div class="sc-course-field sc-assistant-group-field">
+                                            <label class="sc-course-field__label">
+                                                گروه
+                                                <span class="sc-assistant-group-required-mark" style="<?php echo $has_grouping ? '' : 'display:none;'; ?>">*</span>
+                                            </label>
+                                            <select name="course_assistant_row[<?php echo (int) $ai; ?>][group_name]"
+                                                    class="sc-course-input sc-assistant-group-select"
+                                                    data-selected="<?php echo esc_attr($a_group); ?>">
+                                                <option value=""><?php echo $has_grouping ? 'انتخاب گروه' : 'بدون گروه / همه'; ?></option>
+                                                <?php
+                                                if (!empty($course_group_rows)) {
+                                                    foreach ($course_group_rows as $grow) {
+                                                        $gname = isset($grow['name']) ? trim((string) $grow['name']) : '';
+                                                        if ($gname === '') {
+                                                            continue;
+                                                        }
+                                                        $g_ch = isset($grow['chapter_name']) ? (string) $grow['chapter_name'] : '';
+                                                        $g_coach = isset($grow['coach_id']) ? (int) $grow['coach_id'] : 0;
+                                                        if ($a_chapter !== '' && $g_ch !== '' && $g_ch !== $a_chapter) {
+                                                            continue;
+                                                        }
+                                                        if ($a_primary > 0 && $g_coach > 0 && $g_coach !== $a_primary) {
+                                                            continue;
+                                                        }
+                                                        printf(
+                                                            '<option value="%s"%s>%s</option>',
+                                                            esc_attr($gname),
+                                                            selected($a_group, $gname, false),
+                                                            esc_html($gname)
+                                                        );
+                                                    }
+                                                }
+                                                ?>
+                                            </select>
                                         </div>
                                         <div class="sc-course-field">
                                             <label class="sc-course-field__label">درصد از سهم مربی اصلی</label>
@@ -555,6 +584,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                             <p style="margin-top:10px;">
                                 <button type="button" class="button" id="sc-add-assistant-row">+ افزودن کمک‌مربی</button>
                             </p>
+                            <p id="sc-course-assistants-error" class="sc-course-field__error" style="display:none;color:#d63638;"></p>
                         </div>
 
                         <div id="sc-coach-branch-pricing-wrap" class="sc-course-panel__sub sc-private-course-row" style="margin-top:4px;<?php echo ($course_type === 'private') ? '' : 'display:none;'; ?>">
@@ -1581,10 +1611,11 @@ jQuery(document).ready(function($) {
     }
 
     function scClearCourseFormErrors() {
-        $('#sc-course-title-error, #sc-course-price-error, #sc-course-packages-error, #sc-private-sess-error').hide().text('');
+        $('#sc-course-title-error, #sc-course-price-error, #sc-course-packages-error, #sc-private-sess-error, #sc-course-assistants-error').hide().text('');
         $('#title, #price, #price_per_session').css('border-color', '');
         $('#sc-course-packages-wrap').css('border-color', '');
         $('#sc-course-packages-body .sc-course-package-row').css('outline', '');
+        $('.sc-assistant-group-select').css('border-color', '');
         $('#sc-course-form-summary-error').hide().empty();
     }
 
@@ -1596,7 +1627,8 @@ jQuery(document).ready(function($) {
             '#sc-course-chapters-error',
             '#sc-course-price-error',
             '#sc-course-packages-error',
-            '#sc-private-sess-error'
+            '#sc-private-sess-error',
+            '#sc-course-assistants-error'
         ];
 
         fields.forEach(function (sel) {
@@ -1838,6 +1870,10 @@ jQuery(document).ready(function($) {
         }
 
         if (variablePricing && !scValidatePrivateSessionOptions()) {
+            isValid = false;
+        }
+
+        if (typeof window.scValidateAssistantRows === 'function' && !window.scValidateAssistantRows()) {
             isValid = false;
         }
 
@@ -2131,6 +2167,10 @@ jQuery(document).ready(function($) {
     scToggleGranularCapacityPanel();
 
     // ——— کمک‌مربی‌ها ———
+    function scCourseHasGroupingEnabled() {
+        return $('#has_grouping').is(':checked') && scGetCourseGroupsFromDom().length > 0;
+    }
+
     function scBuildAssistantChapterOptions(selected) {
         var html = '<option value="">انتخاب شعبه</option>';
         scGetSelectedChapters().forEach(function (ch) {
@@ -2165,6 +2205,37 @@ jQuery(document).ready(function($) {
         return html;
     }
 
+    function scBuildAssistantGroupOptions(chapterName, primaryId, selectedGroup) {
+        var hasGrouping = scCourseHasGroupingEnabled();
+        var html = '<option value="">' + (hasGrouping ? 'انتخاب گروه' : 'بدون گروه / همه') + '</option>';
+        var groups = scGetCourseGroupsFromDom();
+        chapterName = String(chapterName || '');
+        primaryId = parseInt(primaryId, 10) || 0;
+        selectedGroup = String(selectedGroup || '');
+
+        groups.forEach(function (group) {
+            if (chapterName && group.chapter_name && group.chapter_name !== chapterName) {
+                return;
+            }
+            if (primaryId > 0 && group.coach_id > 0 && group.coach_id !== primaryId) {
+                return;
+            }
+            html += '<option value="' + $('<div>').text(group.name).html() + '"' +
+                (group.name === selectedGroup ? ' selected' : '') + '>' +
+                $('<div>').text(group.name).html() + '</option>';
+        });
+        return html;
+    }
+
+    function scUpdateAssistantGroupFieldState($row) {
+        var hasGrouping = scCourseHasGroupingEnabled();
+        $row.find('.sc-assistant-group-required-mark').toggle(hasGrouping);
+        var $sel = $row.find('.sc-assistant-group-select');
+        if ($sel.length) {
+            $sel.prop('required', false);
+        }
+    }
+
     function scReindexAssistantRows() {
         $('#sc-course-assistants-tbody .sc-course-assistant-row').each(function (idx) {
             $(this).attr('data-index', idx);
@@ -2185,6 +2256,8 @@ jQuery(document).ready(function($) {
         var chapter = String($row.find('.sc-assistant-chapter-select').val() || '');
         var primaryId = String($row.find('.sc-assistant-primary-select').val() || '0');
         var assistantId = String($row.find('.sc-assistant-coach-select').val() || '0');
+        var $groupSel = $row.find('.sc-assistant-group-select');
+        var groupName = String($groupSel.val() || $groupSel.attr('data-selected') || '');
 
         $row.find('.sc-assistant-chapter-select').html(scBuildAssistantChapterOptions(chapter));
         if (chapter) {
@@ -2195,6 +2268,12 @@ jQuery(document).ready(function($) {
         primaryId = String($row.find('.sc-assistant-primary-select').val() || '0');
 
         $row.find('.sc-assistant-coach-select').html(scBuildAssistantCoachOptions(chapter, assistantId, primaryId));
+
+        if ($groupSel.length) {
+            $groupSel.html(scBuildAssistantGroupOptions(chapter, primaryId, groupName));
+            $groupSel.removeAttr('data-selected');
+        }
+        scUpdateAssistantGroupFieldState($row);
     }
 
     function scSyncAllAssistantRows() {
@@ -2203,10 +2282,49 @@ jQuery(document).ready(function($) {
         });
     }
 
+    function scValidateAssistantRows() {
+        var hasGrouping = scCourseHasGroupingEnabled();
+        var ok = true;
+        var hasGroupError = false;
+        var $err = $('#sc-course-assistants-error');
+        $err.hide().text('');
+
+        $('#sc-course-assistants-tbody .sc-course-assistant-row').each(function () {
+            var $row = $(this);
+            var chapter = String($row.find('.sc-assistant-chapter-select').val() || '');
+            var primaryId = parseInt($row.find('.sc-assistant-primary-select').val() || '0', 10);
+            var assistantId = parseInt($row.find('.sc-assistant-coach-select').val() || '0', 10);
+            var share = parseFloat($row.find('input[name*="[share_percentage]"]').val() || '0') || 0;
+            var groupName = String($row.find('.sc-assistant-group-select').val() || '');
+            var isFilled = chapter !== '' || primaryId > 0 || assistantId > 0 || share > 0 || groupName !== '';
+
+            if (!isFilled) {
+                return;
+            }
+            if (!chapter || primaryId < 1 || assistantId < 1 || share <= 0) {
+                ok = false;
+                return;
+            }
+            if (hasGrouping && groupName === '') {
+                ok = false;
+                hasGroupError = true;
+                $row.find('.sc-assistant-group-select').css('border-color', '#d63638');
+            } else {
+                $row.find('.sc-assistant-group-select').css('border-color', '');
+            }
+        });
+        if (hasGroupError) {
+            $err.text('برای کمک‌مربی، انتخاب گروه الزامی است (هر گروه می‌تواند کمک‌مربی و درصد جدا داشته باشد).').show();
+        }
+        return ok;
+    }
+    window.scValidateAssistantRows = scValidateAssistantRows;
+
     function scAddAssistantRow() {
         var idx = $('#sc-course-assistants-tbody .sc-course-assistant-row').length;
         var chapters = scGetSelectedChapters();
         var firstCh = chapters.length ? chapters[0] : '';
+        var hasGrouping = scCourseHasGroupingEnabled();
         var html =
             '<article class="sc-course-assistant-card sc-course-assistant-row" data-index="' + idx + '">' +
             '<div class="sc-course-field"><label class="sc-course-field__label">شعبه</label>' +
@@ -2218,13 +2336,15 @@ jQuery(document).ready(function($) {
             '<div class="sc-course-field"><label class="sc-course-field__label">کمک‌مربی</label>' +
             '<select name="course_assistant_row[' + idx + '][assistant_coach_id]" class="sc-course-input sc-assistant-coach-select">' +
             scBuildAssistantCoachOptions(firstCh, 0, 0) + '</select></div>' +
-            '<div class="sc-course-field"><label class="sc-course-field__label">گروه (اختیاری)</label>' +
-            '<input type="text" class="sc-course-input sc-assistant-group-input" name="course_assistant_row[' + idx + '][group_name]" value="" placeholder="خالی = همه گروه‌ها"></div>' +
+            '<div class="sc-course-field sc-assistant-group-field"><label class="sc-course-field__label">گروه <span class="sc-assistant-group-required-mark" style="' + (hasGrouping ? '' : 'display:none;') + '">*</span></label>' +
+            '<select name="course_assistant_row[' + idx + '][group_name]" class="sc-course-input sc-assistant-group-select">' +
+            scBuildAssistantGroupOptions(firstCh, 0, '') + '</select></div>' +
             '<div class="sc-course-field"><label class="sc-course-field__label">درصد از سهم مربی اصلی</label>' +
             '<input type="number" min="0" max="100" step="0.01" class="sc-course-input sc-course-input--sm" name="course_assistant_row[' + idx + '][share_percentage]" value="" placeholder="مثلاً ۲۵"></div>' +
             '<div class="sc-course-field sc-course-assistant-actions"><button type="button" class="button sc-remove-assistant-row">حذف</button></div>' +
             '</article>';
         $('#sc-course-assistants-tbody').append(html);
+        scSyncAssistantRowSelects($('#sc-course-assistants-tbody .sc-course-assistant-row').last());
     }
 
     $('#sc-add-assistant-row').on('click', function (e) {
@@ -2247,10 +2367,23 @@ jQuery(document).ready(function($) {
         var chapter = String($row.find('.sc-assistant-chapter-select').val() || '');
         var primaryId = String($(this).val() || '0');
         var assistantId = String($row.find('.sc-assistant-coach-select').val() || '0');
+        var groupName = String($row.find('.sc-assistant-group-select').val() || '');
         $row.find('.sc-assistant-coach-select').html(scBuildAssistantCoachOptions(chapter, assistantId, primaryId));
+        $row.find('.sc-assistant-group-select').html(scBuildAssistantGroupOptions(chapter, primaryId, groupName));
+        scUpdateAssistantGroupFieldState($row);
     });
 
     $(document).on('change', '.sc-course-chapter-cb, .sc-course-coach-assign-cb', function () {
+        setTimeout(scSyncAllAssistantRows, 0);
+    });
+
+    $(document).on('change input', '.sc-course-group-name, .sc-course-group-chapter-select, .sc-course-group-coach-select', function () {
+        setTimeout(scSyncAllAssistantRows, 0);
+    });
+    $(document).on('click', '#sc-course-group-add, .sc-course-group-remove', function () {
+        setTimeout(scSyncAllAssistantRows, 0);
+    });
+    $('#has_grouping').on('change', function () {
         setTimeout(scSyncAllAssistantRows, 0);
     });
 

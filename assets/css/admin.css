@@ -17106,6 +17106,8 @@ body[class*="_page_sc-coach-management-wallet"] .sc-wallet-panel .inside {
     padding: 18px 20px 20px !important;
     margin: 0 !important;
     overflow: visible !important;
+    border-radius: 10px;
+    margin: 10px;
 }
 
 body.sc-wallet_page_sc-wallet-charge .sc-wallet-panel-fields,
@@ -17129,9 +17131,7 @@ body[class*="_page_sc-coach-management-wallet"] .sc-wallet-field-row {
     margin: 0 !important;
     padding: 14px 16px;
     background: #fff;
-    border: 1px solid rgba(109, 52, 255, 0.1);
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(74, 31, 184, 0.04);
+    
 }
 
 body.sc-wallet_page_sc-wallet-charge .sc-wallet-field-row > label,
@@ -17191,6 +17191,12 @@ body[class*="_page_sc-wallet-deduct"] .sc-wallet-deduct-form textarea,
 body[class*="_page_sc-coach-management-wallet"] .sc-coach-wallet-action-form textarea {
     min-height: 120px;
     resize: vertical;
+}
+form.sc-coach-wallet-action-form{
+        padding: 10px;
+    border-radius: 15px;
+    border: 1px solid #dfdfdf;
+    background: white;
 }
 
 body.sc-wallet_page_sc-wallet-charge .sc-dropdown-toggle,
@@ -17305,7 +17311,7 @@ body[class*="_page_sc-coach-management-wallet"] .sc-coach-wallet-action-submit .
     box-shadow: 0 8px 24px rgba(109, 52, 255, 0.28);
 }
 
-body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-layout,
+/* body.sc-wallet_page_sc-wallet-manage .sc-wallet-manage-layout,
 body.sc-coach-management_page_sc-coach-management-wallet .sc-coach-wallet-manage-layout,
 body[class*="_page_sc-wallet-manage"] .sc-wallet-manage-layout,
 body[class*="_page_sc-coach-management-wallet"] .sc-coach-wallet-manage-layout {
@@ -17313,7 +17319,7 @@ body[class*="_page_sc-coach-management-wallet"] .sc-coach-wallet-manage-layout {
     gap: 16px;
     grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
     align-items: start;
-}
+} */
 
 body.sc-wallet_page_sc-wallet-manage .sc-wallet-balance-card,
 body.sc-coach-management_page_sc-coach-management-wallet .sc-wallet-balance-card,
@@ -17485,11 +17491,12 @@ body[class*="_page_sc-coach-management-wallet"] .choose_coach h2,
 body[class*="_page_sc-coach-management-wallet"] .charge_wallet h2,
 body[class*="_page_sc-coach-management-wallet"] .list_records_wallet h2,
 body[class*="_page_sc-coach-management-wallet"] .info_balance_wallet {
-    background: transparent !important;
+    background: transparent ;
     width: auto !important;
     padding: 0 !important;
-    border-radius: 0 !important;
+ 
 }
+
 
 body.sc-wallet_page_sc-wallet-charge .notice,
 body.sc-wallet_page_sc-wallet-deduct .notice,
@@ -17510,7 +17517,7 @@ body[class*="_page_sc-coach-management-wallet"] .notice {
     body[class*="_page_sc-wallet-charge"] .sc-wallet-panel-fields,
     body[class*="_page_sc-wallet-deduct"] .sc-wallet-panel-fields,
     body[class*="_page_sc-coach-management-wallet"] .sc-wallet-panel-fields {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        border-radius: 10px;
     }
 
     body.sc-wallet_page_sc-wallet-charge .sc-wallet-field-row--full,

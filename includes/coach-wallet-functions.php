@@ -161,13 +161,16 @@ function sc_deduct_coach_wallet($coach_id, $amount, $description = '') {
  * Count attendance records belonging to a specific coach/branch in a course/date.
  * شمارش حضور/غیاب بازیکن‌های اختصاص‌یافته به یک مربی در یک شعبه/دوره/تاریخ
  *
- * @param string $chapter_name شعبه (خالی = کل دوره، برای سازگاری قدیمی)
+ * @param string      $chapter_name شعبه (خالی = کل دوره، برای سازگاری قدیمی)
+ * @param string|null $group_name   null = بدون فیلتر گروه؛ '' = فقط بدون گروه؛ نام = همان گروه
  */
-function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attendance_date, $present_only = true, $chapter_name = '') {
+function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attendance_date, $present_only = true, $chapter_name = '', $group_name = null) {
     $coach_id = absint($coach_id);
     $course_id = absint($course_id);
     $attendance_date = sanitize_text_field($attendance_date);
     $chapter_name = sanitize_text_field((string) $chapter_name);
+    $filter_by_group = ($group_name !== null);
+    $group_name = $filter_by_group ? sanitize_text_field((string) $group_name) : null;
 
     if (!$coach_id || !$course_id || $attendance_date === '') {
         return 0;
@@ -182,6 +185,7 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
     $status_where = $present_only ? " AND a.status = 'present' " : '';
     $coach_scope_where = 'mc.coach_id = %d';
     $chapter_where = '';
+    $group_where = '';
     $prepare_args = [$course_id, $attendance_date];
 
     if ($chapter_name !== '') {
@@ -220,6 +224,15 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
         $prepare_args[] = $coach_id;
     }
 
+    if ($filter_by_group) {
+        if ($group_name === '') {
+            $group_where = " AND (mc.group_name IS NULL OR mc.group_name = '')";
+        } else {
+            $group_where = ' AND mc.group_name = %s';
+            $prepare_args[] = $group_name;
+        }
+    }
+
     $count = $wpdb->get_var($wpdb->prepare(
         "SELECT COUNT(DISTINCT a.member_id)
          FROM $attendances_table a
@@ -230,6 +243,7 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
            AND a.attendance_date = %s
            AND $coach_scope_where
            $chapter_where
+           $group_where
            AND mc.status = 'active'
            AND (
                 mc.course_status_flags IS NULL
@@ -319,24 +333,83 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
 
+    // همه انتساب‌های فعال دوره (حتی غیرواجد شرایط) تا علت عدم محاسبه مشخص شود
     $assignments = $wpdb->get_results($wpdb->prepare(
         "SELECT cc.coach_id, cc.chapter_name, cc.salary_percentage, cc.price_per_session AS branch_price,
                 c.settlement_type, c.first_name, c.last_name
          FROM $course_coaches_table cc
          INNER JOIN $coaches_table c ON cc.coach_id = c.id
          WHERE cc.course_id = %d
-           AND cc.chapter_name != ''
-           AND c.settlement_type IN ('percentage', 'both')
-           AND c.is_active = 1",
+           AND c.is_active = 1
+         ORDER BY c.last_name ASC, c.first_name ASC, cc.chapter_name ASC",
         $course_id
     ));
+
+    if (empty($assignments)) {
+        $results['coaches'][] = [
+            'coach_id' => 0,
+            'chapter_name' => '',
+            'coach_name' => '',
+            'status' => 'no_coaches',
+            'salary_amount' => 0,
+            'deposited_amount' => 0,
+            'attendance_count' => 0,
+            'message' => 'هیچ مربی فعالی به این دوره انتساب داده نشده است',
+        ];
+        return $results;
+    }
 
     foreach ($assignments as $assignment) {
         $coach_id = (int) $assignment->coach_id;
         $chapter_name = sanitize_text_field((string) $assignment->chapter_name);
         $coach_name = trim((string) $assignment->first_name . ' ' . (string) $assignment->last_name);
+        $settlement_type = (string) ($assignment->settlement_type ?? '');
+        $salary_percentage = floatval($assignment->salary_percentage);
 
-        if ($chapter_name === '' || floatval($assignment->salary_percentage) <= 0) {
+        $base_result = [
+            'coach_id' => $coach_id,
+            'chapter_name' => $chapter_name,
+            'coach_name' => $coach_name,
+            'salary_amount' => 0,
+            'deposited_amount' => 0,
+            'attendance_count' => 0,
+            'salary_percentage' => $salary_percentage,
+            'settlement_type' => $settlement_type,
+        ];
+
+        if ($chapter_name === '') {
+            $results['coaches'][] = array_merge($base_result, [
+                'status' => 'missing_chapter',
+                'message' => 'شعبه برای انتساب مربی به دوره مشخص نشده است',
+            ]);
+            continue;
+        }
+
+        if (!sc_coach_settlement_includes_percentage($settlement_type)) {
+            $allowed_settlement = ['fixed', 'percentage', 'both'];
+            if ($settlement_type === 'fixed') {
+                $settlement_label = 'ثابت';
+            } elseif (in_array($settlement_type, $allowed_settlement, true)) {
+                $settlement_label = $settlement_type;
+            } elseif ($settlement_type === '' || $settlement_type === '0' || is_numeric($settlement_type)) {
+                $settlement_label = 'نامعتبر/خراب';
+            } else {
+                $settlement_label = $settlement_type;
+            }
+            $results['coaches'][] = array_merge($base_result, [
+                'status' => 'skipped_settlement',
+                'message' => $settlement_label === 'نامعتبر/خراب'
+                    ? 'نوع تسویه مربی در دیتابیس خراب است؛ مربی را ویرایش و دوباره روی «درصدی» ذخیره کنید'
+                    : ('نوع تسویه مربی «' . $settlement_label . '» است و شامل دستمزد درصدی نمی‌شود'),
+            ]);
+            continue;
+        }
+
+        if ($salary_percentage <= 0) {
+            $results['coaches'][] = array_merge($base_result, [
+                'status' => 'missing_percentage',
+                'message' => 'درصد دستمزد برای این مربی در دوره/شعبه ثبت نشده است',
+            ]);
             continue;
         }
 
@@ -349,15 +422,13 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
         );
 
         if ($price_per_session <= 0) {
-            $results['coaches'][] = [
-                'coach_id' => $coach_id,
-                'chapter_name' => $chapter_name,
-                'coach_name' => $coach_name,
+            $price_message = (!empty($course_row->private_variable_coach_pricing))
+                ? 'قیمت هر جلسه برای این مربی/شعبه تنظیم نشده است (دوره با قیمت متغیر مربی)'
+                : 'قیمت هر جلسه دوره تنظیم نشده است';
+            $results['coaches'][] = array_merge($base_result, [
                 'status' => 'missing_price',
-                'salary_amount' => 0,
-                'deposited_amount' => 0,
-                'message' => 'قیمت هر جلسه دوره تنظیم نشده است',
-            ];
+                'message' => $price_message,
+            ]);
             continue;
         }
 
@@ -379,29 +450,45 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
 
         $deposited_amount = 0;
         $status = 'error';
+        $calc_message = (string) ($calc_result['message'] ?? '');
 
-        if (!empty($calc_result['success'])) {
-            if (isset($calc_result['deposited_amount']) && (float) $calc_result['deposited_amount'] > 0) {
-                $deposited_amount = (float) $calc_result['deposited_amount'];
-                $status = 'calculated';
-            } elseif (isset($calc_result['difference']) && abs((float) $calc_result['difference']) >= 0.01) {
-                $difference = (float) $calc_result['difference'];
-                if ($difference > 0) {
-                    $deposited_amount = $difference;
-                    $status = 'calculated';
-                } else {
-                    $status = 'updated';
-                }
-            } elseif (!empty($calc_result['transaction_id'])) {
-                $deposited_amount = (float) ($calc_result['salary_amount'] ?? 0);
-                $status = $deposited_amount > 0 ? 'calculated' : 'zero_amount';
-            } elseif (($calc_result['message'] ?? '') === 'مبلغ تغییر نکرده') {
-                $status = 'no_change';
-            } elseif (($calc_result['message'] ?? '') === 'دستمزد قابل پرداختی وجود ندارد') {
-                $status = 'zero_amount';
+        if (empty($calc_result['success'])) {
+            if ($calc_message === 'درصد دستمزد تنظیم نشده است') {
+                $status = 'missing_percentage';
+            } elseif ($calc_message === 'پارامترهای نامعتبر') {
+                $status = 'invalid_params';
             } else {
-                $status = 'no_change';
+                $status = 'error';
             }
+            if ($calc_message === '') {
+                $calc_message = 'خطا در محاسبه دستمزد';
+            }
+        } elseif (isset($calc_result['deposited_amount']) && (float) $calc_result['deposited_amount'] > 0) {
+            $deposited_amount = (float) $calc_result['deposited_amount'];
+            $status = 'calculated';
+        } elseif (isset($calc_result['difference']) && abs((float) $calc_result['difference']) >= 0.01) {
+            $difference = (float) $calc_result['difference'];
+            if ($difference > 0) {
+                $deposited_amount = $difference;
+                $status = 'calculated';
+            } else {
+                $status = 'updated';
+                $calc_message = $calc_message !== '' ? $calc_message : ('دستمزد به‌روزرسانی شد و مبلغ ' . number_format(abs($difference), 0, '.', ',') . ' تومان از کیف پول کسر شد');
+            }
+        } elseif (!empty($calc_result['transaction_id'])) {
+            $deposited_amount = (float) ($calc_result['salary_amount'] ?? 0);
+            $status = $deposited_amount > 0 ? 'calculated' : 'zero_amount';
+        } elseif ($calc_message === 'مبلغ تغییر نکرده') {
+            $status = 'no_change';
+        } elseif ($calc_message === 'دستمزد قابل پرداختی وجود ندارد' || $coach_attendance_count <= 0) {
+            $status = 'zero_amount';
+            if ($coach_attendance_count <= 0) {
+                $calc_message = $present_only_for_salary
+                    ? 'هیچ حضور واجد شرایطی برای محاسبه دستمزد ثبت نشده است'
+                    : 'هیچ رکورد حضور و غیابی برای محاسبه دستمزد یافت نشد';
+            }
+        } else {
+            $status = 'no_change';
         }
 
         $results['coaches'][] = [
@@ -413,7 +500,10 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
             'gross_salary_amount' => (float) ($calc_result['gross_salary_amount'] ?? ($calc_result['salary_amount'] ?? 0)),
             'assistant_total' => (float) ($calc_result['assistant_total'] ?? 0),
             'deposited_amount' => $deposited_amount,
-            'message' => (string) ($calc_result['message'] ?? ''),
+            'attendance_count' => $coach_attendance_count,
+            'salary_percentage' => $salary_percentage,
+            'price_per_session' => $price_per_session,
+            'message' => $calc_message,
         ];
 
         // نوتیف/نتیجه کمک‌مربی‌ها
@@ -432,14 +522,24 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
                         $a_name = trim((string) $a_row->first_name . ' ' . (string) $a_row->last_name);
                     }
                 }
+                $a_status = 'zero_amount';
+                $a_message = (string) ($a_res['message'] ?? '');
+                if ($a_dep > 0) {
+                    $a_status = 'calculated';
+                } elseif (!empty($a_res['success']) && $a_message === 'مبلغ تغییر نکرده') {
+                    $a_status = 'no_change';
+                } elseif (empty($a_res['success']) && $a_message !== '') {
+                    $a_status = 'error';
+                }
                 $results['coaches'][] = [
                     'coach_id' => $a_id,
                     'chapter_name' => $chapter_name,
                     'coach_name' => $a_name !== '' ? ($a_name . ' (کمک‌مربی)') : 'کمک‌مربی',
-                    'status' => $a_dep > 0 ? 'calculated' : ((!empty($a_res['success']) && ($a_res['message'] ?? '') === 'مبلغ تغییر نکرده') ? 'no_change' : 'zero_amount'),
+                    'status' => $a_status,
                     'salary_amount' => (float) ($ar['amount'] ?? ($a_res['salary_amount'] ?? 0)),
                     'deposited_amount' => $a_dep,
-                    'message' => (string) ($a_res['message'] ?? ''),
+                    'attendance_count' => $coach_attendance_count,
+                    'message' => $a_message,
                     'is_assistant' => true,
                 ];
             }
@@ -496,22 +596,37 @@ function sc_send_coach_salary_attendance_notification($coach_id, $type, $title, 
  * @param int    $course_id
  * @param string $attendance_date Y-m-d
  * @param string $course_title
- * @return array<int, array{type: string, message: string, coach_id: int}>
+ * @return array<int, array{type: string, message: string, coach_id: int, status?: string}>
  */
 function sc_process_coach_salary_attendance_notifications($course_id, $attendance_date, $course_title = '') {
-    if (!function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') || !sc_is_pro_feature_coaches_wallet_salary_enabled()) {
-        return [];
-    }
-
     $course_id = absint($course_id);
     $attendance_date = sanitize_text_field((string) $attendance_date);
     if (!$course_id || $attendance_date === '') {
-        return [];
+        return [[
+            'type' => 'warning',
+            'coach_id' => 0,
+            'status' => 'invalid_params',
+            'message' => 'حقوق و دستمزد محاسبه نشد: دوره یا تاریخ حضور نامعتبر است.',
+        ]];
+    }
+
+    if (!function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') || !sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+        return [[
+            'type' => 'warning',
+            'coach_id' => 0,
+            'status' => 'feature_disabled',
+            'message' => 'حقوق و دستمزد محاسبه نشد: قابلیت کیف پول و حقوق مربیان فعال نیست.',
+        ]];
     }
 
     $salary_results = sc_refresh_coach_percentage_salary_for_course_date($course_id, $attendance_date);
     if (empty($salary_results['coaches']) || !is_array($salary_results['coaches'])) {
-        return [];
+        return [[
+            'type' => 'warning',
+            'coach_id' => 0,
+            'status' => 'no_coaches',
+            'message' => 'حقوق و دستمزد محاسبه نشد: مربی واجد شرایطی برای این دوره یافت نشد.',
+        ]];
     }
 
     $course_title = $course_title !== '' ? $course_title : ('دوره #' . $course_id);
@@ -527,8 +642,18 @@ function sc_process_coach_salary_attendance_notifications($course_id, $attendanc
     $notices = [];
 
     foreach ($salary_results['coaches'] as $coach_result) {
+        $status = (string) ($coach_result['status'] ?? '');
         $coach_id = (int) ($coach_result['coach_id'] ?? 0);
-        if (!$coach_id) {
+
+        // پیام کلی بدون مربی مشخص (مثلاً no_coaches)
+        if ($coach_id <= 0) {
+            $raw_message = trim((string) ($coach_result['message'] ?? ''));
+            $notices[] = [
+                'type' => 'warning',
+                'coach_id' => 0,
+                'status' => $status !== '' ? $status : 'error',
+                'message' => 'حقوق و دستمزد محاسبه نشد' . ($raw_message !== '' ? ': ' . $raw_message : '.') ,
+            ];
             continue;
         }
 
@@ -539,58 +664,161 @@ function sc_process_coach_salary_attendance_notifications($course_id, $attendanc
         $coach_name = trim((string) ($coach_result['coach_name'] ?? ''));
         $chapter_name = sanitize_text_field((string) ($coach_result['chapter_name'] ?? ''));
         $chapter_label = $chapter_name !== '' ? (' (شعبه: ' . $chapter_name . ')') : '';
-        $name_prefix = ($is_pure_coach || $current_coach_id === $coach_id) ? '' : ($coach_name !== '' ? 'مربی ' . $coach_name . ': ' : '');
+        $name_prefix = ($is_pure_coach || $current_coach_id === $coach_id)
+            ? ''
+            : ($coach_name !== '' ? 'مربی ' . $coach_name . ': ' : '');
+        $salary_amount = (float) ($coach_result['salary_amount'] ?? 0);
+        $deposited_amount = (float) ($coach_result['deposited_amount'] ?? 0);
+        $attendance_count = (int) ($coach_result['attendance_count'] ?? 0);
+        $raw_message = trim((string) ($coach_result['message'] ?? ''));
 
-        if (($coach_result['status'] ?? '') === 'missing_price') {
-            $title = 'دستمزد محاسبه نشد';
-            $content = sprintf(
-                'دستمزد شما برای دوره «%s»%s در تاریخ %s به علت نداشتن قیمت هر جلسه محاسبه نشد. از طریق مدیریت این موضوع را پیگیری کنید.',
-                $course_title,
-                $chapter_label,
-                $attendance_date_shamsi
-            );
+        $meta = [
+            'course_id' => $course_id,
+            'attendance_date' => $attendance_date,
+            'chapter_name' => $chapter_name,
+            'course_title' => $course_title,
+            'status' => $status,
+        ];
 
-            sc_send_coach_salary_attendance_notification($coach_id, 'missing_price', $title, $content, [
-                'course_id' => $course_id,
-                'attendance_date' => $attendance_date,
-                'chapter_name' => $chapter_name,
-                'course_title' => $course_title,
-            ]);
+        switch ($status) {
+            case 'calculated':
+                $amount_formatted = number_format($deposited_amount > 0 ? $deposited_amount : $salary_amount, 0, '.', ',');
+                $title = 'دستمزد محاسبه شد';
+                $content = sprintf(
+                    'دستمزد شما برای دوره «%s»%s در تاریخ %s محاسبه شد و مبلغ %s تومان به کیف پول شما واریز شد.',
+                    $course_title,
+                    $chapter_label,
+                    $attendance_date_shamsi,
+                    $amount_formatted
+                );
+                sc_send_coach_salary_attendance_notification($coach_id, 'calculated', $title, $content, array_merge($meta, [
+                    'deposited_amount' => $deposited_amount,
+                ]));
+                $notices[] = [
+                    'type' => 'success',
+                    'coach_id' => $coach_id,
+                    'status' => $status,
+                    'message' => $name_prefix . 'حقوق و دستمزد محاسبه شد' . $chapter_label . ' و مبلغ ' . $amount_formatted . ' تومان به کیف پول واریز شد.',
+                ];
+                break;
 
-            $notices[] = [
-                'type' => 'warning',
-                'coach_id' => $coach_id,
-                'message' => $name_prefix . 'دستمزد شما' . $chapter_label . ' به علت نداشتن قیمت هر جلسه محاسبه نشد. از طریق مدیریت این موضوع را پیگیری کنید.',
-            ];
-            continue;
+            case 'updated':
+                $notices[] = [
+                    'type' => 'success',
+                    'coach_id' => $coach_id,
+                    'status' => $status,
+                    'message' => $name_prefix . 'حقوق و دستمزد به‌روزرسانی شد' . $chapter_label . ($raw_message !== '' ? ': ' . $raw_message : '.'),
+                ];
+                break;
+
+            case 'no_change':
+                $amount_formatted = number_format($salary_amount, 0, '.', ',');
+                $notices[] = [
+                    'type' => 'info',
+                    'coach_id' => $coach_id,
+                    'status' => $status,
+                    'message' => $name_prefix . 'حقوق و دستمزد قبلاً محاسبه شده بود' . $chapter_label
+                        . ($salary_amount > 0 ? ' (مبلغ فعلی: ' . $amount_formatted . ' تومان)' : '')
+                        . ' و تغییری نداشت.',
+                ];
+                break;
+
+            case 'missing_price':
+                $reason = $raw_message !== '' ? $raw_message : 'قیمت هر جلسه دوره تنظیم نشده است';
+                $title = 'دستمزد محاسبه نشد';
+                $content = sprintf(
+                    'دستمزد شما برای دوره «%s»%s در تاریخ %s محاسبه نشد. علت: %s. از طریق مدیریت این موضوع را پیگیری کنید.',
+                    $course_title,
+                    $chapter_label,
+                    $attendance_date_shamsi,
+                    $reason
+                );
+                sc_send_coach_salary_attendance_notification($coach_id, 'missing_price', $title, $content, $meta);
+                $notices[] = [
+                    'type' => 'warning',
+                    'coach_id' => $coach_id,
+                    'status' => $status,
+                    'message' => $name_prefix . 'حقوق و دستمزد محاسبه نشد' . $chapter_label . '. علت: ' . $reason,
+                ];
+                break;
+
+            case 'missing_percentage':
+                $reason = $raw_message !== '' ? $raw_message : 'درصد دستمزد برای این مربی در دوره/شعبه ثبت نشده است';
+                $title = 'دستمزد محاسبه نشد';
+                $content = sprintf(
+                    'دستمزد شما برای دوره «%s»%s در تاریخ %s محاسبه نشد. علت: %s. از طریق مدیریت این موضوع را پیگیری کنید.',
+                    $course_title,
+                    $chapter_label,
+                    $attendance_date_shamsi,
+                    $reason
+                );
+                sc_send_coach_salary_attendance_notification($coach_id, 'missing_percentage', $title, $content, $meta);
+                $notices[] = [
+                    'type' => 'warning',
+                    'coach_id' => $coach_id,
+                    'status' => $status,
+                    'message' => $name_prefix . 'حقوق و دستمزد محاسبه نشد' . $chapter_label . '. علت: ' . $reason,
+                ];
+                break;
+
+            case 'missing_chapter':
+                $reason = $raw_message !== '' ? $raw_message : 'شعبه برای انتساب مربی به دوره مشخص نشده است';
+                $notices[] = [
+                    'type' => 'warning',
+                    'coach_id' => $coach_id,
+                    'status' => $status,
+                    'message' => $name_prefix . 'حقوق و دستمزد محاسبه نشد. علت: ' . $reason,
+                ];
+                break;
+
+            case 'skipped_settlement':
+                $reason = $raw_message !== '' ? $raw_message : 'نوع تسویه مربی شامل دستمزد درصدی نیست';
+                $notices[] = [
+                    'type' => 'info',
+                    'coach_id' => $coach_id,
+                    'status' => $status,
+                    'message' => $name_prefix . 'حقوق و دستمزد درصدی محاسبه نشد' . $chapter_label . '. علت: ' . $reason,
+                ];
+                break;
+
+            case 'zero_amount':
+                if ($raw_message !== '') {
+                    $reason_text = $raw_message;
+                } elseif ($attendance_count <= 0) {
+                    $reason_text = 'هیچ حضور واجد شرایطی برای محاسبه دستمزد ثبت نشده است';
+                } else {
+                    $reason_text = 'مبلغ دستمزد صفر است';
+                }
+                $notices[] = [
+                    'type' => 'warning',
+                    'coach_id' => $coach_id,
+                    'status' => $status,
+                    'message' => $name_prefix . 'حقوق و دستمزد محاسبه نشد' . $chapter_label . '. علت: ' . $reason_text
+                        . ($attendance_count > 0 ? ' (تعداد حضور: ' . $attendance_count . ')' : ''),
+                ];
+                break;
+
+            case 'invalid_params':
+            case 'error':
+            default:
+                $reason = $raw_message !== '' ? $raw_message : 'خطای نامشخص در محاسبه دستمزد';
+                $notices[] = [
+                    'type' => 'error',
+                    'coach_id' => $coach_id,
+                    'status' => $status !== '' ? $status : 'error',
+                    'message' => $name_prefix . 'حقوق و دستمزد محاسبه نشد' . $chapter_label . '. علت: ' . $reason,
+                ];
+                break;
         }
+    }
 
-        if (($coach_result['status'] ?? '') === 'calculated' && (float) ($coach_result['deposited_amount'] ?? 0) > 0) {
-            $deposited_amount = (float) $coach_result['deposited_amount'];
-            $amount_formatted = number_format($deposited_amount, 0, '.', ',');
-            $title = 'دستمزد محاسبه شد';
-            $content = sprintf(
-                'دستمزد شما برای دوره «%s»%s در تاریخ %s محاسبه شد و مبلغ %s تومان به کیف پول شما واریز شد.',
-                $course_title,
-                $chapter_label,
-                $attendance_date_shamsi,
-                $amount_formatted
-            );
-
-            sc_send_coach_salary_attendance_notification($coach_id, 'calculated', $title, $content, [
-                'course_id' => $course_id,
-                'attendance_date' => $attendance_date,
-                'chapter_name' => $chapter_name,
-                'course_title' => $course_title,
-                'deposited_amount' => $deposited_amount,
-            ]);
-
-            $notices[] = [
-                'type' => 'success',
-                'coach_id' => $coach_id,
-                'message' => $name_prefix . 'دستمزد شما' . $chapter_label . ' محاسبه شد و مبلغ ' . $amount_formatted . ' تومان به کیف پول شما واریز شد.',
-            ];
-        }
+    if (empty($notices)) {
+        $notices[] = [
+            'type' => 'warning',
+            'coach_id' => 0,
+            'status' => 'no_visible_result',
+            'message' => 'حقوق و دستمزد برای مربی فعلی نتیجه‌ای جهت نمایش نداشت.',
+        ];
     }
 
     return $notices;
@@ -846,17 +1074,114 @@ function sc_calculate_coach_percentage_salary($coach_id, $course_id, $attendance
     }
 
     $salary_percentage = floatval($course_coach->salary_percentage);
-    $total_revenue = $attendance_count * $price_per_session;
-    $gross_salary = ($total_revenue * $salary_percentage) / 100;
 
-    $assistants = [];
-    if ($chapter_name !== '' && function_exists('sc_get_assistants_for_primary_coach')) {
-        $assistants = sc_get_assistants_for_primary_coach($course_id, $coach_id, $chapter_name, $group_name);
+    // اگر دوره گروه‌بندی دارد و گروه مشخص نشده، سهم کمک‌مربی را به‌ازای هر گروه جدا حساب کن
+    $use_group_split = (
+        $group_name === ''
+        && $chapter_name !== ''
+        && function_exists('sc_course_has_grouping_enabled')
+        && sc_course_has_grouping_enabled($course_id)
+        && function_exists('sc_get_course_groups')
+        && function_exists('sc_get_assistants_for_primary_coach')
+        && function_exists('sc_split_primary_salary_with_assistants')
+    );
+
+    if ($use_group_split) {
+        $calc_couch_salary = function_exists('sc_get_setting') ? sc_get_setting('calc_couch_salary') : '';
+        $present_only_for_salary = !empty($calc_couch_salary);
+
+        $group_keys = [];
+        foreach ((array) sc_get_course_groups($course_id) as $grow) {
+            $gname = isset($grow->group_name) ? trim((string) $grow->group_name) : '';
+            if ($gname === '') {
+                continue;
+            }
+            $g_ch = isset($grow->chapter_name) ? (string) $grow->chapter_name : '';
+            $g_coach = isset($grow->coach_id) ? (int) $grow->coach_id : 0;
+            if ($g_ch !== '' && $g_ch !== $chapter_name) {
+                continue;
+            }
+            if ($g_coach > 0 && $g_coach !== $coach_id) {
+                continue;
+            }
+            $group_keys[$gname] = true;
+        }
+        // اعضای بدون گروه هم در صورت وجود حضور محاسبه شوند
+        $group_keys[''] = true;
+
+        $attendance_count = 0;
+        $gross_salary = 0.0;
+        $primary_net_total = 0.0;
+        $assistant_agg = [];
+
+        foreach (array_keys($group_keys) as $gkey) {
+            $g_count = sc_get_coach_attendance_count_for_salary(
+                $coach_id,
+                $course_id,
+                $attendance_date,
+                $present_only_for_salary,
+                $chapter_name,
+                $gkey
+            );
+            if ($g_count <= 0) {
+                continue;
+            }
+            $g_gross = ($g_count * $price_per_session * $salary_percentage) / 100;
+            $g_assistants = sc_get_assistants_for_primary_coach($course_id, $coach_id, $chapter_name, $gkey);
+            $g_split = sc_split_primary_salary_with_assistants($g_gross, $g_assistants);
+
+            $attendance_count += $g_count;
+            $gross_salary += $g_gross;
+            $primary_net_total += (float) $g_split['primary_net'];
+
+            foreach ($g_split['assistants'] as $ga) {
+                $aid = (int) $ga['coach_id'];
+                if ($aid < 1) {
+                    continue;
+                }
+                if (!isset($assistant_agg[$aid])) {
+                    $assistant_agg[$aid] = [
+                        'coach_id' => $aid,
+                        'share_percentage' => 0.0,
+                        'amount' => 0.0,
+                        'name' => (string) ($ga['name'] ?? ''),
+                        '_gross_base' => 0.0,
+                    ];
+                }
+                $assistant_agg[$aid]['amount'] += (float) $ga['amount'];
+                $assistant_agg[$aid]['_gross_base'] += $g_gross;
+                if ($assistant_agg[$aid]['name'] === '' && !empty($ga['name'])) {
+                    $assistant_agg[$aid]['name'] = (string) $ga['name'];
+                }
+            }
+        }
+
+        foreach ($assistant_agg as $aid => $row) {
+            $base = (float) $row['_gross_base'];
+            $assistant_agg[$aid]['share_percentage'] = $base > 0
+                ? round(((float) $row['amount'] / $base) * 100, 2)
+                : 0.0;
+            unset($assistant_agg[$aid]['_gross_base']);
+        }
+
+        $total_revenue = $attendance_count * $price_per_session;
+        $split = [
+            'primary_net' => $primary_net_total,
+            'assistants' => array_values($assistant_agg),
+        ];
+    } else {
+        $total_revenue = $attendance_count * $price_per_session;
+        $gross_salary = ($total_revenue * $salary_percentage) / 100;
+
+        $assistants = [];
+        if ($chapter_name !== '' && function_exists('sc_get_assistants_for_primary_coach')) {
+            $assistants = sc_get_assistants_for_primary_coach($course_id, $coach_id, $chapter_name, $group_name);
+        }
+
+        $split = function_exists('sc_split_primary_salary_with_assistants')
+            ? sc_split_primary_salary_with_assistants($gross_salary, $assistants)
+            : ['primary_net' => $gross_salary, 'assistants' => []];
     }
-
-    $split = function_exists('sc_split_primary_salary_with_assistants')
-        ? sc_split_primary_salary_with_assistants($gross_salary, $assistants)
-        : ['primary_net' => $gross_salary, 'assistants' => []];
 
     $payout_mode = function_exists('sc_get_assistant_salary_payout_mode')
         ? sc_get_assistant_salary_payout_mode()

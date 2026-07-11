@@ -435,11 +435,14 @@ if (
     if (!empty($salary_notices) && is_array($salary_notices)) {
         foreach ($salary_notices as $salary_notice) {
             $notice_type = isset($salary_notice['type']) ? $salary_notice['type'] : 'info';
-            $notice_message = isset($salary_notice['message']) ? $salary_notice['message'] : '';
+            if (!in_array($notice_type, ['success', 'warning', 'error', 'info'], true)) {
+                $notice_type = 'info';
+            }
+            $notice_message = isset($salary_notice['message']) ? trim((string) $salary_notice['message']) : '';
             if ($notice_message === '') {
                 continue;
             }
-            echo '<div class="notice notice-' . esc_attr($notice_type) . ' is-dismissible"><p>' . esc_html($notice_message) . '</p></div>';
+            echo '<div class="notice notice-' . esc_attr($notice_type) . ' is-dismissible"><p><strong>حقوق و دستمزد مربی:</strong> ' . esc_html($notice_message) . '</p></div>';
         }
     }
 }

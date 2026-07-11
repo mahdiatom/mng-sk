@@ -197,6 +197,7 @@ $sql = "CREATE TABLE `$table_name` (
     `user_id` bigint(20) unsigned DEFAULT NULL,
     `record_method` varchar(20) NOT NULL DEFAULT 'manual' COMMENT 'manual|qr|api|auto_absent',
     `scan_photo` varchar(255) DEFAULT NULL COMMENT 'عکس لحظه اسکن QR',
+    `scan_photo_front` varchar(255) DEFAULT NULL COMMENT 'عکس دوربین جلو',
     `absence_sms_sent` tinyint(1) DEFAULT 0,
     `created_at` datetime NOT NULL,
     `updated_at` datetime NOT NULL,
@@ -1469,6 +1470,7 @@ function sc_create_tarddod_tables() {
         `subject_name` varchar(255) NOT NULL DEFAULT '',
         `record_method` varchar(20) NOT NULL DEFAULT 'qr',
         `scan_photo` varchar(255) DEFAULT NULL COMMENT 'عکس لحظه اسکن QR',
+        `scan_photo_front` varchar(255) DEFAULT NULL COMMENT 'عکس دوربین جلو',
         `scanned_by` bigint(20) unsigned NOT NULL DEFAULT 0,
         `created_at` datetime NOT NULL,
         PRIMARY KEY (`id`),
@@ -2613,6 +2615,26 @@ function sc_update_database() {
             }
         }
         update_option('sc_qr_scan_photo_columns_added', '1');
+    }
+
+    if (get_option('sc_qr_scan_photo_front_columns_added', '0') !== '1') {
+        if (function_exists('sc_qr_scan_photo_ensure_columns')) {
+            sc_qr_scan_photo_ensure_columns();
+        } else {
+            $att = $wpdb->prefix . 'sc_attendances';
+            $tard = $wpdb->prefix . 'sc_tarddod_records';
+            if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $att)) === $att) {
+                if (empty($wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$att` LIKE %s", 'scan_photo_front')))) {
+                    $wpdb->query("ALTER TABLE `$att` ADD COLUMN `scan_photo_front` varchar(255) DEFAULT NULL COMMENT 'عکس دوربین جلو' AFTER `scan_photo`");
+                }
+            }
+            if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $tard)) === $tard) {
+                if (empty($wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$tard` LIKE %s", 'scan_photo_front')))) {
+                    $wpdb->query("ALTER TABLE `$tard` ADD COLUMN `scan_photo_front` varchar(255) DEFAULT NULL COMMENT 'عکس دوربین جلو' AFTER `scan_photo`");
+                }
+            }
+        }
+        update_option('sc_qr_scan_photo_front_columns_added', '1');
     }
 
     // جدول کمک‌مربی‌های دوره

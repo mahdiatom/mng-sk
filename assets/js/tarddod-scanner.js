@@ -332,93 +332,91 @@
 
         showToast('در حال ثبت...', 'info');
 
-        var rawFrame = '';
-        if (cfg.snapshotEnabled && window.scQrScanSnapshot) {
-            rawFrame = window.scQrScanSnapshot.captureFrame('sc-attendance-qr-reader', 720) || '';
-        }
+        var linesPreview = [
+            localMember && localMember.name ? localMember.name : 'فرد',
+            sessionMeta.title ? ('جلسه: ' + sessionMeta.title) : '',
+            window.scQrScanSnapshot ? window.scQrScanSnapshot.nowLabelFa() : ''
+        ];
 
-        $.post(cfg.ajaxUrl, {
-            action: 'sc_tarddod_scan',
-            nonce: cfg.nonce,
-            session_id: sessionId,
-            qr_payload: payload
-        }).done(function (res) {
-            if (res && res.success) {
-                var code = res.data && res.data.code ? res.data.code : 'created';
-                var name = res.data && res.data.subject_name ? res.data.subject_name : (localMember ? localMember.name : '');
-                var typeLabel = subjectTypeLabel(res.data && res.data.subject_type ? res.data.subject_type : 'member');
-                var recordId = res.data && res.data.record_id ? parseInt(res.data.record_id, 10) : 0;
-                var sessionTitle = (res.data && res.data.session_title) ? res.data.session_title : sessionMeta.title;
+        function postScan(photos) {
+            photos = photos || { rear: '', front: '' };
+            $.post(cfg.ajaxUrl, {
+                action: 'sc_tarddod_scan',
+                nonce: cfg.nonce,
+                session_id: sessionId,
+                qr_payload: payload,
+                photo_data: photos.rear || '',
+                photo_data_front: photos.front || ''
+            }).done(function (res) {
+                if (res && res.success) {
+                    var code = res.data && res.data.code ? res.data.code : 'created';
+                    var name = res.data && res.data.subject_name ? res.data.subject_name : (localMember ? localMember.name : '');
+                    var typeLabel = subjectTypeLabel(res.data && res.data.subject_type ? res.data.subject_type : 'member');
 
-                if (code === 'duplicate') {
-                    playSound('duplicate');
-                    showToast(name + ' — قبلاً ثبت شده', 'duplicate');
-                    prependLog({ ok: true, duplicate: true, name: name, message: typeLabel });
+                    if (code === 'duplicate') {
+                        playSound('duplicate');
+                        showToast(name + ' — قبلاً ثبت شده', 'duplicate');
+                        prependLog({ ok: true, duplicate: true, name: name, message: typeLabel });
+                        return;
+                    }
+
+                    playSound('success');
+                    showToast(name + ' — تردد ثبت شد ✓', 'success');
+                    prependLog({ ok: true, duplicate: false, name: name, message: typeLabel });
+                    incrementScanCount();
+                    appendTableRow({
+                        subject_name: name,
+                        subject_type: res.data.subject_type,
+                        created_at: new Date().toLocaleString('fa-IR')
+                    });
                     return;
                 }
 
-                if (cfg.snapshotEnabled && rawFrame && recordId && window.scQrScanSnapshot && code === 'created') {
-                    var lines = [
-                        name || 'فرد',
-                        sessionTitle ? ('جلسه: ' + sessionTitle) : '',
-                        typeLabel,
-                        window.scQrScanSnapshot.nowLabelFa()
-                    ];
-                    window.scQrScanSnapshot.applyOverlay(rawFrame, lines, 0.72).then(function (photo) {
-                        if (!photo) return;
-                        window.scQrScanSnapshot.uploadSnapshot({
-                            ajaxUrl: cfg.ajaxUrl,
-                            nonce: cfg.nonce,
-                            context: 'tarddod',
-                            recordId: recordId,
-                            photoData: photo
-                        });
-                    });
+                var errCode = (res && res.data && res.data.code) ? res.data.code : '';
+                var errMsg = (res && res.data && res.data.message) ? res.data.message : 'خطا در ثبت';
+                var errName = (res && res.data && res.data.subject_name) ? res.data.subject_name : (localMember ? localMember.name : '');
+
+                if (errCode === 'qr_disabled') {
+                    playSound('disabled');
+                } else if (errCode === 'invalid_qr') {
+                    playSound('error');
+                    errMsg = errMsg || 'کد QR نامعتبر است. QR را کامل جلوی دوربین بگیرید.';
+                } else if (errCode === 'unknown_qr') {
+                    playSound('error');
+                    errMsg = errMsg || 'بازیکن مرتبط با این QR یافت نشد.';
+                } else if (errCode === 'session_closed' || errCode === 'session_draft') {
+                    playSound('error');
+                } else {
+                    playSound('error');
                 }
 
-                playSound('success');
-                showToast(name + ' — تردد ثبت شد ✓', 'success');
-                prependLog({ ok: true, duplicate: false, name: name, message: typeLabel });
-                incrementScanCount();
-                appendTableRow({
-                    subject_name: name,
-                    subject_type: res.data.subject_type,
-                    created_at: new Date().toLocaleString('fa-IR')
-                });
-                return;
-            }
+                showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
+                prependLog({ ok: false, name: errName, message: errMsg });
+            }).fail(function (xhr) {
+                playSound('error');
+                var msg = 'خطا در ارتباط با سرور';
+                if (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+                    msg = xhr.responseJSON.data.message;
+                }
+                showToast(msg, 'error');
+                prependLog({ ok: false, name: '', message: msg });
+            }).always(function () {
+                delete inFlightHashes[payload];
+            });
+        }
 
-            var errCode = (res && res.data && res.data.code) ? res.data.code : '';
-            var errMsg = (res && res.data && res.data.message) ? res.data.message : 'خطا در ثبت';
-            var errName = (res && res.data && res.data.subject_name) ? res.data.subject_name : (localMember ? localMember.name : '');
-
-            if (errCode === 'qr_disabled') {
-                playSound('disabled');
-            } else if (errCode === 'invalid_qr') {
-                playSound('error');
-                errMsg = errMsg || 'کد QR نامعتبر است. QR را کامل جلوی دوربین بگیرید.';
-            } else if (errCode === 'unknown_qr') {
-                playSound('error');
-                errMsg = errMsg || 'بازیکن مرتبط با این QR یافت نشد.';
-            } else if (errCode === 'session_closed' || errCode === 'session_draft') {
-                playSound('error');
-            } else {
-                playSound('error');
-            }
-
-            showToast((errName ? errName + ' — ' : '') + errMsg, 'error');
-            prependLog({ ok: false, name: errName, message: errMsg });
-        }).fail(function (xhr) {
-            playSound('error');
-            var msg = 'خطا در ارتباط با سرور';
-            if (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
-                msg = xhr.responseJSON.data.message;
-            }
-            showToast(msg, 'error');
-            prependLog({ ok: false, name: '', message: msg });
-        }).always(function () {
-            delete inFlightHashes[payload];
-        });
+        if (cfg.snapshotEnabled && window.scQrScanSnapshot) {
+            window.scQrScanSnapshot.prepareScanPhotos({
+                readerId: 'sc-attendance-qr-reader',
+                lines: linesPreview,
+                captureFront: !!cfg.snapshotFrontEnabled,
+                maxWidth: 720
+            }).then(postScan).catch(function () {
+                postScan({ rear: '', front: '' });
+            });
+        } else {
+            postScan({ rear: '', front: '' });
+        }
     }
 
     function setScannerFullscreen(active) {

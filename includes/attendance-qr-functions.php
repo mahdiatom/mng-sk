@@ -2277,17 +2277,26 @@ function sc_ajax_attendance_qr_scan() {
         ]);
     }
 
+    $attendance_id = isset($result['attendance_id']) ? (int) $result['attendance_id'] : 0;
+    $photos = ['rear' => '', 'front' => '', 'rear_url' => '', 'front_url' => ''];
+    if ($attendance_id && in_array($result['code'] ?? '', ['created', 'updated'], true)
+        && function_exists('sc_qr_scan_photo_handle_post_for_record')) {
+        $photos = sc_qr_scan_photo_handle_post_for_record('attendance', $attendance_id);
+    }
+
     wp_send_json_success([
         'message'       => $result['message'],
         'code'          => $result['code'],
         'member_name'   => $result['member_name'],
         'member_id'     => (int) $member->id,
-        'attendance_id' => isset($result['attendance_id']) ? (int) $result['attendance_id'] : 0,
+        'attendance_id' => $attendance_id,
         'course_title'  => isset($result['course_title']) ? $result['course_title'] : '',
         'is_new'        => !empty($result['is_new']),
         'has_debt'      => !empty($result['has_debt']),
         'debt_amount'   => isset($result['debt_amount']) ? floatval($result['debt_amount']) : 0,
         'snapshot'      => function_exists('sc_qr_scan_photo_is_enabled') && sc_qr_scan_photo_is_enabled(),
+        'photo_url'     => $photos['rear_url'],
+        'photo_front_url' => $photos['front_url'],
     ]);
 }
 

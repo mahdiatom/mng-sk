@@ -1438,6 +1438,14 @@ function sc_register_admin_menu() {
         );
         add_submenu_page(
             'sc_orders',
+            'انبار',
+            'انبار',
+            'manage_woocommerce',
+            'sc-warehouse',
+            'sc_product_warehouse_page'
+        );
+        add_submenu_page(
+            'sc_orders',
             ' کد تخفیف ',
             ' لیست کد تخفیف ' ,
             'manage_woocommerce',
@@ -1807,6 +1815,20 @@ function sc_product_stock_inquiry_page() {
         sc_product_branch_stock_ensure_table();
     }
     include SC_TEMPLATES_ADMIN_DIR . 'product-stock-inquiry.php';
+}
+
+/**
+ * انبار — لیست موجودی محصولات
+ */
+function sc_product_warehouse_page() {
+    if (!current_user_can('manage_woocommerce')) {
+        wp_die(esc_html__('شما به این صفحه دسترسی ندارید.', 'sportclub-manager'));
+    }
+    sc_check_and_create_tables();
+    if (function_exists('sc_product_branch_stock_ensure_table')) {
+        sc_product_branch_stock_ensure_table();
+    }
+    include SC_TEMPLATES_ADMIN_DIR . 'product-warehouse.php';
 }
 
 /**
@@ -3833,11 +3855,11 @@ function callback_add_course_sufix() {
                 if (function_exists('sc_save_course_coach_assignments_from_post')) {
                     sc_save_course_coach_assignments_from_post($course_id, $posted_chapters);
                 }
-                if (function_exists('sc_save_course_assistant_coaches_from_post')) {
-                    sc_save_course_assistant_coaches_from_post($course_id, $posted_chapters);
-                }
                 if (function_exists('sc_save_course_groups_from_post')) {
                     sc_save_course_groups_from_post($course_id, (bool) $has_grouping_flag);
+                }
+                if (function_exists('sc_save_course_assistant_coaches_from_post')) {
+                    sc_save_course_assistant_coaches_from_post($course_id, $posted_chapters);
                 }
                 if (function_exists('sc_save_granular_capacities_from_post')) {
                     sc_save_granular_capacities_from_post($course_id);
@@ -3934,11 +3956,11 @@ function callback_add_course_sufix() {
                 if (function_exists('sc_save_course_coach_assignments_from_post')) {
                     sc_save_course_coach_assignments_from_post($insert_id, $posted_chapters);
                 }
-                if (function_exists('sc_save_course_assistant_coaches_from_post')) {
-                    sc_save_course_assistant_coaches_from_post($insert_id, $posted_chapters);
-                }
                 if (function_exists('sc_save_course_groups_from_post')) {
                     sc_save_course_groups_from_post($insert_id, (bool) $has_grouping_flag);
+                }
+                if (function_exists('sc_save_course_assistant_coaches_from_post')) {
+                    sc_save_course_assistant_coaches_from_post($insert_id, $posted_chapters);
                 }
                 if (function_exists('sc_save_granular_capacities_from_post')) {
                     sc_save_granular_capacities_from_post($insert_id);
@@ -6125,11 +6147,23 @@ function callback_add_coach_sufix() {
                 }
             }
             
+            // فرمت‌ها باید با کلیدهای $data هم‌تراز باشند؛ اشتباه قبلی settlement_type را با %f به 0.000000 تبدیل می‌کرد.
+            $update_format = [];
+            foreach ($data as $field_key => $field_value) {
+                if (in_array($field_key, ['coaching_experience', 'club_rules_accepted', 'is_active', 'is_private_enabled', 'user_id'], true)) {
+                    $update_format[] = '%d';
+                } elseif ($field_key === 'settlement_amount') {
+                    $update_format[] = '%f';
+                } else {
+                    $update_format[] = '%s';
+                }
+            }
+
             $updated = $wpdb->update(
                 $coaches_table,
                 $data,
                 ['id' => $coach_id],
-                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%d', '%s'],
+                $update_format,
                 ['%d']
             );
             
